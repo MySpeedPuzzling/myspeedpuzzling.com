@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\ApiUser;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -34,7 +35,14 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
         $user = $this->security->getUser();
         assert($user instanceof ApiUser);
 
-        $playerId = $user->getPlayer()->id->toString();
+        // The handler resolves the player by auth0 user id (and creates one when missing),
+        // so passing the player uuid here would attribute the time to a phantom player
+        $userId = $user->getPlayer()->userId;
+
+        if ($userId === null) {
+            throw new AccessDeniedHttpException('Player account has no linked user login.');
+        }
+
         $timeId = Uuid::uuid7();
 
         // Validate the optional round here so an invalid/unknown id surfaces as 404
@@ -49,7 +57,7 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
         $this->messageBus->dispatch(
             new AddPuzzleSolvingTime(
                 timeId: $timeId,
-                userId: $playerId,
+                userId: $userId,
                 puzzleId: $data->puzzle_id,
                 competitionId: null,
                 time: $data->time,

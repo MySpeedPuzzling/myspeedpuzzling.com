@@ -41,6 +41,10 @@ readonly final class AddPuzzleToCollectionHandler
         $collection = null;
         if ($message->collectionId !== null) {
             $collection = $this->collectionRepository->get($message->collectionId);
+
+            if ($collection->player->id->equals($player->id) === false) {
+                throw new CollectionNotFound();
+            }
         }
 
         // Check if the combination already exists

@@ -16,6 +16,9 @@ use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
             openapi: new OpenApiOperation(tags: ['My Collections']),
             security: "is_granted('ROLE_PAT') or is_granted('ROLE_OAUTH2_COLLECTIONS:WRITE')",
             output: false,
+            // No state provider exists for this DTO resource - without read: false,
+            // ReadProvider resolves null state and 404s before the processor runs.
+            read: false,
             processor: DeleteCollectionProcessor::class,
         ),
     ],

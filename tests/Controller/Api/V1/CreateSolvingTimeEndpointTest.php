@@ -53,13 +53,16 @@ final class CreateSolvingTimeEndpointTest extends WebTestCase
 
         $timeId = $this->extractTimeId($browser->getResponse()->getContent());
 
-        /** @var null|string|false $competitionRoundId */
-        $competitionRoundId = $this->database()->fetchOne(
-            'SELECT competition_round_id FROM puzzle_solving_time WHERE id = :id',
+        /** @var array{competition_round_id: null|string, player_id: string}|false $row */
+        $row = $this->database()->fetchAssociative(
+            'SELECT competition_round_id, player_id FROM puzzle_solving_time WHERE id = :id',
             ['id' => $timeId],
         );
 
-        self::assertNull($competitionRoundId);
+        self::assertNotFalse($row);
+        self::assertNull($row['competition_round_id']);
+        // Guards against the time being attributed to a phantom player created from the player uuid
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $row['player_id']);
     }
 
     public function testCreateWithValidRoundIdLinksRoundAndCompetition(): void

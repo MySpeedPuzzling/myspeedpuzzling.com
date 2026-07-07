@@ -17,6 +17,9 @@ use Symfony\Component\Validator\Constraints as Assert;
             openapi: new OpenApiOperation(tags: ['My Collections']),
             security: "is_granted('ROLE_PAT') or is_granted('ROLE_OAUTH2_COLLECTIONS:WRITE')",
             output: CollectionResponse::class,
+            // No state provider exists for this DTO resource - without read: false,
+            // ReadProvider resolves null state and 404s before the processor runs.
+            read: false,
             processor: UpdateCollectionProcessor::class,
         ),
     ],

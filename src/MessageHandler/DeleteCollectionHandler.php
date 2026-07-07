@@ -24,6 +24,10 @@ readonly final class DeleteCollectionHandler
     {
         $collection = $this->collectionRepository->get($message->collectionId);
 
+        if ($collection->player->id->toString() !== $message->playerId) {
+            throw new CollectionNotFound();
+        }
+
         $this->collectionRepository->delete($collection);
     }
 }

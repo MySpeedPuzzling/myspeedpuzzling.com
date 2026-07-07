@@ -6,7 +6,9 @@ namespace SpeedPuzzling\Web\Api\V1;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
+use SpeedPuzzling\Web\Repository\CollectionRepository;
 use SpeedPuzzling\Web\Results\CollectionItemOverview;
 use SpeedPuzzling\Web\Security\ApiUser;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -19,6 +21,7 @@ final readonly class MyCollectionItemsResponseProvider implements ProviderInterf
     public function __construct(
         private Security $security,
         private GetCollectionItems $getCollectionItems,
+        private CollectionRepository $collectionRepository,
     ) {
     }
 
@@ -33,6 +36,15 @@ final readonly class MyCollectionItemsResponseProvider implements ProviderInterf
         $collectionId = $uriVariables['collectionId'];
 
         $dbCollectionId = $collectionId === 'default' ? null : $collectionId;
+
+        if ($dbCollectionId !== null) {
+            // Validates the id format too - garbage ids (e.g. "undefined") must 404, not crash the query
+            $collection = $this->collectionRepository->get($dbCollectionId);
+
+            if ($collection->player->id->toString() !== $playerId) {
+                throw new CollectionNotFound();
+            }
+        }
 
         $items = $this->getCollectionItems->byCollectionAndPlayer($dbCollectionId, $playerId);
 

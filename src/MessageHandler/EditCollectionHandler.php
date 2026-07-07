@@ -24,6 +24,10 @@ readonly final class EditCollectionHandler
     {
         $collection = $this->collectionRepository->get($message->collectionId);
 
+        if ($collection->player->id->toString() !== $message->playerId) {
+            throw new CollectionNotFound();
+        }
+
         $collection->changeName($message->name);
         $collection->changeDescription($message->description);
         $collection->changeVisibility($message->visibility);

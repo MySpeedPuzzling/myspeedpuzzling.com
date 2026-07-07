@@ -6,8 +6,10 @@ namespace SpeedPuzzling\Web\Api\V1;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
+use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Message\DeleteCollection;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Repository\CollectionRepository;
 use SpeedPuzzling\Web\Security\ApiUser;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -23,6 +25,7 @@ final readonly class DeleteCollectionProcessor implements ProcessorInterface
         private Security $security,
         private MessageBusInterface $messageBus,
         private GetPlayerProfile $getPlayerProfile,
+        private CollectionRepository $collectionRepository,
     ) {
     }
 
@@ -41,6 +44,13 @@ final readonly class DeleteCollectionProcessor implements ProcessorInterface
 
         if ($collectionId === 'default') {
             throw new BadRequestHttpException('The default collection cannot be deleted.');
+        }
+
+        // Validate here so an invalid/unknown id surfaces as 404 instead of a wrapped 500 from the handler
+        $collection = $this->collectionRepository->get($collectionId);
+
+        if ($collection->player->id->toString() !== $playerId) {
+            throw new CollectionNotFound();
         }
 
         $profile = $this->getPlayerProfile->byId($playerId);

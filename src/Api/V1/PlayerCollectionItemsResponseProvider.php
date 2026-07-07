@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Api\V1;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Results\CollectionItemOverview;
@@ -40,6 +42,11 @@ final readonly class PlayerCollectionItemsResponseProvider implements ProviderIn
         }
 
         $dbCollectionId = $collectionId === 'default' ? null : $collectionId;
+
+        // Garbage ids (e.g. "undefined") must 404, not crash the query with an invalid uuid cast
+        if ($dbCollectionId !== null && !Uuid::isValid($dbCollectionId)) {
+            throw new CollectionNotFound();
+        }
 
         $items = $this->getCollectionItems->byCollectionAndPlayer($dbCollectionId, $playerId);
 

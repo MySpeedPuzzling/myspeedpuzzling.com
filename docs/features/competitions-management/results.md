@@ -1,6 +1,6 @@
 # Round Results & Time Claiming
 
-> **Status: PROPOSAL — not implemented.** This document is the design spec for organizer-entered results and the claim flow. The README describes only implemented behavior.
+> **Status: implemented** (live timing marked as Phase 2 is not yet built). This document describes the design; the source of truth is always the source code.
 
 Today there is **no results system**. The public event page shows a "seeding" chart derived from connected players' general 500-piece history (last 3 months) — not what happened at the event. `Competition.resultsLink` points off-site. `puzzle_solving_time.competition_round_id` exists but no query reads it.
 

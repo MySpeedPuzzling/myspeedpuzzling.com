@@ -1,6 +1,17 @@
 # Competitions Management
 
-Community-driven competition and event management. Any logged-in player can submit a competition; it becomes publicly visible after admin approval. Maintainers (the creator + named co-maintainers) can then manage rounds, assign puzzles, plan table layouts, and run a live stopwatch during the event.
+Community-driven competition and event management. Any logged-in player can submit a competition; it becomes publicly visible after admin approval. Maintainers (the creator + named co-maintainers) can then manage rounds, assign puzzles, plan table layouts, run a live stopwatch during the event, manage registrations, enter official results, and compose the public page.
+
+The feature set is **tiered and opt-in**: a competition with everything off is just a listing with the lightweight "I'm going" flow. Each capability is enabled separately:
+
+| Capability | How it's enabled | Docs |
+|-----------|------------------|------|
+| Managed registration (capacity, reserved/paid, waitlist, check-in) | "Manage registrations on MySpeedPuzzling" checkbox on the event form | [registration.md](registration.md) |
+| Official round results + player claiming | Enter results in the round results console, publish per round | [results.md](results.md) |
+| Custom public page content (rich text, FAQ, gallery, venue, sponsors, links, contact) | "Edit page content" from the event/series management | [public-page.md](public-page.md) |
+| Participant management, import/export, pairing | Always available | [participants.md](participants.md) |
+
+One permanent product boundary: **MySpeedPuzzling never processes payments.** Managed registration only records the organizer's payment confirmation ("mark paid") — collecting entry fees is entirely the organizer's responsibility.
 
 ## Competition Lifecycle
 
@@ -47,7 +58,12 @@ Each competition also appears in "My Competitions" for its creator/maintainers r
 | Browse public events listing | Everyone |
 | Submit a new competition | Any authenticated player |
 | Edit competition & manage rounds/tables/stopwatch | Admin, original creator, or named maintainer |
+| Manage registrations (mark paid, promote, check-in) | Admin, creator, or maintainer |
+| Enter/publish round results (results console) | Admin, creator, or maintainer |
+| Edit public page content | Admin, creator, or maintainer (series voter for series pages) |
 | View public stopwatch page | Everyone (no auth required) |
+| View published standings | Everyone |
+| Claim a result | Any authenticated player (own identity/team only) |
 | Approve or reject a competition | Admin only |
 
 Access is enforced via a `CompetitionEditVoter` that checks whether the player is admin, the creator, or in the maintainers list. All management controllers use this same voter, including round-level controllers (which resolve the competition from the round).
@@ -124,7 +140,7 @@ A competition has multiple **rounds**, each with:
 - **Category** — `solo`, `duo`, or `team` (`RoundCategory` enum, default `solo`)
 - **Badge colors** — optional background/text hex colors for visual distinction in round lists
 
-Rounds are displayed sorted by start time. Each round can be edited or deleted. The round list shows action buttons for: Puzzles, Teams (for duo/team rounds only), Tables (only for in-person events), Stopwatch, Edit, Delete.
+Rounds are displayed sorted by start time. Each round can be edited or deleted. The round list shows action buttons for: Puzzles, Teams (for duo/team rounds only), Tables (only for in-person events), Stopwatch, Results, Edit, Delete.
 
 ### Round Categories
 
@@ -255,15 +271,30 @@ This eliminates all behavioral branching — the same participant handlers, quer
 - Secret/private player handling fix
 - Replaces admin-only import routes (`/admin/import-competition-puzzlers`)
 
+## Round Results & Claiming
+
+Official results per round are entered by maintainers in the **results entry console** (`/en/manage-round-results/{roundId}`) — an offline-first Stimulus console with an IndexedDB outbox, quick-add by name (auto-creating participants/teams), DNF via missing pieces, and per-round publish. Published standings render on the event/edition page with podium styling and a claim CTA. Players claim their (team) results, which materialize as **verified** `PuzzleSolvingTime` rows on their profiles. Full design: [results.md](results.md).
+
+## Managed Registration
+
+When "Manage registrations on MySpeedPuzzling" is enabled, the public page shows a registration card (capacity progress, entry fee, deadline) and the join flow becomes a real registration with `reserved → paid` states and a FIFO waitlist. Organizers mark payments manually, promote from the waitlist with one click, and run a mobile check-in view on event day. Full design: [registration.md](registration.md).
+
+## Public Page Content
+
+Maintainers compose the event/series public page from ordered sections: system sections (header, schedule, puzzles, results, registration, participants — or editions list for series) plus custom content blocks (rich text via Quill, FAQ, gallery, venue, sponsors, links, contact) with drag-to-reorder and show/hide. Series content is inherited by all editions. All content is sanitized server-side. Full design: [public-page.md](public-page.md).
+
 ## Email Notifications
 
-Three email notifications are sent during the competition lifecycle:
+Email notifications sent during the competition lifecycle:
 
 1. **New submission (to admin):** When a player submits a new competition, an email is sent to `jan.mikes@myspeedpuzzling.com` with the event name, location, submitter name, and a link to the admin approval queue.
 2. **Approved (to creator):** When an admin approves a competition, the creator receives an email with a link to their public event page. Sent in the creator's locale.
 3. **Rejected (to creator):** When an admin rejects a competition, the creator receives an email with the rejection reason. Sent in the creator's locale.
+4. **Registration confirmed / waitlisted (to player):** on managed registration, with entry fee and payment instructions, or waitlist position.
+5. **Payment confirmed / promoted from waitlist (to player):** when the organizer marks them paid or promotes them.
+6. **Results published (to connected participants of the round):** when a round's results are published with notification enabled.
 
-All emails use the `transactional` mailer transport and follow the standard Inky email template structure.
+All emails use the `transactional` mailer transport and follow the standard Inky email template structure. Player-facing emails are sent in the player's locale and only when an email address exists.
 
 ## Key Business Rules
 
@@ -284,3 +315,8 @@ All emails use the `transactional` mailer transport and follow the standard Inky
 15. **Editions never auto-create rounds** — the edition form creates only the Competition, rounds are always managed separately via the round management UI
 16. **Round category defaults to solo** — existing rounds get `solo` category via migration default
 18. **Teams are scoped to rounds** — `CompetitionTeam` belongs to a `CompetitionRound`, participants are assigned to teams via `CompetitionParticipantRound.team_id`
+19. **MSP never processes payments** — managed registration only records the organizer's manual payment confirmation
+20. **Enabling managed registration clears the external registration link** — one source of truth for how to register
+21. **Official results are the organizer's record** — claiming/un-claiming never modifies `RoundResult`; only the player's materialized `PuzzleSolvingTime` is created/updated/removed
+22. **Claimed times are `verified = true`** — organizer-attested results are stronger evidence than self-reporting
+23. **Draft results are private** — standings appear publicly (and become claimable) only after the round is published

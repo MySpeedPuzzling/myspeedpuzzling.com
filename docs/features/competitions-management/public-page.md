@@ -1,6 +1,6 @@
 # Competition Public Page & Content Editor
 
-> **Status: PROPOSAL — not implemented.** Design spec for making the MSP event page the competition's complete web presence. The README describes only implemented behavior.
+> **Status: implemented.** This document describes the design; the source of truth is always the source code. Implementation notes: the editor uses plain form controllers + SortableJS list (not a Live Component — nested repeatable rows are simpler and more robust as forms), Quill 2 as the WYSIWYG (lazy-loaded), and sections are stored in `competition_page_section` with layout ordering in `competition.page_layout` / `competition_series.page_layout`.
 
 Many organizers have no website — they announce contests on Facebook and keep results in spreadsheets. The goal: **a manager should need nothing but MSP** to present a competition — standalone, recurring series, online or offline. The public event page becomes composable: a set of automatic sections (registration, schedule, puzzles, participants, results) plus manager-authored content sections, ordered and edited from the management system.
 

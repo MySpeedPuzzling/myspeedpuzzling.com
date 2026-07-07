@@ -1,6 +1,6 @@
 # Managed Registration
 
-> **Status: PROPOSAL — not implemented.** This document is the design spec for in-platform registration management. The README describes only implemented behavior.
+> **Status: implemented.** This document describes the design; the source of truth is always the source code.
 
 Today, registration is entirely external: `Competition.registrationLink` is a URL button and the "I'm going" flow is an unlimited, informal RSVP. Organizers have no way to cap participants, track who paid, run a waitlist, or manage event-day check-in.
 
@@ -111,13 +111,13 @@ A dedicated mobile-first view, `/en/event-check-in/{competitionId}` (same `Compe
 
 All state changes via Messenger, per project convention:
 
-- `RegisterForCompetition(competitionId, playerId, ?participantId)` — replaces `JoinCompetition` logic when managed: connects-or-creates participant, then assigns `reserved` or `waitlisted` per capacity. For non-managed competitions, `JoinCompetition` behavior is unchanged
-- `CancelRegistration(competitionId, playerId)` — soft delete (reuses leave semantics)
+- `JoinCompetition(competitionId, playerId, ?participantId, ?teamId)` — the existing join message; when the competition is managed, the handler applies `reserved` or `waitlisted` per capacity and enforces the registration window (`RegistrationNotOpen`). For non-managed competitions the behavior is unchanged
+- `LeaveCompetition(competitionId, playerId)` — cancellation (soft delete, existing semantics)
 - `MarkParticipantPaid(participantId)` / `UnmarkParticipantPaid(participantId)`
-- `PromoteFromWaitlist(participantId)`
+- `PromoteParticipantFromWaitlist(participantId)`
 - `CheckInParticipant(participantId)` / `UndoParticipantCheckIn(participantId)`
 
-Registration settings are edited through the existing `EditCompetition` message (new fields).
+Registration settings are edited through the existing `AddCompetition`/`EditCompetition` messages (new fields).
 
 ## Email Notifications
 

@@ -281,7 +281,7 @@ export default class extends Controller {
             'submit-prevention'
         );
         if (submitPreventionController) {
-            submitPreventionController.isSubmittingValue = false;
+            submitPreventionController.reset();
         }
     }
 }

@@ -1,0 +1,143 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.results.manage_title'|trans }} - {{ round.name }} - {{ competition.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.rounds'|trans, url: path('manage_competition_rounds', {competitionId: competition.id})},
+        {label: 'competition.results.manage_title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.rounds'|trans}) }}
+
+    <div class="pb-4"
+         data-controller="round-results-console"
+         data-round-results-console-round-id-value="{{ round.id }}"
+         data-round-results-console-category-value="{{ round.category.value }}"
+         data-round-results-console-state-url-value="{{ path('round_results_state', {roundId: round.id}) }}"
+         data-round-results-console-upsert-url-value="{{ path('upsert_round_result', {roundId: round.id}) }}"
+         data-round-results-console-delete-url-value="{{ path('delete_round_result', {roundId: round.id}) }}"
+         data-round-results-console-publish-url-value="{{ path('publish_round_results', {roundId: round.id}) }}"
+         data-round-results-console-mercure-url-value="{{ mercure_public_url }}"
+         data-round-results-console-topic-value="/round-results/{{ round.id }}"
+         data-round-results-console-published-value="{{ round.resultsPublishedAt is not null ? 'true' : 'false' }}"
+         data-label-dnf="{{ 'competition.results.dnf'|trans }}"
+         data-label-missing-pieces="{{ 'competition.results.missing_pieces_short'|trans }}"
+         data-label-delete="{{ 'competition.results.delete'|trans }}"
+         data-label-confirm-delete="{{ 'competition.results.confirm_delete'|trans }}"
+         data-label-no-result-yet="{{ 'competition.results.no_result_yet'|trans }}"
+         data-label-synced="{{ 'competition.results.sync_ok'|trans }}"
+         data-label-pending="{{ 'competition.results.sync_pending'|trans }}"
+         data-label-offline="{{ 'competition.results.sync_offline'|trans }}"
+         data-label-error="{{ 'competition.results.sync_error'|trans }}"
+         data-label-members="{{ 'competition.results.members'|trans }}"
+    >
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <h1 class="h3 mb-0">{{ 'competition.results.manage_title'|trans }}</h1>
+                <p class="text-muted mb-0">
+                    {{ competition.name }} &middot; {{ round.name }}
+                    <span class="badge ms-1" style="background: {{ round.badgeBackgroundColor ?? '#6c757d' }}; color: {{ round.badgeTextColor ?? '#fff' }};">
+                        {{ ('competition.round.category.' ~ round.category.value)|trans }}
+                    </span>
+                </p>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge rounded-pill bg-secondary" data-round-results-console-target="syncStatus">&hellip;</span>
+            </div>
+        </div>
+
+        <div class="alert alert-warning d-none mt-3 mb-0" data-round-results-console-target="offlineBanner">
+            <i class="bi bi-wifi-off me-2"></i>{{ 'competition.results.offline_banner'|trans }}
+        </div>
+
+        <div class="card shadow-sm my-4">
+            <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <div data-round-results-console-target="publishState"
+                         data-label-published="{{ 'competition.results.published'|trans }}"
+                         data-label-draft="{{ 'competition.results.draft'|trans }}">
+                        {% if round.resultsPublishedAt %}
+                            <span class="badge bg-success">{{ 'competition.results.published'|trans }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ 'competition.results.draft'|trans }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="form-check form-switch mb-0 {{ round.resultsPublishedAt ? 'd-none' }}" data-round-results-console-target="notifyWrapper">
+                            <input class="form-check-input" type="checkbox" id="notify-participants" checked data-round-results-console-target="notifyCheckbox">
+                            <label class="form-check-label small" for="notify-participants">{{ 'competition.results.notify_participants'|trans }}</label>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary" data-action="round-results-console#togglePublish"
+                                data-round-results-console-target="publishButton"
+                                data-label-publish="{{ 'competition.results.publish'|trans }}"
+                                data-label-unpublish="{{ 'competition.results.unpublish'|trans }}">
+                            {{ round.resultsPublishedAt ? 'competition.results.unpublish'|trans : 'competition.results.publish'|trans }}
+                        </button>
+                    </div>
+                </div>
+
+                {# Quick add row #}
+                <div class="row g-2 align-items-end mb-4">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small mb-1">
+                            {% if round.category.value == 'solo' %}
+                                {{ 'competition.results.quick_add_participant'|trans }}
+                            {% else %}
+                                {{ 'competition.results.quick_add_team'|trans }}
+                            {% endif %}
+                        </label>
+                        <input type="text" class="form-control" data-round-results-console-target="quickName"
+                               data-action="keydown.enter->round-results-console#quickAdd"
+                               placeholder="{{ 'competition.results.quick_add_placeholder'|trans }}">
+                    </div>
+                    <div class="col-8 col-md-4">
+                        <label class="form-label small mb-1">{{ 'competition.results.time'|trans }}</label>
+                        <div class="input-group">
+                            <input type="text" inputmode="numeric" class="form-control text-center" placeholder="h" maxlength="2" data-round-results-console-target="quickHours" data-action="input->round-results-console#autoAdvance">
+                            <span class="input-group-text px-1">:</span>
+                            <input type="text" inputmode="numeric" class="form-control text-center" placeholder="mm" maxlength="2" data-round-results-console-target="quickMinutes" data-action="input->round-results-console#autoAdvance">
+                            <span class="input-group-text px-1">:</span>
+                            <input type="text" inputmode="numeric" class="form-control text-center" placeholder="ss" maxlength="2" data-round-results-console-target="quickSeconds" data-action="keydown.enter->round-results-console#quickAdd">
+                        </div>
+                    </div>
+                    <div class="col-4 col-md-2">
+                        <label class="form-label small mb-1">{{ 'competition.results.missing_pieces_short'|trans }}</label>
+                        <input type="number" min="0" inputmode="numeric" class="form-control" data-round-results-console-target="quickMissing" data-action="keydown.enter->round-results-console#quickAdd">
+                    </div>
+                    <div class="col-12 col-md-2">
+                        <button type="button" class="btn btn-primary w-100" data-action="round-results-console#quickAdd">
+                            <i class="bi bi-plus-lg me-1"></i>{{ 'competition.results.add'|trans }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th>
+                                    {% if round.category.value == 'solo' %}
+                                        {{ 'competition.results.participant'|trans }}
+                                    {% else %}
+                                        {{ 'competition.results.team'|trans }}
+                                    {% endif %}
+                                </th>
+                                <th style="width: 220px;">{{ 'competition.results.time'|trans }}</th>
+                                <th style="width: 110px;">{{ 'competition.results.missing_pieces_short'|trans }}</th>
+                                <th style="width: 90px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody data-round-results-console-target="tbody">
+                            <tr><td colspan="5" class="text-center text-muted py-4">{{ 'competition.results.loading'|trans }}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

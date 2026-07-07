@@ -1,0 +1,118 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.page.manage_title'|trans }} - {{ owner_name }}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: back_url, fallbackTitle: owner_name}) }}
+
+    <div class="pb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <h1 class="h3 mb-0">{{ 'competition.page.manage_title'|trans }}</h1>
+                <p class="text-muted mb-0">{{ owner_name }}</p>
+            </div>
+            {% if view_url %}
+                <a href="{{ view_url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                    <i class="bi bi-eye me-1"></i>{{ 'competition.page.view_page'|trans }}
+                </a>
+            {% endif %}
+        </div>
+
+        <p class="text-muted small mt-2">{{ 'competition.page.intro'|trans }}</p>
+
+        <div class="card shadow-sm my-4"
+             data-controller="page-sections-list"
+             data-page-sections-list-reorder-url-value="{{ path('reorder_page_sections') }}"
+             data-page-sections-list-owner-type-value="{{ owner_type }}"
+             data-page-sections-list-owner-id-value="{{ owner_id }}"
+        >
+            <ul class="list-group list-group-flush" data-page-sections-list-target="list">
+                <li class="list-group-item d-flex align-items-center text-muted" data-fixed="true">
+                    <i class="bi bi-lock me-3"></i>
+                    <span>{{ 'competition.page.section_header'|trans }}</span>
+                    <span class="badge bg-light text-muted ms-auto">{{ 'competition.page.always_first'|trans }}</span>
+                </li>
+
+                {% for entry in entries %}
+                    <li class="list-group-item d-flex align-items-center {{ not entry.visible ? 'opacity-50' }}"
+                        data-section-key="{{ entry.key }}"
+                        data-visible="{{ entry.visible ? 'true' : 'false' }}"
+                        {% if entry.inherited %}data-fixed="true"{% endif %}
+                    >
+                        {% if entry.inherited %}
+                            <i class="bi bi-diagram-3 me-3 text-muted" title="{{ 'competition.page.inherited_from_series'|trans }}"></i>
+                        {% else %}
+                            <i class="bi bi-grip-vertical me-3 text-muted" style="cursor: grab;" data-drag-handle></i>
+                        {% endif %}
+
+                        <span class="flex-fill">
+                            {% if entry.isSystem %}
+                                {{ ('competition.page.system.' ~ entry.key)|trans }}
+                            {% else %}
+                                <i class="bi {{ {
+                                    'rich_text': 'bi-card-text',
+                                    'faq': 'bi-question-circle',
+                                    'gallery': 'bi-images',
+                                    'venue': 'bi-geo-alt',
+                                    'sponsors': 'bi-award',
+                                    'links': 'bi-link-45deg',
+                                    'contact': 'bi-envelope',
+                                }[entry.type.value] }} me-1"></i>
+                                {{ entry.title ?: ('competition.page.type.' ~ entry.type.value)|trans }}
+                            {% endif %}
+
+                            {% if entry.inherited %}
+                                <span class="badge bg-light text-muted ms-1">{{ 'competition.page.inherited'|trans }}</span>
+                            {% endif %}
+                        </span>
+
+                        <span class="text-nowrap">
+                            {% if not entry.inherited %}
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1"
+                                        data-action="page-sections-list#toggleVisibility"
+                                        title="{{ entry.visible ? 'competition.page.hide'|trans : 'competition.page.show'|trans }}">
+                                    <i class="bi {{ entry.visible ? 'bi-eye' : 'bi-eye-slash' }}"></i>
+                                </button>
+                            {% endif %}
+
+                            {% if not entry.isSystem and not entry.inherited %}
+                                <a href="{{ path('edit_page_section', {sectionId: entry.sectionId}) }}" class="btn btn-sm btn-outline-secondary py-0 px-1" title="{{ 'competition.page.edit'|trans }}">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" action="{{ path('delete_page_section', {sectionId: entry.sectionId}) }}" class="d-inline"
+                                      onsubmit="return confirm('{{ 'competition.page.confirm_delete'|trans|e('js') }}');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" title="{{ 'competition.page.delete'|trans }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-plus-lg me-1"></i>{{ 'competition.page.add_section'|trans }}
+            </button>
+            <ul class="dropdown-menu">
+                {% for type in ['rich_text', 'faq', 'gallery', 'venue', 'sponsors', 'links', 'contact'] %}
+                    {% if type != 'venue' or owner_type == 'competition' or owner_type == 'series' %}
+                        <li>
+                            <a class="dropdown-item" href="{{ path('add_page_section', {(owner_type): owner_id, type: type}) }}">
+                                {{ ('competition.page.type.' ~ type)|trans }}
+                            </a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+
+        {% if owner_type == 'series' %}
+            <div class="alert alert-light border small mt-4">
+                <i class="bi bi-info-circle me-2"></i>{{ 'competition.page.series_inheritance_info'|trans }}
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

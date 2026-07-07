@@ -164,7 +164,7 @@ Feature design documents and implementation plans are in `docs/features/`. Each 
 - **API & OAuth2**: `docs/features/api/` — Public REST API (V1), OAuth2 server, Swagger docs, internal APIs, deprecated V0
 - **Stripe Payments**: `docs/features/stripe.md` — Stripe integration for premium membership
 - **Opt-Out Features**: `docs/features/opt-out.md` — Streak and ranking opt-out for players
-- **Competitions Management**: `docs/features/competitions-management/` — Community-driven event creation with admin approval, round management, puzzle assignment, table layout planning, and live stopwatch
+- **Competitions Management**: `docs/features/competitions-management/` — Community-driven event creation with admin approval, round management, puzzle assignment, table layout planning, live stopwatch, opt-in managed registration (capacity/waitlist/paid tracking/check-in — MSP never processes payments), offline-first round results console with publishing and player claiming (claimed results become verified solving times), and composable public pages with a manager content editor
 - **Referral Program**: `docs/features/referral-program.md` — Members earn 10% of referred subscription revenue. No separate entity — `player.referralProgramJoinedAt` + `player.referralProgramSuspended`. Code = player code. Cookie-based + code-input attribution. Payouts per currency, manual admin payout marking
 
 ### Feature Flags

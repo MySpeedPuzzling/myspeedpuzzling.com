@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\ManageableCompetitionParticipant;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\ParticipantSource;
+use SpeedPuzzling\Web\Value\RegistrationStatus;
 
 readonly final class GetCompetitionParticipantsForManagement
 {
@@ -31,6 +32,11 @@ SELECT
     cp.external_id,
     cp.source,
     cp.deleted_at,
+    cp.registration_status,
+    cp.registered_at,
+    cp.paid_at,
+    cp.checked_in_at,
+    cp.organizer_note,
     p.id AS player_id,
     p.name AS player_name,
     p.code AS player_code,
@@ -63,6 +69,11 @@ SQL;
              *     external_id: null|string,
              *     source: string,
              *     deleted_at: null|string,
+             *     registration_status: null|string,
+             *     registered_at: null|string,
+             *     paid_at: null|string,
+             *     checked_in_at: null|string,
+             *     organizer_note: null|string,
              *     player_id: null|string,
              *     player_name: null|string,
              *     player_code: null|string,
@@ -82,6 +93,11 @@ SQL;
                 playerCode: $row['player_code'],
                 playerCountry: CountryCode::fromCode($row['player_country']),
                 roundIds: $participantRounds[$row['participant_id']] ?? [],
+                registrationStatus: $row['registration_status'] !== null ? RegistrationStatus::from($row['registration_status']) : null,
+                registeredAt: $row['registered_at'] !== null ? new DateTimeImmutable($row['registered_at']) : null,
+                paidAt: $row['paid_at'] !== null ? new DateTimeImmutable($row['paid_at']) : null,
+                checkedInAt: $row['checked_in_at'] !== null ? new DateTimeImmutable($row['checked_in_at']) : null,
+                organizerNote: $row['organizer_note'],
             );
         }, $rows);
     }

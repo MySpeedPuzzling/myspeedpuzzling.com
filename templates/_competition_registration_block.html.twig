@@ -1,0 +1,112 @@
+{# Shared join/registration block for event and edition detail pages.
+   Expects: event (CompetitionEvent), is_going (bool), registration (RegistrationOverview),
+   registration_is_open (bool), registration_opens_future (bool) #}
+{% if registration.registrationManaged %}
+    <div class="card shadow-sm my-4">
+        <div class="card-body">
+            <h2 class="h5 mb-3">{{ 'competition.registration.title'|trans }}</h2>
+
+            {% if registration.capacity %}
+                {% set percentage = registration.capacity > 0 ? ((registration.spotsTaken / registration.capacity) * 100)|round : 0 %}
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-muted">{{ 'competition.registration.spots_taken'|trans({'%taken%': registration.spotsTaken, '%capacity%': registration.capacity}) }}</small>
+                    {% if registration.waitlistedCount > 0 %}
+                        <small class="text-muted">{{ 'competition.registration.waiting_count'|trans({'%count%': registration.waitlistedCount}) }}</small>
+                    {% endif %}
+                </div>
+                <div class="progress mb-3" style="height: 8px;">
+                    <div class="progress-bar {{ registration.isFull ? 'bg-danger' : 'bg-success' }}" role="progressbar" style="width: {{ percentage > 100 ? 100 : percentage }}%" aria-valuenow="{{ registration.spotsTaken }}" aria-valuemin="0" aria-valuemax="{{ registration.capacity }}"></div>
+                </div>
+            {% else %}
+                <p class="text-muted small mb-3">{{ 'competition.registration.registered_count'|trans({'%count%': registration.spotsTaken}) }}</p>
+            {% endif %}
+
+            {% if registration.entryFeeText %}
+                <p class="mb-2"><i class="bi bi-cash-coin me-2"></i><strong>{{ 'competition.registration.entry_fee'|trans }}:</strong> {{ registration.entryFeeText }}</p>
+            {% endif %}
+
+            {% if registration_opens_future and registration.registrationOpensAt %}
+                <p class="mb-2 text-muted"><i class="ci-time me-2"></i>{{ 'competition.registration.opens_at'|trans({'%date%': registration.registrationOpensAt|date('d.m.Y H:i')}) }}</p>
+            {% elseif registration.registrationClosesAt and registration_is_open %}
+                <p class="mb-2 text-muted"><i class="ci-time me-2"></i>{{ 'competition.registration.closes_at'|trans({'%date%': registration.registrationClosesAt|date('d.m.Y H:i')}) }}</p>
+            {% endif %}
+
+            {% if registration.playerStatus is not null or is_going %}
+                {% if registration.playerStatus and registration.playerStatus.value == 'paid' %}
+                    <div class="alert alert-success d-flex align-items-center mb-3">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <span>{{ 'competition.registration.you_are_registered_paid'|trans }}</span>
+                    </div>
+                {% elseif registration.playerStatus and registration.playerStatus.value == 'waitlisted' %}
+                    <div class="alert alert-warning mb-3">
+                        <i class="bi bi-hourglass-split me-2"></i>
+                        {{ 'competition.registration.you_are_waitlisted'|trans }}
+                        {% if registration.playerWaitlistPosition %}
+                            <strong>{{ 'competition.registration.waitlist_position'|trans({'%position%': registration.playerWaitlistPosition}) }}</strong>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-success mb-2">
+                        <i class="bi bi-check-circle me-2"></i>
+                        {{ 'competition.registration.you_are_registered_reserved'|trans }}
+                    </div>
+                    {% if registration.paymentInstructions %}
+                        <div class="alert alert-light border mb-3">
+                            <strong>{{ 'competition.registration.payment_instructions'|trans }}:</strong><br>
+                            {{ registration.paymentInstructions|nl2br }}
+                        </div>
+                    {% endif %}
+                {% endif %}
+
+                <a href="{{ path('join_competition', {'competitionId': event.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
+                    {{ 'competition.join.change'|trans }}
+                </a>
+                <form method="post" action="{{ path('leave_competition', {'competitionId': event.id}) }}" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                        {% if registration.playerStatus and registration.playerStatus.value == 'waitlisted' %}
+                            {{ 'competition.registration.leave_waitlist'|trans }}
+                        {% else %}
+                            {{ 'competition.registration.cancel'|trans }}
+                        {% endif %}
+                    </button>
+                </form>
+            {% elseif not registration_is_open %}
+                <button type="button" class="btn btn-secondary" disabled>
+                    {% if registration_opens_future %}
+                        {{ 'competition.registration.not_open_yet'|trans }}
+                    {% else %}
+                        {{ 'competition.registration.closed'|trans }}
+                    {% endif %}
+                </button>
+            {% elseif registration.isFull %}
+                <a href="{{ path('join_competition', {'competitionId': event.id}) }}" class="btn btn-warning">
+                    <i class="bi bi-hourglass-split me-1"></i>{{ 'competition.registration.join_waitlist'|trans }}
+                </a>
+            {% else %}
+                <a href="{{ path('join_competition', {'competitionId': event.id}) }}" class="btn btn-primary">
+                    <i class="bi bi-person-plus me-1"></i>{{ 'competition.registration.register'|trans }}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+{% else %}
+    <div class="mt-4 mb-3">
+        {% if is_going %}
+            <span class="btn btn-sm btn-success disabled me-2">
+                <i class="bi bi-check-lg me-1"></i>{{ 'competition.join.you_are_going'|trans }}
+            </span>
+            <a href="{{ path('join_competition', {'competitionId': event.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
+                {{ 'competition.join.change'|trans }}
+            </a>
+            <form method="post" action="{{ path('leave_competition', {'competitionId': event.id}) }}" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    {{ 'competition.join.leave'|trans }}
+                </button>
+            </form>
+        {% else %}
+            <a href="{{ path('join_competition', {'competitionId': event.id}) }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-person-plus me-1"></i>{{ 'competition.join.im_going'|trans }}
+            </a>
+        {% endif %}
+    </div>
+{% endif %}

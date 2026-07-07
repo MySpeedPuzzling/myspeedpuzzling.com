@@ -15,6 +15,12 @@
 
         <h2 class="h4 mt-4">{{ 'competition.manage_participants'|trans }}</h2>
 
+        {% if competition.registrationManaged %}
+            <a href="{{ path('competition_check_in', {competitionId: competition.id}) }}" class="btn btn-outline-primary btn-sm mb-3">
+                <i class="bi bi-person-check me-1"></i>{{ 'competition.check_in.title'|trans }}
+            </a>
+        {% endif %}
+
         {# Import section #}
         <details class="mb-4">
             <summary class="btn btn-outline-secondary btn-sm">

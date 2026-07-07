@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Results;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\ParticipantSource;
+use SpeedPuzzling\Web\Value\RegistrationStatus;
 
 readonly final class ManageableCompetitionParticipant
 {
@@ -23,6 +24,11 @@ readonly final class ManageableCompetitionParticipant
         public null|CountryCode $playerCountry,
         /** @var array<string> */
         public array $roundIds = [],
+        public null|RegistrationStatus $registrationStatus = null,
+        public null|DateTimeImmutable $registeredAt = null,
+        public null|DateTimeImmutable $paidAt = null,
+        public null|DateTimeImmutable $checkedInAt = null,
+        public null|string $organizerNote = null,
     ) {
     }
 

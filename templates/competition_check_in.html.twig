@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.check_in.title'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_participants', {competitionId: competition.id}), fallbackTitle: 'competition.participants.title'|trans}) }}
+
+    <h1 class="h3 mb-1">{{ 'competition.check_in.title'|trans }}</h1>
+    <p class="text-muted mb-4">{{ competition.name }}</p>
+
+    <twig:CompetitionCheckIn competitionId="{{ competition.id }}" />
+{% endblock %}

@@ -13,8 +13,10 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -145,6 +147,47 @@ final class CompetitionFormType extends AbstractType
             'label' => 'competition.form.is_recurring',
             'help' => 'competition.form.is_recurring_help',
             'required' => false,
+        ]);
+
+        $builder->add('registrationManaged', CheckboxType::class, [
+            'label' => 'competition.form.registration_managed',
+            'help' => 'competition.form.registration_managed_help',
+            'required' => false,
+        ]);
+
+        $builder->add('capacity', IntegerType::class, [
+            'label' => 'competition.form.capacity',
+            'help' => 'competition.form.capacity_help',
+            'required' => false,
+            'attr' => ['min' => 1],
+        ]);
+
+        $builder->add('registrationOpensAt', DateTimeType::class, [
+            'label' => 'competition.form.registration_opens_at',
+            'required' => false,
+            'widget' => 'single_text',
+            'input' => 'datetime_immutable',
+        ]);
+
+        $builder->add('registrationClosesAt', DateTimeType::class, [
+            'label' => 'competition.form.registration_closes_at',
+            'help' => 'competition.form.registration_closes_at_help',
+            'required' => false,
+            'widget' => 'single_text',
+            'input' => 'datetime_immutable',
+        ]);
+
+        $builder->add('entryFeeText', TextType::class, [
+            'label' => 'competition.form.entry_fee',
+            'help' => 'competition.form.entry_fee_help',
+            'required' => false,
+        ]);
+
+        $builder->add('paymentInstructions', TextareaType::class, [
+            'label' => 'competition.form.payment_instructions',
+            'help' => 'competition.form.payment_instructions_help',
+            'required' => false,
+            'attr' => ['rows' => 3],
         ]);
 
         $builder->add('logo', FileType::class, [

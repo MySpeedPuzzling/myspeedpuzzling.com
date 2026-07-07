@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Results\ParticipantImportResult;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\ParticipantSource;
+use SpeedPuzzling\Web\Value\RegistrationStatus;
 use SpeedPuzzling\Web\Value\RoundCategory;
 
 readonly final class CompetitionParticipantImporter
@@ -51,6 +52,7 @@ readonly final class CompetitionParticipantImporter
         $externalIdIdx = $this->findColumnIndex($headers, 'external_id');
         $playerIdIdx = $this->findColumnIndex($headers, 'msp_player_id');
         $statusIdx = $this->findColumnIndex($headers, 'status');
+        $registrationStatusIdx = $this->findColumnIndex($headers, 'registration_status');
         $roundNameIdx = $this->findColumnIndex($headers, 'round_name');
         $teamNameIdx = $this->findColumnIndex($headers, 'team_name');
 
@@ -92,6 +94,15 @@ readonly final class CompetitionParticipantImporter
             $externalId = $externalIdIdx !== null ? trim((string) ($row[$externalIdIdx] ?? '')) : '';
             $playerId = $playerIdIdx !== null ? trim((string) ($row[$playerIdIdx] ?? '')) : '';
             $status = $statusIdx !== null ? strtolower(trim((string) ($row[$statusIdx] ?? ''))) : '';
+            $registrationStatusRaw = $registrationStatusIdx !== null ? strtolower(trim((string) ($row[$registrationStatusIdx] ?? ''))) : '';
+
+            $registrationStatus = null;
+            if ($registrationStatusRaw !== '') {
+                $registrationStatus = RegistrationStatus::tryFrom($registrationStatusRaw);
+                if ($registrationStatus === null) {
+                    $warnings[] = "Row {$rowNum}: invalid registration_status \"{$registrationStatusRaw}\".";
+                }
+            }
 
             $countryCode = null;
             if ($country !== '') {
@@ -138,6 +149,10 @@ readonly final class CompetitionParticipantImporter
                     $participant->restore();
                 }
 
+                if ($registrationStatus !== null) {
+                    $this->applyRegistrationStatus($participant, $registrationStatus);
+                }
+
                 if ($status === 'deleted') {
                     $participant->softDelete($this->clock->now());
                     $softDeleted++;
@@ -162,6 +177,13 @@ readonly final class CompetitionParticipantImporter
                     if ($player !== null) {
                         $participant->connect($player, $this->clock->now());
                     }
+                }
+
+                if ($registrationStatus !== null) {
+                    $this->applyRegistrationStatus($participant, $registrationStatus);
+                } elseif ($competition->registrationManaged === true) {
+                    // Imported participants hold a spot by default in managed competitions
+                    $participant->register(RegistrationStatus::Reserved, $this->clock->now());
                 }
 
                 if ($status === 'deleted') {
@@ -282,6 +304,26 @@ SQL;
         $key = array_search(strtolower($columnName), $headers, true);
 
         return $key !== false ? (int) $key : null;
+    }
+
+    private function applyRegistrationStatus(CompetitionParticipant $participant, RegistrationStatus $status): void
+    {
+        if ($status === RegistrationStatus::Paid) {
+            if ($participant->registrationStatus === RegistrationStatus::Paid) {
+                return;
+            }
+
+            if ($participant->registeredAt === null) {
+                $participant->register(RegistrationStatus::Reserved, $this->clock->now());
+            }
+
+            $participant->markPaid($this->clock->now());
+
+            return;
+        }
+
+        // register() clears paidAt/checkedInAt — correct for reserved/waitlisted transitions
+        $participant->register($status, $participant->registeredAt ?? $this->clock->now());
     }
 
     private function playerExists(string $playerId): bool

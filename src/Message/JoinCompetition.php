@@ -10,6 +10,7 @@ readonly final class JoinCompetition
         public string $competitionId,
         public string $playerId,
         public null|string $participantId = null,
+        public null|string $teamId = null,
     ) {
     }
 }

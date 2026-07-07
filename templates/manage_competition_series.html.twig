@@ -19,6 +19,9 @@
             <a href="{{ path('add_edition', {'seriesId': series.id, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-outline-primary">
                 <i class="bi bi-plus-lg me-1"></i>{{ 'series.add_edition'|trans }}
             </a>
+            <a href="{{ path('manage_series_page', {'seriesId': series.id}) }}" class="btn btn-outline-primary">
+                <i class="bi bi-layout-text-window-reverse me-1"></i>{{ 'competition.page.manage_button'|trans }}
+            </a>
             {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionSeriesDeleteVoter::COMPETITION_SERIES_DELETE'), series.id) %}
                 <button type="button" class="btn btn-outline-danger ms-auto" data-bs-toggle="modal" data-bs-target="#deleteCompetitionSeriesModal-{{ series.id }}" title="{{ 'series.delete.button'|trans }}">
                     <i class="bi bi-trash"></i>

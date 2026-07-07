@@ -1,0 +1,29 @@
+framework:
+    html_sanitizer:
+        sanitizers:
+            # Manager-authored competition page content. Strict allow-list; applied
+            # in message handlers on every write — client-side editor rules are
+            # convenience only.
+            competition_page:
+                allow_elements:
+                    h2: ['id']
+                    h3: ['id']
+                    h4: ['id']
+                    p: []
+                    br: []
+                    strong: []
+                    b: []
+                    em: []
+                    i: []
+                    u: []
+                    s: []
+                    ul: []
+                    ol: []
+                    li: []
+                    blockquote: []
+                    a: ['href', 'title']
+                force_attributes:
+                    a:
+                        rel: 'noopener nofollow'
+                allowed_link_schemes: ['http', 'https', 'mailto']
+                max_input_length: 100000

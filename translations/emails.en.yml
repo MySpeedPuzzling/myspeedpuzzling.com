@@ -103,6 +103,47 @@ competition_approved:
         <p>Great news! Your event <strong>%competitionName%</strong> has been approved and is now publicly visible on MySpeedPuzzling.</p>
         <p><a href="%eventUrl%">View your event page</a></p>
 
+competition_registration_reserved:
+    subject: "You're registered for %competitionName%"
+    title: "You're registered!"
+    entry_fee: "Entry fee"
+    payment_instructions: "How to pay"
+    content: |
+        <p>Your registration for <strong>%competitionName%</strong> is confirmed — your spot is reserved.</p>
+        <p><a href="%eventUrl%">View the event page</a></p>
+
+competition_registration_waitlisted:
+    subject: "You're on the waitlist for %competitionName%"
+    title: "You're on the waitlist"
+    position: "Your current position on the waitlist: #%position%"
+    content: |
+        <p>The event <strong>%competitionName%</strong> is currently full, so you've been added to the waitlist.</p>
+        <p>We'll email you right away if a spot opens up for you.</p>
+        <p><a href="%eventUrl%">View the event page</a></p>
+
+competition_registration_paid:
+    subject: "Payment confirmed for %competitionName%"
+    title: "Payment confirmed!"
+    content: |
+        <p>The organizer confirmed your payment for <strong>%competitionName%</strong>. Your spot is fully secured — see you there!</p>
+        <p><a href="%eventUrl%">View the event page</a></p>
+
+competition_registration_promoted:
+    subject: "A spot opened up for you at %competitionName%"
+    title: "A spot opened up!"
+    entry_fee: "Entry fee"
+    payment_instructions: "How to pay"
+    content: |
+        <p>Good news! A spot opened up at <strong>%competitionName%</strong> and you've been moved from the waitlist — your spot is now reserved.</p>
+        <p><a href="%eventUrl%">View the event page</a></p>
+
+competition_results_published:
+    subject: "Results are live: %competitionName%"
+    title: "Results are live!"
+    content: |
+        <p>The results of round <strong>%roundName%</strong> at <strong>%competitionName%</strong> have just been published.</p>
+        <p><a href="%eventUrl%">See the standings</a></p>
+
 competition_rejected:
     subject: "Your event submission was not approved"
     title: "Event not approved"

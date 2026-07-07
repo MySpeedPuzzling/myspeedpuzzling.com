@@ -85,7 +85,35 @@ class Competition
         #[ManyToMany(targetEntity: Player::class)]
         #[JoinTable(name: 'competition_maintainer')]
         public Collection $maintainers = new ArrayCollection(),
+        #[Column(options: ['default' => false])]
+        public bool $registrationManaged = false,
+        #[Column(nullable: true)]
+        public null|int $capacity = null,
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $registrationOpensAt = null,
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $registrationClosesAt = null,
+        #[Column(nullable: true)]
+        public null|string $entryFeeText = null,
+        #[Column(type: Types::TEXT, nullable: true)]
+        public null|string $paymentInstructions = null,
+        /**
+         * Ordered public-page layout: list of {section: "system-key"|"custom:<uuid>", visible: bool}.
+         * NULL = default order, everything visible.
+         *
+         * @var null|array<array{section: string, visible: bool}>
+         */
+        #[Column(type: Types::JSON, nullable: true)]
+        public null|array $pageLayout = null,
     ) {
+    }
+
+    /**
+     * @param null|array<array{section: string, visible: bool}> $pageLayout
+     */
+    public function updatePageLayout(null|array $pageLayout): void
+    {
+        $this->pageLayout = $pageLayout;
     }
 
     public function approve(Player $approvedBy, DateTimeImmutable $approvedAt): void
@@ -139,5 +167,43 @@ class Competition
         $this->dateFrom = $dateFrom;
         $this->dateTo = $dateTo;
         $this->isOnline = $isOnline;
+    }
+
+    public function updateRegistrationSettings(
+        bool $registrationManaged,
+        null|int $capacity,
+        null|DateTimeImmutable $registrationOpensAt,
+        null|DateTimeImmutable $registrationClosesAt,
+        null|string $entryFeeText,
+        null|string $paymentInstructions,
+    ): void {
+        $this->registrationManaged = $registrationManaged;
+        $this->capacity = $capacity;
+        $this->registrationOpensAt = $registrationOpensAt;
+        $this->registrationClosesAt = $registrationClosesAt;
+        $this->entryFeeText = $entryFeeText;
+        $this->paymentInstructions = $paymentInstructions;
+
+        if ($registrationManaged === true) {
+            // One source of truth for how to register
+            $this->registrationLink = null;
+        }
+    }
+
+    public function isRegistrationOpen(DateTimeImmutable $now): bool
+    {
+        if ($this->registrationManaged === false) {
+            return false;
+        }
+
+        if ($this->registrationOpensAt !== null && $now < $this->registrationOpensAt) {
+            return false;
+        }
+
+        if ($this->registrationClosesAt !== null && $now > $this->registrationClosesAt) {
+            return false;
+        }
+
+        return true;
     }
 }

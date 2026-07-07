@@ -20,6 +20,8 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
     public const string COMPETITION_CZECH_NATIONALS_2024 = '018d0004-0000-0000-0000-000000000002';
     public const string COMPETITION_UNAPPROVED = '018d0004-0000-0000-0000-000000000003';
     public const string COMPETITION_RECURRING_ONLINE = '018d0004-0000-0000-0000-000000000004';
+    public const string COMPETITION_MANAGED_REGISTRATION = '018d0004-0000-0000-0000-000000000005';
+    public const string COMPETITION_MANAGED_CLOSED = '018d0004-0000-0000-0000-000000000006';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -99,6 +101,52 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
         $recurringOnlineCompetition->maintainers->add($regularPlayer);
         $manager->persist($recurringOnlineCompetition);
         $this->addReference(self::COMPETITION_RECURRING_ONLINE, $recurringOnlineCompetition);
+
+        $managedCompetition = $this->createCompetition(
+            id: self::COMPETITION_MANAGED_REGISTRATION,
+            name: 'Managed Registration Cup',
+            location: 'Ostrava',
+            locationCountryCode: 'cz',
+            tag: null,
+            daysFromNow: 45,
+            slug: 'managed-registration-cup',
+            approvedAt: $this->clock->now(),
+            addedByPlayer: $adminPlayer,
+            createdAt: $this->clock->now(),
+        );
+        $managedCompetition->updateRegistrationSettings(
+            registrationManaged: true,
+            capacity: 2,
+            registrationOpensAt: null,
+            registrationClosesAt: null,
+            entryFeeText: '10 EUR per person',
+            paymentInstructions: 'Send to bank account 123456/0100 within 7 days.',
+        );
+        $manager->persist($managedCompetition);
+        $this->addReference(self::COMPETITION_MANAGED_REGISTRATION, $managedCompetition);
+
+        $managedClosedCompetition = $this->createCompetition(
+            id: self::COMPETITION_MANAGED_CLOSED,
+            name: 'Managed Closed Cup',
+            location: 'Plzen',
+            locationCountryCode: 'cz',
+            tag: null,
+            daysFromNow: 10,
+            slug: 'managed-closed-cup',
+            approvedAt: $this->clock->now(),
+            addedByPlayer: $adminPlayer,
+            createdAt: $this->clock->now(),
+        );
+        $managedClosedCompetition->updateRegistrationSettings(
+            registrationManaged: true,
+            capacity: null,
+            registrationOpensAt: null,
+            registrationClosesAt: $this->clock->now()->modify('-1 day'),
+            entryFeeText: null,
+            paymentInstructions: null,
+        );
+        $manager->persist($managedClosedCompetition);
+        $this->addReference(self::COMPETITION_MANAGED_CLOSED, $managedClosedCompetition);
 
         $manager->flush();
     }

@@ -90,6 +90,9 @@
                                     <a href="{{ path('round_stopwatch', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-stopwatch me-1"></i>{{ 'competition.stopwatch.title'|trans }}
                                     </a>
+                                    <a href="{{ path('manage_round_results', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-trophy me-1"></i>{{ 'competition.results.title'|trans }}
+                                    </a>
                                 </div>
                             </div>
                         </div>

@@ -66,6 +66,7 @@
         "symfony/flex": "^2.1",
         "symfony/form": "^8.0",
         "symfony/framework-bundle": "^8.0",
+        "symfony/html-sanitizer": "8.*",
         "symfony/http-client": "^8.0",
         "symfony/http-client-contracts": "^3.4",
         "symfony/http-kernel": "^8.0",

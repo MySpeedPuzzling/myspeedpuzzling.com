@@ -174,6 +174,8 @@ Players with membership (`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN`) have sell/swap
 | `COMPETITION_CZECH_NATIONALS_2024` | Czech National Championship 2024 | Brno, CZ | National Championship |
 | `COMPETITION_UNAPPROVED` | Unapproved Puzzle Event | Vienna, AT | none |
 | `COMPETITION_RECURRING_ONLINE` | Euro Jigsaw Jam | Online | none (legacy recurring) |
+| `COMPETITION_MANAGED_REGISTRATION` | Managed Registration Cup | Ostrava, CZ | none — registrationManaged, capacity 2, entry fee "10 EUR per person", payment instructions set |
+| `COMPETITION_MANAGED_CLOSED` | Managed Closed Cup | Plzen, CZ | none — registrationManaged, registration closed yesterday (window tests) |
 
 ### Competition Series
 
@@ -194,6 +196,7 @@ Players with membership (`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN`) have sell/swap
 |-------|-------------|------|------------|---------|
 | `ROUND_WJPC_QUALIFICATION` | WJPC 2024 | Qualification Round | 60 min | PUZZLE_500_01, PUZZLE_500_02 |
 | `ROUND_WJPC_FINAL` | WJPC 2024 | Final Round | 120 min | PUZZLE_1000_01, PUZZLE_1000_02 |
+| `ROUND_WJPC_PAIRS` | WJPC 2024 | Pairs Round (category duo) | 90 min | PUZZLE_1000_01 |
 | `ROUND_CZECH_FINAL` | Czech Nationals 2024 | Final Round | 90 min | PUZZLE_500_01 |
 | `ROUND_EJJ_68` | EDITION_EJJ_68 | EJJ #68 — February 2026 | 120 min | - |
 | `ROUND_EJJ_69` | EDITION_EJJ_69 | EJJ #69 — May 2026 | 120 min | - |

@@ -15,6 +15,7 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\ParticipantSource;
+use SpeedPuzzling\Web\Value\RegistrationStatus;
 
 #[Entity]
 class CompetitionParticipant
@@ -38,6 +39,26 @@ class CompetitionParticipant
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $deletedAt = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, nullable: true, enumType: RegistrationStatus::class)]
+    public null|RegistrationStatus $registrationStatus = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $registeredAt = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $paidAt = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $checkedInAt = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|string $organizerNote = null;
 
     public function __construct(
         #[Id]
@@ -103,5 +124,46 @@ class CompetitionParticipant
     public function isDeleted(): bool
     {
         return $this->deletedAt !== null;
+    }
+
+    public function register(RegistrationStatus $status, DateTimeImmutable $registeredAt): void
+    {
+        $this->registrationStatus = $status;
+        $this->registeredAt = $registeredAt;
+        // A (re-)registration starts fresh: not paid, not checked in
+        $this->paidAt = null;
+        $this->checkedInAt = null;
+    }
+
+    public function markPaid(DateTimeImmutable $paidAt): void
+    {
+        $this->registrationStatus = RegistrationStatus::Paid;
+        $this->paidAt = $paidAt;
+    }
+
+    public function unmarkPaid(): void
+    {
+        $this->registrationStatus = RegistrationStatus::Reserved;
+        $this->paidAt = null;
+    }
+
+    public function promoteFromWaitlist(): void
+    {
+        $this->registrationStatus = RegistrationStatus::Reserved;
+    }
+
+    public function checkIn(DateTimeImmutable $checkedInAt): void
+    {
+        $this->checkedInAt = $checkedInAt;
+    }
+
+    public function undoCheckIn(): void
+    {
+        $this->checkedInAt = null;
+    }
+
+    public function updateOrganizerNote(null|string $organizerNote): void
+    {
+        $this->organizerNote = $organizerNote;
     }
 }

@@ -63,44 +63,34 @@
         </div>
     </div>
 
-    <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
+    {% for entry in page_sections %}
+        {% if entry.isSystem %}
+            {% if entry.key == 'schedule' and rounds|length > 0 %}
+                {{ include('_competition_rounds_section.html.twig') }}
+            {% elseif entry.key == 'puzzles' and rounds|length == 0 %}
+                <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
 
-    {% if puzzles|length > 0 %}
-        <div class="row g-2 g-md-3">
-            {% for puzzle in puzzles %}
-                {{ include('_puzzle_item.html.twig', {
-                    'search': '',
-                }) }}
-            {% endfor %}
-        </div>
-    {% else %}
-        <p class="lead">{{ 'events.no_puzzle_text'|trans|raw }}</p>
-    {% endif %}
-
-    <div class="mt-4 mb-3">
-        {% if is_going %}
-            <span class="btn btn-sm btn-success disabled me-2">
-                <i class="bi bi-check-lg me-1"></i>{{ 'competition.join.you_are_going'|trans }}
-            </span>
-            <a href="{{ path('join_competition', {'competitionId': event.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
-                {{ 'competition.join.change'|trans }}
-            </a>
-            <form method="post" action="{{ path('leave_competition', {'competitionId': event.id}) }}" class="d-inline">
-                <button type="submit" class="btn btn-sm btn-outline-danger">
-                    {{ 'competition.join.leave'|trans }}
-                </button>
-            </form>
-        {% elseif logged_user.profile is not null %}
-            <a href="{{ path('join_competition', {'competitionId': event.id}) }}" class="btn btn-sm btn-primary">
-                <i class="bi bi-person-plus me-1"></i>{{ 'competition.join.im_going'|trans }}
-            </a>
+                {% if puzzles|length > 0 %}
+                    <div class="row g-2 g-md-3">
+                        {% for puzzle in puzzles %}
+                            {{ include('_puzzle_item.html.twig', {
+                                'search': '',
+                            }) }}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="lead">{{ 'events.no_puzzle_text'|trans|raw }}</p>
+                {% endif %}
+            {% elseif entry.key == 'results' %}
+                {{ include('_competition_results_section.html.twig') }}
+            {% elseif entry.key == 'registration' %}
+                {{ include('_competition_registration_block.html.twig') }}
+            {% elseif entry.key == 'participants' %}
+                <twig:CompetitionParticipants competitionId="{{ event.id }}" eventSlug="{{ event.slug }}" />
+            {% endif %}
         {% else %}
-            <a href="{{ path('join_competition', {'competitionId': event.id}) }}" class="btn btn-sm btn-primary">
-                <i class="bi bi-person-plus me-1"></i>{{ 'competition.join.im_going'|trans }}
-            </a>
+            {{ include('_page_section.html.twig', {section: entry}) }}
         {% endif %}
-    </div>
-
-    <twig:CompetitionParticipants competitionId="{{ event.id }}" eventSlug="{{ event.slug }}" />
+    {% endfor %}
 
 {% endblock %}

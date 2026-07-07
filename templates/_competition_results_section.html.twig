@@ -1,0 +1,100 @@
+{# Public standings of published rounds.
+   Expects: event (CompetitionEvent), published_results (from GetRoundResults::publishedStandingsForCompetition) #}
+{% if published_results|length > 0 %}
+    <h2 class="h5 mt-4 mb-3"><i class="bi bi-trophy me-2"></i>{{ 'competition.results.title'|trans }}</h2>
+
+    <div class="accordion mb-4" id="results-accordion">
+        {% for roundStandings in published_results %}
+            <div class="accordion-item">
+                <h3 class="accordion-header">
+                    <button class="accordion-button {{ loop.first ? '' : 'collapsed' }}" type="button" data-bs-toggle="collapse" data-bs-target="#results-round-{{ roundStandings.roundId }}">
+                        <span class="badge me-2" style="background: {{ roundStandings.badgeBackgroundColor ?? '#6c757d' }}; color: {{ roundStandings.badgeTextColor ?? '#fff' }};">
+                            {{ ('competition.round.category.' ~ roundStandings.category)|trans }}
+                        </span>
+                        {{ roundStandings.roundName }}
+                        <span class="text-muted ms-2 small">({{ roundStandings.results|length }})</span>
+                    </button>
+                </h3>
+                <div id="results-round-{{ roundStandings.roundId }}" class="accordion-collapse collapse {{ loop.first ? 'show' }}" data-bs-parent="#results-accordion">
+                    <div class="accordion-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;" class="ps-3">#</th>
+                                        <th>
+                                            {% if roundStandings.category == 'solo' %}
+                                                {{ 'competition.results.participant'|trans }}
+                                            {% else %}
+                                                {{ 'competition.results.team'|trans }}
+                                            {% endif %}
+                                        </th>
+                                        <th style="width: 140px;" class="text-end pe-3">{{ 'competition.results.time'|trans }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for result in roundStandings.results %}
+                                        <tr class="{{ result.rank <= 3 and not result.isDnf ? 'table-warning' }}">
+                                            <td class="ps-3 fw-bold">
+                                                {% if result.rank == 1 and not result.isDnf %}🥇
+                                                {% elseif result.rank == 2 and not result.isDnf %}🥈
+                                                {% elseif result.rank == 3 and not result.isDnf %}🥉
+                                                {% else %}{{ result.rank }}.
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <strong>{{ result.entrantName }}</strong>
+                                                {% if roundStandings.category != 'solo' and result.members|length > 0 %}
+                                                    <div class="small text-muted">
+                                                        {% for member in result.members %}
+                                                            {%- if member.playerId and not member.isPrivate -%}
+                                                                <a href="{{ path('player_profile', {'playerId': member.playerId}) }}" class="text-decoration-underline">{{ member.playerName ?? member.name }}</a>
+                                                            {%- else -%}
+                                                                {{ member.playerName ?? member.name }}
+                                                            {%- endif -%}
+                                                            {%- if member.country %} <small class="fi fi-{{ member.country.name }}"></small>{% endif -%}
+                                                            {{- loop.last ? '' : ', ' }}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% elseif roundStandings.category == 'solo' and result.members|length > 0 %}
+                                                    {% set member = result.members|first %}
+                                                    {% if member.playerId and not member.isPrivate %}
+                                                        <a href="{{ path('player_profile', {'playerId': member.playerId}) }}" class="small text-decoration-underline d-block">{{ member.playerName ?? member.name }}</a>
+                                                    {% endif %}
+                                                    {% if member.country %}
+                                                        <small class="fi fi-{{ member.country.name }}"></small>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end pe-3 font-monospace">
+                                                {% if result.isDnf %}
+                                                    <span class="text-muted" title="{{ 'competition.results.dnf_explanation'|trans }}">
+                                                        {{ 'competition.results.dnf'|trans }}
+                                                        {% if result.missingPieces is not null %}
+                                                            ({{ 'competition.results.pieces_missing'|trans({'%count%': result.missingPieces}) }})
+                                                        {% endif %}
+                                                    </span>
+                                                {% else %}
+                                                    {{ result.secondsToSolve|puzzlingTime }}
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if logged_user.profile is null or not is_going %}
+        <div class="alert alert-light border d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+            <span><i class="bi bi-hand-index-thumb me-2"></i>{{ 'competition.results.claim_cta_text'|trans }}</span>
+            <a href="{{ path('join_competition', {'competitionId': event.id}) }}" class="btn btn-sm btn-primary">
+                {{ 'competition.results.claim_cta_button'|trans }}
+            </a>
+        </div>
+    {% endif %}
+{% endif %}

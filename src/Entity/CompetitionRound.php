@@ -53,7 +53,24 @@ class CompetitionRound
         public null|string $stopwatchStatus = null,
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $stopwatchStoppedAt = null,
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $resultsPublishedAt = null,
     ) {
+    }
+
+    public function publishResults(DateTimeImmutable $publishedAt): void
+    {
+        $this->resultsPublishedAt = $publishedAt;
+    }
+
+    public function unpublishResults(): void
+    {
+        $this->resultsPublishedAt = null;
+    }
+
+    public function areResultsPublished(): bool
+    {
+        return $this->resultsPublishedAt !== null;
     }
 
     public function edit(

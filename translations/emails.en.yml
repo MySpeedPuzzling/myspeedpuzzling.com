@@ -137,6 +137,13 @@ competition_registration_promoted:
         <p>Good news! A spot opened up at <strong>%competitionName%</strong> and you've been moved from the waitlist — your spot is now reserved.</p>
         <p><a href="%eventUrl%">View the event page</a></p>
 
+competition_results_published:
+    subject: "Results are live: %competitionName%"
+    title: "Results are live!"
+    content: |
+        <p>The results of round <strong>%roundName%</strong> at <strong>%competitionName%</strong> have just been published.</p>
+        <p><a href="%eventUrl%">See the standings</a></p>
+
 competition_rejected:
     subject: "Your event submission was not approved"
     title: "Event not approved"

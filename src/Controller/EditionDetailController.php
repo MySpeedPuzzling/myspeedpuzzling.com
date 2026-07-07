@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Query\GetCompetitionRegistrationOverview;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
+use SpeedPuzzling\Web\Query\GetRoundResults;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
@@ -32,6 +33,7 @@ final class EditionDetailController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetCompetitionParticipants $getCompetitionParticipants,
         readonly private GetCompetitionRegistrationOverview $getCompetitionRegistrationOverview,
+        readonly private GetRoundResults $getRoundResults,
         readonly private ClockInterface $clock,
     ) {
     }
@@ -94,6 +96,7 @@ final class EditionDetailController extends AbstractController
             'registration' => $registration,
             'registration_is_open' => $registration->isOpen($now),
             'registration_opens_future' => $registration->opensInFuture($now),
+            'published_results' => $this->getRoundResults->publishedStandingsForCompetition($competitionId),
         ]);
     }
 }

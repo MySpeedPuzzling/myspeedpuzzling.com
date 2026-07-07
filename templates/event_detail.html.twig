@@ -77,6 +77,8 @@
         <p class="lead">{{ 'events.no_puzzle_text'|trans|raw }}</p>
     {% endif %}
 
+    {{ include('_competition_results_section.html.twig') }}
+
     {{ include('_competition_registration_block.html.twig') }}
 
     <twig:CompetitionParticipants competitionId="{{ event.id }}" eventSlug="{{ event.slug }}" />

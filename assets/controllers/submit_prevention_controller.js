@@ -15,7 +15,7 @@ export default class extends Controller {
 
     connect() {
         this.isSubmittingValue = false;
-        this.compressionDone = false;
+        this.processedFiles = new WeakSet();
         this.originalLabelHtml = null;
 
         this.boundPrevent = this.preventDuplicateSubmission.bind(this);
@@ -36,7 +36,7 @@ export default class extends Controller {
             return;
         }
 
-        if (this.compressImagesValue && !this.compressionDone) {
+        if (this.compressImagesValue) {
             const fileInputs = this.element.querySelectorAll('.file-drop-input');
             const filesToCompress = this.findFilesToCompress(fileInputs);
 
@@ -49,7 +49,6 @@ export default class extends Controller {
                 this.showCompressingState();
 
                 this.compressAllFiles(filesToCompress).then(() => {
-                    this.compressionDone = true;
                     this.showSavingState();
                     this.isSubmittingValue = false;
                     this.element.requestSubmit();
@@ -66,7 +65,6 @@ export default class extends Controller {
 
     reset() {
         this.isSubmittingValue = false;
-        this.compressionDone = false;
         this.enableSubmitButton();
         this.restoreLabel();
     }
@@ -78,6 +76,7 @@ export default class extends Controller {
             if (!input.files || !input.files[0]) return;
 
             const file = input.files[0];
+            if (this.processedFiles.has(file)) return;
             if (file.size <= COMPRESS_THRESHOLD_BYTES) return;
             if (file.type === 'image/gif') return;
             if (!file.type.startsWith('image/')) return;
@@ -90,10 +89,13 @@ export default class extends Controller {
 
     async compressAllFiles(filesToCompress) {
         for (const { input, file } of filesToCompress) {
+            this.processedFiles.add(file);
+
             try {
                 const compressedFile = await this.compressImage(file);
 
                 if (compressedFile.size < file.size) {
+                    this.processedFiles.add(compressedFile);
                     const dataTransfer = new DataTransfer();
                     dataTransfer.items.add(compressedFile);
                     input.files = dataTransfer.files;

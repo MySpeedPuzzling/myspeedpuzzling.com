@@ -71,7 +71,23 @@ class CompetitionSeries
         #[ManyToMany(targetEntity: Player::class)]
         #[JoinTable(name: 'competition_series_maintainer')]
         public Collection $maintainers = new ArrayCollection(),
+        /**
+         * Ordered public-page layout: list of {section: "system-key"|"custom:<uuid>", visible: bool}.
+         * NULL = default order, everything visible.
+         *
+         * @var null|array<array{section: string, visible: bool}>
+         */
+        #[Column(type: Types::JSON, nullable: true)]
+        public null|array $pageLayout = null,
     ) {
+    }
+
+    /**
+     * @param null|array<array{section: string, visible: bool}> $pageLayout
+     */
+    public function updatePageLayout(null|array $pageLayout): void
+    {
+        $this->pageLayout = $pageLayout;
     }
 
     public function approve(Player $approvedBy, DateTimeImmutable $approvedAt): void

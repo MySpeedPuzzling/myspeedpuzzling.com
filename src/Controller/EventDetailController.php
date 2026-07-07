@@ -8,7 +8,9 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
+use SpeedPuzzling\Web\Query\GetCompetitionPageSections;
 use SpeedPuzzling\Web\Query\GetCompetitionRegistrationOverview;
+use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetRoundResults;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
@@ -30,6 +32,8 @@ final class EventDetailController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetCompetitionRegistrationOverview $getCompetitionRegistrationOverview,
         readonly private GetRoundResults $getRoundResults,
+        readonly private GetCompetitionPageSections $getCompetitionPageSections,
+        readonly private GetEditionRounds $getEditionRounds,
         readonly private ClockInterface $clock,
     ) {
     }
@@ -90,6 +94,8 @@ final class EventDetailController extends AbstractController
             'registration_is_open' => $registration->isOpen($now),
             'registration_opens_future' => $registration->opensInFuture($now),
             'published_results' => $this->getRoundResults->publishedStandingsForCompetition($competition->id->toString()),
+            'page_sections' => $this->getCompetitionPageSections->forCompetition($competition->id->toString()),
+            'rounds' => $this->getEditionRounds->forCompetition($competition->id->toString()),
         ]);
     }
 }

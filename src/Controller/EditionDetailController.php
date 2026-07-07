@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
+use SpeedPuzzling\Web\Query\GetCompetitionPageSections;
 use SpeedPuzzling\Web\Query\GetCompetitionRegistrationOverview;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
@@ -34,6 +35,7 @@ final class EditionDetailController extends AbstractController
         readonly private GetCompetitionParticipants $getCompetitionParticipants,
         readonly private GetCompetitionRegistrationOverview $getCompetitionRegistrationOverview,
         readonly private GetRoundResults $getRoundResults,
+        readonly private GetCompetitionPageSections $getCompetitionPageSections,
         readonly private ClockInterface $clock,
     ) {
     }
@@ -97,6 +99,7 @@ final class EditionDetailController extends AbstractController
             'registration_is_open' => $registration->isOpen($now),
             'registration_opens_future' => $registration->opensInFuture($now),
             'published_results' => $this->getRoundResults->publishedStandingsForCompetition($competitionId),
+            'page_sections' => $this->getCompetitionPageSections->forCompetition($competitionId),
         ]);
     }
 }

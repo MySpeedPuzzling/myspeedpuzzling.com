@@ -34,6 +34,9 @@
                     <a href="{{ path('manage_competition_participants', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary">
                         <i class="bi bi-people me-1"></i>{{ 'competition.manage_participants'|trans }}
                     </a>
+                    <a href="{{ path('manage_competition_page', {'competitionId': competition.id}) }}" class="btn btn-outline-primary">
+                        <i class="bi bi-layout-text-window-reverse me-1"></i>{{ 'competition.page.manage_button'|trans }}
+                    </a>
                     {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionDeleteVoter::COMPETITION_DELETE'), competition.id) %}
                         <button type="button" class="btn btn-outline-danger ms-auto" data-bs-toggle="modal" data-bs-target="#deleteCompetitionModal-{{ competition.id }}" title="{{ 'competition.delete.button'|trans }}">
                             <i class="bi bi-trash"></i>

@@ -63,24 +63,34 @@
         </div>
     </div>
 
-    <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
+    {% for entry in page_sections %}
+        {% if entry.isSystem %}
+            {% if entry.key == 'schedule' and rounds|length > 0 %}
+                {{ include('_competition_rounds_section.html.twig') }}
+            {% elseif entry.key == 'puzzles' and rounds|length == 0 %}
+                <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
 
-    {% if puzzles|length > 0 %}
-        <div class="row g-2 g-md-3">
-            {% for puzzle in puzzles %}
-                {{ include('_puzzle_item.html.twig', {
-                    'search': '',
-                }) }}
-            {% endfor %}
-        </div>
-    {% else %}
-        <p class="lead">{{ 'events.no_puzzle_text'|trans|raw }}</p>
-    {% endif %}
-
-    {{ include('_competition_results_section.html.twig') }}
-
-    {{ include('_competition_registration_block.html.twig') }}
-
-    <twig:CompetitionParticipants competitionId="{{ event.id }}" eventSlug="{{ event.slug }}" />
+                {% if puzzles|length > 0 %}
+                    <div class="row g-2 g-md-3">
+                        {% for puzzle in puzzles %}
+                            {{ include('_puzzle_item.html.twig', {
+                                'search': '',
+                            }) }}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="lead">{{ 'events.no_puzzle_text'|trans|raw }}</p>
+                {% endif %}
+            {% elseif entry.key == 'results' %}
+                {{ include('_competition_results_section.html.twig') }}
+            {% elseif entry.key == 'registration' %}
+                {{ include('_competition_registration_block.html.twig') }}
+            {% elseif entry.key == 'participants' %}
+                <twig:CompetitionParticipants competitionId="{{ event.id }}" eventSlug="{{ event.slug }}" />
+            {% endif %}
+        {% else %}
+            {{ include('_page_section.html.twig', {section: entry}) }}
+        {% endif %}
+    {% endfor %}
 
 {% endblock %}

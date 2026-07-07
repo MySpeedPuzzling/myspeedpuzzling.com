@@ -97,7 +97,23 @@ class Competition
         public null|string $entryFeeText = null,
         #[Column(type: Types::TEXT, nullable: true)]
         public null|string $paymentInstructions = null,
+        /**
+         * Ordered public-page layout: list of {section: "system-key"|"custom:<uuid>", visible: bool}.
+         * NULL = default order, everything visible.
+         *
+         * @var null|array<array{section: string, visible: bool}>
+         */
+        #[Column(type: Types::JSON, nullable: true)]
+        public null|array $pageLayout = null,
     ) {
+    }
+
+    /**
+     * @param null|array<array{section: string, visible: bool}> $pageLayout
+     */
+    public function updatePageLayout(null|array $pageLayout): void
+    {
+        $this->pageLayout = $pageLayout;
     }
 
     public function approve(Player $approvedBy, DateTimeImmutable $approvedAt): void

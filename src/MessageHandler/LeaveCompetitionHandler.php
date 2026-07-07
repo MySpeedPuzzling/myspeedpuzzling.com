@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
+use SpeedPuzzling\Web\Services\ClaimedResultReverter;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -18,6 +19,7 @@ readonly final class LeaveCompetitionHandler
         private CompetitionParticipantRepository $participantRepository,
         private Connection $database,
         private ClockInterface $clock,
+        private ClaimedResultReverter $claimedResultReverter,
     ) {
     }
 
@@ -28,6 +30,8 @@ readonly final class LeaveCompetitionHandler
         if ($participantId === null) {
             return;
         }
+
+        $this->claimedResultReverter->revertForPlayerInCompetition($message->playerId, $message->competitionId);
 
         $participant = $this->participantRepository->get($participantId);
 

@@ -53,6 +53,12 @@ readonly final class UpsertRoundResultHandler
 
         if ($result !== null) {
             $result->updateResult($message->secondsToSolve, $message->missingPieces, $now);
+
+            // Organizer corrections propagate to claim-created profile times
+            if ($result->solvingTime !== null && $result->claimCreatedSolvingTime === true) {
+                $result->solvingTime->updateResultValues($message->secondsToSolve, $message->missingPieces);
+            }
+
             $this->publisher->publishResultChanged($result);
 
             return;

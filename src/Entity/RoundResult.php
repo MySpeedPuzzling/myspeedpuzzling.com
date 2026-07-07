@@ -43,6 +43,14 @@ class RoundResult
     #[JoinColumn(onDelete: 'SET NULL')]
     public null|PuzzleSolvingTime $solvingTime = null;
 
+    /**
+     * True when the linked solving time was created by claiming (safe to delete on
+     * un-claim), false when an existing self-logged time was linked (never deleted).
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => false])]
+    public bool $claimCreatedSolvingTime = false;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -81,14 +89,16 @@ class RoundResult
         $this->updatedAt = $updatedAt;
     }
 
-    public function linkSolvingTime(PuzzleSolvingTime $solvingTime): void
+    public function linkSolvingTime(PuzzleSolvingTime $solvingTime, bool $claimCreated): void
     {
         $this->solvingTime = $solvingTime;
+        $this->claimCreatedSolvingTime = $claimCreated;
     }
 
     public function unlinkSolvingTime(): void
     {
         $this->solvingTime = null;
+        $this->claimCreatedSolvingTime = false;
     }
 
     public function isDnf(): bool

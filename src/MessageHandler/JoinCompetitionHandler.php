@@ -9,6 +9,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
+use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDifferentPlayer;
 use SpeedPuzzling\Web\Exceptions\RegistrationNotOpen;
@@ -16,8 +17,11 @@ use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Query\GetCompetitionRegistrationOverview;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
+use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\ClaimedResultReverter;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
@@ -31,7 +35,9 @@ readonly final class JoinCompetitionHandler
 {
     public function __construct(
         private CompetitionParticipantRepository $participantRepository,
+        private CompetitionParticipantRoundRepository $participantRoundRepository,
         private CompetitionRepository $competitionRepository,
+        private CompetitionTeamRepository $teamRepository,
         private PlayerRepository $playerRepository,
         private GetCompetitionParticipants $getCompetitionParticipants,
         private GetCompetitionRegistrationOverview $getCompetitionRegistrationOverview,
@@ -40,6 +46,7 @@ readonly final class JoinCompetitionHandler
         private MailerInterface $mailer,
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
+        private ClaimedResultReverter $claimedResultReverter,
     ) {
     }
 
@@ -54,6 +61,12 @@ readonly final class JoinCompetitionHandler
 
         if ($competition->registrationManaged === true && $competition->isRegistrationOpen($this->clock->now()) === false) {
             throw new RegistrationNotOpen();
+        }
+
+        if ($message->teamId !== null) {
+            $this->joinTeam($message, $competition, $player);
+
+            return;
         }
 
         if ($message->participantId !== null) {
@@ -113,6 +126,111 @@ readonly final class JoinCompetitionHandler
             // New row is not flushed yet, so it is not part of the active count
             $this->applyRegistration($competition, $participant, $player, alreadyCountedAsActive: false);
         }
+    }
+
+    /**
+     * "I was in team X" — connects the player to the competition (creating a
+     * self-joined participant when needed) and assigns them to the team's round
+     * and team. This is how team members without a participant record claim
+     * their spot (organizers often only know team names).
+     */
+    private function joinTeam(JoinCompetition $message, Competition $competition, Player $player): void
+    {
+        $team = $this->teamRepository->get((string) $message->teamId);
+        $round = $team->round;
+
+        if ($round->competition->id->equals($competition->id) === false) {
+            return;
+        }
+
+        $participant = $this->findOrCreateOwnParticipant($message, $competition, $player);
+
+        // Ensure round assignment with the team set
+        $participantRoundId = $this->findParticipantRound($participant->id->toString(), $round->id->toString());
+
+        if ($participantRoundId !== null) {
+            $participantRound = $this->participantRoundRepository->get($participantRoundId);
+            $participantRound->assignToTeam($team);
+
+            return;
+        }
+
+        $this->participantRoundRepository->save(new CompetitionParticipantRound(
+            id: Uuid::uuid7(),
+            participant: $participant,
+            round: $round,
+            team: $team,
+        ));
+    }
+
+    private function findOrCreateOwnParticipant(JoinCompetition $message, Competition $competition, Player $player): CompetitionParticipant
+    {
+        $existingId = $this->findActiveParticipantOfPlayer($message->competitionId, $message->playerId);
+
+        if ($existingId !== null) {
+            return $this->participantRepository->get($existingId);
+        }
+
+        $softDeletedId = $this->findSoftDeletedSelfJoin($message->competitionId, $message->playerId);
+
+        if ($softDeletedId !== null) {
+            $existing = $this->participantRepository->get($softDeletedId);
+            $existing->restore();
+            $existing->connect($player, $this->clock->now());
+
+            if ($competition->registrationManaged === true) {
+                $this->applyRegistration($competition, $existing, $player, alreadyCountedAsActive: false);
+            }
+
+            return $existing;
+        }
+
+        $participant = new CompetitionParticipant(
+            id: Uuid::uuid7(),
+            name: $player->name ?? $player->code,
+            country: $player->country,
+            competition: $competition,
+            source: ParticipantSource::SelfJoined,
+        );
+
+        $participant->connect($player, $this->clock->now());
+        $this->participantRepository->save($participant);
+
+        if ($competition->registrationManaged === true) {
+            $this->applyRegistration($competition, $participant, $player, alreadyCountedAsActive: false);
+        }
+
+        return $participant;
+    }
+
+    private function findActiveParticipantOfPlayer(string $competitionId, string $playerId): null|string
+    {
+        $query = <<<SQL
+SELECT id FROM competition_participant
+WHERE competition_id = :competitionId
+AND player_id = :playerId
+AND deleted_at IS NULL
+LIMIT 1
+SQL;
+
+        /** @var false|string $result */
+        $result = $this->database->executeQuery($query, [
+            'competitionId' => $competitionId,
+            'playerId' => $playerId,
+        ])->fetchOne();
+
+        return $result !== false ? $result : null;
+    }
+
+    private function findParticipantRound(string $participantId, string $roundId): null|string
+    {
+        /** @var false|string $result */
+        $result = $this->database->executeQuery(
+            'SELECT id FROM competition_participant_round WHERE participant_id = :participantId AND round_id = :roundId LIMIT 1',
+            ['participantId' => $participantId, 'roundId' => $roundId],
+        )->fetchOne();
+
+        return $result !== false ? $result : null;
     }
 
     private function applyRegistration(
@@ -193,6 +311,11 @@ readonly final class JoinCompetitionHandler
     private function disconnectExisting(string $competitionId, string $playerId): void
     {
         $connections = $this->getCompetitionParticipants->getPlayerConnections($competitionId, $playerId);
+
+        if ($connections !== []) {
+            // Switching identity un-claims materialized results of the old identity
+            $this->claimedResultReverter->revertForPlayerInCompetition($playerId, $competitionId);
+        }
 
         foreach ($connections as $participantId) {
             $participant = $this->participantRepository->get($participantId);

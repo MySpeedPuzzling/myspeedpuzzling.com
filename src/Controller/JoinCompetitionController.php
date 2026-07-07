@@ -7,8 +7,10 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDifferentPlayer;
 use SpeedPuzzling\Web\Exceptions\RegistrationNotOpen;
 use SpeedPuzzling\Web\Message\JoinCompetition;
+use SpeedPuzzling\Web\Query\GetClaimableResultsForPlayer;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
+use SpeedPuzzling\Web\Query\GetRoundTeams;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,6 +27,8 @@ final class JoinCompetitionController extends AbstractController
     public function __construct(
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly GetCompetitionParticipants $getCompetitionParticipants,
+        private readonly GetRoundTeams $getRoundTeams,
+        private readonly GetClaimableResultsForPlayer $getClaimableResults,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
@@ -54,12 +58,14 @@ final class JoinCompetitionController extends AbstractController
         // POST: Handle form submission
         if ($request->isMethod('POST')) {
             $participantId = $request->request->getString('participant_id');
+            $teamId = $request->request->getString('team_id');
 
             try {
                 $this->messageBus->dispatch(new JoinCompetition(
                     competitionId: $competitionId,
                     playerId: $profile->playerId,
                     participantId: $participantId !== '' ? $participantId : null,
+                    teamId: $teamId !== '' ? $teamId : null,
                 ));
 
                 $this->addFlash('success', $this->translator->trans('flashes.competition_join_success'));
@@ -71,6 +77,13 @@ final class JoinCompetitionController extends AbstractController
                 } else {
                     throw $e;
                 }
+
+                return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);
+            }
+
+            // Newly connected identity may have claimable results — offer them right away
+            if ($this->getClaimableResults->inCompetition($competitionId, $profile->playerId) !== []) {
+                return $this->redirectToRoute('claim_results', ['competitionId' => $competitionId]);
             }
 
             return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);
@@ -79,9 +92,10 @@ final class JoinCompetitionController extends AbstractController
         // GET: Check if we can direct-join or need to show picker
         $notConnected = $this->getCompetitionParticipants->getNotConnectedParticipants($competitionId);
         $existingConnections = $this->getCompetitionParticipants->getPlayerConnections($competitionId, $profile->playerId);
+        $teams = $this->getRoundTeams->teamsForCompetition($competitionId);
 
-        // If no unconnected participants and not already connected → direct self-join
-        if (count($notConnected) === 0 && count($existingConnections) === 0) {
+        // If no unconnected participants, no teams to pick and not already connected → direct self-join
+        if (count($notConnected) === 0 && count($teams) === 0 && count($existingConnections) === 0) {
             try {
                 $this->messageBus->dispatch(new JoinCompetition(
                     competitionId: $competitionId,
@@ -107,6 +121,7 @@ final class JoinCompetitionController extends AbstractController
             'competition' => $competition,
             'profile' => $profile,
             'pairingMapping' => $pairingMapping,
+            'teams' => $teams,
             'hasExistingConnection' => count($existingConnections) > 0,
         ]);
     }

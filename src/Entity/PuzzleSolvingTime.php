@@ -113,6 +113,19 @@ class PuzzleSolvingTime implements EntityWithEvents
         );
     }
 
+    /**
+     * Propagates an organizer's correction of a claimed round result.
+     */
+    public function updateResultValues(null|int $seconds, null|int $missingPieces): void
+    {
+        $this->secondsToSolve = $seconds;
+        $this->missingPieces = $missingPieces;
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+    }
+
     public function migrateToPuzzle(Puzzle $newPuzzle): void
     {
         $this->puzzle = $newPuzzle;

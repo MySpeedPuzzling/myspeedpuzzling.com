@@ -893,6 +893,7 @@ flashes:
     competition_join_success: "You have successfully joined the event!"
     competition_leave_success: "You have left the event."
     competition_registration_not_open: "Registration for this event is not open."
+    results_claimed: "Results were added to your profile!"
     oauth2_request_fields_required: "Please fill in all required fields."
     oauth2_request_submitted: "Your application request has been submitted. You will be notified by email when it is reviewed."
 
@@ -2829,6 +2830,15 @@ competition:
         change: "Change"
         leave: "Leave"
         im_going: "I'm going!"
+        team_picker_description: "Did you puzzle in a team? Pick your team to claim your spot:"
+        select_team: "— Select your team —"
+        unnamed_team: "Unnamed team"
+        team_confirm: "That's my team"
+    claim:
+        title: "Claim your results"
+        description: "We found these results for you at %competitionName%. Add them to your MySpeedPuzzling profile — they will show up in your solved puzzles and statistics."
+        verified_note: "Claimed times are marked as verified because they were recorded by the event organizer."
+        confirm: "Add to my profile"
     registration:
         title: "Registration"
         spots_taken: "%taken% / %capacity% spots taken"

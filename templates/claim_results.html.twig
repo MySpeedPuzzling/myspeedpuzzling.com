@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.claim.title'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('event_detail', {slug: competition.slug}), fallbackTitle: competition.name}) }}
+
+    <div class="row justify-content-center pb-4">
+        <div class="col-lg-7">
+            <h1 class="h3 mb-2">{{ 'competition.claim.title'|trans }}</h1>
+            <p class="text-muted">{{ 'competition.claim.description'|trans({'%competitionName%': competition.name}) }}</p>
+
+            <form method="post">
+                <div class="card shadow-sm mb-3">
+                    <ul class="list-group list-group-flush">
+                        {% for result in claimable %}
+                            <li class="list-group-item d-flex align-items-center py-3">
+                                <input class="form-check-input me-3 flex-shrink-0" type="checkbox" name="result_ids[]"
+                                       value="{{ result.resultId }}" id="claim-{{ result.resultId }}" checked>
+                                <label class="form-check-label flex-fill" for="claim-{{ result.resultId }}">
+                                    <strong>{{ result.roundName }}</strong>
+                                    <span class="badge bg-secondary ms-1">{{ ('competition.round.category.' ~ result.category)|trans }}</span>
+                                    <div class="small text-muted">{{ result.entrantName }}</div>
+                                </label>
+                                <span class="font-monospace ms-2">
+                                    {% if result.secondsToSolve is null %}
+                                        {{ 'competition.results.dnf'|trans }}
+                                        {% if result.missingPieces is not null %}
+                                            ({{ 'competition.results.pieces_missing'|trans({'%count%': result.missingPieces}) }})
+                                        {% endif %}
+                                    {% else %}
+                                        {{ result.secondsToSolve|puzzlingTime }}
+                                    {% endif %}
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <p class="small text-muted">{{ 'competition.claim.verified_note'|trans }}</p>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>{{ 'competition.claim.confirm'|trans }}
+                </button>
+                <a href="{{ path('event_detail', {slug: competition.slug}) }}" class="btn btn-outline-secondary">
+                    {{ 'forms.cancel'|trans }}
+                </a>
+            </form>
+        </div>
+    </div>
+{% endblock %}

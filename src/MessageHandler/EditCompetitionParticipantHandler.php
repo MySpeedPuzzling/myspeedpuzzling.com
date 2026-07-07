@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Message\EditCompetitionParticipant;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\ClaimedResultReverter;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -22,6 +23,7 @@ readonly final class EditCompetitionParticipantHandler
         private PlayerRepository $playerRepository,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private ClaimedResultReverter $claimedResultReverter,
     ) {
     }
 
@@ -39,11 +41,25 @@ readonly final class EditCompetitionParticipantHandler
             $currentPlayerId = $participant->player?->id->toString();
 
             if ($currentPlayerId !== $message->playerId) {
+                if ($currentPlayerId !== null) {
+                    $this->claimedResultReverter->revertForPlayerInCompetition(
+                        $currentPlayerId,
+                        $participant->competition->id->toString(),
+                    );
+                }
+
                 $player = $this->playerRepository->get($message->playerId);
                 $participant->disconnect();
                 $participant->connect($player, $this->clock->now());
             }
         } else {
+            if ($participant->player !== null) {
+                $this->claimedResultReverter->revertForPlayerInCompetition(
+                    $participant->player->id->toString(),
+                    $participant->competition->id->toString(),
+                );
+            }
+
             $participant->disconnect();
         }
 

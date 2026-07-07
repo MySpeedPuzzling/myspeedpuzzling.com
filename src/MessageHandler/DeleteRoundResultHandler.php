@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use SpeedPuzzling\Web\Message\DeleteRoundResult;
 use SpeedPuzzling\Web\Repository\RoundResultRepository;
 use SpeedPuzzling\Web\Services\RoundResultsPublisher;
+use SpeedPuzzling\Web\Services\SolvingTimeRemover;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -15,6 +16,7 @@ readonly final class DeleteRoundResultHandler
     public function __construct(
         private RoundResultRepository $resultRepository,
         private RoundResultsPublisher $publisher,
+        private SolvingTimeRemover $solvingTimeRemover,
     ) {
     }
 
@@ -25,6 +27,12 @@ readonly final class DeleteRoundResultHandler
 
         if ($result === null) {
             return;
+        }
+
+        // Claim-created profile times fall with the official result; linked
+        // self-logged times are never deleted
+        if ($result->solvingTime !== null && $result->claimCreatedSolvingTime === true) {
+            $this->solvingTimeRemover->remove($result->solvingTime);
         }
 
         $this->publisher->publishResultDeleted($result);

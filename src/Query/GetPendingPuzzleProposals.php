@@ -136,6 +136,7 @@ SELECT
     p.name,
     p.pieces_count,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > ?::timestamp THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > ?::timestamp THEN NULL ELSE p.image_ratio END AS image_ratio,
     m.name as manufacturer_name,
     (SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.puzzle_id = p.id) as times_count
 FROM puzzle p
@@ -143,7 +144,8 @@ LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
 WHERE p.id IN ({$placeholders})
 SQL;
 
-        $rows = $this->database->fetchAllAssociative($query, [$this->clock->now()->format('Y-m-d H:i:s'), ...array_values($puzzleIds)]);
+        $now = $this->clock->now()->format('Y-m-d H:i:s');
+        $rows = $this->database->fetchAllAssociative($query, [$now, $now, ...array_values($puzzleIds)]);
 
         $result = [];
         foreach ($rows as $row) {
@@ -160,6 +162,7 @@ SQL;
                 name: $name,
                 piecesCount: is_int($row['pieces_count']) ? $row['pieces_count'] : null,
                 image: is_string($row['image']) ? $row['image'] : null,
+                imageRatio: is_numeric($row['image_ratio']) ? (float) $row['image_ratio'] : null,
                 manufacturerName: is_string($row['manufacturer_name']) ? $row['manufacturer_name'] : null,
                 timesCount: (int) $timesCount,
             );

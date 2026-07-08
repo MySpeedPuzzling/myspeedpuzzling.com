@@ -88,6 +88,7 @@ SELECT
     p.id AS puzzle_id,
     p.name AS puzzle_name,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS puzzle_image_ratio,
     sli.listing_type AS listing_type,
     sli.price AS listing_price
 FROM conversation c
@@ -127,6 +128,7 @@ SQL;
              *     puzzle_id: null|string,
              *     puzzle_name: null|string,
              *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
              *     listing_type: null|string,
              *     listing_price: null|string,
              * } $row
@@ -147,6 +149,7 @@ SQL;
                 puzzleId: $row['puzzle_id'],
                 sellSwapListItemId: $row['sell_swap_list_item_id'],
                 puzzleImage: $row['puzzle_image'],
+                puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
                 listingType: $row['listing_type'],
                 listingPrice: $row['listing_price'] !== null ? (float) $row['listing_price'] : null,
                 lastMessageSentByMe: (bool) ($row['last_message_sent_by_me'] ?? false),
@@ -175,6 +178,7 @@ SELECT
     p.id AS puzzle_id,
     p.name AS puzzle_name,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS puzzle_image_ratio,
     sli.listing_type AS listing_type,
     sli.price AS listing_price
 FROM conversation c
@@ -214,6 +218,7 @@ SQL;
              *     puzzle_id: null|string,
              *     puzzle_name: null|string,
              *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
              *     listing_type: null|string,
              *     listing_price: null|string,
              * } $row
@@ -234,6 +239,7 @@ SQL;
                 puzzleId: $row['puzzle_id'],
                 sellSwapListItemId: $row['sell_swap_list_item_id'],
                 puzzleImage: $row['puzzle_image'],
+                puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
                 listingType: $row['listing_type'],
                 listingPrice: $row['listing_price'] !== null ? (float) $row['listing_price'] : null,
             );
@@ -281,6 +287,7 @@ SELECT
     p.id AS puzzle_id,
     p.name AS puzzle_name,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS puzzle_image_ratio,
     sli.listing_type AS listing_type,
     sli.price AS listing_price
 FROM conversation c
@@ -323,6 +330,7 @@ SQL;
              *     puzzle_id: null|string,
              *     puzzle_name: null|string,
              *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
              *     listing_type: null|string,
              *     listing_price: null|string,
              * } $row
@@ -343,6 +351,7 @@ SQL;
                 puzzleId: $row['puzzle_id'],
                 sellSwapListItemId: $row['sell_swap_list_item_id'],
                 puzzleImage: $row['puzzle_image'],
+                puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
                 listingType: $row['listing_type'],
                 listingPrice: $row['listing_price'] !== null ? (float) $row['listing_price'] : null,
                 lastMessageSentByMe: (bool) ($row['last_message_sent_by_me'] ?? false),

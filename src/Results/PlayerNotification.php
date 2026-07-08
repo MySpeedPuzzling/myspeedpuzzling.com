@@ -30,6 +30,7 @@ readonly final class PlayerNotification
         public null|bool $firstAttempt,
         public null|bool $unboxed,
         public null|string $puzzleImage,
+        public null|float $puzzleImageRatio,
         public null|string $teamId,
         /** @var null|array<Puzzler> */
         public null|array $players,
@@ -47,6 +48,7 @@ readonly final class PlayerNotification
         public null|string $lendingPuzzleId = null,
         public null|string $lendingPuzzleName = null,
         public null|string $lendingPuzzleImage = null,
+        public null|float $lendingPuzzleImageRatio = null,
         public null|string $lendingManufacturerName = null,
         public null|int $lendingPiecesCount = null,
         // Puzzle report notification fields
@@ -143,6 +145,7 @@ readonly final class PlayerNotification
             firstAttempt: isset($row['first_attempt']) ? (bool) $row['first_attempt'] : null,
             unboxed: isset($row['unboxed']) ? (bool) $row['unboxed'] : null,
             puzzleImage: is_string($puzzleImage) ? $puzzleImage : null,
+            puzzleImageRatio: is_numeric($row['puzzle_image_ratio'] ?? null) ? (float) $row['puzzle_image_ratio'] : null,
             teamId: is_string($teamId) ? $teamId : null,
             players: $players,
             // Lending fields
@@ -159,6 +162,7 @@ readonly final class PlayerNotification
             lendingPuzzleId: is_string($lendingPuzzleId) ? $lendingPuzzleId : null,
             lendingPuzzleName: is_string($lendingPuzzleName) ? $lendingPuzzleName : null,
             lendingPuzzleImage: is_string($lendingPuzzleImage) ? $lendingPuzzleImage : null,
+            lendingPuzzleImageRatio: is_numeric($row['lending_puzzle_image_ratio'] ?? null) ? (float) $row['lending_puzzle_image_ratio'] : null,
             lendingManufacturerName: is_string($lendingManufacturerName) ? $lendingManufacturerName : null,
             lendingPiecesCount: isset($row['lending_pieces_count']) && is_numeric($row['lending_pieces_count']) ? (int) $row['lending_pieces_count'] : null,
             // Puzzle report fields

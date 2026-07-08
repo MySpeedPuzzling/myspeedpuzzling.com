@@ -17,6 +17,7 @@ readonly final class LendBorrowHistoryItem
         public null|int $piecesCount,
         public null|string $manufacturerName,
         public null|string $image,
+        public null|float $imageRatio,
         public TransferType $transferType,
         public null|string $fromPlayerId,
         public null|string $fromPlayerName,

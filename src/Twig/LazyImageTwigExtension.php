@@ -44,10 +44,14 @@ final class LazyImageTwigExtension extends AbstractExtension
         int $size = 80,
         string $class = '',
         null|int $maxHeight = null,
+        null|float $imageRatio = null,
     ): string {
         $src = $this->getImageSrc($path, $filter);
         $sizeClass = $this->getSizeClass($size);
         $maxHeight ??= $size;
+
+        // Calculate accurate width/height from aspect ratio
+        [$imgWidth, $imgHeight] = $this->calculateDimensions($size, $maxHeight, $imageRatio);
 
         // First 4 images are above-the-fold (eager loading)
         $isEager = $position <= 4;
@@ -75,11 +79,46 @@ final class LazyImageTwigExtension extends AbstractExtension
             htmlspecialchars($alt ?? '', ENT_QUOTES, 'UTF-8'),
             $loading,
             $imgClasses,
-            $size,
-            $maxHeight,
+            $imgWidth,
+            $imgHeight,
             $maxHeight,
             $extraAttrs,
         );
+    }
+
+    /**
+     * Calculate accurate width and height from aspect ratio.
+     *
+     * @return array{int, int} [width, height]
+     */
+    private function calculateDimensions(int $size, int $maxHeight, null|float $ratio): array
+    {
+        // No ratio available - fall back to container dimensions (square assumption)
+        if ($ratio === null || $ratio <= 0) {
+            return [$size, $maxHeight];
+        }
+
+        if ($ratio >= 1) {
+            // Landscape or square: width is constrained by $size
+            $width = $size;
+            $height = (int) round($size / $ratio);
+
+            if ($height > $maxHeight) {
+                $height = $maxHeight;
+                $width = (int) round($maxHeight * $ratio);
+            }
+        } else {
+            // Portrait: height is constrained by $maxHeight
+            $height = $maxHeight;
+            $width = (int) round($maxHeight * $ratio);
+
+            if ($width > $size) {
+                $width = $size;
+                $height = (int) round($size / $ratio);
+            }
+        }
+
+        return [$width, $height];
     }
 
     private function getImageSrc(null|string $path, string $filter): string

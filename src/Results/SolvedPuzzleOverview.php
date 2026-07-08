@@ -17,6 +17,7 @@ readonly final class SolvedPuzzleOverview
         public int $piecesCount,
         public null|string $manufacturerName,
         public null|string $image,
+        public null|float $imageRatio,
         public null|DateTimeImmutable $finishedAt,
     ) {
     }

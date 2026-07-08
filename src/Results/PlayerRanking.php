@@ -17,6 +17,7 @@ readonly final class PlayerRanking
         public int $piecesCount,
         public int $time,
         public null|string $puzzleImage,
+        public null|float $puzzleImageRatio,
     ) {
     }
 
@@ -31,6 +32,7 @@ readonly final class PlayerRanking
      *     puzzle_alternative_name: null|string,
      *     pieces_count: int,
      *     puzzle_image: null|string,
+     *     puzzle_image_ratio: null|string,
      *     manufacturer_name: string,
      * } $row
      */
@@ -47,6 +49,7 @@ readonly final class PlayerRanking
             piecesCount: $row['pieces_count'],
             time: $row['time'],
             puzzleImage: $row['puzzle_image'],
+            puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
         );
     }
 }

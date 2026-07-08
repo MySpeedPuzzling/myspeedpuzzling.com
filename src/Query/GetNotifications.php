@@ -84,6 +84,7 @@ SELECT * FROM (
         puzzle_solving_time.first_attempt,
         puzzle_solving_time.unboxed,
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
         puzzle_solving_time.team ->> 'team_id' AS team_id,
         CASE
             WHEN puzzle_solving_time.team IS NOT NULL THEN JSON_AGG(
@@ -110,6 +111,7 @@ SELECT * FROM (
         NULL::uuid AS lending_puzzle_id,
         NULL::varchar AS lending_puzzle_name,
         NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
         NULL::varchar AS lending_manufacturer_name,
         NULL::int AS lending_pieces_count,
         -- Puzzle report fields (NULL for puzzle solving notifications)
@@ -170,6 +172,7 @@ SELECT * FROM (
         NULL::boolean AS first_attempt,
         NULL::boolean AS unboxed,
         NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
         NULL::json AS players,
         -- Lending fields
@@ -186,6 +189,7 @@ SELECT * FROM (
         puzzle.id AS lending_puzzle_id,
         puzzle.name AS lending_puzzle_name,
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS lending_puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS lending_puzzle_image_ratio,
         manufacturer.name AS lending_manufacturer_name,
         puzzle.pieces_count AS lending_pieces_count,
         -- Puzzle report fields (NULL for lending notifications)
@@ -246,6 +250,7 @@ SELECT * FROM (
         NULL::boolean AS first_attempt,
         NULL::boolean AS unboxed,
         NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
         NULL::json AS players,
         -- Lending fields (NULL)
@@ -262,6 +267,7 @@ SELECT * FROM (
         NULL::uuid AS lending_puzzle_id,
         NULL::varchar AS lending_puzzle_name,
         NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
         NULL::varchar AS lending_manufacturer_name,
         NULL::int AS lending_pieces_count,
         -- Puzzle change request fields
@@ -317,6 +323,7 @@ SELECT * FROM (
         NULL::boolean AS first_attempt,
         NULL::boolean AS unboxed,
         NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
         NULL::json AS players,
         -- Lending fields (NULL)
@@ -333,6 +340,7 @@ SELECT * FROM (
         NULL::uuid AS lending_puzzle_id,
         NULL::varchar AS lending_puzzle_name,
         NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
         NULL::varchar AS lending_manufacturer_name,
         NULL::int AS lending_pieces_count,
         -- Puzzle merge request fields
@@ -388,6 +396,7 @@ SELECT * FROM (
         NULL::boolean AS first_attempt,
         NULL::boolean AS unboxed,
         NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
         NULL::json AS players,
         -- Lending fields (NULL)
@@ -404,6 +413,7 @@ SELECT * FROM (
         NULL::uuid AS lending_puzzle_id,
         NULL::varchar AS lending_puzzle_name,
         NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
         NULL::varchar AS lending_manufacturer_name,
         NULL::int AS lending_pieces_count,
         -- Puzzle report fields (NULL)
@@ -467,6 +477,7 @@ SELECT * FROM (
         NULL::boolean AS first_attempt,
         NULL::boolean AS unboxed,
         NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
         NULL::json AS players,
         -- Lending fields (NULL)
@@ -483,6 +494,7 @@ SELECT * FROM (
         NULL::uuid AS lending_puzzle_id,
         NULL::varchar AS lending_puzzle_name,
         NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
         NULL::varchar AS lending_manufacturer_name,
         NULL::int AS lending_pieces_count,
         -- Puzzle report fields (NULL)

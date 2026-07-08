@@ -12,6 +12,7 @@ readonly final class PendingTransactionRating
         public string $soldSwappedItemId,
         public string $puzzleName,
         public null|string $puzzleImage,
+        public null|float $puzzleImageRatio,
         public null|int $piecesCount,
         public string $otherPlayerName,
         public string $otherPlayerCode,

@@ -22,6 +22,7 @@ readonly final class TransactionRatingView
         public null|int $puzzlePiecesCount,
         public string $transactionType,
         public null|string $puzzleImage,
+        public null|float $puzzleImageRatio,
         public null|string $puzzleId,
     ) {
     }

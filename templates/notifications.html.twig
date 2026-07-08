@@ -167,7 +167,9 @@
                                                 'puzzle_img_alt'|trans({'%puzzle%': notification.lendingManufacturerName ~ ' ' ~ notification.lendingPuzzleName}),
                                                 loop.index,
                                                 60,
-                                                'rounded-2'
+                                                'rounded-2',
+                                                null,
+                                                notification.lendingPuzzleImageRatio
                                             ) }}
                                         </a>
                                     {% endif %}
@@ -239,7 +241,9 @@
                                                 'puzzle_img_alt'|trans({'%puzzle%': notification.manufacturerName ~ ' ' ~ notification.puzzleName}),
                                                 loop.index,
                                                 60,
-                                                'rounded-2'
+                                                'rounded-2',
+                                                null,
+                                                notification.puzzleImageRatio
                                             ) }}
                                         </a>
                                     {% endif %}

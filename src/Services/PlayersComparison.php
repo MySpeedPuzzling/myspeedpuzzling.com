@@ -42,6 +42,7 @@ readonly final class PlayersComparison
                 manufacturerName: $playerRanking[$commonPuzzleId]->manufacturerName,
                 piecesCount: $playerRanking[$commonPuzzleId]->piecesCount,
                 puzzleImage: $playerRanking[$commonPuzzleId]->puzzleImage,
+                puzzleImageRatio: $playerRanking[$commonPuzzleId]->puzzleImageRatio,
             );
         }
 

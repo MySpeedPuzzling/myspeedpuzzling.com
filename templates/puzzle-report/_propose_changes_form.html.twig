@@ -46,15 +46,15 @@
 
                 <div class="d-flex gap-2 mt-3">
                     <div class="position-relative">
-                        <img src="{{ asset('img/example-image-not-ok.jpg') }}" alt="Wrong example" class="rounded" style="max-height: 80px;">
+                        <img src="{{ asset('img/example-image-not-ok.jpg') }}" alt="Wrong example" class="rounded" width="400" height="300" style="max-height: 80px;">
                         <span class="badge bg-danger position-absolute top-0 end-0 m-1">{{ 'puzzle_report.form.photo_example_wrong'|trans }}</span>
                     </div>
                     <div class="position-relative">
-                        <img src="{{ asset('img/example-image-ok.jpg') }}" alt="OK example" class="rounded" style="max-height: 80px;">
+                        <img src="{{ asset('img/example-image-ok.jpg') }}" alt="OK example" class="rounded" width="400" height="325" style="max-height: 80px;">
                         <span class="badge bg-info position-absolute top-0 end-0 m-1">{{ 'puzzle_report.form.photo_example_ok'|trans }}</span>
                     </div>
                     <div class="position-relative">
-                        <img src="{{ asset('img/example-image-perfect.jpg') }}" alt="Perfect example" class="rounded" style="max-height: 80px;">
+                        <img src="{{ asset('img/example-image-perfect.jpg') }}" alt="Perfect example" class="rounded" width="400" height="294" style="max-height: 80px;">
                         <span class="badge bg-success position-absolute top-0 end-0 m-1">{{ 'puzzle_report.form.photo_example_perfect'|trans }}</span>
                     </div>
                 </div>
@@ -69,6 +69,7 @@
                 <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}"
                      alt="{{ puzzle.puzzleName }}"
                      class="img-thumbnail"
+                     {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 100) }}
                      style="max-height: 100px;">
             </div>
         </div>

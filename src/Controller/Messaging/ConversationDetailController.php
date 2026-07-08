@@ -72,6 +72,7 @@ final class ConversationDetailController extends AbstractController
                 'id' => $conversation->puzzle->id->toString(),
                 'name' => $conversation->puzzle->name,
                 'image' => $conversation->puzzle->image,
+                'imageRatio' => $conversation->puzzle->imageRatio,
                 'piecesCount' => $conversation->puzzle->piecesCount,
             ];
 

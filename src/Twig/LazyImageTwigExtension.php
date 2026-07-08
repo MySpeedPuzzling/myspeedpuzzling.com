@@ -23,7 +23,21 @@ final class LazyImageTwigExtension extends AbstractExtension
     {
         return [
             new TwigFunction('lazy_puzzle_image', $this->lazyPuzzleImage(...), ['is_safe' => ['html']]),
+            new TwigFunction('puzzle_image_dimensions', $this->puzzleImageDimensions(...), ['is_safe' => ['html']]),
         ];
+    }
+
+    /**
+     * Renders width/height attributes for an <img> so the browser can reserve
+     * space with the correct aspect ratio before the image loads (CLS).
+     * Display size is still controlled by CSS - only the attribute ratio matters.
+     */
+    public function puzzleImageDimensions(null|float $imageRatio, int $size, null|int $maxHeight = null): string
+    {
+        $maxHeight ??= $size;
+        [$width, $height] = $this->calculateDimensions($size, $maxHeight, $imageRatio);
+
+        return sprintf('width="%d" height="%d"', $width, $height);
     }
 
     /**

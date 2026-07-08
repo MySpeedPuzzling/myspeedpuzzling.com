@@ -25,7 +25,7 @@
                         <div class="d-flex align-items-center mb-2 p-2 bg-light rounded">
                             <i class="bi bi-shop text-primary me-2" style="font-size: 0.8rem;" title="{{ 'marketplace.title'|trans }}"></i>
                             {% if conversation.puzzleImage %}
-                                <img src="{{ conversation.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" style="max-width: 50px; max-height: 50px; object-fit: contain;">
+                                <img src="{{ conversation.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" {{ puzzle_image_dimensions(conversation.puzzleImageRatio, 50) }} style="max-width: 50px; max-height: 50px; object-fit: contain;">
                             {% endif %}
                             <div>
                                 <a href="{{ path('puzzle_detail', {puzzleId: conversation.puzzleId}) }}" class="fw-bold small text-decoration-none">{{ conversation.puzzleName }}</a>

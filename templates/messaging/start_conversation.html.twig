@@ -35,7 +35,7 @@
                     <div class="card-body border-bottom bg-light py-2 px-3">
                         <div class="d-flex align-items-center">
                             {% if puzzle.puzzleImage %}
-                                <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" style="max-width: 40px; max-height: 40px; object-fit: contain;">
+                                <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 40) }} style="max-width: 40px; max-height: 40px; object-fit: contain;">
                             {% endif %}
                             <div>
                                 <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="fw-bold text-decoration-none small">
@@ -160,7 +160,7 @@
                     {% if puzzle is defined and puzzle is not null %}
                         <div class="d-flex align-items-center mb-3 bg-light rounded">
                             {% if puzzle.puzzleImage %}
-                                <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-3" style="max-width: 80px;">
+                                <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-3" {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 80) }} style="max-width: 80px;">
                             {% endif %}
                             <div>
                                 <div class="fw-bold">{{ puzzle.puzzleName }}</div>

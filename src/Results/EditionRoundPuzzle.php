@@ -11,6 +11,7 @@ readonly final class EditionRoundPuzzle
         public string $puzzleName,
         public int $piecesCount,
         public null|string $puzzleImage,
+        public null|float $puzzleImageRatio,
         public null|string $manufacturerName,
         public bool $hidden,
     ) {

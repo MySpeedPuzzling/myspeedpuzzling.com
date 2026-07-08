@@ -191,7 +191,7 @@
                         <div class="d-flex align-items-center gap-2">
                             {% set puzzleImage = this.puzzleImage %}
                             {% if puzzleImage is not null %}
-                                <img src="{{ puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="flex-shrink-0" style="max-width: 55px; max-height: 55px; object-fit: contain;">
+                                <img src="{{ puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="flex-shrink-0" {{ puzzle_image_dimensions(this.puzzleImageRatio, 55) }} style="max-width: 55px; max-height: 55px; object-fit: contain;">
                             {% endif %}
                             <small>{{ 'marketplace.showing_offers_for'|trans }} <strong>{{ puzzleName }}</strong></small>
                         </div>

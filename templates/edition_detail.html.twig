@@ -91,7 +91,7 @@
                             <div class="col-6 col-sm-4 col-md-3 col-lg-2">
                                 <div class="card h-100 shadow-sm">
                                     {% if puzzle.puzzleImage %}
-                                        <img src="{{ puzzle.puzzleImage|thumbnail('puzzle_small') }}" alt="{{ puzzle.puzzleName }}" class="card-img-top">
+                                        <img src="{{ puzzle.puzzleImage|thumbnail('puzzle_small') }}" alt="{{ puzzle.puzzleName }}" class="card-img-top" {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 300) }}>
                                     {% else %}
                                         <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 120px;">
                                             <i class="bi bi-puzzle text-muted" style="font-size: 2rem;"></i>

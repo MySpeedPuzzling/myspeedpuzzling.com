@@ -211,6 +211,11 @@ final class MarketplaceListing
         return $this->getFilteredPuzzleOverview()?->puzzleImage;
     }
 
+    public function getPuzzleImageRatio(): null|float
+    {
+        return $this->getFilteredPuzzleOverview()?->puzzleImageRatio;
+    }
+
     private function getFilteredPuzzleOverview(): null|PuzzleOverview
     {
         if ($this->puzzleId === '' || !Uuid::isValid($this->puzzleId)) {

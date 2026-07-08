@@ -21,10 +21,10 @@
                 <div class="gallery">
                     {% if puzzle.puzzleImage is not null %}
                         <a class="gallery-item gallery-item-inline-block" href="{{ uploaded_asset(puzzle.puzzleImage) }}">
-                            <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" fetchpriority="high">
+                            <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 110) }} fetchpriority="high">
                         </a>
                     {% else %}
-                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" fetchpriority="high">
+                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 110) }} fetchpriority="high">
                     {% endif %}
                 </div>
             </div>

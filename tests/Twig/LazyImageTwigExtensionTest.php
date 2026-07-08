@@ -95,4 +95,24 @@ final class LazyImageTwigExtensionTest extends TestCase
         self::assertStringContainsString('loading="lazy"', $html);
         self::assertStringContainsString('onload=', $html);
     }
+
+    public function testDimensionsForPortraitRatio(): void
+    {
+        self::assertSame('width="54" height="80"', $this->extension->puzzleImageDimensions(0.675, 80));
+    }
+
+    public function testDimensionsForLandscapeRatio(): void
+    {
+        self::assertSame('width="80" height="54"', $this->extension->puzzleImageDimensions(1.481, 80));
+    }
+
+    public function testDimensionsFallBackToSquareWithoutRatio(): void
+    {
+        self::assertSame('width="80" height="80"', $this->extension->puzzleImageDimensions(null, 80));
+    }
+
+    public function testDimensionsRespectMaxHeight(): void
+    {
+        self::assertSame('width="90" height="60"', $this->extension->puzzleImageDimensions(1.5, 90, 60));
+    }
 }

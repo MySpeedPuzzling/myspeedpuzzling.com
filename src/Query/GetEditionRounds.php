@@ -70,6 +70,11 @@ SELECT
         THEN NULL
         ELSE p.image
     END AS puzzle_image,
+    CASE
+        WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp
+        THEN NULL
+        ELSE p.image_ratio
+    END AS puzzle_image_ratio,
     m.name AS manufacturer_name,
     cr.starts_at AS round_starts_at
 FROM competition_round_puzzle crp
@@ -94,7 +99,7 @@ SQL;
         /** @var array<string, array<EditionRoundPuzzle>> $puzzlesByRound */
         $puzzlesByRound = [];
         foreach ($puzzleRows as $row) {
-            /** @var array{round_id: string, hide_until_round_starts: bool|string, hide_mode: null|string, puzzle_id: string, puzzle_name: string, pieces_count: int|string, puzzle_image: null|string, manufacturer_name: null|string, round_starts_at: string} $row */
+            /** @var array{round_id: string, hide_until_round_starts: bool|string, hide_mode: null|string, puzzle_id: string, puzzle_name: string, pieces_count: int|string, puzzle_image: null|string, puzzle_image_ratio: null|float|string, manufacturer_name: null|string, round_starts_at: string} $row */
             $hideUntilRoundStarts = $row['hide_until_round_starts'];
             if (is_string($hideUntilRoundStarts)) {
                 $hideUntilRoundStarts = $hideUntilRoundStarts === 't' || $hideUntilRoundStarts === '1' || $hideUntilRoundStarts === 'true';
@@ -114,6 +119,7 @@ SQL;
                     puzzleName: $row['puzzle_name'],
                     piecesCount: (int) $row['pieces_count'],
                     puzzleImage: $hideUntilRoundStarts && $now < (new DateTimeImmutable($row['round_starts_at']))->add($revealBuffer) ? null : $row['puzzle_image'],
+                    puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
                     manufacturerName: $row['manufacturer_name'],
                     hidden: false,
                 );

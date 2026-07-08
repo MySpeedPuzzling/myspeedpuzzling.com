@@ -33,7 +33,7 @@
             <div class="row">
                 {% if tracked_puzzle.puzzleImage %}
                     <div class="col-md-4 mb-3 mb-md-0">
-                        <img src="{{ tracked_puzzle.puzzleImage|thumbnail('puzzle_medium') }}" alt="{{ tracked_puzzle.puzzleName }}" class="img-fluid rounded">
+                        <img src="{{ tracked_puzzle.puzzleImage|thumbnail('puzzle_medium') }}" alt="{{ tracked_puzzle.puzzleName }}" class="img-fluid rounded" {{ puzzle_image_dimensions(tracked_puzzle.puzzleImageRatio, 400) }}>
                     </div>
                 {% endif %}
                 <div class="col">

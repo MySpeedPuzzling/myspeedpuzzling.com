@@ -48,7 +48,7 @@
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <div class="d-flex align-items-center min-width-0">
                     {% if puzzle_context.image %}
-                        <img src="{{ puzzle_context.image|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2 flex-shrink-0" style="max-width: 40px; max-height: 40px; object-fit: contain;">
+                        <img src="{{ puzzle_context.image|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2 flex-shrink-0" {{ puzzle_image_dimensions(puzzle_context.imageRatio ?? null, 40) }} style="max-width: 40px; max-height: 40px; object-fit: contain;">
                     {% endif %}
                     <div class="min-width-0">
                         <a href="{{ path('puzzle_detail', {puzzleId: puzzle_context.id}) }}" class="fw-bold text-decoration-none small">

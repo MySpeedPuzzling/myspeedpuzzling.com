@@ -42,7 +42,14 @@
                                 <td class="" style="width: 80px;">
                                     {% if notification.changeRequestPuzzleImage is not null %}
                                         <a href="{{ path('puzzle_detail', {puzzleId: notification.changeRequestPuzzleId}) }}">
-                                            <img alt="{{ notification.changeRequestPuzzleName }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.changeRequestPuzzleImage|thumbnail('puzzle_small') }}">
+                                            {{ lazy_puzzle_image(
+                                                notification.changeRequestPuzzleImage,
+                                                'puzzle_small',
+                                                notification.changeRequestPuzzleName,
+                                                loop.index,
+                                                60,
+                                                'rounded-2'
+                                            ) }}
                                         </a>
                                     {% endif %}
                                 </td>
@@ -70,7 +77,14 @@
                                 <td class="" style="width: 80px;">
                                     {% if notification.mergeRequestPuzzleImage is not null %}
                                         <a href="{{ path('puzzle_detail', {puzzleId: notification.mergeRequestPuzzleId}) }}">
-                                            <img alt="{{ notification.mergeRequestPuzzleName }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.mergeRequestPuzzleImage|thumbnail('puzzle_small') }}">
+                                            {{ lazy_puzzle_image(
+                                                notification.mergeRequestPuzzleImage,
+                                                'puzzle_small',
+                                                notification.mergeRequestPuzzleName,
+                                                loop.index,
+                                                60,
+                                                'rounded-2'
+                                            ) }}
                                         </a>
                                     {% endif %}
                                 </td>
@@ -122,7 +136,14 @@
                                 <td class="" style="width: 80px;">
                                     {% if notification.conversationIsMarketplace and notification.conversationPuzzleImage is not null %}
                                         <a href="{{ path('conversation_detail', {conversationId: notification.conversationId}) }}">
-                                            <img alt="{{ notification.conversationPuzzleName }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.conversationPuzzleImage|thumbnail('puzzle_small') }}">
+                                            {{ lazy_puzzle_image(
+                                                notification.conversationPuzzleImage,
+                                                'puzzle_small',
+                                                notification.conversationPuzzleName,
+                                                loop.index,
+                                                60,
+                                                'rounded-2'
+                                            ) }}
                                         </a>
                                     {% else %}
                                         <a href="{{ path('conversation_detail', {conversationId: notification.conversationId}) }}" class="btn btn-sm btn-outline-primary">

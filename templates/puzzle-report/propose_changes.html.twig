@@ -24,6 +24,7 @@
                             <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}"
                                  alt="{{ puzzle.puzzleName }}"
                                  class="me-3 rounded"
+                                 {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 80) }}
                                  style="max-height: 80px;">
                         {% endif %}
                         <div>

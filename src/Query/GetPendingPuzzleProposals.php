@@ -162,7 +162,7 @@ SQL;
                 name: $name,
                 piecesCount: is_int($row['pieces_count']) ? $row['pieces_count'] : null,
                 image: is_string($row['image']) ? $row['image'] : null,
-                imageRatio: is_string($row['image_ratio']) ? (float) $row['image_ratio'] : null,
+                imageRatio: is_numeric($row['image_ratio']) ? (float) $row['image_ratio'] : null,
                 manufacturerName: is_string($row['manufacturer_name']) ? $row['manufacturer_name'] : null,
                 timesCount: (int) $timesCount,
             );

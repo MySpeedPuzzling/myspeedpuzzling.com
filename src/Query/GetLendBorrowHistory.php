@@ -42,6 +42,7 @@ SELECT
     p.alternative_name as puzzle_alternative_name,
     p.pieces_count,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS image_ratio,
     m.name as manufacturer_name,
     lpt.lent_puzzle_id IS NOT NULL as is_active
 FROM lent_puzzle_transfer lpt
@@ -79,6 +80,7 @@ SQL;
              *     puzzle_alternative_name: string|null,
              *     pieces_count: int|null,
              *     image: string|null,
+             *     image_ratio: string|null,
              *     manufacturer_name: string|null,
              *     is_active: bool,
              * } $row
@@ -92,6 +94,7 @@ SQL;
                 piecesCount: $row['pieces_count'] !== null ? (int) $row['pieces_count'] : null,
                 manufacturerName: $row['manufacturer_name'],
                 image: $row['image'],
+                imageRatio: $row['image_ratio'] !== null ? (float) $row['image_ratio'] : null,
                 transferType: TransferType::from($row['transfer_type']),
                 fromPlayerId: $row['from_player_id'],
                 fromPlayerName: $row['from_player_name'] ?? $row['from_text_name'],

@@ -75,7 +75,7 @@ readonly final class PuzzleChangeRequestOverview
             puzzleName: $puzzleName,
             puzzlePiecesCount: $puzzlePiecesCount,
             puzzleImage: is_string($row['puzzle_image']) ? $row['puzzle_image'] : null,
-            puzzleImageRatio: is_string($row['puzzle_image_ratio'] ?? null) ? (float) $row['puzzle_image_ratio'] : null,
+            puzzleImageRatio: is_numeric($row['puzzle_image_ratio'] ?? null) ? (float) $row['puzzle_image_ratio'] : null,
             puzzleManufacturerName: is_string($row['puzzle_manufacturer_name']) ? $row['puzzle_manufacturer_name'] : null,
             reporterId: $reporterId,
             reporterName: is_string($row['reporter_name']) ? $row['reporter_name'] : null,

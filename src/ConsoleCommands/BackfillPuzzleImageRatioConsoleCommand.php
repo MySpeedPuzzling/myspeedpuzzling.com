@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\ConsoleCommands;
 
 use Doctrine\DBAL\Connection;
-use Imagick;
 use League\Flysystem\Filesystem;
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Services\ImageOptimizer;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -24,6 +24,7 @@ final class BackfillPuzzleImageRatioConsoleCommand extends Command
     public function __construct(
         private readonly Connection $connection,
         private readonly Filesystem $filesystem,
+        private readonly ImageOptimizer $imageOptimizer,
         private readonly LoggerInterface $logger,
     ) {
         parent::__construct();
@@ -66,9 +67,11 @@ final class BackfillPuzzleImageRatioConsoleCommand extends Command
         foreach ($batched as $batch) {
             foreach ($batch as $puzzle) {
                 try {
-                    $ratio = $this->calculateRatio($puzzle['image']);
+                    $ratio = $this->imageOptimizer->getImageRatioFromBlob(
+                        $this->filesystem->read($puzzle['image']),
+                    );
 
-                    if ($ratio !== null && !$dryRun) {
+                    if ($ratio > 0 && !$dryRun) {
                         $this->connection->update('puzzle', ['image_ratio' => $ratio], ['id' => $puzzle['id']]);
                     }
 
@@ -93,28 +96,5 @@ final class BackfillPuzzleImageRatioConsoleCommand extends Command
         $io->success(sprintf('%s %d puzzles, %d errors', $prefix, $successCount, $errorCount));
 
         return Command::SUCCESS;
-    }
-
-    private function calculateRatio(string $imagePath): null|float
-    {
-        $content = $this->filesystem->read($imagePath);
-
-        $imagick = new Imagick();
-
-        try {
-            $imagick->readImageBlob($content);
-
-            $width = $imagick->getImageWidth();
-            $height = $imagick->getImageHeight();
-
-            if ($height === 0 || $width === 0) {
-                return null;
-            }
-
-            return $width / $height;
-        } finally {
-            $imagick->clear();
-            $imagick->destroy();
-        }
     }
 }

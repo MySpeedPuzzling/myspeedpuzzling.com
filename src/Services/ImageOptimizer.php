@@ -20,21 +20,55 @@ final readonly class ImageOptimizer
     public function getImageRatio(string $filePath): float
     {
         $imagick = new Imagick();
-        $imagick->readImage($filePath);
 
         try {
-            $width = $imagick->getImageWidth();
-            $height = $imagick->getImageHeight();
+            // Ping reads only metadata (dimensions, EXIF) without decoding pixel data
+            $imagick->pingImage($filePath);
 
-            if ($height === 0) {
-                return 1.0;
-            }
-
-            return $width / $height;
+            return $this->calculateRatio($imagick);
         } finally {
             $imagick->clear();
             $imagick->destroy();
         }
+    }
+
+    public function getImageRatioFromBlob(string $imageContent): float
+    {
+        $imagick = new Imagick();
+
+        try {
+            $imagick->pingImageBlob($imageContent);
+
+            return $this->calculateRatio($imagick);
+        } finally {
+            $imagick->clear();
+            $imagick->destroy();
+        }
+    }
+
+    private function calculateRatio(Imagick $imagick): float
+    {
+        $width = $imagick->getImageWidth();
+        $height = $imagick->getImageHeight();
+
+        // EXIF orientations 5-8 display the image rotated by 90°/270°,
+        // so the rendered width/height are swapped compared to stored pixels
+        $rotatedOrientations = [
+            Imagick::ORIENTATION_LEFTTOP,
+            Imagick::ORIENTATION_RIGHTTOP,
+            Imagick::ORIENTATION_RIGHTBOTTOM,
+            Imagick::ORIENTATION_LEFTBOTTOM,
+        ];
+
+        if (in_array($imagick->getImageOrientation(), $rotatedOrientations, true)) {
+            [$width, $height] = [$height, $width];
+        }
+
+        if ($height === 0) {
+            return 1.0;
+        }
+
+        return $width / $height;
     }
 
     public function optimize(string $filePath): void

@@ -111,6 +111,7 @@ SELECT * FROM (
         NULL::uuid AS lending_puzzle_id,
         NULL::varchar AS lending_puzzle_name,
         NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
         NULL::varchar AS lending_manufacturer_name,
         NULL::int AS lending_pieces_count,
         -- Puzzle report fields (NULL for puzzle solving notifications)
@@ -188,6 +189,7 @@ SELECT * FROM (
         puzzle.id AS lending_puzzle_id,
         puzzle.name AS lending_puzzle_name,
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS lending_puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS lending_puzzle_image_ratio,
         manufacturer.name AS lending_manufacturer_name,
         puzzle.pieces_count AS lending_pieces_count,
         -- Puzzle report fields (NULL for lending notifications)
@@ -265,6 +267,7 @@ SELECT * FROM (
         NULL::uuid AS lending_puzzle_id,
         NULL::varchar AS lending_puzzle_name,
         NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
         NULL::varchar AS lending_manufacturer_name,
         NULL::int AS lending_pieces_count,
         -- Puzzle change request fields
@@ -337,6 +340,7 @@ SELECT * FROM (
         NULL::uuid AS lending_puzzle_id,
         NULL::varchar AS lending_puzzle_name,
         NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
         NULL::varchar AS lending_manufacturer_name,
         NULL::int AS lending_pieces_count,
         -- Puzzle merge request fields
@@ -409,6 +413,7 @@ SELECT * FROM (
         NULL::uuid AS lending_puzzle_id,
         NULL::varchar AS lending_puzzle_name,
         NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
         NULL::varchar AS lending_manufacturer_name,
         NULL::int AS lending_pieces_count,
         -- Puzzle report fields (NULL)
@@ -489,6 +494,7 @@ SELECT * FROM (
         NULL::uuid AS lending_puzzle_id,
         NULL::varchar AS lending_puzzle_name,
         NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
         NULL::varchar AS lending_manufacturer_name,
         NULL::int AS lending_pieces_count,
         -- Puzzle report fields (NULL)

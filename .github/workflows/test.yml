@@ -22,8 +22,8 @@ jobs:
           ports:
               - 5432:5432
     steps:
-      -   uses: actions/checkout@v6
-      -   uses: actions/cache@v4
+      -   uses: actions/checkout@v7
+      -   uses: actions/cache@v6
           with:
               path: |
                   vendor
@@ -32,7 +32,7 @@ jobs:
               restore-keys: |
                   ${{ runner.os }}-composer-
       -   id: webpack-cache
-          uses: actions/cache@v4
+          uses: actions/cache@v6
           with:
               path: public/build
               key: ${{ runner.os }}-webpack-${{ hashFiles('assets/**', 'package-lock.json', 'webpack.config.js') }}
@@ -40,7 +40,7 @@ jobs:
           env:
               COMPOSER_CACHE_DIR: .composer-cache
       -   if: steps.webpack-cache.outputs.cache-hit != 'true'
-          uses: actions/cache@v4
+          uses: actions/cache@v6
           with:
               path: node_modules
               key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
@@ -66,8 +66,8 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/speedpuzzling?serverVersion=16&charset=utf8
     steps:
-      -   uses: actions/checkout@v6
-      -   uses: actions/cache@v4
+      -   uses: actions/checkout@v7
+      -   uses: actions/cache@v6
           with:
               path: |
                   vendor
@@ -76,7 +76,7 @@ jobs:
               restore-keys: |
                   ${{ runner.os }}-composer-
       -   id: webpack-cache
-          uses: actions/cache@v4
+          uses: actions/cache@v6
           with:
               path: public/build
               key: ${{ runner.os }}-webpack-${{ hashFiles('assets/**', 'package-lock.json', 'webpack.config.js') }}
@@ -88,7 +88,7 @@ jobs:
           env:
               COMPOSER_CACHE_DIR: .composer-cache
       -   if: steps.webpack-cache.outputs.cache-hit != 'true'
-          uses: actions/cache@v4
+          uses: actions/cache@v6
           with:
               path: node_modules
               key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
@@ -107,8 +107,8 @@ jobs:
       runs-on: ubuntu-latest
       container: ghcr.io/myspeedpuzzling/web-base-php85:main
       steps:
-        -   uses: actions/checkout@v6
-        -   uses: actions/cache@v4
+        -   uses: actions/checkout@v7
+        -   uses: actions/cache@v6
             with:
                 path: |
                     vendor
@@ -116,7 +116,7 @@ jobs:
                 key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
                 restore-keys: |
                     ${{ runner.os }}-composer-
-        -   uses: actions/cache@v4
+        -   uses: actions/cache@v6
             with:
                 path: var/phpstan
                 key: ${{ runner.os }}-phpstan-${{ hashFiles('src/**/*.php', 'tests/**/*.php', 'config/**/*.php', 'phpstan.neon') }}
@@ -133,8 +133,8 @@ jobs:
       container: ghcr.io/myspeedpuzzling/web-base-php85:main
       continue-on-error: true
       steps:
-        -   uses: actions/checkout@v6
-        -   uses: actions/cache@v4
+        -   uses: actions/checkout@v7
+        -   uses: actions/cache@v6
             with:
                 path: |
                     vendor
@@ -161,8 +161,8 @@ jobs:
               ports:
                   - 5432:5432
       steps:
-          -   uses: actions/checkout@v6
-          -   uses: actions/cache@v4
+          -   uses: actions/checkout@v7
+          -   uses: actions/cache@v6
               with:
                   path: |
                       vendor

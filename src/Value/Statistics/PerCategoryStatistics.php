@@ -17,6 +17,15 @@ readonly final class PerCategoryStatistics
 
     public int $totalPieces;
 
+    /**
+     * Unique 'Y-m-d' strings of every day the player solved a puzzle, including relax
+     * solves (which have no measured time). Used for the activity streak so a relax-only
+     * day does not break it — mirrors the activity calendar, which also counts relax days.
+     *
+     * @var list<string>
+     */
+    public array $activeDays;
+
     public function __construct(
         /** @var array<SolvedPuzzle> */
         private array $results,
@@ -24,6 +33,8 @@ readonly final class PerCategoryStatistics
         /** @var non-empty-array<int, array<int>> $piecesGroups */
         $piecesGroups = [];
         $timePerDay = [];
+        /** @var array<string, true> $activeDays */
+        $activeDays = [];
         $totalPieces = 0;
         /** @var array<string, int> $countPerManufacturer */
         $countPerManufacturer = [];
@@ -35,6 +46,10 @@ readonly final class PerCategoryStatistics
             $finishedDate = ($result->finishedAt ?? $result->trackedAt)->format('Y-m-d');
 
             $totalPieces += $piecesCount;
+
+            // A relax solve (null time) still counts as an active day for the streak,
+            // even though it contributes nothing to the time-spent-per-day totals below.
+            $activeDays[$finishedDate] = true;
 
             if ($time !== null) {
                 if (!isset($piecesGroups[$piecesCount])) {
@@ -82,6 +97,7 @@ readonly final class PerCategoryStatistics
 
         $this->perPieces = $perPieces;
         $this->totalPieces = $totalPieces;
+        $this->activeDays = array_keys($activeDays);
         $this->timeSpentSolving = new TimeSpentSolvingStatistics($timePerDay);
         $this->solvedPuzzle = new SolvedPuzzleStatistics(count($this->results), $countPerManufacturer);
     }

@@ -1,0 +1,223 @@
+<div {{ attributes }}>
+    <div class="filters">
+        <div class="row gx-2">
+            <div class="col-sm-6 col-lg-3 mb-2">
+                <input
+                    type="search"
+                    class="form-control"
+                    placeholder="{{ 'forms.puzzle_search_placeholder'|trans }}"
+                    data-model="debounce(250)|search"
+                    value="{{ this.search }}"
+                >
+            </div>
+
+            {# Option lists are deliberately NOT rendered here (the brand list alone
+               is ~420 kB of HTML) - tomselect-sync fetches them from the cached
+               filter-options endpoint on first dropdown focus. #}
+            <div class="col-6 col-md-3 col-lg-2 mb-2" data-live-ignore>
+                <select
+                    id="puzzle-search-brand"
+                    class="form-select"
+                    data-controller="tomselect-sync"
+                    data-model="on(change)|brandId"
+                    data-tomselect-sync-options-url-value="{{ path('puzzle_search_filter_options') }}"
+                    data-tomselect-sync-options-key-value="manufacturers"
+                >
+                    <option value="">{{ 'forms.brand'|trans }}</option>
+                    {% if this.selectedBrandLabel %}
+                        <option value="{{ this.brandId }}" selected>{{ this.selectedBrandLabel }}</option>
+                    {% endif %}
+                </select>
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-2 mb-2" data-live-ignore>
+                <select
+                    id="puzzle-search-tag"
+                    class="form-select"
+                    data-controller="tomselect-sync"
+                    data-model="on(change)|tagId"
+                    data-tomselect-sync-options-url-value="{{ path('puzzle_search_filter_options') }}"
+                    data-tomselect-sync-options-key-value="tags"
+                >
+                    <option value="">{{ 'forms.competition'|trans }}</option>
+                    {% if this.selectedTagLabel %}
+                        <option value="{{ this.tagId }}" selected>{{ this.selectedTagLabel }}</option>
+                    {% endif %}
+                </select>
+            </div>
+
+            <div class="col-sm-6 col-lg-4">
+                {% for option in ['', '1-499', '500', '501-999', '1000', '1001+'] %}
+                    {% set option_id = 'pieces-' ~ (option == '' ? 'any' : option|replace({'+': ''})) %}
+                    <div class="form-check form-option form-check-inline mb-2">
+                        <input type="radio" class="form-check-input" id="{{ option_id }}"
+                               data-model="pieces" name="pieces" value="{{ option }}"
+                               {{ (option == '' ? this.pieces is empty : this.pieces == option) ? 'checked' }}>
+                        <label for="{{ option_id }}" class="form-option-label">{{ option == '' ? 'all_pieces'|trans : option }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+            <div class="row gx-2">
+                <div class="col-12 mb-2">
+                    <div class="d-flex flex-wrap align-items-center gap-1">
+                        <small class="text-muted me-1">{{ 'puzzle_intelligence.difficulty.filter_label'|trans }}:</small>
+                        {% for option in this.difficultyTierOptions %}
+                            <div class="form-check form-option form-check-inline mb-0">
+                                <input type="checkbox" class="form-check-input" id="difficulty-{{ option.value }}"
+                                       data-model="difficultyTiers" value="{{ option.value }}"
+                                       {{ option.value in this.difficultyTiers ? 'checked' }}>
+                                <label for="difficulty-{{ option.value }}" class="form-option-label d-inline-flex align-items-center gap-1">
+                                    <svg class="diff-icon" width="16" height="16" style="color: var(--{{ option.icon }})"><use href="/difficulty-icons-sprite.svg#{{ option.icon }}"/></svg>
+                                    {{ option.label|trans }}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="d-sm-flex justify-content-between align-items-center my-1">
+        <div class="d-flex">
+            <div class="me-2 mb-1">
+                <small class="text-muted">{{ 'total_found'|trans({'%count%': this.totalCount }) }}</small>
+            </div>
+
+            <div style="display: none;" data-loading="show">
+                <span class="spinner-border text-primary spinner-border-sm" role="status"></span>
+                <small class="ps-1 text-primary">{{ 'searching'|trans }}</small>
+            </div>
+        </div>
+
+        <div class="dropdown position-relative d-inline-block me-1 my-1">
+            <button
+                class="btn btn-outline-primary btn-sm dropdown-toggle"
+                type="button"
+                id="sortingDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+            >
+                <i class="bi-sort-up"></i>
+                {{ 'sorting.sort_by'|trans }}:
+                {% for option in this.sortOptions %}
+                    {% if option.value == this.sortBy %}{{ option.label|trans }}{% endif %}
+                {% endfor %}
+            </button>
+
+            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="sortingDropdown">
+                {% for option in this.sortOptions %}
+                    {% if not option.premium or (logged_user.profile is not null and logged_user.profile.activeMembership) %}
+                        <button type="button"
+                                class="dropdown-item {{ this.sortBy == option.value ? 'active' }}"
+                                data-action="live#action"
+                                data-live-action-param="changeSortBy"
+                                data-live-sort-param="{{ option.value }}">
+                            {{ option.label|trans }}
+                        </button>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {% if this.totalCount == 0 %}
+        <p class="mt-2 mb-3 text-muted small">{{ 'puzzle_overview.missing_puzzle_info'|trans }}</p>
+        <div class="alert alert-warning mt-2">
+            {{ 'filters.no_puzzle_matches_filters'|trans }}
+        </div>
+    {% else %}
+        <div data-controller="puzzle-load-more">
+            <div class="row g-2 g-md-3" data-skip-morph data-puzzle-load-more-target="grid">
+                {{ include('puzzle/_search_result_items.html.twig', {
+                    'puzzles': this.puzzles,
+                    'search': this.search,
+                    'puzzle_statuses': this.puzzleStatuses,
+                    'ranking': this.userRanking,
+                    'tags': this.tags,
+                    'difficulty_data': this.difficultyData,
+                    'offer_counts': this.offerCounts,
+                }) }}
+            </div>
+
+            {% if this.hasMore %}
+                <p class="text-center mt-3" data-skip-morph data-puzzle-load-more-target="footer">
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-primary"
+                        data-action="puzzle-load-more#load"
+                        data-puzzle-load-more-target="button"
+                        data-next-url="{{ path('puzzle_search_items', this.loadMoreUrlParameters) }}"
+                    >
+                        <span class="d-none" data-puzzle-load-more-target="spinner">
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>{{ 'loading'|trans }}
+                        </span>
+                        <span data-puzzle-load-more-target="label">
+                            {{ 'load_more'|trans }}
+                        </span>
+                    </button>
+                    <br>
+                    <small class="text-muted" data-puzzle-load-more-target="remaining">{{ 'remaining'|trans({'%puzzle%': this.remainingCount }) }}</small>
+                    <br>
+                    <a class="small" href="#top" data-turbo="false">{{ 'back_to_top'|trans }}</a>
+                </p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+{% macro placeholder(props) %}
+    {# Skeleton shown while the lazily-loaded component renders. Dimensions
+       match the real controls/cards to avoid layout shift (see
+       docs/performance-optimizations.md). #}
+    <div class="placeholder-glow">
+        <div class="filters">
+            <div class="row gx-2">
+                <div class="col-sm-6 col-lg-3 mb-2">
+                    <span class="placeholder rounded d-block" style="height: 38px;"></span>
+                </div>
+                <div class="col-6 col-md-3 col-lg-2 mb-2">
+                    <span class="placeholder rounded d-block" style="height: 38px;"></span>
+                </div>
+                <div class="col-6 col-md-3 col-lg-2 mb-2">
+                    <span class="placeholder rounded d-block" style="height: 38px;"></span>
+                </div>
+                <div class="col-sm-6 col-lg-4 mb-2">
+                    <span class="placeholder rounded d-inline-block me-2" style="height: 30px; width: 60px;"></span>
+                    <span class="placeholder rounded d-inline-block me-2" style="height: 30px; width: 70px;"></span>
+                    <span class="placeholder rounded d-inline-block me-2" style="height: 30px; width: 60px;"></span>
+                    <span class="placeholder rounded d-inline-block" style="height: 30px; width: 80px;"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-sm-flex justify-content-between align-items-center my-1">
+            <div class="me-2 mb-1">
+                <span class="placeholder placeholder-sm d-inline-block" style="width: 130px;"></span>
+            </div>
+            <span class="placeholder rounded d-inline-block me-1 my-1" style="height: 31px; width: 180px;"></span>
+        </div>
+
+        <div class="row g-2 g-md-3">
+            {% for i in 1..8 %}
+                <div class="col-12 col-lg-6">
+                    <div class="card card-body shadow p-2 puzzle-list-item">
+                        <div class="d-flex">
+                            <div style="width: 90px;">
+                                <span class="rounded-2 d-block" style="width: 90px; height: 68px; background: #e9ecef;"></span>
+                            </div>
+                            <div class="ps-2 flex-grow-1">
+                                <span class="placeholder" style="width: 65%;"></span><br>
+                                <span class="placeholder placeholder-sm" style="width: 40%;"></span><br>
+                                <span class="placeholder placeholder-sm" style="width: 55%;"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endmacro %}

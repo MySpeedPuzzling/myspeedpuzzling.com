@@ -1,0 +1,14 @@
+{# One page of puzzle search results. Shared by the PuzzleSearch live
+   component (first page) and the puzzle_search_items endpoint (appended
+   pages) so the rendered items can never drift apart. #}
+{% for puzzle in puzzles %}
+    {{ include('_puzzle_item.html.twig', {
+        'puzzle': puzzle,
+        'search': search,
+        'puzzle_statuses': puzzle_statuses,
+        'ranking': ranking,
+        'tags': tags,
+        'difficulty_data': difficulty_data,
+        'offer_counts': offer_counts,
+    }) }}
+{% endfor %}

@@ -133,10 +133,10 @@
             {{ 'filters.no_puzzle_matches_filters'|trans }}
         </div>
     {% else %}
-        <div class="row g-2 g-md-3">
-            {% for puzzle in this.puzzles %}
-                {{ include('_puzzle_item.html.twig', {
-                    'puzzle': puzzle,
+        <div data-controller="puzzle-load-more">
+            <div class="row g-2 g-md-3" data-skip-morph data-puzzle-load-more-target="grid">
+                {{ include('puzzle/_search_result_items.html.twig', {
+                    'puzzles': this.puzzles,
                     'search': this.search,
                     'puzzle_statuses': this.puzzleStatuses,
                     'ranking': this.userRanking,
@@ -144,30 +144,30 @@
                     'difficulty_data': this.difficultyData,
                     'offer_counts': this.offerCounts,
                 }) }}
-            {% endfor %}
-        </div>
-    {% endif %}
+            </div>
 
-    {% if this.hasMore %}
-        <p class="text-center mt-3">
-            <button
-                type="button"
-                class="btn btn-sm btn-primary"
-                data-action="live#action"
-                data-live-action-param="loadMore"
-                data-loading="action(loadMore)|addAttribute(disabled)"
-            >
-                <span style="display: none;" data-loading="action(loadMore)|show">
-                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>{{ 'loading'|trans }}
-                </span>
-                <span data-loading="action(loadMore)|hide">
-                    {{ 'load_more'|trans }}
-                </span>
-            </button>
-            <br>
-            <small class="text-muted">{{ 'remaining'|trans({'%puzzle%': this.remainingCount }) }}</small>
-            <br>
-            <a class="small" href="#top" data-turbo="false">{{ 'back_to_top'|trans }}</a>
-        </p>
+            {% if this.hasMore %}
+                <p class="text-center mt-3" data-skip-morph data-puzzle-load-more-target="footer">
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-primary"
+                        data-action="puzzle-load-more#load"
+                        data-puzzle-load-more-target="button"
+                        data-next-url="{{ path('puzzle_search_items', this.loadMoreUrlParameters) }}"
+                    >
+                        <span class="d-none" data-puzzle-load-more-target="spinner">
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>{{ 'loading'|trans }}
+                        </span>
+                        <span data-puzzle-load-more-target="label">
+                            {{ 'load_more'|trans }}
+                        </span>
+                    </button>
+                    <br>
+                    <small class="text-muted" data-puzzle-load-more-target="remaining">{{ 'remaining'|trans({'%puzzle%': this.remainingCount }) }}</small>
+                    <br>
+                    <a class="small" href="#top" data-turbo="false">{{ 'back_to_top'|trans }}</a>
+                </p>
+            {% endif %}
+        </div>
     {% endif %}
 </div>

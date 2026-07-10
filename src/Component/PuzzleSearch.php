@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
-use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetRanking;
@@ -21,6 +20,7 @@ use SpeedPuzzling\Web\Results\PuzzleTag;
 use SpeedPuzzling\Web\Results\UserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DifficultyTier;
+use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -32,51 +32,48 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\UX\LiveComponent\Metadata\UrlMapping;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
+/**
+ * The component always renders the first page; the "load more" button appends
+ * further pages client-side via the puzzle_search_items endpoint (constant
+ * per-click cost). Any filter or sort change re-renders page one, which
+ * correctly discards the appended items.
+ */
 #[AsLiveComponent]
 final class PuzzleSearch
 {
     use DefaultActionTrait;
 
-    private const int LIMIT = 20;
-
-    /** @var list<string> */
-    private const array VALID_SORTS = ['most-solved', 'least-solved', 'a-z', 'z-a', 'easiest', 'hardest'];
-
-    /** @var list<string> */
-    private const array PREMIUM_SORTS = ['easiest', 'hardest'];
-
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: new UrlMapping(as: 'brand'))]
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'brand'))]
     public null|string $brandId = null;
 
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: true)]
+    #[LiveProp(writable: true, url: true)]
     public null|string $search = null;
 
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: true)]
+    #[LiveProp(writable: true, url: true)]
     public null|string $pieces = null;
 
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: new UrlMapping(as: 'tag'))]
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'tag'))]
     public null|string $tagId = null;
 
     /**
      * Declared list<string> on purpose: both URL query params and checkbox values
      * arrive as strings, and the framework's url-prop hydration type-checks array
-     * elements. Values are normalized to ints at query time.
+     * elements. Values are normalized to ints inside PuzzleSearchCriteria.
      *
      * @var list<string>
      */
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: true)]
+    #[LiveProp(writable: true, url: true)]
     public array $difficultyTiers = [];
 
     #[LiveProp(writable: true, url: true)]
     public string $sortBy = 'most-solved';
 
-    #[LiveProp]
-    public int $displayLimit = self::LIMIT;
-
     /** @var list<PuzzleOverview> */
     public array $puzzles = [];
 
     public int $totalCount = 0;
+
+    private PuzzleSearchCriteria $criteria;
 
     private UserPuzzleStatuses $puzzleStatuses;
 
@@ -110,26 +107,15 @@ final class PuzzleSearch
         private readonly CacheInterface $cache,
     ) {
         $this->puzzleStatuses = UserPuzzleStatuses::empty();
+        $this->criteria = PuzzleSearchCriteria::fromUserInput(null, null, null, null, [], 'most-solved', false);
     }
 
     #[LiveAction]
     public function changeSortBy(#[LiveArg] string $sort): void
     {
-        if (in_array($sort, self::VALID_SORTS, true)) {
+        if (in_array($sort, PuzzleSearchCriteria::VALID_SORTS, true)) {
             $this->sortBy = $sort;
-            $this->displayLimit = self::LIMIT;
         }
-    }
-
-    #[LiveAction]
-    public function loadMore(): void
-    {
-        $this->displayLimit += self::LIMIT;
-    }
-
-    public function onFilterUpdated(): void
-    {
-        $this->displayLimit = self::LIMIT;
     }
 
     /**
@@ -154,51 +140,33 @@ final class PuzzleSearch
         $this->loadPuzzleMetadata();
     }
 
-    /**
-     * Writable props arrive from the URL or the client, so they may carry values
-     * the UI never produces: empty strings from cleared Tom Selects, mangled UUIDs
-     * from truncated links, unknown sorts, or premium filters from non-members.
-     * Normalizing here (before querying) keeps every render graceful.
-     */
     private function normalizeState(): void
     {
-        $this->brandId = $this->normalizeUuid($this->brandId);
-        $this->tagId = $this->normalizeUuid($this->tagId);
+        $profile = $this->retrieveLoggedUserProfile->getProfile();
 
-        if ($this->pieces === '') {
-            $this->pieces = null;
-        }
+        $this->criteria = PuzzleSearchCriteria::fromUserInput(
+            brandId: $this->brandId,
+            search: $this->search,
+            pieces: $this->pieces,
+            tagId: $this->tagId,
+            difficultyTiers: $this->difficultyTiers,
+            sortBy: $this->sortBy,
+            isMember: $profile?->activeMembership === true,
+        );
 
-        if (in_array($this->sortBy, self::VALID_SORTS, true) === false) {
-            $this->sortBy = 'most-solved';
-        }
-
-        // Difficulty filtering and difficulty sorting are members-only; the template
-        // hides the controls, this enforces it against crafted URLs and live actions.
-        if ($this->retrieveLoggedUserProfile->getProfile()?->activeMembership !== true) {
-            $this->difficultyTiers = [];
-
-            if (in_array($this->sortBy, self::PREMIUM_SORTS, true)) {
-                $this->sortBy = 'most-solved';
-            }
-        }
-    }
-
-    private function normalizeUuid(null|string $value): null|string
-    {
-        if ($value === null || Uuid::isValid($value) === false) {
-            return null;
-        }
-
-        return $value;
+        // Reflect the normalized values back into the props so the rendered
+        // controls and the synced URL always match what was actually queried.
+        $this->brandId = $this->criteria->brandId;
+        $this->search = $this->criteria->search;
+        $this->pieces = $this->criteria->pieces;
+        $this->tagId = $this->criteria->tagId;
+        $this->difficultyTiers = array_map(strval(...), $this->criteria->difficultyTiers);
+        $this->sortBy = $this->criteria->sortBy;
     }
 
     private function loadPuzzles(): void
     {
-        $piecesFilter = PiecesFilter::fromUserInput($this->pieces);
-        $difficultyTiers = $this->normalizedDifficultyTiers();
-
-        if ($this->isDefaultSearch()) {
+        if ($this->criteria->isDefault()) {
             $cached = $this->getInitialPuzzlesFromCache();
             $this->puzzles = $cached['puzzles'];
             $this->totalCount = $cached['count'];
@@ -206,26 +174,25 @@ final class PuzzleSearch
             return;
         }
 
+        $piecesFilter = PiecesFilter::fromUserInput($this->criteria->pieces);
+
         $this->totalCount = $this->searchPuzzle->countByUserInput(
-            $this->brandId,
-            $this->search,
+            $this->criteria->brandId,
+            $this->criteria->search,
             $piecesFilter,
-            $this->tagId,
-            $difficultyTiers,
+            $this->criteria->tagId,
+            $this->criteria->difficultyTiers,
         );
 
-        // Growing past the result set would only make every re-render more expensive.
-        $this->displayLimit = min($this->displayLimit, max(self::LIMIT, $this->totalCount));
-
         $this->puzzles = $this->searchPuzzle->byUserInput(
-            $this->brandId,
-            $this->search,
+            $this->criteria->brandId,
+            $this->criteria->search,
             $piecesFilter,
-            $this->tagId,
-            $this->sortBy,
+            $this->criteria->tagId,
+            $this->criteria->sortBy,
             offset: 0,
-            limit: $this->displayLimit,
-            difficultyTiers: $difficultyTiers,
+            limit: PuzzleSearchCriteria::PAGE_SIZE,
+            difficultyTiers: $this->criteria->difficultyTiers,
         );
     }
 
@@ -256,12 +223,20 @@ final class PuzzleSearch
 
     public function getRemainingCount(): int
     {
-        return max(0, $this->totalCount - $this->displayLimit);
+        return max(0, $this->totalCount - PuzzleSearchCriteria::PAGE_SIZE);
     }
 
     public function hasMore(): bool
     {
-        return $this->displayLimit < $this->totalCount;
+        return $this->totalCount > PuzzleSearchCriteria::PAGE_SIZE;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getLoadMoreUrlParameters(): array
+    {
+        return $this->criteria->toQueryParameters() + ['offset' => PuzzleSearchCriteria::PAGE_SIZE];
     }
 
     public function getPuzzleStatuses(): UserPuzzleStatuses
@@ -326,9 +301,9 @@ final class PuzzleSearch
             static fn (string $sort): array => [
                 'value' => $sort,
                 'label' => 'sorting.' . str_replace('-', '_', $sort),
-                'premium' => in_array($sort, self::PREMIUM_SORTS, true),
+                'premium' => in_array($sort, PuzzleSearchCriteria::PREMIUM_SORTS, true),
             ],
-            self::VALID_SORTS,
+            PuzzleSearchCriteria::VALID_SORTS,
         );
     }
 
@@ -352,36 +327,6 @@ final class PuzzleSearch
             ],
             DifficultyTier::cases(),
         );
-    }
-
-    /**
-     * Values may come from the client, so anything non-numeric (including
-     * tampered payloads with nested structures) is dropped, not crashed on.
-     *
-     * @return list<int>
-     */
-    private function normalizedDifficultyTiers(): array
-    {
-        $tiers = [];
-
-        foreach ($this->difficultyTiers as $tier) {
-            if (is_numeric($tier)) {
-                $tiers[] = (int) $tier;
-            }
-        }
-
-        return $tiers;
-    }
-
-    private function isDefaultSearch(): bool
-    {
-        return $this->brandId === null
-            && ($this->search === null || $this->search === '')
-            && $this->pieces === null
-            && $this->tagId === null
-            && $this->difficultyTiers === []
-            && $this->sortBy === 'most-solved'
-            && $this->displayLimit === self::LIMIT;
     }
 
     /**

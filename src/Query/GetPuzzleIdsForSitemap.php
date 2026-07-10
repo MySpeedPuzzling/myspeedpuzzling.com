@@ -15,27 +15,50 @@ readonly final class GetPuzzleIdsForSitemap
     ) {
     }
 
-    /**
-     * @return array<string>
-     */
-    public function allApproved(): array
+    public function countApproved(): int
     {
         $query = <<<SQL
-SELECT puzzle.id
+SELECT COUNT(puzzle.id)
 FROM puzzle
 WHERE puzzle.approved = true
     AND (puzzle.hide_image_until IS NULL OR puzzle.hide_image_until <= :now)
     AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now)
 SQL;
 
-        /** @var array<string> $puzzleIds */
-        $puzzleIds = $this->database
+        $count = $this->database
             ->executeQuery($query, [
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
-            ->fetchFirstColumn();
+            ->fetchOne();
 
-        return $puzzleIds;
+        return is_numeric($count) ? (int) $count : 0;
+    }
+
+    /**
+     * @return list<array{id: string, lastmod: null|string}>
+     */
+    public function approvedPage(int $limit, int $offset): array
+    {
+        $query = <<<SQL
+SELECT puzzle.id, to_char(puzzle.added_at, 'YYYY-MM-DD') AS lastmod
+FROM puzzle
+WHERE puzzle.approved = true
+    AND (puzzle.hide_image_until IS NULL OR puzzle.hide_image_until <= :now)
+    AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now)
+ORDER BY puzzle.id
+LIMIT :limit OFFSET :offset
+SQL;
+
+        /** @var list<array{id: string, lastmod: null|string}> $rows */
+        $rows = $this->database
+            ->executeQuery($query, [
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+                'limit' => $limit,
+                'offset' => $offset,
+            ])
+            ->fetchAllAssociative();
+
+        return $rows;
     }
 
     /**

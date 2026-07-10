@@ -1,6 +1,7 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'ladder.title'|trans }} - {{ 'ladder.overview'|trans }}{% endblock %}
+{% block title %}{{ 'ladder.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'ladder.meta.description'|trans }}{% endblock %}
 
 {% block content %}
     <h1><span class="me-3">{{ 'ladder.title'|trans }}</span> {{ include('_ladder_dropdown.html.twig') }}</h1>

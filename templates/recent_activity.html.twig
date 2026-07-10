@@ -1,9 +1,10 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'ladder.recent_activity'|trans }}{% endblock %}
+{% block title %}{{ 'recent_activity.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'recent_activity.meta.description'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>{{ 'ladder.recent_activity'|trans }}</h1>
+    <h1>{{ 'recent_activity.meta.title'|trans }}</h1>
 
     <twig:RecentActivity limit="100" />
 {% endblock %}

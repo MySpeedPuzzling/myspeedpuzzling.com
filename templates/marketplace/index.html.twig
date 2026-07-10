@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{% if puzzle_overview is not null %}{{ puzzle_overview.manufacturerName }} {{ puzzle_overview.puzzleName }} Marketplace - Buy, Sell, Trade{% else %}Puzzle Marketplace - Buy, Sell, Trade{% endif %}{% endblock %}
-{% block meta_description %}{{ 'marketplace.meta.description'|trans }}{% endblock %}
+{% block title %}{% if puzzle_overview is not null %}{{ 'marketplace.meta.title_puzzle'|trans({'%brand%': puzzle_overview.manufacturerName, '%puzzle%': puzzle_overview.puzzleName}) }}{% else %}{{ 'marketplace.meta.title'|trans }}{% endif %}{% endblock %}
+{% block meta_description %}{% if puzzle_overview is not null %}{{ 'marketplace.meta.description_puzzle'|trans({'%brand%': puzzle_overview.manufacturerName, '%puzzle%': puzzle_overview.puzzleName}) }}{% else %}{{ 'marketplace.meta.description'|trans }}{% endif %}{% endblock %}
 
 {% block content %}
     {{ include('_return_back_button.html.twig') }}

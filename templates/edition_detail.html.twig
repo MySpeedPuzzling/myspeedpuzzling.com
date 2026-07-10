@@ -1,6 +1,70 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ event.name }} - {{ series.name }}{% endblock %}
+{% block title %}{{ 'series.meta.edition_title'|trans({'%name%': event.name}) }}{% endblock %}
+
+{% block meta_description %}
+    {%- if event.dateFrom -%}
+        {{- 'series.meta.edition_description'|trans({'%name%': event.name, '%series%': series.name, '%date%': event.dateFrom|format_date('long')}) -}}
+    {%- else -%}
+        {{- 'series.meta.edition_description_no_date'|trans({'%name%': event.name, '%series%': series.name}) -}}
+    {%- endif -%}
+{% endblock %}
+
+{% block json_ld %}
+{{ parent() }}
+{% if series.approvedAt is not null and series.rejectedAt is null and event.dateFrom is not null and series.slug is not null and event.slug is not null %}
+{% set edition_url = url('edition_detail', {'seriesSlug': series.slug, 'editionSlug': event.slug}) %}
+{% set edition_image = event.logo ?? series.logo %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "name": {{ event.name|json_encode|raw }},
+    "url": {{ edition_url|json_encode|raw }},
+    "startDate": {{ event.dateFrom|date('Y-m-d')|json_encode|raw }},
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": {{ (series.isOnline ? 'https://schema.org/OnlineEventAttendanceMode' : 'https://schema.org/OfflineEventAttendanceMode')|json_encode|raw }}
+    {%- if event.dateTo %},
+    "endDate": {{ event.dateTo|date('Y-m-d')|json_encode|raw }}
+    {%- endif %}
+    {%- if series.isOnline %},
+    "location": {
+        "@type": "VirtualLocation",
+        "url": {{ (event.registrationLink ?? event.resultsLink ?? edition_url)|json_encode|raw }}
+    }
+    {%- elseif event.location %},
+    "location": {
+        "@type": "Place",
+        "name": {{ event.location|json_encode|raw }},
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": {{ event.location|json_encode|raw }}
+            {%- if event.locationCountryCode %},
+            "addressCountry": {{ event.locationCountryCode.name|upper|json_encode|raw }}
+            {%- endif %}
+        }
+    }
+    {%- endif %}
+    {%- if edition_image %},
+    "image": {{ edition_image|thumbnail('puzzle_small')|json_encode|raw }}
+    {%- endif %}
+    {%- if event.description %},
+    "description": {{ event.description|json_encode|raw }}
+    {%- endif %},
+    "organizer": {
+        "@type": "Organization",
+        "name": {{ series.name|json_encode|raw }}
+    }
+    {%- if event.registrationLink %},
+    "offers": {
+        "@type": "Offer",
+        "url": {{ event.registrationLink|json_encode|raw }}
+    }
+    {%- endif %}
+}
+</script>
+{% endif %}
+{% endblock %}
 
 {% block content %}
     {% if series.slug %}

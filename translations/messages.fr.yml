@@ -108,9 +108,8 @@
   "suspicious": "Vérification requise"
 "homepage":
   "meta":
-    "title": "Speed Puzzling - Suivez les temps et Concourez"
-    "description": "Rejoignez la communauté ultime du speed puzzling ! Suivez vos temps de puzzle, concourez avec des joueurs du monde entier et grimpez dans les classements. Commencez aujourd'hui !"
-    "keywords": "speed puzzling, speedpuzzling, temps de puzzle, communauté de puzzle, compétition de puzzle, classement puzzle"
+    "title": "Speed Puzzling – Suivez vos temps et concourez"
+    "description": "Rejoignez la plus grande communauté de speed puzzling au monde. Suivez vos temps de puzzle, grimpez dans les classements mondiaux et trouvez des concours de puzzle près de chez vous."
   "global_statistics": "Il nous a fallu à tous ce temps pour résoudre <strong>%puzzles%</strong> puzzles.<br>Cela représente un incroyable <strong>%pieces%</strong> pièces."
   "title": "Bienvenue Puzzleur, dans le Monde du Speed Puzzling !"
   "intro_text": "Le Speed Puzzling est un sport passionnant où l'objectif est d'assembler des puzzles le plus rapidement possible. Chaque pièce compte, chaque seconde importe. Imaginez l'assemblage traditionnel de puzzles mais avec l'adrénaline d'un circuit de course ! Notre plateforme est la première de son genre - un endroit où vous pouvez tester vos compétences d'assemblage de puzzles non seulement contre le temps, mais aussi contre d'autres passionnés de puzzles."
@@ -122,11 +121,12 @@
   "cta_my_profile": "Mon profil"
   "cta_recent": "Temps récents"
 "ladder":
-  "title": "Classement"
+  "title": "Classement Speed Puzzling"
   "meta":
-    "title": "Classement des temps"
-    "description": "Classement du speed puzzling montrant les temps de puzzle les plus rapides et les classements des joueurs. Voyez qui détient les records et concourez pour les meilleures positions."
-    "keywords": "classement speed puzzling, temps les plus rapides, records de puzzle, classements joueurs, résultats de compétition, champions de puzzle"
+    "title": "Classement Speed Puzzling – Temps les plus rapides"
+    "description": "Le classement mondial du speed puzzling : les temps de puzzle les plus rapides par nombre de pièces, en solo, en duo et en équipe. Où vous situez-vous ?"
+    "title_per_pieces": "Classement puzzle %pieces% pièces – %category%"
+    "description_per_pieces": "Le top 100 des temps de speed puzzling %category% les plus rapides pour les puzzles de %pieces% pièces. Comparez votre temps aux meilleurs du monde."
   "overview": "Vue d'ensemble"
   "recent_activity": "Temps récemment ajoutés"
   "solo": "Solo"
@@ -176,10 +176,9 @@
   "hardest": "Plus difficiles d'abord"
 "puzzle_overview":
   "meta":
-    "title": "Base de données Speed Puzzling"
-    "description": "Parcourez la base de données de speed puzzling avec des puzzles de 500-1000+ pièces. Comparez les temps de résolution, trouvez de nouveaux défis et suivez vos progrès."
-    "keywords": "base de données puzzle, temps de puzzle, puzzle 500 pièces, puzzle 1000 pièces, marques de puzzle, résolution rapide"
-  "title": "Puzzles"
+    "title": "Base de données de puzzles et temps"
+    "description": "Parcourez des milliers de puzzles par marque, nombre de pièces et difficulté. Découvrez les vrais temps d'assemblage de puzzleurs du monde entier et suivez vos propres résultats."
+  "title": "Base de données de puzzles"
   "missing_puzzle_info": "Si vous ne trouvez pas un puzzle ici, cela signifie que personne ne l'a encore résolu et qu'il n'est pas dans notre base de données. De nouveaux puzzles peuvent être saisis lors de l'ajout de temps."
 "puzzle_times":
   "my_attempts":
@@ -392,10 +391,18 @@
     "puzzle_total_solved": "Nombre total de résolutions du puzzle"
 "events":
   "title": "Événements"
+  "heading": "Concours de Speed Puzzle & Événements"
   "meta":
-    "title": "Événements Speed Puzzling | Compétitions"
-    "description": "Rejoignez les événements de speed puzzling, compétitions et tournois. Concourez avec les meilleurs puzzleurs du monde et testez vos compétences."
-    "keywords": "événements speed puzzling, compétitions puzzle, tournois puzzle, WJPC, championnat puzzle, puzzle compétitif"
+    "title": "Concours de Speed Puzzle & Événements"
+    "description": "Calendrier mondial des concours de speed puzzle et événements — dates, inscription, puzzles, participants et résultats, en présentiel et en ligne."
+    "event_detail_title": "%name% %year% – Concours de Speed Puzzle"
+    "event_detail_title_no_year": "%name% – Concours de Speed Puzzle"
+    "event_detail_description": "%name% — concours de speed puzzle le %date% à %location%. Puzzles, participants et résultats sur MySpeedPuzzling."
+    "event_detail_description_online": "%name% — concours de speed puzzle en ligne le %date%. Puzzles, participants et résultats sur MySpeedPuzzling."
+    "event_detail_description_online_no_date": "%name% — concours de speed puzzle en ligne. Puzzles, participants et résultats sur MySpeedPuzzling."
+    "event_detail_description_no_date": "%name% — concours de speed puzzle à %location%. Puzzles, participants et résultats sur MySpeedPuzzling."
+    "event_detail_description_no_location": "%name% — concours de speed puzzle le %date%. Puzzles, participants et résultats sur MySpeedPuzzling."
+    "event_detail_description_fallback": "%name% — concours de speed puzzle. Puzzles, participants et résultats sur MySpeedPuzzling."
   "live": "En cours maintenant"
   "upcoming": "À venir"
   "past": "Événements passés"
@@ -568,9 +575,8 @@
     "note": "Gratuit. Pas de frais de compte. Pas de publicité."
 "faq":
   "meta":
-    "title": "FAQ Speed Puzzling | Suivre et Concourir"
+    "title": "FAQ Speed Puzzling – Suivre et Concourir"
     "description": "FAQ du speed puzzling couvrant comment suivre les temps de puzzle, concourir avec d'autres et améliorer vos compétences de résolution. Commencez aujourd'hui !"
-    "keywords": "FAQ speed puzzling, comment faire du speed puzzle, suivre temps puzzle, chronométrage puzzle, conseils résolution rapide, guide compétition puzzle"
   "title": "Questions fréquemment posées"
   "intro_block": "<p>Vos commentaires sont très importants pour nous et nous les apprécions grandement ! Si vous avez quelque chose à nous dire, veuillez nous écrire à <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a> (ou à <a href=\"mailto:j.mikes@me.com\">j.mikes@me.com</a> pour les questions techniques) ou sur <a href=\"https://www.instagram.com/myspeedpuzzling/\" target=\"_blank\">Instagram</a>.</p>\n<p>Tous nos codes sources sont open-source et publics sur <a href=\"https://github.com/MySpeedPuzzling\">GitHub SpeedPuzzling</a>. Nous adhérons à la philosophie du \"partage c'est prendre soin\" et nous efforçons de partager tout sur myspeedpuzzling.com ouvertement.</p>\n"
   "question_fair_play": ""
@@ -675,13 +681,16 @@
   "hide_streak_help": "Votre série ne sera pas affichée sur votre page de statistiques."
 "puzzle_detail":
   "meta":
-    "description": "Explorez le puzzle %brand% %puzzle% (%pieces% pièces) sur My Speed Puzzling. Suivez les progrès, comparez les temps et conquérez les puzzles avec notre communauté. Commencez votre série de résolution speed puzzling aujourd'hui !"
+    "title": "%brand% %name% – %pieces% pièces"
+    "description": "Vrais temps d'assemblage pour %brand% %name% (%pieces% pièces) : découvrez les temps les plus rapides et moyens de puzzleurs du monde entier et suivez le vôtre."
+    "description_with_times": "%brand% %name%, %pieces% pièces — meilleur temps %fastest%, moyenne %average% sur %count% assemblages sur MySpeedPuzzling."
+  "breadcrumb":
+    "database": "Base de données de puzzles"
 "puzzlers":
   "meta":
-    "title": "Joueurs Speed Puzzling | Résultats"
-    "description": "Découvrez les joueurs de speed puzzling, comparez les résultats et classements. Suivez vos puzzleurs favoris et voyez leurs derniers temps de résolution."
-    "keywords": "joueurs speed puzzling, puzzleurs, résolveurs de puzzle, résultats joueurs, communauté puzzle, temps speed puzzling"
-  "title": "Puzzleurs"
+    "title": "Speed puzzleurs du monde entier"
+    "description": "Trouvez des speed puzzleurs du monde entier. Comparez temps, classements et statistiques, et suivez vos compétiteurs de puzzle favoris."
+  "title": "Speed Puzzleurs"
   "results_for": "Résultats de recherche pour"
   "no_matches_found": "Aucune correspondance trouvée"
   "my_favorites": "Mes favoris"
@@ -692,9 +701,14 @@
   "total_players": "Total des joueurs"
 "players_per_country":
   "meta":
-    "title": "Puzzleurs du pays - %country%"
-  "title": "Puzzleurs du pays - %country%"
+    "title": "Speed puzzleurs du pays %country% – Classements et temps"
+    "description": "Découvrez les speed puzzleurs du pays %country% : profils de joueurs, meilleurs temps de puzzle et classements nationaux sur MySpeedPuzzling."
+  "title": "Speed puzzleurs du pays %country%"
   "link": "Puzzleurs par pays"
+"player_profile":
+  "meta":
+    "title": "%name% – Profil de speed puzzleur"
+    "description": "Profil speed puzzling de %name% : meilleurs temps de puzzle, classements, badges et assemblages récents sur MySpeedPuzzling."
 "flashes":
   "stopwatch_already_saved": "Ces chronomètres ont déjà été sauvegardés."
   "collection_not_found": "La collection que vous avez recherchée n'existe pas sur notre plateforme !"
@@ -732,9 +746,8 @@
 "hub":
   "title": "Centre"
   "meta":
-    "title": "Centre Speed Puzzling | Derniers résultats"
+    "title": "Centre Speed Puzzling – Derniers résultats"
     "description": "Centre du speed puzzling avec les derniers résultats, classements des joueurs et statistiques des puzzles. Voyez qui résout le plus rapidement et suivez les progrès de la communauté."
-    "keywords": "centre speed puzzling, derniers résultats, classements puzzle, joueurs actifs, statistiques puzzle, activité récente"
   "welcome": "Bienvenue puzzleur !"
   "welcome_back": "Bon retour"
   "recent_favorites_activity": "Activité<br>favoris"
@@ -792,6 +805,9 @@
   "statistics": "Statistiques"
   "title": "Comparaison des joueurs"
 "recent_activity":
+  "meta":
+    "title": "Derniers temps de speed puzzling"
+    "description": "Les derniers temps d'assemblage de puzzle de la communauté MySpeedPuzzling, mis à jour en continu."
   "latest_times": "Derniers temps"
   "no_activity": "Aucune activité récente"
   "title": "Activité récente"
@@ -989,6 +1005,7 @@
   "seconds": "secs"
 "blog":
   "outage-2025-02-17":
+    "meta_title": "La plus grande panne de notre histoire"
     "title": "La plus grande panne de l'histoire de MySpeedPuzzling"
     "content": "<h2 class=\"h5\">Le 17 février, nous avons connu la plus longue panne de l'histoire de MySpeedPuzzling ...</h2>\n<h4 class=\"h6\">Tout d'abord, je veux vous remercier tous énormément pour votre patience et votre confiance ! Croyez-moi, ces 7 heures où nous savions que MSP ne fonctionnait pas ont été extrêmement stressantes pour nous !</h4>\n<p>Aujourd'hui, nous avons eu une panne de presque 10 heures de toute la plateforme. C'est la plus longue panne de l'histoire de MySpeedPuzzling. Ce n'était pas de notre faute... ou l'était-ce ?</p>\n<p>Parce que nous nous efforçons d'être 100% transparents, voici un compte-rendu étape par étape de ce qui s'est passé.</p>\n<p>Je suis allé me coucher vers 1h30 (malheureusement, juste avant que tout tombe en panne), ayant juste terminé une autre nouvelle fonctionnalité pour MySpeedPuzzling. Vers 5h, quand un de nos enfants s'est levé pour aller aux toilettes, Simona a automatiquement vérifié les notifications sur son téléphone—elle regarde\
       \ souvent qui a publié de nouveaux temps et à quelle vitesse ils ont réussi à résoudre le puzzle. Oui, même à 5h du matin... Mais elle a été accueillie par une surprise désagréable : la page ne se chargeait pas. Elle m'a poussé en disant : \"MySpeedPuzzling ne fonctionne pas !\" Entendre ça m'a réveillé immédiatement. J'ai pris mon téléphone, j'ai essayé, et ça ne fonctionnait vraiment pas ! J'ai pris mon portable pour examiner les choses de plus près. À 1h59, nous avions reçu une notification de surveillance automatisée, ce qui n'est généralement pas de bonnes nouvelles. Malheureusement, je l'ai ratée parce que j'étais allé me coucher juste avant. De plus, le changement que j'avais fait n'était en aucun cas destructeur et n'aurait pas pu causer une telle panne. Et c'est ainsi qu'a commencé notre panne de lundi, qui a duré presque jusqu'à midi.</p>\n<h5>Détails techniques pour les geeks :</h5>\n<p><em>(ceci vous donnera un aperçu de notre infrastructure serveur)</em></p>\n<p>Il y a\
@@ -1726,7 +1743,10 @@
   "manage_my_offers": "Gérer mes offres"
   "max": "Max"
   "meta":
-    "description": "Parcourez les puzzles en vente, échange ou gratuits sur le marché MySpeedPuzzling."
+    "title": "Marché aux puzzles – Achat, vente et échange"
+    "title_puzzle": "%brand% %puzzle% – Acheter ou échanger"
+    "description": "Achetez, vendez et échangez des puzzles avec des puzzleurs du monde entier. Parcourez des puzzles d'occasion par marque et nombre de pièces sur le marché MySpeedPuzzling."
+    "description_puzzle": "Achetez, vendez ou échangez %brand% %puzzle% avec des puzzleurs du monde entier sur le marché MySpeedPuzzling."
   "min": "Min"
   "my_offers": "Mes offres"
   "no_results": "Aucune offre trouvée correspondant à vos filtres."
@@ -1760,9 +1780,8 @@
 
 puzzle_tracker_app:
     meta:
-        title: "Puzzle Tracker – Gérez votre collection de puzzles | MySpeedPuzzling"
+        title: "Puzzle Tracker – Temps et collection"
         description: "Application gratuite de suivi de puzzles. Enregistrez votre collection, vos temps d'assemblage, comparez vos statistiques et rejoignez des passionnés de puzzles du monde entier."
-        keywords: "puzzle tracker, suivi de puzzles, application puzzle, collection de puzzles, minuteur puzzle, tracking puzzle"
     hero:
         title: "Puzzle Tracker – Suivi de puzzles"
         lead: "Gérez votre collection de puzzles, enregistrez vos temps d'assemblage et rejoignez des milliers de passionnés. Que vous puzzliez pour le plaisir ou la vitesse, MySpeedPuzzling est votre compagnon idéal."
@@ -1952,6 +1971,9 @@ puzzle_intelligence:
         slower: "Plus lent"
         much_slower: "Bien plus lent"
     elo:
+        meta:
+            title: "MSP Rating – Classement Speed Puzzling"
+            description: "Le classement MSP Rating classe les speed puzzleurs selon leur niveau, en combinant temps d'assemblage et difficulté des puzzles. Découvrez les meilleurs puzzleurs du monde."
         title: "Classement MSP Rating"
         subtitle: "Classement compétitif basé sur les performances en face-à-face"
         beta_badge: "BÊTA"
@@ -2020,7 +2042,9 @@ puzzle_intelligence:
         title: "Statistiques du puzzle"
         no_data: "Données insuffisantes pour le moment. Les statistiques apparaîtront à mesure que plus de joueurs résolvent ce puzzle."
     methodology:
-        title: "Comment nous calculons"
+        meta:
+            description: "Comment MySpeedPuzzling calcule la difficulté des puzzles, les niveaux des joueurs et le MSP Rating — toute la méthodologie derrière nos analyses de puzzles."
+        title: "Difficulté des puzzles et MSP Rating expliqués"
         subtitle: "Transparence totale sur nos algorithmes d'analyse de puzzles"
         show_formula: "Voir la formule exacte"
         overview_difficulty_desc: "Quelle est la difficulté de chaque puzzle ? Nous comparons votre temps à votre moyenne personnelle pour le savoir."
@@ -2520,6 +2544,12 @@ competition:
     "leave": "Quitter"
     "im_going": "J'y vais !"
 series:
+  "meta":
+    "title": "%name% – Série de speed puzzling"
+    "description": "%name% : toutes les éditions de ce concours de speed puzzling — prochaines dates, résultats passés, puzzles et participants."
+    "edition_title": "%name% – Résultats et puzzles"
+    "edition_description": "Résultats de %name% — concours de speed puzzling %series%, %date%. Manches, puzzles et temps des participants."
+    "edition_description_no_date": "Résultats de %name% — concours de speed puzzling %series%. Manches, puzzles et temps des participants."
   "manage": "Gérer la série"
   "edit_series": "Modifier la série"
   "add_edition": "Ajouter une édition"

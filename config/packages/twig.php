@@ -20,6 +20,7 @@ return App::config([
             'get_notifications' => '@' . GetNotifications::class,
             'get_conversations' => '@' . GetConversations::class,
             'mercure_public_url' => '%env(MERCURE_PUBLIC_URL)%',
+            'images_base_url' => '%env(NGINX_PROXY_BASE_URL)%',
         ],
         'paths' => [
             '%kernel.project_dir%/public/img' => 'images',

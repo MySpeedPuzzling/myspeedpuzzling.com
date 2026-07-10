@@ -1,5 +1,13 @@
 Sitemap: https://myspeedpuzzling.com/sitemap.xml
+
+# --- Search engines and answer engines are welcome. ---
+# Private/user-only paths are disallowed to save crawl budget; the pages
+# themselves are auth-gated anyway.
+
 User-agent: *
+
+Disallow: /admin
+Disallow: /internal-api
 
 Disallow: /muj-profil
 Disallow: /pridat-cas
@@ -8,7 +16,7 @@ Disallow: /stopky
 Disallow: /notifikace
 Disallow: /porovnat-s-puzzlerem
 Disallow: /pridat-hrace-k-oblibenym
-Disallow: /pridat-puzzle-do-kolecke
+Disallow: /odebrat-hrace-z-oblibenych
 Disallow: /clenstvi
 Disallow: /feedback
 
@@ -19,7 +27,7 @@ Disallow: /en/stopwatch
 Disallow: /en/notifications
 Disallow: /en/compare-with-puzzler
 Disallow: /en/add-player-to-favorites
-Disallow: /en/add-puzzle-to-collection
+Disallow: /en/remove-player-from-favorites
 Disallow: /en/membership
 Disallow: /en/feedback
 
@@ -29,7 +37,6 @@ Disallow: /es/cronometro
 Disallow: /es/notificaciones
 Disallow: /es/comparar-con-puzzlero
 Disallow: /es/anadir-jugador-a-favoritos
-Disallow: /es/colecciones
 Disallow: /es/membresia
 Disallow: /es/comentarios
 
@@ -39,7 +46,6 @@ Disallow: /fr/chronometre
 Disallow: /fr/notifications
 Disallow: /fr/comparer-avec-puzzleur
 Disallow: /fr/ajouter-joueur-favoris
-Disallow: /fr/collections
 Disallow: /fr/adhesion
 Disallow: /fr/commentaires
 
@@ -49,8 +55,74 @@ Disallow: /de/stoppuhr
 Disallow: /de/benachrichtigungen
 Disallow: /de/vergleich-mit-puzzler
 Disallow: /de/spieler-zu-favoriten-hinzufuegen
-Disallow: /de/sammlungen
 Disallow: /de/mitgliedschaft
 Disallow: /de/feedback
 
-Clean-param: return&return_url&return_title
+Disallow: /ja/プロフィール
+Disallow: /ja/時間追加
+Disallow: /ja/パズル-ストップウォッチ
+Disallow: /ja/ストップウォッチ
+Disallow: /ja/通知
+Disallow: /ja/比較
+Disallow: /ja/お気に入りに追加
+Disallow: /ja/お気に入りから削除
+Disallow: /ja/メンバーシップ
+Disallow: /ja/フィードバック
+
+# --- SEO/backlink crawlers: no value to us, meaningful crawl load. ---
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+User-agent: serpstatbot
+Disallow: /
+
+# --- Aggressive scrapers. (Bytespider often ignores robots.txt - real
+#     enforcement needs edge blocking, see docs/features/seo/cloudflare.md) ---
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+# --- AI *training-only* crawlers: blocked. AI *search/citation* agents
+#     (OAI-SearchBot, ChatGPT-User, PerplexityBot, Claude-User) stay allowed -
+#     they send users and citations our way. Google-Extended only opts out of
+#     Gemini training and does not affect Google Search. ---
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /

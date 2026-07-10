@@ -27,6 +27,7 @@ use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\Attribute\PreReRender;
+use Symfony\UX\TwigComponent\Attribute\PostMount;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\UX\LiveComponent\Metadata\UrlMapping;
 
@@ -87,6 +88,8 @@ final class PuzzleSearch
     /** @var array<string, PuzzleDifficultyResult> */
     private array $difficultyData = [];
 
+    private bool $dataLoaded = false;
+
     public function __construct(
         private readonly SearchPuzzle $searchPuzzle,
         private readonly GetUserPuzzleStatuses $getUserPuzzleStatuses,
@@ -111,15 +114,31 @@ final class PuzzleSearch
     }
 
     /**
-     * PreReRender ONLY, deliberately: the component is rendered with
-     * loading="defer", so the initial page request only mounts the props and
-     * shows the placeholder skeleton - PostMount hooks would run all the
-     * queries during that shell render for nothing. The real render always
-     * arrives as a live request, which triggers PreReRender.
+     * The default (criteria-less) view is rendered synchronously on the page
+     * request so crawlers get page one as real HTML - it is served from the
+     * app cache, so the synchronous render stays cheap. Filtered/search deep
+     * links render with loading="defer" (see puzzles.html.twig): PostMount
+     * skips them (their queries would run during the shell render for
+     * nothing) and the deferred live request triggers PreReRender instead.
      */
+    #[PostMount]
+    public function loadInitialData(): void
+    {
+        $this->normalizeState();
+
+        if ($this->criteria->isDefault()) {
+            $this->loadData();
+        }
+    }
+
     #[PreReRender]
     public function loadData(): void
     {
+        if ($this->dataLoaded) {
+            return;
+        }
+
+        $this->dataLoaded = true;
         $this->normalizeState();
         $fromCache = $this->loadPuzzles();
         $this->loadUserData();

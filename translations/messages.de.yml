@@ -106,9 +106,8 @@
   "suspicious": "Überprüfung erforderlich"
 "homepage":
   "meta":
-    "title": "Speed Puzzling - Zeiten verfolgen & Konkurrieren"
-    "description": "Tritt der ultimativen Speed Puzzling Community bei! Verfolge Puzzle-Zeiten, konkurriere mit Spielern weltweit und erklimme die Bestenlisten. Starte heute!"
-    "keywords": "Speed Puzzling, Speedpuzzling, Puzzle-Zeiten, Puzzle-Community, Puzzle-Wettbewerb, Puzzle-Bestenliste"
+    "title": "Speed Puzzling – Zeiten erfassen & wetteifern"
+    "description": "Tritt der größten Speedpuzzeln-Community der Welt bei. Erfasse deine Puzzle-Zeiten, erklimme weltweite Bestenlisten und finde Speed Puzzle Wettbewerbe in deiner Nähe."
   "global_statistics": "Es hat uns alle zusammen so viel Zeit gekostet, <strong>%puzzles%</strong> Puzzles zu lösen.<br>Das sind unglaubliche <strong>%pieces%</strong> Teile."
   "title": "Willkommen Puzzler in der Welt des Speed Puzzling!"
   "intro_text": "Speed Puzzling ist ein aufregender Sport, bei dem das Ziel darin besteht, Puzzles so schnell wie möglich zusammenzusetzen. Jedes Teil zählt, jede Sekunde ist wichtig. Stell dir traditionelle Puzzle-Lösung vor, aber mit dem Adrenalin einer Rennstrecke! Unsere Plattform ist die erste ihrer Art - ein Ort, wo du deine Puzzle-Lösungsfähigkeiten nicht nur gegen die Zeit, sondern auch gegen andere Puzzle-Enthusiasten testen kannst."
@@ -119,11 +118,12 @@
   "cta_my_profile": "Mein Profil"
   "cta_recent": "Neueste Zeiten"
 "ladder":
-  "title": "Bestenliste"
+  "title": "Speed Puzzle Bestenliste"
   "meta":
-    "title": "Zeiten Bestenliste"
-    "description": "Speed Puzzling Bestenliste mit den schnellsten Puzzle-Zeiten und Spieler-Rankings. Sehen Sie, wer Rekorde hält und konkurrieren Sie um Spitzenplätze."
-    "keywords": "Speed Puzzling Bestenliste, schnellste Zeiten, Puzzle-Rekorde, Spieler-Rankings, Wettbewerbsergebnisse, Puzzle-Champions"
+    "title": "Speed Puzzle Bestenliste – Schnellste Zeiten"
+    "description": "Die weltweite Speed Puzzle Bestenliste: die schnellsten Puzzle-Legezeiten nach Teilezahl, solo, zu zweit und in Gruppen. Wo stehen Sie?"
+    "title_per_pieces": "Puzzle-Bestenliste %pieces% Teile – %category%"
+    "description_per_pieces": "Die Top 100 schnellsten %category% Speed Puzzle Zeiten für Puzzles mit %pieces% Teilen. Vergleichen Sie Ihre Zeit mit den Besten der Welt."
   "overview": "Übersicht"
   "recent_activity": "Kürzlich hinzugefügte Zeiten"
   "solo": "Solo"
@@ -173,10 +173,9 @@
   "hardest": "Schwierigste zuerst"
 "puzzle_overview":
   "meta":
-    "title": "Speed Puzzling Datenbank"
-    "description": "Durchsuchen Sie die Speed Puzzling Datenbank mit 500-1000+ teiligen Puzzles. Vergleichen Sie Lösungszeiten, finden Sie neue Herausforderungen und verfolgen Sie Ihren Fortschritt."
-    "keywords": "Puzzle-Datenbank, Puzzle-Zeiten, 500-teiliges Puzzle, 1000-teiliges Puzzle, Puzzle-Marken, Speed Solving"
-  "title": "Puzzles"
+    "title": "Puzzle-Datenbank & Legezeiten"
+    "description": "Durchstöbern Sie Tausende Puzzles nach Marke, Teilezahl und Schwierigkeit. Sehen Sie echte Legezeiten von Speed Puzzlern weltweit und verfolgen Sie Ihre eigenen Ergebnisse."
+  "title": "Puzzle-Datenbank"
   "missing_puzzle_info": "Wenn Sie hier ein Puzzle nicht finden können, bedeutet das, dass es noch niemand gelöst hat und es nicht in unserer Datenbank ist. Neue Puzzles können beim Hinzufügen der Zeit eingegeben werden."
 "puzzle_times":
   "my_attempts":
@@ -389,10 +388,18 @@
     "puzzle_total_solved": "Gesamtzahl der Puzzle-Lösungen"
 "events":
   "title": "Veranstaltungen"
+  "heading": "Speed Puzzle Wettbewerbe & Events"
   "meta":
-    "title": "Speed Puzzling Veranstaltungen | Wettbewerbe"
-    "description": "Nehmen Sie an Speed Puzzling Veranstaltungen, Wettbewerben und Turnieren teil. Konkurrieren Sie mit den besten Puzzlern weltweit und testen Sie Ihre Fähigkeiten."
-    "keywords": "Speed Puzzling Veranstaltungen, Puzzle-Wettbewerbe, Puzzle-Turniere, WJPC, Puzzle-Weltmeisterschaft, Wettbewerbs-Puzzling"
+    "title": "Speed Puzzle Wettbewerbe & Events"
+    "description": "Weltweiter Kalender für Speed Puzzle Wettbewerbe und Events — Termine, Anmeldung, Puzzles, Teilnehmer und Ergebnisse, vor Ort und online."
+    "event_detail_title": "%name% %year% – Speed Puzzle Wettbewerb"
+    "event_detail_title_no_year": "%name% – Speed Puzzle Wettbewerb"
+    "event_detail_description": "%name% — Speed Puzzle Wettbewerb am %date% in %location%. Puzzles, Teilnehmer und Ergebnisse auf MySpeedPuzzling."
+    "event_detail_description_online": "%name% — Online Speed Puzzle Wettbewerb am %date%. Puzzles, Teilnehmer und Ergebnisse auf MySpeedPuzzling."
+    "event_detail_description_online_no_date": "%name% — Online Speed Puzzle Wettbewerb. Puzzles, Teilnehmer und Ergebnisse auf MySpeedPuzzling."
+    "event_detail_description_no_date": "%name% — Speed Puzzle Wettbewerb in %location%. Puzzles, Teilnehmer und Ergebnisse auf MySpeedPuzzling."
+    "event_detail_description_no_location": "%name% — Speed Puzzle Wettbewerb am %date%. Puzzles, Teilnehmer und Ergebnisse auf MySpeedPuzzling."
+    "event_detail_description_fallback": "%name% — Speed Puzzle Wettbewerb. Puzzles, Teilnehmer und Ergebnisse auf MySpeedPuzzling."
   "live": "Findet gerade statt"
   "upcoming": "Kommend"
   "past": "Vergangene Veranstaltungen"
@@ -565,9 +572,8 @@
     "note": "Kostenlos. Keine Kontogebühren. Keine Werbung."
 "faq":
   "meta":
-    "title": "Speed Puzzling FAQ | Verfolgen & Konkurrieren"
+    "title": "Speed Puzzling FAQ – Verfolgen & Konkurrieren"
     "description": "Speed Puzzling FAQ zu Themen wie Puzzle-Zeiten verfolgen, mit anderen konkurrieren und Ihre Lösungsfähigkeiten verbessern. Starten Sie heute!"
-    "keywords": "Speed Puzzling FAQ, wie man Speed Puzzling betreibt, Puzzle-Zeiten verfolgen, Puzzle-Timing, Speed Solving Tipps, Puzzle-Wettbewerbs-Guide"
   "title": "Häufig gestellte Fragen"
   "intro_block": "<p>Ihr Feedback ist uns sehr wichtig und wir schätzen es sehr! Wenn Sie uns etwas mitteilen möchten, schreiben Sie uns bitte an <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a> (oder an <a href=\"mailto:j.mikes@me.com\">j.mikes@me.com</a> für technische Angelegenheiten) oder auf <a href=\"https://www.instagram.com/myspeedpuzzling/\" target=\"_blank\">Instagram</a>.</p>\n<p>Alle unsere Quellcodes sind Open-Source und öffentlich auf <a href=\"https://github.com/MySpeedPuzzling\">GitHub SpeedPuzzling</a>. Wir folgen der Philosophie \"Teilen ist Fürsorge\" und bemühen uns, alles über myspeedpuzzling.com offen zu teilen.</p>\n"
   "question_fair_play": ""
@@ -672,13 +678,16 @@
   "hide_streak_help": "Deine Serie wird nicht auf deiner Statistikseite angezeigt."
 "puzzle_detail":
   "meta":
-    "description": "Erkunden Sie Puzzle %brand% %puzzle% (%pieces% Teile) auf My Speed Puzzling. Verfolgen Sie Fortschritte, vergleichen Sie Zeiten und erobern Sie Puzzles mit unserer Community. Starten Sie heute Ihre Speed Puzzling Lösungs-Serie!"
+    "title": "%brand% %name% – %pieces% Teile"
+    "description": "Echte Legezeiten für %brand% %name% (%pieces% Teile): Sehen Sie die schnellsten und durchschnittlichen Zeiten von Speed Puzzlern weltweit und erfassen Sie Ihre eigene."
+    "description_with_times": "%brand% %name%, %pieces% Teile — schnellste Zeit %fastest%, Durchschnitt %average% aus %count% Ergebnissen auf MySpeedPuzzling."
+  "breadcrumb":
+    "database": "Puzzle-Datenbank"
 "puzzlers":
   "meta":
-    "title": "Speed Puzzling Spieler | Ergebnisse"
-    "description": "Entdecken Sie Speed Puzzling Spieler, vergleichen Sie Ergebnisse und Rankings. Folgen Sie Ihren Lieblings-Puzzlern und sehen Sie ihre neuesten Lösungszeiten."
-    "keywords": "Speed Puzzling Spieler, Puzzler, Puzzle-Löser, Spieler-Ergebnisse, Puzzle-Community, Speed Puzzling Zeiten"
-  "title": "Puzzler"
+    "title": "Speed Puzzler weltweit"
+    "description": "Finden Sie Speed Puzzler aus aller Welt. Vergleichen Sie Legezeiten, Rankings und Statistiken und folgen Sie Ihren Lieblings-Puzzlern."
+  "title": "Speed Puzzler"
   "results_for": "Suchergebnisse für"
   "no_matches_found": "Keine Übereinstimmungen gefunden"
   "my_favorites": "Meine Favoriten"
@@ -689,9 +698,14 @@
   "total_players": "Spieler insgesamt"
 "players_per_country":
   "meta":
-    "title": "Puzzler aus Land - %country%"
-  "title": "Puzzler aus Land - %country%"
+    "title": "Speed Puzzler aus %country% – Rankings & Zeiten"
+    "description": "Treffen Sie Speed Puzzler aus %country%: Spielerprofile, schnellste Puzzle-Zeiten und nationale Rankings auf MySpeedPuzzling."
+  "title": "Speed Puzzler aus %country%"
   "link": "Puzzler pro Land"
+"player_profile":
+  "meta":
+    "title": "%name% – Speed Puzzler Profil"
+    "description": "Speed Puzzling Profil von %name%: schnellste Puzzle-Zeiten, Rankings, Abzeichen und aktuelle Ergebnisse auf MySpeedPuzzling."
 "flashes":
   "stopwatch_already_saved": "Diese Stoppuhren wurden bereits gespeichert."
   "collection_not_found": "Die gesuchte Sammlung existiert bei uns nicht!"
@@ -729,9 +743,8 @@
 "hub":
   "title": "Hub"
   "meta":
-    "title": "Speed Puzzling Hub | Neueste Ergebnisse"
+    "title": "Speed Puzzling Hub – Neueste Ergebnisse"
     "description": "Speed Puzzling Hub mit neuesten Ergebnissen, Spieler-Rankings und Puzzle-Statistiken. Sehen Sie, wer am schnellsten löst und verfolgen Sie den Community-Fortschritt."
-    "keywords": "Speed Puzzling Hub, neueste Ergebnisse, Puzzle-Rankings, aktive Spieler, Puzzle-Statistiken, neueste Aktivität"
   "welcome": "Willkommen Puzzler!"
   "welcome_back": "Willkommen zurück"
   "recent_favorites_activity": "Favoriten<br>Aktivität"
@@ -970,6 +983,7 @@
   "seconds": "Sek."
 "blog":
   "outage-2025-02-17":
+    "meta_title": "Der größte Ausfall unserer Geschichte"
     "title": "Der größte Ausfall in der Geschichte von MySpeedPuzzling"
     "content": "<h2 class=\"h5\">Am 17. Februar hatten wir den längsten Ausfall in der Geschichte von MySpeedPuzzling ...</h2>\n<h4 class=\"h6\">Zunächst möchte ich Ihnen allen so sehr für Ihre Geduld und Ihr Vertrauen danken! Glauben Sie mir, diese 7 Stunden, in denen wir wussten, dass MSP nicht funktioniert, waren extrem stressig für uns!</h4>\n<p>Heute hatten wir einen fast 10-stündigen Ausfall der gesamten Plattform. Es ist der längste Ausfall in der Geschichte von MySpeedPuzzling. Es war nicht unsere Schuld... oder doch?</p>\n<p>Da wir bestrebt sind, 100% transparent zu sein, hier ist eine schrittweise Darstellung dessen, was passiert ist.</p>\n<p>Ich ging gegen 1:30 Uhr ins Bett (leider kurz bevor alles zusammenbrach), nachdem ich gerade eine weitere neue Funktion für MySpeedPuzzling fertiggestellt hatte. Gegen 5 Uhr morgens, als eines unserer Kinder aufstand, um auf die Toilette zu gehen, überprüfte Simona automatisch Benachrichtigungen auf ihrem Handy - sie schaut oft, wer neue Zeiten\
       \ gepostet hat und wie schnell sie das Puzzle zu lösen schafften. Ja, sogar um 5 Uhr morgens... Aber sie wurde von einer unangenehmen Überraschung begrüßt: Die Seite würde nicht laden. Sie stieß mich an und sagte: \"MySpeedPuzzling funktioniert nicht!\" Das zu hören weckte mich sofort. Ich griff nach meinem Handy, probierte es aus, und es funktionierte wirklich nicht! Ich griff nach meinem Laptop, um die Dinge genauer zu untersuchen. Um 1:59 Uhr hatten wir eine automatisierte Überwachungsbenachrichtigung erhalten, was normalerweise keine gute Nachricht ist. Leider verpasste ich sie, weil ich gerade ins Bett gegangen war. Außerdem war die Änderung, die ich vorgenommen hatte, in keiner Weise destruktiv und hätte einen solchen Ausfall nicht verursachen können. Und so begann unser Montag-Ausfall, der bis fast Mittag dauerte.</p>\n<h5>Technische Details für Geeks:</h5>\n<p><em>(das wird Ihnen einen Einblick in unsere Server-Infrastruktur geben)</em></p>\n<p>Vor einer Woche installierte\
@@ -993,6 +1007,9 @@
   "thank_you": "Vielen Dank für Ihre Nachricht!"
   "title": "Kontakt"
 "recent_activity":
+  "meta":
+    "title": "Neueste Speed Puzzle Zeiten"
+    "description": "Die neuesten Puzzle-Legezeiten aus der MySpeedPuzzling-Community, laufend aktualisiert."
   "latest_times": "Neueste Zeiten"
   "no_activity": "Keine kürzlichen Aktivitäten"
   "title": "Kürzliche Aktivitäten"
@@ -1725,7 +1742,10 @@
   "manage_my_offers": "Meine Angebote verwalten"
   "max": "Max"
   "meta":
-    "description": "Durchsuchen Sie Puzzles zum Verkauf, Tausch oder kostenlos auf dem MySpeedPuzzling-Marktplatz."
+    "title": "Puzzle-Marktplatz – Kaufen, Verkaufen & Tauschen"
+    "title_puzzle": "%brand% %puzzle% – Kaufen oder Tauschen"
+    "description": "Kaufen, verkaufen und tauschen Sie Puzzles mit Puzzlern weltweit. Durchstöbern Sie gebrauchte Puzzles nach Marke und Teilezahl auf dem MySpeedPuzzling-Marktplatz."
+    "description_puzzle": "Kaufen, verkaufen oder tauschen Sie %brand% %puzzle% mit Puzzlern weltweit auf dem MySpeedPuzzling-Marktplatz."
   "min": "Min"
   "my_offers": "Meine Angebote"
   "no_results": "Keine Angebote gefunden, die Ihren Filtern entsprechen."
@@ -1759,9 +1779,8 @@
 
 puzzle_tracker_app:
     meta:
-        title: "Puzzle Tracker – Verwalte deine Puzzle-Sammlung | MySpeedPuzzling"
+        title: "Puzzle Tracker App – Zeiten & Sammlung"
         description: "Kostenlose Puzzle-Tracker-App zum Erfassen deiner Puzzle-Sammlung, Legezeiten und Statistiken. Verbinde dich mit Puzzle-Fans weltweit."
-        keywords: "Puzzle Tracker, Puzzle verfolgen, Puzzle-Sammlung, Puzzle-App, Puzzle-Timer, Puzzle-Tracking"
     hero:
         title: "Puzzle Tracker – Puzzle-Verfolgung"
         lead: "Verwalte deine Puzzle-Sammlung, erfasse Legezeiten und verbinde dich mit Tausenden Puzzle-Fans. Ob entspannt oder auf Zeit – MySpeedPuzzling ist dein Puzzle-Begleiter."
@@ -1951,6 +1970,9 @@ puzzle_intelligence:
         slower: "Langsamer"
         much_slower: "Viel langsamer"
     elo:
+        meta:
+            title: "MSP Rating – Speed Puzzle Rangliste"
+            description: "Die MSP Rating Rangliste stuft Speed Puzzler nach Können ein — basierend auf Legezeiten und Puzzle-Schwierigkeit. Sieh die besten Puzzler weltweit."
         title: "MSP Rating Rangliste"
         subtitle: "Kompetitives Ranking basierend auf direkten Vergleichen"
         beta_badge: "BETA"
@@ -2019,7 +2041,9 @@ puzzle_intelligence:
         title: "Puzzle-Einblicke"
         no_data: "Noch nicht genügend Daten. Einblicke erscheinen, wenn mehr Spieler dieses Puzzle lösen."
     methodology:
-        title: "So berechnen wir"
+        meta:
+            description: "Wie MySpeedPuzzling Puzzle-Schwierigkeit, Skill-Stufen und MSP Rating berechnet — die vollständige Methodik hinter unseren Puzzle-Einblicken."
+        title: "Puzzle-Schwierigkeit & MSP Rating erklärt"
         subtitle: "Vollständige Transparenz über unsere Puzzle-Einblicke-Algorithmen"
         show_formula: "Genaue Formel anzeigen"
         overview_difficulty_desc: "Wie schwer ist jedes Puzzle? Wir vergleichen deine Zeit mit deinem persönlichen Durchschnitt, um das herauszufinden."
@@ -2519,6 +2543,12 @@ qr_code:
     "leave": "Verlassen"
     "im_going": "Ich bin dabei!"
 "series":
+  "meta":
+    "title": "%name% – Speed Puzzle Serie"
+    "description": "%name%: alle Ausgaben dieses Speed Puzzle Wettbewerbs — kommende Termine, vergangene Ergebnisse, Puzzles und Teilnehmer."
+    "edition_title": "%name% – Ergebnisse & Puzzles"
+    "edition_description": "%name% Ergebnisse — %series% Speed Puzzle Wettbewerb, %date%. Runden, Puzzles und Teilnehmerzeiten."
+    "edition_description_no_date": "%name% Ergebnisse — %series% Speed Puzzle Wettbewerb. Runden, Puzzles und Teilnehmerzeiten."
   "manage": "Serie verwalten"
   "edit_series": "Serie bearbeiten"
   "add_edition": "Ausgabe hinzufügen"

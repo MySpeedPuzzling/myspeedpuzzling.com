@@ -1,6 +1,93 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ event.name }}{% endblock %}
+{% block title %}
+    {%- if event.name matches '/\\d{4}/' or event.dateFrom is null -%}
+        {{- 'events.meta.event_detail_title_no_year'|trans({'%name%': event.name}) -}}
+    {%- else -%}
+        {{- 'events.meta.event_detail_title'|trans({'%name%': event.name, '%year%': event.dateFrom|date('Y')}) -}}
+    {%- endif -%}
+{% endblock %}
+
+{% block robots %}
+    {# Unapproved/rejected events are publicly reachable at their slug URL - keep them out of the index #}
+    {% if event.approvedAt is null or event.rejectedAt is not null %}
+        <meta name="robots" content="noindex, nofollow">
+    {% else %}
+        {{ parent() }}
+    {% endif %}
+{% endblock %}
+
+{% block meta_description %}
+    {%- if event.isOnline and event.dateFrom -%}
+        {{- 'events.meta.event_detail_description_online'|trans({'%name%': event.name, '%date%': event.dateFrom|format_date('long')}) -}}
+    {%- elseif event.isOnline -%}
+        {{- 'events.meta.event_detail_description_online_no_date'|trans({'%name%': event.name}) -}}
+    {%- elseif event.dateFrom and event.location -%}
+        {{- 'events.meta.event_detail_description'|trans({'%name%': event.name, '%date%': event.dateFrom|format_date('long'), '%location%': event.location}) -}}
+    {%- elseif event.location -%}
+        {{- 'events.meta.event_detail_description_no_date'|trans({'%name%': event.name, '%location%': event.location}) -}}
+    {%- elseif event.dateFrom -%}
+        {{- 'events.meta.event_detail_description_no_location'|trans({'%name%': event.name, '%date%': event.dateFrom|format_date('long')}) -}}
+    {%- else -%}
+        {{- 'events.meta.event_detail_description_fallback'|trans({'%name%': event.name}) -}}
+    {%- endif -%}
+{% endblock %}
+
+{% block json_ld %}
+{{ parent() }}
+{% if event.approvedAt is not null and event.rejectedAt is null and event.dateFrom is not null and event.slug is not null %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "name": {{ event.name|json_encode|raw }},
+    "url": {{ url('event_detail', {'slug': event.slug})|json_encode|raw }},
+    "startDate": {{ event.dateFrom|date('Y-m-d')|json_encode|raw }},
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": {{ (event.isOnline ? 'https://schema.org/OnlineEventAttendanceMode' : 'https://schema.org/OfflineEventAttendanceMode')|json_encode|raw }}
+    {%- if event.dateTo %},
+    "endDate": {{ event.dateTo|date('Y-m-d')|json_encode|raw }}
+    {%- endif %}
+    {%- if event.isOnline %},
+    "location": {
+        "@type": "VirtualLocation",
+        "url": {{ (event.registrationLink ?? event.resultsLink ?? url('event_detail', {'slug': event.slug}))|json_encode|raw }}
+    }
+    {%- elseif event.location %},
+    "location": {
+        "@type": "Place",
+        "name": {{ event.location|json_encode|raw }},
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": {{ event.location|json_encode|raw }}
+            {%- if event.locationCountryCode %},
+            "addressCountry": {{ event.locationCountryCode.name|upper|json_encode|raw }}
+            {%- endif %}
+        }
+    }
+    {%- endif %}
+    {%- if event.logo %},
+    "image": {{ event.logo|thumbnail('puzzle_small')|json_encode|raw }}
+    {%- endif %}
+    {%- if event.description %},
+    "description": {{ event.description|json_encode|raw }}
+    {%- endif %}
+    {%- if event.addedByPlayerName %},
+    "organizer": {
+        "@type": "Person",
+        "name": {{ event.addedByPlayerName|json_encode|raw }}
+    }
+    {%- endif %}
+    {%- if event.registrationLink %},
+    "offers": {
+        "@type": "Offer",
+        "url": {{ event.registrationLink|json_encode|raw }}
+    }
+    {%- endif %}
+}
+</script>
+{% endif %}
+{% endblock %}
 
 {% block content %}
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('events'), fallbackTitle: 'events.title'|trans}) }}

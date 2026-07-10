@@ -1,12 +1,42 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ player.playerName ?? ('#' ~ player.code) }} - {{ 'menu.profile'|trans }}{% endblock %}
+{% set is_own_profile = logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
+{% set is_masked_profile = player.isPrivate and not is_own_profile %}
+{% set player_display_name = is_masked_profile
+    ? ('secret_puzzler_name'|trans ~ ' #' ~ player.code|upper)
+    : (player.playerName ?? ('#' ~ player.code|upper))
+%}
+
+{% block title %}{{ 'player_profile.meta.title'|trans({'%name%': player_display_name}) }}{% endblock %}
+{% block meta_description %}{{ 'player_profile.meta.description'|trans({'%name%': player_display_name}) }}{% endblock %}
 {% block og_type %}profile{% endblock %}
-{% block og_image %}{% if player.avatar is not null %}{{ absolute_url(player.avatar|thumbnail('puzzle_medium')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
+{% block og_image %}{% if player.avatar is not null and not is_masked_profile %}{{ absolute_url(player.avatar|thumbnail('puzzle_medium')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
+{% block robots %}{% if is_masked_profile %}<meta name="robots" content="noindex, nofollow">{% else %}{{ parent() }}{% endif %}{% endblock %}
+
+{% block json_ld %}
+    {{ parent() }}
+    {% if not player.isPrivate %}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        "mainEntity": {
+            "@type": "Person",
+            "name": {{ (player.playerName ?? ('#' ~ player.code|upper))|json_encode|raw }},
+            "identifier": {{ player.code|upper|json_encode|raw }},
+            {% if player.avatar is not null %}
+            "image": {{ absolute_url(player.avatar|thumbnail('puzzle_medium'))|json_encode|raw }},
+            {% endif %}
+            "url": {{ url('player_profile', {playerId: player.playerId})|json_encode|raw }}
+        }
+    }
+    </script>
+    {% endif %}
+{% endblock %}
 
 {% block content %}
     {{ include('_return_back_button.html.twig') }}
-    <h1 class="visually-hidden">{{ player.playerName ?? ('#' ~ player.code) }}</h1>
+    <h1 class="visually-hidden">{{ player_display_name }}</h1>
     <twig:PlayerHeader player="{{ player }}" />
 
     <div class="row mb-3">
@@ -63,8 +93,6 @@
 
         </div>
     {% else %}
-        {% set is_own_profile = logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
-
             {# Ranking opted-out player viewing own profile #}
             {% if player.rankingOptedOut and is_own_profile %}
                 <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">

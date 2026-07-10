@@ -1,14 +1,7 @@
 {% extends 'base.html.twig' %}
 
-{% block canonical %}
-    {% set routeName = app.request.attributes.get('_route') %}
-    {% set routeParams = app.request.attributes.get('_route_params') %}
-
-    <link rel="canonical" href="{{ url(routeName, routeParams) }}">
-{% endblock %}
-
 {% block robots %}
-    {# Match original behaviour: only a text search de-indexes the page.
+    {# Only a text search de-indexes the page.
        The canonical (unfiltered route URL) already de-duplicates brand/tag/pieces filtered views.
        Note: the <head> renders once on full page load, so live filter changes do not re-render this meta. #}
     {% if app.request.query.has('search') %}
@@ -19,38 +12,20 @@
 {% endblock %}
 
 {% block title %}{{ 'puzzle_overview.meta.title'|trans }}{% endblock %}
-
-{% block json_ld %}
-{{ parent() }}
-<script type="application/ld+json">
-{
-    "@context": "https://schema.org",
-    "@type": "Dataset",
-    "name": "Speed Puzzling Database",
-    "description": "{{ 'puzzle_overview.meta.description'|trans }}",
-    "url": "{{ url('puzzles', {'_locale': app.request.locale}) }}",
-    "keywords": "{{ 'puzzle_overview.meta.keywords'|trans }}",
-    "creator": {
-        "@type": "Organization",
-        "name": "MySpeedPuzzling"
-    },
-    "distribution": {
-        "@type": "DataDownload",
-        "encodingFormat": "text/html",
-        "contentUrl": "{{ url('puzzles', {'_locale': app.request.locale}) }}"
-    }
-}
-</script>
-{% endblock %}
+{% block meta_description %}{{ 'puzzle_overview.meta.description'|trans }}{% endblock %}
 
 {% block content %}
     <h1 class="mb-2">{{ 'puzzle_overview.title'|trans }}</h1>
 
-    {# loading="defer": the initial response ships only the skeleton placeholder
-       (fast first paint); the component renders itself right after via a live
-       request. "defer" (trigger on connect), not "lazy" (trigger on viewport
-       visibility), because the component is always above the fold. SEO impact
-       accepted - the list is not indexable content here. #}
-    <twig:PuzzleSearch loading="defer" />
+    {# Default view renders server-side: page one comes from the app cache
+       (initial_puzzles_v2), so the synchronous render is cheap and ships
+       crawlable puzzle links + content in the initial HTML. Filtered/search
+       deep links keep loading="defer" for a fast first paint - those states
+       are noindexed or canonicalized to the clean URL anyway. #}
+    {% if app.request.query.count > 0 %}
+        <twig:PuzzleSearch loading="defer" />
+    {% else %}
+        <twig:PuzzleSearch />
+    {% endif %}
 
 {% endblock %}

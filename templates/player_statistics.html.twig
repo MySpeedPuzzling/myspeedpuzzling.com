@@ -1,6 +1,9 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ player.playerName ?? ('#' ~ player.code|upper) }} - {{ 'menu.statistics'|trans }}{% endblock %}
+{# Stats sub-page: no unique crawlable content (Live Component renders client-side), date-filter
+   params create endless near-duplicates of the canonical player profile → keep out of the index. #}
+{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
 
 {% block content %}
 

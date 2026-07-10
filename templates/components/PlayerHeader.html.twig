@@ -14,7 +14,13 @@
                 <svg class="rank-icon" width="20" height="20" style="color: var(--rank-locked)"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
             {% endif %}
         {% endif %}
-        <span class="player-breadcrumb-name-text">{{ player.playerName ?? ('#' ~ player.code|upper) }}</span>
+        <span class="player-breadcrumb-name-text">
+            {%- if player.isPrivate and (logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId) -%}
+                {{ 'secret_puzzler_name'|trans }}
+            {%- else -%}
+                {{ player.playerName ?? ('#' ~ player.code|upper) }}
+            {%- endif -%}
+        </span>
         {% if player.countryCode is not null %}
             <span class="player-breadcrumb-flag shadow-custom fi fi-{{ player.countryCode.name }}"></span>
         {% endif %}

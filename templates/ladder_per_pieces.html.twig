@@ -1,29 +1,15 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}
-    {% set currentLadder = app.request.attributes.get('_route') %}
+{% set currentLadder = app.request.attributes.get('_route') %}
+{% set type = currentLadder starts with 'ladder_solo' ? 'solo' : (currentLadder starts with 'ladder_pairs' ? 'pairs' : 'groups') %}
+{% set pieces = currentLadder matches '/1000/' ? 1000 : 500 %}
+{% set category_label = ('ladder.' ~ (type == 'solo' ? 'solo' : type == 'pairs' ? 'duo' : 'team'))|trans %}
 
-    {% if currentLadder starts with 'ladder_solo_500_pieces' %}
-        {{ 'ladder.title'|trans }} - {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
-    {% elseif currentLadder starts with 'ladder_solo_1000_pieces' %}
-        {{ 'ladder.title'|trans }} - {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
-    {% elseif currentLadder starts with 'ladder_pairs_500_pieces' %}
-        {{ 'ladder.title'|trans }} - {{ 'ladder.duo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
-    {% elseif currentLadder starts with 'ladder_pairs_1000_pieces' %}
-        {{ 'ladder.title'|trans }} - {{ 'ladder.duo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
-    {% elseif currentLadder starts with 'ladder_groups_500_pieces' %}
-        {{ 'ladder.title'|trans }} - {{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
-    {% elseif currentLadder starts with 'ladder_groups_1000_pieces' %}
-        {{ 'ladder.title'|trans }} - {{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
-    {% endif %}
-{% endblock %}
+{% block title %}{{ 'ladder.meta.title_per_pieces'|trans({'%pieces%': pieces, '%category%': category_label}) }}{% endblock %}
+{% block meta_description %}{{ 'ladder.meta.description_per_pieces'|trans({'%pieces%': pieces, '%category%': category_label}) }}{% endblock %}
 
 {% block content %}
-    {% set currentLadder = app.request.attributes.get('_route') %}
-    {% set type = currentLadder starts with 'ladder_solo' ? 'solo' : (currentLadder starts with 'ladder_pairs' ? 'pairs' : 'groups') %}
-    {% set pieces = currentLadder matches '/1000/' ? 1000 : 500 %}
-
-    <h1 class="mb-4">{{ 'ladder.title'|trans }} <span class="h3"><span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span></span></h1>
+    <h1 class="mb-4">{{ 'ladder.meta.title_per_pieces'|trans({'%pieces%': pieces, '%category%': category_label}) }} <span class="h3"><span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span></span></h1>
 
     {{ include('_ladder_dropdown.html.twig') }}
 

@@ -106,9 +106,8 @@
   "suspicious": "Vyžaduje ověření"
 "homepage":
   "meta":
-    "title": "Speed Puzzling - Sdílej a porovnávej časy"
-    "description": "Připoj se k největší speed puzzling komunitě! Sleduj časy skládání, soutěž s hráči z celého světa a šplhej po žebříčku. Začni dnes!"
-    "keywords": "speed puzzling, speedpuzzling, časy puzzlí, puzzle komunita, soutěž ve skládání puzzlí, puzzle žebříček"
+    "title": "Speed Puzzling – Měř časy a soutěž"
+    "description": "Připoj se k největší speed puzzling komunitě na světě. Zaznamenávej časy skládání puzzle, šplhej po světových žebříčcích a najdi závody ve svém okolí."
   "global_statistics": "Tolik času nám všem zabralo poskládat <strong>%puzzles%</strong>&nbsp;puzzlí.<br>To je neuvěřitelných <strong>%pieces%</strong>&nbsp;dílků."
   "title": "Vítej ve světě Speed Puzzlingu!"
   "intro_text": "Speed Puzzling je vzrušující sport, kde je cílem skládat puzzle co nejrychleji. Každý dílek se počítá, každá vteřina rozhoduje. Představte si tradiční skládání puzzle, ale s adrenalinem závodní dráhy! Naše platforma je první svého druhu - místo, kde můžete své dovednosti ve skládání puzzle měřit nejen proti času, ale také proti ostatním puzzle nadšencům."
@@ -120,11 +119,12 @@
   "cta_my_profile": "Můj profil"
   "cta_recent": "Nejnovější časy"
 "ladder":
-  "title": "Žebříček"
+  "title": "Speed puzzling žebříček"
   "meta":
-    "title": "Žebříček časů"
-    "description": "Speed puzzling žebříček ukazující nejrychlejší časy skládání a pořadí hráčů. Zjisti kdo drží rekordy a soutěž o špičkové pozice."
-    "keywords": "speed puzzling žebříček, nejrychlejší časy, puzzle rekordy, pořadí hráčů, výsledky soutěží, puzzle šampióni"
+    "title": "Speed puzzling žebříček – Nejrychlejší časy"
+    "description": "Světový speed puzzling žebříček: nejrychlejší časy skládání puzzle podle počtu dílků, sólo, ve dvojicích i týmech. Kde se umístíš ty?"
+    "title_per_pieces": "Žebříček puzzle %pieces% dílků – %category%"
+    "description_per_pieces": "Top 100 nejrychlejších časů %category% ve skládání puzzle o %pieces% dílcích. Porovnej svůj čas s nejlepšími na světě."
   "overview": "Přehled"
   "recent_activity": "Poslední přidané časy"
   "solo": "Solo"
@@ -174,10 +174,9 @@
   "hardest": "Nejtěžší"
 "puzzle_overview":
   "meta":
-    "title": "Speed Puzzling Databáze"
-    "description": "Procházej databázi speed puzzling s puzzle 500-1000+ dílků. Porovnávej časy skládání, najdi nové výzvy a sleduj svůj pokrok."
-    "keywords": "puzzle databáze, časy puzzlí, 500 dílků puzzle, 1000 dílků puzzle, značky puzzlí, rychlé skládání"
-  "title": "Puzzle"
+    "title": "Databáze puzzle a časy skládání"
+    "description": "Procházej tisíce puzzle podle značky, počtu dílků a obtížnosti. Podívej se na skutečné časy skládání puzzlerů z celého světa a zaznamenávej vlastní výsledky."
+  "title": "Databáze puzzle"
   "missing_puzzle_info": "Pokud zde puzzle nenajdete, znamená to, že je nikdo ještě neskládal a nejsou v naší databázi. Nové puzzle lze zadat při přidávání času."
 "puzzle_times":
   "my_attempts":
@@ -356,6 +355,9 @@
   "thank_you": "Děkujeme za vaši zprávu!"
   "title": "Kontakt"
 "recent_activity":
+  "meta":
+    "title": "Nejnovější speed puzzling časy"
+    "description": "Nejnovější časy skládání puzzle od komunity MySpeedPuzzling, průběžně aktualizované."
   "latest_times": "Nejnovější časy"
   "no_activity": "Žádná nedávná aktivita"
   "title": "Nedávná aktivita"
@@ -406,10 +408,18 @@
     "puzzle_total_solved": "Celkový počet složení puzzle"
 "events":
   "title": "Události"
+  "heading": "Speed puzzling závody a události"
   "meta":
-    "title": "Speed Puzzling Události | Soutěže"
-    "description": "Připoj se k speed puzzling událostem, soutěžím a turnajům. Soutěž s nejlepšími puzzlery světa a testuj své dovednosti."
-    "keywords": "speed puzzling události, puzzle soutěže, puzzle turnaje, WJPC, mistrovství v puzzlích, soutěžní skládání"
+    "title": "Speed puzzling závody a události"
+    "description": "Celosvětový kalendář speed puzzling závodů a událostí — termíny, registrace, puzzle, účastníci a výsledky, naživo i online."
+    "event_detail_title": "%name% %year% – Speed puzzling závod"
+    "event_detail_title_no_year": "%name% – Speed puzzling závod"
+    "event_detail_description": "%name% — speed puzzling závod %date%, %location%. Puzzle, účastníci a výsledky na MySpeedPuzzling."
+    "event_detail_description_online": "%name% — online speed puzzling závod %date%. Puzzle, účastníci a výsledky na MySpeedPuzzling."
+    "event_detail_description_online_no_date": "%name% — online speed puzzling závod. Puzzle, účastníci a výsledky na MySpeedPuzzling."
+    "event_detail_description_no_date": "%name% — speed puzzling závod, %location%. Puzzle, účastníci a výsledky na MySpeedPuzzling."
+    "event_detail_description_no_location": "%name% — speed puzzling závod %date%. Puzzle, účastníci a výsledky na MySpeedPuzzling."
+    "event_detail_description_fallback": "%name% — speed puzzling závod. Puzzle, účastníci a výsledky na MySpeedPuzzling."
   "live": "Právě probíhající"
   "upcoming": "Nadcházející"
   "past": "Proběhlé"
@@ -582,9 +592,8 @@
     "note": "Zdarma. Žádné poplatky. Žádné reklamy."
 "faq":
   "meta":
-    "title": "Speed Puzzling FAQ | Sledovat"
+    "title": "Speed Puzzling FAQ – Měř časy a soutěž"
     "description": "Speed puzzling FAQ pokrývající jak sledovat časy skládání, soutěžit s ostatními a zlepšovat své dovednosti. Začni dnes!"
-    "keywords": "speed puzzling FAQ, jak rychle skládat puzzle, sledování časů, měření puzzlí, tipy na rychlé skládání, průvodce soutěží"
   "title": "Časté dotazy"
   "intro_block": "<p>Zpětná vazba je pro nás velmi důležitá a moc si jí vážíme! Pokud máte cokoliv, co byste nám rádi sdělili, napište nám prosím na <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a> (případně na <a href=\"mailto:j.mikes@me.com\">j.mikes@me.com</a> ohledně technickým záležitostí) nebo na <a href=\"https://www.instagram.com/myspeedpuzzling/\" target=\"_blank\">Instagramu</a>.</p>\n<p>Veškeré naše zdrojové kódy jsou open-source a veřejné na <a href=\"https://github.com/MySpeedPuzzling\">GitHubu SpeedPuzzling</a>. Zastáváme filizofii &quot;sharing is caring&quot; a vše ohledně myspeedpuzzling.com se snažíme otevřeně sdílet.</p>\n"
   "question_fair_play": "Jak se dozvíte, že při zadávání času nepodvádím?"
@@ -689,13 +698,16 @@
   "revoke_confirm": "Opravdu chcete odvolat přístup pro tuto aplikaci?"
 "puzzle_detail":
   "meta":
-    "description": "Prozkoumejte puzzle %brand% %puzzle% (%pieces% dílků) na My Speed Puzzling. Sledujte postup, porovnávejte časy a zdolávejte puzzle s naší komunitou. Začněte svou speed puzzling řešitelskou jízdu již dnes!"
+    "title": "%brand% %name% – %pieces% dílků"
+    "description": "Skutečné časy skládání %brand% %name% (%pieces% dílků): podívej se na nejrychlejší a průměrné časy puzzlerů z celého světa a zaznamenej si vlastní."
+    "description_with_times": "%brand% %name%, %pieces% dílků — nejrychlejší čas %fastest%, průměr %average% z %count% složení na MySpeedPuzzling."
+  "breadcrumb":
+    "database": "Databáze puzzle"
 "puzzlers":
   "meta":
-    "title": "Speed Puzzling Hráči | Výsledky"
-    "description": "Objevuj speed puzzling hráče, porovnávej výsledky a žebříčky. Sleduj oblíbené puzzlery a jejich nejnovější časy skládání."
-    "keywords": "speed puzzling hráči, puzzleři, skládači puzzlí, výsledky hráčů, puzzle komunita, časy skládání"
-  "title": "Puzzleři"
+    "title": "Speed puzzleři z celého světa"
+    "description": "Najdi speed puzzlery z celého světa. Porovnávej časy skládání, žebříčky a statistiky a sleduj své oblíbené soupeře ve skládání puzzle."
+  "title": "Speed puzzleři"
   "results_for": "Výsledky vyhledávání pro výraz"
   "no_matches_found": "Nebyly nalezeny žádné shody"
   "my_favorites": "Moji oblíbení"
@@ -706,9 +718,14 @@
   "total_players": "Celkem hráčů"
 "players_per_country":
   "meta":
-    "title": "Puzzleři ze země - %country%"
-  "title": "Puzzleři ze země - %country%"
+    "title": "Speed puzzleři ze země %country% – Žebříčky a časy"
+    "description": "Poznej speed puzzlery ze země %country%: profily hráčů, nejrychlejší časy skládání a národní žebříčky na MySpeedPuzzling."
+  "title": "Speed puzzleři ze země %country%"
   "link": "Puzzleři dle země"
+"player_profile":
+  "meta":
+    "title": "%name% – Profil speed puzzlera"
+    "description": "Speed puzzling profil hráče %name%: nejrychlejší časy skládání puzzle, žebříčky, odznaky a nedávná složení na MySpeedPuzzling."
 "flashes":
   "stopwatch_already_saved": "Tyto stopky byly již uloženy."
   "puzzle_needs_approve": "Nově přidané puzzle se budou veřejně zobrazovat až po schválení administrátorem - obvykle do 24 hodin od přidání."
@@ -746,9 +763,8 @@
 "hub":
   "title": "Hub"
   "meta":
-    "title": "Speed Puzzling Hub | Výsledky"
+    "title": "Speed Puzzling Hub – Nejnovější výsledky"
     "description": "Speed puzzling hub s nejnovějšími výsledky, žebříčky hráčů a statistikami puzzlí. Zjisti kdo skládá nejrychleji a sleduj pokrok komunity."
-    "keywords": "speed puzzling hub, nejnovější výsledky, puzzle žebříčky, aktivní hráči, statistiky puzzlí, aktivita"
   "welcome": "Vítej puzzlere!"
   "welcome_back": "Vítej zpět"
   "recent_favorites_activity": "Aktivita<br>oblíbených"
@@ -985,6 +1001,7 @@
   "seconds": "sek"
 "blog":
   "outage-2025-02-17":
+    "meta_title": "Největší výpadek v naší historii"
     "title": "Největší výpadek v historii MySpeedPuzzling"
     "content": "<h2 class=\"h5\">Dne 17.2. jsme měli nejdelší výpadek v historii MySpeedPuzzling ...</h2>\n<h4 class=\"h6\">Nejdříve ze všeho vám chci všem moc poděkovat za vaší trpělivost a důvěru! Věřte, že těch 7 hodin kdy jsme věděli, že MSP nefunguje, pro nás bylo velmi stresujících!</h4>\n<p>Dnes jsme měli téměř 10 hodin výpadek celé platformy. Jedná se o nejdelší výpadek v historii MySpeedPuzzlingu. Nebyla to naše chyba... nebo jo?</p>\n<p>Protože se snažíme být 100% transparentní, popíšeme vše jak se stalo, krok za krokem.</p>\n<p>Šel jsem spát zhruba v 1:30 (bohužel chvilku předtím, než se to celé stalo), kdy jsem dokončil další z novinek na MySpeedPuzzling. Kolem 5 ráno, kdy se jedno z dětí vzbudilo na toaletu, Simona automaticky zkontrolovala na elefonu notifikace, často se dívá kdo přidal nové časy a jak rychle stihl puzzle složit. Ano i v 5 ráno... Čekalo ji však nemilé překvapení - stránka, která se nenačítá. Simona do mě strčila se slovy: MySpeedPuzzling nefunguje! Taková\
       \ slova mě velmi rychle probrala. Beru do ruky telefon, zkouším a opravdu, nefunguje! Jdu pro notebook, zkontrolovat blíže co se děje. V 1:59 v noci nám přišla automatická notifikace z monitoringu, to většinou nevěstí nic nového. Bohužel jsem si jí nevšiml, protože jsem šel spát chvíli předtím. Navíc úprava, kterou jsem prováděl nebyla vůbec destruktivního rázu a nemohla způsobit takovýto výpadek. Takto tedy začal náš pondělní výpadek, který trval téměř až do 12:00.</p>\n<h5>Technické detaily pro geeky:</h5>\n<p><em>(pomůže vám to nahlédnout do naší serverové infrastruktury)</em></p>\n<p>Před týdnem, jsem instaloval na náš MySpeedPuzzling fyzický server i mail server - jako přípravu na migraci z Auth0 na vlastní autentizační službu + newsletter a další věci - posílat desetitisíce e-mailů měsíčně už není en tak a je potřeba se na to řádně připravit. Jak se nakonec ukázalo, může za to právě onen Mail server, ale nepředbíhejme.</p>\n<p>První zjištění bylo, že timeoutují porty 443 a 80\
@@ -1723,7 +1740,10 @@
   "manage_my_offers": "Spravovat moje nabídky"
   "max": "Max"
   "meta":
-    "description": "Procházejte puzzle k prodeji, výměně nebo zdarma na tržišti MySpeedPuzzling."
+    "title": "Puzzle tržiště – Nákup, prodej a výměna"
+    "title_puzzle": "%brand% %puzzle% – Koupit nebo vyměnit"
+    "description": "Kupuj, prodávej a vyměňuj puzzle s puzzlery z celého světa. Procházej puzzle z druhé ruky podle značky a počtu dílků na tržišti MySpeedPuzzling."
+    "description_puzzle": "Kup, prodej nebo vyměň %brand% %puzzle% s puzzlery z celého světa na tržišti MySpeedPuzzling."
   "min": "Min"
   "my_offers": "Moje nabídky"
   "no_results": "Nebyly nalezeny žádné nabídky odpovídající vašim filtrům."
@@ -1757,9 +1777,8 @@
 
 puzzle_tracker_app:
     meta:
-        title: "Puzzle Tracker – Sledujte svou sbírku puzzle | MySpeedPuzzling"
+        title: "Puzzle Tracker – Časy a sbírka puzzle"
         description: "Bezplatná aplikace pro sledování puzzle. Zaznamenávejte sbírku, časy skládání, porovnávejte statistiky a spojte se s puzzle nadšenci z celého světa."
-        keywords: "puzzle tracker, sledování puzzle, aplikace na puzzle, sbírka puzzle, puzzle časovač, skládání puzzle"
     hero:
         title: "Puzzle Tracker – Sledování puzzle"
         lead: "Sledujte svou sbírku puzzle, zaznamenávejte časy skládání a spojte se s tisíci milovníky puzzle. Ať už skládáte pro relaxaci nebo na rychlost, MySpeedPuzzling je váš kompletní puzzle společník."
@@ -1879,6 +1898,9 @@ puzzle_intelligence:
         slower: "Pomalejší"
         much_slower: "Mnohem pomalejší"
     elo:
+        meta:
+            title: "MSP Rating – Speed puzzling žebříček"
+            description: "Žebříček MSP Rating řadí speed puzzlery podle dovedností — kombinuje časy skládání a obtížnost puzzle. Podívej se na nejlépe hodnocené puzzlery světa."
         title: "MSP Rating žebříček"
         subtitle: "Soutěžní hodnocení založené na vzájemném porovnání výkonů"
         beta_badge: "BETA"
@@ -1947,7 +1969,9 @@ puzzle_intelligence:
         title: "Statistiky puzzle"
         no_data: "Zatím nedostatek dat. Statistiky se objeví, jakmile toto puzzle složí více hráčů."
     methodology:
-        title: "Jak počítáme"
+        meta:
+            description: "Jak MySpeedPuzzling počítá obtížnost puzzle, dovednostní úrovně hráčů a MSP Rating — kompletní metodika našich puzzle statistik."
+        title: "Jak počítáme obtížnost puzzle a MSP Rating"
         subtitle: "Úplná transparentnost našich algoritmů pro statistiky puzzle"
         show_formula: "Zobrazit přesný vzorec"
         overview_difficulty_desc: "Jak těžké je každé puzzle? Porovnáváme váš čas s vaším osobním průměrem, abychom to zjistili."
@@ -2517,6 +2541,12 @@ qr_code:
     "leave": "Odhlásit se"
     "im_going": "Jdu na to!"
 "series":
+  "meta":
+    "title": "%name% – Speed puzzling série"
+    "description": "%name%: všechny edice tohoto speed puzzling závodu — nadcházející termíny, minulé výsledky, puzzle a účastníci."
+    "edition_title": "%name% – Výsledky a puzzle"
+    "edition_description": "Výsledky %name% — speed puzzling závod série %series%, %date%. Kola, puzzle a časy účastníků."
+    "edition_description_no_date": "Výsledky %name% — speed puzzling závod série %series%. Kola, puzzle a časy účastníků."
   "manage": "Spravovat sérii"
   "edit_series": "Upravit sérii"
   "add_edition": "Přidat edici"

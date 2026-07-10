@@ -21,7 +21,7 @@
             <div class="flex-fill">
                 <h3 class="h5 mb-2">
                     {% if event.slug %}
-                        <a class="text-decoration-underline" href="{{ path('event_detail', {'slug': event.slug, return: path('events'), return_title: 'events.title'|trans}) }}">
+                        <a class="text-decoration-underline" href="{{ path('event_detail', {'slug': event.slug}) }}">
                             {{ event.name }}
                         </a>
                     {% else %}

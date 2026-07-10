@@ -1,6 +1,64 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ series.name }}{% endblock %}
+{% block title %}{{ 'series.meta.title'|trans({'%name%': series.name}) }}{% endblock %}
+
+{% block meta_description %}
+    {{- 'series.meta.description'|trans({'%name%': series.name}) -}}
+{% endblock %}
+
+{% block json_ld %}
+{{ parent() }}
+{% if series.approvedAt is not null and series.rejectedAt is null and series.slug is not null %}
+{% set jsonld_editions = upcoming_editions|merge(past_editions)|filter(edition => edition.editionSlug is not null) %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "EventSeries",
+    "name": {{ series.name|json_encode|raw }},
+    "url": {{ url('competition_series_detail', {'slug': series.slug})|json_encode|raw }}
+    {%- if series.description %},
+    "description": {{ series.description|json_encode|raw }}
+    {%- endif %}
+    {%- if series.logo %},
+    "image": {{ series.logo|thumbnail('puzzle_small')|json_encode|raw }}
+    {%- endif %}
+    {%- if not series.isOnline and series.location %},
+    "location": {
+        "@type": "Place",
+        "name": {{ series.location|json_encode|raw }},
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": {{ series.location|json_encode|raw }}
+            {%- if series.locationCountryCode %},
+            "addressCountry": {{ series.locationCountryCode.name|upper|json_encode|raw }}
+            {%- endif %}
+        }
+    }
+    {%- endif %}
+    {%- if series.addedByPlayerName %},
+    "organizer": {
+        "@type": "Person",
+        "name": {{ series.addedByPlayerName|json_encode|raw }}
+    }
+    {%- endif %}
+    {%- if jsonld_editions|length > 0 %},
+    "subEvent": [
+        {%- for edition in jsonld_editions %}
+        {
+            "@type": "Event",
+            "name": {{ edition.name|json_encode|raw }},
+            "url": {{ url('edition_detail', {'seriesSlug': series.slug, 'editionSlug': edition.editionSlug})|json_encode|raw }}
+            {%- if edition.startsAt %},
+            "startDate": {{ edition.startsAt|date('Y-m-d')|json_encode|raw }}
+            {%- endif %}
+        }{{ loop.last ? '' : ',' }}
+        {%- endfor %}
+    ]
+    {%- endif %}
+}
+</script>
+{% endif %}
+{% endblock %}
 
 {% block content %}
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('events'), fallbackTitle: 'events.title'|trans}) }}

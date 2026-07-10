@@ -114,9 +114,8 @@ badge:
 
 homepage:
     meta:
-        title: "Speed Puzzling - Track times & Compete"
-        description: "Join the ultimate speed puzzling community! Track puzzle times, compete with players worldwide, and climb the leaderboards. Start today!"
-        keywords: "speed puzzling, speedpuzzling, puzzle times, jigsaw puzzle community, puzzle solving competition, puzzle leaderboard"
+        title: "Speed Puzzling – Track Times & Compete"
+        description: "Join the world's largest speed puzzling community. Track jigsaw puzzle solve times, climb global leaderboards, and find competitions near you."
     global_statistics: "It took all of us this much time to solve <strong>%puzzles%</strong> puzzles.<br>That is an incredible <strong>%pieces%</strong> pieces."
 
     title: "Welcome Puzzler, to the World of Speed Puzzling!"
@@ -142,11 +141,12 @@ homepage:
     cta_recent: "Recent times"
 
 ladder:
-    title: "Leaderboard"
+    title: "Speed Puzzling Leaderboard"
     meta:
-        title: "Times Leaderboard"
-        description: "Speed puzzling leaderboard showing fastest puzzle times and player rankings. See who holds records and compete for top positions."
-        keywords: "speed puzzling leaderboard, fastest times, puzzle records, player rankings, competition results, puzzle champions"
+        title: "Speed Puzzling Leaderboard – Fastest Times"
+        description: "Global speed puzzling leaderboard: the fastest jigsaw puzzle solve times ranked by pieces, solo, pairs and groups. Where do you rank?"
+        title_per_pieces: "%pieces%-Piece Puzzle Leaderboard – %category%"
+        description_per_pieces: "Top 100 fastest %category% speed puzzling times for %pieces%-piece jigsaw puzzles. Compare your solve time with the world's best."
     overview: "Overview"
     recent_activity: "Recently Added Times"
     solo: "Solo"
@@ -198,10 +198,9 @@ sorting:
     slowest_ppm: "Slowest PPM"
 puzzle_overview:
     meta:
-        title: "Speed Puzzling Database"
-        description: "Browse speed puzzling database with 500-1000+ piece puzzles. Compare solving times, find new challenges, and track your progress."
-        keywords: "puzzle database, jigsaw puzzle times, 500 piece puzzle, 1000 piece puzzle, puzzle brands, speed solving"
-    title: "Puzzles"
+        title: "Jigsaw Puzzle Database & Solve Times"
+        description: "Browse thousands of jigsaw puzzles by brand, piece count and difficulty. See real solve times from speed puzzlers worldwide and track your own results."
+    title: "Jigsaw Puzzle Database"
     missing_puzzle_info: "If you can't find a puzzle here, it means no one has solved it yet and it's not in our database. New puzzles can be entered when adding time."
 
 puzzle_times:
@@ -387,6 +386,9 @@ contact:
     thank_you: "Thank you for your message!"
 
 recent_activity:
+    meta:
+        title: "Latest Speed Puzzling Times"
+        description: "The latest jigsaw puzzle solve times from the MySpeedPuzzling community, updated continuously."
     title: "Recent Activity"
     latest_times: "Latest Times"
     no_activity: "No recent activity"
@@ -441,10 +443,18 @@ export:
 
 events:
     title: "Events"
+    heading: "Speed Puzzling Competitions & Events"
     meta:
-        title: "Speed Puzzling Events | Competitions"
-        description: "Join speed puzzling events, competitions and tournaments. Compete with the best puzzlers worldwide and test your skills."
-        keywords: "speed puzzling events, puzzle competitions, puzzle tournaments, WJPC, jigsaw puzzle championship, competitive puzzling"
+        title: "Speed Puzzling Competitions & Events"
+        description: "Worldwide calendar of speed puzzling competitions and events — dates, registration, puzzles, participants and results, in person and online."
+        event_detail_title: "%name% %year% – Speed Puzzling Competition"
+        event_detail_title_no_year: "%name% – Speed Puzzling Competition"
+        event_detail_description: "%name% — speed puzzling competition on %date% in %location%. Puzzles, participants and results on MySpeedPuzzling."
+        event_detail_description_online: "%name% — online speed puzzling competition on %date%. Puzzles, participants and results on MySpeedPuzzling."
+        event_detail_description_online_no_date: "%name% — online speed puzzling competition. Puzzles, participants and results on MySpeedPuzzling."
+        event_detail_description_no_date: "%name% — speed puzzling competition in %location%. Puzzles, participants and results on MySpeedPuzzling."
+        event_detail_description_no_location: "%name% — speed puzzling competition on %date%. Puzzles, participants and results on MySpeedPuzzling."
+        event_detail_description_fallback: "%name% — speed puzzling competition. Puzzles, participants and results on MySpeedPuzzling."
     live: "Happening right now"
     upcoming: "Upcoming"
     past: "Past events"
@@ -702,9 +712,8 @@ fair_use_policy:
 
 faq:
     meta:
-        title: "Speed Puzzling FAQ | Track & Compete"
+        title: "Speed Puzzling FAQ – Track & Compete"
         description: "Speed puzzling FAQ covering how to track puzzle times, compete with others, and improve your solving skills. Get started today!"
-        keywords: "speed puzzling FAQ, how to speed puzzle, track puzzle times, puzzle timing, speed solving tips, puzzle competition guide"
     title: "Frequently Asked Questions"
     intro_block: |
         <p>Your feedback is very important to us and we appreciate it greatly! If you have anything you'd like to tell us, please write to us at <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> (or at <a href="mailto:j.mikes@me.com">j.mikes@me.com</a> for technical matters) or on <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank">Instagram</a>.</p>
@@ -838,14 +847,17 @@ edit_profile:
 
 puzzle_detail:
     meta:
-        description: "Explore puzzle %brand% %puzzle% (%pieces% pieces) on My Speed Puzzling. Track progress, compare times, and conquer puzzles with our community. Start your speed puzzling solving spree today!"
+        title: "%brand% %name% – %pieces% pieces"
+        description: "Real solve times for %brand% %name% (%pieces% pieces): see the fastest and average times from speed puzzlers worldwide and track your own."
+        description_with_times: "%brand% %name%, %pieces% pieces — fastest time %fastest%, average %average% from %count% solves on MySpeedPuzzling."
+    breadcrumb:
+        database: "Jigsaw Puzzle Database"
 
 puzzlers:
     meta:
-        title: "Speed Puzzling Players | Results"
-        description: "Discover speed puzzling players, compare results and rankings. Follow your favorite puzzlers and see their latest solving times."
-        keywords: "speed puzzling players, puzzlers, puzzle solvers, player results, puzzle community, speed puzzling times"
-    title: "Puzzlers"
+        title: "Speed Puzzlers Worldwide"
+        description: "Find speed puzzlers from around the world. Compare solve times, rankings and statistics, and follow your favorite jigsaw puzzle competitors."
+    title: "Speed Puzzlers"
     results_for: "Search results for"
     no_matches_found: "No matches found"
     my_favorites: "My Favorites"
@@ -857,9 +869,15 @@ puzzlers:
 
 players_per_country:
     meta:
-        title: "Puzzlers from country - %country%"
-    title:  "Puzzlers from country - %country%"
+        title: "Speed Puzzlers from %country% – Rankings & Times"
+        description: "Meet speed puzzlers from %country%: player profiles, fastest jigsaw times and national rankings on MySpeedPuzzling."
+    title: "Speed Puzzlers from %country%"
     link: "Puzzlers per country"
+
+player_profile:
+    meta:
+        title: "%name% – Speed Puzzler Profile"
+        description: "%name%'s speed puzzling profile: fastest jigsaw puzzle times, rankings, badges and recent solves on MySpeedPuzzling."
 
 flashes:
     stopwatch_already_saved: "These stopwatches have already been saved."
@@ -899,9 +917,8 @@ flashes:
 hub:
     title: "Hub"
     meta:
-        title: "Speed Puzzling Hub | Latest Results"
+        title: "Speed Puzzling Hub – Latest Results"
         description: "Speed puzzling hub with latest results, player rankings, and puzzle statistics. See who's solving fastest and track community progress."
-        keywords: "speed puzzling hub, latest results, puzzle rankings, active players, puzzle statistics, recent activity"
     welcome: "Welcome puzzler!"
     welcome_back: "Welcome back"
     recent_favorites_activity: "Favorites<br>activity"
@@ -1278,6 +1295,7 @@ countdown:
 
 blog:
     outage-2025-02-17:
+        meta_title: "The Biggest Outage in Our History"
         title: The Biggest Outage in the History of MySpeedPuzzling
         content: |
             <h2 class="h5">On February 17, we experienced the longest outage in the history of MySpeedPuzzling ...</h2>
@@ -1981,7 +1999,10 @@ rating:
 marketplace:
     title: "Marketplace"
     meta:
-        description: "Browse puzzles for sale, swap, or free on the MySpeedPuzzling marketplace."
+        title: "Puzzle Marketplace – Buy, Sell & Swap"
+        title_puzzle: "%brand% %puzzle% – Buy or Swap"
+        description: "Buy, sell and swap jigsaw puzzles with puzzlers worldwide. Browse second-hand puzzles by brand and piece count on the MySpeedPuzzling marketplace."
+        description_puzzle: "Buy, sell and swap %brand% %puzzle% with puzzlers worldwide on the MySpeedPuzzling marketplace."
     all_countries: "Any country"
     pcs: "pcs"
     filter:
@@ -2081,9 +2102,8 @@ moderation:
 
 puzzle_tracker_app:
     meta:
-        title: "Puzzle Tracker App - Track Your Jigsaw Puzzle Collection"
+        title: "Puzzle Tracker App – Times & Collection"
         description: "Free puzzle tracker app to log your jigsaw puzzle collection, track solving times, compare statistics, and connect with puzzle enthusiasts worldwide."
-        keywords: "puzzle tracker, jigsaw puzzle tracker, puzzle tracking app, puzzle collection tracker, jigsaw puzzle app, puzzle timer, puzzle solving tracker"
     hero:
         title: "Jigsaw Puzzle Tracker"
         lead: "Track your puzzle collection, log solving times, and connect with thousands of puzzle lovers. Whether you puzzle for relaxation or speed, MySpeedPuzzling is your all-in-one puzzle companion."
@@ -2321,6 +2341,9 @@ puzzle_intelligence:
             master: "Master"
             legend: "Legend"
     elo:
+        meta:
+            title: "MSP Rating – Speed Puzzling Ladder"
+            description: "The MSP Rating ladder ranks speed puzzlers by skill, combining solve times and puzzle difficulty. See the top-rated jigsaw puzzlers worldwide."
         title: "MSP Rating Ladder"
         subtitle: "Competitive ranking based on head-to-head performance"
         how_it_works: "How is this calculated?"
@@ -2406,7 +2429,9 @@ puzzle_intelligence:
         much_faster: "Much faster"
         top: "Top"
     methodology:
-        title: "How We Calculate"
+        meta:
+            description: "How MySpeedPuzzling calculates puzzle difficulty, player skill tiers and MSP Rating — the full methodology behind our puzzle insights."
+        title: "Puzzle Difficulty & MSP Rating Explained"
         subtitle: "Complete transparency on our puzzle insights algorithms"
         section_baseline_title: "Player Baseline"
         section_baseline_desc: "Each player's baseline is the <strong>weighted median</strong> of their first-attempt solo times for a specific piece count. Recent solves count more thanks to exponential decay weighting."
@@ -2762,6 +2787,12 @@ competition:
         im_going: "I'm going!"
 
 series:
+    meta:
+        title: "%name% – Speed Puzzling Series"
+        description: "%name%: all editions of this speed puzzling competition — upcoming dates, past results, puzzles and participants."
+        edition_title: "%name% – Results & Puzzles"
+        edition_description: "%name% results — %series% speed puzzling competition, %date%. Rounds, puzzles and participant times."
+        edition_description_no_date: "%name% results — %series% speed puzzling competition. Rounds, puzzles and participant times."
     manage: "Manage Series"
     edit_series: "Edit Series"
     add_edition: "Add Edition"

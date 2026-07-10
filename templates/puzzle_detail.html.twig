@@ -1,7 +1,23 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ puzzle.manufacturerName }} {{ puzzle.puzzleName }} {{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}{% endblock %}
-{% block meta_description %}{{ 'puzzle_detail.meta.description'|trans({ '%puzzle%': puzzle.puzzleName, '%brand%': puzzle.manufacturerName, '%pieces%': puzzle.piecesCount }) }}{% endblock %}
+{% set puzzle_meta_description = (puzzle.solvedTimes > 0 and puzzle.fastestTimeSolo > 0)
+    ? 'puzzle_detail.meta.description_with_times'|trans({
+        '%brand%': puzzle.manufacturerName,
+        '%name%': puzzle.puzzleName,
+        '%pieces%': puzzle.piecesCount,
+        '%fastest%': puzzle.fastestTimeSolo|compactTime,
+        '%average%': puzzle.averageTimeSolo|compactTime,
+        '%count%': puzzle.solvedTimes,
+    })
+    : 'puzzle_detail.meta.description'|trans({
+        '%brand%': puzzle.manufacturerName,
+        '%name%': puzzle.puzzleName,
+        '%pieces%': puzzle.piecesCount,
+    })
+%}
+
+{% block title %}{{ 'puzzle_detail.meta.title'|trans({ '%brand%': puzzle.manufacturerName, '%name%': puzzle.puzzleName, '%pieces%': puzzle.piecesCount }) }}{% endblock %}
+{% block meta_description %}{{ puzzle_meta_description }}{% endblock %}
 {% block og_image %}{% if puzzle.puzzleImage is not null %}{{ absolute_url(puzzle.puzzleImage|thumbnail('puzzle_medium')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
 {% block robots %}
     {% if is_image_hidden %}
@@ -9,6 +25,59 @@
     {% else %}
         <meta name="robots" content="index, follow">
     {% endif %}
+{% endblock %}
+
+{% block json_ld %}
+    {{ parent() }}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": {{ puzzle.puzzleName|json_encode|raw }},
+        "brand": {
+            "@type": "Brand",
+            "name": {{ puzzle.manufacturerName|json_encode|raw }}
+        },
+        {% if puzzle.puzzleImage is not null and not is_image_hidden %}
+        "image": {{ absolute_url(puzzle.puzzleImage|thumbnail('puzzle_medium'))|json_encode|raw }},
+        {% endif %}
+        {% if puzzle.puzzleEan is not null and puzzle.puzzleEan matches '/^\\d{13}$/' %}
+        "gtin13": {{ puzzle.puzzleEan|json_encode|raw }},
+        {% endif %}
+        {% if puzzle.puzzleIdentificationNumber is not null %}
+        "sku": {{ puzzle.puzzleIdentificationNumber|json_encode|raw }},
+        "mpn": {{ puzzle.puzzleIdentificationNumber|json_encode|raw }},
+        {% endif %}
+        "description": {{ puzzle_meta_description|json_encode|raw }},
+        "url": {{ url('puzzle_detail', {puzzleId: puzzle.puzzleId})|json_encode|raw }},
+        "additionalProperty": [
+            {
+                "@type": "PropertyValue",
+                "name": "Number of pieces",
+                "value": {{ puzzle.piecesCount|json_encode|raw }}
+            }
+        ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": {{ 'puzzle_detail.breadcrumb.database'|trans|json_encode|raw }},
+                "item": {{ url('puzzles')|json_encode|raw }}
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": {{ (puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName)|json_encode|raw }}
+            }
+        ]
+    }
+    </script>
 {% endblock %}
 
 {% block content %}
@@ -31,7 +100,7 @@
 
             <div class="flex-wrap flex-grow-1 d-md-flex flex-sm-grow-0 me-1 me-sm-3 me-md-4">
                 <div class="me-md-4">
-                    <h1 class="h4 mb-0">{{ puzzle.puzzleName }}</h1>
+                    <h1 class="h4 mb-0">{{ puzzle.manufacturerName }} {{ puzzle.puzzleName }} <span class="text-muted fw-normal">({{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }})</span></h1>
                     <div class="mb-1" id="puzzle-badges-{{ puzzle.puzzleId }}">
                         {{ include('puzzle/_badges.html.twig', {
                             puzzle_id: puzzle.puzzleId,

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetAffiliateSupporters;
 use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
@@ -18,7 +17,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class PlayerProfileController extends AbstractController
 {
@@ -26,7 +24,6 @@ final class PlayerProfileController extends AbstractController
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetRanking $getRanking,
         readonly private GetFavoritePlayers $getFavoritePlayers,
-        readonly private TranslatorInterface $translator,
         readonly private GetTags $getTags,
         readonly private GetBadges $getBadges,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -48,13 +45,8 @@ final class PlayerProfileController extends AbstractController
     )]
     public function __invoke(string $playerId, #[CurrentUser] null|UserInterface $user): Response
     {
-        try {
-            $player = $this->getPlayerProfile->byId($playerId);
-        } catch (PlayerNotFound) {
-            $this->addFlash('primary', $this->translator->trans('flashes.player_not_found'));
-
-            return $this->redirectToRoute('ladder');
-        }
+        // PlayerNotFound extends NotFoundHttpException and bubbles up as 404
+        $player = $this->getPlayerProfile->byId($playerId);
 
         $canMessage = false;
         $loggedProfile = $this->retrieveLoggedUserProfile->getProfile();

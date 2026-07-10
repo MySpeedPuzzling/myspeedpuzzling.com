@@ -25,19 +25,18 @@ final class PlayerRatingsController extends AbstractController
     )]
     public function __invoke(string $playerId, Request $request): Response
     {
+        // Full-page fallback would be a thin duplicate of the profile - redirect instead
+        if ($request->headers->get('Turbo-Frame') !== 'modal-frame') {
+            return $this->redirectToRoute('player_profile', [
+                'playerId' => $playerId,
+            ]);
+        }
+
         $player = $this->getPlayerProfile->byId($playerId);
         $ratings = $this->getTransactionRatings->forPlayer($playerId);
         $summary = $this->getTransactionRatings->averageForPlayer($playerId);
 
-        if ($request->headers->get('Turbo-Frame') === 'modal-frame') {
-            return $this->render('rating/player_ratings_modal.html.twig', [
-                'player' => $player,
-                'ratings' => $ratings,
-                'summary' => $summary,
-            ]);
-        }
-
-        return $this->render('rating/player_ratings.html.twig', [
+        return $this->render('rating/player_ratings_modal.html.twig', [
             'player' => $player,
             'ratings' => $ratings,
             'summary' => $summary,

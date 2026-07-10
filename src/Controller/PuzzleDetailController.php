@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Query\GetPuzzleCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
+use SpeedPuzzling\Web\Query\GetPuzzleRedirect;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -21,14 +22,13 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class PuzzleDetailController extends AbstractController
 {
     public function __construct(
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
-        readonly private TranslatorInterface $translator,
+        readonly private GetPuzzleRedirect $getPuzzleRedirect,
         readonly private GetTags $getTags,
         readonly private GetPuzzleCollections $getPuzzleCollections,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -51,25 +51,20 @@ final class PuzzleDetailController extends AbstractController
         ],
         name: 'puzzle_detail',
     )]
-    #[Route(
-        path: [
-            'cs' => '/skladam-puzzle/{puzzleId}',
-            'en' => '/solving-puzzle/{puzzleId}',
-            'es' => '/es/resolviendo-puzzle/{puzzleId}',
-            'ja' => '/ja/パズル解決中/{puzzleId}',
-            'fr' => '/fr/resoudre-puzzle/{puzzleId}',
-            'de' => '/de/puzzle-loesen/{puzzleId}',
-        ],
-        name: 'puzzle_detail_qr',
-    )]
     public function __invoke(string $puzzleId, #[CurrentUser] null|UserInterface $user, Request $request): Response
     {
         try {
             $puzzle = $this->getPuzzleOverview->byId($puzzleId);
-        } catch (PuzzleNotFound) {
-            $this->addFlash('primary', $this->translator->trans('flashes.puzzle_not_found'));
+        } catch (PuzzleNotFound $exception) {
+            $survivorPuzzleId = $this->getPuzzleRedirect->findSurvivorPuzzleId($puzzleId);
 
-            return $this->redirectToRoute('puzzles');
+            if ($survivorPuzzleId !== null) {
+                return $this->redirectToRoute('puzzle_detail', [
+                    'puzzleId' => $survivorPuzzleId,
+                ], Response::HTTP_MOVED_PERMANENTLY);
+            }
+
+            throw $exception;
         }
 
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

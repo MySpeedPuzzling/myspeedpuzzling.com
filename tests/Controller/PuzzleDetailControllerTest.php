@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\PuzzleRedirect;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -72,5 +76,47 @@ final class PuzzleDetailControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         self::assertSame('index, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
+    }
+
+    public function testUnknownPuzzleReturns404(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/en/puzzle/' . Uuid::uuid7()->toString());
+
+        $this->assertResponseStatusCodeSame(404);
+    }
+
+    public function testInvalidPuzzleIdReturns404(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/en/puzzle/not-a-uuid');
+
+        $this->assertResponseStatusCodeSame(404);
+    }
+
+    public function testMergedPuzzleRedirectsPermanentlyToSurvivor(): void
+    {
+        $browser = self::createClient();
+
+        $container = self::getContainer();
+        $entityManager = $container->get(EntityManagerInterface::class);
+        $clock = $container->get(ClockInterface::class);
+
+        $oldPuzzleId = Uuid::uuid7();
+        $entityManager->persist(
+            new PuzzleRedirect(
+                id: Uuid::uuid7(),
+                oldPuzzleId: $oldPuzzleId,
+                survivorPuzzleId: Uuid::fromString(PuzzleFixture::PUZZLE_500_01),
+                createdAt: $clock->now(),
+            ),
+        );
+        $entityManager->flush();
+
+        $browser->request('GET', '/en/puzzle/' . $oldPuzzleId->toString());
+
+        $this->assertResponseRedirects('/en/puzzle/' . PuzzleFixture::PUZZLE_500_01, 301);
     }
 }

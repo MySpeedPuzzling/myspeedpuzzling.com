@@ -9,22 +9,35 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class PlayerRatingsControllerTest extends WebTestCase
 {
-    public function testPageLoadsAndShowsRatings(): void
+    public function testModalFrameRequestShowsRatings(): void
     {
         $browser = self::createClient();
 
         // PLAYER_REGULAR has ratings from fixture
-        $browser->request('GET', '/en/player/' . PlayerFixture::PLAYER_REGULAR . '/ratings');
+        $browser->request('GET', '/en/player/' . PlayerFixture::PLAYER_REGULAR . '/ratings', [], [], [
+            'HTTP_TURBO_FRAME' => 'modal-frame',
+        ]);
 
         $this->assertResponseIsSuccessful();
     }
 
-    public function testPageLoadsForPlayerWithNoRatings(): void
+    public function testModalFrameRequestLoadsForPlayerWithNoRatings(): void
     {
         $browser = self::createClient();
 
-        $browser->request('GET', '/en/player/' . PlayerFixture::PLAYER_PRIVATE . '/ratings');
+        $browser->request('GET', '/en/player/' . PlayerFixture::PLAYER_PRIVATE . '/ratings', [], [], [
+            'HTTP_TURBO_FRAME' => 'modal-frame',
+        ]);
 
         $this->assertResponseIsSuccessful();
+    }
+
+    public function testFullPageRequestRedirectsToPlayerProfile(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/en/player/' . PlayerFixture::PLAYER_REGULAR . '/ratings');
+
+        $this->assertResponseRedirects('/en/player-profile/' . PlayerFixture::PLAYER_REGULAR);
     }
 }

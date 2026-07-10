@@ -4,20 +4,19 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
-use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
-use SpeedPuzzling\Web\Results\ManufacturerOverview;
 use SpeedPuzzling\Web\Results\PiecesFilter;
 use SpeedPuzzling\Web\Results\PlayerRanking;
 use SpeedPuzzling\Web\Results\PuzzleDifficultyResult;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\PuzzleTag;
 use SpeedPuzzling\Web\Results\UserPuzzleStatuses;
+use SpeedPuzzling\Web\Services\PuzzleFilterOptions;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
@@ -30,7 +29,6 @@ use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\Attribute\PreReRender;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\UX\LiveComponent\Metadata\UrlMapping;
-use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
  * The component always renders the first page; the "load more" button appends
@@ -83,12 +81,6 @@ final class PuzzleSearch
     /** @var array<string, array<PuzzleTag>> */
     private array $tags = [];
 
-    /** @var array<ManufacturerOverview> */
-    private array $manufacturers = [];
-
-    /** @var array<PuzzleTag> */
-    private array $allTags = [];
-
     /** @var array<string, int> */
     private array $offerCounts = [];
 
@@ -101,7 +93,7 @@ final class PuzzleSearch
         private readonly GetRanking $getRanking,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly GetTags $getTags,
-        private readonly GetManufacturers $getManufacturers,
+        private readonly PuzzleFilterOptions $puzzleFilterOptions,
         private readonly GetSellSwapListItems $getSellSwapListItems,
         private readonly GetPuzzleDifficulty $getPuzzleDifficulty,
         private readonly CacheInterface $cache,
@@ -119,25 +111,22 @@ final class PuzzleSearch
     }
 
     /**
-     * Filter options only feed the Tom Select widgets, which live inside
-     * data-live-ignore blocks that the client never morphs - loading them
-     * on live re-renders would be wasted work, so this runs on mount only.
+     * PreReRender ONLY, deliberately: the component is rendered with
+     * loading="defer", so the initial page request only mounts the props and
+     * shows the placeholder skeleton - PostMount hooks would run all the
+     * queries during that shell render for nothing. The real render always
+     * arrives as a live request, which triggers PreReRender.
      */
-    #[PostMount]
-    public function loadFilterOptions(): void
-    {
-        $this->allTags = $this->getTags->all();
-        $this->manufacturers = $this->getManufacturers->onlyApprovedOrAddedByPlayer();
-    }
-
-    #[PostMount]
     #[PreReRender]
     public function loadData(): void
     {
         $this->normalizeState();
-        $this->loadPuzzles();
+        $fromCache = $this->loadPuzzles();
         $this->loadUserData();
-        $this->loadPuzzleMetadata();
+
+        if ($fromCache === false) {
+            $this->loadPuzzleMetadata();
+        }
     }
 
     private function normalizeState(): void
@@ -164,14 +153,20 @@ final class PuzzleSearch
         $this->sortBy = $this->criteria->sortBy;
     }
 
-    private function loadPuzzles(): void
+    /**
+     * @return bool whether puzzles AND their metadata came from the cache
+     */
+    private function loadPuzzles(): bool
     {
         if ($this->criteria->isDefault()) {
             $cached = $this->getInitialPuzzlesFromCache();
             $this->puzzles = $cached['puzzles'];
             $this->totalCount = $cached['count'];
+            $this->tags = $cached['tags'];
+            $this->offerCounts = $cached['offerCounts'];
+            $this->difficultyData = $cached['difficultyData'];
 
-            return;
+            return true;
         }
 
         $piecesFilter = PiecesFilter::fromUserInput($this->criteria->pieces);
@@ -194,6 +189,8 @@ final class PuzzleSearch
             limit: PuzzleSearchCriteria::PAGE_SIZE,
             difficultyTiers: $this->criteria->difficultyTiers,
         );
+
+        return false;
     }
 
     private function loadUserData(): void
@@ -260,20 +257,22 @@ final class PuzzleSearch
         return $this->tags;
     }
 
-    /**
-     * @return array<ManufacturerOverview>
-     */
-    public function getManufacturers(): array
+    public function getSelectedBrandLabel(): null|string
     {
-        return $this->manufacturers;
+        if ($this->brandId === null) {
+            return null;
+        }
+
+        return $this->puzzleFilterOptions->manufacturerLabel($this->brandId);
     }
 
-    /**
-     * @return array<PuzzleTag>
-     */
-    public function getAllTags(): array
+    public function getSelectedTagLabel(): null|string
     {
-        return $this->allTags;
+        if ($this->tagId === null) {
+            return null;
+        }
+
+        return $this->puzzleFilterOptions->tagLabel($this->tagId);
     }
 
     /**
@@ -330,17 +329,29 @@ final class PuzzleSearch
     }
 
     /**
-     * @return array{puzzles: list<PuzzleOverview>, count: int}
+     * @return array{
+     *     puzzles: list<PuzzleOverview>,
+     *     count: int,
+     *     tags: array<string, array<PuzzleTag>>,
+     *     offerCounts: array<string, int>,
+     *     difficultyData: array<string, PuzzleDifficultyResult>,
+     * }
      */
     private function getInitialPuzzlesFromCache(): array
     {
-        return $this->cache->get('initial_puzzles_v1', function (ItemInterface $item): array {
+        return $this->cache->get('initial_puzzles_v2', function (ItemInterface $item): array {
             $item->expiresAfter(3600);
             $pieces = PiecesFilter::fromUserInput(null);
 
+            $puzzles = $this->searchPuzzle->byUserInput(null, null, $pieces, null, 'most-solved', 0);
+            $puzzleIds = array_map(static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId, $puzzles);
+
             return [
-                'puzzles' => $this->searchPuzzle->byUserInput(null, null, $pieces, null, 'most-solved', 0),
+                'puzzles' => $puzzles,
                 'count' => $this->searchPuzzle->countByUserInput(null, null, $pieces, null),
+                'tags' => $this->getTags->allGroupedPerPuzzle($puzzleIds),
+                'offerCounts' => $this->getSellSwapListItems->countByPuzzleIds($puzzleIds),
+                'difficultyData' => $this->getPuzzleDifficulty->forPuzzleList($puzzleIds),
             ];
         });
     }

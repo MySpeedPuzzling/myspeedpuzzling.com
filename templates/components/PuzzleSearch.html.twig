@@ -11,22 +11,22 @@
                 >
             </div>
 
+            {# Option lists are deliberately NOT rendered here (the brand list alone
+               is ~420 kB of HTML) - tomselect-sync fetches them from the cached
+               filter-options endpoint on first dropdown focus. #}
             <div class="col-6 col-md-3 col-lg-2 mb-2" data-live-ignore>
                 <select
                     id="puzzle-search-brand"
                     class="form-select"
                     data-controller="tomselect-sync"
                     data-model="on(change)|brandId"
+                    data-tomselect-sync-options-url-value="{{ path('puzzle_search_filter_options') }}"
+                    data-tomselect-sync-options-key-value="manufacturers"
                 >
                     <option value="">{{ 'forms.brand'|trans }}</option>
-                    {% for manufacturer in this.manufacturers %}
-                        <option
-                            value="{{ manufacturer.manufacturerId }}"
-                            {{ this.brandId == manufacturer.manufacturerId ? 'selected' }}
-                        >
-                            {{ manufacturer.manufacturerName }} ({{ manufacturer.puzzlesCount }})
-                        </option>
-                    {% endfor %}
+                    {% if this.selectedBrandLabel %}
+                        <option value="{{ this.brandId }}" selected>{{ this.selectedBrandLabel }}</option>
+                    {% endif %}
                 </select>
             </div>
 
@@ -36,16 +36,13 @@
                     class="form-select"
                     data-controller="tomselect-sync"
                     data-model="on(change)|tagId"
+                    data-tomselect-sync-options-url-value="{{ path('puzzle_search_filter_options') }}"
+                    data-tomselect-sync-options-key-value="tags"
                 >
                     <option value="">{{ 'forms.competition'|trans }}</option>
-                    {% for tag in this.allTags %}
-                        <option
-                            value="{{ tag.tagId }}"
-                            {{ this.tagId == tag.tagId ? 'selected' }}
-                        >
-                            {{ tag.name }}
-                        </option>
-                    {% endfor %}
+                    {% if this.selectedTagLabel %}
+                        <option value="{{ this.tagId }}" selected>{{ this.selectedTagLabel }}</option>
+                    {% endif %}
                 </select>
             </div>
 
@@ -171,3 +168,56 @@
         </div>
     {% endif %}
 </div>
+
+{% macro placeholder(props) %}
+    {# Skeleton shown while the lazily-loaded component renders. Dimensions
+       match the real controls/cards to avoid layout shift (see
+       docs/performance-optimizations.md). #}
+    <div class="placeholder-glow">
+        <div class="filters">
+            <div class="row gx-2">
+                <div class="col-sm-6 col-lg-3 mb-2">
+                    <span class="placeholder rounded d-block" style="height: 38px;"></span>
+                </div>
+                <div class="col-6 col-md-3 col-lg-2 mb-2">
+                    <span class="placeholder rounded d-block" style="height: 38px;"></span>
+                </div>
+                <div class="col-6 col-md-3 col-lg-2 mb-2">
+                    <span class="placeholder rounded d-block" style="height: 38px;"></span>
+                </div>
+                <div class="col-sm-6 col-lg-4 mb-2">
+                    <span class="placeholder rounded d-inline-block me-2" style="height: 30px; width: 60px;"></span>
+                    <span class="placeholder rounded d-inline-block me-2" style="height: 30px; width: 70px;"></span>
+                    <span class="placeholder rounded d-inline-block me-2" style="height: 30px; width: 60px;"></span>
+                    <span class="placeholder rounded d-inline-block" style="height: 30px; width: 80px;"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-sm-flex justify-content-between align-items-center my-1">
+            <div class="me-2 mb-1">
+                <span class="placeholder placeholder-sm d-inline-block" style="width: 130px;"></span>
+            </div>
+            <span class="placeholder rounded d-inline-block me-1 my-1" style="height: 31px; width: 180px;"></span>
+        </div>
+
+        <div class="row g-2 g-md-3">
+            {% for i in 1..8 %}
+                <div class="col-12 col-lg-6">
+                    <div class="card card-body shadow p-2 puzzle-list-item">
+                        <div class="d-flex">
+                            <div style="width: 90px;">
+                                <span class="rounded-2 d-block" style="width: 90px; height: 68px; background: #e9ecef;"></span>
+                            </div>
+                            <div class="ps-2 flex-grow-1">
+                                <span class="placeholder" style="width: 65%;"></span><br>
+                                <span class="placeholder placeholder-sm" style="width: 40%;"></span><br>
+                                <span class="placeholder placeholder-sm" style="width: 55%;"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endmacro %}

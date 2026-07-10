@@ -46,5 +46,11 @@
 {% block content %}
     <h1 class="mb-2">{{ 'puzzle_overview.title'|trans }}</h1>
 
-    {{ component('PuzzleSearch') }}
+    {# loading="defer": the initial response ships only the skeleton placeholder
+       (fast first paint); the component renders itself right after via a live
+       request. "defer" (trigger on connect), not "lazy" (trigger on viewport
+       visibility), because the component is always above the fold. SEO impact
+       accepted - the list is not indexable content here. #}
+    <twig:PuzzleSearch loading="defer" />
+
 {% endblock %}

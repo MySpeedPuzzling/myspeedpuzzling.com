@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetRanking;
@@ -19,7 +20,7 @@ use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\PuzzleTag;
 use SpeedPuzzling\Web\Results\UserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
-use Symfony\Component\HttpFoundation\RequestStack;
+use SpeedPuzzling\Web\Value\DifficultyTier;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -41,27 +42,36 @@ final class PuzzleSearch
     /** @var list<string> */
     private const array VALID_SORTS = ['most-solved', 'least-solved', 'a-z', 'z-a', 'easiest', 'hardest'];
 
+    /** @var list<string> */
+    private const array PREMIUM_SORTS = ['easiest', 'hardest'];
+
     #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: new UrlMapping(as: 'brand'))]
     public null|string $brandId = null;
 
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: new UrlMapping(as: 'search'))]
+    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: true)]
     public null|string $search = null;
 
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: new UrlMapping(as: 'pieces'))]
+    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: true)]
     public null|string $pieces = null;
 
     #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: new UrlMapping(as: 'tag'))]
     public null|string $tagId = null;
 
-    /** @var list<int> */
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: new UrlMapping(as: 'difficultyTiers'))]
+    /**
+     * Declared list<string> on purpose: both URL query params and checkbox values
+     * arrive as strings, and the framework's url-prop hydration type-checks array
+     * elements. Values are normalized to ints at query time.
+     *
+     * @var list<string>
+     */
+    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated', url: true)]
     public array $difficultyTiers = [];
 
-    #[LiveProp(writable: true, url: new UrlMapping(as: 'sortBy'))]
+    #[LiveProp(writable: true, url: true)]
     public string $sortBy = 'most-solved';
 
     #[LiveProp]
-    public int $displayLimit = 20;
+    public int $displayLimit = self::LIMIT;
 
     /** @var list<PuzzleOverview> */
     public array $puzzles = [];
@@ -97,33 +107,9 @@ final class PuzzleSearch
         private readonly GetManufacturers $getManufacturers,
         private readonly GetSellSwapListItems $getSellSwapListItems,
         private readonly GetPuzzleDifficulty $getPuzzleDifficulty,
-        private readonly RequestStack $requestStack,
         private readonly CacheInterface $cache,
     ) {
         $this->puzzleStatuses = UserPuzzleStatuses::empty();
-    }
-
-    /**
-     * Live Component hydrates scalar url-mapped props from the query string on the initial
-     * (non-AJAX) render, but not array props. Restore deep-link parity for the difficulty
-     * filter by reading it from the request here. mount() runs only on the initial render
-     * (live re-renders go through hydration instead), so interactively-set tiers are never
-     * clobbered. Parsing mirrors the former SearchPuzzleFormData::fromRequest().
-     */
-    public function mount(): void
-    {
-        $request = $this->requestStack->getCurrentRequest();
-
-        if ($request === null) {
-            return;
-        }
-
-        $difficultyTiers = $request->query->all('difficultyTiers');
-
-        $this->difficultyTiers = array_values(array_map(
-            static fn (mixed $tier): int => (int) $tier,
-            array_filter($difficultyTiers, static fn (mixed $tier): bool => is_numeric($tier)),
-        ));
     }
 
     #[LiveAction]
@@ -146,14 +132,65 @@ final class PuzzleSearch
         $this->displayLimit = self::LIMIT;
     }
 
+    /**
+     * Filter options only feed the Tom Select widgets, which live inside
+     * data-live-ignore blocks that the client never morphs - loading them
+     * on live re-renders would be wasted work, so this runs on mount only.
+     */
+    #[PostMount]
+    public function loadFilterOptions(): void
+    {
+        $this->allTags = $this->getTags->all();
+        $this->manufacturers = $this->getManufacturers->onlyApprovedOrAddedByPlayer();
+    }
+
     #[PostMount]
     #[PreReRender]
     public function loadData(): void
     {
+        $this->normalizeState();
         $this->loadPuzzles();
         $this->loadUserData();
-        $this->loadFilterOptions();
         $this->loadPuzzleMetadata();
+    }
+
+    /**
+     * Writable props arrive from the URL or the client, so they may carry values
+     * the UI never produces: empty strings from cleared Tom Selects, mangled UUIDs
+     * from truncated links, unknown sorts, or premium filters from non-members.
+     * Normalizing here (before querying) keeps every render graceful.
+     */
+    private function normalizeState(): void
+    {
+        $this->brandId = $this->normalizeUuid($this->brandId);
+        $this->tagId = $this->normalizeUuid($this->tagId);
+
+        if ($this->pieces === '') {
+            $this->pieces = null;
+        }
+
+        if (in_array($this->sortBy, self::VALID_SORTS, true) === false) {
+            $this->sortBy = 'most-solved';
+        }
+
+        // Difficulty filtering and difficulty sorting are members-only; the template
+        // hides the controls, this enforces it against crafted URLs and live actions.
+        if ($this->retrieveLoggedUserProfile->getProfile()?->activeMembership !== true) {
+            $this->difficultyTiers = [];
+
+            if (in_array($this->sortBy, self::PREMIUM_SORTS, true)) {
+                $this->sortBy = 'most-solved';
+            }
+        }
+    }
+
+    private function normalizeUuid(null|string $value): null|string
+    {
+        if ($value === null || Uuid::isValid($value) === false) {
+            return null;
+        }
+
+        return $value;
     }
 
     private function loadPuzzles(): void
@@ -176,6 +213,9 @@ final class PuzzleSearch
             $this->tagId,
             $difficultyTiers,
         );
+
+        // Growing past the result set would only make every re-render more expensive.
+        $this->displayLimit = min($this->displayLimit, max(self::LIMIT, $this->totalCount));
 
         $this->puzzles = $this->searchPuzzle->byUserInput(
             $this->brandId,
@@ -202,13 +242,6 @@ final class PuzzleSearch
         }
     }
 
-    private function loadFilterOptions(): void
-    {
-        $this->tags = $this->getTags->allGroupedPerPuzzle();
-        $this->allTags = $this->getTags->all();
-        $this->manufacturers = $this->getManufacturers->onlyApprovedOrAddedByPlayer();
-    }
-
     private function loadPuzzleMetadata(): void
     {
         $puzzleIds = array_map(
@@ -216,21 +249,9 @@ final class PuzzleSearch
             $this->puzzles,
         );
 
+        $this->tags = $this->getTags->allGroupedPerPuzzle($puzzleIds);
         $this->offerCounts = $this->getSellSwapListItems->countByPuzzleIds($puzzleIds);
         $this->difficultyData = $this->getPuzzleDifficulty->forPuzzleList($puzzleIds);
-    }
-
-    /**
-     * @return array<PuzzleOverview>
-     */
-    public function getPuzzles(): array
-    {
-        return $this->puzzles;
-    }
-
-    public function getTotalCount(): int
-    {
-        return $this->totalCount;
     }
 
     public function getRemainingCount(): int
@@ -296,24 +317,60 @@ final class PuzzleSearch
         return $this->difficultyData;
     }
 
-    public function isUsingFilters(): bool
+    /**
+     * @return list<array{value: string, label: string, premium: bool}>
+     */
+    public function getSortOptions(): array
     {
-        return $this->brandId !== null
-            || ($this->search !== null && $this->search !== '')
-            || $this->pieces !== null
-            || $this->tagId !== null
-            || $this->difficultyTiers !== [];
+        return array_map(
+            static fn (string $sort): array => [
+                'value' => $sort,
+                'label' => 'sorting.' . str_replace('-', '_', $sort),
+                'premium' => in_array($sort, self::PREMIUM_SORTS, true),
+            ],
+            self::VALID_SORTS,
+        );
     }
 
     /**
+     * @return list<array{value: int, label: string, icon: string}>
+     */
+    public function getDifficultyTierOptions(): array
+    {
+        return array_map(
+            static fn (DifficultyTier $tier): array => [
+                'value' => $tier->value,
+                'label' => 'puzzle_intelligence.difficulty.tiers.' . strtolower($tier->name),
+                'icon' => match ($tier) {
+                    DifficultyTier::VeryEasy => 'diff-very-easy',
+                    DifficultyTier::Easy => 'diff-easy',
+                    DifficultyTier::Average => 'diff-average',
+                    DifficultyTier::Challenging => 'diff-challenging',
+                    DifficultyTier::Hard => 'diff-hard',
+                    DifficultyTier::VeryHard => 'diff-very-hard',
+                },
+            ],
+            DifficultyTier::cases(),
+        );
+    }
+
+    /**
+     * Values may come from the client, so anything non-numeric (including
+     * tampered payloads with nested structures) is dropped, not crashed on.
+     *
      * @return list<int>
      */
     private function normalizedDifficultyTiers(): array
     {
-        return array_map(
-            static fn (int|string $tier): int => (int) $tier,
-            $this->difficultyTiers,
-        );
+        $tiers = [];
+
+        foreach ($this->difficultyTiers as $tier) {
+            if (is_numeric($tier)) {
+                $tiers[] = (int) $tier;
+            }
+        }
+
+        return $tiers;
     }
 
     private function isDefaultSearch(): bool

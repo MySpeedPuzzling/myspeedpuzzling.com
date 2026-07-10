@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
@@ -82,10 +83,22 @@ SQL;
     }
 
     /**
+     * @param null|list<string> $onlyPuzzleIds
+     *
      * @return array<string, array<PuzzleTag>>
      */
-    public function allGroupedPerPuzzle(): array
+    public function allGroupedPerPuzzle(null|array $onlyPuzzleIds = null): array
     {
+        $whereClause = '';
+        $params = [];
+        $types = [];
+
+        if ($onlyPuzzleIds !== null) {
+            $whereClause = 'WHERE tag_puzzle.puzzle_id IN (:puzzleIds)';
+            $params['puzzleIds'] = $onlyPuzzleIds;
+            $types['puzzleIds'] = ArrayParameterType::STRING;
+        }
+
         $query = <<<SQL
 SELECT
   tag.id AS tag_id,
@@ -93,12 +106,13 @@ SELECT
   puzzle_id
 FROM tag
 LEFT JOIN tag_puzzle ON tag.id = tag_puzzle.tag_id
+{$whereClause}
 ORDER BY tag.name
 SQL;
 
         $data = [];
         $results = $this->database
-            ->executeQuery($query)
+            ->executeQuery($query, $params, $types)
             ->fetchAllAssociative();
 
         foreach ($results as $row) {

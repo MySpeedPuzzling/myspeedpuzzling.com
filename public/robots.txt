@@ -29,6 +29,7 @@ Disallow: /clenstvi
 Disallow: /koupit-clenstvi
 Disallow: /feedback
 Disallow: /puzzle/*/navrhnout-zmenu
+Disallow: /puzzle/*/cekajici-navrhy
 Disallow: /kolekce/*/pridat
 Disallow: /kolekce/*/presunout
 Disallow: /kolekce/*/odebrat
@@ -52,6 +53,7 @@ Disallow: /en/membership
 Disallow: /en/buy-membership
 Disallow: /en/feedback
 Disallow: /en/puzzle/*/suggest-change
+Disallow: /en/puzzle/*/pending-proposals
 Disallow: /en/collections/
 Disallow: /en/create-collection
 # trailing slash: /en/borrow-puzzle (puzzle service page) must stay crawlable
@@ -70,6 +72,7 @@ Disallow: /es/membresia
 Disallow: /es/comprar-membresia
 Disallow: /es/comentarios
 Disallow: /es/puzzle/*/sugerir-cambio
+Disallow: /es/puzzle/*/propuestas-pendientes
 Disallow: /es/colecciones/
 Disallow: /es/crear-coleccion
 Disallow: /es/tomar-prestado
@@ -87,6 +90,7 @@ Disallow: /fr/adhesion
 Disallow: /fr/acheter-adhesion
 Disallow: /fr/commentaires
 Disallow: /fr/puzzle/*/suggerer-modification
+Disallow: /fr/puzzle/*/propositions-en-attente
 Disallow: /fr/puzzle-chronometre
 Disallow: /fr/collections/
 Disallow: /fr/creer-collection
@@ -106,6 +110,7 @@ Disallow: /de/mitgliedschaft
 Disallow: /de/mitgliedschaft-kaufen
 Disallow: /de/feedback
 Disallow: /de/puzzle/*/aenderung-vorschlagen
+Disallow: /de/puzzle/*/ausstehende-vorschlaege
 Disallow: /de/puzzle-stoppuhr
 Disallow: /de/sammlungen/
 Disallow: /de/sammlung-erstellen
@@ -125,6 +130,7 @@ Disallow: /ja/メンバーシップ
 Disallow: /ja/メンバーシップ購入
 Disallow: /ja/フィードバック
 Disallow: /ja/puzzle/*/suggest-change
+Disallow: /ja/puzzle/*/pending-proposals
 Disallow: /ja/collections/
 Disallow: /ja/コレクションを作成
 Disallow: /ja/borrow

@@ -2995,6 +2995,15 @@ guides:
     breadcrumb:
         home: "Home"
         guides: "Guides"
+    ui:
+        eyebrow: "Guide"
+        updated: "Updated %date%"
+        data_note: "Live community data"
+        read_next: "Read next"
+        cta_title: "Ready to time your next puzzle?"
+        cta_stopwatch: "Start the stopwatch"
+        cta_puzzles: "Browse the puzzle database"
+        cta_events: "Find a competition"
     index:
         title: "Speed Puzzling Guides"
         meta_description: "Guides to speed puzzling backed by real solve-time data: how long puzzles really take, how competitions work, and how to get faster."

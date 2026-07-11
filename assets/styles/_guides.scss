@@ -1,0 +1,517 @@
+//
+// Guides (editorial guide pages)
+// --------------------------------------------------
+
+
+// Page header band
+// --------------------------------------------------
+
+.guide-hero {
+    padding: 1.25rem 0 2.5rem;
+    background-color: #fff2f1;
+    background-image: radial-gradient(ellipse 120% 85% at 50% -10%, #fff 40%, rgba(#fff, 0) 100%),
+        linear-gradient(180deg, #fff 0%, #ffeceb 100%);
+
+    @include media-breakpoint-up(md) {
+        padding: 2rem 0 3.25rem;
+    }
+}
+
+.guide-hero-inner {
+    max-width: 760px;
+}
+
+.guide-hero-breadcrumb {
+    margin-bottom: 1rem;
+
+    .breadcrumb {
+        margin-bottom: 0;
+    }
+}
+
+.guide-eyebrow {
+    margin-bottom: .625rem;
+    font-size: .8125rem;
+    font-weight: 500;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: $primary;
+}
+
+.guide-hero-title {
+    margin-bottom: .875rem;
+    font-size: clamp(1.75rem, 2.5vw + 1rem, 2.625rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -.02em;
+    color: $headings-color;
+}
+
+.guide-hero-lead {
+    max-width: 720px;
+    margin-bottom: 0;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: $gray-700;
+
+    @include media-breakpoint-up(md) {
+        font-size: 1.125rem;
+    }
+}
+
+.guide-hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-top: 1.25rem;
+}
+
+.guide-meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4375rem;
+    padding: .3125rem .875rem;
+    font-size: .8125rem;
+    color: $gray-700;
+    background: rgba(#fff, .72);
+    border: 1px solid rgba($primary, .18);
+    border-radius: 50rem;
+
+    i {
+        color: $primary;
+    }
+}
+
+// Index (hub) hero variant: centered, with the cards row overlapping below
+.guide-hero-index {
+    padding-bottom: 4.75rem;
+    text-align: center;
+
+    .guide-hero-inner,
+    .guide-hero-lead {
+        margin-right: auto;
+        margin-left: auto;
+    }
+
+    .breadcrumb {
+        justify-content: center;
+    }
+}
+
+
+// Article reading column
+// --------------------------------------------------
+
+.guide-body {
+    padding-top: 2.25rem;
+}
+
+.guide-article {
+    max-width: 720px;
+    font-size: 1.0625rem;
+    line-height: 1.7;
+
+    p {
+        margin-bottom: 1.125rem;
+    }
+
+    > p a,
+    li a {
+        font-weight: 500;
+        text-decoration: underline;
+        text-decoration-color: rgba($primary, .35);
+        text-underline-offset: .1875em;
+
+        &:hover {
+            text-decoration-color: $primary;
+        }
+    }
+
+    h2 {
+        position: relative;
+        margin: 2.5rem 0 1rem;
+        padding-left: 1rem;
+        font-size: 1.375rem;
+        font-weight: 600;
+        line-height: 1.3;
+        color: $headings-color;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: .2em;
+            bottom: .2em;
+            left: 0;
+            width: .25rem;
+            background: linear-gradient(180deg, #ff7d6f, $primary);
+            border-radius: .25rem;
+        }
+    }
+}
+
+
+// Lists: coral dots for unordered, numbered coins for step lists
+// --------------------------------------------------
+
+.guide-list {
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+
+    li {
+        position: relative;
+        margin-bottom: 1rem;
+        padding-left: 1.375rem;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: .55em;
+            left: 0;
+            width: .5rem;
+            height: .5rem;
+            background: $primary;
+            border-radius: 50%;
+        }
+    }
+}
+
+.guide-steps {
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+    counter-reset: guide-step;
+
+    li {
+        position: relative;
+        min-height: 2rem;
+        margin-bottom: 1.125rem;
+        padding-left: 2.875rem;
+        counter-increment: guide-step;
+
+        &::before {
+            content: counter(guide-step);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2rem;
+            height: 2rem;
+            font-size: .9375rem;
+            font-weight: 700;
+            line-height: 2rem;
+            text-align: center;
+            color: $primary;
+            background: rgba($primary, .08);
+            border-radius: 50%;
+            font-variant-numeric: tabular-nums;
+        }
+    }
+}
+
+
+// Key-fact callout
+// --------------------------------------------------
+
+.guide-callout {
+    margin: 1.75rem 0;
+    padding: 1.25rem 1.5rem;
+    background: #fff;
+    border-left: .25rem solid $primary;
+    border-radius: .75rem;
+    box-shadow: 0 .25rem 1rem rgba(#373f50, .07);
+
+    p:last-child,
+    ul:last-child {
+        margin-bottom: 0;
+    }
+}
+
+
+// FAQ blocks
+// --------------------------------------------------
+
+.guide-faq-item {
+    margin-bottom: 1rem;
+    padding: 1.125rem 1.375rem;
+    background: #fff;
+    border-radius: .75rem;
+    box-shadow: 0 .25rem 1rem rgba(#373f50, .06);
+
+    p:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.guide-faq-question {
+    margin-bottom: .375rem;
+    font-weight: 500;
+    color: $headings-color;
+}
+
+
+// Answer scoreboard (data guide stat boxes)
+// --------------------------------------------------
+
+.guide-scoreboard {
+    margin: 1.75rem 0 2rem;
+    padding: 1.75rem 1.25rem 1.5rem;
+    text-align: center;
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 .625rem 2.25rem -.625rem rgba(#373f50, .22);
+
+    @include media-breakpoint-up(md) {
+        padding: 2.25rem 2rem 2rem;
+    }
+}
+
+.guide-scoreboard-eyebrow {
+    margin-bottom: 1.25rem;
+    font-size: .8125rem;
+    font-weight: 500;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: $gray-600;
+}
+
+.guide-live-dot {
+    display: inline-block;
+    width: .5rem;
+    height: .5rem;
+    margin-right: .5rem;
+    vertical-align: .1em;
+    background: $primary;
+    border-radius: 50%;
+
+    @media (prefers-reduced-motion: no-preference) {
+        animation: guide-live-pulse 2s ease-out infinite;
+    }
+}
+
+@keyframes guide-live-pulse {
+    0% { box-shadow: 0 0 0 0 rgba($primary, .45); }
+    70% { box-shadow: 0 0 0 .5rem rgba($primary, 0); }
+    100% { box-shadow: 0 0 0 0 rgba($primary, 0); }
+}
+
+.guide-scoreboard-main {
+    margin-bottom: 1.5rem;
+}
+
+.guide-stat-number {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: $headings-color;
+    font-variant-numeric: tabular-nums;
+
+    @include media-breakpoint-up(md) {
+        font-size: 1.4375rem;
+    }
+}
+
+.guide-stat-number-big {
+    font-size: clamp(2.5rem, 6vw + .5rem, 4rem);
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    color: $primary;
+}
+
+.guide-stat-label {
+    display: block;
+    font-size: .8125rem;
+    color: $gray-600;
+}
+
+
+// Comparison table
+// --------------------------------------------------
+
+.guide-table-card {
+    overflow: hidden;
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 .25rem 1rem rgba(#373f50, .07);
+}
+
+.guide-table {
+    font-size: .9375rem;
+    font-variant-numeric: tabular-nums;
+
+    thead th {
+        padding: .875rem 1rem;
+        font-size: .75rem;
+        font-weight: 500;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        color: $gray-600;
+        border-bottom: 2px solid rgba($primary, .25);
+    }
+
+    tbody th,
+    tbody td {
+        padding: .75rem 1rem;
+        white-space: nowrap;
+    }
+
+    tbody th {
+        color: $headings-color;
+    }
+}
+
+.guide-table tbody tr.guide-table-highlight > * {
+    --bs-table-accent-bg: #{rgba($primary, .08)};
+
+    font-weight: 600;
+}
+
+
+// "Read next" band + guide cards (index + read-next)
+// --------------------------------------------------
+
+.guide-next {
+    margin-top: 3rem;
+    padding: 2.75rem 0 3rem;
+    background: #f6f9fc;
+}
+
+.guide-next-eyebrow {
+    margin-bottom: 1.25rem;
+    font-size: .8125rem;
+    font-weight: 500;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: $gray-600;
+}
+
+.guide-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 .25rem 1rem rgba(#373f50, .07);
+    transition: transform .2s ease, box-shadow .2s ease;
+
+    &:hover,
+    &:focus-within {
+        transform: translateY(-.25rem);
+        box-shadow: 0 .625rem 1.75rem -.375rem rgba(#373f50, .18);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        transition: none;
+
+        &:hover,
+        &:focus-within {
+            transform: none;
+        }
+    }
+}
+
+.guide-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    color: $primary;
+    background: rgba($primary, .08);
+    border-radius: 1rem;
+}
+
+.guide-card-title {
+    margin-bottom: .5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.35;
+
+    a {
+        color: $headings-color;
+
+        &:hover {
+            color: $primary;
+        }
+    }
+}
+
+.guide-card-text {
+    margin-bottom: 1.25rem;
+    font-size: .9375rem;
+    color: $gray-600;
+}
+
+.guide-card-link {
+    display: inline-flex;
+    gap: .375rem;
+    align-items: center;
+    margin-top: auto;
+    font-weight: 500;
+    color: $primary;
+
+    i {
+        transition: transform .2s ease;
+    }
+}
+
+.guide-card:hover .guide-card-link i {
+    transform: translateX(.25rem);
+
+    @media (prefers-reduced-motion: reduce) {
+        transform: none;
+    }
+}
+
+
+// Guides index: cards overlap the hero band bottom
+// --------------------------------------------------
+
+.guide-index-cards {
+    position: relative;
+    margin-top: -2.75rem;
+}
+
+.guide-index-footnote {
+    max-width: 720px;
+    margin: 2.25rem auto 0;
+    font-size: .875rem;
+    text-align: center;
+    color: $gray-600;
+}
+
+
+// Closing CTA band
+// --------------------------------------------------
+
+.guide-cta {
+    padding: 3.25rem 0;
+    background-color: $primary;
+    background-image: radial-gradient(ellipse 90% 70% at 15% -10%, rgba(#fff, .16) 0%, rgba(#fff, 0) 60%),
+        linear-gradient(150deg, #ff7d6f 0%, #fe696a 40%, #ea5468 78%, #d84e73 100%);
+}
+
+.guide-cta-title {
+    margin-bottom: 1.5rem;
+    font-size: clamp(1.375rem, 2vw + .5rem, 1.875rem);
+    font-weight: 600;
+    color: #fff;
+}
+
+.guide-cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    justify-content: center;
+}
+
+.guide-cta .btn-outline-light:hover {
+    color: $primary;
+    background: #fff;
+    border-color: #fff;
+}

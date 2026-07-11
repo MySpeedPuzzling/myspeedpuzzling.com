@@ -1,23 +1,29 @@
 {% extends 'guides/_guide_base.html.twig' %}
 
-{% block guide_content %}
+{% block guide_header %}
     {% set d1000 = distributions[1000] ?? null %}
-    {% set d500 = distributions[500] ?? null %}
-    {% set totalSolves = distributions|map(d => d.solvesCount)|reduce((carry, count) => carry + count, 0) %}
 
-    <h1 class="h2 mb-3">How Long Does a 1000-Piece Puzzle Take?</h1>
+    <h1 class="guide-hero-title">How Long Does a 1000-Piece Puzzle Take?</h1>
 
     {% if d1000 %}
         {% set medianHours = d1000.medianSeconds // 3600 %}
         {% set medianMinutes = (d1000.medianSeconds % 3600) // 60 %}
 
-        <p class="fs-lg">
+        <p class="guide-hero-lead">
             <strong>Across {{ d1000.solvesCount|number_format }} solo solves recorded on MySpeedPuzzling, the median time
             to finish a 1000-piece jigsaw puzzle is {{ medianHours }} hour{{ medianHours == 1 ? '' : 's' }} {{ medianMinutes }} minute{{ medianMinutes == 1 ? '' : 's' }}.</strong>
             Half of all recorded solves land between {{ d1000.p25Seconds|compactTime }} and {{ d1000.p75Seconds|compactTime }},
             and nine out of ten are done within {{ d1000.p90Seconds|compactTime }}.
         </p>
+    {% endif %}
+{% endblock %}
 
+{% block guide_content %}
+    {% set d1000 = distributions[1000] ?? null %}
+    {% set d500 = distributions[500] ?? null %}
+    {% set totalSolves = distributions|map(d => d.solvesCount)|reduce((carry, count) => carry + count, 0) %}
+
+    {% if d1000 %}
         <p>
             Most answers you will find to this question are guesses — usually somewhere between "5 hours" and "20 hours",
             published by people who never timed anyone. The numbers on this page are different: they come from real,
@@ -25,68 +31,51 @@
             counts active puzzling time. Nobody here is estimating.
         </p>
 
-        <h2 class="h4 mt-4">The 1000-piece answer, in numbers</h2>
+        <h2>The 1000-piece answer, in numbers</h2>
 
-        <div class="row g-3 mb-4">
-            <div class="col-6 col-md-4 col-lg-2">
-                <div class="card shadow-sm h-100 border-0">
-                    <div class="card-body text-center">
-                        <div class="h4 mb-1 text-primary">{{ d1000.medianSeconds|compactTime }}</div>
-                        <div class="text-muted fs-sm">Median time</div>
-                    </div>
-                </div>
+        <div class="guide-scoreboard">
+            <p class="guide-scoreboard-eyebrow"><span class="guide-live-dot" aria-hidden="true"></span>{{ 'guides.ui.data_note'|trans }}</p>
+
+            <div class="guide-scoreboard-main">
+                <span class="guide-stat-number guide-stat-number-big">{{ d1000.medianSeconds|compactTime }}</span>
+                <span class="guide-stat-label">Median time</span>
             </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <div class="card shadow-sm h-100 border-0">
-                    <div class="card-body text-center">
-                        <div class="h4 mb-1">{{ d1000.p25Seconds|compactTime }}–{{ d1000.p75Seconds|compactTime }}</div>
-                        <div class="text-muted fs-sm">Typical range (middle 50%)</div>
-                    </div>
+
+            <div class="row g-3">
+                <div class="col-6 col-md-3">
+                    <span class="guide-stat-number">{{ d1000.p25Seconds|compactTime }}–{{ d1000.p75Seconds|compactTime }}</span>
+                    <span class="guide-stat-label">Typical range (middle 50%)</span>
                 </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <div class="card shadow-sm h-100 border-0">
-                    <div class="card-body text-center">
-                        <div class="h4 mb-1">{{ d1000.p90Seconds|compactTime }}</div>
-                        <div class="text-muted fs-sm">90% finish within</div>
-                    </div>
+                <div class="col-6 col-md-3">
+                    <span class="guide-stat-number">{{ d1000.p90Seconds|compactTime }}</span>
+                    <span class="guide-stat-label">90% finish within</span>
                 </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <div class="card shadow-sm h-100 border-0">
-                    <div class="card-body text-center">
-                        <div class="h4 mb-1">{{ d1000.fastestSeconds|compactTime }}</div>
-                        <div class="text-muted fs-sm">Fastest recorded</div>
-                    </div>
+                <div class="col-6 col-md-2">
+                    <span class="guide-stat-number">{{ d1000.fastestSeconds|compactTime }}</span>
+                    <span class="guide-stat-label">Fastest recorded</span>
                 </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <div class="card shadow-sm h-100 border-0">
-                    <div class="card-body text-center">
-                        <div class="h4 mb-1">{{ d1000.solvesCount|number_format }}</div>
-                        <div class="text-muted fs-sm">Recorded solves</div>
-                    </div>
+                <div class="col-6 col-md-2">
+                    <span class="guide-stat-number">{{ d1000.solvesCount|number_format }}</span>
+                    <span class="guide-stat-label">Recorded solves</span>
                 </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <div class="card shadow-sm h-100 border-0">
-                    <div class="card-body text-center">
-                        <div class="h4 mb-1">{{ d1000.playersCount|number_format }}</div>
-                        <div class="text-muted fs-sm">Puzzlers measured</div>
-                    </div>
+                <div class="col-12 col-md-2">
+                    <span class="guide-stat-number">{{ d1000.playersCount|number_format }}</span>
+                    <span class="guide-stat-label">Puzzlers measured</span>
                 </div>
             </div>
         </div>
 
-        <p>
-            One important nuance: these are <strong>active puzzling hours</strong>, not calendar time. The MySpeedPuzzling
-            stopwatch is paused when the puzzler steps away, so "{{ d1000.medianSeconds|compactTime }}"
-            means time actually spent placing pieces. If you do a 1000-piece puzzle over relaxed evenings, spreading the
-            same hours across a week is completely normal.
-        </p>
+        <div class="guide-callout">
+            <p>
+                One important nuance: these are <strong>active puzzling hours</strong>, not calendar time. The MySpeedPuzzling
+                stopwatch is paused when the puzzler steps away, so "{{ d1000.medianSeconds|compactTime }}"
+                means time actually spent placing pieces. If you do a 1000-piece puzzle over relaxed evenings, spreading the
+                same hours across a week is completely normal.
+            </p>
+        </div>
     {% endif %}
 
-    <h2 class="h4 mt-4">How long does a puzzle take, by piece count?</h2>
+    <h2>How long does a puzzle take, by piece count?</h2>
 
     <p>
         Piece count does not scale linearly. Doubling the pieces more than doubles the time: every new piece has more
@@ -98,29 +87,31 @@
     </p>
 
     {% if distributions is not empty %}
-        <div class="table-responsive mb-2">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th scope="col">Pieces</th>
-                        <th scope="col">Median time</th>
-                        <th scope="col">Typical range (middle 50%)</th>
-                        <th scope="col">90% finish within</th>
-                        <th scope="col" class="text-end">Recorded solves</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for distribution in distributions %}
+        <div class="guide-table-card mb-2">
+            <div class="table-responsive">
+                <table class="table table-striped guide-table mb-0">
+                    <thead>
                         <tr>
-                            <th scope="row">{{ distribution.piecesCount|number_format }}</th>
-                            <td>{{ distribution.medianSeconds|compactTime }}</td>
-                            <td>{{ distribution.p25Seconds|compactTime }} – {{ distribution.p75Seconds|compactTime }}</td>
-                            <td>{{ distribution.p90Seconds|compactTime }}</td>
-                            <td class="text-end">{{ distribution.solvesCount|number_format }}</td>
+                            <th scope="col">Pieces</th>
+                            <th scope="col">Median time</th>
+                            <th scope="col">Typical range (middle 50%)</th>
+                            <th scope="col">90% finish within</th>
+                            <th scope="col" class="text-end">Recorded solves</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {% for distribution in distributions %}
+                            <tr{% if distribution.piecesCount == 1000 %} class="guide-table-highlight"{% endif %}>
+                                <th scope="row">{{ distribution.piecesCount|number_format }}</th>
+                                <td>{{ distribution.medianSeconds|compactTime }}</td>
+                                <td>{{ distribution.p25Seconds|compactTime }} – {{ distribution.p75Seconds|compactTime }}</td>
+                                <td>{{ distribution.p90Seconds|compactTime }}</td>
+                                <td class="text-end">{{ distribution.solvesCount|number_format }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
         <p class="text-muted fs-sm">
             Solo solves only. "Typical range" is the 25th–75th percentile: half of all recorded solves fall inside it.
@@ -128,7 +119,7 @@
     {% endif %}
 
     {% if d1000 %}
-        <h2 class="h4 mt-4">What counts as fast?</h2>
+        <h2>What counts as fast?</h2>
 
         <p>
             "Fast" is relative, so here is where the field actually stands for 1000 pieces. Finishing under
@@ -140,7 +131,7 @@
         </p>
 
         {% if d1000.firstAttemptMedianSeconds is not null %}
-            <h2 class="h4 mt-4">First attempt vs. repeat solves</h2>
+            <h2>First attempt vs. repeat solves</h2>
 
             <p>
                 Solving a puzzle you have already done before is measurably faster: you know the image, the tricky areas,
@@ -153,35 +144,35 @@
         {% endif %}
     {% endif %}
 
-    <h2 class="h4 mt-4">What changes how long it takes</h2>
+    <h2>What changes how long it takes</h2>
 
-    <ul class="list-unstyled">
-        <li class="mb-3">
+    <ul class="guide-list">
+        <li>
             <strong>Experience and technique.</strong> The single biggest factor. Puzzlers who track their times and
             solve regularly develop sorting systems, color memory, and piece-shape recognition that routinely cut solve
             times dramatically within their first year of deliberate practice.
         </li>
-        <li class="mb-3">
+        <li>
             <strong>The image.</strong> A detailed illustration with distinct color zones solves much faster than a
             gradient sky, a repeating pattern, or — the classic nightmare — a single-color puzzle. Two 1000-piece
             puzzles can honestly be hours apart for the same person.
         </li>
-        <li class="mb-3">
+        <li>
             <strong>Brand and cut.</strong> Piece shape variety, fit tightness, and print quality differ between
             manufacturers. Ribbon-cut puzzles (regular grid) reward speed technique; random-cut pieces slow down
             edge-matching but give more shape information.
         </li>
-        <li class="mb-3">
+        <li>
             <strong>Setup.</strong> Table space large enough to lay out most pieces, good lighting, and sorting trays
             save a surprising amount of time — puzzlers lose minutes to re-scanning piles they have already searched.
         </li>
-        <li class="mb-3">
+        <li>
             <strong>Familiarity.</strong> As the data above shows, repeat solves are faster than first attempts. Solving
             with a picture reference visible is also faster than solving "blind", which some competitions require.
         </li>
     </ul>
 
-    <h2 class="h4 mt-4">How we measured this</h2>
+    <h2>How we measured this</h2>
 
     <p>
         Every number on this page is computed from solve times recorded by real puzzlers on MySpeedPuzzling — timed with
@@ -199,7 +190,7 @@
         tracks new solves.
     </p>
 
-    <h2 class="h4 mt-4">Find out how long it takes <em>you</em></h2>
+    <h2>Find out how long it takes <em>you</em></h2>
 
     <p>
         The median is a community answer — your answer takes one puzzle and a stopwatch. Time your next solve with the

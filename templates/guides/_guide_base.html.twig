@@ -73,19 +73,93 @@
     {% endif %}
 {% endblock %}
 
-{% block content %}
-    {% if guide_published is defined %}
-        {{ include('_breadcrumb.html.twig', {items: [
-            {label: 'guides.breadcrumb.home'|trans, url: path('homepage', {'_locale': 'en'})},
-            {label: 'guides.breadcrumb.guides'|trans, url: path('guides')},
-            {label: guide_title},
-        ]}) }}
-    {% else %}
-        {{ include('_breadcrumb.html.twig', {items: [
-            {label: 'guides.breadcrumb.home'|trans, url: path('homepage', {'_locale': 'en'})},
-            {label: 'guides.breadcrumb.guides'|trans},
-        ]}) }}
-    {% endif %}
+{% set guideNav = [
+    {route: 'guide_what_is_speed_puzzling', icon: 'bi-question-circle', title: 'guides.what_is.title', description: 'guides.what_is.card_description'},
+    {route: 'guide_puzzle_time_by_pieces', icon: 'bi-stopwatch', title: 'guides.how_long.title', description: 'guides.how_long.card_description'},
+    {route: 'guide_speed_puzzling_tips', icon: 'bi-lightning', title: 'guides.tips.title', description: 'guides.tips.card_description'},
+] %}
 
-    {% block guide_content %}{% endblock %}
+{% block full_content %}
+    {% set isGuideDetail = guide_published is defined %}
+
+    <header class="guide-hero{{ isGuideDetail ? '' : ' guide-hero-index' }}">
+        <div class="container">
+            <div class="guide-hero-inner">
+                <div class="guide-hero-breadcrumb">
+                    {% if isGuideDetail %}
+                        {{ include('_breadcrumb.html.twig', {items: [
+                            {label: 'guides.breadcrumb.home'|trans, url: path('homepage', {'_locale': 'en'})},
+                            {label: 'guides.breadcrumb.guides'|trans, url: path('guides')},
+                            {label: guide_title},
+                        ]}) }}
+                    {% else %}
+                        {{ include('_breadcrumb.html.twig', {items: [
+                            {label: 'guides.breadcrumb.home'|trans, url: path('homepage', {'_locale': 'en'})},
+                            {label: 'guides.breadcrumb.guides'|trans},
+                        ]}) }}
+                    {% endif %}
+                </div>
+
+                {% if isGuideDetail %}
+                    <p class="guide-eyebrow">{{ 'guides.ui.eyebrow'|trans }}</p>
+                {% endif %}
+
+                {% block guide_header %}{% endblock %}
+
+                {% if isGuideDetail %}
+                    <div class="guide-hero-meta">
+                        <span class="guide-meta-chip">
+                            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                            {{- 'guides.ui.updated'|trans({'%date%': guide_modified|date('F j, Y')}) -}}
+                        </span>
+                        {% block guide_hero_meta %}{% endblock %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    {% block guide_body %}
+        <div class="container guide-body">
+            <article class="guide-article">
+                {% block guide_content %}{% endblock %}
+            </article>
+        </div>
+    {% endblock %}
+
+    {% if isGuideDetail %}
+        <section class="guide-next" aria-label="{{ 'guides.ui.read_next'|trans }}">
+            <div class="container">
+                <p class="guide-next-eyebrow">{{ 'guides.ui.read_next'|trans }}</p>
+                <div class="row g-4">
+                    {% for nextGuide in guideNav|filter(nextGuide => nextGuide.route != currentRoute) %}
+                        <div class="col-md-6">
+                            <div class="guide-card">
+                                <div class="guide-card-icon" aria-hidden="true"><i class="bi {{ nextGuide.icon }}"></i></div>
+                                <p class="guide-card-title">
+                                    <a class="stretched-link" href="{{ path(nextGuide.route) }}">{{ nextGuide.title|trans }}</a>
+                                </p>
+                                <p class="guide-card-text">{{ nextGuide.description|trans }}</p>
+                                <span class="guide-card-link" aria-hidden="true">
+                                    {{ 'guides.index.read_guide'|trans }} <i class="bi bi-arrow-right"></i>
+                                </span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <section class="guide-cta">
+            <div class="container text-center">
+                <p class="guide-cta-title">{{ 'guides.ui.cta_title'|trans }}</p>
+                <div class="guide-cta-actions">
+                    {% block guide_cta_buttons %}
+                        <a href="{{ path('stopwatch') }}" class="btn btn-light btn-lg"><i class="ci-time me-2" aria-hidden="true"></i>{{ 'guides.ui.cta_stopwatch'|trans }}</a>
+                        <a href="{{ path('puzzles') }}" class="btn btn-outline-light btn-lg">{{ 'guides.ui.cta_puzzles'|trans }}</a>
+                    {% endblock %}
+                </div>
+            </div>
+        </section>
+    {% endif %}
 {% endblock %}

@@ -49,6 +49,7 @@ final class LazyImageTwigExtension extends AbstractExtension
      * @param int $position Position in list (1-based). First 4 positions are eager-loaded.
      * @param int $size Display size in pixels (60, 80, or 90)
      * @param string $class Additional CSS classes for the wrapper
+     * @param bool $fetchpriorityHigh Marks the image as the likely LCP element (only applied to eager images)
      */
     public function lazyPuzzleImage(
         null|string $path,
@@ -59,6 +60,7 @@ final class LazyImageTwigExtension extends AbstractExtension
         string $class = '',
         null|int $maxHeight = null,
         null|float $imageRatio = null,
+        bool $fetchpriorityHigh = false,
     ): string {
         $src = $this->getImageSrc($path, $filter);
         $sizeClass = $this->getSizeClass($size);
@@ -78,7 +80,7 @@ final class LazyImageTwigExtension extends AbstractExtension
         // Use both onload (for fresh loads) and inline complete check (for cached images after Turbo morph)
         if ($isEager) {
             $imgClasses = 'lazy-img loaded';
-            $extraAttrs = '';
+            $extraAttrs = $fetchpriorityHigh ? ' fetchpriority="high"' : '';
         } else {
             $imgClasses = 'lazy-img';
             $extraAttrs = ' onload="this.classList.add(\'loaded\')"';

@@ -33,6 +33,8 @@ class Manufacturer
         public null|string $logo = null,
         #[Column(nullable: true)]
         public null|string $eanPrefix = null,
+        #[Column(nullable: true, unique: true)]
+        public null|string $slug = null,
     ) {
     }
 }

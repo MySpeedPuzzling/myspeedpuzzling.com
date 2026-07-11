@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
-use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Puzzle;
@@ -15,7 +14,9 @@ use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\GenerateManufacturerSlug;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
+use SpeedPuzzling\Web\Services\PuzzleImageNamer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -26,8 +27,9 @@ readonly final class AddPuzzleHandler
         private PlayerRepository $playerRepository,
         private ManufacturerRepository $manufacturerRepository,
         private Filesystem $filesystem,
-        private ClockInterface $clock,
         private ImageOptimizer $imageOptimizer,
+        private GenerateManufacturerSlug $generateManufacturerSlug,
+        private PuzzleImageNamer $puzzleImageNamer,
     ) {
     }
 
@@ -48,6 +50,7 @@ readonly final class AddPuzzleHandler
                 false,
                 $player,
                 $now,
+                slug: $this->generateManufacturerSlug->fromName($message->brand),
             );
 
             $this->entityManager->persist($manufacturer);
@@ -56,9 +59,14 @@ readonly final class AddPuzzleHandler
         $puzzlePhotoPath = null;
         $puzzleImageRatio = null;
         if ($message->puzzlePhoto !== null) {
-            $extension = $message->puzzlePhoto->guessExtension();
-            $timestamp = $this->clock->now()->getTimestamp();
-            $puzzlePhotoPath = "$message->puzzleId-$timestamp.$extension";
+            $extension = $message->puzzlePhoto->guessExtension() ?? 'jpg';
+            $puzzlePhotoPath = $this->puzzleImageNamer->generateFilename(
+                $manufacturer->name,
+                $message->puzzleName,
+                $message->piecesCount,
+                $message->puzzleId->toString(),
+                $extension,
+            );
 
             $this->imageOptimizer->optimize($message->puzzlePhoto->getPathname());
             $puzzleImageRatio = $this->imageOptimizer->getImageRatio($message->puzzlePhoto->getPathname());

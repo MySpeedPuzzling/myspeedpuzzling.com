@@ -61,6 +61,54 @@ SQL;
         return $rows;
     }
 
+    public function countApprovedWithImages(): int
+    {
+        $query = <<<SQL
+SELECT COUNT(puzzle.id)
+FROM puzzle
+WHERE puzzle.approved = true
+    AND puzzle.image IS NOT NULL
+    AND (puzzle.hide_image_until IS NULL OR puzzle.hide_image_until <= :now)
+    AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now)
+SQL;
+
+        $count = $this->database
+            ->executeQuery($query, [
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            ])
+            ->fetchOne();
+
+        return is_numeric($count) ? (int) $count : 0;
+    }
+
+    /**
+     * @return list<array{id: string, lastmod: null|string, image: string}>
+     */
+    public function approvedPageWithImages(int $limit, int $offset): array
+    {
+        $query = <<<SQL
+SELECT puzzle.id, to_char(puzzle.added_at, 'YYYY-MM-DD') AS lastmod, puzzle.image
+FROM puzzle
+WHERE puzzle.approved = true
+    AND puzzle.image IS NOT NULL
+    AND (puzzle.hide_image_until IS NULL OR puzzle.hide_image_until <= :now)
+    AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now)
+ORDER BY puzzle.id
+LIMIT :limit OFFSET :offset
+SQL;
+
+        /** @var list<array{id: string, lastmod: null|string, image: string}> $rows */
+        $rows = $this->database
+            ->executeQuery($query, [
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+                'limit' => $limit,
+                'offset' => $offset,
+            ])
+            ->fetchAllAssociative();
+
+        return $rows;
+    }
+
     /**
      * @return array<string>
      */

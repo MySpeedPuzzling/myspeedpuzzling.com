@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Query\GetPuzzleCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzleRedirect;
+use SpeedPuzzling\Web\Query\GetRelatedPuzzles;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -37,6 +38,7 @@ final class PuzzleDetailController extends AbstractController
         readonly private ClockInterface $clock,
         readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
         readonly private GetPlayerPrediction $getPlayerPrediction,
+        readonly private GetRelatedPuzzles $getRelatedPuzzles,
     ) {
     }
 
@@ -95,6 +97,7 @@ final class PuzzleDetailController extends AbstractController
             'is_image_hidden' => $isImageHidden,
             'puzzle_difficulty' => $puzzleDifficulty,
             'time_prediction' => $timePrediction,
+            'related_puzzles' => $this->getRelatedPuzzles->byManufacturer($puzzle->manufacturerId, $puzzleId, 6),
         ]);
     }
 }

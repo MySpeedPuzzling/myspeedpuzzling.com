@@ -75,5 +75,33 @@
                 </div>
             </div>
         </div>
+
+        <div class="row gy-3 mt-1">
+            <div class="col-lg-6 col-md-8 col-sm-10">
+                <h2 class="h3">{{ 'homepage.seo_sections.what_is.title'|trans }}</h2>
+                <p>{{ 'homepage.seo_sections.what_is.text'|trans({'%guide_link%': path('guide_what_is_speed_puzzling')})|raw }}</p>
+            </div>
+            <div class="col-lg-6 col-md-8 col-sm-10">
+                <h2 class="h3">{{ 'homepage.seo_sections.track.title'|trans }}</h2>
+                <p>{{ 'homepage.seo_sections.track.text'|trans({'%tracker_link%': path('puzzle_tracker_app'), '%stopwatch_link%': path('stopwatch')})|raw }}</p>
+            </div>
+            <div class="col-lg-6 col-md-8 col-sm-10">
+                <h2 class="h3">{{ 'homepage.seo_sections.leaderboards.title'|trans }}</h2>
+                <p>{{ 'homepage.seo_sections.leaderboards.text'|trans({'%ladder_link%': path('ladder'), '%rating_link%': path('msp_rating_ladder')})|raw }}</p>
+            </div>
+            <div class="col-lg-6 col-md-8 col-sm-10">
+                <h2 class="h3">{{ 'homepage.seo_sections.competitions.title'|trans }}</h2>
+                <p>{{ 'homepage.seo_sections.competitions.text'|trans({'%events_link%': path('events')})|raw }}</p>
+            </div>
+            <div class="col-lg-6 col-md-8 col-sm-10">
+                <h2 class="h3">{{ 'homepage.seo_sections.database.title'|trans }}</h2>
+                <p>{{ 'homepage.seo_sections.database.text'|trans({
+                    '%ravensburger_link%': path('brand_puzzles', {slug: 'ravensburger'}),
+                    '%schmidt_link%': path('brand_puzzles', {slug: 'schmidt'}),
+                    '%trefl_link%': path('brand_puzzles', {slug: 'trefl'}),
+                    '%puzzles_link%': path('puzzles'),
+                })|raw }}</p>
+            </div>
+        </div>
     </div>
 {% endblock %}

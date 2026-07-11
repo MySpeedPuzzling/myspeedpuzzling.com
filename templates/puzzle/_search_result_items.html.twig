@@ -1,6 +1,9 @@
 {# One page of puzzle search results. Shared by the PuzzleSearch live
    component (first page) and the puzzle_search_items endpoint (appended
-   pages) so the rendered items can never drift apart. #}
+   pages) so the rendered items can never drift apart.
+
+   position_offset: 0 on the initial page render makes the first items
+   eager-loaded (LCP); appended pages omit it (default 999 keeps them lazy). #}
 {% for puzzle in puzzles %}
     {{ include('_puzzle_item.html.twig', {
         'puzzle': puzzle,
@@ -10,5 +13,6 @@
         'tags': tags,
         'difficulty_data': difficulty_data,
         'offer_counts': offer_counts,
+        'position': loop.index + position_offset|default(999),
     }) }}
 {% endfor %}

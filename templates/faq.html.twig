@@ -5,8 +5,13 @@
 
 {% block json_ld %}
 {{ parent() }}
-{% set faq_items = ['fair_play', 'qr', 'add_time_for_missing_puzzle', 'edit_or_delete_time', 'button_start_solving', 'button_add_my_time', 'helping'] %}
-{% set faq_params = {'%link%': path('my_profile')} %}
+{% set faq_items = ['what_is_speed_puzzling', 'how_long_1000_pieces', 'how_competitions_work', 'fair_play', 'qr', 'add_time_for_missing_puzzle', 'edit_or_delete_time', 'button_start_solving', 'button_add_my_time', 'helping'] %}
+{% set faq_params = {
+    '%link%': path('my_profile'),
+    '%guide_link%': path('guide_what_is_speed_puzzling'),
+    '%times_guide_link%': path('guide_puzzle_time_by_pieces'),
+    '%events_link%': path('events'),
+} %}
 <script type="application/ld+json">
 {
     "@context": "https://schema.org",
@@ -34,8 +39,13 @@
     {{ 'faq.intro_block'|trans|raw }}
 
     <div class="accordion accordion-faq my-3">
-        {% set faq_body_params = {'%link%': path('my_profile')} %}
-        {% for item in ['fair_play', 'qr', 'add_time_for_missing_puzzle', 'edit_or_delete_time', 'button_start_solving', 'button_add_my_time', 'helping'] %}
+        {% set faq_body_params = {
+            '%link%': path('my_profile'),
+            '%guide_link%': path('guide_what_is_speed_puzzling'),
+            '%times_guide_link%': path('guide_puzzle_time_by_pieces'),
+            '%events_link%': path('events'),
+        } %}
+        {% for item in ['what_is_speed_puzzling', 'how_long_1000_pieces', 'how_competitions_work', 'fair_play', 'qr', 'add_time_for_missing_puzzle', 'edit_or_delete_time', 'button_start_solving', 'button_add_my_time', 'helping'] %}
             <div class="accordion-item my-2 shadow">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#item-{{ item }}" aria-expanded="false" aria-controls="item-{{ item }}">

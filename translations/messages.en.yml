@@ -39,15 +39,25 @@ form:
     visibility_public: "Public"
     visibility_private: "Private"
 
+crossroads:
+    meta:
+        title: "Speed Puzzling Times, Rankings & Events"
+        description: "MySpeedPuzzling is the world's speed puzzling community: track jigsaw puzzle solve times, compare rankings and find competitions. Choose your language."
+    tagline: "The world's speed puzzling community — track jigsaw puzzle solve times, climb leaderboards and find competitions."
+    intro: 'MySpeedPuzzling is the home of <strong>speed puzzling</strong>: a database of thousands of jigsaw puzzles with real solve times, global leaderboards, and a calendar of speed puzzling competitions worldwide. Pick your language above to get started.'
+
 footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"
-    about: "My Speed Puzzling is the world's largest puzzle tracker and community platform for all puzzle lovers.<br>Track your jigsaw puzzle collection, log solving times, and compare with others. Whether you puzzle for relaxation or speed, this is your place to share and have fun together."
+    about: "MySpeedPuzzling is the world's largest speed puzzling platform and jigsaw puzzle time tracker.<br>Track your puzzle collection, log solve times, and compare with puzzlers worldwide. Whether you puzzle for relaxation or speed, this is your place to share and have fun together."
     popular_search: "Popular searches"
     speed_puzzling_leaderboard: "Speed Puzzling Leaderboard"
     speed_puzzling_players: "Speed Puzzling Players"
     latest_puzzle_times: "Latest Puzzle Times"
     750_piece_puzzles: "750 Piece Puzzles"
     puzzle_add: "Add puzzle"
+    puzzle_tracker_app: "Puzzle Tracker App"
+    guides: "Speed Puzzling Guides"
+    methodology: "Difficulty & Rating Methodology"
 
 puzzler_name: "Name"
 puzzler: "Puzzler"
@@ -121,7 +131,7 @@ homepage:
     title: "Welcome Puzzler, to the World of Speed Puzzling!"
     intro_text: "Speed Puzzling is an exciting sport where the goal is to assemble puzzles as quickly as possible. Every piece counts, every second matters. Imagine traditional puzzle-solving but with the adrenaline of a racetrack! Our platform is the first of its kind - a place where you can test your puzzle-solving skills not just against time, but also against other puzzle enthusiasts."
     why_block: |
-        <h3>Why would I join?</h3>
+        <h2 class="h3">Why would I join?</h2>
         <ul>
             <li><strong>Compete with others:</strong> Share your times and compare them with other puzzlers</li>
             <li><strong>Leaderboards and statistics:</strong> Discover the rankings of the fastest puzzlers, most assembled puzzles, and most active users</li>
@@ -131,14 +141,30 @@ homepage:
             <li><strong>Expand your horizons:</strong> We plan to organize competitions, both online and in the future offline, so you can show off your skills live</li>
         </ul>
     help_us_grow_block: |
-        <h3>Help Us Grow</h3>
+        <h2 class="h3">Help Us Grow</h2>
         <p>Our app is just starting, and your ideas, feedback, and help in finding bugs are invaluable. Join us in this early stage and have a direct impact on the future of speed puzzling.</p>
     start_today_block: |
-        <h3>Start Today</h3>
+        <h2 class="h3">Start Today</h2>
         <p>Whether you're a beginner or an experienced puzzler, our platform offers the perfect place to develop your skills and measure up against others. Join us and become part of the future of speed puzzling!</p>
     cta_sign_in: "Sign in"
     cta_my_profile: "My profile"
     cta_recent: "Recent times"
+    seo_sections:
+        what_is:
+            title: "What Is Speed Puzzling?"
+            text: 'Speed puzzling (also written speedpuzzling) is the sport of assembling jigsaw puzzles against the clock — solo, in pairs or in teams. What began as a living-room hobby has grown into a worldwide competitive scene with its own championships and a wonderfully welcoming community. New to the sport? Read our <a href="%guide_link%">complete guide to speed puzzling</a> to learn how it works and how to get started.'
+        track:
+            title: "Track Your Jigsaw Puzzle Times"
+            text: 'MySpeedPuzzling is a free <a href="%tracker_link%">puzzle tracker app</a> for every jigsaw lover. Time your solves with the built-in <a href="%stopwatch_link%">stopwatch</a>, log finished puzzles with photos, and keep your whole collection organized in one place. Every recorded time feeds your personal statistics, so you can watch yourself getting faster puzzle after puzzle.'
+        leaderboards:
+            title: "Compete on Global Leaderboards"
+            text: 'See how your times stack up against speed puzzlers from all over the world. The <a href="%ladder_link%">global leaderboard</a> ranks the fastest jigsaw puzzle times by piece count for solo, pairs and teams, while the <a href="%rating_link%">MSP Rating ladder</a> measures your overall skill. Whether you are chasing records or just curious, there is a ranking for you.'
+        competitions:
+            title: "Speed Puzzling Competitions & Events"
+            text: 'From local meetups to the World Jigsaw Puzzle Championship, speed puzzling competitions take place all around the globe — live and online. Browse the <a href="%events_link%">events calendar</a> to find upcoming competitions near you, follow results, and meet puzzlers who love racing the clock as much as you do.'
+        database:
+            title: "Browse the Jigsaw Puzzle Database"
+            text: 'Explore thousands of jigsaw puzzles with real solve times recorded by the community. Compare median and fastest times for puzzles by <a href="%ravensburger_link%">Ravensburger</a>, <a href="%schmidt_link%">Schmidt</a> or <a href="%trefl_link%">Trefl</a>, check how difficult a puzzle really is before you buy it, and pick your next challenge in the complete <a href="%puzzles_link%">puzzle database</a>.'
 
 ladder:
     title: "Speed Puzzling Leaderboard"
@@ -410,7 +436,7 @@ error:
         message: "Something went wrong... if you believe the error is not on your side, please write to us."
     404:
         title: "Page not found"
-        message: "Unfortunately, we could not find the page you requested. Please check the URL.."
+        message: "Unfortunately, we could not find the page you requested. Please check the URL."
     500:
         title: "Unknown error"
         message: "Something went wrong - we've been notified and will fix it as soon as possible"
@@ -757,6 +783,18 @@ faq:
     answer_helping: |
         <p class="mb-0">Sure! Connect with us, ideally with an idea of how you would like to get involved in building the speed puzzling community, we'll put our heads together and surely come up with something.</p>
 
+    question_what_is_speed_puzzling: What is speed puzzling?
+    answer_what_is_speed_puzzling: |
+        <p class="mb-0">Speed puzzling is the sport of assembling jigsaw puzzles as fast as possible — solo, in pairs, or in teams. Puzzlers race the clock, track their solve times, and compete at live and online events all over the world. Want to dive deeper? Read our <a href="%guide_link%">complete guide to speed puzzling</a> — it covers the formats, typical times, and how to get started.</p>
+
+    question_how_long_1000_pieces: How long does a 1000-piece puzzle take?
+    answer_how_long_1000_pieces: |
+        <p class="mb-0">Based on the solo solves recorded on MySpeedPuzzling, the median time for a 1000-piece jigsaw puzzle is around 3 hours 20 minutes. Speed puzzlers regularly finish in under 2 hours, and the fastest go far below that. See the <a href="%times_guide_link%">full statistics by piece count</a> for medians, percentiles and record times.</p>
+
+    question_how_competitions_work: How do speed puzzling competitions work?
+    answer_how_competitions_work: |
+        <p class="mb-0">In most competitions everyone assembles the same puzzle at the same time — whoever finishes first, or has the fewest pieces left when time runs out, wins. There are solo, pairs and team categories, from local meetups to the World Jigsaw Puzzle Championship, plus online contests. Browse our <a href="%events_link%">events calendar</a> to find a competition near you.</p>
+
 profile:
     add_to_favorites: "Add to favorites"
     remove_from_favorites: "Remove from favorites"
@@ -852,6 +890,9 @@ puzzle_detail:
         description_with_times: "%brand% %name%, %pieces% pieces — fastest time %fastest%, average %average% from %count% solves on MySpeedPuzzling."
     breadcrumb:
         database: "Jigsaw Puzzle Database"
+    related:
+        title: "More %brand% puzzles"
+        view_all: "View all %brand% puzzles"
 
 puzzlers:
     meta:
@@ -2906,3 +2947,52 @@ activity_calendar:
     friday_short: "Fri"
     saturday_short: "Sat"
     sunday_short: "Sun"
+
+brand_hub:
+    meta:
+        title: "%brand% Puzzles – Solve Times & Difficulty"
+        description: "%brand% jigsaw puzzles on MySpeedPuzzling: %count% puzzles with real solve times from speed puzzlers — median times, difficulty and most-solved picks."
+    title: "%brand% Puzzles – Solve Times & Difficulty"
+    stats:
+        puzzles: "Puzzles in database"
+        solves: "Recorded solves"
+        median_time: "Median solo time"
+        provenance: "Based on %solves% recorded solves."
+    median_by_pieces: "Median solo time by piece count"
+    pieces_link: "%pieces% piece puzzles"
+    most_solved: "Most solved %brand% puzzles"
+    view_all: "View all %brand% puzzles"
+
+pieces_hub:
+    meta:
+        title: "%pieces% Piece Puzzles – Real Solve Times"
+        description: "How long does a %pieces% piece jigsaw puzzle take? Median solo time %median% from %solves% recorded solves. Browse %count% puzzles with real times."
+        description_no_median: "%pieces% piece jigsaw puzzles on MySpeedPuzzling: %count% puzzles with real solve times from speed puzzlers worldwide."
+    title: "%pieces% Piece Puzzles – Real Solve Times"
+    top_brands: "Popular %pieces% piece puzzle brands"
+    most_solved: "Most solved %pieces% piece puzzles"
+    view_all: "View all %pieces% piece puzzles"
+
+guides:
+    breadcrumb:
+        home: "Home"
+        guides: "Guides"
+    index:
+        title: "Speed Puzzling Guides"
+        meta_description: "Guides to speed puzzling backed by real solve-time data: how long puzzles really take, how competitions work, and how to get faster."
+        intro: "Written by the speed puzzling community, backed by real tracked solve times — not guesses."
+        read_guide: "Read the guide"
+        footnote: "All statistics in these guides are computed from solves recorded on MySpeedPuzzling and refresh automatically as the community tracks new times."
+    what_is:
+        title: "What Is Speed Puzzling?"
+        meta_description: "Speed puzzling is jigsaw puzzling against the clock. Learn how competitions like the WJPC work, what times are typical, and how to get started."
+        card_description: "The complete introduction: formats, how competitions work, typical times, and how to join the community."
+    how_long:
+        title: "How Long Does a 1000 Piece Puzzle Take?"
+        meta_description: "Measured across %count% recorded solo solves: the median 1000-piece puzzle takes %median%. Real percentiles and fastest times, by piece count."
+        meta_description_fallback: "The only data-backed answer online: median times, percentiles and fastest recorded solves by piece count, from real tracked solves."
+        card_description: "Real data, not guesses: median times, percentiles, and fastest recorded results by piece count."
+    tips:
+        title: "Speed Puzzling Tips: How to Get Faster"
+        meta_description: "Ten practical speed puzzling tips used by competitive puzzlers — sorting, edges, color blocking, setup, and how to measure real progress."
+        card_description: "Ten techniques that actually cut your solve time, plus community benchmarks to measure yourself against."

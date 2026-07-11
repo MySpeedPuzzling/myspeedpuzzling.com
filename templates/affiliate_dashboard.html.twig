@@ -153,7 +153,7 @@
                                     <a href="{{ path('player_profile', {playerId: supporter.player_id}) }}"
                                        class="list-group-item list-group-item-action d-flex align-items-center gap-3 px-0">
                                         {% if supporter.player_avatar %}
-                                            <img src="{{ supporter.player_avatar|thumbnail('avatar_small') }}"
+                                            <img src="{{ supporter.player_avatar|thumbnail('avatar') }}"
                                                  class="rounded-circle"
                                                  width="32" height="32"
                                                  alt="">

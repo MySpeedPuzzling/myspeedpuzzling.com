@@ -15,15 +15,19 @@
         <div class="d-flex">
             <div style="width: 90px;">
                 <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                    {# position defaults to 999 (lazy) - only the initial puzzle
+                       listing page passes real positions so the first 4 images
+                       load eagerly and the very first one is fetchpriority=high #}
                     {{ lazy_puzzle_image(
                         puzzle.puzzleImage,
                         'puzzle_small',
                         'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}),
-                        999,
+                        position|default(999),
                         90,
                         'rounded-2',
                         60,
-                        puzzle.puzzleImageRatio
+                        puzzle.puzzleImageRatio,
+                        position|default(999) == 1
                     ) }}
                 </a>
             </div>

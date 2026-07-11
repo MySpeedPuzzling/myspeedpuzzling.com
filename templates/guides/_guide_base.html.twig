@@ -1,0 +1,91 @@
+{% extends 'base.html.twig' %}
+
+{# Guides live at a single /en/ URL by design - no localized route variants.
+   The base template would generate 7 identical hreflang URLs for such routes
+   (invalid hreflang), so emit a single self-referencing en + x-default pair. #}
+{% block hreflang %}
+    <link rel="alternate" hreflang="en" href="{{ url(currentRoute) }}">
+    <link rel="alternate" hreflang="x-default" href="{{ url(currentRoute) }}">
+{% endblock %}
+
+{% block title %}{{ guide_title }}{% endblock %}
+{% block meta_description %}{{ guide_description }}{% endblock %}
+
+{% block json_ld %}
+    {{ parent() }}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": {{ 'guides.breadcrumb.home'|trans({}, 'messages', 'en')|json_encode|raw }},
+                "item": {{ url('homepage', {'_locale': 'en'})|json_encode|raw }}
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": {{ 'guides.breadcrumb.guides'|trans({}, 'messages', 'en')|json_encode|raw }},
+                "item": {{ url('guides')|json_encode|raw }}
+            }{% if guide_published is defined %},
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": {{ guide_title|json_encode|raw }},
+                "item": {{ url(currentRoute)|json_encode|raw }}
+            }{% endif %}
+        ]
+    }
+    </script>
+    {% if guide_published is defined %}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": {{ guide_title|json_encode|raw }},
+        "description": {{ guide_description|json_encode|raw }},
+        "datePublished": {{ guide_published|json_encode|raw }},
+        "dateModified": {{ guide_modified|json_encode|raw }},
+        "inLanguage": "en",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": {{ url(currentRoute)|json_encode|raw }}
+        },
+        "author": {
+            "@type": "Organization",
+            "@id": "https://myspeedpuzzling.com/#organization",
+            "name": "MySpeedPuzzling",
+            "url": {{ url('homepage', {'_locale': 'en'})|json_encode|raw }}
+        },
+        "publisher": {
+            "@type": "Organization",
+            "@id": "https://myspeedpuzzling.com/#organization",
+            "name": "MySpeedPuzzling",
+            "logo": {
+                "@type": "ImageObject",
+                "url": {{ absolute_url(asset('img/speedpuzzling-logo.png'))|json_encode|raw }}
+            }
+        }
+    }
+    </script>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% if guide_published is defined %}
+        {{ include('_breadcrumb.html.twig', {items: [
+            {label: 'guides.breadcrumb.home'|trans, url: path('homepage', {'_locale': 'en'})},
+            {label: 'guides.breadcrumb.guides'|trans, url: path('guides')},
+            {label: guide_title},
+        ]}) }}
+    {% else %}
+        {{ include('_breadcrumb.html.twig', {items: [
+            {label: 'guides.breadcrumb.home'|trans, url: path('homepage', {'_locale': 'en'})},
+            {label: 'guides.breadcrumb.guides'|trans},
+        ]}) }}
+    {% endif %}
+
+    {% block guide_content %}{% endblock %}
+{% endblock %}

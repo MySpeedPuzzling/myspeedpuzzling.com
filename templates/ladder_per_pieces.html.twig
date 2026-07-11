@@ -15,5 +15,5 @@
 
     {{ include('_ladder_dropdown_countries.html.twig') }}
 
-    <twig:LadderTable loading="lazy" :type="type" :piecesCount="pieces" :limit="100" :countryCode="active_country ? active_country.name : null" />
+    <twig:LadderTable :type="type" :piecesCount="pieces" :limit="100" :countryCode="active_country ? active_country.name : null" />
 {% endblock %}

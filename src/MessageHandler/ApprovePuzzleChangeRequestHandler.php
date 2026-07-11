@@ -92,6 +92,7 @@ readonly final class ApprovePuzzleChangeRequestHandler
                 $brandName,
                 $puzzle->name,
                 $puzzle->piecesCount,
+                $puzzle->id->toString(),
                 $extension,
             );
 

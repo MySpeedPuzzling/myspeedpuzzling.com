@@ -9,6 +9,13 @@ User-agent: *
 Disallow: /admin
 Disallow: /internal-api
 
+Disallow: /_components
+Disallow: /en/_components
+Disallow: /es/_components
+Disallow: /fr/_components
+Disallow: /de/_components
+Disallow: /ja/_components
+
 Disallow: /muj-profil
 Disallow: /pridat-cas
 Disallow: /puzzle-stopky

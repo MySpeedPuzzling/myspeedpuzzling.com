@@ -10,14 +10,16 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class HomepageControllerTest extends WebTestCase
 {
-    public function testAnonymousUserCanAccessPage(): void
+    public function testAnonymousUserGetsCrossroadsPage(): void
     {
         $browser = self::createClient();
 
         $browser->request('GET', '/');
-        $browser->followRedirect();
 
+        // The domain root is a real 200 language-crossroads page (not a redirect):
+        // required for Google's site-name system and the hreflang x-default anchor.
         $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('h1', 'MySpeedPuzzling');
     }
 
     public function testLoggedInUserCanAccessPage(): void

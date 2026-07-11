@@ -36,15 +36,24 @@
   "visibility": "Sichtbarkeit"
   "visibility_public": "Öffentlich"
   "visibility_private": "Privat"
+"crossroads":
+  "meta":
+    "title": "Speed Puzzle Zeiten, Bestenlisten & Wettbewerbe"
+    "description": "MySpeedPuzzling ist die weltweite Speedpuzzeln-Community: Erfasse Puzzle-Zeiten, vergleiche Bestenlisten und finde Wettbewerbe. Wähle deine Sprache."
+  "tagline": "Die weltweite Speedpuzzeln-Community — erfasse deine Puzzle-Zeiten, erklimme Bestenlisten und finde Speed Puzzle Wettbewerbe."
+  "intro": "MySpeedPuzzling ist das Zuhause des <strong>Speedpuzzelns</strong>: eine Datenbank mit Tausenden Puzzles und echten Legezeiten, weltweite Bestenlisten und ein Kalender mit Speed Puzzle Wettbewerben und Meisterschaften weltweit. Wähle oben deine Sprache und leg los."
 "footer":
   "created_with_love": "Mit Liebe für Puzzles und Code erstellt von %simona% und %jan%"
-  "about": "My Speed Puzzling ist der weltweit größte Puzzle-Tracker und eine Community-Plattform für alle Puzzle-Liebhaber.<br>Verfolgen Sie Ihre Puzzle-Sammlung, erfassen Sie Legezeiten und vergleichen Sie sich mit anderen. Ob zum Entspannen oder auf Zeit – hier können Sie teilen und gemeinsam Spaß haben."
+  "about": "MySpeedPuzzling ist die weltweit größte Speedpuzzeln-Plattform und der Zeit-Tracker für Ihre Puzzles.<br>Verfolgen Sie Ihre Puzzle-Sammlung, erfassen Sie Legezeiten und vergleichen Sie sich mit Puzzlern aus aller Welt. Ob Sie zum Entspannen oder auf Zeit puzzeln – hier können Sie teilen und gemeinsam Spaß haben."
   "popular_search": "Beliebte Suchanfragen"
   "speed_puzzling_leaderboard": "Speed Puzzling Bestenliste"
   "speed_puzzling_players": "Speed Puzzling Spieler"
   "latest_puzzle_times": "Neueste Puzzle-Zeiten"
   "750_piece_puzzles": "750-teilige Puzzles"
   "puzzle_add": "Puzzle hinzufügen"
+  "puzzle_tracker_app": "Puzzle Tracker App"
+  "guides": "Speed Puzzle Guides"
+  "methodology": "Schwierigkeits- & Rating-Methodik"
 "puzzler_name": "Name"
 "puzzler": "Puzzler"
 "puzzle": "Puzzle"
@@ -111,12 +120,28 @@
   "global_statistics": "Es hat uns alle zusammen so viel Zeit gekostet, <strong>%puzzles%</strong> Puzzles zu lösen.<br>Das sind unglaubliche <strong>%pieces%</strong> Teile."
   "title": "Willkommen Puzzler in der Welt des Speed Puzzling!"
   "intro_text": "Speed Puzzling ist ein aufregender Sport, bei dem das Ziel darin besteht, Puzzles so schnell wie möglich zusammenzusetzen. Jedes Teil zählt, jede Sekunde ist wichtig. Stell dir traditionelle Puzzle-Lösung vor, aber mit dem Adrenalin einer Rennstrecke! Unsere Plattform ist die erste ihrer Art - ein Ort, wo du deine Puzzle-Lösungsfähigkeiten nicht nur gegen die Zeit, sondern auch gegen andere Puzzle-Enthusiasten testen kannst."
-  "why_block": "<h3>Warum sollte ich beitreten?</h3>\n<ul>\n    <li><strong>Mit anderen konkurrieren:</strong> Teile deine Zeiten und vergleiche sie mit anderen Puzzlern</li>\n    <li><strong>Bestenlisten und Statistiken:</strong> Entdecke die Ranglisten der schnellsten Puzzler, meisten zusammengesetzten Puzzles und aktivsten Nutzer</li>\n    <li><strong>Stoppuhr:</strong> Nutze unsere integrierte Stoppuhr für einfaches Zeitmessen beim Puzzle-Zusammensetzen</li>\n    <li><strong>Deine Puzzles hinzufügen:</strong> Hast du ein Puzzle, das auf unserer Seite fehlt? Füge es hinzu und teile deine Zeiten mit der Community.</li>\n    <li><strong>Baue deine Puzzle-Community auf:</strong> Tritt unserer wachsenden Community bei und teile Tipps, Tricks und freundschaftliche Rivalität</li>\n    <li><strong>Erweitere deinen Horizont:</strong> Wir planen Wettbewerbe zu organisieren, sowohl online als auch in Zukunft offline, damit du deine Fähigkeiten live zeigen kannst</li>\n</ul>\n"
-  "help_us_grow_block": "<h3>Hilf uns zu wachsen</h3>\n<p>Unsere App steht erst am Anfang, und deine Ideen, dein Feedback und deine Hilfe beim Finden von Fehlern sind von unschätzbarem Wert. Begleite uns in dieser frühen Phase und hab direkten Einfluss auf die Zukunft des Speed Puzzling.</p>\n"
-  "start_today_block": "<h3>Heute beginnen</h3>\n<p>Ob du ein Anfänger oder ein erfahrener Puzzler bist, unsere Plattform bietet den perfekten Ort, um deine Fähigkeiten zu entwickeln und dich mit anderen zu messen. Tritt uns bei und werde Teil der Zukunft des Speed Puzzling!</p>\n"
+  "why_block": "<h2 class=\"h3\">Warum sollte ich beitreten?</h2>\n<ul>\n    <li><strong>Mit anderen konkurrieren:</strong> Teile deine Zeiten und vergleiche sie mit anderen Puzzlern</li>\n    <li><strong>Bestenlisten und Statistiken:</strong> Entdecke die Ranglisten der schnellsten Puzzler, meisten zusammengesetzten Puzzles und aktivsten Nutzer</li>\n    <li><strong>Stoppuhr:</strong> Nutze unsere integrierte Stoppuhr für einfaches Zeitmessen beim Puzzle-Zusammensetzen</li>\n    <li><strong>Deine Puzzles hinzufügen:</strong> Hast du ein Puzzle, das auf unserer Seite fehlt? Füge es hinzu und teile deine Zeiten mit der Community.</li>\n    <li><strong>Baue deine Puzzle-Community auf:</strong> Tritt unserer wachsenden Community bei und teile Tipps, Tricks und freundschaftliche Rivalität</li>\n    <li><strong>Erweitere deinen Horizont:</strong> Wir planen Wettbewerbe zu organisieren, sowohl online als auch in Zukunft offline, damit du deine Fähigkeiten live zeigen kannst</li>\n</ul>\n"
+  "help_us_grow_block": "<h2 class=\"h3\">Hilf uns zu wachsen</h2>\n<p>Unsere App steht erst am Anfang, und deine Ideen, dein Feedback und deine Hilfe beim Finden von Fehlern sind von unschätzbarem Wert. Begleite uns in dieser frühen Phase und hab direkten Einfluss auf die Zukunft des Speed Puzzling.</p>\n"
+  "start_today_block": "<h2 class=\"h3\">Heute beginnen</h2>\n<p>Ob du ein Anfänger oder ein erfahrener Puzzler bist, unsere Plattform bietet den perfekten Ort, um deine Fähigkeiten zu entwickeln und dich mit anderen zu messen. Tritt uns bei und werde Teil der Zukunft des Speed Puzzling!</p>\n"
   "cta_sign_in": "Anmelden"
   "cta_my_profile": "Mein Profil"
   "cta_recent": "Neueste Zeiten"
+  "seo_sections":
+    "what_is":
+      "title": "Was ist Speedpuzzeln?"
+      "text": "Speedpuzzeln (auch Speed-Puzzeln oder Speed Puzzle genannt) ist der Sport, Puzzles auf Zeit zu legen — solo, zu zweit oder im Team. Aus einem gemütlichen Hobby ist eine weltweite Wettkampfszene mit eigenen Meisterschaften und einer herzlichen Community geworden. Neu dabei? Lies unseren <a href=\"%guide_link%\">kompletten Guide zum Speedpuzzeln</a> (auf Englisch) und erfahre, wie es funktioniert und wie du startest."
+    "track":
+      "title": "Erfasse deine Puzzle-Zeiten"
+      "text": "MySpeedPuzzling ist eine kostenlose <a href=\"%tracker_link%\">Puzzle Tracker App</a> für alle Puzzle-Fans. Stoppe deine Legezeiten mit der integrierten <a href=\"%stopwatch_link%\">Stoppuhr</a>, halte fertige Puzzles mit Fotos fest und behalte deine ganze Sammlung an einem Ort im Blick. Jede erfasste Zeit fließt in deine persönlichen Statistiken ein — so siehst du, wie du Puzzle für Puzzle schneller wirst."
+    "leaderboards":
+      "title": "Wetteifere in weltweiten Bestenlisten"
+      "text": "Finde heraus, wie deine Zeiten im Vergleich zu Speed Puzzlern aus aller Welt abschneiden. Die <a href=\"%ladder_link%\">weltweite Bestenliste</a> zeigt die schnellsten Puzzle-Zeiten nach Teileanzahl für Solo, Paare und Teams, während die <a href=\"%rating_link%\">MSP Rating Rangliste</a> dein Können misst. Ob du Rekorde jagst oder einfach neugierig bist — hier ist ein Ranking für dich."
+    "competitions":
+      "title": "Speed Puzzle Wettbewerbe & Meisterschaften"
+      "text": "Von lokalen Treffen bis zur World Jigsaw Puzzle Championship — Speed Puzzle Wettbewerbe finden überall auf der Welt statt, live und online. Stöbere im <a href=\"%events_link%\">Veranstaltungskalender</a>, finde kommende Wettbewerbe und Meisterschaften in deiner Nähe, verfolge Ergebnisse und lerne Puzzler kennen, die das Puzzeln auf Zeit genauso lieben wie du."
+    "database":
+      "title": "Entdecke die Puzzle-Datenbank"
+      "text": "Entdecke Tausende Puzzles mit echten Legezeiten aus der Community. Vergleiche mediane und schnellste Zeiten für Puzzles von <a href=\"%ravensburger_link%\">Ravensburger</a>, <a href=\"%schmidt_link%\">Schmidt</a> oder <a href=\"%trefl_link%\">Trefl</a>, prüfe vor dem Kauf, wie schwierig ein Puzzle wirklich ist, und finde deine nächste Herausforderung in der kompletten <a href=\"%puzzles_link%\">Puzzle-Datenbank</a>."
 "ladder":
   "title": "Speed Puzzle Bestenliste"
   "meta":
@@ -591,6 +616,12 @@
   "answer_button_add_my_time": "<p class=\"mb-0\">Öffnet das Hinzufügen Ihrer Zeit zu ausgewählten Puzzles - geeignet, wenn Sie Ihre eigene Stoppuhr verwenden und gerade mit dem Zusammensetzen fertig geworden sind. Wenn Sie in der Vergangenheit zusammengesetzt haben und die Zeit aufzeichnen möchten, haben Sie die Möglichkeit, auch das Datum des Zusammensetzens anzugeben.</p>\n"
   "question_helping": "Möchten Sie eine helfende Hand?"
   "answer_helping": "<p class=\"mb-0\">Sicher! Kontaktieren Sie uns, idealerweise mit einer Idee, wie Sie sich am Aufbau der Speed Puzzling Community beteiligen möchten, wir werden unsere Köpfe zusammenstecken und sicherlich etwas ausdenken.</p>\n"
+  "question_what_is_speed_puzzling": "Was ist Speedpuzzeln?"
+  "answer_what_is_speed_puzzling": "<p class=\"mb-0\">Speedpuzzeln (Speed Puzzling) ist der Sport, Puzzles so schnell wie möglich zusammenzusetzen — solo, zu zweit oder im Team. Puzzler treten gegen die Uhr an, erfassen ihre Zeiten und messen sich bei Live- und Online-Wettbewerben auf der ganzen Welt. Möchten Sie mehr erfahren? Lesen Sie unseren <a href=\"%guide_link%\">kompletten Guide zum Speedpuzzeln</a> (auf Englisch) — er erklärt Formate, typische Zeiten und den Einstieg.</p>\n"
+  "question_how_long_1000_pieces": "Wie lange dauert ein Puzzle mit 1000 Teilen?"
+  "answer_how_long_1000_pieces": "<p class=\"mb-0\">Basierend auf den auf MySpeedPuzzling erfassten Solo-Ergebnissen liegt die mediane Zeit für ein 1000-Teile-Puzzle bei etwa 3 Stunden 20 Minuten. Speed Puzzler schaffen es regelmäßig unter 2 Stunden, die Schnellsten deutlich darunter. Die vollständigen <a href=\"%times_guide_link%\">Statistiken nach Teileanzahl</a> (auf Englisch) zeigen Mediane, Perzentile und Rekorde.</p>\n"
+  "question_how_competitions_work": "Wie funktionieren Speed Puzzle Wettbewerbe?"
+  "answer_how_competitions_work": "<p class=\"mb-0\">Bei den meisten Wettbewerben setzen alle Teilnehmer gleichzeitig dasselbe Puzzle zusammen — wer zuerst fertig ist oder beim Ablauf der Zeit die wenigsten Teile übrig hat, gewinnt. Es gibt Solo-, Paar- und Team-Kategorien, von lokalen Treffen bis zur World Jigsaw Puzzle Championship, dazu Online-Wettbewerbe. Stöbern Sie in unserem <a href=\"%events_link%\">Veranstaltungskalender</a> und finden Sie einen Wettbewerb in Ihrer Nähe.</p>\n"
 "profile":
   "add_to_favorites": "Zu Favoriten hinzufügen"
   "remove_from_favorites": "Aus Favoriten entfernen"
@@ -683,6 +714,9 @@
     "description_with_times": "%brand% %name%, %pieces% Teile — schnellste Zeit %fastest%, Durchschnitt %average% aus %count% Ergebnissen auf MySpeedPuzzling."
   "breadcrumb":
     "database": "Puzzle-Datenbank"
+  "related":
+    "title": "Weitere %brand% Puzzles"
+    "view_all": "Alle %brand% Puzzles anzeigen"
 "puzzlers":
   "meta":
     "title": "Speed Puzzler weltweit"
@@ -2660,3 +2694,26 @@ qr_code:
   "friday_short": "Fr"
   "saturday_short": "Sa"
   "sunday_short": "So"
+"brand_hub":
+  "meta":
+    "title": "%brand% Puzzles – Legezeiten & Schwierigkeit"
+    "description": "%brand% Puzzles auf MySpeedPuzzling: %count% Puzzles mit echten Legezeiten von Speed Puzzlern — mediane Zeiten, Schwierigkeit und meistgelegte Puzzles."
+  "title": "%brand% Puzzles – Legezeiten & Schwierigkeit"
+  "stats":
+    "puzzles": "Puzzles in der Datenbank"
+    "solves": "Erfasste Ergebnisse"
+    "median_time": "Mediane Solo-Zeit"
+    "provenance": "Basierend auf %solves% erfassten Ergebnissen."
+  "median_by_pieces": "Mediane Solo-Zeit nach Teileanzahl"
+  "pieces_link": "%pieces%-teilige Puzzles"
+  "most_solved": "Meistgelegte %brand% Puzzles"
+  "view_all": "Alle %brand% Puzzles anzeigen"
+"pieces_hub":
+  "meta":
+    "title": "%pieces%-teilige Puzzles – Echte Legezeiten"
+    "description": "Wie lange dauert ein Puzzle mit %pieces% Teilen? Mediane Solo-Zeit %median% aus %solves% erfassten Ergebnissen. Entdecke %count% Puzzles mit echten Zeiten."
+    "description_no_median": "%pieces%-teilige Puzzles auf MySpeedPuzzling: %count% Puzzles mit echten Legezeiten von Speed Puzzlern aus aller Welt."
+  "title": "%pieces%-teilige Puzzles – Echte Legezeiten"
+  "top_brands": "Beliebte Marken für %pieces%-teilige Puzzles"
+  "most_solved": "Meistgelegte %pieces%-teilige Puzzles"
+  "view_all": "Alle %pieces%-teiligen Puzzles anzeigen"

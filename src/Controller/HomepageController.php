@@ -47,7 +47,13 @@ final class HomepageController extends AbstractController
                 return $this->redirectToRoute('hub', ['_locale' => $locale]);
             }
 
-            return $this->redirectToRoute('homepage', ['_locale' => $locale]);
+            // Anonymous visitors get a real 200 language-crossroads page: the domain
+            // root must be a page (not a redirect) for Google's site-name system,
+            // and it anchors the hreflang x-default cluster. Returning visitors are
+            // auto-continued client-side via their stored language preference.
+            return $this->render('crossroads.html.twig', [
+                'suggested_locale' => $locale,
+            ]);
         }
 
         return $this->render('homepage.html.twig', [

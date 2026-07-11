@@ -36,15 +36,24 @@
   "visibility": "Viditelnost"
   "visibility_public": "Veřejná"
   "visibility_private": "Soukromá"
+"crossroads":
+  "meta":
+    "title": "Časy, žebříčky a závody ve speed puzzlingu"
+    "description": "MySpeedPuzzling je světová speed puzzling komunita: zaznamenávej časy skládání puzzle, porovnávej žebříčky a najdi závody. Vyber si svůj jazyk."
+  "tagline": "Světová speed puzzling komunita — zaznamenávej časy skládání puzzle, šplhej po žebříčcích a najdi závody."
+  "intro": "MySpeedPuzzling je domovem <strong>speed puzzlingu</strong>: databáze tisíců puzzlí se skutečnými časy skládání, světové žebříčky a kalendář závodů ve skládání puzzle na čas z celého světa. Začni výběrem jazyka výše."
 "footer":
   "created_with_love": "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"
-  "about": "My Speed Puzzling je největší puzzle tracker na světě a komunitní platforma pro všechny milovníky puzzlí.<br>Sledujte svou sbírku puzzle, zaznamenávejte časy skládání a porovnávejte se s ostatními. Ať už skládáte pro relaxaci nebo na rychlost, toto je vaše místo pro sdílení a společnou zábavu."
+  "about": "MySpeedPuzzling je největší speed puzzling platforma na světě a tracker časů skládání puzzle.<br>Sledujte svou sbírku puzzlí, zaznamenávejte časy skládání a porovnávejte se s puzzlery z celého světa. Ať už skládáte pro relaxaci, nebo na čas, tady je vaše místo pro sdílení a společnou zábavu."
   "popular_search": "Často hledané"
   "speed_puzzling_leaderboard": "Speed Puzzling Žebříček"
   "speed_puzzling_players": "Speed Puzzling Hráči"
   "latest_puzzle_times": "Nejnovější Časy Puzzlí"
   "750_piece_puzzles": "750 Dílkové Puzzle"
   "puzzle_add": "Přidat puzzle"
+  "puzzle_tracker_app": "Puzzle tracker aplikace"
+  "guides": "Průvodce speed puzzlingem"
+  "methodology": "Metodika obtížnosti a ratingu"
 "puzzler_name": "Jméno"
 "puzzler": "Puzzler"
 "puzzle": "Puzzle"
@@ -111,13 +120,29 @@
   "global_statistics": "Tolik času nám všem zabralo poskládat <strong>%puzzles%</strong>&nbsp;puzzlí.<br>To je neuvěřitelných <strong>%pieces%</strong>&nbsp;dílků."
   "title": "Vítej ve světě Speed Puzzlingu!"
   "intro_text": "Speed Puzzling je vzrušující sport, kde je cílem skládat puzzle co nejrychleji. Každý dílek se počítá, každá vteřina rozhoduje. Představte si tradiční skládání puzzle, ale s adrenalinem závodní dráhy! Naše platforma je první svého druhu - místo, kde můžete své dovednosti ve skládání puzzle měřit nejen proti času, ale také proti ostatním puzzle nadšencům."
-  "why_block": "<h3>Proč se zapojit?</h3>\n<ul>\n    <li><strong>Soutěžte s ostatními:</strong> Zaznamenávejte své časy a porovnávejte je s ostatními puzzlaři</li>\n    <li><strong>Žebříčky a statistiky:</strong> Objevte žebříčky nejrychlejších puzzlařů, nejskládanějších puzzlí a nejaktivnějších uživatelů</li>\n    <li><strong>Půjčovna puzzlí:</strong> Pouze za poštovné a balné si můžete vypůjčit puzzle, poskládat je na čas a zadat svůj výsledek, abyste se mohli porovnat s ostatními</li>\n    <li><strong>Stopky:</strong> Využijte naše integrované stopky pro snadné měření času vašeho skládání</li>\n    <li><strong>Přidejte své puzzle:</strong> Máte puzzle, které na naší stránce chybí? Přidejte ho a podělte se o své časy s komunitou.</li>\n    <li><strong>Budujte svou puzzlařskou komunitu:</strong> Připojte se k naší rostoucí komunitě a sdílejte tipy, triky a přátelskou rivalitu</li>\n    <li><strong>Rozšiřujte své horizonty:</strong> Plánujeme pořádat soutěže, jak online, tak v budoucnu i\
+  "why_block": "<h2 class=\"h3\">Proč se zapojit?</h2>\n<ul>\n    <li><strong>Soutěžte s ostatními:</strong> Zaznamenávejte své časy a porovnávejte je s ostatními puzzlaři</li>\n    <li><strong>Žebříčky a statistiky:</strong> Objevte žebříčky nejrychlejších puzzlařů, nejskládanějších puzzlí a nejaktivnějších uživatelů</li>\n    <li><strong>Půjčovna puzzlí:</strong> Pouze za poštovné a balné si můžete vypůjčit puzzle, poskládat je na čas a zadat svůj výsledek, abyste se mohli porovnat s ostatními</li>\n    <li><strong>Stopky:</strong> Využijte naše integrované stopky pro snadné měření času vašeho skládání</li>\n    <li><strong>Přidejte své puzzle:</strong> Máte puzzle, které na naší stránce chybí? Přidejte ho a podělte se o své časy s komunitou.</li>\n    <li><strong>Budujte svou puzzlařskou komunitu:</strong> Připojte se k naší rostoucí komunitě a sdílejte tipy, triky a přátelskou rivalitu</li>\n    <li><strong>Rozšiřujte své horizonty:</strong> Plánujeme pořádat soutěže, jak online, tak v budoucnu i\
     \ offline, abyste mohli své dovednosti ukázat naživo</li>\n</ul>\n"
-  "help_us_grow_block": "<h3>Pomozte nám růst</h3>\n<p>Naše aplikace je teprve v začátcích a vaše nápady, zpětná vazba a pomoc při odhalování chyb jsou neocenitelné. Připojte se k nám v této rané fázi a mějte přímý vliv na budoucí podobu speed puzzlingu.</p>\n"
-  "start_today_block": "<h3>Začněte dnes</h3>\n<p>Ať už jste začátečník nebo zkušený puzzlař, naše platforma vám nabízí ideální místo pro rozvoj vašich dovedností a měření sil s ostatními. Připojte se k nám a staňte se součástí budoucnosti speed puzzlingu!</p>\n"
+  "help_us_grow_block": "<h2 class=\"h3\">Pomozte nám růst</h2>\n<p>Naše aplikace je teprve v začátcích a vaše nápady, zpětná vazba a pomoc při odhalování chyb jsou neocenitelné. Připojte se k nám v této rané fázi a mějte přímý vliv na budoucí podobu speed puzzlingu.</p>\n"
+  "start_today_block": "<h2 class=\"h3\">Začněte dnes</h2>\n<p>Ať už jste začátečník nebo zkušený puzzlař, naše platforma vám nabízí ideální místo pro rozvoj vašich dovedností a měření sil s ostatními. Připojte se k nám a staňte se součástí budoucnosti speed puzzlingu!</p>\n"
   "cta_sign_in": "Přihlásit se"
   "cta_my_profile": "Můj profil"
   "cta_recent": "Nejnovější časy"
+  "seo_sections":
+    "what_is":
+      "title": "Co je speed puzzling?"
+      "text": "Speed puzzling je sport, ve kterém jde o skládání puzzle na čas — sólo, ve dvojicích nebo v týmech. Z pohodového koníčku se stal celosvětový soutěžní fenomén s vlastními šampionáty a skvělou komunitou. Jste ve speed puzzlingu nováčkem? Přečtěte si našeho <a href=\"%guide_link%\">kompletního průvodce speed puzzlingem</a> (v angličtině) a zjistěte, jak to celé funguje a jak začít."
+    "track":
+      "title": "Sledujte své časy skládání puzzle"
+      "text": "MySpeedPuzzling je bezplatná <a href=\"%tracker_link%\">puzzle tracker aplikace</a> pro každého milovníka puzzlí. Měřte svá skládání vestavěnými <a href=\"%stopwatch_link%\">stopkami</a>, zaznamenávejte složené puzzle i s fotkami a mějte celou svou sbírku přehledně na jednom místě. Každý zaznamenaný čas se promítne do vašich osobních statistik, takže uvidíte, jak se puzzle od puzzle zrychlujete."
+    "leaderboards":
+      "title": "Soutěžte ve světových žebříčcích"
+      "text": "Podívejte se, jak si vaše časy stojí v porovnání se speed puzzlery z celého světa. <a href=\"%ladder_link%\">Světový žebříček</a> řadí nejrychlejší časy skládání puzzle podle počtu dílků pro sólo, dvojice i týmy a <a href=\"%rating_link%\">MSP Rating žebříček</a> měří vaši celkovou úroveň. Ať už lovíte rekordy, nebo jste jen zvědaví, žebříček tu máme i pro vás."
+    "competitions":
+      "title": "Speed puzzling závody a eventy"
+      "text": "Od místních setkání po mistrovství světa World Jigsaw Puzzle Championship — závody ve skládání puzzle na čas se konají po celém světě, naživo i online. Projděte si <a href=\"%events_link%\">kalendář eventů</a>, najděte nadcházející závody ve svém okolí, sledujte výsledky a poznejte puzzlery, které skládání na čas baví stejně jako vás."
+    "database":
+      "title": "Prozkoumejte databázi puzzlí"
+      "text": "Prozkoumejte tisíce puzzlí se skutečnými časy skládání zaznamenanými komunitou. Porovnejte mediánové a nejrychlejší časy puzzlí značek <a href=\"%ravensburger_link%\">Ravensburger</a>, <a href=\"%schmidt_link%\">Schmidt</a> nebo <a href=\"%trefl_link%\">Trefl</a>, zjistěte, jak je puzzle ve skutečnosti obtížné, ještě než ho koupíte, a vyberte si další výzvu v kompletní <a href=\"%puzzles_link%\">databázi puzzlí</a>."
 "ladder":
   "title": "Speed puzzling žebříček"
   "meta":
@@ -377,7 +402,7 @@
     "message": "Něco se nepovedlo... pokud jste přesvědčeni, že chyba není na vaší straně, prosím napište nám."
   404:
     "title": "Stránka nenalezena"
-    "message": "Bohužel jsme nenašli vámi požadovanou stránku. Zkontrolujte prosím URL adresu.."
+    "message": "Bohužel jsme nenašli vámi požadovanou stránku. Zkontrolujte prosím URL adresu."
   500:
     "title": "Neznámá chyba"
     "message": "Něco se nepovedlo - přišla nám notifikace a opravíme co nejrychleji"
@@ -611,6 +636,12 @@
   "answer_button_add_my_time": "<p class=\"mb-0\">Otevře přidání vašeho času k vybraným puzzlím - vhodné pokud používáte vlastní stopky a právě jste doskládali. Pokud jste doskládali v minulosti a chcete zaznamenat čas, máte možnost uvést i datum, kdy jste skládali.</p>\n"
   "question_helping": "Můžu přiložit ruku k dílu?"
   "answer_helping": "<p class=\"mb-0\">Jasně! Spojte se s námi, ideálně s představou, jak byste se rádi do budování speed puzzling komunity zapojili, dáme hlavy dohromady a určitě něco vymyslíme.</p>\n"
+  "question_what_is_speed_puzzling": "Co je speed puzzling?"
+  "answer_what_is_speed_puzzling": "<p class=\"mb-0\">Speed puzzling je sport, ve kterém jde o co nejrychlejší skládání puzzle — sólo, ve dvojicích nebo v týmech. Puzzleři závodí s časem, zaznamenávají si své výsledky a soutěží na živých i online akcích po celém světě. Chcete se dozvědět víc? Přečtěte si našeho <a href=\"%guide_link%\">kompletního průvodce speed puzzlingem</a> (v angličtině) — dozvíte se o formátech, typických časech i o tom, jak začít.</p>\n"
+  "question_how_long_1000_pieces": "Jak dlouho trvá složit puzzle o 1000 dílcích?"
+  "answer_how_long_1000_pieces": "<p class=\"mb-0\">Podle sólo skládání zaznamenaných na MySpeedPuzzling je medián času u puzzle o 1000 dílcích přibližně 3 hodiny a 20 minut. Speed puzzleři běžně skládají pod 2 hodiny a ti nejrychlejší jsou ještě výrazně rychlejší. Kompletní <a href=\"%times_guide_link%\">statistiky podle počtu dílků</a> (v angličtině) nabízejí mediány, percentily i rekordy.</p>\n"
+  "question_how_competitions_work": "Jak fungují speed puzzling závody?"
+  "answer_how_competitions_work": "<p class=\"mb-0\">Ve většině závodů skládají všichni účastníci stejné puzzle ve stejný čas — vyhrává ten, kdo je složí první, nebo komu po vypršení limitu zbývá nejméně dílků. Existují kategorie sólo, dvojice i týmy, od místních setkání až po mistrovství světa World Jigsaw Puzzle Championship, a také online soutěže. Projděte si náš <a href=\"%events_link%\">kalendář eventů</a> a najděte závod ve svém okolí.</p>\n"
 "profile":
   "add_to_favorites": "Přidat do oblíbených"
   "remove_from_favorites": "Odebrat z oblíbených"
@@ -703,6 +734,9 @@
     "description_with_times": "%brand% %name%, %pieces% dílků — nejrychlejší čas %fastest%, průměr %average% z %count% složení na MySpeedPuzzling."
   "breadcrumb":
     "database": "Databáze puzzle"
+  "related":
+    "title": "Další puzzle %brand%"
+    "view_all": "Zobrazit všechny puzzle %brand%"
 "puzzlers":
   "meta":
     "title": "Speed puzzleři z celého světa"
@@ -2658,3 +2692,26 @@ qr_code:
   "friday_short": "Pá"
   "saturday_short": "So"
   "sunday_short": "Ne"
+"brand_hub":
+  "meta":
+    "title": "Puzzle %brand% – Časy skládání a obtížnost"
+    "description": "Puzzle %brand% na MySpeedPuzzling: %count% puzzlí se skutečnými časy skládání od speed puzzlerů — mediány časů, obtížnost a nejskládanější kousky."
+  "title": "Puzzle %brand% – Časy skládání a obtížnost"
+  "stats":
+    "puzzles": "Puzzlí v databázi"
+    "solves": "Zaznamenaných složení"
+    "median_time": "Medián sólo času"
+    "provenance": "Na základě %solves% zaznamenaných složení."
+  "median_by_pieces": "Medián sólo času podle počtu dílků"
+  "pieces_link": "Puzzle %pieces% dílků"
+  "most_solved": "Nejskládanější puzzle %brand%"
+  "view_all": "Zobrazit všechny puzzle %brand%"
+"pieces_hub":
+  "meta":
+    "title": "Puzzle %pieces% dílků – Skutečné časy skládání"
+    "description": "Jak dlouho trvá poskládat puzzle o %pieces% dílcích? Medián sólo času %median% z %solves% zaznamenaných složení. Prohlédni si %count% puzzlí se skutečnými časy."
+    "description_no_median": "Puzzle %pieces% dílků na MySpeedPuzzling: %count% puzzlí se skutečnými časy skládání od speed puzzlerů z celého světa."
+  "title": "Puzzle %pieces% dílků – Skutečné časy skládání"
+  "top_brands": "Oblíbené značky puzzlí %pieces% dílků"
+  "most_solved": "Nejskládanější puzzle %pieces% dílků"
+  "view_all": "Zobrazit všechny puzzle %pieces% dílků"

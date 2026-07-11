@@ -1,0 +1,170 @@
+{% extends 'guides/_guide_base.html.twig' %}
+
+{% block guide_content %}
+    {% set d500 = distributions[500] ?? null %}
+    {% set d1000 = distributions[1000] ?? null %}
+
+    <h1 class="h2 mb-3">What Is Speed Puzzling?</h1>
+
+    <p class="fs-lg">
+        <strong>Speed puzzling is competitive jigsaw puzzling: assembling a puzzle as fast as possible, with the time
+        recorded and compared against other puzzlers.</strong> It is done solo, in pairs, or in teams — at live
+        competitions, in online events, or simply at home with a stopwatch running.
+    </p>
+
+    <p>
+        If you have ever finished a jigsaw and wondered "was that fast?", you have already asked the founding question
+        of the sport. Speed puzzling (also written "speedpuzzling") turns a famously slow, contemplative pastime into a
+        race — without losing the part puzzlers love, the satisfying click of a piece falling into place. It is one of
+        the fastest-growing corners of the puzzle world, with a world championship, national championships in a growing
+        list of countries, and thousands of puzzlers timing their solves at home.
+    </p>
+
+    <h2 class="h4 mt-4">The formats</h2>
+
+    <ul class="list-unstyled">
+        <li class="mb-3">
+            <strong>Solo.</strong> One puzzler, one puzzle — the purest format. Competition rounds are usually
+            500 pieces, which fits into roughly an hour or two for competitive solvers.
+        </li>
+        <li class="mb-3">
+            <strong>Pairs.</strong> Two puzzlers on one puzzle, typically 500 or 1000 pieces. Coordination matters:
+            good pairs divide the image, not the work.
+        </li>
+        <li class="mb-3">
+            <strong>Teams.</strong> Usually four puzzlers and 1000 or more pieces. The fastest format to watch —
+            and the one where sorting strategy and communication decide the podium.
+        </li>
+    </ul>
+
+    <h2 class="h4 mt-4">How competitions work</h2>
+
+    <p>
+        The core rules are simple and nearly universal. Every participant (or team) gets an identical puzzle, usually
+        one they have never seen — the image is kept secret until the round starts. On "go", everyone opens the box,
+        flips the pieces, and builds. The clock stops when the puzzle is complete; if the time limit runs out first,
+        remaining pieces are counted and the most-complete puzzle wins the tiebreak. Depending on the event there may
+        be qualification rounds, semifinals, and a final.
+    </p>
+
+    <p>
+        The best-known event is the <strong>World Jigsaw Puzzle Championship (WJPC)</strong>, held annually in
+        Valladolid, Spain, which draws puzzlers from dozens of countries across its solo, pairs, and team categories.
+        Below the world stage there are national championships, local tournaments, puzzle-club race nights, and online
+        competitions where everyone builds the same puzzle at home over a video call. You can browse upcoming and past
+        events in the <a href="{{ path('events') }}">MySpeedPuzzling events calendar</a>.
+    </p>
+
+    <h2 class="h4 mt-4">How fast are speed puzzlers?</h2>
+
+    {% if d500 %}
+        <p>
+            Real numbers help here. Across {{ d500.solvesCount|number_format }} recorded solo 500-piece solves on
+            MySpeedPuzzling, the median time is {{ d500.medianSeconds|compactTime }} — and the fastest quarter of solves
+            finish under {{ d500.p25Seconds|compactTime }}. The fastest recorded 500-piece solo solve on the platform
+            stands at {{ d500.fastestSeconds|compactTime }}.
+            {%- if d1000 %}
+            For 1000 pieces the median is {{ d1000.medianSeconds|compactTime }} across
+            {{ d1000.solvesCount|number_format }} solves.
+            {%- endif %}
+            If you want the full breakdown by piece count — percentiles, first attempts vs. repeats, what counts as
+            fast — see our data guide:
+            <a href="{{ path('guide_puzzle_time_by_pieces') }}">How long does a 1000-piece puzzle take?</a>
+        </p>
+    {% else %}
+        <p>
+            For a data-driven answer — median times, percentiles, and what counts as fast per piece count — see our
+            guide: <a href="{{ path('guide_puzzle_time_by_pieces') }}">How long does a 1000-piece puzzle take?</a>
+        </p>
+    {% endif %}
+
+    <p>
+        Two things surprise newcomers. First, the spread: the difference between a casual first-timer and a seasoned
+        competitor on the same 500-piece puzzle is measured in hours, not minutes. Second, how quickly that gap closes —
+        speed puzzling technique (sorting, edge strategy, working by color) is learnable, and most puzzlers see their
+        times drop steeply once they start timing themselves.
+    </p>
+
+    <h2 class="h4 mt-4">How to start speed puzzling</h2>
+
+    <ol>
+        <li class="mb-2">
+            <strong>Grab a 500-piece puzzle you have not solved before.</strong> Standard retail puzzles are exactly
+            what competitions use — no special equipment needed beyond a clear table and decent light.
+        </li>
+        <li class="mb-2">
+            <strong>Time your solve.</strong> Use the free <a href="{{ path('stopwatch') }}">MySpeedPuzzling
+            stopwatch</a> — it pauses and resumes, so a coffee break doesn't count against you.
+        </li>
+        <li class="mb-2">
+            <strong>Compare and track.</strong> Find your puzzle in the <a href="{{ path('puzzles') }}">puzzle
+            database</a> and see how your time compares with everyone else who solved the same puzzle. Every tracked
+            solve builds your personal statistics.
+        </li>
+        <li class="mb-2">
+            <strong>Race somebody.</strong> Check the <a href="{{ path('ladder') }}">leaderboards</a>, join an event
+            from the <a href="{{ path('events') }}">calendar</a>, or challenge a friend to the same puzzle. Deadlines
+            make you faster.
+        </li>
+    </ol>
+
+    <h2 class="h4 mt-4">The community</h2>
+
+    <p>
+        Speed puzzling has an unusually welcoming competitive culture. Because everyone races the clock before they
+        race each other, beginners and champions genuinely share the same events — the same puzzle, the same table
+        rows, wildly different times, zero judgment. The community spans puzzle clubs, online groups, and platforms
+        like MySpeedPuzzling, where <a href="{{ path('players') }}">thousands of puzzlers</a> from all over the world
+        track solves, follow their favorite puzzlers, and compare times on identical puzzles — which is, after all, the
+        only fair comparison in puzzling.
+    </p>
+
+    <h2 class="h4 mt-4">Quick answers</h2>
+
+    <div class="mb-3">
+        <p class="mb-1 fw-medium">Is speed puzzling a real sport?</p>
+        <p class="text-muted">
+            It is an organized competitive discipline with a world championship, national federations and championships,
+            standardized formats, and rankings. Whether that makes it a "sport" is a semantic debate the community
+            enjoys losing on purpose.
+        </p>
+    </div>
+
+    <div class="mb-3">
+        <p class="mb-1 fw-medium">Do you need special puzzles?</p>
+        <p class="text-muted">
+            No — competitions use standard retail jigsaw puzzles, most often 500 pieces for solo rounds and 1000 for
+            pairs and teams. At home, any puzzle counts.
+        </p>
+    </div>
+
+    <div class="mb-3">
+        <p class="mb-1 fw-medium">What is a good 500-piece time for a beginner?</p>
+        <p class="text-muted">
+            {% if d500 %}
+                The community median is {{ d500.medianSeconds|compactTime }}, so anything in that neighborhood on a
+                first attempt is a solid start. Beating {{ d500.p25Seconds|compactTime }} already puts you in the
+                fastest quarter of recorded solves.
+            {% else %}
+                Time a solve, then compare against the community statistics — the median is the honest benchmark for a
+                first attempt.
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="mb-3">
+        <p class="mb-1 fw-medium">How do I find a competition near me?</p>
+        <p class="text-muted">
+            Browse the <a href="{{ path('events') }}">events calendar</a> — it lists live and online speed puzzling
+            competitions submitted by organizers and the community.
+        </p>
+    </div>
+
+    <div class="mb-3">
+        <p class="mb-1 fw-medium">Where do I start right now?</p>
+        <p class="text-muted">
+            Open the <a href="{{ path('stopwatch') }}">stopwatch</a>, solve any puzzle, and save your first time.
+            That's it — you are speed puzzling.
+        </p>
+    </div>
+{% endblock %}

@@ -38,15 +38,24 @@
   "visibility": "Visibilidad"
   "visibility_public": "Pública"
   "visibility_private": "Privada"
+"crossroads":
+  "meta":
+    "title": "Speed puzzling: tiempos, rankings y campeonatos"
+    "description": "MySpeedPuzzling es la comunidad mundial de speed puzzling: registra tus tiempos de puzzle, compara rankings y encuentra campeonatos. Elige tu idioma."
+  "tagline": "La comunidad mundial de speed puzzling — registra tus tiempos de puzzle, escala los rankings y encuentra campeonatos de puzzles."
+  "intro": "MySpeedPuzzling es el hogar del <strong>speed puzzling</strong>: una base de datos con miles de puzzles y tiempos reales, rankings mundiales y un calendario de campeonatos y concursos de puzzles contrarreloj de todo el mundo. Elige tu idioma arriba para empezar."
 "footer":
   "created_with_love": "Creado con amor por los puzzles y el código por %simona% y %jan%"
-  "about": "My Speed Puzzling es el mayor puzzle tracker del mundo y una plataforma comunitaria para todos los amantes de los puzzles.<br>Rastrea tu colección de puzzles, registra tiempos de armado y compárate con otros. Ya sea por relajación o velocidad, este es tu lugar para compartir y divertirse juntos."
+  "about": "MySpeedPuzzling es la mayor plataforma de speed puzzling del mundo y el mayor tracker de tiempos de puzzle.<br>Rastrea tu colección de puzzles, registra tus tiempos de armado y compárate con puzzleros de todo el mundo. Ya sea por relajación o contrarreloj, este es tu lugar para compartir y divertirse juntos."
   "popular_search": "Búsquedas populares"
   "speed_puzzling_leaderboard": "Ranking Speed Puzzling"
   "speed_puzzling_players": "Jugadores Speed Puzzling"
   "latest_puzzle_times": "Últimos Tiempos Puzzle"
   "750_piece_puzzles": "Puzzles 750 Piezas"
   "puzzle_add": "Agregar puzzle"
+  "puzzle_tracker_app": "Aplicación Puzzle Tracker"
+  "guides": "Guías de speed puzzling"
+  "methodology": "Metodología de dificultad y rating"
 "puzzler_name": "Nombre"
 "puzzler": "Puzzlero"
 "puzzle": "Puzzle"
@@ -113,12 +122,28 @@
   "global_statistics": "Nos tomó a todos este tiempo resolver <strong>%puzzles%</strong> rompecabezas.<br>Eso es un increíble total de <strong>%pieces%</strong> piezas."
   "title": "¡Bienvenido Puzzlero, al Mundo del Speed Puzzling!"
   "intro_text": "El Speed Puzzling es un deporte emocionante donde el objetivo es armar rompecabezas lo más rápido posible. Cada pieza cuenta, cada segundo importa. ¡Imagina resolver rompecabezas tradicionales pero con la adrenalina de una pista de carreras! Nuestra plataforma es la primera de su tipo: un lugar donde puedes probar tus habilidades de resolución de rompecabezas no solo contra el tiempo, sino también contra otros entusiastas de los rompecabezas."
-  "why_block": "<h3>¿Por qué debería unirme?</h3>\n<ul>\n    <li><strong>Compite con otros:</strong> Comparte tus tiempos y compáralos con otros puzzleros</li>\n    <li><strong>Clasificaciones y estadísticas:</strong> Descubre las clasificaciones de los puzzleros más rápidos, los rompecabezas más armados y los usuarios más activos</li>\n    <li><strong>Cronómetro:</strong> Usa nuestro cronómetro integrado para cronometrar fácilmente el armado de tu rompecabezas</li>\n    <li><strong>Añade tus rompecabezas:</strong> ¿Tienes un rompecabezas que falta en nuestro sitio? Añádelo y comparte tus tiempos con la comunidad.</li>\n    <li><strong>Construye tu comunidad de rompecabezas:</strong> Únete a nuestra creciente comunidad y comparte consejos, trucos y rivalidad amistosa</li>\n    <li><strong>Expande tus horizontes:</strong> Planeamos organizar competencias, tanto en línea como en el futuro fuera de línea, para que puedas mostrar tus habilidades en vivo</li>\n</ul>\n"
-  "help_us_grow_block": "<h3>Ayúdanos a Crecer</h3>\n<p>Nuestra aplicación está comenzando, y tus ideas, comentarios y ayuda para encontrar errores son invaluables. Únete a nosotros en esta etapa temprana y ten un impacto directo en el futuro del speed puzzling.</p>\n"
-  "start_today_block": "<h3>Comienza Hoy</h3>\n<p>Ya seas principiante o un puzzlero experimentado, nuestra plataforma ofrece el lugar perfecto para desarrollar tus habilidades y medirte contra otros. ¡Únete a nosotros y conviértete en parte del futuro del speed puzzling!</p>\n"
+  "why_block": "<h2 class=\"h3\">¿Por qué debería unirme?</h2>\n<ul>\n    <li><strong>Compite con otros:</strong> Comparte tus tiempos y compáralos con otros puzzleros</li>\n    <li><strong>Clasificaciones y estadísticas:</strong> Descubre las clasificaciones de los puzzleros más rápidos, los rompecabezas más armados y los usuarios más activos</li>\n    <li><strong>Cronómetro:</strong> Usa nuestro cronómetro integrado para cronometrar fácilmente el armado de tu rompecabezas</li>\n    <li><strong>Añade tus rompecabezas:</strong> ¿Tienes un rompecabezas que falta en nuestro sitio? Añádelo y comparte tus tiempos con la comunidad.</li>\n    <li><strong>Construye tu comunidad de rompecabezas:</strong> Únete a nuestra creciente comunidad y comparte consejos, trucos y rivalidad amistosa</li>\n    <li><strong>Expande tus horizontes:</strong> Planeamos organizar competencias, tanto en línea como en el futuro fuera de línea, para que puedas mostrar tus habilidades en vivo</li>\n</ul>\n"
+  "help_us_grow_block": "<h2 class=\"h3\">Ayúdanos a Crecer</h2>\n<p>Nuestra aplicación está comenzando, y tus ideas, comentarios y ayuda para encontrar errores son invaluables. Únete a nosotros en esta etapa temprana y ten un impacto directo en el futuro del speed puzzling.</p>\n"
+  "start_today_block": "<h2 class=\"h3\">Comienza Hoy</h2>\n<p>Ya seas principiante o un puzzlero experimentado, nuestra plataforma ofrece el lugar perfecto para desarrollar tus habilidades y medirte contra otros. ¡Únete a nosotros y conviértete en parte del futuro del speed puzzling!</p>\n"
   "cta_sign_in": "Iniciar sesión"
   "cta_my_profile": "Mi perfil"
   "cta_recent": "Tiempos recientes"
+  "seo_sections":
+    "what_is":
+      "title": "¿Qué es el speed puzzling?"
+      "text": "El speed puzzling es el deporte de armar puzzles contrarreloj — en solitario, en parejas o en equipos. Lo que empezó como un pasatiempo tranquilo se ha convertido en una escena competitiva mundial con sus propios campeonatos y una comunidad muy acogedora. ¿Eres nuevo en esto? Lee nuestra <a href=\"%guide_link%\">guía completa de speed puzzling</a> (en inglés) para descubrir cómo funciona y cómo empezar."
+    "track":
+      "title": "Registra tus tiempos de puzzle"
+      "text": "MySpeedPuzzling es una <a href=\"%tracker_link%\">aplicación puzzle tracker</a> gratuita para todo amante de los puzzles. Cronometra tus armados con el <a href=\"%stopwatch_link%\">cronómetro</a> integrado, registra tus puzzles terminados con fotos y mantén toda tu colección organizada en un solo lugar. Cada tiempo registrado alimenta tus estadísticas personales, así verás cómo mejoras puzzle a puzzle."
+    "leaderboards":
+      "title": "Compite en rankings mundiales"
+      "text": "Descubre cómo se comparan tus tiempos con los de speed puzzleros de todo el mundo. El <a href=\"%ladder_link%\">ranking mundial</a> ordena los tiempos más rápidos por número de piezas en solitario, parejas y equipos, mientras que el <a href=\"%rating_link%\">ranking MSP Rating</a> mide tu nivel general. Tanto si persigues récords como si solo tienes curiosidad, hay un ranking para ti."
+    "competitions":
+      "title": "Campeonatos y concursos de speed puzzling"
+      "text": "Desde encuentros locales hasta el World Jigsaw Puzzle Championship, los campeonatos de puzzles contrarreloj se celebran en todo el mundo — presenciales y en línea. Explora el <a href=\"%events_link%\">calendario de eventos</a> para encontrar próximos campeonatos y concursos cerca de ti, seguir los resultados y conocer a puzzleros que disfrutan armar contrarreloj tanto como tú."
+    "database":
+      "title": "Explora la base de datos de puzzles"
+      "text": "Explora miles de puzzles con tiempos reales registrados por la comunidad. Compara los tiempos medianos y más rápidos de puzzles de <a href=\"%ravensburger_link%\">Ravensburger</a>, <a href=\"%schmidt_link%\">Schmidt</a> o <a href=\"%trefl_link%\">Trefl</a>, comprueba la dificultad real de un puzzle antes de comprarlo y elige tu próximo desafío en la <a href=\"%puzzles_link%\">base de datos de puzzles</a> completa."
 "ladder":
   "title": "Ranking de Speed Puzzling"
   "meta":
@@ -359,7 +384,7 @@
     "message": "Algo salió mal... si crees que el error no es de tu lado, por favor escríbenos."
   404:
     "title": "Página no encontrada"
-    "message": "Desafortunadamente, no pudimos encontrar la página que solicitaste. Por favor verifica la URL.."
+    "message": "Desafortunadamente, no pudimos encontrar la página que solicitaste. Por favor verifica la URL."
   500:
     "title": "Error desconocido"
     "message": "Algo salió mal - hemos sido notificados y lo arreglaremos tan pronto como sea posible"
@@ -455,6 +480,9 @@
     "description_with_times": "%brand% %name%, %pieces% piezas — tiempo más rápido %fastest%, promedio %average% de %count% resoluciones en MySpeedPuzzling."
   "breadcrumb":
     "database": "Base de datos de puzzles"
+  "related":
+    "title": "Más puzzles %brand%"
+    "view_all": "Ver todos los puzzles %brand%"
 "export":
   "page_title": "Exportar Datos"
   "heading": "Exporta Tus Datos"
@@ -685,6 +713,12 @@
   "answer_button_add_my_time": "<p class=\"mb-0\">Abre añadir tu tiempo a rompecabezas seleccionados - adecuado si usas tu propio cronómetro y acabas de terminar de armar. Si armaste en el pasado y quieres registrar el tiempo, tienes la opción de especificar también la fecha en que armaste.</p>\n"
   "question_helping": "¿Quieres una mano ayudante?"
   "answer_helping": "<p class=\"mb-0\">¡Claro! Conéctate con nosotros, idealmente con una idea de cómo te gustaría involucrarte en construir la comunidad speed puzzling, pondremos nuestras cabezas juntas y seguramente se nos ocurrirá algo.</p>\n"
+  "question_what_is_speed_puzzling": "¿Qué es el speed puzzling?"
+  "answer_what_is_speed_puzzling": "<p class=\"mb-0\">El speed puzzling es el deporte de armar puzzles lo más rápido posible — en solitario, en parejas o en equipos. Los puzzleros compiten contrarreloj, registran sus tiempos y participan en eventos presenciales y en línea por todo el mundo. ¿Quieres saber más? Lee nuestra <a href=\"%guide_link%\">guía completa de speed puzzling</a> (en inglés) — cubre los formatos, los tiempos típicos y cómo empezar.</p>\n"
+  "question_how_long_1000_pieces": "¿Cuánto se tarda en armar un puzzle de 1000 piezas?"
+  "answer_how_long_1000_pieces": "<p class=\"mb-0\">Según las resoluciones en solitario registradas en MySpeedPuzzling, el tiempo mediano para un puzzle de 1000 piezas es de alrededor de 3 horas y 20 minutos. Los speed puzzleros terminan habitualmente en menos de 2 horas, y los más rápidos muy por debajo. Consulta las <a href=\"%times_guide_link%\">estadísticas completas por número de piezas</a> (en inglés) para medianas, percentiles y récords.</p>\n"
+  "question_how_competitions_work": "¿Cómo funcionan los campeonatos de speed puzzling?"
+  "answer_how_competitions_work": "<p class=\"mb-0\">En la mayoría de los campeonatos y concursos, todos los participantes arman el mismo puzzle al mismo tiempo — gana quien termina primero o a quien le quedan menos piezas cuando se acaba el tiempo. Hay categorías individual, parejas y equipos, desde encuentros locales hasta el World Jigsaw Puzzle Championship, además de concursos en línea. Explora nuestro <a href=\"%events_link%\">calendario de eventos</a> para encontrar un campeonato cerca de ti.</p>\n"
 "puzzlers":
   "meta":
     "title": "Speed puzzleros de todo el mundo"
@@ -2660,3 +2694,26 @@ fair_use_policy:
   "friday_short": "Vie"
   "saturday_short": "Sáb"
   "sunday_short": "Dom"
+"brand_hub":
+  "meta":
+    "title": "Puzzles %brand% – Tiempos y dificultad"
+    "description": "Puzzles %brand% en MySpeedPuzzling: %count% puzzles con tiempos reales de speed puzzleros — tiempos medianos, dificultad y los más armados."
+  "title": "Puzzles %brand% – Tiempos y dificultad"
+  "stats":
+    "puzzles": "Puzzles en la base de datos"
+    "solves": "Resoluciones registradas"
+    "median_time": "Tiempo mediano en solo"
+    "provenance": "Basado en %solves% resoluciones registradas."
+  "median_by_pieces": "Tiempo mediano en solo por número de piezas"
+  "pieces_link": "Puzzles de %pieces% piezas"
+  "most_solved": "Puzzles %brand% más armados"
+  "view_all": "Ver todos los puzzles %brand%"
+"pieces_hub":
+  "meta":
+    "title": "Puzzles de %pieces% piezas – Tiempos reales"
+    "description": "¿Cuánto se tarda en armar un puzzle de %pieces% piezas? Tiempo mediano en solo %median% de %solves% resoluciones registradas. Explora %count% puzzles con tiempos reales."
+    "description_no_median": "Puzzles de %pieces% piezas en MySpeedPuzzling: %count% puzzles con tiempos reales de speed puzzleros de todo el mundo."
+  "title": "Puzzles de %pieces% piezas – Tiempos reales"
+  "top_brands": "Marcas populares de puzzles de %pieces% piezas"
+  "most_solved": "Puzzles de %pieces% piezas más armados"
+  "view_all": "Ver todos los puzzles de %pieces% piezas"

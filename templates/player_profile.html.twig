@@ -328,7 +328,7 @@
                             <a href="{{ path('player_profile', {playerId: supporter.player_id}) }}"
                                class="d-flex align-items-center gap-2 text-decoration-none bg-light rounded-pill px-3 py-1">
                                 {% if supporter.player_avatar %}
-                                    <img src="{{ supporter.player_avatar|thumbnail('avatar_small') }}"
+                                    <img src="{{ supporter.player_avatar|thumbnail('avatar') }}"
                                          class="rounded-circle"
                                          width="24" height="24"
                                          alt="">

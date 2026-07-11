@@ -32,6 +32,7 @@ final class ManufacturerFixture extends Fixture implements DependentFixtureInter
             name: 'Ravensburger',
             approved: true,
             addedByUser: $adminPlayer,
+            slug: 'ravensburger',
         );
         $manager->persist($ravensburger);
         $this->addReference(self::MANUFACTURER_RAVENSBURGER, $ravensburger);
@@ -41,6 +42,7 @@ final class ManufacturerFixture extends Fixture implements DependentFixtureInter
             name: 'Trefl',
             approved: true,
             addedByUser: $adminPlayer,
+            slug: 'trefl',
         );
         $manager->persist($trefl);
         $this->addReference(self::MANUFACTURER_TREFL, $trefl);
@@ -52,6 +54,7 @@ final class ManufacturerFixture extends Fixture implements DependentFixtureInter
             name: 'Unknown Brand',
             approved: false,
             addedByUser: $regularPlayer,
+            slug: 'unknown-brand',
         );
         $manager->persist($unapproved);
         $this->addReference(self::MANUFACTURER_UNAPPROVED, $unapproved);
@@ -71,6 +74,7 @@ final class ManufacturerFixture extends Fixture implements DependentFixtureInter
         string $name,
         bool $approved,
         Player $addedByUser,
+        null|string $slug = null,
     ): Manufacturer {
         return new Manufacturer(
             id: Uuid::fromString($id),
@@ -78,6 +82,7 @@ final class ManufacturerFixture extends Fixture implements DependentFixtureInter
             approved: $approved,
             addedByUser: $addedByUser,
             addedAt: $this->clock->now(),
+            slug: $slug,
         );
     }
 }

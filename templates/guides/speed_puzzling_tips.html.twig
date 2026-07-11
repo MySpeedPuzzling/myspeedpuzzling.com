@@ -1,0 +1,128 @@
+{% extends 'guides/_guide_base.html.twig' %}
+
+{% block guide_content %}
+    {% set d500 = distributions[500] ?? null %}
+    {% set d1000 = distributions[1000] ?? null %}
+
+    <h1 class="h2 mb-3">Speed Puzzling Tips: How to Get Faster</h1>
+
+    <p class="fs-lg">
+        Speed puzzling technique is learnable. The gap between a casual solver and a competitive one is not talent —
+        it is a handful of habits around sorting, searching, and setup, repeated until they are automatic. These are
+        the tips that actually move solve times, drawn from how competitive puzzlers in the community work.
+    </p>
+
+    <h2 class="h4 mt-4">1. Sort once, properly</h2>
+    <p>
+        Most time lost in a puzzle is spent re-searching piles you already searched. Invest the first minutes in one
+        deliberate sorting pass: edges out, then group by dominant color or texture. Resist "sorting while building" —
+        a half-sorted table means every search costs double. Competitive puzzlers treat sorting as part of the race,
+        not a warm-up: flip every piece face-up, make your groups, and only then start assembling.
+    </p>
+
+    <h2 class="h4 mt-4">2. Do the edge first — usually</h2>
+    <p>
+        The border is a quick win: edge pieces are easy to identify and the frame gives every later piece a spatial
+        anchor. But know when to break the rule. On puzzles with a strong central motif and a bland border (sky,
+        gradients, single-color frames), competitive solvers often build the distinctive zones first and leave the
+        thankless border for last. The principle underneath: always work the region with the most information.
+    </p>
+
+    <h2 class="h4 mt-4">3. Build by color block, not by piece</h2>
+    <p>
+        Searching for one specific piece is the slowest move in puzzling. Instead, pick a color zone — the red roof,
+        the yellow flowers — pull every piece that belongs to it, and assemble the block separately. You convert one
+        1000-piece problem into many 30-piece problems, and 30-piece problems are fast. Blocks then join into the frame
+        as complete islands.
+    </p>
+
+    <h2 class="h4 mt-4">4. Use trays and keep them shallow</h2>
+    <p>
+        Sorting trays (or box lids, plates, baking sheets) beat loose piles because you can shuffle a single layer of
+        pieces without disturbing the rest of the table. Keep pieces in one layer — a deep pile hides half its
+        contents. Trays also make the table portable: rotating a tray to face you is faster than walking around the
+        table, and moving the "active" tray next to your building zone shortens every reach.
+    </p>
+
+    <h2 class="h4 mt-4">5. Light the table like you mean it</h2>
+    <p>
+        Subtle color differences — sky vs. sea, two shades of green — are where puzzles get slow, and dim or yellow
+        light makes near-identical shades literally indistinguishable. Bright, neutral-white, even lighting from above
+        removes shadows cast by your own hands and can make an entire difficulty tier of the puzzle simply disappear.
+        Of everything on this list, lighting is the cheapest upgrade with the most immediate effect.
+    </p>
+
+    <h2 class="h4 mt-4">6. Mind your body</h2>
+    <p>
+        Speed puzzling is an endurance activity in disguise. A table that is slightly too low wrecks your neck and your
+        focus within the hour; standing or a high chair with the table near elbow height lets you hover over the whole
+        puzzle. Take deliberate micro-breaks on long solves — the stopwatch's pause button exists for a reason. A tired
+        brain stops seeing shapes, and you will place more pieces per minute after two minutes away.
+    </p>
+
+    <h2 class="h4 mt-4">7. Learn the shapes, not just the picture</h2>
+    <p>
+        On hard sections (skies, water, repeating patterns) the image stops helping and geometry takes over. Learn to
+        read piece silhouettes: knob-and-hole combinations, asymmetric shoulders, unusually long or stubby tabs. Many
+        competitive puzzlers sort desperate sections purely by shape class and match like a puzzle of outlines. This is
+        also where ribbon-cut puzzles (regular grids) reward practice — shape families repeat and become recognizable.
+    </p>
+
+    <h2 class="h4 mt-4">8. Pick the right puzzles to practice on</h2>
+    <p>
+        Training on a 2000-piece gradient sky builds frustration, not speed. For deliberate practice choose detailed,
+        colorful illustrations around 500 pieces — big enough to exercise sorting strategy, small enough to finish in
+        one focused session and try again next week. Repeating the same puzzle is a legitimate training tool: it
+        isolates technique from image-reading, and watching your time on a familiar puzzle drop is the cleanest
+        measure of improving mechanics.
+    </p>
+
+    <h2 class="h4 mt-4">9. Time every solve</h2>
+    <p>
+        You cannot improve what you do not measure. Timing every solve does two things: it makes practice deliberate
+        (a clock changes how you search, immediately), and it builds your personal dataset — pace per piece count,
+        improvement over months, which images suit you. Use the free
+        <a href="{{ path('stopwatch') }}">MySpeedPuzzling stopwatch</a> with pause and resume, and every tracked solve
+        automatically feeds <a href="{{ path('puzzle_tracker_app') }}">your personal statistics</a>.
+    </p>
+
+    <h2 class="h4 mt-4">10. Enter something</h2>
+    <p>
+        Nothing accelerates improvement like a deadline and a room full of people flipping pieces at the same moment.
+        Online races count: same puzzle, same start time, cameras optional. Browse the
+        <a href="{{ path('events') }}">events calendar</a> for live and online competitions, or race the
+        <a href="{{ path('ladder') }}">leaderboards</a> asynchronously — the puzzle database shows exactly how fast
+        everyone else solved the puzzle sitting on your table.
+    </p>
+
+    <h2 class="h4 mt-4">Know where you stand</h2>
+
+    {% if d500 or d1000 %}
+        <p>
+            Benchmarks from the community, measured across real tracked solo solves on MySpeedPuzzling:
+        </p>
+        <ul>
+            {% if d500 %}
+                <li class="mb-2">
+                    <strong>500 pieces:</strong> median {{ d500.medianSeconds|compactTime }} across
+                    {{ d500.solvesCount|number_format }} recorded solves — the fastest quarter finish under
+                    {{ d500.p25Seconds|compactTime }}, the top 10% under {{ d500.p10Seconds|compactTime }}.
+                </li>
+            {% endif %}
+            {% if d1000 %}
+                <li class="mb-2">
+                    <strong>1000 pieces:</strong> median {{ d1000.medianSeconds|compactTime }} across
+                    {{ d1000.solvesCount|number_format }} recorded solves — fastest quarter under
+                    {{ d1000.p25Seconds|compactTime }}, top 10% under {{ d1000.p10Seconds|compactTime }}.
+                </li>
+            {% endif %}
+        </ul>
+    {% endif %}
+
+    <p>
+        The full breakdown — every piece count, percentiles, first attempts vs. repeats — is in our data guide:
+        <a href="{{ path('guide_puzzle_time_by_pieces') }}">How long does a 1000-piece puzzle take?</a>
+        Then <a href="{{ path('stopwatch') }}">start the stopwatch</a>, apply tip #1, and find out what your
+        baseline is. Everything on this list only works if you know your numbers.
+    </p>
+{% endblock %}

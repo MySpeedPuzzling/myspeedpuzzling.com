@@ -18,7 +18,9 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\GenerateManufacturerSlug;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
+use SpeedPuzzling\Web\Services\PuzzleImageNamer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -34,6 +36,8 @@ readonly final class AddPuzzleToCompetitionRoundHandler
         private Filesystem $filesystem,
         private ClockInterface $clock,
         private ImageOptimizer $imageOptimizer,
+        private GenerateManufacturerSlug $generateManufacturerSlug,
+        private PuzzleImageNamer $puzzleImageNamer,
     ) {
     }
 
@@ -82,6 +86,7 @@ readonly final class AddPuzzleToCompetitionRoundHandler
                 false,
                 $player,
                 $now,
+                slug: $this->generateManufacturerSlug->fromName($message->brand),
             );
             $this->entityManager->persist($manufacturer);
         }
@@ -90,9 +95,14 @@ readonly final class AddPuzzleToCompetitionRoundHandler
         $puzzlePhotoPath = null;
 
         if ($message->puzzlePhoto !== null) {
-            $extension = $message->puzzlePhoto->guessExtension();
-            $timestamp = $now->getTimestamp();
-            $puzzlePhotoPath = "$puzzleId-$timestamp.$extension";
+            $extension = $message->puzzlePhoto->guessExtension() ?? 'jpg';
+            $puzzlePhotoPath = $this->puzzleImageNamer->generateFilename(
+                $manufacturer->name,
+                $message->puzzle,
+                $message->piecesCount ?? 0,
+                $puzzleId->toString(),
+                $extension,
+            );
 
             $this->imageOptimizer->optimize($message->puzzlePhoto->getPathname());
 

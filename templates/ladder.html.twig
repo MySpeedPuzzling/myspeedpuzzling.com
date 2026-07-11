@@ -19,7 +19,7 @@
         <div class="col">
             <h2 class="h4 mt-4">{{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
-            <twig:LadderTable loading="lazy" type="solo" :piecesCount="500" :limit="10" :countryCode="active_country ? active_country.name : null" />
+            <twig:LadderTable type="solo" :piecesCount="500" :limit="10" :countryCode="active_country ? active_country.name : null" />
 
             <p class="mb-3">
                 <a href="{{ path('ladder_solo_500_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
@@ -29,7 +29,7 @@
         <div class="col">
             <h2 class="h4 mt-4">{{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
-            <twig:LadderTable loading="lazy" type="solo" :piecesCount="1000" :limit="10" :countryCode="active_country ? active_country.name : null" />
+            <twig:LadderTable type="solo" :piecesCount="1000" :limit="10" :countryCode="active_country ? active_country.name : null" />
 
             <p class="mb-3">
                 <a href="{{ path('ladder_solo_1000_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>

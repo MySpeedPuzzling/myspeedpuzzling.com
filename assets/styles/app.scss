@@ -943,8 +943,12 @@ div[data-countdown-target] {
 
 .puzzle-detail-chart-placeholder {
     height: 120px;
-    background: url('../img/puzzle-detail-chart-placeholder.png') center center no-repeat;
-    background-size: 100% 100%;
+    // Pure-CSS stand-in for the old blurred-chart PNG (LCP element for
+    // anonymous visitors on puzzle detail - a CSS background image is
+    // discovered too late): rising "area chart" fill + faint gridlines.
+    background:
+        linear-gradient(to top right, rgba(75, 86, 107, 0.12) 47%, rgba(75, 86, 107, 0) 53%) bottom left / 100% 82% no-repeat,
+        repeating-linear-gradient(to top, rgba(75, 86, 107, 0.07) 0, rgba(75, 86, 107, 0.07) 1px, transparent 1px, transparent 24px) bottom left / 100% 100% no-repeat;
 }
 
 .statistics-brands-chart-placeholder {

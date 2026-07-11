@@ -142,7 +142,11 @@
                 </div>
                 <div>
                     <div class="fs-sm manufacturer-name">
-                        {{ puzzle.manufacturerName }}
+                        {% if puzzle.manufacturerSlug is not null %}
+                            <a href="{{ path('brand_puzzles', {slug: puzzle.manufacturerSlug}) }}">{{ puzzle.manufacturerName }}</a>
+                        {% else %}
+                            {{ puzzle.manufacturerName }}
+                        {% endif %}
                         {% if puzzle.puzzleIdentificationNumber is not null %}
                             <br class="d-none d-md-block"><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
                         {% endif %}
@@ -155,7 +159,7 @@
                     {% if tags %}
                         <p class="mb-0">
                             {% for tag in tags %}
-                                <span class="badge bg-primary badge-shadow rounded-pill"><i class="ci-diamond"></i> {{ tag.name }}</span>
+                                <a class="badge bg-primary badge-shadow rounded-pill text-white link-light" href="{{ path('puzzles', {tag: tag.tagId}) }}"><i class="ci-diamond"></i> {{ tag.name }}</a>
                             {% endfor %}
                         </p>
                     {% endif %}
@@ -206,5 +210,36 @@
     }) }}
 
     <twig:PuzzleTimes puzzleId="{{ puzzle.puzzleId }}" piecesCount="{{ puzzle.piecesCount }}" />
+
+    {% if related_puzzles|length >= 2 %}
+        <div class="mt-4">
+            <h2 class="h5">{{ 'puzzle_detail.related.title'|trans({'%brand%': puzzle.manufacturerName}) }}</h2>
+
+            <div class="row g-2 g-md-3">
+                {% for related in related_puzzles %}
+                    <div class="col-6 col-md-4 col-lg-2">
+                        <a class="card card-body shadow p-2 h-100 text-decoration-none text-center" href="{{ path('puzzle_detail', {puzzleId: related.puzzleId}) }}">
+                            <img
+                                class="rounded-2 mx-auto d-block"
+                                style="max-width: 100%; object-fit: contain;"
+                                loading="lazy"
+                                alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ related.puzzleName}) }}"
+                                src="{{ related.puzzleImage|puzzle_image('puzzle_small') }}"
+                                {{ puzzle_image_dimensions(related.puzzleImageRatio, 90) }}
+                            >
+                            <span class="fs-sm text-decoration-underline low-line-height d-block mt-1">{{ related.puzzleName }}</span>
+                            <small class="text-muted">{{ 'pieces_count'|trans({ '%count%': related.piecesCount })|raw }}</small>
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+
+            {% if puzzle.manufacturerSlug is not null %}
+                <p class="mt-2 mb-0">
+                    <a href="{{ path('brand_puzzles', {slug: puzzle.manufacturerSlug}) }}">{{ 'puzzle_detail.related.view_all'|trans({'%brand%': puzzle.manufacturerName}) }}</a>
+                </p>
+            {% endif %}
+        </div>
+    {% endif %}
 
 {% endblock %}

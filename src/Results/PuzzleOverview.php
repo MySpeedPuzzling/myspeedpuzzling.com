@@ -29,6 +29,7 @@ readonly final class PuzzleOverview
         public null|string $puzzleEan,
         public null|string $puzzleIdentificationNumber,
         public null|DateTimeImmutable $hideImageUntil = null,
+        public null|string $manufacturerSlug = null,
     ) {
     }
 
@@ -42,6 +43,7 @@ readonly final class PuzzleOverview
      *     puzzle_approved: bool,
      *     manufacturer_id: string,
      *     manufacturer_name: string,
+     *     manufacturer_slug?: null|string,
      *     pieces_count: int,
      *     average_time_solo: null|string,
      *     fastest_time_solo: null|int,
@@ -79,6 +81,7 @@ readonly final class PuzzleOverview
             puzzleEan: $row['puzzle_ean'],
             puzzleIdentificationNumber: $row['puzzle_identification_number'],
             hideImageUntil: $row['hide_image_until'] !== null ? new DateTimeImmutable($row['hide_image_until']) : null,
+            manufacturerSlug: $row['manufacturer_slug'] ?? null,
         );
     }
 }

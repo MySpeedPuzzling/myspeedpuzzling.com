@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'crossroads.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'crossroads.meta.description'|trans }}{% endblock %}
+
+{% block hreflang %}
+    {# The crossroads is the x-default of the homepage cluster; its alternates are the localized homepages #}
+    <link rel="alternate" hreflang="cs" href="{{ url('homepage', {'_locale': 'cs'}) }}">
+    <link rel="alternate" hreflang="en" href="{{ url('homepage', {'_locale': 'en'}) }}">
+    <link rel="alternate" hreflang="es" href="{{ url('homepage', {'_locale': 'es'}) }}">
+    <link rel="alternate" hreflang="ja" href="{{ url('homepage', {'_locale': 'ja'}) }}">
+    <link rel="alternate" hreflang="fr" href="{{ url('homepage', {'_locale': 'fr'}) }}">
+    <link rel="alternate" hreflang="de" href="{{ url('homepage', {'_locale': 'de'}) }}">
+    <link rel="alternate" hreflang="x-default" href="{{ url('homepage_crossroads') }}">
+{% endblock %}
+
+{% block content %}
+    {% set languages = [
+        {locale: 'en', label: 'English', flag: 'gb'},
+        {locale: 'cs', label: 'Čeština', flag: 'cz'},
+        {locale: 'de', label: 'Deutsch', flag: 'de'},
+        {locale: 'fr', label: 'Français', flag: 'fr'},
+        {locale: 'es', label: 'Español', flag: 'es'},
+        {locale: 'ja', label: '日本語', flag: 'jp'},
+    ] %}
+    {% set homepageUrls = {} %}
+    {% for language in languages %}
+        {% set homepageUrls = homepageUrls|merge({(language.locale): path('homepage', {'_locale': language.locale})}) %}
+    {% endfor %}
+
+    <div class="container py-4 py-md-5 text-center"
+         data-controller="locale-preference"
+         data-locale-preference-autoredirect-value="true"
+         data-locale-preference-urls-value="{{ homepageUrls|json_encode|e('html_attr') }}">
+
+        <img src="{{ asset('img/speedpuzzling-logo.png') }}" alt="MySpeedPuzzling" width="120" height="120" class="mb-3" fetchpriority="high">
+
+        <h1 class="h2 mb-2">MySpeedPuzzling</h1>
+        <p class="text-muted mb-4">{{ 'crossroads.tagline'|trans }}</p>
+
+        <div class="row justify-content-center g-2 mb-4">
+            {% for language in languages|sort((a, b) => (b.locale == suggested_locale) <=> (a.locale == suggested_locale)) %}
+                <div class="col-6 col-sm-4 col-lg-2">
+                    <a href="{{ path('homepage', {'_locale': language.locale}) }}"
+                       class="btn {{ language.locale == suggested_locale ? 'btn-primary' : 'btn-outline-secondary' }} w-100"
+                       data-action="click->locale-preference#save"
+                       data-locale-preference-locale-param="{{ language.locale }}">
+                        {{ language.label }}
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="col-lg-8 mx-auto text-start">
+            <p>{{ 'crossroads.intro'|trans|raw }}</p>
+        </div>
+    </div>
+{% endblock %}

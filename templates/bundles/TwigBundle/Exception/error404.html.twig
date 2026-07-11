@@ -2,12 +2,36 @@
 
 {% block title %}{{ 'error.404.title'|trans }}{% endblock %}
 
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
 {% block content %}
     <div class="container py-3">
         <div class="row justify-content-center pt-lg-4 text-center">
-            <div class="col-lg-5 col-md-7 col-sm-9">
-                <h3 class="h5 fw-normal mb-4">{{ 'error.404.message'|trans }}</h3>
-                <img class="d-block mx-auto rounded-4" src="{{ asset('img/404.png') }}" alt="404 Error" width="1024" height="1024">
+            <div class="col-lg-6 col-md-8 col-sm-10">
+                <h1 class="h3 fw-normal mb-4">{{ 'error.404.message'|trans }}</h1>
+
+                <img class="d-block mx-auto rounded-4" src="{{ asset('img/404.png') }}" alt="404 Error" width="280" height="280" style="max-width: 280px; height: auto;">
+
+                <div class="d-flex flex-wrap justify-content-center gap-2 mt-4">
+                    <a class="btn btn-primary" href="{{ path('homepage') }}">
+                        <i class="bi bi-house-door me-1"></i> {{ 'navigation.home'|trans }}
+                    </a>
+                    <a class="btn btn-outline-primary" href="{{ path('puzzles') }}">
+                        <i class="bi bi-puzzle me-1"></i> {{ 'menu.puzzles_overview'|trans }}
+                    </a>
+                    <a class="btn btn-outline-primary" href="{{ path('ladder') }}">
+                        <i class="bi bi-trophy me-1"></i> {{ 'menu.ladder'|trans }}
+                    </a>
+                    <a class="btn btn-outline-primary" href="{{ path('events') }}">
+                        <i class="ci-calendar me-1"></i> {{ 'menu.events'|trans }}
+                    </a>
+                    <a class="btn btn-outline-primary" href="{{ path('players') }}">
+                        <i class="bi bi-people me-1"></i> {{ 'menu.players'|trans }}
+                    </a>
+                    <button type="button" class="btn btn-outline-primary" data-action="click->global-search#toggleSearchBar">
+                        <i class="ci-search me-1"></i> {{ 'menu.search'|trans }}
+                    </button>
+                </div>
             </div>
         </div>
     </div>

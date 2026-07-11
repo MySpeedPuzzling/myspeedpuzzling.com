@@ -36,7 +36,17 @@ final class SitemapIndexController extends AbstractController
             ], UrlGeneratorInterface::ABSOLUTE_URL);
         }
 
-        foreach (['sitemap_marketplace', 'sitemap_events', 'sitemap_players', 'sitemap_feature_requests', 'sitemap_countries'] as $route) {
+        $imagePages = max(1, (int) ceil(
+            $this->getPuzzleIdsForSitemap->countApprovedWithImages() / SitemapImagesController::IMAGES_PER_PAGE,
+        ));
+
+        for ($page = 1; $page <= $imagePages; $page++) {
+            $sitemaps[] = $this->generateUrl('sitemap_images', [
+                'page' => $page,
+            ], UrlGeneratorInterface::ABSOLUTE_URL);
+        }
+
+        foreach (['sitemap_marketplace', 'sitemap_events', 'sitemap_players', 'sitemap_feature_requests', 'sitemap_countries', 'sitemap_brands', 'sitemap_guides'] as $route) {
             $sitemaps[] = $this->generateUrl($route, [], UrlGeneratorInterface::ABSOLUTE_URL);
         }
 

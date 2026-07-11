@@ -1,0 +1,63 @@
+{% extends 'guides/_guide_base.html.twig' %}
+
+{% block guide_content %}
+    <h1 class="h2 mb-2">{{ 'guides.index.title'|trans }}</h1>
+    <p class="text-muted mb-4">{{ 'guides.index.intro'|trans }}</p>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body d-flex flex-column">
+                    <i class="bi bi-question-circle fs-1 text-primary mb-2 d-block"></i>
+                    <h2 class="h5">
+                        <a class="text-dark" href="{{ path('guide_what_is_speed_puzzling') }}">
+                            {{ 'guides.what_is.title'|trans }}
+                        </a>
+                    </h2>
+                    <p class="text-muted fs-sm mb-3">{{ 'guides.what_is.card_description'|trans }}</p>
+                    <a class="btn btn-outline-primary btn-sm mt-auto align-self-start" href="{{ path('guide_what_is_speed_puzzling') }}">
+                        {{ 'guides.index.read_guide'|trans }}
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body d-flex flex-column">
+                    <i class="bi bi-stopwatch fs-1 text-primary mb-2 d-block"></i>
+                    <h2 class="h5">
+                        <a class="text-dark" href="{{ path('guide_puzzle_time_by_pieces') }}">
+                            {{ 'guides.how_long.title'|trans }}
+                        </a>
+                    </h2>
+                    <p class="text-muted fs-sm mb-3">{{ 'guides.how_long.card_description'|trans }}</p>
+                    <a class="btn btn-outline-primary btn-sm mt-auto align-self-start" href="{{ path('guide_puzzle_time_by_pieces') }}">
+                        {{ 'guides.index.read_guide'|trans }}
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body d-flex flex-column">
+                    <i class="bi bi-lightning fs-1 text-primary mb-2 d-block"></i>
+                    <h2 class="h5">
+                        <a class="text-dark" href="{{ path('guide_speed_puzzling_tips') }}">
+                            {{ 'guides.tips.title'|trans }}
+                        </a>
+                    </h2>
+                    <p class="text-muted fs-sm mb-3">{{ 'guides.tips.card_description'|trans }}</p>
+                    <a class="btn btn-outline-primary btn-sm mt-auto align-self-start" href="{{ path('guide_speed_puzzling_tips') }}">
+                        {{ 'guides.index.read_guide'|trans }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-muted fs-sm">
+        {{ 'guides.index.footnote'|trans }}
+    </p>
+{% endblock %}

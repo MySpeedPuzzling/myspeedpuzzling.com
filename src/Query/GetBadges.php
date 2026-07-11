@@ -15,7 +15,7 @@ readonly final class GetBadges
     }
 
     /**
-     * @return array<BadgeType>
+     * @return list<BadgeType>
      */
     public function forPlayer(string $playerId): array
     {
@@ -31,13 +31,23 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function (array $row): BadgeType {
+        $badges = [];
+
+        foreach ($data as $row) {
             /** @var array{
              *     type: string,
              * } $row
              */
 
-            return BadgeType::from($row['type']);
-        }, $data);
+            // Unknown values in the database (e.g. badge types that were
+            // removed or not implemented yet) must not break player profiles
+            $badge = BadgeType::tryFrom($row['type']);
+
+            if ($badge !== null) {
+                $badges[] = $badge;
+            }
+        }
+
+        return $badges;
     }
 }

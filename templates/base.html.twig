@@ -195,7 +195,7 @@
                             </div>
                         {% endif %}
 
-                        <a data-turbo="true" class="topbar-link" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="modal-frame"{% endif %}>
+                        <a data-turbo="true" rel="nofollow" class="topbar-link" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="modal-frame"{% endif %}>
                             <i class="ci-mail"></i> {{ 'menu.feedback'|trans }}
                         </a>
 

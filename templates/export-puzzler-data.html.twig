@@ -13,7 +13,7 @@
     <div class="alert alert-info mb-4">
         <i class="bi bi-info-circle me-2"></i>
         {{ 'export.feedback_message'|trans }}
-        <a data-turbo="true" href="{{ path('feedback', {'url': app.request.uri}) }}" data-turbo-frame="feedbackForm" class="alert-link">
+        <a data-turbo="true" rel="nofollow" href="{{ path('feedback', {'url': app.request.uri}) }}" data-turbo-frame="feedbackForm" class="alert-link">
             {{ 'export.feedback_link'|trans }}
         </a>
     </div>

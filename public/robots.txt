@@ -18,6 +18,7 @@ Disallow: /ja/_components
 
 Disallow: /muj-profil
 Disallow: /pridat-cas
+Disallow: /pridat-puzzle
 Disallow: /puzzle-stopky
 Disallow: /stopky
 Disallow: /notifikace
@@ -25,10 +26,22 @@ Disallow: /porovnat-s-puzzlerem
 Disallow: /pridat-hrace-k-oblibenym
 Disallow: /odebrat-hrace-z-oblibenych
 Disallow: /clenstvi
+Disallow: /koupit-clenstvi
 Disallow: /feedback
+Disallow: /puzzle/*/navrhnout-zmenu
+Disallow: /kolekce/*/pridat
+Disallow: /kolekce/*/presunout
+Disallow: /kolekce/*/odebrat
+Disallow: /vytvorit-kolekci
+Disallow: /vypujcit
+Disallow: /upravit-nastaveni-pujcovani
+
+# compare_players.en is mounted at the domain root (no /en prefix)
+Disallow: /compare-with-puzzler
 
 Disallow: /en/my-profile
 Disallow: /en/add-time
+Disallow: /en/puzzle-add
 Disallow: /en/puzzle-stopwatch
 Disallow: /en/stopwatch
 Disallow: /en/notifications
@@ -36,37 +49,72 @@ Disallow: /en/compare-with-puzzler
 Disallow: /en/add-player-to-favorites
 Disallow: /en/remove-player-from-favorites
 Disallow: /en/membership
+Disallow: /en/buy-membership
 Disallow: /en/feedback
+Disallow: /en/puzzle/*/suggest-change
+Disallow: /en/collections/
+Disallow: /en/create-collection
+# trailing slash: /en/borrow-puzzle (puzzle service page) must stay crawlable
+Disallow: /en/borrow/
+Disallow: /en/edit-lend-borrow-settings
 
 Disallow: /es/mi-perfil
 Disallow: /es/anadir-tiempo
+Disallow: /es/agregar-puzzle
 Disallow: /es/cronometro
 Disallow: /es/notificaciones
 Disallow: /es/comparar-con-puzzlero
 Disallow: /es/anadir-jugador-a-favoritos
+Disallow: /es/eliminar-jugador-de-favoritos
 Disallow: /es/membresia
+Disallow: /es/comprar-membresia
 Disallow: /es/comentarios
+Disallow: /es/puzzle/*/sugerir-cambio
+Disallow: /es/colecciones/
+Disallow: /es/crear-coleccion
+Disallow: /es/tomar-prestado
+Disallow: /es/editar-configuracion-prestamo
 
 Disallow: /fr/mon-profil
 Disallow: /fr/ajouter-temps
+Disallow: /fr/ajouter-puzzle
 Disallow: /fr/chronometre
 Disallow: /fr/notifications
 Disallow: /fr/comparer-avec-puzzleur
 Disallow: /fr/ajouter-joueur-favoris
+Disallow: /fr/retirer-joueur-favoris
 Disallow: /fr/adhesion
+Disallow: /fr/acheter-adhesion
 Disallow: /fr/commentaires
+Disallow: /fr/puzzle/*/suggerer-modification
+Disallow: /fr/puzzle-chronometre
+Disallow: /fr/collections/
+Disallow: /fr/creer-collection
+# trailing slash: /fr/emprunter-puzzle (puzzle service page) must stay crawlable
+Disallow: /fr/emprunter/
+Disallow: /fr/modifier-parametres-pret
 
 Disallow: /de/mein-profil
 Disallow: /de/zeit-hinzufuegen
+Disallow: /de/puzzle-hinzufuegen
 Disallow: /de/stoppuhr
 Disallow: /de/benachrichtigungen
 Disallow: /de/vergleich-mit-puzzler
 Disallow: /de/spieler-zu-favoriten-hinzufuegen
+Disallow: /de/spieler-aus-favoriten-entfernen
 Disallow: /de/mitgliedschaft
+Disallow: /de/mitgliedschaft-kaufen
 Disallow: /de/feedback
+Disallow: /de/puzzle/*/aenderung-vorschlagen
+Disallow: /de/puzzle-stoppuhr
+Disallow: /de/sammlungen/
+Disallow: /de/sammlung-erstellen
+Disallow: /de/ausleihen
+Disallow: /de/ausleih-einstellungen-bearbeiten
 
 Disallow: /ja/プロフィール
 Disallow: /ja/時間追加
+Disallow: /ja/パズル追加
 Disallow: /ja/パズル-ストップウォッチ
 Disallow: /ja/ストップウォッチ
 Disallow: /ja/通知
@@ -74,7 +122,13 @@ Disallow: /ja/比較
 Disallow: /ja/お気に入りに追加
 Disallow: /ja/お気に入りから削除
 Disallow: /ja/メンバーシップ
+Disallow: /ja/メンバーシップ購入
 Disallow: /ja/フィードバック
+Disallow: /ja/puzzle/*/suggest-change
+Disallow: /ja/collections/
+Disallow: /ja/コレクションを作成
+Disallow: /ja/borrow
+Disallow: /ja/貸借設定を編集
 
 # --- SEO/backlink crawlers: no value to us, meaningful crawl load. ---
 

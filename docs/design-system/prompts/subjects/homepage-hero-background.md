@@ -2,6 +2,8 @@
 
 Wide, calm backdrop for the marketing homepage hero — must stay quiet behind a large headline and animated statistics, so all detail lives at the edges and the center stays nearly empty.
 
+> **Status (2026-07-11):** first ChatGPT generations rejected — pieces didn't read as real jigsaw pieces and the result looked obviously AI-generated. The homepage currently uses a code-drawn authentic jigsaw cut-line grid instead (see `assets/styles/_homepage.scss`). If retrying generation OR briefing a human illustrator, the hard requirements are: **anatomically correct die-cut jigsaw pieces** (four-sided, each edge either a round interlocking knob with a narrow neck, a matching socket, or flat — never wavy blobs), consistent line weight, and a flat white/transparent background (any readability gradient gets added in CSS, not in the image).
+
 ## Full Prompt
 
 ```

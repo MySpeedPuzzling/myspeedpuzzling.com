@@ -29,6 +29,7 @@ Maintained by Claude during the SEO overhaul (2026-07-11). Everything here eithe
 
 12. **Anonymous responses still carry `Set-Cookie: PHPSESSID` + `Cache-Control: private`** — the flashes guard shipped, but something else starts the session on every page; prime suspect is the `<twig:GlobalSearch />` Live Component embedding a CSRF token in base.html.twig. Zero ranking impact today; it only blocks future edge HTML caching, so fix it together with the Cloudflare work (`cloudflare.md`). Don't rush it — touching Live Component CSRF affects the search UX.
 13. **Puzzle-detail breadcrumb is 2 levels** (Database → Puzzle). Now that brand hubs exist, add the middle crumb (Database → {Brand} → {Puzzle}) with the brand-hub URL — small template change in `puzzle_detail.html.twig`.
+14. **GSC Event warnings (2026-07-11)**: `description` fixed (always emitted, falls back to the meta description). `organizer` can only be emitted truthfully when data exists — today just 2 of 86 approved competitions have an added-by player and there is no organizer column. Proper fix (small product feature, needs decision): add an optional "organizer name" field to the competition entity + submission/admin form, then emit it in the Event JSON-LD. Until then the non-critical organizer warning persists on legacy events.
 
 ## How Google ranks — and where we now stand (context for priorities)
 

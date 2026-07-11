@@ -69,9 +69,9 @@
     {%- if event.logo %},
     "image": {{ event.logo|thumbnail('puzzle_small')|json_encode|raw }}
     {%- endif %}
-    {%- if event.description %},
-    "description": {{ event.description|json_encode|raw }}
-    {%- endif %}
+    {# description is a Google-recommended Event property - always emit,
+       falling back to the same text as the meta description #}
+    ,"description": {{ (event.description ? event.description|striptags : block('meta_description')|trim)|json_encode|raw }}
     {%- if event.addedByPlayerName %},
     "organizer": {
         "@type": "Person",

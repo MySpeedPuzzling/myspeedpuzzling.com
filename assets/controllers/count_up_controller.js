@@ -15,11 +15,13 @@ export default class extends Controller {
     static values = {
         url: String,
         pollInterval: { type: Number, default: 30000 },
-        duration: { type: Number, default: 2000 },
+        duration: { type: Number, default: 2600 },
     };
 
     connect() {
-        this.formatter = new Intl.NumberFormat(document.documentElement.lang || 'en');
+        // Grouping via non-breaking spaces in every locale (design decision),
+        // digits via en-US so server (number_format) and client always match.
+        this.numberFormatter = new Intl.NumberFormat('en-US');
         this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         this.currentValues = new Map();
         this.animationFrames = new Map();
@@ -27,9 +29,9 @@ export default class extends Controller {
         this.numberTargets.forEach((element) => {
             const value = parseInt(element.dataset.countUpValue, 10) || 0;
             this.currentValues.set(element, value);
-            // Re-render server output through Intl so HTML and JS formatting
-            // always match (prevents a visible "jump" on the first animation).
-            element.textContent = this.formatter.format(value);
+            // Re-render server output through the shared formatter so HTML and
+            // JS formatting always match (prevents a jump on first animation).
+            this.render(element, value);
         });
 
         this.observer = new IntersectionObserver((entries) => {
@@ -102,9 +104,18 @@ export default class extends Controller {
         });
     }
 
+    render(element, value) {
+        const grouped = this.numberFormatter
+            .formatToParts(value)
+            .map((part) => (part.type === 'group' ? '\u00a0' : part.value))
+            .join('');
+
+        element.textContent = grouped + (element.dataset.countUpSuffix ?? '');
+    }
+
     animate(element, from, to) {
         if (this.reducedMotion || from === to) {
-            element.textContent = this.formatter.format(to);
+            this.render(element, to);
 
             return;
         }
@@ -119,9 +130,11 @@ export default class extends Controller {
 
         const tick = (now) => {
             const progress = Math.min((now - start) / this.durationValue, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
+            // ease-out-quint: fast start, long gentle landing - reads smoother
+            // on large numbers than cubic.
+            const eased = 1 - Math.pow(1 - progress, 5);
 
-            element.textContent = this.formatter.format(Math.round(from + (to - from) * eased));
+            this.render(element, Math.round(from + (to - from) * eased));
 
             if (progress < 1) {
                 this.animationFrames.set(element, requestAnimationFrame(tick));

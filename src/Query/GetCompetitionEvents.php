@@ -27,7 +27,12 @@ readonly final class GetCompetitionEvents
             throw new CompetitionNotFound();
         }
 
-        $query = 'SELECT * FROM competition WHERE id = :id';
+        $query = <<<SQL
+SELECT c.*, p.name AS added_by_player_name
+FROM competition c
+LEFT JOIN player p ON p.id = c.added_by_player_id
+WHERE c.id = :id
+SQL;
 
         /** @var false|CompetitionEventDatabaseRow $data */
         $data = $this->database

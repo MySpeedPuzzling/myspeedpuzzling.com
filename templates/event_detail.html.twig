@@ -70,14 +70,10 @@
     "image": {{ event.logo|thumbnail('puzzle_small')|json_encode|raw }}
     {%- endif %}
     {# description is a Google-recommended Event property - always emit,
-       falling back to the same text as the meta description #}
+       falling back to the same text as the meta description. organizer is
+       deliberately NOT emitted: added_by_player is the submitter (often an
+       admin), not the organizer - see docs/features/seo/TODO.md #14. #}
     ,"description": {{ (event.description ? event.description|striptags : block('meta_description')|trim)|json_encode|raw }}
-    {%- if event.addedByPlayerName %},
-    "organizer": {
-        "@type": "Person",
-        "name": {{ event.addedByPlayerName|json_encode|raw }}
-    }
-    {%- endif %}
     {%- if event.registrationLink %},
     "offers": {
         "@type": "Offer",

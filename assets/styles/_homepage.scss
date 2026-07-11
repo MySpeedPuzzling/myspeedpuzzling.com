@@ -2,15 +2,6 @@
 // Homepage marketing page
 // --------------------------------------------------
 
-// Authentic jigsaw cut-line grid: the geometry of an assembled puzzle
-// (classic mushroom knobs with narrow necks) as an ultra-subtle backdrop.
-// Tile is 240x240 with two horizontal and two vertical cut lines whose
-// knobs alternate direction, exactly like a real die-cut puzzle.
-$homepage-grid-lines: "M0 60 H106 C114 60 111 53 116 51 C106 41 134 41 124 51 C129 53 126 60 134 60 H240 M0 180 H106 C114 180 111 187 116 189 C106 199 134 199 124 189 C129 187 126 180 134 180 H240 M60 0 V106 C60 114 67 111 69 116 C79 106 79 134 69 124 C67 129 60 126 60 134 V240 M180 0 V106 C180 114 173 111 171 116 C161 106 161 134 171 124 C173 129 180 126 180 134 V240";
-
-$homepage-piece-pattern: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3e%3cpath fill='none' stroke='%23fe696a' stroke-opacity='.07' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round' d='#{$homepage-grid-lines}'/%3e%3c/svg%3e");
-
-$homepage-piece-pattern-light: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3e%3cpath fill='none' stroke='%23ffffff' stroke-opacity='.12' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round' d='#{$homepage-grid-lines}'/%3e%3c/svg%3e");
 
 
 // Hero
@@ -21,8 +12,7 @@ $homepage-piece-pattern-light: url("data:image/svg+xml,%3csvg xmlns='http://www.
     overflow: hidden;
     padding: 2.5rem 0 6.25rem;
     background-color: #fff2f1;
-    background-image: $homepage-piece-pattern,
-        radial-gradient(ellipse 120% 85% at 50% -10%, #fff 40%, rgba(#fff, 0) 100%),
+    background-image: radial-gradient(ellipse 120% 85% at 50% -10%, #fff 40%, rgba(#fff, 0) 100%),
         linear-gradient(180deg, #fff 0%, #ffeceb 100%);
 
     @include media-breakpoint-up(md) {
@@ -59,6 +49,25 @@ $homepage-piece-pattern-light: url("data:image/svg+xml,%3csvg xmlns='http://www.
     flex-wrap: wrap;
     gap: .75rem;
     justify-content: center;
+
+    @include media-breakpoint-up(lg) {
+        justify-content: flex-start;
+    }
+}
+
+// Generated brand illustrations (white background baked in) - the rounded
+// white card look makes them sit naturally on the blush hero gradient.
+.homepage-hero-art {
+    max-width: 100%;
+    height: auto;
+    border-radius: 1.5rem;
+    box-shadow: 0 .5rem 2rem rgba(#373f50, .09);
+}
+
+.homepage-feature-art {
+    max-width: 100%;
+    height: auto;
+    border-radius: 1.25rem;
 }
 
 .homepage-hero-trust {
@@ -231,6 +240,15 @@ $homepage-piece-pattern-light: url("data:image/svg+xml,%3csvg xmlns='http://www.
 // Live from the community
 // --------------------------------------------------
 
+.homepage-community-art {
+    display: block;
+    max-width: 860px;
+    width: 100%;
+    height: auto;
+    margin: 1.5rem auto 0;
+    border-radius: 1.25rem;
+}
+
 .homepage-community {
     margin-top: 3.5rem;
 }
@@ -243,8 +261,8 @@ $homepage-piece-pattern-light: url("data:image/svg+xml,%3csvg xmlns='http://www.
     margin-top: 3.5rem;
     padding: 3.5rem 0;
     background-color: $primary;
-    background-image: $homepage-piece-pattern-light,
-        linear-gradient(160deg, #fe696a 0%, #ee5253 100%);
+    background-image: radial-gradient(ellipse 90% 70% at 15% -10%, rgba(#fff, .16) 0%, rgba(#fff, 0) 60%),
+        linear-gradient(150deg, #ff7d6f 0%, #fe696a 40%, #ea5468 78%, #d84e73 100%);
 }
 
 .homepage-closing-title {

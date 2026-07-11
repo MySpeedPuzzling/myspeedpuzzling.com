@@ -36,12 +36,14 @@
     {# ============ Hero ============ #}
     <section class="homepage-hero">
         <div class="container">
-            <div class="homepage-hero-inner mx-auto text-center">
+            <div class="row align-items-center justify-content-center">
+            <div class="col-lg-7">
+            <div class="homepage-hero-inner mx-auto text-center text-lg-start">
                 <h1 class="homepage-hero-title">
                     {{ 'homepage.hero.title'|trans({'%speed_puzzling%': '<span class="homepage-hero-highlight">' ~ ('homepage.hero.title_highlight'|trans|e) ~ '</span>'})|raw }}
                 </h1>
 
-                <p class="homepage-hero-subline mx-auto">{{ 'homepage.hero.subline'|trans }}</p>
+                <p class="homepage-hero-subline mx-auto mx-lg-0">{{ 'homepage.hero.subline'|trans }}</p>
 
                 <div class="homepage-hero-actions">
                     {% if isLoggedIn %}
@@ -56,6 +58,22 @@
                 {% if not isLoggedIn %}
                     <p class="homepage-hero-trust text-muted">{{ 'homepage.hero.trust_line'|trans({'%count%': homepage_statistics.players|number_format(0, '.', ' ') ~ '+'}) }}</p>
                 {% endif %}
+            </div>
+            </div>
+            <div class="col-lg-5 d-none d-lg-block">
+                {# Decorative (empty alt); eager but low-priority so the H1 text stays the LCP #}
+                <picture>
+                    <source srcset="{{ asset('img/homepage/hero-illustration.avif') }}" type="image/avif">
+                    <source srcset="{{ asset('img/homepage/hero-illustration.webp') }}" type="image/webp">
+                    <img src="{{ asset('img/homepage/hero-illustration.png') }}"
+                         class="homepage-hero-art"
+                         alt=""
+                         width="1120"
+                         height="840"
+                         fetchpriority="low"
+                         decoding="async">
+                </picture>
+            </div>
             </div>
         </div>
     </section>
@@ -114,10 +132,10 @@
 
         {% set featureSections = [
             {icon: 'bi-puzzle', title: 'homepage.seo_sections.what_is.title'|trans, text: 'homepage.seo_sections.what_is.text'|trans({'%guide_link%': path('guide_what_is_speed_puzzling')})},
-            {icon: 'bi-stopwatch', title: 'homepage.seo_sections.track.title'|trans, text: 'homepage.seo_sections.track.text'|trans({'%tracker_link%': path('puzzle_tracker_app'), '%stopwatch_link%': path('stopwatch')})},
-            {icon: 'bi-trophy', title: 'homepage.seo_sections.leaderboards.title'|trans, text: 'homepage.seo_sections.leaderboards.text'|trans({'%ladder_link%': path('ladder'), '%rating_link%': path('msp_rating_ladder')})},
-            {icon: 'bi-calendar-event', title: 'homepage.seo_sections.competitions.title'|trans, text: 'homepage.seo_sections.competitions.text'|trans({'%events_link%': path('events')})},
-            {icon: 'bi-grid-3x3-gap', title: 'homepage.seo_sections.database.title'|trans, text: 'homepage.seo_sections.database.text'|trans({
+            {icon: 'bi-stopwatch', image: 'track-times', title: 'homepage.seo_sections.track.title'|trans, text: 'homepage.seo_sections.track.text'|trans({'%tracker_link%': path('puzzle_tracker_app'), '%stopwatch_link%': path('stopwatch')})},
+            {icon: 'bi-trophy', image: 'leaderboards', title: 'homepage.seo_sections.leaderboards.title'|trans, text: 'homepage.seo_sections.leaderboards.text'|trans({'%ladder_link%': path('ladder'), '%rating_link%': path('msp_rating_ladder')})},
+            {icon: 'bi-calendar-event', image: 'competitions', title: 'homepage.seo_sections.competitions.title'|trans, text: 'homepage.seo_sections.competitions.text'|trans({'%events_link%': path('events')})},
+            {icon: 'bi-grid-3x3-gap', image: 'puzzle-database', title: 'homepage.seo_sections.database.title'|trans, text: 'homepage.seo_sections.database.text'|trans({
                 '%ravensburger_link%': path('brand_puzzles', {slug: 'ravensburger'}),
                 '%schmidt_link%': path('brand_puzzles', {slug: 'schmidt'}),
                 '%trefl_link%': path('brand_puzzles', {slug: 'trefl'}),
@@ -127,12 +145,30 @@
 
         {% for section in featureSections %}
             <div class="row homepage-feature align-items-center g-4 {{ loop.index is even ? 'flex-md-row-reverse' }}">
-                <div class="col-md-4 text-center">
-                    <div class="homepage-feature-icon" aria-hidden="true">
-                        <i class="bi {{ section.icon }}"></i>
+                {% if section.image is defined %}
+                    <div class="col-md-5 text-center">
+                        {# Illustrations are decorative (empty alt) - the heading carries the meaning #}
+                        <picture>
+                            <source srcset="{{ asset('img/homepage/' ~ section.image ~ '.avif') }}" type="image/avif">
+                            <source srcset="{{ asset('img/homepage/' ~ section.image ~ '.webp') }}" type="image/webp">
+                            <img src="{{ asset('img/homepage/' ~ section.image ~ '.png') }}"
+                                 class="homepage-feature-art"
+                                 alt=""
+                                 width="1120"
+                                 height="840"
+                                 loading="lazy"
+                                 decoding="async">
+                        </picture>
                     </div>
-                </div>
-                <div class="col-md-8">
+                    <div class="col-md-7">
+                {% else %}
+                    <div class="col-md-4 text-center">
+                        <div class="homepage-feature-icon" aria-hidden="true">
+                            <i class="bi {{ section.icon }}"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                {% endif %}
                     <h2 class="h3">{{ section.title }}</h2>
                     <p class="mb-0">{{ section.text|raw }}</p>
                 </div>
@@ -164,6 +200,18 @@
     {# ============ Live from the community ============ #}
     <section class="container homepage-community">
         <h2 class="h3 mb-0"><span class="homepage-live-dot" aria-hidden="true"></span>{{ 'homepage.community.title'|trans }}</h2>
+
+        <picture>
+            <source srcset="{{ asset('img/homepage/community.avif') }}" type="image/avif">
+            <source srcset="{{ asset('img/homepage/community.webp') }}" type="image/webp">
+            <img src="{{ asset('img/homepage/community.png') }}"
+                 class="homepage-community-art"
+                 alt=""
+                 width="1600"
+                 height="721"
+                 loading="lazy"
+                 decoding="async">
+        </picture>
 
         <twig:RecentActivity loading="lazy" limit="5" />
 

@@ -25,6 +25,11 @@ Maintained by Claude during the SEO overhaul (2026-07-11). Everything here eithe
 
 11. **Chained puzzle-merge approvals** throw `ORMInvalidArgumentException` (statistics recalculation touches the deleted puzzle mid-flush) — pre-existing, reproduced on unmodified main. Needs its own fix.
 
+## Post-deploy verification findings (2026-07-11, 22/23 checks passed)
+
+12. **Anonymous responses still carry `Set-Cookie: PHPSESSID` + `Cache-Control: private`** — the flashes guard shipped, but something else starts the session on every page; prime suspect is the `<twig:GlobalSearch />` Live Component embedding a CSRF token in base.html.twig. Zero ranking impact today; it only blocks future edge HTML caching, so fix it together with the Cloudflare work (`cloudflare.md`). Don't rush it — touching Live Component CSRF affects the search UX.
+13. **Puzzle-detail breadcrumb is 2 levels** (Database → Puzzle). Now that brand hubs exist, add the middle crumb (Database → {Brand} → {Puzzle}) with the brand-hub URL — small template change in `puzzle_detail.html.twig`.
+
 ## How Google ranks — and where we now stand (context for priorities)
 
 Google's documented systems reward, in rough order of leverage for us: (1) **links/authority** (PageRank — still the gap vs speedpuzzling.com's exact-match domain; items 2–3 above), (2) **relevance + content quality** (helpful-content signals — homepage restructure, guides with unique measured data, hub pages), (3) **crawlability/indexability** (fixed: sitemaps, hreflang, canonicals, internal links, soft-404s), (4) **page experience** (CWV — improved; Cloudflare would finish it), (5) **engagement/brand signals** (your brand queries already dwarf competitors'; WebSite schema + crossroads root now feed the site-name system). On-page is now near-ceiling; the remaining distance to #1 is authority + content velocity, which are items 2, 3 and 10.

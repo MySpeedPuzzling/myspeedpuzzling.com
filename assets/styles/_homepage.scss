@@ -1,0 +1,306 @@
+//
+// Homepage marketing page
+// --------------------------------------------------
+
+// Hand-crafted jigsaw piece outline (knob top + right, socket bottom),
+// reused as hero pattern, icon-tile decoration and list bullets.
+$homepage-piece-path: 'M10,10H42C46,10,47,7,45,5C41,0,44,-6,50,-6C56,-6,59,0,55,5C53,7,54,10,58,10H90V42C90,46,93,47,95,45C100,41,106,44,106,50C106,56,100,59,95,55C93,53,90,54,90,58V90H58C54,90,53,87,55,85C59,81,56,75,50,75C44,75,41,81,45,85C47,87,46,90,42,90H10Z';
+
+$homepage-piece-pattern: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3e%3cg fill='none' stroke='%23fe696a' stroke-opacity='.09' stroke-width='3' stroke-linejoin='round'%3e%3cpath transform='translate(28,24) rotate(9,50,50)' d='#{$homepage-piece-path}'/%3e%3cpath transform='translate(150,150) rotate(-18,50,50) scale(0.75)' d='#{$homepage-piece-path}'/%3e%3c/g%3e%3c/svg%3e");
+
+$homepage-piece-pattern-light: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3e%3cg fill='none' stroke='%23ffffff' stroke-opacity='.14' stroke-width='3' stroke-linejoin='round'%3e%3cpath transform='translate(28,24) rotate(9,50,50)' d='#{$homepage-piece-path}'/%3e%3cpath transform='translate(150,150) rotate(-18,50,50) scale(0.75)' d='#{$homepage-piece-path}'/%3e%3c/g%3e%3c/svg%3e");
+
+$homepage-piece-outline: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-10 -10 120 120'%3e%3cpath fill='none' stroke='%23fe696a' stroke-opacity='.22' stroke-width='3' stroke-linejoin='round' d='#{$homepage-piece-path}'/%3e%3c/svg%3e");
+
+$homepage-piece-bullet: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-10 -10 120 120'%3e%3cpath fill='%23fe696a' d='#{$homepage-piece-path}'/%3e%3c/svg%3e");
+
+
+// Hero
+// --------------------------------------------------
+
+.homepage-hero {
+    position: relative;
+    overflow: hidden;
+    padding: 2.5rem 0 6.25rem;
+    background-color: #fff2f1;
+    background-image: $homepage-piece-pattern,
+        radial-gradient(ellipse 120% 85% at 50% -10%, #fff 40%, rgba(#fff, 0) 100%),
+        linear-gradient(180deg, #fff 0%, #ffeceb 100%);
+
+    @include media-breakpoint-up(md) {
+        padding: 4rem 0 7.25rem;
+    }
+}
+
+.homepage-hero-inner {
+    max-width: 800px;
+}
+
+.homepage-hero-title {
+    margin-bottom: 1rem;
+    font-size: clamp(2.125rem, 4vw + 0.75rem, 3.5rem);
+    font-weight: 700;
+    line-height: 1.12;
+    letter-spacing: -.02em;
+    color: $headings-color;
+}
+
+.homepage-hero-highlight {
+    color: $primary;
+}
+
+.homepage-hero-subline {
+    max-width: 640px;
+    margin-bottom: 1.75rem;
+    font-size: 1.125rem;
+    line-height: 1.6;
+}
+
+.homepage-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    justify-content: center;
+}
+
+.homepage-hero-trust {
+    min-height: 1.3125rem;
+    margin: 1rem 0 0;
+    font-size: .875rem;
+}
+
+
+// Live community scoreboard (the signature element)
+// --------------------------------------------------
+
+.homepage-scoreboard {
+    position: relative;
+    margin-top: -4rem;
+    padding: 1.75rem 1rem 1.5rem;
+    text-align: center;
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 .625rem 2.25rem -.625rem rgba(#373f50, .28);
+
+    @include media-breakpoint-up(md) {
+        margin-top: -4.75rem;
+        padding: 2.25rem 2rem 2rem;
+    }
+}
+
+.homepage-scoreboard-eyebrow {
+    margin-bottom: 1.25rem;
+    font-size: .8125rem;
+    font-weight: 500;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: $gray-600;
+}
+
+.homepage-live-dot {
+    display: inline-block;
+    width: .5rem;
+    height: .5rem;
+    margin-right: .5rem;
+    vertical-align: .1em;
+    background: $primary;
+    border-radius: 50%;
+
+    @media (prefers-reduced-motion: no-preference) {
+        animation: homepage-live-pulse 2s ease-out infinite;
+    }
+}
+
+@keyframes homepage-live-pulse {
+    0% { box-shadow: 0 0 0 0 rgba($primary, .45); }
+    70% { box-shadow: 0 0 0 .5rem rgba($primary, 0); }
+    100% { box-shadow: 0 0 0 0 rgba($primary, 0); }
+}
+
+.homepage-counter-number {
+    display: block;
+    font-size: 1.625rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: $headings-color;
+    font-variant-numeric: tabular-nums;
+
+    @include media-breakpoint-up(md) {
+        font-size: 1.875rem;
+    }
+}
+
+.homepage-counter-number-big {
+    font-size: clamp(2.75rem, 7vw + 0.5rem, 4.75rem);
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    color: $primary;
+}
+
+.homepage-counter-label {
+    display: block;
+    font-size: .875rem;
+    color: $gray-600;
+}
+
+.homepage-scoreboard-main {
+    margin-bottom: 1.5rem;
+}
+
+.homepage-scoreboard-row {
+    max-width: 780px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+
+// Feature sections (zig-zag)
+// --------------------------------------------------
+
+.homepage-lead {
+    max-width: 720px;
+    margin-top: 3rem;
+    margin-bottom: 0;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+}
+
+.homepage-feature {
+    margin-top: 3rem;
+
+    @include media-breakpoint-up(md) {
+        margin-top: 3.75rem;
+    }
+}
+
+.homepage-feature-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 8rem;
+    height: 8rem;
+    margin: 0 auto;
+    font-size: 3.25rem;
+    color: $primary;
+    background-color: rgba($primary, .07);
+    background-image: $homepage-piece-outline;
+    background-repeat: no-repeat;
+    background-position: 135% 135%;
+    background-size: 72%;
+    border-radius: 2rem;
+
+    @include media-breakpoint-up(md) {
+        width: 9.5rem;
+        height: 9.5rem;
+        font-size: 3.75rem;
+    }
+}
+
+
+// Why join band + side cards
+// --------------------------------------------------
+
+.homepage-why-band {
+    margin-top: 3.5rem;
+    padding: 3.25rem 0;
+    background: #f6f9fc;
+}
+
+.homepage-why {
+    ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    li {
+        position: relative;
+        margin-bottom: .875rem;
+        padding-left: 2rem;
+        background: $homepage-piece-bullet no-repeat 0 .2em / 1.25rem auto;
+    }
+}
+
+.homepage-side-card {
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 .25rem 1rem rgba(#373f50, .07);
+
+    p:last-child {
+        margin-bottom: 0;
+    }
+
+    + .homepage-side-card {
+        margin-top: 1.5rem;
+    }
+}
+
+
+// Live from the community
+// --------------------------------------------------
+
+.homepage-community {
+    margin-top: 3.5rem;
+}
+
+
+// Closing CTA band
+// --------------------------------------------------
+
+.homepage-closing {
+    margin-top: 3.5rem;
+    padding: 3.5rem 0;
+    background-color: $primary;
+    background-image: $homepage-piece-pattern-light,
+        linear-gradient(160deg, #fe696a 0%, #ee5253 100%);
+}
+
+.homepage-closing-title {
+    margin-bottom: 1.5rem;
+    font-size: clamp(1.5rem, 2.5vw + 0.5rem, 2.25rem);
+    font-weight: 600;
+    color: #fff;
+}
+
+.homepage-closing .btn-outline-light:hover {
+    color: $primary;
+    background: #fff;
+    border-color: #fff;
+}
+
+
+// Language suggestion banner ("/" only, revealed by locale-preference)
+// --------------------------------------------------
+
+.homepage-locale-banner {
+    position: fixed;
+    top: 108px;
+    left: 50%;
+    z-index: 1029; // just below the fixed header (1030)
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    max-width: calc(100% - 2rem);
+    padding: .375rem .625rem .375rem 1.25rem;
+    background: #fff;
+    border: 1px solid rgba($primary, .25);
+    border-radius: 50rem;
+    box-shadow: 0 .5rem 1.5rem rgba(#373f50, .18);
+    transform: translateX(-50%);
+
+    @include media-breakpoint-up(lg) {
+        top: 104px;
+    }
+}
+
+.homepage-locale-banner-link {
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.homepage-locale-banner-close {
+    flex-shrink: 0;
+    padding: .5rem;
+    font-size: .75rem;
+}

@@ -17,6 +17,10 @@
         </a>
     </div>
 
+    <p class="mb-3">
+        <a href="{{ path('wjpc_hub') }}"><i class="bi bi-trophy me-1"></i>{{ 'events.wjpc_hub_link'|trans }}</a>
+    </p>
+
     {% if player_competitions|length > 0 or player_series|length > 0 %}
         <h2 class="mt-4">{{ 'competition.my_competitions'|trans }}</h2>
         <div class="row">

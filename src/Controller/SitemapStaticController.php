@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Controller;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class SitemapStaticController extends AbstractController
 {
@@ -40,18 +39,13 @@ final class SitemapStaticController extends AbstractController
         'feature_requests',
         'methodology',
         'msp_rating_ladder',
+        'wjpc_hub',
     ];
 
     #[Route(path: '/sitemap-static.xml', name: 'sitemap_static')]
     public function __invoke(): Response
     {
-        // The language crossroads at "/" is a single non-localized page (x-default of the homepage cluster)
-        $entries = [
-            [
-                'loc' => $this->generateUrl('homepage_crossroads', [], UrlGeneratorInterface::ABSOLUTE_URL),
-                'lastmod' => null,
-            ],
-        ];
+        $entries = [];
 
         foreach (self::STATIC_ROUTES as $route) {
             array_push($entries, ...$this->localizedEntries($route));

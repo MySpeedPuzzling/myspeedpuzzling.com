@@ -58,7 +58,7 @@ final class AffiliateDashboardController extends AbstractController
                 ? $this->getAffiliateSupporters->byPlayerId($profile->playerId)
                 : null,
             'referralUrl' => $profile->referralProgramJoinedAt !== null
-                ? $this->generateUrl('homepage_crossroads', ['ref' => $profile->code], UrlGeneratorInterface::ABSOLUTE_URL)
+                ? $this->generateUrl('homepage', ['_locale' => 'en', 'ref' => $profile->code], UrlGeneratorInterface::ABSOLUTE_URL)
                 : null,
         ]);
     }

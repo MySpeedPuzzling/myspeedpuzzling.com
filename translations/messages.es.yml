@@ -38,12 +38,6 @@
   "visibility": "Visibilidad"
   "visibility_public": "Pública"
   "visibility_private": "Privada"
-"crossroads":
-  "meta":
-    "title": "Speed puzzling: tiempos, rankings y campeonatos"
-    "description": "MySpeedPuzzling es la comunidad mundial de speed puzzling: registra tus tiempos de puzzle, compara rankings y encuentra campeonatos. Elige tu idioma."
-  "tagline": "La comunidad mundial de speed puzzling — registra tus tiempos de puzzle, escala los rankings y encuentra campeonatos de puzzles."
-  "intro": "MySpeedPuzzling es el hogar del <strong>speed puzzling</strong>: una base de datos con miles de puzzles y tiempos reales, rankings mundiales y un calendario de campeonatos y concursos de puzzles contrarreloj de todo el mundo. Elige tu idioma arriba para empezar."
 "footer":
   "created_with_love": "Creado con amor por los puzzles y el código por %simona% y %jan%"
   "about": "MySpeedPuzzling es la mayor plataforma de speed puzzling del mundo y el mayor tracker de tiempos de puzzle.<br>Rastrea tu colección de puzzles, registra tus tiempos de armado y compárate con puzzleros de todo el mundo. Ya sea por relajación o contrarreloj, este es tu lugar para compartir y divertirse juntos."
@@ -55,6 +49,7 @@
   "puzzle_add": "Agregar puzzle"
   "puzzle_tracker_app": "Aplicación Puzzle Tracker"
   "guides": "Guías de speed puzzling"
+  "wjpc": "Campeonato Mundial de Puzzles"
   "methodology": "Metodología de dificultad y rating"
 "puzzler_name": "Nombre"
 "puzzler": "Puzzlero"
@@ -128,6 +123,29 @@
   "cta_sign_in": "Iniciar sesión"
   "cta_my_profile": "Mi perfil"
   "cta_recent": "Tiempos recientes"
+  "hero":
+    "title": "El hogar del %speed_puzzling%"
+    "title_highlight": "speed puzzling"
+    "subline": "Registra tus tiempos de puzzle, compite en rankings mundiales y compárate con aficionados a los puzzles contrarreloj de todo el mundo."
+    "cta_start": "Empieza a registrar gratis"
+    "cta_puzzles": "Explora la base de datos de puzzles"
+    "cta_add_time": "Añadir tiempo"
+    "cta_recent_activity": "Actividad reciente"
+    "trust_line": "Gratis · %count% puzzlers de todo el mundo ya registran sus tiempos"
+  "counters":
+    "title": "Marcador en vivo de la comunidad"
+    "pieces": "piezas colocadas"
+    "puzzles": "puzzles montados"
+    "players": "puzzlers en el mundo"
+    "hours": "horas montando puzzles"
+  "community":
+    "title": "En vivo desde la comunidad"
+    "cta": "Ver todos los tiempos recientes"
+  "closing":
+    "title": "Tu próximo puzzle podría ser el más rápido."
+  "locale_banner":
+    "continue": "Continuar en español"
+    "dismiss": "Cerrar"
   "seo_sections":
     "what_is":
       "title": "¿Qué es el speed puzzling?"
@@ -511,6 +529,7 @@
 "events":
   "title": "Eventos"
   "heading": "Campeonatos y concursos de puzzles"
+  "wjpc_hub_link": "¿Buscas el Campeonato Mundial de Puzzles (WJPC)? Todas las ediciones, fechas y resultados"
   "meta":
     "title": "Campeonatos y concursos de puzzles"
     "description": "Calendario mundial de campeonatos y concursos de speed puzzling — fechas, inscripción, puzzles, participantes y resultados, presenciales y online."
@@ -2717,3 +2736,43 @@ fair_use_policy:
   "top_brands": "Marcas populares de puzzles de %pieces% piezas"
   "most_solved": "Puzzles de %pieces% piezas más armados"
   "view_all": "Ver todos los puzzles de %pieces% piezas"
+
+"wjpc_hub":
+  "meta":
+    "title": "Campeonato Mundial de Puzzles (WJPC)"
+    "description": "Campeonato Mundial de Puzzles (WJPC): fechas, resultados e historia de todas las ediciones desde 2019, y cómo participar en Valladolid, España."
+  "intro": "El Campeonato Mundial de Puzzles (World Jigsaw Puzzle Championship, WJPC) es el mayor evento del puzzle de velocidad: cada año, puzzlers de todo el mundo compiten por montar puzzles idénticos en el menor tiempo posible. Esta página reúne todas las ediciones del WJPC con sus fechas, sedes y resultados, y explica cómo participar."
+  "what_is":
+    "heading": "¿Qué es el Campeonato Mundial de Puzzles?"
+    "p1": "El WJPC está organizado por la World Jigsaw Puzzle Federation y se celebra en Valladolid, España, desde su primera edición en 2019. El concepto es sencillo y justo: todos los participantes de una ronda reciben el mismo puzzle, que se mantiene en secreto hasta la señal de salida. Gana quien termina más rápido, y quienes no acaban dentro del límite de tiempo se clasifican según el número de piezas colocadas correctamente."
+    "p2": "El campeonato tiene tres categorías. En individual se montan puzzles de 500 piezas en las rondas clasificatorias y en la final. Las parejas montan 500 piezas hasta la semifinal y 1.000 piezas en la final. Los equipos de cuatro se enfrentan a puzzles de 1.000 piezas en todas las rondas. Entre todas las categorías participan miles de puzzlers de decenas de países durante varios días de competición."
+    "p3": "El primer Campeonato Mundial de Puzzles se celebró en 2019. Tras la cancelación de las ediciones de 2020 y 2021 por la pandemia de COVID-19, el campeonato regresó en 2022 y no ha dejado de crecer desde entonces: hoy es la cita cumbre del calendario del puzzle de velocidad y la referencia de todo puzzler competitivo."
+  "editions":
+    "heading": "Ediciones del WJPC: fechas y resultados"
+    "intro": "Todas las ediciones del Campeonato Mundial de Puzzles, de la más reciente a la más antigua. Cada enlace lleva a la página del evento en MySpeedPuzzling con los participantes, los puzzles y los resultados de ese año."
+    "year": "Año"
+    "location": "Lugar"
+    "dates": "Fechas"
+    "event_link": "Evento y resultados"
+    "empty": "Las páginas de los eventos del WJPC están en preparación. Mientras tanto, puedes explorar todas las competiciones en nuestro <a href=\"%events_link%\">calendario de eventos</a>."
+  "participate":
+    "heading": "Cómo participar en el WJPC"
+    "p1": "Cualquier persona a partir de 14 años puede inscribirse: no hay requisitos de clasificación ni nivel mínimo, así que los principiantes compiten en las mismas mesas que los campeones del mundo. Las inscripciones se abren en la web oficial de la World Jigsaw Puzzle Federation, <a href=\"%official_link%\" target=\"_blank\" rel=\"noopener\">worldjigsawpuzzle.org</a>, normalmente varios meses antes del campeonato, y la cuota incluye los puzzles de competición. Las plazas por categoría son limitadas, por lo que conviene inscribirse pronto."
+    "p2": "El WJPC es un evento presencial: no existe participación online. Si todavía no entra en tus planes viajar a España, los campeonatos nacionales y las competiciones locales de todo el mundo usan el mismo formato y son un punto de partida ideal: encuéntralos en nuestro <a href=\"%events_link%\">calendario de eventos</a>."
+  "msp":
+    "heading": "El WJPC en MySpeedPuzzling"
+    "p1": "MySpeedPuzzling guarda un registro permanente del campeonato. Cada edición de la tabla tiene su propia página de evento con los participantes que han vinculado su perfil, los puzzles montados en cada ronda y enlaces a los resultados oficiales, para que puedas seguir cómo evolucionan el campeonato y sus puzzlers año tras año."
+    "p2": "¿Quieres saber cómo te iría? Registra algunos tiempos y compárate con participantes del WJPC en la <a href=\"%ladder_link%\">clasificación</a>, encuentra tu próxima competición en el <a href=\"%events_link%\">calendario de eventos</a> o empieza por nuestra guía sobre <a href=\"%guide_link%\">qué es el puzzle de velocidad</a> (en inglés)."
+  "faq":
+    "heading": "Preguntas frecuentes"
+    "next":
+      "question": "¿Cuándo es el próximo Campeonato Mundial de Puzzles?"
+      "answer_scheduled": "La próxima edición, %name%, se celebra %dates% en %location%."
+      "answer_event_link": "Consulta nuestra página del evento para ver detalles, participantes y puzzles."
+      "answer_evergreen": "El WJPC se celebra cada año en Valladolid, España, normalmente en septiembre. Las fechas de la próxima edición se anuncian en la web oficial y cada edición tiene su página en nuestro <a href=\"%events_link%\">calendario de eventos</a>."
+    "results":
+      "question": "¿Cómo funcionan los resultados del WJPC?"
+      "answer": "Cada ronda se juega con puzzles idénticos y contrarreloj. Quienes terminan dentro del límite de tiempo se clasifican por su tiempo exacto; el resto, por el número de piezas colocadas correctamente. Los resultados oficiales los publica la World Jigsaw Puzzle Federation, y la página de cada edición en MySpeedPuzzling enlaza a ellos junto con los participantes y puzzles de ese año."
+    "anyone":
+      "question": "¿Puede competir cualquiera en el WJPC?"
+      "answer": "Sí. La inscripción está abierta a cualquier puzzler a partir de 14 años y no se exige ninguna ronda de clasificación. Los principiantes comparten sala habitualmente con los puzzlers más rápidos del mundo: todos reciben el mismo puzzle y el mismo cronómetro."

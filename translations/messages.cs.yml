@@ -36,12 +36,6 @@
   "visibility": "Viditelnost"
   "visibility_public": "Veřejná"
   "visibility_private": "Soukromá"
-"crossroads":
-  "meta":
-    "title": "Časy, žebříčky a závody ve speed puzzlingu"
-    "description": "MySpeedPuzzling je světová speed puzzling komunita: zaznamenávej časy skládání puzzle, porovnávej žebříčky a najdi závody. Vyber si svůj jazyk."
-  "tagline": "Světová speed puzzling komunita — zaznamenávej časy skládání puzzle, šplhej po žebříčcích a najdi závody."
-  "intro": "MySpeedPuzzling je domovem <strong>speed puzzlingu</strong>: databáze tisíců puzzlí se skutečnými časy skládání, světové žebříčky a kalendář závodů ve skládání puzzle na čas z celého světa. Začni výběrem jazyka výše."
 "footer":
   "created_with_love": "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"
   "about": "MySpeedPuzzling je největší speed puzzling platforma na světě a tracker časů skládání puzzle.<br>Sledujte svou sbírku puzzlí, zaznamenávejte časy skládání a porovnávejte se s puzzlery z celého světa. Ať už skládáte pro relaxaci, nebo na čas, tady je vaše místo pro sdílení a společnou zábavu."
@@ -53,6 +47,7 @@
   "puzzle_add": "Přidat puzzle"
   "puzzle_tracker_app": "Puzzle tracker aplikace"
   "guides": "Průvodce speed puzzlingem"
+  "wjpc": "Mistrovství světa ve skládání puzzle"
   "methodology": "Metodika obtížnosti a ratingu"
 "puzzler_name": "Jméno"
 "puzzler": "Puzzler"
@@ -127,6 +122,29 @@
   "cta_sign_in": "Přihlásit se"
   "cta_my_profile": "Můj profil"
   "cta_recent": "Nejnovější časy"
+  "hero":
+    "title": "Domov pro %speed_puzzling%"
+    "title_highlight": "speed puzzling"
+    "subline": "Zaznamenávej časy skládání puzzle, soutěž ve světových žebříčcích a porovnávej se se speed puzzlery z celého světa."
+    "cta_start": "Začni měřit zdarma"
+    "cta_puzzles": "Prozkoumej databázi puzzlí"
+    "cta_add_time": "Přidat čas skládání"
+    "cta_recent_activity": "Nejnovější aktivita"
+    "trust_line": "Zdarma · Své časy už sleduje %count% puzzlerů z celého světa"
+  "counters":
+    "title": "Živé skóre komunity"
+    "pieces": "složených dílků"
+    "puzzles": "poskládaných puzzlí"
+    "players": "puzzlerů ze světa"
+    "hours": "hodin strávených skládáním"
+  "community":
+    "title": "Živě z komunity"
+    "cta": "Zobrazit všechny nejnovější časy"
+  "closing":
+    "title": "Tvoje příští puzzle můžou být tvoje nejrychlejší."
+  "locale_banner":
+    "continue": "Pokračovat v češtině"
+    "dismiss": "Zavřít"
   "seo_sections":
     "what_is":
       "title": "Co je speed puzzling?"
@@ -434,6 +452,7 @@
 "events":
   "title": "Události"
   "heading": "Speed puzzling závody a události"
+  "wjpc_hub_link": "Hledáte mistrovství světa ve skládání puzzle (WJPC)? Všechny ročníky, termíny a výsledky"
   "meta":
     "title": "Speed puzzling závody a události"
     "description": "Celosvětový kalendář speed puzzling závodů a událostí — termíny, registrace, puzzle, účastníci a výsledky, naživo i online."
@@ -2715,3 +2734,43 @@ qr_code:
   "top_brands": "Oblíbené značky puzzlí %pieces% dílků"
   "most_solved": "Nejskládanější puzzle %pieces% dílků"
   "view_all": "Zobrazit všechny puzzle %pieces% dílků"
+
+"wjpc_hub":
+  "meta":
+    "title": "Mistrovství světa ve skládání puzzle"
+    "description": "Mistrovství světa ve skládání puzzle (WJPC): termíny, výsledky a historie všech ročníků od roku 2019 i jak se zúčastnit ve španělském Valladolidu."
+  "intro": "Mistrovství světa ve skládání puzzle (World Jigsaw Puzzle Championship, WJPC) je největší událost soutěžního skládání puzzle — každoroční světový šampionát ve speed puzzlingu, na kterém skládači z celého světa závodí, kdo nejrychleji složí totožné puzzle. Na této stránce najdete všechny ročníky WJPC s termíny, místem konání a výsledky, a také návod, jak se zúčastnit."
+  "what_is":
+    "heading": "Co je World Jigsaw Puzzle Championship?"
+    "p1": "WJPC pořádá World Jigsaw Puzzle Federation a od prvního ročníku v roce 2019 se koná ve španělském Valladolidu. Princip je jednoduchý a férový: každý soutěžící v daném kole dostane stejné puzzle, které zůstává utajené až do startovního signálu. Vyhrává ten, kdo složí nejrychleji — a skládači, kteří nestihnou dokončit v časovém limitu, se řadí podle počtu správně složených dílků."
+    "p2": "Šampionát má tři kategorie. Jednotlivci skládají puzzle s 500 dílky v kvalifikačních kolech i ve finále. Dvojice skládají 500 dílků až do semifinále a 1 000 dílků ve finále. Čtyřčlenné týmy skládají 1 000 dílků v každém kole. Napříč kategoriemi se během několika soutěžních dnů utkají tisíce skládačů z desítek zemí."
+    "p3": "První mistrovství světa ve skládání puzzle se konalo v roce 2019. Po zrušených ročnících 2020 a 2021 kvůli pandemii covidu-19 se šampionát v roce 2022 vrátil a od té doby každým rokem roste — dnes je vrcholem speed puzzlingového kalendáře a metou, se kterou se poměřuje každý soutěžní skládač."
+  "editions":
+    "heading": "Ročníky WJPC: termíny a výsledky"
+    "intro": "Všechny ročníky mistrovství světa ve skládání puzzle, od nejnovějšího. Každý odkaz vede na stránku eventu na MySpeedPuzzling s účastníky, puzzlemi a výsledky daného roku."
+    "year": "Rok"
+    "location": "Místo"
+    "dates": "Termín"
+    "event_link": "Event a výsledky"
+    "empty": "Stránky eventů WJPC připravujeme. Mezitím můžete procházet všechny soutěže ve skládání puzzle v našem <a href=\"%events_link%\">kalendáři eventů</a>."
+  "participate":
+    "heading": "Jak se zúčastnit WJPC"
+    "p1": "Registrovat se může každý od 14 let — není potřeba žádná kvalifikace ani minimální úroveň, takže nováčci soutěží u stejných stolů jako mistři světa. Registrace se otevírá na oficiálním webu World Jigsaw Puzzle Federation <a href=\"%official_link%\" target=\"_blank\" rel=\"noopener\">worldjigsawpuzzle.org</a>, obvykle několik měsíců před šampionátem, a startovné zahrnuje soutěžní puzzle. Kapacita kategorií je omezená, vyplatí se proto registrovat včas."
+    "p2": "WJPC je prezenční akce — online účast není možná. Pokud cesta do Španělska zatím není ve vašich plánech, stejný formát používají národní šampionáty a lokální soutěže po celém světě: ty nejbližší najdete v našem <a href=\"%events_link%\">kalendáři eventů</a>."
+  "msp":
+    "heading": "WJPC na MySpeedPuzzling"
+    "p1": "MySpeedPuzzling uchovává trvalý záznam šampionátu. Každý ročník výše má vlastní stránku eventu se seznamem účastníků, kteří si propojili profil, puzzlemi skládanými v jednotlivých kolech a odkazy na oficiální výsledky — můžete tak sledovat, jak se šampionát a jeho skládači vyvíjejí rok od roku."
+    "p2": "Zajímá vás, jak byste obstáli? Zaznamenejte pár skládání a porovnejte se s účastníky WJPC v <a href=\"%ladder_link%\">žebříčcích</a>, najděte si další soutěž v <a href=\"%events_link%\">kalendáři eventů</a>, nebo začněte naším průvodcem <a href=\"%guide_link%\">co je speed puzzling</a> (v angličtině)."
+  "faq":
+    "heading": "Časté dotazy"
+    "next":
+      "question": "Kdy se koná příští mistrovství světa ve skládání puzzle?"
+      "answer_scheduled": "Příští ročník %name% se koná %dates% ve městě %location%."
+      "answer_event_link": "Podrobnosti, účastníky a puzzle najdete na stránce eventu."
+      "answer_evergreen": "WJPC se koná každý rok ve španělském Valladolidu, obvykle v září. Termíny dalšího ročníku oznamuje oficiální web a každý ročník má stránku eventu v našem <a href=\"%events_link%\">kalendáři eventů</a>."
+    "results":
+      "question": "Jak fungují výsledky WJPC?"
+      "answer": "Každé kolo se skládá na identických puzzlích proti času. Skládači, kteří dokončí v časovém limitu, se řadí podle přesného času; ostatní podle počtu správně složených dílků. Oficiální výsledky zveřejňuje World Jigsaw Puzzle Federation a stránka každého ročníku na MySpeedPuzzling na ně odkazuje spolu s účastníky a puzzlemi daného roku."
+    "anyone":
+      "question": "Může na WJPC soutěžit každý?"
+      "answer": "Ano. Registrace je otevřená každému skládači od 14 let a k účasti není potřeba žádná kvalifikace. Začátečníci běžně soutěží ve stejné hale jako nejrychlejší skládači světa — všichni dostanou stejné puzzle a stejný čas."

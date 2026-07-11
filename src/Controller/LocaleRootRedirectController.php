@@ -5,25 +5,24 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Bare locale roots (/en, /es, ...) used to hard-404 - permanently
- * redirect them to the localized homepage.
+ * The English homepage lives at the domain root "/", so the bare /en root
+ * permanently redirects there. All other locale roots (/cs, /de, ...) are
+ * real localized homepages handled by HomepageController.
  */
 final class LocaleRootRedirectController extends AbstractController
 {
     #[Route(
-        path: '/{_locale}',
+        path: '/en',
         name: 'locale_root',
-        requirements: ['_locale' => 'en|es|ja|fr|de'],
     )]
-    public function __invoke(Request $request): Response
+    public function __invoke(): Response
     {
         return $this->redirectToRoute('homepage', [
-            '_locale' => $request->getLocale(),
+            '_locale' => 'en',
         ], Response::HTTP_MOVED_PERMANENTLY);
     }
 }

@@ -91,8 +91,8 @@
                 <link rel="alternate" hreflang="fr" href="{{ url(currentRoute, currentRouteParams|merge({'_locale': 'fr'})) }}">
                 <link rel="alternate" hreflang="de" href="{{ url(currentRoute, currentRouteParams|merge({'_locale': 'de'})) }}">
                 {% if currentRoute == 'homepage' %}
-                    {# The language crossroads at / is the x-default for the homepage cluster #}
-                    <link rel="alternate" hreflang="x-default" href="{{ url('homepage_crossroads') }}">
+                    {# The domain root (EN homepage) is the x-default for the homepage cluster #}
+                    <link rel="alternate" hreflang="x-default" href="{{ url('homepage', {'_locale': 'en'}) }}">
                 {% else %}
                     <link rel="alternate" hreflang="x-default" href="{{ url(currentRoute, currentRouteParams|merge({'_locale': 'en'})) }}">
                 {% endif %}
@@ -539,6 +539,9 @@
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('guides') }}" class="widget-list-link">{{ 'footer.guides'|trans }}</a>
+                                </li>
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                    <a href="{{ path('wjpc_hub') }}" class="widget-list-link">{{ 'footer.wjpc'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('methodology') }}" class="widget-list-link">{{ 'footer.methodology'|trans }}</a>

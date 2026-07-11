@@ -39,6 +39,21 @@ SQL;
         return GlobalStatistics::fromDatabaseRow($row);
     }
 
+    public function countPlayers(): int
+    {
+        $query = <<<SQL
+SELECT COUNT(id)
+FROM player
+WHERE user_id IS NOT NULL
+SQL;
+
+        $count = $this->database
+            ->executeQuery($query)
+            ->fetchOne();
+
+        return is_numeric($count) ? (int) $count : 0;
+    }
+
     public function globallyInMonth(int $month, int $year): GlobalStatistics
     {
         $startDate = sprintf('%04d-%02d-01', $year, $month);

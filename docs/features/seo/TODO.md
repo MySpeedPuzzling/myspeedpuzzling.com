@@ -5,7 +5,7 @@ Maintained by Claude during the SEO overhaul (2026-07-11). Everything here eithe
 ## Needs Jan's action (no code)
 
 1. **GSC after deploy** (~10 min): Search Console → Sitemaps → resubmit `https://myspeedpuzzling.com/sitemap.xml`. Expect index-coverage churn 2–4 weeks while per-locale URLs are picked up. Watch: Coverage report, hreflang errors (should trend to zero), and the "speed puzzling" query position weekly.
-2. **Create the evergreen WJPC hub (admin UI, editorial)**: create a "World Jigsaw Puzzle Championship" competition *series* and attach the yearly events (2023/2024/2025/…) as editions. The code (series pages, EventSeries schema, sitemap) is ready — the equity accumulation only starts once the series exists. Same pattern for USA Nationals, UK Nationals etc.
+2. ~~Create WJPC series in admin~~ **SUPERSEDED (2026-07-11)**: a dedicated evergreen WJPC hub page now exists at `/en/world-jigsaw-puzzle-championship` (static content page pulling editions from the DB automatically — new yearly events appear on it as soon as they're added). Remaining editorial action: keep adding each year's WJPC event via the normal events flow. The same hub pattern can be replicated for USA/UK Nationals when wanted.
 3. **Link outreach — the decisive factor for beating speedpuzzling.com** (I draft, you send):
    - Event organizers already using the platform (UK, Canada, Austria championships…): ask each to link "Results on MySpeedPuzzling" from their site.
    - Speed Puzzling News (runs a Media Recap that exists to feature community resources — lowest-hanging fruit), Jigsaw Junkies / Puzzle Warehouse blog, USAJPA "In the News"/resources page, speedpuzzle.eu, My Jigsaw Journal, puzzle podcasts.

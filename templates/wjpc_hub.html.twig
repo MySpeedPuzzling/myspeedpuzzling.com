@@ -1,0 +1,149 @@
+{% extends 'base.html.twig' %}
+
+{% set linked_editions = editions|filter(edition => edition.slug is not null) %}
+
+{% block title %}{{ 'wjpc_hub.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'wjpc_hub.meta.description'|trans }}{% endblock %}
+
+{% block json_ld %}
+    {{ parent() }}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": {{ 'navigation.home'|trans|json_encode|raw }},
+                "item": {{ url('homepage')|json_encode|raw }}
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": {{ 'menu.events'|trans|json_encode|raw }},
+                "item": {{ url('events')|json_encode|raw }}
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": {{ 'wjpc_hub.meta.title'|trans|json_encode|raw }}
+            }
+        ]
+    }
+    </script>
+    {% if linked_editions|length > 0 %}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": {{ 'wjpc_hub.editions.heading'|trans|json_encode|raw }},
+        "itemListElement": [
+            {% for edition in linked_editions %}
+            {
+                "@type": "ListItem",
+                "position": {{ loop.index }},
+                "name": {{ edition.name|json_encode|raw }},
+                "url": {{ url('event_detail', {slug: edition.slug})|json_encode|raw }}
+            }{{ loop.last ? '' : ',' }}
+            {% endfor %}
+        ]
+    }
+    </script>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <h1 class="mb-3">{{ 'wjpc_hub.meta.title'|trans }}</h1>
+
+    <p class="fs-lg">{{ 'wjpc_hub.intro'|trans }}</p>
+
+    <h2 class="h4 mt-4">{{ 'wjpc_hub.what_is.heading'|trans }}</h2>
+    <p>{{ 'wjpc_hub.what_is.p1'|trans }}</p>
+    <p>{{ 'wjpc_hub.what_is.p2'|trans }}</p>
+    <p>{{ 'wjpc_hub.what_is.p3'|trans }}</p>
+
+    <h2 class="h4 mt-4">{{ 'wjpc_hub.editions.heading'|trans }}</h2>
+
+    {% if editions|length > 0 %}
+        <p>{{ 'wjpc_hub.editions.intro'|trans }}</p>
+
+        <div class="table-responsive mb-3">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">{{ 'wjpc_hub.editions.year'|trans }}</th>
+                        <th scope="col">{{ 'wjpc_hub.editions.location'|trans }}</th>
+                        <th scope="col">{{ 'wjpc_hub.editions.dates'|trans }}</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for edition in editions %}
+                        <tr>
+                            <th scope="row">{{ edition.dateFrom ? edition.dateFrom|date('Y') : '–' }}</th>
+                            <td>
+                                {% if edition.locationCountryCode %}
+                                    <span class="shadow-custom fi fi-{{ edition.locationCountryCode.name }} me-2"></span>
+                                {% endif %}
+                                {{- edition.location }}
+                            </td>
+                            <td>
+                                {% if edition.dateFrom %}
+                                    {{ edition.dateFrom|format_date('medium') }}
+                                    {%- if edition.dateTo and edition.dateTo|date('Y-m-d') != edition.dateFrom|date('Y-m-d') %}
+                                        – {{ edition.dateTo|format_date('medium') }}
+                                    {%- endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if edition.slug %}
+                                    <a href="{{ path('event_detail', {slug: edition.slug}) }}">{{ 'wjpc_hub.editions.event_link'|trans }}</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>{{ 'wjpc_hub.editions.empty'|trans({'%events_link%': path('events')})|raw }}</p>
+    {% endif %}
+
+    <h2 class="h4 mt-4">{{ 'wjpc_hub.participate.heading'|trans }}</h2>
+    <p>{{ 'wjpc_hub.participate.p1'|trans({'%official_link%': 'https://worldjigsawpuzzle.org?utm_source=myspeedpuzzling'})|raw }}</p>
+    <p>{{ 'wjpc_hub.participate.p2'|trans({'%events_link%': path('events')})|raw }}</p>
+
+    <h2 class="h4 mt-4">{{ 'wjpc_hub.msp.heading'|trans }}</h2>
+    <p>{{ 'wjpc_hub.msp.p1'|trans }}</p>
+    <p>{{ 'wjpc_hub.msp.p2'|trans({
+        '%ladder_link%': path('ladder'),
+        '%events_link%': path('events'),
+        '%guide_link%': path('guide_what_is_speed_puzzling'),
+    })|raw }}</p>
+
+    <h2 class="h4 mt-4">{{ 'wjpc_hub.faq.heading'|trans }}</h2>
+
+    <h3 class="h6 mt-3">{{ 'wjpc_hub.faq.next.question'|trans }}</h3>
+    {% if next_edition and next_edition.dateFrom %}
+        {% set next_edition_dates = next_edition.dateFrom|format_date('long') ~ (next_edition.dateTo ? ' – ' ~ next_edition.dateTo|format_date('long') : '') %}
+        <p>
+            {{ 'wjpc_hub.faq.next.answer_scheduled'|trans({
+                '%name%': next_edition.name,
+                '%dates%': next_edition_dates,
+                '%location%': next_edition.location,
+            }) }}
+            {% if next_edition.slug %}
+                <a href="{{ path('event_detail', {slug: next_edition.slug}) }}">{{ 'wjpc_hub.faq.next.answer_event_link'|trans }}</a>
+            {% endif %}
+        </p>
+    {% else %}
+        <p>{{ 'wjpc_hub.faq.next.answer_evergreen'|trans({'%events_link%': path('events')})|raw }}</p>
+    {% endif %}
+
+    <h3 class="h6 mt-3">{{ 'wjpc_hub.faq.results.question'|trans }}</h3>
+    <p>{{ 'wjpc_hub.faq.results.answer'|trans }}</p>
+
+    <h3 class="h6 mt-3">{{ 'wjpc_hub.faq.anyone.question'|trans }}</h3>
+    <p>{{ 'wjpc_hub.faq.anyone.answer'|trans }}</p>
+{% endblock %}

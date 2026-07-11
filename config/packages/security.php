@@ -40,7 +40,9 @@ return App::config([
                 'security' => false,
             ],
             'stateless' => [
-                'pattern' => '^(/-/health-check|/media/cache|/sitemap)',
+                // /homepage-stats: public JSON for the homepage live counters - identical
+                // for every visitor, must stay session/cookie-free to be cacheable end to end.
+                'pattern' => '^(/-/health-check|/media/cache|/sitemap|/homepage-stats$)',
                 'stateless' => true,
                 'security' => false,
             ],

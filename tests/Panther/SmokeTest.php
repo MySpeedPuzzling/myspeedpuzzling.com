@@ -10,7 +10,7 @@ final class SmokeTest extends AbstractPantherTestCase
     {
         $client = self::createBrowserClient();
 
-        $client->request('GET', '/en/home');
+        $client->request('GET', '/');
 
         self::assertSelectorExists('body');
         self::assertPageTitleContains('Speed Puzzling');

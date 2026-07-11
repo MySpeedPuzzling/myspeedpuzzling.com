@@ -3,105 +3,185 @@
 {% block title %}{{ 'homepage.meta.title'|trans }}{% endblock %}
 {% block meta_description %}{{ 'homepage.meta.description'|trans }}{% endblock %}
 
-{% block content %}
-    <div class="pb-4">
-        <div class="row gy-3 pb-3">
-            <div class="col-lg-5 col-md-8 col-sm-10">
-                <h1 class="h2">{{ 'homepage.title'|trans }}</h1>
+{% block full_content %}
+    {% set isLoggedIn = logged_user.profile is not null %}
 
-                <p>{{ 'homepage.intro_text'|trans }}</p>
+    {# Language suggestion banner: domain root ("/", English homepage) only.
+       Rendered hidden with no layout impact (position: fixed) - the
+       locale-preference controller reveals it when a stored language
+       preference differs from the current page. #}
+    {% if app.request.locale == 'en' %}
+        {% set localeBannerUrls = {} %}
+        {% set localeBannerLabels = {} %}
+        {% for bannerLocale in ['en', 'cs', 'de', 'fr', 'es', 'ja'] %}
+            {% set localeBannerUrls = localeBannerUrls|merge({(bannerLocale): path('homepage', {'_locale': bannerLocale})}) %}
+            {% set localeBannerLabels = localeBannerLabels|merge({(bannerLocale): 'homepage.locale_banner.continue'|trans({}, 'messages', bannerLocale)}) %}
+        {% endfor %}
 
-                <div class="card border-0 shadow-lg text-center mt-md-5">
-                    <div class="card-body p-3">
-                        <div class="countdown h5 mb-1 justify-content-center">
-                            <div class="countdown-days mb-0">
-                                <span class="countdown-value">{{ global_statistics.totalSeconds|daysElapsed }}</span>
-                                <span class="countdown-label text-muted">d</span>
-                            </div>
-                            <div class="countdown-hours mb-0">
-                                <span class="countdown-value">{{ global_statistics.totalSeconds|hoursElapsed(false) }}</span>
-                                <span class="countdown-label text-muted">h</span>
-                            </div>
-                            <div class="countdown-minutes mb-0">
-                                <span class="countdown-value">{{ global_statistics.totalSeconds|minutesElapsed }}</span>
-                                <span class="countdown-label text-muted">m</span>
-                            </div>
-                            <div class="countdown-seconds mb-0">
-                                <span class="countdown-value">{{ global_statistics.totalSeconds|secondsElapsed }}</span>
-                                <span class="countdown-label text-muted">s</span>
-                            </div>
-                        </div>
+        <div data-controller="locale-preference"
+             data-locale-preference-banner-value="true"
+             data-locale-preference-urls-value="{{ localeBannerUrls|json_encode|e('html_attr') }}"
+             data-locale-preference-labels-value="{{ localeBannerLabels|json_encode|e('html_attr') }}">
+            <div class="homepage-locale-banner d-none" data-locale-preference-target="banner">
+                <a class="homepage-locale-banner-link" href="#"
+                   data-locale-preference-target="link"
+                   data-action="click->locale-preference#save"></a>
+                <button type="button" class="btn-close homepage-locale-banner-close"
+                        data-action="locale-preference#dismiss"
+                        aria-label="{{ 'homepage.locale_banner.dismiss'|trans }}"></button>
+            </div>
+        </div>
+    {% endif %}
 
-                        {{ 'homepage.global_statistics'|trans({'%puzzles%': global_statistics.solvedPuzzlesCount, '%pieces%': global_statistics.totalPieces|format_number([], 'decimal', 'default', 'cs') })|raw }}
+    {# ============ Hero ============ #}
+    <section class="homepage-hero">
+        <div class="container">
+            <div class="homepage-hero-inner mx-auto text-center">
+                <h1 class="homepage-hero-title">
+                    {{ 'homepage.hero.title'|trans({'%speed_puzzling%': '<span class="homepage-hero-highlight">' ~ ('homepage.hero.title_highlight'|trans|e) ~ '</span>'})|raw }}
+                </h1>
+
+                <p class="homepage-hero-subline mx-auto">{{ 'homepage.hero.subline'|trans }}</p>
+
+                <div class="homepage-hero-actions">
+                    {% if isLoggedIn %}
+                        <a href="{{ path('puzzle_add') }}" class="btn btn-primary btn-lg btn-shadow"><i class="ci-add me-2" aria-hidden="true"></i>{{ 'homepage.hero.cta_add_time'|trans }}</a>
+                        <a href="{{ path('recent_activity') }}" class="btn btn-outline-primary btn-lg">{{ 'homepage.hero.cta_recent_activity'|trans }}</a>
+                    {% else %}
+                        <a href="{{ path('my_profile') }}" class="btn btn-primary btn-lg btn-shadow"><i class="ci-time me-2" aria-hidden="true"></i>{{ 'homepage.hero.cta_start'|trans }}</a>
+                        <a href="{{ path('puzzles') }}" class="btn btn-outline-primary btn-lg">{{ 'homepage.hero.cta_puzzles'|trans }}</a>
+                    {% endif %}
+                </div>
+
+                {% if not isLoggedIn %}
+                    <p class="homepage-hero-trust text-muted">{{ 'homepage.hero.trust_line'|trans({'%count%': homepage_statistics.players|format_number}) }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    {# ============ Live community scoreboard (the signature) ============ #}
+    <section class="container">
+        <div class="homepage-scoreboard"
+             data-controller="count-up"
+             data-count-up-url-value="{{ path('homepage_stats') }}"
+             aria-labelledby="homepage-scoreboard-title">
+            <p class="homepage-scoreboard-eyebrow" id="homepage-scoreboard-title">
+                <span class="homepage-live-dot" aria-hidden="true"></span>{{ 'homepage.counters.title'|trans }}
+            </p>
+
+            <div class="homepage-scoreboard-main">
+                <span class="homepage-counter-number homepage-counter-number-big"
+                      data-count-up-target="number"
+                      data-count-up-key="pieces"
+                      data-count-up-value="{{ homepage_statistics.pieces }}">{{ homepage_statistics.pieces|format_number }}</span>
+                <span class="homepage-counter-label">{{ 'homepage.counters.pieces'|trans }}</span>
+            </div>
+
+            <div class="row homepage-scoreboard-row g-3">
+                <div class="col-sm-4">
+                    <span class="homepage-counter-number"
+                          data-count-up-target="number"
+                          data-count-up-key="puzzles"
+                          data-count-up-value="{{ homepage_statistics.puzzles }}">{{ homepage_statistics.puzzles|format_number }}</span>
+                    <span class="homepage-counter-label">{{ 'homepage.counters.puzzles'|trans }}</span>
+                </div>
+                <div class="col-sm-4">
+                    <span class="homepage-counter-number"
+                          data-count-up-target="number"
+                          data-count-up-key="players"
+                          data-count-up-value="{{ homepage_statistics.players }}">{{ homepage_statistics.players|format_number }}</span>
+                    <span class="homepage-counter-label">{{ 'homepage.counters.players'|trans }}</span>
+                </div>
+                <div class="col-sm-4">
+                    <span class="homepage-counter-number"
+                          data-count-up-target="number"
+                          data-count-up-key="hours"
+                          data-count-up-value="{{ homepage_statistics.hours }}">{{ homepage_statistics.hours|format_number }}</span>
+                    <span class="homepage-counter-label">{{ 'homepage.counters.hours'|trans }}</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# ============ What / features (existing SEO sections, zig-zag) ============ #}
+    <section class="container homepage-features">
+        <p class="homepage-lead mx-auto text-center">{{ 'homepage.intro_text'|trans }}</p>
+
+        {% set featureSections = [
+            {icon: 'bi-puzzle', title: 'homepage.seo_sections.what_is.title'|trans, text: 'homepage.seo_sections.what_is.text'|trans({'%guide_link%': path('guide_what_is_speed_puzzling')})},
+            {icon: 'bi-stopwatch', title: 'homepage.seo_sections.track.title'|trans, text: 'homepage.seo_sections.track.text'|trans({'%tracker_link%': path('puzzle_tracker_app'), '%stopwatch_link%': path('stopwatch')})},
+            {icon: 'bi-trophy', title: 'homepage.seo_sections.leaderboards.title'|trans, text: 'homepage.seo_sections.leaderboards.text'|trans({'%ladder_link%': path('ladder'), '%rating_link%': path('msp_rating_ladder')})},
+            {icon: 'bi-calendar-event', title: 'homepage.seo_sections.competitions.title'|trans, text: 'homepage.seo_sections.competitions.text'|trans({'%events_link%': path('events')})},
+            {icon: 'bi-grid-3x3-gap', title: 'homepage.seo_sections.database.title'|trans, text: 'homepage.seo_sections.database.text'|trans({
+                '%ravensburger_link%': path('brand_puzzles', {slug: 'ravensburger'}),
+                '%schmidt_link%': path('brand_puzzles', {slug: 'schmidt'}),
+                '%trefl_link%': path('brand_puzzles', {slug: 'trefl'}),
+                '%puzzles_link%': path('puzzles'),
+            })},
+        ] %}
+
+        {% for section in featureSections %}
+            <div class="row homepage-feature align-items-center g-4 {{ loop.index is even ? 'flex-md-row-reverse' }}">
+                <div class="col-md-4 text-center">
+                    <div class="homepage-feature-icon" aria-hidden="true">
+                        <i class="bi {{ section.icon }}"></i>
                     </div>
                 </div>
-
-                <p class="mt-4 mb-4 text-center">
-                    {% if logged_user.profile is not null %}
-                        <a href="{{ path('my_profile') }}" class="btn btn-primary btn mb-2 me-2"><i class="ci-user"></i> {{ 'homepage.cta_my_profile'|trans }}</a>
-                    {% else %}
-                        <a href="{{ path('my_profile') }}" class="btn btn-primary btn mb-2 me-2"><i class="ci-user"></i> {{ 'homepage.cta_sign_in'|trans }}</a>
-                    {% endif %}
-                    <a href="{{ path('recent_activity') }}" class="btn btn-primary btn mb-2">{{ 'homepage.cta_recent'|trans }}</a>
-                </p>
-
-                <div class="mt-md-5">
-                    {{ 'homepage.why_block'|trans|raw }}
-                </div>
-
-
-                <div class="d-block d-lg-none">
-                    {{ 'homepage.help_us_grow_block'|trans|raw }}
-                    {{ 'homepage.start_today_block'|trans|raw }}
+                <div class="col-md-8">
+                    <h2 class="h3">{{ section.title }}</h2>
+                    <p class="mb-0">{{ section.text|raw }}</p>
                 </div>
             </div>
+        {% endfor %}
+    </section>
 
-            <div class="col-lg-6 col-md-8 offset-lg-1 col-sm-10">
-                <h2 class="h4 mt-4">{{ 'ladder.recent_activity'|trans }}</h2>
-
-                <twig:RecentActivity limit="5" />
-
-                <a href="{{ path('recent_activity') }}" class="mt-3 btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
-            </div>
-        </div>
-
-        <div class="d-none d-lg-block">
-            <div class="row">
-                <div class="col">
-                    {{ 'homepage.help_us_grow_block'|trans|raw }}
+    {# ============ Why join + community blocks ============ #}
+    <section class="homepage-why-band">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="homepage-why">
+                        {{ 'homepage.why_block'|trans|raw }}
+                    </div>
                 </div>
-                <div class="col">
-                    {{ 'homepage.start_today_block'|trans|raw }}
+                <div class="col-lg-6">
+                    <div class="homepage-side-card">
+                        {{ 'homepage.help_us_grow_block'|trans|raw }}
+                    </div>
+                    <div class="homepage-side-card">
+                        {{ 'homepage.start_today_block'|trans|raw }}
+                    </div>
                 </div>
             </div>
         </div>
+    </section>
 
-        <div class="row gy-3 mt-1">
-            <div class="col-lg-6 col-md-8 col-sm-10">
-                <h2 class="h3">{{ 'homepage.seo_sections.what_is.title'|trans }}</h2>
-                <p>{{ 'homepage.seo_sections.what_is.text'|trans({'%guide_link%': path('guide_what_is_speed_puzzling')})|raw }}</p>
-            </div>
-            <div class="col-lg-6 col-md-8 col-sm-10">
-                <h2 class="h3">{{ 'homepage.seo_sections.track.title'|trans }}</h2>
-                <p>{{ 'homepage.seo_sections.track.text'|trans({'%tracker_link%': path('puzzle_tracker_app'), '%stopwatch_link%': path('stopwatch')})|raw }}</p>
-            </div>
-            <div class="col-lg-6 col-md-8 col-sm-10">
-                <h2 class="h3">{{ 'homepage.seo_sections.leaderboards.title'|trans }}</h2>
-                <p>{{ 'homepage.seo_sections.leaderboards.text'|trans({'%ladder_link%': path('ladder'), '%rating_link%': path('msp_rating_ladder')})|raw }}</p>
-            </div>
-            <div class="col-lg-6 col-md-8 col-sm-10">
-                <h2 class="h3">{{ 'homepage.seo_sections.competitions.title'|trans }}</h2>
-                <p>{{ 'homepage.seo_sections.competitions.text'|trans({'%events_link%': path('events')})|raw }}</p>
-            </div>
-            <div class="col-lg-6 col-md-8 col-sm-10">
-                <h2 class="h3">{{ 'homepage.seo_sections.database.title'|trans }}</h2>
-                <p>{{ 'homepage.seo_sections.database.text'|trans({
-                    '%ravensburger_link%': path('brand_puzzles', {slug: 'ravensburger'}),
-                    '%schmidt_link%': path('brand_puzzles', {slug: 'schmidt'}),
-                    '%trefl_link%': path('brand_puzzles', {slug: 'trefl'}),
-                    '%puzzles_link%': path('puzzles'),
-                })|raw }}</p>
+    {# ============ Live from the community ============ #}
+    <section class="container homepage-community">
+        <h2 class="h3 mb-0"><span class="homepage-live-dot" aria-hidden="true"></span>{{ 'homepage.community.title'|trans }}</h2>
+
+        <twig:RecentActivity loading="lazy" limit="5" />
+
+        <p class="mt-3 mb-0">
+            <a href="{{ path('recent_activity') }}" class="btn btn-outline-primary btn-sm">{{ 'homepage.community.cta'|trans }}</a>
+        </p>
+    </section>
+
+    {# ============ Closing CTA ============ #}
+    <section class="homepage-closing">
+        <div class="container text-center">
+            <h2 class="homepage-closing-title">{{ 'homepage.closing.title'|trans }}</h2>
+
+            <div class="homepage-hero-actions">
+                {% if isLoggedIn %}
+                    <a href="{{ path('puzzle_add') }}" class="btn btn-light btn-lg"><i class="ci-add me-2" aria-hidden="true"></i>{{ 'homepage.hero.cta_add_time'|trans }}</a>
+                    <a href="{{ path('recent_activity') }}" class="btn btn-outline-light btn-lg">{{ 'homepage.hero.cta_recent_activity'|trans }}</a>
+                {% else %}
+                    <a href="{{ path('my_profile') }}" class="btn btn-light btn-lg"><i class="ci-time me-2" aria-hidden="true"></i>{{ 'homepage.hero.cta_start'|trans }}</a>
+                    <a href="{{ path('puzzles') }}" class="btn btn-outline-light btn-lg">{{ 'homepage.hero.cta_puzzles'|trans }}</a>
+                {% endif %}
             </div>
         </div>
-    </div>
+    </section>
 {% endblock %}

@@ -29,6 +29,14 @@ return App::config([
                 ],
                 'async' => [
                     'dsn' => '%env(MESSENGER_TRANSPORT_DSN)%?auto_setup=false',
+                    // Exponential backoff: 30s, 2m, 8m, 30m (capped) — transient failures
+                    // like SMTP timeouts need minutes, not the default 1s/2s/4s
+                    'retry_strategy' => [
+                        'max_retries' => 4,
+                        'delay' => 30000,
+                        'multiplier' => 4,
+                        'max_delay' => 1800000,
+                    ],
                 ],
             ],
             'routing' => [

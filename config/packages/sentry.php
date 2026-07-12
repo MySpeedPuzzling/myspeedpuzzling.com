@@ -34,8 +34,9 @@ return App::config([
             ],
         ],
         'register_error_listener' => false,
-        // Use Monolog logger so Sentry SDK errors (like HTTP failures) are logged instead of silently swallowed
-        'logger' => 'monolog.logger',
+        // SDK errors (like HTTP send failures) go to a dedicated channel: visible in
+        // stderr logs, but never captured back into Sentry as events
+        'logger' => 'monolog.logger.sentry_sdk',
         'messenger' => [
             'enabled' => true,
             // Only report messages that exhausted all retries — retryable failures
@@ -45,12 +46,18 @@ return App::config([
         'options' => [
             'environment' => '%kernel.environment%',
             'send_default_pii' => true,
+            // Defaults (2s connect / 5s total) are too tight for envelopes carrying
+            // profiles — sends happen post-response in kernel.terminate, so this
+            // does not affect user-facing latency
+            'http_connect_timeout' => 5,
+            'http_timeout' => 15,
             'ignore_exceptions' => [
                 AccessDeniedException::class,
                 NotFoundHttpException::class,
             ],
             'traces_sampler' => 'sentry.traces_sampler',
-            'profiles_sample_rate' => 1.0, // Profile all traced requests (sampling controlled by traces_sampler)
+            // Relative to traced requests (traces_sampler decides what is traced)
+            'profiles_sample_rate' => '%env(float:SENTRY_PROFILES_SAMPLE_RATE)%',
             'ignore_transactions' => [
                 // Symfony profiler/debug toolbar routes
                 '*/_wdt*',

@@ -467,12 +467,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/JanMikes/auth0-symfony.git",
-                "reference": "0785fc501dacbae15d2ba16e9bcf8adcf4920bb1"
+                "reference": "df39b56ecebcf971a6cd89c79b8b51a76475e348"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/JanMikes/auth0-symfony/zipball/0785fc501dacbae15d2ba16e9bcf8adcf4920bb1",
-                "reference": "0785fc501dacbae15d2ba16e9bcf8adcf4920bb1",
+                "url": "https://api.github.com/repos/JanMikes/auth0-symfony/zipball/df39b56ecebcf971a6cd89c79b8b51a76475e348",
+                "reference": "df39b56ecebcf971a6cd89c79b8b51a76475e348",
                 "shasum": ""
             },
             "require": {
@@ -602,7 +602,7 @@
             "support": {
                 "source": "https://github.com/JanMikes/auth0-symfony/tree/main"
             },
-            "time": "2025-12-08T11:52:41+00:00"
+            "time": "2026-07-12T15:22:00+00:00"
         },
         {
             "name": "bacon/bacon-qr-code",

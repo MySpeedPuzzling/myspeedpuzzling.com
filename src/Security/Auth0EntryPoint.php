@@ -27,15 +27,20 @@ final readonly class Auth0EntryPoint implements AuthenticationEntryPointInterfac
 
         // Use cookie instead of session - more reliable across OAuth redirects
         $response->headers->setCookie(
-            Cookie::create(self::REDIRECT_COOKIE)
-                ->withValue($request->getUri())
-                ->withExpires(time() + 3600)
-                ->withPath('/')
-                ->withSecure($request->isSecure())
-                ->withHttpOnly(true)
-                ->withSameSite('lax'),
+            self::createRedirectCookie($request->getUri(), $request->isSecure()),
         );
 
         return $response;
+    }
+
+    public static function createRedirectCookie(string $targetUrl, bool $secure): Cookie
+    {
+        return Cookie::create(self::REDIRECT_COOKIE)
+            ->withValue($targetUrl)
+            ->withExpires(time() + 3600)
+            ->withPath('/')
+            ->withSecure($secure)
+            ->withHttpOnly(true)
+            ->withSameSite('lax');
     }
 }

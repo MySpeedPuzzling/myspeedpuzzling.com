@@ -16,7 +16,10 @@ readonly final class SentryTracesSampler
     ) {
     }
 
-    public function __invoke(): callable
+    /**
+     * @return \Closure(SamplingContext): float
+     */
+    public function __invoke(): \Closure
     {
         return function (SamplingContext $context): float {
             $request = $this->requestStack->getCurrentRequest();
@@ -27,14 +30,20 @@ readonly final class SentryTracesSampler
 
             // Check query param for activation
             $queryValue = $request->query->get('_profile');
-            $session = $request->hasSession() ? $request->getSession() : null;
 
-            // Handle activation via secret
+            // Handle activation via secret - deliberately starts a session to persist the flag
             if ($this->profilingSecret !== '' && $queryValue === $this->profilingSecret) {
-                $session?->set('_sentry_profiler_enabled', $this->profilingSecret);
+                if ($request->hasSession()) {
+                    $request->getSession()->set('_sentry_profiler_enabled', $this->profilingSecret);
+                }
 
                 return 1.0;
             }
+
+            // This sampler runs on every request; reading a not-yet-started session would
+            // start it, stamping Set-Cookie + Cache-Control: private on every anonymous
+            // response and persisting a session row per page view. Only touch existing ones.
+            $session = $request->hasPreviousSession() ? $request->getSession() : null;
 
             // Handle deactivation
             if ($queryValue === 'off') {

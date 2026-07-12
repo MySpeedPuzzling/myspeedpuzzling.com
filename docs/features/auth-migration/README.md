@@ -108,6 +108,9 @@ oauth_identity
 2. Not found, provider email **verified** and matches an existing `user_account.email` → auto-link (create identity row) + log in.
 3. Not found, provider email matches an existing account but is **unverified** → refuse: "sign in with your password and connect {provider} from settings" (account-takeover guard; `email` is unique, so a silent second account is impossible anyway).
 4. No match → create `user_account` (`user_id = msp|<uuid7>`, `password = NULL`, `email_verified_at` from provider claim) + `Player` + identity row, log in.
+5. Explicit linking from settings ("Connected sign-in methods", user already authenticated) → create the identity row for the **logged-in** account, no provider-email match required — the user has already proven ownership. The unique `(provider, provider_user_id)` constraint guarantees one identity can never attach to two accounts.
+
+The net effect: **one player = one `user_account` with N identities.** After linking, any door — email+password, Google, Facebook, magic link — lands on the same account and the same `Player` data. An account created via a social provider starts with `password = NULL`; the email+password door opens once the user sets a password (settings, or simply the password-reset flow — the email is verified).
 
 **Invariants:**
 - Every account keeps ≥1 sign-in method: `password IS NOT NULL OR ≥1 oauth_identity`. Enforced in the unlink and remove-password handlers ("set a password before disconnecting your last sign-in method"). A trivial COUNT with this design — with per-provider columns it's a null-check chain that grows with every provider.

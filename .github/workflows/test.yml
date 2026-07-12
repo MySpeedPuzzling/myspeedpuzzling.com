@@ -53,6 +53,11 @@ jobs:
       -   run: vendor/bin/phpunit --testsuite "Project Test Suite"
 
   panther-tests:
+    # Temporarily disabled — the "Panther Test Suite" is commented out in phpunit.xml.dist
+    # (symfony/panther not yet compatible with Symfony 8), so this job runs zero tests.
+    # PHPUnit 13.2+ exits non-zero on an empty run, which would fail the workflow.
+    # Re-enable together with the testsuite in phpunit.xml.dist.
+    if: false
     runs-on: ubuntu-latest
     services:
       postgres:

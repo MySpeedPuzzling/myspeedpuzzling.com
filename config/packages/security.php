@@ -42,7 +42,9 @@ return App::config([
             'stateless' => [
                 // /homepage-stats: public JSON for the homepage live counters - identical
                 // for every visitor, must stay session/cookie-free to be cacheable end to end.
-                'pattern' => '^(/-/health-check|/media/cache|/sitemap|/homepage-stats$)',
+                // /-/asset-load-failure: sendBeacon telemetry from broken clients - beacons
+                // carry no cookies-worth of context and must never start a session.
+                'pattern' => '^(/-/health-check|/-/asset-load-failure$|/media/cache|/sitemap|/homepage-stats$)',
                 'stateless' => true,
                 'security' => false,
             ],

@@ -28,6 +28,61 @@
 
         {% block robots %}<meta name="robots" content="index, follow">{% endblock %}
 
+        {# Asset-failure beacon + self-heal. A corrupt cached bundle is refused by
+           SRI on every page load and Sentry never hears about it (its browser SDK
+           lives inside the dead bundle), so this must stay inline, dependency-free
+           and ES5: it runs exactly when the bundles do not. On the first failure
+           per session it purges every cached /build entry and reloads once - the
+           service worker then refetches past the HTTP cache (cache:'reload'). #}
+        <script>
+        (function () {
+            var reported = 0;
+            window.addEventListener('error', function (event) {
+                var element = event.target;
+                if (!element || !element.tagName) return;
+                if (element.tagName !== 'SCRIPT' && element.tagName !== 'LINK') return;
+                var assetUrl = element.src || element.href || '';
+                if (assetUrl.indexOf('/build/') === -1) return;
+
+                var healedThisSession = null;
+                try { healedThisSession = window.sessionStorage.getItem('msp-asset-heal'); } catch (e) {}
+
+                if (reported < 3 && navigator.sendBeacon) {
+                    reported++;
+                    try {
+                        navigator.sendBeacon('{{ path('asset_load_failure') }}', JSON.stringify({
+                            url: assetUrl,
+                            page: window.location.pathname,
+                            controlled: !!(navigator.serviceWorker && navigator.serviceWorker.controller),
+                            retry: healedThisSession !== null
+                        }));
+                    } catch (e) {}
+                }
+
+                if (healedThisSession !== null || !window.caches) return;
+                try { window.sessionStorage.setItem('msp-asset-heal', '1'); } catch (e) { return; }
+
+                window.caches.keys().then(function (cacheNames) {
+                    return Promise.all(cacheNames.map(function (cacheName) {
+                        return window.caches.open(cacheName).then(function (cache) {
+                            return cache.keys().then(function (requests) {
+                                return Promise.all(requests.filter(function (cachedRequest) {
+                                    return cachedRequest.url.indexOf('/build/') !== -1;
+                                }).map(function (cachedRequest) {
+                                    return cache.delete(cachedRequest);
+                                }));
+                            });
+                        });
+                    }));
+                }).then(function () {
+                    window.location.reload();
+                }, function () {
+                    window.location.reload();
+                });
+            }, true);
+        })();
+        </script>
+
         <meta property="og:title" content="{% block og_title %}{{ block('title') }} – MySpeedPuzzling{% endblock %}">
         <meta property="og:description" content="{{ block('meta_description') is not empty ? block('meta_description') : 'homepage.meta.description'|trans }}">
         <meta property="og:type" content="{% block og_type %}website{% endblock %}">

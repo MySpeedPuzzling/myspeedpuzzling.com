@@ -1,3 +1,8 @@
+# Previous published release — its /build assets are carried into this image so
+# that HTML rendered by the outgoing container keeps resolving during the
+# blue-green rollout window (see the merge step below)
+FROM ghcr.io/myspeedpuzzling/website:main AS previous-release
+
 FROM ghcr.io/myspeedpuzzling/web-base-php85:main
 
 ENV APP_ENV="prod" \
@@ -26,6 +31,13 @@ COPY . .
 RUN find public -type f \( -name '*.js' -o -name '*.css' -o -name '*.svg' \) \
         -exec brotli -q 11 --keep {} \; \
         -exec gzip -9 --keep {} \;
+
+# Carry the previous release's hashed build assets (incl. precompressed siblings)
+# so both HTML generations resolve during blue-green rollout - capped at one
+# generation back (see .docker/merge-previous-build.php)
+COPY --from=previous-release /app/public/build /tmp/previous-build
+RUN php .docker/merge-previous-build.php /tmp/previous-build public/build \
+        && rm -rf /tmp/previous-build
 
 # Need to run again to trigger scripts with application code present
 RUN composer install --no-dev --no-interaction --classmap-authoritative

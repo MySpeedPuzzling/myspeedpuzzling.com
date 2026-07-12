@@ -1,9 +1,10 @@
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const STATIC_CACHE = 'static-' + CACHE_VERSION;
 const IMAGES_CACHE = 'images-' + CACHE_VERSION;
 
 const OFFLINE_URL = '/offline.html';
 const ENTRYPOINTS_URL = '/build/entrypoints.json';
+const MANIFEST_URL = '/build/manifest.json';
 const IMAGES_CACHE_LIMIT = 200;
 
 // Self-hosted fonts to precache on install (instant on repeat visits)
@@ -32,9 +33,11 @@ self.addEventListener('install', (event) => {
             // Always cache the offline page and self-hosted fonts
             await cache.addAll([OFFLINE_URL, ...FONT_URLS]);
 
-            // Try to pre-cache current build assets from entrypoints.json
+            // Try to pre-cache current build assets from entrypoints.json.
+            // cache:'no-cache' matters: entrypoints.json is served immutable with a
+            // 1-year max-age, so a plain fetch could precache a year-old asset list.
             try {
-                const response = await fetch(ENTRYPOINTS_URL);
+                const response = await fetch(ENTRYPOINTS_URL, { cache: 'no-cache' });
                 if (response.ok) {
                     const data = await response.json();
                     const urls = [];
@@ -50,7 +53,7 @@ self.addEventListener('install', (event) => {
 
             // Pre-cache icon fonts (resolve content-hashed URLs from manifest)
             try {
-                const manifestResponse = await fetch('/build/manifest.json');
+                const manifestResponse = await fetch(MANIFEST_URL, { cache: 'no-cache' });
                 if (manifestResponse.ok) {
                     const manifest = await manifestResponse.json();
                     const fontUrls = ICON_FONT_KEYS
@@ -103,7 +106,7 @@ self.addEventListener('fetch', (event) => {
 
     // Strategy: Cache-first for /build/* (content-hashed) and /fonts/* (self-hosted fonts)
     if (url.pathname.startsWith('/build/') || url.pathname.startsWith('/fonts/')) {
-        event.respondWith(cacheFirst(request, STATIC_CACHE));
+        event.respondWith(cacheFirst(event, request, STATIC_CACHE));
         return;
     }
 
@@ -119,15 +122,21 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Everything else: network-first, no proactive caching
-    event.respondWith(networkFirst(request));
+    // Everything else is intentionally NOT intercepted: fewer interception
+    // paths mean a service-worker bug cannot break requests it has no
+    // business handling.
 });
 
 // ─── Strategies ─────────────────────────────────────────────────────
 
-async function cacheFirst(request, cacheName) {
+async function cacheFirst(event, request, cacheName) {
     const cached = await caches.match(request);
     if (cached) return cached;
+
+    // A miss means a deploy changed asset URLs — a good, self-limiting moment
+    // to drop cached assets from previous builds (they are never requested
+    // again, but would otherwise accumulate in the cache forever).
+    event.waitUntil(schedulePrune());
 
     // cache:'reload' bypasses the HTTP disk cache — a poisoned immutable
     // entry must never become the SW's permanent copy
@@ -170,10 +179,13 @@ async function staleWhileRevalidate(request, cacheName) {
     const cached = await cache.match(request);
 
     const fetchPromise = fetch(request).then((response) => {
-        // Cache opaque responses (cross-origin) and successful same-origin responses
+        // Cache opaque responses (cross-origin) and successful same-origin responses.
+        // Best-effort background write: images self-correct on the next request,
+        // but trim must only run after the write to keep the count accurate.
         if (response.ok || response.type === 'opaque') {
-            cache.put(request, response.clone());
-            trimCache(cacheName, IMAGES_CACHE_LIMIT);
+            cache.put(request, response.clone())
+                .then(() => trimCache(cacheName, IMAGES_CACHE_LIMIT))
+                .catch(() => {});
         }
         return response;
     }).catch(() => cached);
@@ -181,12 +193,63 @@ async function staleWhileRevalidate(request, cacheName) {
     return cached || fetchPromise;
 }
 
-async function networkFirst(request) {
+// ─── Static cache pruning ───────────────────────────────────────────
+
+// One prune per service-worker lifetime is enough: misses cluster right after
+// a deploy, and the worker is regularly restarted by the browser anyway.
+let prunePromise = null;
+
+function schedulePrune() {
+    if (prunePromise === null) {
+        prunePromise = pruneStaticCache().then((succeeded) => {
+            if (!succeeded) {
+                prunePromise = null; // Offline/transient failure — retry on a future miss
+            }
+        });
+    }
+
+    return prunePromise;
+}
+
+// Delete cached /build/* entries that the current build no longer references.
+// Non-build entries (fonts, offline page) are never touched.
+async function pruneStaticCache() {
     try {
-        return await fetch(request);
+        const valid = new Set();
+
+        const entrypointsResponse = await fetch(ENTRYPOINTS_URL, { cache: 'no-cache' });
+        if (!entrypointsResponse.ok) return false;
+        const entrypoints = await entrypointsResponse.json();
+        for (const entry of Object.values(entrypoints.entrypoints || {})) {
+            for (const fileUrl of [...(entry.js || []), ...(entry.css || [])]) {
+                valid.add(new URL(fileUrl, self.location.origin).pathname);
+            }
+        }
+
+        const manifestResponse = await fetch(MANIFEST_URL, { cache: 'no-cache' });
+        if (manifestResponse.ok) {
+            const manifest = await manifestResponse.json();
+            for (const fileUrl of Object.values(manifest)) {
+                valid.add(new URL(fileUrl, self.location.origin).pathname);
+            }
+        }
+
+        // A failed/empty asset list must never wipe the whole cache
+        if (valid.size === 0) return false;
+
+        const cache = await caches.open(STATIC_CACHE);
+        const cachedRequests = await cache.keys();
+        await Promise.all(cachedRequests.map((cachedRequest) => {
+            const pathname = new URL(cachedRequest.url).pathname;
+            if (pathname.startsWith('/build/') && !valid.has(pathname)) {
+                return cache.delete(cachedRequest);
+            }
+            return Promise.resolve(false);
+        }));
+
+        return true;
     } catch (e) {
-        const cached = await caches.match(request);
-        return cached || new Response('', { status: 503 });
+        return false;
     }
 }
 
@@ -200,12 +263,12 @@ function isImageRequest(request, url) {
     return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'svg', 'ico'].includes(ext);
 }
 
-function trimCache(cacheName, maxItems) {
-    caches.open(cacheName).then((cache) => {
-        cache.keys().then((keys) => {
-            if (keys.length > maxItems) {
-                cache.delete(keys[0]).then(() => trimCache(cacheName, maxItems));
-            }
-        });
-    });
+async function trimCache(cacheName, maxItems) {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+
+    // keys() returns entries in insertion order — delete the oldest ones
+    for (const key of keys.slice(0, Math.max(0, keys.length - maxItems))) {
+        await cache.delete(key);
+    }
 }

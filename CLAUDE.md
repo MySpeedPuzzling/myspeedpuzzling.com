@@ -217,7 +217,10 @@ Active feature flags are documented in `docs/features/feature_flags.md`. **Alway
 - The service worker is at `public/service-worker.js` with a `CACHE_VERSION` constant
 - **Bump `CACHE_VERSION`** when changing: the service worker fetch/caching logic itself, the offline page (`public/offline.html`), or any non-content-hashed static assets served from the same origin
 - **No bump needed** for `/build/*` asset changes — those are content-hashed by Webpack Encore and cached by URL, so new builds get new URLs automatically
-- The service worker uses cache-first for `/build/*`, network-only for HTML navigation (offline fallback only, no caching), and stale-while-revalidate for images
+- The service worker uses cache-first for `/build/*` (fetches with `cache: 'reload'` and buffers the full body before caching — a truncated or HTTP-cache-poisoned download must never become the permanent copy), network-only for HTML navigation (offline fallback only, no caching), and stale-while-revalidate for images. Requests it has no strategy for are NOT intercepted
+- Stale `/build/*` cache entries from previous deploys are pruned automatically (on cache miss, validated against current `entrypoints.json`/`manifest.json`)
+- **Asset-failure telemetry + self-heal**: an inline ES5 script in `base.html.twig` reports failed `/build` script/link loads (incl. silent SRI rejections) via `sendBeacon` to `POST /-/asset-load-failure` (`AssetLoadFailureController`, logs warning → Sentry) and, once per session, purges cached `/build` entries and reloads. It must stay inline and dependency-free — it runs exactly when the bundles don't
+- The Docker image carries the previous release's `/build` assets (one generation, `.docker/merge-previous-build.php`) so both HTML generations resolve during blue-green rollout
 
 ### Turbo Configuration
 - **Turbo Drive is globally enabled** for SPA-like forward navigation

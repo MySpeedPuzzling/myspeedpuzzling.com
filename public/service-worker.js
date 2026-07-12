@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const STATIC_CACHE = 'static-' + CACHE_VERSION;
 const IMAGES_CACHE = 'images-' + CACHE_VERSION;
 
@@ -129,12 +129,29 @@ async function cacheFirst(request, cacheName) {
     const cached = await caches.match(request);
     if (cached) return cached;
 
-    const response = await fetch(request);
-    if (response.ok || response.type === 'opaque') {
-        const cache = await caches.open(cacheName);
-        cache.put(request, response.clone());
+    // cache:'reload' bypasses the HTTP disk cache — a poisoned immutable
+    // entry must never become the SW's permanent copy
+    const response = await fetch(request, { cache: 'reload' });
+
+    if (response.status !== 200) {
+        return response;
     }
-    return response;
+
+    // Buffer the full body before storing: arrayBuffer() rejects on a
+    // truncated stream, so an incomplete download is never cached. cacheFirst
+    // never revalidates within a CACHE_VERSION, so a corrupt entry would be
+    // served forever — and SRI would silently reject it on every page load.
+    const body = await response.arrayBuffer();
+    const init = {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+    };
+
+    const cache = await caches.open(cacheName);
+    await cache.put(request, new Response(body, init));
+
+    return new Response(body, init);
 }
 
 async function networkFirstNavigation(request) {

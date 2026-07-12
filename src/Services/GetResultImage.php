@@ -64,7 +64,7 @@ readonly final class GetResultImage
         $fontSizeSmall = (int) ($size / 20);
         $fontSizeLittle = (int) ($size / 30);
 
-        $logo = $this->imageManager->read(__DIR__ . '/../../public/img/speedpuzzling-logo.png')
+        $logo = $this->imageManager->decode(__DIR__ . '/../../public/img/speedpuzzling-logo.png')
             ->scaleDown(60, 60)
             ->sharpen(3);
 
@@ -87,13 +87,15 @@ readonly final class GetResultImage
         $imagePath = $solvingTime->finishedPuzzlePhoto ?? $solvingTime->puzzleImage ?? throw new \Exception('Image missing');
         $imageContent = $this->filesystem->read($imagePath);
 
-        $image = $this->imageManager->read($imageContent)
+        $image = $this->imageManager->decode($imageContent)
             ->cover($size, $size)
-            ->drawRectangle(0, 0, function (RectangleFactory $rectangle) use ($size) {
+            ->drawRectangle(function (RectangleFactory $rectangle) use ($size) {
+                $rectangle->at(0, 0);
                 $rectangle->size($size, $size);
                 $rectangle->background('rgba(250, 114, 111, 0.44)');
             })
-            ->drawRectangle(0, 0, function (RectangleFactory $rectangle) use ($size) {
+            ->drawRectangle(function (RectangleFactory $rectangle) use ($size) {
+                $rectangle->at(0, 0);
                 $rectangle->size($size, $size);
                 $rectangle->background('rgba(0, 0, 0, 0.55)');
             })
@@ -104,69 +106,61 @@ readonly final class GetResultImage
                 $font->color('#ffffff');
                 $font->stroke('#000000', 1);
                 $font->size($fontSizeNormal);
-                $font->align('center');
-                $font->valign('top');
+                $font->align('center', 'top');
             })
             ->text($brandName, $size / 2, 115 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeSmall) {
                 $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Light.ttf');
                 $font->color('#ffffff');
                 $font->stroke('#000000', 1);
                 $font->size($fontSizeSmall);
-                $font->align('center');
-                $font->valign('top');
+                $font->align('center', 'top');
             })
             ->text($solvingTime->piecesCount . ' pieces', $size / 2, 170 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeNormal) {
                 $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Light.ttf');
                 $font->color('#ffffff');
                 $font->stroke('#000000', 1);
                 $font->size($fontSizeNormal);
-                $font->align('center');
-                $font->valign('top');
+                $font->align('center', 'top');
             })
             ->text($solvingTime->time !== null ? $this->puzzlingTimeFormatter->formatTime($solvingTime->time) : 'Relax', $size / 2, 260 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeBig) {
                 $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Regular.ttf');
                 $font->color('#ffffff');
                 $font->stroke('#000000', 1);
                 $font->size($fontSizeBig);
-                $font->align('center');
-                $font->valign('top');
+                $font->align('center', 'top');
             })
             ->text($ppmText, $size / 2, 340 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeSmall) {
                 $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Regular.ttf');
                 $font->color('#ffffff');
                 $font->stroke('#000000', 1);
                 $font->size($fontSizeSmall);
-                $font->align('center');
-                $font->valign('top');
+                $font->align('center', 'top');
             })
             ->text($player->playerName ?? '', $size / 2, 400 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeSmall) {
                 $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Regular.ttf');
                 $font->color('#ffffff');
                 $font->stroke('#000000', 1);
                 $font->size($fontSizeSmall);
-                $font->align('center');
-                $font->valign('top');
+                $font->align('center', 'top');
             })
             ->text($rankingText, $size / 2, 450 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeSmall) {
                 $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Light.ttf');
                 $font->color('#ffffff');
                 $font->stroke('#000000', 1);
                 $font->size($fontSizeSmall);
-                $font->align('center');
-                $font->valign('top');
+                $font->align('center', 'top');
             })
             ->text($signature, 80, $size - $fontSizeLittle - 18, function (FontFactory $font) use ($fontSizeLittle) {
                 $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Light.ttf');
                 $font->color('#ffffff');
                 $font->stroke('#000000', 1);
                 $font->size($fontSizeLittle);
-                $font->align('left');
-                $font->valign('top');
+                $font->align('left', 'top');
             })
-            ->place($logo, 'bottom-left', 10, 10);
+            ->insert($logo, 10, 10, 'bottom-left');
 
 
-        $fileContent = (string) $image->encodeByMediaType(MediaType::IMAGE_PNG, quality: 100);
+        $fileContent = (string) $image->encodeUsingMediaType(MediaType::IMAGE_PNG, quality: 100);
 
         $this->filesystem->write($path, $fileContent);
 

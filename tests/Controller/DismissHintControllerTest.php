@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Controller;
+namespace SpeedPuzzling\Web\Tests\Controller;
 
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;

@@ -392,7 +392,7 @@ final class PlayerSolvedPuzzles
     }
 
     /**
-     * @return array<array{value: string, label: string}>
+     * @return list<array{value: string, label: string, min: int, max: int}>
      */
     public function getAvailablePiecesRanges(): array
     {

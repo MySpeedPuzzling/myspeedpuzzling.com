@@ -171,7 +171,7 @@ final class WarmupImgproxyCacheConsoleCommand extends Command
             $competitionLogos = $this->connection->fetchFirstColumn(
                 'SELECT logo FROM competition WHERE logo IS NOT NULL',
             );
-            $result['puzzle_small'] = array_merge($result['puzzle_small'] ?? [], $competitionLogos);
+            $result['puzzle_small'] = array_merge($result['puzzle_small'], $competitionLogos);
 
             /** @var array<string> $manufacturerLogos */
             $manufacturerLogos = $this->connection->fetchFirstColumn(

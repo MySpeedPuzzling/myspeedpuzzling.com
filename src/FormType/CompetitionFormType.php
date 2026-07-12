@@ -203,6 +203,8 @@ final class CompetitionFormType extends AbstractType
                     return '';
                 }
 
+                /** @var non-empty-array<string> $value */
+
                 return implode(',', $value);
             },
             function (null|string $value): array {

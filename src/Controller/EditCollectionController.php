@@ -13,7 +13,6 @@ use SpeedPuzzling\Web\Message\EditCollection;
 use SpeedPuzzling\Web\Repository\CollectionRepository;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
-use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -83,7 +82,7 @@ final class EditCollectionController extends AbstractController
                     playerId: $player->playerId,
                     name: $formData->name ?? '',
                     description: $formData->description,
-                    visibility: $formData->visibility ?? CollectionVisibility::Private,
+                    visibility: $formData->visibility,
                 ),
             );
 

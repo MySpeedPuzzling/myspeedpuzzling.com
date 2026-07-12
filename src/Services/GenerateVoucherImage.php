@@ -62,25 +62,24 @@ readonly final class GenerateVoucherImage
         $writer = new Writer($renderer);
         $qrCodePng = $writer->writeString($claimUrl);
 
-        $qrCode = $this->imageManager->read($qrCodePng);
+        $qrCode = $this->imageManager->decode($qrCodePng);
 
         // Load background
         $backgroundPath = sprintf(self::BACKGROUND_PATH_TEMPLATE, $variant);
-        $image = $this->imageManager->read($backgroundPath);
+        $image = $this->imageManager->decode($backgroundPath);
 
         // Image dimensions: 3526x1520
         // QR code position - in the white square on the right side
         $qrSize = 500;
         $qrCode = $qrCode->cover($qrSize, $qrSize);
-        $image = $image->place($qrCode, 'top-left', 2384, 517);
+        $image = $image->insert($qrCode, 2384, 517, 'top-left');
 
         // Voucher code
         $image = $image->text($voucher->code, 3160, 760, function (FontFactory $font): void {
             $font->filename(self::FONT_BOLD_PATH);
             $font->color('#000000');
             $font->size(110);
-            $font->align('center');
-            $font->valign('middle');
+            $font->align('center', 'center');
             $font->angle(270);
         });
 
@@ -90,8 +89,7 @@ readonly final class GenerateVoucherImage
             $font->filename(self::FONT_LAZYDOG_PATH);
             $font->color('#444343');
             $font->size(190);
-            $font->align('center');
-            $font->valign('middle');
+            $font->align('center', 'center');
         });
 
         // Add validity date - positioned on the left side, rotated text
@@ -100,12 +98,11 @@ readonly final class GenerateVoucherImage
             $font->filename(self::FONT_BOLD_PATH);
             $font->color('#000000');
             $font->size(85);
-            $font->align('center');
-            $font->valign('middle');
+            $font->align('center', 'center');
             $font->angle(270);
         });
 
-        return (string) $image->encodeByMediaType(MediaType::IMAGE_PNG, quality: 100);
+        return (string) $image->encodeUsingMediaType(MediaType::IMAGE_PNG, quality: 100);
     }
 
     private function formatValue(Voucher $voucher): string

@@ -16,7 +16,7 @@ final class DerivedMetricsCalculator implements ResetInterface
     private const int MINIMUM_FOR_BOX_DEPENDENCE_BOXED = 5;
     private const int MINIMUM_FOR_IMPROVEMENT_CEILING = 20;
 
-    /** @var array<string, list<array{player_id: string, seconds_to_solve: int|string, first_attempt: bool, unboxed: bool, baseline_seconds: int|string|null, solve_date: string}>>|null */
+    /** @var array<string, list<array{puzzle_id: string, player_id: string, seconds_to_solve: int|string, first_attempt: bool, unboxed: bool, baseline_seconds: int|string|null, solve_date: string}>>|null */
     private null|array $solveDataCache = null;
 
     public function __construct(

@@ -71,7 +71,7 @@ final class ApprovePuzzleChangeRequestController extends AbstractController
             new ApprovePuzzleChangeRequest(
                 changeRequestId: $id,
                 reviewerId: $player->playerId,
-                selectedFields: $selectedFields,
+                selectedFields: array_values($selectedFields),
                 overrides: $overrides,
             ),
         );

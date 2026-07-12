@@ -29,6 +29,7 @@ readonly final class Puzzler
      *     is_private: null|bool,
      *     skill_tier?: null|int|string,
      *     ranking_opted_out?: null|bool,
+     *     ...
      * } $row
      */
     public static function fromDatabaseRow(array $row): self

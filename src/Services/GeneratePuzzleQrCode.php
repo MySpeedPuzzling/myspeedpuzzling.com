@@ -54,25 +54,26 @@ readonly final class GeneratePuzzleQrCode
         $writer = new Writer($renderer);
         $qrCodePng = $writer->writeString($url, ecLevel: ErrorCorrectionLevel::H());
 
-        $qrImage = $this->imageManager->read($qrCodePng);
+        $qrImage = $this->imageManager->decode($qrCodePng);
 
         // Draw white circle background for logo
         $centerX = (int) ($qrImage->width() / 2);
         $centerY = (int) ($qrImage->height() / 2);
         $backgroundRadius = self::LOGO_SIZE / 2 + self::LOGO_PADDING;
 
-        $qrImage = $qrImage->drawCircle($centerX, $centerY, function (CircleFactory $circle) use ($backgroundRadius): void {
+        $qrImage = $qrImage->drawCircle(function (CircleFactory $circle) use ($backgroundRadius, $centerX, $centerY): void {
+            $circle->at($centerX, $centerY);
             $circle->radius((int) $backgroundRadius);
             $circle->background('ffffff');
         });
 
         // Load and resize logo (scaleDown preserves aspect ratio without cropping)
-        $logo = $this->imageManager->read(file_get_contents(self::LOGO_PATH));
+        $logo = $this->imageManager->decode(file_get_contents(self::LOGO_PATH));
         $logo = $logo->scaleDown(self::LOGO_SIZE, self::LOGO_SIZE);
 
         // Place logo in the center of the QR code
-        $qrImage = $qrImage->place($logo, 'center');
+        $qrImage = $qrImage->insert($logo, alignment: 'center');
 
-        return (string) $qrImage->encodeByMediaType(MediaType::IMAGE_PNG, quality: 100);
+        return (string) $qrImage->encodeUsingMediaType(MediaType::IMAGE_PNG, quality: 100);
     }
 }

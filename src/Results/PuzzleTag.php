@@ -16,6 +16,7 @@ readonly final class PuzzleTag
      * @param array{
      *     tag_id: string,
      *     name: string,
+     *     ...
      * } $row
      */
     public static function fromDatabaseRow(array $row): self

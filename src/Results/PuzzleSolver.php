@@ -51,6 +51,7 @@ readonly final class PuzzleSolver
      *     competition_slug: null|string,
      *     skill_tier_name?: null|string,
      *     ranking_opted_out?: bool,
+     *     ...
      * } $row
      */
     public static function fromDatabaseRow(array $row): self

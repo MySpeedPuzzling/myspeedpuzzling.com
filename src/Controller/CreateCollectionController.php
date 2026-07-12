@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\FormType\CollectionFormType;
 use SpeedPuzzling\Web\Message\CreateCollection;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
-use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -74,7 +73,7 @@ final class CreateCollectionController extends AbstractController
                     playerId: $playerEntity->id->toString(),
                     name: $formData->name ?? '',
                     description: $formData->description,
-                    visibility: $formData->visibility ?? CollectionVisibility::Private,
+                    visibility: $formData->visibility,
                 ),
             );
 

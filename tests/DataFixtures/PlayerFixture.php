@@ -155,6 +155,10 @@ final class PlayerFixture extends Fixture
 
         $player->changePuzzleCollectionVisibility($puzzleCollectionVisibility);
 
+        // Announcement modal (#global-modal) would otherwise auto-open on first
+        // page load and intercept clicks in Panther browser tests
+        $player->markModalAsDisplayed();
+
         return $player;
     }
 }

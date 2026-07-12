@@ -15,17 +15,14 @@
             <directory>tests</directory>
             <exclude>tests/Panther</exclude>
         </testsuite>
-        <!-- Panther Test Suite temporarily disabled - symfony/panther not yet compatible with Symfony 8
         <testsuite name="Panther Test Suite">
             <directory>tests/Panther</directory>
         </testsuite>
-        -->
     </testsuites>
 
     <extensions>
+        <bootstrap class="Symfony\Component\Panther\ServerExtension" />
         <bootstrap class="DAMA\DoctrineTestBundle\PHPUnit\PHPUnitExtension"/>
-        <!-- Panther extension temporarily disabled - symfony/panther not yet compatible with Symfony 8
         <bootstrap class="SpeedPuzzling\Web\Tests\Panther\Extension\PantherDatabaseExtension"/>
-        -->
     </extensions>
 </phpunit>

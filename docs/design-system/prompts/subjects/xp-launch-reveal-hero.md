@@ -1,10 +1,8 @@
-# Illustration Style: Semi-flat Outlined
+# Subject: XP Launch Reveal Hero
 
-The chosen MySpeedPuzzling illustration style. Matches the existing logo and website aesthetic — dark navy outlines, soft pastel color fills with subtle gradients, rounded friendly geometry, warm and approachable.
+Hero illustration for the XP/levels launch email header and the one-time level reveal page — the celebratory "your level is revealed" moment.
 
-## Style Prefix
-
-Copy this verbatim as the first part of every ChatGPT image generation prompt. Then append your specific subject below it.
+## Full Prompt
 
 ```
 Style: Semi-flat line illustration with soft color fills — the exact style used in modern SaaS and app product illustrations. Every shape has a consistent dark navy blue outline (~2px stroke, color #2b3445) with rounded line caps and joins. Inside the outlines, shapes are filled with soft, pastel-toned colors that have very subtle internal gradients (not fully flat, but far from 3D — like a gentle watercolor wash contained within crisp outlines). All geometry is rounded and friendly — no sharp corners, no aggressive angles. Small horizontal dash marks are used as speed/motion lines to add energy. The illustration should feel light, approachable, and slightly whimsical — like a well-crafted app onboarding illustration. Not childish, not corporate — the sweet spot between playful and professional.
@@ -13,19 +11,11 @@ Color palette: Coral-salmon pink (#EC726F) is the primary accent — used on 30-
 
 Key details: Outlines are the defining feature — every single element has them, at a consistent weight. Speed lines are short horizontal dashes, also in dark navy. Small decorative dots or circles may appear as accents. The illustration should have a transparent or pure white background with no frame or border. Shapes can slightly overlap to create a sense of layering. The overall composition should feel balanced and compact, not sprawling.
 
+Background: Clean white or transparent.
+
 Puzzle piece geometry (CRITICAL): Every jigsaw piece must look like a real die-cut cardboard puzzle piece — a rounded square body with exactly ONE connector per side: either a smooth, perfectly circular knob (a clean half-circle sitting on a short narrow neck) or one matching circular socket. Knobs and sockets are symmetrical, centered on each side, and identical in size across all pieces. NEVER draw lumpy, melted, wavy, or irregular connectors; never two knobs on one side; never knobs of different sizes on the same piece. Prefer FEWER and LARGER puzzle pieces drawn accurately over many small ones.
 
-Background: Clean white or transparent.
-```
+Subject: A celebratory reveal moment. In the center, two friendly hands lift a large glowing puzzle-piece medallion upward like a trophy — the medallion is a single large, accurately drawn jigsaw piece in coral with a soft sky-blue ribbon rosette behind it, radiating short navy dash lines and tiny sparkle stars to show excitement. Around it, a rising staircase of THREE large overlapping pastel puzzle pieces (sky blue, lavender, teal) climbs from the lower left toward the medallion, suggesting levels and progression, with small confetti dots and circles floating throughout. In the lower corners, a small round stopwatch and one loose puzzle piece rest on a subtle white table surface, keeping the scene grounded in puzzling. No text, no numbers, no letters anywhere in the illustration.
 
-## How to use
-
-Combine the style prefix above with a subject block:
-
-```
-[STYLE PREFIX]
-
-[SUBJECT DESCRIPTION]
-
-Aspect ratio: [choose 1:1, 4:3, or 16:9 depending on use case]
+Aspect ratio: 16:9
 ```

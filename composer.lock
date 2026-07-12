@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1ad623bb0827f7307e0a458d5a40ec04",
+    "content-hash": "714afcb41d36b5968dc2ef8c93cc46ea",
     "packages": [
         {
             "name": "api-platform/core",
@@ -6122,16 +6122,16 @@
         },
         {
             "name": "sentry/sentry-symfony",
-            "version": "5.10.0",
+            "version": "dev-fix/start-runtime-context-before-firewall",
             "source": {
                 "type": "git",
-                "url": "https://github.com/getsentry/sentry-symfony.git",
-                "reference": "6f49255f4cdcfc43a3a283bd3a1f65d483e9192f"
+                "url": "https://github.com/JanMikes/sentry-symfony.git",
+                "reference": "cdc75dab0fc37196dc01421e92d5cbf8b4dc7750"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/getsentry/sentry-symfony/zipball/6f49255f4cdcfc43a3a283bd3a1f65d483e9192f",
-                "reference": "6f49255f4cdcfc43a3a283bd3a1f65d483e9192f",
+                "url": "https://api.github.com/repos/JanMikes/sentry-symfony/zipball/cdc75dab0fc37196dc01421e92d5cbf8b4dc7750",
+                "reference": "cdc75dab0fc37196dc01421e92d5cbf8b4dc7750",
                 "shasum": ""
             },
             "require": {
@@ -6158,7 +6158,7 @@
                 "phpstan/phpstan": "1.12.5",
                 "phpstan/phpstan-phpunit": "1.4.0",
                 "phpstan/phpstan-symfony": "1.4.10",
-                "phpunit/phpunit": "^8.5.40||^9.6.21",
+                "phpunit/phpunit": "^8.5.52||^9.6.34",
                 "symfony/browser-kit": "^4.4.20||^5.0.11||^6.0||^7.0||^8.0",
                 "symfony/cache": "^4.4.20||^5.0.11||^6.0||^7.0||^8.0",
                 "symfony/dom-crawler": "^4.4.20||^5.0.11||^6.0||^7.0||^8.0",
@@ -6188,7 +6188,34 @@
                     "Sentry\\SentryBundle\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "autoload-dev": {
+                "psr-4": {
+                    "Sentry\\SentryBundle\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "check": [
+                    "@cs-check",
+                    "@phpstan",
+                    "@psalm",
+                    "@tests"
+                ],
+                "tests": [
+                    "vendor/bin/phpunit --verbose"
+                ],
+                "cs-check": [
+                    "vendor/bin/php-cs-fixer fix --verbose --diff --dry-run"
+                ],
+                "cs-fix": [
+                    "vendor/bin/php-cs-fixer fix --verbose --diff"
+                ],
+                "phpstan": [
+                    "php -d memory_limit=512M vendor/bin/phpstan analyse"
+                ],
+                "psalm": [
+                    "vendor/bin/psalm"
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -6207,20 +6234,9 @@
                 "symfony"
             ],
             "support": {
-                "issues": "https://github.com/getsentry/sentry-symfony/issues",
-                "source": "https://github.com/getsentry/sentry-symfony/tree/5.10.0"
+                "source": "https://github.com/JanMikes/sentry-symfony/tree/fix/start-runtime-context-before-firewall"
             },
-            "funding": [
-                {
-                    "url": "https://sentry.io/",
-                    "type": "custom"
-                },
-                {
-                    "url": "https://sentry.io/pricing/",
-                    "type": "custom"
-                }
-            ],
-            "time": "2026-04-01T14:50:32+00:00"
+            "time": "2026-07-12T21:37:46+00:00"
         },
         {
             "name": "stripe/stripe-php",
@@ -17123,11 +17139,19 @@
             "time": "2025-12-08T11:19:18+00:00"
         }
     ],
-    "aliases": [],
+    "aliases": [
+        {
+            "package": "sentry/sentry-symfony",
+            "version": "dev-fix/start-runtime-context-before-firewall",
+            "alias": "5.10.0",
+            "alias_normalized": "5.10.0.0"
+        }
+    ],
     "minimum-stability": "dev",
     "stability-flags": {
         "auth0/symfony": 20,
-        "roave/security-advisories": 20
+        "roave/security-advisories": 20,
+        "sentry/sentry-symfony": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,

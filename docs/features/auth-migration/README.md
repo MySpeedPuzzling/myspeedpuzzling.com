@@ -81,6 +81,43 @@ user_account
 - Load-bearing nuance: the login form authenticates by **email**, so the authenticator's `UserBadge` uses a custom loader (email → `UserAccount`), while the user provider's `loadUserByIdentifier()` resolves the **`user_id` string** (used by session refresh and remember-me). Badge identifier ≠ user identifier is supported and intentional.
 - `Player` entity stays as-is; registration creates `UserAccount` + `Player` atomically in one handler with the same `user_id` string.
 
+### Auth-method extensibility (decided 2026-07-12 — Google/Facebook, maybe Apple, planned later)
+
+Design principle: **one table per credential shape, not per provider.** `user_account` is the account; each way of proving ownership lives where its shape belongs:
+
+| Credential shape | Storage | Why |
+|---|---|---|
+| Password ("something you know") | `user_account.password` (nullable; NULL = social-only account) | Symfony's password machinery (`PasswordAuthenticatedUserInterface`, `PasswordCredentials`, `migrate_from` rehash, `PasswordUpgraderInterface`, remember-me `signature_properties: ['password']`) is built around `getPassword()` on the security user — moving it into a rows-table fights the framework |
+| Third-party identity (Google, Facebook, Apple, any OIDC) | `oauth_identity` — one row per linked identity | Adding a provider = new enum case + new authenticator. Zero schema changes |
+| Passkey ("something you have", later) | own `webauthn_credential` table | Multiple credentials per account, key material + sign counter — bundle-owned shape, NOT oauth_identity rows |
+| TOTP second factor (later) | nullable columns on `user_account` | scheb/2fa expects `TwoFactorInterface` on the user entity — account-level, not an identity |
+
+```
+oauth_identity
+  id                uuid (uuid7, PK)
+  user_account_id   uuid FK → user_account (ManyToOne, unidirectional)
+  provider          string — string-backed PHP enum (google|facebook|apple|…)
+  provider_user_id  string — UNIQUE together with provider
+  email_at_link     string — provider email at link time (support/debugging)
+  linked_at         datetimetz_immutable
+  last_used_at      datetimetz_immutable|null — house audit pattern, same as PAT/OAuth2 tokens
+```
+
+**Account-linking rules (OAuth callback):**
+1. `(provider, provider_user_id)` found → log in, touch `last_used_at`.
+2. Not found, provider email **verified** and matches an existing `user_account.email` → auto-link (create identity row) + log in.
+3. Not found, provider email matches an existing account but is **unverified** → refuse: "sign in with your password and connect {provider} from settings" (account-takeover guard; `email` is unique, so a silent second account is impossible anyway).
+4. No match → create `user_account` (`user_id = msp|<uuid7>`, `password = NULL`, `email_verified_at` from provider claim) + `Player` + identity row, log in.
+
+**Invariants:**
+- Every account keeps ≥1 sign-in method: `password IS NOT NULL OR ≥1 oauth_identity`. Enforced in the unlink and remove-password handlers ("set a password before disconnecting your last sign-in method"). A trivial COUNT with this design — with per-provider columns it's a null-check chain that grows with every provider.
+- `user_id` is never derived from a provider (always `msp|<uuid7>` for new accounts) — provenance lives in `oauth_identity`, so linking/unlinking never touches the `Player.userId` seam.
+- Login errors stay generic regardless of which methods an account has (no "this account uses Google" — enumeration leak). The universal rescue is the magic login link, which works for any account with a verified email.
+
+`oauth_identity` is deliberately **not created during the migration** (zero social users; no code would use it). The migration only guarantees nothing blocks it: password on the account, unique email, provider-agnostic `user_id`. The table, per-provider authenticators, and the settings-page "Connected sign-in methods" UI (list / link / unlink / set-password) ship with the first provider.
+
+Rejected alternatives, for the record: **(a)** per-provider columns on `user_account` (`google_id`, `facebook_id`, …) — workable for two providers, but every addition is a migration + unique index + edits to the invariant check, settings UI, and fixtures, and audit metadata multiplies columns (`google_linked_at`, `google_last_used_at`, …); **(b)** one generalized `auth_credential` table holding password + OAuth + passkeys as typed rows — uniform on paper, but password-in-a-row fights Symfony's hasher/upgrader/remember-me integration and passkeys need bundle-specific columns regardless. Note on Meta: consumer "Sign in with Instagram" no longer exists (Basic Display API shut down end of 2024) — Facebook Login is the Meta option.
+
 ### Auth features at launch
 
 | Feature | Implementation | Verified Symfony 8 support |
@@ -95,7 +132,7 @@ user_account
 | Login throttling | `login_throttling` (requires `symfony/rate-limiter`), default 5/min per username+IP | core |
 | Audit logging | Listeners on `LoginSuccessEvent` / `LoginFailureEvent` / `LogoutEvent` → Monolog/Sentry | core |
 
-Post-launch candidates (not blocking): 2FA via `scheb/2fa-bundle` (v8.6.1 supports Symfony 8 + PHP 8.5), passkeys/WebAuthn, per-device session management. If social login is ever wanted, `knpuniversity/oauth2-client-bundle` v2.20+ supports Symfony 8.
+Post-launch candidates (not blocking): Google/Facebook login (design settled — see "Auth-method extensibility" above; `knpuniversity/oauth2-client-bundle` v2.20+ supports Symfony 8), 2FA via `scheb/2fa-bundle` (v8.6.1 supports Symfony 8 + PHP 8.5), passkeys/WebAuthn, per-device session management.
 
 ### FrankenPHP worker-mode safety
 
@@ -117,6 +154,7 @@ Native Symfony auth uses the request-scoped token storage (reset per request by 
 | D10 | `upgradePassword()` flush | Allow the documented Symfony exception to the "no flush in repositories" rule (runs inside the security listener, not a handler) — with an explaining comment |
 | D11 | 2FA | Post-launch, not blocking |
 | D12 | Email deliverability | Before cutover, verify seznam.cz SMTP limits/SPF/DKIM; auth emails (reset/verify/login-link) become critical-path. Consider a dedicated transactional provider if limits are tight |
+| D13 | Social-auth data model | `oauth_identity` table (one row per linked provider identity); password stays on `user_account`. Design settled now (see "Auth-method extensibility"), table ships with the first provider — not during migration |
 
 ## What stays untouched (reassurance list)
 

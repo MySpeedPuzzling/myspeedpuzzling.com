@@ -31,6 +31,7 @@ Phases 0–2 can run in parallel. Phase 4 (cutover) requires 1 (hash export rece
 
 - [ ] `UserAccount` entity per README spec (`user_id` unique, `email` unique lower-indexed, nullable `password`, `email_verified_at`, `legacy_auth0` flag, timestamps). Generated migration (never hand-written, per project rules).
 - [ ] `reset_password_request` table (bundle-generated migration via `make:reset-password` or manual entity following bundle docs).
+- [ ] Future-proofing guardrails for later social login (no new tables now): `user_id` provider-agnostic (`msp|<uuid7>`), password on `user_account`, unique email. The `oauth_identity` design (README §Auth-method extensibility) is settled but its table intentionally ships with the first social provider, not during migration.
 - [ ] Import command: `myspeedpuzzling:import-auth0-users <bulk-export.ndjson> <hash-export.ndjson>` — console command parses/joins the two files and dispatches `ImportAuth0User` messages (batch); handler upserts `UserAccount` keyed on `user_id` (never email), sets bcrypt hash as-is, `email_verified_at` from flag, `legacy_auth0 = true`, and backfills `player.email`/`player.name` where NULL. Idempotent — safe to re-run with a fresh export at cutover. Tests test the handler directly.
 
 ### 2b. Security plumbing
@@ -98,4 +99,4 @@ See [communication-plan.md](communication-plan.md). Gate on: announcement email 
 
 ## Phase 7 — Post-migration enhancements (backlog, optional)
 
-Passkeys/WebAuthn · 2FA (`scheb/2fa-bundle` v8.6.1, Symfony 8 ready) · per-device session management/revocation UI · social login if ever demanded (`knpuniversity/oauth2-client-bundle` v2.20+).
+Google/Facebook (maybe Apple) login per the settled `oauth_identity` design in README §Auth-method extensibility — new table + one authenticator per provider + settings-page "Connected sign-in methods" UI (`knpuniversity/oauth2-client-bundle` v2.20+) · Passkeys/WebAuthn · 2FA (`scheb/2fa-bundle` v8.6.1, Symfony 8 ready) · per-device session management/revocation UI.

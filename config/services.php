@@ -9,7 +9,7 @@ use AsyncAws\S3\S3Client;
 use Monolog\Level;
 use Monolog\Processor\PsrLogMessageProcessor;
 use Sentry\Monolog\BreadcrumbHandler as SentryBreadcrumbHandler;
-use Sentry\Monolog\Handler as SentryMonologHandler;
+use Sentry\Monolog\LogToSentryIssueHandler;
 use Sentry\State\HubInterface;
 use SpeedPuzzling\Web\Doctrine\RegexSchemaAssetFilter;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
@@ -137,13 +137,14 @@ return static function (ContainerConfigurator $configurator): void {
     // PSR-18 HTTP Client for Auth0 SDK
     $services->set('psr18.http_client', Psr18Client::class);
 
-    // Sentry Monolog Handler for error reporting
-    $services->set(SentryMonologHandler::class)
+    // Captures error-level log records as Sentry issues (successor of the
+    // deprecated Sentry\Monolog\Handler, which is removed in sentry/sentry 5.0)
+    $services->set(LogToSentryIssueHandler::class)
         ->args([
             service(HubInterface::class),
             Level::Error,
-            true,
-            true,
+            true, // bubble
+            true, // fillExtraContext
         ]);
 
     // Sentry Breadcrumb Handler for capturing logs as breadcrumbs

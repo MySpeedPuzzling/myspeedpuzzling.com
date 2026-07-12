@@ -32,6 +32,10 @@ return App::config([
                     'myspeedpuzzling:recalculate-puzzle-intelligence',
                 ],
             ],
+            'dbal' => [
+                // PREPARE spans are noise and inflate transaction envelopes
+                'ignore_prepare_spans' => true,
+            ],
         ],
         'register_error_listener' => false,
         // SDK errors (like HTTP send failures) go to a dedicated channel: visible in
@@ -42,10 +46,17 @@ return App::config([
             // Only report messages that exhausted all retries — retryable failures
             // (e.g. transient SMTP timeouts) recover via the async retry strategy
             'capture_soft_fails' => false,
+            // Fresh runtime context (scope, logs, metrics) per consumed message —
+            // the consumer is a long-running process, same leak risk as worker mode
+            'isolate_context_by_message' => true,
         ],
         'options' => [
             'environment' => '%kernel.environment%',
             'send_default_pii' => true,
+            // Only continue distributed traces whose baggage carries our org id —
+            // forged/replayed sentry-trace headers from bots must not join our traces
+            'org_id' => 4506172941991936,
+            'strict_trace_continuation' => true,
             // Defaults (2s connect / 5s total) are too tight for envelopes carrying
             // profiles — sends happen post-response in kernel.terminate, so this
             // does not affect user-facing latency

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sentry\Monolog\BreadcrumbHandler;
-use Sentry\Monolog\Handler;
+use Sentry\Monolog\LogToSentryIssueHandler;
 
 return App::config([
     'monolog' => [
@@ -30,7 +30,7 @@ return App::config([
             ],
             'sentry' => [
                 'type' => 'service',
-                'id' => Handler::class,
+                'id' => LogToSentryIssueHandler::class,
             ],
             'console' => [
                 'type' => 'console',

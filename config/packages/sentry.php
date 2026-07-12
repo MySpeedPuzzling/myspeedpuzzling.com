@@ -38,7 +38,9 @@ return App::config([
         'logger' => 'monolog.logger',
         'messenger' => [
             'enabled' => true,
-            'capture_soft_fails' => true,
+            // Only report messages that exhausted all retries — retryable failures
+            // (e.g. transient SMTP timeouts) recover via the async retry strategy
+            'capture_soft_fails' => false,
         ],
         'options' => [
             'environment' => '%kernel.environment%',

@@ -22,11 +22,20 @@ use Symfony\Contracts\Service\ResetInterface;
 
 final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInterface
 {
+    /**
+     * Digest emails ship at bulk volume — storing full bodies and SMTP transcripts for
+     * them would grow the audit table by gigabytes per month (content-digest README §12).
+     */
+    private const string SKIP_BODY_EMAIL_TYPE_PREFIX = 'content_digest';
+
     /** @var array<int, string> spl_object_id => audit log UUID */
     private array $pendingAuditIds = [];
 
     /** @var array<int, null|string> spl_object_id => email type captured before rendering */
     private array $pendingEmailTypes = [];
+
+    /** @var array<int, true> spl_object_id => skip smtp debug log for this message */
+    private array $pendingSkipDebug = [];
 
     public function __construct(
         private readonly MessageBusInterface $messageBus,
@@ -100,13 +109,20 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
                 $headers->addIdHeader('Message-ID', $message->generateMessageId());
             }
 
+            $emailType = $this->pendingEmailTypes[$objectId] ?? $this->extractEmailTypeFromMessage($message);
+            $skipBody = $emailType !== null && str_starts_with($emailType, self::SKIP_BODY_EMAIL_TYPE_PREFIX);
+
+            if ($skipBody) {
+                $this->pendingSkipDebug[$objectId] = true;
+            }
+
             $envelope = $this->messageBus->dispatch(new CreateEmailAuditLog(
                 recipientEmail: $message->getTo()[0]->getAddress(),
                 subject: $message->getSubject() ?? '',
                 transportName: $event->getTransport(),
-                emailType: $this->pendingEmailTypes[$objectId] ?? $this->extractEmailTypeFromMessage($message),
-                bodyHtml: $this->readBody($message->getHtmlBody()),
-                bodyText: $this->readBody($message->getTextBody()),
+                emailType: $emailType,
+                bodyHtml: $skipBody ? null : $this->readBody($message->getHtmlBody()),
+                bodyText: $skipBody ? null : $this->readBody($message->getTextBody()),
             ));
 
             /** @var HandledStamp $handledStamp */
@@ -151,10 +167,10 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
                 auditLogId: $this->pendingAuditIds[$objectId],
                 messageId: $messageIdHeader ?? $mtaOrHeader,
                 mtaQueueId: $mtaQueueId,
-                smtpDebugLog: $sentMessage->getDebug(),
+                smtpDebugLog: isset($this->pendingSkipDebug[$objectId]) ? '' : $sentMessage->getDebug(),
             ));
 
-            unset($this->pendingAuditIds[$objectId]);
+            unset($this->pendingAuditIds[$objectId], $this->pendingSkipDebug[$objectId]);
         } catch (\Throwable $e) {
             $this->logger->error('Failed to update email audit log on sent', [
                 'exception' => $e,
@@ -177,10 +193,10 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
             $this->messageBus->dispatch(new RecordEmailSendFailure(
                 auditLogId: $this->pendingAuditIds[$objectId],
                 errorMessage: $error->getMessage(),
-                smtpDebugLog: $debugLog,
+                smtpDebugLog: isset($this->pendingSkipDebug[$objectId]) ? null : $debugLog,
             ));
 
-            unset($this->pendingAuditIds[$objectId]);
+            unset($this->pendingAuditIds[$objectId], $this->pendingSkipDebug[$objectId]);
         } catch (\Throwable $e) {
             $this->logger->error('Failed to update email audit log on failure', [
                 'exception' => $e,
@@ -192,6 +208,7 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
     {
         $this->pendingAuditIds = [];
         $this->pendingEmailTypes = [];
+        $this->pendingSkipDebug = [];
     }
 
     private function extractEmailTypeFromMessage(Email $message): null|string

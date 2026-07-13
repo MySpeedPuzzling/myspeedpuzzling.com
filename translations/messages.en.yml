@@ -870,6 +870,13 @@ edit_profile:
     frequency_48_hours: "Every 48 hours"
     frequency_1_week: "Once a week"
     newsletter_enabled: "Receive newsletters"
+    content_digest_frequency: "Weekly digest email"
+    content_digest_help: "Your week in puzzling: XP, achievements, stats and friends' activity. Weekly is the sweet spot."
+    content_digest_none: "Don't send me the digest"
+    content_digest_daily: "Daily + weekly"
+    content_digest_weekly: "Weekly"
+    hide_experience_system: "Hide the experience system (XP & levels)"
+    hide_experience_system_help: "Your level, XP receipts, celebrations and leaderboard entries disappear everywhere. XP keeps accruing silently, so nothing is lost if you turn it back on."
     newsletter_help: "We will occasionally send a newsletter about what's new on the platform, usually explaining new features. Expected frequency: no more than 1 per month."
     personal_access_tokens: "Personal Access Tokens"
     personal_access_tokens_description: "Tokens for accessing your own data through the API."
@@ -1212,6 +1219,16 @@ xp:
         closing_thresholds: "We deliberately don't publish the exact thresholds — they exist to keep things fair, not to be gamed. If something looks off on a leaderboard, write to us; a human looks at every report."
         closing_celebrate: "Puzzle honestly, celebrate loudly. 🧩"
         explainer_link: "Curious how every point is earned? See <a href=\"%explainer_link%\">How XP &amp; Levels work</a>."
+
+content_digest:
+    unsubscribe:
+        meta_title: "Unsubscribe from the digest"
+        confirm_title: "Unsubscribe from the weekly digest?"
+        confirm_text: "No hard feelings — one click below and the weekly digest stops. You can re-enable it in your notification settings anytime."
+        confirm_button: "Yes, unsubscribe me"
+        done_title: "You're unsubscribed"
+        done_text: "The weekly digest won't email you anymore. If you miss it, it's waiting in your notification settings."
+        back_home: "Back to MySpeedPuzzling"
 
 badges:
     title: "Achievements"

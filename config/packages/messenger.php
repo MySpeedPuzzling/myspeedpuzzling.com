@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
 use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Message\SendBadgeNotificationEmail;
+use SpeedPuzzling\Web\Message\SendPlayerContentDigest;
 use SpeedPuzzling\Web\Message\SettleXpBonuses;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 
@@ -45,6 +46,17 @@ return App::config([
                         'max_delay' => 1800000,
                     ],
                 ],
+                // Dedicated queue on the same Doctrine table, drained by the digest
+                // consumer container — SMTP pacing stays isolated from transactional mail.
+                'digest_emails' => [
+                    'dsn' => '%env(MESSENGER_TRANSPORT_DSN)%?auto_setup=false&queue_name=digest_emails',
+                    'retry_strategy' => [
+                        'max_retries' => 5,
+                        'delay' => 60_000,         // 1m → 4m → 16m → 64m → 4h (capped)
+                        'multiplier' => 4,
+                        'max_delay' => 14_400_000, // 4h
+                    ],
+                ],
             ],
             'routing' => [
                 SendEmailMessage::class => 'async',
@@ -56,6 +68,7 @@ return App::config([
                 RecalculateXpChainForSolve::class => 'async',
                 CompensateXpForDeletedSolve::class => 'async',
                 SettleXpBonuses::class => 'async',
+                SendPlayerContentDigest::class => 'digest_emails',
                 SendBadgeNotificationEmail::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',

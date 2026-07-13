@@ -1,0 +1,8 @@
+{% trans_default_domain 'emails' %}
+{% if data.currentStreakDays > 1 %}
+    <row>
+        <columns>
+            <p>🔥 {{ 'content_digest.weekly.streak_line'|trans({'%days%': data.currentStreakDays}) }}</p>
+        </columns>
+    </row>
+{% endif %}

@@ -156,3 +156,29 @@ badges_earned:
     cta: |
         <p><a href="%badgesUrl%" class="link-underline">See all your badges and your progress toward the next ones</a>.</p>
     outro: "Keep puzzling — more achievements are waiting to be unlocked!"
+
+content_digest:
+    weekly:
+        subject: "Your week in puzzling 🧩"
+        subject_quiet: "A quiet puzzle week — we saved you a seat"
+        greeting: "Hi %name%, here is your week in puzzling!"
+        greeting_anonymous: "Hi puzzler, here is your week in puzzling!"
+        xp_title: "Your XP this week"
+        xp_gained: "+%xp% XP earned"
+        levels_gained: "{1}you climbed 1 level, now Level %level%!|]1,Inf[you climbed %count% levels, now Level %level%!"
+        achievements_intro: "{1}You earned 1 new achievement:|]1,Inf[You earned %count% new achievements:"
+        achievements_teaser: "{1}1 new achievement is waiting for you — become a member to reveal it!|]1,Inf[%count% new achievements are waiting for you — become a member to reveal them!"
+        numbers_title: "Your week in numbers"
+        numbers_line: "{1}1 solve|]1,Inf[%solves% solves — %pieces% pieces placed."
+        numbers_minutes: "About %minutes% minutes of pure puzzling."
+        numbers_previous: "Last week: %solves% solves, %pieces% pieces."
+        streak_line: "You are on a %days%-day streak — beautifully steady!"
+        no_activity_line_1: "We haven't seen a solve from you this week — and that's perfectly fine, life happens."
+        no_activity_line_2: "Whenever you're ready, a puzzle is always a good idea. Your next piece is waiting. 🧩"
+        favorites_title: "Your favorite puzzlers were busy"
+        favorites_line: "{1}%name% logged 1 solve|]1,Inf[%name% logged %count% solves"
+        next_achievements_title: "Within your reach"
+        community_title: "Around the community"
+        most_solved_line: "Most solved puzzle of the week: %puzzle% (%solvers% puzzlers)."
+        footer_settings: "You get this digest weekly. Adjust it anytime in your <a href=\"%settingsUrl%\">notification settings</a>."
+        footer_unsubscribe: "One click and it stops: <a href=\"%unsubscribeUrl%\">unsubscribe from the digest</a>."

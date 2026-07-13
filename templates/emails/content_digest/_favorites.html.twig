@@ -1,0 +1,13 @@
+{% trans_default_domain 'emails' %}
+{% if data.favoritesActivity|length > 0 %}
+    <row>
+        <columns>
+            <h4>{{ 'content_digest.weekly.favorites_title'|trans }}</h4>
+            <ul>
+                {% for favorite in data.favoritesActivity %}
+                    <li>{{ 'content_digest.weekly.favorites_line'|trans({'%name%': favorite.name, '%count%': favorite.solves}) }}</li>
+                {% endfor %}
+            </ul>
+        </columns>
+    </row>
+{% endif %}

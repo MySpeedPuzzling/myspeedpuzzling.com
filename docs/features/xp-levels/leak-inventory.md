@@ -43,8 +43,8 @@ Rules while flagged:
 ## Emails & notifications
 
 - [ ] Badge congratulation email (see retrofit above; post-launch: members-only, P2.T6)
-- [ ] Weekly content digest (P6) — dispatch command + handler both suppressed while flagged
-- [ ] Digest preference in messaging settings (P6) — hidden while flagged
+- [x] Weekly content digest (P6) — dispatch command warns+exits AND handler short-circuits while flagged (SendPlayerContentDigestHandlerTest::testSuppressedWhileFeatureFlagActive)
+- [x] Digest preference in messaging settings (P6) — hidden while flagged, incl. the experience-system opt-out checkbox (DigestSettingsVisibilityTest)
 - [ ] One-time reveal email command (P7) — refuses to run while flagged
 - [ ] In-app notifications — none planned; verify none get added
 - [ ] Activity feed — verify no XP/achievement entries appear

@@ -15,7 +15,7 @@
 - **STATE line** (update after every completed task):
 
   ```
-  STATE: phase=P2 last_completed=P1.T9 branch=feature/dynamic-badges-system
+  STATE: phase=P3 last_completed=P2.T7 branch=feature/dynamic-badges-system
   ```
 
 - Every task below is a `- [ ]` checkbox with a stable ID (`P2.T3`). Work strictly in order within a
@@ -379,29 +379,39 @@ suppressed entirely while feature flag active, unread-messages digest untouched,
 
 ### P2 — Live wiring (award, edit/delete, settlement)
 
-- [ ] **P2.T1** `AddPuzzleSolvingTimeHandler`: after persist, dispatch (async) `AwardXpForSolvingTime`
+- [x] **P2.T1** `AddPuzzleSolvingTimeHandler`: after persist, dispatch (async) `AwardXpForSolvingTime`
   (new message+handler → XpCalculator+XpLedger; computes occurrence via canonical ordering; snapshot
   pieces). Mirror existing `RecalculateBadgesForPlayer` dispatch pattern.
-- [ ] **P2.T2** `EditPuzzleSolvingTimeHandler` + `DeletePuzzleSolvingTimeHandler`: dispatch chain
+- [x] **P2.T2** `EditPuzzleSolvingTimeHandler` + `DeletePuzzleSolvingTimeHandler`: dispatch chain
   recompute (delete = compensations + chain recompute; edit = same). Delete confirmation dialog
   (template where delete is offered): warn with the solve's current XP sum (`GetXpEntriesForSolve`).
-- [ ] **P2.T3** Achievement XP: in `BadgeEvaluator` (or a listener on its persist path), for each newly
+- [x] **P2.T3** Achievement XP: in `BadgeEvaluator` (or a listener on its persist path), for each newly
   persisted tier create `Achievement` xp_entry (values §1.6) — including gap-filled tiers. NO xp for
   re-evaluations (unique badge rows already guarantee once-only).
-- [ ] **P2.T4** Settlement: console command `myspeedpuzzling:settle-xp-bonuses` — for go-forward solves
+- [x] **P2.T4** Settlement: console command `myspeedpuzzling:settle-xp-bonuses` — for go-forward solves
   lacking `DifficultySettlement` whose puzzle now has difficulty: settle; same for speed. Frozen via
   the P1.T3 unique index. Wire into cron docs (same 15-min cadence, AFTER intelligence recalc).
   `in_weekly_delta = false` on settlement entries. Tests.
-- [ ] **P2.T5** Weekly boost / daily warm-up counters: computed inside `AwardXpForSolvingTime` from
+- [x] **P2.T5** Weekly boost / daily warm-up counters: computed inside `AwardXpForSolvingTime` from
   ledger (count this ISO-week/day `SolveBase` entries for player, UTC). Deterministic under recompute
   (recompute replays canonical order). Tests: 6 solves in a week → 5 boosted; midnight boundaries.
-- [ ] **P2.T6** Email rules on the existing `SendBadgeNotificationEmail` path: (a) short-circuit while
+- [x] **P2.T6** Email rules on the existing `SendBadgeNotificationEmail` path: (a) short-circuit while
   `XpFeatureGate` flag ON (done in P0.T4 — verify it composes); (b) **post-launch rule: send ONLY to
   players with active membership** (free users never receive per-achievement emails — they can't see
   the badges; they get the digest teaser instead, §1.7). Tests prove both.
   **Email inventory rule (locked): the weekly digest + the members-only achievement email are the
   ONLY recurring emails this system sends. NO level-up emails, no per-XP emails — do not invent any.**
-- [ ] **P2.T7** Phase gate: quality gates; fixture doc `.claude/fixtures.md` updated if fixtures grew. STATE.
+- [x] **P2.T7** Phase gate: quality gates; fixture doc `.claude/fixtures.md` updated if fixtures grew. STATE.
+  IMPLEMENTATION NOTES (P2): live wiring = `XpChainRecomputer` (award/rebuild/compensate/settle) behind
+  three async messages (`AwardXpForSolvingTime`, `RecalculateXpChainForSolve`, `CompensateXpForDeletedSolve`)
+  + `SettleXpBonuses`; `AddPuzzleTrackingHandler` (relax logging path) also dispatches award + badge recalc.
+  Delete = per-entry negative mirrors (audit preserved, idempotent via net-sum guard) + scoped pair rebuild;
+  edit = pair rebuild incl. removed-team-member cleanup. Weekly/daily counters = canonical-order ledger
+  counts (entries of deleted solves never hold slots). `RecalculateBadgesForPlayer` gained `isBackfill`
+  (suppresses email + keeps backfilled achievement XP out of weekly delta) — this IS the suppressed-email
+  mode P7.T1 refers to. Fixed pre-existing badges bug: evaluator read highest-tier-only (`GetBadges::forPlayer`
+  DISTINCT ON) so cron re-evaluation crashed on the unique index for multi-tier players — new
+  `GetBadges::allEarnedTiers`. Fixtures unchanged (tests seed their own rows).
 
 ### P3 — Achievements expansion `[parallel-ok — ideal subagent batch]`
 

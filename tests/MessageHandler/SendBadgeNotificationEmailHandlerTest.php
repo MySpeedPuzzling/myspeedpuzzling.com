@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use SpeedPuzzling\Web\Message\SendBadgeNotificationEmail;
 use SpeedPuzzling\Web\MessageHandler\SendBadgeNotificationEmailHandler;
+use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\FakePlayerRepository;
@@ -19,6 +20,7 @@ final class SendBadgeNotificationEmailHandlerTest extends KernelTestCase
 {
     private TestMailerSpy $mailer;
     private PlayerRepository $playerRepository;
+    private GetPlayerProfile $getPlayerProfile;
     private TranslatorInterface $translator;
 
     protected function setUp(): void
@@ -28,19 +30,16 @@ final class SendBadgeNotificationEmailHandlerTest extends KernelTestCase
 
         $this->mailer = new TestMailerSpy();
         $this->playerRepository = $container->get(PlayerRepository::class);
+        $this->getPlayerProfile = $container->get(GetPlayerProfile::class);
         $this->translator = $container->get(TranslatorInterface::class);
     }
 
-    public function testSendsEmailWithCorrectTemplate(): void
+    public function testSendsEmailToMemberWithCorrectTemplate(): void
     {
-        $handler = new SendBadgeNotificationEmailHandler(
-            playerRepository: $this->playerRepository,
-            mailer: $this->mailer,
-            translator: $this->translator,
-        );
+        $handler = $this->handler();
 
         $handler(new SendBadgeNotificationEmail(
-            playerId: PlayerFixture::PLAYER_REGULAR,
+            playerId: PlayerFixture::PLAYER_WITH_STRIPE,
             badgeSummary: [
                 ['type' => BadgeType::PuzzlesSolved, 'tier' => BadgeTier::Gold],
                 ['type' => BadgeType::Streak, 'tier' => BadgeTier::Bronze],
@@ -52,6 +51,22 @@ final class SendBadgeNotificationEmailHandlerTest extends KernelTestCase
         self::assertInstanceOf(TemplatedEmail::class, $message);
         self::assertSame('emails/badges_earned.html.twig', $message->getHtmlTemplate());
         self::assertSame('transactional', $message->getHeaders()->get('X-Transport')?->getBodyAsString());
+    }
+
+    /**
+     * Achievement detail is members-only (§1.7) — free players never receive the
+     * per-achievement congratulation email; the weekly digest teaser covers them.
+     */
+    public function testSkipsEmailForPlayerWithoutMembership(): void
+    {
+        $handler = $this->handler();
+
+        $handler(new SendBadgeNotificationEmail(
+            playerId: PlayerFixture::PLAYER_REGULAR,
+            badgeSummary: [['type' => BadgeType::PuzzlesSolved, 'tier' => BadgeTier::Gold]],
+        ));
+
+        self::assertCount(0, $this->mailer->sent);
     }
 
     public function testSkipsEmailWhenPlayerHasNoEmail(): void
@@ -67,6 +82,7 @@ final class SendBadgeNotificationEmailHandlerTest extends KernelTestCase
 
         $handler = new SendBadgeNotificationEmailHandler(
             playerRepository: new FakePlayerRepository($player),
+            getPlayerProfile: $this->getPlayerProfile,
             mailer: $this->mailer,
             translator: $this->translator,
         );
@@ -81,11 +97,7 @@ final class SendBadgeNotificationEmailHandlerTest extends KernelTestCase
 
     public function testSkipsEmailWhenPlayerNotFound(): void
     {
-        $handler = new SendBadgeNotificationEmailHandler(
-            playerRepository: $this->playerRepository,
-            mailer: $this->mailer,
-            translator: $this->translator,
-        );
+        $handler = $this->handler();
 
         $handler(new SendBadgeNotificationEmail(
             playerId: '00000000-0000-0000-0000-000000000099',
@@ -93,5 +105,15 @@ final class SendBadgeNotificationEmailHandlerTest extends KernelTestCase
         ));
 
         self::assertCount(0, $this->mailer->sent);
+    }
+
+    private function handler(): SendBadgeNotificationEmailHandler
+    {
+        return new SendBadgeNotificationEmailHandler(
+            playerRepository: $this->playerRepository,
+            getPlayerProfile: $this->getPlayerProfile,
+            mailer: $this->mailer,
+            translator: $this->translator,
+        );
     }
 }

@@ -18,6 +18,30 @@ readonly class GetBadges
     }
 
     /**
+     * Every earned badge row, all tiers included — the badge evaluator needs the complete
+     * set to decide what is still missing (the display query below collapses to the highest
+     * tier per type, which would make re-evaluations re-insert lower tiers).
+     *
+     * @return list<BadgeResult>
+     */
+    public function allEarnedTiers(string $playerId): array
+    {
+        $sql = <<<SQL
+SELECT type, tier, earned_at
+FROM badge
+WHERE player_id = :playerId
+ORDER BY type ASC, tier ASC NULLS LAST
+SQL;
+
+        /** @var list<array{type: string, tier: null|int|string, earned_at: string}> $rows */
+        $rows = $this->database
+            ->executeQuery($sql, ['playerId' => $playerId])
+            ->fetchAllAssociative();
+
+        return $this->hydrate($rows);
+    }
+
+    /**
      * @return list<BadgeResult>
      */
     public function forPlayer(string $playerId): array
@@ -34,6 +58,15 @@ SQL;
             ->executeQuery($sql, ['playerId' => $playerId])
             ->fetchAllAssociative();
 
+        return $this->hydrate($rows);
+    }
+
+    /**
+     * @param list<array{type: string, tier: null|int|string, earned_at: string}> $rows
+     * @return list<BadgeResult>
+     */
+    private function hydrate(array $rows): array
+    {
         $badges = [];
 
         foreach ($rows as $row) {

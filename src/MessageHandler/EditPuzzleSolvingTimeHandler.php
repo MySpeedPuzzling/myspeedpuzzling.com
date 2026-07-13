@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
+use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
@@ -115,5 +116,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         );
 
         $this->commandBus->dispatch(new RecalculateBadgesForPlayer($currentPlayer->id->toString()));
+        // Edit is semantically delete+re-add for XP — rebuild the affected chains.
+        $this->commandBus->dispatch(new RecalculateXpChainForSolve($message->puzzleSolvingTimeId));
     }
 }

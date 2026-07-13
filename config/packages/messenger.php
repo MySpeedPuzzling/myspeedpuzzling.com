@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
+use SpeedPuzzling\Web\Message\CompensateXpForDeletedSolve;
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
+use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Message\SendBadgeNotificationEmail;
+use SpeedPuzzling\Web\Message\SettleXpBonuses;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 
 return App::config([
@@ -48,6 +52,10 @@ return App::config([
                 RecalculateDerivedMetricsForPuzzle::class => 'async',
                 RecalculateBadgesForPlayer::class => 'async',
                 RecalculateXpForPlayer::class => 'async',
+                AwardXpForSolvingTime::class => 'async',
+                RecalculateXpChainForSolve::class => 'async',
+                CompensateXpForDeletedSolve::class => 'async',
+                SettleXpBonuses::class => 'async',
                 SendBadgeNotificationEmail::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',

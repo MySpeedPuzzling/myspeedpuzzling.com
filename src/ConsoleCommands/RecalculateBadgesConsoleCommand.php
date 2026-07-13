@@ -83,7 +83,7 @@ final class RecalculateBadgesConsoleCommand extends Command
                 $stamps[] = new DelayStamp($index * self::BACKFILL_DELAY_MS);
             }
 
-            $this->commandBus->dispatch(new RecalculateBadgesForPlayer($playerId), $stamps);
+            $this->commandBus->dispatch(new RecalculateBadgesForPlayer($playerId, isBackfill: $backfill), $stamps);
         }
 
         $count = count($playerIds);

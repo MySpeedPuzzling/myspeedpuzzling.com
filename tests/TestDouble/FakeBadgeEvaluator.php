@@ -17,7 +17,7 @@ readonly final class FakeBadgeEvaluator extends BadgeEvaluator
         // Skip parent constructor — only recalculateForPlayer is exercised in tests.
     }
 
-    public function recalculateForPlayer(string $playerId): array
+    public function recalculateForPlayer(string $playerId, bool $isBackfill = false): array
     {
         return $this->returnValue;
     }

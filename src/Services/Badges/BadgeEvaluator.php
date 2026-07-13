@@ -13,12 +13,20 @@ use SpeedPuzzling\Web\Query\GetPlayerStatsSnapshot;
 use SpeedPuzzling\Web\Repository\BadgeRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Results\BadgeResult;
+use SpeedPuzzling\Web\Services\Xp\XpLedger;
+use SpeedPuzzling\Web\Value\BadgeTier;
+use SpeedPuzzling\Web\Value\XpEntryDraft;
+use SpeedPuzzling\Web\Value\XpReason;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
  * Evaluates every registered badge condition for one player and persists any newly-qualified
  * tiers. Gaps are filled — if a player jumps to tier 3 without previously holding tier 1 or 2,
  * all three rows land with the same earnedAt timestamp so history reads sensibly.
+ *
+ * Every newly persisted tier also grants its achievement XP exactly once (anchored by the
+ * unique badge_id ledger index); achievements are never revoked, so this XP is never
+ * compensated. Gap-filled tiers each grant their own XP.
  */
 readonly class BadgeEvaluator
 {
@@ -33,6 +41,7 @@ readonly class BadgeEvaluator
         private BadgeRepository $badgeRepository,
         private PlayerRepository $playerRepository,
         private ClockInterface $clock,
+        private XpLedger $xpLedger,
     ) {
     }
 
@@ -42,7 +51,7 @@ readonly class BadgeEvaluator
      *
      * @return list<Badge>
      */
-    public function recalculateForPlayer(string $playerId): array
+    public function recalculateForPlayer(string $playerId, bool $isBackfill = false): array
     {
         try {
             $player = $this->playerRepository->get($playerId);
@@ -51,7 +60,7 @@ readonly class BadgeEvaluator
         }
 
         $snapshot = $this->getPlayerStatsSnapshot->forPlayer($playerId);
-        $alreadyEarned = $this->earnedTierMap($this->getBadges->forPlayer($playerId));
+        $alreadyEarned = $this->earnedTierMap($this->getBadges->allEarnedTiers($playerId));
         $now = $this->clock->now();
         $newBadges = [];
 
@@ -68,6 +77,26 @@ readonly class BadgeEvaluator
                 $alreadyEarned[$type->value][$tier->value] = true;
                 $newBadges[] = $badge;
             }
+        }
+
+        if ($newBadges !== []) {
+            $drafts = [];
+
+            foreach ($newBadges as $badge) {
+                $tier = $badge->tier === null ? null : BadgeTier::from($badge->tier);
+
+                $drafts[] = new XpEntryDraft(
+                    reason: XpReason::Achievement,
+                    amount: $tier === null ? BadgeTier::SINGLE_TIER_POINTS : $tier->points(),
+                    earnedAt: $badge->earnedAt,
+                    // Backfilled achievements carry the backfill run time as earned_at and
+                    // must not flood that week's delta leaderboard.
+                    inWeeklyDelta: $isBackfill === false,
+                    badgeId: $badge->id,
+                );
+            }
+
+            $this->xpLedger->append($player, $drafts);
         }
 
         return $newBadges;

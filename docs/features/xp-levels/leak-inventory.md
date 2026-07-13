@@ -31,14 +31,14 @@ Rules while flagged:
 
 ## Pages (P5)
 
-- [ ] Achievements catalog rework (route + `/badges` alias/redirect)
-- [ ] Achievement holders directory (`/achievements/{type}`)
-- [ ] XP leaderboard (`/players/xp-leaderboard`) — all tabs incl. AP tab
-- [ ] XP audit page (`/my/xp-history`)
-- [ ] Explainer page (public post-launch; gated while flagged)
-- [ ] Fair-play page (public post-launch; gated while flagged)
-- [ ] Launch reveal page
-- [ ] Share-card image routes (level-up + launch cards — **direct URL access!**)
+- [x] Achievements catalog rework (route + `/badges` 301 redirect) — 404 for non-admins: `XpPagesTest` + `BadgesOverviewControllerTest`
+- [x] Achievement holders directory (`/achievements/{type}`) — 404 for non-admins: `XpPagesTest`
+- [x] XP leaderboard (`/players/xp-leaderboard`) — all three tabs 404 for non-admins: `XpPagesTest`
+- [x] XP audit page (`/my/xp-history`) — 404 for non-admins: `XpPagesTest::testXpHistoryIs404ForNonAdmins`
+- [x] Explainer page (`/how-xp-works`) — 404 for non-admins: `XpExplainerControllerTest` + `XpPagesTest`
+- [x] Fair-play page (`/fair-play-xp`) — 404 for non-admins: `FairPlayXpControllerTest` + `XpPagesTest`
+- [x] Launch reveal page (`/my/xp-reveal`) — 404 for non-admins: `XpPagesTest::testLaunchRevealIs404ForNonAdmins`
+- [x] Share-card image routes (`/xp-card/{playerId}/{launch|level-up}`) — 404 for anonymous + non-admins (direct URL access covered): `XpPagesTest`
 
 ## Emails & notifications
 
@@ -51,8 +51,8 @@ Rules while flagged:
 
 ## SEO / discovery
 
-- [ ] Sitemap: new pages excluded while flagged
-- [ ] No links/menu items to gated pages rendered for non-admins (header, profile, recap, footer)
+- [x] Sitemap: new pages excluded while flagged — none of the XP routes are referenced by any Sitemap*Controller (verified by grep)
+- [x] No links/menu items to gated pages rendered for non-admins — all links live inside gate-checked components/pages (profile strip, catalog, receipt, membership invite); header/menu untouched
 
 ## Final pass
 

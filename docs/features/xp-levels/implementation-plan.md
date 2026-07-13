@@ -15,7 +15,7 @@
 - **STATE line** (update after every completed task):
 
   ```
-  STATE: phase=P5 last_completed=P4.T6 branch=feature/dynamic-badges-system
+  STATE: phase=P6 last_completed=P5.T7 branch=feature/dynamic-badges-system
   ```
 
 - Every task below is a `- [ ]` checkbox with a stable ID (`P2.T3`). Work strictly in order within a
@@ -474,25 +474,36 @@ suppressed entirely while feature flag active, unread-messages digest untouched,
 
 ### P5 — UI phase B: pages
 
-- [ ] **P5.T1** Achievements catalog rework: rename UI "Badges"→"Achievements" (route alias/redirect
+- [x] **P5.T1** Achievements catalog rework: rename UI "Badges"→"Achievements" (route alias/redirect
   from `/badges`), AP chips per tier, §1.7 free-user "Earned ✓ — waiting 🔒" states, progress bars stay.
-- [ ] **P5.T2** Holders directory: catalog cards link to `/achievements/{type}` detail page — per-tier
+- [x] **P5.T2** Holders directory: catalog cards link to `/achievements/{type}` detail page — per-tier
   holder lists (avatar, name, country flag, earned date), country filter, "first to earn" highlight,
   newest earners, member-only lists + full counts ("+N more puzzlers"), private/opted-out excluded.
   Query with proper indexes (check EXPLAIN on badge table).
-- [ ] **P5.T3** XP leaderboard page per §1.9 (weekly default from ledger `in_weekly_delta`, all-time
+- [x] **P5.T3** XP leaderboard page per §1.9 (weekly default from ledger `in_weekly_delta`, all-time
   from `player.xp_total`, pinned self-row, filters, Lv50→AP display) + an **Achievement Points tab**
   (members ranked by AP total; viewable by all logged-in users — this is the "read-only AP ladder"
   free Lv50 players are pointed to).
-- [ ] **P5.T4** XP audit page `/my/xp-history` (paginated ledger with reasons + solve links).
-- [ ] **P5.T5** Explainer + fair-play pages (static controllers+templates). DRAFT real EN copy from
+- [x] **P5.T4** XP audit page `/my/xp-history` (paginated ledger with reasons + solve links).
+- [x] **P5.T5** Explainer + fair-play pages (static controllers+templates). DRAFT real EN copy from
   §1 of this plan (three-currency table, formula with worked examples, level table, FAQ; fair-play:
   trust principles + what's automatically unrewarded — never publish exact guard thresholds), and
   mark both templates `<!-- COPY:pending-jan-approval -->` at top for Jan's review pass.
-- [ ] **P5.T6** Launch reveal page (one-time: `revealed_launch_at` on Player or reuse DismissedHint
+- [x] **P5.T6** Launch reveal page (one-time: `revealed_launch_at` on Player or reuse DismissedHint
   pattern — pick DismissedHint-style row, no Player column) + level share-card route in
   `ResultImageController` style using the 800×800 background asset + launch/level-up card variants.
-- [ ] **P5.T7** Phase gate: quality gates + full leak-inventory pass as non-admin. STATE.
+- [x] **P5.T7** Phase gate: quality gates + full leak-inventory pass as non-admin. STATE.
+  IMPLEMENTATION NOTES (P5): catalog moved to /achievements URLs (old /badges = 301, route name
+  `badges_overview` kept so existing path() calls work); fixed second highest-tier-only bug in
+  GetBadgeCatalog (earnedMap now allEarnedTiers). Holders listing = members with public profiles,
+  non-opted-out (ROW_NUMBER per tier, 30 listed, counts include everyone; badge.type index added,
+  EXPLAIN verified). Leaderboard tabs this-week/all-time/achievement-points with country+favorites
+  filters and pinned self-rank; the P4 dormant `xp_leaderboard` route is now LIVE. Audit page joins
+  puzzle+badge context per entry (deleted solves keep entries, show as 'deleted solve'). Launch
+  reveal one-time state = DismissedHint row with new HintType::XpLaunchReveal; share cards via
+  GetXpShareCard (Intervention, 800×800 brand background, cached per level). Assets copied to
+  public/img/xp/. Explainer + fair-play pages delegated to subagent (copy from approved-for-draft
+  file, marked COPY:pending-jan-approval; no guard thresholds published).
 
 ### P6 — Weekly digest (content-digest Phases 1–2, weekly only)
 

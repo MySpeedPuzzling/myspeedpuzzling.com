@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'xp.fair_play.title'|trans }}{% endblock %}
+
+{% block content %}
+    <!-- COPY:pending-jan-approval -->
+    <div class="col-lg-8 mx-auto">
+        <h1 class="mb-3"><i class="bi bi-shield-check me-2 text-primary"></i>{{ 'xp.fair_play.title'|trans }}</h1>
+        <p class="lead mb-4">{{ 'xp.fair_play.intro'|trans }}</p>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-3">{{ 'xp.fair_play.principle_no_buying'|trans }}</li>
+                    <li class="mb-3">{{ 'xp.fair_play.principle_repeats'|trans }}</li>
+                    <li class="mb-3">{{ 'xp.fair_play.principle_speed'|trans }}</li>
+                    <li class="mb-3">{{ 'xp.fair_play.principle_deleting'|trans }}</li>
+                    <li class="mb-0">{{ 'xp.fair_play.principle_caps'|trans }}</li>
+                </ul>
+            </div>
+        </div>
+
+        <p>{{ 'xp.fair_play.closing_thresholds'|trans }}</p>
+        <p class="fw-semibold">{{ 'xp.fair_play.closing_celebrate'|trans }}</p>
+        <p class="mb-0">{{ 'xp.fair_play.explainer_link'|trans({'%explainer_link%': path('xp_explainer')})|raw }}</p>
+    </div>
+{% endblock %}

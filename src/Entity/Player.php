@@ -8,6 +8,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
+use Doctrine\ORM\Mapping\Index;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
@@ -24,6 +25,8 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
 use DateTimeImmutable;
 
 #[Entity]
+#[Index(columns: ['xp_total'])]
+#[Index(columns: ['achievement_points'])]
 class Player
 {
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
@@ -184,6 +187,15 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::BOOLEAN, options: ['default' => false])]
     public bool $experienceSystemOptedOut = false;
+
+    /**
+     * Denormalized Achievement Points — SUM of BadgeTier::points() over every earned
+     * badge row. Maintained (and self-healed on each evaluation) by BadgeEvaluator,
+     * the only badge write path; AP never decreases by design.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::INTEGER, options: ['default' => 0])]
+    public int $achievementPoints = 0;
 
     public function __construct(
         #[Id]
@@ -441,6 +453,15 @@ class Player
     {
         $this->xpTotal = $xpTotal;
         $this->level = $level;
+    }
+
+    /**
+     * Called exclusively by BadgeEvaluator with the absolute recomputed total —
+     * setting (not incrementing) makes every evaluation run self-healing.
+     */
+    public function updateAchievementPoints(int $achievementPoints): void
+    {
+        $this->achievementPoints = $achievementPoints;
     }
 
     public function joinReferralProgram(DateTimeImmutable $now): void

@@ -26,9 +26,14 @@ readonly final class RecalculateBadgesForPlayerHandler
 
     public function __invoke(RecalculateBadgesForPlayer $message): void
     {
-        $newBadges = $this->badgeEvaluator->recalculateForPlayer($message->playerId);
+        $newBadges = $this->badgeEvaluator->recalculateForPlayer($message->playerId, $message->isBackfill);
 
         if ($newBadges === []) {
+            return;
+        }
+
+        // Backfill runs seed thousands of historical earns — never email those.
+        if ($message->isBackfill) {
             return;
         }
 

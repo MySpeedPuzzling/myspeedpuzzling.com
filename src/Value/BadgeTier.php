@@ -12,6 +12,27 @@ enum BadgeTier: int
     case Platinum = 4;
     case Diamond = 5;
 
+    /**
+     * Achievement Points AND achievement XP granted by a single-tier achievement
+     * (e.g. Early Adopter) — tiered achievements use points().
+     */
+    public const int SINGLE_TIER_POINTS = 25;
+
+    /**
+     * Locked values (§1.6): each earned tier grants this many Achievement Points and
+     * the same amount of XP, once, forever.
+     */
+    public function points(): int
+    {
+        return match ($this) {
+            self::Bronze => 5,
+            self::Silver => 10,
+            self::Gold => 25,
+            self::Platinum => 50,
+            self::Diamond => 100,
+        };
+    }
+
     public function romanNumeral(): string
     {
         return match ($this) {

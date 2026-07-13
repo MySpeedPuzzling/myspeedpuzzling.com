@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetAllPlayerIdsWithSolveTimes;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -16,7 +17,9 @@ final class GetAllPlayerIdsWithSolveTimesTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->query = self::getContainer()->get(GetAllPlayerIdsWithSolveTimes::class);
+        $this->query = new GetAllPlayerIdsWithSolveTimes(
+            self::getContainer()->get(Connection::class),
+        );
     }
 
     public function testReturnsNonEmptyList(): void

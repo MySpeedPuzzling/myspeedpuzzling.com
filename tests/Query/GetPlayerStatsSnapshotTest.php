@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetPlayerStatsSnapshot;
+use SpeedPuzzling\Web\Services\ActivityCalendarStreakCalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -15,7 +18,12 @@ final class GetPlayerStatsSnapshotTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->query = self::getContainer()->get(GetPlayerStatsSnapshot::class);
+        $container = self::getContainer();
+
+        $this->query = new GetPlayerStatsSnapshot(
+            $container->get(Connection::class),
+            new ActivityCalendarStreakCalculator($container->get(ClockInterface::class)),
+        );
     }
 
     public function testReturnsSnapshotForPlayerWithSolveTimes(): void

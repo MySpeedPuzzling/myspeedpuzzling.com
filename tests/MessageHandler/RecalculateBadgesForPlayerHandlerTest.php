@@ -14,11 +14,10 @@ use SpeedPuzzling\Web\MessageHandler\RecalculateBadgesForPlayerHandler;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\FakeBadgeEvaluator;
+use SpeedPuzzling\Web\Tests\TestDouble\MessageBusSpy;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\Envelope;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 final class RecalculateBadgesForPlayerHandlerTest extends KernelTestCase
 {
@@ -82,20 +81,9 @@ final class RecalculateBadgesForPlayerHandlerTest extends KernelTestCase
         foreach ($message->badgeSummary as $entry) {
             $byType[$entry['type']->value] = $entry['tier']?->value;
         }
+        self::assertArrayHasKey('puzzles_solved', $byType);
+        self::assertArrayHasKey('streak', $byType);
         self::assertSame(3, $byType['puzzles_solved']);
         self::assertSame(1, $byType['streak']);
-    }
-}
-
-final class MessageBusSpy implements MessageBusInterface
-{
-    /** @var list<object> */
-    public array $dispatched = [];
-
-    public function dispatch(object $message, array $stamps = []): Envelope
-    {
-        $this->dispatched[] = $message;
-
-        return new Envelope($message);
     }
 }

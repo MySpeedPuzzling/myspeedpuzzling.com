@@ -34,20 +34,6 @@ SQL;
   )
 SQL;
 
-    private const string AP_SUM = <<<SQL
-SELECT COALESCE(SUM(
-    CASE b.tier
-        WHEN 1 THEN 5
-        WHEN 2 THEN 10
-        WHEN 3 THEN 25
-        WHEN 4 THEN 50
-        WHEN 5 THEN 100
-        ELSE 25
-    END), 0)
-FROM badge b
-WHERE b.player_id = p.id
-SQL;
-
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
@@ -74,7 +60,7 @@ SELECT
     p.level,
     CASE WHEN p.level >= 50 AND EXISTS (
         SELECT 1 FROM membership m WHERE m.player_id = p.id AND {$this->activeMembership()}
-    ) THEN ({$this->apSum()}) END AS achievement_points
+    ) THEN p.achievement_points END AS achievement_points
 FROM player p
 WHERE p.xp_total > 0
   AND {$this->publicEligibility()}
@@ -108,7 +94,7 @@ SELECT
     p.level,
     CASE WHEN p.level >= 50 AND EXISTS (
         SELECT 1 FROM membership m WHERE m.player_id = p.id AND {$this->activeMembership()}
-    ) THEN ({$this->apSum()}) END AS achievement_points
+    ) THEN p.achievement_points END AS achievement_points
 FROM (
     SELECT e.player_id, SUM(e.amount) AS value
     FROM xp_entry e
@@ -147,34 +133,22 @@ SQL;
 
         $sql = <<<SQL
 SELECT
-    ROW_NUMBER() OVER (ORDER BY ap.value DESC, p.id ASC) AS rank,
+    ROW_NUMBER() OVER (ORDER BY p.achievement_points DESC, p.id ASC) AS rank,
     p.id AS player_id,
     p.name AS player_name,
     p.code,
     p.country,
     p.avatar,
-    ap.value,
+    p.achievement_points AS value,
     p.level,
-    ap.value AS achievement_points
-FROM (
-    SELECT b.player_id, SUM(
-        CASE b.tier
-            WHEN 1 THEN 5
-            WHEN 2 THEN 10
-            WHEN 3 THEN 25
-            WHEN 4 THEN 50
-            WHEN 5 THEN 100
-            ELSE 25
-        END) AS value
-    FROM badge b
-    GROUP BY b.player_id
-) ap
-JOIN player p ON p.id = ap.player_id
+    p.achievement_points
+FROM player p
 JOIN membership m ON m.player_id = p.id AND {$this->activeMembership()}
-WHERE {$this->publicEligibility()}
+WHERE p.achievement_points > 0
+  AND {$this->publicEligibility()}
   AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
   {$favoritesCondition}
-ORDER BY ap.value DESC, p.id ASC
+ORDER BY p.achievement_points DESC, p.id ASC
 LIMIT :limit
 SQL;
 
@@ -212,22 +186,14 @@ FROM deltas mine
 WHERE mine.player_id = :playerId
 SQL,
             'achievement-points' => <<<SQL
-WITH ap AS (
-    SELECT b.player_id, SUM(
-        CASE b.tier WHEN 1 THEN 5 WHEN 2 THEN 10 WHEN 3 THEN 25 WHEN 4 THEN 50 WHEN 5 THEN 100 ELSE 25 END
-    ) AS value
-    FROM badge b
-    GROUP BY b.player_id
-)
-SELECT mine.value,
+SELECT mine.achievement_points AS value,
        1 + (
-           SELECT COUNT(*) FROM ap a
-           JOIN player p ON p.id = a.player_id
+           SELECT COUNT(*) FROM player p
            JOIN membership m ON m.player_id = p.id AND {$this->activeMembership()}
-           WHERE a.value > mine.value AND {$this->publicEligibility()}
+           WHERE p.achievement_points > mine.achievement_points AND {$this->publicEligibility()}
        ) AS rank
-FROM ap mine
-WHERE mine.player_id = :playerId
+FROM player mine
+WHERE mine.id = :playerId AND mine.achievement_points > 0
 SQL,
             default => <<<SQL
 SELECT mine.xp_total AS value,
@@ -352,10 +318,5 @@ SQL;
     private function activeMembership(): string
     {
         return self::ACTIVE_MEMBERSHIP;
-    }
-
-    private function apSum(): string
-    {
-        return self::AP_SUM;
     }
 }

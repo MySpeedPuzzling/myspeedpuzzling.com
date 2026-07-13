@@ -29,6 +29,7 @@ use SpeedPuzzling\Web\Value\XpReason;
  */
 #[Entity]
 #[Index(columns: ['player_id', 'earned_at'])]
+#[Index(columns: ['solving_time_id'])]
 class XpEntry
 {
     public function __construct(

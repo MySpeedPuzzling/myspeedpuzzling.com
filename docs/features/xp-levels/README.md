@@ -30,6 +30,12 @@ XP is never purchasable. Levels gate nothing functional. Level 50 = 3,160 XP
 - `earned_at` carries the SOLVE's timestamp (`COALESCE(finished_at, tracked_at)`) for
   solve-derived entries, the badge's `earned_at` for achievements, clock-now only for
   settlements (which are excluded from weekly deltas via `in_weekly_delta = false`).
+- Leaderboards never aggregate at scale: all-time reads `player.xp_total` (indexed),
+  the AP ladder reads `player.achievement_points` (indexed), and the weekly tab scans
+  only the current ISO-week slice via the partial covering index
+  `custom_xp_entry_weekly_delta (earned_at, player_id, amount) WHERE in_weekly_delta`
+  (mirrored in `tests/bootstrap.php`). `xp_entry.solving_time_id` is indexed for the
+  receipt/delete/edit lookups.
 
 ### Formula (locked §1.2)
 
@@ -60,6 +66,10 @@ any drift (e.g. after puzzle merges or ownership transfers, which are not live-w
 ### Achievements
 
 16 tiered achievement types + admin-granted Early Adopter (DB value `supporter`).
+Achievement Points are denormalized to `player.achievement_points` — BadgeEvaluator
+re-anchors the absolute total on every evaluation (badge writes happen nowhere else),
+so the 15-minute recalc cron self-heals any drift (e.g. manually granted badges); the
+AP ladder and every AP display read the column, never aggregate the badge table.
 Metrics live in `GetPlayerStatsSnapshot` (owner counters batched in one FILTER-aggregate
 query), conditions in `src/BadgeConditions/`. `BadgeEvaluator` persists gap-filled tiers
 and grants each new tier its XP once (`BadgeTier::points()`). First-click reveal:

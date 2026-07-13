@@ -1,0 +1,106 @@
+{% set mode = this.mode %}
+
+{% if mode != 'hidden' %}
+<div class="card shadow-sm mb-3" id="xp-solve-receipt">
+    <div class="card-body py-3 px-3">
+        {% if mode == 'receipt' %}
+            <h3 class="h6 mb-2">
+                <i class="ci-star me-1" aria-hidden="true"></i>
+                {{ 'xp.receipt.title'|trans }}
+            </h3>
+
+            <div class="fs-sm">
+                {% for line in lines %}
+                    <div class="xp-receipt-line">
+                        <span>{{ this.lineLabelKey(line)|trans }}</span>
+                        <span class="xp-receipt-amount">+{{ line.amount }} XP</span>
+                    </div>
+                {% endfor %}
+
+                {% if this.showDifficultyPending %}
+                    <div class="xp-receipt-line xp-receipt-pending">
+                        <span>{{ 'xp.line.difficulty_pending'|trans }}</span>
+                        <span class="xp-receipt-amount">…</span>
+                    </div>
+                {% endif %}
+
+                {% if this.showSpeedPending %}
+                    <div class="xp-receipt-line xp-receipt-pending">
+                        <span>{{ 'xp.line.speed_pending'|trans }}</span>
+                        <span class="xp-receipt-amount">…</span>
+                    </div>
+                {% endif %}
+
+                <div class="xp-receipt-line xp-receipt-total">
+                    <span>{{ 'xp.receipt.total'|trans }}</span>
+                    <span class="xp-receipt-amount">+{{ this.total }} XP</span>
+                </div>
+            </div>
+
+            <div class="mt-2">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="xp-level-chip">{{ 'xp.level_chip'|trans({'%level%': profile.level}) }}</span>
+                    <small class="text-muted">{{ 'xp.progress_label'|trans({'%xp%': profile.xpToNextLevel, '%level%': profile.level + 1}) }}</small>
+                </div>
+                <div class="xp-progressbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ ((profile.progressToNext ?? 1) * 100)|round }}">
+                    <div class="xp-progressbar-fill" style="--xp-progress: {{ profile.progressToNext ?? 1 }}"></div>
+                </div>
+            </div>
+
+            {% if not viewerIsMember and waitingCount > 0 %}
+                <div class="xp-teaser mt-3">
+                    <i class="ci-locked" aria-hidden="true"></i>
+                    <span>{{ 'xp.receipt.waiting_teaser'|trans({'%count%': waitingCount}) }}</span>
+                </div>
+            {% endif %}
+        {% elseif mode == 'max_level' %}
+            <h3 class="h6 mb-2">
+                <span class="xp-level-chip xp-level-chip-max me-1">{{ 'xp.level_chip'|trans({'%level%': profile.level}) }}</span>
+                {{ 'xp.receipt.max_level_title'|trans }}
+            </h3>
+
+            {% if viewerIsMember %}
+                {% if this.nearestAchievements|length > 0 %}
+                    <p class="fs-sm text-muted mb-2">{{ 'xp.receipt.nearest_achievements'|trans }}</p>
+                    {% for candidate in this.nearestAchievements %}
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between fs-sm">
+                                <span>{{ candidate.type.translationKey()|trans }} — {{ candidate.progress.nextTier.translationKey()|trans }}</span>
+                                <span class="text-muted">{{ candidate.progress.percent }}%</span>
+                            </div>
+                            <div class="xp-progressbar" aria-hidden="true">
+                                <div class="xp-progressbar-fill" style="--xp-progress: {{ candidate.progress.percent / 100 }}"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    <a href="{{ path('badges_overview') }}" class="btn btn-sm btn-outline-primary mt-1">
+                        <i class="ci-trophy me-1"></i>
+                        {{ 'badges.browse_all'|trans }}
+                    </a>
+                {% else %}
+                    <p class="fs-sm text-muted mb-0">{{ 'xp.receipt.max_level_all_done'|trans }}</p>
+                {% endif %}
+            {% else %}
+                <div class="xp-teaser">
+                    <i class="ci-locked" aria-hidden="true"></i>
+                    <span>{{ 'xp.receipt.waiting_teaser'|trans({'%count%': waitingCount}) }}</span>
+                </div>
+                <a href="{{ path('membership') }}" class="btn btn-sm btn-primary mt-2">
+                    <i class="ci-heart me-1"></i>
+                    {{ 'badges.unlock_with_membership'|trans }}
+                </a>
+            {% endif %}
+        {% elseif mode == 'relax_repeat' %}
+            <p class="fs-sm text-muted mb-0">
+                <i class="bi bi-cup-hot-fill me-1" aria-hidden="true"></i>
+                {{ 'xp.receipt.relax_repeat'|trans }}
+            </p>
+        {% else %}
+            <p class="fs-sm text-muted mb-0" aria-busy="true">
+                <span class="placeholder-glow"><span class="placeholder col-6"></span></span><br>
+                {{ 'xp.receipt.counting'|trans }}
+            </p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

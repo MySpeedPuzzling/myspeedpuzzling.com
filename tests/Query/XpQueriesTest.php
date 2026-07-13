@@ -52,13 +52,13 @@ final class XpQueriesTest extends KernelTestCase
     {
         $query = self::getContainer()->get(GetXpEntriesForSolve::class);
 
-        $lines = $query->forSolvingTime(PuzzleSolvingTimeFixture::TIME_06);
+        $lines = $query->forPlayerAndSolvingTime(PlayerFixture::PLAYER_REGULAR, PuzzleSolvingTimeFixture::TIME_06);
 
         self::assertCount(1, $lines);
         self::assertSame(XpReason::SolveBase, $lines[0]->reason);
         self::assertSame(5, $lines[0]->amount);
-        self::assertSame(5, $query->totalForSolvingTime(PuzzleSolvingTimeFixture::TIME_06));
-        self::assertSame(0, $query->totalForSolvingTime('00000000-0000-0000-0000-000000000000'));
+        self::assertSame(5, $query->totalForPlayerAndSolvingTime(PlayerFixture::PLAYER_REGULAR, PuzzleSolvingTimeFixture::TIME_06));
+        self::assertSame(0, $query->totalForPlayerAndSolvingTime(PlayerFixture::PLAYER_REGULAR, '00000000-0000-0000-0000-000000000000'));
     }
 
     public function testHistoryPaginates(): void

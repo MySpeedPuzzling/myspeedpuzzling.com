@@ -27,13 +27,13 @@ readonly class GetBadges
     public function allEarnedTiers(string $playerId): array
     {
         $sql = <<<SQL
-SELECT type, tier, earned_at
+SELECT id, type, tier, earned_at, revealed_at
 FROM badge
 WHERE player_id = :playerId
 ORDER BY type ASC, tier ASC NULLS LAST
 SQL;
 
-        /** @var list<array{type: string, tier: null|int|string, earned_at: string}> $rows */
+        /** @var list<array{id: string, type: string, tier: null|int|string, earned_at: string, revealed_at: null|string}> $rows */
         $rows = $this->database
             ->executeQuery($sql, ['playerId' => $playerId])
             ->fetchAllAssociative();
@@ -47,13 +47,13 @@ SQL;
     public function forPlayer(string $playerId): array
     {
         $sql = <<<SQL
-SELECT DISTINCT ON (type) type, tier, earned_at
+SELECT DISTINCT ON (type) id, type, tier, earned_at, revealed_at
 FROM badge
 WHERE player_id = :playerId
 ORDER BY type ASC, tier DESC NULLS LAST
 SQL;
 
-        /** @var list<array{type: string, tier: null|int|string, earned_at: string}> $rows */
+        /** @var list<array{id: string, type: string, tier: null|int|string, earned_at: string, revealed_at: null|string}> $rows */
         $rows = $this->database
             ->executeQuery($sql, ['playerId' => $playerId])
             ->fetchAllAssociative();
@@ -62,7 +62,33 @@ SQL;
     }
 
     /**
-     * @param list<array{type: string, tier: null|int|string, earned_at: string}> $rows
+     * Highest earned tier per type that the owner has not flipped yet — the
+     * membership-activation reveal page shows these in sequence.
+     *
+     * @return list<BadgeResult>
+     */
+    public function unrevealedForPlayer(string $playerId): array
+    {
+        $sql = <<<SQL
+SELECT DISTINCT ON (type) id, type, tier, earned_at, revealed_at
+FROM badge
+WHERE player_id = :playerId
+ORDER BY type ASC, tier DESC NULLS LAST
+SQL;
+
+        /** @var list<array{id: string, type: string, tier: null|int|string, earned_at: string, revealed_at: null|string}> $rows */
+        $rows = $this->database
+            ->executeQuery($sql, ['playerId' => $playerId])
+            ->fetchAllAssociative();
+
+        return array_values(array_filter(
+            $this->hydrate($rows),
+            static fn (BadgeResult $badge): bool => $badge->isRevealed() === false,
+        ));
+    }
+
+    /**
+     * @param list<array{id: string, type: string, tier: null|int|string, earned_at: string, revealed_at: null|string}> $rows
      * @return list<BadgeResult>
      */
     private function hydrate(array $rows): array
@@ -82,6 +108,8 @@ SQL;
                 type: $type,
                 tier: $row['tier'] === null ? null : BadgeTier::from((int) $row['tier']),
                 earnedAt: new DateTimeImmutable($row['earned_at']),
+                id: $row['id'],
+                revealedAt: $row['revealed_at'] === null ? null : new DateTimeImmutable($row['revealed_at']),
             );
         }
 

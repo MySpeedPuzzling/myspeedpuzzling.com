@@ -14,6 +14,8 @@
         </div>
     </div>
 
+    <twig:XpRecapCelebration solvingTimeId="{{ tracked_puzzle.timeId }}" />
+
     <div class="my-4">
         <div class="btn-group btn-group">
             <a rel="nofollow" href="{{ path('puzzle_add') }}" class="btn btn-accent pe-2"><i class="ci-add"></i> {{ 'added_tracking_recap.add_another'|trans }}</a>

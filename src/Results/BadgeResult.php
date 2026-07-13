@@ -14,6 +14,13 @@ readonly final class BadgeResult
         public BadgeType $type,
         public null|BadgeTier $tier,
         public DateTimeImmutable $earnedAt,
+        public null|string $id = null,
+        public null|DateTimeImmutable $revealedAt = null,
     ) {
+    }
+
+    public function isRevealed(): bool
+    {
+        return $this->revealedAt !== null;
     }
 }

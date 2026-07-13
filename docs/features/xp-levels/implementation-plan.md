@@ -15,7 +15,7 @@
 - **STATE line** (update after every completed task):
 
   ```
-  STATE: phase=P4 last_completed=P3.T6 branch=feature/dynamic-badges-system
+  STATE: phase=P5 last_completed=P4.T6 branch=feature/dynamic-badges-system
   ```
 
 - Every task below is a `- [ ]` checkbox with a stable ID (`P2.T3`). Work strictly in order within a
@@ -442,26 +442,35 @@ suppressed entirely while feature flag active, unread-messages digest untouched,
 
 ### P4 — UI phase A: solve loop surfaces (all behind XpFeatureGate)
 
-- [ ] **P4.T1** Post-solve receipt component on recap page (`templates/added_time_recap.html.twig`
+- [x] **P4.T1** Post-solve receipt component on recap page (`templates/added_time_recap.html.twig`
   area): server-rendered lines from `GetXpEntriesForSolve` + progress bar (LevelTable), §1.9 rules
   (Lv50 replacement slot, pending-bonus dim line, opted-out hides). CSS-only animations.
-- [ ] **P4.T2** Lazy Live Component `XpRecapCelebration` (src/Component/): polls once (or defers via
+- [x] **P4.T2** Lazy Live Component `XpRecapCelebration` (src/Component/): polls once (or defers via
   `loading="lazy"` livecomponent idiom) for async results; level-up interstitial + confetti (small
   vendored lib or CSS, ≤3KB, reduced-motion). Queueing rule: level-up before achievement toast.
   **Level 50 variant:** golden full celebration for EVERYONE (never paywalled), then a fork screen —
   member: enter the AP ladder; free: the same AP ladder READ-ONLY (real names, real totals) +
   membership CTA. No free-month grant (explicitly decided against).
-- [ ] **P4.T3** Profile: avatar XP ring + level chip + progress (in `PlayerHeader` region of
+- [x] **P4.T3** Profile: avatar XP ring + level chip + progress (in `PlayerHeader` region of
   `templates/player_profile.html.twig`), achievements strip states per §1.7 incl. free-user locked
   strip + "N waiting" teaser; `revealed_at` column (generated migration) + reveal endpoint
   (single-action controller, POST) + first-click confetti flip; membership-activation reveal page
   reusing it. Respect private/opted-out branches (mirror existing `rankingOptedOut` template pattern).
   **Milestone ring styling is CSS-ONLY** (locked): gradient ring variants intensifying at levels
   10/20/30/40, golden at 50 — brand palette, zero image assets.
-- [ ] **P4.T4** Header avatar ring (shared Twig component with P4.T3; no numbers).
-- [ ] **P4.T5** Puzzle detail XP estimate line (+ personalized repeat note, unrated pending note).
-- [ ] **P4.T6** Phase gate: quality gates + leak-inventory rows ticked for every touched surface
+- [x] **P4.T4** Header avatar ring (shared Twig component with P4.T3; no numbers).
+- [x] **P4.T5** Puzzle detail XP estimate line (+ personalized repeat note, unrated pending note).
+- [x] **P4.T6** Phase gate: quality gates + leak-inventory rows ticked for every touched surface
   (verify as non-admin in dev: NOTHING visible). STATE.
+  IMPLEMENTATION NOTES (P4): shared `XpRing` component (ambient header variant + full profile
+  variant, CSS-only milestone rings via conic-gradient); receipt is `XpSolveReceipt` embedded in
+  the `XpRecapCelebration` LiveComponent whose single `data-poll` bridges the async award (the
+  re-render also refreshes the receipt, so the sync-render race resolves itself). Level-up
+  detection is ledger-derived (player total minus this solve's total), race-free. The Lv50 fork
+  links to route `xp_leaderboard` which P5.T3 creates — DORMANT until then (renders only for
+  level-50 players; none exist in fixtures). Reveal = RevealBadge message (sync) flipping the
+  clicked tier + lower tiers of the same type; membership page shows an XpRevealInvite. Non-admin
+  invisibility proven by `XpSurfacesTest` (11 assertions incl. header, estimate, reveal endpoints).
 
 ### P5 — UI phase B: pages
 

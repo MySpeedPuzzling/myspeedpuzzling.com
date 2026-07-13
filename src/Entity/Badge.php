@@ -38,7 +38,21 @@ class Badge
         #[Column(type: Types::SMALLINT, nullable: true)]
         #[Immutable]
         public null|int $tier = null,
+        /**
+         * First-click reveal moment: medallions start "unrevealed" for their owner and
+         * flip with confetti on first click (or on the membership-activation reveal page).
+         */
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $revealedAt = null,
     ) {
+    }
+
+    public function reveal(DateTimeImmutable $now): void
+    {
+        if ($this->revealedAt === null) {
+            $this->revealedAt = $now;
+        }
     }
 
     public static function earn(

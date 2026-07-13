@@ -1,0 +1,59 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'badges.reveals.meta_title'|trans }}{% endblock %}
+
+{% block content %}
+    <h1 class="h2">{{ 'badges.reveals.title'|trans }}</h1>
+
+    {% if badges|length > 0 %}
+        <p class="text-muted">{{ 'badges.reveals.intro'|trans({'%count%': badges|length}) }}</p>
+
+        <div class="d-flex flex-wrap gap-4 mt-4">
+            {% for badge in badges %}
+                {% set tier = badge.tier %}
+                {% set tier_class = tier ? tier.cssClass() : 'badge-tier-supporter' %}
+                {% set label = (badge.type.translationKey())|trans %}
+
+                <div class="badge-earned text-center">
+                    <button
+                        type="button"
+                        class="badge-flip"
+                        data-controller="badge-reveal"
+                        data-badge-reveal-url-value="{{ path('reveal_badge', {badgeId: badge.id}) }}"
+                        data-action="click->badge-reveal#reveal"
+                        aria-label="{{ 'badges.reveal'|trans }}"
+                    >
+                        <span class="badge-flip-inner">
+                            <span class="badge-flip-back badge-medallion" aria-hidden="true">?</span>
+                            <span class="badge-flip-front badge-medallion {{ tier_class }}">
+                                {% if tier %}
+                                    <span class="badge-medallion-tier">{{ tier.romanNumeral() }}</span>
+                                {% else %}
+                                    <i class="ci-heart"></i>
+                                {% endif %}
+                            </span>
+                        </span>
+                    </button>
+
+                    <div class="small mt-1 text-body-secondary" style="max-width: 90px;">
+                        {{ label }}
+                    </div>
+                    {% if tier %}
+                        <div class="small fw-semibold">{{ (tier.translationKey())|trans }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <p class="text-muted fs-sm mt-4">{{ 'badges.reveals.hint'|trans }}</p>
+    {% else %}
+        <div class="xp-teaser mt-3">
+            <i class="ci-medal" aria-hidden="true"></i>
+            <span>{{ 'badges.reveals.all_done'|trans }}</span>
+        </div>
+    {% endif %}
+
+    <a href="{{ path('my_profile') }}" class="btn btn-sm btn-outline-primary mt-4">
+        {{ 'badges.reveals.back_to_profile'|trans }}
+    </a>
+{% endblock %}

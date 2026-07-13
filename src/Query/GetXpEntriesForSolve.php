@@ -17,20 +17,23 @@ readonly class GetXpEntriesForSolve
     }
 
     /**
+     * One participant's receipt for one solve — team members each have their own lines.
+     *
      * @return list<XpEntryLine>
      */
-    public function forSolvingTime(string $solvingTimeId): array
+    public function forPlayerAndSolvingTime(string $playerId, string $solvingTimeId): array
     {
         $sql = <<<SQL
 SELECT reason, amount, earned_at, solving_time_id, badge_id
 FROM xp_entry
 WHERE solving_time_id = :solvingTimeId
+  AND player_id = :playerId
 ORDER BY created_at, id
 SQL;
 
         /** @var list<array{reason: string, amount: int, earned_at: string, solving_time_id: null|string, badge_id: null|string}> $rows */
         $rows = $this->database
-            ->executeQuery($sql, ['solvingTimeId' => $solvingTimeId])
+            ->executeQuery($sql, ['solvingTimeId' => $solvingTimeId, 'playerId' => $playerId])
             ->fetchAllAssociative();
 
         $lines = [];
@@ -49,18 +52,20 @@ SQL;
     }
 
     /**
-     * Net XP the solve is currently worth — shown in the delete-confirmation warning.
+     * Net XP the solve is currently worth to ONE player — shown in the
+     * delete-confirmation warning ("you will lose N XP earned by this solve").
      */
-    public function totalForSolvingTime(string $solvingTimeId): int
+    public function totalForPlayerAndSolvingTime(string $playerId, string $solvingTimeId): int
     {
         $sql = <<<SQL
 SELECT COALESCE(SUM(amount), 0)
 FROM xp_entry
 WHERE solving_time_id = :solvingTimeId
+  AND player_id = :playerId
 SQL;
 
         $value = $this->database
-            ->executeQuery($sql, ['solvingTimeId' => $solvingTimeId])
+            ->executeQuery($sql, ['solvingTimeId' => $solvingTimeId, 'playerId' => $playerId])
             ->fetchOne();
 
         return is_numeric($value) ? (int) $value : 0;

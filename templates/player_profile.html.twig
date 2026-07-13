@@ -49,6 +49,20 @@
 
     {{ include('review_results/_banner.html.twig', {review_counts: review_counts}) }}
 
+    {% if not is_masked_profile %}
+        <div class="mb-3">
+            <twig:XpRing playerId="{{ player.playerId }}" :showProgress="true">
+                {% if player.avatar is not null %}
+                    <img src="{{ player.avatar|thumbnail('avatar') }}" alt="" width="52" height="52" style="object-fit: cover; width: 52px; height: 52px;">
+                {% else %}
+                    <span class="d-inline-flex align-items-center justify-content-center bg-secondary" style="width: 52px; height: 52px;">
+                        <i class="ci-user fs-4 text-muted" aria-hidden="true"></i>
+                    </span>
+                {% endif %}
+            </twig:XpRing>
+        </div>
+    {% endif %}
+
     {% if getting_started is not null %}
         <div class="mb-3">
             {{ include('onboarding/_getting_started_card.html.twig', {progress: getting_started, folded: false}) }}
@@ -253,9 +267,11 @@
             </div>
         </div>
 
-        {% if player.activeMembership %}
-            <twig:BadgesProfileSection playerId="{{ player.playerId }}" />
-        {% endif %}
+        <twig:BadgesProfileSection
+            playerId="{{ player.playerId }}"
+            :subjectHasMembership="player.activeMembership"
+            :subjectIsPrivate="player.isPrivate"
+        />
 
         {% if affiliate_supporters is not null %}
             <div class="mt-4">

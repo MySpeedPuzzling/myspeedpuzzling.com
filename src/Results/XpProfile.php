@@ -13,6 +13,7 @@ readonly final class XpProfile
         public int $xpTotal,
         public int $level,
         public bool $optedOut,
+        public bool $private = false,
     ) {
     }
 

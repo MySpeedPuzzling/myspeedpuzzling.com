@@ -1,0 +1,11 @@
+{% if unrevealedCount > 0 %}
+    <div class="alert alert-info d-flex align-items-center gap-2 mb-3" id="xp-reveal-invite">
+        <i class="ci-medal fs-4" aria-hidden="true"></i>
+        <div class="flex-grow-1 fs-sm">
+            {{ 'badges.reveals.invite'|trans({'%count%': unrevealedCount}) }}
+        </div>
+        <a href="{{ path('badge_reveals') }}" class="btn btn-sm btn-primary text-nowrap">
+            {{ 'badges.reveals.invite_button'|trans }}
+        </a>
+    </div>
+{% endif %}

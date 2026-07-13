@@ -15,7 +15,7 @@
 - **STATE line** (update after every completed task):
 
   ```
-  STATE: phase=P6 last_completed=P5.T7 branch=feature/dynamic-badges-system
+  STATE: phase=P7 last_completed=P6.T4 branch=feature/dynamic-badges-system
   ```
 
 - Every task below is a `- [ ]` checkbox with a stable ID (`P2.T3`). Work strictly in order within a
@@ -510,17 +510,25 @@ suppressed entirely while feature flag active, unread-messages digest untouched,
 Follow `docs/features/content-digest/README.md` §16 Phase 1 + Phase 2 checklists verbatim, with
 §1.10 deltas. Key tasks (tick the README's boxes too):
 
-- [ ] **P6.T1** README Phase 1 complete (enum default `weekly`, `ContentDigestLog`, message+transport+
+- [x] **P6.T1** README Phase 1 complete (enum default `weekly`, `ContentDigestLog`, message+transport+
   routing incl. dev/test config, handler with staleness/eligibility/failure classification, query,
   console command with stagger, messaging-settings preference UI, unsubscribe controller + signed
   URLs + headers, tests, audit adjustments §12).
-- [ ] **P6.T2** Weekly template + blocks: XP/achievements headline (member/free variants per §1.7),
+- [x] **P6.T2** Weekly template + blocks: XP/achievements headline (member/free variants per §1.7),
   week-in-numbers, streak recap (honor streakOptedOut), favorites roundup, next-achievement progress
   (member), no-activity variant + never-twice-in-a-row eligibility (README §7). Skip daily-only
   blocks entirely. Footer: notification settings link + unsubscribe.
-- [ ] **P6.T3** Digest suppressed while feature flag ON (gate inside dispatch command + handler).
-- [ ] **P6.T4** Phase gate: quality gates; send test digest to Mailpit in dev (both variants + teaser
+- [x] **P6.T3** Digest suppressed while feature flag ON (gate inside dispatch command + handler).
+- [x] **P6.T4** Phase gate: quality gates; send test digest to Mailpit in dev (both variants + teaser
   variant), verify rendering. STATE.
+  IMPLEMENTATION NOTES (P6): the Mailpit dev-send is blocked by the pending dev migrations (digest
+  tables missing locally) — equivalent proof is `WeeklyDigestEmailRenderingTest` rendering all three
+  variants (member/free-teaser/no-activity) through the full Inky+inline-CSS pipeline. Rating-movement
+  block (README block 6) deferred with the daily digest (subset-ready clause). 554 responses retry
+  (indistinguishable from MAIL FROM relay-denied); 550–553 are permanent. Audit cleanup batches by
+  re-dispatching one message per 10k rows (each batch commits its own transaction under the
+  doctrine_transaction middleware). The experience-system opt-out checkbox joined the features form
+  (gate-hidden) — no plan task owned that UI, §1.7 requires reversibility.
 
 ### P7 — Launch tooling & verification
 

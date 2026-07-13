@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerIsNotInFavorites;
 use SpeedPuzzling\Web\Doctrine\SellSwapListSettingsDoctrineType;
 use SpeedPuzzling\Web\Value\CollectionDisplayMode;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
+use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
 use DateTimeImmutable;
@@ -144,6 +145,10 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::BOOLEAN, options: ['default' => true])]
     public bool $newsletterEnabled = true;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, enumType: ContentDigestFrequency::class, options: ['default' => 'weekly'])]
+    public ContentDigestFrequency $contentDigestFrequency = ContentDigestFrequency::Weekly;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::BOOLEAN, options: ['default' => false])]
@@ -284,6 +289,14 @@ class Player
         $this->favoritePlayers = array_values($this->favoritePlayers);
     }
 
+    /**
+     * @return array<string>
+     */
+    public function favoritePlayerIds(): array
+    {
+        return $this->favoritePlayers;
+    }
+
     public function discardFavoritePlayerId(string $playerId): bool
     {
         $key = array_search($playerId, $this->favoritePlayers, true);
@@ -419,6 +432,11 @@ class Player
     public function changeNewsletterEnabled(bool $enabled): void
     {
         $this->newsletterEnabled = $enabled;
+    }
+
+    public function changeContentDigestFrequency(ContentDigestFrequency $frequency): void
+    {
+        $this->contentDigestFrequency = $frequency;
     }
 
     public function changeStreakOptedOut(bool $optedOut): void

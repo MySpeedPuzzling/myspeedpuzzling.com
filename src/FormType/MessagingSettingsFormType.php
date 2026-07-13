@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\MessagingSettingsFormData;
+use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -50,12 +51,29 @@ final class MessagingSettingsFormType extends AbstractType
             'help' => 'edit_profile.newsletter_help',
             'required' => false,
         ]);
+
+        // Hidden while the xp-system flag is active (the digest itself is suppressed too).
+        if ($options['show_content_digest'] === true) {
+            $builder->add('contentDigestFrequency', EnumType::class, [
+                'class' => ContentDigestFrequency::class,
+                'label' => 'edit_profile.content_digest_frequency',
+                'help' => 'edit_profile.content_digest_help',
+                'choice_label' => static fn (ContentDigestFrequency $frequency): string => match ($frequency) {
+                    ContentDigestFrequency::None => 'edit_profile.content_digest_none',
+                    ContentDigestFrequency::Daily => 'edit_profile.content_digest_daily',
+                    ContentDigestFrequency::Weekly => 'edit_profile.content_digest_weekly',
+                },
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
             'data_class' => MessagingSettingsFormData::class,
+            'show_content_digest' => false,
         ]);
+
+        $resolver->setAllowedTypes('show_content_digest', 'bool');
     }
 }

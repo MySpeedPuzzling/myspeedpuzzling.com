@@ -498,24 +498,27 @@ absorbs the newsletter too.
 ## 16. Implementation checklist
 
 **Phase 1 — pipeline (no emails sent yet)**
-- [ ] `ContentDigestFrequency` enum + `Player.contentDigestFrequency` column + generated migration
-- [ ] `ContentDigestLog` entity + repository (persist-only) + generated migration
-- [ ] `SendPlayerContentDigest` message + `digest_emails` transport + routing (base/dev/test config)
-- [ ] `SendPlayerContentDigestHandler` (eligibility re-check, staleness guard, direct transport send,
-      failure classification per §6, log row)
-- [ ] `GetPlayersForContentDigest` query (preferences + period log + no-activity rule)
-- [ ] `SendContentDigestConsoleCommand` with `DelayStamp` stagger
-- [ ] Preference in `MessagingSettingsFormType`/`FormData`/`EditMessagingSettings`(+Handler)/
+- [x] `ContentDigestFrequency` enum + `Player.contentDigestFrequency` column + generated migration
+- [x] `ContentDigestLog` entity + repository (persist-only) + generated migration
+- [x] `SendPlayerContentDigest` message + `digest_emails` transport + routing (base/dev/test config)
+- [x] `SendPlayerContentDigestHandler` (eligibility re-check, staleness guard, direct transport send,
+      failure classification per §6, log row) — note: 554 is treated as TRANSIENT (bubbles to retry)
+      because it cannot be distinguished from MAIL FROM relay-denied at submission time
+- [x] `GetPlayersForContentDigest` query (preferences + period log + no-activity rule + experienceSystemOptedOut exclusion)
+- [x] `SendContentDigestConsoleCommand` with `DelayStamp` stagger (weekly only; refuses while xp-system flag active)
+- [x] Preference in `MessagingSettingsFormType`/`FormData`/`EditMessagingSettings`(+Handler)/
       `PlayerProfile`/`GetPlayerProfile`/`EditProfileController`/edit-profile template + translations
-- [ ] Unsubscribe controller + `ChangeContentDigestFrequency` message + signed URLs +
+      (field hidden while the xp-system flag is active)
+- [x] Unsubscribe controller + `ChangeContentDigestFrequency` message + signed URLs +
       `List-Unsubscribe`/`Precedence` headers
-- [ ] Tests: handler (KernelTestCase, direct invoke), query, unsubscribe controller, form flow
-- [ ] Audit adjustments §12 (skip body, retention, batched delete, indexes)
+- [x] Tests: handler (KernelTestCase, direct invoke), query, unsubscribe controller, form flow (settings visibility)
+- [x] Audit adjustments §12 (skip body+debug for content_digest types, 30-day digest retention, batch-per-message delete, (email_type, sent_at) index)
 
 **Phase 2 — weekly digest**
-- [ ] Weekly template + content-block partials + English translations (other locales before full ramp)
-- [ ] Content queries: windowed week-in-numbers, favorites-week window, `player_rating_snapshot`
-      delta query, week variant of most-solved
+- [x] Weekly template + content-block partials + English translations (other locales before full ramp)
+- [x] Content queries: windowed week-in-numbers, favorites-week window, week variant of most-solved
+      (in `WeeklyDigestDataProvider`); the `player_rating_snapshot` delta block (block 6) is NOT
+      shipped in v1 — "ships with whatever subset is ready" clause applied
 - [ ] FBL + Postmaster registration, deliverability smoke test (Gmail/Seznam/Outlook inbox placement)
 - [ ] Prod: compose service + deploy.sh + weekly cron (after cron-TZ check)
 - [ ] Ramp-up per §14; XP/achievements block joins as headline when XP/levels ships

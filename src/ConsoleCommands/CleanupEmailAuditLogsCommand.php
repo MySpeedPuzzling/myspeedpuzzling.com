@@ -52,7 +52,16 @@ final class CleanupEmailAuditLogsCommand extends Command
         /** @var int $deleted */
         $deleted = $handledStamp->getResult();
 
-        $io->success("Deleted {$deleted} email audit log entries older than {$days} days.");
+        // Bulk digest emails get a much shorter retention (content-digest README §12).
+        $digestDays = min($days, 30);
+        $digestEnvelope = $this->messageBus->dispatch(new CleanupEmailAuditLogs($digestDays, emailTypePrefix: 'content_digest'));
+
+        /** @var HandledStamp $digestStamp */
+        $digestStamp = $digestEnvelope->last(HandledStamp::class);
+        /** @var int $digestDeleted */
+        $digestDeleted = $digestStamp->getResult();
+
+        $io->success("Deleted {$deleted} email audit log entries older than {$days} days (+{$digestDeleted} digest entries older than {$digestDays} days).");
 
         return Command::SUCCESS;
     }

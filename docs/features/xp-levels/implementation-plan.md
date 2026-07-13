@@ -15,7 +15,7 @@
 - **STATE line** (update after every completed task):
 
   ```
-  STATE: phase=P0 last_completed=none branch=feature/xp-levels
+  STATE: phase=P0 last_completed=none branch=feature/dynamic-badges-system
   ```
 
 - Every task below is a `- [ ]` checkbox with a stable ID (`P2.T3`). Work strictly in order within a
@@ -27,8 +27,11 @@
 
 ### Git & environment
 
-- Branch: `feature/xp-levels` off `main`. Commit per task or small task group; message style follows
-  repo history (`Area: change`). Do NOT push or open a PR unless asked.
+- Branch: **continue on `feature/dynamic-badges-system`** (the badges PR #128 branch — this plan extends
+  it into one end-to-end branch). Commit per task or small task group; message style follows repo
+  history (`Area: change`). Do NOT push or open a PR unless asked.
+- **The badges system already on this branch shipped UNFLAGGED** — P0 retrofits the feature gate onto
+  it so the entire branch is silently deployable from the first commit of this plan.
 - All PHP commands run inside docker: `docker compose exec web <cmd>`. JS: `docker compose exec js-watch <cmd>`.
   Port conflicts: see CLAUDE.md overrides (`POSTGRES_PORT=55432 …`).
 - **Never run** `doctrine:migrations:migrate` (ask Jan). **Never hand-write migrations** — generate with
@@ -253,8 +256,10 @@ suppressed entirely while feature flag active, unread-messages digest untouched.
 
 - Flag: single gate service `src/Services/Xp/XpFeatureGate.php` — `isVisibleFor(?PlayerProfile): bool`
   → while flag is ON, true only for admins (`ADMIN_ACCESS` / existing admin check); document in
-  `docs/features/feature_flags.md` (convention). ALL surfaces in §1.7/§1.9 check it. Emails/digests/
-  notifications suppressed while ON. **Exempt (OK to leak): public API + Swagger.**
+  `docs/features/feature_flags.md` (convention). ALL surfaces in §1.7/§1.9 check it — including the
+  badge surfaces ALREADY SHIPPED on this branch (retrofitted in P0.T4). Emails/digests/notifications
+  suppressed while ON; persistence (badges, XP ledger) runs for everyone silently.
+  **Exempt (OK to leak): public API + Swagger.**
 - Launch sequence: merge flagged → deploy → silent backfill on prod → admin verification (+ P7
   distribution check ≈115 max-level) → remove flag (deploy) → run reveal-email command same day.
 
@@ -264,12 +269,19 @@ suppressed entirely while feature flag active, unread-messages digest untouched.
 
 ### P0 — Preflight & scaffolding
 
-- [ ] **P0.T1** Create branch `feature/xp-levels` from up-to-date `main`. Read the required-reading list (§0).
+- [ ] **P0.T1** Check out `feature/dynamic-badges-system`, pull latest. Read the required-reading list (§0).
 - [ ] **P0.T2** Feature gate: `XpFeatureGate` service + entry in `docs/features/feature_flags.md`
   (flag name `xp-system`, gated files list grows as phases land, removal condition = launch day).
 - [ ] **P0.T3** Copy §1.7 + §1.9 surfaces into `docs/features/xp-levels/leak-inventory.md` as a
-  checklist; every UI task below must tick its row there when gated.
-- [ ] **P0.T4** Phase gate: quality-gate commands pass (baseline green). Update STATE.
+  checklist — INCLUDING the badge surfaces already shipped on this branch (BadgesProfileSection
+  component, badges overview/catalog page + route, badge congratulation email path). Every UI task
+  below must tick its row there when gated.
+- [ ] **P0.T4** Retrofit the gate onto the already-shipped badge surfaces: `BadgesProfileSection`
+  renders nothing for non-admins while flagged; badges catalog route/page admin-only while flagged;
+  `RecalculateBadgesForPlayerHandler` → `SendBadgeNotificationEmail` dispatch short-circuited while
+  flagged (badge PERSISTENCE keeps running for everyone — silent accumulation is intended; only
+  visibility + emails are gated). WebTestCase proving non-admin sees nothing + no email dispatched.
+- [ ] **P0.T5** Phase gate: quality-gate commands pass (baseline green). Update STATE.
 
 ### P1 — XP domain core (pure logic first, exhaustively unit-tested)
 

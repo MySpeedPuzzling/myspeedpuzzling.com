@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\SendBadgeNotificationEmail;
 use SpeedPuzzling\Web\MessageHandler\RecalculateBadgesForPlayerHandler;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\FakeBadgeEvaluator;
 use SpeedPuzzling\Web\Tests\TestDouble\MessageBusSpy;
@@ -43,6 +44,33 @@ final class RecalculateBadgesForPlayerHandlerTest extends KernelTestCase
         $handler = new RecalculateBadgesForPlayerHandler(
             badgeEvaluator: new FakeBadgeEvaluator([]),
             commandBus: $busSpy,
+            xpFeatureGate: new XpFeatureGate(adminOnly: false),
+        );
+
+        $handler(new RecalculateBadgesForPlayer(PlayerFixture::PLAYER_REGULAR));
+
+        self::assertCount(0, $busSpy->dispatched);
+    }
+
+    /**
+     * While the xp-system feature flag is active, badge evaluation keeps running
+     * but the congratulation email must never be dispatched.
+     * Delete this test on launch day together with the flag.
+     */
+    public function testEmailDispatchSuppressedWhileFlagged(): void
+    {
+        $player = $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR);
+        $now = new DateTimeImmutable('2026-04-16 12:00:00');
+
+        $badges = [
+            Badge::earn($player, BadgeType::PuzzlesSolved, $now, BadgeTier::Bronze),
+        ];
+
+        $busSpy = new MessageBusSpy();
+        $handler = new RecalculateBadgesForPlayerHandler(
+            badgeEvaluator: new FakeBadgeEvaluator($badges),
+            commandBus: $busSpy,
+            xpFeatureGate: new XpFeatureGate(),
         );
 
         $handler(new RecalculateBadgesForPlayer(PlayerFixture::PLAYER_REGULAR));
@@ -66,6 +94,7 @@ final class RecalculateBadgesForPlayerHandlerTest extends KernelTestCase
         $handler = new RecalculateBadgesForPlayerHandler(
             badgeEvaluator: new FakeBadgeEvaluator($badges),
             commandBus: $busSpy,
+            xpFeatureGate: new XpFeatureGate(adminOnly: false),
         );
 
         $handler(new RecalculateBadgesForPlayer(PlayerFixture::PLAYER_REGULAR));

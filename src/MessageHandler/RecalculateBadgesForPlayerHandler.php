@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Entity\Badge;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\SendBadgeNotificationEmail;
 use SpeedPuzzling\Web\Services\Badges\BadgeEvaluator;
+use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -19,6 +20,7 @@ readonly final class RecalculateBadgesForPlayerHandler
     public function __construct(
         private BadgeEvaluator $badgeEvaluator,
         private MessageBusInterface $commandBus,
+        private XpFeatureGate $xpFeatureGate,
     ) {
     }
 
@@ -27,6 +29,12 @@ readonly final class RecalculateBadgesForPlayerHandler
         $newBadges = $this->badgeEvaluator->recalculateForPlayer($message->playerId);
 
         if ($newBadges === []) {
+            return;
+        }
+
+        // Badge persistence above runs for everyone; only the congratulation email
+        // is suppressed while the xp-system feature flag is active.
+        if ($this->xpFeatureGate->isEmailSendingEnabled() === false) {
             return;
         }
 

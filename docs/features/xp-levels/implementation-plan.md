@@ -15,7 +15,7 @@
 - **STATE line** (update after every completed task):
 
   ```
-  STATE: phase=P0 last_completed=none branch=feature/dynamic-badges-system
+  STATE: phase=P1 last_completed=P0.T5 branch=feature/dynamic-badges-system
   ```
 
 - Every task below is a `- [ ]` checkbox with a stable ID (`P2.T3`). Work strictly in order within a
@@ -306,19 +306,25 @@ suppressed entirely while feature flag active, unread-messages digest untouched,
 
 ### P0 — Preflight & scaffolding
 
-- [ ] **P0.T1** Check out `feature/dynamic-badges-system`, pull latest. Read the required-reading list (§0).
-- [ ] **P0.T2** Feature gate: `XpFeatureGate` service + entry in `docs/features/feature_flags.md`
+- [x] **P0.T1** Check out `feature/dynamic-badges-system`, pull latest. Read the required-reading list (§0).
+- [x] **P0.T2** Feature gate: `XpFeatureGate` service + entry in `docs/features/feature_flags.md`
   (flag name `xp-system`, gated files list grows as phases land, removal condition = launch day).
-- [ ] **P0.T3** Copy §1.7 + §1.9 surfaces into `docs/features/xp-levels/leak-inventory.md` as a
+- [x] **P0.T3** Copy §1.7 + §1.9 surfaces into `docs/features/xp-levels/leak-inventory.md` as a
   checklist — INCLUDING the badge surfaces already shipped on this branch (BadgesProfileSection
   component, badges overview/catalog page + route, badge congratulation email path). Every UI task
   below must tick its row there when gated.
-- [ ] **P0.T4** Retrofit the gate onto the already-shipped badge surfaces: `BadgesProfileSection`
+- [x] **P0.T4** Retrofit the gate onto the already-shipped badge surfaces: `BadgesProfileSection`
   renders nothing for non-admins while flagged; badges catalog route/page admin-only while flagged;
   `RecalculateBadgesForPlayerHandler` → `SendBadgeNotificationEmail` dispatch short-circuited while
   flagged (badge PERSISTENCE keeps running for everyone — silent accumulation is intended; only
   visibility + emails are gated). WebTestCase proving non-admin sees nothing + no email dispatched.
-- [ ] **P0.T5** Phase gate: quality-gate commands pass (baseline green). Update STATE.
+- [x] **P0.T5** Phase gate: quality-gate commands pass (baseline green). Update STATE.
+  NOTE (environment, pre-existing): dev DB has pending branch migration `Version20260416210601`
+  (badge.tier) — `doctrine:schema:validate` sync check fails until Jan runs dev migrations; mappings
+  validate clean (`--skip-sync`), drift == exactly the pending migrations. Panther suite has
+  pre-existing env flakiness (verified identical on baseline); non-panther suite = green
+  (`--testsuite "Project Test Suite"` — note: `--exclude-group panther` does NOT exclude them,
+  Panther classes carry no group attribute; exclusion is testsuite-based).
 
 ### P1 — XP domain core (pure logic first, exhaustively unit-tested)
 

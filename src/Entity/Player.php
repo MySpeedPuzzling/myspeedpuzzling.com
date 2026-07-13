@@ -173,6 +173,18 @@ class Player
     #[Column(type: Types::BOOLEAN, options: ['default' => false])]
     public bool $referralProgramSuspended = false;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::INTEGER, options: ['default' => 0])]
+    public int $xpTotal = 0;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::SMALLINT, options: ['default' => 1])]
+    public int $level = 1;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+    public bool $experienceSystemOptedOut = false;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -427,6 +439,21 @@ class Player
     public function changeCollectionDisplayMode(CollectionDisplayMode $mode): void
     {
         $this->collectionDisplayMode = $mode;
+    }
+
+    public function changeExperienceSystemOptedOut(bool $optedOut): void
+    {
+        $this->experienceSystemOptedOut = $optedOut;
+    }
+
+    /**
+     * Called exclusively by the XP ledger — xpTotal must always equal the sum of the
+     * player's xp_entry amounts, and level must match LevelTable::levelForXp(xpTotal).
+     */
+    public function updateExperience(int $xpTotal, int $level): void
+    {
+        $this->xpTotal = $xpTotal;
+        $this->level = $level;
     }
 
     public function joinReferralProgram(DateTimeImmutable $now): void

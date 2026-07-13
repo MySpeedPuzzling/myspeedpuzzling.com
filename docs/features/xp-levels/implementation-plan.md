@@ -15,7 +15,7 @@
 - **STATE line** (update after every completed task):
 
   ```
-  STATE: phase=P1 last_completed=P0.T5 branch=feature/dynamic-badges-system
+  STATE: phase=P2 last_completed=P1.T9 branch=feature/dynamic-badges-system
   ```
 
 - Every task below is a `- [ ]` checkbox with a stable ID (`P2.T3`). Work strictly in order within a
@@ -328,13 +328,13 @@ suppressed entirely while feature flag active, unread-messages digest untouched,
 
 ### P1 — XP domain core (pure logic first, exhaustively unit-tested)
 
-- [ ] **P1.T1** `src/Value/XpReason.php` string enum: `SolveBase`, `SolveDifficultyBonus`,
+- [x] **P1.T1** `src/Value/XpReason.php` string enum: `SolveBase`, `SolveDifficultyBonus`,
   `SolveUnboxedBonus`, `SolveSpeedBonus`, `SolveWeeklyBoost`, `SolveDailyWarmup`,
   `DifficultySettlement`, `SpeedSettlement`, `Achievement`, `SolveCompensation` — 1:1 with the §1.2
   ledger decomposition.
-- [ ] **P1.T2** `src/Value/LevelTable.php` (pure static): the §1.3 curve; `levelForXp(int): int`,
+- [x] **P1.T2** `src/Value/LevelTable.php` (pure static): the §1.3 curve; `levelForXp(int): int`,
   `xpForLevel(int): int`, `progressToNext(int): ?float`. Unit tests incl. boundaries (0, 4, 5, 3159, 3160, 99999).
-- [ ] **P1.T3** Entity `src/Entity/XpEntry.php`, table `xp_entry`: id (uuid7), player_id (uuid, indexed),
+- [x] **P1.T3** Entity `src/Entity/XpEntry.php`, table `xp_entry`: id (uuid7), player_id (uuid, indexed),
   amount (int, signed), reason (XpReason string), solving_time_id (uuid NULL, **plain column, no FK**),
   badge_id (uuid NULL, plain), in_weekly_delta (bool), earned_at (datetime_immutable), created_at (Clock).
   **`earned_at` semantics (CRITICAL — weekly delta correctness):** solve-derived entries =
@@ -347,26 +347,35 @@ suppressed entirely while feature flag active, unread-messages digest untouched,
   (badge_id) WHERE badge_id IS NOT NULL — both idempotency anchors. Index (player_id, earned_at).
   Repository persist-only. Generated migration (+ custom indexes appended manually, mirrored in
   `tests/bootstrap.php`).
-- [ ] **P1.T4** `Player`: add `xpTotal` (int, default 0) + `level` (smallint, default 1) +
+- [x] **P1.T4** `Player`: add `xpTotal` (int, default 0) + `level` (smallint, default 1) +
   `experienceSystemOptedOut` (bool, default false, `changeExperienceSystemOptedOut()`), generated migration.
-- [ ] **P1.T5** `puzzle_solving_time.pieces_count_snapshot` (int NULL) — generated migration + manual
+- [x] **P1.T5** `puzzle_solving_time.pieces_count_snapshot` (int NULL) — generated migration + manual
   UPDATE backfilling from current `puzzle.pieces_count`. New solves set it at creation
   (Add/Edit handlers). XP always reads the snapshot (fallback to puzzle value when NULL).
-- [ ] **P1.T6** `src/Services/Xp/XpCalculator.php` — PURE service: input = solve context DTO (pieces,
+- [x] **P1.T6** `src/Services/Xp/XpCalculator.php` — PURE service: input = solve context DTO (pieces,
   difficulty tier, type, unboxed, timed?, occurrence index, cutoff side, week/day counters, median
   percentile), output = list of (XpReason, int amount). Encodes ENTIRE §1.2 incl. rounding. Unit tests:
   every multiplier, occurrence ladder, relax, team, backfill-vs-full, caps, PPM guard exclusion,
   boundary rounding. Aim for the exhaustive table-driven style of `tests/BadgeConditions/*`.
-- [ ] **P1.T7** `src/Services/Xp/XpLedger.php` — persistence orchestrator: award entries + update
+- [x] **P1.T7** `src/Services/Xp/XpLedger.php` — persistence orchestrator: award entries + update
   `Player.xpTotal`/`level` in same transaction (messenger middleware handles flush); returns
   level-up info. `src/Query/GetXpProfile.php` (total, level, progress), `GetXpEntriesForSolve.php`,
   `GetXpHistory.php` (paginated, for audit page).
-- [ ] **P1.T8** Recompute: message+handler `RecalculateXpForPlayer` — rebuilds a player's FULL ledger
+- [x] **P1.T8** Recompute: message+handler `RecalculateXpForPlayer` — rebuilds a player's FULL ledger
   deterministically from solve history (canonical ordering §1.2): deletes that player's solve-derived
   entries, recreates, preserves `Achievement` entries, restores totals. Console command
   `myspeedpuzzling:recalculate-xp [--player=UUID] [--all]` (thin, dispatches). Integration test:
   seed solves → recompute twice → identical ledger (idempotency proof).
-- [ ] **P1.T9** Phase gate: quality gates + review §1.2 against `XpCalculator` line by line. STATE.
+- [x] **P1.T9** Phase gate: quality gates + review §1.2 against `XpCalculator` line by line. STATE.
+  IMPLEMENTATION NOTES (P1): `custom_xp_entry_solve_reason` is `(player_id, solving_time_id, reason)` —
+  player_id HAD to join the key because every team participant earns entries for the same solve (§1.2);
+  the plan's original `(solving_time_id, reason)` collides on team solves (proven by integration test).
+  Occurrence position counts ALL solves of (player, puzzle) regardless of mode ("relax repeat" = any
+  prior solve of the puzzle). Suspicious solves earn no XP (consistent with badges/statistics/intelligence).
+  Recompute reproduces difficulty/speed as regular bonus parts from CURRENT tier/median (settlement
+  entries exist only between live-award and the next recompute). `pieces_count_snapshot` is set in the
+  PuzzleSolvingTime constructor (covers Add + Tracking handlers automatically). xp_entry cleanup added
+  to DeletePlayerHandler (plain-column reference, no FK).
 
 ### P2 — Live wiring (award, edit/delete, settlement)
 

@@ -265,6 +265,12 @@ final class XpChainRecomputerTest extends KernelTestCase
 
         self::assertNotEmpty($newBadges);
 
+        // P3 expansion proof: the new conditions evaluate and award — the fixture player
+        // has 1 relax solve (Zen Puzzler Bronze) and 15 first-attempt solves (First Try Bronze).
+        $earnedTypes = array_map(static fn ($badge) => $badge->type->value, $newBadges);
+        self::assertContains('zen_puzzler', $earnedTypes);
+        self::assertContains('first_try', $earnedTypes);
+
         foreach ($newBadges as $badge) {
             $amount = $this->database->fetchOne(
                 "SELECT amount FROM xp_entry WHERE badge_id = :badgeId AND reason = 'achievement'",

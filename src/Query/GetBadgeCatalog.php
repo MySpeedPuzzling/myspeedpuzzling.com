@@ -35,7 +35,7 @@ readonly final class GetBadgeCatalog
         if ($playerId !== null) {
             $snapshot = $this->getPlayerStatsSnapshot->forPlayer($playerId);
 
-            foreach ($this->getBadges->forPlayer($playerId) as $badge) {
+            foreach ($this->getBadges->allEarnedTiers($playerId) as $badge) {
                 if ($badge->tier === null) {
                     continue;
                 }

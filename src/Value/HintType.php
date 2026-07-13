@@ -9,4 +9,5 @@ enum HintType: string
     case MarketplaceDisclaimer = 'marketplace_disclaimer';
     case MarketplaceSettingsChecklist = 'marketplace_settings_checklist';
     case FeatureRequestsIntro = 'feature_requests_intro';
+    case XpLaunchReveal = 'xp_launch_reveal';
 }

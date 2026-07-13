@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'xp.history.meta_title'|trans }}{% endblock %}
+
+{% block content %}
+    <header class="mb-3">
+        <h1 class="h3 mb-1">
+            <i class="ci-time me-1"></i>
+            {{ 'xp.history.title'|trans }}
+        </h1>
+        <p class="text-body-secondary fs-sm mb-2">{{ 'xp.history.subtitle'|trans }}</p>
+
+        {% if not xp_profile.optedOut %}
+            <div class="d-flex align-items-center gap-2">
+                <span class="xp-level-chip {{ xp_profile.isMaxLevel ? 'xp-level-chip-max' }}">{{ 'xp.level_chip'|trans({'%level%': xp_profile.level}) }}</span>
+                <span class="text-muted fs-sm">{{ 'xp.total'|trans({'%xp%': xp_profile.xpTotal}) }}</span>
+            </div>
+        {% endif %}
+    </header>
+
+    {% if entries|length == 0 %}
+        <div class="xp-teaser">
+            <i class="ci-star" aria-hidden="true"></i>
+            <span>{{ 'xp.history.empty'|trans }}</span>
+        </div>
+    {% else %}
+        <div class="custom-table-wrapper">
+            <table class="table table-striped mb-0 fs-sm">
+                <thead>
+                    <tr>
+                        <th scope="col">{{ 'xp.history.when'|trans }}</th>
+                        <th scope="col">{{ 'xp.history.reason'|trans }}</th>
+                        <th scope="col" class="text-end">XP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in entries %}
+                        <tr>
+                            <td class="text-nowrap text-body-secondary">{{ entry.earnedAt|format_date('short') }}</td>
+                            <td>
+                                {{ ('xp.line.' ~ entry.reason.value)|trans }}
+                                {% if entry.puzzleId is not null %}
+                                    — <a href="{{ path('puzzle_detail', {puzzleId: entry.puzzleId}) }}">{{ entry.puzzleName }}</a>
+                                {% elseif entry.badgeType is not null %}
+                                    — {{ entry.badgeType.translationKey()|trans }}{% if entry.badgeTier is not null %} ({{ entry.badgeTier.translationKey()|trans }}){% endif %}
+                                {% elseif entry.solvingTimeId is not null and entry.reason.value != 'solve_compensation' %}
+                                    — <span class="text-body-secondary">{{ 'xp.history.deleted_solve'|trans }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end fw-semibold {{ entry.amount < 0 ? 'text-danger' : '' }}">
+                                {{ entry.amount > 0 ? '+' }}{{ entry.amount }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if last_page > 1 %}
+            <nav class="mt-3" aria-label="{{ 'xp.history.pagination'|trans }}">
+                <ul class="pagination pagination-sm">
+                    {% if page > 1 %}
+                        <li class="page-item"><a class="page-link" href="{{ path('xp_history', {page: page - 1}) }}">‹</a></li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link">{{ page }} / {{ last_page }}</span></li>
+                    {% if page < last_page %}
+                        <li class="page-item"><a class="page-link" href="{{ path('xp_history', {page: page + 1}) }}">›</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% endif %}
+
+    <p class="small text-body-secondary mt-3">
+        <i class="ci-info me-1"></i>
+        {{ 'xp.history.note'|trans }}
+        <a href="{{ path('xp_explainer') }}">{{ 'badges.how_it_works_link'|trans }}</a>
+    </p>
+{% endblock %}

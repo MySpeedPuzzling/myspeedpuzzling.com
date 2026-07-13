@@ -18,7 +18,7 @@ final class BadgesOverviewControllerTest extends WebTestCase
     {
         $browser = self::createClient();
 
-        $browser->request('GET', '/en/badges');
+        $browser->request('GET', '/en/achievements');
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -28,7 +28,7 @@ final class BadgesOverviewControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $browser->request('GET', '/en/badges');
+        $browser->request('GET', '/en/achievements');
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -38,7 +38,7 @@ final class BadgesOverviewControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
-        $browser->request('GET', '/en/badges');
+        $browser->request('GET', '/en/achievements');
 
         self::assertResponseIsSuccessful();
     }
@@ -53,7 +53,7 @@ final class BadgesOverviewControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $content = (string) $browser->getResponse()->getContent();
         self::assertStringNotContainsString('ci-medal', $content);
-        self::assertStringNotContainsString('/en/badges', $content);
+        self::assertStringNotContainsString('/en/achievements', $content);
     }
 
     public function testProfileBadgesSectionVisibleToAdminWhileFlagged(): void
@@ -66,6 +66,6 @@ final class BadgesOverviewControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $content = (string) $browser->getResponse()->getContent();
         self::assertStringContainsString('ci-medal', $content);
-        self::assertStringContainsString('/en/badges', $content);
+        self::assertStringContainsString('/en/achievements', $content);
     }
 }

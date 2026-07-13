@@ -12,10 +12,25 @@
         </h1>
         <p class="text-body-secondary mb-0">{{ 'badges.overview_subtitle'|trans }}</p>
 
+        {% if ap_total is not null %}
+            <p class="mt-2 mb-0">
+                <span class="xp-level-chip" title="{{ 'badges.ap_total_tooltip'|trans }}">
+                    <i class="ci-medal" aria-hidden="true"></i>
+                    {{ 'badges.ap_total'|trans({'%points%': ap_total}) }}
+                </span>
+            </p>
+        {% endif %}
+
         {% if logged_in == false %}
             <p class="mt-2 mb-0 small text-body-secondary">
                 <i class="ci-user me-1"></i>
                 {{ 'badges.login_to_track'|trans }}
+            </p>
+        {% elseif not is_member %}
+            <p class="mt-2 mb-0 small text-body-secondary">
+                <i class="ci-locked me-1"></i>
+                {{ 'badges.free_user_hint'|trans }}
+                <a href="{{ path('membership') }}">{{ 'badges.unlock_with_membership'|trans }}</a>
             </p>
         {% endif %}
     </header>
@@ -27,7 +42,11 @@
                     <div class="card-body">
                         <div class="d-flex align-items-start justify-content-between mb-2">
                             <div>
-                                <h3 class="h5 mb-1">{{ (group.type.translationKey())|trans }}</h3>
+                                <h3 class="h5 mb-1">
+                                    <a href="{{ path('achievement_detail', {type: group.type.value}) }}" class="text-decoration-none">
+                                        {{ (group.type.translationKey())|trans }}
+                                    </a>
+                                </h3>
                                 <p class="text-body-secondary small mb-0">
                                     {{ ('badges.description.' ~ group.type.value)|trans }}
                                 </p>
@@ -41,14 +60,21 @@
 
                         <div class="d-flex flex-wrap gap-2 my-3">
                             {% for entry in group.tiers %}
-                                <div class="text-center {% if entry.earned == false %}badge-locked{% endif %}"
-                                     title="{{ (entry.requirementTranslationKey)|trans }}">
-                                    <div class="badge-medallion badge-medallion-sm {{ entry.tier.cssClass() }}">
-                                        <span class="badge-medallion-tier">{{ entry.tier.romanNumeral() }}</span>
+                                {% set earned_but_locked = entry.earned and logged_in and not is_member %}
+                                <div class="text-center {% if entry.earned == false or earned_but_locked %}badge-locked{% endif %}"
+                                     title="{{ (entry.requirementTranslationKey)|trans }}{% if earned_but_locked %} — {{ 'badges.earned_waiting'|trans }}{% endif %}">
+                                    <div class="position-relative d-inline-block">
+                                        <div class="badge-medallion badge-medallion-sm {{ entry.tier.cssClass() }}">
+                                            <span class="badge-medallion-tier">{{ entry.tier.romanNumeral() }}</span>
+                                        </div>
+                                        {% if earned_but_locked %}
+                                            <span class="badge bg-success badge-new-pill" title="{{ 'badges.earned_waiting'|trans }}">✓ <i class="ci-locked"></i></span>
+                                        {% endif %}
                                     </div>
                                     <div class="small mt-1 {% if entry.earned %}fw-semibold{% endif %}">
                                         {{ (entry.tier.translationKey())|trans }}
                                     </div>
+                                    <div class="small text-body-secondary">+{{ entry.tier.points }} AP</div>
                                 </div>
                             {% endfor %}
                         </div>
@@ -61,7 +87,7 @@
                                     <span class="fw-semibold">{{ progress.percent }}%</span>
                                 </div>
                                 <div class="progress" role="progressbar"
-                                     aria-label="Progress toward next badge tier"
+                                     aria-label="Progress toward next achievement tier"
                                      aria-valuenow="{{ progress.percent }}"
                                      aria-valuemin="0" aria-valuemax="100"
                                      style="height: 10px;">
@@ -79,9 +105,19 @@
                                 {{ 'badges.not_earned_yet'|trans }} — {{ 'badges.keep_going'|trans }}
                             </p>
                         {% endif %}
+
+                        <a href="{{ path('achievement_detail', {type: group.type.value}) }}" class="small">
+                            {{ 'badges.view_holders'|trans }}
+                        </a>
                     </div>
                 </div>
             </div>
         {% endfor %}
     </div>
+
+    <p class="mt-4 small text-body-secondary">
+        <i class="ci-idea me-1"></i>
+        {{ 'badges.how_it_works_hint'|trans }}
+        <a href="{{ path('xp_explainer') }}">{{ 'badges.how_it_works_link'|trans }}</a>
+    </p>
 {% endblock %}

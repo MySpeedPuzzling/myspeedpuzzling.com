@@ -15,7 +15,7 @@
 - **STATE line** (update after every completed task):
 
   ```
-  STATE: phase=P3 last_completed=P2.T7 branch=feature/dynamic-badges-system
+  STATE: phase=P4 last_completed=P3.T6 branch=feature/dynamic-badges-system
   ```
 
 - Every task below is a `- [ ]` checkbox with a stable ID (`P2.T3`). Work strictly in order within a
@@ -415,22 +415,30 @@ suppressed entirely while feature flag active, unread-messages digest untouched,
 
 ### P3 — Achievements expansion `[parallel-ok — ideal subagent batch]`
 
-- [ ] **P3.T1** Extend `PlayerStatsSnapshot` + `GetPlayerStatsSnapshot` with the 11 metrics of §1.6
+- [x] **P3.T1** Extend `PlayerStatsSnapshot` + `GetPlayerStatsSnapshot` with the 11 metrics of §1.6
   (owner vs participant semantics EXACT; quarterly streak = island detection like the existing
   streak calculator but quarter-granular, dates ≥ 2000-01-01 guard for the year-0024 data bug).
   Keep it a fixed number of queries (batch metrics into few SQLs, not 11).
-- [ ] **P3.T2** 11 new `BadgeType` cases (§1.6 values) + 11 condition classes in `src/BadgeConditions/`
+- [x] **P3.T2** 11 new `BadgeType` cases (§1.6 values) + 11 condition classes in `src/BadgeConditions/`
   (10 extend `AbstractAscendingThresholdCondition`; `SpeedDemon1000Condition` mirrors
   `Speed500PiecesCondition` descending logic). Unit tests per class (copy existing test style).
-- [ ] **P3.T3** Early Adopter rename: translations only (`badges.badge.supporter` → "Early Adopter"
+- [x] **P3.T3** Early Adopter rename: translations only (`badges.badge.supporter` → "Early Adopter"
   label text), keep enum value. Grep templates for hardcoded "Supporter".
-- [ ] **P3.T4** Translation keys (EN only now): `badges.badge.*`, `badges.description.*`,
+- [x] **P3.T4** Translation keys (EN only now): `badges.badge.*`, `badges.description.*`,
   `badges.requirement.*_{1..5}` for all 11 + rule-clarifying descriptions for non-obvious ones
   (Steady Hands "no gaps, quarters", Librarian "accepted only", First Try vs Unboxed distinction).
-- [ ] **P3.T5** AP: `BadgeTier::points()` (5/10/25/50/100) + single-tier constant 25;
+- [x] **P3.T5** AP: `BadgeTier::points()` (5/10/25/50/100) + single-tier constant 25;
   `src/Query/GetAchievementPoints.php` (player AP total); wire achievement XP values (P2.T3) to same source.
-- [ ] **P3.T6** Phase gate: quality gates + run `myspeedpuzzling:recalculate-badges --player=<fixture>`
+- [x] **P3.T6** Phase gate: quality gates + run `myspeedpuzzling:recalculate-badges --player=<fixture>`
   in dev proving new conditions evaluate. STATE.
+  IMPLEMENTATION NOTES (P3): dev-DB badge writes are blocked until Jan runs pending migrations
+  (badge.tier missing locally), so the "new conditions evaluate" proof runs in the test env instead:
+  `XpChainRecomputerTest::testBadgeEvaluatorGrantsAchievementXpOncePerTier` asserts zen_puzzler +
+  first_try badges are earned by the fixture player through the full evaluator path (all 16 registered
+  conditions, verified via debug:container --tag=badge.condition). Steady Hands uses CALENDAR year
+  quarters (EXTRACT(YEAR)), not ISOYEAR — ISOYEAR mislabels Jan 1 in ISO week 52/53. Owner counters
+  batched into ONE FILTER-aggregate SQL; 4 new queries total. AP query `GetAchievementPoints` guards
+  SQL CASE values against BadgeTier::points() drift by unit test (full ladder + Early Adopter = 215 AP).
 
 ### P4 — UI phase A: solve loop surfaces (all behind XpFeatureGate)
 

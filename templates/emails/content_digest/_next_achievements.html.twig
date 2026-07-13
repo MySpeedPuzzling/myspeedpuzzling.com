@@ -1,0 +1,17 @@
+{% trans_default_domain 'emails' %}
+{% if data.nextAchievements|length > 0 %}
+    <row>
+        <columns>
+            <h4>{{ 'content_digest.weekly.next_achievements_title'|trans }}</h4>
+            <ul>
+                {% for candidate in data.nextAchievements %}
+                    <li>
+                        <strong>{{ (candidate.type.translationKey())|trans({}, 'messages', locale) }}</strong>
+                        — {{ (candidate.progress.nextTier.translationKey())|trans({}, 'messages', locale) }}
+                        ({{ candidate.progress.percent }}%)
+                    </li>
+                {% endfor %}
+            </ul>
+        </columns>
+    </row>
+{% endif %}

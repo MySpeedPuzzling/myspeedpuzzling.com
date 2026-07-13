@@ -215,8 +215,10 @@ digest, SVG badge frames.
 | Per-achievement congratulation email | ✖ never | — | ✔ (existing badges email) |
 | Holders directory lists | members only listed; counts include everyone ("+N more puzzlers") | | ✔ listed |
 
-- Private profiles & gamification-opted-out players: excluded from ALL public lists/leaderboards.
-- New opt-out: `Player.gamificationOptedOut` (follow `streakOptedOut` pattern) — hides level/receipt/
+- Private profiles & XP-opted-out players: excluded from ALL public lists/leaderboards.
+- New opt-out: `Player.experienceSystemOptedOut` (follow `streakOptedOut` pattern; deliberately
+  NOT a generic "gamification" flag — future gamification features like quests get their own
+  separate opt-outs) — hides level/receipt/
   celebrations/leaderboards/digest for that player; XP accrues silently; reversible.
 - At Level 50 the post-solve XP receipt is NOT shown; its slot shows nearest-achievement progress
   (member) / waiting-achievements teaser (free).
@@ -236,6 +238,20 @@ digest, SVG badge frames.
 7. Fair-play policy page ships at launch (copy from Jan-approved draft).
 
 ### 1.9 UX moments (build to this spec; copy drafts arrive separately)
+
+**Design quality bar (locked, applies to EVERY surface in this plan):**
+- **Mobile-first** — most solves are logged from phones. Design every screen at ~360px width first,
+  then scale up; thumb-reachable primary actions; ≥44px tap targets; no horizontal scroll.
+- **Friendly, modern, clean** — soft pastel MSP brand language (coral #EC726F, sky blue #69b3fe,
+  indigo #4e54c8, navy outlines #2b3445, rounded geometry, puzzle-piece motifs). Bootstrap 5 base,
+  match existing component styling (`assets/styles/`), generous whitespace, no visual clutter.
+- **Clarity over confusion** — every number on screen answers "what is this and why do I have it"
+  within one tap (tooltip/ⓘ or inline label). Copy voice: warm puzzle-friend at the same table —
+  one sentence of feeling + one concrete stat; never guilt, never gamer jargon, never corporate.
+  Zero states always name the one next action and its reward.
+- **Performance discipline** — CSS-only animation where possible, no CLS (skeleton heights per
+  the performance doctrine in `docs/performance-optimizations.md`), `prefers-reduced-motion`
+  respected everywhere, celebrations always skippable (tap anywhere).
 
 - **Post-solve receipt** (recap page, mobile-first): additive lines, never negative ("repeat solve"
   folds into base line label), staggered CSS entrance, progress bar fills after total. Confetti
@@ -271,7 +287,7 @@ default-on (`ContentDigestFrequency` default `weekly`), XP/achievements block is
 (member full detail / free teaser), no-activity variant sends but never twice in a row, footer =
 notification-settings link + signed one-click unsubscribe, digest disableable in messaging settings,
 suppressed entirely while feature flag active, unread-messages digest untouched,
-**`gamificationOptedOut` players excluded from digest eligibility** (add to the eligibility SQL).
+**`experienceSystemOptedOut` players excluded from digest eligibility** (add to the eligibility SQL).
 
 ### 1.11 Feature flag & rollout
 
@@ -326,7 +342,7 @@ suppressed entirely while feature flag active, unread-messages digest untouched,
   Repository persist-only. Generated migration (+ custom indexes appended manually, mirrored in
   `tests/bootstrap.php`).
 - [ ] **P1.T4** `Player`: add `xpTotal` (int, default 0) + `level` (smallint, default 1) +
-  `gamificationOptedOut` (bool, default false, `changeGamificationOptedOut()`), generated migration.
+  `experienceSystemOptedOut` (bool, default false, `changeExperienceSystemOptedOut()`), generated migration.
 - [ ] **P1.T5** `puzzle_solving_time.pieces_count_snapshot` (int NULL) — generated migration + manual
   UPDATE backfilling from current `puzzle.pieces_count`. New solves set it at creation
   (Add/Edit handlers). XP always reads the snapshot (fallback to puzzle value when NULL).

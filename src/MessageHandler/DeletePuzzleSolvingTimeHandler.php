@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
+use SpeedPuzzling\Web\Message\CompensateXpForDeletedSolve;
 use SpeedPuzzling\Web\Message\DeletePuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -39,11 +40,15 @@ readonly final class DeletePuzzleSolvingTimeHandler
         }
 
         $playerId = $currentPlayer->id->toString();
+        $puzzleId = $solvingTime->puzzle->id->toString();
+        $solvingTimeId = $solvingTime->id->toString();
 
         $this->entityManager->remove($solvingTime);
 
         // Deletions can't revoke an earned badge (permanent), but re-eval covers any edge cases
         // (e.g. an admin deleted a suspicious time that was counted toward a lower tier snapshot).
         $this->commandBus->dispatch(new RecalculateBadgesForPlayer($playerId));
+        // The puzzle id travels in the message — it is unrecoverable once the row is gone.
+        $this->commandBus->dispatch(new CompensateXpForDeletedSolve($solvingTimeId, $puzzleId));
     }
 }

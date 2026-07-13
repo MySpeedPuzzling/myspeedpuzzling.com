@@ -34,6 +34,7 @@ use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetRecentIdenticalSolvingTime;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
+use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
@@ -337,6 +338,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         }
 
         $this->commandBus->dispatch(new RecalculateBadgesForPlayer($player->id->toString()));
+        $this->commandBus->dispatch(new AwardXpForSolvingTime($solvingTimeId->toString()));
     }
 
     /**

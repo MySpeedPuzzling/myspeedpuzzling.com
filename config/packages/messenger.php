@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
+use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
 use SpeedPuzzling\Web\Message\SendBadgeNotificationEmail;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
@@ -63,6 +64,7 @@ return App::config([
                 // Object storage calls after an account deletion - never in the way of the deletion
                 DeletePlayerStoredFiles::class => 'async',
                 RecalculateBadgesForPlayer::class => 'async',
+                RecalculateXpForPlayer::class => 'async',
                 SendBadgeNotificationEmail::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',

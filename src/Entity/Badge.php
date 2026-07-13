@@ -9,6 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
+use Doctrine\ORM\Mapping\Index;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
@@ -19,6 +20,7 @@ use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 
 #[Entity]
+#[Index(columns: ['type'])]
 class Badge
 {
     public function __construct(

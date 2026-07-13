@@ -1,0 +1,116 @@
+{% extends 'base.html.twig' %}
+
+{% set type_label = (type.translationKey())|trans %}
+
+{% block title %}{{ 'badges.detail.meta_title'|trans({'%name%': type_label}) }}{% endblock %}
+
+{% block content %}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb fs-sm mb-2">
+            <li class="breadcrumb-item"><a href="{{ path('badges_overview') }}">{{ 'badges.overview_title'|trans }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ type_label }}</li>
+        </ol>
+    </nav>
+
+    <header class="mb-4">
+        <h1 class="h3 mb-1">
+            <i class="ci-medal me-1"></i>
+            {{ type_label }}
+        </h1>
+        <p class="text-body-secondary mb-0">{{ ('badges.description.' ~ type.value)|trans }}</p>
+    </header>
+
+    {% if countries|length > 0 %}
+        <form method="get" class="mb-4" data-turbo="false">
+            <div class="d-flex align-items-center gap-2" style="max-width: 320px;">
+                <label for="holder-country" class="form-label fs-sm mb-0 text-nowrap">{{ 'badges.detail.country_filter'|trans }}</label>
+                <select id="holder-country" name="country" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">{{ 'badges.detail.all_countries'|trans }}</option>
+                    {% for country in countries %}
+                        <option value="{{ country }}" {{ selected_country == country ? 'selected' }}>
+                            {{ country|upper }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    {% endif %}
+
+    {% if newest_earners|length > 0 and selected_country is null %}
+        <section class="mb-4">
+            <h2 class="h6 text-body-secondary">{{ 'badges.detail.newest_earners'|trans }}</h2>
+            <div class="d-flex flex-wrap gap-2">
+                {% for earner in newest_earners %}
+                    <a href="{{ path('player_profile', {playerId: earner.playerId}) }}" class="d-inline-flex align-items-center gap-1 badge bg-secondary text-dark text-decoration-none">
+                        {% if earner.tier is not null %}
+                            <span class="badge-medallion badge-medallion-sm {{ earner.tier.cssClass() }}" style="width: 18px; height: 18px; font-size: .55rem;">{{ earner.tier.romanNumeral() }}</span>
+                        {% endif %}
+                        {{ earner.playerName ?? ('#' ~ earner.playerCode|upper) }}
+                        {% if earner.countryCode is not null %}
+                            <span class="fi fi-{{ earner.countryCode.name }}"></span>
+                        {% endif %}
+                    </a>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
+
+    {% for section in tier_sections %}
+        <section class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="badge-medallion badge-medallion-sm {{ section.tier.cssClass() }}">
+                        <span class="badge-medallion-tier">{{ section.tier.romanNumeral() }}</span>
+                    </div>
+                    <div>
+                        <h2 class="h6 mb-0">{{ (section.tier.translationKey())|trans }} <span class="text-body-secondary fw-normal">· +{{ section.tier.points }} AP</span></h2>
+                        <small class="text-body-secondary">{{ ('badges.requirement.' ~ type.value ~ '_' ~ section.tier.value)|trans }}</small>
+                    </div>
+                    <span class="badge rounded-pill bg-secondary ms-auto" title="{{ 'badges.detail.holders_count_tooltip'|trans }}">
+                        {{ 'badges.detail.holders_count'|trans({'%count%': section.totalCount}) }}
+                    </span>
+                </div>
+
+                {% if section.holders|length > 0 %}
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        {% for holder in section.holders %}
+                            <a href="{{ path('player_profile', {playerId: holder.playerId}) }}"
+                               class="d-inline-flex align-items-center gap-2 border rounded-pill py-1 px-2 text-decoration-none fs-sm {{ loop.first ? 'border-warning' }}">
+                                {% if loop.first %}
+                                    <span title="{{ 'badges.detail.first_to_earn'|trans }}">🏆</span>
+                                {% endif %}
+                                {% if holder.avatar is not null %}
+                                    <img src="{{ holder.avatar|thumbnail('avatar') }}" alt="" width="22" height="22" class="rounded-circle" style="object-fit: cover;">
+                                {% endif %}
+                                <span>{{ holder.playerName ?? ('#' ~ holder.playerCode|upper) }}</span>
+                                {% if holder.countryCode is not null %}
+                                    <span class="fi fi-{{ holder.countryCode.name }}"></span>
+                                {% endif %}
+                                <span class="text-body-secondary">{{ holder.earnedAt|format_date('short') }}</span>
+                            </a>
+                        {% endfor %}
+
+                        {% if section.hiddenCount > 0 %}
+                            <span class="d-inline-flex align-items-center border rounded-pill py-1 px-2 fs-sm text-body-secondary">
+                                {{ 'badges.detail.more_puzzlers'|trans({'%count%': section.hiddenCount}) }}
+                            </span>
+                        {% endif %}
+                    </div>
+                {% elseif section.totalCount > 0 %}
+                    <p class="fs-sm text-body-secondary mb-0 mt-2">
+                        {{ 'badges.detail.only_hidden_holders'|trans({'%count%': section.totalCount}) }}
+                    </p>
+                {% else %}
+                    <p class="fs-sm text-body-secondary mb-0 mt-2">
+                        {{ 'badges.detail.nobody_yet'|trans }}
+                    </p>
+                {% endif %}
+            </div>
+        </section>
+    {% endfor %}
+
+    <p class="small text-body-secondary mt-3">
+        <i class="ci-info me-1"></i>
+        {{ 'badges.detail.listing_note'|trans }}
+    </p>
+{% endblock %}

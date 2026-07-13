@@ -15,6 +15,11 @@
 
                 <div class="card shadow my-4">
                     <div class="card-body">
+                        {# Members with medallions they have not revealed yet - lifetime, free trial and paid alike #}
+                        {% if membership and membership.isActive(now) and logged_user.profile is not null %}
+                            <twig:XpRevealInvite playerId="{{ logged_user.profile.playerId }}" />
+                        {% endif %}
+
                         {% if membership and membership.hasLifetimeGrant %}
                             <p class="text-success fs-5">
                                 <i class="ci-check-circle me-2"></i> {{ 'membership.lifetime_membership_active'|trans }}

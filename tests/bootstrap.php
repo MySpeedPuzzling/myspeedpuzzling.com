@@ -183,6 +183,10 @@ function createCustomIndexes(): void
     $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_badge_unique_tiered ON badge (player_id, type, tier) WHERE tier IS NOT NULL');
     $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_badge_unique_single_tier ON badge (player_id, type) WHERE tier IS NULL');
 
+    // XP ledger idempotency anchors (Version20260713131333) — player_id is part of the key
+    // because every team participant earns entries for the same solve.
+    $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS custom_xp_entry_solve_reason ON xp_entry (player_id, solving_time_id, reason) WHERE solving_time_id IS NOT NULL AND reason != 'solve_compensation'");
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_xp_entry_badge ON xp_entry (badge_id) WHERE badge_id IS NOT NULL');
 }
 
 /**

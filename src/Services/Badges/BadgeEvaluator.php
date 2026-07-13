@@ -60,7 +60,8 @@ readonly class BadgeEvaluator
         }
 
         $snapshot = $this->getPlayerStatsSnapshot->forPlayer($playerId);
-        $alreadyEarned = $this->earnedTierMap($this->getBadges->allEarnedTiers($playerId));
+        $existingBadges = $this->getBadges->allEarnedTiers($playerId);
+        $alreadyEarned = $this->earnedTierMap($existingBadges);
         $now = $this->clock->now();
         $newBadges = [];
 
@@ -98,6 +99,22 @@ readonly class BadgeEvaluator
 
             $this->xpLedger->append($player, $drafts);
         }
+
+        // Re-anchor the denormalized AP total on every evaluation (absolute set, not an
+        // increment) — the 15-minute recalc cron thereby self-heals any drift, e.g. from
+        // manually granted badges. Doctrine only issues an UPDATE when the value changed.
+        $achievementPoints = 0;
+
+        foreach ($existingBadges as $existingBadge) {
+            $achievementPoints += $existingBadge->tier?->points() ?? BadgeTier::SINGLE_TIER_POINTS;
+        }
+
+        foreach ($newBadges as $newBadge) {
+            $newTier = $newBadge->tier === null ? null : BadgeTier::from($newBadge->tier);
+            $achievementPoints += $newTier?->points() ?? BadgeTier::SINGLE_TIER_POINTS;
+        }
+
+        $player->updateAchievementPoints($achievementPoints);
 
         return $newBadges;
     }

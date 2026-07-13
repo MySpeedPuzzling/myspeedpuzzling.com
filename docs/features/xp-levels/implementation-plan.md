@@ -15,7 +15,7 @@
 - **STATE line** (update after every completed task):
 
   ```
-  STATE: phase=P7 last_completed=P6.T4 branch=feature/dynamic-badges-system
+  STATE: phase=P8 last_completed=P7.T6 branch=feature/dynamic-badges-system
   ```
 
 - Every task below is a `- [ ]` checkbox with a stable ID (`P2.T3`). Work strictly in order within a
@@ -532,24 +532,31 @@ Follow `docs/features/content-digest/README.md` §16 Phase 1 + Phase 2 checklist
 
 ### P7 — Launch tooling & verification
 
-- [ ] **P7.T1** Backfill orchestration command `myspeedpuzzling:xp-backfill`: dispatches
+- [x] **P7.T1** Backfill orchestration command `myspeedpuzzling:xp-backfill`: dispatches
   `RecalculateXpForPlayer` for all players with solves (DelayStamp stagger pattern from
   `RecalculateBadgesConsoleCommand`), then achievements recalc (`--backfill` suppressed-email mode
   already exists — verify email suppression composes with P2.T6 flag check).
-- [ ] **P7.T2** Verification command `myspeedpuzzling:xp-distribution`: prints level pyramid + instant-
+- [x] **P7.T2** Verification command `myspeedpuzzling:xp-distribution`: prints level pyramid + instant-
   max count + top-20 totals. Acceptance: dev fixtures sane; prod expectations documented inline —
   the hard calibration invariants are **≈115 players at Level 50 (±10, = 1.6%)** and **median player
   around Level 13–14**; rank-115 total ≈ 3,190+. (Do not invent per-bracket percentage targets —
   they were not calibrated for the final curve; the two invariants above are the acceptance test.)
-- [ ] **P7.T3** One-time reveal email: message+handler+command `myspeedpuzzling:send-xp-reveal-emails`
+- [x] **P7.T3** One-time reveal email: message+handler+command `myspeedpuzzling:send-xp-reveal-emails`
   (staggered, transactional transport, hero asset embedded, per-player level/stats, List-Unsubscribe
   headers, one-per-player idempotency log — mirror ContentDigestLog pattern with type `xp_reveal`).
-- [ ] **P7.T4** Cron documentation block in `docs/features/xp-levels/README.md` (see P8.T1): settle
+- [x] **P7.T4** Cron documentation block in `docs/features/xp-levels/README.md` (see P8.T1): settle
   command cadence, digest weekly cron (from content-digest README §13), recalc integration.
-- [ ] **P7.T5** Launch-day runbook `docs/features/xp-levels/launch-runbook.md`: exact ordered commands
+- [x] **P7.T5** Launch-day runbook `docs/features/xp-levels/launch-runbook.md`: exact ordered commands
   (backfill → verify → flag removal deploy → reveal emails → digest ramp start), rollback notes
   (flag re-add), Jan's manual steps (cron entries, FB posts).
-- [ ] **P7.T6** Phase gate: quality gates. STATE.
+- [x] **P7.T6** Phase gate: quality gates. STATE.
+  IMPLEMENTATION NOTES (P7): the plan's premise that a "--backfill suppressed-email mode already
+  exists" was wrong (the old flag only staggered) — P2 added `isBackfill` to the message, which now
+  suppresses emails AND keeps achievement XP out of the weekly delta; xp-backfill dispatches with it.
+  Reveal-email idempotency reuses content_digest_log (digest_type 'xp_reveal', period 'launch') per
+  the plan's "mirror ContentDigestLog pattern" instruction — no new table. Reveal email embeds the
+  hero PNG inline (cid) and carries List-Unsubscribe headers pointing at the signed digest
+  unsubscribe (closest global lever).
 
 ### P8 — Hardening, i18n, docs, deferred issues
 

@@ -15,7 +15,7 @@
 - **STATE line** (update after every completed task):
 
   ```
-  STATE: phase=P8 last_completed=P7.T6 branch=feature/dynamic-badges-system
+  STATE: phase=DONE last_completed=P8.T7 branch=feature/dynamic-badges-system
   ```
 
 - Every task below is a `- [ ]` checkbox with a stable ID (`P2.T3`). Work strictly in order within a
@@ -560,22 +560,31 @@ Follow `docs/features/content-digest/README.md` §16 Phase 1 + Phase 2 checklist
 
 ### P8 — Hardening, i18n, docs, deferred issues
 
-- [ ] **P8.T1** Write `docs/features/xp-levels/README.md` — the feature's living doc (business rules
+- [x] **P8.T1** Write `docs/features/xp-levels/README.md` — the feature's living doc (business rules
   §1 condensed, architecture actually built, adding-an-achievement how-to, cron, flag). Update
   `CLAUDE.md` Feature Planning section pointer + `docs/features/feature_flags.md` final state.
-- [ ] **P8.T2** Leak functional test (WebTestCase): as anonymous + as logged non-admin non-member,
+- [x] **P8.T2** Leak functional test (WebTestCase): as anonymous + as logged non-admin non-member,
   request every §1.7/§1.9 surface (profile, leaderboard, catalog, holders, explainer, audit page,
   share-card routes, recap) → assert zero XP/level/achievement traces while flag ON. This test is
   DELETED on launch day together with the flag (note in feature_flags.md).
-- [ ] **P8.T3** Anti-abuse verification tests: cap, <3-solver median, PPM guard, relax-repeat-zero.
-- [ ] **P8.T4** Translations: EN complete → run missing-translations workflow to fill cs/de/es/fr/ja
+- [x] **P8.T3** Anti-abuse verification tests: cap, <3-solver median, PPM guard, relax-repeat-zero.
+- [x] **P8.T4** Translations: EN complete → run missing-translations workflow to fill cs/de/es/fr/ja
   for ALL new keys (messages + emails). Mark cs achievement names for Jan's native review in the
   launch checklist.
-- [ ] **P8.T5** Create GitHub issues (gh CLI) for every §1.6-deferred item + SVG frames + timezone
+- [x] **P8.T5** Create GitHub issues (gh CLI) for every §1.6-deferred item + SVG frames + timezone
   handling + daily digest + abuse tooling; link them in launch-checklist §6.
-- [ ] **P8.T6** Final full gate: all five quality commands + `vendor/bin/phpunit` full suite green +
+- [x] **P8.T6** Final full gate: all five quality commands + `vendor/bin/phpunit` full suite green +
   leak test green + STATE line set to `phase=DONE`.
-- [ ] **P8.T7** Update `docs/features/xp-levels/launch-checklist.md`: tick implementation-complete,
+  IMPLEMENTATION NOTES (P8): full suite = 1602 non-Panther tests green (4466 assertions); the
+  complete run's only failures are the PRE-EXISTING Panther browser-env flakiness verified
+  identical on the clean baseline in P0 (element-click-intercepted in tests/Panther/PuzzleLibrary,
+  unrelated to this feature). Leak test = XpLeakTest (28 tests / 184 assertions: every §1.7/§1.9
+  surface as anonymous + logged non-admin non-member). Translations: 379 keys × 5 locales filled
+  via the missing-translations workflow (5 parallel agents), 0 missing everywhere, all 18 yml files
+  lint-clean; stale pre-existing stub values (badges.title/my_title/badge.supporter) manually
+  renamed to the Achievements/Early Adopter terminology in all 5 locales. GitHub issues #148–#158
+  created for every deferred item and linked in launch-checklist §6.
+- [x] **P8.T7** Update `docs/features/xp-levels/launch-checklist.md`: tick implementation-complete,
   leave Jan's items (images, copy approvals, ops) clearly outstanding.
 
 ---

@@ -165,6 +165,7 @@ Feature design documents and implementation plans are in `docs/features/`. Each 
 - **Stripe Payments**: `docs/features/stripe.md` — Stripe integration for premium membership
 - **Opt-Out Features**: `docs/features/opt-out.md` — Streak and ranking opt-out for players
 - **Competitions Management**: `docs/features/competitions-management/` — Community-driven event creation with admin approval, round management, puzzle assignment, table layout planning, and live stopwatch
+- **XP / Levels / Achievements**: `docs/features/xp-levels/` — XP ledger + level curve (1–50), 16 tiered achievements with Achievement Points, weekly content digest, launch runbook. Feature-flagged (`xp-system`, admin-only) until launch; living doc in `docs/features/xp-levels/README.md`
 - **Referral Program**: `docs/features/referral-program.md` — Members earn 10% of referred subscription revenue. No separate entity — `player.referralProgramJoinedAt` + `player.referralProgramSuspended`. Code = player code. Cookie-based + code-input attribution. Payouts per currency, manual admin payout marking
 
 ### Feature Flags

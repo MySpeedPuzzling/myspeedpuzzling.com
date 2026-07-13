@@ -148,3 +148,51 @@ feature_request_declined:
             <p>それでも、このアイデアを応援してくださりありがとうございました！皆様のご意見は、コミュニティが何を大切にしているかを理解する助けになっています。</p>
         admin_comment: |
             <p><strong>チームからのコメント:</strong> %adminComment%</p>
+
+badges_earned:
+    subject: "MySpeedPuzzlingで新しいバッジを獲得しました！"
+    title: "新しいバッジを%count%個獲得しました！"
+    intro: "おめでとうございます！MySpeedPuzzlingで新たなマイルストーンに到達しました。"
+    cta: |
+        <p><a href="%badgesUrl%" class="link-underline">獲得したバッジと、次のバッジへの進捗をすべて見る</a>。</p>
+    outro: "パズルを続けましょう — 解除を待っている実績がまだまだあります！"
+
+content_digest:
+    weekly:
+        subject: "あなたのパズルな一週間 🧩"
+        subject_quiet: "静かなパズル週間でした — お席はちゃんと取ってあります"
+        greeting: "%name%さん、こんにちは。あなたの一週間のパズル活動をお届けします！"
+        greeting_anonymous: "パズラーさん、こんにちは。あなたの一週間のパズル活動をお届けします！"
+        xp_title: "今週のXP"
+        xp_gained: "+%xp% XP獲得"
+        levels_gained: "{1}1レベルアップして、現在レベル%level%です！|]1,Inf[%count%レベルアップして、現在レベル%level%です！"
+        achievements_intro: "{1}新しい実績を1個獲得しました：|]1,Inf[新しい実績を%count%個獲得しました："
+        achievements_teaser: "{1}新しい実績1個があなたを待っています — メンバーになってお披露目しましょう！|]1,Inf[新しい実績%count%個があなたを待っています — メンバーになってお披露目しましょう！"
+        numbers_title: "数字で見る今週"
+        numbers_line: "{1}完成1回|]1,Inf[完成%solves%回 — %pieces%ピースをはめました。"
+        numbers_minutes: "純粋なパズル時間はおよそ%minutes%分。"
+        numbers_previous: "先週：完成%solves%回、%pieces%ピース。"
+        streak_line: "現在%days%日連続でパズル中 — 見事な安定感です！"
+        no_activity_line_1: "今週は完成記録が見当たりませんでした — もちろん、それでまったく問題ありません。そういう週もあります。"
+        no_activity_line_2: "気が向いたときが、パズルどきです。次のピースが待っています。🧩"
+        favorites_title: "お気に入りパズラーの活躍"
+        favorites_line: "{1}%name%さんが完成1回を記録|]1,Inf[%name%さんが完成%count%回を記録"
+        next_achievements_title: "あと少しで手が届きます"
+        community_title: "コミュニティの話題"
+        most_solved_line: "今週最も解かれたパズル：%puzzle%（%solvers%人のパズラー）。"
+        footer_settings: "このダイジェストは毎週お届けしています。<a href=\"%settingsUrl%\">通知設定</a>でいつでも調整できます。"
+        footer_unsubscribe: "ワンクリックで止まります：<a href=\"%unsubscribeUrl%\">ダイジェストの配信を停止する</a>。"
+
+xp_reveal:
+    subject: "あなたのパズルの歩みが、まるごとXPになりました ✨"
+    greeting: "%name%さん、こんにちは。素敵なことが起こりました！"
+    greeting_anonymous: "パズラーさん、こんにちは。素敵なことが起こりました！"
+    intro: "MySpeedPuzzlingでは、XPとレベルであなたの活動をたたえるようになりました — これまでに記録したすべてのパズルが、もう反映されています。設定は不要、裏もありません。あなたのこれまでの歩みの価値はこちらです。"
+    level_line: "レベル%level%"
+    xp_line: "これまでのパズル履歴すべてで%xp% XPを獲得"
+    achievements_member: "{1}さらに、実績1個がすでにプロフィールに飾られています！|]1,Inf[さらに、実績%count%個がすでにプロフィールに飾られています！"
+    achievements_teaser: "{1}そして、実績1個がひっそりとあなたを待っています。|]1,Inf[そして、実績%count%個がひっそりとあなたを待っています。"
+    cta: |
+        <p style="text-align: center;"><a href="%revealUrl%" class="link-underline"><strong>お披露目の瞬間を見る</strong></a></p>
+    outro: "レベルで何かが制限されることはなく、XPをお金で買うこともできません — これはただ、あなたのパズルの物語をたたえるものです。それでは、パズルテーブルでお会いしましょう！🧩"
+    explainer: "詳しく知りたいですか？<a href=\"%explainerUrl%\">XPとレベルの仕組み</a>をご覧ください。"

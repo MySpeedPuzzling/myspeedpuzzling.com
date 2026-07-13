@@ -6,13 +6,13 @@ This file documents all active feature flags in the codebase — where they are,
 
 - **Feature:** XP / Levels / Achievements gamification bundle (`docs/features/xp-levels/`)
 - **Flag:** `SpeedPuzzling\Web\Services\Xp\XpFeatureGate` — `isVisibleFor(?PlayerProfile)` restricts visibility to admins; `isEmailSendingEnabled()` suppresses ALL feature emails (achievement congratulations, weekly digest, reveal emails) for everyone while active
-- **Gated files** (grows as phases land — authoritative checklist in `docs/features/xp-levels/leak-inventory.md`):
-  - `src/Component/BadgesProfileSection.php` — profile badges section renders nothing for non-admins
-  - `src/Controller/BadgesOverviewController.php` — badges catalog page 404s for non-admins
-  - `src/MessageHandler/RecalculateBadgesForPlayerHandler.php` — badge congratulation email dispatch short-circuited
+- **Gated files** (authoritative checklist in `docs/features/xp-levels/leak-inventory.md`):
+  - Components: `BadgesProfileSection`, `XpRing`, `XpSolveReceipt`, `XpRecapCelebration`, `XpPuzzleEstimate`, `XpRevealInvite`
+  - Controllers: `BadgesOverviewController`, `AchievementDetailController`, `XpLeaderboardController`, `XpHistoryController`, `XpExplainerController`, `FairPlayXpController`, `XpLaunchRevealController`, `XpShareCardController`, `RevealBadgeController`, `BadgeRevealsController`, `EditTimeController` (delete-dialog XP warning), `EditProfileController` (digest + opt-out form fields)
+  - Email suppression: `RecalculateBadgesForPlayerHandler` (badge congratulations), `SendContentDigestConsoleCommand` + `SendPlayerContentDigestHandler` (weekly digest), `SendXpRevealEmailsConsoleCommand` + `SendXpRevealEmailHandler` (reveal email)
 - **NOT gated (intentional):** badge evaluation/persistence and XP ledger accrual keep running for everyone — silent accumulation before launch
 - **Exempt by decision (OK to leak):** public API responses + Swagger docs
-- **Remove when:** XP launch day — flip/remove the gate + call sites, delete the leak WebTestCase (P8.T2 of the implementation plan), then run the reveal-email command
+- **Remove when:** XP launch day (`docs/features/xp-levels/launch-runbook.md`) — flip/remove the gate + call sites, DELETE the flag tests (`tests/Controller/XpLeakTest.php`, `XpPagesTest.php`, `XpSurfacesTest.php`, `DigestSettingsVisibilityTest.php`, flag cases in `BadgesOverviewControllerTest` + `RecalculateBadgesForPlayerHandlerTest`), then run the reveal-email command
 
 ## Competition Table Layout (admin-only)
 

@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
 use SpeedPuzzling\Web\Message\SendBadgeNotificationEmail;
 use SpeedPuzzling\Web\Message\SendPlayerContentDigest;
+use SpeedPuzzling\Web\Message\SendXpRevealEmail;
 use SpeedPuzzling\Web\Message\SettleXpBonuses;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 
@@ -81,6 +82,7 @@ return App::config([
                 SettleXpBonuses::class => 'async',
                 SendPlayerContentDigest::class => 'digest_emails',
                 SendBadgeNotificationEmail::class => 'async',
+                SendXpRevealEmail::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleAddedToCollection' => 'sync',

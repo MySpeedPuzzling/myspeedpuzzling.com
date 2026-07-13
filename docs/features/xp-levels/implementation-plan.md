@@ -80,6 +80,9 @@
 | **Achievement Points (AP)** (new) | Completion (sum of earned achievement-tier values) | Members-only display | Never decreases (cascade only on solve deletion affecting tiers — tiers are permanent per badges.md, so AP never decreases) |
 | MSP Rating / MSP Points (existing) | Skill / speed | untouched | **No changes, stay fully separate** |
 
+Locked principles: **XP boosts/multipliers are NEVER purchasable** — no paid XP of any kind, ever.
+Levels gate nothing functional (no level-gated features); rewards are visual identity only.
+
 Terminology (locked): the system is **"Achievements"**; "badge" = only the graphic medallion.
 Existing admin-granted **Supporter → display-renamed "Early Adopter"** (keep DB enum value `supporter`).
 
@@ -116,9 +119,23 @@ settled immediately, frozen forever. NO speed/weekly/daily bonuses, NO pending s
 for historical solves.
 ```
 
-Rounding: each XP component is its own ledger entry, rounded half-up to int at persist; `core`
-components merge into ONE `solve_base` entry (the receipt's "base" line is core; bonus lines separate).
-Minimum: a solve that yields core > 0 always persists ≥ 1 XP.
+**Ledger decomposition (one entry per receipt line — base and extras are SEPARATE, locked UX
+requirement).** Mathematically identical to the formula above, decomposed as:
+
+```
+base_part       = base × team × occurrence                    → SolveBase entry
+difficulty_part = base_part × (difficulty − 1)                → SolveDifficultyBonus entry (tier ≥ 3 only)
+unboxed_part    = (base_part + difficulty_part) × 0.20        → SolveUnboxedBonus entry (unboxed only)
+core            = base_part + difficulty_part + unboxed_part  (not stored — derived)
+speed_part      = core × {0.05|0.10|0.15}                     → SolveSpeedBonus entry
+weekly_part     = core × 0.50                                 → SolveWeeklyBoost entry (first 5/week)
+warmup          = flat 2                                      → SolveDailyWarmup entry (first of day)
+```
+
+Each part rounded half-up to int independently at persist; zero-valued parts create NO entry;
+`base_part` min 1 when core > 0. BACKFILL solves persist only the first three entry kinds.
+Receipt lines render 1:1 from ledger entries (repeat/relax discount folds into the base line's
+LABEL, never a negative line).
 
 ### 1.3 Level curve v4 (locked — Level 50 = 3,160 XP total)
 
@@ -211,8 +228,9 @@ digest, SVG badge frames.
 3. `pieces_count` snapshotted onto `puzzle_solving_time` at log time (new column; backfill from
    current puzzle values in the same generated migration).
 4. Relax repeats earn 0.
-5. Plausibility guard: pieces-per-minute above threshold (constant, e.g. > 15 PPM for ≥500pc timed
-   solo) → no speed bonus + `warning` log (Sentry visible), zero user-facing accusation.
+5. Plausibility guard: pieces-per-minute above threshold (constant `MAX_PLAUSIBLE_PPM = 30` for
+   ≥500pc timed solo — comfortably ABOVE world-record pace ≈17–20 PPM, so no legitimate solve is
+   ever affected) → no speed bonus + `warning` log (Sentry visible), zero user-facing accusation.
 6. No pending window for new catalog puzzles (full trust, decided); junk cleanup = solve deletion
    cascade already removes XP.
 7. Fair-play policy page ships at launch (copy from Jan-approved draft).
@@ -222,7 +240,9 @@ digest, SVG badge frames.
 - **Post-solve receipt** (recap page, mobile-first): additive lines, never negative ("repeat solve"
   folds into base line label), staggered CSS entrance, progress bar fills after total. Confetti
   scarcity: normal solve none · level-up full-screen (brand colors) · Diamond-tier achievement
-  interstitial · queue, never two at once. `prefers-reduced-motion` honored.
+  interstitial · queue, never two at once. `prefers-reduced-motion` honored. Free users additionally
+  get one quiet teaser line when the solve progressed a hidden achievement: "This solve counted
+  toward N waiting achievements 🔒".
 - **Lazy achievement/level check**: lazy Live Component on recap page polls once for async-granted
   achievements/level-ups (bridges sync render ↔ async messenger evaluation), pops celebration.
 - **First-click badge reveal**: earned badge medallions start "unrevealed"; first click flips with
@@ -250,7 +270,8 @@ Implement per `docs/features/content-digest/README.md` **Phases 1–2 only**, wi
 default-on (`ContentDigestFrequency` default `weekly`), XP/achievements block is the headline
 (member full detail / free teaser), no-activity variant sends but never twice in a row, footer =
 notification-settings link + signed one-click unsubscribe, digest disableable in messaging settings,
-suppressed entirely while feature flag active, unread-messages digest untouched.
+suppressed entirely while feature flag active, unread-messages digest untouched,
+**`gamificationOptedOut` players excluded from digest eligibility** (add to the eligibility SQL).
 
 ### 1.11 Feature flag & rollout
 
@@ -285,17 +306,25 @@ suppressed entirely while feature flag active, unread-messages digest untouched.
 
 ### P1 — XP domain core (pure logic first, exhaustively unit-tested)
 
-- [ ] **P1.T1** `src/Value/XpReason.php` string enum: `SolveBase`, `SolveSpeedBonus`, `SolveWeeklyBoost`,
-  `SolveDailyWarmup`, `DifficultySettlement`, `SpeedSettlement`, `Achievement`, `SolveCompensation`.
+- [ ] **P1.T1** `src/Value/XpReason.php` string enum: `SolveBase`, `SolveDifficultyBonus`,
+  `SolveUnboxedBonus`, `SolveSpeedBonus`, `SolveWeeklyBoost`, `SolveDailyWarmup`,
+  `DifficultySettlement`, `SpeedSettlement`, `Achievement`, `SolveCompensation` — 1:1 with the §1.2
+  ledger decomposition.
 - [ ] **P1.T2** `src/Value/LevelTable.php` (pure static): the §1.3 curve; `levelForXp(int): int`,
   `xpForLevel(int): int`, `progressToNext(int): ?float`. Unit tests incl. boundaries (0, 4, 5, 3159, 3160, 99999).
 - [ ] **P1.T3** Entity `src/Entity/XpEntry.php`, table `xp_entry`: id (uuid7), player_id (uuid, indexed),
   amount (int, signed), reason (XpReason string), solving_time_id (uuid NULL, **plain column, no FK**),
-  badge_id (uuid NULL, plain), in_weekly_delta (bool), earned_at (datetime_immutable, Clock), created_at.
-  Unique partial index `custom_xp_entry_solve_reason` ON (solving_time_id, reason) WHERE solving_time_id
-  IS NOT NULL AND reason != 'solve_compensation' — idempotency anchor. Index (player_id, earned_at).
-  Repository persist-only. Generated migration (+ custom index appended manually, mirrored in
-  `tests/bootstrap.php` if expression-based).
+  badge_id (uuid NULL, plain), in_weekly_delta (bool), earned_at (datetime_immutable), created_at (Clock).
+  **`earned_at` semantics (CRITICAL — weekly delta correctness):** solve-derived entries =
+  `COALESCE(solve.finished_at, solve.tracked_at)`; achievement entries = `badge.earned_at`;
+  settlement entries = settlement run time (they're `in_weekly_delta = false` anyway). NEVER
+  clock-now for solve-derived entries — backfill/recompute would otherwise dump 450k historical
+  entries into launch week's delta leaderboard.
+  Unique partial indexes: `custom_xp_entry_solve_reason` ON (solving_time_id, reason) WHERE
+  solving_time_id IS NOT NULL AND reason != 'solve_compensation'; `custom_xp_entry_badge` ON
+  (badge_id) WHERE badge_id IS NOT NULL — both idempotency anchors. Index (player_id, earned_at).
+  Repository persist-only. Generated migration (+ custom indexes appended manually, mirrored in
+  `tests/bootstrap.php`).
 - [ ] **P1.T4** `Player`: add `xpTotal` (int, default 0) + `level` (smallint, default 1) +
   `gamificationOptedOut` (bool, default false, `changeGamificationOptedOut()`), generated migration.
 - [ ] **P1.T5** `puzzle_solving_time.pieces_count_snapshot` (int NULL) — generated migration + manual
@@ -335,8 +364,12 @@ suppressed entirely while feature flag active, unread-messages digest untouched.
 - [ ] **P2.T5** Weekly boost / daily warm-up counters: computed inside `AwardXpForSolvingTime` from
   ledger (count this ISO-week/day `SolveBase` entries for player, UTC). Deterministic under recompute
   (recompute replays canonical order). Tests: 6 solves in a week → 5 boosted; midnight boundaries.
-- [ ] **P2.T6** Suppression while flagged: achievement congratulation email dispatch (existing
-  `SendBadgeNotificationEmail` path) short-circuits when `XpFeatureGate` flag ON. Test proves no email.
+- [ ] **P2.T6** Email rules on the existing `SendBadgeNotificationEmail` path: (a) short-circuit while
+  `XpFeatureGate` flag ON (done in P0.T4 — verify it composes); (b) **post-launch rule: send ONLY to
+  players with active membership** (free users never receive per-achievement emails — they can't see
+  the badges; they get the digest teaser instead, §1.7). Tests prove both.
+  **Email inventory rule (locked): the weekly digest + the members-only achievement email are the
+  ONLY recurring emails this system sends. NO level-up emails, no per-XP emails — do not invent any.**
 - [ ] **P2.T7** Phase gate: quality gates; fixture doc `.claude/fixtures.md` updated if fixtures grew. STATE.
 
 ### P3 — Achievements expansion `[parallel-ok — ideal subagent batch]`
@@ -366,11 +399,16 @@ suppressed entirely while feature flag active, unread-messages digest untouched.
 - [ ] **P4.T2** Lazy Live Component `XpRecapCelebration` (src/Component/): polls once (or defers via
   `loading="lazy"` livecomponent idiom) for async results; level-up interstitial + confetti (small
   vendored lib or CSS, ≤3KB, reduced-motion). Queueing rule: level-up before achievement toast.
+  **Level 50 variant:** golden full celebration for EVERYONE (never paywalled), then a fork screen —
+  member: enter the AP ladder; free: the same AP ladder READ-ONLY (real names, real totals) +
+  membership CTA. No free-month grant (explicitly decided against).
 - [ ] **P4.T3** Profile: avatar XP ring + level chip + progress (in `PlayerHeader` region of
   `templates/player_profile.html.twig`), achievements strip states per §1.7 incl. free-user locked
   strip + "N waiting" teaser; `revealed_at` column (generated migration) + reveal endpoint
   (single-action controller, POST) + first-click confetti flip; membership-activation reveal page
   reusing it. Respect private/opted-out branches (mirror existing `rankingOptedOut` template pattern).
+  **Milestone ring styling is CSS-ONLY** (locked): gradient ring variants intensifying at levels
+  10/20/30/40, golden at 50 — brand palette, zero image assets.
 - [ ] **P4.T4** Header avatar ring (shared Twig component with P4.T3; no numbers).
 - [ ] **P4.T5** Puzzle detail XP estimate line (+ personalized repeat note, unrated pending note).
 - [ ] **P4.T6** Phase gate: quality gates + leak-inventory rows ticked for every touched surface
@@ -385,10 +423,14 @@ suppressed entirely while feature flag active, unread-messages digest untouched.
   newest earners, member-only lists + full counts ("+N more puzzlers"), private/opted-out excluded.
   Query with proper indexes (check EXPLAIN on badge table).
 - [ ] **P5.T3** XP leaderboard page per §1.9 (weekly default from ledger `in_weekly_delta`, all-time
-  from `player.xp_total`, pinned self-row, filters, Lv50→AP display).
+  from `player.xp_total`, pinned self-row, filters, Lv50→AP display) + an **Achievement Points tab**
+  (members ranked by AP total; viewable by all logged-in users — this is the "read-only AP ladder"
+  free Lv50 players are pointed to).
 - [ ] **P5.T4** XP audit page `/my/xp-history` (paginated ledger with reasons + solve links).
-- [ ] **P5.T5** Explainer + fair-play pages (static controllers+templates; EN copy placeholder markers
-  `<!-- COPY:pending-jan-approval -->` where Jan's approval pending — structure per §1.9).
+- [ ] **P5.T5** Explainer + fair-play pages (static controllers+templates). DRAFT real EN copy from
+  §1 of this plan (three-currency table, formula with worked examples, level table, FAQ; fair-play:
+  trust principles + what's automatically unrewarded — never publish exact guard thresholds), and
+  mark both templates `<!-- COPY:pending-jan-approval -->` at top for Jan's review pass.
 - [ ] **P5.T6** Launch reveal page (one-time: `revealed_launch_at` on Player or reuse DismissedHint
   pattern — pick DismissedHint-style row, no Player column) + level share-card route in
   `ResultImageController` style using the 800×800 background asset + launch/level-up card variants.
@@ -418,8 +460,10 @@ Follow `docs/features/content-digest/README.md` §16 Phase 1 + Phase 2 checklist
   `RecalculateBadgesConsoleCommand`), then achievements recalc (`--backfill` suppressed-email mode
   already exists — verify email suppression composes with P2.T6 flag check).
 - [ ] **P7.T2** Verification command `myspeedpuzzling:xp-distribution`: prints level pyramid + instant-
-  max count + top-20 totals. Acceptance: dev fixtures sane; prod expectation documented inline
-  (≈115 max-level, pyramid ≈ 49/22/14.5/10.5/5.8/1.6 % per bracket 1-9/10-19/20-29/30-39/40-49/50).
+  max count + top-20 totals. Acceptance: dev fixtures sane; prod expectations documented inline —
+  the hard calibration invariants are **≈115 players at Level 50 (±10, = 1.6%)** and **median player
+  around Level 13–14**; rank-115 total ≈ 3,190+. (Do not invent per-bracket percentage targets —
+  they were not calibrated for the final curve; the two invariants above are the acceptance test.)
 - [ ] **P7.T3** One-time reveal email: message+handler+command `myspeedpuzzling:send-xp-reveal-emails`
   (staggered, transactional transport, hero asset embedded, per-player level/stats, List-Unsubscribe
   headers, one-per-player idempotency log — mirror ContentDigestLog pattern with type `xp_reveal`).

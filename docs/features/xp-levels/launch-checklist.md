@@ -4,7 +4,7 @@ Owner (Jan) deliverables and decisions for the XP & badges expansion. Keep this 
 tick items as they complete, add new ones as they surface. The full business design will live in
 `docs/features/xp-levels/README.md`; badges architecture is documented in `docs/features/badges.md`.
 
-_Last updated: 2026-07-11_
+_Last updated: 2026-07-13 — implementation COMPLETE (all phases P0–P8 of implementation-plan.md); outstanding items below are Jan's._
 
 ## Design decisions locked (context)
 
@@ -86,7 +86,7 @@ Team Spirit — plus admin-granted Supporter.
 
   **Final calibration verified (2026-07-12):** with this full lineup's achievement XP included, curve v4
   (Level 50 = 3,160) yields **exactly 115 instant-max players (1.6%)** — no curve adjustment needed.
-- [ ] **Jan: provide badge images** — decided: produced all at once **after the lineup locks**.
+- [ ] **Jan: provide badge images** (outstanding — medallion fallback covers absence) — decided: produced all at once **after the lineup locks**.
   **Launch approach (decided 2026-07-12): frames are AI-generated too, not SVG** — the improved knob-geometry
   prompt block makes this viable; SVG replacement comes later (see §6).
   - [ ] 5 AI-generated puzzle-piece tier frames (socket→tab progression) — generate all 5 in ONE image/grid
@@ -107,18 +107,19 @@ Both prompts now carry a strict knob-geometry block + "fewer, larger pieces" rul
   optimized variants in `docs/features/xp-levels/assets/` (`share-card-background-800.png` 129 KB TinyPNG-optimized
   source for the card pipeline, `.webp` 30 KB). Prompt: `docs/design-system/prompts/subjects/level-share-card-background.md`.
 
-## 3. Copy & policy (Jan reviews, Claude drafts)
+## 3. Copy & policy (Jan reviews, Claude drafts) — drafts DONE, review outstanding
 
-- [ ] Review/approve fair-play policy page text
-- [ ] Review/approve XP explainer page text (three-currency table, formula with examples, level table, FAQ)
-- [ ] Review launch email + reveal page copy
+- [ ] **Jan: review/approve fair-play page** — `templates/xp_fair_play.html.twig` (marked `COPY:pending-jan-approval`; texts in `translations/messages.en.yml` under `xp.fair_play.*`)
+- [ ] **Jan: review/approve XP explainer page** — `templates/xp_explainer.html.twig` (`xp.explainer.*` keys)
+- [ ] **Jan: review launch email + reveal page copy** — `translations/emails.en.yml` `xp_reveal.*` + `templates/xp_launch_reveal.html.twig` (`xp.reveal.*` keys)
 
-## 4. Operations (Jan)
+## 4. Operations (Jan) — step-by-step commands in `launch-runbook.md`
 
 - [ ] T-7 teaser + launch posts in Facebook groups (timed to implementation readiness)
-- [ ] Add production cron entry for XP/badges recalculation command
-- [ ] Run backfill command at launch day (big bang: backfill → verify distributions → enable + send reveal emails)
+- [ ] Add production cron entries (`README.md` §Cron: settle-xp-bonuses, recalculate-badges, weekly digest) + `digest-consumer` compose service + deploy.sh workers line (content-digest README §13)
+- [ ] Run launch sequence: `myspeedpuzzling:xp-backfill` → `myspeedpuzzling:xp-distribution` (verify ≈115 Lv50 ±10, median L13–14) → remove flag + deploy → `myspeedpuzzling:send-xp-reveal-emails`
 - [ ] Ask Seznam support for the Email Profi outbound ceiling (blocks full digest volume, not ramp-up)
+- [ ] Dev environment: run `doctrine:migrations:migrate` locally (5 pending migrations from this branch)
 - [x] Content-digest decisions (2026-07-12): weekly digest **default-on** for existing players ·
   **daily digest deferred completely — weekly only for v1** (Sunday-overlap question moot) ·
   unread-messages digest **stays separate**
@@ -128,9 +129,15 @@ Both prompts now carry a strict knob-geometry block + "fewer, larger pieces" rul
 Everything (UI texts, emails, explainer, fair-play policy, badge names/descriptions) translated to
 **all supported locales: cs, de, en, es, fr, ja**.
 
-- [ ] Build in English first (project convention)
-- [ ] Final pass: fill all locales (use the `missing-translations` workflow)
-- [ ] Badge/achievement names reviewed by a native for cs at minimum
+- [x] Build in English first (project convention)
+- [x] Final pass: fill all locales (missing-translations workflow, 379 keys × 5 locales)
+- [ ] **Jan: badge/achievement names reviewed by a native for cs at minimum** — the cs names to
+  review live in `translations/messages.cs.yml` under `badges.badge.*` (16 names + Early Adopter
+  = "Průkopník"). Translator flags for the review pass: (a) new gamification texts use informal
+  "ty" while older settings/emails use "vy" — decide on a global voice; (b) "achievement" = "úspěch"
+  everywhere new, verify no leftover "odznak" wording reads oddly next to it (emails.badges_earned
+  still speaks of "odznaky" = the medallions, which matches the locked terminology);
+  (c) `emails.badges_earned.title` rendered count-neutrally as "%count%× nový odznak!".
 
 ## Ideas noted for technical planning
 
@@ -138,18 +145,16 @@ Everything (UI texts, emails, explainer, fair-play policy, badge names/descripti
   checks whether the (async) recalculation granted any achievement/level-up and pops the celebration when it lands —
   bridges the gap between the synchronous page render and the async badge evaluation. (Jan, 2026-07-12)
 
-## 6. Deferred to GitHub issues (create during technical planning)
+## 6. Deferred to GitHub issues — CREATED 2026-07-13
 
-- **Competitor achievement** (1/3/7/12/20 competitions; 1465/439/60/8/0 holders) — deferred, definitely added later
-- **Night Owl achievement** — blocked on timezone problem (below)
-- **Timezone handling for solve timestamps** — timestamps stored without timezone; blocks Night Owl, makes
-  Weekend Puzzler slightly imprecise for non-CET players (accepted for launch). Solve now-or-future decision
-  during technical planning (likely a `Player.timezone` column or capture at logging time)
-- **Replace AI-generated badge tier frames with pixel-perfect SVG frames** (V4 hybrid plan,
-  `docs/design-system/badges-conversation.md`) — launch ships AI frames; SVG swap is a drop-in asset change
-- Weekly quest board
-- Leagues / weekly tables
-- Puzzle Passport (brand/piece-count stamps)
-- Year in Puzzling (annual recap) — build in November
-- Secret achievements (release 2–3/month post-launch)
-- Abuse flagging/removal admin tooling (fair-play policy ships at launch; tooling later)
+- **Competitor achievement** — [#148](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues/148)
+- **Night Owl achievement** — [#149](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues/149)
+- **Timezone handling for solve timestamps** — [#150](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues/150)
+- **SVG badge tier frames** — [#151](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues/151)
+- **Weekly quest board** — [#152](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues/152)
+- **Leagues / weekly tables** — [#153](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues/153)
+- **Puzzle Passport** — [#154](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues/154)
+- **Year in Puzzling** — [#155](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues/155)
+- **Secret achievements** — [#156](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues/156)
+- **Abuse admin tooling** — [#157](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues/157)
+- **Daily content digest (Phase 3)** — [#158](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues/158)

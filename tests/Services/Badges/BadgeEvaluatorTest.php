@@ -146,6 +146,8 @@ final class BadgeEvaluatorTest extends TestCase
             $byType[$badge->type->value][] = $badge->tier;
         }
 
+        self::assertArrayHasKey('puzzles_solved', $byType);
+        self::assertArrayHasKey('pieces_solved', $byType);
         self::assertSame([1], $byType['puzzles_solved']);
         self::assertSame([1, 2], $byType['pieces_solved']);
     }

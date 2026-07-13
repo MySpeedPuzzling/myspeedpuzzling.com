@@ -15,9 +15,11 @@ use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetPlayerStatsSnapshot;
 use SpeedPuzzling\Web\Repository\BadgeRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\XpEntryRepository;
 use SpeedPuzzling\Web\Results\BadgeResult;
 use SpeedPuzzling\Web\Results\PlayerStatsSnapshot;
 use SpeedPuzzling\Web\Services\Badges\BadgeEvaluator;
+use SpeedPuzzling\Web\Services\Xp\XpLedger;
 use SpeedPuzzling\Web\Tests\TestDouble\FakeBadgeCondition;
 use SpeedPuzzling\Web\Tests\TestDouble\SavedBadgeRecorder;
 use SpeedPuzzling\Web\Value\BadgeTier;
@@ -166,7 +168,7 @@ final class BadgeEvaluatorTest extends TestCase
         $getSnapshot->method('forPlayer')->willReturn($this->emptySnapshot());
 
         $getBadges = $this->createStub(GetBadges::class);
-        $getBadges->method('forPlayer')->willReturn($existingBadges);
+        $getBadges->method('allEarnedTiers')->willReturn($existingBadges);
 
         $badgeRepository = $this->createStub(BadgeRepository::class);
         $badgeRepository->method('save')->willReturnCallback(function (Badge $badge) use ($recorder): void {
@@ -180,6 +182,7 @@ final class BadgeEvaluatorTest extends TestCase
             badgeRepository: $badgeRepository,
             playerRepository: $playerRepository,
             clock: new MockClock('2026-04-16 12:00:00'),
+            xpLedger: new XpLedger($this->createStub(XpEntryRepository::class), new MockClock('2026-04-16 12:00:00')),
         );
     }
 

@@ -182,3 +182,17 @@ content_digest:
         most_solved_line: "Most solved puzzle of the week: %puzzle% (%solvers% puzzlers)."
         footer_settings: "You get this digest weekly. Adjust it anytime in your <a href=\"%settingsUrl%\">notification settings</a>."
         footer_unsubscribe: "One click and it stops: <a href=\"%unsubscribeUrl%\">unsubscribe from the digest</a>."
+
+xp_reveal:
+    subject: "Your whole puzzling journey just turned into XP ✨"
+    greeting: "Hi %name%, something lovely happened!"
+    greeting_anonymous: "Hi puzzler, something lovely happened!"
+    intro: "MySpeedPuzzling now celebrates your activity with XP and levels — and every puzzle you ever logged already counts. No setup, no catch: here is what your history is worth."
+    level_line: "Level %level%"
+    xp_line: "%xp% XP earned across your whole puzzling history"
+    achievements_member: "{1}Plus 1 achievement is already on your profile!|]1,Inf[Plus %count% achievements are already on your profile!"
+    achievements_teaser: "{1}And 1 achievement is quietly waiting for you.|]1,Inf[And %count% achievements are quietly waiting for you."
+    cta: |
+        <p style="text-align: center;"><a href="%revealUrl%" class="link-underline"><strong>See your reveal moment</strong></a></p>
+    outro: "Levels never gate anything and XP can never be bought — it is simply your puzzling story, celebrated. See you at the table! 🧩"
+    explainer: 'Curious about the details? <a href="%explainerUrl%">How XP &amp; Levels work</a>.'

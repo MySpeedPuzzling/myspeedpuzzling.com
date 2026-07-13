@@ -1,0 +1,57 @@
+{% trans_default_domain 'emails' %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig') }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="16"></spacer>
+                    <img src="cid:xp-hero" alt="" width="552" style="width: 100%; border-radius: 8px;">
+                    <spacer size-sm="16"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <h3>
+                        {% if playerName %}
+                            {{ 'xp_reveal.greeting'|trans({'%name%': playerName}) }}
+                        {% else %}
+                            {{ 'xp_reveal.greeting_anonymous'|trans }}
+                        {% endif %}
+                    </h3>
+                    <p>{{ 'xp_reveal.intro'|trans }}</p>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <h2 style="text-align: center;">{{ 'xp_reveal.level_line'|trans({'%level%': level}) }}</h2>
+                    <p style="text-align: center;"><strong>{{ 'xp_reveal.xp_line'|trans({'%xp%': xpTotal}) }}</strong></p>
+                    {% if badgesCount > 0 %}
+                        <p style="text-align: center;">
+                            {% if isMember %}
+                                {{ 'xp_reveal.achievements_member'|trans({'%count%': badgesCount}) }}
+                            {% else %}
+                                {{ 'xp_reveal.achievements_teaser'|trans({'%count%': badgesCount}) }}
+                            {% endif %}
+                        </p>
+                    {% endif %}
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <spacer size-sm="8"></spacer>
+                    {{ 'xp_reveal.cta'|trans({'%revealUrl%': url('xp_launch_reveal')})|raw }}
+                    <spacer size-sm="16"></spacer>
+                    <p>{{ 'xp_reveal.outro'|trans }}</p>
+                    <p style="font-size: 12px; color: #6c757d;">{{ 'xp_reveal.explainer'|trans({'%explainerUrl%': url('xp_explainer')})|raw }}</p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

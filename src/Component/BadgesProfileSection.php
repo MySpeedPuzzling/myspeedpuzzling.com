@@ -12,13 +12,34 @@ use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
+/**
+ * Profile achievements strip, §1.7 visibility matrix:
+ *
+ *  - subject has membership → full medallions for every allowed viewer;
+ *    the OWNER additionally gets the first-click reveal flip on fresh badges
+ *  - subject is free + viewing own profile → locked strip + "N achievements
+ *    waiting for you" teaser + membership CTA
+ *  - subject is free + anyone else viewing → nothing
+ *  - private profiles render only for their owner
+ *  - while the xp-system flag is active, admins only (renders nothing otherwise)
+ */
 #[AsTwigComponent]
 final class BadgesProfileSection
 {
     public null|string $playerId = null;
 
+    public bool $subjectHasMembership = false;
+
+    public bool $subjectIsPrivate = false;
+
     /** @var list<BadgeResult> */
     public array $badges = [];
+
+    public int $waitingCount = 0;
+
+    public bool $ownProfile = false;
+
+    private bool $viewerAllowed = false;
 
     public function __construct(
         readonly private GetBadges $getBadges,
@@ -29,18 +50,51 @@ final class BadgesProfileSection
     }
 
     #[PostMount]
-    public function loadBadges(): void
+    public function load(): void
     {
-        if ($this->playerId === null || $this->isVisible() === false) {
+        if ($this->playerId === null) {
             return;
         }
 
-        $this->badges = $this->getBadges->forPlayer($this->playerId);
+        $viewer = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($this->xpFeatureGate->isVisibleFor($viewer) === false) {
+            return;
+        }
+
+        $this->ownProfile = $viewer !== null && $viewer->playerId === $this->playerId;
+
+        if ($this->subjectIsPrivate && $this->ownProfile === false) {
+            return;
+        }
+
+        $this->viewerAllowed = true;
+
+        if ($this->subjectHasMembership) {
+            $this->badges = $this->getBadges->forPlayer($this->playerId);
+
+            return;
+        }
+
+        if ($this->ownProfile) {
+            $this->waitingCount = count($this->getBadges->forPlayer($this->playerId));
+        }
     }
 
-    public function isVisible(): bool
+    /**
+     * detail = medallions · teaser = locked strip for the free owner · hidden = nothing
+     */
+    public function mode(): string
     {
-        return $this->xpFeatureGate->isVisibleFor($this->retrieveLoggedUserProfile->getProfile());
+        if ($this->viewerAllowed === false) {
+            return 'hidden';
+        }
+
+        if ($this->subjectHasMembership) {
+            return 'detail';
+        }
+
+        return $this->ownProfile ? 'teaser' : 'hidden';
     }
 
     /**
@@ -51,5 +105,14 @@ final class BadgesProfileSection
         $cutoff = $this->clock->now()->modify('-7 days');
 
         return $badge->earnedAt > $cutoff;
+    }
+
+    /**
+     * The first-click reveal moment belongs to the badge owner only — everyone else
+     * always sees the finished medallion.
+     */
+    public function needsReveal(BadgeResult $badge): bool
+    {
+        return $this->ownProfile && $badge->isRevealed() === false && $badge->id !== null;
     }
 }

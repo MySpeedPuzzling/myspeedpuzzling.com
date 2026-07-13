@@ -140,6 +140,12 @@
                         {% endif %}
                         <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
                     </span>
+
+                    <twig:XpPuzzleEstimate
+                        puzzleId="{{ puzzle.puzzleId }}"
+                        :piecesCount="puzzle.piecesCount"
+                        :difficultyTier="puzzle_difficulty is not null and puzzle_difficulty.difficultyTier is not null ? puzzle_difficulty.difficultyTier.value : null"
+                    />
                 </div>
                 <div>
                     <div class="fs-sm manufacturer-name">

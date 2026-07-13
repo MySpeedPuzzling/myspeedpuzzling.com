@@ -172,7 +172,7 @@ final class EditTimeController extends AbstractController
             'return_title' => $this->resolveReturnTitle($context, $solvedPuzzle),
             // Delete dialog warning: how much XP disappears with this solve (0 = hide line).
             'xp_delete_warning' => $this->xpFeatureGate->isVisibleFor($player)
-                ? max($this->getXpEntriesForSolve->totalForSolvingTime($timeId), 0)
+                ? max($this->getXpEntriesForSolve->totalForPlayerAndSolvingTime($player->playerId, $timeId), 0)
                 : 0,
         ];
 

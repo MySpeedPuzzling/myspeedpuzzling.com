@@ -353,9 +353,11 @@
                         {% else %}
                             <div class="navbar-tool dropdown ms-1 ms-lg-0 me-n1 me-lg-2">
                                 <a class="dropdown-toggle navbar-tool" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'menu.my_profile'|trans }}">
-                                    <div class="navbar-tool-icon-box">
-                                        <i class="navbar-tool-icon ci-user" aria-hidden="true"></i>
-                                    </div>
+                                    <twig:XpRing playerId="{{ logged_user.profile.playerId }}" :ambient="true">
+                                        <div class="navbar-tool-icon-box">
+                                            <i class="navbar-tool-icon ci-user" aria-hidden="true"></i>
+                                        </div>
+                                    </twig:XpRing>
                                     <div class="navbar-tool-text ms-n3 no-caret"><small>{{ 'menu.my_profile'|trans }}</small></div>
                                 </a>
 

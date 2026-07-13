@@ -21,12 +21,12 @@ readonly class GetXpProfile
     public function byPlayerId(string $playerId): XpProfile
     {
         $sql = <<<SQL
-SELECT id, xp_total, level, experience_system_opted_out
+SELECT id, xp_total, level, experience_system_opted_out, is_private
 FROM player
 WHERE id = :playerId
 SQL;
 
-        /** @var array{id: string, xp_total: int, level: int, experience_system_opted_out: bool}|false $row */
+        /** @var array{id: string, xp_total: int, level: int, experience_system_opted_out: bool, is_private: bool}|false $row */
         $row = $this->database
             ->executeQuery($sql, ['playerId' => $playerId])
             ->fetchAssociative();
@@ -40,6 +40,7 @@ SQL;
             xpTotal: $row['xp_total'],
             level: $row['level'],
             optedOut: $row['experience_system_opted_out'],
+            private: $row['is_private'],
         );
     }
 }

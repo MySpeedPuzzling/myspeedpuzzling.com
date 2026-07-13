@@ -31,6 +31,18 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
 
 `SOCIAL_LOGIN_ADMIN_ONLY`, `SOCIAL_LOGIN_GOOGLE_ENABLED` and `SOCIAL_LOGIN_APPLE_ENABLED` were deleted at the public launch of Google + Apple sign-in (both verified end to end in production, Jan's call). There is no admin-only stage any more: the buttons render on `/login` + `/register` for everyone, rule-4 registration via the `/register/social` interstitial is on, and every signed-in player gets the "Connected sign-in methods" card. Google and Apple are now available **iff their credentials are configured** (`SocialLoginSettings::isAvailable()` — Google: `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`; Apple: `APPLE_CLIENT_ID` + `APPLE_TEAM_ID` + `APPLE_KEY_ID` + `APPLE_PRIVATE_KEY`), so local dev and tests without credentials show no button and 404 the provider's routes. Emptying a provider's credentials is the kill switch. A box `.env` / Infisical that still sets the old flags is harmless - nothing reads them. Microsoft (shipped 2026-09-30) follows the same rule from day one - available iff `MICROSOFT_CLIENT_ID` + `MICROSOFT_CLIENT_SECRET` are set, no flag.
 
+## XP System (admin-only) — `xp-system`
+
+- **Feature:** XP / Levels / Achievements gamification bundle (`docs/features/xp-levels/`)
+- **Flag:** `SpeedPuzzling\Web\Services\Xp\XpFeatureGate` — `isVisibleFor(?PlayerProfile)` restricts visibility to admins; `isEmailSendingEnabled()` suppresses ALL feature emails (achievement congratulations, weekly digest, reveal emails) for everyone while active
+- **Gated files** (grows as phases land — authoritative checklist in `docs/features/xp-levels/leak-inventory.md`):
+  - `src/Component/BadgesProfileSection.php` — profile badges section renders nothing for non-admins
+  - `src/Controller/BadgesOverviewController.php` — badges catalog page 404s for non-admins
+  - `src/MessageHandler/RecalculateBadgesForPlayerHandler.php` — badge congratulation email dispatch short-circuited
+- **NOT gated (intentional):** badge evaluation/persistence and XP ledger accrual keep running for everyone — silent accumulation before launch
+- **Exempt by decision (OK to leak):** public API responses + Swagger docs
+- **Remove when:** XP launch day — flip/remove the gate + call sites, delete the leak WebTestCase (P8.T2 of the implementation plan), then run the reveal-email command
+
 ## Competition Table Layout (admin-only)
 
 - **Feature:** Table layout management for competition rounds

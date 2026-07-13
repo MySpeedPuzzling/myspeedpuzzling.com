@@ -357,8 +357,17 @@ final class PuzzleAddFormType extends AbstractType
     ): void {
         $mode = $data->mode;
 
-        // New puzzle validation (all modes)
-        if (is_string($data->puzzle) && Uuid::isValid($data->puzzle) === false) {
+        // Puzzle is required in all modes - either an existing puzzle (UUID) or a new puzzle name.
+        // The field can be missing from the request entirely (e.g. disabled input on the client),
+        // so this must be validated server-side to avoid dispatching a message with null puzzle.
+        $puzzleIsBlank = $data->puzzle === null || trim($data->puzzle) === '';
+        if ($puzzleIsBlank) {
+            $form->get('puzzle')->addError(new FormError($this->translator->trans('forms.required_field')));
+        }
+
+        // New puzzle validation (all modes) - skipped for blank puzzle so the required
+        // error above is not drowned in pieces-count/photo errors for a puzzle never entered
+        if ($puzzleIsBlank === false && Uuid::isValid($data->puzzle) === false) {
             if ($data->puzzlePiecesCount === null) {
                 $form->get('puzzlePiecesCount')->addError(new FormError($this->translator->trans('forms.required_field')));
             }

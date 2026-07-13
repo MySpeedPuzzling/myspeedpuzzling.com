@@ -237,7 +237,7 @@ final class PuzzleAddController extends AbstractController
             'solving_time_form' => $addTimeForm,
             'filled_group_players' => $groupPlayers,
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($userProfile->playerId),
-            'hide_new_puzzle' => Uuid::isValid($data->puzzle ?? '') || $data->brand === null,
+            'hide_new_puzzle' => $data->puzzle === null || trim($data->puzzle) === '' || Uuid::isValid($data->puzzle) || $data->brand === null,
             'collections' => $collections,
             'initial_mode' => $initialMode,
             'has_active_membership' => $hasActiveMembership,

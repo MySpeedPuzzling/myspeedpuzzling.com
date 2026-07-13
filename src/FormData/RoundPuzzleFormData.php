@@ -11,7 +11,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 final class RoundPuzzleFormData
 {
     public function __construct(
+        #[Assert\NotBlank]
         public null|string $brand = null,
+        #[Assert\NotBlank]
         public null|string $puzzle = null,
         public null|string $puzzleName = null,
         #[Assert\Range(min: 1, max: 99999)]

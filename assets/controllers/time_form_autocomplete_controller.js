@@ -11,6 +11,7 @@ export default class extends Controller {
         multiplePuzzlesMessage: String,
         addNewBrandMessage: String,
         addNewPuzzleMessage: String,
+        puzzleRequiredMessage: String,
     };
 
     uuidRegex= /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -24,11 +25,15 @@ export default class extends Controller {
         this._onBrandConnect = this._onBrandConnect.bind(this);
         this._onPuzzleConnect = this._onPuzzleConnect.bind(this);
         this._handleBarcodeScanned = this._handleBarcodeScanned.bind(this);
+        this._onFormSubmit = this._onFormSubmit.bind(this);
     }
 
     connect() {
-        this.initialBrandValue = this.brandTarget.value;
-        this.initialPuzzleValue = this.puzzleTarget.value;
+        // The controller element is inside the form on the solving-time form, but
+        // wraps the form on the add-puzzle-to-round page - support both layouts
+        this.formElement = this.element.closest('form') ?? this.element.querySelector('form');
+        // initialBrandValue/initialPuzzleValue are captured in handleInitialValues()
+        // once Tom Select initializes - capturing here would race browser form restore
         this.brandTarget.addEventListener('autocomplete:pre-connect', this._onBrandConnect);
         this.puzzleTarget.addEventListener('autocomplete:pre-connect', this._onPuzzleConnect);
 
@@ -39,6 +44,10 @@ export default class extends Controller {
 
         // Listen for barcode scanner events
         document.addEventListener('barcode-scanner:scanned', this._handleBarcodeScanned);
+
+        // Capture phase so this runs before Turbo, submit-prevention and ppm-validator:
+        // a submit must never go out while the puzzle input is disabled or empty
+        document.addEventListener('submit', this._onFormSubmit, true);
     }
 
     disconnect() {
@@ -51,6 +60,7 @@ export default class extends Controller {
         }
 
         document.removeEventListener('barcode-scanner:scanned', this._handleBarcodeScanned);
+        document.removeEventListener('submit', this._onFormSubmit, true);
     }
 
     _onBrandConnect(event) {
@@ -112,15 +122,19 @@ export default class extends Controller {
     }
 
     onBrandValueChanged(value) {
+        // Puzzle Tom Select may not be initialized yet (autocomplete is a lazy-loaded
+        // controller) - handleInitialValues() picks up the current brand value on init
+        if (!this.puzzleTarget.tomselect) {
+            return;
+        }
+
         if (value !== this.initialBrandValue) {
             this.puzzleTarget.tomselect.clear();
             this.initialBrandValue = value;
         }
 
         if (value) {
-            this.puzzleTarget.tomselect.enable();
-            this.puzzleTarget.tomselect.settings.placeholder = this.puzzleTarget.dataset.choosePuzzlePlaceholder;
-            this.puzzleTarget.tomselect.inputState();
+            this.enablePuzzleField();
 
             if (this.uuidRegex.test(value)) {
                 this.fetchPuzzleOptions(value, true);
@@ -134,6 +148,8 @@ export default class extends Controller {
 
     onPuzzleValueChanged(value) {
         if (value) {
+            this._clearPuzzleRequiredError();
+
             if (this.uuidRegex.test(value)) {
                 this.newPuzzleTarget.classList.add('d-none');
 
@@ -201,9 +217,13 @@ export default class extends Controller {
 
                         if (existingValue && this.puzzleTarget.tomselect.getOption(existingValue)) {
                             this.puzzleTarget.tomselect.setValue(existingValue);
+                        } else if (existingValue && !this.uuidRegex.test(existingValue)) {
+                            // User typed a new puzzle name while the options were being
+                            // fetched - recreate it instead of silently dropping the value
+                            this.puzzleTarget.tomselect.createItem(existingValue);
                         }
 
-                        if (this.initialPuzzleValue && !this.puzzleTarget.tomselect.getOption(this.initialBrandValue) && !this.uuidRegex.test(this.initialPuzzleValue)) {
+                        if (this.initialPuzzleValue && !this.puzzleTarget.tomselect.getOption(this.initialPuzzleValue) && !this.uuidRegex.test(this.initialPuzzleValue)) {
                             this.puzzleTarget.tomselect.createItem(this.initialPuzzleValue);
                         }
 
@@ -237,6 +257,13 @@ export default class extends Controller {
     }
 
     handleInitialValues() {
+        // Re-read the live input values: the browser may have restored form state
+        // (back navigation, tab discard/restore) after connect() captured them,
+        // without firing any change event. Deciding on the stale captured values
+        // used to disable the puzzle field even though a brand was selected.
+        this.initialBrandValue = this.brandTarget.value;
+        this.initialPuzzleValue = this.puzzleTarget.value;
+
         if (this.initialBrandValue) {
             if (!this.brandTarget.tomselect.getOption(this.initialBrandValue) && !this.uuidRegex.test(this.initialBrandValue)) {
                 this.brandTarget.tomselect.createItem(this.initialBrandValue);
@@ -244,12 +271,22 @@ export default class extends Controller {
                 if (this.initialPuzzleValue) {
                     this.puzzleTarget.tomselect.createItem(this.initialPuzzleValue);
                 }
-            } else {
+            } else if (this.uuidRegex.test(this.initialBrandValue)) {
                 this.fetchPuzzleOptions(this.brandTarget.value, false);
+            } else {
+                // Non-UUID brand (new brand name): no options to fetch, show the new-puzzle fields
+                this.onNewBrandCreated();
             }
         } else {
             this.disablePuzzleField();
         }
+    }
+
+    enablePuzzleField() {
+        const puzzleTomSelect = this.puzzleTarget.tomselect;
+        puzzleTomSelect.enable();
+        puzzleTomSelect.settings.placeholder = this.puzzleTarget.dataset.choosePuzzlePlaceholder;
+        puzzleTomSelect.inputState();
     }
 
     disablePuzzleField() {
@@ -260,6 +297,101 @@ export default class extends Controller {
         puzzleTomSelect.inputState();
 
         this.newPuzzleTarget.classList.add('d-none');
+    }
+
+    _onFormSubmit(event) {
+        if (event.target !== this.formElement) {
+            return;
+        }
+
+        const brandTomSelect = this.brandTarget.tomselect;
+        const puzzleTomSelect = this.puzzleTarget.tomselect;
+
+        // Tom Select not initialized (lazy chunk not loaded yet) - the plain inputs
+        // are untouched, so native and server-side validation handle this submit
+        if (!brandTomSelect || !puzzleTomSelect) {
+            return;
+        }
+
+        // Browser form restore (back navigation, tab discard) can set the hidden
+        // brand input without Tom Select noticing - sync the visible control.
+        // Silently: a change event here would cascade into onBrandValueChanged
+        // and clear the (possibly also restored) puzzle value.
+        if (this.brandTarget.value && !brandTomSelect.getValue()) {
+            if (!brandTomSelect.getOption(this.brandTarget.value)) {
+                brandTomSelect.addOption({ value: this.brandTarget.value, text: this.brandTarget.value });
+            }
+            brandTomSelect.addItem(this.brandTarget.value, true);
+        }
+
+        if (this.puzzleTarget.value && !this.puzzleTarget.disabled) {
+            return;
+        }
+
+        // A disabled input is excluded from the submit entirely, so no puzzle would
+        // reach the server. Block the submit (before Turbo, submit-prevention and
+        // ppm-validator see it) and repair the field instead - the user keeps
+        // everything they already filled in, including uploaded photos.
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        // The blocked submit may have been re-fired programmatically by
+        // submit-prevention (image compression path) with the button already in
+        // "Saving..." state - reset it so the form is not stranded
+        this._resetSubmitPrevention();
+
+        if (!this.brandTarget.value) {
+            brandTomSelect.focus();
+            return;
+        }
+
+        this.enablePuzzleField();
+
+        if (this.puzzleTarget.value) {
+            // The field was wrongly disabled but still holds the user's choice.
+            // Resubmit deferred: a nested requestSubmit() during submit event
+            // dispatch is a no-op per the HTML spec ("firing submission events").
+            setTimeout(() => this.formElement.requestSubmit(), 0);
+            return;
+        }
+
+        // Same flow as a fresh brand selection: enable + fetch options / show new-puzzle fields
+        this.onBrandValueChanged(this.brandTarget.value);
+
+        this._showPuzzleRequiredError();
+        puzzleTomSelect.focus();
+    }
+
+    _resetSubmitPrevention() {
+        const submitButton = this.formElement.querySelector('[data-submit-prevention-target="submit"]');
+        if (submitButton) {
+            submitButton.removeAttribute('disabled');
+            submitButton.classList.remove('is-loading');
+        }
+
+        const submitPreventionController = this.application.getControllerForElementAndIdentifier(
+            this.formElement,
+            'submit-prevention'
+        );
+        if (submitPreventionController) {
+            submitPreventionController.reset();
+        }
+    }
+
+    _showPuzzleRequiredError() {
+        this._clearPuzzleRequiredError();
+
+        const error = document.createElement('div');
+        error.className = 'invalid-feedback d-block js-puzzle-required-error';
+        error.textContent = this.puzzleRequiredMessageValue || 'This field is required!';
+
+        const anchor = this.puzzleTarget.tomselect.wrapper;
+        anchor.insertAdjacentElement('afterend', error);
+        anchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    _clearPuzzleRequiredError() {
+        this.element.querySelectorAll('.js-puzzle-required-error').forEach((element) => element.remove());
     }
 
     toggleHideOptions(event) {

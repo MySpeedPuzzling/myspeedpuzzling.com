@@ -87,11 +87,14 @@ Team Spirit — plus admin-granted Supporter.
   **Final calibration verified (2026-07-12):** with this full lineup's achievement XP included, curve v4
   (Level 50 = 3,160) yields **exactly 115 instant-max players (1.6%)** — no curve adjustment needed.
 - [ ] **Jan: provide badge images** (outstanding — medallion fallback covers absence) — decided: produced all at once **after the lineup locks**.
-  **Launch approach (decided 2026-07-12): frames are AI-generated too, not SVG** — the improved knob-geometry
-  prompt block makes this viable; SVG replacement comes later (see §6).
-  - [ ] 5 AI-generated puzzle-piece tier frames (socket→tab progression) — generate all 5 in ONE image/grid
-    (single-generation consistency, technique #1 from `docs/design-system/badges-conversation.md`), then crop
-  - [ ] 1 center icon per badge type (ChatGPT pipeline, `docs/design-system/prompts/badges.md`) — 10+ icons;
+  **Launch approach (updated 2026-07-16): generated locally via ComfyUI on Jan's M3 Max** — replaces the
+  ChatGPT pipeline; model research + candidate stacks + bake-off protocol in
+  `docs/design-system/badge-generation-comfyui.md`. Visual spec still `docs/design-system/prompts/badges.md`.
+  - [ ] Run the model bake-off (4 stacks) → pick per-sub-task winners
+  - [ ] 5 AI-generated puzzle-piece tier frames (socket→tab progression) — ONE image/grid
+    (single-generation consistency, technique #1 from `docs/design-system/badges-conversation.md`) or
+    control-image-guided geometry, then crop
+  - [ ] 1 center icon per badge type (grid batches + verbatim style prefix from `docs/design-system/prompts/badges.md`) — 10+ icons;
     never include puzzle-piece shapes inside icon subjects
   - Template falls back to tier-colored medallions, so missing art blocks polish, not functionality.
 

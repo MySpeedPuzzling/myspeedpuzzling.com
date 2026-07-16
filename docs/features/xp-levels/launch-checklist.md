@@ -119,7 +119,7 @@ Both prompts now carry a strict knob-geometry block + "fewer, larger pieces" rul
 - [ ] Add production cron entries (`README.md` §Cron: settle-xp-bonuses, recalculate-badges, weekly digest) + `digest-consumer` compose service + deploy.sh workers line (content-digest README §13)
 - [ ] Run launch sequence: `myspeedpuzzling:xp-backfill` → `myspeedpuzzling:xp-distribution` (verify ≈115 Lv50 ±10, median L13–14) → remove flag + deploy → `myspeedpuzzling:send-xp-reveal-emails`
 - [ ] Ask Seznam support for the Email Profi outbound ceiling (blocks full digest volume, not ramp-up)
-- [ ] Dev environment: run `doctrine:migrations:migrate` locally (5 pending migrations from this branch)
+- [ ] Dev environment: run `doctrine:migrations:migrate` locally (7 pending migrations from this branch, incl. pre-existing badge.tier)
 - [x] Content-digest decisions (2026-07-12): weekly digest **default-on** for existing players ·
   **daily digest deferred completely — weekly only for v1** (Sunday-overlap question moot) ·
   unread-messages digest **stays separate**

@@ -1,5 +1,11 @@
 # Badge Generation via ComfyUI — Model Research & Bake-off Plan
 
+> **2026-07-17 UPDATE — bake-off COMPLETE, pipeline validated end-to-end.**
+> Winner: FLUX.2 Klein 9B (icons + edit-polish passes) over deterministic frame geometry.
+> The validated recipe, experimental findings (flood-fill > neural matting; text-beats-reference
+> in edit mode; 11/11 geometry-preserving polish runs), runnable scripts and evidence sheets live in
+> **`badge-pipeline/README.md`**. Remaining decisions are listed there (style pick B vs C, scale test).
+
 _Researched 2026-07-16 (deep-research run: 23 sources fetched, 25 top claims adversarially verified 3-vote, 22 confirmed). Supersedes the ChatGPT pipeline in `prompts/badges.md` for **generation tooling**; the visual spec (socket→tab progression, brand colors, outline rules) in that file remains the source of truth for WHAT to generate._
 
 ## Context

@@ -90,7 +90,9 @@ Team Spirit — plus admin-granted Supporter.
   **Launch approach (updated 2026-07-16): generated locally via ComfyUI on Jan's M3 Max** — replaces the
   ChatGPT pipeline; model research + candidate stacks + bake-off protocol in
   `docs/design-system/badge-generation-comfyui.md`. Visual spec still `docs/design-system/prompts/badges.md`.
-  - [ ] Run the model bake-off (4 stacks) → pick per-sub-task winners
+  - [x] Run the model bake-off (4 stacks) → winner FLUX.2 Klein 9B; full Speed Demon set produced
+    end-to-end 2026-07-17 — recipe + findings + scripts in `docs/design-system/badge-pipeline/README.md`.
+    Jan's pick pending: style Row B (pure flat) vs Row C (hand-illustrated polish)
   - [ ] 5 AI-generated puzzle-piece tier frames (socket→tab progression) — ONE image/grid
     (single-generation consistency, technique #1 from `docs/design-system/badges-conversation.md`) or
     control-image-guided geometry, then crop

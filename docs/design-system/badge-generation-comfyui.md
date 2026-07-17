@@ -67,12 +67,23 @@ Same test matrix per stack, outputs into one comparison sheet; Jan judges style,
 
 Hex fidelity measured with `analyze_color` against the 4 brand colors; expected outcome is a **split verdict** (icons ← Z-Image+LoRA or Klein; frames ← control-image route on Klein/Qwen-Edit), which is fine — production pipeline composes anyway.
 
-## Open items before downloads
+## Setup status (2026-07-17) — COMPLETE
 
-- [ ] Jan: pick target ComfyUI install (multiple exist; models dir + whether Desktop or portable — portable preferred if Klein-on-Desktop is still broken)
-- [ ] Set `CIVITAI_API_TOKEN` for the MCP (Civitai downloads 401 without it)
-- [ ] Verify July-2026 status: Klein in ComfyUI Desktop; Z-Image-Edit released?
-- [ ] Approx download sizes: Stack 1 ~15 GB · Stack 2 ~28 GB · Stack 3 ~20 GB · Stack 4 ~10 GB (≈73 GB all-in, fine on 300+ GB)
+- [x] Install target: the single Comfy Desktop-adopted install — source `~/ComfyUI-Installs/ComfyUI/ComfyUI`
+  (v0.28.0, native Flux2 nodes), venv `~/Documents/ComfyUI/.venv`, models `~/Documents/ComfyUI/models`.
+  The old Klein-on-Desktop caveat is moot (0.28.0 ships Flux2 support; "portable" is Windows-only anyway).
+  Headless launch (identical UI at http://127.0.0.1:8000):
+  `cd ~/ComfyUI-Installs/ComfyUI/ComfyUI && ~/Documents/ComfyUI/.venv/bin/python3 main.py --port 8000 --enable-manager --base-directory ~/Documents/ComfyUI`
+- [x] `CIVITAI_API_TOKEN` set (`~/.zshrc`)
+- [x] All 20 files downloaded (~92 GB): Klein 9B/4B Q8 GGUF + Qwen3-8B/4B TEs + flux2 VAE ·
+  Qwen-Image-Edit-2511 Q6_K + Qwen2.5-VL Q8 TE + mmproj + Lightning 4/8-step LoRAs + qwen VAE ·
+  Z-Image Turbo (bf16 + Q8 GGUF) + Z-Image Base bf16 + distill patch LoRA + ae VAE ·
+  SDXL base + ControlNet-Union-promax + Icons.Redmond (Z-Image) + Vector Illustration XL LoRAs
+- [x] Custom nodes installed & imports verified: ComfyUI-GGUF (city96), ComfyUI-layerdiffuse, Inspyrenet-Rembg;
+  `UnetLoaderGGUF`/`CLIPLoaderGGUF` dropdowns list all GGUFs
+- [ ] Z-Image-Edit release status still unconfirmed (not blocking — recolor passes go through Klein/Qwen-Edit)
+- [ ] Skipped for now: Z-Image ControlNet-Union (needs VideoX-Fun node pack) and Qwen-Image-Layered
+  (no GGUF; bf16 40 GB / fp8 MPS-hostile) — revisit only if the bake-off demands them
 
 ## Key sources
 

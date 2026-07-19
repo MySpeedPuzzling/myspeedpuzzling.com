@@ -13,7 +13,7 @@ return App::config([
             'minio' => [
                 'async_aws_s3' => [
                     'client' => S3Client::class,
-                    'bucket' => 'puzzle',
+                    'bucket' => '%env(S3_BUCKET)%',
                 ],
             ],
         ],
@@ -21,8 +21,9 @@ return App::config([
             'minio' => [
                 'adapter' => 'minio',
                 'alias' => Filesystem::class,
-                'visibility' => 'public',
-                'directory_visibility' => 'public',
+                // No 'visibility' => 'public' here: it would send a public-read ACL
+                // per object, which Hetzner Object Storage honors — punching public
+                // holes in the private bucket. Reads go through credentialed imgproxy.
             ],
         ],
     ],

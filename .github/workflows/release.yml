@@ -72,12 +72,16 @@ jobs:
             -   name: Checkout
                 uses: actions/checkout@v7
 
-            -   uses: appleboy/ssh-action@v1
-                with:
-                    host: myspeedpuzzling.com
-                    username: ${{ secrets.DEPLOY_USERNAME }}
-                    key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
-                    script: cd /deployment/speedpuzzling && ./deploy.sh
+            -   name: Trigger lily deploy (HMAC webhook)
+                env:
+                    SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+                run: |
+                    BODY='{"app":"myspeedpuzzling","tag":"main"}'
+                    SIG="$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$SECRET" | sed 's/^.* //')"
+                    curl -fsS -X POST https://deploy.lily.srv.thedevs.cz/hooks/myspeedpuzzling \
+                      -H 'Content-Type: application/json' \
+                      -H "X-Hub-Signature-256: sha256=$SIG" \
+                      --data-raw "$BODY"
 
             -   name: Create Sentry release
                 uses: getsentry/action-release@v3

@@ -807,7 +807,7 @@ faq:
 
     question_how_long_1000_pieces: How long does a 1000-piece puzzle take?
     answer_how_long_1000_pieces: |
-        <p class="mb-0">Based on the solo solves recorded on MySpeedPuzzling, the median time for a 1000-piece jigsaw puzzle is around 3 hours 20 minutes. Speed puzzlers regularly finish in under 2 hours, and the fastest go far below that. See the <a href="%times_guide_link%">full statistics by piece count</a> for medians, percentiles and record times.</p>
+        <p class="mb-0">Based on the solo solves recorded on MySpeedPuzzling, the median time for a 1000-piece jigsaw puzzle is around %median_1000%. Speed puzzlers regularly finish in under %fast_1000%, and the fastest go far below that. See the <a href="%times_guide_link%">full statistics by piece count</a> for medians, percentiles and record times.</p>
 
     question_how_competitions_work: How do speed puzzling competitions work?
     answer_how_competitions_work: |

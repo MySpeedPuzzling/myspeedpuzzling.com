@@ -12,6 +12,31 @@ $outputFile = __DIR__ . '/../translations-missing.json';
 $locales = ['cs', 'en', 'de', 'es', 'fr', 'ja'];
 
 /**
+ * Fully-qualified key prefixes ("domain.nested.path") that are intentionally
+ * English-only and must NOT be reported as missing in other locales.
+ *
+ * `messages.guides.*` — the SEO guide pages (/en/guides/*) are English-only by
+ * design. Every guide route pins `defaults: ['_locale' => 'en']` and the
+ * controllers pin `trans(locale: 'en')`, so a translated value would never
+ * render; on top of that, ~2,600 words of guide body copy live as hardcoded
+ * English prose in templates/guides/*.twig, not in translation files at all.
+ *
+ * Why English-only: search authority is scarce for a growing site, so the
+ * guides concentrate every backlink and ranking signal on one strong URL per
+ * guide (aimed at the high-volume English term "speed puzzling") instead of
+ * splitting it across six weaker localized URLs. Translating them is a
+ * deliberate future project — extract the prose, drop the locale pins, add
+ * hreflang, translate the winners once they rank — not a gap to be filled by
+ * this checker. Until that decision is made, filling `guides.*` in other
+ * locales produces dead keys. See src/Controller/GuidesController.php.
+ *
+ * @var list<string>
+ */
+$ignoredKeyPrefixes = [
+    'messages.guides.',
+];
+
+/**
  * Flatten nested array keys into dot notation
  * @param array<string, mixed> $array
  * @param string $prefix
@@ -88,9 +113,26 @@ foreach ($files as $file) {
 // Find missing keys
 // Structure: $missing["domain.key"] = ["filled" => [...], "missing" => [...]]
 $missing = [];
+$ignoredCount = 0;
 
 foreach ($allKeysByDomain as $domain => $keys) {
     foreach (array_keys($keys) as $key) {
+        $fullKey = $domain . '.' . $key;
+
+        // Intentionally English-only keys are never reported as missing.
+        $isIgnored = false;
+        foreach ($ignoredKeyPrefixes as $ignoredPrefix) {
+            if (str_starts_with($fullKey, $ignoredPrefix)) {
+                $isIgnored = true;
+                break;
+            }
+        }
+
+        if ($isIgnored) {
+            $ignoredCount++;
+            continue;
+        }
+
         $missingIn = [];
         $filledIn = [];
 
@@ -104,7 +146,6 @@ foreach ($allKeysByDomain as $domain => $keys) {
         }
 
         if ($missingIn !== []) {
-            $fullKey = $domain . '.' . $key;
             $missing[$fullKey] = [
                 'filled' => $filledIn,
                 'missing' => $missingIn,
@@ -130,6 +171,11 @@ file_put_contents($outputFile, $json . "\n");
 $totalMissing = count($missing);
 echo "Translation check complete!\n";
 echo "Found $totalMissing keys with missing translations.\n";
+
+if ($ignoredCount > 0) {
+    echo "Ignored $ignoredCount key(s) that are intentionally English-only (see \$ignoredKeyPrefixes).\n";
+}
+
 echo "Output written to: translations-missing.json\n";
 
 // Print per-locale summary

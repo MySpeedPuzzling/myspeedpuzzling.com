@@ -3,15 +3,28 @@
 {% block title %}{{ 'faq.meta.title'|trans }}{% endblock %}
 {% block meta_description %}{{ 'faq.meta.description'|trans }}{% endblock %}
 
-{% block json_ld %}
-{{ parent() }}
+{# Defined at top level so the JSON-LD and the visible accordion below cannot
+   drift apart - they must answer every question identically. #}
 {% set faq_items = ['what_is_speed_puzzling', 'how_long_1000_pieces', 'how_competitions_work', 'fair_play', 'qr', 'add_time_for_missing_puzzle', 'edit_or_delete_time', 'button_start_solving', 'button_add_my_time', 'helping'] %}
+
+{# The 1000-piece answer quotes live community numbers. With no recorded solves
+   to quote we drop the question entirely rather than publish an empty claim -
+   in practice unreachable, production has thousands of 1000-piece solves. #}
+{% if median_1000 is null %}
+    {% set faq_items = faq_items|filter(item => item != 'how_long_1000_pieces') %}
+{% endif %}
+
 {% set faq_params = {
     '%link%': path('my_profile'),
     '%guide_link%': path('guide_what_is_speed_puzzling'),
     '%times_guide_link%': path('guide_puzzle_time_by_pieces'),
     '%events_link%': path('events'),
+    '%median_1000%': median_1000,
+    '%fast_1000%': fast_1000,
 } %}
+
+{% block json_ld %}
+{{ parent() }}
 <script type="application/ld+json">
 {
     "@context": "https://schema.org",
@@ -39,22 +52,16 @@
     {{ 'faq.intro_block'|trans|raw }}
 
     <div class="accordion accordion-faq my-3">
-        {% set faq_body_params = {
-            '%link%': path('my_profile'),
-            '%guide_link%': path('guide_what_is_speed_puzzling'),
-            '%times_guide_link%': path('guide_puzzle_time_by_pieces'),
-            '%events_link%': path('events'),
-        } %}
-        {% for item in ['what_is_speed_puzzling', 'how_long_1000_pieces', 'how_competitions_work', 'fair_play', 'qr', 'add_time_for_missing_puzzle', 'edit_or_delete_time', 'button_start_solving', 'button_add_my_time', 'helping'] %}
+        {% for item in faq_items %}
             <div class="accordion-item my-2 shadow">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#item-{{ item }}" aria-expanded="false" aria-controls="item-{{ item }}">
-                        {{ ('faq.question_' ~ item)|trans(faq_body_params)|raw }}
+                        {{ ('faq.question_' ~ item)|trans(faq_params)|raw }}
                     </button>
                 </h2>
                 <div id="item-{{ item }}" class="accordion-collapse collapse">
                     <div class="accordion-body">
-                        {{ ('faq.answer_' ~ item)|trans(faq_body_params)|raw }}
+                        {{ ('faq.answer_' ~ item)|trans(faq_params)|raw }}
                     </div>
                 </div>
             </div>

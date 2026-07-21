@@ -900,6 +900,10 @@ edit_profile:
     hide_ranking_help: "Your skill tier and Rating ranking will be hidden. You won't appear on the MSP Rating ladder. Your data is still used in calculations for puzzle difficulty and other players' rankings."
     hide_time_predictions: "Hide time predictions"
     hide_time_predictions_help: "Your personal time predictions will be hidden on puzzle pages and time recaps. Turn them off if you just want to enjoy puzzling, without the pressure or disappointment of a predicted time — these are just our magic calculations, we don't want to stress you out!"
+    change_password: "Password"
+    change_password_description: "We'll send you an email with a secure link to set a new password. The link expires after a while, so use it soon."
+    change_password_button: "Send password change email"
+    change_password_social_login: "You sign in through an external account (such as Google or Facebook), so there is no MySpeedPuzzling password to change. You can change your password with your login provider."
 
 puzzle_detail:
     meta:
@@ -972,6 +976,9 @@ flashes:
     competition_leave_success: "You have left the event."
     oauth2_request_fields_required: "Please fill in all required fields."
     oauth2_request_submitted: "Your application request has been submitted. You will be notified by email when it is reviewed."
+    password_change_email_sent: "We've sent you an email with a link to change your password. Please check your inbox."
+    password_change_not_available: "Password change is not available for your account - you sign in through an external provider."
+    password_change_failed: "We're sorry, we could not send the password change email right now. We've been notified, please try again later."
 
 hub:
     title: "Hub"

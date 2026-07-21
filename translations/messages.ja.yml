@@ -834,6 +834,10 @@
   "hide_time_predictions_help": "あなたの個人的なタイム予測がパズルページやタイムの振り返りに表示されなくなります。予測タイムのプレッシャーやがっかりを気にせず、ただパズルを楽しみたい場合はオフにしてください — これはただの魔法のような計算ですので、ストレスをかけたくありません！"
   "hide_streak": "連続記録を非表示"
   "hide_streak_help": "あなたの連続記録が統計ページに表示されなくなります。"
+  "change_password": "パスワード"
+  "change_password_description": "新しいパスワードを設定するための安全なリンクをメールでお送りします。リンクは一定時間で期限切れになりますので、お早めにご利用ください。"
+  "change_password_button": "パスワード変更メールを送信"
+  "change_password_social_login": "外部アカウント（GoogleやFacebookなど）でサインインしているため、変更できるMySpeedPuzzlingのパスワードはありません。パスワードの変更はご利用のログインプロバイダーで行ってください。"
 "puzzle_detail":
   "meta":
     "title": "%brand% %name% – %pieces%ピース"
@@ -888,6 +892,9 @@
   "oauth2_request_submitted": "アプリケーションの申請が送信されました。審査が完了次第、メールでご連絡します。"
   "competition_join_success": "イベントへの参加登録が完了しました！"
   "competition_leave_success": "イベントから退出しました。"
+  "password_change_email_sent": "パスワード変更用のリンクをメールでお送りしました。受信トレイをご確認ください。"
+  "password_change_not_available": "お使いのアカウントではパスワードの変更はご利用いただけません - 外部プロバイダー経由でサインインしています。"
+  "password_change_failed": "申し訳ございませんが、現在パスワード変更メールを送信できませんでした。通知済みですので、後でもう一度お試しください。"
 "hub":
   "title": "ハブ"
   "meta":

@@ -25,6 +25,7 @@ use SpeedPuzzling\Web\Message\EditProfile;
 use SpeedPuzzling\Web\Query\GetOAuth2ClientRequests;
 use SpeedPuzzling\Web\Query\GetPlayerOAuth2Consents;
 use SpeedPuzzling\Web\Query\GetPlayerPersonalAccessTokens;
+use SpeedPuzzling\Web\Services\Auth0DatabaseConnection;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -199,6 +200,7 @@ final class EditProfileController extends AbstractController
             'oauth2_consents' => $oauth2Consents,
             'personal_access_tokens' => $personalAccessTokens,
             'my_applications' => $myApplications,
+            'can_change_password' => Auth0DatabaseConnection::hasPassword($user->getUserIdentifier()),
         ]);
     }
 }

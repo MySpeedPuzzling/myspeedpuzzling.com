@@ -746,6 +746,10 @@
   "last_used_at": "Naposledy použito"
   "revoke_access": "Odvolat"
   "revoke_confirm": "Opravdu chcete odvolat přístup pro tuto aplikaci?"
+  "change_password": "Heslo"
+  "change_password_description": "Pošleme vám e-mail s bezpečným odkazem pro nastavení nového hesla. Platnost odkazu je omezená, využijte ho proto co nejdříve."
+  "change_password_button": "Poslat e-mail pro změnu hesla"
+  "change_password_social_login": "Přihlašujete se přes externí účet (například Google nebo Facebook), takže na MySpeedPuzzling žádné heslo nemáte. Změnit si ho můžete u svého poskytovatele přihlášení."
 "puzzle_detail":
   "meta":
     "title": "%brand% %name% – %pieces% dílků"
@@ -813,6 +817,9 @@
   "oauth2_request_submitted": "Vaše žádost o aplikaci byla odeslána. Až bude posouzena, budete informováni e-mailem."
   "competition_join_success": "Úspěšně jste se přihlásili na událost!"
   "competition_leave_success": "Odhlásili jste se z události."
+  "password_change_email_sent": "Poslali jsme vám e-mail s odkazem pro změnu hesla. Zkontrolujte prosím svou schránku."
+  "password_change_not_available": "Změna hesla není pro váš účet dostupná - přihlašujete se přes externího poskytovatele."
+  "password_change_failed": "Je nám líto, ale e-mail pro změnu hesla se nyní nepodařilo odeslat - přišla nám notifikace. Prosím zkuste to později."
 "hub":
   "title": "Hub"
   "meta":

@@ -491,6 +491,10 @@
   "my_applications": "Mis Aplicaciones"
   "my_applications_description": "Aplicaciones OAuth2 que has registrado."
   "request_api_access": "Solicitar Acceso a la API"
+  "change_password": "Contraseña"
+  "change_password_description": "Te enviaremos un correo con un enlace seguro para establecer una nueva contraseña. El enlace caduca al cabo de un tiempo, así que úsalo pronto."
+  "change_password_button": "Enviar correo para cambiar la contraseña"
+  "change_password_social_login": "Inicias sesión con una cuenta externa (como Google o Facebook), así que no hay ninguna contraseña de MySpeedPuzzling que cambiar. Puedes cambiar tu contraseña desde tu proveedor de inicio de sesión."
 "puzzle_detail":
   "meta":
     "title": "%brand% %name% – %pieces% piezas"
@@ -795,6 +799,9 @@
   "oauth2_request_submitted": "Tu solicitud de aplicación ha sido enviada. Se te notificará por correo electrónico cuando sea revisada."
   "competition_join_success": "¡Te has inscrito exitosamente en el evento!"
   "competition_leave_success": "Has abandonado el evento."
+  "password_change_email_sent": "Te hemos enviado un correo con un enlace para cambiar tu contraseña. Por favor revisa tu bandeja de entrada."
+  "password_change_not_available": "El cambio de contraseña no está disponible para tu cuenta - inicias sesión a través de un proveedor externo."
+  "password_change_failed": "Lo sentimos, no hemos podido enviar el correo para cambiar la contraseña en este momento. Hemos sido notificados, por favor intenta de nuevo más tarde."
 "hub":
   "title": "Hub"
   "meta":

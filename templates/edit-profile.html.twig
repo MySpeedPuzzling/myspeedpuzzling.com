@@ -119,6 +119,26 @@
             </div>
 
             <div class="card card-body shadow-lg my-3">
+                <h3 class="h5">{{ 'edit_profile.change_password'|trans }}</h3>
+
+                {% if can_change_password %}
+                    <p class="text-muted fs-sm mb-3">{{ 'edit_profile.change_password_description'|trans }}</p>
+
+                    <form action="{{ path('request_password_change') }}" method="post">
+                        <input type="hidden" name="_token" value="{{ csrf_token('change_password') }}" />
+
+                        <p class="mb-0">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-key me-1"></i>{{ 'edit_profile.change_password_button'|trans }}
+                            </button>
+                        </p>
+                    </form>
+                {% else %}
+                    <p class="text-muted fs-sm mb-0">{{ 'edit_profile.change_password_social_login'|trans }}</p>
+                {% endif %}
+            </div>
+
+            <div class="card card-body shadow-lg my-3">
                 <h3 class="h5">{{ 'edit_profile.personal_access_tokens'|trans }}</h3>
                 <p class="text-muted fs-sm mb-2">{{ 'edit_profile.personal_access_tokens_description'|trans }}</p>
                 <p class="fs-sm mb-3"><code>Authorization: Token msp_pat_...</code></p>

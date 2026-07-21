@@ -38,6 +38,10 @@ return static function (ContainerConfigurator $configurator): void {
     $parameters->set('stripeWebhookSecret', '%env(STRIPE_WEBHOOK_SECRET)%');
     $parameters->set('bounceEmailDomain', '%env(BOUNCE_EMAIL_DOMAIN)%');
 
+    $parameters->set('auth0Domain', '%env(trim:string:AUTH0_DOMAIN)%');
+    $parameters->set('auth0ClientId', '%env(trim:string:AUTH0_CLIENT_ID)%');
+    $parameters->set('auth0DatabaseConnection', '%env(trim:string:AUTH0_DB_CONNECTION)%');
+
     $services = $configurator->services();
 
     $services->defaults()
@@ -50,7 +54,10 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$puzzlePuzzleUsername', '%puzzlePuzzleUsername%')
         ->bind('$puzzlePuzzlePassword', '%puzzlePuzzlePassword%')
         ->bind('$entrypointsPath', '%kernel.project_dir%/public/build/entrypoints.json')
-        ->bind('$bounceEmailDomain', '%bounceEmailDomain%');
+        ->bind('$bounceEmailDomain', '%bounceEmailDomain%')
+        ->bind('$auth0Domain', '%auth0Domain%')
+        ->bind('$auth0ClientId', '%auth0ClientId%')
+        ->bind('$auth0DatabaseConnection', '%auth0DatabaseConnection%');
 
     $services->set(PdoSessionHandler::class)
         ->args([

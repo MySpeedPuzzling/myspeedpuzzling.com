@@ -726,6 +726,10 @@
   "hide_time_predictions_help": "Deine persönlichen Zeitvorhersagen werden auf Puzzle-Seiten und in Zeit-Zusammenfassungen ausgeblendet. Schalte sie aus, wenn du einfach nur Spaß am Puzzeln haben möchtest, ohne den Druck oder die Enttäuschung einer vorhergesagten Zeit — das sind nur unsere magischen Berechnungen, wir wollen dich nicht stressen!"
   "hide_streak": "Meine Serie ausblenden"
   "hide_streak_help": "Deine Serie wird nicht auf deiner Statistikseite angezeigt."
+  "change_password": "Passwort"
+  "change_password_description": "Wir senden Ihnen eine E-Mail mit einem sicheren Link, über den Sie ein neues Passwort festlegen können. Der Link ist nur begrenzte Zeit gültig, nutzen Sie ihn also bald."
+  "change_password_button": "E-Mail zur Passwortänderung senden"
+  "change_password_social_login": "Sie melden sich über ein externes Konto an (z. B. Google oder Facebook), daher gibt es kein MySpeedPuzzling-Passwort, das geändert werden könnte. Ihr Passwort können Sie bei Ihrem Anmeldeanbieter ändern."
 "puzzle_detail":
   "meta":
     "title": "%brand% %name% – %pieces% Teile"
@@ -793,6 +797,9 @@
   "oauth2_request_submitted": "Ihr Anwendungsantrag wurde eingereicht. Sie werden per E-Mail benachrichtigt, wenn er geprüft wurde."
   "competition_join_success": "Sie haben sich erfolgreich für die Veranstaltung angemeldet!"
   "competition_leave_success": "Sie haben die Veranstaltung verlassen."
+  "password_change_email_sent": "Wir haben Ihnen eine E-Mail mit einem Link zum Ändern Ihres Passworts geschickt. Bitte schauen Sie in Ihr Postfach."
+  "password_change_not_available": "Die Passwortänderung ist für Ihr Konto nicht verfügbar - Sie melden sich über einen externen Anbieter an."
+  "password_change_failed": "Es tut uns leid, wir konnten die E-Mail zur Passwortänderung gerade nicht senden. Wir wurden benachrichtigt, bitte versuchen Sie es später erneut."
 "hub":
   "title": "Hub"
   "meta":

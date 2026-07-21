@@ -729,6 +729,10 @@
   "hide_time_predictions_help": "Vos prédictions de temps personnelles seront masquées sur les pages des puzzles et les récapitulatifs de temps. Désactivez-les si vous voulez simplement profiter du puzzle, sans la pression ou la déception d'un temps prédit — ce ne sont que nos calculs magiques, nous ne voulons pas vous stresser !"
   "hide_streak": "Masquer ma série"
   "hide_streak_help": "Votre série ne sera pas affichée sur votre page de statistiques."
+  "change_password": "Mot de passe"
+  "change_password_description": "Nous vous enverrons un e-mail contenant un lien sécurisé pour définir un nouveau mot de passe. Ce lien expire au bout d'un certain temps, utilisez-le donc rapidement."
+  "change_password_button": "Envoyer l'e-mail de changement de mot de passe"
+  "change_password_social_login": "Vous vous connectez via un compte externe (Google ou Facebook, par exemple), il n'y a donc aucun mot de passe MySpeedPuzzling à changer. Vous pouvez modifier votre mot de passe auprès de votre fournisseur de connexion."
 "puzzle_detail":
   "meta":
     "title": "%brand% %name% – %pieces% pièces"
@@ -796,6 +800,9 @@
   "oauth2_request_submitted": "Votre demande d'application a été soumise. Vous serez notifié par e-mail une fois qu'elle aura été examinée."
   "competition_join_success": "Vous vous êtes inscrit à l'événement avec succès !"
   "competition_leave_success": "Vous avez quitté l'événement."
+  "password_change_email_sent": "Nous vous avons envoyé un e-mail contenant un lien pour changer votre mot de passe. Vérifiez votre boîte de réception."
+  "password_change_not_available": "Le changement de mot de passe n'est pas disponible pour votre compte - vous vous connectez via un fournisseur externe."
+  "password_change_failed": "Nous sommes désolés, nous n'avons pas pu envoyer l'e-mail de changement de mot de passe pour le moment. Nous avons été notifiés, veuillez réessayer plus tard."
 "hub":
   "title": "Centre"
   "meta":

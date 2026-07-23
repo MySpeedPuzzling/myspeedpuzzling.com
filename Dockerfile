@@ -29,6 +29,11 @@ RUN npm run build
 
 COPY . .
 
+# Need to run again to trigger scripts with application code present.
+# Runs before the pre-compression step because assets:install creates
+# public/bundles, which does not exist in the repo.
+RUN composer install --no-dev --no-interaction --classmap-authoritative
+
 # Pre-compress static assets at maximum quality for Caddy's precompressed file_server.
 # Brotli q11 is ~10-17% smaller than on-the-fly q5-6, with zero serving CPU overhead.
 # Scoped to the directories Caddy actually serves with `precompressed` -
@@ -37,15 +42,13 @@ RUN find public/build public/bundles public/css public/fonts public/img -type f 
         -exec brotli -q 11 --keep {} \; \
         -exec gzip -9 --keep {} \;
 
-# Carry the previous release's hashed build assets (incl. precompressed siblings)
-# so both HTML generations resolve during blue-green rollout - capped at one
-# generation back (see .docker/merge-previous-build.php)
+# Carry the previous release's hashed build assets (incl. their precompressed
+# siblings, so they are not recompressed here) so both HTML generations
+# resolve during blue-green rollout - capped at one generation back
+# (see .docker/merge-previous-build.php)
 COPY --from=previous-release /app/public/build /tmp/previous-build
 RUN php .docker/merge-previous-build.php /tmp/previous-build public/build \
         && rm -rf /tmp/previous-build
-
-# Need to run again to trigger scripts with application code present
-RUN composer install --no-dev --no-interaction --classmap-authoritative
 
 ARG APP_VERSION
 ENV SENTRY_RELEASE="${APP_VERSION}"

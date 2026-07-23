@@ -17,4 +17,9 @@ final class TestMailerSpy implements MailerInterface
     {
         $this->sent[] = $message;
     }
+
+    public function sentCount(): int
+    {
+        return count($this->sent);
+    }
 }

@@ -14,9 +14,11 @@ use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
+use SpeedPuzzling\Web\Query\GetXpEntriesForSolve;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\EditTimeReturnContext;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -42,6 +44,8 @@ final class EditTimeController extends AbstractController
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private TranslatorInterface $translator,
         readonly private GetFavoritePlayers $getFavoritePlayers,
+        readonly private GetXpEntriesForSolve $getXpEntriesForSolve,
+        readonly private XpFeatureGate $xpFeatureGate,
     ) {
     }
 
@@ -166,6 +170,10 @@ final class EditTimeController extends AbstractController
             'return_context' => $context->value,
             'return_url' => $this->resolveReturnUrl($context, $solvedPuzzle),
             'return_title' => $this->resolveReturnTitle($context, $solvedPuzzle),
+            // Delete dialog warning: how much XP disappears with this solve (0 = hide line).
+            'xp_delete_warning' => $this->xpFeatureGate->isVisibleFor($player)
+                ? max($this->getXpEntriesForSolve->totalForPlayerAndSolvingTime($player->playerId, $timeId), 0)
+                : 0,
         ];
 
         if ($isModalRequest) {

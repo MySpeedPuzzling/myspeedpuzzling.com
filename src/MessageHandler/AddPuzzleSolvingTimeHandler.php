@@ -13,6 +13,8 @@ use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -22,6 +24,7 @@ use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class AddPuzzleSolvingTimeHandler
@@ -37,6 +40,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private CompetitionRoundRepository $competitionRoundRepository,
         private ImageOptimizer $imageOptimizer,
         private MistypedYearNormalizer $mistypedYearNormalizer,
+        private MessageBusInterface $commandBus,
     ) {
     }
 
@@ -115,5 +119,8 @@ readonly final class AddPuzzleSolvingTimeHandler
         );
 
         $this->entityManager->persist($solvingTime);
+
+        $this->commandBus->dispatch(new RecalculateBadgesForPlayer($player->id->toString()));
+        $this->commandBus->dispatch(new AwardXpForSolvingTime($solvingTimeId->toString()));
     }
 }

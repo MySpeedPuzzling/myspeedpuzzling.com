@@ -8,6 +8,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
+use Doctrine\ORM\Mapping\Index;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
@@ -18,11 +19,14 @@ use SpeedPuzzling\Web\Exceptions\PlayerIsAlreadyInFavorites;
 use SpeedPuzzling\Web\Exceptions\PlayerIsNotInFavorites;
 use SpeedPuzzling\Web\Doctrine\SellSwapListSettingsDoctrineType;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
+use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
 use DateTimeImmutable;
 
 #[Entity]
+#[Index(columns: ['xp_total'])]
+#[Index(columns: ['achievement_points'])]
 class Player
 {
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
@@ -145,6 +149,10 @@ class Player
     public bool $newsletterEnabled = true;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, enumType: ContentDigestFrequency::class, options: ['default' => 'weekly'])]
+    public ContentDigestFrequency $contentDigestFrequency = ContentDigestFrequency::Weekly;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::BOOLEAN, options: ['default' => false])]
     public bool $streakOptedOut = false;
 
@@ -167,6 +175,27 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::BOOLEAN, options: ['default' => false])]
     public bool $referralProgramSuspended = false;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::INTEGER, options: ['default' => 0])]
+    public int $xpTotal = 0;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::SMALLINT, options: ['default' => 1])]
+    public int $level = 1;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+    public bool $experienceSystemOptedOut = false;
+
+    /**
+     * Denormalized Achievement Points — SUM of BadgeTier::points() over every earned
+     * badge row. Maintained (and self-healed on each evaluation) by BadgeEvaluator,
+     * the only badge write path; AP never decreases by design.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::INTEGER, options: ['default' => 0])]
+    public int $achievementPoints = 0;
 
     public function __construct(
         #[Id]
@@ -244,6 +273,14 @@ class Player
         unset($this->favoritePlayers[$key]);
 
         $this->favoritePlayers = array_values($this->favoritePlayers);
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function favoritePlayerIds(): array
+    {
+        return $this->favoritePlayers;
     }
 
     public function discardFavoritePlayerId(string $playerId): bool
@@ -383,6 +420,11 @@ class Player
         $this->newsletterEnabled = $enabled;
     }
 
+    public function changeContentDigestFrequency(ContentDigestFrequency $frequency): void
+    {
+        $this->contentDigestFrequency = $frequency;
+    }
+
     public function changeStreakOptedOut(bool $optedOut): void
     {
         $this->streakOptedOut = $optedOut;
@@ -396,6 +438,30 @@ class Player
     public function changeTimePredictionsOptedOut(bool $optedOut): void
     {
         $this->timePredictionsOptedOut = $optedOut;
+    }
+
+    public function changeExperienceSystemOptedOut(bool $optedOut): void
+    {
+        $this->experienceSystemOptedOut = $optedOut;
+    }
+
+    /**
+     * Called exclusively by the XP ledger — xpTotal must always equal the sum of the
+     * player's xp_entry amounts, and level must match LevelTable::levelForXp(xpTotal).
+     */
+    public function updateExperience(int $xpTotal, int $level): void
+    {
+        $this->xpTotal = $xpTotal;
+        $this->level = $level;
+    }
+
+    /**
+     * Called exclusively by BadgeEvaluator with the absolute recomputed total —
+     * setting (not incrementing) makes every evaluation run self-healing.
+     */
+    public function updateAchievementPoints(int $achievementPoints): void
+    {
+        $this->achievementPoints = $achievementPoints;
     }
 
     public function joinReferralProgram(DateTimeImmutable $now): void

@@ -1,0 +1,140 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'xp.explainer.title'|trans }}{% endblock %}
+
+{% block content %}
+    <!-- COPY:pending-jan-approval -->
+    <div class="col-lg-8 mx-auto">
+        <h1 class="mb-3">{{ 'xp.explainer.title'|trans }}</h1>
+        <p class="lead mb-4">{{ 'xp.explainer.intro'|trans }}</p>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-bar-chart-line me-2 text-primary"></i>{{ 'xp.explainer.currencies.heading'|trans }}</h2>
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col">{{ 'xp.explainer.currencies.header_what'|trans }}</th>
+                                <th scope="col">{{ 'xp.explainer.currencies.header_measures'|trans }}</th>
+                                <th scope="col">{{ 'xp.explainer.currencies.header_who'|trans }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th scope="row">{{ 'xp.explainer.currencies.xp_name'|trans }}</th>
+                                <td>{{ 'xp.explainer.currencies.xp_measures'|trans }}</td>
+                                <td>{{ 'xp.explainer.currencies.xp_who'|trans }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">{{ 'xp.explainer.currencies.ap_name'|trans }}</th>
+                                <td>{{ 'xp.explainer.currencies.ap_measures'|trans }}</td>
+                                <td>{{ 'xp.explainer.currencies.ap_who'|trans }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">{{ 'xp.explainer.currencies.rating_name'|trans }}</th>
+                                <td>{{ 'xp.explainer.currencies.rating_measures'|trans }}</td>
+                                <td>{{ 'xp.explainer.currencies.rating_who'|trans }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p>{{ 'xp.explainer.currencies.never_bought'|trans }}</p>
+                <p class="mb-0">{{ 'xp.explainer.currencies.unlock_nothing'|trans }}</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-receipt me-2 text-primary"></i>{{ 'xp.explainer.how.heading'|trans }}</h2>
+                <p>{{ 'xp.explainer.how.intro'|trans }}</p>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">{{ 'xp.explainer.how.base'|trans|raw }}</li>
+                    <li class="mb-2">{{ 'xp.explainer.how.difficulty'|trans|raw }}</li>
+                    <li class="mb-2">{{ 'xp.explainer.how.team'|trans|raw }}</li>
+                    <li class="mb-2">{{ 'xp.explainer.how.unboxed'|trans|raw }}</li>
+                    <li class="mb-2">{{ 'xp.explainer.how.repeat'|trans|raw }}</li>
+                    <li class="mb-2">{{ 'xp.explainer.how.speed'|trans|raw }}</li>
+                    <li class="mb-2">{{ 'xp.explainer.how.weekly'|trans|raw }}</li>
+                    <li class="mb-0">{{ 'xp.explainer.how.daily'|trans|raw }}</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-calculator me-2 text-primary"></i>{{ 'xp.explainer.example.heading'|trans }}</h2>
+                <p>{{ 'xp.explainer.example.body'|trans }}</p>
+                <p class="bg-secondary rounded px-3 py-2 mb-0">{{ 'xp.explainer.example.math'|trans|raw }}</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-hourglass-split me-2 text-primary"></i>{{ 'xp.explainer.unrated.heading'|trans }}</h2>
+                <p class="mb-0">{{ 'xp.explainer.unrated.body'|trans }}</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-award me-2 text-primary"></i>{{ 'xp.explainer.achievements.heading'|trans }}</h2>
+                <p class="mb-0">{{ 'xp.explainer.achievements.body'|trans }}</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-graph-up me-2 text-primary"></i>{{ 'xp.explainer.levels.heading'|trans }}</h2>
+                <div class="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-3 mb-3">
+                    {% for column in levels|batch(10) %}
+                        <div class="col">
+                            <table class="table table-sm table-striped text-center mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">{{ 'xp.explainer.levels.header_level'|trans }}</th>
+                                        <th scope="col">{{ 'xp.explainer.levels.header_xp'|trans }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for level, xp in column %}
+                                        <tr>
+                                            <td>{{ level }}</td>
+                                            <td>{{ xp }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endfor %}
+                </div>
+                <p class="mb-0">{{ 'xp.explainer.levels.summit'|trans }}</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-arrow-counterclockwise me-2 text-primary"></i>{{ 'xp.explainer.lose.heading'|trans }}</h2>
+                <p class="mb-0">{{ 'xp.explainer.lose.body'|trans }}</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-question-circle me-2 text-primary"></i>{{ 'xp.explainer.faq.heading'|trans }}</h2>
+
+                <h3 class="h6">{{ 'xp.explainer.faq.old_solves_question'|trans }}</h3>
+                <p>{{ 'xp.explainer.faq.old_solves_answer'|trans }}</p>
+
+                <h3 class="h6 mt-4">{{ 'xp.explainer.faq.opt_out_question'|trans }}</h3>
+                <p>{{ 'xp.explainer.faq.opt_out_answer'|trans }}</p>
+
+                <h3 class="h6 mt-4">{{ 'xp.explainer.faq.friend_question'|trans }}</h3>
+                <p>{{ 'xp.explainer.faq.friend_answer'|trans }}</p>
+
+                <h3 class="h6 mt-4">{{ 'xp.explainer.faq.fair_play_question'|trans }}</h3>
+                <p class="mb-0">{{ 'xp.explainer.faq.fair_play_answer'|trans({'%fair_play_link%': path('xp_fair_play')})|raw }}</p>
+            </div>
+        </div>
+    </div>
+{% endblock %}

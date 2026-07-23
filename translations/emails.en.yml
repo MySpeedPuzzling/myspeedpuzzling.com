@@ -148,3 +148,51 @@ feature_request_declined:
             <p>Thanks for supporting the idea anyway! Your input helps us understand what the community cares about.</p>
         admin_comment: |
             <p><strong>Comment from the team:</strong> %adminComment%</p>
+
+badges_earned:
+    subject: "You earned new badges on MySpeedPuzzling!"
+    title: "%count% new badge(s) earned!"
+    intro: "Congratulations! You've reached new milestones on MySpeedPuzzling."
+    cta: |
+        <p><a href="%badgesUrl%" class="link-underline">See all your badges and your progress toward the next ones</a>.</p>
+    outro: "Keep puzzling — more achievements are waiting to be unlocked!"
+
+content_digest:
+    weekly:
+        subject: "Your week in puzzling 🧩"
+        subject_quiet: "A quiet puzzle week — we saved you a seat"
+        greeting: "Hi %name%, here is your week in puzzling!"
+        greeting_anonymous: "Hi puzzler, here is your week in puzzling!"
+        xp_title: "Your XP this week"
+        xp_gained: "+%xp% XP earned"
+        levels_gained: "{1}you climbed 1 level, now Level %level%!|]1,Inf[you climbed %count% levels, now Level %level%!"
+        achievements_intro: "{1}You earned 1 new achievement:|]1,Inf[You earned %count% new achievements:"
+        achievements_teaser: "{1}1 new achievement is waiting for you — become a member to reveal it!|]1,Inf[%count% new achievements are waiting for you — become a member to reveal them!"
+        numbers_title: "Your week in numbers"
+        numbers_line: "{1}1 solve|]1,Inf[%solves% solves — %pieces% pieces placed."
+        numbers_minutes: "About %minutes% minutes of pure puzzling."
+        numbers_previous: "Last week: %solves% solves, %pieces% pieces."
+        streak_line: "You are on a %days%-day streak — beautifully steady!"
+        no_activity_line_1: "We haven't seen a solve from you this week — and that's perfectly fine, life happens."
+        no_activity_line_2: "Whenever you're ready, a puzzle is always a good idea. Your next piece is waiting. 🧩"
+        favorites_title: "Your favorite puzzlers were busy"
+        favorites_line: "{1}%name% logged 1 solve|]1,Inf[%name% logged %count% solves"
+        next_achievements_title: "Within your reach"
+        community_title: "Around the community"
+        most_solved_line: "Most solved puzzle of the week: %puzzle% (%solvers% puzzlers)."
+        footer_settings: "You get this digest weekly. Adjust it anytime in your <a href=\"%settingsUrl%\">notification settings</a>."
+        footer_unsubscribe: "One click and it stops: <a href=\"%unsubscribeUrl%\">unsubscribe from the digest</a>."
+
+xp_reveal:
+    subject: "Your whole puzzling journey just turned into XP ✨"
+    greeting: "Hi %name%, something lovely happened!"
+    greeting_anonymous: "Hi puzzler, something lovely happened!"
+    intro: "MySpeedPuzzling now celebrates your activity with XP and levels — and every puzzle you ever logged already counts. No setup, no catch: here is what your history is worth."
+    level_line: "Level %level%"
+    xp_line: "%xp% XP earned across your whole puzzling history"
+    achievements_member: "{1}Plus 1 achievement is already on your profile!|]1,Inf[Plus %count% achievements are already on your profile!"
+    achievements_teaser: "{1}And 1 achievement is quietly waiting for you.|]1,Inf[And %count% achievements are quietly waiting for you."
+    cta: |
+        <p style="text-align: center;"><a href="%revealUrl%" class="link-underline"><strong>See your reveal moment</strong></a></p>
+    outro: "Levels never gate anything and XP can never be bought — it is simply your puzzling story, celebrated. See you at the table! 🧩"
+    explainer: 'Curious about the details? <a href="%explainerUrl%">How XP &amp; Levels work</a>.'

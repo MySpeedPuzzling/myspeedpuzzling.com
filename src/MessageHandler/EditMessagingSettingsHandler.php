@@ -28,5 +28,9 @@ readonly final class EditMessagingSettingsHandler
         $player->changeEmailNotificationsEnabled($message->emailNotificationsEnabled);
         $player->changeEmailNotificationFrequency($message->emailNotificationFrequency);
         $player->changeNewsletterEnabled($message->newsletterEnabled);
+
+        if ($message->contentDigestFrequency !== null) {
+            $player->changeContentDigestFrequency($message->contentDigestFrequency);
+        }
     }
 }

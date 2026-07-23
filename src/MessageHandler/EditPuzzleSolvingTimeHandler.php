@@ -13,6 +13,8 @@ use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
+use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
@@ -21,6 +23,7 @@ use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class EditPuzzleSolvingTimeHandler
@@ -34,6 +37,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         private CompetitionRepository $competitionRepository,
         private ImageOptimizer $imageOptimizer,
         private MistypedYearNormalizer $mistypedYearNormalizer,
+        private MessageBusInterface $commandBus,
     ) {
     }
 
@@ -110,5 +114,9 @@ readonly final class EditPuzzleSolvingTimeHandler
             $message->unboxed,
             competition: $competition,
         );
+
+        $this->commandBus->dispatch(new RecalculateBadgesForPlayer($currentPlayer->id->toString()));
+        // Edit is semantically delete+re-add for XP — rebuild the affected chains.
+        $this->commandBus->dispatch(new RecalculateXpChainForSolve($message->puzzleSolvingTimeId));
     }
 }

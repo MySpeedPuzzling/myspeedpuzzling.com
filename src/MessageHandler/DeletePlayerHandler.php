@@ -32,6 +32,7 @@ use SpeedPuzzling\Web\Entity\Stopwatch;
 use SpeedPuzzling\Web\Entity\TransactionRating;
 use SpeedPuzzling\Web\Entity\UserBlock;
 use SpeedPuzzling\Web\Entity\WishListItem;
+use SpeedPuzzling\Web\Entity\XpEntry;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\DeletePlayer;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -238,6 +239,8 @@ final class DeletePlayerHandler
         $em->createQuery('DELETE FROM ' . CollectionItem::class . ' ci WHERE ci.player = :p')->setParameter('p', $playerId)->execute();
         $em->createQuery('DELETE FROM ' . Collection::class . ' c WHERE c.player = :p')->setParameter('p', $playerId)->execute();
         $em->createQuery('DELETE FROM ' . Badge::class . ' b WHERE b.player = :p')->setParameter('p', $playerId)->execute();
+        // xp_entry references players via a plain uuid column (no FK) — clean up explicitly.
+        $em->createQuery('DELETE FROM ' . XpEntry::class . ' x WHERE x.playerId = :p')->setParameter('p', $playerId)->execute();
     }
 
     private function deleteUserBlocks(string $playerId): void

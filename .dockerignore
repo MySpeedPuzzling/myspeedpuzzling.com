@@ -15,6 +15,14 @@ node_modules/
 var/
 public/build/
 
+.git
+android/
+ios/
+docs/
+.claude/
+CLAUDE.md
+tools/
+
 compose.yml
 compose.override.yml
 phpstan.neon

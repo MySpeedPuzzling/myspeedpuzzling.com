@@ -7,9 +7,12 @@ FROM ghcr.io/myspeedpuzzling/web-base-php85:main
 
 ENV APP_ENV="prod" \
     APP_DEBUG=0 \
-    PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
+    PHP_OPCACHE_VALIDATE_TIMESTAMPS=0 \
+    PHP_ZEND_ASSERTIONS=-1
 
-RUN rm $PHP_INI_DIR/conf.d/docker-php-ext-xdebug.ini
+# Remove Xdebug entirely from the production image (the base ships it
+# disabled behind XDEBUG_MODE, but prod should not even carry the ini)
+RUN rm -f $PHP_INI_DIR/conf.d/docker-php-ext-xdebug.ini $PHP_INI_DIR/conf.d/docker-php-ext-xdebug.ini.disabled
 
 COPY .docker/on-startup.sh /docker-entrypoint.d/
 
@@ -28,7 +31,9 @@ COPY . .
 
 # Pre-compress static assets at maximum quality for Caddy's precompressed file_server.
 # Brotli q11 is ~10-17% smaller than on-the-fly q5-6, with zero serving CPU overhead.
-RUN find public -type f \( -name '*.js' -o -name '*.css' -o -name '*.svg' \) \
+# Scoped to the directories Caddy actually serves with `precompressed` -
+# siblings anywhere else are dead weight the file server never uses.
+RUN find public/build public/bundles public/css public/fonts public/img -type f \( -name '*.js' -o -name '*.css' -o -name '*.svg' \) \
         -exec brotli -q 11 --keep {} \; \
         -exec gzip -9 --keep {} \;
 

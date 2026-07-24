@@ -136,6 +136,7 @@ This is a speed puzzling community website built using **Domain-Driven Design** 
 #### State-Changing Operations Pattern
 - **All logic that changes application state MUST go through Symfony Messenger handlers** — controllers and console commands only dispatch messages, they never contain business logic
 - **Repositories NEVER call `flush()`** — they only `persist()`. Flush is handled by the `doctrine_transaction` Messenger middleware which wraps each handler in a transaction
+- **Never extend Doctrine's `ServiceEntityRepository`/`EntityRepository`** — repositories are plain `readonly` classes wrapping `EntityManagerInterface`. When a third-party bundle expects its own repository contract (e.g. SymfonyCasts' `ResetPasswordRequestRepositoryInterface`), implement the interface methods directly on a plain repository class instead of extending `ServiceEntityRepository` or using the bundle's repository trait
 - **Console commands dispatch messages** — the command parses input and dispatches a message, the handler contains the logic. Tests test the handler directly, not the command
 - **Use `ClockInterface`** instead of `new \DateTimeImmutable()` — enables deterministic time in tests
 

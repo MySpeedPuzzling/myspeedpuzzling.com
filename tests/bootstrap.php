@@ -179,6 +179,9 @@ function createCustomIndexes(): void
     // Chat message unread optimization (Version20260212002500)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_chat_message_unread ON chat_message (conversation_id, sender_id) WHERE read_at IS NULL');
 
+    // Case-insensitive unique email for native auth (Version20260724073022)
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_user_account_email_lower ON user_account (lower(email))');
+
 }
 
 /**

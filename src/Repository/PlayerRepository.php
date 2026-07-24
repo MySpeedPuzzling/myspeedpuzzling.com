@@ -73,6 +73,14 @@ readonly class PlayerRepository
         }
     }
 
+    public function findByUserId(string $userId): null|Player
+    {
+        return $this->entityManager->getRepository(Player::class)
+            ->findOneBy([
+                'userId' => $userId,
+            ]);
+    }
+
     /**
      * @throws PlayerNotFound
      */

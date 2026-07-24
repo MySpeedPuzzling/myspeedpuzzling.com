@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\EmailAlreadyRegistered;
 use SpeedPuzzling\Web\Exceptions\UserAccountNotFound;
 use SpeedPuzzling\Web\Message\ChangeAccountEmail;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\ResetPasswordRequestRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -31,6 +32,7 @@ final readonly class ChangeAccountEmailHandler
     public function __construct(
         private UserAccountRepository $userAccountRepository,
         private PlayerRepository $playerRepository,
+        private ResetPasswordRequestRepository $resetPasswordRequestRepository,
         private UserPasswordHasherInterface $passwordHasher,
     ) {
     }
@@ -76,6 +78,12 @@ final readonly class ChangeAccountEmailHandler
         }
 
         $userAccount->changeEmail($newEmail);
+
+        // A reset link already on its way to the OLD address must die with it. Losing
+        // control of that mailbox is one of the reasons people change their address,
+        // and reset tokens are bound to the account rather than to the address - so
+        // without this, whoever holds the old inbox keeps an hour-long way back in.
+        $this->resetPasswordRequestRepository->removeAllForUserAccount($userAccount);
 
         // The player row carries its own copy - it is what notification emails are sent
         // to - so the two must not drift apart

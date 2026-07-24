@@ -42,7 +42,10 @@ final class PasswordResetController extends AbstractController
     #[Route(
         path: '/password-reset/{token}',
         name: 'password_reset',
-        requirements: ['token' => '[0-9a-f]{64}'],
+        // Deliberately looser than the token's real shape (64 hex chars): a link the
+        // mail client wrapped or truncated should reach the controller and get the
+        // "this link does not work, here is a new one" page, not a bare 404
+        requirements: ['token' => '[0-9a-zA-Z]{1,128}'],
         defaults: [NativeAuthPageSubscriber::ROUTE_DEFAULT => true],
         methods: ['GET', 'POST'],
     )]

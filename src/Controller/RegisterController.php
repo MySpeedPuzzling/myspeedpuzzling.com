@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\FormData\RegistrationFormData;
 use SpeedPuzzling\Web\FormType\RegistrationFormType;
 use SpeedPuzzling\Web\Message\RegisterUser;
 use SpeedPuzzling\Web\Message\SendEmailVerificationLink;
+use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
 use SpeedPuzzling\Web\Security\UserAccountProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -116,8 +117,13 @@ final class RegisterController extends AbstractController
             // Straight into the session: the account was just created with a password
             // the visitor chose. Verification gates nothing (D7) - it is asked for by
             // email, never enforced here.
+            //
+            // The authenticator must be named: through window A the `main` firewall
+            // carries LoginFormAuthenticator, the Auth0 authenticator and the login
+            // link, and Security::login() refuses to guess between them.
             $this->security->login(
                 $this->userAccountProvider->loadUserByIdentifier($userId),
+                authenticatorName: LoginFormAuthenticator::class,
                 firewallName: 'main',
             );
 

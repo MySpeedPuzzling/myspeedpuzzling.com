@@ -50,14 +50,14 @@ Sequencing matters: signups are frozen at Stage A, so a single export generated 
 
 ### 2a. Data model
 
-- [ ] `UserAccount` entity per README spec (`user_id` unique, `email` unique lower-indexed, nullable `password`, `email_verified_at`, `legacy_auth0` flag, timestamps). Generated migration (never hand-written, per project rules).
-- [ ] `reset_password_request` table (bundle-generated migration).
-- [ ] Future-proofing guardrails only, no social tables now (README §Auth-method extensibility): provider-agnostic `user_id` (`msp|<uuid7>`), password on `user_account`, unique email.
-- [ ] Import command: `myspeedpuzzling:import-auth0-users <bulk-export.ndjson> <hash-export.ndjson>` — parses/joins, dispatches `ImportAuth0User` messages (batch); handler upserts `UserAccount` keyed on `user_id` (never email), bcrypt hash as-is, `email_verified_at` from flag, `legacy_auth0 = true`, backfills `player.email`/`player.name` where NULL. Idempotent — re-runnable with fresh exports. Tests test the handler directly.
+- [x] `UserAccount` entity per README spec (`user_id` unique, `email` unique lower-indexed, nullable `password`, `email_verified_at`, `legacy_auth0` flag, timestamps). Generated migration (never hand-written, per project rules).
+- [x] `reset_password_request` table — own split-token implementation (decision 2026-07-24: `symfonycasts/reset-password-bundle` dropped, its repository contract flushes inside repositories and fights the CQRS rules). Entity + `PasswordResetToken` value object + `RequestPasswordReset`/`ResetPassword` handlers + `ValidatePasswordResetToken` service, generated migration, handler tests. UI/email = 2c.
+- [x] Future-proofing guardrails only, no social tables now (README §Auth-method extensibility): provider-agnostic `user_id` (`msp|<uuid7>`), password on `user_account`, unique email.
+- [x] Import command: `myspeedpuzzling:import-auth0-users <bulk-export.ndjson> <hash-export.ndjson>` — parses/joins, dispatches `ImportAuth0User` messages (batch); handler upserts `UserAccount` keyed on `user_id` (never email), bcrypt hash as-is, `email_verified_at` from flag, `legacy_auth0 = true`, backfills `player.email`/`player.name` where NULL. Idempotent — re-runnable with fresh exports. Tests test the handler directly.
 
 ### 2b. Security plumbing
 
-- [ ] `config/packages/security.php`: `password_hashers` for `UserAccount` → `algorithm: 'argon2id'`, `migrate_from: ['bcrypt']`.
+- [x] `config/packages/security.php`: `password_hashers` for `UserAccount` → `algorithm: 'argon2id'`, `migrate_from: ['bcrypt']`. *(Pulled forward into the 2a slice — the native `ResetPasswordHandler` needs the hasher.)*
 - [ ] `UserAccountProvider`: `loadUserByIdentifier()` resolves the **`user_id` string** (session refresh + remember-me + login-link path). Implements `PasswordUpgraderInterface` — `upgradePassword()` persists + flushes (documented exception to the no-flush rule, D10).
 - [ ] `LoginFormAuthenticator extends AbstractLoginFormAuthenticator` — the **single** password authenticator:
   - `UserBadge($email, loader-by-email)` — badge identifier is the email, user identifier stays `user_id`.
@@ -78,8 +78,8 @@ Sequencing matters: signups are frozen at Stage A, so a single export generated 
 - [ ] **Cutover explainer modal** (D15, UX funnel §2): one-time auto-modal on the login page when `native_login` is on; localStorage-dismissed (works for anonymous); content per communication-plan. Respect the existing modal/Turbo patterns (`.claude/symfony-ux-hotwire-architecture-guide.md`).
 - [ ] Site-wide dismissable banner (T-7d "coming" wording → Stage B "changed" wording → removed ~B+4w). Reuse the hint-dismissing pattern for logged-in users where it fits; localStorage for anonymous.
 - [ ] Registration: form → `RegisterUser` command → handler creates `UserAccount` (`msp|<uuid7>`) + `Player` atomically; password `Compound` constraint (`NotBlank`, `Length(min: 12)`, `PasswordStrength`, `NotCompromisedPassword(skipOnError: true)`); verification email; programmatic login via `Security::login()`.
-- [ ] Email verification: `symfonycasts/verify-email-bundle` ≥1.18, anonymous-validation mode.
-- [ ] Password reset: `symfonycasts/reset-password-bundle` ≥1.24; keep fake-token anti-enumeration; invalidate other reset requests after success.
+- [ ] Email verification flow (UI + email) on top of the native domain layer already built (decision 2026-07-24: no auth bundles — `verify-email-bundle` dropped like the reset bundle; stateless HMAC token via `EmailVerificationTokenSigner` binds `user_id` + email + 24h expiry, `VerifyEmail` handler is idempotent, anonymous-validation works since the token is self-contained, and a link dies when the address changes — `UserAccount::changeEmail()` also resets `email_verified_at` for the change-email flow below).
+- [ ] Password reset flow (UI + email) on top of the native domain layer built in 2a (`RequestPasswordReset` returns the token to send, or null for unknown/throttled — respond identically in both cases for anti-enumeration; `ResetPassword` consumes the token and invalidates all other open requests). No bundle (decision 2026-07-24).
 - [ ] Magic login link: `login_link` config + rate-limited "email me a link" endpoint; **live from Stage A** (rescues window-A native registrants who log out).
 - [ ] **Post-magic-link password setup** (UX funnel §5): after link login on a `legacy_auth0` account, one-time skippable prompt — `autocomplete="new-password"` field + "Suggest strong password" button that fills the field (editable/copyable, NOT readonly). Skipping keeps the old password.
 - [ ] Change password (native): current password + new password on profile settings — **replaces the #161 Auth0 flow at Stage B** (swap the edit-profile "Password" card action; remove `RequestPasswordChangeController`, `RequestPasswordChangeHandler`, `Services/Auth0DatabaseConnection`, `AUTH0_DB_CONNECTION` at Stage B; reuse/adjust the existing 7 translation keys ×6 locales).

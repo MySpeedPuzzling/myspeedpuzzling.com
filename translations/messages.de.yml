@@ -2783,3 +2783,61 @@ qr_code:
     "anyone":
       "question": "Kann jeder bei der WJPC mitmachen?"
       "answer": "Ja. Die Anmeldung steht allen Puzzlern ab 14 Jahren offen, Qualifikationsrunden gibt es nicht. Anfänger puzzeln regelmäßig in derselben Halle wie die schnellsten Puzzler der Welt – alle bekommen dasselbe Puzzle und dieselbe Zeit."
+
+"sign_in_changes":
+  "title": "Die Anmeldung zieht auf myspeedpuzzling.com um"
+  "meta_description": "Die Anmeldung bei MySpeedPuzzling zieht von dem externen Dienst, den wir seit dem Start nutzen, auf myspeedpuzzling.com um. Ihre E-Mail und Ihr Passwort bleiben gleich — hier steht, was Sie das kostet, warum wir es tun und was Sie tun können, wenn Ihr Passwort-Manager Ihr Passwort nicht findet."
+  "core_message": "Ihre E-Mail und Ihr Passwort bleiben genau gleich. Nur der Anmeldebildschirm ändert sich — er wird Teil von myspeedpuzzling.com, statt Sie zu auth0.com zu schicken."
+  "intro": "Diese Änderung kostet Sie etwas, also fangen wir damit an. Jeder Puzzler wird einmal abgemeldet und muss sich neu anmelden. Und Ihr Passwort-Manager bietet Ihnen Ihr Passwort womöglich nicht mehr an, weil sich die Webadresse ändert, unter der es gespeichert ist. Das ist nichts, was man Leuten gern antut, und wir erklären es Ihnen lieber jetzt, als Sie später damit zu überraschen."
+  "did_you_notice": "Ist Ihnen schon einmal aufgefallen, dass die Anmeldung bei MySpeedPuzzling gar nicht auf myspeedpuzzling.com stattfindet? Schauen Sie beim nächsten Anmelden in die Adresszeile — dort steht <strong>%old_domain%</strong>. Das ist Auth0, ein externer Anmeldedienst, den wir seit dem allerersten Tag nutzen."
+  "timing": "Bisher hat sich nichts geändert, und Sie müssen nichts vorbereiten. Die Umstellung ist für die kommenden Wochen geplant, und wir schicken Ihnen vorher eine E-Mail."
+  "notice":
+    "text": "Die Anmeldung zieht bald auf myspeedpuzzling.com um."
+    "text_extra": "Gleiche E-Mail, gleiches Passwort — aber Sie werden einmal abgemeldet."
+    "link": "Was ändert sich und warum?"
+    "dismiss": "Schließen"
+  "why":
+    "heading": "Warum wir umziehen"
+    "p1": "Auth0 war am Anfang die richtige Wahl. Eine Anmeldung ordentlich zu bauen — Passwörter, Zurücksetzen, Sitzungen, Sicherheit — kostet Monate an Arbeit, und weil Auth0 das übernommen hat, konnten wir diese Monate stattdessen in Puzzle-Funktionen stecken. MySpeedPuzzling ist von einem kleinen Nebenprojekt zu einer Community gewachsen, während Auth0 sich um den Anmeldebildschirm gekümmert hat."
+    "p2": "Seitdem haben sich unsere Anforderungen geändert. Die Software, die Auth0 mit dem Rest von MySpeedPuzzling verbindet, wird nicht mehr richtig gepflegt, wir sind immer wieder auf Fehler darin gestoßen, und die Korrekturen, die wir angeboten haben, wurden nicht angenommen — deshalb pflegen wir inzwischen eine eigene reparierte Kopie, nur damit die Anmeldung funktioniert. Anmelden mit Google, Facebook oder Apple, ein Anmeldebildschirm in Ihrer eigenen Sprache, Passkeys, Zwei-Faktor-Authentifizierung: Mit Auth0 ist jedes davon für uns entweder unmöglich oder schwierig. Es ist schlicht nicht mehr die beste Wahl für die Richtung, in die MySpeedPuzzling geht."
+    "p3": "Warten würde es nur schlimmer machen. Jeden Tag kommen neue Puzzler zu MySpeedPuzzling dazu, also bedeutet jeder Monat, den wir die Umstellung aufschieben, mehr Menschen, die sich neu anmelden und ihren Passwort-Manager aktualisieren müssen. Die Änderung trifft am wenigsten Puzzler, wenn wir sie jetzt machen."
+  "what_changes":
+    "heading": "Was das für Sie bedeutet"
+    "item_screen": "Der Anmeldebildschirm wird Teil von MySpeedPuzzling, in Ihrer eigenen Sprache, statt einer Weiterleitung zu auth0.com."
+    "item_signed_out": "Am Tag der Umstellung werden Sie einmal abgemeldet. Sie melden sich mit derselben E-Mail und demselben Passwort wieder an."
+    "item_manager": "Ihr Passwort-Manager bietet Ihr Passwort auf dem neuen Bildschirm womöglich nicht an, weil er es unter der alten Adresse (%old_domain%) gespeichert hat. Suchen Sie in Ihrem Passwort-Manager nach \"speedpuzzling\" oder \"auth0\", dann finden Sie es."
+    "item_link": "Wenn Sie Ihr Passwort gar nicht mehr finden, kann Ihnen die Anmeldeseite einen Link per E-Mail schicken, der Sie ohne Passwort anmeldet."
+    "item_later": "Sobald die Anmeldung uns gehört, können wir endlich die Dinge nachliefern, nach denen immer wieder gefragt wird: Anmelden mit Google, Facebook oder Apple und später Passkeys und Zwei-Faktor-Authentifizierung."
+  "what_stays":
+    "heading": "Was gleich bleibt"
+    "body": "Alles andere: Ihre Zeiten, Statistiken, Sammlungen, Ihre Mitgliedschaft, Wettbewerbe und Ihr Spielercode. Bei dieser Änderung geht es nur um den Bildschirm, auf dem Sie sich anmelden."
+    "transition": "Ihr bestehendes Passwort funktioniert weiter — nichts wird zurückgesetzt, und es gibt keine Frist für Sie. Wir lassen den alten Dienst während des Übergangs still im Hintergrund weiterlaufen, damit wir darauf zurückgreifen können, falls etwas schiefgeht. Auf dem neuen Bildschirm bieten wir Ihnen ein frisches Passwort an. Das lohnt sich, weil Ihr Passwort-Manager es dann unter myspeedpuzzling.com speichert — aber das alte funktioniert so oder so weiter."
+  "faq":
+    "heading": "Fragen"
+    "why":
+      "question": "Muss ich jetzt etwas tun?"
+      "answer": "Nein. Bisher hat sich nichts geändert, und Sie müssen nichts vorbereiten. Wir schicken Ihnen vor der Umstellung eine E-Mail, und das Einzige, was Sie danach tun müssen, ist sich neu anzumelden."
+    "new_password":
+      "question": "Brauche ich ein neues Passwort?"
+      "answer": "Nein. Dieselbe E-Mail und dasselbe Passwort funktionieren weiterhin. Ihr Passwort war für uns nie sichtbar und wird nicht zurückgesetzt — übertragen wird nur seine sicher verschlüsselte Form."
+    "manager":
+      "question": "Mein Passwort-Manager bietet mein Passwort nicht an. Was nun?"
+      "answer": "Er hat Ihr Passwort unter der alten Anmeldeadresse (%old_domain%) gespeichert. Suchen Sie in Ihrem Passwort-Manager nach \"speedpuzzling\" oder \"auth0\" und lassen Sie ihn den Eintrag bei der ersten Anmeldung auf dem neuen Bildschirm aktualisieren."
+    "lost_password":
+      "question": "Ich finde mein Passwort überhaupt nicht mehr."
+      "answer": "Die Anmeldeseite kann Ihnen einen Link per E-Mail schicken, der Sie ohne Passwort anmeldet. Danach können Sie sofort ein neues Passwort festlegen — Ihr Passwort-Manager speichert es dann unter myspeedpuzzling.com."
+    "safety":
+      "question": "Ist mein Passwort während dieser Änderung sicher?"
+      "answer": "Ja. Passwörter werden vor und nach der Änderung nur in einer sicher verschlüsselten Form gespeichert, die sich nicht in das Original zurückverwandeln lässt. Ihr eigentliches Passwort ist für uns nie sichtbar."
+    "logged_out":
+      "question": "Warum muss ich mich neu anmelden?"
+      "answer": "Das neue System kann die vom alten erzeugten Anmelde-Sitzungen nicht übernehmen, deshalb enden sie alle einmal — am Tag der Umstellung. Das passiert ein einziges Mal, nicht wiederholt."
+    "recent":
+      "question": "Ich habe mich erst kürzlich registriert und auth0.com nie gesehen."
+      "answer": "Dann ändert sich für Sie nichts — Ihr Konto wurde bereits im neuen System angelegt."
+    "other":
+      "question": "Etwas anderes, oder ich glaube, ich habe zwei Konten."
+      "answer": "Schreiben Sie an <a href=\"mailto:%support_email%\">%support_email%</a> oder schicken Sie uns eine Nachricht auf <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a> und nennen Sie Ihren Spielercode, falls Sie ihn kennen. Wir helfen immer gerne."
+  "help":
+    "heading": "Etwas funktioniert nicht?"
+    "body": "Wenn Sie bei der Anmeldung auf Probleme stoßen — vor, während oder nach der Umstellung — schreiben Sie an <a href=\"mailto:%support_email%\">%support_email%</a> oder schreiben Sie uns auf <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>. Wir helfen immer gerne."

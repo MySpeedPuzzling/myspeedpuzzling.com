@@ -10,9 +10,13 @@ html * {
   @include font-smoothing;
 }
 
-// Sticky footer
+// Sticky footer.
+// min-height, never height: a fixed 100% pins <body> to exactly one viewport, and
+// the sticky header can only stick inside its containing block - so it would come
+// unstuck after roughly one screen of scrolling. The footer is held down by the
+// flex column below plus `min-height: 100vh` on body (app.scss) either way.
 html, body {
-  height: 100%;
+  min-height: 100%;
 }
 body {
   display: flex;

@@ -2785,3 +2785,61 @@ edition:
     "anyone":
       "question": "Tout le monde peut-il concourir au WJPC ?"
       "answer": "Oui. L'inscription est ouverte à tout puzzleur âgé de 14 ans ou plus, sans aucune manche de qualification. Les débutants côtoient régulièrement les puzzleurs les plus rapides du monde — tout le monde reçoit le même puzzle et le même chronomètre."
+
+"sign_in_changes":
+  "title": "La connexion déménage sur myspeedpuzzling.com"
+  "meta_description": "La connexion à MySpeedPuzzling quitte le service externe utilisé depuis les débuts pour s'installer sur myspeedpuzzling.com. Votre e-mail et votre mot de passe ne changent pas : voici ce que cela vous coûte, pourquoi nous le faisons et quoi faire si votre gestionnaire de mots de passe ne retrouve pas votre mot de passe."
+  "core_message": "Votre e-mail et votre mot de passe restent exactement les mêmes. Seul l'écran de connexion change : il fera partie de myspeedpuzzling.com au lieu de vous envoyer sur auth0.com."
+  "intro": "Ce changement vous coûte quelque chose, alors commençons par là. Chaque puzzleur sera déconnecté une fois et devra se reconnecter. Et votre gestionnaire de mots de passe ne vous proposera peut-être plus votre mot de passe, parce que l'adresse web sous laquelle il l'a enregistré change. Ce n'est pas le genre de chose qui fait plaisir à qui que ce soit, et nous préférons vous l'expliquer maintenant plutôt que de vous en faire la surprise le jour venu."
+  "did_you_notice": "Avez-vous déjà remarqué que la connexion à MySpeedPuzzling ne se fait pas vraiment sur myspeedpuzzling.com ? Regardez la barre d'adresse la prochaine fois que vous vous connectez : elle affiche <strong>%old_domain%</strong>. C'est Auth0, un service de connexion externe que nous utilisons depuis les tout débuts."
+  "timing": "Rien n'a encore changé et il n'y a rien à préparer. Le basculement est prévu dans les prochaines semaines, et nous vous enverrons un e-mail avant qu'il ait lieu."
+  "notice":
+    "text": "La connexion déménage bientôt sur myspeedpuzzling.com."
+    "text_extra": "Même e-mail, même mot de passe — mais vous serez déconnecté une fois."
+    "link": "Qu'est-ce qui change et pourquoi ?"
+    "dismiss": "Fermer"
+  "why":
+    "heading": "Pourquoi nous déménageons"
+    "p1": "Auth0 était le bon choix au départ. Construire une connexion correctement — mots de passe, réinitialisations, sessions, sécurité — demande des mois de travail, et laisser Auth0 s'en charger nous a permis de consacrer ces mois-là aux fonctionnalités de puzzle. MySpeedPuzzling est passé d'un petit projet parallèle à une communauté pendant qu'Auth0 s'occupait de l'écran de connexion."
+    "p2": "Nos besoins ont changé depuis. Le logiciel qui relie Auth0 au reste de MySpeedPuzzling n'est plus correctement maintenu, nous y rencontrions bug sur bug et les correctifs que nous avons proposés n'ont pas été acceptés — nous maintenons donc aujourd'hui notre propre copie réparée, uniquement pour que la connexion continue de fonctionner. Se connecter avec Google, Facebook ou Apple, un écran de connexion dans votre langue, les clés d'accès (passkeys), l'authentification à deux facteurs : avec Auth0, chacune de ces choses est soit impossible, soit difficile pour nous. Ce n'est tout simplement plus le meilleur choix pour la direction que prend MySpeedPuzzling."
+    "p3": "Attendre ne ferait qu'empirer les choses. De nouveaux puzzleurs rejoignent MySpeedPuzzling chaque jour : chaque mois de report, c'est plus de personnes qui devront se reconnecter et mettre à jour leur gestionnaire de mots de passe. C'est maintenant que le changement touche le moins de puzzleurs."
+  "what_changes":
+    "heading": "Ce que cela change pour vous"
+    "item_screen": "L'écran de connexion fait désormais partie de MySpeedPuzzling, dans votre langue, au lieu d'être une redirection vers auth0.com."
+    "item_signed_out": "Le jour du basculement, vous êtes déconnecté une fois. Vous vous reconnectez avec le même e-mail et le même mot de passe."
+    "item_manager": "Votre gestionnaire de mots de passe ne proposera peut-être pas votre mot de passe sur le nouvel écran, car il l'a enregistré sous l'ancienne adresse (%old_domain%). Cherchez \"speedpuzzling\" ou \"auth0\" dans votre gestionnaire de mots de passe et vous le retrouverez."
+    "item_link": "Si vous ne retrouvez pas du tout votre mot de passe, la page de connexion peut vous envoyer par e-mail un lien qui vous connecte sans mot de passe."
+    "item_later": "Une fois la connexion entre nos mains, nous pourrons enfin ajouter ce que l'on nous demande depuis longtemps : la connexion avec Google, Facebook ou Apple, puis plus tard les clés d'accès et l'authentification à deux facteurs."
+  "what_stays":
+    "heading": "Ce qui ne change pas"
+    "body": "Tout le reste : vos temps, vos statistiques, vos collections, votre adhésion, vos compétitions et votre code joueur. Ce changement ne concerne que l'écran sur lequel vous vous connectez."
+    "transition": "Votre mot de passe actuel continue de fonctionner — rien n'est réinitialisé et aucune date limite ne vous est imposée. Nous garderons l'ancien service en marche discrètement en arrière-plan pendant la transition, pour pouvoir y revenir si quelque chose tourne mal. Sur le nouvel écran, nous vous proposerons de définir un nouveau mot de passe : cela vaut le coup, car votre gestionnaire de mots de passe l'enregistrera alors sous myspeedpuzzling.com. Mais l'ancien fonctionne dans tous les cas."
+  "faq":
+    "heading": "Questions"
+    "why":
+      "question": "Dois-je faire quelque chose maintenant ?"
+      "answer": "Non. Rien n'a encore changé et il n'y a rien à préparer. Nous vous enverrons un e-mail avant le basculement, et la seule chose que vous aurez à faire ensuite, c'est vous reconnecter."
+    "new_password":
+      "question": "Ai-je besoin d'un nouveau mot de passe ?"
+      "answer": "Non. Le même e-mail et le même mot de passe fonctionneront. Votre mot de passe n'a jamais été visible pour nous et n'est pas réinitialisé : seule sa forme chiffrée de manière sécurisée est transférée."
+    "manager":
+      "question": "Mon gestionnaire de mots de passe ne propose pas mon mot de passe. Que faire ?"
+      "answer": "Il l'a enregistré sous l'ancienne adresse de connexion (%old_domain%). Cherchez \"speedpuzzling\" ou \"auth0\" dans votre gestionnaire de mots de passe, puis laissez-le mettre à jour l'entrée lors de votre première connexion sur le nouvel écran."
+    "lost_password":
+      "question": "Je ne retrouve pas du tout mon mot de passe."
+      "answer": "La page de connexion peut vous envoyer par e-mail un lien qui vous connecte sans mot de passe. Vous pourrez ensuite définir un nouveau mot de passe dans la foulée — votre gestionnaire de mots de passe l'enregistrera alors sous myspeedpuzzling.com."
+    "safety":
+      "question": "Mon mot de passe est-il en sécurité pendant ce changement ?"
+      "answer": "Oui. Les mots de passe ne sont stockés que sous une forme chiffrée de manière sécurisée, impossible à reconvertir en mot de passe d'origine, avant comme après le changement. Votre mot de passe réel n'est jamais visible pour nous."
+    "logged_out":
+      "question": "Pourquoi dois-je me reconnecter ?"
+      "answer": "Le nouveau système ne peut pas reprendre les sessions de connexion créées par l'ancien : elles prennent donc toutes fin une fois, le jour du basculement. Cela n'arrive qu'une seule fois, pas de manière répétée."
+    "recent":
+      "question": "Je me suis inscrit récemment et je n'ai jamais vu auth0.com."
+      "answer": "Alors rien ne change pour vous — votre compte a déjà été créé sur le nouveau système."
+    "other":
+      "question": "J'ai une autre question, ou je pense avoir deux comptes."
+      "answer": "Écrivez-nous à <a href=\"mailto:%support_email%\">%support_email%</a> ou envoyez-nous un message sur <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>, en précisant votre code joueur si vous le connaissez. Nous sommes toujours ravis d'aider."
+  "help":
+    "heading": "Quelque chose ne fonctionne pas ?"
+    "body": "Si vous rencontrez le moindre problème pour vous connecter — avant, pendant ou après le basculement — écrivez-nous à <a href=\"mailto:%support_email%\">%support_email%</a> ou envoyez-nous un message sur <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>. Nous sommes toujours ravis d'aider."

@@ -2781,3 +2781,61 @@ qr_code:
     "anyone":
       "question": "Může na WJPC soutěžit každý?"
       "answer": "Ano. Registrace je otevřená každému skládači od 14 let a k účasti není potřeba žádná kvalifikace. Začátečníci běžně soutěží ve stejné hale jako nejrychlejší skládači světa — všichni dostanou stejné puzzle a stejný čas."
+
+"sign_in_changes":
+  "title": "Přihlašování se stěhuje na myspeedpuzzling.com"
+  "meta_description": "Přihlašování na MySpeedPuzzling se stěhuje z externí služby, kterou používáme od začátku, přímo na myspeedpuzzling.com. Váš e-mail i heslo zůstávají stejné — tady je, co vás to bude stát, proč to děláme a co dělat, když vaše heslo nenajde správce hesel."
+  "core_message": "Váš e-mail i heslo zůstávají úplně stejné. Mění se jen přihlašovací obrazovka — bude součástí myspeedpuzzling.com místo toho, aby vás posílala na auth0.com."
+  "intro": "Tahle změna vás něco stojí, tak začneme právě tím. Každého puzzlera jednou odhlásíme a bude se muset přihlásit znovu. A váš správce hesel vám možná přestane heslo nabízet, protože se mění webová adresa, pod kterou ho má uložené. Nic populárního to není a raději vám to vysvětlíme teď, než abychom vás tím později překvapili."
+  "did_you_notice": "Všimli jste si někdy, že přihlašování na MySpeedPuzzling se ve skutečnosti neodehrává na myspeedpuzzling.com? Až se budete příště přihlašovat, podívejte se do adresního řádku — je v něm <strong>%old_domain%</strong>. To je Auth0, externí přihlašovací služba, kterou používáme od úplného začátku."
+  "timing": "Zatím se nic nezměnilo a není potřeba se na nic připravovat. Přepnutí plánujeme v následujících týdnech a než k němu dojde, pošleme vám e-mail."
+  "notice":
+    "text": "Přihlašování se brzy přestěhuje na myspeedpuzzling.com."
+    "text_extra": "E-mail i heslo zůstávají — ale jednou vás odhlásíme."
+    "link": "Co se mění a proč?"
+    "dismiss": "Zavřít"
+  "why":
+    "heading": "Proč to stěhujeme"
+    "p1": "Auth0 byla na začátku správná volba. Udělat přihlašování pořádně — hesla, obnovení, relace, bezpečnost — zabere měsíce práce, a když jsme to nechali na Auth0, mohli jsme ty měsíce věnovat funkcím kolem puzzlí. MySpeedPuzzling se z malého vedlejšího projektu rozrostl v komunitu, zatímco přihlašovací obrazovku měl na starosti Auth0."
+    "p2": "Od té doby se naše potřeby změnily. Software, který Auth0 propojuje se zbytkem MySpeedPuzzling, už není pořádně udržovaný, opakovaně jsme v něm naráželi na chyby a opravy, které jsme nabídli, nebyly přijaty — takže dnes udržujeme vlastní opravenou kopii jen proto, aby přihlašování fungovalo. Přihlášení přes Google, Facebook nebo Apple, přihlašovací obrazovka ve vašem jazyce, passkeys, dvoufaktorové ověření: s Auth0 je pro nás každá z těchto věcí buď nemožná, nebo složitá. Prostě už to není nejlepší volba pro to, kam MySpeedPuzzling směřuje."
+    "p3": "Čekáním by to bylo jen horší. Na MySpeedPuzzling přibývají noví puzzleři každý den, takže každý měsíc, o který přepnutí odložíme, znamená víc lidí, kteří se budou muset znovu přihlásit a upravit si správce hesel. Nejméně puzzlerů se změna dotkne, když ji uděláme teď."
+  "what_changes":
+    "heading": "Co to pro vás znamená"
+    "item_screen": "Přihlašovací obrazovka se stane součástí MySpeedPuzzling, a to ve vašem jazyce, místo přesměrování na auth0.com."
+    "item_signed_out": "V den přepnutí vás jednou odhlásíme. Přihlásíte se znovu stejným e-mailem a stejným heslem."
+    "item_manager": "Váš správce hesel vám na nové obrazovce nemusí heslo nabídnout, protože ho má uložené pod starou adresou (%old_domain%). Vyhledejte si ve správci hesel \"speedpuzzling\" nebo \"auth0\" a najdete ho."
+    "item_link": "Pokud heslo nenajdete vůbec, přihlašovací stránka vám může poslat e-mailem odkaz, který vás přihlásí i bez hesla."
+    "item_later": "Až bude přihlašování naše, můžeme konečně přidat věci, na které se nás lidé pořád ptají: přihlášení přes Google, Facebook nebo Apple a později passkeys a dvoufaktorové ověření."
+  "what_stays":
+    "heading": "Co zůstává stejné"
+    "body": "Všechno ostatní: vaše časy, statistiky, kolekce, členství, soutěže i váš kód hráče. Tahle změna se týká jen obrazovky, na které se přihlašujete."
+    "transition": "Vaše stávající heslo funguje dál — nic se neresetuje a nemáte žádný termín, do kterého byste něco museli stihnout. Starou službu necháme během přechodu tiše běžet na pozadí, abychom se k ní mohli vrátit, kdyby se něco pokazilo. Na nové obrazovce vám nabídneme nastavení nového hesla. Vyplatí se to, protože si ho pak správce hesel uloží pod myspeedpuzzling.com — ale to staré funguje tak jako tak."
+  "faq":
+    "heading": "Otázky"
+    "why":
+      "question": "Musím teď něco udělat?"
+      "answer": "Ne. Zatím se nic nezměnilo a není potřeba se na nic připravovat. Před přepnutím vám pošleme e-mail a jediné, co pak budete muset udělat, je znovu se přihlásit."
+    "new_password":
+      "question": "Potřebuji nové heslo?"
+      "answer": "Ne. Bude fungovat stejný e-mail i stejné heslo. Vaše heslo jsme nikdy neviděli a neresetuje se — přenáší se pouze jeho bezpečně zašifrovaná podoba."
+    "manager":
+      "question": "Správce hesel mi heslo nenabízí. Co teď?"
+      "answer": "Má vaše heslo uložené pod starou přihlašovací adresou (%old_domain%). Vyhledejte si ve správci hesel \"speedpuzzling\" nebo \"auth0\" a při prvním přihlášení na nové obrazovce mu nechte záznam aktualizovat."
+    "lost_password":
+      "question": "Heslo nemůžu najít vůbec."
+      "answer": "Přihlašovací stránka vám může poslat e-mailem odkaz, který vás přihlásí bez hesla. Hned poté si můžete nastavit nové heslo — správce hesel si ho pak uloží pod myspeedpuzzling.com."
+    "safety":
+      "question": "Je moje heslo během této změny v bezpečí?"
+      "answer": "Ano. Hesla jsou před změnou i po ní uložena pouze v bezpečně zašifrované podobě, kterou nelze převést zpět na původní znění. Vaše skutečné heslo nikdy nevidíme."
+    "logged_out":
+      "question": "Proč se musím znovu přihlašovat?"
+      "answer": "Nový systém nedokáže převzít přihlašovací relace vytvořené tím starým, takže všechny jednou skončí — v den přepnutí. Stane se to jednorázově, ne opakovaně."
+    "recent":
+      "question": "Registroval jsem se nedávno a auth0.com jsem nikdy neviděl."
+      "answer": "Pak se pro vás nic nemění — váš účet už vznikl v novém systému."
+    "other":
+      "question": "Něco jiného, nebo mám nejspíš dva účty."
+      "answer": "Napište nám na <a href=\"mailto:%support_email%\">%support_email%</a> nebo nám pošlete zprávu na <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a> a přidejte svůj kód hráče, pokud ho znáte. Vždycky rádi pomůžeme."
+  "help":
+    "heading": "Něco nefunguje?"
+    "body": "Pokud narazíte při přihlašování na jakýkoli problém — před přepnutím, během něj i po něm — napište nám na <a href=\"mailto:%support_email%\">%support_email%</a> nebo nám napište na <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>. Vždycky rádi pomůžeme."

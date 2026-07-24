@@ -1,0 +1,30 @@
+{# Advance notice for the Auth0 -> native sign-in migration (issue #147): a strip
+   at the very top of the sticky header, above the topbar. Same look as the older
+   .competition-panel-info pattern (primary background, white text, 12px).
+
+   The header is `position: sticky`, so it takes its own space in the flow and
+   this strip can be any height - one line in English on a desktop, three in
+   German on a phone - without anything below it needing to know. Overlays that
+   have to sit under the header follow `--header-height`, which is measured from
+   the real element (see assets/controllers/header_height_controller.js).
+
+   Dismissed per browser via localStorage, never per user: this rides on pages
+   that are shared-cacheable for anonymous visitors (#164), so reading or writing
+   a session here would put a cookie on every page. The inline script in
+   base.html.twig hides it before first paint for anyone who dismissed it, so it
+   never flashes in and never shifts the page. #}
+<div class="sign-in-changes-notice" data-controller="sign-in-changes-notice">
+    <div class="container">
+        <span>{{ 'sign_in_changes.notice.text'|trans }}</span>
+        {# Phones get the headline only - the strip has to stay a strip. The rest,
+           and the explainer behind the link, carry the detail from tablet up. #}
+        <span class="d-none d-md-inline">{{ 'sign_in_changes.notice.text_extra'|trans }}</span>
+        <a href="{{ path('sign_in_changes') }}">{{ 'sign_in_changes.notice.link'|trans }}</a>
+        <button
+            type="button"
+            class="sign-in-changes-notice-close"
+            aria-label="{{ 'sign_in_changes.notice.dismiss'|trans }}"
+            data-action="sign-in-changes-notice#dismiss"
+        >&times;</button>
+    </div>
+</div>

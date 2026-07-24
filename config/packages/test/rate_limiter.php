@@ -16,6 +16,11 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '1 minute',
             ],
+            'sign_in_link_ip' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 hour',
+            ],
         ],
     ],
 ]);

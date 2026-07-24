@@ -2841,3 +2841,37 @@ qr_code:
   "help":
     "heading": "Etwas funktioniert nicht?"
     "body": "Wenn Sie bei der Anmeldung auf Probleme stoßen — vor, während oder nach der Umstellung — schreiben Sie an <a href=\"mailto:%support_email%\">%support_email%</a> oder schreiben Sie uns auf <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>. Wir helfen immer gerne."
+
+auth:
+    login:
+        title: "Anmelden"
+        microcopy: "Neue Anmeldeseite, gleiches Konto. Verwenden Sie dieselbe E-Mail-Adresse und dasselbe Passwort wie bisher – oder lassen Sie sich einen Anmeldelink per E-Mail schicken."
+        email: "E-Mail"
+        password: "Passwort"
+        submit: "Anmelden"
+        or: "oder"
+    failure_helper:
+        title: "Passwort funktioniert nicht?"
+        vault_tip: "Wenn ein Passwort-Manager es gespeichert hat, suchen Sie dort nach „speedpuzzling“ oder „auth0“ – der Eintrag liegt unter unserer alten Anmelde-Domain (%old_domain%)."
+        or_skip: "Oder überspringen Sie das Passwort ganz:"
+    sign_in_link:
+        title: "Anmeldelink per E-Mail schicken"
+        intro: "Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link, mit dem Sie sich anmelden – ganz ohne Passwort."
+        submit: "Anmeldelink per E-Mail schicken"
+        explainer: "Wir senden den Link an die oben angegebene Adresse. Ein Klick und Sie sind drin."
+        single_use_note: "Der Link funktioniert einmal und läuft nach %minutes% Minuten ab."
+        sent: "Falls für diese Adresse ein Konto existiert, ist ein Anmeldelink unterwegs. Schauen Sie in Ihr Postfach – und in den Spam-Ordner."
+        email_required: "Bitte geben Sie Ihre E-Mail-Adresse ein."
+        too_many_requests: "Zu viele Anfragen für einen Anmeldelink. Bitte warten Sie ein paar Minuten und versuchen Sie es erneut."
+        failed: "Wir konnten den Anmeldelink nicht senden. Bitte versuchen Sie es gleich noch einmal."
+        invalid_link: "Dieser Anmeldelink ist nicht mehr gültig – er ist abgelaufen oder wurde bereits verwendet. Fordern Sie unten einen neuen an."
+        back_to_login: "Zurück zur Anmeldung mit Passwort"
+    set_password:
+        title: "Neues Passwort festlegen?"
+        intro: "Sie sind angemeldet! Wenn Sie jetzt ein neues Passwort festlegen, speichert Ihr Passwort-Manager es unter myspeedpuzzling.com – und füllt es beim nächsten Mal automatisch aus, wie es sein soll."
+        new_password: "Neues Passwort"
+        password_hint: "Mindestens %minimum% Zeichen."
+        suggest: "Starkes Passwort vorschlagen"
+        submit: "Passwort speichern"
+        skip: "Jetzt nicht – mein aktuelles Passwort funktioniert weiter"
+        saved: "Ihr neues Passwort wurde gespeichert."

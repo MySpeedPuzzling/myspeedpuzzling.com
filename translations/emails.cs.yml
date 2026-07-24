@@ -148,3 +148,12 @@ feature_request_declined:
             <p>Přesto děkujeme za podporu nápadu! Vaše vstupy nám pomáhají pochopit, co komunitu zajímá.</p>
         admin_comment: |
             <p><strong>Komentář od týmu:</strong> %adminComment%</p>
+
+sign_in_link:
+    subject: "Váš přihlašovací odkaz pro MySpeedPuzzling.com"
+    title: "Tady je váš přihlašovací odkaz"
+    content: |
+        <p>Kliknutím na tlačítko níže se přihlásíte na MySpeedPuzzling.com — heslo nepotřebujete.</p>
+    button: "Přihlásit se"
+    expires: "Odkaz funguje jednou a vyprší za %minutes% minut."
+    not_requested: "Nežádali jste o něj? Tento e-mail můžete klidně ignorovat — bez odkazu se nikdo nepřihlásí."

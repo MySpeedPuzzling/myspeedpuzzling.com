@@ -148,3 +148,12 @@ feature_request_declined:
             <p>Danke, dass du die Idee trotzdem unterstützt hast! Deine Beiträge helfen uns zu verstehen, was der Community wichtig ist.</p>
         admin_comment: |
             <p><strong>Kommentar vom Team:</strong> %adminComment%</p>
+
+sign_in_link:
+    subject: "Dein Anmeldelink für MySpeedPuzzling.com"
+    title: "Hier ist dein Anmeldelink"
+    content: |
+        <p>Klicke auf den Button unten, um dich bei MySpeedPuzzling.com anzumelden — ganz ohne Passwort.</p>
+    button: "Anmelden"
+    expires: "Der Link funktioniert einmal und läuft nach %minutes% Minuten ab."
+    not_requested: "Du hast das nicht angefordert? Dann kannst du diese E-Mail einfach ignorieren — ohne den Link kann sich niemand anmelden."

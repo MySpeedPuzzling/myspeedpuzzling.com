@@ -15,7 +15,9 @@ This file documents all active feature flags in the codebase — where they are,
 - **Feature:** Auth0 → native auth migration, Stage B (issue #147)
 - **Flag:** env var `NATIVE_LOGIN_ENABLED` → container parameter `nativeLoginEnabled` (`config/services.php`)
 - **Default:** OFF everywhere. Flipped ON in production at Stage B cutover (native login page + entry point replace the Auth0 redirect). Rollback = flip OFF; Auth0 login resumes against the intact tenant.
-- **Gated files:** none yet — the login page + entry point switch ship in the 2c build slice and must consume this parameter
+- **Gated files:**
+  - `src/Controller/LoginController.php` — `/login` renders the native form when ON, hands over to the Auth0 bundle controller when OFF
+- **Not gated on purpose:** the magic sign-in link (`/login-link`, `/login-link/check`, `/set-password`) is live from Stage A per D6 — it is the rescue for window-A native registrants who log out while `/login` still points at Auth0
 - **Remove when:** Phase 6 decommission
 
 ## Sign-in Migration Notice (`SIGN_IN_CHANGES_NOTICE_ENABLED`)

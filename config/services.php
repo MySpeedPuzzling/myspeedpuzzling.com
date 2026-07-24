@@ -45,11 +45,17 @@ return static function (ContainerConfigurator $configurator): void {
 
     // Auth0 -> native auth migration flags (issue #147, docs/features/feature_flags.md).
     // Deploy != flip: all three ship OFF and are flipped via env at Stage A / Stage B.
-    // nativeRegistrationEnabled/nativeLoginEnabled have no consumers yet (2c slices) -
-    // they are parameters only; bind them in defaults() once a service injects them.
+    // nativeRegistrationEnabled has no consumer yet (registration ships with the
+    // 2c-II slice) - it is a parameter only; bind it in defaults() once a service
+    // injects it. nativeLoginEnabled gates the native login page (LoginController).
     $parameters->set('nativeRegistrationEnabled', '%env(bool:NATIVE_REGISTRATION_ENABLED)%');
     $parameters->set('nativeLoginEnabled', '%env(bool:NATIVE_LOGIN_ENABLED)%');
     $parameters->set('auth0TrickleLoginEnabled', '%env(bool:AUTH0_TRICKLE_LOGIN_ENABLED)%');
+
+    // Lifetime of a magic sign-in link. Single source for the firewall's login_link
+    // config (config/packages/security.php) and for the copy that tells the user how
+    // long the link is good for.
+    $parameters->set('signInLinkLifetimeSeconds', 1800);
 
     $services = $configurator->services();
 
@@ -68,7 +74,9 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$auth0ClientId', '%auth0ClientId%')
         ->bind('$auth0ClientSecret', '%auth0ClientSecret%')
         ->bind('$auth0DatabaseConnection', '%auth0DatabaseConnection%')
-        ->bind('$auth0TrickleLoginEnabled', '%auth0TrickleLoginEnabled%');
+        ->bind('$auth0TrickleLoginEnabled', '%auth0TrickleLoginEnabled%')
+        ->bind('$nativeLoginEnabled', '%nativeLoginEnabled%')
+        ->bind('$signInLinkLifetimeSeconds', '%signInLinkLifetimeSeconds%');
 
     $services->set(PdoSessionHandler::class)
         ->args([
@@ -111,11 +119,20 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Security/PatUser.php',
             __DIR__ . '/../src/Security/ApiUser.php',
             __DIR__ . '/../src/Security/TrickleVerificationResult.php',
+            __DIR__ . '/../src/Security/SignInLinkPasswordPrompt.php',
         ]);
     $services->alias(
         \SpeedPuzzling\Web\Security\TricklePasswordVerifier::class,
         \SpeedPuzzling\Web\Security\Auth0TrickleGateway::class,
     );
+
+    // Single-use magic sign-in links (D18, issue #147): wraps the handler the
+    // login_link firewall factory builds for the `main` firewall, so both the
+    // issuing side (RequestSignInLinkHandler) and the consuming side (the
+    // LoginLinkAuthenticator) go through the consumption bookkeeping.
+    $services->set(\SpeedPuzzling\Web\Security\SingleUseLoginLinkHandler::class)
+        ->decorate('security.authenticator.login_link_handler.main')
+        ->arg('$inner', service('.inner'));
     $services->load('SpeedPuzzling\\Web\\EventSubscriber\\', __DIR__ . '/../src/EventSubscriber/**/{*.php}');
 
     // API Resource Providers and Processors

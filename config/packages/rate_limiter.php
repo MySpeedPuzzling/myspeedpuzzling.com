@@ -26,6 +26,19 @@ return App::config([
                 'limit' => 100,
                 'interval' => '1 minute',
             ],
+            // "Email me a sign-in link" is an unauthenticated endpoint that sends mail
+            // to an address the caller picks - it must never become a mail cannon.
+            // Per address: enough for "it did not arrive, send another", no more.
+            'sign_in_link_email' => [
+                'policy' => 'sliding_window',
+                'limit' => 3,
+                'interval' => '15 minutes',
+            ],
+            'sign_in_link_ip' => [
+                'policy' => 'sliding_window',
+                'limit' => 20,
+                'interval' => '1 hour',
+            ],
         ],
     ],
 ]);

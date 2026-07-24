@@ -2841,3 +2841,37 @@ fair_use_policy:
   "help":
     "heading": "¿Algo no funciona?"
     "body": "Si tienes cualquier problema para iniciar sesión —antes, durante o después del cambio— escríbenos a <a href=\"mailto:%support_email%\">%support_email%</a> o mándanos un mensaje por <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>. Siempre estamos encantados de ayudar."
+
+"auth":
+  "login":
+    "title": "Iniciar sesión"
+    "microcopy": "Nueva pantalla de inicio de sesión, la misma cuenta de siempre. Usa el mismo correo electrónico y la misma contraseña que antes, o recibe un enlace de acceso por correo."
+    "email": "Correo electrónico"
+    "password": "Contraseña"
+    "submit": "Iniciar sesión"
+    "or": "o"
+  "failure_helper":
+    "title": "¿La contraseña no funciona?"
+    "vault_tip": "Si la guardaste en un gestor de contraseñas, busca ahí \"speedpuzzling\" o \"auth0\": la entrada está guardada bajo nuestro antiguo dominio de inicio de sesión (%old_domain%)."
+    "or_skip": "O sáltate la contraseña por completo:"
+  "sign_in_link":
+    "title": "Envíame un enlace de acceso por correo"
+    "intro": "Introduce tu dirección de correo electrónico y te enviaremos un enlace que te permitirá entrar sin contraseña."
+    "submit": "Envíame un enlace de acceso por correo"
+    "explainer": "Enviamos el enlace a la dirección de arriba. Un clic y ya estás dentro."
+    "single_use_note": "El enlace funciona una sola vez y caduca en %minutes% minutos."
+    "sent": "Si existe una cuenta con esa dirección, el enlace de acceso ya está en camino. Revisa tu bandeja de entrada y también la carpeta de spam."
+    "email_required": "Por favor, introduce tu dirección de correo electrónico."
+    "too_many_requests": "Demasiadas solicitudes de enlace de acceso. Espera unos minutos e inténtalo de nuevo."
+    "failed": "No hemos podido enviar el enlace de acceso. Inténtalo de nuevo en un momento."
+    "invalid_link": "Ese enlace de acceso ya no es válido: puede que haya caducado o que ya se haya usado. Solicita uno nuevo aquí abajo."
+    "back_to_login": "Volver al inicio de sesión con contraseña"
+  "set_password":
+    "title": "¿Quieres establecer una contraseña nueva?"
+    "intro": "¡Ya has iniciado sesión! Si estableces ahora una contraseña nueva, tu gestor de contraseñas la guardará bajo myspeedpuzzling.com, así la próxima vez se rellenará sola como debe ser."
+    "new_password": "Nueva contraseña"
+    "password_hint": "Al menos %minimum% caracteres."
+    "suggest": "Sugerir contraseña segura"
+    "submit": "Guardar contraseña"
+    "skip": "Ahora no: mi contraseña actual sigue funcionando"
+    "saved": "Tu nueva contraseña se ha guardado."

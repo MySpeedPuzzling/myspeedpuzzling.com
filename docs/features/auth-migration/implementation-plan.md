@@ -53,7 +53,7 @@ Sequencing matters: signups are frozen at Stage A, so a single export generated 
 - [x] `UserAccount` entity per README spec (`user_id` unique, `email` unique lower-indexed, nullable `password`, `email_verified_at`, `legacy_auth0` flag, timestamps). Generated migration (never hand-written, per project rules).
 - [x] `reset_password_request` table (bundle-generated migration).
 - [x] Future-proofing guardrails only, no social tables now (README §Auth-method extensibility): provider-agnostic `user_id` (`msp|<uuid7>`), password on `user_account`, unique email.
-- [ ] Import command: `myspeedpuzzling:import-auth0-users <bulk-export.ndjson> <hash-export.ndjson>` — parses/joins, dispatches `ImportAuth0User` messages (batch); handler upserts `UserAccount` keyed on `user_id` (never email), bcrypt hash as-is, `email_verified_at` from flag, `legacy_auth0 = true`, backfills `player.email`/`player.name` where NULL. Idempotent — re-runnable with fresh exports. Tests test the handler directly.
+- [x] Import command: `myspeedpuzzling:import-auth0-users <bulk-export.ndjson> <hash-export.ndjson>` — parses/joins, dispatches `ImportAuth0User` messages (batch); handler upserts `UserAccount` keyed on `user_id` (never email), bcrypt hash as-is, `email_verified_at` from flag, `legacy_auth0 = true`, backfills `player.email`/`player.name` where NULL. Idempotent — re-runnable with fresh exports. Tests test the handler directly.
 
 ### 2b. Security plumbing
 

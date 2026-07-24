@@ -100,6 +100,7 @@
         "symfony/web-link": "^8.0",
         "symfony/webpack-encore-bundle": "^2.0",
         "symfony/yaml": "^8.0",
+        "symfonycasts/reset-password-bundle": "^1.25",
         "twig/cssinliner-extra": "^3.18",
         "twig/extra-bundle": "^3.18",
         "twig/inky-extra": "^3.18",

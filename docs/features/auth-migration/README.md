@@ -142,7 +142,7 @@ Rejected alternatives, for the record: **(a)** per-provider columns on `user_acc
 | Password hashing | `argon2id` + `migrate_from: ['bcrypt']` (sodium present; `'auto'` would mean bcrypt cost 13, NOT argon2id) | verified empirically |
 | Registration | New form → `RegisterUser` command → handler creates UserAccount + Player; `NotBlank` + `Length(min: 12)` + `PasswordStrength` + `NotCompromisedPassword(skipOnError: true)` as a `Compound` constraint | core |
 | Email verification | `symfonycasts/verify-email-bundle` ≥ 1.18.0 (Symfony 8 since 2025-11-29), signed URLs, no DB table | [releases](https://github.com/SymfonyCasts/verify-email-bundle/releases) |
-| Password reset | `symfonycasts/reset-password-bundle` ≥ 1.24.0 (Symfony 8 since 2025-11-29), hashed selector/verifier tokens, built-in enumeration protection | [releases](https://github.com/SymfonyCasts/reset-password-bundle/releases) |
+| Password reset | Own split-token implementation (decision 2026-07-24: `symfonycasts/reset-password-bundle` dropped — its repository contract flushes inside repositories, against project CQRS rules): selector + sha256-hashed verifier, 1h lifetime = throttle window, single-use, invalidates other open requests, uniform response for unknown email (enumeration protection) | app (built in 2a) |
 | Magic login link | Symfony native `login_link` — "email me a sign-in link" on the login page. **Primary mitigation for the password-manager-domain problem** | core |
 | Remember me | Signature-based (no storage, auto-invalidates on password change), `secure: true`, `samesite: lax` | core |
 | Login throttling | `login_throttling` (requires `symfony/rate-limiter`), default 5/min per username+IP | core |

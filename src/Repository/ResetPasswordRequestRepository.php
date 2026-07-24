@@ -4,50 +4,24 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Repository;
 
-use DateTimeInterface;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use Psr\Clock\ClockInterface;
-use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ResetPasswordRequest;
 use SpeedPuzzling\Web\Entity\UserAccount;
-use SymfonyCasts\Bundle\ResetPassword\Model\ResetPasswordRequestInterface;
-use SymfonyCasts\Bundle\ResetPassword\Persistence\ResetPasswordRequestRepositoryInterface;
 
-readonly final class ResetPasswordRequestRepository implements ResetPasswordRequestRepositoryInterface
+readonly final class ResetPasswordRequestRepository
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private ClockInterface $clock,
     ) {
     }
 
-    public function createResetPasswordRequest(
-        object $user,
-        DateTimeInterface $expiresAt,
-        string $selector,
-        string $hashedToken,
-    ): ResetPasswordRequestInterface {
-        assert($user instanceof UserAccount);
-
-        return new ResetPasswordRequest(Uuid::uuid7(), $user, $expiresAt, $selector, $hashedToken);
-    }
-
-    public function getUserIdentifier(object $user): string
-    {
-        assert($user instanceof UserAccount);
-
-        return $user->id->toString();
-    }
-
-    public function persistResetPasswordRequest(ResetPasswordRequestInterface $resetPasswordRequest): void
+    public function save(ResetPasswordRequest $resetPasswordRequest): void
     {
         $this->entityManager->persist($resetPasswordRequest);
-        // Bundle contract requires the request to be stored here - the ResetPasswordHelper
-        // runs in the HTTP layer, outside any Messenger handler transaction
-        $this->entityManager->flush();
     }
 
-    public function findResetPasswordRequest(string $selector): null|ResetPasswordRequestInterface
+    public function findBySelector(string $selector): null|ResetPasswordRequest
     {
         return $this->entityManager->getRepository(ResetPasswordRequest::class)
             ->findOneBy([
@@ -55,48 +29,37 @@ readonly final class ResetPasswordRequestRepository implements ResetPasswordRequ
             ]);
     }
 
-    public function getMostRecentNonExpiredRequestDate(object $user): null|DateTimeInterface
+    public function hasActiveRequestForUserAccount(UserAccount $userAccount, DateTimeImmutable $now): bool
     {
-        $resetPasswordRequest = $this->entityManager->createQueryBuilder()
-            ->select('reset_password_request')
+        $count = $this->entityManager->createQueryBuilder()
+            ->select('COUNT(reset_password_request.id)')
             ->from(ResetPasswordRequest::class, 'reset_password_request')
-            ->where('reset_password_request.user = :user')
-            ->setParameter('user', $user)
-            ->orderBy('reset_password_request.requestedAt', 'DESC')
-            ->setMaxResults(1)
+            ->where('reset_password_request.userAccount = :userAccount')
+            ->andWhere('reset_password_request.expiresAt > :now')
+            ->setParameter('userAccount', $userAccount)
+            ->setParameter('now', $now)
             ->getQuery()
-            ->getOneOrNullResult();
+            ->getSingleScalarResult();
 
-        if ($resetPasswordRequest instanceof ResetPasswordRequestInterface && !$resetPasswordRequest->isExpired()) {
-            return $resetPasswordRequest->getRequestedAt();
-        }
-
-        return null;
+        return (int) $count > 0;
     }
 
-    public function removeResetPasswordRequest(ResetPasswordRequestInterface $resetPasswordRequest): void
-    {
-        $this->removeRequests($resetPasswordRequest->getUser());
-    }
-
-    public function removeExpiredResetPasswordRequests(): int
-    {
-        $removed = $this->entityManager->createQueryBuilder()
-            ->delete(ResetPasswordRequest::class, 'reset_password_request')
-            ->where('reset_password_request.expiresAt <= :time')
-            ->setParameter('time', $this->clock->now()->modify('-1 week'))
-            ->getQuery()
-            ->execute();
-
-        return (int) $removed;
-    }
-
-    public function removeRequests(object $user): void
+    public function removeAllForUserAccount(UserAccount $userAccount): void
     {
         $this->entityManager->createQueryBuilder()
             ->delete(ResetPasswordRequest::class, 'reset_password_request')
-            ->where('reset_password_request.user = :user')
-            ->setParameter('user', $user)
+            ->where('reset_password_request.userAccount = :userAccount')
+            ->setParameter('userAccount', $userAccount)
+            ->getQuery()
+            ->execute();
+    }
+
+    public function removeExpiredBefore(DateTimeImmutable $expiredBefore): void
+    {
+        $this->entityManager->createQueryBuilder()
+            ->delete(ResetPasswordRequest::class, 'reset_password_request')
+            ->where('reset_password_request.expiresAt <= :expiredBefore')
+            ->setParameter('expiredBefore', $expiredBefore)
             ->getQuery()
             ->execute();
     }

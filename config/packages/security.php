@@ -13,6 +13,14 @@ use Symfony\Component\Security\Core\Authorization\Voter\AuthenticatedVoter;
 
 return App::config([
     'security' => [
+        'password_hashers' => [
+            // Explicit argon2id ('auto' would pick bcrypt); migrate_from transparently
+            // re-hashes imported Auth0 bcrypt ($2b$) hashes on first successful login
+            \SpeedPuzzling\Web\Entity\UserAccount::class => [
+                'algorithm' => 'argon2id',
+                'migrate_from' => ['bcrypt'],
+            ],
+        ],
         'providers' => [
             'auth0_provider' => [
                 'id' => UserProvider::class,

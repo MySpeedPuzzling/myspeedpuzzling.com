@@ -3128,3 +3128,37 @@ sign_in_changes:
     help:
         heading: "Something not working?"
         body: "If you run into any trouble signing in — before, during or after the switch — write to <a href=\"mailto:%support_email%\">%support_email%</a> or message us on <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>. We are always happy to help."
+
+auth:
+    login:
+        title: "Sign in"
+        microcopy: "New sign-in screen, same account. Use the same email and password as before — or get a sign-in link by email."
+        email: "Email"
+        password: "Password"
+        submit: "Sign in"
+        or: "or"
+    failure_helper:
+        title: "Password not working?"
+        vault_tip: "If a password manager saved it, search the manager for \"speedpuzzling\" or \"auth0\" — the entry is filed under our old sign-in domain (%old_domain%)."
+        or_skip: "Or skip the password entirely:"
+    sign_in_link:
+        title: "Email me a sign-in link"
+        intro: "Enter your email address and we will send you a link that signs you in — no password needed."
+        submit: "Email me a sign-in link"
+        explainer: "We send the link to the address above. One click and you are in."
+        single_use_note: "The link works once and expires in %minutes% minutes."
+        sent: "If an account exists for that address, a sign-in link is on its way. Check your inbox — and your spam folder."
+        email_required: "Please enter your email address."
+        too_many_requests: "Too many sign-in link requests. Please wait a few minutes and try again."
+        failed: "We could not send the sign-in link. Please try again in a moment."
+        invalid_link: "That sign-in link is no longer valid — it may have expired or already been used. Request a new one below."
+        back_to_login: "Back to signing in with a password"
+    set_password:
+        title: "Set a fresh password?"
+        intro: "You are signed in! If you set a new password now, your password manager will save it under myspeedpuzzling.com — so next time it autofills like it should."
+        new_password: "New password"
+        password_hint: "At least %minimum% characters."
+        suggest: "Suggest strong password"
+        submit: "Save password"
+        skip: "Not now — my current password keeps working"
+        saved: "Your new password is saved."

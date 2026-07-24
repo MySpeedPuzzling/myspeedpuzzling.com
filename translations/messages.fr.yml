@@ -2843,3 +2843,37 @@ edition:
   "help":
     "heading": "Quelque chose ne fonctionne pas ?"
     "body": "Si vous rencontrez le moindre problème pour vous connecter — avant, pendant ou après le basculement — écrivez-nous à <a href=\"mailto:%support_email%\">%support_email%</a> ou envoyez-nous un message sur <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>. Nous sommes toujours ravis d'aider."
+
+"auth":
+  "login":
+    "title": "Se connecter"
+    "microcopy": "Nouvel écran de connexion, même compte. Utilisez la même adresse e-mail et le même mot de passe qu'avant — ou recevez un lien de connexion par e-mail."
+    "email": "E-mail"
+    "password": "Mot de passe"
+    "submit": "Se connecter"
+    "or": "ou"
+  "failure_helper":
+    "title": "Le mot de passe ne fonctionne pas ?"
+    "vault_tip": "Si un gestionnaire de mots de passe l'a enregistré, cherchez-y \"speedpuzzling\" ou \"auth0\" — l'entrée est classée sous notre ancien domaine de connexion (%old_domain%)."
+    "or_skip": "Ou passez-vous complètement du mot de passe :"
+  "sign_in_link":
+    "title": "Recevoir un lien de connexion par e-mail"
+    "intro": "Saisissez votre adresse e-mail et nous vous enverrons un lien qui vous connecte — sans mot de passe."
+    "submit": "Recevoir un lien de connexion par e-mail"
+    "explainer": "Nous envoyons le lien à l'adresse ci-dessus. Un clic et vous êtes connecté."
+    "single_use_note": "Le lien ne fonctionne qu'une seule fois et expire dans %minutes% minutes."
+    "sent": "Si un compte existe pour cette adresse, un lien de connexion est en route. Vérifiez votre boîte de réception — et vos spams."
+    "email_required": "Veuillez saisir votre adresse e-mail."
+    "too_many_requests": "Trop de demandes de lien de connexion. Patientez quelques minutes et réessayez."
+    "failed": "Nous n'avons pas pu envoyer le lien de connexion. Veuillez réessayer dans un instant."
+    "invalid_link": "Ce lien de connexion n'est plus valide — il a peut-être expiré ou déjà été utilisé. Demandez-en un nouveau ci-dessous."
+    "back_to_login": "Revenir à la connexion par mot de passe"
+  "set_password":
+    "title": "Définir un nouveau mot de passe ?"
+    "intro": "Vous êtes connecté ! Si vous définissez un nouveau mot de passe maintenant, votre gestionnaire de mots de passe l'enregistrera sous myspeedpuzzling.com — et la prochaine fois, il le remplira automatiquement, comme il se doit."
+    "new_password": "Nouveau mot de passe"
+    "password_hint": "Au moins %minimum% caractères."
+    "suggest": "Proposer un mot de passe fort"
+    "submit": "Enregistrer le mot de passe"
+    "skip": "Pas maintenant — mon mot de passe actuel fonctionne toujours"
+    "saved": "Votre nouveau mot de passe est enregistré."

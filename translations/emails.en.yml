@@ -148,3 +148,12 @@ feature_request_declined:
             <p>Thanks for supporting the idea anyway! Your input helps us understand what the community cares about.</p>
         admin_comment: |
             <p><strong>Comment from the team:</strong> %adminComment%</p>
+
+sign_in_link:
+    subject: "Your sign-in link for MySpeedPuzzling.com"
+    title: "Here is your sign-in link"
+    content: |
+        <p>Click the button below to sign in to MySpeedPuzzling.com — no password needed.</p>
+    button: "Sign in"
+    expires: "The link works once and expires in %minutes% minutes."
+    not_requested: "Did not request this? You can safely ignore this email — nobody can sign in without the link."

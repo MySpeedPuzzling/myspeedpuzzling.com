@@ -2839,3 +2839,37 @@ qr_code:
   "help":
     "heading": "Něco nefunguje?"
     "body": "Pokud narazíte při přihlašování na jakýkoli problém — před přepnutím, během něj i po něm — napište nám na <a href=\"mailto:%support_email%\">%support_email%</a> nebo nám napište na <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>. Vždycky rádi pomůžeme."
+
+auth:
+    login:
+        title: "Přihlásit se"
+        microcopy: "Nová přihlašovací obrazovka, stejný účet. Použijte stejný e-mail a heslo jako dosud — nebo si nechte poslat přihlašovací odkaz e-mailem."
+        email: "E-mail"
+        password: "Heslo"
+        submit: "Přihlásit se"
+        or: "nebo"
+    failure_helper:
+        title: "Nefunguje heslo?"
+        vault_tip: "Pokud vám ho uložil správce hesel, vyhledejte v něm „speedpuzzling“ nebo „auth0“ — záznam je uložený pod naší starou přihlašovací doménou (%old_domain%)."
+        or_skip: "Nebo se obejděte úplně bez hesla:"
+    sign_in_link:
+        title: "Poslat mi přihlašovací odkaz e-mailem"
+        intro: "Zadejte svou e-mailovou adresu a my vám pošleme odkaz, kterým se přihlásíte — heslo nepotřebujete."
+        submit: "Poslat mi přihlašovací odkaz e-mailem"
+        explainer: "Odkaz pošleme na adresu uvedenou výše. Jedno kliknutí a jste uvnitř."
+        single_use_note: "Odkaz funguje jednou a vyprší za %minutes% minut."
+        sent: "Pokud pro tuto adresu existuje účet, přihlašovací odkaz je na cestě. Zkontrolujte svou schránku — i složku se spamem."
+        email_required: "Zadejte prosím svou e-mailovou adresu."
+        too_many_requests: "Příliš mnoho žádostí o přihlašovací odkaz. Počkejte prosím pár minut a zkuste to znovu."
+        failed: "Přihlašovací odkaz se nepodařilo odeslat. Zkuste to prosím za chvíli znovu."
+        invalid_link: "Tento přihlašovací odkaz už neplatí — mohl vypršet nebo už byl použit. Níže si vyžádejte nový."
+        back_to_login: "Zpět k přihlášení heslem"
+    set_password:
+        title: "Nastavit si nové heslo?"
+        intro: "Jste přihlášeni! Když si teď nastavíte nové heslo, váš správce hesel ho uloží pod doménou myspeedpuzzling.com — a příště ho vyplní automaticky, jak má."
+        new_password: "Nové heslo"
+        password_hint: "Alespoň %minimum% znaků."
+        suggest: "Navrhnout silné heslo"
+        submit: "Uložit heslo"
+        skip: "Teď ne — moje současné heslo dál funguje"
+        saved: "Vaše nové heslo je uložené."

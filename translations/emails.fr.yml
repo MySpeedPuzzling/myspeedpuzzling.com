@@ -148,3 +148,12 @@ feature_request_declined:
             <p>Merci tout de même d'avoir soutenu cette idée ! Votre contribution nous aide à comprendre ce qui compte pour la communauté.</p>
         admin_comment: |
             <p><strong>Commentaire de l'équipe :</strong> %adminComment%</p>
+
+sign_in_link:
+    subject: "Votre lien de connexion pour MySpeedPuzzling.com"
+    title: "Voici votre lien de connexion"
+    content: |
+        <p>Cliquez sur le bouton ci-dessous pour vous connecter à MySpeedPuzzling.com — sans mot de passe.</p>
+    button: "Se connecter"
+    expires: "Le lien ne fonctionne qu'une seule fois et expire dans %minutes% minutes."
+    not_requested: "Vous n'êtes pas à l'origine de cette demande ? Vous pouvez ignorer cet e-mail sans crainte — personne ne peut se connecter sans le lien."

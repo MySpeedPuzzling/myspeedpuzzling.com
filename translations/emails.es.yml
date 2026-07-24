@@ -148,3 +148,12 @@ feature_request_declined:
             <p>¡Gracias por apoyar la idea de todos modos! Tus aportes nos ayudan a entender lo que le importa a la comunidad.</p>
         admin_comment: |
             <p><strong>Comentario del equipo:</strong> %adminComment%</p>
+
+sign_in_link:
+    subject: "Tu enlace de acceso para MySpeedPuzzling.com"
+    title: "Aquí tienes tu enlace de acceso"
+    content: |
+        <p>Haz clic en el botón de abajo para iniciar sesión en MySpeedPuzzling.com, sin necesidad de contraseña.</p>
+    button: "Iniciar sesión"
+    expires: "El enlace funciona una sola vez y caduca en %minutes% minutos."
+    not_requested: "¿No lo has solicitado? Puedes ignorar este correo sin problema: nadie puede iniciar sesión sin el enlace."

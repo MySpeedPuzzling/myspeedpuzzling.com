@@ -148,3 +148,12 @@ feature_request_declined:
             <p>それでも、このアイデアを応援してくださりありがとうございました！皆様のご意見は、コミュニティが何を大切にしているかを理解する助けになっています。</p>
         admin_comment: |
             <p><strong>チームからのコメント:</strong> %adminComment%</p>
+
+sign_in_link:
+    subject: "MySpeedPuzzling.comのサインインリンク"
+    title: "サインインリンクをお送りします"
+    content: |
+        <p>下のボタンをクリックすると、パスワードなしでMySpeedPuzzling.comにサインインできます。</p>
+    button: "サインイン"
+    expires: "リンクは1回のみ有効で、%minutes%分で期限切れになります。"
+    not_requested: "お心当たりがない場合は、このメールは無視していただいて問題ありません。リンクがなければ誰もサインインできません。"

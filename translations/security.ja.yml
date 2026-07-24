@@ -1,0 +1,6 @@
+# Messages thrown by LoginFormAuthenticator (issue #147). Symfony renders an
+# authentication error as `error.messageKey|trans(error.messageData, 'security')`,
+# so the English sentence is the key; Symfony's own catalogue supplies every
+# built-in message ("Invalid credentials.", throttling, ...) in all six locales.
+"This password was found in a public data breach. To protect your account, please reset your password to sign in.": "このパスワードは公開されたデータ漏洩で見つかりました。アカウントを保護するため、パスワードをリセットしてからサインインしてください。"
+"Sign-in is temporarily unavailable. Please try again in a moment.": "現在サインインをご利用いただけません。しばらくしてから、もう一度お試しください。"

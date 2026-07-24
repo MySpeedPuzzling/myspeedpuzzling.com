@@ -5,7 +5,12 @@
 
 {% block content %}
     <div class="row gy-3 pb-4">
-        <div class="col-lg-6 col-md-8">
+        {# The sign-in link buttons live in two places (the failure helper above the
+           card, the secondary action inside it) and both submit the separate
+           sign-in-link form below via form="..." - a nested form is not possible,
+           and re-posting the login form would send the typed password to a second
+           endpoint for no reason. #}
+        <div class="col-lg-6 col-md-8" data-controller="sign-in-link">
             <h1 class="h2">{{ 'auth.login.title'|trans }}</h1>
 
             <p class="text-muted">{{ 'auth.login.microcopy'|trans }}</p>
@@ -26,9 +31,6 @@
                 <div class="card-body">
                     <form action="{{ path('login') }}" method="post" id="login-form">
                         <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
-                        {# Second token id: the "email me a sign-in link" button posts the
-                           same form to the sign-in link endpoint via formaction #}
-                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\SignInLinkController::CSRF_TOKEN_ID')) }}">
 
                         <div class="mb-3">
                             <label class="form-label" for="login-email">{{ 'auth.login.email'|trans }}</label>
@@ -41,6 +43,7 @@
                                 autocomplete="username"
                                 autofocus
                                 required
+                                data-action="input->sign-in-link#mirrorEmail"
                             >
                         </div>
 
@@ -59,29 +62,30 @@
                         <button type="submit" class="btn btn-primary w-100">
                             <i class="bi bi-box-arrow-in-right me-1"></i>{{ 'auth.login.submit'|trans }}
                         </button>
-
-                        <div class="text-center my-3 text-muted fs-sm">{{ 'auth.login.or'|trans }}</div>
-
-                        {# Prominent, permanent secondary action (UX funnel §3) - carries
-                           whatever address is already typed, so it stays one click #}
-                        <button
-                            type="submit"
-                            class="btn btn-outline-primary w-100"
-                            formaction="{{ path('sign_in_link_request') }}"
-                            formmethod="post"
-                            formnovalidate
-                        >
-                            <i class="bi bi-envelope me-1"></i>{{ 'auth.sign_in_link.submit'|trans }}
-                        </button>
-
-                        <p class="text-muted fs-sm mt-2 mb-0">{{ 'auth.sign_in_link.explainer'|trans }}</p>
                     </form>
+
+                    <div class="text-center my-3 text-muted fs-sm">{{ 'auth.login.or'|trans }}</div>
+
+                    {# Prominent, permanent secondary action (UX funnel §3) #}
+                    <button type="submit" class="btn btn-outline-primary w-100" form="sign-in-link-form">
+                        <i class="bi bi-envelope me-1"></i>{{ 'auth.sign_in_link.submit'|trans }}
+                    </button>
+
+                    <p class="text-muted fs-sm mt-2 mb-0">{{ 'auth.sign_in_link.explainer'|trans }}</p>
 
                     {# TODO (2c-II slice): "Forgot password?" and "Create an account" links
                        belong here - their routes (password_reset_request, register) ship
                        with the registration/reset flows. #}
                 </div>
             </div>
+
+            {# Carries the address the user typed (mirrored by the Stimulus controller);
+               without JavaScript it carries the last attempted one, and an empty value
+               simply lands on the sign-in link page, which asks for it. #}
+            <form action="{{ path('sign_in_link_request') }}" method="post" id="sign-in-link-form">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\SignInLinkController::CSRF_TOKEN_ID')) }}">
+                <input type="hidden" name="email" value="{{ last_email }}" data-sign-in-link-target="email">
+            </form>
         </div>
 
         <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">

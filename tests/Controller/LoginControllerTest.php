@@ -47,9 +47,12 @@ final class LoginControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('form#login-form input[name="email"]'));
         self::assertCount(1, $crawler->filter('form#login-form input[name="password"]'));
 
-        // The magic-link rescue is a permanent, prominent secondary action (UX funnel §3)
-        // and re-posts the login form, so it always carries the typed address
-        self::assertCount(1, $crawler->filter('form#login-form button[formaction="/login-link"]'));
+        // The magic-link rescue is a permanent, prominent secondary action (UX funnel §3).
+        // It submits its own form, pre-filled with the address, so the typed password
+        // never travels to a second endpoint
+        self::assertCount(1, $crawler->filter('button[form="sign-in-link-form"]'));
+        self::assertSame('/login-link', $crawler->filter('form#sign-in-link-form')->attr('action'));
+        self::assertCount(0, $crawler->filter('form#sign-in-link-form input[name="password"]'));
 
         // Persistent migration microcopy
         self::assertStringContainsString('same email and password', $crawler->filter('main')->text());
@@ -102,7 +105,10 @@ final class LoginControllerTest extends WebTestCase
         // UX funnel §4: the helper appears on failure, with the address still in place
         self::assertSame($email, $crawler->filter('form#login-form input[name="email"]')->attr('value'));
         self::assertStringContainsString('speedpuzzling', $crawler->filter('.alert-info')->text());
-        self::assertCount(1, $crawler->filter('.alert-info button[formaction="/login-link"]'));
+        self::assertCount(1, $crawler->filter('.alert-info button[form="sign-in-link-form"]'));
+
+        // One click away from a link, with nothing to retype
+        self::assertSame($email, $crawler->filter('form#sign-in-link-form input[name="email"]')->attr('value'));
     }
 
     private function createClientWithNativeLogin(bool $enabled): KernelBrowser

@@ -1,0 +1,50 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'auth.sign_in_link.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-6 col-md-8">
+            <h1 class="h2">{{ 'auth.sign_in_link.title'|trans }}</h1>
+
+            <p class="text-muted">{{ 'auth.sign_in_link.intro'|trans }}</p>
+
+            <div class="card shadow my-3">
+                <div class="card-body">
+                    <form action="{{ path('sign_in_link_request') }}" method="post">
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\SignInLinkController::CSRF_TOKEN_ID')) }}">
+
+                        <div class="mb-3">
+                            <label class="form-label" for="sign-in-link-email">{{ 'auth.login.email'|trans }}</label>
+                            <input
+                                class="form-control"
+                                type="email"
+                                id="sign-in-link-email"
+                                name="email"
+                                value="{{ email }}"
+                                autocomplete="username"
+                                autofocus
+                                required
+                            >
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-envelope me-1"></i>{{ 'auth.sign_in_link.submit'|trans }}
+                        </button>
+                    </form>
+
+                    <p class="text-muted fs-sm mt-3 mb-0">{{ 'auth.sign_in_link.single_use_note'|trans({'%minutes%': expires_in_minutes}) }}</p>
+                </div>
+            </div>
+
+            <p class="fs-sm">
+                <a href="{{ path('login') }}">{{ 'auth.sign_in_link.back_to_login'|trans }}</a>
+            </p>
+        </div>
+
+        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
+            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        </div>
+    </div>
+{% endblock %}

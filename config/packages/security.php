@@ -8,6 +8,8 @@ use Auth0\Symfony\Security\UserProvider;
 use SpeedPuzzling\Web\Security\Auth0EntryPoint;
 use SpeedPuzzling\Web\Security\InternalApiAuthenticator;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
+use SpeedPuzzling\Web\Security\LoginLinkFailureHandler;
+use SpeedPuzzling\Web\Security\LoginLinkSuccessHandler;
 use SpeedPuzzling\Web\Security\OAuth2UserProvider;
 use SpeedPuzzling\Web\Security\PatAuthenticator;
 use SpeedPuzzling\Web\Security\UserAccountProvider;
@@ -97,6 +99,24 @@ return App::config([
                 // short-circuits the chain for anonymous visitors. Entry point stays
                 // Auth0 until Stage B (native_login flag).
                 'custom_authenticators' => [LoginFormAuthenticator::class, 'auth0.authenticator'],
+                // Magic sign-in link, live from Stage A (D6): the rescue for users whose
+                // password manager filed the credential under the Auth0 domain, and for
+                // window-A native registrants who log out while /login still points at
+                // Auth0. Single-use is added by SingleUseLoginLinkHandler (D18), which
+                // decorates the handler this factory registers - Symfony's own max_uses
+                // needs a PSR-6 pool and cannot express "issued by us".
+                'login_link' => [
+                    'check_route' => 'sign_in_link_check',
+                    // The link dies when the address it was sent to changes, and when the
+                    // password changes (a reset must not leave older links usable)
+                    'signature_properties' => ['email', 'password'],
+                    'lifetime' => '%signInLinkLifetimeSeconds%',
+                    // Never the Auth0 provider: it json_decodes identifiers and would throw
+                    // JsonException instead of UserNotFoundException on a native user_id
+                    'provider' => 'user_account_provider',
+                    'success_handler' => LoginLinkSuccessHandler::class,
+                    'failure_handler' => LoginLinkFailureHandler::class,
+                ],
                 'entry_point' => Auth0EntryPoint::class,
                 'logout' => [
                     'path' => 'app_logout',

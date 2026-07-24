@@ -88,6 +88,26 @@ class UserAccount implements UserInterface, PasswordAuthenticatedUserInterface
         $this->password = $hashedPassword;
     }
 
+    public function markEmailVerified(DateTimeImmutable $now): void
+    {
+        if ($this->emailVerifiedAt === null) {
+            $this->emailVerifiedAt = $now;
+        }
+    }
+
+    public function changeEmail(string $email): void
+    {
+        $email = self::canonicalizeEmail($email);
+
+        if ($email === $this->email) {
+            return;
+        }
+
+        $this->email = $email;
+        // The new address is unproven until its verification link is clicked
+        $this->emailVerifiedAt = null;
+    }
+
     public function getUserIdentifier(): string
     {
         assert($this->userId !== '');

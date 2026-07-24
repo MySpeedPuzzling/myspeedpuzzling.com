@@ -80,9 +80,14 @@ final class ResetPasswordHandlerTest extends KernelTestCase
         $tokenB = PasswordResetToken::generate();
         $this->createRequest($userAccount, $tokenB, expiresAt: new DateTimeImmutable('+1 hour'));
 
+        // An unrelated account's in-flight request must survive the DQL DELETE untouched
+        $this->createUserAccount('auth0|pwreset3b', 'pwreset.three.b@example.com', self::BCRYPT_HASH);
+        $unrelatedToken = $this->requestPasswordReset('pwreset.three.b@example.com');
+
         $this->messageBus->dispatch(new ResetPassword($tokenA->toString(), 'brand-new-password-123'));
 
         self::assertNull($this->resetPasswordRequestRepository->findBySelector($tokenB->selector));
+        self::assertNotNull($this->resetPasswordRequestRepository->findBySelector($unrelatedToken->selector));
     }
 
     public function testMalformedTokenIsRejected(): void

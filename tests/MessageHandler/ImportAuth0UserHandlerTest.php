@@ -159,6 +159,42 @@ final class ImportAuth0UserHandlerTest extends KernelTestCase
         self::assertSame(self::BCRYPT_HASH, $userAccount->password);
     }
 
+    public function testImportDoesNotRevertNativelyChangedEmail(): void
+    {
+        $this->messageBus->dispatch(new ImportAuth0User(
+            userId: 'auth0|import7',
+            email: 'import.seven@example.com',
+            emailVerified: false,
+            name: null,
+            registeredAt: null,
+            passwordHash: self::BCRYPT_HASH,
+        ));
+
+        // User migrates natively: password re-hashed, then changes their email in-app
+        $userAccount = $this->userAccountRepository->findByUserId('auth0|import7');
+        self::assertNotNull($userAccount);
+        $userAccount->changePassword(self::ARGON2ID_HASH);
+        $userAccount->changeEmail('native.seven@example.com');
+        $this->entityManager->flush();
+
+        // A late export back-fill still carries the old address and a stale verified flag
+        $this->messageBus->dispatch(new ImportAuth0User(
+            userId: 'auth0|import7',
+            email: 'import.seven@example.com',
+            emailVerified: true,
+            name: null,
+            registeredAt: null,
+            passwordHash: self::BCRYPT_HASH,
+        ));
+
+        $userAccount = $this->userAccountRepository->findByUserId('auth0|import7');
+        self::assertNotNull($userAccount);
+        self::assertSame('native.seven@example.com', $userAccount->email);
+        // The stale flag referred to the old address - the new one stays unverified
+        self::assertNull($userAccount->emailVerifiedAt);
+        self::assertSame(self::ARGON2ID_HASH, $userAccount->password);
+    }
+
     public function testImportWithoutPlayerRowStillCreatesAccount(): void
     {
         $this->messageBus->dispatch(new ImportAuth0User(

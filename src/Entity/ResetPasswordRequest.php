@@ -32,7 +32,7 @@ class ResetPasswordRequest
         public UuidInterface $id,
         #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
+        #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
         public UserAccount $userAccount,
         #[Immutable]
         #[Column(unique: true)]

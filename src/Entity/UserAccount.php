@@ -59,8 +59,9 @@ class UserAccount implements UserInterface, PasswordAuthenticatedUserInterface
 
     /**
      * Upsert step of the Auth0 import — idempotent, safe to re-run with fresher exports.
-     * A password that is no longer a bcrypt hash was set natively (argon2id) after the
-     * export snapshot and must never be overwritten by a stale imported hash.
+     * State the user has since set natively must never be regressed by a stale export:
+     * a password that is no longer a bcrypt hash was re-hashed or replaced locally, and
+     * an account with any native activity keeps its (possibly changed) email + verified flag.
      */
     public function applyAuth0Import(
         string $email,
@@ -68,18 +69,24 @@ class UserAccount implements UserInterface, PasswordAuthenticatedUserInterface
         bool $emailVerified,
         DateTimeImmutable $now,
     ): void {
-        $this->email = self::canonicalizeEmail($email);
         $this->legacyAuth0 = true;
+
+        $hasNativeActivity = $this->lastLoginAt !== null
+            || ($this->password !== null && !str_starts_with($this->password, '$2'));
+
+        if (!$hasNativeActivity) {
+            $this->email = self::canonicalizeEmail($email);
+
+            if ($emailVerified && $this->emailVerifiedAt === null) {
+                $this->emailVerifiedAt = $now;
+            }
+        }
 
         if (
             $bcryptPasswordHash !== null
             && ($this->password === null || str_starts_with($this->password, '$2'))
         ) {
             $this->password = $bcryptPasswordHash;
-        }
-
-        if ($emailVerified && $this->emailVerifiedAt === null) {
-            $this->emailVerifiedAt = $now;
         }
     }
 

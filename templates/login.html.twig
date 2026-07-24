@@ -4,6 +4,11 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
+    {# D15: shown once per browser, on the page where the change is actually met.
+       Only after login went native - before that /login is the Auth0 redirect and
+       this template does not render at all. #}
+    {{ include('_cutover_modal.html.twig') }}
+
     <div class="row gy-3 pb-4">
         {# The sign-in link buttons live in two places (the failure helper above the
            card, the secondary action inside it) and both submit the separate
@@ -71,11 +76,17 @@
                         <i class="bi bi-envelope me-1"></i>{{ 'auth.sign_in_link.submit'|trans }}
                     </button>
 
-                    <p class="text-muted fs-sm mt-2 mb-0">{{ 'auth.sign_in_link.explainer'|trans }}</p>
+                    <p class="text-muted fs-sm mt-2 mb-3">{{ 'auth.sign_in_link.explainer'|trans }}</p>
 
-                    {# TODO (2c-II slice): "Forgot password?" and "Create an account" links
-                       belong here - their routes (password_reset_request, register) ship
-                       with the registration/reset flows. #}
+                    {# Tertiary, in the UX funnel's order (§3): password login first, the
+                       sign-in link prominently second, these last. #}
+                    <p class="fs-sm mb-0">
+                        <a href="{{ path('request_password_reset') }}">{{ 'auth.password_reset.link'|trans }}</a>
+                        {% if native_registration_enabled %}
+                            <span class="text-muted mx-1">·</span>
+                            <a href="{{ path('register') }}">{{ 'auth.register.title'|trans }}</a>
+                        {% endif %}
+                    </p>
                 </div>
             </div>
 

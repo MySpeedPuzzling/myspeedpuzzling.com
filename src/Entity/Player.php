@@ -213,6 +213,16 @@ class Player
         $this->twitch = $twitch;
     }
 
+    /**
+     * Keeps the player's copy of the address in step with user_account.email when
+     * the account owner changes it (issue #147). Notification mail is addressed
+     * from here, so the two drifting apart would send it to the old inbox.
+     */
+    public function changeEmail(string $email): void
+    {
+        $this->email = $email;
+    }
+
     public function backfillFromAuth0Import(null|string $email, null|string $name): void
     {
         if ($this->email === null && $email !== null) {

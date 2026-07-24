@@ -1,0 +1,52 @@
+{# Cutover explainer (D15, UX funnel §2, issue #147): the one-time modal that
+   greets people on the login page once sign-in is native. Dismissal is
+   localStorage, so it works for anonymous visitors and adds no session - the
+   login page must stay session-free for the #164 constraint.
+
+   Retires ~4 weeks after Stage B together with the site-wide notice. #}
+<div
+    class="modal fade"
+    id="cutoverModal"
+    tabindex="-1"
+    aria-labelledby="cutoverModalLabel"
+    aria-hidden="true"
+    data-controller="cutover-modal"
+>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cutoverModalLabel">{{ 'auth.cutover_modal.title'|trans }}</h5>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="{{ 'auth.cutover_modal.dismiss'|trans }}"
+                    data-action="cutover-modal#dismiss"
+                ></button>
+            </div>
+
+            <div class="modal-body">
+                <p>{{ 'auth.cutover_modal.intro'|trans }}</p>
+
+                <ul class="mb-3">
+                    <li>{{ 'auth.cutover_modal.same_credentials'|trans|raw }}</li>
+                    <li>{{ 'auth.cutover_modal.vault_tip'|trans({'%old_domain%': 'speedpuzzling.eu.auth0.com'})|raw }}</li>
+                    <li>{{ 'auth.cutover_modal.sign_in_link'|trans|raw }}</li>
+                </ul>
+
+                <p class="mb-0 fs-sm">
+                    <a href="{{ path('sign_in_changes') }}">{{ 'auth.cutover_modal.why'|trans }}</a>
+                </p>
+            </div>
+
+            <div class="modal-footer">
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    data-bs-dismiss="modal"
+                    data-action="cutover-modal#dismiss"
+                >{{ 'auth.cutover_modal.got_it'|trans }}</button>
+            </div>
+        </div>
+    </div>
+</div>

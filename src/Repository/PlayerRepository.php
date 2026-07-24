@@ -73,12 +73,39 @@ readonly class PlayerRepository
         }
     }
 
+    public function save(Player $player): void
+    {
+        $this->entityManager->persist($player);
+    }
+
     public function findByUserId(string $userId): null|Player
     {
         return $this->entityManager->getRepository(Player::class)
             ->findOneBy([
                 'userId' => $userId,
             ]);
+    }
+
+    /**
+     * player.email is NOT unique - production carries 7 known duplicate-email pairs
+     * (deleted-and-re-registered Auth0 accounts, README §Current state) - so this
+     * answers "is this address taken at all", never "which row is the right one".
+     */
+    public function findByEmail(string $email): null|Player
+    {
+        $queryBuilder = $this->entityManager->createQueryBuilder();
+
+        $player = $queryBuilder->select('player')
+            ->from(Player::class, 'player')
+            ->where('LOWER(player.email) = :email')
+            ->setParameter('email', mb_strtolower(trim($email)))
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        assert($player === null || $player instanceof Player);
+
+        return $player;
     }
 
     /**

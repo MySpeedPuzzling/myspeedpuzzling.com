@@ -118,25 +118,73 @@
                 {% endif %}
             </div>
 
-            <div class="card card-body shadow-lg my-3">
-                <h3 class="h5">{{ 'edit_profile.change_password'|trans }}</h3>
+            {# Sign-in migration (issue #147). Which card shows follows the account the
+               session actually holds, not a flag: a native account gets the native
+               forms from the day it exists (window-A registrants included), a legacy
+               Auth0 session keeps the #161 reset-email button until the Stage B import
+               turns it into a user_account. The Auth0 branch and its three classes are
+               removed at Stage B - see docs/features/auth-migration. #}
+            {% if has_native_account %}
+                <div class="card card-body shadow-lg my-3">
+                    <h3 class="h5">{{ 'edit_profile.change_email'|trans }}</h3>
+                    <p class="text-muted fs-sm mb-2">{{ 'edit_profile.change_email_description'|trans({'%email%': account_email}) }}</p>
 
-                {% if can_change_password %}
-                    <p class="text-muted fs-sm mb-3">{{ 'edit_profile.change_password_description'|trans }}</p>
-
-                    <form action="{{ path('request_password_change') }}" method="post">
-                        <input type="hidden" name="_token" value="{{ csrf_token('change_password') }}" />
-
-                        <p class="mb-0">
-                            <button type="submit" class="btn btn-outline-primary">
-                                <i class="bi bi-key me-1"></i>{{ 'edit_profile.change_password_button'|trans }}
-                            </button>
+                    {% if account_email_verified %}
+                        <p class="fs-sm mb-3 text-success">
+                            <i class="bi bi-check-circle me-1"></i>{{ 'edit_profile.email_verified'|trans }}
                         </p>
-                    </form>
-                {% else %}
-                    <p class="text-muted fs-sm mb-0">{{ 'edit_profile.change_password_social_login'|trans }}</p>
-                {% endif %}
-            </div>
+                    {% else %}
+                        <p class="fs-sm mb-2 text-warning">
+                            <i class="bi bi-exclamation-circle me-1"></i>{{ 'edit_profile.email_not_verified'|trans }}
+                        </p>
+
+                        <form action="{{ path('resend_email_verification') }}" method="post" class="mb-3">
+                            <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ResendEmailVerificationController::CSRF_TOKEN_ID')) }}" />
+
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-envelope me-1"></i>{{ 'edit_profile.email_verify_resend'|trans }}
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    <p class="mb-0">
+                        <a class="btn btn-outline-primary" href="{{ path('change_account_email') }}">
+                            <i class="bi bi-envelope me-1"></i>{{ 'edit_profile.change_email_button'|trans }}
+                        </a>
+                    </p>
+                </div>
+
+                <div class="card card-body shadow-lg my-3">
+                    <h3 class="h5">{{ 'edit_profile.change_password'|trans }}</h3>
+                    <p class="text-muted fs-sm mb-3">{{ 'edit_profile.change_password_native_description'|trans }}</p>
+
+                    <p class="mb-0">
+                        <a class="btn btn-outline-primary" href="{{ path('change_account_password') }}">
+                            <i class="bi bi-key me-1"></i>{{ 'edit_profile.change_password_native_button'|trans }}
+                        </a>
+                    </p>
+                </div>
+            {% else %}
+                <div class="card card-body shadow-lg my-3">
+                    <h3 class="h5">{{ 'edit_profile.change_password'|trans }}</h3>
+
+                    {% if can_change_password %}
+                        <p class="text-muted fs-sm mb-3">{{ 'edit_profile.change_password_description'|trans }}</p>
+
+                        <form action="{{ path('request_password_change') }}" method="post">
+                            <input type="hidden" name="_token" value="{{ csrf_token('change_password') }}" />
+
+                            <p class="mb-0">
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="bi bi-key me-1"></i>{{ 'edit_profile.change_password_button'|trans }}
+                                </button>
+                            </p>
+                        </form>
+                    {% else %}
+                        <p class="text-muted fs-sm mb-0">{{ 'edit_profile.change_password_social_login'|trans }}</p>
+                    {% endif %}
+                </div>
+            {% endif %}
 
             <div class="card card-body shadow-lg my-3">
                 <h3 class="h5">{{ 'edit_profile.personal_access_tokens'|trans }}</h3>

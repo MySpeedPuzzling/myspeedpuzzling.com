@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ headline }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-6 col-md-8">
+            <h1 class="h2">{{ headline }}</h1>
+
+            <div class="alert {{ outcome == 'success' ? 'alert-success' : 'alert-warning' }}" role="alert">
+                <i class="{{ outcome == 'success' ? 'ci-check-circle' : 'ci-close-circle' }} me-2"></i>
+                {{ message }}
+            </div>
+
+            <p class="fs-sm">
+                {% if outcome == 'success' %}
+                    <a href="{{ path('my_profile') }}">{{ 'auth.verify_email.to_profile'|trans }}</a>
+                {% else %}
+                    {# A fresh link needs an authenticated session, so signing in is the
+                       route back to the resend button on the profile settings page #}
+                    <a href="{{ path('login') }}">{{ 'auth.login.submit'|trans }}</a>
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
+            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        </div>
+    </div>
+{% endblock %}

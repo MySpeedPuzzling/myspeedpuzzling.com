@@ -90,6 +90,7 @@ Sequencing matters: signups are frozen at Stage A, so a single export generated 
 ### 2d. Code sweep
 
 - [ ] `RetrieveLoggedUserProfile`: handle `UserAccount` (window A: both classes); JIT `RegisterUserToPlay` becomes dead code for native users but stays as safety net until Phase 6.
+  - **Blocks part of 2c-II — do this first in the slice.** `getProfile()` still tests `instanceof Auth0\Symfony\Models\User` only, so a native `UserAccount` session gets `logged_user.profile === null`. Consequences already built and waiting on it: `EditProfileController` bounces such a session to `my_profile` (its `$player === null` guard), which makes the native change-password and change-email cards shipped in 2c-II **unreachable** until this lands; and every page a native account sees renders the anonymous navbar. Nothing is user-visible yet — both flags are OFF and Stage A ships after 2d — but no native session is really usable before this is fixed.
 - [ ] `EventSubscriber/OAuth2AuthorizationSubscriber.php`: replace Auth0-class branches with `UserAccount` (window A: accept both).
 - [ ] Sweep `Auth0\Symfony\Models\User` references — **50 files as of 2026-07-23** (was 46 on 07-11; #161 added `RequestPasswordChangeController` a.o.): `#[CurrentUser]` hints → `UserAccount`; 25 `UserInterface` hints untouched.
 - [ ] Tests: rewrite `tests/TestingLogin.php` + `src/Controller/Test/TestLoginController.php` + `tests/Panther/AbstractPantherTestCase.php` to fabricate `UserAccount`; fixtures keep `auth0|regular001` ids but gain `UserAccount` rows; add `msp|`-style native fixtures.

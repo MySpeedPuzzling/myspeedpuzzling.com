@@ -79,7 +79,7 @@ final readonly class SendEmailVerificationLinkHandler
                 // which has no identity for them and which we cannot brand or link from.
                 // The sign-in link is their way back in (implementation-plan §2c).
                 'showSignInLinkRescue' => $userAccount->legacyAuth0 === false,
-                'expiresInHours' => 24,
+                'expiresInHours' => EmailVerificationTokenSigner::LIFETIME_HOURS,
             ]);
         $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 

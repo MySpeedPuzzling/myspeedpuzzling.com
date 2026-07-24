@@ -20,7 +20,10 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  */
 readonly final class EmailVerificationTokenSigner
 {
-    public const string LIFETIME = '+24 hours';
+    public const int LIFETIME_HOURS = 24;
+
+    /** Single source for the expiry the token carries and the expiry the email promises */
+    public const string LIFETIME = '+' . self::LIFETIME_HOURS . ' hours';
 
     public function __construct(
         #[Autowire(param: 'kernel.secret')]

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\EventSubscriber\NativeAuthPageSubscriber;
 use SpeedPuzzling\Web\Exceptions\EmailAlreadyRegistered;
@@ -86,7 +87,13 @@ final class RegisterController extends AbstractController
                     ),
                 );
             } catch (HandlerFailedException $exception) {
-                if ($exception->getPrevious() instanceof EmailAlreadyRegistered) {
+                // The handler's checks are advisory - two registrations racing on the
+                // same address get past both and one loses at the unique index. Same
+                // situation for the user, so it deserves the same message rather than
+                // a "something went wrong" and a Sentry alert for a benign race.
+                $reason = $exception->getPrevious();
+
+                if ($reason instanceof EmailAlreadyRegistered || $reason instanceof UniqueConstraintViolationException) {
                     // D8: the unique-email error is an accepted enumeration tradeoff.
                     // The copy points at signing in rather than only saying "taken" -
                     // through window A the collision is usually the user's own older

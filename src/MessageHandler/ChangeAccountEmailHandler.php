@@ -70,10 +70,11 @@ final readonly class ChangeAccountEmailHandler
 
         // Same reasoning as registration: an address that already reaches a player -
         // including a legacy Auth0 one with no user_account row yet - must not be
-        // claimed by a second account, or the Stage B import would strand it
-        $playerOnNewEmail = $this->playerRepository->findByEmail($newEmail);
-
-        if ($playerOnNewEmail !== null && $playerOnNewEmail->userId !== $userAccount->userId) {
+        // claimed by a second account, or the Stage B import would strand it.
+        // Asked as "any player but me" rather than "fetch one and compare": player.email
+        // is not unique, so comparing a single arbitrary row would answer differently
+        // from run to run when the address sits on a duplicate pair.
+        if ($this->playerRepository->emailBelongsToAnotherPlayer($newEmail, $userAccount->userId)) {
             throw new EmailAlreadyRegistered();
         }
 

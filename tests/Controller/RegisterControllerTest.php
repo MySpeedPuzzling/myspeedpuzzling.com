@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
+use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -27,9 +28,11 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
  */
 final class RegisterControllerTest extends WebTestCase
 {
+    use OverridesFeatureFlagEnv;
+
     protected function tearDown(): void
     {
-        unset($_ENV['NATIVE_REGISTRATION_ENABLED'], $_SERVER['NATIVE_REGISTRATION_ENABLED']);
+        $this->restoreFeatureFlagEnv();
 
         parent::tearDown();
     }
@@ -183,6 +186,11 @@ final class RegisterControllerTest extends WebTestCase
 
     private function submitRegistration(KernelBrowser $browser, string $email, string $password): Crawler
     {
+        // A fresh client IP per submit: registration is throttled per IP and the
+        // limiter's cache is not rolled back between tests or runs (DAMA only wraps
+        // the database), so a shared 127.0.0.1 would starve later tests
+        $browser->setServerParameter('REMOTE_ADDR', sprintf('198.51.100.%d', random_int(1, 254)));
+
         $crawler = $browser->request('GET', '/register');
         $form = $crawler->selectButton('Create account')->form();
 
@@ -195,8 +203,7 @@ final class RegisterControllerTest extends WebTestCase
     private function createClientWithNativeRegistration(bool $enabled): KernelBrowser
     {
         // The flag is a runtime env placeholder, so a kernel booted after this sees it
-        $_ENV['NATIVE_REGISTRATION_ENABLED'] = $enabled ? '1' : '0';
-        $_SERVER['NATIVE_REGISTRATION_ENABLED'] = $_ENV['NATIVE_REGISTRATION_ENABLED'];
+        $this->overrideFeatureFlagEnv('NATIVE_REGISTRATION_ENABLED', $enabled);
 
         return self::createClient();
     }

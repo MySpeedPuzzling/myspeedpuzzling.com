@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
+use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -19,9 +20,11 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class LoginControllerTest extends WebTestCase
 {
+    use OverridesFeatureFlagEnv;
+
     protected function tearDown(): void
     {
-        unset($_ENV['NATIVE_LOGIN_ENABLED'], $_SERVER['NATIVE_LOGIN_ENABLED']);
+        $this->restoreFeatureFlagEnv();
 
         parent::tearDown();
     }
@@ -114,8 +117,7 @@ final class LoginControllerTest extends WebTestCase
     private function createClientWithNativeLogin(bool $enabled): KernelBrowser
     {
         // The flag is a runtime env placeholder, so a kernel booted after this sees it
-        $_ENV['NATIVE_LOGIN_ENABLED'] = $enabled ? '1' : '0';
-        $_SERVER['NATIVE_LOGIN_ENABLED'] = $_ENV['NATIVE_LOGIN_ENABLED'];
+        $this->overrideFeatureFlagEnv('NATIVE_LOGIN_ENABLED', $enabled);
 
         return self::createClient();
     }

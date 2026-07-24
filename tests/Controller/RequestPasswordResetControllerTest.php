@@ -8,9 +8,11 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
+use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Mime\Email;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
  * "Forgot password?" (issue #147). The load-bearing property is that the page
@@ -47,6 +49,40 @@ final class RequestPasswordResetControllerTest extends WebTestCase
         $browser->request('GET', '/password-reset/' . $matches[1]);
         self::assertResponseIsSuccessful();
         self::assertStringNotContainsString('does not work', (string) $browser->getResponse()->getContent());
+    }
+
+    public function testTheMailedLinkActuallyResetsThePasswordAndThenDies(): void
+    {
+        $browser = self::createClient();
+        $email = $this->seedAccount($browser);
+
+        $this->requestReset($browser, $email);
+
+        $messages = self::getMailerMessages();
+        self::assertInstanceOf(Email::class, $messages[0]);
+        self::assertSame(
+            1,
+            preg_match('#/password-reset/([0-9a-f]{64})#', (string) $messages[0]->getHtmlBody(), $matches),
+        );
+        $resetUrl = '/password-reset/' . $matches[1];
+
+        $crawler = $browser->request('GET', $resetUrl);
+        $form = $crawler->selectButton('Save new password')->form();
+        $browser->submit($form, [$form->getName() . '[plainPassword]' => 'a-brand-new-passphrase']);
+
+        // Proving control of the mailbox resets the password; it does not sign the
+        // browser in - the user lands on the login page and uses the new password
+        self::assertResponseRedirects('/login');
+
+        $hasher = $browser->getContainer()->get(UserPasswordHasherInterface::class);
+        $userAccount = $browser->getContainer()->get(UserAccountRepository::class)->findByEmail($email);
+        self::assertNotNull($userAccount);
+        self::assertTrue($hasher->isPasswordValid($userAccount, 'a-brand-new-passphrase'));
+        self::assertFalse($hasher->isPasswordValid($userAccount, 'the-real-password'));
+
+        // Single use: the same link must not open a second time
+        $browser->request('GET', $resetUrl);
+        self::assertStringContainsString('does not work', (string) $browser->getResponse()->getContent());
     }
 
     public function testUnknownAddressLooksExactlyLikeAKnownOne(): void

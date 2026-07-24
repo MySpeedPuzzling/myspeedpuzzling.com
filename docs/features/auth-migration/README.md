@@ -226,6 +226,7 @@ The fork fixes + `AnonymousCacheHeadersSubscriber` (2026-07) made anonymous HTML
 | Native auth bug at cutover | Low | Blue-green rollback to previous image restores Auth0 login (tenant stays intact until decommission); sessions already truncated either way |
 | OAuth2 `/oauth2/authorize` deep-link return regression (bespoke redirect cookie replaced by `TargetPathTrait`) | Medium | Explicit Panther test for the authorize→login→authorize round-trip |
 | All users logged out at cutover | Certain | Communicated in advance; one-time event; same credentials work immediately |
+| Trickle branch is an enumeration side channel during the window (only trickle-eligible accounts trigger an Auth0 round-trip → measurable latency; `password_leaked`/unavailable messages are distinct by design) | Accepted (2026-07-24) | Consistent with the D8 enumeration tradeoff; window is short, cohort shrinks with every login, and login is rate-limited (5/min per email+IP, in-authenticator — NOT the firewall `login_throttling`, whose failure listener would count the Auth0 authenticator's per-request anonymous failures against the per-IP budget) |
 
 ## Cost & effort estimate
 

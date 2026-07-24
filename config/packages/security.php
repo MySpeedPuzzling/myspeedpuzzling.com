@@ -7,8 +7,10 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Auth0\Symfony\Security\UserProvider;
 use SpeedPuzzling\Web\Security\Auth0EntryPoint;
 use SpeedPuzzling\Web\Security\InternalApiAuthenticator;
+use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
 use SpeedPuzzling\Web\Security\OAuth2UserProvider;
 use SpeedPuzzling\Web\Security\PatAuthenticator;
+use SpeedPuzzling\Web\Security\UserAccountProvider;
 use Symfony\Component\Security\Core\Authorization\Voter\AuthenticatedVoter;
 
 return App::config([
@@ -22,8 +24,23 @@ return App::config([
             ],
         ],
         'providers' => [
+            'user_account_provider' => [
+                'id' => UserAccountProvider::class,
+            ],
             'auth0_provider' => [
                 'id' => UserProvider::class,
+            ],
+            // Window A of the Auth0 migration (issue #147): sessions may hold either
+            // a native UserAccount or an Auth0 bundle user, so both providers must be
+            // able to refresh. Order is load-bearing: the Auth0 provider json_decodes
+            // its identifiers (JSON blobs) and throws JsonException - not
+            // UserNotFoundException - on a native "msp|..."/"auth0|..." string, so the
+            // user_account provider must claim those first. Collapses to
+            // user_account_provider alone in Phase 6.
+            'window_a_chain_provider' => [
+                'chain' => [
+                    'providers' => ['user_account_provider', 'auth0_provider'],
+                ],
             ],
             'oauth2_provider' => [
                 'id' => OAuth2UserProvider::class,
@@ -72,8 +89,14 @@ return App::config([
             'main' => [
                 'pattern' => '^/',
                 'lazy' => true,
-                'provider' => 'auth0_provider',
-                'custom_authenticators' => ['auth0.authenticator'],
+                'provider' => 'window_a_chain_provider',
+                // Window-A dual wiring: the native login POST is handled by
+                // LoginFormAuthenticator (only supports POST /login), everything else
+                // still authenticates from the Auth0 session. The Auth0 authenticator
+                // returns a null failure response on public pages, so it never
+                // short-circuits the chain for anonymous visitors. Entry point stays
+                // Auth0 until Stage B (native_login flag).
+                'custom_authenticators' => [LoginFormAuthenticator::class, 'auth0.authenticator'],
                 'entry_point' => Auth0EntryPoint::class,
                 'logout' => [
                     'path' => 'app_logout',

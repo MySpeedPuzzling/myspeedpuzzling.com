@@ -40,7 +40,16 @@ return static function (ContainerConfigurator $configurator): void {
 
     $parameters->set('auth0Domain', '%env(trim:string:AUTH0_DOMAIN)%');
     $parameters->set('auth0ClientId', '%env(trim:string:AUTH0_CLIENT_ID)%');
+    $parameters->set('auth0ClientSecret', '%env(trim:string:AUTH0_CLIENT_SECRET)%');
     $parameters->set('auth0DatabaseConnection', '%env(trim:string:AUTH0_DB_CONNECTION)%');
+
+    // Auth0 -> native auth migration flags (issue #147, docs/features/feature_flags.md).
+    // Deploy != flip: all three ship OFF and are flipped via env at Stage A / Stage B.
+    // nativeRegistrationEnabled/nativeLoginEnabled have no consumers yet (2c slices) -
+    // they are parameters only; bind them in defaults() once a service injects them.
+    $parameters->set('nativeRegistrationEnabled', '%env(bool:NATIVE_REGISTRATION_ENABLED)%');
+    $parameters->set('nativeLoginEnabled', '%env(bool:NATIVE_LOGIN_ENABLED)%');
+    $parameters->set('auth0TrickleLoginEnabled', '%env(bool:AUTH0_TRICKLE_LOGIN_ENABLED)%');
 
     $services = $configurator->services();
 
@@ -57,7 +66,9 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$bounceEmailDomain', '%bounceEmailDomain%')
         ->bind('$auth0Domain', '%auth0Domain%')
         ->bind('$auth0ClientId', '%auth0ClientId%')
-        ->bind('$auth0DatabaseConnection', '%auth0DatabaseConnection%');
+        ->bind('$auth0ClientSecret', '%auth0ClientSecret%')
+        ->bind('$auth0DatabaseConnection', '%auth0DatabaseConnection%')
+        ->bind('$auth0TrickleLoginEnabled', '%auth0TrickleLoginEnabled%');
 
     $services->set(PdoSessionHandler::class)
         ->args([
@@ -99,7 +110,12 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Security/OAuth2User.php',
             __DIR__ . '/../src/Security/PatUser.php',
             __DIR__ . '/../src/Security/ApiUser.php',
+            __DIR__ . '/../src/Security/TrickleVerificationResult.php',
         ]);
+    $services->alias(
+        \SpeedPuzzling\Web\Security\TricklePasswordVerifier::class,
+        \SpeedPuzzling\Web\Security\Auth0TrickleGateway::class,
+    );
     $services->load('SpeedPuzzling\\Web\\EventSubscriber\\', __DIR__ . '/../src/EventSubscriber/**/{*.php}');
 
     // API Resource Providers and Processors

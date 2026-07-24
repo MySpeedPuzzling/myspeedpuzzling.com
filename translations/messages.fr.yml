@@ -2932,15 +2932,6 @@ edition:
     "resend_sent": "E-mail de confirmation envoyé. Vérifiez votre boîte de réception — et vos spams."
     "resend_too_many": "Nous venons d'en envoyer un. Patientez quelques minutes avant d'en demander un autre."
     "resend_failed": "Nous n'avons pas pu envoyer l'e-mail de confirmation. Veuillez réessayer dans un instant."
-  "cutover_modal":
-    "title": "La connexion a déménagé chez nous"
-    "intro": "La connexion se fait désormais ici même, sur myspeedpuzzling.com — plus de redirection vers auth0.com."
-    "same_credentials": "<strong>Même e-mail, même mot de passe.</strong> Rien n'a été réinitialisé."
-    "vault_tip": "<strong>Votre gestionnaire de mots de passe ne le propose pas ?</strong> Il a enregistré votre mot de passe sous notre ancien domaine de connexion (%old_domain%). Cherchez-y \"speedpuzzling\" ou \"auth0\" — il y est."
-    "sign_in_link": "<strong>Vous ne le retrouvez pas ?</strong> Utilisez « Recevoir un lien de connexion par e-mail » ci-dessous — un clic et vous êtes connecté. Vous pourrez définir un nouveau mot de passe ensuite."
-    "why": "Pourquoi ce changement ?"
-    "got_it": "J'ai compris"
-    "dismiss": "Fermer"
   "password_reset":
     "link": "Mot de passe oublié ?"
     "request_title": "Réinitialiser votre mot de passe"

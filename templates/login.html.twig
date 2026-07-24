@@ -4,11 +4,6 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-    {# D15: shown once per browser, on the page where the change is actually met.
-       Only after login went native - before that /login is the Auth0 redirect and
-       this template does not render at all. #}
-    {{ include('_cutover_modal.html.twig') }}
-
     <div class="row gy-3 pb-4">
         {# The sign-in link buttons live in two places (the failure helper above the
            card, the secondary action inside it) and both submit the separate

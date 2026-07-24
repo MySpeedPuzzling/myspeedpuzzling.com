@@ -3217,15 +3217,6 @@ auth:
         resend_sent: "Confirmation email sent. Check your inbox — and your spam folder."
         resend_too_many: "We just sent one. Please wait a few minutes before asking for another."
         resend_failed: "We could not send the confirmation email. Please try again in a moment."
-    cutover_modal:
-        title: "Sign-in has moved home"
-        intro: "Signing in now happens right here on myspeedpuzzling.com — no more redirect to auth0.com."
-        same_credentials: "<strong>Same email, same password.</strong> Nothing was reset."
-        vault_tip: "<strong>Password manager not offering it?</strong> It saved your password under our old sign-in domain (%old_domain%). Search it for \"speedpuzzling\" or \"auth0\" — it is there."
-        sign_in_link: "<strong>Can't find it?</strong> Use \"Email me a sign-in link\" below — one click and you are in. You can set a fresh password afterwards."
-        why: "Why did this change?"
-        got_it: "Got it"
-        dismiss: "Close"
     password_reset:
         link: "Forgot password?"
         request_title: "Reset your password"

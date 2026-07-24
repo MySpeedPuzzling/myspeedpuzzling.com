@@ -2930,15 +2930,6 @@ auth:
         resend_sent: "Bestätigungs-E-Mail gesendet. Schauen Sie in Ihr Postfach – und in den Spam-Ordner."
         resend_too_many: "Wir haben gerade eine geschickt. Bitte warten Sie ein paar Minuten, bevor Sie eine weitere anfordern."
         resend_failed: "Wir konnten die Bestätigungs-E-Mail nicht senden. Bitte versuchen Sie es gleich noch einmal."
-    cutover_modal:
-        title: "Die Anmeldung ist umgezogen"
-        intro: "Die Anmeldung findet jetzt direkt hier auf myspeedpuzzling.com statt – keine Weiterleitung mehr zu auth0.com."
-        same_credentials: "<strong>Gleiche E-Mail, gleiches Passwort.</strong> Es wurde nichts zurückgesetzt."
-        vault_tip: "<strong>Ihr Passwort-Manager bietet es nicht an?</strong> Er hat Ihr Passwort unter unserer alten Anmelde-Domain (%old_domain%) gespeichert. Suchen Sie dort nach „speedpuzzling“ oder „auth0“ – es ist da."
-        sign_in_link: "<strong>Nicht zu finden?</strong> Nutzen Sie unten „Anmeldelink per E-Mail schicken“ – ein Klick und Sie sind drin. Ein frisches Passwort können Sie danach festlegen."
-        why: "Warum hat sich das geändert?"
-        got_it: "Alles klar"
-        dismiss: "Schließen"
     password_reset:
         link: "Passwort vergessen?"
         request_title: "Passwort zurücksetzen"

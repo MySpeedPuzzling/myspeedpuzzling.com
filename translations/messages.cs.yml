@@ -2928,15 +2928,6 @@ auth:
         resend_sent: "Potvrzovací e-mail jsme odeslali. Zkontrolujte svou schránku — i složku se spamem."
         resend_too_many: "Právě jsme jeden poslali. Počkejte prosím pár minut, než si vyžádáte další."
         resend_failed: "Potvrzovací e-mail se nepodařilo odeslat. Zkuste to prosím za chvíli znovu."
-    cutover_modal:
-        title: "Přihlašování se přestěhovalo domů"
-        intro: "Přihlašování teď probíhá přímo tady na myspeedpuzzling.com — už žádné přesměrování na auth0.com."
-        same_credentials: "<strong>Stejný e-mail, stejné heslo.</strong> Nic jsme neresetovali."
-        vault_tip: "<strong>Správce hesel vám ho nenabízí?</strong> Uložil si vaše heslo pod naší starou přihlašovací doménou (%old_domain%). Vyhledejte si v něm „speedpuzzling“ nebo „auth0“ — je tam."
-        sign_in_link: "<strong>Nemůžete ho najít?</strong> Použijte níže „Poslat mi přihlašovací odkaz e-mailem“ — jedno kliknutí a jste uvnitř. Nové heslo si pak můžete nastavit hned potom."
-        why: "Proč se to změnilo?"
-        got_it: "Rozumím"
-        dismiss: "Zavřít"
     password_reset:
         link: "Zapomenuté heslo?"
         request_title: "Obnovení hesla"

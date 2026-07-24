@@ -36,6 +36,8 @@ final class RequestPasswordResetController extends AbstractController
         private readonly LoggerInterface $logger,
         private readonly RateLimiterFactoryInterface $passwordResetEmailLimiter,
         private readonly RateLimiterFactoryInterface $passwordResetIpLimiter,
+        private readonly bool $nativeRegistrationEnabled,
+        private readonly bool $nativeLoginEnabled,
     ) {
     }
 
@@ -47,6 +49,15 @@ final class RequestPasswordResetController extends AbstractController
     )]
     public function __invoke(Request $request): Response
     {
+        // Reachable only once a native account can exist (Stage A onwards). Before
+        // that the user_account table is empty, so this page could only ever promise
+        // a mail it will not send - and its answer is uniform by design, so the dead
+        // end would be silent. Both flags, not just registration: a rollback that
+        // leaves login native must not take password reset down with it.
+        if ($this->nativeRegistrationEnabled === false && $this->nativeLoginEnabled === false) {
+            return $this->redirectToRoute('login');
+        }
+
         if ($request->isMethod('POST') === false) {
             return $this->render('request_password_reset.html.twig', [
                 'email' => $request->query->getString('email'),

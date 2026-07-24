@@ -36,6 +36,8 @@ final class PasswordResetController extends AbstractController
         private readonly ValidatePasswordResetToken $validatePasswordResetToken,
         private readonly TranslatorInterface $translator,
         private readonly LoggerInterface $logger,
+        private readonly bool $nativeRegistrationEnabled,
+        private readonly bool $nativeLoginEnabled,
     ) {
     }
 
@@ -51,6 +53,11 @@ final class PasswordResetController extends AbstractController
     )]
     public function __invoke(Request $request, string $token): Response
     {
+        // No native accounts yet means no token we issued can be valid here
+        if ($this->nativeRegistrationEnabled === false && $this->nativeLoginEnabled === false) {
+            return $this->redirectToRoute('login');
+        }
+
         // Checked up front so a dead link says so immediately, instead of letting the
         // user pick a password and only then telling them it was wasted
         try {

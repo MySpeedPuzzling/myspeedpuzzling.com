@@ -2930,15 +2930,6 @@ fair_use_policy:
     "resend_sent": "Correo de confirmación enviado. Revisa tu bandeja de entrada y también la carpeta de spam."
     "resend_too_many": "Acabamos de enviarte uno. Espera unos minutos antes de pedir otro."
     "resend_failed": "No hemos podido enviar el correo de confirmación. Inténtalo de nuevo en un momento."
-  "cutover_modal":
-    "title": "El inicio de sesión se ha mudado a casa"
-    "intro": "Ahora el inicio de sesión ocurre aquí mismo, en myspeedpuzzling.com: se acabaron las redirecciones a auth0.com."
-    "same_credentials": "<strong>El mismo correo, la misma contraseña.</strong> No se ha restablecido nada."
-    "vault_tip": "<strong>¿Tu gestor de contraseñas no te la ofrece?</strong> Guardó tu contraseña bajo nuestro antiguo dominio de inicio de sesión (%old_domain%). Busca ahí \"speedpuzzling\" o \"auth0\": está ahí."
-    "sign_in_link": "<strong>¿No la encuentras?</strong> Usa \"Envíame un enlace de acceso por correo\" aquí abajo: un clic y ya estás dentro. Después puedes establecer una contraseña nueva."
-    "why": "¿Por qué ha cambiado esto?"
-    "got_it": "Entendido"
-    "dismiss": "Cerrar"
   "password_reset":
     "link": "¿Has olvidado tu contraseña?"
     "request_title": "Restablecer tu contraseña"

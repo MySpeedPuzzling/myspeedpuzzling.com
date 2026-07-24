@@ -18,6 +18,16 @@ This file documents all active feature flags in the codebase — where they are,
 - **Gated files:** none yet — the login page + entry point switch ship in the 2c build slice and must consume this parameter
 - **Remove when:** Phase 6 decommission
 
+## Sign-in Migration Notice (`SIGN_IN_CHANGES_NOTICE_ENABLED`)
+
+- **Feature:** advance announcement of the Auth0 → native sign-in migration (issue #147) — the site-wide notice pointing at the explainer page
+- **Flag:** env var `SIGN_IN_CHANGES_NOTICE_ENABLED` → Twig global `sign_in_changes_notice_enabled` (`config/packages/twig.php`)
+- **Default:** **ON**, unlike every other flag here. It is announcement copy rather than a feature: it went live ahead of Stage A so nobody meets the change unwarned. The switch exists to retire the notice (~4 weeks after Stage B), not to hold it back.
+- **Gated files:**
+  - `templates/base.html.twig` — the notice include and the inline dismissal script/style in `<head>`
+- **Not gated:** the explainer page itself (`/en/sign-in-is-moving` and its five locale paths) stays reachable either way — emails and support replies link to it.
+- **Remove when:** ~4 weeks after Stage B, when the banner comes down (the page stays as long as dormant players keep returning)
+
 ## Auth0 Trickle Login (`AUTH0_TRICKLE_LOGIN_ENABLED`)
 
 - **Feature:** Auth0 → native auth migration — ROPG fallback branch inside the login authenticator (decision D4): imported `legacy_auth0` accounts without a local password hash verify against Auth0 once, then the password is hashed locally

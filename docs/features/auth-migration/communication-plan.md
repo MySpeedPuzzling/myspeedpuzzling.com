@@ -24,6 +24,7 @@ All user-facing copy ships in **all 6 locales** (en, cs, de, es, fr, ja — D17)
 
 | When | What |
 |---|---|
+| **Now** (2026-07-24, ahead of Stage A) | Advance notice live: site-wide banner + explainer page (`/en/sign-in-is-moving`, six locales). Copy leads with the honest cost — signed out once, password managers stop autofilling — then the "look at your address bar, it says speedpuzzling.eu.auth0.com" hook, why Auth0 was right at the start and no longer is, and why waiting hurts more puzzlers than acting. No date promised |
 | **Stage A day** (~Jul 29–31) | Announcement email to all users; FAQ page live; banner ON ("On {date}…"); native registrations quietly live; socials post |
 | Stage B − 1d | Banner switches to "tomorrow" wording |
 | **Stage B day** (~Aug 6–12) | Cutover. Login-page modal live; banner switches to "changed" wording (stays ~4 weeks); login microcopy permanent; socials post |

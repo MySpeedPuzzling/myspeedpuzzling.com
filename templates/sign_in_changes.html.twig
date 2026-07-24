@@ -1,0 +1,68 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'sign_in_changes.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'sign_in_changes.meta_description'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-8">
+            <h1 class="h2">{{ 'sign_in_changes.title'|trans }}</h1>
+
+            <div class="alert alert-primary d-flex" role="alert">
+                <div class="alert-icon">
+                    <i class="ci-key"></i>
+                </div>
+                <div>{{ 'sign_in_changes.core_message'|trans }}</div>
+            </div>
+
+            <p>{{ 'sign_in_changes.intro'|trans }}</p>
+
+            <p>{{ 'sign_in_changes.did_you_notice'|trans({'%old_domain%': 'speedpuzzling.eu.auth0.com'})|raw }}</p>
+
+            <p>{{ 'sign_in_changes.timing'|trans }}</p>
+
+            <h2 class="h4 mt-4">{{ 'sign_in_changes.why.heading'|trans }}</h2>
+            <p>{{ 'sign_in_changes.why.p1'|trans }}</p>
+            <p>{{ 'sign_in_changes.why.p2'|trans }}</p>
+            <p>{{ 'sign_in_changes.why.p3'|trans }}</p>
+
+            <h2 class="h4 mt-4">{{ 'sign_in_changes.what_changes.heading'|trans }}</h2>
+            <ul class="list-unstyled">
+                <li class="mb-2"><i class="ci-check-circle me-2 text-primary"></i>{{ 'sign_in_changes.what_changes.item_screen'|trans }}</li>
+                <li class="mb-2"><i class="ci-check-circle me-2 text-primary"></i>{{ 'sign_in_changes.what_changes.item_signed_out'|trans }}</li>
+                <li class="mb-2"><i class="ci-check-circle me-2 text-primary"></i>{{ 'sign_in_changes.what_changes.item_manager'|trans({'%old_domain%': 'speedpuzzling.eu.auth0.com'}) }}</li>
+                <li class="mb-2"><i class="ci-check-circle me-2 text-primary"></i>{{ 'sign_in_changes.what_changes.item_link'|trans }}</li>
+                <li class="mb-2"><i class="ci-check-circle me-2 text-primary"></i>{{ 'sign_in_changes.what_changes.item_later'|trans }}</li>
+            </ul>
+
+            <h2 class="h4 mt-4">{{ 'sign_in_changes.what_stays.heading'|trans }}</h2>
+            <p>{{ 'sign_in_changes.what_stays.body'|trans }}</p>
+            <p>{{ 'sign_in_changes.what_stays.transition'|trans }}</p>
+
+            <h2 class="h4 mt-4">{{ 'sign_in_changes.faq.heading'|trans }}</h2>
+
+            {% for item in ['why', 'new_password', 'manager', 'lost_password', 'safety', 'logged_out', 'recent', 'other'] %}
+                <div class="mb-3">
+                    <h3 class="h6 mb-1">{{ ('sign_in_changes.faq.' ~ item ~ '.question')|trans }}</h3>
+                    <p class="mb-0">{{ ('sign_in_changes.faq.' ~ item ~ '.answer')|trans({
+                        '%old_domain%': 'speedpuzzling.eu.auth0.com',
+                        '%support_email%': 'jan@myspeedpuzzling.com',
+                    '%instagram_url%': 'https://www.instagram.com/myspeedpuzzling/',
+                    })|raw }}</p>
+                </div>
+            {% endfor %}
+
+            <div class="card card-body shadow-sm mt-4">
+                <h2 class="h5">{{ 'sign_in_changes.help.heading'|trans }}</h2>
+                <p class="mb-0">{{ 'sign_in_changes.help.body'|trans({
+                    '%support_email%': 'jan@myspeedpuzzling.com',
+                    '%instagram_url%': 'https://www.instagram.com/myspeedpuzzling/',
+                })|raw }}</p>
+            </div>
+        </div>
+
+        <div class="col-lg-3 offset-lg-1 text-center d-none d-lg-block">
+            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        </div>
+    </div>
+{% endblock %}

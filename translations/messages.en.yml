@@ -3070,3 +3070,61 @@ wjpc_hub:
         anyone:
             question: "Can anyone compete at the WJPC?"
             answer: "Yes. Registration is open to any puzzler aged 14 or older, and there are no qualification rounds required to enter. Beginners regularly share the competition floor with the world's fastest puzzlers — everyone gets the same puzzle and the same clock."
+
+sign_in_changes:
+    title: "Sign-in is moving to myspeedpuzzling.com"
+    meta_description: "Signing in to MySpeedPuzzling is moving off the external service it has used since the start, onto myspeedpuzzling.com. Your email and password stay the same — here is what it costs you, why we are doing it, and what to do if your password manager cannot find your password."
+    core_message: "Your email and password stay exactly the same. Only the sign-in screen changes — it will be part of myspeedpuzzling.com instead of sending you to auth0.com."
+    intro: "This change costs you something, so we will start there. Every puzzler will be signed out once and will have to sign in again. And your password manager may stop offering your password, because the web address it was saved under changes. That is not a popular thing to do to people, and we would rather explain it now than surprise you with it later."
+    did_you_notice: "Have you ever noticed that signing in to MySpeedPuzzling does not actually happen on myspeedpuzzling.com? Look at the address bar the next time you sign in — it says <strong>%old_domain%</strong>. That is Auth0, an external sign-in service we have used since the very beginning."
+    timing: "Nothing has changed yet, and there is nothing to prepare. The switch is planned for the coming weeks, and we will send you an email before it happens."
+    notice:
+        text: "Sign-in is moving to myspeedpuzzling.com soon."
+        text_extra: "Same email and password — but you will be signed out once."
+        link: "What is changing and why?"
+        dismiss: "Dismiss"
+    why:
+        heading: "Why we are moving it"
+        p1: "Auth0 was the right choice at the start. Building sign-in properly — passwords, resets, sessions, security — takes months of work, and letting Auth0 do it meant we could spend those months on puzzle features instead. MySpeedPuzzling grew from a small side project into a community while Auth0 handled the sign-in screen."
+        p2: "Our needs have changed since then. The software that connects Auth0 to the rest of MySpeedPuzzling is no longer properly maintained, we kept running into bugs in it, and the fixes we offered were not accepted — so we now maintain our own repaired copy just to keep sign-in working. Signing in with Google, Facebook or Apple, a sign-in screen in your own language, passkeys, two-factor authentication: with Auth0 each of those is either impossible or difficult for us. It is simply no longer the best choice for where MySpeedPuzzling is going."
+        p3: "Waiting would only make it worse. New puzzlers join MySpeedPuzzling every day, so every month we postpone the switch means more people who have to sign in again and update their password manager. The change affects the fewest puzzlers if we do it now."
+    what_changes:
+        heading: "What this means for you"
+        item_screen: "The sign-in screen becomes part of MySpeedPuzzling, in your own language, instead of a redirect to auth0.com."
+        item_signed_out: "On the day of the switch you are signed out once. You sign in again with the same email and the same password."
+        item_manager: "Your password manager may not offer your password on the new screen, because it saved it under the old address (%old_domain%). Search your password manager for \"speedpuzzling\" or \"auth0\" and you will find it."
+        item_link: "If you cannot find your password at all, the sign-in page can email you a link that signs you in without a password."
+        item_later: "Once sign-in is ours, we can finally add the things people keep asking for: signing in with Google, Facebook or Apple, and later passkeys and two-factor authentication."
+    what_stays:
+        heading: "What stays the same"
+        body: "Everything else: your times, statistics, collections, membership, competitions and your player code. This change is only about the screen where you sign in."
+        transition: "Your existing password keeps working — nothing is reset and there is no deadline for you. We will keep the old service running quietly in the background during the transition, so we can fall back on it if anything goes wrong. On the new screen we will offer you a fresh password, which is worth doing because your password manager then stores it under myspeedpuzzling.com, but the old one keeps working either way."
+    faq:
+        heading: "Questions"
+        why:
+            question: "Do I have to do anything now?"
+            answer: "No. Nothing has changed yet and there is nothing to prepare. We will send you an email before the switch, and the only thing you will have to do is sign in again afterwards."
+        new_password:
+            question: "Do I need a new password?"
+            answer: "No. The same email and the same password will work. Your password was never visible to us and is not being reset — only its securely encrypted form is transferred."
+        manager:
+            question: "My password manager does not offer my password. What now?"
+            answer: "It saved your password under the old sign-in address (%old_domain%). Search your password manager for \"speedpuzzling\" or \"auth0\", then let it update the entry the first time you sign in on the new screen."
+        lost_password:
+            question: "I cannot find my password at all."
+            answer: "The sign-in page can email you a link that signs you in without a password. Afterwards you can set a new password right away — your password manager will then save it under myspeedpuzzling.com."
+        safety:
+            question: "Is my password safe during this change?"
+            answer: "Yes. Passwords are stored only in a securely encrypted form that cannot be turned back into the original, before and after the change. Your actual password is never visible to us."
+        logged_out:
+            question: "Why do I have to sign in again?"
+            answer: "The new system cannot take over the sign-in sessions created by the old one, so all of them end once, on the day of the switch. It happens a single time, not repeatedly."
+        recent:
+            question: "I registered recently and never saw auth0.com."
+            answer: "Then nothing changes for you — your account was already created on the new system."
+        other:
+            question: "Something else, or I think I have two accounts."
+            answer: "Write to <a href=\"mailto:%support_email%\">%support_email%</a> or send us a message on <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>, and include your player code if you know it. We are always happy to help."
+    help:
+        heading: "Something not working?"
+        body: "If you run into any trouble signing in — before, during or after the switch — write to <a href=\"mailto:%support_email%\">%support_email%</a> or message us on <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>. We are always happy to help."

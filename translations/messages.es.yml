@@ -2783,3 +2783,61 @@ fair_use_policy:
     "anyone":
       "question": "¿Puede competir cualquiera en el WJPC?"
       "answer": "Sí. La inscripción está abierta a cualquier puzzler a partir de 14 años y no se exige ninguna ronda de clasificación. Los principiantes comparten sala habitualmente con los puzzlers más rápidos del mundo: todos reciben el mismo puzzle y el mismo cronómetro."
+
+"sign_in_changes":
+  "title": "El inicio de sesión se traslada a myspeedpuzzling.com"
+  "meta_description": "El inicio de sesión en MySpeedPuzzling deja el servicio externo que usamos desde el principio y se traslada a myspeedpuzzling.com. Tu email y tu contraseña siguen siendo los mismos: aquí te contamos qué te va a costar, por qué lo hacemos y qué hacer si tu gestor de contraseñas no encuentra tu contraseña."
+  "core_message": "Tu email y tu contraseña siguen siendo exactamente los mismos. Solo cambia la pantalla de inicio de sesión: pasará a formar parte de myspeedpuzzling.com en lugar de llevarte a auth0.com."
+  "intro": "Este cambio te va a costar algo, así que empezamos por ahí. A todos los puzzleros se les cerrará la sesión una vez y tendrán que volver a iniciarla. Y puede que tu gestor de contraseñas deje de ofrecerte tu contraseña, porque cambia la dirección web con la que la guardó. Sabemos que eso no le hace gracia a nadie, y preferimos explicártelo ahora en lugar de sorprenderte cuando pase."
+  "did_you_notice": "¿Te has fijado alguna vez en que iniciar sesión en MySpeedPuzzling no ocurre en realidad en myspeedpuzzling.com? Mira la barra de direcciones la próxima vez que inicies sesión: pone <strong>%old_domain%</strong>. Eso es Auth0, un servicio de inicio de sesión externo que usamos desde el primer día."
+  "timing": "Todavía no ha cambiado nada y no tienes que preparar nada. El cambio está previsto para las próximas semanas, y te enviaremos un email antes de que ocurra."
+  "notice":
+    "text": "El inicio de sesión se traslada pronto a myspeedpuzzling.com."
+    "text_extra": "El mismo email y la misma contraseña, pero se te cerrará la sesión una vez."
+    "link": "¿Qué cambia y por qué?"
+    "dismiss": "Cerrar"
+  "why":
+    "heading": "Por qué lo trasladamos"
+    "p1": "Auth0 fue la elección correcta al principio. Hacer bien un sistema de inicio de sesión —contraseñas, restablecimientos, sesiones, seguridad— lleva meses de trabajo, y dejárselo a Auth0 nos permitió dedicar esos meses a funciones para puzzles. MySpeedPuzzling pasó de ser un pequeño proyecto paralelo a ser una comunidad mientras Auth0 se encargaba de la pantalla de inicio de sesión."
+    "p2": "Desde entonces nuestras necesidades han cambiado. El software que conecta Auth0 con el resto de MySpeedPuzzling ya no se mantiene como es debido, nos topábamos una y otra vez con errores en él y las correcciones que ofrecimos no se aceptaron, así que ahora mantenemos nuestra propia copia reparada solo para que el inicio de sesión siga funcionando. Iniciar sesión con Google, Facebook o Apple, una pantalla de inicio de sesión en tu idioma, las claves de acceso (passkeys), la autenticación de dos factores: con Auth0, cada una de esas cosas es imposible o difícil para nosotros. Sencillamente ya no es la mejor opción para el rumbo que lleva MySpeedPuzzling."
+    "p3": "Esperar solo lo empeoraría. Cada día se apuntan nuevos puzzleros a MySpeedPuzzling, así que cada mes que retrasemos el cambio son más personas que tendrán que volver a iniciar sesión y actualizar su gestor de contraseñas. Cuanto antes lo hagamos, a menos puzzleros afectará."
+  "what_changes":
+    "heading": "Qué significa esto para ti"
+    "item_screen": "La pantalla de inicio de sesión pasa a formar parte de MySpeedPuzzling, en tu idioma, en lugar de ser una redirección a auth0.com."
+    "item_signed_out": "El día del cambio se te cerrará la sesión una vez. Vuelves a iniciar sesión con el mismo email y la misma contraseña."
+    "item_manager": "Puede que tu gestor de contraseñas no te ofrezca la contraseña en la pantalla nueva, porque la guardó con la dirección antigua (%old_domain%). Busca \"speedpuzzling\" o \"auth0\" en tu gestor de contraseñas y la encontrarás."
+    "item_link": "Si no consigues encontrar tu contraseña, la página de inicio de sesión puede enviarte por email un enlace que te permite entrar sin contraseña."
+    "item_later": "Cuando el inicio de sesión sea nuestro, por fin podremos añadir lo que la gente lleva tiempo pidiendo: iniciar sesión con Google, Facebook o Apple, y más adelante claves de acceso y autenticación de dos factores."
+  "what_stays":
+    "heading": "Qué sigue igual"
+    "body": "Todo lo demás: tus tiempos, tus estadísticas, tus colecciones, tu membresía, tus competiciones y tu código de jugador. Este cambio afecta solo a la pantalla en la que inicias sesión."
+    "transition": "Tu contraseña actual sigue funcionando: no se restablece nada y no hay ninguna fecha límite para ti. Durante la transición mantendremos el servicio antiguo funcionando discretamente en segundo plano, para poder volver a él si algo sale mal. En la pantalla nueva te propondremos crear una contraseña nueva, y merece la pena hacerlo porque así tu gestor de contraseñas la guardará con myspeedpuzzling.com, pero la antigua sigue funcionando igualmente."
+  "faq":
+    "heading": "Preguntas"
+    "why":
+      "question": "¿Tengo que hacer algo ahora?"
+      "answer": "No. Todavía no ha cambiado nada y no hay nada que preparar. Te enviaremos un email antes del cambio, y lo único que tendrás que hacer después es volver a iniciar sesión."
+    "new_password":
+      "question": "¿Necesito una contraseña nueva?"
+      "answer": "No. Funcionarán el mismo email y la misma contraseña. Tu contraseña nunca ha sido visible para nosotros y no se restablece: solo se traslada su versión cifrada de forma segura."
+    "manager":
+      "question": "Mi gestor de contraseñas no me ofrece la contraseña. ¿Y ahora qué?"
+      "answer": "La guardó con la dirección de inicio de sesión antigua (%old_domain%). Busca \"speedpuzzling\" o \"auth0\" en tu gestor de contraseñas y, la primera vez que inicies sesión en la pantalla nueva, deja que actualice la entrada."
+    "lost_password":
+      "question": "No consigo encontrar mi contraseña por ningún lado."
+      "answer": "La página de inicio de sesión puede enviarte por email un enlace que te permite entrar sin contraseña. Después podrás establecer una contraseña nueva enseguida: tu gestor de contraseñas la guardará entonces con myspeedpuzzling.com."
+    "safety":
+      "question": "¿Está segura mi contraseña durante este cambio?"
+      "answer": "Sí. Las contraseñas se guardan únicamente cifradas de forma segura, sin posibilidad de volver a convertirlas en la original, tanto antes como después del cambio. Tu contraseña real nunca es visible para nosotros."
+    "logged_out":
+      "question": "¿Por qué tengo que volver a iniciar sesión?"
+      "answer": "El sistema nuevo no puede hacerse cargo de las sesiones creadas por el antiguo, así que todas se cierran una vez, el día del cambio. Ocurre una sola vez, no de forma repetida."
+    "recent":
+      "question": "Me registré hace poco y nunca vi auth0.com."
+      "answer": "Entonces para ti no cambia nada: tu cuenta ya se creó en el sistema nuevo."
+    "other":
+      "question": "Tengo otra pregunta, o creo que tengo dos cuentas."
+      "answer": "Escríbenos a <a href=\"mailto:%support_email%\">%support_email%</a> o mándanos un mensaje por <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>, e incluye tu código de jugador si lo sabes. Siempre estamos encantados de ayudar."
+  "help":
+    "heading": "¿Algo no funciona?"
+    "body": "Si tienes cualquier problema para iniciar sesión —antes, durante o después del cambio— escríbenos a <a href=\"mailto:%support_email%\">%support_email%</a> o mándanos un mensaje por <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>. Siempre estamos encantados de ayudar."

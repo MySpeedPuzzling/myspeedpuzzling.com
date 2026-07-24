@@ -21,6 +21,10 @@ return App::config([
             'get_conversations' => '@' . GetConversations::class,
             'mercure_public_url' => '%env(MERCURE_PUBLIC_URL)%',
             'images_base_url' => '%env(NGINX_PROXY_BASE_URL)%',
+            // Site-wide advance notice for the Auth0 -> native sign-in migration
+            // (issue #147, docs/features/feature_flags.md). ON by default: it is
+            // announcement copy, not a feature - the switch exists to retire it.
+            'sign_in_changes_notice_enabled' => '%env(bool:SIGN_IN_CHANGES_NOTICE_ENABLED)%',
         ],
         'paths' => [
             '%kernel.project_dir%/public/img' => 'images',

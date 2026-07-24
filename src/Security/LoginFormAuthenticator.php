@@ -12,8 +12,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
+use Symfony\Component\Security\Core\Exception\TooManyLoginAttemptsAuthenticationException;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Authenticator\AbstractLoginFormAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\CsrfTokenBadge;
@@ -53,6 +55,8 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
         private readonly TricklePasswordVerifier $tricklePasswordVerifier,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly RateLimiterFactoryInterface $loginEmailIpLimiter,
+        private readonly RateLimiterFactoryInterface $loginIpLimiter,
         private readonly bool $auth0TrickleLoginEnabled,
     ) {
     }
@@ -70,6 +74,8 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
         if ($email === '' || $password === '') {
             throw new BadCredentialsException('Empty email or password.');
         }
+
+        $this->throttle($email, $request->getClientIp());
 
         $userAccount = $this->userAccountRepository->findByEmail($email);
 
@@ -99,6 +105,11 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): Response
     {
+        // A successful login clears the per-account counter so a legitimate user
+        // is not locked out by their own earlier typos (mirrors login_throttling)
+        $email = trim((string) $request->request->get('email'));
+        $this->loginEmailIpLimiter->create($this->emailIpKey($email, $request->getClientIp()))->reset();
+
         $session = $request->getSession();
         $targetPath = $this->getTargetPath($session, $firewallName);
 
@@ -129,6 +140,34 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
     protected function getLoginUrl(Request $request): string
     {
         return $this->urlGenerator->generate('login');
+    }
+
+    /**
+     * Brute-force protection scoped to this authenticator on purpose - the
+     * firewall-level login_throttling listener consumes budget on every
+     * LoginFailureEvent, and during the migration window the Auth0 authenticator
+     * fails on every anonymous request, which would exhaust the per-IP budget
+     * through plain browsing (see config/packages/rate_limiter.php).
+     */
+    private function throttle(string $email, null|string $clientIp): void
+    {
+        $emailIpLimit = $this->loginEmailIpLimiter->create($this->emailIpKey($email, $clientIp))->consume();
+        $ipLimit = $this->loginIpLimiter->create($clientIp ?? 'unknown')->consume();
+
+        foreach ([$emailIpLimit, $ipLimit] as $limit) {
+            if (!$limit->isAccepted()) {
+                $retryAfter = $limit->getRetryAfter();
+
+                throw new TooManyLoginAttemptsAuthenticationException(
+                    (int) ceil(($retryAfter->getTimestamp() - time()) / 60),
+                );
+            }
+        }
+    }
+
+    private function emailIpKey(string $email, null|string $clientIp): string
+    {
+        return UserAccount::canonicalizeEmail($email) . '|' . ($clientIp ?? 'unknown');
     }
 
     private function shouldVerifyViaTrickle(null|UserAccount $userAccount): bool

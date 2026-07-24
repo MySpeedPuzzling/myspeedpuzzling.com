@@ -20,6 +20,10 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\CustomCredentials;
 use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\PasswordCredentials;
 
+/**
+ * Emails are randomized per run: the login rate limiter's cache is not rolled
+ * back by DAMA, so a reused email would accumulate attempt budget across runs.
+ */
 final class LoginFormAuthenticatorTest extends KernelTestCase
 {
     private null|string $originalTrickleFlag = null;
@@ -52,9 +56,9 @@ final class LoginFormAuthenticatorTest extends KernelTestCase
     public function testAccountWithLocalHashGetsPasswordCredentials(): void
     {
         $authenticator = $this->authenticator();
-        $this->createAccount('auth0|authr1', 'authr.one@example.com', bcryptHash: '$2b$04$abcdefghijklmnopqrstuv');
+        $account = $this->createAccount('auth0|authr1', 'authr.one', bcryptHash: '$2b$04$abcdefghijklmnopqrstuv');
 
-        $passport = $authenticator->authenticate($this->loginRequest('authr.one@example.com', 'whatever'));
+        $passport = $authenticator->authenticate($this->loginRequest($account->email, 'whatever'));
 
         self::assertTrue($passport->hasBadge(PasswordCredentials::class));
         self::assertFalse($passport->hasBadge(CustomCredentials::class));
@@ -66,22 +70,22 @@ final class LoginFormAuthenticatorTest extends KernelTestCase
     public function testBadgeIdentifierIsEmailButUserIdentifierStaysUserId(): void
     {
         $authenticator = $this->authenticator();
-        $this->createAccount('auth0|authr2', 'authr.two@example.com', bcryptHash: '$2b$04$abcdefghijklmnopqrstuv');
+        $account = $this->createAccount('auth0|authr2', 'authr.two', bcryptHash: '$2b$04$abcdefghijklmnopqrstuv');
 
-        $passport = $authenticator->authenticate($this->loginRequest('authr.two@example.com', 'whatever'));
+        $passport = $authenticator->authenticate($this->loginRequest($account->email, 'whatever'));
 
         $userBadge = $passport->getBadge(UserBadge::class);
         self::assertNotNull($userBadge);
-        self::assertSame('authr.two@example.com', $userBadge->getUserIdentifier());
+        self::assertSame($account->email, $userBadge->getUserIdentifier());
         self::assertSame('auth0|authr2', $passport->getUser()->getUserIdentifier());
     }
 
     public function testLegacyAccountWithoutLocalHashGetsTrickleCredentials(): void
     {
         $authenticator = $this->authenticator();
-        $this->createAccount('auth0|authr3', 'authr.three@example.com', bcryptHash: null, legacyAuth0: true);
+        $account = $this->createAccount('auth0|authr3', 'authr.three', bcryptHash: null, legacyAuth0: true);
 
-        $passport = $authenticator->authenticate($this->loginRequest('authr.three@example.com', 'whatever'));
+        $passport = $authenticator->authenticate($this->loginRequest($account->email, 'whatever'));
 
         self::assertTrue($passport->hasBadge(CustomCredentials::class));
         self::assertFalse($passport->hasBadge(PasswordCredentials::class));
@@ -90,9 +94,9 @@ final class LoginFormAuthenticatorTest extends KernelTestCase
     public function testNativeAccountWithoutHashNeverTrickles(): void
     {
         $authenticator = $this->authenticator();
-        $this->createAccount('msp|authr4', 'authr.four@example.com', bcryptHash: null, legacyAuth0: false);
+        $account = $this->createAccount('msp|authr4', 'authr.four', bcryptHash: null, legacyAuth0: false);
 
-        $passport = $authenticator->authenticate($this->loginRequest('authr.four@example.com', 'whatever'));
+        $passport = $authenticator->authenticate($this->loginRequest($account->email, 'whatever'));
 
         // A native account with no password (future social-only accounts) must fail
         // the local password check, never consult Auth0
@@ -105,9 +109,9 @@ final class LoginFormAuthenticatorTest extends KernelTestCase
         $_SERVER['AUTH0_TRICKLE_LOGIN_ENABLED'] = '0';
 
         $authenticator = $this->authenticator();
-        $this->createAccount('auth0|authr5', 'authr.five@example.com', bcryptHash: null, legacyAuth0: true);
+        $account = $this->createAccount('auth0|authr5', 'authr.five', bcryptHash: null, legacyAuth0: true);
 
-        $passport = $authenticator->authenticate($this->loginRequest('authr.five@example.com', 'whatever'));
+        $passport = $authenticator->authenticate($this->loginRequest($account->email, 'whatever'));
 
         self::assertTrue($passport->hasBadge(PasswordCredentials::class));
         self::assertFalse($passport->hasBadge(CustomCredentials::class));
@@ -126,7 +130,9 @@ final class LoginFormAuthenticatorTest extends KernelTestCase
     {
         $authenticator = $this->authenticator();
 
-        $passport = $authenticator->authenticate($this->loginRequest('nobody@example.com', 'whatever'));
+        $passport = $authenticator->authenticate(
+            $this->loginRequest(sprintf('nobody+%s@example.com', bin2hex(random_bytes(4))), 'whatever'),
+        );
 
         // Symfony hides this as BadCredentialsException (hide_user_not_found),
         // keeping unknown email indistinguishable from wrong password
@@ -144,10 +150,11 @@ final class LoginFormAuthenticatorTest extends KernelTestCase
 
     private function createAccount(
         string $userId,
-        string $email,
+        string $emailPrefix,
         null|string $bcryptHash,
         bool $legacyAuth0 = false,
     ): UserAccount {
+        $email = sprintf('%s+%s@example.com', $emailPrefix, bin2hex(random_bytes(4)));
         $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
 
         if ($legacyAuth0) {

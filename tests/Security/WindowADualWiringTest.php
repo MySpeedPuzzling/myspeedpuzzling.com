@@ -18,6 +18,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
+use Symfony\Component\Security\Core\Exception\TooManyLoginAttemptsAuthenticationException;
 use Symfony\Component\Security\Http\SecurityRequestAttributes;
 
 /**
@@ -25,6 +26,10 @@ use Symfony\Component\Security\Http\SecurityRequestAttributes;
  * Auth0 migration, issue #147): LoginFormAuthenticator and the Auth0 session
  * authenticator run side by side on the main firewall, refreshed through the
  * chain user provider, with the Auth0 entry point still in charge.
+ *
+ * Seeded emails are randomized per run: the login rate limiter's cache is not
+ * rolled back between tests or runs, so a reused email would accumulate
+ * failed-attempt budget across runs and turn tests flaky.
  */
 final class WindowADualWiringTest extends WebTestCase
 {
@@ -38,14 +43,14 @@ final class WindowADualWiringTest extends WebTestCase
     public function testNativeLoginVerifiesBcryptHashRehashesToArgon2idAndKeepsSession(): void
     {
         $browser = self::createClient();
-        $this->seedAccount($browser, 'auth0|windowa1', 'windowa.one@example.com', bcryptHashOf: self::PASSWORD);
+        $email = $this->seedAccount($browser, 'auth0|windowa1', 'windowa.one', bcryptHashOf: self::PASSWORD);
 
-        $this->submitLogin($browser, 'windowa.one@example.com', self::PASSWORD);
+        $this->submitLogin($browser, $email, self::PASSWORD);
 
         self::assertResponseRedirects('/en/my-profile');
 
         // migrate_from verified the imported bcrypt hash and the PasswordUpgradeBadge
-        // re-hashed it to argon2id through the chain provider - persisted immediately
+        // re-hashed it to argon2id through the explicit upgrader - persisted immediately
         $password = $this->reloadAccountPassword($browser, 'auth0|windowa1');
         self::assertNotNull($password);
         self::assertStringStartsWith('$argon2id$', $password);
@@ -68,14 +73,14 @@ final class WindowADualWiringTest extends WebTestCase
     public function testEntryPointFunnelReturnsToOriginallyRequestedPage(): void
     {
         $browser = self::createClient();
-        $this->seedAccount($browser, 'msp|windowa2', 'windowa.two@example.com', argon2idHashOf: self::PASSWORD);
+        $email = $this->seedAccount($browser, 'msp|windowa2', 'windowa.two', argon2idHashOf: self::PASSWORD);
 
-        // Anonymous hit on a protected page: still the Auth0 entry point (window A),
-        // and the ExceptionListener records the target path in the session
+        // Anonymous hit on a protected page: still the Auth0-era funnel (window A) -
+        // the Auth0 authenticator records the deep link and redirects to /login
         $browser->request('GET', '/admin/affiliates');
         self::assertResponseRedirects('/login');
 
-        $this->submitLogin($browser, 'windowa.two@example.com', self::PASSWORD);
+        $this->submitLogin($browser, $email, self::PASSWORD);
 
         self::assertResponseRedirects('http://localhost/admin/affiliates');
     }
@@ -83,9 +88,9 @@ final class WindowADualWiringTest extends WebTestCase
     public function testWrongPasswordAndUnknownEmailFailIdentically(): void
     {
         $browser = self::createClient();
-        $this->seedAccount($browser, 'auth0|windowa3', 'windowa.three@example.com', bcryptHashOf: self::PASSWORD);
+        $email = $this->seedAccount($browser, 'auth0|windowa3', 'windowa.three', bcryptHashOf: self::PASSWORD);
 
-        $this->submitLogin($browser, 'windowa.three@example.com', 'wrong-password');
+        $this->submitLogin($browser, $email, 'wrong-password');
         $wrongPasswordLocation = (string) $browser->getResponse()->headers->get('Location');
         $wrongPasswordStatus = $browser->getResponse()->getStatusCode();
 
@@ -137,12 +142,12 @@ final class WindowADualWiringTest extends WebTestCase
     public function testTrickleLoginAdoptsThePasswordLocallyAndConsultsAuth0Once(): void
     {
         $browser = self::createClient();
-        $this->seedAccount($browser, 'auth0|windowa4', 'windowa.four@example.com');
+        $email = $this->seedAccount($browser, 'auth0|windowa4', 'windowa.four');
 
-        $this->submitLogin($browser, 'windowa.four@example.com', PredictableTrickleVerifier::CORRECT_PASSWORD);
+        $this->submitLogin($browser, $email, PredictableTrickleVerifier::CORRECT_PASSWORD);
 
         self::assertResponseRedirects('/en/my-profile');
-        self::assertSame(['windowa.four@example.com'], PredictableTrickleVerifier::calls());
+        self::assertSame([$email], PredictableTrickleVerifier::calls());
 
         $password = $this->reloadAccountPassword($browser, 'auth0|windowa4');
         self::assertNotNull($password);
@@ -150,7 +155,7 @@ final class WindowADualWiringTest extends WebTestCase
         self::assertTrue(password_verify(PredictableTrickleVerifier::CORRECT_PASSWORD, $password));
 
         // Second login now takes the local-hash branch - Auth0 consulted at most once
-        $this->submitLogin($browser, 'windowa.four@example.com', PredictableTrickleVerifier::CORRECT_PASSWORD);
+        $this->submitLogin($browser, $email, PredictableTrickleVerifier::CORRECT_PASSWORD);
 
         self::assertResponseRedirects('/en/my-profile');
         self::assertCount(1, PredictableTrickleVerifier::calls());
@@ -159,9 +164,9 @@ final class WindowADualWiringTest extends WebTestCase
     public function testTrickleRejectionFailsTheLoginAndAdoptsNothing(): void
     {
         $browser = self::createClient();
-        $this->seedAccount($browser, 'auth0|windowa5', 'windowa.five@example.com');
+        $email = $this->seedAccount($browser, 'auth0|windowa5', 'windowa.five');
 
-        $this->submitLogin($browser, 'windowa.five@example.com', 'not-the-right-password');
+        $this->submitLogin($browser, $email, 'not-the-right-password');
 
         self::assertResponseRedirects('/login');
         self::assertCount(1, PredictableTrickleVerifier::calls());
@@ -171,9 +176,9 @@ final class WindowADualWiringTest extends WebTestCase
     public function testTrickleLeakedPasswordFailsWithDistinctResetMessage(): void
     {
         $browser = self::createClient();
-        $this->seedAccount($browser, 'auth0|windowa6', 'windowa.six@example.com');
+        $email = $this->seedAccount($browser, 'auth0|windowa6', 'windowa.six');
 
-        $this->submitLogin($browser, 'windowa.six@example.com', PredictableTrickleVerifier::LEAKED_PASSWORD);
+        $this->submitLogin($browser, $email, PredictableTrickleVerifier::LEAKED_PASSWORD);
 
         self::assertResponseRedirects('/login');
         self::assertNull($this->reloadAccountPassword($browser, 'auth0|windowa6'));
@@ -186,9 +191,9 @@ final class WindowADualWiringTest extends WebTestCase
     public function testTrickleOutageFailsClosedWithoutMarkingThePasswordWrong(): void
     {
         $browser = self::createClient();
-        $this->seedAccount($browser, 'auth0|windowa7', 'windowa.seven@example.com');
+        $email = $this->seedAccount($browser, 'auth0|windowa7', 'windowa.seven');
 
-        $this->submitLogin($browser, 'windowa.seven@example.com', PredictableTrickleVerifier::AUTH0_DOWN_PASSWORD);
+        $this->submitLogin($browser, $email, PredictableTrickleVerifier::AUTH0_DOWN_PASSWORD);
 
         self::assertResponseRedirects('/login');
         self::assertNull($this->reloadAccountPassword($browser, 'auth0|windowa7'));
@@ -201,9 +206,9 @@ final class WindowADualWiringTest extends WebTestCase
     public function testAccountWithLocalHashNeverConsultsAuth0(): void
     {
         $browser = self::createClient();
-        $this->seedAccount($browser, 'auth0|windowa8', 'windowa.eight@example.com', bcryptHashOf: self::PASSWORD);
+        $email = $this->seedAccount($browser, 'auth0|windowa8', 'windowa.eight', bcryptHashOf: self::PASSWORD);
 
-        $this->submitLogin($browser, 'windowa.eight@example.com', 'wrong-password');
+        $this->submitLogin($browser, $email, 'wrong-password');
 
         self::assertResponseRedirects('/login');
         self::assertSame([], PredictableTrickleVerifier::calls());
@@ -212,11 +217,11 @@ final class WindowADualWiringTest extends WebTestCase
     public function testLoginPostWithoutOriginInfoFailsCsrf(): void
     {
         $browser = self::createClient();
-        $this->seedAccount($browser, 'auth0|windowa9', 'windowa.nine@example.com', bcryptHashOf: self::PASSWORD);
+        $email = $this->seedAccount($browser, 'auth0|windowa9', 'windowa.nine', bcryptHashOf: self::PASSWORD);
 
         // No Origin header and no double-submit cookie: stateless CSRF must reject
         $browser->request('POST', '/login', [
-            'email' => 'windowa.nine@example.com',
+            'email' => $email,
             'password' => self::PASSWORD,
             '_csrf_token' => 'csrf-token',
         ]);
@@ -224,6 +229,29 @@ final class WindowADualWiringTest extends WebTestCase
         self::assertResponseRedirects('/login');
 
         $password = $this->reloadAccountPassword($browser, 'auth0|windowa9');
+        self::assertNotNull($password);
+        self::assertStringStartsWith('$2', $password);
+    }
+
+    public function testRepeatedFailuresThrottleTheAccountEvenWithTheCorrectPassword(): void
+    {
+        $browser = self::createClient();
+        $email = $this->seedAccount($browser, 'auth0|windowa10', 'windowa.ten', bcryptHashOf: self::PASSWORD);
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $this->submitLogin($browser, $email, 'wrong-password');
+            self::assertResponseRedirects('/login');
+        }
+
+        $this->submitLogin($browser, $email, self::PASSWORD);
+
+        self::assertResponseRedirects('/login');
+
+        $error = $browser->getRequest()->getSession()->get(SecurityRequestAttributes::AUTHENTICATION_ERROR);
+        self::assertInstanceOf(TooManyLoginAttemptsAuthenticationException::class, $error);
+
+        // Throttled before the password was ever verified - no rehash happened
+        $password = $this->reloadAccountPassword($browser, 'auth0|windowa10');
         self::assertNotNull($password);
         self::assertStringStartsWith('$2', $password);
     }
@@ -242,16 +270,17 @@ final class WindowADualWiringTest extends WebTestCase
     }
 
     /**
-     * No hash argument seeds an imported legacy account whose hash did not make
-     * it into the export - the trickle scenario.
+     * Returns the randomized email. No hash argument seeds an imported legacy
+     * account whose hash did not make it into the export - the trickle scenario.
      */
     private function seedAccount(
         KernelBrowser $browser,
         string $userId,
-        string $email,
+        string $emailPrefix,
         null|string $bcryptHashOf = null,
         null|string $argon2idHashOf = null,
-    ): void {
+    ): string {
+        $email = sprintf('%s+%s@example.com', $emailPrefix, bin2hex(random_bytes(4)));
         $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
 
         if (str_starts_with($userId, 'auth0|')) {
@@ -268,6 +297,8 @@ final class WindowADualWiringTest extends WebTestCase
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($userAccount);
         $entityManager->flush();
+
+        return $email;
     }
 
     private function reloadAccountPassword(KernelBrowser $browser, string $userId): null|string

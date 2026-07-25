@@ -2,6 +2,8 @@
 
 This file documents all active feature flags in the codebase — where they are, what feature they gate, and when they can be removed.
 
+> **Operational note on the two native-auth flags (since 2c-II).** `NATIVE_REGISTRATION_ENABLED` and `NATIVE_LOGIN_ENABLED` are exposed as Twig globals (`config/packages/twig.php`), so they are now resolved on **nearly every page render** instead of only when `LoginController` is instantiated. That widens the blast radius of an unresolvable env var from "`/login` breaks" to "every page breaks". They are committed in `.env` with `=0` and `.dockerignore` excludes only `.env.*`, so the image always carries a default — verified on production 2026-07-25: the container sets none of them in its environment and Symfony resolves them from `/app/.env`. Keep them resolvable; do not remove them from `.env` when the production overrides are added.
+
 ## Native Registration (`NATIVE_REGISTRATION_ENABLED`)
 
 - **Feature:** Auth0 → native auth migration, Stage A (issue #147, `docs/features/auth-migration/`)
@@ -11,7 +13,8 @@ This file documents all active feature flags in the codebase — where they are,
   - `src/Controller/RegisterController.php` — `/register` renders the native form when ON, redirects to `/login` (the Auth0 hosted page, whose signup tab is frozen at Stage A) when OFF
   - `templates/base.html.twig` — the "Register" navbar tool for anonymous visitors. Load-bearing while `NATIVE_LOGIN_ENABLED` is still OFF: `/login` is the Auth0 redirect then, so this is the only signpost to the native form
   - `templates/login.html.twig` — the "Create an account" link under the sign-in form (only rendered when login is also native)
-- **Not gated on purpose:** the pages a native account needs once it exists — `/welcome`, `/verify-email`, `/resend-email-verification`, `/password-reset*`, the native change-password and change-email cards — follow the account class in the session, not this flag. A window-A registrant must be able to use them the moment they have an account.
+- **Also gated (added 2c-II):** `/password-reset` and `/password-reset/{token}` redirect to `/login` unless **either** this flag or `NATIVE_LOGIN_ENABLED` is ON. Before Stage A the `user_account` table is empty, so the page could only ever answer "if an account exists, a link is on its way" and then send nothing — a dead end made *silent* by the anti-enumeration uniformity the page needs everywhere else. Gated on the OR rather than on this flag alone so a rollback of registration cannot take password reset away from accounts that already exist.
+- **Not gated on purpose:** the pages a native account needs once it exists — `/welcome`, `/verify-email`, `/resend-email-verification`, the native change-password and change-email cards — follow the account class in the session, not this flag. A window-A registrant must be able to use them the moment they have an account.
 - **Remove when:** Phase 6 decommission (~Sep 2026), together with the trickle gateway and Auth0 tenant
 
 ## Native Login (`NATIVE_LOGIN_ENABLED`)

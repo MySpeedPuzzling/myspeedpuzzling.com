@@ -1,6 +1,6 @@
 # Auth0 → Native Symfony Authentication Migration
 
-**Status:** Decisions locked 2026-07-23 (staged rollout, D14–D17 below) — implementation starting
+**Status (2026-07-25):** Decisions locked 2026-07-23 (staged rollout, D14–D17 below; **D15 amended 2026-07-25** — the login-page modal is dropped). **Phase 2 build is complete except the 2d code sweep**: 2a (data model), 2b (security plumbing), 2c-I (login page + magic sign-in link) and 2c-II (registration, verification, password reset, change password/email) are all merged and deployed **dark** — verified on production, see "Production state of the native stack" below. Next: slice 2d (code sweep), then hardening, then Stage A.
 **Researched:** 2026-07-11; re-verified against the codebase 2026-07-23 (live production DB queries, Auth0 docs/pricing, Packagist metadata, empirical tests in this repo's PHP 8.5.5 / Symfony 8.0.5 container). Delta since 2026-07-11 folded in: #161 in-app change-password (new Auth0 touchpoint), #160 lily deploy pipeline, #164 anonymous cacheability, Panther suite re-enabled (d029829e)
 **Documents:**
 - [README.md](README.md) — analysis, target architecture, decisions, risks (this file)
@@ -41,6 +41,20 @@ During the A→B window the `main` firewall runs **both** systems: `custom_authe
 | Auth0 tenant | `speedpuzzling.eu.auth0.com` (EU, no custom domain), client `miVihwBrsB47LxhQpLYEf22ySrDq9Ra9` |
 | Sessions | Symfony `PdoSessionHandler` in Postgres, cookie lifetime ~15.6 days, no remember-me |
 | Transactional email | `smtp.seznam.cz` (all three MAILER DSNs) |
+
+### Production state of the native stack (verified on the box, 2026-07-25 — after 2a/2b/2c-I/2c-II shipped)
+
+| Fact | Value |
+|---|---|
+| `select count(*) from user_account` | **0** — nothing has written the table; its only two writers are the flag-gated `RegisterUserHandler` and the manual import command |
+| Flags in the running web container's env | none set — `docker compose … exec web printenv` shows no `NATIVE_*` / `AUTH0_TRICKLE_*` |
+| Flags as Symfony resolves them | from the image's `/app/.env`: `NATIVE_REGISTRATION_ENABLED=0`, `NATIVE_LOGIN_ENABLED=0`, `AUTH0_TRICKLE_LOGIN_ENABLED=0`, `SIGN_IN_CHANGES_NOTICE_ENABLED=1` |
+| Infisical / box-rendered `.env` | sets none of them, so the image defaults stand (this closes the "can't see Infisical from the repo" gap) |
+| `/login` on production | still 302s to `speedpuzzling.eu.auth0.com/authorize` — unchanged for real users |
+| `/register`, `/password-reset`, `/welcome` | 302 → `/login` |
+| Homepage | 200 with `public, s-maxage=60` and no `Set-Cookie` — #164 cacheability intact after the flags became Twig globals |
+
+Consequence worth carrying into Stage B planning: **no user can hold a native session, and none can be created, until the import runs** — see the ⚠️ on Phase 4B step 2.
 
 **Zero social logins is the single most important finding** — it eliminates the entire social-identity-portability problem (Google sub mapping, Facebook app-scoped IDs, Apple team-scoped subs). The migration is purely email+password.
 

@@ -23,7 +23,10 @@ use Ramsey\Uuid\UuidInterface;
 #[Entity]
 class ResetPasswordRequest
 {
-    public const string LIFETIME = '+1 hour';
+    /** Doubles as the throttle window: one live request at a time per account */
+    public const int LIFETIME_MINUTES = 60;
+
+    public const string LIFETIME = '+' . self::LIFETIME_MINUTES . ' minutes';
 
     public function __construct(
         #[Id]

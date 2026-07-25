@@ -39,6 +39,33 @@ return App::config([
                 'limit' => 20,
                 'interval' => '1 hour',
             ],
+            // Password reset is the same shape of hazard as the sign-in link: an
+            // unauthenticated endpoint that mails an address the caller picks.
+            'password_reset_email' => [
+                'policy' => 'sliding_window',
+                'limit' => 3,
+                'interval' => '15 minutes',
+            ],
+            'password_reset_ip' => [
+                'policy' => 'sliding_window',
+                'limit' => 20,
+                'interval' => '1 hour',
+            ],
+            // Registration creates rows and sends mail; generous enough for a
+            // household or a club behind one NAT, tight enough to be no fun to abuse
+            // (D8 - the unique-email form error is only acceptable when the endpoint
+            // cannot be enumerated in bulk).
+            'registration_ip' => [
+                'policy' => 'sliding_window',
+                'limit' => 10,
+                'interval' => '1 hour',
+            ],
+            // "Resend the verification email" - authenticated, so the account is the key
+            'email_verification_resend' => [
+                'policy' => 'sliding_window',
+                'limit' => 3,
+                'interval' => '15 minutes',
+            ],
         ],
     ],
 ]);

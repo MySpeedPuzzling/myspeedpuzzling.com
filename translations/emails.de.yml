@@ -157,3 +157,23 @@ sign_in_link:
     button: "Anmelden"
     expires: "Der Link funktioniert einmal und läuft nach %minutes% Minuten ab."
     not_requested: "Du hast das nicht angefordert? Dann kannst du diese E-Mail einfach ignorieren — ohne den Link kann sich niemand anmelden."
+
+verify_email:
+    subject: "Bestätige deine E-Mail-Adresse für MySpeedPuzzling.com"
+    title: "Bestätige deine E-Mail-Adresse"
+    content: |
+        <p>Willkommen bei MySpeedPuzzling! Bestätige diese Adresse, damit wir dich rund um dein Konto erreichen können.</p>
+    button: "Meine E-Mail-Adresse bestätigen"
+    expires: "Der Link ist %hours% Stunden gültig."
+    signed_out_rescue: |
+        <p>Eine Sache solltest du dir merken: Die Anmeldung läuft noch ein paar Tage über unseren alten Anbieter, und der kennt dein brandneues Konto noch nicht. Falls du vor der Umstellung abgemeldet wirst, kommst du mit einem Anmeldelink per E-Mail wieder hinein: <a href="%url%">%url%</a></p>
+    not_requested: "Du hast dieses Konto nicht erstellt? Dann kannst du diese E-Mail einfach ignorieren."
+
+password_reset:
+    subject: "Setze dein Passwort für MySpeedPuzzling.com zurück"
+    title: "Neues Passwort wählen"
+    content: |
+        <p>Jemand — hoffentlich du — hat angefordert, das Passwort für dein Konto bei MySpeedPuzzling.com zurückzusetzen. Klicke auf den Button unten, um ein neues zu wählen.</p>
+    button: "Neues Passwort wählen"
+    expires: "Der Link funktioniert einmal und läuft nach %minutes% Minuten ab."
+    not_requested: "Du hast das nicht angefordert? Dann kannst du diese E-Mail einfach ignorieren — dein Passwort bleibt unverändert."

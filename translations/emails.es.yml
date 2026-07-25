@@ -157,3 +157,23 @@ sign_in_link:
     button: "Iniciar sesión"
     expires: "El enlace funciona una sola vez y caduca en %minutes% minutos."
     not_requested: "¿No lo has solicitado? Puedes ignorar este correo sin problema: nadie puede iniciar sesión sin el enlace."
+
+verify_email:
+    subject: "Confirma tu dirección de correo electrónico para MySpeedPuzzling.com"
+    title: "Confirma tu dirección de correo electrónico"
+    content: |
+        <p>¡Bienvenido a MySpeedPuzzling! Confirma esta dirección para que podamos contactarte sobre tu cuenta.</p>
+    button: "Confirmar mi dirección de correo electrónico"
+    expires: "El enlace es válido durante %hours% horas."
+    signed_out_rescue: |
+        <p>Una cosa que conviene tener en cuenta: el inicio de sesión sigue pasando por nuestro proveedor antiguo durante unos días más, y todavía no conoce tu cuenta recién creada. Si se cierra tu sesión antes del cambio, vuelve a entrar con un enlace de acceso por correo: <a href="%url%">%url%</a></p>
+    not_requested: "¿No has creado esta cuenta? Puedes ignorar este correo sin problema."
+
+password_reset:
+    subject: "Restablece tu contraseña de MySpeedPuzzling.com"
+    title: "Elige una contraseña nueva"
+    content: |
+        <p>Alguien —esperamos que tú— ha pedido restablecer la contraseña de tu cuenta de MySpeedPuzzling.com. Haz clic en el botón de abajo para elegir una nueva.</p>
+    button: "Elegir una contraseña nueva"
+    expires: "El enlace funciona una sola vez y caduca en %minutes% minutos."
+    not_requested: "¿No lo has solicitado? Puedes ignorar este correo sin problema: tu contraseña seguirá siendo la misma."

@@ -157,3 +157,23 @@ sign_in_link:
     button: "Sign in"
     expires: "The link works once and expires in %minutes% minutes."
     not_requested: "Did not request this? You can safely ignore this email — nobody can sign in without the link."
+
+verify_email:
+    subject: "Confirm your email address for MySpeedPuzzling.com"
+    title: "Confirm your email address"
+    content: |
+        <p>Welcome to MySpeedPuzzling! Confirm this address so we can reach you about your account.</p>
+    button: "Confirm my email address"
+    expires: "The link is valid for %hours% hours."
+    signed_out_rescue: |
+        <p>One thing worth keeping: signing in still runs through our old provider for a few more days, and it does not know your brand-new account yet. If you are signed out before the switch, get back in with a sign-in link by email: <a href="%url%">%url%</a></p>
+    not_requested: "Did not create this account? You can safely ignore this email."
+
+password_reset:
+    subject: "Reset your MySpeedPuzzling.com password"
+    title: "Choose a new password"
+    content: |
+        <p>Somebody — hopefully you — asked to reset the password for your MySpeedPuzzling.com account. Click the button below to choose a new one.</p>
+    button: "Choose a new password"
+    expires: "The link works once and expires in %minutes% minutes."
+    not_requested: "Did not request this? You can safely ignore this email — your password stays as it is."

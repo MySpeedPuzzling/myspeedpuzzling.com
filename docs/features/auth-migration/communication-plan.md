@@ -16,7 +16,7 @@ The one real user pain: **password managers saved the credential under `speedpuz
 |---|---|---|
 | All registered users with an email | ~10k | Announcement email at Stage A — operational/service email (batched via Messenger + rate limiter; listmonk fallback per D12) |
 | Active players (90d) | ~3,300 | Same + in-app banner + straggler nudge |
-| All visitors | — | Banner + FAQ page + login-page modal & microcopy |
+| All visitors | — | Banner + FAQ page + login-page microcopy |
 
 All user-facing copy ships in **all 6 locales** (en, cs, de, es, fr, ja — D17); emails pick the player's `locale`.
 
@@ -27,9 +27,9 @@ All user-facing copy ships in **all 6 locales** (en, cs, de, es, fr, ja — D17)
 | **Now** (2026-07-24, ahead of Stage A) | Advance notice live: site-wide banner + explainer page (`/en/sign-in-is-moving`, six locales). Copy leads with the honest cost — signed out once, password managers stop autofilling — then the "look at your address bar, it says speedpuzzling.eu.auth0.com" hook, why Auth0 was right at the start and no longer is, and why waiting hurts more puzzlers than acting. No date promised |
 | **Stage A day** (~Jul 29–31) | Announcement email to all users; FAQ page live; banner ON ("On {date}…"); native registrations quietly live; socials post |
 | Stage B − 1d | Banner switches to "tomorrow" wording |
-| **Stage B day** (~Aug 6–12) | Cutover. Login-page modal live; banner switches to "changed" wording (stays ~4 weeks); login microcopy permanent; socials post |
+| **Stage B day** (~Aug 6–12) | Cutover. Banner switches to "changed" wording (stays ~4 weeks); login microcopy permanent; socials post |
 | B + 2w | Straggler nudge email (active-in-6-months minus migrated) |
-| B + 3–4w | Transition exit review (Phase 5 criteria); banner removed. Modal + microcopy + sign-in-link stay — dormant players return for months |
+| B + 3–4w | Transition exit review (Phase 5 criteria); banner removed. Microcopy + sign-in-link stay — dormant players return for months |
 
 If Stage B slips past the export-delay gate, announced dates must say "week of {date}" — never promise a day we can't hold.
 
@@ -59,17 +59,9 @@ Subject: **Sign-in is moving to myspeedpuzzling.com — same password, nothing t
 - B−1d: > 🔑 **Tomorrow** sign-in moves to myspeedpuzzling.com. You'll be signed out once — same email and password. [Details]({faq_url})
 - Stage B → B+4w: > 🔑 Sign-in has a new home on myspeedpuzzling.com — same email and password as before. Trouble signing in? [Read this]({faq_url})
 
-### Login-page modal (Stage B, one-time per browser, localStorage-dismissed)
+### ~~Login-page modal~~ — dropped 2026-07-25 (Jan)
 
-Title: **Sign-in has moved home**
-
-> Signing in now happens right here on myspeedpuzzling.com — no more redirect to auth0.com.
->
-> - **Same email, same password.** Nothing was reset.
-> - **Password manager not offering it?** It saved your password under our old sign-in domain. Search it for "**speedpuzzling**" or "**auth0**" — it's there.
-> - **Can't find it?** Use **Email me a sign-in link** below — one click and you're in. You can set a fresh password afterwards.
->
-> [Got it] · [Why did this change?]({faq_url})
+The site-wide notice strip went live ahead of Stage A and already reaches everyone, anonymous visitors included, linking to the explainer page. A modal repeating the same message on the login page is a second interruption, so it was cut. The login page carries the permanent microcopy, the prominent sign-in-link CTA and the failure helper below instead — those fire when somebody is actually stuck rather than on arrival.
 
 ### Login-page microcopy (permanent)
 

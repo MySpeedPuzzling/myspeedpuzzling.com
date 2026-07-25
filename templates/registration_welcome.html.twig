@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'auth.welcome.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-6 col-md-8">
+            <h1 class="h2">{{ 'auth.welcome.title'|trans }}</h1>
+
+            <p>{{ 'auth.welcome.intro'|trans }}</p>
+
+            {% if not email_verified %}
+                <div class="alert alert-info" role="alert">
+                    <i class="ci-mail me-2"></i>
+                    {{ 'auth.welcome.verification_sent'|trans({'%email%': email}) }}
+                </div>
+            {% endif %}
+
+            {% if show_sign_in_link_rescue %}
+                {# Window A only: /login still redirects to Auth0, which has no identity
+                   for this brand-new native account. The sign-in link is the way back
+                   in until Stage B - so it is spelled out here and in the verification
+                   email, the two things a new registrant actually keeps. #}
+                <div class="card border-warning my-3">
+                    <div class="card-body">
+                        <h2 class="h6">{{ 'auth.welcome.signed_out_title'|trans }}</h2>
+                        <p class="fs-sm mb-2">{{ 'auth.welcome.signed_out_text'|trans }}</p>
+                        <a class="btn btn-sm btn-outline-primary" href="{{ path('sign_in_link_request', {'email': email}) }}">
+                            <i class="bi bi-envelope me-1"></i>{{ 'auth.sign_in_link.submit'|trans }}
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+
+            <p>
+                <a class="btn btn-primary" href="{{ path('my_profile') }}">
+                    {{ 'auth.welcome.to_profile'|trans }}
+                </a>
+            </p>
+        </div>
+
+        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
+            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        </div>
+    </div>
+{% endblock %}

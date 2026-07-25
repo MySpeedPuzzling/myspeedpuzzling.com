@@ -45,9 +45,9 @@ return static function (ContainerConfigurator $configurator): void {
 
     // Auth0 -> native auth migration flags (issue #147, docs/features/feature_flags.md).
     // Deploy != flip: all three ship OFF and are flipped via env at Stage A / Stage B.
-    // nativeRegistrationEnabled has no consumer yet (registration ships with the
-    // 2c-II slice) - it is a parameter only; bind it in defaults() once a service
-    // injects it. nativeLoginEnabled gates the native login page (LoginController).
+    // nativeRegistrationEnabled gates the native registration page (RegisterController)
+    // and the links that point at it; nativeLoginEnabled gates the native login page
+    // (LoginController) and the native change-password card on profile settings.
     $parameters->set('nativeRegistrationEnabled', '%env(bool:NATIVE_REGISTRATION_ENABLED)%');
     $parameters->set('nativeLoginEnabled', '%env(bool:NATIVE_LOGIN_ENABLED)%');
     $parameters->set('auth0TrickleLoginEnabled', '%env(bool:AUTH0_TRICKLE_LOGIN_ENABLED)%');
@@ -76,6 +76,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$auth0DatabaseConnection', '%auth0DatabaseConnection%')
         ->bind('$auth0TrickleLoginEnabled', '%auth0TrickleLoginEnabled%')
         ->bind('$nativeLoginEnabled', '%nativeLoginEnabled%')
+        ->bind('$nativeRegistrationEnabled', '%nativeRegistrationEnabled%')
         ->bind('$signInLinkLifetimeSeconds', '%signInLinkLifetimeSeconds%');
 
     $services->set(PdoSessionHandler::class)

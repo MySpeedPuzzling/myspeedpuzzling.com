@@ -21,7 +21,7 @@ Two user-visible stages instead of one big-bang cutover — sequencing insight: 
 | Stage | What flips | Target |
 |---|---|---|
 | **Stage A** | New **registrations** go native (`msp\|` accounts); Auth0 database connection gets **Disable Sign Ups**; announcement email + banner + FAQ go live; **pay Essentials + open the hash-export ticket the same day** | ~1 week from start (build-gated) |
-| **Stage B** | **Login** flips to the native form (invisible trickle fallback active); hash export imported; sessions flushed; explainer modal live on the login page | ~1 week after Stage A (export-gated; hard decision gate at day 14 — see risk register) |
+| **Stage B** | **Login** flips to the native form (invisible trickle fallback active); hash export imported; sessions flushed | ~1 week after Stage A (export-gated; hard decision gate at day 14 — see risk register) |
 | Window | Trickle runs invisibly; metrics watched; straggler nudge at B+2w | 3–4 weeks after Stage B |
 | Decommission | Trickle + fork + tenant deleted | ~6–7 weeks from start |
 
@@ -147,7 +147,7 @@ Rejected alternatives, for the record: **(a)** per-provider columns on `user_acc
 | Remember me | Signature-based (no storage, auto-invalidates on password change), `secure: true`, `samesite: lax` | core |
 | Login throttling | `login_throttling` (requires `symfony/rate-limiter`), default 5/min per username+IP | core |
 | Audit logging | Listeners on `LoginSuccessEvent` / `LoginFailureEvent` / `LogoutEvent` → Monolog/Sentry | core |
-| Cutover explainer modal | One-time auto-modal on the login page post-Stage-B (localStorage-dismissed, works for anonymous visitors) — see UX funnel below | app |
+| ~~Cutover explainer modal~~ | **Dropped 2026-07-25 (D15 amendment)** — the site-wide notice strip already reaches everyone, anonymous visitors included | — |
 | Post-login-link password setup | After a magic-link login on a `legacy_auth0` account: one-time skippable "set a fresh password" prompt — see UX funnel below | app |
 | Login-failure helper | On failed password attempts, an inline helper appears: password-manager tip + one-click "email me a sign-in link" (pre-filled) | app |
 
@@ -160,7 +160,7 @@ Post-launch candidates (not blocking): Google/Facebook login (design settled —
 The single real user pain: managers saved the credential under `speedpuzzling.eu.auth0.com`, so autofill won't fire on the new login page and users conclude "I don't know my password". The design treats this as a funnel — every layer catches who the previous one missed:
 
 1. **T-7d announcement email** — "your email and password stay the same" + the tip up front: *search your password manager for "speedpuzzling" or "auth0"* (the tenant subdomain contains "speedpuzzling", so vault search finds it in every manager).
-2. **One-time modal on the login page** (post-Stage-B, localStorage-dismissed): same email+password, the vault-search tip, and the magic-link rescue — shown exactly where confusion strikes, including to logged-out/anonymous visitors.
+2. ~~**One-time modal on the login page**~~ — **dropped 2026-07-25 (D15 amendment).** Its job is done by the site-wide notice strip, which went live ahead of Stage A, reaches anonymous visitors too, and links to the explainer page. Layers 3, 4 and 6 below carry the rest, and they fire when somebody is stuck rather than on arrival.
 3. **Login form itself**: password login primary; **"Email me a sign-in link"** as a prominent, permanent secondary action (not buried); "Forgot password?" tertiary; persistent microcopy for dormant players returning months later.
 4. **Failure-state helper**: a wrong-password attempt reveals an inline box — vault-search tip + one-click sign-in-link button pre-filled with the typed email. Shown on any failure (no account-existence signal → no enumeration leak).
 5. **Post-magic-link password setup**: after a sign-in-link login on a `legacy_auth0` account, a one-time skippable prompt: "Set a fresh password so your manager saves it under myspeedpuzzling.com" — `autocomplete="new-password"` field (native manager password-generation UI) plus a "Suggest strong password" button that fills the field (visible, copyable, editable — refined from the readonly-input idea: readonly blocks users who want their own password, and managers capture on submit either way). Skipping keeps the old password working.
@@ -197,8 +197,8 @@ The fork fixes + `AnonymousCacheHeadersSubscriber` (2026-07) made anonymous HTML
 | D12 | Email deliverability | Before cutover, verify seznam.cz SMTP limits/SPF/DKIM; auth emails (reset/verify/login-link) become critical-path. Consider a dedicated transactional provider if limits are tight |
 | D13 | Social-auth data model | `oauth_identity` table (one row per linked provider identity); password stays on `user_account`. Design settled now (see "Auth-method extensibility"), table ships with the first provider — not during migration |
 | D14 | Staged rollout | **Registrations flip first** (Stage A: native `/register` + Auth0 "Disable Sign Ups"), login flips ~1 week later (Stage B). Freezing signups before the export is generated → export covers 100% of Auth0 users. Decided 2026-07-23 |
-| D15 | Cutover explainer | One-time auto-modal on the **login page** (localStorage-dismissed) + dismissable site-wide banner (~4 weeks) + FAQ page. Not a site-wide modal — visitors who never sign in shouldn't be interrupted |
-| D16 | Public "why" tone | **Layered**: emails/banner/modal keep it simple ("sign-in now lives on our own site"); the FAQ/blog tells the honest full story — Auth0 enabled fast early development, but the unmaintained Symfony SDK + rejected upstream fixes forced us to maintain a fork and slow us down |
+| D15 | Cutover explainer | ~~One-time auto-modal on the **login page** (localStorage-dismissed)~~ + dismissable site-wide banner (~4 weeks) + FAQ page. Not a site-wide modal — visitors who never sign in shouldn't be interrupted. **Amended 2026-07-25 (Jan): the modal is dropped.** The site-wide notice strip went live ahead of Stage A and already reaches everyone including anonymous visitors, linking to the explainer page — a modal repeating it on the login page is a second interruption with the same content. The login page keeps funnel layers 3/4/6 (permanent microcopy, prominent sign-in-link CTA, failure helper), which fire when someone is actually stuck rather than on arrival |
+| D16 | Public "why" tone | **Layered**: emails/banner keep it simple ("sign-in now lives on our own site"); the FAQ/blog tells the honest full story — Auth0 enabled fast early development, but the unmaintained Symfony SDK + rejected upstream fixes forced us to maintain a fork and slow us down |
 | D17 | Locales | All 6 locales (en, cs, de, es, fr, ja) for every auth-facing page/modal/banner — matches #161 precedent; Auth0's Universal Login was auto-localized, English-only would regress. Emails per player `locale` |
 | D18 | Token replayability (decided 2026-07-24) | **Magic login links must be single-use**: Symfony's `login_link` is signature+expiry only (replayable within lifetime), so the implementation adds consumption storage (hashed-token row consumed at login, reset-request pattern). Email *verification* links stay stateless/replayable within their 24h lifetime — accepted deliberately: the handler is an idempotent no-op after first use, no session is created, and nothing privileged gates on `email_verified_at`. Password reset tokens were already single-use |
 

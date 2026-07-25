@@ -157,3 +157,23 @@ sign_in_link:
     button: "Přihlásit se"
     expires: "Odkaz funguje jednou a vyprší za %minutes% minut."
     not_requested: "Nežádali jste o něj? Tento e-mail můžete klidně ignorovat — bez odkazu se nikdo nepřihlásí."
+
+verify_email:
+    subject: "Potvrďte svou e-mailovou adresu pro MySpeedPuzzling.com"
+    title: "Potvrďte svou e-mailovou adresu"
+    content: |
+        <p>Vítejte na MySpeedPuzzling! Potvrďte tuto adresu, ať vás můžeme kontaktovat ohledně vašeho účtu.</p>
+    button: "Potvrdit mou e-mailovou adresu"
+    expires: "Odkaz platí %hours% hodin."
+    signed_out_rescue: |
+        <p>Ještě jedna věc, kterou je dobré vědět: přihlašování ještě několik dní běží přes našeho starého poskytovatele a ten o vašem zbrusu novém účtu zatím neví. Pokud budete před přepnutím odhlášeni, vraťte se zpátky pomocí přihlašovacího odkazu e-mailem: <a href="%url%">%url%</a></p>
+    not_requested: "Tento účet jste nezakládali? Tento e-mail můžete klidně ignorovat."
+
+password_reset:
+    subject: "Obnovení hesla k MySpeedPuzzling.com"
+    title: "Zvolte si nové heslo"
+    content: |
+        <p>Někdo — doufejme, že vy — požádal o obnovení hesla k vašemu účtu na MySpeedPuzzling.com. Kliknutím na tlačítko níže si zvolíte nové.</p>
+    button: "Zvolit nové heslo"
+    expires: "Odkaz funguje jednou a vyprší za %minutes% minut."
+    not_requested: "Nežádali jste o něj? Tento e-mail můžete klidně ignorovat — vaše heslo zůstane beze změny."

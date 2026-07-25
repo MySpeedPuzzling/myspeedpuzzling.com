@@ -21,6 +21,9 @@ return App::config([
                 // session-free (#164), so its token id must not fall back to the
                 // session-backed manager
                 'sign_in_link',
+                // Same reason: the "forgot password" form is rendered for anonymous
+                // visitors, and a session-backed token would put a cookie on the page
+                'request_password_reset',
             ],
         ],
     ],

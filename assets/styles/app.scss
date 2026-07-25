@@ -1156,6 +1156,15 @@ header {
     }
 }
 
+// Turbo Drive's loading bar is a 3px strip fixed to the very top of the viewport,
+// so it always lands on whatever is the first thing inside the header. It used to be
+// the light topbar, and #EC726F read fine against that; since the sign-in notice
+// strip (background: $primary, #fe696a) became the header's first child the two
+// colours are a couple of RGB steps apart and the bar vanishes into it. Nothing is
+// covering it - z-index 2147483647 keeps it on top - it just cannot be told apart.
+// $accent reads against the notice strip, the topbar and plain white alike, and the
+// shadow keeps it separated from any band that ends up at the top later.
 .turbo-progress-bar {
-    background-color: #EC726F;
+    background-color: $accent;
+    box-shadow: 0 1px 3px rgba($black, .25);
 }

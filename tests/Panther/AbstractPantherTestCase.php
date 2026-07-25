@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Panther;
 
+use Facebook\WebDriver\Chrome\ChromeOptions;
 use Facebook\WebDriver\Remote\DesiredCapabilities;
 use Symfony\Component\Panther\Client;
 use Symfony\Component\Panther\PantherTestCase;
@@ -22,6 +23,18 @@ abstract class AbstractPantherTestCase extends PantherTestCase
 
         // Use Selenium when available (Docker or CI)
         if ($seleniumHost !== null) {
+            // app.scss enables `html { scroll-behavior: smooth }` unless the user prefers
+            // reduced motion. WebDriver's scroll-element-into-view-before-click then
+            // becomes an async animation, so the click fires mid-scroll and lands outside
+            // the viewport ("element click intercepted"). Panther's own ChromeManager
+            // forces reduced motion for exactly this reason, but only on the local
+            // ChromeDriver path - mirror it for the Selenium capabilities we build here.
+            $chromeOptions = new ChromeOptions();
+            $chromeOptions->addArguments(['--force-prefers-reduced-motion']);
+
+            $capabilities = DesiredCapabilities::chrome();
+            $capabilities->setCapability(ChromeOptions::CAPABILITY_W3C, $chromeOptions);
+
             return self::createPantherClient(
                 options: [
                     'browser' => self::SELENIUM,
@@ -30,12 +43,13 @@ abstract class AbstractPantherTestCase extends PantherTestCase
                 ],
                 managerOptions: [
                     'host' => $seleniumHost,
-                    'capabilities' => DesiredCapabilities::chrome(),
+                    'capabilities' => $capabilities,
                 ],
             );
         }
 
-        // Default: Panther auto-starts PHP server and uses ChromeDriver (local machine)
+        // Default: Panther auto-starts PHP server and uses ChromeDriver (local machine).
+        // No reduced-motion handling needed here - Panther's ChromeManager forces it by default.
         return self::createPantherClient();
     }
 

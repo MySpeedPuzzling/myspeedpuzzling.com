@@ -271,8 +271,10 @@ final class LendBorrowListTest extends AbstractPantherTestCase
         $client->waitForVisibility('#borrowed-tab-count');
 
         // Get initial count from the "Borrowed" tab
+        // PLAYER_WITH_FAVORITES holds two borrowed puzzles: PUZZLE_500_03 (LENT_04)
+        // and PUZZLE_500_04 (LENT_08, merge-test fixture)
         $borrowedTabCount = $client->getCrawler()->filter('#borrowed-tab-count')->text();
-        self::assertEquals('1', $borrowedTabCount, 'Initial borrowed count should be 1');
+        self::assertEquals('2', $borrowedTabCount, 'Initial borrowed count should be 2');
 
         // Find the puzzle card for PUZZLE_500_03 (borrowed by PLAYER_WITH_FAVORITES)
         $puzzleCardSelector = '#library-lend-borrow-borrowed-' . PuzzleFixture::PUZZLE_500_03;
@@ -310,13 +312,13 @@ final class LendBorrowListTest extends AbstractPantherTestCase
             ->click();
 
         // Wait for Turbo Stream to process and remove the card
-        $client->waitForElementToContain('#borrowed-tab-count', '0');
+        $client->waitForElementToContain('#borrowed-tab-count', '1');
 
         // Verify the card is removed from the list
         self::assertSelectorNotExists($puzzleCardSelector);
 
         // Verify the tab count is updated
         $newBorrowedTabCount = $client->getCrawler()->filter('#borrowed-tab-count')->text();
-        self::assertEquals('0', $newBorrowedTabCount, 'Borrowed count should decrease to 0 after passing');
+        self::assertEquals('1', $newBorrowedTabCount, 'Borrowed count should decrease to 1 after passing');
     }
 }

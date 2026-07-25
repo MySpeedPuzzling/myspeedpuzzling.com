@@ -53,11 +53,6 @@ jobs:
       -   run: vendor/bin/phpunit --testsuite "Project Test Suite"
 
   panther-tests:
-    # Temporarily disabled — symfony/panther 2.4 (Symfony 8 compatible) is installed again
-    # and the suite runs, but 17 of 49 tests still fail from UI drift accumulated while the
-    # suite was mothballed during the Symfony 8 migration. Re-enable once the suite is green:
-    # docker compose exec web vendor/bin/phpunit --testsuite "Panther Test Suite"
-    if: false
     runs-on: ubuntu-latest
     services:
       postgres:

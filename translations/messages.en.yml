@@ -870,7 +870,7 @@ edit_profile:
     frequency_48_hours: "Every 48 hours"
     frequency_1_week: "Once a week"
     newsletter_enabled: "Receive newsletters"
-    newsletter_help: "We will occasionally send a newsletter about what's new on the platform, usually explaining new features. Expected frequency: no more than 1 per month."
+    newsletter_help: "We will occasionally send a newsletter about what's new on the platform, usually explaining new features. No marketing, no promotions — just what's new. Expected frequency: no more than 1 per month."
     personal_access_tokens: "Personal Access Tokens"
     personal_access_tokens_description: "Tokens for accessing your own data through the API."
     pat_created_title: "Your Personal Access Token"
@@ -3242,7 +3242,7 @@ auth:
 newsletter:
     footer:
         title: "📬 Puzzle news in your inbox"
-        pitch: "Events, new features and speed puzzling tips. At most once a month, no spam — ever."
+        pitch: "Want to stay up to date with what's new on MySpeedPuzzling? No marketing, no promotions — just new features and community news, at most once a month."
         email_placeholder: "Your e-mail address"
         subscribe_button: "Subscribe"
         consent: 'By subscribing you agree to receiving the MySpeedPuzzling newsletter. Unsubscribe anytime with one click. <a href="%privacyUrl%">Privacy policy</a>'

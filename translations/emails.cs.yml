@@ -183,6 +183,6 @@ newsletter_confirmation:
     title: "Potvrďte odběr newsletteru"
     content: |
         <p>Ahoj! Někdo — doufejme, že vy — se přihlásil k odběru newsletteru MySpeedPuzzling na tuto adresu.</p>
-        <p>Potvrďte odběr tlačítkem níže a budeme vás informovat o akcích, nových funkcích a novinkách z komunity speed puzzlingu. Maximálně jednou měsíčně, žádný spam.</p>
+        <p>Potvrďte odběr tlačítkem níže a budeme vám dávat vědět, co je na platformě nového — nové funkce, vylepšení a novinky z komunity. Žádný marketing, žádná reklama — jen novinky, maximálně jednou měsíčně.</p>
     button: "Potvrdit odběr"
     expires: "Odkaz platí %hours% hodin. Pokud jste o odběr nežádali, tento e-mail klidně ignorujte a nic vám chodit nebude."

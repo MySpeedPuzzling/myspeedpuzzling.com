@@ -715,7 +715,7 @@
   "frequency_48_hours": "Každých 48 hodin"
   "frequency_1_week": "Jednou týdně"
   "newsletter_enabled": "Dostávat newsletter"
-  "newsletter_help": "Občas vám pošleme newsletter o novinkách na platformě, většinou o nových funkcích. Očekávaná frekvence: maximálně 1x měsíčně."
+  "newsletter_help": "Občas vám pošleme newsletter o novinkách na platformě, většinou o nových funkcích. Žádný marketing, žádná reklama — jen novinky. Očekávaná frekvence: maximálně 1x měsíčně."
   "messaging_notifications": "Zprávy a upozornění"
   "features_options": "Nastavení funkcí"
   "hide_ranking": "Skrýt mé hodnocení a dovednosti"
@@ -2953,7 +2953,7 @@ auth:
 newsletter:
     footer:
         title: "📬 Puzzle novinky do vaší schránky"
-        pitch: "Akce, nové funkce a tipy ze světa speed puzzlingu. Maximálně jednou měsíčně, žádný spam."
+        pitch: "Chcete mít přehled, co je na MySpeedPuzzling nového? Žádný marketing, žádná reklama — jen nové funkce a novinky z komunity, maximálně jednou měsíčně."
         email_placeholder: "Váš e-mail"
         subscribe_button: "Odebírat"
         consent: 'Přihlášením souhlasíte se zasíláním newsletteru MySpeedPuzzling. Odhlásit se můžete kdykoliv jedním kliknutím. <a href="%privacyUrl%">Zásady ochrany soukromí</a>'

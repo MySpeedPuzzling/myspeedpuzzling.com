@@ -183,6 +183,6 @@ newsletter_confirmation:
     title: "Confirma tu suscripción"
     content: |
         <p>¡Hola! Alguien —esperamos que tú— ha pedido recibir el newsletter de MySpeedPuzzling en esta dirección.</p>
-        <p>Confírmalo abajo y te mantendremos al día sobre eventos de speed puzzling, nuevas funciones y novedades de la comunidad. Como mucho una vez al mes, nada de spam — nunca.</p>
+        <p>Confírmalo abajo y te contaremos las novedades de la plataforma: nuevas funciones, mejoras y noticias de la comunidad. Sin marketing ni promociones — solo novedades, como mucho una vez al mes.</p>
     button: "Confirmar mi suscripción"
     expires: "El enlace es válido durante %hours% horas. Si no lo has solicitado, ignora este correo sin problema y no te enviaremos nada."

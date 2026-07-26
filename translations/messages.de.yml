@@ -695,7 +695,7 @@
   "frequency_48_hours": "Alle 48 Stunden"
   "frequency_1_week": "Einmal pro Woche"
   "newsletter_enabled": "Newsletter erhalten"
-  "newsletter_help": "Wir senden gelegentlich einen Newsletter über Neuigkeiten auf der Plattform, meist über neue Funktionen. Erwartete Häufigkeit: maximal 1x pro Monat."
+  "newsletter_help": "Wir senden gelegentlich einen Newsletter über Neuigkeiten auf der Plattform, meist über neue Funktionen. Kein Marketing, keine Werbung — nur Neuigkeiten. Erwartete Häufigkeit: maximal 1x pro Monat."
   "messaging_notifications": "Nachrichten & Benachrichtigungen"
   "personal_access_tokens": "Persönliche Zugriffstoken"
   "personal_access_tokens_description": "Token für den Zugriff auf Ihre eigenen Daten über die API."
@@ -2955,7 +2955,7 @@ auth:
 newsletter:
     footer:
         title: "📬 Puzzle-Neuigkeiten in Ihr Postfach"
-        pitch: "Events, neue Funktionen und Tipps rund ums Speed Puzzling. Höchstens einmal im Monat, kein Spam – versprochen."
+        pitch: "Möchten Sie auf dem Laufenden bleiben, was es Neues auf MySpeedPuzzling gibt? Kein Marketing, keine Werbung — nur neue Funktionen und Neuigkeiten aus der Community, höchstens einmal im Monat."
         email_placeholder: "Ihre E-Mail-Adresse"
         subscribe_button: "Abonnieren"
         consent: 'Mit der Anmeldung stimmen Sie dem Erhalt des MySpeedPuzzling-Newsletters zu. Abmelden können Sie sich jederzeit mit einem Klick. <a href="%privacyUrl%">Datenschutzerklärung</a>'

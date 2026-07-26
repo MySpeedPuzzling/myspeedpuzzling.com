@@ -183,6 +183,6 @@ newsletter_confirmation:
     title: "Confirm your subscription"
     content: |
         <p>Hi! Somebody — hopefully you — asked to receive the MySpeedPuzzling newsletter at this address.</p>
-        <p>Confirm below and we'll keep you posted about speed puzzling events, new features and community news. At most once a month, no spam — ever.</p>
+        <p>Confirm below and we'll let you know what's new on the platform — new features, improvements and community news. No marketing, no promotions — just what's new, at most once a month.</p>
     button: "Confirm my subscription"
     expires: "The link is valid for %hours% hours. If you didn't request this, simply ignore this e-mail and nothing will be sent."

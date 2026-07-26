@@ -183,6 +183,6 @@ newsletter_confirmation:
     title: "Bestätige dein Abo"
     content: |
         <p>Hi! Jemand — hoffentlich du — hat darum gebeten, den MySpeedPuzzling-Newsletter an diese Adresse zu erhalten.</p>
-        <p>Bestätige das unten und wir halten dich über Speed-Puzzling-Events, neue Funktionen und Neuigkeiten aus der Community auf dem Laufenden. Höchstens einmal im Monat, kein Spam — versprochen.</p>
+        <p>Bestätige das unten und wir sagen dir, was es auf der Plattform Neues gibt — neue Funktionen, Verbesserungen und Neuigkeiten aus der Community. Kein Marketing, keine Werbung — nur Neuigkeiten, höchstens einmal im Monat.</p>
     button: "Mein Abo bestätigen"
     expires: "Der Link ist %hours% Stunden gültig. Wenn du das nicht angefordert hast, ignoriere diese E-Mail einfach — dann wird nichts verschickt."

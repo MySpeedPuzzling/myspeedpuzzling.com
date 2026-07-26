@@ -803,7 +803,7 @@
   "frequency_48_hours": "48時間ごと"
   "frequency_1_week": "週に1回"
   "newsletter_enabled": "ニュースレターを受信する"
-  "newsletter_help": "プラットフォームの新機能などについてのニュースレターを不定期にお送りします。想定頻度：月1回以下。"
+  "newsletter_help": "プラットフォームの新機能などについてのニュースレターを不定期にお送りします。マーケティングや宣伝は一切ありません。想定頻度：月1回以下。"
   "messaging_notifications": "メッセージと通知"
   "personal_access_tokens": "個人アクセストークン"
   "personal_access_tokens_description": "API経由で自分のデータにアクセスするためのトークン。"
@@ -2944,7 +2944,7 @@ qr_code:
 newsletter:
     footer:
         title: "📬 パズルの最新情報をあなたの受信トレイに"
-        pitch: "イベント、新機能、スピードパズルのヒントをお届けします。多くても月1回、スパムは一切ありません。"
+        pitch: "MySpeedPuzzling の最新情報を受け取りませんか？マーケティングや宣伝は一切なし。新機能とコミュニティの最新情報だけを、多くても月1回お届けします。"
         email_placeholder: "メールアドレス"
         subscribe_button: "登録する"
         consent: '登録すると、MySpeedPuzzlingニュースレターの受信に同意したことになります。配信停止はいつでもワンクリックで可能です。<a href="%privacyUrl%">プライバシーポリシー</a>'

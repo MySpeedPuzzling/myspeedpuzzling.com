@@ -460,7 +460,7 @@
   "frequency_48_hours": "Cada 48 horas"
   "frequency_1_week": "Una vez a la semana"
   "newsletter_enabled": "Recibir boletines"
-  "newsletter_help": "Ocasionalmente enviaremos un boletín sobre novedades en la plataforma, generalmente explicando nuevas funciones. Frecuencia esperada: no más de 1 al mes."
+  "newsletter_help": "Ocasionalmente enviaremos un boletín sobre novedades en la plataforma, generalmente explicando nuevas funciones. Sin marketing ni promociones: solo novedades. Frecuencia esperada: no más de 1 al mes."
   "features_options": "Opciones de funciones"
   "hide_ranking": "Ocultar mi clasificación y habilidad"
   "hide_ranking_help": "Tu nivel de habilidad y clasificación Rating se ocultarán. No aparecerás en la escalera MSP Rating. Tus datos seguirán usándose en los cálculos de dificultad de puzzles y clasificaciones de otros jugadores."
@@ -2955,7 +2955,7 @@ fair_use_policy:
 newsletter:
     footer:
         title: "📬 Novedades de puzzles en tu bandeja de entrada"
-        pitch: "Eventos, nuevas funciones y consejos de speed puzzling. Como mucho una vez al mes, nada de spam — nunca."
+        pitch: "¿Quieres estar al día de las novedades de MySpeedPuzzling? Sin marketing ni promociones: solo nuevas funciones y noticias de la comunidad, como mucho una vez al mes."
         email_placeholder: "Tu dirección de correo electrónico"
         subscribe_button: "Suscribirme"
         consent: 'Al suscribirte aceptas recibir el newsletter de MySpeedPuzzling. Puedes darte de baja en cualquier momento con un solo clic. <a href="%privacyUrl%">Política de privacidad</a>'

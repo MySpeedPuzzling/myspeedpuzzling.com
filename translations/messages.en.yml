@@ -3241,8 +3241,8 @@ auth:
 
 newsletter:
     footer:
-        title: "📬 Puzzle news in your inbox"
-        pitch: "Want to stay up to date with what's new on MySpeedPuzzling? No marketing, no promotions — just new features and community news, at most once a month."
+        title: "📬 What's new on MySpeedPuzzling"
+        pitch: "New features and platform news, once a month. No marketing, no promotions."
         email_placeholder: "Your e-mail address"
         subscribe_button: "Subscribe"
         consent: 'By subscribing you agree to receiving the MySpeedPuzzling newsletter. Unsubscribe anytime with one click. <a href="%privacyUrl%">Privacy policy</a>'

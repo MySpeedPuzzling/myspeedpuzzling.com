@@ -2943,8 +2943,8 @@ qr_code:
 
 newsletter:
     footer:
-        title: "📬 パズルの最新情報をあなたの受信トレイに"
-        pitch: "MySpeedPuzzling の最新情報を受け取りませんか？マーケティングや宣伝は一切なし。新機能とコミュニティの最新情報だけを、多くても月1回お届けします。"
+        title: "📬 MySpeedPuzzling の新着情報"
+        pitch: "新機能とプラットフォームの最新情報を月1回お届けします。マーケティングや宣伝はありません。"
         email_placeholder: "メールアドレス"
         subscribe_button: "登録する"
         consent: '登録すると、MySpeedPuzzlingニュースレターの受信に同意したことになります。配信停止はいつでもワンクリックで可能です。<a href="%privacyUrl%">プライバシーポリシー</a>'

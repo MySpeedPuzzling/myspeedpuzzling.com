@@ -2954,8 +2954,8 @@ auth:
 
 newsletter:
     footer:
-        title: "📬 Puzzle-Neuigkeiten in Ihr Postfach"
-        pitch: "Möchten Sie auf dem Laufenden bleiben, was es Neues auf MySpeedPuzzling gibt? Kein Marketing, keine Werbung — nur neue Funktionen und Neuigkeiten aus der Community, höchstens einmal im Monat."
+        title: "📬 Was gibt's Neues auf MySpeedPuzzling"
+        pitch: "Neue Funktionen und Plattform-News, einmal im Monat. Kein Marketing, keine Werbung."
         email_placeholder: "Ihre E-Mail-Adresse"
         subscribe_button: "Abonnieren"
         consent: 'Mit der Anmeldung stimmen Sie dem Erhalt des MySpeedPuzzling-Newsletters zu. Abmelden können Sie sich jederzeit mit einem Klick. <a href="%privacyUrl%">Datenschutzerklärung</a>'

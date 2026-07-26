@@ -2954,8 +2954,8 @@ fair_use_policy:
 
 newsletter:
     footer:
-        title: "📬 Novedades de puzzles en tu bandeja de entrada"
-        pitch: "¿Quieres estar al día de las novedades de MySpeedPuzzling? Sin marketing ni promociones: solo nuevas funciones y noticias de la comunidad, como mucho una vez al mes."
+        title: "📬 Novedades de MySpeedPuzzling"
+        pitch: "Nuevas funciones y novedades de la plataforma, una vez al mes. Sin marketing ni promociones."
         email_placeholder: "Tu dirección de correo electrónico"
         subscribe_button: "Suscribirme"
         consent: 'Al suscribirte aceptas recibir el newsletter de MySpeedPuzzling. Puedes darte de baja en cualquier momento con un solo clic. <a href="%privacyUrl%">Política de privacidad</a>'

@@ -2952,8 +2952,8 @@ auth:
 
 newsletter:
     footer:
-        title: "📬 Puzzle novinky do vaší schránky"
-        pitch: "Chcete mít přehled, co je na MySpeedPuzzling nového? Žádný marketing, žádná reklama — jen nové funkce a novinky z komunity, maximálně jednou měsíčně."
+        title: "📬 Co je nového na MySpeedPuzzling"
+        pitch: "Nové funkce a novinky z platformy, jednou měsíčně. Žádný marketing, žádná reklama."
         email_placeholder: "Váš e-mail"
         subscribe_button: "Odebírat"
         consent: 'Přihlášením souhlasíte se zasíláním newsletteru MySpeedPuzzling. Odhlásit se můžete kdykoliv jedním kliknutím. <a href="%privacyUrl%">Zásady ochrany soukromí</a>'

@@ -668,7 +668,9 @@
                                 <p class="fs-sm text-muted mb-2">{{ 'newsletter.footer.pitch'|trans }}</p>
 
                                 {% if logged_user.profile is null %}
-                                    <form action="{{ path('newsletter_subscribe') }}" method="post">
+                                    {# data-turbo=false: a Turbo-driven redirect keeps the footer scroll position,
+                                       landing the visitor at the bottom of the check-inbox page #}
+                                    <form action="{{ path('newsletter_subscribe') }}" method="post" data-turbo="false">
                                         <input type="hidden" name="_token" value="{{ csrf_token('newsletter-subscribe') }}">
                                         <div class="input-group">
                                             <input type="email" class="form-control" name="email" required autocomplete="email"

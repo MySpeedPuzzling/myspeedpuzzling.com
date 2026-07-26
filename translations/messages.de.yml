@@ -2951,3 +2951,45 @@ auth:
         invalid:
             headline: "Dieser Link zum Zurücksetzen funktioniert nicht"
             message: "Er wurde möglicherweise bereits verwendet, oder ein neuerer Link zum Zurücksetzen hat ihn ersetzt. Fordern Sie unten einen neuen an."
+
+newsletter:
+    footer:
+        title: "📬 Puzzle-Neuigkeiten in Ihr Postfach"
+        pitch: "Events, neue Funktionen und Tipps rund ums Speed Puzzling. Höchstens einmal im Monat, kein Spam – versprochen."
+        email_placeholder: "Ihre E-Mail-Adresse"
+        subscribe_button: "Abonnieren"
+        consent: 'Mit der Anmeldung stimmen Sie dem Erhalt des MySpeedPuzzling-Newsletters zu. Abmelden können Sie sich jederzeit mit einem Klick. <a href="%privacyUrl%">Datenschutzerklärung</a>'
+        manage_link: "Verwalten Sie Ihr Newsletter-Abo in den Benachrichtigungseinstellungen"
+    flash:
+        try_again: "Etwas ist schiefgelaufen, bitte versuchen Sie es erneut."
+        invalid_email: "Bitte geben Sie eine gültige E-Mail-Adresse ein."
+        too_many_attempts: "Zu viele Versuche, bitte versuchen Sie es später erneut."
+    check_inbox:
+        headline: "Noch ein Schritt – schauen Sie in Ihr Postfach"
+        sent: "Wir haben Ihnen gerade eine Bestätigungs-E-Mail geschickt. Klicken Sie auf den Link darin und der Newsletter gehört Ihnen."
+        spam_hint: "Nichts angekommen? Geben Sie ihr einen Moment – und werfen Sie zur Sicherheit auch einen Blick in den Spam-Ordner."
+        expires: "Der Bestätigungslink ist %hours% Stunden gültig."
+        cta_homepage: "MySpeedPuzzling entdecken"
+    confirm:
+        headline: "Sie sind dabei! 🧩"
+        text: "Ihr Abo ist bestätigt. Der nächste MySpeedPuzzling-Newsletter landet direkt in Ihrem Postfach."
+        register_pitch: "Lust auf mehr als Neuigkeiten? Erstellen Sie ein kostenloses Konto, um Ihre Legezeiten zu erfassen, Ihre Puzzle-Sammlung aufzubauen und sich mit Puzzlern aus aller Welt zu vergleichen."
+        cta_register: "Kostenloses Konto erstellen"
+        cta_homepage: "MySpeedPuzzling entdecken"
+    unsubscribe:
+        headline: "Newsletter abbestellen?"
+        text: "Damit erhält <strong>%email%</strong> keinen MySpeedPuzzling-Newsletter mehr."
+        confirm_button: "Ja, abmelden"
+        manage_hint: "Lieber weniger E-Mails statt gar keine? In den Benachrichtigungseinstellungen können Sie genau einstellen, was wir Ihnen schicken."
+        manage_button: "Benachrichtigungseinstellungen verwalten"
+    unsubscribed:
+        headline: "Sie sind abgemeldet"
+        text: "Erledigt – keine weiteren Newsletter von uns. Ihr Postfach, Ihre Regeln. ❤️"
+        resubscribe_player: 'Meinung geändert? Sie können den Newsletter jederzeit in Ihren <a href="%settingsUrl%">Benachrichtigungseinstellungen</a> wieder abonnieren.'
+        resubscribe_guest: "Meinung geändert? Über das Formular in der Fußzeile der Seite können Sie sich jederzeit wieder anmelden."
+        cta_homepage: "Zurück zu MySpeedPuzzling"
+    invalid:
+        headline: "Dieser Link funktioniert nicht mehr"
+        invalid_text: "Der Link ist ungültig oder nicht mehr gültig. Wenn Sie den Newsletter abonnieren wollten, nutzen Sie einfach das Formular in der Fußzeile der Seite."
+        expired_text: "Der Bestätigungslink ist abgelaufen. Kein Problem – melden Sie sich einfach erneut über das Formular in der Fußzeile an und wir schicken Ihnen einen neuen."
+        cta_homepage: "Zurück zu MySpeedPuzzling"

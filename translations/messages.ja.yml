@@ -2940,3 +2940,45 @@ qr_code:
     "invalid":
       "headline": "このリセットリンクは使用できません"
       "message": "すでに使用済みか、新しいリセットリンクに置き換えられた可能性があります。下記から新しいリンクをリクエストしてください。"
+
+newsletter:
+    footer:
+        title: "📬 パズルの最新情報をあなたの受信トレイに"
+        pitch: "イベント、新機能、スピードパズルのヒントをお届けします。多くても月1回、スパムは一切ありません。"
+        email_placeholder: "メールアドレス"
+        subscribe_button: "登録する"
+        consent: '登録すると、MySpeedPuzzlingニュースレターの受信に同意したことになります。配信停止はいつでもワンクリックで可能です。<a href="%privacyUrl%">プライバシーポリシー</a>'
+        manage_link: "ニュースレターの配信は通知設定で管理できます"
+    flash:
+        try_again: "問題が発生しました。もう一度お試しください。"
+        invalid_email: "有効なメールアドレスを入力してください。"
+        too_many_attempts: "試行回数が多すぎます。しばらくしてからもう一度お試しください。"
+    check_inbox:
+        headline: "あと一歩です — メールをご確認ください"
+        sent: "確認メールをお送りしました。メール内のリンクをクリックすると、ニュースレターの登録が完了します。"
+        spam_hint: "届いていませんか？もう少しお待ちください — 念のため迷惑メールフォルダもご確認ください。"
+        expires: "確認リンクの有効期限は%hours%時間です。"
+        cta_homepage: "MySpeedPuzzlingを見てみる"
+    confirm:
+        headline: "登録が完了しました！🧩"
+        text: "登録が確認されました。次回のMySpeedPuzzlingニュースレターは、受信トレイに直接お届けします。"
+        register_pitch: "ニュースだけでは物足りませんか？無料アカウントを作成すると、タイムの記録、パズルコレクションの管理、世界中のパズラーとの比較ができます。"
+        cta_register: "無料アカウントを作成"
+        cta_homepage: "MySpeedPuzzlingを見てみる"
+    unsubscribe:
+        headline: "ニュースレターの配信を停止しますか？"
+        text: "<strong>%email%</strong>宛てのMySpeedPuzzlingニュースレターの配信を停止します。"
+        confirm_button: "はい、配信を停止する"
+        manage_hint: "すべて停止するのではなく、メールを減らすだけにしませんか？通知設定で、お送りする内容を細かく調整できます。"
+        manage_button: "通知設定を管理する"
+    unsubscribed:
+        headline: "配信を停止しました"
+        text: "完了です — 今後、私たちからニュースレターが届くことはありません。あなたの受信トレイは、あなたのルールで。❤️"
+        resubscribe_player: '気が変わりましたか？<a href="%settingsUrl%">通知設定</a>からいつでも配信を再開できます。'
+        resubscribe_guest: "気が変わりましたか？ページ下部のフォームからいつでも再登録できます。"
+        cta_homepage: "MySpeedPuzzlingに戻る"
+    invalid:
+        headline: "このリンクはもう使用できません"
+        invalid_text: "このリンクは無効か、有効期限が切れています。ニュースレターの登録をご希望の場合は、ページ下部のフォームをご利用ください。"
+        expired_text: "確認リンクの有効期限が切れています。ご心配なく — ページ下部のフォームからもう一度登録していただければ、新しいリンクをお送りします。"
+        cta_homepage: "MySpeedPuzzlingに戻る"

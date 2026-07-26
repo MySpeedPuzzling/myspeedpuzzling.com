@@ -24,6 +24,12 @@ return App::config([
                 // Same reason: the "forgot password" form is rendered for anonymous
                 // visitors, and a session-backed token would put a cookie on the page
                 'request_password_reset',
+                // The newsletter signup form sits in the footer of EVERY anonymous
+                // page - a session-backed token would kill shared caching site-wide
+                'newsletter-subscribe',
+                // Unsubscribe landing page is reached from e-mail links, always
+                // anonymous
+                'newsletter-unsubscribe',
             ],
         ],
     ],

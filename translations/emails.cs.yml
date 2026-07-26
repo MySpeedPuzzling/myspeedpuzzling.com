@@ -177,3 +177,12 @@ password_reset:
     button: "Zvolit nové heslo"
     expires: "Odkaz funguje jednou a vyprší za %minutes% minut."
     not_requested: "Nežádali jste o něj? Tento e-mail můžete klidně ignorovat — vaše heslo zůstane beze změny."
+
+newsletter_confirmation:
+    subject: "Jedno kliknutí a puzzle novinky jsou vaše 🧩"
+    title: "Potvrďte odběr newsletteru"
+    content: |
+        <p>Ahoj! Někdo — doufejme, že vy — se přihlásil k odběru newsletteru MySpeedPuzzling na tuto adresu.</p>
+        <p>Potvrďte odběr tlačítkem níže a budeme vás informovat o akcích, nových funkcích a novinkách z komunity speed puzzlingu. Maximálně jednou měsíčně, žádný spam.</p>
+    button: "Potvrdit odběr"
+    expires: "Odkaz platí %hours% hodin. Pokud jste o odběr nežádali, tento e-mail klidně ignorujte a nic vám chodit nebude."

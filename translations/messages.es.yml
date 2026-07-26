@@ -2951,3 +2951,45 @@ fair_use_policy:
     "invalid":
       "headline": "Este enlace de restablecimiento no funciona"
       "message": "Puede que ya se haya usado, o que un enlace de restablecimiento más nuevo lo haya sustituido. Solicita uno nuevo aquí abajo."
+
+newsletter:
+    footer:
+        title: "📬 Novedades de puzzles en tu bandeja de entrada"
+        pitch: "Eventos, nuevas funciones y consejos de speed puzzling. Como mucho una vez al mes, nada de spam — nunca."
+        email_placeholder: "Tu dirección de correo electrónico"
+        subscribe_button: "Suscribirme"
+        consent: 'Al suscribirte aceptas recibir el newsletter de MySpeedPuzzling. Puedes darte de baja en cualquier momento con un solo clic. <a href="%privacyUrl%">Política de privacidad</a>'
+        manage_link: "Gestiona tu suscripción al newsletter en la configuración de notificaciones"
+    flash:
+        try_again: "Algo ha salido mal. Por favor, inténtalo de nuevo."
+        invalid_email: "Por favor, introduce una dirección de correo electrónico válida."
+        too_many_attempts: "Demasiados intentos. Por favor, inténtalo de nuevo más tarde."
+    check_inbox:
+        headline: "Un paso más: revisa tu bandeja de entrada"
+        sent: "Acabamos de enviarte un correo de confirmación. Haz clic en el enlace y el newsletter es tuyo."
+        spam_hint: "¿No ha llegado nada? Dale un minuto y, por si acaso, echa también un vistazo a la carpeta de spam."
+        expires: "El enlace de confirmación es válido durante %hours% horas."
+        cta_homepage: "Explorar MySpeedPuzzling"
+    confirm:
+        headline: "¡Ya estás dentro! 🧩"
+        text: "Tu suscripción está confirmada. El próximo newsletter de MySpeedPuzzling llegará directo a tu bandeja de entrada."
+        register_pitch: "¿Quieres algo más que novedades? Crea una cuenta gratis para registrar tus tiempos de resolución, construir tu colección de puzzles y compararte con puzzleros de todo el mundo."
+        cta_register: "Crear una cuenta gratis"
+        cta_homepage: "Explorar MySpeedPuzzling"
+    unsubscribe:
+        headline: "¿Darte de baja del newsletter?"
+        text: "Con esto dejará de llegar el newsletter de MySpeedPuzzling a <strong>%email%</strong>."
+        confirm_button: "Sí, darme de baja"
+        manage_hint: "¿Prefieres menos correos en lugar de ninguno? Puedes ajustar lo que te enviamos en tu configuración de notificaciones."
+        manage_button: "Gestionar mi configuración de notificaciones"
+    unsubscribed:
+        headline: "Te has dado de baja"
+        text: "Hecho: no recibirás más newsletters de nuestra parte. Tu bandeja de entrada, tus reglas. ❤️"
+        resubscribe_player: '¿Has cambiado de opinión? Puedes volver a suscribirte en cualquier momento desde tu <a href="%settingsUrl%">configuración de notificaciones</a>.'
+        resubscribe_guest: "¿Has cambiado de opinión? Puedes volver a suscribirte en cualquier momento con el formulario del pie de página."
+        cta_homepage: "Volver a MySpeedPuzzling"
+    invalid:
+        headline: "Este enlace ya no funciona"
+        invalid_text: "El enlace no es válido o ya ha caducado. Si querías suscribirte al newsletter, usa el formulario del pie de página."
+        expired_text: "El enlace de confirmación ha caducado. No pasa nada: suscríbete de nuevo con el formulario del pie de página y te enviaremos uno nuevo."
+        cta_homepage: "Volver a MySpeedPuzzling"

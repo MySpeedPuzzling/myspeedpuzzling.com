@@ -590,6 +590,30 @@
         {% if is_web() %}
         <footer class="bg-secondary mt-4">
             <div class="container pt-4 pb-3">
+                <div class="row justify-content-center text-center border-bottom pb-4 mb-4">
+                    <div class="col-md-8 col-lg-6">
+                        <h2 class="h5 mb-1">{{ 'newsletter.footer.title'|trans }}</h2>
+                        <p class="fs-sm text-muted mb-2">{{ 'newsletter.footer.pitch'|trans }}</p>
+
+                        {% if logged_user.profile is null %}
+                            <form action="{{ path('newsletter_subscribe') }}" method="post">
+                                <input type="hidden" name="_token" value="{{ csrf_token('newsletter-subscribe') }}">
+                                <div class="input-group">
+                                    <input type="email" class="form-control" name="email" required autocomplete="email"
+                                           placeholder="{{ 'newsletter.footer.email_placeholder'|trans }}"
+                                           aria-label="{{ 'newsletter.footer.email_placeholder'|trans }}">
+                                    <button class="btn btn-primary" type="submit">{{ 'newsletter.footer.subscribe_button'|trans }}</button>
+                                </div>
+                                <p class="fs-xs text-muted mt-2 mb-0">{{ 'newsletter.footer.consent'|trans({'%privacyUrl%': path('privacy_policy')})|raw }}</p>
+                            </form>
+                        {% else %}
+                            <p class="fs-sm mb-0">
+                                <a href="{{ path('edit_profile') }}">{{ 'newsletter.footer.manage_link'|trans }}</a>
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <div class="row">
                     <div class="col-sm-6">
                         <div class="widget widget-links">

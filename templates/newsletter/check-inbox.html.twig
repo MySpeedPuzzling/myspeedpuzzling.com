@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'newsletter.check_inbox.headline'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-6 col-md-8">
+            <h1 class="h2">{{ 'newsletter.check_inbox.headline'|trans }}</h1>
+
+            <div class="alert alert-success" role="alert">
+                <i class="ci-mail me-2"></i>
+                {{ 'newsletter.check_inbox.sent'|trans }}
+            </div>
+
+            <p>{{ 'newsletter.check_inbox.spam_hint'|trans }}</p>
+
+            <p class="fs-sm text-muted">{{ 'newsletter.check_inbox.expires'|trans({'%hours%': expiresHours}) }}</p>
+
+            <p>
+                <a class="btn btn-primary" href="{{ path('homepage') }}">
+                    {{ 'newsletter.check_inbox.cta_homepage'|trans }}
+                </a>
+            </p>
+        </div>
+
+        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
+            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        </div>
+    </div>
+{% endblock %}

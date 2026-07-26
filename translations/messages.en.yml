@@ -3238,3 +3238,45 @@ auth:
         invalid:
             headline: "This reset link does not work"
             message: "It may already have been used, or a newer reset link replaced it. Ask for a new one below."
+
+newsletter:
+    footer:
+        title: "📬 Puzzle news in your inbox"
+        pitch: "Events, new features and speed puzzling tips. At most once a month, no spam — ever."
+        email_placeholder: "Your e-mail address"
+        subscribe_button: "Subscribe"
+        consent: 'By subscribing you agree to receiving the MySpeedPuzzling newsletter. Unsubscribe anytime with one click. <a href="%privacyUrl%">Privacy policy</a>'
+        manage_link: "Manage your newsletter subscription in notification settings"
+    flash:
+        try_again: "Something went wrong, please try again."
+        invalid_email: "Please enter a valid e-mail address."
+        too_many_attempts: "Too many attempts, please try again later."
+    check_inbox:
+        headline: "One more step — check your inbox"
+        sent: "We've just sent you a confirmation e-mail. Click the link inside and the newsletter is yours."
+        spam_hint: "Nothing there? Give it a minute — and maybe peek into the spam folder, just in case."
+        expires: "The confirmation link is valid for %hours% hours."
+        cta_homepage: "Explore MySpeedPuzzling"
+    confirm:
+        headline: "You're in! 🧩"
+        text: "Your subscription is confirmed. The next MySpeedPuzzling newsletter will land right in your inbox."
+        register_pitch: "Want more than news? Create a free account to track your solving times, build your puzzle collection and compare with puzzlers worldwide."
+        cta_register: "Create a free account"
+        cta_homepage: "Explore MySpeedPuzzling"
+    unsubscribe:
+        headline: "Unsubscribe from the newsletter?"
+        text: "This will stop the MySpeedPuzzling newsletter for <strong>%email%</strong>."
+        confirm_button: "Yes, unsubscribe me"
+        manage_hint: "Prefer fewer e-mails instead of none? You can fine-tune what we send you in your notification settings."
+        manage_button: "Manage my notification settings"
+    unsubscribed:
+        headline: "You're unsubscribed"
+        text: "Done — no more newsletters from us. Your inbox, your rules. ❤️"
+        resubscribe_player: 'Changed your mind? You can re-subscribe anytime in your <a href="%settingsUrl%">notification settings</a>.'
+        resubscribe_guest: "Changed your mind? You can subscribe again anytime using the form in the page footer."
+        cta_homepage: "Back to MySpeedPuzzling"
+    invalid:
+        headline: "This link doesn't work anymore"
+        invalid_text: "The link is invalid or no longer valid. If you wanted to subscribe to the newsletter, just use the form in the page footer."
+        expired_text: "The confirmation link has expired. No worries — subscribe again using the form in the page footer and we'll send you a fresh one."
+        cta_homepage: "Back to MySpeedPuzzling"

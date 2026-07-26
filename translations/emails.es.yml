@@ -177,3 +177,12 @@ password_reset:
     button: "Elegir una contraseña nueva"
     expires: "El enlace funciona una sola vez y caduca en %minutes% minutos."
     not_requested: "¿No lo has solicitado? Puedes ignorar este correo sin problema: tu contraseña seguirá siendo la misma."
+
+newsletter_confirmation:
+    subject: "Un clic y las novedades de puzzles son tuyas 🧩"
+    title: "Confirma tu suscripción"
+    content: |
+        <p>¡Hola! Alguien —esperamos que tú— ha pedido recibir el newsletter de MySpeedPuzzling en esta dirección.</p>
+        <p>Confírmalo abajo y te mantendremos al día sobre eventos de speed puzzling, nuevas funciones y novedades de la comunidad. Como mucho una vez al mes, nada de spam — nunca.</p>
+    button: "Confirmar mi suscripción"
+    expires: "El enlace es válido durante %hours% horas. Si no lo has solicitado, ignora este correo sin problema y no te enviaremos nada."

@@ -185,6 +185,20 @@ services:
             postgres:
                 condition: service_healthy
 
+    # Idempotently seeds the api-dev API user into Listmonk so the LISTMONK_*
+    # dev defaults in .env work out of the box (tokens are stored in plain text
+    # in the listmonk users table, so the row can be seeded deterministically)
+    listmonk-seed:
+        image: postgres:16.0
+        environment:
+            PGPASSWORD: postgres
+        command: >
+            sh -c "i=0; until psql -h postgres -U postgres -d listmonk -tc 'SELECT 1 FROM users' >/dev/null 2>&1; do i=$$((i+1)); [ $$i -ge 60 ] && exit 1; sleep 1; done;
+                   psql -h postgres -U postgres -d listmonk -c \"INSERT INTO users (username, password_login, password, email, name, type, user_role_id, status) SELECT 'api-dev', false, 'MVNawj1IBdVcCPvwfTd5GSsjT44HUMot', 'api-dev@api', 'API Dev', 'api', 1, 'enabled' WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'api-dev')\""
+        depends_on:
+            listmonk:
+                condition: service_started
+
     listmonk:
         image: listmonk/listmonk:latest
         restart: unless-stopped
@@ -193,8 +207,10 @@ services:
         environment:
             TZ: Europe/Prague
             LISTMONK_app__address: 0.0.0.0:9000
-            LISTMONK_app__admin_username: admin
-            LISTMONK_app__admin_password: admin
+            # Install-time bootstrap of the super admin (only takes effect when
+            # `--install` runs against an empty database)
+            LISTMONK_ADMIN_USER: admin
+            LISTMONK_ADMIN_PASSWORD: adminadmin
             LISTMONK_db__host: postgres
             LISTMONK_db__port: 5432
             LISTMONK_db__user: postgres

@@ -66,6 +66,19 @@ return App::config([
                 'limit' => 3,
                 'interval' => '15 minutes',
             ],
+            // The public newsletter signup form mails an address the caller picks
+            // (double opt-in confirmation) - same hazard class as the sign-in link.
+            // Per address: enough for "it did not arrive, send another", no more.
+            'newsletter_subscribe_email' => [
+                'policy' => 'sliding_window',
+                'limit' => 3,
+                'interval' => '15 minutes',
+            ],
+            'newsletter_subscribe_ip' => [
+                'policy' => 'sliding_window',
+                'limit' => 20,
+                'interval' => '1 hour',
+            ],
         ],
     ],
 ]);

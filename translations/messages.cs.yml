@@ -715,7 +715,7 @@
   "frequency_48_hours": "Každých 48 hodin"
   "frequency_1_week": "Jednou týdně"
   "newsletter_enabled": "Dostávat newsletter"
-  "newsletter_help": "Občas vám pošleme newsletter o novinkách na platformě, většinou o nových funkcích. Očekávaná frekvence: maximálně 1x měsíčně."
+  "newsletter_help": "Občas vám pošleme newsletter o novinkách na platformě, většinou o nových funkcích. Žádný marketing, žádná reklama — jen novinky. Očekávaná frekvence: maximálně 1x měsíčně."
   "messaging_notifications": "Zprávy a upozornění"
   "features_options": "Nastavení funkcí"
   "hide_ranking": "Skrýt mé hodnocení a dovednosti"
@@ -2949,3 +2949,45 @@ auth:
         invalid:
             headline: "Tento odkaz pro obnovu hesla nefunguje"
             message: "Možná už byl použit, nebo ho nahradil novější odkaz pro obnovu hesla. Níže si vyžádejte nový."
+
+newsletter:
+    footer:
+        title: "📬 Co je nového na MySpeedPuzzling"
+        pitch: "Nové funkce a novinky z platformy, jednou měsíčně. Žádný marketing, žádná reklama."
+        email_placeholder: "Váš e-mail"
+        subscribe_button: "Odebírat"
+        consent: 'Přihlášením souhlasíte se zasíláním newsletteru MySpeedPuzzling. Odhlásit se můžete kdykoliv jedním kliknutím. <a href="%privacyUrl%">Zásady ochrany soukromí</a>'
+        manage_link: "Odběr newsletteru spravujete v nastavení notifikací"
+    flash:
+        try_again: "Něco se pokazilo, zkuste to prosím znovu."
+        invalid_email: "Zadejte prosím platnou e-mailovou adresu."
+        too_many_attempts: "Příliš mnoho pokusů, zkuste to prosím později."
+    check_inbox:
+        headline: "Ještě jeden krok — mrkněte do e-mailu"
+        sent: "Právě jsme vám poslali potvrzovací e-mail. Klikněte na odkaz v něm a newsletter je váš."
+        spam_hint: "Nic nedorazilo? Dejte tomu chvilku — a pro jistotu mrkněte i do spamu."
+        expires: "Potvrzovací odkaz platí %hours% hodin."
+        cta_homepage: "Prozkoumat MySpeedPuzzling"
+    confirm:
+        headline: "A je to! 🧩"
+        text: "Odběr je potvrzený. Příští newsletter MySpeedPuzzling vám přistane rovnou do schránky."
+        register_pitch: "Chcete víc než novinky? Založte si zdarma účet — měřte si časy skládání, budujte sbírku puzzlí a porovnávejte se s puzzlaři z celého světa."
+        cta_register: "Založit účet zdarma"
+        cta_homepage: "Prozkoumat MySpeedPuzzling"
+    unsubscribe:
+        headline: "Odhlásit odběr newsletteru?"
+        text: "Tímto přestane chodit newsletter MySpeedPuzzling na adresu <strong>%email%</strong>."
+        confirm_button: "Ano, odhlásit odběr"
+        manage_hint: "Radši méně e-mailů než žádné? V nastavení notifikací si můžete doladit, co vám posíláme."
+        manage_button: "Spravovat nastavení notifikací"
+    unsubscribed:
+        headline: "Odběr je odhlášený"
+        text: "Hotovo — žádné další newslettery od nás. Vaše schránka, vaše pravidla. ❤️"
+        resubscribe_player: 'Rozmysleli jste si to? Odběr si můžete kdykoliv znovu zapnout v <a href="%settingsUrl%">nastavení notifikací</a>.'
+        resubscribe_guest: "Rozmysleli jste si to? K odběru se můžete kdykoliv znovu přihlásit formulářem v patičce stránky."
+        cta_homepage: "Zpět na MySpeedPuzzling"
+    invalid:
+        headline: "Tento odkaz už nefunguje"
+        invalid_text: "Odkaz je neplatný nebo už neplatí. Pokud jste se chtěli přihlásit k odběru newsletteru, použijte formulář v patičce stránky."
+        expired_text: "Platnost potvrzovacího odkazu vypršela. Nic se neděje — přihlaste se znovu formulářem v patičce stránky a pošleme vám nový."
+        cta_homepage: "Zpět na MySpeedPuzzling"

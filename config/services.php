@@ -38,6 +38,10 @@ return static function (ContainerConfigurator $configurator): void {
     $parameters->set('stripeWebhookSecret', '%env(STRIPE_WEBHOOK_SECRET)%');
     $parameters->set('bounceEmailDomain', '%env(BOUNCE_EMAIL_DOMAIN)%');
 
+    $parameters->set('listmonkApiUrl', '%env(trim:string:LISTMONK_API_URL)%');
+    $parameters->set('listmonkApiUser', '%env(trim:string:LISTMONK_API_USER)%');
+    $parameters->set('listmonkApiToken', '%env(trim:string:LISTMONK_API_TOKEN)%');
+
     $parameters->set('auth0Domain', '%env(trim:string:AUTH0_DOMAIN)%');
     $parameters->set('auth0ClientId', '%env(trim:string:AUTH0_CLIENT_ID)%');
     $parameters->set('auth0ClientSecret', '%env(trim:string:AUTH0_CLIENT_SECRET)%');
@@ -77,7 +81,10 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$auth0TrickleLoginEnabled', '%auth0TrickleLoginEnabled%')
         ->bind('$nativeLoginEnabled', '%nativeLoginEnabled%')
         ->bind('$nativeRegistrationEnabled', '%nativeRegistrationEnabled%')
-        ->bind('$signInLinkLifetimeSeconds', '%signInLinkLifetimeSeconds%');
+        ->bind('$signInLinkLifetimeSeconds', '%signInLinkLifetimeSeconds%')
+        ->bind('$listmonkApiUrl', '%listmonkApiUrl%')
+        ->bind('$listmonkApiUser', '%listmonkApiUser%')
+        ->bind('$listmonkApiToken', '%listmonkApiToken%');
 
     $services->set(PdoSessionHandler::class)
         ->args([

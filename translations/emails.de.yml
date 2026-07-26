@@ -177,3 +177,12 @@ password_reset:
     button: "Neues Passwort wählen"
     expires: "Der Link funktioniert einmal und läuft nach %minutes% Minuten ab."
     not_requested: "Du hast das nicht angefordert? Dann kannst du diese E-Mail einfach ignorieren — dein Passwort bleibt unverändert."
+
+newsletter_confirmation:
+    subject: "Ein Klick und die Puzzle-Neuigkeiten gehören dir 🧩"
+    title: "Bestätige dein Abo"
+    content: |
+        <p>Hi! Jemand — hoffentlich du — hat darum gebeten, den MySpeedPuzzling-Newsletter an diese Adresse zu erhalten.</p>
+        <p>Bestätige das unten und wir sagen dir, was es auf der Plattform Neues gibt — neue Funktionen, Verbesserungen und Neuigkeiten aus der Community. Kein Marketing, keine Werbung — nur Neuigkeiten, höchstens einmal im Monat.</p>
+    button: "Mein Abo bestätigen"
+    expires: "Der Link ist %hours% Stunden gültig. Wenn du das nicht angefordert hast, ignoriere diese E-Mail einfach — dann wird nichts verschickt."

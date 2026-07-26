@@ -1,0 +1,39 @@
+{% trans_default_domain 'emails' %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig') }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'newsletter_confirmation.title'|trans }}</h3>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    {{ 'newsletter_confirmation.content'|trans|raw }}
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <spacer size-sm="8"></spacer>
+                    <center>
+                        <a href="{{ confirmUrl }}" class="button">{{ 'newsletter_confirmation.button'|trans }}</a>
+                    </center>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p style="color: #7d879c; font-size: 13px;">{{ 'newsletter_confirmation.expires'|trans({'%hours%': expiresHours}) }}</p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

@@ -698,7 +698,7 @@
   "frequency_48_hours": "Toutes les 48 heures"
   "frequency_1_week": "Une fois par semaine"
   "newsletter_enabled": "Recevoir les newsletters"
-  "newsletter_help": "Nous enverrons occasionnellement une newsletter sur les nouveautés de la plateforme, généralement pour expliquer les nouvelles fonctionnalités. Fréquence prévue : pas plus d'une fois par mois."
+  "newsletter_help": "Nous enverrons occasionnellement une newsletter sur les nouveautés de la plateforme, généralement pour expliquer les nouvelles fonctionnalités. Pas de marketing, pas de promotions — uniquement les nouveautés. Fréquence prévue : pas plus d'une fois par mois."
   "messaging_notifications": "Messagerie et notifications"
   "personal_access_tokens": "Jetons d'accès personnels"
   "personal_access_tokens_description": "Jetons pour accéder à vos propres données via l'API."
@@ -2953,3 +2953,45 @@ edition:
     "invalid":
       "headline": "Ce lien de réinitialisation ne fonctionne pas"
       "message": "Il a peut-être déjà été utilisé, ou un lien de réinitialisation plus récent l'a remplacé. Demandez-en un nouveau ci-dessous."
+
+newsletter:
+    footer:
+        title: "📬 Les nouveautés de MySpeedPuzzling"
+        pitch: "Nouvelles fonctionnalités et actualités de la plateforme, une fois par mois. Pas de marketing, pas de promotions."
+        email_placeholder: "Votre adresse e-mail"
+        subscribe_button: "S'abonner"
+        consent: 'En vous abonnant, vous acceptez de recevoir la newsletter MySpeedPuzzling. Désabonnez-vous à tout moment en un clic. <a href="%privacyUrl%">Politique de confidentialité</a>'
+        manage_link: "Gérez votre abonnement à la newsletter dans les paramètres de notifications"
+    flash:
+        try_again: "Une erreur est survenue, veuillez réessayer."
+        invalid_email: "Veuillez saisir une adresse e-mail valide."
+        too_many_attempts: "Trop de tentatives, veuillez réessayer plus tard."
+    check_inbox:
+        headline: "Plus qu'une étape — vérifiez votre boîte de réception"
+        sent: "Nous venons de vous envoyer un e-mail de confirmation. Cliquez sur le lien qu'il contient et la newsletter est à vous."
+        spam_hint: "Rien reçu ? Patientez une minute — et jetez un œil dans vos spams, au cas où."
+        expires: "Le lien de confirmation est valable %hours% heures."
+        cta_homepage: "Explorer MySpeedPuzzling"
+    confirm:
+        headline: "Ça y est ! 🧩"
+        text: "Votre abonnement est confirmé. La prochaine newsletter MySpeedPuzzling arrivera directement dans votre boîte de réception."
+        register_pitch: "Envie de plus que des nouveautés ? Créez un compte gratuit pour suivre vos temps de résolution, constituer votre collection de puzzles et vous comparer aux puzzleurs du monde entier."
+        cta_register: "Créer un compte gratuit"
+        cta_homepage: "Explorer MySpeedPuzzling"
+    unsubscribe:
+        headline: "Se désabonner de la newsletter ?"
+        text: "La newsletter MySpeedPuzzling ne sera plus envoyée à <strong>%email%</strong>."
+        confirm_button: "Oui, me désabonner"
+        manage_hint: "Vous préférez moins d'e-mails plutôt qu'aucun ? Vous pouvez ajuster ce que nous vous envoyons dans vos paramètres de notifications."
+        manage_button: "Gérer mes paramètres de notifications"
+    unsubscribed:
+        headline: "Vous êtes désabonné"
+        text: "C'est fait — plus aucune newsletter de notre part. Votre boîte de réception, vos règles. ❤️"
+        resubscribe_player: 'Vous avez changé d''avis ? Vous pouvez vous réabonner à tout moment dans vos <a href="%settingsUrl%">paramètres de notifications</a>.'
+        resubscribe_guest: "Vous avez changé d'avis ? Vous pouvez vous réabonner à tout moment grâce au formulaire en bas de page."
+        cta_homepage: "Retour à MySpeedPuzzling"
+    invalid:
+        headline: "Ce lien ne fonctionne plus"
+        invalid_text: "Le lien est invalide ou n'est plus valable. Si vous vouliez vous abonner à la newsletter, utilisez simplement le formulaire en bas de page."
+        expired_text: "Le lien de confirmation a expiré. Pas d'inquiétude — réabonnez-vous grâce au formulaire en bas de page et nous vous en enverrons un nouveau."
+        cta_homepage: "Retour à MySpeedPuzzling"

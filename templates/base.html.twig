@@ -661,13 +661,39 @@
                         </div>
                     </div>
 
-                    <div class="col-sm-6 mt-2 mt-sm-0">
-                        <div class="fs-xs text-muted text-center text-sm-end">
-                            <p class="fs-md mb-2">
-                                <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank" rel="noopener" aria-label="Instagram"><i class="bi-instagram" aria-hidden="true"></i></a>
-                                <a class="ms-2" href="https://github.com/MySpeedPuzzling/myspeedpuzzling.com" target="_blank" rel="noopener" aria-label="GitHub"><i class="bi-github" aria-hidden="true"></i></a>
-                            </p>
-                            {{ 'footer.created_with_love'|trans({'%simona%': '<a href="mailto:simona@speedpuzzling.cz">Simona&nbsp;Mikešová</a>', '%jan%': '<a href="https://janmikes.cz">Jan&nbsp;Mikeš</a>' })|raw }}
+                    <div class="col-sm-6 mt-4 mt-sm-0">
+                        <div class="text-center text-sm-end">
+                            <div class="mx-auto me-sm-0 mb-4" style="max-width: 430px;">
+                                <h2 class="h5 mb-1">{{ 'newsletter.footer.title'|trans }}</h2>
+                                <p class="fs-sm text-muted mb-2">{{ 'newsletter.footer.pitch'|trans }}</p>
+
+                                {% if logged_user.profile is null %}
+                                    {# data-turbo=false: a Turbo-driven redirect keeps the footer scroll position,
+                                       landing the visitor at the bottom of the check-inbox page #}
+                                    <form action="{{ path('newsletter_subscribe') }}" method="post" data-turbo="false">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('newsletter-subscribe') }}">
+                                        <div class="input-group">
+                                            <input type="email" class="form-control" name="email" required autocomplete="email"
+                                                   placeholder="{{ 'newsletter.footer.email_placeholder'|trans }}"
+                                                   aria-label="{{ 'newsletter.footer.email_placeholder'|trans }}">
+                                            <button class="btn btn-primary" type="submit">{{ 'newsletter.footer.subscribe_button'|trans }}</button>
+                                        </div>
+                                        <p class="fs-xs text-muted mt-2 mb-0">{{ 'newsletter.footer.consent'|trans({'%privacyUrl%': path('privacy_policy')})|raw }}</p>
+                                    </form>
+                                {% else %}
+                                    <p class="fs-sm mb-0">
+                                        <a href="{{ path('edit_profile') }}">{{ 'newsletter.footer.manage_link'|trans }}</a>
+                                    </p>
+                                {% endif %}
+                            </div>
+
+                            <div class="fs-xs text-muted">
+                                <p class="fs-md mb-2">
+                                    <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank" rel="noopener" title="Instagram" aria-label="Instagram"><i class="bi-instagram" aria-hidden="true"></i></a>
+                                    <a class="ms-2" href="https://github.com/MySpeedPuzzling/myspeedpuzzling.com" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub"><i class="bi-github" aria-hidden="true"></i></a>
+                                </p>
+                                {{ 'footer.created_with_love'|trans({'%simona%': '<a href="mailto:simona@speedpuzzling.cz">Simona&nbsp;Mikešová</a>', '%jan%': '<a href="https://janmikes.cz">Jan&nbsp;Mikeš</a>' })|raw }}
+                            </div>
                         </div>
                     </div>
                 </div>

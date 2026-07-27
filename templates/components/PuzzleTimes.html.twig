@@ -415,20 +415,35 @@
                             {% endif %}
 
                             {% if aggregated_solver|length > 1 %}
-                                <br>
-                                <a href="{{ path('player_puzzle_results', {
-                                    playerId: aggregated_solver[0].playerId,
-                                    puzzleId: this.puzzleId,
-                                    category: this.category == 'group' ? 'team' : this.category,
-                                    return: app.request.uri,
-                                    return_title: aggregated_solver[0].playerName|default('#')
-                                }) }}"
-                                   data-turbo="true"
-                                   data-turbo-frame="modal-frame"
-                                   class="btn btn-outline-primary btn-xs py-0 px-2 mt-1"
-                                   style="font-size: 0.7rem;">
-                                    {{ 'show_more_solving_times'|trans({ '%count%': aggregated_solver|length-1 }) }}
-                                </a>
+                                {# Solo rows are PuzzleSolver (has playerId), duo/team rows are PuzzleSolversGroup
+                                   (has no playerId) - fall back to the first registered team member. #}
+                                {% set results_player_id = aggregated_solver[0].playerId|default(null) %}
+                                {% set results_player_name = aggregated_solver[0].playerName|default(null) %}
+                                {% if results_player_id is null %}
+                                    {% for puzzle_solver in aggregated_solver[0].players|default([]) %}
+                                        {% if results_player_id is null and puzzle_solver.playerId is not null %}
+                                            {% set results_player_id = puzzle_solver.playerId %}
+                                            {% set results_player_name = puzzle_solver.playerName %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+
+                                {% if results_player_id is not null %}
+                                    <br>
+                                    <a href="{{ path('player_puzzle_results', {
+                                        playerId: results_player_id,
+                                        puzzleId: this.puzzleId,
+                                        category: this.category == 'group' ? 'team' : this.category,
+                                        return: app.request.uri,
+                                        return_title: results_player_name ?? '#'
+                                    }) }}"
+                                       data-turbo="true"
+                                       data-turbo-frame="modal-frame"
+                                       class="btn btn-outline-primary btn-xs py-0 px-2 mt-1"
+                                       style="font-size: 0.7rem;">
+                                        {{ 'show_more_solving_times'|trans({ '%count%': aggregated_solver|length-1 }) }}
+                                    </a>
+                                {% endif %}
                             {% endif %}
                         </td>
                     </tr>

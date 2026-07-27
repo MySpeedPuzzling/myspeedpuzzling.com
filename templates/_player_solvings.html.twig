@@ -130,8 +130,10 @@
 
                                         {% if solved_puzzle|length > 1 %}
                                             <br>
+                                            {# For duo/team rows puzzle.playerId is the time's owner, who is not
+                                               necessarily the profile owner - always link to the profile owner. #}
                                             <a href="{{ path('player_puzzle_results', {
-                                                playerId: puzzle.playerId,
+                                                playerId: this.playerId ?? puzzle.playerId,
                                                 puzzleId: puzzle.puzzleId,
                                                 category: category,
                                                 return: app.request.uri,

@@ -50,7 +50,11 @@
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f5f9;">
     <tr>
         <td align="center" class="outer" style="padding: 16px 12px 24px;">
-            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:100%;">
+            <!-- Fluid-hybrid width: width=100% + max-width so mobile clients reflow
+                 instead of scaling the whole 600px canvas down (tiny text on iOS Mail);
+                 the MSO conditional keeps desktop Outlook at a fixed 600px. -->
+            <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0"><tr><td><![endif]-->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;">
 
                 <!-- Compact header: logo + wordmark, no wasted space above the fold -->
                 <tr>
@@ -120,6 +124,7 @@
                     </td>
                 </tr>
             </table>
+            <!--[if mso]></td></tr></table><![endif]-->
             {{ TrackView }}
         </td>
     </tr>

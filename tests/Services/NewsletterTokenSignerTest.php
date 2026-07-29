@@ -87,4 +87,39 @@ final class NewsletterTokenSignerTest extends TestCase
         $this->expectException(InvalidNewsletterToken::class);
         $this->signer->parseUnsubscribeToken('not-a-token');
     }
+
+    public function testPreferencesTokenRoundtrip(): void
+    {
+        $token = $this->signer->generatePreferencesToken(NewsletterAudience::Player, 'player-id', 'Someone@Example.com ');
+
+        $claim = $this->signer->parsePreferencesToken($token);
+
+        self::assertSame(NewsletterAudience::Player, $claim->audience);
+        self::assertSame('player-id', $claim->id);
+        self::assertSame('someone@example.com', $claim->email);
+    }
+
+    public function testPreferencesTokenIsDeterministic(): void
+    {
+        $first = $this->signer->generatePreferencesToken(NewsletterAudience::Player, 'id', 'a@b.com');
+        $second = $this->signer->generatePreferencesToken(NewsletterAudience::Player, 'id', 'a@b.com');
+
+        self::assertSame($first, $second);
+    }
+
+    public function testUnsubscribeTokenCannotBeUsedAsPreferencesToken(): void
+    {
+        $token = $this->signer->generateUnsubscribeToken(NewsletterAudience::Player, 'player-id', 'someone@example.com');
+
+        $this->expectException(InvalidNewsletterToken::class);
+        $this->signer->parsePreferencesToken($token);
+    }
+
+    public function testPreferencesTokenCannotBeUsedAsUnsubscribeToken(): void
+    {
+        $token = $this->signer->generatePreferencesToken(NewsletterAudience::Player, 'player-id', 'someone@example.com');
+
+        $this->expectException(InvalidNewsletterToken::class);
+        $this->signer->parseUnsubscribeToken($token);
+    }
 }

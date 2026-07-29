@@ -30,6 +30,9 @@ return App::config([
                 // Unsubscribe landing page is reached from e-mail links, always
                 // anonymous
                 'newsletter-unsubscribe',
+                // E-mail preferences page is reached from e-mail links, always
+                // anonymous (token-authenticated)
+                'email-preferences',
             ],
         ],
     ],

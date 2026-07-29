@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\InvalidNewsletterToken;
+use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
 use SpeedPuzzling\Web\Services\NewsletterTokenSigner;
 use SpeedPuzzling\Web\Value\NewsletterAudience;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -21,6 +23,7 @@ final class NewsletterUnsubscribeController extends AbstractController
 {
     public function __construct(
         private readonly NewsletterTokenSigner $tokenSigner,
+        private readonly EmailPreferencesLinkGenerator $emailPreferencesLinkGenerator,
     ) {
     }
 
@@ -35,7 +38,7 @@ final class NewsletterUnsubscribeController extends AbstractController
         ],
         name: 'newsletter_unsubscribe',
     )]
-    public function __invoke(string $token): Response
+    public function __invoke(string $token, Request $request): Response
     {
         try {
             $claim = $this->tokenSigner->parseUnsubscribeToken($token);
@@ -45,10 +48,15 @@ final class NewsletterUnsubscribeController extends AbstractController
             ], new Response(status: Response::HTTP_NOT_FOUND));
         }
 
+        $isPlayer = $claim->audience === NewsletterAudience::Player;
+
         return $this->render('newsletter/unsubscribe.html.twig', [
             'token' => $token,
             'email' => $claim->email,
-            'isPlayer' => $claim->audience === NewsletterAudience::Player,
+            'isPlayer' => $isPlayer,
+            'preferencesUrl' => $isPlayer
+                ? $this->emailPreferencesLinkGenerator->forPlayer($claim->id, $claim->email, $request->getLocale())
+                : null,
         ]);
     }
 }

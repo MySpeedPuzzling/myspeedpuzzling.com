@@ -3280,3 +3280,16 @@ newsletter:
         invalid_text: "The link is invalid or no longer valid. If you wanted to subscribe to the newsletter, just use the form in the page footer."
         expired_text: "The confirmation link has expired. No worries — subscribe again using the form in the page footer and we'll send you a fresh one."
         cta_homepage: "Back to MySpeedPuzzling"
+
+email_preferences:
+    headline: "Your e-mail preferences"
+    intro: "What lands in the inbox of <strong>%email%</strong> — you're in control."
+    saved: "Saved! Your preferences are up to date."
+    newsletter_title: "Newsletter"
+    newsletter_description: "What's new on MySpeedPuzzling — new features and platform news, once a month. No marketing, no promotions."
+    notifications_title: "Notification e-mails"
+    notifications_description: "A friendly heads-up when someone messages you or wants to connect — sent only when something is actually waiting for you."
+    frequency_label: "How often at most?"
+    save_button: "Save my preferences"
+    more_hint: "Looking for more? All account settings live in your profile."
+    more_link: "Open profile settings"

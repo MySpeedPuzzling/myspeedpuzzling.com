@@ -17,10 +17,10 @@
                 </button>
             </form>
 
-            {% if isPlayer %}
+            {% if isPlayer and preferencesUrl %}
                 <p class="fs-sm text-muted mb-2">{{ 'newsletter.unsubscribe.manage_hint'|trans }}</p>
                 <p>
-                    <a class="btn btn-outline-primary btn-sm" href="{{ path('edit_profile') }}">
+                    <a class="btn btn-outline-primary btn-sm" href="{{ preferencesUrl }}">
                         {{ 'newsletter.unsubscribe.manage_button'|trans }}
                     </a>
                 </p>

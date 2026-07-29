@@ -1,0 +1,75 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'email_preferences.headline'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-6 col-md-8">
+            <h1 class="h2">{{ 'email_preferences.headline'|trans }}</h1>
+
+            <p class="text-muted">{{ 'email_preferences.intro'|trans({'%email%': email})|raw }}</p>
+
+            {% if saved %}
+                <div class="alert alert-success" role="alert">
+                    <i class="ci-check-circle me-2"></i>
+                    {{ 'email_preferences.saved'|trans }}
+                </div>
+            {% endif %}
+
+            <form action="{{ path('email_preferences_save', {'token': token}) }}" method="post" data-turbo="false">
+                <input type="hidden" name="_token" value="{{ csrf_token('email-preferences') }}">
+
+                <div class="card card-body shadow-lg mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="newsletter-switch"
+                               name="newsletter_enabled" value="1" {{ newsletterEnabled ? 'checked' }}>
+                        <label class="form-check-label" for="newsletter-switch">
+                            <span class="d-block fw-bold">📬 {{ 'email_preferences.newsletter_title'|trans }}</span>
+                        </label>
+                    </div>
+                    <p class="fs-sm text-muted mb-0 mt-1">{{ 'email_preferences.newsletter_description'|trans }}</p>
+                </div>
+
+                <div class="card card-body shadow-lg mb-3" data-controller="conditional-field">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="notifications-switch"
+                               name="email_notifications_enabled" value="1" {{ emailNotificationsEnabled ? 'checked' }}>
+                        <label class="form-check-label" for="notifications-switch">
+                            <span class="d-block fw-bold">💬 {{ 'email_preferences.notifications_title'|trans }}</span>
+                        </label>
+                    </div>
+                    <p class="fs-sm text-muted mb-0 mt-1">{{ 'email_preferences.notifications_description'|trans }}</p>
+
+                    <div data-conditional-field-target="conditionalElement">
+                        <div class="mt-3">
+                            <label class="form-label fs-sm" for="notification-frequency">
+                                {{ 'email_preferences.frequency_label'|trans }}
+                            </label>
+                            <select class="form-select" id="notification-frequency" name="email_notification_frequency">
+                                {% for frequency in frequencies %}
+                                    <option value="{{ frequency.value }}" {{ frequency == emailNotificationFrequency ? 'selected' }}>
+                                        {{ ('edit_profile.frequency_' ~ frequency.value)|trans }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    {{ 'email_preferences.save_button'|trans }}
+                </button>
+            </form>
+
+            <p class="fs-sm text-muted mt-4 mb-0">
+                {{ 'email_preferences.more_hint'|trans }}
+                <a class="link-underline" href="{{ path('edit_profile') }}">{{ 'email_preferences.more_link'|trans }}</a>
+            </p>
+        </div>
+
+        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
+            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        </div>
+    </div>
+{% endblock %}

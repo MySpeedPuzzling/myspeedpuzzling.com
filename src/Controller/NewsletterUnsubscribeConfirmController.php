@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\InvalidNewsletterToken;
 use SpeedPuzzling\Web\Message\UnsubscribeFromNewsletter;
+use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
 use SpeedPuzzling\Web\Services\NewsletterTokenSigner;
 use SpeedPuzzling\Web\Value\NewsletterAudience;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,6 +23,7 @@ final class NewsletterUnsubscribeConfirmController extends AbstractController
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly NewsletterTokenSigner $tokenSigner,
+        private readonly EmailPreferencesLinkGenerator $emailPreferencesLinkGenerator,
     ) {
     }
 
@@ -56,8 +58,13 @@ final class NewsletterUnsubscribeConfirmController extends AbstractController
             throw $exception;
         }
 
+        $isPlayer = $claim->audience === NewsletterAudience::Player;
+
         return $this->render('newsletter/unsubscribed.html.twig', [
-            'isPlayer' => $claim->audience === NewsletterAudience::Player,
+            'isPlayer' => $isPlayer,
+            'preferencesUrl' => $isPlayer
+                ? $this->emailPreferencesLinkGenerator->forPlayer($claim->id, $claim->email, $request->getLocale())
+                : null,
         ]);
     }
 

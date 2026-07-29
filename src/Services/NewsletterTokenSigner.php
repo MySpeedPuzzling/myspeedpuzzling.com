@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\InvalidNewsletterToken;
 use SpeedPuzzling\Web\Exceptions\NewsletterConfirmTokenExpired;
 use SpeedPuzzling\Web\Value\NewsletterAudience;
 use SpeedPuzzling\Web\Value\NewsletterConfirmClaim;
+use SpeedPuzzling\Web\Value\NewsletterPreferencesClaim;
 use SpeedPuzzling\Web\Value\NewsletterUnsubscribeClaim;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -29,6 +30,7 @@ readonly final class NewsletterTokenSigner
 
     private const string TYPE_UNSUBSCRIBE = 'unsubscribe';
     private const string TYPE_CONFIRM = 'confirm';
+    private const string TYPE_PREFERENCES = 'preferences';
 
     public function __construct(
         #[Autowire(param: 'kernel.secret')]
@@ -58,6 +60,37 @@ readonly final class NewsletterTokenSigner
             'email' => mb_strtolower(trim($email)),
             'expiresAt' => $expiresAt->getTimestamp(),
         ]);
+    }
+
+    /**
+     * Preferences tokens open the standalone e-mail preferences page. Like
+     * unsubscribe tokens they never expire (the link lives in every sent
+     * e-mail) and are deterministic for Listmonk attribute diffing.
+     */
+    public function generatePreferencesToken(NewsletterAudience $audience, string $id, string $email): string
+    {
+        return $this->encode([
+            'type' => self::TYPE_PREFERENCES,
+            'audience' => $audience->value,
+            'id' => $id,
+            'email' => mb_strtolower(trim($email)),
+        ]);
+    }
+
+    /**
+     * @throws InvalidNewsletterToken
+     */
+    public function parsePreferencesToken(#[SensitiveParameter] string $token): NewsletterPreferencesClaim
+    {
+        $claims = $this->decode($token);
+
+        if (($claims['type'] ?? null) !== self::TYPE_PREFERENCES) {
+            throw new InvalidNewsletterToken();
+        }
+
+        [$audience, $id, $email] = $this->readCommonClaims($claims);
+
+        return new NewsletterPreferencesClaim($audience, $id, $email);
     }
 
     /**

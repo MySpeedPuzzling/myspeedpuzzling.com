@@ -2982,3 +2982,16 @@ newsletter:
         invalid_text: "このリンクは無効か、有効期限が切れています。ニュースレターの登録をご希望の場合は、ページ下部のフォームをご利用ください。"
         expired_text: "確認リンクの有効期限が切れています。ご心配なく — ページ下部のフォームからもう一度登録していただければ、新しいリンクをお送りします。"
         cta_homepage: "MySpeedPuzzlingに戻る"
+
+email_preferences:
+    headline: "メール設定"
+    intro: "<strong>%email%</strong> に届くメールの設定です。すべてご自身で管理できます。"
+    saved: "保存しました!設定は最新の状態です。"
+    newsletter_title: "ニュースレター"
+    newsletter_description: "MySpeedPuzzlingの最新情報 — 新機能やプラットフォームのニュースを月1回お届けします。マーケティングや宣伝は一切ありません。"
+    notifications_title: "通知メール"
+    notifications_description: "メッセージやつながりのリクエストが届いたときにお知らせします — 本当に何かが待っているときだけお送りします。"
+    frequency_label: "通知の頻度(最大)"
+    save_button: "設定を保存"
+    more_hint: "その他の設定は、プロフィールからご確認いただけます。"
+    more_link: "プロフィール設定を開く"

@@ -2991,3 +2991,16 @@ newsletter:
         invalid_text: "Odkaz je neplatný nebo už neplatí. Pokud jste se chtěli přihlásit k odběru newsletteru, použijte formulář v patičce stránky."
         expired_text: "Platnost potvrzovacího odkazu vypršela. Nic se neděje — přihlaste se znovu formulářem v patičce stránky a pošleme vám nový."
         cta_homepage: "Zpět na MySpeedPuzzling"
+
+email_preferences:
+    headline: "Nastavení e-mailů"
+    intro: "Co posíláme na <strong>%email%</strong> — máte to plně ve svých rukou."
+    saved: "Uloženo! Vaše nastavení je aktuální."
+    newsletter_title: "Newsletter"
+    newsletter_description: "Co je nového na MySpeedPuzzling — nové funkce a novinky z platformy, jednou měsíčně. Žádný marketing, žádná reklama."
+    notifications_title: "Upozornění e-mailem"
+    notifications_description: "Dáme vám vědět, když vám někdo napíše nebo se s vámi chce spojit — píšeme jen tehdy, když na vás opravdu něco čeká."
+    frequency_label: "Jak často nejvýše?"
+    save_button: "Uložit nastavení"
+    more_hint: "Hledáte víc? Všechna nastavení účtu najdete ve svém profilu."
+    more_link: "Otevřít nastavení profilu"

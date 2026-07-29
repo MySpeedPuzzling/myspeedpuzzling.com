@@ -2995,3 +2995,16 @@ newsletter:
         invalid_text: "Le lien est invalide ou n'est plus valable. Si vous vouliez vous abonner à la newsletter, utilisez simplement le formulaire en bas de page."
         expired_text: "Le lien de confirmation a expiré. Pas d'inquiétude — réabonnez-vous grâce au formulaire en bas de page et nous vous en enverrons un nouveau."
         cta_homepage: "Retour à MySpeedPuzzling"
+
+email_preferences:
+    headline: "Vos préférences e-mail"
+    intro: "Ce qui arrive dans la boîte de <strong>%email%</strong> — vous gardez le contrôle."
+    saved: "Enregistré ! Vos préférences sont à jour."
+    newsletter_title: "Newsletter"
+    newsletter_description: "Les nouveautés de MySpeedPuzzling — nouvelles fonctionnalités et actualités de la plateforme, une fois par mois. Pas de marketing, pas de promotions."
+    notifications_title: "E-mails de notification"
+    notifications_description: "Un petit mot quand quelqu'un vous écrit ou souhaite entrer en contact — uniquement quand quelque chose vous attend vraiment."
+    frequency_label: "À quelle fréquence au maximum ?"
+    save_button: "Enregistrer mes préférences"
+    more_hint: "Vous cherchez plus ? Tous les réglages de votre compte se trouvent dans votre profil."
+    more_link: "Ouvrir les réglages du profil"

@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use SpeedPuzzling\Web\Query\GetPlayersWithUnreadMessages;
 use SpeedPuzzling\Web\Repository\DigestEmailLogRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -31,6 +32,7 @@ readonly final class PrepareDigestEmailForPlayerHandler
         private ClockInterface $clock,
         private Connection $connection,
         private LoggerInterface $logger,
+        private EmailPreferencesLinkGenerator $emailPreferencesLinkGenerator,
     ) {
     }
 
@@ -81,6 +83,11 @@ readonly final class PrepareDigestEmailForPlayerHandler
                 'summaries' => $summaries,
                 'pendingRequestCount' => $pendingRequestCount,
                 'locale' => $player->locale ?? 'en',
+                'settingsUrl' => $this->emailPreferencesLinkGenerator->forPlayer(
+                    $message->playerId,
+                    $player->email,
+                    $player->locale,
+                ),
             ]);
         $email->getHeaders()->addTextHeader('X-Transport', 'notifications');
 

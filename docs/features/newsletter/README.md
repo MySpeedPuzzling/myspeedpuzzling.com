@@ -14,7 +14,7 @@ One e-mail = one recipient. When an address belongs to both a player and a guest
 ## Listmonk structure
 
 - **6 private, single opt-in lists**, one per locale: `Newsletter EN/CS/DE/ES/FR/JA` (`ListmonkNewsletterLists`). Looked up by name, auto-created when missing — no ids configured anywhere.
-- Subscriber attribs maintained by the sync: `locale`, `audience` (`player`/`guest`), `unsubscribe_url` (per-recipient signed MySpeedPuzzling URL), `manage_url` (players only).
+- Subscriber attribs maintained by the sync: `locale`, `audience` (`player`/`guest`), `unsubscribe_url` (per-recipient signed MySpeedPuzzling URL), `manage_url` (players only — the standalone e-mail preferences page, see below).
 - The campaign template (versioned at [`listmonk-campaign-template.html`](listmonk-campaign-template.html), uploaded to Listmonk as **"MySpeedPuzzling Newsletter"**) renders a localized footer from those attribs. After editing the file, re-upload via `PUT /api/templates/{id}`.
 
 ## Sync — `myspeedpuzzling:sync-newsletter-subscribers` (cron */15)
@@ -38,8 +38,17 @@ Immediate pushes (async messages, cron is the safety net): profile newsletter to
 Every newsletter footer links `attribs.unsubscribe_url` → `/{locale}/newsletter/unsubscribe/{token}`:
 
 - Stateless HMAC token (`NewsletterTokenSigner`), bound to audience+id+e-mail, **no expiry** (old newsletters must keep working); dies automatically when the e-mail changes.
-- The landing page changes nothing on GET (scanner-safe) and offers exactly two options: **one-click unsubscribe** (POST) and — for players — **manage notification settings** (edit profile).
+- The landing page changes nothing on GET (scanner-safe) and offers exactly two options: **one-click unsubscribe** (POST) and — for players — **manage e-mail preferences** (standalone page, see below).
 - Listmonk additionally sends its own `List-Unsubscribe`/`List-Unsubscribe-Post` headers pointing at itself (Gmail/Yahoo one-click); those unsubscribes reach MySpeedPuzzling via the cron pull within 15 minutes.
+
+## E-mail preferences page (players)
+
+Standalone, token-authenticated page at `/{locale}/email-preferences/{token}` — reachable **only from links in our e-mails** (newsletter footer `manage_url`, digest opt-out, unsubscribe landing page), never from site navigation. Rationale: the edit-profile page is crowded with forms; someone clicking "manage my settings" in an e-mail should land on a focused page that works without signing in.
+
+- Token: `NewsletterTokenSigner` type `preferences` — deterministic, no expiry, dies on e-mail change (same semantics as unsubscribe tokens). URL built by `EmailPreferencesLinkGenerator`.
+- Shows only the e-mail subset of settings: newsletter toggle + notification e-mails toggle + digest frequency. Saving dispatches `EditEmailPreferences` (deliberately narrower than `EditMessagingSettings` — cannot touch `allowDirectMessages`).
+- Anonymous but personal: the GET response is `Cache-Control: no-store`; CSRF id `email-preferences` is stateless (no session cookie).
+- Guests have no preferences page — their single preference (subscribed yes/no) is fully covered by the unsubscribe link and the footer form.
 
 ## Public signup (footer)
 

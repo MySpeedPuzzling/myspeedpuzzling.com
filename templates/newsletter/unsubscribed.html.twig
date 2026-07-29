@@ -14,8 +14,8 @@
             </div>
 
             <p class="fs-sm text-muted">
-                {% if isPlayer %}
-                    {{ 'newsletter.unsubscribed.resubscribe_player'|trans({'%settingsUrl%': path('edit_profile')})|raw }}
+                {% if isPlayer and preferencesUrl %}
+                    {{ 'newsletter.unsubscribed.resubscribe_player'|trans({'%settingsUrl%': preferencesUrl})|raw }}
                 {% else %}
                     {{ 'newsletter.unsubscribed.resubscribe_guest'|trans }}
                 {% endif %}

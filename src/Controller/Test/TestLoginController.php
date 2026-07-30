@@ -41,6 +41,7 @@ final class TestLoginController extends AbstractController
         $name = $request->query->getString('name');
 
         $userAccount = $this->userAccountRepository->findByUserId($userId);
+        $accountExisted = $userAccount !== null;
 
         if ($userAccount === null) {
             $userAccount = new UserAccount(
@@ -63,6 +64,13 @@ final class TestLoginController extends AbstractController
         // authenticator must be named explicitly or Security::login() throws
         $this->security->login($userAccount, LoginFormAuthenticator::class, 'main');
 
-        return new Response('Logged in as ' . $name);
+        // The db/account details make cross-database session bugs diagnosable
+        // from the response alone (per-test database churn, see PantherDatabaseManager)
+        return new Response(sprintf(
+            'Logged in as %s [db=%s account=%s]',
+            $name,
+            $this->entityManager->getConnection()->getDatabase() ?? 'unknown',
+            $accountExisted ? 'existing' : 'created',
+        ));
     }
 }

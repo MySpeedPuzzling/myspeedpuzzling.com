@@ -88,13 +88,41 @@ abstract class AbstractPantherTestCase extends PantherTestCase
         // Fail loudly, with the server's actual response: a silent login failure
         // otherwise surfaces tests later as baffling "element not found" errors on
         // pages that quietly rendered anonymous (bit us in CI, 2026-07-30)
-        $pageSource = $client->getPageSource();
+        $loginResponse = $client->getPageSource();
 
-        if (!str_contains($pageSource, 'Logged in as')) {
+        if (!str_contains($loginResponse, 'Logged in as')) {
             throw new \RuntimeException(sprintf(
                 "Test login for %s did not succeed. Response was:\n%s",
                 $userId,
-                mb_substr(strip_tags($pageSource), 0, 3000),
+                mb_substr(strip_tags($loginResponse), 0, 3000),
+            ));
+        }
+
+        // ... and verify the session actually STUCK: the login response proves the
+        // endpoint ran, not that the next request is authenticated. The whoami
+        // probe reports the resolved user and the database the follow-up request
+        // talks to, which pins cross-database session bugs immediately.
+        $client->request('GET', '/_test/whoami');
+        $whoami = strip_tags($client->getPageSource());
+
+        if (!str_contains($whoami, 'whoami=' . $userId)) {
+            $cookies = array_map(
+                static fn ($cookie): string => sprintf(
+                    '%s(domain=%s path=%s secure=%s)',
+                    $cookie->getName(),
+                    $cookie->getDomain(),
+                    $cookie->getPath(),
+                    var_export($cookie->isSecure(), true),
+                ),
+                $client->getWebDriver()->manage()->getCookies(),
+            );
+
+            throw new \RuntimeException(sprintf(
+                "Test login for %s did not stick.\nLogin response: %s\nWhoami probe: %s\nBrowser cookies: %s",
+                $userId,
+                mb_substr(strip_tags($loginResponse), 0, 500),
+                mb_substr($whoami, 0, 500),
+                implode(' | ', $cookies) ?: '(none)',
             ));
         }
     }

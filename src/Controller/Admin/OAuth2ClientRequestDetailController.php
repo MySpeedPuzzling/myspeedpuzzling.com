@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Admin;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Repository\OAuth2ClientRequestRepository;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,7 +25,7 @@ final class OAuth2ClientRequestDetailController extends AbstractController
         name: 'admin_oauth2_client_request_detail',
     )]
     #[IsGranted(AdminAccessVoter::ADMIN_ACCESS)]
-    public function __invoke(#[CurrentUser] User $user, string $requestId): Response
+    public function __invoke(#[CurrentUser] UserInterface $user, string $requestId): Response
     {
         $request = $this->requestRepository->get($requestId);
 

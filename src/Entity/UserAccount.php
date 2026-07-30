@@ -95,6 +95,11 @@ class UserAccount implements UserInterface, PasswordAuthenticatedUserInterface
         $this->password = $hashedPassword;
     }
 
+    public function recordLogin(DateTimeImmutable $now): void
+    {
+        $this->lastLoginAt = $now;
+    }
+
     public function markEmailVerified(DateTimeImmutable $now): void
     {
         if ($this->emailVerifiedAt === null) {

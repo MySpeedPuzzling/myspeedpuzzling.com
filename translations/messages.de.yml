@@ -2814,6 +2814,8 @@ qr_code:
   "notice":
     "text": "Die Anmeldung zieht bald auf myspeedpuzzling.com um."
     "text_extra": "Gleiche E-Mail, gleiches Passwort — aber Sie werden einmal abgemeldet."
+    "text_changed": "Die Anmeldung ist auf myspeedpuzzling.com umgezogen."
+    "text_extra_changed": "Gleiche E-Mail, gleiches Passwort — falls Ihr Passwort-Manager es nicht anbietet, suchen Sie darin nach „speedpuzzling“ oder „auth0“."
     "link": "Was ändert sich und warum?"
     "dismiss": "Schließen"
   "why":

@@ -2816,6 +2816,8 @@ edition:
   "notice":
     "text": "La connexion déménage bientôt sur myspeedpuzzling.com."
     "text_extra": "Même e-mail, même mot de passe — mais vous serez déconnecté une fois."
+    "text_changed": "La connexion a déménagé sur myspeedpuzzling.com."
+    "text_extra_changed": "Même e-mail, même mot de passe — s'il ne vous est pas proposé, recherchez « speedpuzzling » ou « auth0 » dans votre gestionnaire de mots de passe."
     "link": "Qu'est-ce qui change et pourquoi ?"
     "dismiss": "Fermer"
   "why":

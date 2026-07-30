@@ -2803,6 +2803,8 @@ qr_code:
   "notice":
     "text": "まもなくサインインがmyspeedpuzzling.comに移行します。"
     "text_extra": "メールアドレスとパスワードはそのままですが、一度サインアウトされます。"
+    "text_changed": "サインインがmyspeedpuzzling.comに移行しました。"
+    "text_extra_changed": "メールアドレスとパスワードはそのままです。パスワードが表示されない場合は、パスワードマネージャーで「speedpuzzling」または「auth0」を検索してください。"
     "link": "変更内容とその理由"
     "dismiss": "閉じる"
   "why":

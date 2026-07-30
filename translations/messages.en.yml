@@ -3101,6 +3101,8 @@ sign_in_changes:
     notice:
         text: "Sign-in is moving to myspeedpuzzling.com soon."
         text_extra: "Same email and password — but you will be signed out once."
+        text_changed: "Sign-in has moved to myspeedpuzzling.com."
+        text_extra_changed: "Same email and password — if yours is not offered, search your password manager for \"speedpuzzling\" or \"auth0\"."
         link: "What is changing and why?"
         dismiss: "Dismiss"
     why:

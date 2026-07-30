@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Security;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
@@ -28,6 +29,7 @@ final readonly class UserAccountProvider implements UserProviderInterface, Passw
     public function __construct(
         private UserAccountRepository $userAccountRepository,
         private EntityManagerInterface $entityManager,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -55,6 +57,16 @@ final readonly class UserAccountProvider implements UserProviderInterface, Passw
     {
         if (!$user instanceof UserAccount) {
             return;
+        }
+
+        // Phase 5 exit-metric counter: imported bcrypt hash replaced by argon2id
+        // on first successful login (trickle adoptions arrive here with password
+        // still null, so they are counted separately as trickle_used)
+        if ($user->password !== null && str_starts_with($user->password, '$2')) {
+            $this->logger->info('Imported bcrypt hash re-hashed to argon2id.', [
+                'user_id' => $user->getUserIdentifier(),
+                'bcrypt_rehashed' => true,
+            ]);
         }
 
         $user->changePassword($newHashedPassword);

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Admin;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleMergeRequests;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
@@ -32,7 +32,7 @@ final class PuzzleMergeRequestDetailController extends AbstractController
     )]
     #[IsGranted(AdminAccessVoter::ADMIN_ACCESS)]
     public function __invoke(
-        #[CurrentUser] User $user,
+        #[CurrentUser] UserInterface $user,
         string $id,
     ): Response {
         $request = $this->getPuzzleMergeRequests->byId($id);

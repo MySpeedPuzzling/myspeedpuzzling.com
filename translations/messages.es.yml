@@ -2814,6 +2814,8 @@ fair_use_policy:
   "notice":
     "text": "El inicio de sesión se traslada pronto a myspeedpuzzling.com."
     "text_extra": "El mismo email y la misma contraseña, pero se te cerrará la sesión una vez."
+    "text_changed": "El inicio de sesión se ha trasladado a myspeedpuzzling.com."
+    "text_extra_changed": "El mismo email y la misma contraseña — si tu gestor de contraseñas no la ofrece, busca en él \"speedpuzzling\" o \"auth0\"."
     "link": "¿Qué cambia y por qué?"
     "dismiss": "Cerrar"
   "why":

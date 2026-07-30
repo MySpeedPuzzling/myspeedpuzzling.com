@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Security;
 
+use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -57,6 +58,7 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly RateLimiterFactoryInterface $loginEmailIpLimiter,
         private readonly RateLimiterFactoryInterface $loginIpLimiter,
+        private readonly LoggerInterface $logger,
         private readonly bool $auth0TrickleLoginEnabled,
     ) {
     }
@@ -206,6 +208,12 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
             $userAccount,
             $this->passwordHasher->hashPassword($userAccount, $plainPassword),
         );
+
+        // Phase 5 exit-metric counter: trickle must trend to ~0 before decommission
+        $this->logger->info('Trickle login adopted the password locally.', [
+            'user_id' => $userAccount->getUserIdentifier(),
+            'trickle_used' => true,
+        ]);
 
         return true;
     }

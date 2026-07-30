@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\SolvedPuzzles;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\FormData\EditSolvedPuzzlesFormData;
 use SpeedPuzzling\Web\FormType\EditSolvedPuzzlesFormType;
@@ -44,7 +44,7 @@ final class EditSolvedPuzzlesController extends AbstractController
         ],
         name: 'edit_solved_puzzles',
     )]
-    public function __invoke(Request $request, #[CurrentUser] User $user, string $playerId): Response
+    public function __invoke(Request $request, #[CurrentUser] UserInterface $user, string $playerId): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
 

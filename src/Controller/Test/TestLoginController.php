@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Test;
 
-use Auth0\Symfony\Models\User;
+use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\UserAccount;
+use SpeedPuzzling\Web\Repository\UserAccountRepository;
+use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,13 +20,17 @@ use Symfony\Component\Routing\Attribute\Route;
  * Test-only controller for logging in users during Panther E2E tests.
  *
  * This controller is only registered in dev/test environments via config/packages/dev/services.php
- * and config/packages/test/services.php. It bypasses Auth0 authentication.
+ * and config/packages/test/services.php. It creates a native UserAccount session, bypassing
+ * the login form. The find-or-create write happens directly (not through Messenger) on purpose:
+ * the endpoint must stay idempotent across Panther tests sharing one database.
  */
 #[Route(path: '/_test/login', name: 'test_login')]
 final class TestLoginController extends AbstractController
 {
     public function __construct(
         readonly private Security $security,
+        readonly private UserAccountRepository $userAccountRepository,
+        readonly private EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -31,15 +40,28 @@ final class TestLoginController extends AbstractController
         $email = $request->query->getString('email');
         $name = $request->query->getString('name');
 
-        $auth0User = new User([
-            'user_id' => $userId,
-            'sub' => $userId,
-            'email' => $email,
-            'name' => $name,
-            'email_verified' => true,
-        ]);
+        $userAccount = $this->userAccountRepository->findByUserId($userId);
 
-        $this->security->login($auth0User, 'auth0.authenticator', 'main');
+        if ($userAccount === null) {
+            $userAccount = new UserAccount(
+                Uuid::uuid7(),
+                $userId,
+                $email,
+                new DateTimeImmutable(),
+            );
+
+            if (str_starts_with($userId, 'auth0|')) {
+                // Mirror the state the Stage B import leaves behind
+                $userAccount->applyAuth0Import($email, null, true, new DateTimeImmutable());
+            }
+
+            $this->entityManager->persist($userAccount);
+            $this->entityManager->flush();
+        }
+
+        // The firewall carries multiple authenticators (window A) - the target
+        // authenticator must be named explicitly or Security::login() throws
+        $this->security->login($userAccount, LoginFormAuthenticator::class, 'main');
 
         return new Response('Logged in as ' . $name);
     }

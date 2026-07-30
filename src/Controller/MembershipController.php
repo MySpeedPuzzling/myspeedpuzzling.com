@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerMembership;
@@ -39,7 +39,7 @@ final class MembershipController extends AbstractController
          ],
          name: 'membership',
      )]
-    public function __invoke(#[CurrentUser] User $user, Request $request): Response
+    public function __invoke(#[CurrentUser] UserInterface $user, Request $request): Response
     {
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 

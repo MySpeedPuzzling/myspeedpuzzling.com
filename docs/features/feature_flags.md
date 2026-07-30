@@ -26,6 +26,7 @@ This file documents all active feature flags in the codebase — where they are,
   - `src/Controller/LoginController.php` — `/login` renders the native form when ON, hands over to the Auth0 bundle controller when OFF
   - `templates/login.html.twig` — reached only when ON; carries the cutover explainer modal (D15) and the "Create an account" link
   - `src/Controller/RegistrationWelcomeController.php` — while OFF, the welcome screen warns a fresh registrant that being signed out means falling back to the sign-in link; the warning retires when login goes native
+  - `templates/_sign_in_changes_notice.html.twig` + `templates/base.html.twig` (added 2d, 2026-07-30) — the site-wide notice switches from the "coming" to the "changed" wording when this flag turns ON, and the localStorage dismissal key switches with it (`sign-in-changes-notice-dismissed` → `…-dismissed-changed`) so everyone sees the new wording once
 - **Not gated on purpose:** the magic sign-in link (`/login-link`, `/login-link/check`, `/set-password`) is live from Stage A per D6 — it is the rescue for window-A native registrants who log out while `/login` still points at Auth0. The native change-password/change-email cards on profile settings are likewise not flag-gated: `templates/edit-profile.html.twig` branches on whether the session holds a `UserAccount`, so a native account gets the native cards from the day it exists and a legacy Auth0 session keeps the #161 reset-email button until the Stage B import
 - **Remove when:** Phase 6 decommission
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Query\GetPlayersPerCountry;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
@@ -45,7 +45,7 @@ final class LadderController extends AbstractController
         ],
         name: 'ladder_country',
     )]
-    public function __invoke(null|string $countryCode, #[CurrentUser] null|User $user): Response
+    public function __invoke(null|string $countryCode, #[CurrentUser] null|UserInterface $user): Response
     {
         if ($countryCode !== null) {
             $countryCode = CountryCode::fromCode($countryCode);

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\FormData\CollectionFormData;
@@ -46,7 +46,7 @@ final class EditCollectionController extends AbstractController
         ],
         name: 'edit_collection',
     )]
-    public function __invoke(Request $request, #[CurrentUser] User $user, string $collectionId): Response
+    public function __invoke(Request $request, #[CurrentUser] UserInterface $user, string $collectionId): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 

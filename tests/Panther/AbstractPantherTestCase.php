@@ -56,11 +56,11 @@ abstract class AbstractPantherTestCase extends PantherTestCase
     /**
      * Log in a user for E2E testing.
      *
-     * Uses a test-only endpoint that bypasses Auth0 authentication.
-     * This endpoint is only available in dev/test environments.
+     * Uses a test-only endpoint that bypasses the login form and creates
+     * a native UserAccount session. Only available in dev/test environments.
      *
      * @param Client $client The Panther client
-     * @param string $userId The Auth0 user ID (e.g., 'auth0|regular001')
+     * @param string $userId The identity string (e.g., 'auth0|regular001' or 'msp|...')
      * @param string $email User's email
      * @param string $name User's name
      */

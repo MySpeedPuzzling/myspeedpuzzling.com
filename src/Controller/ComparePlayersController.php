@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetRanking;
@@ -38,7 +38,7 @@ final class ComparePlayersController extends AbstractController
         ],
         name: 'compare_players',
     )]
-    public function __invoke(#[CurrentUser] User $user, string $opponentPlayerId): Response
+    public function __invoke(#[CurrentUser] UserInterface $user, string $opponentPlayerId): Response
     {
         $loggedPlayerProfile = $this->retrieveLoggedUserProfile->getProfile();
 

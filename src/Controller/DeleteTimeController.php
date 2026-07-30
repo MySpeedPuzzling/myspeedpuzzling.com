@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Message\DeletePuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Value\EditTimeReturnContext;
@@ -39,7 +39,7 @@ final class DeleteTimeController extends AbstractController
         ],
         name: 'delete_time',
     )]
-    public function __invoke(Request $request, #[CurrentUser] User $user, string $timeId): Response
+    public function __invoke(Request $request, #[CurrentUser] UserInterface $user, string $timeId): Response
     {
         $contextValue = $request->isMethod('POST')
             ? $request->request->getString('context')

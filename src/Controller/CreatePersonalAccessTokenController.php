@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\CreatePersonalAccessToken;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -40,7 +40,7 @@ final class CreatePersonalAccessTokenController extends AbstractController
         name: 'create_personal_access_token',
         methods: ['POST'],
     )]
-    public function __invoke(Request $request, #[CurrentUser] User $user): Response
+    public function __invoke(Request $request, #[CurrentUser] UserInterface $user): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 

@@ -2897,7 +2897,6 @@ edition:
     "intro": "Vous êtes connecté ! Si vous définissez un nouveau mot de passe maintenant, votre gestionnaire de mots de passe l'enregistrera sous myspeedpuzzling.com — et la prochaine fois, il le remplira automatiquement, comme il se doit."
     "new_password": "Nouveau mot de passe"
     "password_hint": "Au moins %minimum% caractères."
-    "suggest": "Proposer un mot de passe fort"
     "submit": "Enregistrer le mot de passe"
     "skip": "Pas maintenant — mon mot de passe actuel fonctionne toujours"
     "saved": "Votre nouveau mot de passe est enregistré."

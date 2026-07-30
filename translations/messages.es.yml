@@ -2895,7 +2895,6 @@ fair_use_policy:
     "intro": "¡Ya has iniciado sesión! Si estableces ahora una contraseña nueva, tu gestor de contraseñas la guardará bajo myspeedpuzzling.com, así la próxima vez se rellenará sola como debe ser."
     "new_password": "Nueva contraseña"
     "password_hint": "Al menos %minimum% caracteres."
-    "suggest": "Sugerir contraseña segura"
     "submit": "Guardar contraseña"
     "skip": "Ahora no: mi contraseña actual sigue funcionando"
     "saved": "Tu nueva contraseña se ha guardado."

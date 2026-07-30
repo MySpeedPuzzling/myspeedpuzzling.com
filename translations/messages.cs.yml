@@ -2893,7 +2893,6 @@ auth:
         intro: "Jste přihlášeni! Když si teď nastavíte nové heslo, váš správce hesel ho uloží pod doménou myspeedpuzzling.com — a příště ho vyplní automaticky, jak má."
         new_password: "Nové heslo"
         password_hint: "Alespoň %minimum% znaků."
-        suggest: "Navrhnout silné heslo"
         submit: "Uložit heslo"
         skip: "Teď ne — moje současné heslo dál funguje"
         saved: "Vaše nové heslo je uložené."

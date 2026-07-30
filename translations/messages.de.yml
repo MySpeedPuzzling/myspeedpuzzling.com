@@ -2895,7 +2895,6 @@ auth:
         intro: "Sie sind angemeldet! Wenn Sie jetzt ein neues Passwort festlegen, speichert Ihr Passwort-Manager es unter myspeedpuzzling.com – und füllt es beim nächsten Mal automatisch aus, wie es sein soll."
         new_password: "Neues Passwort"
         password_hint: "Mindestens %minimum% Zeichen."
-        suggest: "Starkes Passwort vorschlagen"
         submit: "Passwort speichern"
         skip: "Jetzt nicht – mein aktuelles Passwort funktioniert weiter"
         saved: "Ihr neues Passwort wurde gespeichert."

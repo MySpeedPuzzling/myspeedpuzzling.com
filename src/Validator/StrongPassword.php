@@ -10,19 +10,15 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Constraints\Compound;
 
 /**
- * The password rules for every place a user picks a password (README §Auth
- * features at launch): long enough to survive offline cracking, not a trivially
- * guessable string, and not one of the passwords already in a public breach
- * corpus.
- *
- * NotCompromisedPassword calls haveibeenpwned with a k-anonymous prefix;
- * skipOnError keeps a sign-in flow working when that service is unreachable
- * (and the test env disables it outright, see config/packages/test/validator.php).
+ * The password rules for every place a user picks a password: at least 8
+ * characters, nothing more (product decision 2026-07-30 - the entropy
+ * estimator and the breach-corpus lookup rejected passwords users considered
+ * fine, and the friction outweighed the benefit).
  */
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class StrongPassword extends Compound
 {
-    public const int MINIMUM_LENGTH = 12;
+    public const int MINIMUM_LENGTH = 8;
 
     /**
      * @param array<string, mixed> $options
@@ -34,8 +30,6 @@ final class StrongPassword extends Compound
         return [
             new Assert\NotBlank(),
             new Assert\Length(min: self::MINIMUM_LENGTH),
-            new Assert\PasswordStrength(),
-            new Assert\NotCompromisedPassword(skipOnError: true),
         ];
     }
 }

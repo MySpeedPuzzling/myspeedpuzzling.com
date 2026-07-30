@@ -3182,7 +3182,6 @@ auth:
         intro: "You are signed in! If you set a new password now, your password manager will save it under myspeedpuzzling.com — so next time it autofills like it should."
         new_password: "New password"
         password_hint: "At least %minimum% characters."
-        suggest: "Suggest strong password"
         submit: "Save password"
         skip: "Not now — my current password keeps working"
         saved: "Your new password is saved."

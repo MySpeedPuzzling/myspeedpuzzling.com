@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\DeleteCollection;
@@ -42,7 +42,7 @@ final class DeleteCollectionController extends AbstractController
         ],
         name: 'delete_collection',
     )]
-    public function __invoke(#[CurrentUser] User $user, string $collectionId): Response
+    public function __invoke(#[CurrentUser] UserInterface $user, string $collectionId): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 

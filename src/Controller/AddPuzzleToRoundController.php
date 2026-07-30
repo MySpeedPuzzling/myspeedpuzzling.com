@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\RoundPuzzleFormData;
 use SpeedPuzzling\Web\FormType\RoundPuzzleFormType;
@@ -43,7 +43,7 @@ final class AddPuzzleToRoundController extends AbstractController
         ],
         name: 'add_puzzle_to_round',
     )]
-    public function __invoke(Request $request, string $roundId, #[CurrentUser] User $user): Response
+    public function __invoke(Request $request, string $roundId, #[CurrentUser] UserInterface $user): Response
     {
         $round = $this->competitionRoundRepository->get($roundId);
         $competitionId = $round->competition->id->toString();

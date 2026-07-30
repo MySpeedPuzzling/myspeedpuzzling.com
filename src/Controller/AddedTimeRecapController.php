@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerRatingRanking;
@@ -48,7 +48,7 @@ final class AddedTimeRecapController extends AbstractController
     )]
     public function __invoke(
         Request $request,
-        #[CurrentUser] User $user,
+        #[CurrentUser] UserInterface $user,
         string $timeId,
     ): Response {
         $solvingPuzzle = $this->getPlayerSolvedPuzzles->byTimeId($timeId);

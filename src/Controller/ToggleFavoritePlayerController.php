@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotFavoriteYourself;
 use SpeedPuzzling\Web\Exceptions\PlayerIsAlreadyInFavorites;
 use SpeedPuzzling\Web\Exceptions\PlayerIsNotInFavorites;
@@ -52,7 +52,7 @@ final class ToggleFavoritePlayerController extends AbstractController
         ],
         name: 'remove_player_from_favorite',
     )]
-    public function __invoke(Request $request, #[CurrentUser] User $user, string $playerId): Response
+    public function __invoke(Request $request, #[CurrentUser] UserInterface $user, string $playerId): Response
     {
         /** @var string $routeName */
         $routeName = $request->attributes->get('_route');

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\UserAccountNotFound;
 use SpeedPuzzling\Web\Message\SetAccountPassword;
 use SpeedPuzzling\Web\Repository\ResetPasswordRequestRepository;
@@ -18,6 +19,7 @@ final readonly class SetAccountPasswordHandler
         private UserAccountRepository $userAccountRepository,
         private ResetPasswordRequestRepository $resetPasswordRequestRepository,
         private UserPasswordHasherInterface $passwordHasher,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -40,5 +42,11 @@ final readonly class SetAccountPasswordHandler
         // reset requests explicitly, sign-in links implicitly (the login link
         // signature covers the password, see config/packages/security.php)
         $this->resetPasswordRequestRepository->removeAllForUserAccount($userAccount);
+
+        // Phase 5 exit-metric counter: post-sign-in-link password prompt completed
+        $this->logger->info('Account password set after sign-in link.', [
+            'user_id' => $message->userId,
+            'password_prompt_completed' => true,
+        ]);
     }
 }

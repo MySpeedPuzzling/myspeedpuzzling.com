@@ -2812,6 +2812,8 @@ qr_code:
   "notice":
     "text": "Přihlašování se brzy přestěhuje na myspeedpuzzling.com."
     "text_extra": "E-mail i heslo zůstávají — ale jednou vás odhlásíme."
+    "text_changed": "Přihlašování se přestěhovalo na myspeedpuzzling.com."
+    "text_extra_changed": "E-mail i heslo zůstávají stejné — pokud vám ho správce hesel nenabídne, vyhledejte v něm „speedpuzzling“ nebo „auth0“."
     "link": "Co se mění a proč?"
     "dismiss": "Zavřít"
   "why":

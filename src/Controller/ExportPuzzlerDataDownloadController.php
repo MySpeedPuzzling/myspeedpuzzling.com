@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Query\GetExportableSolvingTimes;
 use SpeedPuzzling\Web\Services\PuzzlerDataExporter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -40,7 +40,7 @@ final class ExportPuzzlerDataDownloadController extends AbstractController
     public function __invoke(
         string $playerId,
         string $format,
-        #[CurrentUser] User $user,
+        #[CurrentUser] UserInterface $user,
     ): Response {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 

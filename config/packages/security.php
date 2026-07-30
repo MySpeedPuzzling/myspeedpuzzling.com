@@ -117,6 +117,20 @@ return App::config([
                     'success_handler' => LoginLinkSuccessHandler::class,
                     'failure_handler' => LoginLinkFailureHandler::class,
                 ],
+                // Deliberately NO remember_me until Phase 6: Symfony's RememberMeListener
+                // clears the cookie on EVERY LoginFailureEvent unconditionally, and during
+                // the migration window the Auth0 authenticator fails on every anonymous
+                // request - a REMEMBERME deletion cookie would land on every anonymous
+                // response and break shared cacheability (#164). Enable it (signature-based,
+                // user_providers: [user_account_provider], always_remember_me) when the
+                // Auth0 authenticator leaves this firewall. The RememberMeBadge already in
+                // LoginFormAuthenticator is inert meanwhile.
+                //
+                // Deliberately NO firewall-level login_throttling either, same interplay:
+                // its failure listener would count those per-request anonymous failures
+                // against the per-IP budget. Brute-force protection lives inside
+                // LoginFormAuthenticator (5/min per email+IP + per-IP limiter,
+                // config/packages/rate_limiter.php) and stays there.
                 'entry_point' => Auth0EntryPoint::class,
                 'logout' => [
                     'path' => 'app_logout',

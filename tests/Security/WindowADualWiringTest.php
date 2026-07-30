@@ -111,7 +111,7 @@ final class WindowADualWiringTest extends WebTestCase
     {
         $browser = self::createClient();
 
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        TestingLogin::asAuth0Player($browser, PlayerFixture::PLAYER_REGULAR);
 
         $browser->request('GET', '/en/puzzle');
         self::assertResponseIsSuccessful();
@@ -122,6 +122,31 @@ final class WindowADualWiringTest extends WebTestCase
 
         $cacheControl = (string) $browser->getResponse()->headers->get('Cache-Control');
         self::assertStringContainsString('private', $cacheControl);
+
+        // The read chokepoint (RetrieveLoggedUserProfile) must keep resolving the
+        // profile for an Auth0 session through window A - a null profile would
+        // bounce my-profile to the homepage instead of the player profile (2d)
+        $browser->request('GET', '/en/my-profile');
+        self::assertResponseRedirects('/en/player-profile/' . PlayerFixture::PLAYER_REGULAR);
+    }
+
+    public function testSuccessfulNativeLoginWritesLastLoginAt(): void
+    {
+        $browser = self::createClient();
+        $email = $this->seedAccount($browser, 'auth0|windowa11', 'windowa.eleven', bcryptHashOf: self::PASSWORD);
+
+        $this->submitLogin($browser, $email, self::PASSWORD);
+
+        self::assertResponseRedirects('/en/my-profile');
+
+        // AuthenticationAuditSubscriber stamps the login - the Phase 5 migration
+        // metric and the applyAuth0Import "has native activity" guard both feed on it
+        $container = $browser->getContainer();
+        $container->get(EntityManagerInterface::class)->clear();
+
+        $userAccount = $container->get(UserAccountRepository::class)->findByUserId('auth0|windowa11');
+        self::assertNotNull($userAccount);
+        self::assertNotNull($userAccount->lastLoginAt);
     }
 
     public function testAnonymousPageStaysSharedCacheableWithDualWiring(): void

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Collection;
@@ -77,7 +77,7 @@ final class PuzzleAddController extends AbstractController
     )]
     public function __invoke(
         Request $request,
-        #[CurrentUser] User $user,
+        #[CurrentUser] UserInterface $user,
         null|string $puzzleId = null,
         null|string $stopwatchId = null,
     ): Response {

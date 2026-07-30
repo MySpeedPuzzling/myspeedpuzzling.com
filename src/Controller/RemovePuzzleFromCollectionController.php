@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCollection;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -40,7 +40,7 @@ final class RemovePuzzleFromCollectionController extends AbstractController
         name: 'remove_puzzle_from_collection',
         methods: ['POST'],
     )]
-    public function __invoke(string $puzzleId, Request $request, #[CurrentUser] User $user): Response
+    public function __invoke(string $puzzleId, Request $request, #[CurrentUser] UserInterface $user): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 

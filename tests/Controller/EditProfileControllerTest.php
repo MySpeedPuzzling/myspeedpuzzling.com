@@ -32,7 +32,7 @@ final class EditProfileControllerTest extends WebTestCase
     public function testLegacyAuth0SessionStillGetsTheAuth0PasswordCard(): void
     {
         $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        TestingLogin::asAuth0Player($browser, PlayerFixture::PLAYER_REGULAR);
 
         $crawler = $browser->request('GET', '/en/edit-profile');
 
@@ -51,27 +51,25 @@ final class EditProfileControllerTest extends WebTestCase
     }
 
     /**
-     * Pins the known 2c-II → 2d dependency rather than the end state.
-     *
-     * `RetrieveLoggedUserProfile::getProfile()` still tests only for the Auth0 user
-     * class, so a native session gets a null profile and this controller bounces it
-     * on its `$player === null` guard - which means the native credential cards
-     * built in 2c-II cannot be reached yet. Harmless today (both flags are OFF, so
-     * no native account exists in production), and the first task of slice 2d.
-     *
-     * **When 2d teaches RetrieveLoggedUserProfile about UserAccount, this test must
-     * flip**: assert the page renders with the two native cards and the resend
-     * button, and without the Auth0 form.
+     * The other side of the branch, reachable since 2d taught
+     * RetrieveLoggedUserProfile about UserAccount: a native session renders the
+     * page with the native credential cards and without the Auth0 form.
      */
-    public function testNativeAccountIsStillBouncedUntilSlice2dLands(): void
+    public function testNativeAccountGetsTheNativeCredentialCards(): void
     {
         $browser = self::createClient();
         $userAccount = $this->seedNativeAccount($browser);
         $browser->loginUser($userAccount, 'main');
 
-        $browser->request('GET', '/en/edit-profile');
+        $crawler = $browser->request('GET', '/en/edit-profile');
 
-        self::assertResponseRedirects('/en/my-profile');
+        self::assertResponseIsSuccessful();
+
+        self::assertCount(1, $crawler->filter('a[href$="/edit-profile/change-password"]'));
+        self::assertCount(1, $crawler->filter('a[href$="/edit-profile/change-email"]'));
+
+        // ... and no #161 Auth0 reset-email form for a native account
+        self::assertCount(0, $crawler->filter('form[action="/en/change-password"]'));
     }
 
     private function seedNativeAccount(KernelBrowser $browser): UserAccount

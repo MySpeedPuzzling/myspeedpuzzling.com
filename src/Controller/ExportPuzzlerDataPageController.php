@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -33,7 +33,7 @@ final class ExportPuzzlerDataPageController extends AbstractController
         ],
         name: 'export_puzzler_data',
     )]
-    public function __invoke(string $playerId, #[CurrentUser] User $user): Response
+    public function __invoke(string $playerId, #[CurrentUser] UserInterface $user): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
 

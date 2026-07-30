@@ -138,7 +138,10 @@
             <script>
             (function () {
                 try {
-                    if (window.localStorage.getItem('sign-in-changes-notice-dismissed') === '1') {
+                    {# The key follows the migration phase (see _sign_in_changes_notice.html.twig):
+                       Stage B swaps the wording and the "changed" notice must show once even to
+                       someone who dismissed the "coming" one. #}
+                    if (window.localStorage.getItem('{{ native_login_enabled ? 'sign-in-changes-notice-dismissed-changed' : 'sign-in-changes-notice-dismissed' }}') === '1') {
                         document.documentElement.className += ' sign-in-changes-notice-dismissed';
                     }
                 } catch (e) {}

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\EventSubscriber\ReferralCookieSubscriber;
 use SpeedPuzzling\Web\Exceptions\PlayerAlreadyHaveMembership;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -41,7 +41,7 @@ final class BuyMembershipController extends AbstractController
         name: 'buy_membership',
         defaults: ['period' => null],
     )]
-    public function __invoke(#[CurrentUser] User $user, null|string $period, Request $request): Response
+    public function __invoke(#[CurrentUser] UserInterface $user, null|string $period, Request $request): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 

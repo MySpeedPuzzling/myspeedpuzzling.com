@@ -101,6 +101,18 @@ jobs:
       -   run: bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
       -   name: Run Panther tests
           run: vendor/bin/phpunit --testsuite "Panther Test Suite"
+          env:
+              PANTHER_ERROR_SCREENSHOT_DIR: ./var/panther-screenshots
+      -   name: Dump app log on failure
+          if: failure()
+          run: tail -n 400 var/log/test.log || true
+      -   name: Upload failure screenshots
+          if: failure()
+          uses: actions/upload-artifact@v4
+          with:
+              name: panther-screenshots
+              path: var/panther-screenshots
+              if-no-files-found: ignore
 
 
   phpstan:

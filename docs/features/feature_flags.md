@@ -8,7 +8,7 @@ This file documents all active feature flags in the codebase — where they are,
 
 - **Feature:** Auth0 → native auth migration, Stage A (issue #147, `docs/features/auth-migration/`)
 - **Flag:** env var `NATIVE_REGISTRATION_ENABLED` → container parameter `nativeRegistrationEnabled` (`config/services.php`)
-- **Default:** OFF everywhere. Flipped ON in production on Stage A day (native `/register` goes live, Auth0 signups frozen). Rollback = flip OFF.
+- **Default:** **ON in the repo `.env` since 2026-07-30 (Stage A)** — the flip ships with the deploy itself, per Jan's call; Auth0 signups are frozen tenant-side ("Disable Sign Ups"). `.env.test` pins it OFF so the test baseline is unchanged (flag tests override per-test via `OverridesFeatureFlagEnv`). Rollback without a revert: set `NATIVE_REGISTRATION_ENABLED=0` in the box `.env` — real env beats the image file.
 - **Gated files:**
   - `src/Controller/RegisterController.php` — `/register` renders the native form when ON, redirects to `/login` (the Auth0 hosted page, whose signup tab is frozen at Stage A) when OFF
   - `templates/base.html.twig` — the "Register" navbar tool for anonymous visitors. Load-bearing while `NATIVE_LOGIN_ENABLED` is still OFF: `/login` is the Auth0 redirect then, so this is the only signpost to the native form

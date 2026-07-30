@@ -77,5 +77,18 @@ abstract class AbstractPantherTestCase extends PantherTestCase
         ]);
 
         $client->request('GET', '/_test/login?' . $params);
+
+        // Fail loudly, with the server's actual response: a silent login failure
+        // otherwise surfaces tests later as baffling "element not found" errors on
+        // pages that quietly rendered anonymous (bit us in CI, 2026-07-30)
+        $pageSource = $client->getPageSource();
+
+        if (!str_contains($pageSource, 'Logged in as')) {
+            throw new \RuntimeException(sprintf(
+                "Test login for %s did not succeed. Response was:\n%s",
+                $userId,
+                mb_substr(strip_tags($pageSource), 0, 3000),
+            ));
+        }
     }
 }

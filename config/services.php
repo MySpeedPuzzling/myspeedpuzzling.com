@@ -55,6 +55,9 @@ return static function (ContainerConfigurator $configurator): void {
     $parameters->set('nativeRegistrationEnabled', '%env(bool:NATIVE_REGISTRATION_ENABLED)%');
     $parameters->set('nativeLoginEnabled', '%env(bool:NATIVE_LOGIN_ENABLED)%');
     $parameters->set('auth0TrickleLoginEnabled', '%env(bool:AUTH0_TRICKLE_LOGIN_ENABLED)%');
+    // Transition-window escape hatch: the "old Auth0 sign-in" link on the native
+    // login page (Auth0FallbackLoginController). Dies with the Auth0 stack in Phase 6.
+    $parameters->set('auth0FallbackLoginEnabled', '%env(bool:AUTH0_FALLBACK_LOGIN_ENABLED)%');
 
     // Lifetime of a magic sign-in link. Single source for the firewall's login_link
     // config (config/packages/security.php) and for the copy that tells the user how
@@ -79,6 +82,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$auth0ClientSecret', '%auth0ClientSecret%')
         ->bind('$auth0DatabaseConnection', '%auth0DatabaseConnection%')
         ->bind('$auth0TrickleLoginEnabled', '%auth0TrickleLoginEnabled%')
+        ->bind('$auth0FallbackLoginEnabled', '%auth0FallbackLoginEnabled%')
         ->bind('$nativeLoginEnabled', '%nativeLoginEnabled%')
         ->bind('$nativeRegistrationEnabled', '%nativeRegistrationEnabled%')
         ->bind('$signInLinkLifetimeSeconds', '%signInLinkLifetimeSeconds%')

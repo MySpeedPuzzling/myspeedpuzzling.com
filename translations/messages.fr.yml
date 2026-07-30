@@ -2874,10 +2874,12 @@ edition:
     "password": "Mot de passe"
     "submit": "Se connecter"
     "or": "ou"
+    "auth0_fallback": "Se connecter via l'ancienne page Auth0 (temporaire)"
   "failure_helper":
     "title": "Le mot de passe ne fonctionne pas ?"
     "vault_tip": "Si un gestionnaire de mots de passe l'a enregistré, cherchez-y \"speedpuzzling\" ou \"auth0\" — l'entrée est classée sous notre ancien domaine de connexion (%old_domain%)."
     "or_skip": "Ou passez-vous complètement du mot de passe :"
+    "auth0_fallback": "Mot de passe modifié très récemment ? L'ancienne connexion Auth0 l'accepte encore."
   "sign_in_link":
     "title": "Recevoir un lien de connexion par e-mail"
     "intro": "Saisissez votre adresse e-mail et nous vous enverrons un lien qui vous connecte — sans mot de passe."

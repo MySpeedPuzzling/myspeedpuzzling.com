@@ -3159,10 +3159,12 @@ auth:
         password: "Password"
         submit: "Sign in"
         or: "or"
+        auth0_fallback: "Sign in with the old Auth0 page (temporary)"
     failure_helper:
         title: "Password not working?"
         vault_tip: "If a password manager saved it, search the manager for \"speedpuzzling\" or \"auth0\" — the entry is filed under our old sign-in domain (%old_domain%)."
         or_skip: "Or skip the password entirely:"
+        auth0_fallback: "Changed your password very recently? The old Auth0 sign-in still accepts it."
     sign_in_link:
         title: "Email me a sign-in link"
         intro: "Enter your email address and we will send you a link that signs you in — no password needed."

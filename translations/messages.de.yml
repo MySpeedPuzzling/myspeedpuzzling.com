@@ -2872,10 +2872,12 @@ auth:
         password: "Passwort"
         submit: "Anmelden"
         or: "oder"
+        auth0_fallback: "Über die alte Auth0-Seite anmelden (vorübergehend)"
     failure_helper:
         title: "Passwort funktioniert nicht?"
         vault_tip: "Wenn ein Passwort-Manager es gespeichert hat, suchen Sie dort nach „speedpuzzling“ oder „auth0“ – der Eintrag liegt unter unserer alten Anmelde-Domain (%old_domain%)."
         or_skip: "Oder überspringen Sie das Passwort ganz:"
+        auth0_fallback: "Passwort erst kürzlich geändert? Die alte Auth0-Anmeldung akzeptiert es weiterhin."
     sign_in_link:
         title: "Anmeldelink per E-Mail schicken"
         intro: "Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link, mit dem Sie sich anmelden – ganz ohne Passwort."

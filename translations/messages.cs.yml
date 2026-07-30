@@ -2870,10 +2870,12 @@ auth:
         password: "Heslo"
         submit: "Přihlásit se"
         or: "nebo"
+        auth0_fallback: "Přihlásit se přes původní stránku Auth0 (dočasné)"
     failure_helper:
         title: "Nefunguje heslo?"
         vault_tip: "Pokud vám ho uložil správce hesel, vyhledejte v něm „speedpuzzling“ nebo „auth0“ — záznam je uložený pod naší starou přihlašovací doménou (%old_domain%)."
         or_skip: "Nebo se obejděte úplně bez hesla:"
+        auth0_fallback: "Měnili jste si nedávno heslo? Původní přihlášení přes Auth0 ho stále přijímá."
     sign_in_link:
         title: "Poslat mi přihlašovací odkaz e-mailem"
         intro: "Zadejte svou e-mailovou adresu a my vám pošleme odkaz, kterým se přihlásíte — heslo nepotřebujete."

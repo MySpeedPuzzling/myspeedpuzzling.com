@@ -30,6 +30,9 @@ return App::config([
             // native change-password card (Stage B); both retire in Phase 6.
             'native_registration_enabled' => '%nativeRegistrationEnabled%',
             'native_login_enabled' => '%nativeLoginEnabled%',
+            // Transition-window escape hatch: the "old Auth0 sign-in" link on the
+            // native login page. Retires in Phase 6.
+            'auth0_fallback_login_enabled' => '%auth0FallbackLoginEnabled%',
         ],
         'paths' => [
             '%kernel.project_dir%/public/img' => 'images',

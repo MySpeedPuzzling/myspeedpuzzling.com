@@ -82,6 +82,16 @@
                             <a href="{{ path('register') }}">{{ 'auth.register.title'|trans }}</a>
                         {% endif %}
                     </p>
+
+                    {# Transition-window escape hatch (Phase 6 removes it): the old
+                       hosted Auth0 login still works for anyone whose password
+                       predates the hash export cutoff. Deliberately last and muted -
+                       the funnel should end here only when everything above failed. #}
+                    {% if auth0_fallback_login_enabled %}
+                        <p class="fs-sm text-muted mt-2 mb-0">
+                            <a class="link-secondary" href="{{ path('auth0_fallback_login') }}" data-turbo="false">{{ 'auth.login.auth0_fallback'|trans }}</a>
+                        </p>
+                    {% endif %}
                 </div>
             </div>
 

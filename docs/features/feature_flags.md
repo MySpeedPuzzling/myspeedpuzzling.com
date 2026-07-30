@@ -49,6 +49,17 @@ This file documents all active feature flags in the codebase — where they are,
   - `src/Security/LoginFormAuthenticator.php` — trickle credential branch
 - **Remove when:** Phase 6 decommission (delete `Auth0TrickleGateway` + this flag)
 
+## Auth0 Fallback Login (`AUTH0_FALLBACK_LOGIN_ENABLED`)
+
+- **Feature:** Auth0 → native auth migration — transition-window escape hatch after the Stage B flip (2026-07-30): `/login/auth0` starts the old hosted Universal Login redirect, and the native login page + failure helper carry a subdued link to it. Exists for the one failure native login cannot absorb: a password changed through Auth0 after the hash export was cut (stale local hash — the new password only works on Auth0).
+- **Flag:** env var `AUTH0_FALLBACK_LOGIN_ENABLED` → parameter `auth0FallbackLoginEnabled` + bind `$auth0FallbackLoginEnabled` + Twig global `auth0_fallback_login_enabled` (`config/services.php`, `config/packages/twig.php`). Same Twig-global blast radius as the two NATIVE_* flags (see the operational note at the top) — keep it resolvable in `.env`.
+- **Default:** ON (shipped ON with the Stage B flip — it is the safety net, not the feature)
+- **Gated files:**
+  - `src/Controller/Auth0FallbackLoginController.php` — 404s when OFF
+  - `templates/login.html.twig` — tertiary "old Auth0 page" link
+  - `templates/_login_failure_helper.html.twig` — "changed your password recently?" line
+- **Remove when:** Phase 6 decommission (the hosted flow it links to dies with the Auth0 stack; flip OFF earlier if usage hits zero)
+
 ## Competition Table Layout (admin-only)
 
 - **Feature:** Table layout management for competition rounds

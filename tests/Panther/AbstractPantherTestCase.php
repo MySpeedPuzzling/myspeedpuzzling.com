@@ -76,6 +76,13 @@ abstract class AbstractPantherTestCase extends PantherTestCase
             'name' => $name,
         ]);
 
+        // The Panther browser is reused across tests while each test gets a FRESH
+        // database (PantherDatabaseManager) - but cookies and mock-session files
+        // survive. Since native login (2d), the session token resolves through the
+        // user_account table, so a stale session pointing into a dropped per-test
+        // database must never leak into the next test: start every login clean.
+        $client->getWebDriver()->manage()->deleteAllCookies();
+
         $client->request('GET', '/_test/login?' . $params);
 
         // Fail loudly, with the server's actual response: a silent login failure

@@ -86,6 +86,9 @@ final class RegisterControllerTest extends WebTestCase
 
     public function testWelcomeScreenCarriesTheSignInLinkRescue(): void
     {
+        // Window-A behavior: the rescue only shows while /login is still the Auth0
+        // redirect (it suppresses itself once native_login is ON), so pin the flag
+        $this->overrideFeatureFlagEnv('NATIVE_LOGIN_ENABLED', false);
         $browser = $this->createClientWithNativeRegistration(true);
         $email = $this->randomEmail('register.welcome');
 

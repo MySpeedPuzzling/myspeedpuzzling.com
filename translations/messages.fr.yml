@@ -2874,7 +2874,7 @@ edition:
     "password": "Mot de passe"
     "submit": "Se connecter"
     "or": "ou"
-    "auth0_fallback": "Se connecter via l'ancienne page Auth0 (temporaire)"
+    "auth0_fallback": "Ancienne connexion Auth0 (temporaire)"
   "failure_helper":
     "title": "Le mot de passe ne fonctionne pas ?"
     "vault_tip": "Si un gestionnaire de mots de passe l'a enregistré, cherchez-y \"speedpuzzling\" ou \"auth0\" — l'entrée est classée sous notre ancien domaine de connexion (%old_domain%)."

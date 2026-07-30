@@ -2872,7 +2872,7 @@ fair_use_policy:
     "password": "Contraseña"
     "submit": "Iniciar sesión"
     "or": "o"
-    "auth0_fallback": "Iniciar sesión con la antigua página de Auth0 (temporal)"
+    "auth0_fallback": "Antiguo inicio de sesión Auth0 (temporal)"
   "failure_helper":
     "title": "¿La contraseña no funciona?"
     "vault_tip": "Si la guardaste en un gestor de contraseñas, busca ahí \"speedpuzzling\" o \"auth0\": la entrada está guardada bajo nuestro antiguo dominio de inicio de sesión (%old_domain%)."

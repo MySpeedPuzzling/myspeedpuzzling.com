@@ -2861,7 +2861,7 @@ qr_code:
     "password": "パスワード"
     "submit": "サインイン"
     "or": "または"
-    "auth0_fallback": "旧Auth0ページでサインイン（一時的）"
+    "auth0_fallback": "旧Auth0サインイン（一時的）"
   "failure_helper":
     "title": "パスワードがうまくいきませんか？"
     "vault_tip": "パスワードマネージャーに保存している場合は、マネージャー内を「speedpuzzling」または「auth0」で検索してみてください。以前のサインイン用ドメイン（%old_domain%）で登録されています。"

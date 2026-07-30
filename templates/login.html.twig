@@ -88,7 +88,7 @@
                        predates the hash export cutoff. Deliberately last in the
                        funnel, but visible - a gray outline button. #}
                     {% if auth0_fallback_login_enabled %}
-                        <a class="btn btn-outline-secondary w-100 mt-3" href="{{ path('auth0_fallback_login') }}" data-turbo="false">
+                        <a class="btn btn-outline-secondary w-100 mt-3 text-wrap" href="{{ path('auth0_fallback_login') }}" data-turbo="false">
                             <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'auth.login.auth0_fallback'|trans }}
                         </a>
                     {% endif %}

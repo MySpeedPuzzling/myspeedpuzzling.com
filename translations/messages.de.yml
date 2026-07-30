@@ -2872,7 +2872,7 @@ auth:
         password: "Passwort"
         submit: "Anmelden"
         or: "oder"
-        auth0_fallback: "Über die alte Auth0-Seite anmelden (vorübergehend)"
+        auth0_fallback: "Alte Auth0-Anmeldung (vorübergehend)"
     failure_helper:
         title: "Passwort funktioniert nicht?"
         vault_tip: "Wenn ein Passwort-Manager es gespeichert hat, suchen Sie dort nach „speedpuzzling“ oder „auth0“ – der Eintrag liegt unter unserer alten Anmelde-Domain (%old_domain%)."

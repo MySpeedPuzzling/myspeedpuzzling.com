@@ -151,7 +151,7 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
                 auditLogId: $this->pendingAuditIds[$objectId],
                 messageId: $messageIdHeader ?? $mtaOrHeader,
                 mtaQueueId: $mtaQueueId,
-                smtpDebugLog: $sentMessage->getDebug(),
+                smtpDebugLog: self::redactSmtpCredentials($sentMessage->getDebug()),
             ));
 
             unset($this->pendingAuditIds[$objectId]);
@@ -177,7 +177,7 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
             $this->messageBus->dispatch(new RecordEmailSendFailure(
                 auditLogId: $this->pendingAuditIds[$objectId],
                 errorMessage: $error->getMessage(),
-                smtpDebugLog: $debugLog,
+                smtpDebugLog: $debugLog === null ? null : self::redactSmtpCredentials($debugLog),
             ));
 
             unset($this->pendingAuditIds[$objectId]);
@@ -186,6 +186,27 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
                 'exception' => $e,
             ]);
         }
+    }
+
+    /**
+     * The transport debug log contains the verbatim SMTP conversation - including
+     * the AUTH exchange, where the client lines are base64-encoded credentials.
+     * Redact them before anything is persisted: every client line answering a
+     * "334" challenge (AUTH LOGIN) and the inline blob of AUTH PLAIN.
+     */
+    public static function redactSmtpCredentials(string $debug): string
+    {
+        $debug = (string) preg_replace('/(> AUTH PLAIN )\S+/', '$1[redacted]', $debug);
+
+        $lines = explode("\n", $debug);
+
+        foreach ($lines as $i => $line) {
+            if ($i > 0 && str_contains($lines[$i - 1], '< 334') && preg_match('/^(\[[^\]]*\] )?> /', $line, $matches) === 1) {
+                $lines[$i] = ($matches[1] ?? '') . '> [redacted]';
+            }
+        }
+
+        return implode("\n", $lines);
     }
 
     public function reset(): void

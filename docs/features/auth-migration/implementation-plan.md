@@ -108,14 +108,14 @@ Sequencing matters: signups are frozen at Stage A, so a single export generated 
 
 See [communication-plan.md](communication-plan.md). Gates: Stage A may not ship until announcement email + FAQ + banner are translated (6 locales) and ready to go out the same day. Stage B may not flip until the login microcopy is live-tested (the modal was dropped 2026-07-25 — see the D15 amendment).
 
-## Phase 4A — Stage A runbook (~Jul 29–31)
+## Phase 4A — Stage A runbook — **EXECUTED 2026-07-30**
 
-1. [ ] Full test suite green; window-A dual-wiring functional test green. **Panther: see the 2d note — the CI job is `if: false` and 17 of 52 tests fail on pre-existing UI drift, so "green incl. Panther" is not currently achievable. Fix or consciously drop it from this gate before Stage A.**
-2. [ ] Deploy (merge → GitHub Actions → lily webhook → blue-green as usual; migrations run on web boot). `native_registration` flag ON, `native_login` OFF.
-3. [ ] **[Jan]** Auth0 dashboard: Database connection → **Disable Sign Ups** ON.
-4. [ ] Smoke: native registration end-to-end (account + player + verification email + logged in), Auth0 login still works, register CTA points at native form.
-5. [ ] Send announcement email (batched); banner ON; FAQ live; socials post.
-6. [ ] **[Jan]** Pay Essentials + open the hash-export ticket (Phase 1.1–1.2) — same day.
+1. [x] Full test suite green (1434 unit/functional + 52 Panther). **Panther CI job re-disabled the same day** (`if: false` again): the Panther-managed `php -S` server serves requests with stale per-test DATABASE_URLs (putenv leakage + stat-cache staleness in one long-lived process) — harmless pre-2d, fatal with DB-backed sessions, and not reproducible in the local compose topology, which stays the Panther gate. Rebuild the job natively later (job container + services with `--network-alias` for the app, like the `tests` job). The suite gained permanent diagnostics from the hunt: loud login assertion + `/_test/whoami` db-identity probe + per-test cookie hygiene.
+2. [x] Deployed (PR #172, squash `2aed632f`): `NATIVE_REGISTRATION_ENABLED=1` ships in the repo `.env` (Jan's call — flip rides the deploy; box-side `.env` override is the rollback), `native_login` OFF.
+3. [x] **[Jan]** Auth0 Disable Sign Ups ON — **verified server-side**: `POST /dbconnections/signup` returns `{"error":"public signup is disabled"}`. The hosted page may keep showing a cosmetic "Sign up" link from cache; submission is refused.
+4. [x] Smoke (production): `/register` 200 native form + navbar Register CTA live; `/login` still 302s to Auth0 authorize. Real registration E2E left for a human pass (creates an account + syncs the address into Listmonk — use a real address).
+5. [x] Announcement went out 2026-07-30 via the newsletter (before the deploy — order swapped vs plan, deliberately); banner + FAQ live since 2c.
+6. [x] **[Jan]** Essentials paid; hash-export ticket open (dedicated "Export Password Hashes" category; PGP key generated — private key on Jan's Mac, fp 6D72…1CFA; signed executive acknowledgement required by Okta, wet-ink).
 7. [ ] Watch Sentry + registration funnel for 24h.
 
 ## Phase 4B — Stage B runbook (export imported; target ~Aug 6–12, low-traffic window)

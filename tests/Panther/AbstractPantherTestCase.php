@@ -81,6 +81,10 @@ abstract class AbstractPantherTestCase extends PantherTestCase
         // survive. Since native login (2d), the session token resolves through the
         // user_account table, so a stale session pointing into a dropped per-test
         // database must never leak into the next test: start every login clean.
+        // WebDriver can only delete cookies for the CURRENT page's origin, and
+        // Panther's tearDown leaves the browser on about:blank - land on the app
+        // origin first or the deletion is a silent no-op (bit us in CI, 2026-07-30).
+        $client->request('GET', '/_test/whoami');
         $client->getWebDriver()->manage()->deleteAllCookies();
 
         $client->request('GET', '/_test/login?' . $params);

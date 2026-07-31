@@ -61,6 +61,16 @@ final class RegisterUserHandlerTest extends KernelTestCase
         self::assertSame('register.one@example.com', $player->email);
         self::assertNotSame('', $player->code);
         self::assertSame('cs', $player->locale);
+
+        // The audit row must reference the account created in the same transaction
+        // (resolved via the identity map - a DB lookup could not see it yet)
+        /** @var false|array{user_account_id: null|string} $auditRow */
+        $auditRow = $this->entityManager->getConnection()->fetchAssociative(
+            "SELECT user_account_id FROM auth_audit_log WHERE event_type = 'registration' AND email = :email",
+            ['email' => 'register.one@example.com'],
+        );
+        self::assertNotFalse($auditRow);
+        self::assertSame($userAccount->id->toString(), $auditRow['user_account_id']);
     }
 
     public function testEmailAlreadyOnAnAccountIsRejectedRegardlessOfCase(): void

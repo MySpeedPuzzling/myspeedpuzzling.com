@@ -7,9 +7,12 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ResetPasswordRequest;
+use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Message\RequestPasswordReset;
 use SpeedPuzzling\Web\Repository\ResetPasswordRequestRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
+use SpeedPuzzling\Web\Services\AuthAuditRecorder;
+use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use SpeedPuzzling\Web\Value\PasswordResetToken;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -20,6 +23,7 @@ final readonly class RequestPasswordResetHandler
         private UserAccountRepository $userAccountRepository,
         private ResetPasswordRequestRepository $resetPasswordRequestRepository,
         private ClockInterface $clock,
+        private AuthAuditRecorder $authAuditRecorder,
     ) {
     }
 
@@ -31,6 +35,13 @@ final readonly class RequestPasswordResetHandler
      */
     public function __invoke(RequestPasswordReset $message): null|PasswordResetToken
     {
+        // Recorded for unknown addresses too - the audit handler looks the account
+        // up by email and leaves it null when there is none (probing visibility)
+        $this->authAuditRecorder->record(new RecordAuthAuditEvent(
+            eventType: AuthAuditEventType::PasswordResetRequested,
+            email: $message->email,
+        ));
+
         $userAccount = $this->userAccountRepository->findByEmail($message->email);
 
         if ($userAccount === null) {

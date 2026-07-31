@@ -7,8 +7,11 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use SpeedPuzzling\Web\Exceptions\CurrentPasswordDoesNotMatch;
 use SpeedPuzzling\Web\Exceptions\UserAccountNotFound;
 use SpeedPuzzling\Web\Message\ChangeAccountPassword;
+use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Repository\ResetPasswordRequestRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
+use SpeedPuzzling\Web\Services\AuthAuditRecorder;
+use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -28,6 +31,7 @@ final readonly class ChangeAccountPasswordHandler
         private UserAccountRepository $userAccountRepository,
         private ResetPasswordRequestRepository $resetPasswordRequestRepository,
         private UserPasswordHasherInterface $passwordHasher,
+        private AuthAuditRecorder $authAuditRecorder,
     ) {
     }
 
@@ -61,5 +65,11 @@ final readonly class ChangeAccountPasswordHandler
         // Whatever was outstanding for the old password dies with it: reset requests
         // explicitly, sign-in links implicitly (their signature covers the password)
         $this->resetPasswordRequestRepository->removeAllForUserAccount($userAccount);
+
+        $this->authAuditRecorder->record(new RecordAuthAuditEvent(
+            eventType: AuthAuditEventType::PasswordChanged,
+            userId: $userAccount->userId,
+            metadata: ['method' => 'change_password'],
+        ));
     }
 }

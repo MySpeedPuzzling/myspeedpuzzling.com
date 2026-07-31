@@ -164,6 +164,17 @@
                         </a>
                     </p>
                 </div>
+
+                <div class="card card-body shadow-lg my-3">
+                    <h3 class="h5">{{ 'account_activity.title'|trans }}</h3>
+                    <p class="text-muted fs-sm mb-3">{{ 'edit_profile.recent_activity_description'|trans }}</p>
+
+                    <p class="mb-0">
+                        <a class="btn btn-outline-primary" href="{{ path('account_recent_activity') }}">
+                            <i class="bi bi-shield-check me-1"></i>{{ 'edit_profile.recent_activity_button'|trans }}
+                        </a>
+                    </p>
+                </div>
             {% else %}
                 <div class="card card-body shadow-lg my-3">
                     <h3 class="h5">{{ 'edit_profile.change_password'|trans }}</h3>

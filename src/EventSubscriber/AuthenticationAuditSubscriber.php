@@ -8,8 +8,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\UserAccount;
+use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
+use SpeedPuzzling\Web\Services\AuthAuditRecorder;
+use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Security\Http\Authenticator\AuthenticatorInterface;
 use Symfony\Component\Security\Http\Authenticator\LoginLinkAuthenticator;
 use Symfony\Component\Security\Http\Event\LoginFailureEvent;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
@@ -25,6 +29,11 @@ use Symfony\Component\Security\Http\SecurityRequestAttributes;
  * Failures are logged only for the allowlisted native authenticators: during
  * window A the Auth0 authenticator fails on every anonymous request by design,
  * which would turn plain browsing into a warning flood.
+ *
+ * On top of the Monolog lines, every event lands in the auth_audit_log table
+ * (RecordAuthAuditEvent) - the queryable per-user history behind the
+ * recent-activity page. The recorder swallows failures: a broken audit write
+ * must never break login.
  */
 final readonly class AuthenticationAuditSubscriber implements EventSubscriberInterface
 {
@@ -34,6 +43,7 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
         private LoggerInterface $logger,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private AuthAuditRecorder $authAuditRecorder,
     ) {
     }
 
@@ -54,12 +64,13 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
 
         $user = $event->getUser();
         $authenticator = $event->getAuthenticator();
+        $signInLinkUsed = $authenticator instanceof LoginLinkAuthenticator;
 
         $this->logger->info('Login succeeded.', [
             'user_id' => $user->getUserIdentifier(),
             'authenticator' => $authenticator::class,
             // Phase 5 exit-metric counter (grep/Sentry-aggregatable)
-            'login_link_used' => $authenticator instanceof LoginLinkAuthenticator,
+            'login_link_used' => $signInLinkUsed,
         ]);
 
         if ($user instanceof UserAccount) {
@@ -70,6 +81,17 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
             // transaction exists - without an immediate flush the timestamp never persists.
             $this->entityManager->flush();
         }
+
+        $request = $event->getRequest();
+
+        $this->authAuditRecorder->record(new RecordAuthAuditEvent(
+            eventType: $signInLinkUsed ? AuthAuditEventType::SignInLinkUsed : AuthAuditEventType::LoginSuccess,
+            userId: $user->getUserIdentifier(),
+            email: $user instanceof UserAccount ? $user->email : null,
+            authenticator: self::authenticatorLabel($authenticator),
+            ipAddress: $request->getClientIp(),
+            userAgent: $request->headers->get('User-Agent'),
+        ));
     }
 
     public function onLoginFailure(LoginFailureEvent $event): void
@@ -85,15 +107,25 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
         }
 
         $request = $event->getRequest();
+        $email = $request->hasSession()
+            ? $request->getSession()->get(SecurityRequestAttributes::LAST_USERNAME)
+            : null;
 
         $this->logger->warning('Login failed.', [
             'authenticator' => $authenticator::class,
-            'email' => $request->hasSession()
-                ? $request->getSession()->get(SecurityRequestAttributes::LAST_USERNAME)
-                : null,
+            'email' => $email,
             'client_ip' => $request->getClientIp(),
             'exception' => $event->getException(),
         ]);
+
+        $this->authAuditRecorder->record(new RecordAuthAuditEvent(
+            eventType: AuthAuditEventType::LoginFailure,
+            email: is_string($email) ? $email : null,
+            authenticator: self::authenticatorLabel($authenticator),
+            ipAddress: $request->getClientIp(),
+            userAgent: $request->headers->get('User-Agent'),
+            metadata: ['reason' => $event->getException()::class],
+        ));
     }
 
     public function onLogout(LogoutEvent $event): void
@@ -107,5 +139,24 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
         $this->logger->info('Logout.', [
             'user_id' => $token->getUserIdentifier(),
         ]);
+
+        $request = $event->getRequest();
+
+        $this->authAuditRecorder->record(new RecordAuthAuditEvent(
+            eventType: AuthAuditEventType::Logout,
+            userId: $token->getUserIdentifier(),
+            ipAddress: $request->getClientIp(),
+            userAgent: $request->headers->get('User-Agent'),
+        ));
+    }
+
+    private static function authenticatorLabel(AuthenticatorInterface $authenticator): string
+    {
+        return match (true) {
+            $authenticator instanceof LoginFormAuthenticator => 'form',
+            $authenticator instanceof LoginLinkAuthenticator => 'login_link',
+            $authenticator instanceof \Auth0\Symfony\Security\Authenticator => 'auth0_fallback',
+            default => strtolower(substr(strrchr($authenticator::class, '\\') ?: $authenticator::class, 1)),
+        };
     }
 }

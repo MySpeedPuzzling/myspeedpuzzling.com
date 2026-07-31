@@ -10,10 +10,13 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\EmailAlreadyRegistered;
+use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Message\RegisterUser;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
+use SpeedPuzzling\Web\Services\AuthAuditRecorder;
 use SpeedPuzzling\Web\Services\GenerateUniquePlayerCode;
+use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -31,6 +34,7 @@ final readonly class RegisterUserHandler
         private UserPasswordHasherInterface $passwordHasher,
         private GenerateUniquePlayerCode $generateUniquePlayerCode,
         private ClockInterface $clock,
+        private AuthAuditRecorder $authAuditRecorder,
     ) {
     }
 
@@ -89,6 +93,13 @@ final readonly class RegisterUserHandler
         }
 
         $this->playerRepository->save($player);
+
+        $this->authAuditRecorder->record(new RecordAuthAuditEvent(
+            eventType: AuthAuditEventType::Registration,
+            userAccountId: $userAccount->id->toString(),
+            userId: $userId,
+            email: $email,
+        ));
 
         return $userId;
     }

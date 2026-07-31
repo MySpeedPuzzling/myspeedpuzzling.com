@@ -150,13 +150,22 @@ Note: the auth-migration README's post-launch-candidates line mentions `knpunive
 - **"Connected sign-in methods"** settings section (the settled name): list linked providers, link/unlink, **and set-password** for social-only accounts (opens the email+password door; the password-reset flow works too since the email is verified).
 - Translations: EN only.
 
-### Feature flags
+### Feature flags + admin-only rollout stage (Jan 2026-07-31)
 
-One flag per provider: `SOCIAL_LOGIN_GOOGLE_ENABLED`, `SOCIAL_LOGIN_APPLE_ENABLED`, `SOCIAL_LOGIN_FACEBOOK_ENABLED` (default `0` in repo `.env`; button rendering + start route + authenticator acceptance all gated). Allows shipping code dark and flipping per provider as Jan finishes each console setup. **Update `docs/features/feature_flags.md`** (project rule).
+One flag per provider: `SOCIAL_LOGIN_GOOGLE_ENABLED`, `SOCIAL_LOGIN_APPLE_ENABLED`, `SOCIAL_LOGIN_FACEBOOK_ENABLED` (default `0` in repo `.env`; button rendering + start route + authenticator acceptance all gated). Allows shipping code dark and flipping per provider as Jan finishes each console setup.
+
+**Plus `SOCIAL_LOGIN_ADMIN_ONLY` (default `1`)** — even with a provider enabled, social login stays invisible to the public until Jan flips this to `0` after verifying everything end-to-end in production. Admin = `player.isAdmin` via the existing `AdminAccessVoter` (`is_granted('ADMIN_ACCESS')`). While admin-only:
+
+- **`/login` and `/register` render NO social buttons for anyone.** Two reasons: the viewer is anonymous (admin status unknowable), and those pages are anonymously cached (`public, s-maxage=60`, PR #164) — per-viewer conditional rendering would poison the shared cache. Rendering nothing keeps the cache uniform.
+- **Admins test the logged-out login flow via direct URL** (`/login/social/google`). The start route stays reachable for anonymous visitors; enforcement happens in the **callback**, where identity is finally known: if the resolved account's player is not an admin → generic authentication failure (no hint the feature exists). Rule 4 (new-account creation) is **fully disabled** in admin-only mode.
+- **Edit-profile "Connected sign-in methods" section renders only for `is_granted('ADMIN_ACCESS')`** (logged-in page, not publicly cached — safe), and the link/unlink handlers enforce the same check server-side.
+
+Flip `SOCIAL_LOGIN_ADMIN_ONLY=0` → public launch. **Update `docs/features/feature_flags.md`** for all four flags (project rule).
 
 ### Env vars (all empty-default in repo `.env`; prod via Infisical)
 
 ```
+SOCIAL_LOGIN_ADMIN_ONLY=1
 SOCIAL_LOGIN_GOOGLE_ENABLED=0
 GOOGLE_CLIENT_ID= / GOOGLE_CLIENT_SECRET=
 SOCIAL_LOGIN_FACEBOOK_ENABLED=0
@@ -210,7 +219,7 @@ Two PRs, in order:
 - Google Cloud console: OAuth consent screen + web credentials; redirect URIs for prod + dev
 - Meta developers: app, Live mode, privacy policy URL
 - Apple Developer: Services ID, domain verification, `.p8` key, **register `mail.myspeedpuzzling.com` for private-relay email**
-- Infisical: all secrets; flip flags per provider when ready
+- Infisical: all secrets; flip flags per provider when ready; verify each provider end-to-end as admin, then `SOCIAL_LOGIN_ADMIN_ONLY=0` = public launch
 - Add prune cron on the box
 
 ## Explicitly out of scope (revisit later)

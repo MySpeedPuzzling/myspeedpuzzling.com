@@ -498,6 +498,22 @@
   "change_password_social_login": "Inicias sesión con una cuenta externa (como Google o Facebook), así que no hay ninguna contraseña de MySpeedPuzzling que cambiar. Puedes cambiar tu contraseña desde tu proveedor de inicio de sesión."
   "change_password_native_description": "Establece una contraseña nueva usando la actual. Tu gestor de contraseñas la guardará bajo myspeedpuzzling.com."
   "change_password_native_button": "Cambiar contraseña"
+  "recent_activity_description": "Revisa los inicios de sesión y los cambios de seguridad recientes en tu cuenta, incluido desde dónde se hicieron."
+  "recent_activity_button": "Ver actividad reciente"
+  "social":
+    "title": "Métodos de inicio de sesión conectados"
+    "description": "Inicia sesión en esta misma cuenta con Google, Apple o Facebook. Al conectar aquí un proveedor, queda vinculado a esta cuenta, incluso si usa una dirección de correo electrónico diferente."
+    "connect": "Conectar %provider%"
+    "disconnect": "Desconectar"
+    "disconnected": "%provider% desconectado."
+    "linked_at": "Conectado"
+    "cannot_unlink_last": "Actualmente esta es la única forma de iniciar sesión en tu cuenta. Añade primero una contraseña y luego desconéctalo."
+    "no_password_hint": "Tu cuenta no tiene contraseña: inicias sesión con una cuenta conectada. Añade una contraseña para habilitar también el inicio de sesión con correo electrónico + contraseña."
+    "set_password_button": "Añadir una contraseña"
+    "result_connected": "¡Conectado! Ya puedes usarlo para iniciar sesión."
+    "result_already_linked": "Esa cuenta del proveedor ya está conectada a una cuenta de MySpeedPuzzling."
+    "result_cancelled": "Conexión cancelada: no ha cambiado nada."
+    "result_failed": "No hemos podido conectarlo. Inténtalo de nuevo en un momento."
   "change_password_current": "Contraseña actual"
   "change_password_new": "Nueva contraseña"
   "change_password_wrong_current": "Esa no es tu contraseña actual."
@@ -2954,6 +2970,21 @@ fair_use_policy:
     "invalid":
       "headline": "Este enlace de restablecimiento no funciona"
       "message": "Puede que ya se haya usado, o que un enlace de restablecimiento más nuevo lo haya sustituido. Solicita uno nuevo aquí abajo."
+  "social":
+    "or_continue_with": "o continúa con"
+    "continue_with": "Continuar con %provider%"
+    "attempt_expired": "Ese intento de inicio de sesión ha caducado o ya se ha usado. Por favor, inténtalo de nuevo."
+    "confirm":
+      "title": "¿Crear una cuenta nueva?"
+      "question": "Has iniciado sesión con %provider% como %email%, y todavía ninguna cuenta de MySpeedPuzzling usa esta dirección de correo electrónico. ¿Crear una cuenta nueva?"
+      "create": "Crear mi cuenta"
+      "have_account": "¿Ya tienes una cuenta de MySpeedPuzzling con otra dirección de correo electrónico? Inicia sesión en ella primero y luego conecta %provider% en la configuración de tu perfil; de lo contrario, acabarías con dos cuentas separadas."
+      "expired": "Esa confirmación de registro ha caducado. Por favor, intenta iniciar sesión de nuevo."
+      "created": "¡Bienvenido! Tu cuenta ya está lista y has iniciado sesión."
+  "account_set_password":
+    "title": "Añadir una contraseña"
+    "intro": "Inicias sesión con una cuenta conectada. Al añadir una contraseña se abre también la puerta clásica de correo electrónico + contraseña: útil como método de acceso de reserva."
+    "back": "Volver a la configuración del perfil"
 
 newsletter:
     footer:
@@ -3009,3 +3040,22 @@ email_preferences:
     save_button: "Guardar mis preferencias"
     more_hint: "¿Buscas más? Todos los ajustes de tu cuenta están en tu perfil."
     more_link: "Abrir ajustes del perfil"
+
+account_activity:
+    title: "Actividad reciente de la cuenta"
+    description: "Los últimos 50 eventos de seguridad de tu cuenta: inicios de sesión, intentos fallidos y cambios de contraseña."
+    no_events: "Todavía no hay actividad registrada en la cuenta."
+    footer_hint: "¿Ves un inicio de sesión que no reconoces? Cambia tu contraseña de inmediato."
+    column_event: "Evento"
+    column_when: "Cuándo"
+    column_ip: "Dirección IP"
+    column_device: "Dispositivo"
+    event:
+        login_success: "Inicio de sesión"
+        sign_in_link_used: "Inicio de sesión con un enlace enviado por correo"
+        login_failure: "Intento de inicio de sesión fallido"
+        password_changed: "Contraseña cambiada"
+        password_reset_completed: "Contraseña restablecida"
+        oauth_login: "Inicio de sesión con una cuenta conectada"
+        oauth_identity_linked: "Método de inicio de sesión conectado"
+        oauth_identity_unlinked: "Método de inicio de sesión desconectado"

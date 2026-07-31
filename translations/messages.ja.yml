@@ -841,6 +841,22 @@
   "change_password_social_login": "外部アカウント（GoogleやFacebookなど）でサインインしているため、変更できるMySpeedPuzzlingのパスワードはありません。パスワードの変更はご利用のログインプロバイダーで行ってください。"
   "change_password_native_description": "現在のパスワードを使って、新しいパスワードを設定します。パスワードマネージャーはmyspeedpuzzling.comのものとして保存します。"
   "change_password_native_button": "パスワードを変更"
+  "recent_activity_description": "アカウントでの最近のサインインやセキュリティ変更を、どこからのアクセスかも含めて確認できます。"
+  "recent_activity_button": "最近のアクティビティを表示"
+  "social":
+    "title": "接続済みのサインイン方法"
+    "description": "Google、Apple、Facebookでもこの同じアカウントにサインインできます。ここでプロバイダーを接続すると、たとえ別のメールアドレスを使用していても、このアカウントに紐づけられます。"
+    "connect": "%provider%を接続"
+    "disconnect": "接続を解除"
+    "disconnected": "%provider%の接続を解除しました。"
+    "linked_at": "接続日"
+    "cannot_unlink_last": "これは現在、アカウントにサインインできる唯一の方法です。先にパスワードを追加してから、接続を解除してください。"
+    "no_password_hint": "このアカウントにはパスワードが設定されておらず、接続済みアカウントでサインインしています。パスワードを追加すると、メールアドレス＋パスワードでのサインインも利用できるようになります。"
+    "set_password_button": "パスワードを追加"
+    "result_connected": "接続しました！これでサインインに使用できます。"
+    "result_already_linked": "そのプロバイダーのアカウントは、すでにMySpeedPuzzlingアカウントに接続されています。"
+    "result_cancelled": "接続をキャンセルしました — 変更はありません。"
+    "result_failed": "接続できませんでした。しばらくしてからもう一度お試しください。"
   "change_password_current": "現在のパスワード"
   "change_password_new": "新しいパスワード"
   "change_password_wrong_current": "現在のパスワードが正しくありません。"
@@ -2943,6 +2959,21 @@ qr_code:
     "invalid":
       "headline": "このリセットリンクは使用できません"
       "message": "すでに使用済みか、新しいリセットリンクに置き換えられた可能性があります。下記から新しいリンクをリクエストしてください。"
+  "social":
+    "or_continue_with": "または次の方法で続ける"
+    "continue_with": "%provider%で続ける"
+    "attempt_expired": "このサインインの試行は期限切れか、すでに使用されています。もう一度お試しください。"
+    "confirm":
+      "title": "新しいアカウントを作成しますか？"
+      "question": "%provider%で%email%としてサインインしましたが、このメールアドレスを使用しているMySpeedPuzzlingアカウントはまだありません。新しいアカウントを作成しますか？"
+      "create": "アカウントを作成"
+      "have_account": "別のメールアドレスでMySpeedPuzzlingアカウントをすでにお持ちですか？まずそのアカウントにサインインしてから、プロフィール設定で%provider%を接続してください — そうしないと、2つの別々のアカウントができてしまいます。"
+      "expired": "この登録確認は期限切れです。もう一度サインインをお試しください。"
+      "created": "ようこそ！アカウントの準備が整い、サインインが完了しました。"
+  "account_set_password":
+    "title": "パスワードを追加"
+    "intro": "現在は接続済みアカウントでサインインしています。パスワードを追加すると、従来のメールアドレス＋パスワードでのサインインも利用できるようになります — 予備のサインイン方法として便利です。"
+    "back": "プロフィール設定に戻る"
 
 newsletter:
     footer:
@@ -2998,3 +3029,22 @@ email_preferences:
     save_button: "設定を保存"
     more_hint: "その他の設定は、プロフィールからご確認いただけます。"
     more_link: "プロフィール設定を開く"
+
+account_activity:
+    title: "最近のアカウントアクティビティ"
+    description: "アカウントで発生した直近50件のセキュリティイベント — サインイン、失敗した試行、パスワードの変更です。"
+    no_events: "アカウントアクティビティはまだ記録されていません。"
+    footer_hint: "心当たりのないサインインがありますか？すぐにパスワードを変更してください。"
+    column_event: "イベント"
+    column_when: "日時"
+    column_ip: "IPアドレス"
+    column_device: "デバイス"
+    event:
+        login_success: "サインイン"
+        sign_in_link_used: "メールで届いたリンクでのサインイン"
+        login_failure: "サインインの失敗"
+        password_changed: "パスワードの変更"
+        password_reset_completed: "パスワードのリセット"
+        oauth_login: "接続済みアカウントでのサインイン"
+        oauth_identity_linked: "サインイン方法の接続"
+        oauth_identity_unlinked: "サインイン方法の接続解除"

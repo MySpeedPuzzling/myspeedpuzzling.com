@@ -753,6 +753,22 @@
   "change_password_social_login": "Přihlašujete se přes externí účet (například Google nebo Facebook), takže na MySpeedPuzzling žádné heslo nemáte. Změnit si ho můžete u svého poskytovatele přihlášení."
   "change_password_native_description": "Nastavte si nové heslo pomocí toho současného. Váš správce hesel ho uloží pod doménou myspeedpuzzling.com."
   "change_password_native_button": "Změnit heslo"
+  "recent_activity_description": "Projděte si nedávná přihlášení a bezpečnostní změny na svém účtu, včetně toho, odkud přišly."
+  "recent_activity_button": "Zobrazit nedávnou aktivitu"
+  "social":
+    "title": "Propojené způsoby přihlášení"
+    "description": "Přihlašujte se ke stejnému účtu přes Google, Apple nebo Facebook. Propojením poskytovatele zde ho navážete na tento účet — i když používá jinou e-mailovou adresu."
+    "connect": "Propojit %provider%"
+    "disconnect": "Odpojit"
+    "disconnected": "%provider% je odpojený."
+    "linked_at": "Propojeno"
+    "cannot_unlink_last": "Tohle je momentálně jediný způsob, jak se přihlásit k vašemu účtu. Nejprve si přidejte heslo a teprve poté ho odpojte."
+    "no_password_hint": "Váš účet nemá heslo — přihlašujete se přes propojený účet. Přidáním hesla si zapnete i přihlášení e-mailem a heslem."
+    "set_password_button": "Přidat heslo"
+    "result_connected": "Propojeno! Odteď se přes něj můžete přihlašovat."
+    "result_already_linked": "Tento účet poskytovatele už je propojený s účtem na MySpeedPuzzling."
+    "result_cancelled": "Propojení zrušeno — nic se nezměnilo."
+    "result_failed": "Propojení se nepodařilo. Zkuste to prosím za chvíli znovu."
   "change_password_current": "Současné heslo"
   "change_password_new": "Nové heslo"
   "change_password_wrong_current": "To není vaše současné heslo."
@@ -2952,6 +2968,21 @@ auth:
         invalid:
             headline: "Tento odkaz pro obnovu hesla nefunguje"
             message: "Možná už byl použit, nebo ho nahradil novější odkaz pro obnovu hesla. Níže si vyžádejte nový."
+    social:
+        or_continue_with: "nebo pokračujte přes"
+        continue_with: "Pokračovat přes %provider%"
+        attempt_expired: "Tento pokus o přihlášení vypršel nebo už byl použit. Zkuste to prosím znovu."
+        confirm:
+            title: "Vytvořit nový účet?"
+            question: "Přihlásili jste se přes %provider% jako %email% a tuto e-mailovou adresu zatím žádný účet na MySpeedPuzzling nepoužívá. Vytvořit nový účet?"
+            create: "Vytvořit můj účet"
+            have_account: "Máte už účet na MySpeedPuzzling pod jinou e-mailovou adresou? Nejprve se do něj přihlaste a poté si %provider% propojte v nastavení profilu — jinak byste skončili se dvěma oddělenými účty."
+            expired: "Toto potvrzení registrace vypršelo. Zkuste se prosím přihlásit znovu."
+            created: "Vítejte! Váš účet je připravený a jste přihlášeni."
+    account_set_password:
+        title: "Přidat heslo"
+        intro: "Přihlašujete se přes propojený účet. Přidáním hesla si otevřete i klasickou cestu e-mail + heslo — hodí se jako záložní způsob přihlášení."
+        back: "Zpět na nastavení profilu"
 
 newsletter:
     footer:
@@ -3007,3 +3038,22 @@ email_preferences:
     save_button: "Uložit nastavení"
     more_hint: "Hledáte víc? Všechna nastavení účtu najdete ve svém profilu."
     more_link: "Otevřít nastavení profilu"
+
+account_activity:
+    title: "Nedávná aktivita na účtu"
+    description: "Posledních 50 bezpečnostních událostí na vašem účtu — přihlášení, neúspěšné pokusy a změny hesla."
+    no_events: "Zatím není zaznamenaná žádná aktivita na účtu."
+    footer_hint: "Vidíte přihlášení, které nepoznáváte? Ihned si změňte heslo."
+    column_event: "Událost"
+    column_when: "Kdy"
+    column_ip: "IP adresa"
+    column_device: "Zařízení"
+    event:
+        login_success: "Úspěšné přihlášení"
+        sign_in_link_used: "Přihlášení odkazem z e-mailu"
+        login_failure: "Neúspěšný pokus o přihlášení"
+        password_changed: "Změna hesla"
+        password_reset_completed: "Obnovení hesla"
+        oauth_login: "Přihlášení přes propojený účet"
+        oauth_identity_linked: "Propojení způsobu přihlášení"
+        oauth_identity_unlinked: "Odpojení způsobu přihlášení"

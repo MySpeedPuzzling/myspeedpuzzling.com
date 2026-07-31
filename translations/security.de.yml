@@ -4,3 +4,8 @@
 # built-in message ("Invalid credentials.", throttling, ...) in all six locales.
 "This password was found in a public data breach. To protect your account, please reset your password to sign in.": "Dieses Passwort wurde in einem öffentlichen Datenleck gefunden. Bitte setzen Sie zum Schutz Ihres Kontos Ihr Passwort zurück, um sich anzumelden."
 "Sign-in is temporarily unavailable. Please try again in a moment.": "Die Anmeldung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es gleich noch einmal."
+
+# Messages thrown by SocialAccountResolver (auth hardening PR 2), same pattern:
+# the English sentence is the key.
+"An account with this email address already exists. Sign in with your password first, then connect %provider% in your profile settings.": "Für diese E-Mail-Adresse gibt es bereits ein Konto. Melden Sie sich zuerst mit Ihrem Passwort an und verbinden Sie %provider% dann in Ihren Profileinstellungen."
+"%provider% did not share an email address with us, so we cannot sign you in this way. Please sign in another way.": "%provider% hat uns keine E-Mail-Adresse mitgeteilt, deshalb können wir Sie auf diesem Weg nicht anmelden. Bitte melden Sie sich auf einem anderen Weg an."

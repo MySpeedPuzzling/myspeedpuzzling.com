@@ -215,12 +215,14 @@ Two PRs, in order:
 5. Login/register buttons + "Connected sign-in methods" settings UI: connect buttons (rule 5 — works with a different provider email), unlink with invariant, set-password for null-password accounts **reusing the existing `SetAccountPassword` message** (shown only when `password === null`)
 6. `feature_flags.md`, CLAUDE.md feature pointer, fixtures if needed
 
-**Jan's manual tasks** (not for the implementing agent):
+**Jan's manual tasks** (not for the implementing agent) — **step-by-step guides: [`setup-google.md`](setup-google.md), [`setup-facebook.md`](setup-facebook.md), [`setup-apple.md`](setup-apple.md)** (do them in that order):
 - Google Cloud console: OAuth consent screen + web credentials; redirect URIs for prod + dev
 - Meta developers: app, Live mode, privacy policy URL
 - Apple Developer: Services ID, domain verification, `.p8` key, **register `mail.myspeedpuzzling.com` for private-relay email**
 - Infisical: all secrets; flip flags per provider when ready; verify each provider end-to-end as admin, then `SOCIAL_LOGIN_ADMIN_ONLY=0` = public launch
 - Add prune cron on the box
+
+Shared facts baked into the guides: one redirect URI per provider (`https://myspeedpuzzling.com/login/social/{provider}/callback` — link flows reuse it via the state payload's intent), Apple is untestable on localhost (verify in production behind the admin-only flag), rollback per provider = flip its flag to `0`.
 
 ## Explicitly out of scope (revisit later)
 

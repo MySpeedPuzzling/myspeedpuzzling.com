@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\DeletePlayer;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -43,6 +45,41 @@ final class DeletePlayerHandlerTest extends KernelTestCase
         $this->entityManager->clear();
 
         self::assertNull($this->entityManager->find(Player::class, PlayerFixture::PLAYER_REGULAR));
+    }
+
+    public function testDeletesUserAccountAndItsAuditTrail(): void
+    {
+        // The account row (login email + password hash) must not survive a GDPR
+        // deletion, and its audit trail cascades with it at the DB level
+        $userAccount = new UserAccount(
+            Uuid::uuid7(),
+            PlayerFixture::PLAYER_REGULAR_USER_ID,
+            'delete.me@example.com',
+            new \DateTimeImmutable(),
+        );
+        $this->entityManager->persist($userAccount);
+        $this->entityManager->flush();
+
+        $connection = $this->entityManager->getConnection();
+        $connection->insert('auth_audit_log', [
+            'id' => Uuid::uuid7()->toString(),
+            'user_account_id' => $userAccount->id->toString(),
+            'email' => $userAccount->email,
+            'event_type' => 'login_success',
+            'occurred_at' => new \DateTimeImmutable()->format('Y-m-d H:i:sP'),
+        ]);
+
+        $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_REGULAR));
+        $this->entityManager->clear();
+
+        self::assertNull($this->entityManager->find(UserAccount::class, $userAccount->id));
+
+        /** @var int|string $auditCount */
+        $auditCount = $connection->fetchOne(
+            'SELECT COUNT(*) FROM auth_audit_log WHERE user_account_id = :id',
+            ['id' => $userAccount->id->toString()],
+        );
+        self::assertSame(0, (int) $auditCount, 'Audit rows must cascade with the account');
     }
 
     public function testTransfersTeamOwnershipWhenOwnerIsDeleted(): void

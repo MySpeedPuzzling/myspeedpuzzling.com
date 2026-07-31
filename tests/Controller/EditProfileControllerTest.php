@@ -48,6 +48,7 @@ final class EditProfileControllerTest extends WebTestCase
         // ... and none of the native cards, which have nothing to act on here
         self::assertCount(0, $crawler->filter('a[href$="/edit-profile/change-password"]'));
         self::assertCount(0, $crawler->filter('a[href$="/edit-profile/change-email"]'));
+        self::assertCount(0, $crawler->filter('a[href$="/account/recent-activity"]'));
     }
 
     /**
@@ -67,6 +68,7 @@ final class EditProfileControllerTest extends WebTestCase
 
         self::assertCount(1, $crawler->filter('a[href$="/edit-profile/change-password"]'));
         self::assertCount(1, $crawler->filter('a[href$="/edit-profile/change-email"]'));
+        self::assertCount(1, $crawler->filter('a[href$="/account/recent-activity"]'));
 
         // ... and no #161 Auth0 reset-email form for a native account
         self::assertCount(0, $crawler->filter('form[action="/en/change-password"]'));

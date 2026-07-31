@@ -8,9 +8,12 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\EmailVerificationTokenExpired;
 use SpeedPuzzling\Web\Exceptions\InvalidEmailVerificationToken;
+use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Message\VerifyEmail;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
+use SpeedPuzzling\Web\Services\AuthAuditRecorder;
 use SpeedPuzzling\Web\Services\EmailVerificationTokenSigner;
+use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -20,6 +23,7 @@ final readonly class VerifyEmailHandler
         private EmailVerificationTokenSigner $tokenSigner,
         private UserAccountRepository $userAccountRepository,
         private ClockInterface $clock,
+        private AuthAuditRecorder $authAuditRecorder,
     ) {
     }
 
@@ -42,5 +46,10 @@ final readonly class VerifyEmailHandler
         }
 
         $userAccount->markEmailVerified($this->clock->now());
+
+        $this->authAuditRecorder->record(new RecordAuthAuditEvent(
+            eventType: AuthAuditEventType::EmailVerified,
+            userId: $userAccount->userId,
+        ));
     }
 }

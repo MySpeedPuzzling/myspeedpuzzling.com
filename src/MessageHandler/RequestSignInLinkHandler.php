@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Message\RequestSignInLink;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Security\SingleUseLoginLinkHandler;
+use SpeedPuzzling\Web\Services\AuthAuditRecorder;
+use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -32,12 +35,20 @@ final readonly class RequestSignInLinkHandler
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
         private LoggerInterface $logger,
+        private AuthAuditRecorder $authAuditRecorder,
         private int $signInLinkLifetimeSeconds,
     ) {
     }
 
     public function __invoke(RequestSignInLink $message): void
     {
+        // Recorded for unknown addresses too - the audit handler looks the account
+        // up by email and leaves it null when there is none (probing visibility)
+        $this->authAuditRecorder->record(new RecordAuthAuditEvent(
+            eventType: AuthAuditEventType::SignInLinkRequested,
+            email: $message->email,
+        ));
+
         $userAccount = $this->userAccountRepository->findByEmail($message->email);
 
         if ($userAccount === null) {

@@ -9,9 +9,12 @@ use SpeedPuzzling\Web\Exceptions\CurrentPasswordDoesNotMatch;
 use SpeedPuzzling\Web\Exceptions\EmailAlreadyRegistered;
 use SpeedPuzzling\Web\Exceptions\UserAccountNotFound;
 use SpeedPuzzling\Web\Message\ChangeAccountEmail;
+use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\ResetPasswordRequestRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
+use SpeedPuzzling\Web\Services\AuthAuditRecorder;
+use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -34,6 +37,7 @@ final readonly class ChangeAccountEmailHandler
         private PlayerRepository $playerRepository,
         private ResetPasswordRequestRepository $resetPasswordRequestRepository,
         private UserPasswordHasherInterface $passwordHasher,
+        private AuthAuditRecorder $authAuditRecorder,
     ) {
     }
 
@@ -78,7 +82,15 @@ final readonly class ChangeAccountEmailHandler
             throw new EmailAlreadyRegistered();
         }
 
+        $previousEmail = $userAccount->email;
         $userAccount->changeEmail($newEmail);
+
+        $this->authAuditRecorder->record(new RecordAuthAuditEvent(
+            eventType: AuthAuditEventType::EmailChangeRequested,
+            userId: $userAccount->userId,
+            email: $newEmail,
+            metadata: ['previous_email' => $previousEmail],
+        ));
 
         // A reset link already on its way to the OLD address must die with it. Losing
         // control of that mailbox is one of the reasons people change their address,

@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Controllers\AuthenticationController;
+use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
+use SpeedPuzzling\Web\Services\AuthAuditRecorder;
+use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,6 +29,7 @@ final class Auth0FallbackLoginController extends AbstractController
 {
     public function __construct(
         private readonly AuthenticationController $auth0AuthenticationController,
+        private readonly AuthAuditRecorder $authAuditRecorder,
         private readonly bool $auth0FallbackLoginEnabled,
     ) {
     }
@@ -40,6 +44,16 @@ final class Auth0FallbackLoginController extends AbstractController
         if ($this->getUser() !== null) {
             return $this->redirectToRoute('my_profile');
         }
+
+        // Who comes back through the Auth0 door is not known yet (the redirect
+        // starts here, identity arrives at the callback) - the row still counts
+        // fallback usage, which is the Phase 6 exit metric
+        $this->authAuditRecorder->record(new RecordAuthAuditEvent(
+            eventType: AuthAuditEventType::Auth0FallbackLogin,
+            authenticator: 'auth0_fallback',
+            ipAddress: $request->getClientIp(),
+            userAgent: $request->headers->get('User-Agent'),
+        ));
 
         return $this->auth0AuthenticationController->login($request);
     }

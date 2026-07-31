@@ -57,6 +57,13 @@ final class ResetPasswordHandlerTest extends KernelTestCase
         self::assertTrue($this->passwordHasher->isPasswordValid($userAccount, 'brand-new-password-123'));
 
         self::assertNull($this->resetPasswordRequestRepository->findBySelector($token->selector));
+
+        /** @var int|string $auditCount */
+        $auditCount = $this->entityManager->getConnection()->fetchOne(
+            "SELECT COUNT(*) FROM auth_audit_log WHERE event_type = 'password_reset_completed' AND user_account_id = :id",
+            ['id' => $userAccount->id->toString()],
+        );
+        self::assertSame(1, (int) $auditCount);
     }
 
     public function testTokenCannotBeReused(): void

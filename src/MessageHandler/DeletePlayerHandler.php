@@ -37,6 +37,7 @@ use SpeedPuzzling\Web\Message\DeletePlayer;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
 use SpeedPuzzling\Web\Repository\NewsletterSubscriberRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use Stripe\Exception\ApiErrorException;
@@ -54,6 +55,7 @@ final class DeletePlayerHandler
         private readonly LoggerInterface $logger,
         private readonly NewsletterSubscriberRepository $newsletterSubscriberRepository,
         private readonly MessageBusInterface $messageBus,
+        private readonly UserAccountRepository $userAccountRepository,
     ) {
     }
 
@@ -91,6 +93,7 @@ final class DeletePlayerHandler
             $this->entityManager->remove($membership);
         }
 
+        $this->deleteUserAccount($player);
         $this->entityManager->remove($player);
 
         $this->logger->info('Player deleted via GDPR request', [
@@ -408,6 +411,25 @@ final class DeletePlayerHandler
         }
 
         $this->messageBus->dispatch(new RemoveNewsletterSubscriberFromListmonk($email));
+    }
+
+    /**
+     * The account row carries the login email + password hash - PII that must not
+     * survive a GDPR deletion (the user can always re-register). Dependent rows
+     * (auth_audit_log, reset/login-link requests) go with it via DB-level
+     * ON DELETE CASCADE.
+     */
+    private function deleteUserAccount(Player $player): void
+    {
+        if ($player->userId === null) {
+            return;
+        }
+
+        $userAccount = $this->userAccountRepository->findByUserId($player->userId);
+
+        if ($userAccount !== null) {
+            $this->entityManager->remove($userAccount);
+        }
     }
 
     private function hashEmailAuditLog(Player $player): void

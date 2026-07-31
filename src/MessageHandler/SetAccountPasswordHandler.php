@@ -6,9 +6,12 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\UserAccountNotFound;
+use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Message\SetAccountPassword;
 use SpeedPuzzling\Web\Repository\ResetPasswordRequestRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
+use SpeedPuzzling\Web\Services\AuthAuditRecorder;
+use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -20,6 +23,7 @@ final readonly class SetAccountPasswordHandler
         private ResetPasswordRequestRepository $resetPasswordRequestRepository,
         private UserPasswordHasherInterface $passwordHasher,
         private LoggerInterface $logger,
+        private AuthAuditRecorder $authAuditRecorder,
     ) {
     }
 
@@ -48,5 +52,11 @@ final readonly class SetAccountPasswordHandler
             'user_id' => $message->userId,
             'password_prompt_completed' => true,
         ]);
+
+        $this->authAuditRecorder->record(new RecordAuthAuditEvent(
+            eventType: AuthAuditEventType::PasswordChanged,
+            userId: $userAccount->userId,
+            metadata: ['method' => 'set_password'],
+        ));
     }
 }

@@ -6,9 +6,12 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use SpeedPuzzling\Web\Exceptions\InvalidPasswordResetToken;
 use SpeedPuzzling\Web\Exceptions\PasswordResetTokenExpired;
+use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Message\ResetPassword;
 use SpeedPuzzling\Web\Repository\ResetPasswordRequestRepository;
+use SpeedPuzzling\Web\Services\AuthAuditRecorder;
 use SpeedPuzzling\Web\Services\ValidatePasswordResetToken;
+use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -19,6 +22,7 @@ final readonly class ResetPasswordHandler
         private ValidatePasswordResetToken $validatePasswordResetToken,
         private ResetPasswordRequestRepository $resetPasswordRequestRepository,
         private UserPasswordHasherInterface $passwordHasher,
+        private AuthAuditRecorder $authAuditRecorder,
     ) {
     }
 
@@ -36,5 +40,10 @@ final readonly class ResetPasswordHandler
 
         // Single use: consume this token and invalidate every other open request for the account
         $this->resetPasswordRequestRepository->removeAllForUserAccount($userAccount);
+
+        $this->authAuditRecorder->record(new RecordAuthAuditEvent(
+            eventType: AuthAuditEventType::PasswordResetCompleted,
+            userId: $userAccount->userId,
+        ));
     }
 }

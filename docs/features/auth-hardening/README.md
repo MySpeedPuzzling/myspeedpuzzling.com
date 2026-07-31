@@ -70,9 +70,9 @@ Handler detail: resolve `user_account_id` from the email when the dispatch site 
 
 Console command → `PruneAuthAuditLog` message → handler deletes rows `occurred_at < now - 24 months` (single SQL DELETE, no hydration). **Mirror the existing `CleanupEmailAuditLogs` message/handler/command trio exactly** — same shape, proven pattern. Cron on the box: daily. IP addresses are personal data — the retention window is the GDPR justification; 24 months matches the "investigate account issues" purpose.
 
-### ⚠️ GDPR deletion gap (pre-existing, found during the reality check 2026-07-31 — DECISION NEEDED)
+### ⚠️ GDPR deletion gap (pre-existing, found during the reality check — DECIDED 2026-07-31: fix it)
 
-`DeletePlayerHandler` deletes the `Player`, owned rows, membership, and the Listmonk record — but **never deletes the `user_account` row**: email + password hash survive a GDPR account deletion. This predates this feature (the handler predates `user_account`; in the Auth0 era the identity lived at Auth0 and survived player deletion the same way). It matters now because (a) `user_account` holds PII in *our* DB, and (b) both new tables FK-cascade off `user_account`, so the cascade only means something if the account row actually gets deleted. **Recommendation: `DeletePlayerHandler` also removes the `UserAccount` (lookup by `player.userId`) — the user can re-register.** If the identity-survives semantics were intentional, record that instead. Fix belongs in PR 1.
+`DeletePlayerHandler` deletes the `Player`, owned rows, membership, and the Listmonk record — but **never deletes the `user_account` row**: email + password hash survive a GDPR account deletion. This predates this feature (the handler predates `user_account`; in the Auth0 era the identity lived at Auth0 and survived player deletion the same way). It matters now because (a) `user_account` holds PII in *our* DB, and (b) both new tables FK-cascade off `user_account`, so the cascade only means something if the account row actually gets deleted. **Decision (Jan, 2026-07-31): `DeletePlayerHandler` also removes the `UserAccount` (lookup by `player.userId`) — the user can re-register.** Fix ships in PR 1.
 
 ### Recent activity page (user-facing)
 
@@ -122,6 +122,14 @@ Note: the auth-migration README's post-launch-candidates line mentions `knpunive
 - **Invariant (settled):** every account keeps ≥1 sign-in method — `password IS NOT NULL OR ≥1 oauth_identity` — enforced in **both** the unlink handler and the remove-password handler ("set a password before disconnecting your last sign-in method"). This also protects Apple-private-relay users whose relay email can die after unlink.
 - **Anti-enumeration (settled):** login errors stay generic regardless of which methods an account has (never "this account uses Google").
 - Audit: every path emits the Workstream A events.
+
+### Linking vs merging (scope clarification, Jan 2026-07-31)
+
+**Different-email linking is a first-class flow, not an edge case**: the connect buttons in "Connected sign-in methods" (on the edit-profile page) run rule 5 — the logged-in user's identity is attached to *their current account* with **no provider-email match required**, so a Google account under a completely different address links fine. `email_at_link` records what the provider reported; all future logins via that provider resolve by `(provider, provider_user_id)` and land on the linked account **regardless of any email mismatch**. This is the primary defense against duplicate accounts: link from settings *before* ever using the social button on the login page.
+
+**True account merging is explicitly OUT OF SCOPE**: if a user first signs in with a different-email social identity (creating a fresh account + Player via rule 4) and only then realizes they already had an account, we have two accounts with two Players — merging their solving times/collections/memberships is a large separate feature. The recovery path without it: delete the unwanted (fresh, empty) account via the existing GDPR deletion, then link the provider from the surviving account's settings.
+
+**Prevention — rule 4 gets an interstitial instead of silent creation**: the callback must not create the account straight away (there'd be nowhere to warn). When no account matches, park the verified provider profile in the short-TTL cache (same pool as the OAuth state) and show a confirmation page: "Create a new account with {email}?" plus "Already have a MySpeedPuzzling account? Sign in first, then connect {provider} in your profile settings." Confirm → dispatch the registration message with the cached profile. Costs one click on social signup; it's the only moment the duplicate-account mistake can be prevented.
 
 ### Provider gotchas (read before implementing)
 
@@ -188,14 +196,14 @@ Two PRs, in order:
 3. Wire all dispatch sites (subscriber + the handlers named above + fallback controller) + tests
 4. Prune command + message + handler + tests (mirror `CleanupEmailAuditLogs`); note the cron line for the box in the PR description
 5. `GetAuthAuditEvents` query + recent-activity controller/template/UA-label service + tests
-6. GDPR fix: `DeletePlayerHandler` also removes the `UserAccount` row (pending Jan's confirmation — see the gap box)
+6. GDPR fix: `DeletePlayerHandler` also removes the `UserAccount` row (decided — see the gap box)
 
 **PR 2 — social login** (flags default OFF, code ships dark):
 1. Provider enum, `OauthIdentity` entity (settled schema), migration
 2. Provider service wiring + composer deps
 3. Start controller + per-provider authenticators + resolve/link/register handlers (five settled rules + invariant) + audit events
-4. Google end-to-end first (mocked-HTTP tests), then Facebook, then Apple (cache-based state, POST callback)
-5. Login/register buttons + "Connected sign-in methods" settings UI (incl. set-password)
+4. Google end-to-end first (mocked-HTTP tests), then Facebook, then Apple (cache-based state, POST callback); rule-4 interstitial before account creation
+5. Login/register buttons + "Connected sign-in methods" settings UI: connect buttons (rule 5 — works with a different provider email), unlink with invariant, set-password for null-password accounts **reusing the existing `SetAccountPassword` message** (shown only when `password === null`)
 6. `feature_flags.md`, CLAUDE.md feature pointer, fixtures if needed
 
 **Jan's manual tasks** (not for the implementing agent):

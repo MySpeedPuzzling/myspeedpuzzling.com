@@ -22,6 +22,14 @@ return App::config([
                 'player_activity_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // OAuth state + PKCE + rule-4 parked profiles for social login.
+                // Server-side instead of the session on purpose: Apple's form_post
+                // callback is a cross-site POST that arrives without SameSite=Lax
+                // session cookies, and the anonymous start route must stay
+                // session-free (#164)
+                'social_login_state_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
             ],
         ],
     ],

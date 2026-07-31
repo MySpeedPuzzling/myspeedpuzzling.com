@@ -34,4 +34,9 @@ return static function (ContainerConfigurator $configurator): void {
     // Trickle login test double - tests must never call the real Auth0 tenant
     $services->set(PredictableTrickleVerifier::class);
     $services->alias(TricklePasswordVerifier::class, PredictableTrickleVerifier::class)->public();
+
+    // Social login providers talk to a Guzzle MockHandler - tests must never
+    // call Google/Apple/Facebook (the static handler survives kernel reboots)
+    $services->set('social_login.http_client', \GuzzleHttp\Client::class)
+        ->factory([\SpeedPuzzling\Web\Tests\TestDouble\SocialLoginHttpMock::class, 'client']);
 };

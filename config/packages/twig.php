@@ -33,6 +33,13 @@ return App::config([
             // Transition-window escape hatch: the "old Auth0 sign-in" link on the
             // native login page. Retires in Phase 6.
             'auth0_fallback_login_enabled' => '%auth0FallbackLoginEnabled%',
+            // Social login (auth hardening PR 2). While admin_only is ON the
+            // login/register buttons render for NOBODY - those pages are
+            // anonymously cached and must stay uniform (#164).
+            'social_login_admin_only' => '%socialLoginAdminOnly%',
+            'social_login_google_enabled' => '%socialLoginGoogleEnabled%',
+            'social_login_facebook_enabled' => '%socialLoginFacebookEnabled%',
+            'social_login_apple_enabled' => '%socialLoginAppleEnabled%',
         ],
         'paths' => [
             '%kernel.project_dir%/public/img' => 'images',

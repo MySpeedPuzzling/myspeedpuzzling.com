@@ -15,6 +15,13 @@
 
             <p class="text-muted">{{ 'auth.login.microcopy'|trans }}</p>
 
+            {% if app.request.query.get('social') == 'expired' %}
+                <div class="alert alert-warning" role="alert">
+                    <i class="ci-time me-2"></i>
+                    {{ 'auth.social.attempt_expired'|trans }}
+                </div>
+            {% endif %}
+
             {% if error %}
                 <div class="alert alert-danger" role="alert">
                     <i class="ci-close-circle me-2"></i>
@@ -72,6 +79,8 @@
                     </button>
 
                     <p class="text-muted fs-sm mt-2 mb-3">{{ 'auth.sign_in_link.explainer'|trans }}</p>
+
+                    {{ include('_social_login_buttons.html.twig') }}
 
                     {# Tertiary, in the UX funnel's order (§3): password login first, the
                        sign-in link prominently second, these last. #}

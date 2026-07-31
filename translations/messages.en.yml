@@ -909,6 +909,20 @@ edit_profile:
     change_password_native_button: "Change password"
     recent_activity_description: "Review recent sign-ins and security changes on your account, including where they came from."
     recent_activity_button: "View recent activity"
+    social:
+        title: "Connected sign-in methods"
+        description: "Sign in to this same account with Google, Apple or Facebook. Connecting a provider here links it to this account — even when it uses a different email address."
+        connect: "Connect %provider%"
+        disconnect: "Disconnect"
+        disconnected: "%provider% disconnected."
+        linked_at: "Connected"
+        cannot_unlink_last: "This is currently the only way to sign in to your account. Add a password first, then disconnect it."
+        no_password_hint: "Your account has no password — you sign in with a connected account. Add a password to also enable email + password sign-in."
+        set_password_button: "Add a password"
+        result_connected: "Connected! You can now use it to sign in."
+        result_already_linked: "That provider account is already connected to a MySpeedPuzzling account."
+        result_cancelled: "Connection cancelled — nothing changed."
+        result_failed: "Connecting failed. Please try again in a moment."
     change_password_current: "Current password"
     change_password_new: "New password"
     change_password_wrong_current: "That is not your current password."
@@ -3243,6 +3257,21 @@ auth:
         invalid:
             headline: "This reset link does not work"
             message: "It may already have been used, or a newer reset link replaced it. Ask for a new one below."
+    social:
+        or_continue_with: "or continue with"
+        continue_with: "Continue with %provider%"
+        attempt_expired: "That sign-in attempt expired or was already used. Please try again."
+        confirm:
+            title: "Create a new account?"
+            question: "You signed in with %provider% as %email%, and no MySpeedPuzzling account uses this email address yet. Create a new account?"
+            create: "Create my account"
+            have_account: "Already have a MySpeedPuzzling account under a different email address? Sign in to it first, then connect %provider% in your profile settings — otherwise you would end up with two separate accounts."
+            expired: "That sign-up confirmation expired. Please try signing in again."
+            created: "Welcome! Your account is ready and you are signed in."
+    account_set_password:
+        title: "Add a password"
+        intro: "You sign in with a connected account. Adding a password also opens the classic email + password door — useful as a backup sign-in method."
+        back: "Back to profile settings"
 
 newsletter:
     footer:

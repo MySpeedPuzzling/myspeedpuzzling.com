@@ -64,6 +64,15 @@ return static function (ContainerConfigurator $configurator): void {
     // long the link is good for.
     $parameters->set('signInLinkLifetimeSeconds', 1800);
 
+    // Social login flags (auth hardening PR 2, docs/features/feature_flags.md).
+    // One flag per provider so each flips independently as its console setup
+    // completes; SOCIAL_LOGIN_ADMIN_ONLY keeps everything invisible to the
+    // public until the whole feature is verified end-to-end in production.
+    $parameters->set('socialLoginAdminOnly', '%env(bool:SOCIAL_LOGIN_ADMIN_ONLY)%');
+    $parameters->set('socialLoginGoogleEnabled', '%env(bool:SOCIAL_LOGIN_GOOGLE_ENABLED)%');
+    $parameters->set('socialLoginFacebookEnabled', '%env(bool:SOCIAL_LOGIN_FACEBOOK_ENABLED)%');
+    $parameters->set('socialLoginAppleEnabled', '%env(bool:SOCIAL_LOGIN_APPLE_ENABLED)%');
+
     $services = $configurator->services();
 
     $services->defaults()
@@ -86,6 +95,18 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$nativeLoginEnabled', '%nativeLoginEnabled%')
         ->bind('$nativeRegistrationEnabled', '%nativeRegistrationEnabled%')
         ->bind('$signInLinkLifetimeSeconds', '%signInLinkLifetimeSeconds%')
+        ->bind('$socialLoginAdminOnly', '%socialLoginAdminOnly%')
+        ->bind('$socialLoginGoogleEnabled', '%socialLoginGoogleEnabled%')
+        ->bind('$socialLoginFacebookEnabled', '%socialLoginFacebookEnabled%')
+        ->bind('$socialLoginAppleEnabled', '%socialLoginAppleEnabled%')
+        ->bind('$googleClientId', '%env(trim:string:GOOGLE_CLIENT_ID)%')
+        ->bind('$googleClientSecret', '%env(trim:string:GOOGLE_CLIENT_SECRET)%')
+        ->bind('$facebookAppId', '%env(trim:string:FACEBOOK_APP_ID)%')
+        ->bind('$facebookAppSecret', '%env(trim:string:FACEBOOK_APP_SECRET)%')
+        ->bind('$appleClientId', '%env(trim:string:APPLE_CLIENT_ID)%')
+        ->bind('$appleTeamId', '%env(trim:string:APPLE_TEAM_ID)%')
+        ->bind('$appleKeyId', '%env(trim:string:APPLE_KEY_ID)%')
+        ->bind('$applePrivateKey', '%env(trim:string:APPLE_PRIVATE_KEY)%')
         ->bind('$listmonkApiUrl', '%listmonkApiUrl%')
         ->bind('$listmonkApiUser', '%listmonkApiUser%')
         ->bind('$listmonkApiToken', '%listmonkApiToken%');
@@ -123,7 +144,11 @@ return static function (ContainerConfigurator $configurator): void {
     $services->load('SpeedPuzzling\\Web\\ConsoleCommands\\', __DIR__ . '/../src/ConsoleCommands/**/{*.php}');
 
     // Services
-    $services->load('SpeedPuzzling\\Web\\Services\\', __DIR__ . '/../src/Services/**/{*.php}');
+    $services->load('SpeedPuzzling\\Web\\Services\\', __DIR__ . '/../src/Services/**/{*.php}')
+        ->exclude([
+            // league provider subclass, constructed by SocialLoginProviders - not a service
+            __DIR__ . '/../src/Services/SocialLogin/AppleProviderWithInlineKey.php',
+        ]);
     $services->load('SpeedPuzzling\\Web\\Query\\', __DIR__ . '/../src/Query/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\Security\\', __DIR__ . '/../src/Security/**/{*.php}')
         ->exclude([
@@ -132,6 +157,7 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Security/ApiUser.php',
             __DIR__ . '/../src/Security/TrickleVerificationResult.php',
             __DIR__ . '/../src/Security/SignInLinkPasswordPrompt.php',
+            __DIR__ . '/../src/Security/SocialRegistrationRequired.php',
         ]);
     $services->alias(
         \SpeedPuzzling\Web\Security\TricklePasswordVerifier::class,
@@ -188,6 +214,14 @@ return static function (ContainerConfigurator $configurator): void {
 
     // PSR-18 HTTP Client for Auth0 SDK
     $services->set('psr18.http_client', Psr18Client::class);
+
+    // Dedicated Guzzle client for the league social-login providers: a named
+    // service so tests can swap in a MockHandler-backed client and no real
+    // provider HTTP ever happens in the test suite
+    $services->set('social_login.http_client', \GuzzleHttp\Client::class);
+
+    $services->set(\SpeedPuzzling\Web\Services\SocialLogin\SocialLoginProviders::class)
+        ->arg('$httpClient', service('social_login.http_client'));
 
     // Captures error-level log records as Sentry issues (successor of the
     // deprecated Sentry\Monolog\Handler, which is removed in sentry/sentry 5.0)

@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Auth0\Symfony\Security\UserProvider;
+use SpeedPuzzling\Web\Security\AppleLoginAuthenticator;
 use SpeedPuzzling\Web\Security\Auth0EntryPoint;
+use SpeedPuzzling\Web\Security\FacebookLoginAuthenticator;
+use SpeedPuzzling\Web\Security\GoogleLoginAuthenticator;
 use SpeedPuzzling\Web\Security\InternalApiAuthenticator;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
 use SpeedPuzzling\Web\Security\LoginLinkFailureHandler;
@@ -98,7 +101,18 @@ return App::config([
                 // returns a null failure response on public pages, so it never
                 // short-circuits the chain for anonymous visitors. Entry point stays
                 // Auth0 until Stage B (native_login flag).
-                'custom_authenticators' => [LoginFormAuthenticator::class, 'auth0.authenticator'],
+                // The social authenticators (auth hardening PR 2) claim only their
+                // own /login/social/{provider}/callback with a login-intent state;
+                // per-provider feature flags gate them inside supports(). They sit
+                // before the Auth0 entry so its anonymous null-failure never
+                // preempts a social callback.
+                'custom_authenticators' => [
+                    LoginFormAuthenticator::class,
+                    GoogleLoginAuthenticator::class,
+                    FacebookLoginAuthenticator::class,
+                    AppleLoginAuthenticator::class,
+                    'auth0.authenticator',
+                ],
                 // Magic sign-in link, live from Stage A (D6): the rescue for users whose
                 // password manager filed the credential under the Auth0 domain, and for
                 // window-A native registrants who log out while /login still points at

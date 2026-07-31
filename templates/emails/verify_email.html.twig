@@ -21,7 +21,7 @@
             <row>
                 <columns>
                     <center>
-                        <a href="{{ verificationUrl }}" class="button">{{ 'verify_email.button'|trans }}</a>
+                        <button href="{{ verificationUrl }}">{{ 'verify_email.button'|trans }}</button>
                     </center>
                     <spacer size-sm="8"></spacer>
                 </columns>
@@ -32,18 +32,6 @@
                     <p class="text-center">{{ 'verify_email.expires'|trans({'%hours%': expiresInHours}) }}</p>
                 </columns>
             </row>
-
-            {% if showSignInLinkRescue %}
-                {# Window A of the sign-in migration (issue #147): a native registrant who
-                   gets signed out meets the Auth0 form, which has no identity for them.
-                   This email is one of the two things they keep, so it carries the rescue. #}
-                <row>
-                    <columns>
-                        <spacer size-sm="16"></spacer>
-                        <p>{{ 'verify_email.signed_out_rescue'|trans({'%url%': signInLinkUrl})|raw }}</p>
-                    </columns>
-                </row>
-            {% endif %}
 
             <row>
                 <columns>

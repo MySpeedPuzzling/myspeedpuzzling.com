@@ -162,11 +162,10 @@ verify_email:
     subject: "Confirmez votre adresse e-mail pour MySpeedPuzzling.com"
     title: "Confirmez votre adresse e-mail"
     content: |
-        <p>Bienvenue sur MySpeedPuzzling ! Confirmez cette adresse pour que nous puissions vous joindre au sujet de votre compte.</p>
+        <p>Bienvenue sur MySpeedPuzzling ! Vous êtes en bonne compagnie : nous sommes déjà plus de 10 000 puzzleurs.</p>
+        <p>Il ne reste qu'à confirmer votre adresse e-mail et tout est prêt : chronométrez vos puzzles, comparez vos résultats avec la communauté et regardez tomber vos records personnels.</p>
     button: "Confirmer mon adresse e-mail"
     expires: "Le lien est valable %hours% heures."
-    signed_out_rescue: |
-        <p>Une chose à garder en tête : la connexion passe encore par notre ancien fournisseur pendant quelques jours, et il ne connaît pas encore votre tout nouveau compte. Si vous êtes déconnecté avant le basculement, reconnectez-vous grâce à un lien de connexion par e-mail : <a href="%url%">%url%</a></p>
     not_requested: "Vous n'avez pas créé ce compte ? Vous pouvez ignorer cet e-mail sans crainte."
 
 password_reset:

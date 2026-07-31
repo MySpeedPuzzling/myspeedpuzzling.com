@@ -162,11 +162,10 @@ verify_email:
     subject: "Confirma tu dirección de correo electrónico para MySpeedPuzzling.com"
     title: "Confirma tu dirección de correo electrónico"
     content: |
-        <p>¡Bienvenido a MySpeedPuzzling! Confirma esta dirección para que podamos contactarte sobre tu cuenta.</p>
+        <p>¡Bienvenido a MySpeedPuzzling! Estás en buena compañía: ya somos más de 10.000 puzzlers.</p>
+        <p>Solo tienes que confirmar tu dirección de correo y listo: cronometra tus montajes, compara tus resultados con la comunidad y mira cómo caen tus récords personales.</p>
     button: "Confirmar mi dirección de correo electrónico"
     expires: "El enlace es válido durante %hours% horas."
-    signed_out_rescue: |
-        <p>Una cosa que conviene tener en cuenta: el inicio de sesión sigue pasando por nuestro proveedor antiguo durante unos días más, y todavía no conoce tu cuenta recién creada. Si se cierra tu sesión antes del cambio, vuelve a entrar con un enlace de acceso por correo: <a href="%url%">%url%</a></p>
     not_requested: "¿No has creado esta cuenta? Puedes ignorar este correo sin problema."
 
 password_reset:

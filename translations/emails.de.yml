@@ -162,11 +162,10 @@ verify_email:
     subject: "Bestätige deine E-Mail-Adresse für MySpeedPuzzling.com"
     title: "Bestätige deine E-Mail-Adresse"
     content: |
-        <p>Willkommen bei MySpeedPuzzling! Bestätige diese Adresse, damit wir dich rund um dein Konto erreichen können.</p>
+        <p>Willkommen bei MySpeedPuzzling — du bist in guter Gesellschaft von über 10.000 weiteren Puzzlern!</p>
+        <p>Bestätige einfach deine E-Mail-Adresse und schon kann es losgehen: Zeiten stoppen, Ergebnisse mit der Community vergleichen und zusehen, wie deine persönlichen Bestzeiten purzeln.</p>
     button: "Meine E-Mail-Adresse bestätigen"
     expires: "Der Link ist %hours% Stunden gültig."
-    signed_out_rescue: |
-        <p>Eine Sache solltest du dir merken: Die Anmeldung läuft noch ein paar Tage über unseren alten Anbieter, und der kennt dein brandneues Konto noch nicht. Falls du vor der Umstellung abgemeldet wirst, kommst du mit einem Anmeldelink per E-Mail wieder hinein: <a href="%url%">%url%</a></p>
     not_requested: "Du hast dieses Konto nicht erstellt? Dann kannst du diese E-Mail einfach ignorieren."
 
 password_reset:

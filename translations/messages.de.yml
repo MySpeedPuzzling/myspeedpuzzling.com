@@ -733,6 +733,22 @@
   "change_password_social_login": "Sie melden sich über ein externes Konto an (z. B. Google oder Facebook), daher gibt es kein MySpeedPuzzling-Passwort, das geändert werden könnte. Ihr Passwort können Sie bei Ihrem Anmeldeanbieter ändern."
   "change_password_native_description": "Legen Sie mit Ihrem aktuellen Passwort ein neues fest. Ihr Passwort-Manager speichert es unter myspeedpuzzling.com."
   "change_password_native_button": "Passwort ändern"
+  "recent_activity_description": "Überprüfen Sie die letzten Anmeldungen und Sicherheitsänderungen in Ihrem Konto – einschließlich der Information, woher sie kamen."
+  "recent_activity_button": "Letzte Aktivitäten anzeigen"
+  "social":
+    "title": "Verbundene Anmeldemethoden"
+    "description": "Melden Sie sich mit Google, Apple oder Facebook bei genau diesem Konto an. Ein hier verbundener Anbieter wird mit diesem Konto verknüpft – auch wenn er eine andere E-Mail-Adresse verwendet."
+    "connect": "%provider% verbinden"
+    "disconnect": "Trennen"
+    "disconnected": "%provider% wurde getrennt."
+    "linked_at": "Verbunden"
+    "cannot_unlink_last": "Dies ist derzeit die einzige Möglichkeit, sich bei Ihrem Konto anzumelden. Fügen Sie zuerst ein Passwort hinzu und trennen Sie die Verbindung danach."
+    "no_password_hint": "Ihr Konto hat kein Passwort – Sie melden sich über ein verbundenes Konto an. Fügen Sie ein Passwort hinzu, um sich zusätzlich mit E-Mail + Passwort anmelden zu können."
+    "set_password_button": "Passwort hinzufügen"
+    "result_connected": "Verbunden! Sie können sich jetzt damit anmelden."
+    "result_already_linked": "Dieses Anbieter-Konto ist bereits mit einem MySpeedPuzzling-Konto verbunden."
+    "result_cancelled": "Verbindung abgebrochen – nichts wurde geändert."
+    "result_failed": "Das Verbinden ist fehlgeschlagen. Bitte versuchen Sie es gleich noch einmal."
   "change_password_current": "Aktuelles Passwort"
   "change_password_new": "Neues Passwort"
   "change_password_wrong_current": "Das ist nicht Ihr aktuelles Passwort."
@@ -2954,6 +2970,21 @@ auth:
         invalid:
             headline: "Dieser Link zum Zurücksetzen funktioniert nicht"
             message: "Er wurde möglicherweise bereits verwendet, oder ein neuerer Link zum Zurücksetzen hat ihn ersetzt. Fordern Sie unten einen neuen an."
+    social:
+        or_continue_with: "oder weiter mit"
+        continue_with: "Weiter mit %provider%"
+        attempt_expired: "Dieser Anmeldeversuch ist abgelaufen oder wurde bereits verwendet. Bitte versuchen Sie es erneut."
+        confirm:
+            title: "Neues Konto erstellen?"
+            question: "Sie haben sich mit %provider% als %email% angemeldet, und noch kein MySpeedPuzzling-Konto verwendet diese E-Mail-Adresse. Neues Konto erstellen?"
+            create: "Mein Konto erstellen"
+            have_account: "Sie haben bereits ein MySpeedPuzzling-Konto mit einer anderen E-Mail-Adresse? Melden Sie sich zuerst dort an und verbinden Sie %provider% dann in Ihren Profileinstellungen – sonst hätten Sie am Ende zwei getrennte Konten."
+            expired: "Diese Registrierungsbestätigung ist abgelaufen. Bitte versuchen Sie erneut, sich anzumelden."
+            created: "Willkommen! Ihr Konto ist bereit und Sie sind angemeldet."
+    account_set_password:
+        title: "Passwort hinzufügen"
+        intro: "Sie melden sich über ein verbundenes Konto an. Wenn Sie ein Passwort hinzufügen, können Sie sich zusätzlich klassisch mit E-Mail + Passwort anmelden – praktisch als zusätzliche Anmeldemethode."
+        back: "Zurück zu den Profileinstellungen"
 
 newsletter:
     footer:
@@ -3009,3 +3040,22 @@ email_preferences:
     save_button: "Einstellungen speichern"
     more_hint: "Sie suchen mehr? Alle Kontoeinstellungen finden Sie in Ihrem Profil."
     more_link: "Profileinstellungen öffnen"
+
+account_activity:
+    title: "Letzte Kontoaktivitäten"
+    description: "Die letzten 50 Sicherheitsereignisse in Ihrem Konto – Anmeldungen, fehlgeschlagene Versuche und Passwortänderungen."
+    no_events: "Noch keine Kontoaktivitäten aufgezeichnet."
+    footer_hint: "Sie sehen eine Anmeldung, die Sie nicht kennen? Ändern Sie sofort Ihr Passwort."
+    column_event: "Ereignis"
+    column_when: "Wann"
+    column_ip: "IP-Adresse"
+    column_device: "Gerät"
+    event:
+        login_success: "Angemeldet"
+        sign_in_link_used: "Mit einem per E-Mail gesendeten Link angemeldet"
+        login_failure: "Fehlgeschlagener Anmeldeversuch"
+        password_changed: "Passwort geändert"
+        password_reset_completed: "Passwort zurückgesetzt"
+        oauth_login: "Mit einem verbundenen Konto angemeldet"
+        oauth_identity_linked: "Anmeldemethode verbunden"
+        oauth_identity_unlinked: "Anmeldemethode getrennt"

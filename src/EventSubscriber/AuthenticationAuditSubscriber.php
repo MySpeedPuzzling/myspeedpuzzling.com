@@ -10,6 +10,7 @@ use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
+use SpeedPuzzling\Web\Security\SocialLoginAuthenticator;
 use SpeedPuzzling\Web\Services\AuthAuditRecorder;
 use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -84,8 +85,14 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
 
         $request = $event->getRequest();
 
+        $eventType = match (true) {
+            $signInLinkUsed => AuthAuditEventType::SignInLinkUsed,
+            $authenticator instanceof SocialLoginAuthenticator => AuthAuditEventType::OauthLogin,
+            default => AuthAuditEventType::LoginSuccess,
+        };
+
         $this->authAuditRecorder->record(new RecordAuthAuditEvent(
-            eventType: $signInLinkUsed ? AuthAuditEventType::SignInLinkUsed : AuthAuditEventType::LoginSuccess,
+            eventType: $eventType,
             userId: $user->getUserIdentifier(),
             email: $user instanceof UserAccount ? $user->email : null,
             authenticator: self::authenticatorLabel($authenticator),
@@ -102,7 +109,11 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
 
         $authenticator = $event->getAuthenticator();
 
-        if (!$authenticator instanceof LoginFormAuthenticator && !$authenticator instanceof LoginLinkAuthenticator) {
+        if (
+            !$authenticator instanceof LoginFormAuthenticator
+            && !$authenticator instanceof LoginLinkAuthenticator
+            && !$authenticator instanceof SocialLoginAuthenticator
+        ) {
             return;
         }
 
@@ -155,6 +166,7 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
         return match (true) {
             $authenticator instanceof LoginFormAuthenticator => 'form',
             $authenticator instanceof LoginLinkAuthenticator => 'login_link',
+            $authenticator instanceof SocialLoginAuthenticator => $authenticator->provider()->authenticatorLabel(),
             $authenticator instanceof \Auth0\Symfony\Security\Authenticator => 'auth0_fallback',
             default => strtolower(substr(strrchr($authenticator::class, '\\') ?: $authenticator::class, 1)),
         };

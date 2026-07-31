@@ -22,6 +22,7 @@ use SpeedPuzzling\Web\Message\EditMessagingSettings;
 use SpeedPuzzling\Web\Message\EditPlayerCode;
 use SpeedPuzzling\Web\Message\EditPlayerVisibility;
 use SpeedPuzzling\Web\Message\EditProfile;
+use SpeedPuzzling\Web\Query\GetOauthIdentities;
 use SpeedPuzzling\Web\Query\GetOAuth2ClientRequests;
 use SpeedPuzzling\Web\Query\GetPlayerOAuth2Consents;
 use SpeedPuzzling\Web\Query\GetPlayerPersonalAccessTokens;
@@ -49,6 +50,7 @@ final class EditProfileController extends AbstractController
         readonly private GetPlayerOAuth2Consents $getPlayerOAuth2Consents,
         readonly private GetPlayerPersonalAccessTokens $getPlayerPersonalAccessTokens,
         readonly private GetOAuth2ClientRequests $getOAuth2ClientRequests,
+        readonly private GetOauthIdentities $getOauthIdentities,
     ) {
     }
 
@@ -209,6 +211,13 @@ final class EditProfileController extends AbstractController
             'account_email' => $user instanceof UserAccount ? $user->email : null,
             'account_email_verified' => $user instanceof UserAccount && $user->emailVerifiedAt !== null,
             'can_change_password' => Auth0DatabaseConnection::hasPassword($user->getUserIdentifier()),
+            // Connected sign-in methods (auth hardening PR 2): social-only
+            // accounts (null password) get the set-password door instead of
+            // change-password, and the connect/disconnect list needs the rows
+            'account_has_password' => $user instanceof UserAccount && $user->password !== null,
+            'connected_oauth_identities' => $user instanceof UserAccount
+                ? $this->getOauthIdentities->byUserId($user->userId)
+                : [],
         ]);
     }
 }

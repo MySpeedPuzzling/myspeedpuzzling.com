@@ -736,6 +736,22 @@
   "change_password_social_login": "Vous vous connectez via un compte externe (Google ou Facebook, par exemple), il n'y a donc aucun mot de passe MySpeedPuzzling à changer. Vous pouvez modifier votre mot de passe auprès de votre fournisseur de connexion."
   "change_password_native_description": "Définissez un nouveau mot de passe à l'aide de votre mot de passe actuel. Votre gestionnaire de mots de passe l'enregistrera sous myspeedpuzzling.com."
   "change_password_native_button": "Changer le mot de passe"
+  "recent_activity_description": "Consultez les connexions récentes et les changements de sécurité sur votre compte, y compris leur provenance."
+  "recent_activity_button": "Voir l'activité récente"
+  "social":
+    "title": "Méthodes de connexion associées"
+    "description": "Connectez-vous à ce même compte avec Google, Apple ou Facebook. Associer un fournisseur ici le relie à ce compte — même s'il utilise une adresse e-mail différente."
+    "connect": "Associer %provider%"
+    "disconnect": "Dissocier"
+    "disconnected": "%provider% dissocié."
+    "linked_at": "Associé"
+    "cannot_unlink_last": "C'est actuellement le seul moyen de vous connecter à votre compte. Ajoutez d'abord un mot de passe, puis dissociez-le."
+    "no_password_hint": "Votre compte n'a pas de mot de passe — vous vous connectez avec un compte associé. Ajoutez un mot de passe pour activer aussi la connexion par e-mail + mot de passe."
+    "set_password_button": "Ajouter un mot de passe"
+    "result_connected": "Associé ! Vous pouvez maintenant l'utiliser pour vous connecter."
+    "result_already_linked": "Ce compte fournisseur est déjà associé à un compte MySpeedPuzzling."
+    "result_cancelled": "Association annulée — rien n'a changé."
+    "result_failed": "L'association a échoué. Veuillez réessayer dans un instant."
   "change_password_current": "Mot de passe actuel"
   "change_password_new": "Nouveau mot de passe"
   "change_password_wrong_current": "Ce n'est pas votre mot de passe actuel."
@@ -2956,6 +2972,21 @@ edition:
     "invalid":
       "headline": "Ce lien de réinitialisation ne fonctionne pas"
       "message": "Il a peut-être déjà été utilisé, ou un lien de réinitialisation plus récent l'a remplacé. Demandez-en un nouveau ci-dessous."
+  "social":
+    "or_continue_with": "ou continuer avec"
+    "continue_with": "Continuer avec %provider%"
+    "attempt_expired": "Cette tentative de connexion a expiré ou a déjà été utilisée. Veuillez réessayer."
+    "confirm":
+      "title": "Créer un nouveau compte ?"
+      "question": "Vous vous êtes connecté avec %provider% en tant que %email%, et aucun compte MySpeedPuzzling n'utilise encore cette adresse e-mail. Créer un nouveau compte ?"
+      "create": "Créer mon compte"
+      "have_account": "Vous avez déjà un compte MySpeedPuzzling sous une autre adresse e-mail ? Connectez-vous d'abord à ce compte, puis associez %provider% dans les paramètres de votre profil — sinon vous vous retrouveriez avec deux comptes distincts."
+      "expired": "Cette confirmation d'inscription a expiré. Veuillez réessayer de vous connecter."
+      "created": "Bienvenue ! Votre compte est prêt et vous êtes connecté."
+  "account_set_password":
+    "title": "Ajouter un mot de passe"
+    "intro": "Vous vous connectez avec un compte associé. Ajouter un mot de passe ouvre aussi la porte classique e-mail + mot de passe — utile comme méthode de connexion de secours."
+    "back": "Retour aux paramètres du profil"
 
 newsletter:
     footer:
@@ -3011,3 +3042,22 @@ email_preferences:
     save_button: "Enregistrer mes préférences"
     more_hint: "Vous cherchez plus ? Tous les réglages de votre compte se trouvent dans votre profil."
     more_link: "Ouvrir les réglages du profil"
+
+account_activity:
+    title: "Activité récente du compte"
+    description: "Les 50 derniers événements de sécurité de votre compte — connexions, tentatives échouées et changements de mot de passe."
+    no_events: "Aucune activité de compte enregistrée pour le moment."
+    footer_hint: "Vous voyez une connexion que vous ne reconnaissez pas ? Changez immédiatement votre mot de passe."
+    column_event: "Événement"
+    column_when: "Quand"
+    column_ip: "Adresse IP"
+    column_device: "Appareil"
+    event:
+        login_success: "Connexion"
+        sign_in_link_used: "Connexion via un lien reçu par e-mail"
+        login_failure: "Tentative de connexion échouée"
+        password_changed: "Mot de passe changé"
+        password_reset_completed: "Mot de passe réinitialisé"
+        oauth_login: "Connexion avec un compte associé"
+        oauth_identity_linked: "Méthode de connexion associée"
+        oauth_identity_unlinked: "Méthode de connexion dissociée"

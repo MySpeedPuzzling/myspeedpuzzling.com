@@ -4,3 +4,10 @@
 # built-in message ("Invalid credentials.", throttling, ...) in all six locales.
 "This password was found in a public data breach. To protect your account, please reset your password to sign in.": "Ce mot de passe a été trouvé dans une fuite de données publique. Pour protéger votre compte, réinitialisez-le avant de vous connecter."
 "Sign-in is temporarily unavailable. Please try again in a moment.": "La connexion est temporairement indisponible. Veuillez réessayer dans un instant."
+
+# Messages thrown by SocialAccountResolver (auth hardening PR 2), same pattern:
+# the English sentence is the key. Rule 3 (unverified provider email matching an
+# existing account) deliberately names the way out; everything else stays on
+# Symfony's generic message (anti-enumeration).
+"An account with this email address already exists. Sign in with your password first, then connect %provider% in your profile settings.": "Un compte avec cette adresse e-mail existe déjà. Connectez-vous d'abord avec votre mot de passe, puis associez %provider% dans les paramètres de votre profil."
+"%provider% did not share an email address with us, so we cannot sign you in this way. Please sign in another way.": "%provider% ne nous a pas communiqué d'adresse e-mail, nous ne pouvons donc pas vous connecter de cette façon. Veuillez vous connecter autrement."

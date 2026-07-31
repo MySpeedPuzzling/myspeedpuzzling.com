@@ -18,8 +18,16 @@
                         '%playerName%': playerName,
                         '%clientName%': clientName,
                         '%purpose%': purpose,
-                        '%adminUrl%': adminUrl,
                     })|raw }}
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <center>
+                        <button href="{{ adminUrl }}">{{ 'oauth2_client_request.button'|trans }}</button>
+                    </center>
+                    <spacer size-sm="8"></spacer>
                 </columns>
             </row>
 

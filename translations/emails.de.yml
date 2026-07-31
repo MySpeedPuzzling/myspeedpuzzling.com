@@ -35,8 +35,9 @@ subscription_payment_failed:
     title: "Mitgliedschafts-Zahlung fehlgeschlagen!"
     content: |
         <p>Wir haben bemerkt, dass deine letzte Mitgliedschafts-Zahlung nicht erfolgreich war. Es könnte ein Problem mit deiner Zahlungsmethode gegeben haben.</p>
-        <p>Wenn du deine Mitgliedschaft aktiv halten möchtest, überprüfe und aktualisiere bitte deine Zahlungsmethode auf der <a href="%billingPortalUrl%">Abrechnungsportal-Seite</a>.</p>
+        <p>Wenn du deine Mitgliedschaft aktiv halten möchtest, überprüfe und aktualisiere bitte deine Zahlungsmethode im Abrechnungsportal.</p>
         <p>Wenn die Zahlung weiterhin fehlschlägt, wird deine Mitgliedschaft nach einigen weiteren Versuchen deaktiviert. Wir hoffen, dass du bei MySpeedPuzzling.com bleibst!</p>
+    button: "Zahlungsmethode aktualisieren"
 
 subscription_renewed:
     subject: "Mitgliedschafts-Zahlung auf MySpeedPuzzling.com war erfolgreich"
@@ -69,16 +70,16 @@ oauth2_client_request:
         <p>Eine neue OAuth2-Client-Zugriffsanfrage wurde eingereicht.</p>
         <p><strong>Antragsteller:</strong> %playerName%<br><strong>Anwendung:</strong> %clientName%</p>
         <p><strong>Zweck:</strong> %purpose%</p>
-        <p><a href="%adminUrl%">Diese Anfrage in der Verwaltung prüfen</a></p>
+    button: "Diese Anfrage in der Verwaltung prüfen"
 
 oauth2_client_approved:
     subject: "Deine API-Anwendung wurde genehmigt!"
     title: "Deine Anwendung wurde genehmigt!"
     content: |
         <p>Tolle Neuigkeiten! Deine OAuth2-Anwendung <strong>%clientName%</strong> wurde genehmigt.</p>
-        <p>Klicke auf den Link unten, um deine Zugangsdaten abzurufen. Der Link ist 7 Tage gültig.</p>
+        <p>Klicke auf den Button unten, um deine Zugangsdaten abzurufen. Der Link ist 7 Tage gültig.</p>
         <p><strong>Wichtig:</strong> Deine Zugangsdaten werden nur einmal angezeigt. Stelle sicher, dass du sie an einem sicheren Ort speicherst.</p>
-        <p><a href="%claimUrl%">Zugangsdaten abrufen</a></p>
+    button: "Zugangsdaten abrufen"
 
 oauth2_client_rejected:
     subject: "Deine API-Anwendungsanfrage wurde nicht genehmigt"
@@ -94,7 +95,7 @@ competition_submitted:
     content: |
         <p>Eine neue Veranstaltung wurde zur Genehmigung eingereicht.</p>
         <p><strong>Eingereicht von:</strong> %playerName%<br><strong>Veranstaltung:</strong> %competitionName%<br><strong>Ort:</strong> %location%</p>
-        <p><a href="%adminUrl%">Ausstehende Veranstaltungen in der Verwaltung prüfen</a></p>
+    button: "Ausstehende Veranstaltungen prüfen"
 
 competition_approved:
     subject: "Ihre Veranstaltung wurde genehmigt!"

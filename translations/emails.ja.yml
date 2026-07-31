@@ -35,8 +35,9 @@ subscription_payment_failed:
     title: "メンバーシップ支払いが失敗しました！"
     content: |
         <p>最近のメンバーシップ支払いが失敗したことを確認いたしました。支払い方法に問題があった可能性があります。</p>
-        <p>メンバーシップをアクティブに保ちたい場合は、<a href="%billingPortalUrl%">請求ポータルページ</a>で支払い方法を確認・更新してください。</p>
+        <p>メンバーシップをアクティブに保ちたい場合は、請求ポータルで支払い方法を確認・更新してください。</p>
         <p>支払いが引き続き失敗する場合、数回の試行後にメンバーシップが無効化されます。MySpeedPuzzling.comに引き続きお付き合いいただけることを願っています！</p>
+    button: "支払い方法を更新する"
 
 subscription_renewed:
     subject: "MySpeedPuzzling.comのメンバーシップ支払いが成功しました"
@@ -69,16 +70,16 @@ oauth2_client_request:
         <p>新しいOAuth2クライアントアクセスリクエストが送信されました。</p>
         <p><strong>申請者:</strong> %playerName%<br><strong>アプリケーション:</strong> %clientName%</p>
         <p><strong>目的:</strong> %purpose%</p>
-        <p><a href="%adminUrl%">管理画面でこのリクエストを確認する</a></p>
+    button: "管理画面でこのリクエストを確認する"
 
 oauth2_client_approved:
     subject: "APIアプリケーションが承認されました！"
     title: "アプリケーションが承認されました！"
     content: |
         <p>朗報です！OAuth2アプリケーション<strong>%clientName%</strong>が承認されました。</p>
-        <p>以下のリンクをクリックして認証情報を取得してください。リンクの有効期限は7日間です。</p>
+        <p>以下のボタンをクリックして認証情報を取得してください。リンクの有効期限は7日間です。</p>
         <p><strong>重要:</strong> 認証情報は一度しか表示されません。安全な場所に必ず保存してください。</p>
-        <p><a href="%claimUrl%">認証情報を取得する</a></p>
+    button: "認証情報を取得する"
 
 oauth2_client_rejected:
     subject: "APIアプリケーションリクエストが承認されませんでした"
@@ -94,7 +95,7 @@ competition_submitted:
     content: |
         <p>新しいイベントが承認のために送信されました。</p>
         <p><strong>送信者:</strong> %playerName%<br><strong>イベント:</strong> %competitionName%<br><strong>場所:</strong> %location%</p>
-        <p><a href="%adminUrl%">管理画面で保留中のイベントを確認する</a></p>
+    button: "管理画面で保留中のイベントを確認する"
 
 competition_approved:
     subject: "イベントが承認されました！"

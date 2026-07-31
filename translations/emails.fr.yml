@@ -35,8 +35,9 @@ subscription_payment_failed:
     title: "Le paiement de l'adhésion a échoué !"
     content: |
         <p>Nous avons remarqué que votre paiement récent d'adhésion n'a pas réussi. Il pourrait y avoir eu un problème avec votre méthode de paiement.</p>
-        <p>Si vous souhaitez maintenir votre adhésion active, veuillez vérifier et mettre à jour votre méthode de paiement sur la <a href="%billingPortalUrl%">page du portail de facturation</a>.</p>
+        <p>Si vous souhaitez maintenir votre adhésion active, veuillez vérifier et mettre à jour votre méthode de paiement dans le portail de facturation.</p>
         <p>Si le paiement continue d'échouer, votre adhésion sera désactivée après quelques tentatives supplémentaires. Nous espérons que vous resterez avec MySpeedPuzzling.com !</p>
+    button: "Mettre à jour le moyen de paiement"
 
 subscription_renewed:
     subject: "Le paiement de l'adhésion sur MySpeedPuzzling.com a réussi"
@@ -69,16 +70,16 @@ oauth2_client_request:
         <p>Une nouvelle demande d'accès client OAuth2 a été soumise.</p>
         <p><strong>Demandeur :</strong> %playerName%<br><strong>Application :</strong> %clientName%</p>
         <p><strong>Objectif :</strong> %purpose%</p>
-        <p><a href="%adminUrl%">Examiner cette demande dans l'administration</a></p>
+    button: "Examiner cette demande dans l'administration"
 
 oauth2_client_approved:
     subject: "Votre application API a été approuvée !"
     title: "Votre application a été approuvée !"
     content: |
         <p>Bonne nouvelle ! Votre application OAuth2 <strong>%clientName%</strong> a été approuvée.</p>
-        <p>Cliquez sur le lien ci-dessous pour récupérer vos identifiants. Le lien est valide pendant 7 jours.</p>
+        <p>Cliquez sur le bouton ci-dessous pour récupérer vos identifiants. Le lien est valide pendant 7 jours.</p>
         <p><strong>Important :</strong> Vos identifiants ne seront affichés qu'une seule fois. Assurez-vous de les enregistrer dans un endroit sécurisé.</p>
-        <p><a href="%claimUrl%">Récupérer vos identifiants</a></p>
+    button: "Récupérer mes identifiants"
 
 oauth2_client_rejected:
     subject: "Votre demande d''application API n''a pas été approuvée"
@@ -94,7 +95,7 @@ competition_submitted:
     content: |
         <p>Un nouvel événement a été soumis pour approbation.</p>
         <p><strong>Soumis par :</strong> %playerName%<br><strong>Événement :</strong> %competitionName%<br><strong>Lieu :</strong> %location%</p>
-        <p><a href="%adminUrl%">Examiner les événements en attente dans l'administration</a></p>
+    button: "Examiner les événements en attente"
 
 competition_approved:
     subject: "Votre événement a été approuvé !"

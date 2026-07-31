@@ -14,7 +14,16 @@
 
             <row>
                 <columns>
-                    {{ 'subscription_payment_failed.content'|trans({'%billingPortalUrl%': url('billing_portal')})|raw }}
+                    {{ 'subscription_payment_failed.content'|trans|raw }}
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <center>
+                        <button href="{{ url('billing_portal') }}">{{ 'subscription_payment_failed.button'|trans }}</button>
+                    </center>
+                    <spacer size-sm="8"></spacer>
                 </columns>
             </row>
 

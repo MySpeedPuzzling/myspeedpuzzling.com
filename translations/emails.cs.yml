@@ -35,8 +35,9 @@ subscription_payment_failed:
     title: "Platba členství selhala!"
     content: |
         <p>Všimli jsme si, že vaše poslední platba za předplatné neproběhla úspěšně. Mohlo dojít k problému s vaší platební metodou.</p>
-        <p>Pokud si přejete, aby vaše členství zůstalo aktivní, zkontrolujte a aktualizujte svou platební metodu na <a href="%billingPortalUrl%">stránce platebního portálu</a>.</p>
+        <p>Pokud si přejete, aby vaše členství zůstalo aktivní, zkontrolujte a aktualizujte svou platební metodu v platebním portálu.</p>
         <p>Pokud platba nadále selhává, vaše členství bude po několika dalších pokusech deaktivováno. Doufáme, že zůstanete součástí MySpeedPuzzling.com!</p>
+    button: "Aktualizovat platební metodu"
 
 subscription_renewed:
     subject: "Platba členství na MySpeedPuzzling.com proběhla úspěšně"
@@ -68,7 +69,7 @@ competition_submitted:
     content: |
         <p>Nová událost byla odeslána ke schválení.</p>
         <p><strong>Odeslal:</strong> %playerName%<br><strong>Událost:</strong> %competitionName%<br><strong>Místo:</strong> %location%</p>
-        <p><a href="%adminUrl%">Zkontrolovat čekající události v administraci</a></p>
+    button: "Zkontrolovat čekající události v administraci"
 
 competition_approved:
     subject: "Vaše událost byla schválena!"
@@ -92,16 +93,16 @@ oauth2_client_request:
         <p>Byla odeslána nová žádost o přístup OAuth2 klienta.</p>
         <p><strong>Žadatel:</strong> %playerName%<br><strong>Aplikace:</strong> %clientName%</p>
         <p><strong>Účel:</strong> %purpose%</p>
-        <p><a href="%adminUrl%">Zkontrolovat žádost v administraci</a></p>
+    button: "Zkontrolovat žádost v administraci"
 
 oauth2_client_approved:
     subject: "Vaše API aplikace byla schválena!"
     title: "Vaše aplikace byla schválena!"
     content: |
         <p>Skvělá zpráva! Vaše OAuth2 aplikace <strong>%clientName%</strong> byla schválena.</p>
-        <p>Klikněte na odkaz níže pro získání vašich přihlašovacích údajů. Odkaz je platný 7 dní.</p>
+        <p>Klikněte na tlačítko níže pro získání vašich přihlašovacích údajů. Odkaz je platný 7 dní.</p>
         <p><strong>Důležité:</strong> Vaše přihlašovací údaje budou zobrazeny pouze jednou. Ujistěte se, že je uložíte na bezpečné místo.</p>
-        <p><a href="%claimUrl%">Získat přihlašovací údaje</a></p>
+    button: "Získat přihlašovací údaje"
 
 oauth2_client_rejected:
     subject: "Vaše žádost o API aplikaci nebyla schválena"

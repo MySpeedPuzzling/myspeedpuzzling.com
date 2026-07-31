@@ -16,8 +16,16 @@
                 <columns>
                     {{ 'oauth2_client_approved.content'|trans({
                         '%clientName%': clientName,
-                        '%claimUrl%': claimUrl,
                     })|raw }}
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <center>
+                        <button href="{{ claimUrl }}">{{ 'oauth2_client_approved.button'|trans }}</button>
+                    </center>
+                    <spacer size-sm="8"></spacer>
                 </columns>
             </row>
 

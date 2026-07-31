@@ -35,8 +35,9 @@ subscription_payment_failed:
     title: "Membership payment failed!"
     content: |
         <p>We noticed that your recent membership payment was unsuccessful. There may have been an issue with your payment method.</p>
-        <p>If you wish to keep your membership active, please check and update your payment method on the <a href="%billingPortalUrl%">billing portal page</a>.</p>
+        <p>If you wish to keep your membership active, please check and update your payment method in the billing portal.</p>
         <p>If the payment continues to fail, your membership will be deactivated after a few more attempts. We hope you’ll stay with MySpeedPuzzling.com!</p>
+    button: "Update payment method"
 
 subscription_renewed:
     subject: "Membership payment on MySpeedPuzzling.com was successful"
@@ -69,16 +70,16 @@ oauth2_client_request:
         <p>A new OAuth2 client access request has been submitted.</p>
         <p><strong>Requester:</strong> %playerName%<br><strong>Application:</strong> %clientName%</p>
         <p><strong>Purpose:</strong> %purpose%</p>
-        <p><a href="%adminUrl%">Review this request in admin</a></p>
+    button: "Review this request in admin"
 
 oauth2_client_approved:
     subject: "Your API application has been approved!"
     title: "Your application has been approved!"
     content: |
         <p>Great news! Your OAuth2 application <strong>%clientName%</strong> has been approved.</p>
-        <p>Click the link below to claim your credentials. The link is valid for 7 days.</p>
+        <p>Click the button below to claim your credentials. The link is valid for 7 days.</p>
         <p><strong>Important:</strong> Your credentials will be shown only once. Make sure to save them in a secure location.</p>
-        <p><a href="%claimUrl%">Claim your credentials</a></p>
+    button: "Claim your credentials"
 
 oauth2_client_rejected:
     subject: "Your API application request was not approved"
@@ -94,7 +95,7 @@ competition_submitted:
     content: |
         <p>A new event has been submitted for approval.</p>
         <p><strong>Submitted by:</strong> %playerName%<br><strong>Event:</strong> %competitionName%<br><strong>Location:</strong> %location%</p>
-        <p><a href="%adminUrl%">Review pending events in admin</a></p>
+    button: "Review pending events in admin"
 
 competition_approved:
     subject: "Your event has been approved!"

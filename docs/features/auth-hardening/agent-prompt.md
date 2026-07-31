@@ -4,7 +4,7 @@ Copy-paste everything below the line into a fresh Claude Code session in this re
 
 ---
 
-Implement the **auth hardening** feature planned in `docs/features/auth-hardening/README.md`. Read that document fully first — it contains the confirmed scope, the schema designs, the wiring points, and the per-provider gotchas. Then read `CLAUDE.md` and follow every project rule in it.
+Implement the **auth hardening** feature planned in `docs/features/auth-hardening/README.md`. Read that document fully first — it contains the confirmed scope, the schema designs, the wiring points (with **exact, verified class names** in the "Reality check — implementation map" section — use those, do not invent parallel structures), and the per-provider gotchas. Then read `CLAUDE.md` and follow every project rule in it.
 
 ## What you are building
 

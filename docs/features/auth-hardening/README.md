@@ -51,6 +51,7 @@ Indexes: `(user_account_id, occurred_at DESC)` (activity page query), `(occurred
 - `sign_in_link_requested`, `sign_in_link_used`
 - `password_reset_requested`, `password_reset_completed`, `password_changed`
 - `registration`
+- `email_change_requested`, `email_verified` (the account email-change flow exists — `ChangeAccountEmailHandler`, `VerifyEmailHandler` — and is security-relevant)
 - `oauth_login`, `oauth_registration`, `oauth_identity_linked`, `oauth_identity_unlinked` (Workstream B emits these; named after the settled `oauth_identity` table)
 - `auth0_fallback_login` (fallback controller redirect — dies with the flag in Phase 6)
 
@@ -58,16 +59,20 @@ Indexes: `(user_account_id, occurred_at DESC)` (activity page query), `(occurred
 
 New message `RecordAuthAuditEvent` + handler (sync — deliberately unrouted, like `ImportAuth0User`; the `doctrine_transaction` middleware wraps the insert). Every dispatch site wraps in try/catch + `$this->logger->error(..., ['exception' => $e])` — **audit failure must never break login**.
 
-Dispatch sites:
+Dispatch sites (**exact classes, verified 2026-07-31**):
 1. **Extend `AuthenticationAuditSubscriber`** — keep the Monolog lines and the `last_login_at` write, additionally dispatch `RecordAuthAuditEvent` from `onLoginSuccess` / `onLoginFailure` / `onLogout`. `sign_in_link_used` = success with `LoginLinkAuthenticator` (already distinguished there).
-2. **Message handlers** for the rest: sign-in-link request handler, password-reset request/complete handlers, `ChangeAccountPassword` handler, registration handler. These already run inside Messenger transactions — dispatch the audit message from the handler (sub-dispatch is fine; same transaction).
+2. **Message handlers** (already inside Messenger transactions — sub-dispatch from the handler): `RequestSignInLinkHandler` (`sign_in_link_requested`), `RequestPasswordResetHandler` (`password_reset_requested`), `ResetPasswordHandler` (`password_reset_completed`), `ChangeAccountPasswordHandler` **and** `SetAccountPasswordHandler` (`password_changed` — both doors change the hash), `RegisterUserHandler` (`registration`), `ChangeAccountEmailHandler` (`email_change_requested`), `VerifyEmailHandler` (`email_verified`).
 3. `Auth0FallbackLoginController` — dispatch `auth0_fallback_login` before delegating.
 
-Handler detail: resolve `user_account_id` from the email when the dispatch site only has an email (failed login) — lookup, never create.
+Handler detail: resolve `user_account_id` from the email when the dispatch site only has an email (failed login) — lookup, never create. IP via `Request::getClientIp()` is reliable — `trusted_proxies`/`trusted_headers` are configured in `config/packages/framework.php`.
 
 ### Retention
 
-Console command `myspeedpuzzling:prune-auth-audit-log` → dispatches `PruneAuthAuditLog` message → handler deletes rows `occurred_at < now - 24 months` (single DQL/SQL DELETE, no entity hydration). Cron on the box: daily. IP addresses are personal data — the retention window is the GDPR justification; 24 months matches the "investigate account issues" purpose.
+Console command → `PruneAuthAuditLog` message → handler deletes rows `occurred_at < now - 24 months` (single SQL DELETE, no hydration). **Mirror the existing `CleanupEmailAuditLogs` message/handler/command trio exactly** — same shape, proven pattern. Cron on the box: daily. IP addresses are personal data — the retention window is the GDPR justification; 24 months matches the "investigate account issues" purpose.
+
+### ⚠️ GDPR deletion gap (pre-existing, found during the reality check 2026-07-31 — DECISION NEEDED)
+
+`DeletePlayerHandler` deletes the `Player`, owned rows, membership, and the Listmonk record — but **never deletes the `user_account` row**: email + password hash survive a GDPR account deletion. This predates this feature (the handler predates `user_account`; in the Auth0 era the identity lived at Auth0 and survived player deletion the same way). It matters now because (a) `user_account` holds PII in *our* DB, and (b) both new tables FK-cascade off `user_account`, so the cascade only means something if the account row actually gets deleted. **Recommendation: `DeletePlayerHandler` also removes the `UserAccount` (lookup by `player.userId`) — the user can re-register.** If the identity-survives semantics were intentional, record that instead. Fix belongs in PR 1.
 
 ### Recent activity page (user-facing)
 
@@ -154,6 +159,25 @@ APPLE_CLIENT_ID= / APPLE_TEAM_ID= / APPLE_KEY_ID= / APPLE_PRIVATE_KEY=
 
 ---
 
+## Reality check — implementation map (verified against the codebase 2026-07-31)
+
+Concrete anchors so nothing gets invented during implementation:
+
+| Plan item | Where it lands in the real codebase |
+|---|---|
+| `AuthAuditEventType`, provider enum | `src/Value/` — string-backed enums live there (`BounceType`, `ConversationStatus`, …) |
+| Prune command/message/handler | Mirror `CleanupEmailAuditLogs` + `CleanupEmailAuditLogsHandler` (existing, proven) |
+| Recent-activity + Connected-sign-in-methods links | Account section of `templates/edit-profile.html.twig` (~line 160, next to the change-password button) |
+| New authenticators | Append to `custom_authenticators` on the `main` firewall, `config/packages/security.php` (~line 101, currently `[LoginFormAuthenticator, 'auth0.authenticator']` — the Auth0 entry leaves in Phase 6) |
+| Apple OAuth state cache | New dedicated pool in `config/packages/cache.php` — `cache.app` is Redis, pools pattern already used (`auth0_token_cache`) |
+| Social registration handler | Parallel `RegisterUser`/`RegisterUserHandler` (email + locale, no password) — account+player creation pattern to copy |
+| Set-password for social-only accounts | **Reuse `SetAccountPassword`** — its handler has no current-password guard and already invalidates outstanding reset requests + sign-in links. Show it in settings only when `password === null`. `ChangeAccountPassword` (requires current password, refuses null-password accounts by design) stays the door for accounts that have one. |
+| Client IP | `Request::getClientIp()` — `trusted_proxies` configured in `config/packages/framework.php` |
+| Email-change audit events | `ChangeAccountEmailHandler` / `VerifyEmailHandler` exist — see event catalog |
+| GDPR deletion | `DeletePlayerHandler` — see the gap box above (fix in PR 1) |
+
+`UserAccount` itself needs **no schema changes** for Workstream A (it already carries `last_login_at`) and none for Workstream B either (password already nullable, email unique, `user_id` provider-agnostic — the migration deliberately left it social-ready).
+
 ## Rollout plan
 
 Two PRs, in order:
@@ -161,9 +185,10 @@ Two PRs, in order:
 **PR 1 — audit trail** (no user-visible risk, ship first):
 1. `AuthAuditEventType` enum, `AuthAuditEvent` entity, generated migration (`docker compose exec web php bin/console doctrine:migrations:diff` — never hand-written)
 2. `RecordAuthAuditEvent` message + handler + tests
-3. Wire all dispatch sites (subscriber + handlers + fallback controller) + tests
-4. Prune command + message + handler + tests; note the cron line for the box in the PR description
+3. Wire all dispatch sites (subscriber + the handlers named above + fallback controller) + tests
+4. Prune command + message + handler + tests (mirror `CleanupEmailAuditLogs`); note the cron line for the box in the PR description
 5. `GetAuthAuditEvents` query + recent-activity controller/template/UA-label service + tests
+6. GDPR fix: `DeletePlayerHandler` also removes the `UserAccount` row (pending Jan's confirmation — see the gap box)
 
 **PR 2 — social login** (flags default OFF, code ships dark):
 1. Provider enum, `OauthIdentity` entity (settled schema), migration

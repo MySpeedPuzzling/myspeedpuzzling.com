@@ -74,11 +74,6 @@ final readonly class SendEmailVerificationLinkHandler
             ->htmlTemplate('emails/verify_email.html.twig')
             ->context([
                 'verificationUrl' => $verificationUrl,
-                'signInLinkUrl' => $this->urlGenerator->generate('sign_in_link_request', [], UrlGeneratorInterface::ABSOLUTE_URL),
-                // Window A only: a native registrant who logs out meets the Auth0 form,
-                // which has no identity for them and which we cannot brand or link from.
-                // The sign-in link is their way back in (implementation-plan §2c).
-                'showSignInLinkRescue' => $userAccount->legacyAuth0 === false,
                 'expiresInHours' => EmailVerificationTokenSigner::LIFETIME_HOURS,
             ]);
         $email->getHeaders()->addTextHeader('X-Transport', 'transactional');

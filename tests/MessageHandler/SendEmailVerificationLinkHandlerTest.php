@@ -118,22 +118,6 @@ final class SendEmailVerificationLinkHandlerTest extends KernelTestCase
         self::assertSame('cs', $this->assertTemplatedEmail($this->mailer->sent[0])->getLocale());
     }
 
-    public function testSignInLinkRescueIsOfferedOnlyToNativeAccounts(): void
-    {
-        $this->createUserAccount('msp|sendverify5', 'send.verify.five@example.com');
-
-        $importedAccount = $this->createUserAccount('auth0|sendverify6', 'send.verify.six@example.com');
-        $importedAccount->applyAuth0Import('send.verify.six@example.com', null, false, new DateTimeImmutable());
-        $this->entityManager->flush();
-
-        ($this->handler)(new SendEmailVerificationLink('msp|sendverify5', 'en'));
-        ($this->handler)(new SendEmailVerificationLink('auth0|sendverify6', 'en'));
-
-        self::assertCount(2, $this->mailer->sent);
-        self::assertTrue($this->assertTemplatedEmail($this->mailer->sent[0])->getContext()['showSignInLinkRescue']);
-        self::assertFalse($this->assertTemplatedEmail($this->mailer->sent[1])->getContext()['showSignInLinkRescue']);
-    }
-
     private function tokenFromVerificationUrl(TemplatedEmail $email): string
     {
         $verificationUrl = $email->getContext()['verificationUrl'] ?? null;

@@ -162,11 +162,10 @@ verify_email:
     subject: "Potvrďte svou e-mailovou adresu pro MySpeedPuzzling.com"
     title: "Potvrďte svou e-mailovou adresu"
     content: |
-        <p>Vítejte na MySpeedPuzzling! Potvrďte tuto adresu, ať vás můžeme kontaktovat ohledně vašeho účtu.</p>
+        <p>Vítejte na MySpeedPuzzling — jste v dobré společnosti více než 10 000 dalších puzzlerů!</p>
+        <p>Stačí potvrdit e-mailovou adresu a můžete začít: měřit si skládání, porovnávat výsledky s komunitou a sledovat, jak padají vaše osobní rekordy.</p>
     button: "Potvrdit mou e-mailovou adresu"
     expires: "Odkaz platí %hours% hodin."
-    signed_out_rescue: |
-        <p>Ještě jedna věc, kterou je dobré vědět: přihlašování ještě několik dní běží přes našeho starého poskytovatele a ten o vašem zbrusu novém účtu zatím neví. Pokud budete před přepnutím odhlášeni, vraťte se zpátky pomocí přihlašovacího odkazu e-mailem: <a href="%url%">%url%</a></p>
     not_requested: "Tento účet jste nezakládali? Tento e-mail můžete klidně ignorovat."
 
 password_reset:

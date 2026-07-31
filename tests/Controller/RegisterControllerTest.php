@@ -74,14 +74,15 @@ final class RegisterControllerTest extends WebTestCase
         self::assertNotNull($player);
         self::assertSame($email, $player->email);
 
-        // The verification mail goes out, and carries the window-A sign-in-link rescue
+        // The verification mail goes out. It no longer carries the window-A sign-in-link
+        // rescue: hybrid login (native first, Auth0 fallback) knows a fresh registrant.
         $messages = self::getMailerMessages();
         self::assertCount(1, $messages);
         self::assertInstanceOf(Email::class, $messages[0]);
 
         $body = (string) $messages[0]->getHtmlBody();
         self::assertStringContainsString('/verify-email?token=', $body);
-        self::assertStringContainsString('/login-link', $body);
+        self::assertStringNotContainsString('/login-link', $body);
     }
 
     public function testWelcomeScreenCarriesTheSignInLinkRescue(): void

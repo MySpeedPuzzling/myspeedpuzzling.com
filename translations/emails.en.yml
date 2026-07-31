@@ -162,11 +162,10 @@ verify_email:
     subject: "Confirm your email address for MySpeedPuzzling.com"
     title: "Confirm your email address"
     content: |
-        <p>Welcome to MySpeedPuzzling! Confirm this address so we can reach you about your account.</p>
+        <p>Welcome to MySpeedPuzzling — you are in good company of over 10,000 other puzzlers!</p>
+        <p>Just confirm your email address and you are all set: time your solves, compare your results with the community and watch your personal bests fall.</p>
     button: "Confirm my email address"
     expires: "The link is valid for %hours% hours."
-    signed_out_rescue: |
-        <p>One thing worth keeping: signing in still runs through our old provider for a few more days, and it does not know your brand-new account yet. If you are signed out before the switch, get back in with a sign-in link by email: <a href="%url%">%url%</a></p>
     not_requested: "Did not create this account? You can safely ignore this email."
 
 password_reset:

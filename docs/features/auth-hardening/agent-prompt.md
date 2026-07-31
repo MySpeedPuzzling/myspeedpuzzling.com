@@ -11,7 +11,7 @@ Implement the **auth hardening** feature planned in `docs/features/auth-hardenin
 Two workstreams, delivered as **two separate PRs in this order**:
 
 1. **PR 1 — Auth audit trail**: `auth_audit_log` table capturing all auth events (login success/failure, logout, sign-in-link requested/used, password reset requested/completed, password changed, registration, Auth0-fallback use) with IP + user agent, a retention prune command, and a user-facing `/account/recent-activity` page showing the logged-in user their last 50 events.
-2. **PR 2 — Social login**: Google, Apple, and Facebook sign-in via `league/oauth2-client` provider libraries (plain libraries — the project forbids third-party Symfony bundles), a `social_identity` table, one `SocialLoginAuthenticator`, auto-linking by verified email, a "Connected accounts" settings section, per-provider feature flags **defaulting OFF** (code ships dark; credentials arrive later via Infisical).
+2. **PR 2 — Social login**: Google, Apple, and Facebook sign-in via `league/oauth2-client` provider libraries (plain libraries — the project forbids third-party Symfony bundles). **The data model and linking rules are already settled** in `docs/features/auth-migration/README.md` §Auth-method extensibility (decision D13) — read that section and implement it verbatim: `oauth_identity` table, per-provider authenticators, the five account-linking rules, the ≥1-sign-in-method invariant, "Connected sign-in methods" settings section (list/link/unlink/set-password). Per-provider feature flags **default OFF** (code ships dark; credentials arrive later via Infisical).
 
 ## Hard constraints (from CLAUDE.md — violations will be rejected in review)
 
@@ -32,8 +32,8 @@ Two workstreams, delivered as **two separate PRs in this order**:
 - The `RecordAuthAuditEvent` message must stay **unrouted** (sync) — like `ImportAuth0User`.
 - Never store secrets/passwords in the audit `metadata` jsonb.
 - Apple: `response_mode=form_post` means the callback is a **cross-site POST** — SameSite=Lax session cookies are absent, so validate OAuth `state` via Symfony cache (TTL 10 min, delete on use), NOT the session. Callback route accepts POST, excluded from CSRF. Name/email arrive only on the user's first authorization — capture then.
-- Auto-link a social identity to an existing account **only** when the provider asserts the email is verified; otherwise refuse with a "use the email sign-in link" message. Never allow unlinking the last sign-in method (require password or another provider to remain).
-- Social accounts are native `msp|<uuid>` accounts with null password — no new identity namespace.
+- Account linking follows the five settled rules exactly (auto-link only on provider-verified email; unverified → "sign in with your password and connect {provider} from settings"; explicit linking from settings needs no email match). Enforce the invariant `password IS NOT NULL OR ≥1 oauth_identity` in both the unlink and remove-password handlers. Login errors stay generic — never reveal which methods an account has.
+- Social accounts are native `msp|<uuid7>` accounts with null password — no new identity namespace.
 - Order the provider work: Google first (plain OIDC + PKCE), Facebook second, Apple last (hardest).
 - Mock provider HTTP in tests (the league providers accept an injected HTTP client). No Panther tests.
 

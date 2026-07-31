@@ -167,7 +167,7 @@ Rejected alternatives, for the record: **(a)** per-provider columns on `user_acc
 
 All auth-facing UI ships in **all 6 locales** (en, cs, de, es, fr, ja — matching the #161 change-password precedent; auth pages replace Auth0's auto-localized Universal Login, so English-only would be a regression). Emails localize via the player `locale` field.
 
-Post-launch candidates (not blocking): Google/Facebook login (design settled — see "Auth-method extensibility" above; `knpuniversity/oauth2-client-bundle` v2.20+ supports Symfony 8), 2FA via `scheb/2fa-bundle` (v8.6.1 supports Symfony 8 + PHP 8.5), passkeys/WebAuthn, per-device session management.
+Post-launch candidates (not blocking): Google/Facebook login (design settled — see "Auth-method extensibility" above; **now planned in `docs/features/auth-hardening/` (2026-07-31), which uses the league provider libraries directly — the earlier `knpuniversity/oauth2-client-bundle` candidate note is superseded by the no-third-party-bundles decision of 2026-07-24**), 2FA via `scheb/2fa-bundle` (v8.6.1 supports Symfony 8 + PHP 8.5), passkeys/WebAuthn, per-device session management.
 
 ### Password-manager shock — the UX funnel (decided 2026-07-23)
 

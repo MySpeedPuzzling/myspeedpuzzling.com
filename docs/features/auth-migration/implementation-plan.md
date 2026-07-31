@@ -152,4 +152,4 @@ See [communication-plan.md](communication-plan.md). Gates: Stage A may not ship 
 
 ## Phase 7 — Post-migration enhancements (backlog, optional)
 
-Google/Facebook (maybe Apple) login per the settled `oauth_identity` design (README §Auth-method extensibility) · Passkeys/WebAuthn · 2FA (`scheb/2fa-bundle` v8.6.1) · per-device session management/revocation UI.
+Google/Facebook (maybe Apple) login per the settled `oauth_identity` design (README §Auth-method extensibility) — **now planned: `docs/features/auth-hardening/` (2026-07-31, Google + Apple + Facebook confirmed, plus DB auth audit trail)** · Passkeys/WebAuthn · 2FA (`scheb/2fa-bundle` v8.6.1) · per-device session management/revocation UI.

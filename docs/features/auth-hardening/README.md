@@ -43,7 +43,7 @@ Status: **planned** (scope confirmed by Jan 2026-07-31). Follow-up to the Auth0 
 
 Indexes: `(user_account_id, occurred_at DESC)` (activity page query), `(occurred_at)` (prune), `(event_type, occurred_at)` (future internal statistics — see below).
 
-**Future use — internal statistics (MAU etc., Jan 2026-07-31, not in scope now):** the table doubles as the source for unique-active-user metrics (`COUNT(DISTINCT user_account_id)` over `login_success`/`sign_in_link_used`/`social_login` in a window — hence the mandatory `(event_type, occurred_at)` index). Two caveats recorded for when this gets built: (1) sessions live ~15.6 days, so login events are a *proxy* for activity — an active user logs in only ~2×/month; true MAU needs request-level activity tracking, which is a separate feature; (2) the 24-month prune caps how far back trends reach — if longer history is ever wanted, snapshot monthly aggregates into a tiny summary table before pruning.
+**Future use — internal statistics (MAU etc., Jan 2026-07-31, not in scope now):** the table doubles as the source for unique-active-user metrics (`COUNT(DISTINCT user_account_id)` over `login_success`/`sign_in_link_used`/`oauth_login` in a window — hence the mandatory `(event_type, occurred_at)` index). Two caveats recorded for when this gets built: (1) sessions live ~15.6 days, so login events are a *proxy* for activity — an active user logs in only ~2×/month; true MAU needs request-level activity tracking, which is a separate feature; (2) the 24-month prune caps how far back trends reach — if longer history is ever wanted, snapshot monthly aggregates into a tiny summary table before pruning.
 
 ### Event catalog (`AuthAuditEventType` enum)
 
@@ -51,7 +51,7 @@ Indexes: `(user_account_id, occurred_at DESC)` (activity page query), `(occurred
 - `sign_in_link_requested`, `sign_in_link_used`
 - `password_reset_requested`, `password_reset_completed`, `password_changed`
 - `registration`
-- `social_login`, `social_registration`, `social_identity_linked`, `social_identity_unlinked` (Workstream B emits these)
+- `oauth_login`, `oauth_registration`, `oauth_identity_linked`, `oauth_identity_unlinked` (Workstream B emits these; named after the settled `oauth_identity` table)
 - `auth0_fallback_login` (fallback controller redirect — dies with the flag in Phase 6)
 
 ### Wiring — follow the `EmailAuditSubscriber` pattern
@@ -72,7 +72,7 @@ Console command `myspeedpuzzling:prune-auth-audit-log` → dispatches `PruneAuth
 ### Recent activity page (user-facing)
 
 - Route `/account/recent-activity` (single-action controller, logged-in users only, NOT membership-gated — it's a security feature).
-- Query class `GetAuthAuditEvents` (raw SQL in `src/Query/`, Results DTO in `src/Results/`): last 50 events for the logged-in account, filtered to user-meaningful types: `login_success`, `sign_in_link_used`, `login_failure`, `password_changed`, `password_reset_completed`, `social_login`, `social_identity_linked/unlinked`. (Failures included deliberately — "someone tried to get in" is the point of the page.)
+- Query class `GetAuthAuditEvents` (raw SQL in `src/Query/`, Results DTO in `src/Results/`): last 50 events for the logged-in account, filtered to user-meaningful types: `login_success`, `sign_in_link_used`, `login_failure`, `password_changed`, `password_reset_completed`, `oauth_login`, `oauth_identity_linked/unlinked`. (Failures included deliberately — "someone tried to get in" is the point of the page.)
 - Display: event label, relative + absolute time, IP, readable device label. Device label = tiny in-house UA parser service (regex for Chrome/Safari/Firefox/Edge + Windows/macOS/iOS/Android/Linux, fallback to truncated raw UA) — **no new dependency** for this.
 - Link from the account/settings menu. Translations: EN only (project convention for new features).
 
@@ -80,37 +80,42 @@ Console command `myspeedpuzzling:prune-auth-audit-log` → dispatches `PruneAuth
 
 ## Workstream B — Social login (Google, Apple, Facebook)
 
+**The data model and linking rules were ALREADY SETTLED in `docs/features/auth-migration/README.md` §Auth-method extensibility (decision D13, 2026-07-12) — that section is the authority; this plan implements it, it does not redesign it.** Read it before implementing. Summary of what it fixes: table `oauth_identity` (exact columns below), per-provider authenticators, the 5 account-linking rules, the ≥1-sign-in-method invariant, provider-agnostic `msp|<uuid7>` user ids, and the rejected alternatives (per-provider columns, generalized credential table).
+
 ### Library choice
 
-`league/oauth2-client` provider packages — **plain composer libraries, NOT Symfony bundles** (project rule: no bundles whose contract fights CQRS; these are just HTTP clients with typed providers):
+`league/oauth2-client` provider packages — **plain composer libraries, NOT Symfony bundles**:
 - `league/oauth2-google`
 - `league/oauth2-facebook`
 - `patrickbussmann/oauth2-apple` (league-style Apple provider; handles the ES256 client-secret JWT)
 
-Wire them as services in `config/services.php` with env-var credentials. All auth logic stays in our authenticator + Messenger handlers.
+Note: the auth-migration README's post-launch-candidates line mentions `knpuniversity/oauth2-client-bundle` — that note (2026-07-12) **predates the no-third-party-bundles decision (2026-07-24)** and is superseded: KnpU is DI sugar over these same league providers, so we wire the providers as services in `config/services.php` directly. All auth logic stays in our authenticators + Messenger handlers.
 
-### Entity: `SocialIdentity` → table `social_identity`
+### Entity: `OauthIdentity` → table `oauth_identity` (schema per D13, verbatim)
 
 | Column | Notes |
 |---|---|
-| `id` | uuid7 |
-| `user_account_id` | FK → `user_account`, `ON DELETE CASCADE` |
-| `provider` | backed enum `SocialProvider`: `google`, `apple`, `facebook` |
-| `provider_user_id` | provider's stable subject id; **unique (provider, provider_user_id)** |
-| `email_at_link` | email the provider reported at link time (nullable — Apple private relay users) |
-| `created_at`, `last_used_at` | |
+| `id` | uuid7, PK |
+| `user_account_id` | uuid FK → `user_account` (ManyToOne, unidirectional), `ON DELETE CASCADE` (GDPR) |
+| `provider` | string-backed PHP enum: `google`, `apple`, `facebook` |
+| `provider_user_id` | provider's stable subject id; **UNIQUE together with `provider`** |
+| `email_at_link` | provider email at link time (support/debugging; Apple private-relay addresses land here as-is) |
+| `linked_at` | datetimetz_immutable |
+| `last_used_at` | datetimetz_immutable, nullable — house audit pattern, same as PAT/OAuth2 tokens |
 
-`user_id` namespace: social accounts are **native `msp|<uuid>` accounts** — the provider link lives only in `social_identity`. No third identity namespace.
+`user_id` namespace: social accounts are **native `msp|<uuid7>` accounts** — provenance lives only in `oauth_identity`, so linking/unlinking never touches the `Player.userId` seam.
 
 ### Flow
 
 - `GET /login/social/{provider}` — start controller: validate provider enum + flag, generate `state` (and PKCE for Google), redirect to authorization URL.
-- `/login/social/{provider}/callback` — one `SocialLoginAuthenticator` on the `main` firewall handling all providers: validate state, exchange code, fetch profile, then resolve in order:
-  1. `social_identity(provider, provider_user_id)` exists → log in that account, bump `last_used_at`.
-  2. Else account with matching email exists → **auto-link** (create `social_identity`) + log in. Auto-link only on provider-verified emails: Google `email_verified` claim, Apple (always verified, possibly relay), Facebook (returns only confirmed emails). If a provider ever hands over an unverified email → fail with a "use email sign-in link instead" message, never link.
-  3. Else → dispatch `RegisterWithSocialIdentity` message: create `UserAccount` (`msp|` id, null password, provider email, email verified), create `SocialIdentity`. Player JITs on first login exactly like the existing flow.
-- **Logged-in linking**: same start route with the session marked `intent=link` → callback attaches the identity to the *current* account instead of logging in (guard: provider identity not already attached to a different account → error message).
-- **Unlink** (account settings "Connected accounts" section): allowed only if the account keeps at least one of {password set, another social identity}. Rationale: the email sign-in link is the universal rescue, *except* for Apple-private-relay emails which can die after unlink — so never allow removing the last method.
+- `/login/social/{provider}/callback` — **per-provider authenticators** on the `main` firewall (settled: "adding a provider = new enum case + new authenticator"; Google/Facebook may share an abstract base, Apple's POST + cache-state flow differs anyway). Account resolution follows the **five settled linking rules** (auth-migration README §Auth-method extensibility, adopt verbatim):
+  1. `(provider, provider_user_id)` found → log in, touch `last_used_at`.
+  2. Not found, provider email **verified** and matches an existing `user_account.email` → auto-link (create identity row) + log in. (Google: `email_verified` claim; Apple: always verified, possibly relay; Facebook: returns only confirmed emails — a denied email permission counts as unverified.)
+  3. Not found, provider email matches an existing account but is **unverified** → refuse: "sign in with your password and connect {provider} from settings" (account-takeover guard).
+  4. No match → create `user_account` (`user_id = msp|<uuid7>`, `password = NULL`, `email_verified_at` from provider claim) + identity row via a `RegisterWithOauthIdentity` message; Player JITs on first login exactly like the existing flow.
+  5. Explicit linking from settings (user already authenticated) → create the identity row for the **logged-in** account, no provider-email match required — ownership is already proven. The unique `(provider, provider_user_id)` constraint guarantees one identity never attaches to two accounts.
+- **Invariant (settled):** every account keeps ≥1 sign-in method — `password IS NOT NULL OR ≥1 oauth_identity` — enforced in **both** the unlink handler and the remove-password handler ("set a password before disconnecting your last sign-in method"). This also protects Apple-private-relay users whose relay email can die after unlink.
+- **Anti-enumeration (settled):** login errors stay generic regardless of which methods an account has (never "this account uses Google").
 - Audit: every path emits the Workstream A events.
 
 ### Provider gotchas (read before implementing)
@@ -129,7 +134,7 @@ Wire them as services in `config/services.php` with env-var credentials. All aut
 ### UI
 
 - Buttons on `/login` and `/register` above/below the form, brand-guideline-compliant (each provider mandates logo/wording — "Continue with Google/Apple/Facebook"). Bootstrap-styled, no image CDNs (self-hosted SVGs in `assets/`).
-- "Connected accounts" section on the account settings page: linked providers with link/unlink.
+- **"Connected sign-in methods"** settings section (the settled name): list linked providers, link/unlink, **and set-password** for social-only accounts (opens the email+password door; the password-reset flow works too since the email is verified).
 - Translations: EN only.
 
 ### Feature flags
@@ -161,11 +166,11 @@ Two PRs, in order:
 5. `GetAuthAuditEvents` query + recent-activity controller/template/UA-label service + tests
 
 **PR 2 — social login** (flags default OFF, code ships dark):
-1. `SocialProvider` enum, `SocialIdentity` entity, migration
+1. Provider enum, `OauthIdentity` entity (settled schema), migration
 2. Provider service wiring + composer deps
-3. Start controller + `SocialLoginAuthenticator` + resolve/link/register handlers + audit events
+3. Start controller + per-provider authenticators + resolve/link/register handlers (five settled rules + invariant) + audit events
 4. Google end-to-end first (mocked-HTTP tests), then Facebook, then Apple (cache-based state, POST callback)
-5. Login/register buttons + connected-accounts settings UI
+5. Login/register buttons + "Connected sign-in methods" settings UI (incl. set-password)
 6. `feature_flags.md`, CLAUDE.md feature pointer, fixtures if needed
 
 **Jan's manual tasks** (not for the implementing agent):

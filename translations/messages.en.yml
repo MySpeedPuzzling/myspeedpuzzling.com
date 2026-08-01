@@ -979,6 +979,7 @@ player_profile:
         description: "%name%'s speed puzzling profile: fastest jigsaw puzzle times, rankings, badges and recent solves on MySpeedPuzzling."
 
 flashes:
+    photo_upload_deferred: "Your data is saved! The photo could not be uploaded right now — it will be uploaded automatically as soon as our storage is available again."
     stopwatch_already_saved: "These stopwatches have already been saved."
     puzzle_needs_approve: "Recently added puzzles will be publicly displayed after approval by an administrator - usually within 24 hours of adding."
     time_added: "We have saved your puzzling time."

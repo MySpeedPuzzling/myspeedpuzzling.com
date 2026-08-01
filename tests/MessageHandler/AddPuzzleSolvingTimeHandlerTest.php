@@ -5,15 +5,21 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\DBAL\Connection;
+use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
+use SpeedPuzzling\Web\Services\Storage\UploadSpool;
+use SpeedPuzzling\Web\Services\Storage\UploadSpoolProcessor;
+use SpeedPuzzling\Web\Services\UploadFailureCollector;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\TestDouble\ToggleableFailingFilesystemAdapter;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -174,6 +180,66 @@ final class AddPuzzleSolvingTimeHandlerTest extends KernelTestCase
         self::assertNotFalse($row);
         self::assertSame(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, $row['competition_round_id']);
         self::assertSame(CompetitionFixture::COMPETITION_WJPC_2024, $row['competition_id']);
+    }
+
+    public function testS3OutageSpoolsPhotoAndTimeIsStillSaved(): void
+    {
+        $timeId = Uuid::uuid7();
+        $container = self::getContainer();
+
+        /** @var ToggleableFailingFilesystemAdapter $s3Adapter */
+        $s3Adapter = $container->get('app.storage.s3_adapter');
+        $s3Adapter->setFailing(true);
+
+        $imagePath = tempnam(sys_get_temp_dir(), 'puzzle_test_') . '.jpg';
+        $image = imagecreatetruecolor(10, 10);
+        assert($image !== false);
+        imagejpeg($image, $imagePath);
+
+        $this->messageBus->dispatch(new AddPuzzleSolvingTime(
+            timeId: $timeId,
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            puzzleId: PuzzleFixture::PUZZLE_1500_01,
+            competitionId: null,
+            time: '01:00:00',
+            comment: null,
+            finishedPuzzlesPhoto: new UploadedFile($imagePath, 'finished.jpg', 'image/jpeg', null, true),
+            groupPlayers: [],
+            finishedAt: null,
+            firstAttempt: true,
+            unboxed: false,
+        ));
+
+        // The time is saved despite the outage, with the photo path recorded
+        /** @var false|null|string $photoPath */
+        $photoPath = $this->database->fetchOne(
+            'SELECT finished_puzzle_photo FROM puzzle_solving_time WHERE id = :id',
+            ['id' => $timeId->toString()],
+        );
+        self::assertIsString($photoPath);
+
+        // The photo landed in the spool and the user gets notified
+        /** @var UploadSpool $spool */
+        $spool = $container->get(UploadSpool::class);
+        self::assertTrue($spool->hasPayload($photoPath));
+
+        /** @var UploadFailureCollector $collector */
+        $collector = $container->get(UploadFailureCollector::class);
+        self::assertTrue($collector->hasFailures());
+
+        // Storage recovers - the retry drains the spool to S3 under the same key
+        $s3Adapter->setFailing(false);
+
+        /** @var UploadSpoolProcessor $processor */
+        $processor = $container->get(UploadSpoolProcessor::class);
+        $result = $processor->process();
+
+        self::assertSame(1, $result['uploaded']);
+        self::assertFalse($spool->hasPayload($photoPath));
+
+        /** @var Filesystem $filesystem */
+        $filesystem = $container->get(Filesystem::class);
+        self::assertTrue($filesystem->fileExists($photoPath));
     }
 
     public function testUnknownRoundIdThrows(): void

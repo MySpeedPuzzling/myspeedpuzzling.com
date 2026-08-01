@@ -63,6 +63,31 @@ final class RememberMeTest extends WebTestCase
     }
 
     /**
+     * The session and the remember-me cookie must agree on how long "stay signed
+     * in" lasts, because only one of them slides while the visitor is active.
+     *
+     * The session cookie is re-sent with a fresh Max-Age on every request, so an
+     * active visitor is never signed out. The remember-me cookie is NOT renewed
+     * during that time - RememberMeAuthenticator::supports() declines whenever a
+     * token is already present, so the handler only re-issues on the one path
+     * that consumes it. If the session lifetime were the shorter of the two,
+     * someone active for months and then idle would fall back to it rather than
+     * to the advertised 30 days.
+     */
+    public function testSessionLifetimeMatchesTheRememberMeLifetime(): void
+    {
+        $browser = self::createClient();
+
+        $sessionLifetime = $browser->getContainer()->getParameter('session.storage.options')['gc_maxlifetime'] ?? null;
+
+        self::assertSame(
+            self::LIFETIME,
+            $sessionLifetime,
+            'Session gc_maxlifetime and remember_me lifetime must stay in step - see config/packages/framework.php',
+        );
+    }
+
+    /**
      * The regression guard for the bug that blocked this feature: on every
      * request after login the Auth0 authenticator fails (the session holds a
      * native token, not Auth0 credentials), and core's listener would clear the

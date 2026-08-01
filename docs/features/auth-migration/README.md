@@ -39,7 +39,7 @@ During the A→B window the `main` firewall runs **both** systems: `custom_authe
 | Players with `user_id` but no stored email | 3 |
 | Duplicate-email pairs (same email, two player rows) | 7 pairs / 14 rows — likely deleted-and-re-registered Auth0 accounts; the stale row's Auth0 user no longer exists |
 | Auth0 tenant | `speedpuzzling.eu.auth0.com` (EU, no custom domain), client `miVihwBrsB47LxhQpLYEf22ySrDq9Ra9` |
-| Sessions | Symfony `PdoSessionHandler` in Postgres, cookie lifetime ~15.6 days. Since 2026-08-01 a sliding 30-day remember-me cookie outlives the session, so staying signed in no longer depends on session lifetime |
+| Sessions | Symfony `PdoSessionHandler` in Postgres, cookie lifetime **30 days** since 2026-08-01 (was ~15.6), matching `remember_me`. The session cookie slides on every request; the remember-me cookie only re-issues when it is actually consumed, so the session lifetime is what protects a long-active-then-idle user - hence keeping the two in step |
 | Transactional email | `smtp.seznam.cz` (all three MAILER DSNs) |
 
 ### Production state of the native stack (verified on the box, 2026-07-25 — after 2a/2b/2c-I/2c-II shipped)

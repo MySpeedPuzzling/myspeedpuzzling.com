@@ -39,4 +39,11 @@ return static function (ContainerConfigurator $configurator): void {
     // call Google/Apple/Facebook (the static handler survives kernel reboots)
     $services->set('social_login.http_client', \GuzzleHttp\Client::class)
         ->factory([\SpeedPuzzling\Web\Tests\TestDouble\SocialLoginHttpMock::class, 'client']);
+
+    // S3 failover: the real FailoverS3Adapter stays wired (see
+    // config/packages/test/oneup_flysystem.php), only the raw S3 adapter and
+    // the local spool are swapped for in-memory doubles. setFailing(true) on
+    // the toggleable double simulates an object storage outage.
+    $services->set('app.storage.s3_adapter', \SpeedPuzzling\Web\Tests\TestDouble\ToggleableFailingFilesystemAdapter::class);
+    $services->set('app.storage.spool_adapter', \League\Flysystem\InMemory\InMemoryFilesystemAdapter::class);
 };

@@ -14,7 +14,7 @@ final class AffiliatesControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/affiliates');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/affiliates');
     }
 
     public function testActiveTabNotAccessibleByAnonymous(): void
@@ -22,7 +22,7 @@ final class AffiliatesControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/affiliates?tab=active');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/affiliates?tab%3Dactive');
     }
 
     public function testSuspendedTabNotAccessibleByAnonymous(): void
@@ -30,7 +30,7 @@ final class AffiliatesControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/affiliates?tab=suspended');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/affiliates?tab%3Dsuspended');
     }
 
     public function testSuspendNotAccessibleByAnonymous(): void

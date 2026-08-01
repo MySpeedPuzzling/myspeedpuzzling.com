@@ -13,7 +13,7 @@ final class EmailAuditLogControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/email-audit');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/email-audit');
     }
 
     public function testDetailIsNotAccessibleByAnonymous(): void
@@ -21,6 +21,6 @@ final class EmailAuditLogControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/email-audit/00000000-0000-0000-0000-000000000000');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/email-audit/00000000-0000-0000-0000-000000000000');
     }
 }

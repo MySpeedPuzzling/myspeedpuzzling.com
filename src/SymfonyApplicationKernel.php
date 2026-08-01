@@ -4,6 +4,7 @@ namespace SpeedPuzzling\Web;
 
 use SpeedPuzzling\Web\CompilerPass\RememberMeMigrationWindowPass;
 use SpeedPuzzling\Web\CompilerPass\SentryDisableShareHandleCompilerPass;
+use SpeedPuzzling\Web\CompilerPass\SessionFreeExceptionListenerPass;
 use Symfony\Bundle\FrameworkBundle\DependencyInjection\Compiler\PhpConfigReferenceDumpPass;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
@@ -18,6 +19,7 @@ class SymfonyApplicationKernel extends BaseKernel
     {
         $container->addCompilerPass(new SentryDisableShareHandleCompilerPass());
         $container->addCompilerPass(new RememberMeMigrationWindowPass());
+        $container->addCompilerPass(new SessionFreeExceptionListenerPass());
 
         // FrameworkBundle's PhpConfigReferenceDumpPass regenerates config/reference.php on
         // every debug container compile and registers it as a tracked container resource.

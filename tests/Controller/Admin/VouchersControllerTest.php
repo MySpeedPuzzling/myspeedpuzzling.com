@@ -13,7 +13,7 @@ final class VouchersControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/vouchers');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/vouchers');
     }
 
     public function testVouchersAvailableTabNotAccessibleByAnonymous(): void
@@ -21,7 +21,7 @@ final class VouchersControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/vouchers?tab=available');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/vouchers?tab%3Davailable');
     }
 
     public function testVouchersUsedTabNotAccessibleByAnonymous(): void
@@ -29,7 +29,7 @@ final class VouchersControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/vouchers?tab=used');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/vouchers?tab%3Dused');
     }
 
     public function testVouchersExpiredTabNotAccessibleByAnonymous(): void
@@ -37,6 +37,6 @@ final class VouchersControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/vouchers?tab=expired');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/vouchers?tab%3Dexpired');
     }
 }

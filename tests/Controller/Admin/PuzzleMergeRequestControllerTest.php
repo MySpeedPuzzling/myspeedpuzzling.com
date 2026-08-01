@@ -13,7 +13,7 @@ final class PuzzleMergeRequestControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/puzzle-merge-requests');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/puzzle-merge-requests');
     }
 
     public function testApproveIsNotAccessibleByAnonymous(): void

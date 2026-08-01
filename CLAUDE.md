@@ -224,7 +224,7 @@ Active feature flags are documented in `docs/features/feature_flags.md`. **Alway
 - The service worker uses cache-first for `/build/*` (fetches with `cache: 'reload'` and buffers the full body before caching — a truncated or HTTP-cache-poisoned download must never become the permanent copy), network-only for HTML navigation (offline fallback only, no caching), and stale-while-revalidate for images. Requests it has no strategy for are NOT intercepted
 - Stale `/build/*` cache entries from previous deploys are pruned automatically (on cache miss, validated against current `entrypoints.json`/`manifest.json`)
 - **Asset-failure telemetry + self-heal**: an inline ES5 script in `base.html.twig` reports failed `/build` script/link loads (incl. silent SRI rejections) via `sendBeacon` to `POST /-/asset-load-failure` (`AssetLoadFailureController`, logs warning → Sentry) and, once per session, purges cached `/build` entries and reloads. It must stay inline and dependency-free — it runs exactly when the bundles don't
-- The Docker image carries the previous release's `/build` assets (one generation, `.docker/merge-previous-build.php`) so both HTML generations resolve during blue-green rollout
+- The Docker image carries recent releases' `/build` assets (`.docker/merge-previous-build.php`) so HTML a browser loaded before this release still resolves its assets. Retention is by **age** (`RETENTION_DAYS`, default 7), not by build count — a burst of deploys must not evict a generation clients still hold. Each image ships a `/build/.carried-assets.json` ledger recording when every carried file went stale; the next build reads it so the clock never resets
 
 ### Turbo Configuration
 - **Turbo Drive is globally enabled** for SPA-like forward navigation

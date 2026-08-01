@@ -42,9 +42,10 @@ RUN find public/build public/bundles public/css public/fonts public/img -type f 
         -exec brotli -q 11 --keep {} \; \
         -exec gzip -9 --keep {} \;
 
-# Carry the previous release's hashed build assets (incl. their precompressed
-# siblings, so they are not recompressed here) so both HTML generations
-# resolve during blue-green rollout - capped at one generation back
+# Carry recent releases' hashed build assets (incl. their precompressed
+# siblings, so they are not recompressed here) so HTML a browser loaded before
+# this release still resolves its assets - retention is by AGE, not by build
+# count, so a burst of deploys cannot evict a generation clients still hold
 # (see .docker/merge-previous-build.php)
 COPY --from=previous-release /app/public/build /tmp/previous-build
 RUN php .docker/merge-previous-build.php /tmp/previous-build public/build \

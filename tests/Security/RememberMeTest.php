@@ -78,7 +78,7 @@ final class RememberMeTest extends WebTestCase
     {
         $browser = self::createClient();
 
-        $sessionLifetime = $browser->getContainer()->getParameter('session.storage.options')['gc_maxlifetime'] ?? null;
+        $sessionLifetime = $browser->getContainer()->getParameter('session.storage.options')['gc_maxlifetime'];
 
         self::assertSame(
             self::LIFETIME,

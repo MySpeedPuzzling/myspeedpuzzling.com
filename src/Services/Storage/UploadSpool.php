@@ -74,21 +74,14 @@ final class UploadSpool
         $this->spool->delete(self::META_PREFIX . $key . self::META_SUFFIX);
     }
 
-    public function hasPendingOperations(): bool
+    /**
+     * Current meta for the key, or null when nothing is pending (or the meta
+     * is unreadable). Used by the cron to re-check freshness right before
+     * executing an operation from an earlier directory listing.
+     */
+    public function pendingOperationFor(string $key): null|SpooledOperation
     {
-        foreach ($this->spool->listContents(rtrim(self::META_PREFIX, '/'), deep: true) as $item) {
-            if ($item->isFile()) {
-                return true;
-            }
-        }
-
-        foreach ($this->spool->listContents(rtrim(self::PAYLOAD_PREFIX, '/'), deep: true) as $item) {
-            if ($item->isFile()) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->readMeta($key);
     }
 
     public function hasPayload(string $key): bool

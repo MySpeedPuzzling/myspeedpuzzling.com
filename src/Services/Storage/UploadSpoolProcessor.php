@@ -54,9 +54,7 @@ final readonly class UploadSpoolProcessor
                     if ($operation->op === SpooledOperationType::Write) {
                         $uploaded += $this->processWrite($operation) ? 1 : 0;
                     } else {
-                        $this->s3Adapter->delete($operation->key);
-                        $this->spool->resolve($operation->key);
-                        $deleted++;
+                        $deleted += $this->processDelete($operation) ? 1 : 0;
                     }
                 } catch (\Throwable $exception) {
                     $this->spool->markAttemptFailed($operation, $exception::class . ': ' . $exception->getMessage());
@@ -85,8 +83,15 @@ final readonly class UploadSpoolProcessor
         $fingerprintBefore = $this->spool->payloadFingerprint($key);
 
         if ($fingerprintBefore === null) {
-            // Payload vanished (resolved by a successful live write meanwhile)
-            $this->spool->resolve($key);
+            // Payload vanished - resolved by a successful live operation since
+            // the directory listing. Purge only when the current meta is not a
+            // pending delete: a live delete that failed AFTER our listing left
+            // an op=delete meta that must survive for the next run.
+            $current = $this->spool->pendingOperationFor($key);
+
+            if ($current === null || $current->op === SpooledOperationType::Write) {
+                $this->spool->resolve($key);
+            }
 
             return false;
         }
@@ -103,14 +108,47 @@ final readonly class UploadSpoolProcessor
             }
         }
 
-        if ($this->spool->payloadFingerprint($key) === $fingerprintBefore) {
+        $fingerprintAfter = $this->spool->payloadFingerprint($key);
+
+        if ($fingerprintAfter === $fingerprintBefore) {
             $this->spool->resolve($key);
 
             return true;
         }
 
-        // Payload was re-spooled while uploading - keep it for the next run
+        if ($fingerprintAfter === null) {
+            // A live operation for this key resolved the entry DURING our
+            // upload - the stale payload we just PUT may have clobbered a
+            // fresh write or resurrected a deleted file. Cannot be rolled
+            // back from here; needs eyes.
+            $this->logger->error('Upload spool drain raced a live operation - stale payload was uploaded', [
+                'key' => $key,
+            ]);
+
+            return false;
+        }
+
+        // Re-spooled with new content while uploading - the next run uploads
+        // the fresh payload over whatever we just wrote. Self-healing.
         return false;
+    }
+
+    private function processDelete(SpooledOperation $operation): bool
+    {
+        // Freshness check: a live operation since the directory listing may
+        // have superseded the delete (successful re-upload of the same key,
+        // or the delete already went through). Deleting anyway would remove
+        // a fresh object.
+        $current = $this->spool->pendingOperationFor($operation->key);
+
+        if ($current === null || $current->op !== SpooledOperationType::Delete) {
+            return false;
+        }
+
+        $this->s3Adapter->delete($operation->key);
+        $this->spool->resolve($operation->key);
+
+        return true;
     }
 
     /**

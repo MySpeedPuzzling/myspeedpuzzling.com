@@ -131,15 +131,49 @@ return App::config([
                     'success_handler' => LoginLinkSuccessHandler::class,
                     'failure_handler' => LoginLinkFailureHandler::class,
                 ],
-                // Deliberately NO remember_me until Phase 6: Symfony's RememberMeListener
-                // clears the cookie on EVERY LoginFailureEvent unconditionally, and during
-                // the migration window the Auth0 authenticator fails on every anonymous
-                // request - a REMEMBERME deletion cookie would land on every anonymous
-                // response and break shared cacheability (#164). Enable it (signature-based,
-                // user_providers: [user_account_provider], always_remember_me) when the
-                // Auth0 authenticator leaves this firewall. The RememberMeBadge already in
-                // LoginFormAuthenticator is inert meanwhile.
+                // Always-on sliding 30-day login, no "remember me" checkbox: every
+                // successful sign-in (password, social, magic link) mints a signed
+                // cookie, and SignatureRememberMeHandler re-issues it with a fresh
+                // 30-day window each time it is consumed - an active user is never
+                // signed out, an idle one after 30 days.
                 //
+                // This is only safe because RememberMeMigrationWindowPass swaps the
+                // firewall's remember-me listener for MigrationWindowRememberMeListener:
+                // core's clears the cookie on EVERY LoginFailureEvent unconditionally,
+                // and the window-era Auth0 authenticator fails on every request, which
+                // would both stamp a deletion cookie on anonymous responses (breaking
+                // #164 shared cacheability) and delete a signed-in user's cookie on
+                // their next page view. Both listener and pass die in Phase 6.
+                'remember_me' => [
+                    'lifetime' => 2592000, // 30 days, slides on every use
+                    // No checkbox in the login form - being kept signed in is the
+                    // default for everyone (product decision, 2026-08-01)
+                    'always_remember_me' => true,
+                    // Signature-based (no token table): the cookie dies when the
+                    // password or the address it belongs to changes, so a password
+                    // reset or email change signs every device out. Mirrors the
+                    // login_link signature above. Null passwords (social-only
+                    // accounts) hash as '' - supported by SignatureHasher.
+                    'signature_properties' => ['email', 'password'],
+                    //
+                    // The user provider is deliberately NOT set here - it cannot be.
+                    // RememberMeFactory does not extend AbstractFactory, so it has no
+                    // 'provider' node, and its own 'user_providers' node is a leftover
+                    // from the pre-authenticator system that is silently ignored. Left
+                    // alone, the handler inherits this firewall's chain provider, whose
+                    // Auth0 half json_decodes identifiers and throws JsonException - not
+                    // UserNotFoundException - on a native "msp|..." string, i.e. a 500
+                    // for anyone holding a cookie for a deleted account.
+                    // RememberMeMigrationWindowPass pins user_account_provider instead.
+                    //
+                    // 'auto' = secure whenever the request is HTTPS, matching the
+                    // session cookie. Hard true would silently disable remember-me on
+                    // plain-HTTP dev and in the functional test client.
+                    'secure' => 'auto',
+                    'samesite' => 'lax',
+                    'httponly' => true,
+                    'path' => '/',
+                ],
                 // Deliberately NO firewall-level login_throttling either, same interplay:
                 // its failure listener would count those per-request anonymous failures
                 // against the per-IP budget. Brute-force protection lives inside

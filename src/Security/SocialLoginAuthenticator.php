@@ -21,6 +21,7 @@ use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Http\Authenticator\AbstractAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
+use Symfony\Component\Security\Http\Authenticator\Passport\Badge\RememberMeBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
 use Symfony\Component\Security\Http\SecurityRequestAttributes;
 use Symfony\Component\Security\Http\Util\TargetPathTrait;
@@ -117,6 +118,10 @@ abstract class SocialLoginAuthenticator extends AbstractAuthenticator
 
         return new SelfValidatingPassport(
             new UserBadge($userAccount->getUserIdentifier(), static fn (): UserAccount => $userAccount),
+            // Without this badge the firewall's always-on remember-me silently
+            // skips social sign-ins, and only password/magic-link users would
+            // stay signed in for 30 days
+            [new RememberMeBadge()],
         );
     }
 

@@ -273,3 +273,36 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `config/packages/api_platform.php` | API Platform config and Swagger |
 | `templates/oauth2/request-api-access.html.twig` | Client registration form |
 | `templates/oauth2/claim-credentials.html.twig` | One-time credential display |
+
+## Client secrets are stored in plaintext (follow-up, raised 2026-08-01)
+
+`league/oauth2-server-bundle` 1.2 moved to hashed client secrets, but the hashing lives only in
+the bundle's own `CreateClientCommand` — `ClientManager::save()` does **not** hash. Every place
+this repo creates a client passes a raw secret straight to `save()`:
+
+- `src/MessageHandler/ApproveOAuth2ClientRequestHandler.php`
+- `src/MessageHandler/ResetOAuth2ClientCredentialsHandler.php`
+- `src/ConsoleCommands/OAuth2CreateClientConsoleCommand.php`
+- `tests/DataFixtures/OAuth2ClientFixture.php`
+
+This works today only because `client.allow_plaintext_secrets` defaults to `true`, which wraps the
+hasher in a `MigratingPasswordHasher`. Consequences:
+
+1. A **deprecation fires on every container compile** (verified in `var/cache/*/…Deprecations.log`).
+2. It breaks outright at bundle **2.0**, and breaks *immediately* if anyone sets
+   `allow_plaintext_secrets: false` to silence the deprecation without fixing creation first.
+3. Since 1.2 the token endpoint **opportunistically rehashes**: on the first successful
+   confidential-client authentication, `ClientRepository` calls `setSecret(hash)` +
+   `ClientManager::save()`, which does `persist()` **and `flush()`** — a mid-request flush on
+   `POST /oauth2/token`, outside any Messenger handler, contrary to the project's flush rule. It is
+   wrapped in `try/catch (\Throwable)` so it cannot fail authentication, and it happens once per
+   existing client.
+
+**Fix:** hash via the `league.oauth2_server.password_hasher` service before `save()`, keeping the
+plaintext only in `oauth2_client_request.client_secret` for the one-time claim flow (nothing
+compares the two — the claim page reads only `oauth2_client_request`). Then run
+`league:oauth2-server:rehash-client-secrets` and set `allow_plaintext_secrets: false`.
+
+**No migration needed:** `UPGRADE-1.x.md` claims the `secret` column grew 128 → 255, but the
+installed 1.2.2 mapping still declares `length(128)`, which matches `Version20260131170741` and
+fits bcrypt's 60 chars. `doctrine:schema:validate` stays green — verified.

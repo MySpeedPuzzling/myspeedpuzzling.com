@@ -89,7 +89,18 @@ final class ClientCredentialsFlowTest extends WebTestCase
             ],
         );
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        // league/oauth2-server-bundle 1.2 rejects this one step earlier than 1.1
+        // did: getClientEntityOrFail() now checks whether the client is granted
+        // the requested grant type at all, before the confidential-client check.
+        // The public fixture client holds only authorization_code + refresh_token,
+        // so the accurate answer is unauthorized_client (400, RFC 6749 §5.2)
+        // rather than the invalid_client (401) the old order produced. Rejected
+        // either way - only the wording changed.
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+
+        $payload = json_decode((string) $browser->getResponse()->getContent(), true);
+        self::assertIsArray($payload);
+        self::assertSame('unauthorized_client', $payload['error'] ?? null);
     }
 
     public function testClientCredentialsGrantWithUnsupportedScopeFails(): void

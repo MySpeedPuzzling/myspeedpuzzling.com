@@ -133,7 +133,9 @@ readonly final class PuzzlerDataExporter
 
         $xmlString = $xml->asXML();
 
-        assert(is_string($xmlString));
+        // asXML() returns false on failure and '' is not valid XML either;
+        // loadXML() is typed non-empty-string, so both are ruled out here
+        assert(is_string($xmlString) && $xmlString !== '');
 
         $dom->loadXML($xmlString);
 

@@ -93,6 +93,51 @@ final class SocialLoginFlowTest extends WebTestCase
         self::assertSame('social:google', $authenticator);
     }
 
+    /**
+     * The destination survives the whole OAuth round-trip in the cache-backed
+     * state payload, not the session - which is the only thing that works for
+     * Apple, whose callback is a cross-site form_post and so arrives without
+     * SameSite=Lax cookies.
+     */
+    public function testReturnUrlSurvivesTheOauthRoundTrip(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $userAccount = $this->seedAccount($browser, "ret1+{$suffix}@example.com", password: 'hash');
+        $this->seedIdentity($browser, $userAccount, OauthProvider::Google, "g-ret1-{$suffix}");
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com', returnUrl: '/en/marketplace');
+
+        $this->queueGoogleExchange("g-ret1-{$suffix}", "whatever+{$suffix}@gmail.com", emailVerified: true);
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+
+        self::assertResponseRedirects('/en/marketplace');
+        $this->assertLoggedIn($browser);
+    }
+
+    public function testOffSiteReturnUrlNeverEntersTheOauthState(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $userAccount = $this->seedAccount($browser, "ret2+{$suffix}@example.com", password: 'hash');
+        $this->seedIdentity($browser, $userAccount, OauthProvider::Google, "g-ret2-{$suffix}");
+
+        // Rejected at the start route, so the state payload only ever holds a
+        // safe path and the callback has nothing hostile to redirect to
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com', returnUrl: 'https://evil.example.com');
+
+        $this->queueGoogleExchange("g-ret2-{$suffix}", "whatever+{$suffix}@gmail.com", emailVerified: true);
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+
+        $location = (string) $browser->getResponse()->headers->get('Location');
+        self::assertStringNotContainsString('evil.example.com', $location);
+        self::assertStringContainsString('my-profile', $location);
+    }
+
     public function testGoogleRule2VerifiedEmailAutoLinksAndLogsIn(): void
     {
         $this->enableGooglePublicly();
@@ -534,9 +579,12 @@ final class SocialLoginFlowTest extends WebTestCase
         $_SERVER[$name] = $value;
     }
 
-    private function startFlow(KernelBrowser $browser, string $provider, string $expectedHost): string
+    private function startFlow(KernelBrowser $browser, string $provider, string $expectedHost, null|string $returnUrl = null): string
     {
-        $browser->request('GET', '/login/social/' . $provider);
+        $browser->request(
+            'GET',
+            '/login/social/' . $provider . ($returnUrl === null ? '' : '?return=' . rawurlencode($returnUrl)),
+        );
         self::assertResponseRedirects();
 
         return $this->stateFromLocation($browser, $expectedHost);

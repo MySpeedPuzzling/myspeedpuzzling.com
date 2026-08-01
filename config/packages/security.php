@@ -6,7 +6,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Auth0\Symfony\Security\UserProvider;
 use SpeedPuzzling\Web\Security\AppleLoginAuthenticator;
-use SpeedPuzzling\Web\Security\Auth0EntryPoint;
+use SpeedPuzzling\Web\Security\LoginEntryPoint;
 use SpeedPuzzling\Web\Security\FacebookLoginAuthenticator;
 use SpeedPuzzling\Web\Security\GoogleLoginAuthenticator;
 use SpeedPuzzling\Web\Security\InternalApiAuthenticator;
@@ -179,7 +179,7 @@ return App::config([
                 // against the per-IP budget. Brute-force protection lives inside
                 // LoginFormAuthenticator (5/min per email+IP + per-IP limiter,
                 // config/packages/rate_limiter.php) and stays there.
-                'entry_point' => Auth0EntryPoint::class,
+                'entry_point' => LoginEntryPoint::class,
                 'logout' => [
                     'path' => 'app_logout',
                     'target' => '/',

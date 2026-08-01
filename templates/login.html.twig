@@ -38,6 +38,12 @@
                 <div class="card-body">
                     <form action="{{ path('login') }}" method="post" id="login-form">
                         <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+                        {# Where the visitor was headed before being asked to sign in. Put here
+                           by LoginEntryPoint as ?return=; echoed back so the destination survives
+                           the POST without a session. Re-validated server-side on submit. #}
+                        {% if safe_return_url(app.request.query.get('return')) %}
+                            <input type="hidden" name="return" value="{{ safe_return_url(app.request.query.get('return')) }}">
+                        {% endif %}
 
                         <div class="mb-3">
                             <label class="form-label" for="login-email">{{ 'auth.login.email'|trans }}</label>

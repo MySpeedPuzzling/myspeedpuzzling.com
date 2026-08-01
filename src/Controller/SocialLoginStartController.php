@@ -11,8 +11,10 @@ use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginStateStore;
 use SpeedPuzzling\Web\Value\OauthFlowIntent;
 use SpeedPuzzling\Web\Value\OauthFlowState;
 use SpeedPuzzling\Web\Value\OauthProvider;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
@@ -42,7 +44,7 @@ final class SocialLoginStartController extends AbstractController
         defaults: [NativeAuthPageSubscriber::ROUTE_DEFAULT => true],
         methods: ['GET'],
     )]
-    public function __invoke(string $provider): Response
+    public function __invoke(Request $request, string $provider): Response
     {
         $oauthProvider = OauthProvider::tryFrom($provider);
 
@@ -64,6 +66,10 @@ final class SocialLoginStartController extends AbstractController
             intent: OauthFlowIntent::Login,
             // Only Google runs PKCE; the getter returns null for the others
             pkceVerifier: $leagueProvider->getPkceCode(),
+            // The login page passes on the ?return= it was given, so a social
+            // sign-in lands where a password sign-in would. Validated here, at
+            // the edge, so the state payload only ever holds a safe path.
+            returnUrl: ReturnUrl::tryFrom($request->query->getString('return'))?->path,
         ));
 
         return new RedirectResponse($authorizationUrl);

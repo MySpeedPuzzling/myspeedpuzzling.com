@@ -13,7 +13,7 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/puzzle-change-requests');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/puzzle-change-requests');
     }
 
     public function testApproveIsNotAccessibleByAnonymous(): void

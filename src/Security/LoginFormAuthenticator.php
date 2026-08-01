@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Security;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,6 +15,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
+use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
 use Symfony\Component\Security\Core\Exception\TooManyLoginAttemptsAuthenticationException;
@@ -27,7 +29,6 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\CustomCre
 use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\PasswordCredentials;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\SecurityRequestAttributes;
-use Symfony\Component\Security\Http\Util\TargetPathTrait;
 
 /**
  * The single password authenticator for the native auth stack (issue #147).
@@ -43,8 +44,6 @@ use Symfony\Component\Security\Http\Util\TargetPathTrait;
  */
 final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
 {
-    use TargetPathTrait;
-
     // Error messages double as translation keys, rendered on the login page
     // via error.messageKey|trans({}, 'security') - translated in the 2c slice
     public const string ERROR_PASSWORD_LEAKED = 'This password was found in a public data breach. To protect your account, please reset your password to sign in.';
@@ -112,36 +111,46 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
         $email = trim((string) $request->request->get('email'));
         $this->loginEmailIpLimiter->create($this->emailIpKey($email, $request->getClientIp()))->reset();
 
-        $session = $request->getSession();
-        $targetPath = $this->getTargetPath($session, $firewallName);
+        // Where to go next travels in the form, not the session: the login page
+        // received it as ?return= from LoginEntryPoint and echoes it back in a
+        // hidden field. Validated because the POST body is client-controlled -
+        // an unchecked value here is a post-login open redirect, the most
+        // valuable kind (docs/features/return-url.md).
+        $returnUrl = ReturnUrl::tryFrom($request->request->getString('return'));
 
-        if ($targetPath !== null) {
-            $this->removeTargetPath($session, $firewallName);
-
-            return new RedirectResponse($targetPath);
-        }
-
-        // Migration-window glue: while the Auth0 authenticator is wired, its failure
-        // handler preempts the ExceptionListener on protected pages (it redirects to
-        // /login itself), so the deep-link target lands in its session key and
-        // TargetPathTrait's never gets written. The value is recorded server-side
-        // from Request::getUri() - same-origin by construction. The client-writable
-        // auth0_redirect_target cookie is deliberately NOT honored here (open
-        // redirect). Falls away with the Auth0 fork in Phase 6.
-        $auth0CallbackRedirect = $session->get('auth0:callback_redirect');
-
-        if (is_string($auth0CallbackRedirect) && $auth0CallbackRedirect !== '') {
-            $session->remove('auth0:callback_redirect');
-
-            return new RedirectResponse($auth0CallbackRedirect);
+        if ($returnUrl !== null) {
+            return new RedirectResponse($returnUrl->path);
         }
 
         return new RedirectResponse($this->urlGenerator->generate('my_profile'));
     }
 
+    /**
+     * Must stay the bare login path: AbstractLoginFormAuthenticator::supports()
+     * compares this against the request path to decide whether to intercept the
+     * POST at all, so appending a query string here silently stops the
+     * authenticator from ever running. The ?return= is added in
+     * onAuthenticationFailure() instead.
+     */
     protected function getLoginUrl(Request $request): string
     {
         return $this->urlGenerator->generate('login');
+    }
+
+    public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response
+    {
+        if ($request->hasSession()) {
+            $request->getSession()->set(SecurityRequestAttributes::AUTHENTICATION_ERROR, $exception);
+        }
+
+        // Send the destination back to the login page too, or a typo'd password
+        // would silently cost the user the page they were headed for
+        $returnUrl = ReturnUrl::tryFrom($request->request->getString('return'));
+
+        return new RedirectResponse($this->urlGenerator->generate(
+            'login',
+            $returnUrl === null ? [] : ['return' => $returnUrl->path],
+        ));
     }
 
     /**

@@ -15,11 +15,11 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * Custom OAuth2 Authorization Controller that requires authentication
  * before delegating to the bundle's authorization controller.
  *
- * When user is not authenticated, Symfony's security system will
- * redirect them to login via the Auth0EntryPoint, which stores
- * the full request URL (including OAuth2 query parameters) in a cookie.
- * After successful login, Auth0RedirectSubscriber will redirect
- * back to the original OAuth2 authorization URL.
+ * When the user is not authenticated, Symfony's security system redirects them
+ * to login via LoginEntryPoint, which puts the full request URI - OAuth2 query
+ * parameters and all - into ?return=. The login form echoes it back and the
+ * authenticator redirects there on success, so the authorization request
+ * survives the sign-in without any server-side state.
  */
 #[IsGranted('IS_AUTHENTICATED_FULLY')]
 final class AuthorizationController extends AbstractController

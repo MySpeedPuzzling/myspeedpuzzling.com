@@ -1,6 +1,6 @@
 # Return URLs — one convention, no session
 
-**Status (2026-08-01): PR 1 delivered — `ReturnUrl` + open-redirect fixes. PRs 2–3 planned.**
+**Status (2026-08-01): DELIVERED.** PR 1 `ReturnUrl` + open-redirect fixes; PR 2 post-login redirects moved off the session; PR 3 the Auth0 fork's `supports()` short-circuit.
 
 Goal: after signing in, registering, or finishing a modal flow, the user lands back where they
 started — carried in the URL as `?return=`, never in the session or a cookie. Auth0 is a
@@ -83,31 +83,37 @@ Expose it as a Twig function so `_return_back_button.html.twig` renders only val
 keep preferring the **enum-context** pattern (`EditTimeReturnContext`) wherever the destinations
 are a closed set — no client-supplied URL beats validating one.
 
-### D3 — Getting `return` onto the login page without a session
+### D3 — Getting `return` onto the login page without a session — AS BUILT
 
-Replace `Auth0EntryPoint` with a `LoginEntryPoint` that redirects to the `login` route with
-`?return=<path+query of the current request>` and sets **no cookie and no session**.
+`LoginEntryPoint` replaces `Auth0EntryPoint`: it redirects to the `login` route with
+`?return=<path+query of the current request>` and sets **no cookie and no session**. It skips
+non-safe methods and XHR (the same conditions Symfony's own `setTargetPath()` applies) and refuses
+to offer `/login` as a destination, which would loop.
 
-That alone is not enough: `ExceptionListener::startAuthentication()` calls `setTargetPath()`
-*before* the entry point runs, and Symfony offers no config switch for it. `setTargetPath()` is
-`protected` (`vendor/symfony/security-http/Firewall/ExceptionListener.php:204`), so:
+That alone is not enough: `ExceptionListener::startAuthentication()` writes the target path
+*before* the entry point runs. The plan was to subclass `ExceptionListener` and override the
+`protected setTargetPath()`, but **the built version does something simpler**: that class already
+takes a `$stateless` constructor flag whose *entire* use is
 
-- subclass `ExceptionListener`, override `setTargetPath()` to a no-op;
-- swap the class on `security.exception_listener.main` from a compiler pass.
+```php
+if (!$this->stateless) {
+    $this->setTargetPath($request);
+}
+```
 
-This is the same mechanism already used for `security.listener.remember_me.main` in
-`RememberMeMigrationWindowPass` — see that class for why a compiler pass rather than a service
-override or decoration.
+so `SessionFreeExceptionListenerPass` just flips that argument to `true`. No subclass, no copied
+framework code, and no `@final` violation (PHPStan rejects extending it). The firewall itself stays
+stateful — `stateless` is not set in `security.php`, and sessions work normally for signed-in users.
 
 ### D4 — Carrying `return` through each sign-in path
 
 | Path | How |
 |---|---|
 | Password login | Hidden `return` field in the login form, value from `app.request.query.get('return')`; `LoginFormAuthenticator::onAuthenticationSuccess()` reads it from `$request->request` and validates. |
-| Registration | Same hidden field; `RegisterController` success redirect. |
+| Registration | **Not carried (decided during build).** Registration ends on the welcome page, which is a deliberate stop for a brand-new user, so there is nothing to return to. |
 | Social login | Add `null|string $returnUrl` to `OauthFlowState`. The start route reads `?return=`, stores it in `SocialLoginStateStore`; `SocialLoginAuthenticator::onAuthenticationSuccess()` reads it off the consumed state. **This is the piece that makes dropping the session viable at all** — the cache-backed store already exists precisely because Apple's `form_post` callback arrives without SameSite=Lax cookies. |
-| Social registration interstitial (`/register/social`) | Carry it in the parked-registration payload alongside the profile. |
-| Magic sign-in link | Append `return` to the generated link. Symfony's signature covers only its own parameters, so the extra one is unsigned — it must be validated on use like any other. Read it in `LoginLinkSuccessHandler`. |
+| Social registration interstitial (`/register/social`) | **Not carried (decided during build).** Rule 4 means "no matching account" — the visitor is registering, and the profile is the right landing. Would require threading the value through `SocialAccountResolver` into `ParkedSocialRegistration` for little gain. |
+| Magic sign-in link | **Not carried (decided during build).** The link arrives by email, usually on another device, so a deep link from the requesting session has little value — and it would add an unsigned query parameter to a security-sensitive signed URL. Lands on the profile. |
 | Auth0 fallback (`/login/auth0`) | **Not carried.** It round-trips through Auth0's own callback, which is the one flow that genuinely needs the session key. It is a rarely-used escape hatch that dies in Phase 6 — accept "always lands on my-profile" and document it. |
 
 ### D5 — Deletions
@@ -166,13 +172,24 @@ is easy to state and easy to check (`grep` for `getString('return')`).
 | PR | Content | Why separate |
 |---|---|---|
 | ~~**1**~~ | ~~`ReturnUrl` validator + fix the three open redirects + replace the three inline copies~~ **DONE** | Security fix, small, independently shippable, no auth risk |
-| **2** | `LoginEntryPoint`, `ExceptionListener` subclass + compiler pass, `return` through all sign-in paths, delete the session/cookie mechanisms | The actual feature |
-| **3** | Auth0 `supports()` short-circuit + before/after measurement of the `sessions` table | Touches the vendor fork; easy to roll back on its own |
+| ~~**2**~~ | ~~`LoginEntryPoint`, exception-listener change, `return` through the sign-in paths, delete the session/cookie mechanisms~~ **DONE** | The actual feature |
+| ~~**3**~~ | ~~Auth0 `supports()` short-circuit~~ **DONE** | Touches the vendor fork; easy to roll back on its own |
 
-## Open questions for Jan
+## What was removed
 
-1. PR 3 touches the `auth0/symfony` fork. Fine, or wait for Phase 6 and forgo the session win until
-   September?
-2. Should `return` be allowed to point at *any* valid in-app path, or restricted to paths that
-   match a known route (`UrlMatcherInterface::match()`)? Route-matching is stricter but adds
-   locale-prefix and query-string handling; strict relative-path validation is likely enough.
+`Auth0EntryPoint` (and its client-writable `auth0_redirect_target` cookie, which nothing was
+willing to honor), `Auth0RedirectSubscriber` and its test, the `auth0:callback_redirect` branch in
+`LoginFormAuthenticator`, and `TargetPathTrait` from both the form and social authenticators.
+
+## Gotcha worth remembering
+
+`AbstractLoginFormAuthenticator::supports()` compares `getLoginUrl()` against the request path to
+decide whether to intercept the POST at all. Appending `?return=` there makes the comparison fail
+and the authenticator silently never runs — the login form just re-renders. The failure redirect
+belongs in an `onAuthenticationFailure()` override instead; `getLoginUrl()` must stay bare.
+
+## Still open
+
+Should `return` be restricted to paths that match a known route (`UrlMatcherInterface::match()`)
+rather than any same-site path? Stricter, but adds locale-prefix and query-string handling. Strict
+relative-path validation has been enough so far.

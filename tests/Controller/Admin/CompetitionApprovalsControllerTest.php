@@ -13,6 +13,6 @@ final class CompetitionApprovalsControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/competition-approvals');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/competition-approvals');
     }
 }

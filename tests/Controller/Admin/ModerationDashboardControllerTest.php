@@ -13,7 +13,7 @@ final class ModerationDashboardControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/moderation');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/moderation');
     }
 
     public function testReportDetailIsNotAccessibleByAnonymous(): void
@@ -21,7 +21,7 @@ final class ModerationDashboardControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/moderation/report/00000000-0000-0000-0000-000000000000');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/moderation/report/00000000-0000-0000-0000-000000000000');
     }
 
     public function testConversationLogIsNotAccessibleByAnonymous(): void
@@ -29,7 +29,7 @@ final class ModerationDashboardControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/moderation/conversation/00000000-0000-0000-0000-000000000000');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/moderation/conversation/00000000-0000-0000-0000-000000000000');
     }
 
     public function testResolveReportIsNotAccessibleByAnonymous(): void
@@ -61,6 +61,6 @@ final class ModerationDashboardControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/admin/moderation/history/00000000-0000-0000-0000-000000000000');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/admin/moderation/history/00000000-0000-0000-0000-000000000000');
     }
 }

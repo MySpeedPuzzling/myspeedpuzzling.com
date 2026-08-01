@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginStateStore;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialProfileFetcher;
 use SpeedPuzzling\Web\Value\OauthFlowIntent;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,7 +25,6 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\RememberMeBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
 use Symfony\Component\Security\Http\SecurityRequestAttributes;
-use Symfony\Component\Security\Http\Util\TargetPathTrait;
 
 /**
  * Social login callback, per-provider (settled D13: adding a provider = new
@@ -38,7 +38,12 @@ use Symfony\Component\Security\Http\Util\TargetPathTrait;
  */
 abstract class SocialLoginAuthenticator extends AbstractAuthenticator
 {
-    use TargetPathTrait;
+    /**
+     * Request attribute handing the post-login destination from authenticate()
+     * (which consumes the single-use OAuth state) to onAuthenticationSuccess().
+     * Request-scoped on purpose - see the write site.
+     */
+    private const string RETURN_URL_ATTRIBUTE = '_social_login_return_url';
 
     public function __construct(
         private readonly SocialLoginSettings $settings,
@@ -116,6 +121,12 @@ abstract class SocialLoginAuthenticator extends AbstractAuthenticator
 
         $userAccount = $this->accountResolver->resolve($profile, $request->getLocale());
 
+        // Carried on the Request, never on $this: this service outlives the
+        // request in FrankenPHP worker mode, so anything stored on the instance
+        // would surface in the next visitor's flow. onAuthenticationSuccess()
+        // runs later in the same request and reads it back.
+        $request->attributes->set(self::RETURN_URL_ATTRIBUTE, $flowState->returnUrl);
+
         return new SelfValidatingPassport(
             new UserBadge($userAccount->getUserIdentifier(), static fn (): UserAccount => $userAccount),
             // Without this badge the firewall's always-on remember-me silently
@@ -127,15 +138,25 @@ abstract class SocialLoginAuthenticator extends AbstractAuthenticator
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): Response
     {
-        $targetPath = $this->getTargetPath($request->getSession(), $firewallName);
+        // Validated twice over: once at the start route before it entered the
+        // state payload, once here. The store is server-side and single-use, so
+        // this is belt-and-braces rather than a real second gate - but this
+        // value becomes a Location header, and post-login is the worst place to
+        // be wrong about a redirect.
+        $returnUrl = ReturnUrl::tryFrom($this->carriedReturnUrl($request));
 
-        if ($targetPath !== null) {
-            $this->removeTargetPath($request->getSession(), $firewallName);
-
-            return new RedirectResponse($targetPath);
+        if ($returnUrl !== null) {
+            return new RedirectResponse($returnUrl->path);
         }
 
         return new RedirectResponse($this->urlGenerator->generate('my_profile'));
+    }
+
+    private function carriedReturnUrl(Request $request): null|string
+    {
+        $carried = $request->attributes->get(self::RETURN_URL_ATTRIBUTE);
+
+        return is_string($carried) ? $carried : null;
     }
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response

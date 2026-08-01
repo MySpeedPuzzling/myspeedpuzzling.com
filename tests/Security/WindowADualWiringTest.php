@@ -75,14 +75,29 @@ final class WindowADualWiringTest extends WebTestCase
         $browser = self::createClient();
         $email = $this->seedAccount($browser, 'msp|windowa2', 'windowa.two', argon2idHashOf: self::PASSWORD);
 
-        // Anonymous hit on a protected page: still the Auth0-era funnel (window A) -
-        // the Auth0 authenticator records the deep link and redirects to /login
+        // Anonymous hit on a protected page: LoginEntryPoint puts the destination
+        // in the URL. Nothing is written server-side - no session, no cookie.
         $browser->request('GET', '/admin/affiliates');
-        self::assertResponseRedirects('/login');
+        self::assertResponseRedirects('/login?return=/admin/affiliates');
+        self::assertSame([], $browser->getResponse()->headers->getCookies());
 
-        $this->submitLogin($browser, $email, self::PASSWORD);
+        // The login page echoes it back in a hidden field; the authenticator
+        // validates it and redirects there
+        $this->submitLogin($browser, $email, self::PASSWORD, returnUrl: '/admin/affiliates');
 
-        self::assertResponseRedirects('http://localhost/admin/affiliates');
+        self::assertResponseRedirects('/admin/affiliates');
+    }
+
+    public function testEntryPointRefusesAnOffSiteDestination(): void
+    {
+        $browser = self::createClient();
+        $email = $this->seedAccount($browser, 'msp|windowa12', 'windowa.twelve', argon2idHashOf: self::PASSWORD);
+
+        // A forged hidden field must not become a post-login redirect - the most
+        // valuable open redirect there is, since the victim just typed a password
+        $this->submitLogin($browser, $email, self::PASSWORD, returnUrl: 'https://evil.example.com/phish');
+
+        self::assertResponseRedirects('/en/my-profile');
     }
 
     public function testWrongPasswordAndUnknownEmailFailIdentically(): void
@@ -281,13 +296,19 @@ final class WindowADualWiringTest extends WebTestCase
         self::assertStringStartsWith('$2', $password);
     }
 
-    private function submitLogin(KernelBrowser $browser, string $email, string $password): void
+    private function submitLogin(KernelBrowser $browser, string $email, string $password, null|string $returnUrl = null): void
     {
-        $browser->request('POST', '/login', [
+        $parameters = [
             'email' => $email,
             'password' => $password,
             '_csrf_token' => 'csrf-token',
-        ], [], [
+        ];
+
+        if ($returnUrl !== null) {
+            $parameters['return'] = $returnUrl;
+        }
+
+        $browser->request('POST', '/login', $parameters, [], [
             // Stateless CSRF ('authenticate' token id) validates same-origin requests
             // via the Origin header - BrowserKit does not send one on its own
             'HTTP_ORIGIN' => 'http://localhost',

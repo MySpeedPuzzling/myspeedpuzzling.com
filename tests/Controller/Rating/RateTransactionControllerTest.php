@@ -44,6 +44,60 @@ final class RateTransactionControllerTest extends WebTestCase
         $this->assertResponseRedirects();
     }
 
+    /**
+     * Regression guard: `?return=` used to be handed straight to redirect(). The
+     * "already rated" branch fires on a plain GET, so a crafted link was a
+     * one-click open redirect for any signed-in visitor.
+     */
+    public function testHostileReturnUrlIsIgnoredOnTheCannotRateBranch(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request(
+            'GET',
+            '/en/rate-transaction/' . SoldSwappedItemFixture::SOLD_01 . '?return=https://evil.example.com/phish',
+        );
+
+        $location = (string) $browser->getResponse()->headers->get('Location');
+
+        self::assertResponseRedirects();
+        self::assertStringNotContainsString('evil.example.com', $location);
+        self::assertStringStartsWith('/', $location);
+    }
+
+    public function testSchemeRelativeReturnUrlIsIgnored(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        // Backslash form: browsers normalise it to "//", so it leaves the site
+        $browser->request(
+            'GET',
+            '/en/rate-transaction/' . SoldSwappedItemFixture::SOLD_01 . '?return=' . rawurlencode('/\\evil.example.com'),
+        );
+
+        $location = (string) $browser->getResponse()->headers->get('Location');
+
+        self::assertStringNotContainsString('evil.example.com', $location);
+    }
+
+    public function testSameSiteReturnUrlIsHonored(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request(
+            'GET',
+            '/en/rate-transaction/' . SoldSwappedItemFixture::SOLD_01 . '?return=' . rawurlencode('/en/marketplace'),
+        );
+
+        self::assertResponseRedirects('/en/marketplace');
+    }
+
     public function testFormSubmissionCreatesRating(): void
     {
         $browser = self::createClient();

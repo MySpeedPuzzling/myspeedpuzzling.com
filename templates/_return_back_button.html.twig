@@ -1,4 +1,6 @@
-{% set returnUrl = app.request.query.get('return') ?? fallbackUrl|default(null) %}
+{# safe_return_url rejects anything that could leave the site (//evil.com, /\evil.com,
+   https://…, encoded variants) and falls back, so this href can never point off-site. #}
+{% set returnUrl = safe_return_url(app.request.query.get('return'), fallbackUrl|default(null)) %}
 {% set returnTitle = app.request.query.get('return_title') ?? fallbackTitle|default(null) %}
 {% if returnUrl %}
     <div class="mb-2">

@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\FormType\EditSellSwapListSettingsFormType;
 use SpeedPuzzling\Web\Message\EditSellSwapListSettings;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -56,7 +57,10 @@ final class EditSellSwapListSettingsController extends AbstractController
             return $this->redirectToRoute('puzzle_library', ['playerId' => $playerId]);
         }
 
-        $returnUrl = $request->query->getString('return');
+        // Validated, not trusted: it feeds both a Location header below and the
+        // cancel link in the template, so an unchecked value is an open redirect
+        $validatedReturn = ReturnUrl::tryFrom($request->query->getString('return'));
+        $returnUrl = $validatedReturn === null ? '' : $validatedReturn->path;
 
         $player = $this->getPlayerProfile->byId($playerId);
 

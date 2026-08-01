@@ -8,6 +8,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCollection;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -65,26 +66,12 @@ final class RemovePuzzleFromCollectionController extends AbstractController
 
         $this->addFlash('success', $this->translator->trans('flashes.puzzle_removed_from_collection'));
 
-        $returnUrl = $request->request->get('returnUrl');
-        if (is_string($returnUrl) && $returnUrl !== '' && $this->isValidReturnUrl($returnUrl)) {
-            return $this->redirect($returnUrl);
+        $returnUrl = ReturnUrl::tryFrom($request->request->getString('returnUrl'));
+
+        if ($returnUrl !== null) {
+            return $this->redirect($returnUrl->path);
         }
 
         return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
-    }
-
-    private function isValidReturnUrl(string $returnUrl): bool
-    {
-        // Ensure the return URL is a relative path (starts with /) to prevent open redirects
-        if (!str_starts_with($returnUrl, '/')) {
-            return false;
-        }
-
-        // Ensure it doesn't start with // which could be interpreted as an external URL
-        if (str_starts_with($returnUrl, '//')) {
-            return false;
-        }
-
-        return true;
     }
 }

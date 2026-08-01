@@ -93,6 +93,7 @@ final class PuzzleDetailController extends AbstractController
             'puzzle_collections' => $puzzleCollections,
             'logged_player' => $loggedPlayer,
             'offers_count' => $this->getSellSwapListItems->countByPuzzleId($puzzleId),
+            'marketplace_offers' => $this->getSellSwapListItems->marketplaceOffersByPuzzleId($puzzleId),
             'has_pending_proposals' => $this->getPendingPuzzleProposals->hasPendingForPuzzle($puzzleId),
             'is_image_hidden' => $isImageHidden,
             'puzzle_difficulty' => $puzzleDifficulty,

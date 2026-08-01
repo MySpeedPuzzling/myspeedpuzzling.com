@@ -29,6 +29,8 @@
 
 {% block json_ld %}
     {{ parent() }}
+    {# Google requires offers, review or aggregateRating on Product — only emit the block when real marketplace offers exist #}
+    {% if marketplace_offers is not empty %}
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -50,6 +52,18 @@
         {% endif %}
         "description": {{ puzzle_meta_description|json_encode|raw }},
         "url": {{ url('puzzle_detail', {puzzleId: puzzle.puzzleId})|json_encode|raw }},
+        "offers": [
+            {% for offer in marketplace_offers %}
+            {
+                "@type": "Offer",
+                "price": {{ offer.price|json_encode|raw }},
+                "priceCurrency": {{ offer.currency|json_encode|raw }},
+                "itemCondition": {{ offer.condition.toSchemaOrgCondition|json_encode|raw }},
+                "availability": "https://schema.org/InStock",
+                "url": {{ url('marketplace_puzzle', {puzzleId: puzzle.puzzleId})|json_encode|raw }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ],
         "additionalProperty": [
             {
                 "@type": "PropertyValue",
@@ -59,6 +73,7 @@
         ]
     }
     </script>
+    {% endif %}
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",

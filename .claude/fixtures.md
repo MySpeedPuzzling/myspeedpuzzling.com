@@ -100,7 +100,9 @@ Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 
 ## Sell/Swap Listings
 
-Players with membership (`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN`) have sell/swap items:
+Players with membership (`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN`) have sell/swap items.
+
+Seller settings: `PLAYER_WITH_STRIPE` has ISO currency **GBP** (listings eligible for schema.org structured-data offers), `PLAYER_ADMIN` has **custom** currency "Kč" (listings excluded from structured-data offers).
 
 | Const | Puzzle | Owner | Type | Price | Condition | Reserved |
 |-------|--------|-------|------|-------|-----------|----------|
@@ -116,6 +118,7 @@ Players with membership (`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN`) have sell/swap
 | `SELLSWAP_10` | PUZZLE_500_01 | PLAYER_ADMIN | Both | 22.00 | Normal | No |
 | `SELLSWAP_11` | PUZZLE_1000_01 | PLAYER_ADMIN | Sell | 40.00 | LikeNew | No |
 | `SELLSWAP_12` | PUZZLE_1000_02 | PLAYER_ADMIN | Sell | 30.00 | Normal | **Yes** |
+| `SELLSWAP_13` | PUZZLE_1500_01 | PLAYER_ADMIN | Sell | 30.00 | New | No |
 
 ### Puzzles with Multiple Offers
 - **PUZZLE_500_01**: 2 offers (SELLSWAP_01 + SELLSWAP_10), none reserved

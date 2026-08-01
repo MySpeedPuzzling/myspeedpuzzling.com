@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Results\PuzzleMarketplaceOffer;
 use SpeedPuzzling\Web\Results\SellSwapListItemOverview;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
@@ -249,6 +250,41 @@ SQL;
         }
 
         return $counts;
+    }
+
+    /**
+     * Offers usable in schema.org Product structured data: published, not reserved,
+     * with a price and a seller currency that is a standard ISO 4217 code.
+     *
+     * @return array<PuzzleMarketplaceOffer>
+     */
+    public function marketplaceOffersByPuzzleId(string $puzzleId): array
+    {
+        $query = <<<SQL
+SELECT ssli.price, ssli.condition, player.sell_swap_list_settings->>'currency' AS currency
+FROM sell_swap_list_item ssli
+JOIN player ON ssli.player_id = player.id
+WHERE ssli.puzzle_id = :puzzleId
+AND ssli.published_on_marketplace = true
+AND ssli.reserved = false
+AND ssli.price > 0
+AND player.sell_swap_list_settings->>'currency' IN ('USD', 'EUR', 'GBP', 'CZK', 'PLN')
+ORDER BY ssli.price
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, ['puzzleId' => $puzzleId])
+            ->fetchAllAssociative();
+
+        return array_map(static function (array $row): PuzzleMarketplaceOffer {
+            /** @var array{price: string|float, condition: string, currency: string} $row */
+
+            return new PuzzleMarketplaceOffer(
+                price: (float) $row['price'],
+                currency: $row['currency'],
+                condition: PuzzleCondition::from($row['condition']),
+            );
+        }, $data);
     }
 
     public function countByPuzzleId(string $puzzleId): int

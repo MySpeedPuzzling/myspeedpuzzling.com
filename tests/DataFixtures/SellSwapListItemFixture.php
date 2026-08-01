@@ -44,13 +44,16 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
         $player5 = $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class);
 
         // Set up shipping countries for sellers
-        // player5 (gb) ships to gb, cz, de
+        // player5 (gb) ships to gb, cz, de; ISO currency (listings eligible for structured-data offers)
         $player5->changeSellSwapListSettings(new SellSwapListSettings(
+            currency: 'GBP',
             shippingCountries: ['gb', 'cz', 'de'],
         ));
 
-        // player3 (cz) ships to cz, sk only
+        // player3 (cz) ships to cz, sk only; custom currency (listings excluded from structured-data offers)
         $player3->changeSellSwapListSettings(new SellSwapListSettings(
+            currency: 'custom',
+            customCurrency: 'Kč',
             shippingCountries: ['cz', 'sk'],
         ));
 

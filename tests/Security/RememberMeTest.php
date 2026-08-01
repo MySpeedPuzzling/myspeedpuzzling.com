@@ -78,11 +78,11 @@ final class RememberMeTest extends WebTestCase
     {
         $browser = self::createClient();
 
-        $sessionLifetime = $browser->getContainer()->getParameter('session.storage.options')['gc_maxlifetime'] ?? null;
+        $sessionOptions = $browser->getContainer()->getParameter('session.storage.options');
 
         self::assertSame(
             self::LIFETIME,
-            $sessionLifetime,
+            $sessionOptions['gc_maxlifetime'],
             'Session gc_maxlifetime and remember_me lifetime must stay in step - see config/packages/framework.php',
         );
     }

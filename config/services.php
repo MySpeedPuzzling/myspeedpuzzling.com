@@ -6,6 +6,8 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use AsyncAws\Core\Configuration;
 use AsyncAws\S3\S3Client;
+use League\Flysystem\AsyncAwsS3\AsyncAwsS3Adapter;
+use League\Flysystem\Local\LocalFilesystemAdapter;
 use Monolog\Level;
 use Monolog\Processor\PsrLogMessageProcessor;
 use Sentry\Monolog\BreadcrumbHandler as SentryBreadcrumbHandler;
@@ -14,9 +16,14 @@ use Sentry\State\HubInterface;
 use SpeedPuzzling\Web\Doctrine\RegexSchemaAssetFilter;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
+use SpeedPuzzling\Web\Services\Storage\FailoverS3Adapter;
+use SpeedPuzzling\Web\Services\Storage\UploadSpool;
+use SpeedPuzzling\Web\Services\Storage\UploadSpoolProcessor;
 use SpeedPuzzling\Web\Services\StripeWebhookHandler;
 use Stripe\StripeClient;
+use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\Psr18Client;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
 
 return static function (ContainerConfigurator $configurator): void {
@@ -63,6 +70,12 @@ return static function (ContainerConfigurator $configurator): void {
     // config (config/packages/security.php) and for the copy that tells the user how
     // long the link is good for.
     $parameters->set('signInLinkLifetimeSeconds', 1800);
+
+    // Failed S3 uploads are spooled here and re-uploaded by the
+    // myspeedpuzzling:upload-spooled-files cron. Production mounts a persistent
+    // named volume at this path (lily.srv compose.yaml) - without it the spool
+    // dies with the container.
+    $parameters->set('env(UPLOAD_SPOOL_DIR)', '%kernel.project_dir%/var/upload-spool');
 
     // Social login flags (auth hardening PR 2, docs/features/feature_flags.md).
     // One flag per provider so each flips independently as its console setup
@@ -148,6 +161,8 @@ return static function (ContainerConfigurator $configurator): void {
         ->exclude([
             // league provider subclass, constructed by SocialLoginProviders - not a service
             __DIR__ . '/../src/Services/SocialLogin/AppleProviderWithInlineKey.php',
+            // value object, not a service
+            __DIR__ . '/../src/Services/Storage/SpooledOperation.php',
         ]);
     $services->load('SpeedPuzzling\\Web\\Query\\', __DIR__ . '/../src/Query/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\Security\\', __DIR__ . '/../src/Security/**/{*.php}')
@@ -198,6 +213,18 @@ return static function (ContainerConfigurator $configurator): void {
         ->args(['~^(?!tmp_|custom_)~'])
         ->tag('doctrine.dbal.schema_filter');
 
+    // Short timeouts so a dead object storage degrades a request by seconds,
+    // not minutes. Passing an explicit client also disables async-aws's
+    // built-in 3-attempt RetryableHttpClient - the upload spool is the retry.
+    $services->set('app.storage.s3_http_client', HttpClientInterface::class)
+        ->factory([HttpClient::class, 'create'])
+        ->args([
+            [
+                'timeout' => 3.0,
+                'max_duration' => 10.0,
+            ],
+        ]);
+
     $services->set(S3Client::class)
         ->args([
             '$configuration' => [
@@ -206,8 +233,39 @@ return static function (ContainerConfigurator $configurator): void {
                 Configuration::OPTION_ACCESS_KEY_ID => env('S3_ACCESS_KEY'),
                 Configuration::OPTION_SECRET_ACCESS_KEY => env('S3_SECRET_KEY'),
                 Configuration::OPTION_PATH_STYLE_ENDPOINT => true,
-            ]
+            ],
+            '$httpClient' => service('app.storage.s3_http_client'),
         ]);
+
+    // S3 failover stack: oneup's `minio` filesystem uses FailoverS3Adapter
+    // (config/packages/oneup_flysystem.php), which wraps the raw S3 adapter
+    // with a local spool. The processor deliberately gets the raw adapter -
+    // retries must not re-spool in a loop. Tests swap the two `app.storage.*`
+    // adapter services for in-memory doubles (config/services_test.php).
+    $services->set('app.storage.s3_adapter', AsyncAwsS3Adapter::class)
+        ->args([
+            service(S3Client::class),
+            env('S3_BUCKET'),
+        ]);
+
+    $services->set('app.storage.spool_adapter', LocalFilesystemAdapter::class)
+        ->args([
+            env('UPLOAD_SPOOL_DIR'),
+            null,
+            \LOCK_EX,
+            LocalFilesystemAdapter::DISALLOW_LINKS,
+            null,
+            true, // lazyRootCreation: dev/test must not require the dir upfront
+        ]);
+
+    $services->set(UploadSpool::class)
+        ->arg('$spoolAdapter', service('app.storage.spool_adapter'));
+
+    $services->set(FailoverS3Adapter::class)
+        ->arg('$inner', service('app.storage.s3_adapter'));
+
+    $services->set(UploadSpoolProcessor::class)
+        ->arg('$s3Adapter', service('app.storage.s3_adapter'));
 
     $services->set(StripeClient::class)
         ->args([

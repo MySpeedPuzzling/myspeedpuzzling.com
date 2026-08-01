@@ -6,12 +6,12 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use League\Flysystem\Filesystem;
 
+// The `minio` adapter is NOT overridden here: tests exercise the real
+// FailoverS3Adapter. Its inner S3 adapter and spool adapter are swapped for
+// in-memory doubles in config/services_test.php instead.
 return App::config([
     'oneup_flysystem' => [
         'adapters' => [
-            'minio' => [
-                'memory' => null,
-            ],
             'cached' => [
                 'memory' => null,
             ],

@@ -31,3 +31,9 @@ fi
 echo "== Setting 777 permission to var/ =="
 mkdir -p var/cache
 time chmod -R 777 var
+
+# Failed S3 uploads spool here until the retry cron drains them; in production
+# this is a persistent named volume mounted outside of /app
+SPOOL_DIR="${UPLOAD_SPOOL_DIR:-var/upload-spool}"
+mkdir -p "$SPOOL_DIR"
+chmod 777 "$SPOOL_DIR"

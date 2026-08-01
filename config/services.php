@@ -158,6 +158,13 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Security/TrickleVerificationResult.php',
             __DIR__ . '/../src/Security/SignInLinkPasswordPrompt.php',
             __DIR__ . '/../src/Security/SocialRegistrationRequired.php',
+            // Installed by ScopedRememberMeListenerPass as the class of the
+            // firewall's own security.listener.remember_me.main definition.
+            // Must NOT be autoconfigured on top of that: a global
+            // kernel.event_subscriber is copied onto every firewall dispatcher
+            // (RegisterGlobalSecurityEventListenersPass), so it would handle
+            // each login event twice - clearing the cookie it had just issued.
+            __DIR__ . '/../src/Security/MigrationWindowRememberMeListener.php',
         ]);
     $services->alias(
         \SpeedPuzzling\Web\Security\TricklePasswordVerifier::class,

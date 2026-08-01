@@ -43,7 +43,7 @@ Status: **planned** (scope confirmed by Jan 2026-07-31). Follow-up to the Auth0 
 
 Indexes: `(user_account_id, occurred_at DESC)` (activity page query), `(occurred_at)` (prune), `(event_type, occurred_at)` (future internal statistics — see below).
 
-**Future use — internal statistics (MAU etc., Jan 2026-07-31, not in scope now):** the table doubles as the source for unique-active-user metrics (`COUNT(DISTINCT user_account_id)` over `login_success`/`sign_in_link_used`/`oauth_login` in a window — hence the mandatory `(event_type, occurred_at)` index). Two caveats recorded for when this gets built: (1) sessions live ~15.6 days, so login events are a *proxy* for activity — an active user logs in only ~2×/month; true MAU needs request-level activity tracking, which is a separate feature; (2) the 24-month prune caps how far back trends reach — if longer history is ever wanted, snapshot monthly aggregates into a tiny summary table before pruning.
+**Future use — internal statistics (MAU etc., Jan 2026-07-31, not in scope now):** the table doubles as the source for unique-active-user metrics (`COUNT(DISTINCT user_account_id)` over `login_success`/`sign_in_link_used`/`oauth_login` in a window — hence the mandatory `(event_type, occurred_at)` index). Two caveats recorded for when this gets built: (1) sessions live 30 days (raised from ~15.6 on 2026-08-01), so login events are an even looser *proxy* for activity — an active user may log in only ~once a month; true MAU needs request-level activity tracking, which is a separate feature; (2) the 24-month prune caps how far back trends reach — if longer history is ever wanted, snapshot monthly aggregates into a tiny summary table before pruning.
 
 ### Event catalog (`AuthAuditEventType` enum)
 

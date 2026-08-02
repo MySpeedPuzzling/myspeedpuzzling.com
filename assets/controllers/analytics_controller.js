@@ -3,8 +3,15 @@ import { Controller } from '@hotwired/stimulus';
 /**
  * Stimulus controller for delayed Google Analytics loading with bot detection.
  *
- * Loads GA after user interaction (scroll, click, touch) OR when browser is idle
- * (via requestIdleCallback), whichever comes first. Skips loading entirely for detected bots.
+ * Loads GA ONLY after real user interaction (scroll, pointer, touch, key).
+ * Skips loading entirely for detected bots.
+ *
+ * There is deliberately NO idle/timeout fallback: during the 2026-07/08 bot
+ * wave, requestIdleCallback fired for idle headless browsers too, which is
+ * how thousands of proxy-bot page loads a day became GA "active users". A
+ * real human produces some input within moments on any device; a headless
+ * page-loader does not. The cost is losing zero-interaction bounces from
+ * the numbers - accepted in exchange for GA reflecting humans.
  */
 export default class extends Controller {
     static values = {
@@ -20,16 +27,13 @@ export default class extends Controller {
             return;
         }
 
-        // Hybrid trigger: user interaction OR timeout (whichever first)
+        // Interaction-only trigger (no idle fallback — see class comment)
         this.setupTriggers();
     }
 
     disconnect() {
-        if (this.timeout) {
-            clearTimeout(this.timeout);
-        }
-        if (this.idleId) {
-            cancelIdleCallback(this.idleId);
+        if (this.loadGA) {
+            this.events?.forEach(e => document.removeEventListener(e, this.loadGA));
         }
     }
 
@@ -56,29 +60,19 @@ export default class extends Controller {
     }
 
     setupTriggers() {
-        const events = ['scroll', 'mousemove', 'touchstart', 'keydown', 'click'];
+        this.events = ['scroll', 'mousemove', 'touchstart', 'keydown', 'click'];
 
         this.loadGA = () => {
             if (window.gaLoaded) return;
             window.gaLoaded = true;
 
-            // Cleanup listeners and pending callbacks
-            events.forEach(e => document.removeEventListener(e, this.loadGA));
-            if (this.timeout) clearTimeout(this.timeout);
-            if (this.idleId) cancelIdleCallback(this.idleId);
+            this.events.forEach(e => document.removeEventListener(e, this.loadGA));
 
             this.injectGA();
         };
 
-        // User interaction triggers
-        events.forEach(e => document.addEventListener(e, this.loadGA, { once: true, passive: true }));
-
-        // Fallback: wait until browser is idle so GA doesn't compete with LCP
-        if ('requestIdleCallback' in window) {
-            this.idleId = requestIdleCallback(this.loadGA, { timeout: 5000 });
-        } else {
-            this.timeout = setTimeout(this.loadGA, 3000);
-        }
+        // User interaction triggers — the ONLY way GA loads
+        this.events.forEach(e => document.addEventListener(e, this.loadGA, { once: true, passive: true }));
     }
 
     injectGA() {

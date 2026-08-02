@@ -77,6 +77,12 @@ return static function (ContainerConfigurator $configurator): void {
     // dies with the container.
     $parameters->set('env(UPLOAD_SPOOL_DIR)', '%kernel.project_dir%/var/upload-spool');
 
+    // Bot-blocker trust cookie secret (BotTrustCookieSigner). The committed
+    // .env carries the empty default too; this container-level default is
+    // belt-and-braces so a missing env can never 500 the site - empty means
+    // the __bb_trust cookie is simply not issued.
+    $parameters->set('env(CHALLENGE_COOKIE_SECRET)', '');
+
     // Social login flags (auth hardening PR 2, docs/features/feature_flags.md).
     // One flag per provider so each flips independently as its console setup
     // completes; SOCIAL_LOGIN_ADMIN_ONLY keeps everything invisible to the

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\SellSwap;
 
+use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
 use SpeedPuzzling\Web\Message\MarkPuzzleAsSoldOrSwapped;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -41,11 +42,18 @@ final class MarkAsSoldToPlayerController extends AbstractController
 
         $buyer = $this->playerRepository->get($buyerPlayerId);
 
-        $this->messageBus->dispatch(new MarkPuzzleAsSoldOrSwapped(
-            sellSwapListItemId: $itemId,
-            playerId: $loggedPlayer->playerId,
-            buyerInput: '#' . $buyer->code,
-        ));
+        try {
+            $this->messageBus->dispatch(new MarkPuzzleAsSoldOrSwapped(
+                sellSwapListItemId: $itemId,
+                playerId: $loggedPlayer->playerId,
+                buyerInput: '#' . $buyer->code,
+            ));
+        } catch (SellSwapListItemNotFound) {
+            // The listing was already sold, swapped or removed elsewhere.
+            $this->addFlash('warning', $this->translator->trans('sell_swap_list.listing_unavailable'));
+
+            return $this->redirectToRoute('sell_swap_list', ['playerId' => $loggedPlayer->playerId]);
+        }
 
         $this->addFlash('success', $this->translator->trans('sell_swap_list.mark_sold.success'));
 

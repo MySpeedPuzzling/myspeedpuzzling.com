@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Messaging;
 
+use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
 use SpeedPuzzling\Web\Exceptions\ConversationRequestAlreadyPending;
 use SpeedPuzzling\Web\Message\MarkMessagesAsRead;
 use SpeedPuzzling\Web\Message\SendMessage;
@@ -89,11 +90,18 @@ final class StartMarketplaceConversationController extends AbstractController
                 $messageContent = trim($request->request->getString('message'));
 
                 if ($messageContent !== '') {
-                    $this->messageBus->dispatch(new SendMessage(
-                        conversationId: $existingConversation->id->toString(),
-                        senderId: $loggedPlayer->playerId,
-                        content: $messageContent,
-                    ));
+                    try {
+                        $this->messageBus->dispatch(new SendMessage(
+                            conversationId: $existingConversation->id->toString(),
+                            senderId: $loggedPlayer->playerId,
+                            content: $messageContent,
+                        ));
+                    } catch (ConversationNotFound) {
+                        // Deleted between loading this page and sending.
+                        $this->addFlash('warning', $this->translator->trans('messaging.conversation_unavailable'));
+
+                        return $this->redirectToRoute('conversations_list');
+                    }
                 }
             }
 

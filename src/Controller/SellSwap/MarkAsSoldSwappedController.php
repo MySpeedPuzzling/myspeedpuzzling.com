@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\SellSwap;
 
 use SpeedPuzzling\Web\FormData\MarkAsSoldSwappedFormData;
 use SpeedPuzzling\Web\FormType\MarkAsSoldSwappedFormType;
+use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
 use SpeedPuzzling\Web\Message\MarkPuzzleAsSoldOrSwapped;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetConversationPartnersForListing;
@@ -79,11 +80,18 @@ final class MarkAsSoldSwappedController extends AbstractController
             /** @var MarkAsSoldSwappedFormData $formData */
             $formData = $form->getData();
 
-            $this->messageBus->dispatch(new MarkPuzzleAsSoldOrSwapped(
-                sellSwapListItemId: $itemId,
-                playerId: $loggedPlayer->playerId,
-                buyerInput: $formData->buyerInput,
-            ));
+            try {
+                $this->messageBus->dispatch(new MarkPuzzleAsSoldOrSwapped(
+                    sellSwapListItemId: $itemId,
+                    playerId: $loggedPlayer->playerId,
+                    buyerInput: $formData->buyerInput,
+                ));
+            } catch (SellSwapListItemNotFound) {
+                // The listing was already sold, swapped or removed elsewhere.
+                $this->addFlash('warning', $this->translator->trans('sell_swap_list.listing_unavailable'));
+
+                return $this->redirectToRoute('sell_swap_list', ['playerId' => $loggedPlayer->playerId]);
+            }
 
             // Check if this is a Turbo request
             if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {

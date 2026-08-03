@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Messaging;
 
+use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
 use SpeedPuzzling\Web\Message\AcceptConversation;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,10 +35,18 @@ final class AcceptConversationController extends AbstractController
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         assert($loggedPlayer !== null);
 
-        $this->messageBus->dispatch(new AcceptConversation(
-            conversationId: $conversationId,
-            playerId: $loggedPlayer->playerId,
-        ));
+        try {
+            $this->messageBus->dispatch(new AcceptConversation(
+                conversationId: $conversationId,
+                playerId: $loggedPlayer->playerId,
+            ));
+        } catch (ConversationNotFound) {
+            // The conversation can disappear between the page rendering and the
+            // click (deleted, or access withdrawn). Say so instead of 404ing.
+            $this->addFlash('warning', $this->translator->trans('messaging.conversation_unavailable'));
+
+            return $this->redirectToRoute('conversations_list');
+        }
 
         $this->addFlash('success', $this->translator->trans('messaging.request_accepted'));
 

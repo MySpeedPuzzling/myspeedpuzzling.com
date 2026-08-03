@@ -1464,6 +1464,7 @@ collections:
         login_required_move: "You must be logged in to move puzzles between collections."
         puzzle_added: "Puzzle was successfully added to the collection."
         puzzle_removed: "Puzzle was removed from the collection."
+        collection_unavailable: "That collection is no longer available — it may have been deleted."
         puzzle_moved: "Puzzle successfully moved to collection."
     membership_required:
         title: "Unlock Unlimited Collections"
@@ -1749,6 +1750,7 @@ sell_swap_list:
     reserved: "RESERVED"
     reserved.success: "Listing was marked as reserved."
     reservation_removed.success: "Puzzle is no longer reserved and is available again."
+    listing_unavailable: "This listing is no longer available — it may have already been sold, swapped or removed."
     mark_reserved:
         button: "Mark as Reserved"
         title: "Mark as Reserved"
@@ -1987,6 +1989,7 @@ messaging:
     user_unblocked: "User has been unblocked."
     cannot_message_user: "You cannot message this user."
     direct_messages_disabled: "This user does not accept direct messages."
+    conversation_unavailable: "This conversation is no longer available — it may have been deleted, or you no longer have access to it."
     pending_request_exists: "You already have a pending message request with this user."
     cannot_contact_yourself: "You cannot contact yourself."
     conversations: "Conversations"

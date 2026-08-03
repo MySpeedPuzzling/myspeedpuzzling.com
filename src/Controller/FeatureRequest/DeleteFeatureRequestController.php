@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\FeatureRequest;
 
 use SpeedPuzzling\Web\Exceptions\FeatureRequestCanNotBeEdited;
+use SpeedPuzzling\Web\Exceptions\FeatureRequestNotFound;
 use SpeedPuzzling\Web\Message\DeleteFeatureRequest;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -49,6 +50,11 @@ final class DeleteFeatureRequestController extends AbstractController
             ));
 
             $this->addFlash('success', $this->translator->trans('feature_requests.deleted_successfully'));
+        } catch (FeatureRequestNotFound) {
+            // Already deleted, or not the author's to delete. Extends
+            // NotFoundHttpException so it now arrives unwrapped; a warning beats
+            // a 404 page for someone who just clicked a stale delete button.
+            $this->addFlash('warning', $this->translator->trans('feature_requests.cannot_edit'));
         } catch (HandlerFailedException $e) {
             $previous = $e->getPrevious();
             if ($previous instanceof FeatureRequestCanNotBeEdited) {

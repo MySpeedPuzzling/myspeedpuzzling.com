@@ -64,6 +64,13 @@ final class UnlinkSocialIdentityController extends AbstractController
                 userId: $user->userId,
                 provider: $oauthProvider,
             ));
+        } catch (OauthIdentityNotFound) {
+            // Already unlinked (double submit, or another tab did it). Extends
+            // NotFoundHttpException, so it now arrives unwrapped — it was
+            // deliberately never logged as an error, and still is not.
+            $this->addFlash('danger', $this->translator->trans('flashes.unknown_error'));
+
+            return $this->redirectToRoute('edit_profile');
         } catch (HandlerFailedException $exception) {
             $reason = $exception->getPrevious();
 
@@ -73,11 +80,9 @@ final class UnlinkSocialIdentityController extends AbstractController
                 return $this->redirectToRoute('edit_profile');
             }
 
-            if (!$reason instanceof OauthIdentityNotFound) {
-                $this->logger->error('Unlinking a social identity failed.', [
-                    'exception' => $exception,
-                ]);
-            }
+            $this->logger->error('Unlinking a social identity failed.', [
+                'exception' => $exception,
+            ]);
 
             $this->addFlash('danger', $this->translator->trans('flashes.unknown_error'));
 

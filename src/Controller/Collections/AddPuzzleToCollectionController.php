@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\Collections;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
+use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\FormData\CollectionPuzzleActionFormData;
 use SpeedPuzzling\Web\FormType\CollectionPuzzleActionFormType;
 use SpeedPuzzling\Web\Message\AddPuzzleToCollection;
@@ -149,12 +150,20 @@ final class AddPuzzleToCollectionController extends AbstractController
                 }
             }
 
-            $this->messageBus->dispatch(new AddPuzzleToCollection(
-                playerId: $loggedPlayer->playerId,
-                puzzleId: $puzzleId,
-                collectionId: $collectionId,
-                comment: $formData->comment,
-            ));
+            try {
+                $this->messageBus->dispatch(new AddPuzzleToCollection(
+                    playerId: $loggedPlayer->playerId,
+                    puzzleId: $puzzleId,
+                    collectionId: $collectionId,
+                    comment: $formData->comment,
+                ));
+            } catch (CollectionNotFound) {
+                // The chosen collection was deleted while this form was open
+                // (another tab, another device).
+                $this->addFlash('warning', $this->translator->trans('collections.flash.collection_unavailable'));
+
+                return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+            }
 
             // Check if this is a Turbo request
             if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {

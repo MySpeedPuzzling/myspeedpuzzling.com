@@ -307,7 +307,7 @@
             </div>
         {% endif %}
 
-        <div class="table-responsive custom-table-wrapper mt-2 mb-5" {{ stimulus_controller('toggle') }}>
+        <div class="table-responsive custom-table-wrapper mt-2 mb-5">
             <table class="table custom-table table-striped table-hover mb-0">
                 <thead>
                 <tr>
@@ -415,58 +415,35 @@
                             {% endif %}
 
                             {% if aggregated_solver|length > 1 %}
-                                <br>
-                                <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: 'row' ~ loop.index})}}>
-                                            <span class="badge bg-dark badge-shadow rounded-pill">
-                                                {{ 'show_more_solving_times'|trans({ '%count%': aggregated_solver|length-1 }) }}
-                                            </span>
-                                </a>
-
-                                <div class="more-times hidden with-ppm" {{ stimulus_target('toggle', 'row' ~ loop.index) }}>
-                                    {% for solving_time in aggregated_solver %}
-                                        {% if not loop.first %}
-                                            <span class="d-inline-block mt-1">
-                                                        {{ solving_time.time|puzzlingTime }}
-                                                        {% if is_own_row %}
-                                                            {{ include('_edit_time_button.html.twig', {timeId: solving_time.timeId, context: 'puzzle-detail'}) }}
-                                                        {% endif %}
-                                                        {% if solving_time.finishedAt is not null %}
-                                                            <br>
-                                                            <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
-                                                        {% endif %}
-                                                        <br>
-                                                        <small>
-                                                            <span class="text-muted">PPM</span> {{ ppm(solving_time.time, this.piecesCount) }}
-                                                        </small>
-
-                                                        {% if solving_time.firstAttempt %}
-                                                            <br>
-                                                            <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
-                                                        {% endif %}
-
-                                                        {% if solving_time.unboxed %}
-                                                            <br>
-                                                            <span class="badge rounded-pill bg-warning"><i class="bi bi-eye-slash"></i> {{ 'unboxed'|trans }}</span>
-                                                        {% endif %}
-
-                                                        {% if solving_time.competitionName %}
-                                                            <br>
-                                                            {% if solving_time.competitionSlug %}
-                                                                <a href="{{ path('event_detail', {'slug': solving_time.competitionSlug}) }}">
-                                                            {% endif %}
-                                                            <span class="badge rounded-pill bg-primary"><i class="bi bi-trophy-fill"></i>{{ solving_time.competitionShortcut ?? aggregated_solver[0].competitionName }}</span>
-                                                            {% if solving_time.competitionSlug %}
-                                                                </a>
-                                                            {% endif %}
-                                                        {% endif %}
-                                                    </span>
-
-                                            {% if not loop.last %}
-                                                <br>
-                                            {% endif %}
+                                {# Solo rows are PuzzleSolver (has playerId), duo/team rows are PuzzleSolversGroup
+                                   (has no playerId) - fall back to the first registered team member. #}
+                                {% set results_player_id = aggregated_solver[0].playerId|default(null) %}
+                                {% set results_player_name = aggregated_solver[0].playerName|default(null) %}
+                                {% if results_player_id is null %}
+                                    {% for puzzle_solver in aggregated_solver[0].players|default([]) %}
+                                        {% if results_player_id is null and puzzle_solver.playerId is not null %}
+                                            {% set results_player_id = puzzle_solver.playerId %}
+                                            {% set results_player_name = puzzle_solver.playerName %}
                                         {% endif %}
                                     {% endfor %}
-                                </div>
+                                {% endif %}
+
+                                {% if results_player_id is not null %}
+                                    <br>
+                                    <a href="{{ path('player_puzzle_results', {
+                                        playerId: results_player_id,
+                                        puzzleId: this.puzzleId,
+                                        category: this.category == 'group' ? 'team' : this.category,
+                                        return: app.request.uri,
+                                        return_title: results_player_name ?? '#'
+                                    }) }}"
+                                       data-turbo="true"
+                                       data-turbo-frame="modal-frame"
+                                       class="btn btn-outline-primary btn-xs py-0 px-2 mt-1"
+                                       style="font-size: 0.7rem;">
+                                        {{ 'show_more_solving_times'|trans({ '%count%': aggregated_solver|length-1 }) }}
+                                    </a>
+                                {% endif %}
                             {% endif %}
                         </td>
                     </tr>

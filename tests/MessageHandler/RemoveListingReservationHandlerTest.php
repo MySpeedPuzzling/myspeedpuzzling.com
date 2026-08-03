@@ -10,7 +10,6 @@ use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\SellSwapListItemFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class RemoveListingReservationHandlerTest extends KernelTestCase
@@ -44,17 +43,13 @@ final class RemoveListingReservationHandlerTest extends KernelTestCase
 
     public function testNonOwnerCannotRemoveReservation(): void
     {
-        try {
-            $this->messageBus->dispatch(
-                new RemoveListingReservation(
-                    sellSwapListItemId: SellSwapListItemFixture::SELLSWAP_03,
-                    playerId: PlayerFixture::PLAYER_ADMIN,
-                ),
-            );
-            self::fail('Expected SellSwapListItemNotFound exception was not thrown');
-        } catch (HandlerFailedException $e) {
-            $previous = $e->getPrevious();
-            self::assertInstanceOf(SellSwapListItemNotFound::class, $previous);
-        }
+        $this->expectException(SellSwapListItemNotFound::class);
+
+        $this->messageBus->dispatch(
+            new RemoveListingReservation(
+                sellSwapListItemId: SellSwapListItemFixture::SELLSWAP_03,
+                playerId: PlayerFixture::PLAYER_ADMIN,
+            ),
+        );
     }
 }

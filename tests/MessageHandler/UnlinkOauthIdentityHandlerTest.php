@@ -97,12 +97,11 @@ final class UnlinkOauthIdentityHandlerTest extends KernelTestCase
     {
         $this->createUserAccount('msp|unlink4', 'unlink.four@example.com', password: 'hash');
 
-        try {
-            $this->messageBus->dispatch(new UnlinkOauthIdentity('msp|unlink4', OauthProvider::Apple));
-            self::fail('Expected OauthIdentityNotFound was not thrown');
-        } catch (HandlerFailedException $e) {
-            self::assertInstanceOf(OauthIdentityNotFound::class, $e->getPrevious());
-        }
+        // OauthIdentityNotFound extends NotFoundHttpException, so it arrives
+        // unwrapped (UnwrapHttpExceptionMiddleware).
+        $this->expectException(OauthIdentityNotFound::class);
+
+        $this->messageBus->dispatch(new UnlinkOauthIdentity('msp|unlink4', OauthProvider::Apple));
     }
 
     private function createUserAccount(string $userId, string $email, null|string $password): UserAccount

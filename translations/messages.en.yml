@@ -1856,6 +1856,7 @@ lend_borrow:
         lent: "Puzzle was successfully lent."
         passed: "Puzzle was successfully passed."
         returned: "Puzzle was successfully returned to owner."
+        no_longer_available: "This puzzle is no longer yours to manage — it may have already been returned or passed on to someone else."
         borrowed: "Puzzle was marked as borrowed."
         settings_updated: "Lend & Borrow settings were successfully updated."
         login_required: "You must be logged in to manage your lending list."

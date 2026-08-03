@@ -246,26 +246,24 @@ final class AddPuzzleSolvingTimeHandlerTest extends KernelTestCase
     {
         // The API processor guards this before it reaches the handler; here we document
         // the handler-level behavior: an unknown round id bubbles up as CompetitionRoundNotFound.
-        $this->expectException(HandlerFailedException::class);
+        // CompetitionRoundNotFound extends NotFoundHttpException, so it arrives
+        // unwrapped (UnwrapHttpExceptionMiddleware) rather than inside a
+        // HandlerFailedException.
+        $this->expectException(CompetitionRoundNotFound::class);
 
-        try {
-            $this->messageBus->dispatch(new AddPuzzleSolvingTime(
-                timeId: Uuid::uuid7(),
-                userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
-                puzzleId: PuzzleFixture::PUZZLE_500_01,
-                competitionId: null,
-                time: '00:45:00',
-                comment: null,
-                finishedPuzzlesPhoto: null,
-                groupPlayers: [],
-                finishedAt: null,
-                firstAttempt: false,
-                unboxed: false,
-                roundId: '00000000-0000-0000-0000-000000000000',
-            ));
-        } catch (HandlerFailedException $exception) {
-            self::assertInstanceOf(CompetitionRoundNotFound::class, $exception->getPrevious());
-            throw $exception;
-        }
+        $this->messageBus->dispatch(new AddPuzzleSolvingTime(
+            timeId: Uuid::uuid7(),
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            puzzleId: PuzzleFixture::PUZZLE_500_01,
+            competitionId: null,
+            time: '00:45:00',
+            comment: null,
+            finishedPuzzlesPhoto: null,
+            groupPlayers: [],
+            finishedAt: null,
+            firstAttempt: false,
+            unboxed: false,
+            roundId: '00000000-0000-0000-0000-000000000000',
+        ));
     }
 }

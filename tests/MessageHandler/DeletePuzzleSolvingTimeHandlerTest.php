@@ -10,7 +10,6 @@ use SpeedPuzzling\Web\Message\DeletePuzzleSolvingTime;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class DeletePuzzleSolvingTimeHandlerTest extends KernelTestCase
@@ -44,16 +43,16 @@ final class DeletePuzzleSolvingTimeHandlerTest extends KernelTestCase
     public function testNonOwnerCannotDeleteSomeoneElsesTime(): void
     {
         // TIME_01 belongs to PLAYER_REGULAR; PLAYER_WITH_FAVORITES must be blocked.
-        $this->expectException(HandlerFailedException::class);
+        // CanNotModifyOtherPlayersTime extends AccessDeniedHttpException, so it
+        // arrives unwrapped (UnwrapHttpExceptionMiddleware).
+        $this->expectException(CanNotModifyOtherPlayersTime::class);
 
         try {
             $this->messageBus->dispatch(new DeletePuzzleSolvingTime(
                 currentUserId: PlayerFixture::PLAYER_WITH_FAVORITES_USER_ID,
                 puzzleSolvingTimeId: PuzzleSolvingTimeFixture::TIME_01,
             ));
-        } catch (HandlerFailedException $exception) {
-            self::assertInstanceOf(CanNotModifyOtherPlayersTime::class, $exception->getPrevious());
-
+        } catch (CanNotModifyOtherPlayersTime $exception) {
             /** @var int|string|false $count */
             $count = $this->database->fetchOne(
                 'SELECT COUNT(*) FROM puzzle_solving_time WHERE id = :id',

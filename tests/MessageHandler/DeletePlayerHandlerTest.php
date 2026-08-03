@@ -14,7 +14,6 @@ use SpeedPuzzling\Web\Message\DeletePlayer;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class DeletePlayerHandlerTest extends KernelTestCase
@@ -31,12 +30,9 @@ final class DeletePlayerHandlerTest extends KernelTestCase
 
     public function testThrowsWhenPlayerDoesNotExist(): void
     {
-        try {
-            $this->messageBus->dispatch(new DeletePlayer('00000000-0000-0000-0000-000000000999'));
-            self::fail('Expected PlayerNotFound exception was not thrown');
-        } catch (HandlerFailedException $e) {
-            self::assertInstanceOf(PlayerNotFound::class, $e->getPrevious());
-        }
+        $this->expectException(PlayerNotFound::class);
+
+        $this->messageBus->dispatch(new DeletePlayer('00000000-0000-0000-0000-000000000999'));
     }
 
     public function testDeletesPlayerRowAndCascadesPersonalData(): void

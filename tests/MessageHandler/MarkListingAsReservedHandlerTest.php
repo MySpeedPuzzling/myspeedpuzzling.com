@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\Tests\DataFixtures\ConversationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\SellSwapListItemFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class MarkListingAsReservedHandlerTest extends KernelTestCase
@@ -137,17 +136,13 @@ final class MarkListingAsReservedHandlerTest extends KernelTestCase
 
     public function testNonOwnerCannotMarkAsReserved(): void
     {
-        try {
-            $this->messageBus->dispatch(
-                new MarkListingAsReserved(
-                    sellSwapListItemId: SellSwapListItemFixture::SELLSWAP_01,
-                    playerId: PlayerFixture::PLAYER_ADMIN,
-                ),
-            );
-            self::fail('Expected SellSwapListItemNotFound exception was not thrown');
-        } catch (HandlerFailedException $e) {
-            $previous = $e->getPrevious();
-            self::assertInstanceOf(SellSwapListItemNotFound::class, $previous);
-        }
+        $this->expectException(SellSwapListItemNotFound::class);
+
+        $this->messageBus->dispatch(
+            new MarkListingAsReserved(
+                sellSwapListItemId: SellSwapListItemFixture::SELLSWAP_01,
+                playerId: PlayerFixture::PLAYER_ADMIN,
+            ),
+        );
     }
 }

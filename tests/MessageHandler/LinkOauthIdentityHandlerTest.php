@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
+use Throwable;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class LinkOauthIdentityHandlerTest extends KernelTestCase
@@ -170,7 +171,13 @@ final class LinkOauthIdentityHandlerTest extends KernelTestCase
             $this->messageBus->dispatch($message);
             self::fail(sprintf('Expected %s was not thrown', $expectedException));
         } catch (HandlerFailedException $e) {
+            // Plain domain exceptions keep Messenger's wrapper.
             self::assertInstanceOf($expectedException, $e->getPrevious());
+        } catch (Throwable $e) {
+            // HTTP-flavoured ones (e.g. UserAccountNotFound extends
+            // NotFoundHttpException) arrive unwrapped — see
+            // UnwrapHttpExceptionMiddleware. This helper is shared by both kinds.
+            self::assertInstanceOf($expectedException, $e);
         }
     }
 

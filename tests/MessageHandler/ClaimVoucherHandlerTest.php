@@ -70,18 +70,14 @@ final class ClaimVoucherHandlerTest extends KernelTestCase
 
     public function testClaimingVoucherWithInvalidCodeThrowsException(): void
     {
-        try {
-            $this->messageBus->dispatch(
-                new ClaimVoucher(
-                    playerId: PlayerFixture::PLAYER_REGULAR,
-                    voucherCode: 'INVALIDCODE12345',
-                ),
-            );
-            self::fail('Expected VoucherNotFound exception was not thrown');
-        } catch (HandlerFailedException $e) {
-            $previous = $e->getPrevious();
-            self::assertInstanceOf(VoucherNotFound::class, $previous);
-        }
+        $this->expectException(VoucherNotFound::class);
+
+        $this->messageBus->dispatch(
+            new ClaimVoucher(
+                playerId: PlayerFixture::PLAYER_REGULAR,
+                voucherCode: 'INVALIDCODE12345',
+            ),
+        );
     }
 
     public function testClaimingAlreadyUsedVoucherThrowsException(): void

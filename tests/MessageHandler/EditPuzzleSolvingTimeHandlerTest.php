@@ -84,25 +84,22 @@ final class EditPuzzleSolvingTimeHandlerTest extends KernelTestCase
     public function testNonOwnerIsRejected(): void
     {
         // TIME_01 is PLAYER_REGULAR's; PLAYER_WITH_FAVORITES must not be able to modify it.
-        $this->expectException(HandlerFailedException::class);
+        // CanNotModifyOtherPlayersTime extends AccessDeniedHttpException, so it
+        // arrives unwrapped (UnwrapHttpExceptionMiddleware).
+        $this->expectException(CanNotModifyOtherPlayersTime::class);
 
-        try {
-            $this->messageBus->dispatch(new EditPuzzleSolvingTime(
-                currentUserId: PlayerFixture::PLAYER_WITH_FAVORITES_USER_ID,
-                puzzleSolvingTimeId: PuzzleSolvingTimeFixture::TIME_01,
-                competitionId: null,
-                time: '00:10:00',
-                comment: 'hijack attempt',
-                groupPlayers: [],
-                finishedAt: null,
-                finishedPuzzlesPhoto: null,
-                firstAttempt: false,
-                unboxed: false,
-            ));
-        } catch (HandlerFailedException $exception) {
-            self::assertInstanceOf(CanNotModifyOtherPlayersTime::class, $exception->getPrevious());
-            throw $exception;
-        }
+        $this->messageBus->dispatch(new EditPuzzleSolvingTime(
+            currentUserId: PlayerFixture::PLAYER_WITH_FAVORITES_USER_ID,
+            puzzleSolvingTimeId: PuzzleSolvingTimeFixture::TIME_01,
+            competitionId: null,
+            time: '00:10:00',
+            comment: 'hijack attempt',
+            groupPlayers: [],
+            finishedAt: null,
+            finishedPuzzlesPhoto: null,
+            firstAttempt: false,
+            unboxed: false,
+        ));
     }
 
     public function testSuspiciouslyFastEditIsRejected(): void

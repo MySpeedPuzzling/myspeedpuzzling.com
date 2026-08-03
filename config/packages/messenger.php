@@ -16,6 +16,12 @@ return App::config([
             'buses' => [
                 'command_bus' => [
                     'middleware' => [
+                        // OUTERMOST on purpose: it must see HandlerFailedException
+                        // only after doctrine_transaction has rolled back, so a
+                        // handler's 404-flavoured exception reaches the controller
+                        // as itself (→ real 404) instead of a wrapper (→ silent 500
+                        // that Sentry discards). See the class docblock.
+                        'SpeedPuzzling\Web\Services\MessengerMiddleware\UnwrapHttpExceptionMiddleware',
                         'SpeedPuzzling\Web\Services\MessengerMiddleware\ClearEntityManagerMiddleware',
                         'doctrine_transaction',
                     ],

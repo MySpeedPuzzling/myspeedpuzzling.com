@@ -62,17 +62,16 @@ final class EditFeatureRequestHandlerTest extends KernelTestCase
 
     public function testNonAuthorCannotEdit(): void
     {
-        try {
-            $this->messageBus->dispatch(new EditFeatureRequest(
-                featureRequestId: FeatureRequestFixture::FEATURE_REQUEST_NEW,
-                playerId: PlayerFixture::PLAYER_REGULAR,
-                title: 'Should fail',
-                description: 'Should fail',
-            ));
-            self::fail('Expected FeatureRequestNotFound exception was not thrown');
-        } catch (HandlerFailedException $e) {
-            $previous = $e->getPrevious();
-            self::assertInstanceOf(FeatureRequestNotFound::class, $previous);
-        }
+        // FeatureRequestNotFound extends NotFoundHttpException, so it arrives
+        // unwrapped (UnwrapHttpExceptionMiddleware) instead of inside
+        // HandlerFailedException.
+        $this->expectException(FeatureRequestNotFound::class);
+
+        $this->messageBus->dispatch(new EditFeatureRequest(
+            featureRequestId: FeatureRequestFixture::FEATURE_REQUEST_NEW,
+            playerId: PlayerFixture::PLAYER_REGULAR,
+            title: 'Should fail',
+            description: 'Should fail',
+        ));
     }
 }

@@ -68,15 +68,13 @@ final class DeleteFeatureRequestHandlerTest extends KernelTestCase
 
     public function testNonAuthorCannotDelete(): void
     {
-        try {
-            $this->messageBus->dispatch(new DeleteFeatureRequest(
-                featureRequestId: FeatureRequestFixture::FEATURE_REQUEST_NEW,
-                playerId: PlayerFixture::PLAYER_REGULAR,
-            ));
-            self::fail('Expected FeatureRequestNotFound exception was not thrown');
-        } catch (HandlerFailedException $e) {
-            $previous = $e->getPrevious();
-            self::assertInstanceOf(FeatureRequestNotFound::class, $previous);
-        }
+        // FeatureRequestNotFound extends NotFoundHttpException, so it arrives unwrapped
+        // (UnwrapHttpExceptionMiddleware) instead of inside HandlerFailedException.
+        $this->expectException(FeatureRequestNotFound::class);
+
+        $this->messageBus->dispatch(new DeleteFeatureRequest(
+            featureRequestId: FeatureRequestFixture::FEATURE_REQUEST_NEW,
+            playerId: PlayerFixture::PLAYER_REGULAR,
+        ));
     }
 }

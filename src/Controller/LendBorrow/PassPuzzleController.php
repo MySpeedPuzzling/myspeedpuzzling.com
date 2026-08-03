@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\LendBorrow;
 
+use SpeedPuzzling\Web\Exceptions\LentPuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\FormData\PassLentPuzzleFormData;
 use SpeedPuzzling\Web\FormType\PassLentPuzzleFormType;
@@ -125,12 +126,21 @@ final class PassPuzzleController extends AbstractController
                 $newHolderDisplayName = $newHolderPlayer->name ?? $newHolderPlayer->code;
             }
 
-            $this->messageBus->dispatch(new PassLentPuzzle(
-                lentPuzzleId: $lentPuzzleId,
-                currentHolderPlayerId: $loggedPlayer->playerId,
-                newHolderPlayerId: $newHolderPlayerId,
-                newHolderName: $newHolderName,
-            ));
+            try {
+                $this->messageBus->dispatch(new PassLentPuzzle(
+                    lentPuzzleId: $lentPuzzleId,
+                    currentHolderPlayerId: $loggedPlayer->playerId,
+                    newHolderPlayerId: $newHolderPlayerId,
+                    newHolderName: $newHolderName,
+                ));
+            } catch (LentPuzzleNotFound) {
+                // Same race as returning: the puzzle can move on between the page
+                // being rendered and the button being clicked. Tell the user
+                // plainly instead of showing a crash page.
+                $this->addFlash('warning', $this->translator->trans('lend_borrow.flash.no_longer_available'));
+
+                return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+            }
 
             // Check if this is a Turbo request
             if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {

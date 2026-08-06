@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use SpeedPuzzling\Web\Security\OAuth2\ScopeAwareBearerTokenResponse;
+
 return App::config([
     'league_oauth2_server' => [
         'authorization_server' => [
@@ -19,6 +21,7 @@ return App::config([
             'enable_auth_code_grant' => true,
             'enable_implicit_grant' => false,
             'require_code_challenge_for_public_clients' => true,
+            'response_type_class' => ScopeAwareBearerTokenResponse::class,
         ],
         'resource_server' => [
             'public_key' => '%env(OAUTH2_PUBLIC_KEY)%',

@@ -11,6 +11,7 @@ use Monolog\Processor\PsrLogMessageProcessor;
 use Sentry\Monolog\BreadcrumbHandler as SentryBreadcrumbHandler;
 use Sentry\Monolog\LogToSentryIssueHandler;
 use Sentry\State\HubInterface;
+use SpeedPuzzling\Web\Api\V1\PredictedTimeResponseFactory;
 use SpeedPuzzling\Web\Doctrine\RegexSchemaAssetFilter;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
@@ -104,6 +105,10 @@ return static function (ContainerConfigurator $configurator): void {
 
     // API Resource Providers and Processors
     $services->load('SpeedPuzzling\\Web\\Api\\', __DIR__ . '/../src/Api/**/{*Provider.php,*Processor.php}');
+
+    // Shared helper behind the two predicted-time providers (/v1/me and /v1/players/{id})
+    // - doesn't match the Provider/Processor glob above since it isn't an operation itself.
+    $services->set(PredictedTimeResponseFactory::class);
 
     // Components
     $services->load('SpeedPuzzling\\Web\\Component\\', __DIR__ . '/../src/Component/**/{*.php}');

@@ -58,6 +58,7 @@ Built on `league/oauth2-server-bundle`. Supports two flows:
 |--------|----------|----------|
 | GET | `/api/v1/me` | PAT or `profile:read` (the `email` field is populated only for PAT or tokens granted `email:read`, otherwise `null`) |
 | GET | `/api/v1/me/results?type=solo\|duo\|team` | PAT or `results:read` |
+| GET | `/api/v1/me/puzzles/{puzzleId}/predicted-time` | PAT or `results:read` |
 | GET | `/api/v1/me/statistics` | PAT or `statistics:read` |
 | POST | `/api/v1/me/solving-times` | PAT or `solving-times:write` |
 | PUT | `/api/v1/me/solving-times/{timeId}` | PAT or `solving-times:write` |
@@ -77,6 +78,7 @@ Built on `league/oauth2-server-bundle`. Supports two flows:
 | GET | `/api/v1/players/{id}/statistics` | `statistics:read` |
 | GET | `/api/v1/players/{id}/collections` | `collections:read` (public only) |
 | GET | `/api/v1/players/{id}/collections/{cid}/items` | `collections:read` (public only) |
+| GET | `/api/v1/players/{id}/puzzles/{puzzleId}/predicted-time` | `results:read` |
 
 ### Competition Endpoints (any authenticated token)
 

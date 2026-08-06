@@ -15,7 +15,7 @@ final class PlayerResultResponse
         public null|int $time_seconds,
         public null|string $finished_at,
         public bool $first_attempt,
-        public null|string $puzzle_image,
+        public null|string $image,
         public null|string $comment,
     ) {
     }

@@ -54,7 +54,7 @@ final readonly class MyResultsResponseProvider implements ProviderInterface
                     time_seconds: $puzzle->time,
                     finished_at: $puzzle->finishedAt?->format('c'),
                     first_attempt: $puzzle->firstAttempt,
-                    puzzle_image: $puzzle->puzzleImage,
+                    image: $puzzle->puzzleImage,
                     comment: $puzzle->comment,
                 ),
                 $results,

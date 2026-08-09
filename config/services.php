@@ -49,6 +49,11 @@ return static function (ContainerConfigurator $configurator): void {
     $parameters->set('listmonkApiUser', '%env(trim:string:LISTMONK_API_USER)%');
     $parameters->set('listmonkApiToken', '%env(trim:string:LISTMONK_API_TOKEN)%');
 
+    // WJPF (worldjigsawpuzzle.org) player pairing - shared static token, both directions.
+    // Empty token disables the outbound client and the inbound endpoint alike.
+    $parameters->set('wjpfApiUrl', '%env(trim:string:WJPF_API_URL)%');
+    $parameters->set('wjpfApiToken', '%env(trim:string:WJPF_API_TOKEN)%');
+
     $parameters->set('auth0Domain', '%env(trim:string:AUTH0_DOMAIN)%');
     $parameters->set('auth0ClientId', '%env(trim:string:AUTH0_CLIENT_ID)%');
     $parameters->set('auth0ClientSecret', '%env(trim:string:AUTH0_CLIENT_SECRET)%');
@@ -128,7 +133,9 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$applePrivateKey', '%env(trim:string:APPLE_PRIVATE_KEY)%')
         ->bind('$listmonkApiUrl', '%listmonkApiUrl%')
         ->bind('$listmonkApiUser', '%listmonkApiUser%')
-        ->bind('$listmonkApiToken', '%listmonkApiToken%');
+        ->bind('$listmonkApiToken', '%listmonkApiToken%')
+        ->bind('$wjpfApiUrl', '%wjpfApiUrl%')
+        ->bind('$wjpfApiToken', '%wjpfApiToken%');
 
     $services->set(PdoSessionHandler::class)
         ->args([

@@ -43,6 +43,42 @@ fields `token`, `idusuario`, `email`, `nombreurl`.
 
 Implemented by `Controller\Api\V0\WjpfPairingController`.
 
+### C. Manual pairing (browser flow)
+
+For members whose two accounts hold different e-mail addresses, matching can never work. This
+flow takes the identity from the player's own MySpeedPuzzling session instead, so no address
+has to agree.
+
+```
+WJPF (member signed in there)
+  └─> GET https://myspeedpuzzling.com/connect/wjpf?state=<opaque>
+        ├─ not signed in with us -> standard ?return= login, comes back here
+        └─ consent page -> POST /connect/wjpf
+              └─> 302 https://worldjigsawpuzzle.org/users/users_pr.php?accion=msp_pair_redirect&code=<code>&state=<opaque>
+                    └─ WJPF back-channel: POST /api/v0/wjpf-pairing {token, code, idusuario, nombreurl}
+                          └─> {"status":"ok","MySpeedPuzzlingId":"…"}
+```
+
+**The redirect carries a code, never the player id.** A player id would be forgeable — ours
+appear in public API paths, so anyone could hand WJPF somebody else's id and link their own
+WJPF account to that person's profile. A code is only ever issued to a browser that has just
+authenticated, so the worst it can do is link the account that asked for it. Codes are
+single-use, expire in 10 minutes, and are stored hashed
+(`Services\Wjpf\WjpfPairingCodeStore`, `wjpf_pairing_code_cache` pool).
+
+**`state` is theirs and must be checked by them.** We echo it back untouched, but only after
+it passes a strict unreserved-character allowlist (`Value\WjpfPairingState`) — it goes back
+into a URL we build, so anything that could add a parameter or break a header is dropped
+rather than escaped. Without WJPF verifying `state` against their own session, an attacker can
+feed a victim a code of their own and link the victim's WJPF account to the attacker's profile.
+
+The return URL is configuration (`WJPF_PAIR_REDIRECT_URL`), never taken from the request:
+accepting a redirect target from the caller, on a page that sits right after a login prompt,
+is the textbook phishing primitive. Empty disables the flow (404).
+
+Cancelling returns `?error=access_denied&state=…`, mirroring the OAuth convention so their
+side can tell a refusal from a failure.
+
 ## Their quirks, and what each one forces on us
 
 These are load-bearing — the design is shaped by them.
@@ -158,11 +194,22 @@ Manual only — no cron. Revisit once the backfill is done and the conflict rate
 ```
 WJPF_API_URL=https://worldjigsawpuzzle.org/users/users_pr.php
 WJPF_API_TOKEN=
+WJPF_PAIR_REDIRECT_URL=https://worldjigsawpuzzle.org/users/users_pr.php?accion=msp_pair_redirect
 ```
 
 One shared token for both directions. Empty = closed-by-default: the client reports
-`isEnabled() === false` and the inbound endpoint 401s everything. Production value lives in
-Infisical.
+`isEnabled() === false`, the inbound endpoint 401s everything, and `/connect/wjpf` 404s
+without a redirect URL.
+
+**Production values live in Infisical**, which the box re-renders into `.env` on every
+deploy — anything written to that file by hand is wiped at the next release. That is exactly
+how the endpoint shipped rejecting every request on 2026-08-09: the token was deployed in code
+but never added to Infisical, so the containers ran with an empty one and the closed-by-default
+guard did its job. Adding a value means `infisical secrets set` (the box's machine identity
+has write access) followed by `dump_secrets myspeedpuzzling` and a `rollout`.
+
+Note `/api/v` is a Traefik `PathPrefix` for the **api** service, so the pairing endpoint is
+served by `api`, not `web` — both need the env, and both need rolling out after a change.
 
 The endpoint sits on the `stateless` firewall (`security.php`) so a server-to-server call
 never mints a session.
@@ -179,7 +226,10 @@ never mints a session.
 
 ## Not built yet
 
-Player-facing UI. The backfill numbers come first: the real match and conflict rates should
-inform what the connect screen has to say. A connect flow also needs an editable e-mail field
-(their address may differ from the MySpeedPuzzling one), which brings rate limiting and
-input validation with it — see quirk 6.
+An MSP-initiated entry point. Today the manual flow only starts from WJPF; a "Connect WJPF
+account" button on edit-profile would need their equivalent of `/connect/wjpf` — a URL that
+authenticates the member on their side and hands us back a code we redeem with the same token.
+Worth asking Alfonso for once the WJPF-initiated direction is live.
+
+Showing the current link on the consent page (and on profiles) is also open — it needs the
+`NombreURL` profile URL pattern from Alfonso.

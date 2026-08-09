@@ -30,6 +30,13 @@ return App::config([
                 'social_login_state_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // Short-lived single-use codes handed to WJPF at the end of the
+                // manual pairing flow. Cache rather than a table: they live ten
+                // minutes, self-expire, and the lasting record of who linked when
+                // is the wjpf_identity row, not the code.
+                'wjpf_pairing_code_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
             ],
         ],
     ],

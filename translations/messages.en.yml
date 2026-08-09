@@ -3351,3 +3351,11 @@ account_activity:
         oauth_login: "Signed in with a connected account"
         oauth_identity_linked: "Sign-in method connected"
         oauth_identity_unlinked: "Sign-in method disconnected"
+
+wjpf:
+    connect:
+        title: "Connect your World Jigsaw Puzzle Federation account"
+        question: "You are signed in as %name%. Connect this MySpeedPuzzling profile to your World Jigsaw Puzzle Federation account?"
+        explanation: "Your MySpeedPuzzling profile ID will be shared with worldjigsawpuzzle.org so the two accounts can be linked. Nothing else is sent."
+        confirm: "Connect accounts"
+        cancel: "Cancel"

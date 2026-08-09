@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V0;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Services\Wjpf\WjpfPairingCodeStore;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\WjpfPairingStatus;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -119,6 +120,79 @@ final class WjpfPairingControllerTest extends WebTestCase
         $row = $this->identityRow($browser, PlayerFixture::PLAYER_REGULAR);
         self::assertNotNull($row);
         self::assertSame('42', $row['wjpf_id']);
+    }
+
+    /** The code flow: identity came from the player's session, so no address is involved. */
+    public function testPairingCodeIsRedeemed(): void
+    {
+        $browser = self::createClient();
+        $store = $browser->getContainer()->get(WjpfPairingCodeStore::class);
+        $code = $store->issue(PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('POST', self::PATH, [
+            'token' => self::TOKEN,
+            'idusuario' => '777',
+            'code' => $code,
+            'nombreurl' => 'john-doe',
+        ]);
+
+        self::assertResponseIsSuccessful();
+
+        $response = $this->decode($browser);
+        self::assertSame('ok', $response['status']);
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $response['MySpeedPuzzlingId']);
+
+        $row = $this->identityRow($browser, PlayerFixture::PLAYER_REGULAR);
+        self::assertNotNull($row);
+        self::assertSame('777', $row['wjpf_id']);
+    }
+
+    public function testPairingCodeCannotBeReplayed(): void
+    {
+        $browser = self::createClient();
+        $store = $browser->getContainer()->get(WjpfPairingCodeStore::class);
+        $code = $store->issue(PlayerFixture::PLAYER_REGULAR);
+
+        $payload = ['token' => self::TOKEN, 'idusuario' => '777', 'code' => $code];
+
+        $browser->request('POST', self::PATH, $payload);
+        self::assertSame('ok', $this->decode($browser)['status']);
+
+        $browser->request('POST', self::PATH, $payload);
+        self::assertSame('error', $this->decode($browser)['status']);
+        self::assertArrayNotHasKey('MySpeedPuzzlingId', $this->decode($browser));
+    }
+
+    public function testUnknownPairingCodeIsRejected(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('POST', self::PATH, [
+            'token' => self::TOKEN,
+            'idusuario' => '777',
+            'code' => 'made-up-code',
+        ]);
+
+        $response = $this->decode($browser);
+        self::assertSame('error', $response['status']);
+        self::assertArrayNotHasKey('MySpeedPuzzlingId', $response);
+    }
+
+    /** A code proves consent; an address only proves the two sites agree on a string. */
+    public function testCodeTakesPrecedenceOverEmail(): void
+    {
+        $browser = self::createClient();
+        $store = $browser->getContainer()->get(WjpfPairingCodeStore::class);
+        $code = $store->issue(PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $browser->request('POST', self::PATH, [
+            'token' => self::TOKEN,
+            'idusuario' => '777',
+            'code' => $code,
+            'email' => PlayerFixture::PLAYER_REGULAR_EMAIL,
+        ]);
+
+        self::assertSame(PlayerFixture::PLAYER_WITH_FAVORITES, $this->decode($browser)['MySpeedPuzzlingId']);
     }
 
     public function testMissingPlayerIdIsRejected(): void

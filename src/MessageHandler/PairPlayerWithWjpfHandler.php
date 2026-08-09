@@ -26,9 +26,13 @@ readonly final class PairPlayerWithWjpfHandler
     {
         $player = $this->playerRepository->get($message->playerId);
 
+        // The code flow carries no address, so fall back to the one we hold - checked_email
+        // is "which address this row is about", and provenance lives in last_response.source.
+        $email = $message->email ?? $player->email ?? '';
+
         $this->wjpfIdentityRecorder->recordPairing(
             player: $player,
-            email: $message->email,
+            email: $email,
             wjpfId: $message->wjpfId,
             wjpfNameUrl: $message->wjpfNameUrl,
             // They asked us who owns this address, so by definition their record is about to
@@ -38,7 +42,7 @@ readonly final class PairPlayerWithWjpfHandler
             // observed it, so this is not evidence that it landed.
             claimLanded: false,
             response: [
-                'source' => 'wjpf_inbound',
+                'source' => $message->source,
                 'idjugador' => $message->wjpfId,
                 'nombreurl' => $message->wjpfNameUrl,
                 'email' => $message->email,

@@ -21,12 +21,21 @@ readonly final class GetPlayersForWjpfSync
      * party, and a player who hid their profile has not asked for that.
      *
      * @param null|int $limit Null for every candidate.
-     * @param bool $includeAlreadyChecked Re-check players that already have a mapping row.
+     * @param bool $includeAlreadyChecked Re-check players that already have a row. Players we
+     *                                    already hold a WJPF id for stay excluded unless
+     *                                    $includePaired is also set - a repeat run is normally
+     *                                    about catching people who have joined WJPF since, and
+     *                                    re-asking about thousands of settled mappings is pure
+     *                                    load on their server.
+     * @param bool $includePaired Also re-check players already mapped to a WJPF id.
      *
      * @return list<WjpfSyncCandidate>
      */
-    public function all(null|int $limit = null, bool $includeAlreadyChecked = false): array
-    {
+    public function all(
+        null|int $limit = null,
+        bool $includeAlreadyChecked = false,
+        bool $includePaired = false,
+    ): array {
         $query = <<<SQL
 SELECT
     player.id AS player_id,
@@ -41,6 +50,11 @@ SQL;
 
         if ($includeAlreadyChecked === false) {
             $query .= "\n    AND wjpf_identity.id IS NULL";
+        } elseif ($includePaired === false) {
+            // "Already paired" means we hold their IdJugador, whatever the latest status says -
+            // a player who was matched once and has since gone not_found still has a mapping
+            // worth keeping, and asking about them again cannot improve on it.
+            $query .= "\n    AND wjpf_identity.wjpf_id IS NULL";
         }
 
         $query .= "\nORDER BY player.registered_at ASC";

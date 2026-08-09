@@ -108,9 +108,36 @@ docker compose exec web php bin/console myspeedpuzzling:sync-wjpf-identities --l
 |---|---|
 | `--limit=N` | cap the batch |
 | `--claim` | send our id so their side stores it — **permanent, survey first** |
-| `--force` | re-check players that already have a row |
+| `--force` | re-check players already checked **but not yet paired** |
+| `--include-paired` | with `--force`, also re-check players we already hold an id for |
 | `--player=UUID` | single player, for debugging |
 | `--delay=MS` | between requests, default 1000 |
+
+### Selection on a repeat run
+
+Default skips every player who already has a row. `--force` is the repeat-run mode — it
+re-checks previous misses (people who have joined WJPF since) while leaving settled mappings
+alone, because re-asking about them cannot improve on what we hold and is pure load on their
+host. `--include-paired` overrides that. "Already paired" means we hold a `wjpf_id`, whatever
+the latest status says: a match that later stopped resolving still counts.
+
+### Running it without a deploy killing it
+
+**`docker compose exec … web` is the wrong way to start a long backfill.** A deploy blue-greens
+the `web` container and the run dies with it. Use a one-off container instead, which no deploy
+touches:
+
+```bash
+docker compose run --rm --no-deps --label traefik.enable=false \
+  -e WJPF_API_TOKEN=… -e WJPF_API_URL=… \
+  web php bin/console myspeedpuzzling:sync-wjpf-identities --claim
+```
+
+`--label traefik.enable=false` matters: a one-off container otherwise inherits the service's
+Traefik labels and can start attracting live traffic.
+
+Interrupting a run is cheap either way — progress is one row per player, so a plain re-run
+(no `--force`) resumes exactly where it stopped.
 
 Read-only by default. Sequential at ~1 req/s with a 5s timeout, aborting after 10 consecutive
 failures — their host is a small shared PHP box and a burst reads as an attack. Roughly 3

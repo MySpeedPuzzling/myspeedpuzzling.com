@@ -51,7 +51,8 @@ final class SyncWjpfIdentitiesConsoleCommand extends Command
         $this
             ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Process at most this many players')
             ->addOption('claim', null, InputOption::VALUE_NONE, 'Send our player id so WJPF stores it (permanent on their side)')
-            ->addOption('force', null, InputOption::VALUE_NONE, 'Re-check players that already have a mapping row')
+            ->addOption('force', null, InputOption::VALUE_NONE, 'Re-check players already checked but not yet paired (e.g. people who have joined WJPF since)')
+            ->addOption('include-paired', null, InputOption::VALUE_NONE, 'With --force, also re-check players we already hold a WJPF id for')
             ->addOption('player', null, InputOption::VALUE_REQUIRED, 'Check a single player id, ignoring all filters')
             ->addOption('delay', null, InputOption::VALUE_REQUIRED, 'Milliseconds to wait between requests', (string) self::DEFAULT_DELAY_MS);
     }
@@ -183,6 +184,7 @@ final class SyncWjpfIdentitiesConsoleCommand extends Command
         return $this->getPlayersForWjpfSync->all(
             limit: $limit,
             includeAlreadyChecked: $input->getOption('force') === true,
+            includePaired: $input->getOption('include-paired') === true,
         );
     }
 

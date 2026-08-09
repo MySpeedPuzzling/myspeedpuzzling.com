@@ -121,7 +121,9 @@ final class WjpfPairingController extends AbstractController
 
     private function param(Request $request, string $key): null|string
     {
-        $value = $request->request->get($key) ?? $request->query->get($key);
+        $value = $request->request->get($key)
+            ?? $this->bodyParameters($request)[$key]
+            ?? $request->query->get($key);
 
         if (is_string($value) === false) {
             return is_int($value) ? (string) $value : null;
@@ -130,5 +132,39 @@ final class WjpfPairingController extends AbstractController
         $value = trim($value);
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * Fields recovered from the raw request body, for the cases PHP refuses to put in $_POST.
+     *
+     * Two real shapes arrive here. A JSON body is decoded as JSON. A form-encoded body sent
+     * with a JSON Content-Type - the easy mistake when adding
+     * `header('Content-Type: application/json')` to an existing http_build_query() call - is
+     * parsed as a query string. Without this the request looks completely empty and the caller
+     * gets "token invalid", which points at exactly the wrong thing.
+     *
+     * @return array<string, mixed>
+     */
+    private function bodyParameters(Request $request): array
+    {
+        $body = $request->getContent();
+
+        if ($body === '') {
+            return [];
+        }
+
+        $decoded = json_decode($body, true);
+
+        if (is_array($decoded)) {
+            /** @var array<string, mixed> $decoded */
+            return $decoded;
+        }
+
+        parse_str($body, $parsed);
+
+        /** @var array<string, mixed> $stringKeyed */
+        $stringKeyed = array_filter($parsed, static fn (int|string $key): bool => is_string($key), ARRAY_FILTER_USE_KEY);
+
+        return $stringKeyed;
     }
 }

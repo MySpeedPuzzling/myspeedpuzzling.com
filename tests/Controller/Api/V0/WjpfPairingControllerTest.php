@@ -195,6 +195,62 @@ final class WjpfPairingControllerTest extends WebTestCase
         self::assertSame(PlayerFixture::PLAYER_WITH_FAVORITES, $this->decode($browser)['MySpeedPuzzlingId']);
     }
 
+    public function testResponseIsJson(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('POST', self::PATH, [
+            'token' => self::TOKEN,
+            'idusuario' => '189',
+            'email' => PlayerFixture::PLAYER_REGULAR_EMAIL,
+        ]);
+
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+    }
+
+    public function testJsonRequestBodyIsAccepted(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request(
+            'POST',
+            self::PATH,
+            server: ['CONTENT_TYPE' => 'application/json; charset=UTF-8'],
+            content: (string) json_encode([
+                'token' => self::TOKEN,
+                'idusuario' => '189',
+                'email' => PlayerFixture::PLAYER_REGULAR_EMAIL,
+            ], JSON_THROW_ON_ERROR),
+        );
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $this->decode($browser)['MySpeedPuzzlingId']);
+    }
+
+    /**
+     * The easy mistake when adding a JSON header to an existing http_build_query() call. PHP
+     * leaves $_POST empty for it, so without recovery every field vanishes and the caller is
+     * told the token is invalid - which sends them hunting the wrong problem.
+     */
+    public function testFormBodySentWithAJsonContentTypeStillWorks(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request(
+            'POST',
+            self::PATH,
+            server: ['CONTENT_TYPE' => 'application/json; charset=UTF-8'],
+            content: http_build_query([
+                'token' => self::TOKEN,
+                'idusuario' => '189',
+                'email' => PlayerFixture::PLAYER_REGULAR_EMAIL,
+            ]),
+        );
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $this->decode($browser)['MySpeedPuzzlingId']);
+    }
+
     public function testMissingPlayerIdIsRejected(): void
     {
         $browser = self::createClient();

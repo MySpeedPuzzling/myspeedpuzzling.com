@@ -101,6 +101,31 @@ final class WjpfClientTest extends TestCase
         self::assertSame('189', $user->idJugador);
     }
 
+    /**
+     * Their request_var() reads $_POST, and PHP only fills $_POST for a form-encoded body.
+     * Sending JSON would leave every field invisible on their side.
+     */
+    public function testOutboundRequestIsFormEncodedNotJson(): void
+    {
+        $contentType = '';
+
+        $httpClient = new MockHttpClient(function (string $method, string $url, array $options) use (&$contentType): MockResponse {
+            foreach (is_array($options['headers'] ?? null) ? $options['headers'] : [] as $header) {
+                if (is_string($header) && stripos($header, 'content-type') === 0) {
+                    $contentType .= $header;
+                }
+            }
+
+            return new MockResponse('{"IdJugador":"1","NombreURL":"x","MySpeedPuzzlingId":"","status":"ok"}');
+        });
+
+        (new WjpfClient($httpClient, new NullLogger(), self::URL, self::TOKEN))
+            ->findUserByEmail('someone@example.com');
+
+        self::assertStringContainsString('application/x-www-form-urlencoded', $contentType);
+        self::assertStringNotContainsString('json', $contentType);
+    }
+
     public function testReadOnlyLookupDoesNotSendOurPlayerId(): void
     {
         $body = $this->captureRequestBody(null);

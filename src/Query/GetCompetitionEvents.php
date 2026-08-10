@@ -85,7 +85,8 @@ readonly final class GetCompetitionEvents
         }
 
         if ($country !== null) {
-            $whereClauses[] = 'location_country_code = :country';
+            // Historic rows carry uppercase ISO codes while the UI submits lowercase.
+            $whereClauses[] = 'LOWER(location_country_code) = LOWER(:country)';
             $params['country'] = $country;
         }
 

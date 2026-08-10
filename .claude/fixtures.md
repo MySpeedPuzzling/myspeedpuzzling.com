@@ -180,9 +180,11 @@ Seller settings: `PLAYER_WITH_STRIPE` has ISO currency **GBP** (listings eligibl
 
 ### Competition Series
 
-| Const | Name | Online | Approved |
-|-------|------|--------|----------|
-| `SERIES_EJJ` | Euro Jigsaw Jam | Yes | Yes |
+| Const | Name | Online | Country | Approved | Editions |
+|-------|------|--------|---------|----------|----------|
+| `SERIES_EJJ` | Euro Jigsaw Jam | Yes | - | Yes | one past, one upcoming |
+| `SERIES_OFFLINE` | Puzzle Meetup Prague | No | cz | Yes | one upcoming |
+| `SERIES_PAST_ONLY` | Berlin Puzzle Cup | No | de | Yes | only past — must never appear as "upcoming" |
 
 ### Series Editions (Competitions with series_id)
 
@@ -190,6 +192,8 @@ Seller settings: `PLAYER_WITH_STRIPE` has ISO currency **GBP** (listings eligibl
 |-------|--------|------|------|
 | `EDITION_EJJ_68` | SERIES_EJJ | EJJ #68 — February 2026 | -30 days |
 | `EDITION_EJJ_69` | SERIES_EJJ | EJJ #69 — May 2026 | +30 days |
+| `EDITION_OFFLINE_1` | SERIES_OFFLINE | Puzzle Meetup #1 | +14 days |
+| `EDITION_PAST_ONLY_1` | SERIES_PAST_ONLY | Berlin Puzzle Cup 2026 | -45 days |
 
 ### Competition Rounds
 
@@ -200,6 +204,9 @@ Seller settings: `PLAYER_WITH_STRIPE` has ISO currency **GBP** (listings eligibl
 | `ROUND_CZECH_FINAL` | Czech Nationals 2024 | Final Round | 90 min | PUZZLE_500_01 |
 | `ROUND_EJJ_68` | EDITION_EJJ_68 | EJJ #68 — February 2026 | 120 min | - |
 | `ROUND_EJJ_69` | EDITION_EJJ_69 | EJJ #69 — May 2026 | 120 min | - |
+| `ROUND_OFFLINE_SOLO` | EDITION_OFFLINE_1 | Solo Round | 60 min | - |
+| `ROUND_OFFLINE_TEAM` | EDITION_OFFLINE_1 | Team Round | 90 min | - |
+| `ROUND_PAST_ONLY` | EDITION_PAST_ONLY_1 | Berlin Puzzle Cup 2026 | 90 min | - |
 
 ## Tags
 

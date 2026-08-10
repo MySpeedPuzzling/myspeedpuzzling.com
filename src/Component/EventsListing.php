@@ -56,6 +56,9 @@ final class EventsListing
     /** @var null|array<string, list<CompetitionEvent>> */
     private null|array $cachedEventsByDay = null;
 
+    /** @var null|array<CompetitionSeriesOverview> */
+    private null|array $cachedSeriesItems = null;
+
     public function __construct(
         readonly private GetCompetitionEvents $getCompetitionEvents,
         readonly private GetCompetitionSeries $getCompetitionSeries,
@@ -113,20 +116,113 @@ final class EventsListing
     }
 
     /**
+     * @return array<CompetitionEvent>
+     */
+    public function getLiveEvents(): array
+    {
+        return $this->eventsWithStatus('live');
+    }
+
+    /**
+     * @return array<CompetitionEvent>
+     */
+    public function getUpcomingEvents(): array
+    {
+        return $this->eventsWithStatus('upcoming');
+    }
+
+    /**
+     * @return array<CompetitionEvent>
+     */
+    public function getPastEvents(): array
+    {
+        return $this->eventsWithStatus('past');
+    }
+
+    /**
+     * Recurring series with a scheduled future edition. Empty for time periods
+     * where presenting a series as "upcoming" would be a lie (live/past).
+     *
      * @return array<CompetitionSeriesOverview>
      */
-    public function getSeriesItems(): array
+    public function getUpcomingSeriesItems(): array
     {
-        $approved = $this->getCompetitionSeries->allApproved();
-        $profile = $this->retrieveLoggedUserProfile->getProfile();
-
-        if ($profile?->isAdmin !== true) {
-            return $approved;
+        if (in_array($this->timePeriod, ['all', 'upcoming'], true) === false) {
+            return [];
         }
 
-        $unapproved = $this->getCompetitionSeries->allUnapproved();
+        $now = $this->clock->now();
 
-        return array_merge($approved, $unapproved);
+        $upcoming = array_values(array_filter(
+            $this->getSeriesItems(),
+            static fn(CompetitionSeriesOverview $series): bool => $series->nextEditionDate !== null && $series->nextEditionDate >= $now,
+        ));
+
+        usort($upcoming, static fn(CompetitionSeriesOverview $a, CompetitionSeriesOverview $b): int => $a->nextEditionDate <=> $b->nextEditionDate);
+
+        return $upcoming;
+    }
+
+    /**
+     * Recurring series with no future edition scheduled — their editions all
+     * already happened (or none exist yet), so they belong to the past section.
+     *
+     * @return array<CompetitionSeriesOverview>
+     */
+    public function getPastSeriesItems(): array
+    {
+        if (in_array($this->timePeriod, ['all', 'past'], true) === false) {
+            return [];
+        }
+
+        $now = $this->clock->now();
+
+        $past = array_values(array_filter(
+            $this->getSeriesItems(),
+            static fn(CompetitionSeriesOverview $series): bool => $series->nextEditionDate === null || $series->nextEditionDate < $now,
+        ));
+
+        usort($past, static function (CompetitionSeriesOverview $a, CompetitionSeriesOverview $b): int {
+            // Most recently active first, series without any edition last.
+            return ($b->nextEditionDate !== null) <=> ($a->nextEditionDate !== null)
+                ?: $b->nextEditionDate <=> $a->nextEditionDate;
+        });
+
+        return $past;
+    }
+
+    /**
+     * @return array<CompetitionSeriesOverview>
+     */
+    private function getSeriesItems(): array
+    {
+        if ($this->cachedSeriesItems !== null) {
+            return $this->cachedSeriesItems;
+        }
+
+        $country = $this->country !== '' ? $this->country : null;
+
+        $approved = $this->getCompetitionSeries->allApproved($country, $this->onlineOnly);
+        $profile = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($profile?->isAdmin === true) {
+            $approved = array_merge($approved, $this->getCompetitionSeries->allUnapproved($country, $this->onlineOnly));
+        }
+
+        $this->cachedSeriesItems = $approved;
+
+        return $this->cachedSeriesItems;
+    }
+
+    /**
+     * @return array<CompetitionEvent>
+     */
+    private function eventsWithStatus(string $status): array
+    {
+        return array_values(array_filter(
+            $this->getItems(),
+            static fn(CompetitionEvent $event): bool => $event->eventStatus === $status,
+        ));
     }
 
     /**

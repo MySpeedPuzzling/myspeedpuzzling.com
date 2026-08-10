@@ -72,6 +72,7 @@ class CompetitionSeries
         #[JoinTable(name: 'competition_series_maintainer')]
         public Collection $maintainers = new ArrayCollection(),
     ) {
+        $this->locationCountryCode = self::normalizeCountryCode($locationCountryCode);
     }
 
     public function approve(Player $approvedBy, DateTimeImmutable $approvedAt): void
@@ -115,7 +116,12 @@ class CompetitionSeries
         $this->link = $link;
         $this->isOnline = $isOnline;
         $this->location = $location;
-        $this->locationCountryCode = $locationCountryCode;
+        $this->locationCountryCode = self::normalizeCountryCode($locationCountryCode);
         $this->shortcut = $shortcut;
+    }
+
+    private static function normalizeCountryCode(null|string $countryCode): null|string
+    {
+        return $countryCode !== null ? strtolower($countryCode) : null;
     }
 }

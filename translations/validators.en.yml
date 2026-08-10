@@ -1,3 +1,5 @@
 image_invalid_mime_type: "Please enter file in valid image format. Supported are: jpg, jpeg, gif, png, webp, heic, heif, avif"
 puzzling_time_format: "Please enter time in format HH:MM:SS or MM:SS"
 player_code: "The player code must contain only letters and numbers, without special characters or spaces."
+competition_date_to_before_date_from: "The end date cannot be before the start date."
+competition_duration_too_long: "The event cannot be longer than %limit% days. Please enter the actual event dates."

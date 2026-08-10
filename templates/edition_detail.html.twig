@@ -87,8 +87,8 @@
             {% if event.dateFrom %}
                 <div class="mb-2">
                     <i class="ci-calendar me-2 ps-1"></i>
-                    {% if event.dateTo and event.dateFrom != event.dateTo %}
-                        {{ event.dateFrom|date('d.') }}-{{ event.dateTo|date('d.m.Y') }}
+                    {% if event.dateTo and event.dateFrom|date('Y-m-d') != event.dateTo|date('Y-m-d') %}
+                        {{ include('_event_date_range.html.twig', {date_from: event.dateFrom, date_to: event.dateTo}) }}
                     {% else %}
                         {{ event.dateFrom|date('d.m.Y H:i') }}
                     {% endif %}

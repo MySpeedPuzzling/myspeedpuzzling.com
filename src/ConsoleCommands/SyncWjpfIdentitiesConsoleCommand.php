@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\ConsoleCommands;
 
+use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Message\SyncWjpfIdentity;
 use SpeedPuzzling\Web\Query\GetPlayersForWjpfSync;
 use SpeedPuzzling\Web\Results\WjpfSyncCandidate;
@@ -38,10 +39,19 @@ final class SyncWjpfIdentitiesConsoleCommand extends Command
     /** A long run must not keep hammering a host that has stopped answering. */
     private const int MAX_CONSECUTIVE_FAILURES = 10;
 
+    /**
+     * Every dispatch leaves a Player and a WjpfIdentity in Doctrine's identity map, plus a
+     * second copy in the UnitOfWork for change detection and the stored response payload.
+     * Over ~10k players that is enough to exhaust the process: the first full backfill
+     * (2026-08-09) reached 100% and then died on an OOM instead of printing its summary.
+     */
+    private const int CLEAR_ENTITY_MANAGER_EVERY = 100;
+
     public function __construct(
         readonly private MessageBusInterface $commandBus,
         readonly private GetPlayersForWjpfSync $getPlayersForWjpfSync,
         readonly private WjpfClient $wjpfClient,
+        readonly private EntityManagerInterface $entityManager,
     ) {
         parent::__construct();
     }
@@ -135,6 +145,12 @@ final class SyncWjpfIdentitiesConsoleCommand extends Command
                 }
             } finally {
                 $progressBar->advance();
+
+                // Safe here and nowhere else: the doctrine_transaction middleware has already
+                // committed this player's work, and the loop holds only plain DTOs.
+                if (($index + 1) % self::CLEAR_ENTITY_MANAGER_EVERY === 0) {
+                    $this->entityManager->clear();
+                }
             }
         }
 
@@ -149,6 +165,9 @@ final class SyncWjpfIdentitiesConsoleCommand extends Command
                 ['Not found at WJPF', $counts[WjpfPairingStatus::NotFound->value]],
                 ['Skipped', $counts['skipped']],
                 ['Failed', $counts['failed']],
+                // Printed so a long run leaves evidence about memory rather than only
+                // proving it was a problem by dying of it.
+                ['Peak memory', sprintf('%d MB', (int) round(memory_get_peak_usage(true) / 1048576))],
             ],
         );
 

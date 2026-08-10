@@ -1,3 +1,7 @@
 image_invalid_mime_type: "Bitte geben Sie eine Datei in einem gültigen Bildformat ein. Unterstützt werden: jpg, jpeg, gif, png, webp, heic, heif, avif"
 puzzling_time_format: "Bitte geben Sie die Zeit im Format HH:MM:SS oder MM:SS ein"
 player_code: "Der Spielercode darf nur Buchstaben und Zahlen enthalten, ohne Sonderzeichen oder Leerzeichen."
+competition_date_to_before_date_from: "Das Enddatum darf nicht vor dem Startdatum liegen."
+competition_duration_too_long: "Die Veranstaltung darf nicht länger als %limit% Tage dauern. Bitte geben Sie die tatsächlichen Veranstaltungsdaten ein."
+finished_at_required_for_speed: "Datum der Fertigstellung ist für Speed Puzzling erforderlich."
+duplicate_puzzle_or_url_required: "Bitte wählen Sie ein doppeltes Puzzle aus oder geben Sie eine Puzzle-URL ein."

@@ -352,7 +352,6 @@
   "puzzle_box_photo": "絵またはパズルボックスの写真"
   "date_finished": "完成日"
   "do_not_remember_date": "日付を覚えていません"
-  "finished_at_required_for_speed": "スピードパズルでは完成日が必須です。"
   "ean": "EANコード"
   "puzzle_identification_number": "メーカーコード"
   "puzzle_photo_is_required": "解決されたパズル、モチーフ、またはボックスの写真が必要です"
@@ -895,6 +894,7 @@
     "title": "%name% – スピードパズラープロフィール"
     "description": "%name%のスピードパズルプロフィール：ジグソーパズルの最速タイム、ランキング、バッジ、最近の記録をMySpeedPuzzlingで。"
 "flashes":
+  "photo_upload_deferred": "データは保存されました！写真は現在アップロードできませんでしたが、ストレージが再び利用可能になり次第、自動的にアップロードされます。"
   "stopwatch_already_saved": "これらのストップウォッチは既に保存されています。"
   "collection_not_found": "お探しのコレクションは存在しません！"
   "puzzle_removed_from_collection": "パズルがコレクションから削除されました。"
@@ -1154,6 +1154,7 @@
     "title": "コレクションがありません"
     "title_other": "公開コレクションはありません"
   "flash":
+    "collection_unavailable": "このコレクションは現在ご利用いただけません。削除された可能性があります。"
     "comment_updated": "コメントが正常に更新されました。"
     "created": "コレクションが正常に作成されました。"
     "deleted": "コレクションが正常に削除されました。"
@@ -1341,6 +1342,7 @@
     "sell": "売却"
     "swap": "交換"
     "free": "無料で差し上げます"
+  "listing_unavailable": "この出品は現在ご利用いただけません。既に売却・交換されたか、削除された可能性があります。"
   "login_required": "売買・交換リストを管理するにはログインが必要です。"
   "mark_sold":
     "button": "売却・交換済みにする"
@@ -1457,6 +1459,7 @@
     "cannot_pass_to_self": "自分自身にパズルを渡すことはできません。"
     "lent": "パズルが正常に貸し出されました。"
     "login_required": "貸出リストを管理するにはログインが必要です。"
+    "no_longer_available": "このパズルはもうあなたが管理できるものではありません。既に返却されたか、他の人に受け渡された可能性があります。"
     "passed": "パズルが正常に受け渡されました。"
     "player_not_found": "プレイヤーが見つかりません。プレイヤーコードを確認してください。"
     "returned": "パズルが正常に所有者に返却されました。"
@@ -1656,6 +1659,7 @@
   "cannot_contact_yourself": "自分自身には連絡できません。"
   "cannot_message_user": "このユーザーにメッセージを送ることはできません。"
   "conversation_partners": "- マーケットプレイスの会話から -"
+  "conversation_unavailable": "この会話は現在ご利用いただけません。削除されたか、アクセス権がなくなった可能性があります。"
   "conversation_with": "%name%との会話"
   "conversations": "会話"
   "direct_messages_disabled": "このユーザーはダイレクトメッセージを受け付けていません。"
@@ -3048,3 +3052,11 @@ account_activity:
         oauth_login: "接続済みアカウントでのサインイン"
         oauth_identity_linked: "サインイン方法の接続"
         oauth_identity_unlinked: "サインイン方法の接続解除"
+
+wjpf:
+    connect:
+        title: "World Jigsaw Puzzle Federationアカウントを接続"
+        question: "%name%としてサインインしています。このMySpeedPuzzlingプロフィールをWorld Jigsaw Puzzle Federationアカウントに接続しますか？"
+        explanation: "2つのアカウントを連携するため、あなたのMySpeedPuzzlingプロフィールIDがworldjigsawpuzzle.orgと共有されます。それ以外の情報は送信されません。"
+        confirm: "アカウントを接続"
+        cancel: "キャンセル"

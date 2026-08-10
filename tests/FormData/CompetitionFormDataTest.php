@@ -32,11 +32,18 @@ final class CompetitionFormDataTest extends KernelTestCase
         $violations = $this->validator->validate($data);
 
         $paths = [];
+        $messages = [];
         foreach ($violations as $violation) {
             $paths[] = $violation->getPropertyPath();
+            $messages[] = (string) $violation->getMessage();
         }
 
         self::assertContains('dateTo', $paths, 'A 365-day event must be rejected as placeholder dates');
+        self::assertContains(
+            'The event cannot be longer than 30 days. Please enter the actual event dates.',
+            $messages,
+            'The violation message must resolve through the validators translation domain, not render as a raw key',
+        );
     }
 
     public function testReasonableMultiDayEventIsAccepted(): void

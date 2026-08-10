@@ -29,7 +29,7 @@ final class ReportDuplicatePuzzleFormData
         $hasUrl = $this->duplicatePuzzleUrl !== null && $this->duplicatePuzzleUrl !== '';
 
         if (!$hasSelectedPuzzle && !$hasUrl) {
-            $context->buildViolation('Please select a duplicate puzzle or enter a puzzle URL.')
+            $context->buildViolation('duplicate_puzzle_or_url_required')
                 ->atPath('selectedPuzzleId')
                 ->addViolation();
         }

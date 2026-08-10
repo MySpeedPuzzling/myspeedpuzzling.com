@@ -83,14 +83,25 @@ readonly final class StripeWebhookHandler
                 }
                 break;
 
-            // SEPA direct debit returns arrive already lost, so `created` and `closed` fire together.
-            // Card disputes arrive as `needs_response` first - the handler decides what is actionable.
+            // Visibility only. A SEPA return is lost the moment it is created, so `closed` arrives in the
+            // same breath and does the actual work - acting here too would process one dispute twice.
             case 'charge.dispute.created':
+                $dispute = $event->data->object ?? null;
+
+                if ($dispute instanceof Dispute) {
+                    $this->logger->warning('Stripe dispute opened', [
+                        'stripe_dispute_id' => $dispute->id,
+                        'dispute_status' => $dispute->status,
+                        'dispute_reason' => $dispute->reason,
+                    ]);
+                }
+                break;
+
             case 'charge.dispute.closed':
                 $dispute = $event->data->object ?? null;
 
                 if ($dispute instanceof Dispute) {
-                    $this->handleDispute($dispute);
+                    $this->handleDisputeClosed($dispute);
                 }
                 break;
 
@@ -122,7 +133,7 @@ readonly final class StripeWebhookHandler
         $this->messageBus->dispatch(new CancelMembershipSubscription($stripeSubscription->id));
     }
 
-    private function handleDispute(Dispute $stripeDispute): void
+    private function handleDisputeClosed(Dispute $stripeDispute): void
     {
         $this->messageBus->dispatch(new TerminateMembershipDueToDispute($stripeDispute->id));
     }

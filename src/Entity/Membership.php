@@ -119,14 +119,22 @@ class Membership implements EntityWithEvents
 
     public function cancel(DateTimeImmutable $billingPeriodEndsAt): void
     {
-        // Only an actually running membership can be cancelled. A cancel-at-period-end is reported by
-        // Stripe twice - once when the player clicks cancel, and again as `customer.subscription.deleted`
-        // when the period runs out - and the player must not be told about the same cancellation twice.
-        if ($this->endsAt === null) {
+        // A cancel-at-period-end reaches us twice: once when the player clicks cancel, and again as
+        // `customer.subscription.deleted` when the period runs out. Only the first is news to the player.
+        // Clearing `billingPeriodEndsAt` below is what marks a cancellation as already announced - a
+        // subscription that merely stopped paying keeps it set (see updateStripeSubscription) and never
+        // recorded the event, so it still gets its notice when Stripe finally deletes it.
+        if ($this->endsAt === null || $this->billingPeriodEndsAt !== null) {
             $this->recordThat(new MembershipSubscriptionCancelled($this->id));
         }
 
-        $this->endsAt = $billingPeriodEndsAt;
+        // Never hand back access somebody has already lost. Stripe reports a cancelled subscription with
+        // the paid period still running, so a late or out-of-order webhook would otherwise push `endsAt`
+        // back into the future - including for a player whose payment we just saw reversed.
+        if ($this->endsAt === null || $billingPeriodEndsAt < $this->endsAt) {
+            $this->endsAt = $billingPeriodEndsAt;
+        }
+
         $this->billingPeriodEndsAt = null;
     }
 }

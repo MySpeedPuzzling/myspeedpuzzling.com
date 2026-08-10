@@ -379,6 +379,67 @@ final class MembershipTest extends TestCase
     }
 
     /**
+     * A subscription that stops paying gets endsAt set by updateStripeSubscription() without any
+     * notification - that path only pauses access while Stripe retries. When Stripe finally gives up and
+     * deletes the subscription, the player still has to be told the membership is gone.
+     */
+    public function testUnpaidSubscriptionStillNotifiesOnDeletion(): void
+    {
+        $billingPeriodEnd = new DateTimeImmutable('2026-04-23');
+
+        $membership = $this->createMembership(
+            stripeSubscriptionId: 'sub_1abc',
+            billingPeriodEndsAt: $billingPeriodEnd,
+        );
+
+        // Payment failed - access is paused while Stripe retries, no e-mail about a cancellation yet
+        $membership->updateStripeSubscription(
+            'sub_1abc',
+            $billingPeriodEnd,
+            Subscription::STATUS_PAST_DUE,
+            new DateTimeImmutable('2026-03-23 01:30:00'),
+        );
+        self::assertEmpty($membership->popEvents());
+
+        // Stripe exhausted its retries and deleted the subscription
+        $membership->cancel(new DateTimeImmutable('2026-04-06 09:00:00'));
+
+        $events = $membership->popEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MembershipSubscriptionCancelled::class, $events[0]);
+    }
+
+    /**
+     * Stripe keeps reporting the paid period on a cancelled subscription, so a late or out-of-order
+     * webhook must not push endsAt back into the future and revive a membership that already ended.
+     */
+    public function testCancelNeverExtendsAnAlreadyEndedMembership(): void
+    {
+        $terminatedAt = new DateTimeImmutable('2026-08-10 12:50:00');
+        $paidPeriodEnd = new DateTimeImmutable('2026-08-29 07:24:00');
+
+        $membership = $this->createMembership(
+            stripeSubscriptionId: 'sub_1abc',
+            billingPeriodEndsAt: $paidPeriodEnd,
+        );
+
+        // Dispute lost - membership ends right now, mid paid period
+        $membership->cancel($terminatedAt);
+        $membership->popEvents();
+
+        // A stray customer.subscription.updated arrives afterwards carrying status=canceled, and
+        // updateStripeSubscription() hands cancel() the still-future end of the paid period
+        $membership->updateStripeSubscription(
+            'sub_1abc',
+            $paidPeriodEnd,
+            Subscription::STATUS_CANCELED,
+            new DateTimeImmutable('2026-08-10 12:50:05'),
+        );
+
+        self::assertEquals($terminatedAt, $membership->endsAt);
+    }
+
+    /**
      * Renewal event should not be emitted twice for the same period.
      */
     public function testNoDoubleRenewalEvent(): void

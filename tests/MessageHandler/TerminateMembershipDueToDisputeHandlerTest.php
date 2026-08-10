@@ -70,10 +70,38 @@ final class TerminateMembershipDueToDisputeHandlerTest extends TestCase
     }
 
     /**
-     * Card disputes open as `needs_response` and we may still win them. Cutting the player off at that
-     * point would mean restoring the membership days later.
+     * A membership cancelled at period end keeps running until that date, so the player is still a member
+     * for the days covered by the money that just went back to their bank. It has to end now too.
      */
-    public function testDisputeThatIsNotLostYetLeavesMembershipAlone(): void
+    public function testLostDisputeCutsShortAMembershipCancelledAtPeriodEnd(): void
+    {
+        $membership = $this->createMembership();
+        $membership->cancel(new DateTimeImmutable('2026-08-29 07:24:00'));
+        $membership->popEvents();
+
+        $subscriptionService = $this->createMock(SubscriptionService::class);
+        $subscriptionService->method('retrieve')
+            ->willReturn($this->createSubscription(Subscription::STATUS_ACTIVE));
+        $subscriptionService->expects(self::once())->method('cancel');
+
+        $now = new DateTimeImmutable('2026-08-10 12:50:00');
+
+        $handler = $this->createHandler(
+            dispute: $this->createDispute(Dispute::STATUS_LOST),
+            membershipRepository: $this->createMembershipRepositoryReturning($membership),
+            subscriptionService: $subscriptionService,
+            now: $now,
+        );
+
+        $handler(new TerminateMembershipDueToDispute(self::DISPUTE_ID));
+
+        self::assertEquals($now, $membership->endsAt);
+    }
+
+    /**
+     * A dispute we won, or one the bank withdrew, costs us nothing and must leave the player alone.
+     */
+    public function testDisputeClosedWithoutLosingLeavesMembershipAlone(): void
     {
         $membership = $this->createMembership();
 
@@ -81,7 +109,7 @@ final class TerminateMembershipDueToDisputeHandlerTest extends TestCase
         $subscriptionService->expects(self::never())->method('cancel');
 
         $handler = $this->createHandler(
-            dispute: $this->createDispute(Dispute::STATUS_NEEDS_RESPONSE),
+            dispute: $this->createDispute(Dispute::STATUS_WON),
             membershipRepository: $this->createMembershipRepositoryReturning($membership),
             subscriptionService: $subscriptionService,
         );
@@ -93,10 +121,10 @@ final class TerminateMembershipDueToDisputeHandlerTest extends TestCase
     }
 
     /**
-     * SEPA sends charge.dispute.created and charge.dispute.closed at the same moment, so the handler
-     * runs twice for one dispute. The second run must not send a second cancellation e-mail.
+     * Stripe redelivers a webhook whenever our endpoint fails, so the same lost dispute can arrive twice.
+     * The repeat must not terminate again and must not send a second cancellation e-mail.
      */
-    public function testSecondDeliveryOfTheSameDisputeDoesNotCancelTwice(): void
+    public function testRedeliveryOfTheSameDisputeDoesNotCancelTwice(): void
     {
         $endsAt = new DateTimeImmutable('2026-08-10 12:50:00');
         $membership = $this->createMembership();
@@ -143,12 +171,17 @@ final class TerminateMembershipDueToDisputeHandlerTest extends TestCase
     }
 
     /**
-     * A subscription we hold no membership for is not ours to touch - it only gets logged.
+     * The player may have re-subscribed, leaving the disputed charge on a subscription no membership
+     * points at anymore. That subscription still bills the mandate that just bounced, so it has to go.
      */
-    public function testDisputeForUnknownSubscriptionIsIgnored(): void
+    public function testSubscriptionIsCancelledEvenWithoutAMatchingMembership(): void
     {
         $subscriptionService = $this->createMock(SubscriptionService::class);
-        $subscriptionService->expects(self::never())->method('cancel');
+        $subscriptionService->method('retrieve')
+            ->willReturn($this->createSubscription(Subscription::STATUS_ACTIVE));
+        $subscriptionService->expects(self::once())
+            ->method('cancel')
+            ->with(self::SUBSCRIPTION_ID);
 
         $membershipRepository = $this->createStub(MembershipRepository::class);
         $membershipRepository->method('getByStripeSubscriptionId')

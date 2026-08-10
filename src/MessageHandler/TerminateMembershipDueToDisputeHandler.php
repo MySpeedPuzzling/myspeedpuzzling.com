@@ -22,9 +22,11 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * anymore. The player must lose access immediately, and the subscription has to go too, otherwise Stripe
  * keeps charging the very payment method that just bounced and we collect another dispute fee every cycle.
  *
- * SEPA direct debit returns (insufficient funds, account closed, ...) arrive as disputes that are already
- * lost, so `charge.dispute.created` and `charge.dispute.closed` land at the same moment - both are handled
- * here and the lock keeps them from racing each other.
+ * Only `charge.dispute.closed` gets us here. SEPA direct debit returns (insufficient funds, account
+ * closed, ...) are lost the moment they are created, so Stripe fires `created` and `closed` in the same
+ * breath - acting on both would run this twice for one dispute, and the two deliveries race each other
+ * closely enough that the lock alone would not save us (it is released before the surrounding Doctrine
+ * transaction commits, so the loser could still read a membership that looks untouched).
  */
 #[AsMessageHandler]
 readonly final class TerminateMembershipDueToDisputeHandler
@@ -42,10 +44,9 @@ readonly final class TerminateMembershipDueToDisputeHandler
     {
         $dispute = $this->stripeClient->disputes->retrieve($message->stripeDisputeId);
 
-        // Card disputes start as `needs_response` and we may still win them - terminating a membership we
-        // would have to restore days later is worse than waiting for `charge.dispute.closed`.
+        // A dispute we defended, or one the bank withdrew, costs us nothing - only a lost one does.
         if ($dispute->status !== Dispute::STATUS_LOST) {
-            $this->logger->warning('Stripe dispute opened but not lost yet, membership left untouched', [
+            $this->logger->info('Stripe dispute closed without losing the money', [
                 'stripe_dispute_id' => $message->stripeDisputeId,
                 'dispute_status' => $dispute->status,
                 'dispute_reason' => $dispute->reason,
@@ -68,33 +69,46 @@ readonly final class TerminateMembershipDueToDisputeHandler
         $lock->acquire(blocking: true);
 
         try {
+            $this->terminateMembership($subscriptionId, $dispute, $message->stripeDisputeId);
+
+            // Runs even when no membership matches: the subscription is still ours and still pointed at a
+            // payment method that just bounced, so leaving it alive only buys another dispute fee.
+            $this->cancelStripeSubscription($subscriptionId);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function terminateMembership(string $subscriptionId, Dispute $dispute, string $disputeId): void
+    {
+        try {
             $membership = $this->membershipRepository->getByStripeSubscriptionId($subscriptionId);
         } catch (MembershipNotFound) {
             $this->logger->warning('Lost Stripe dispute for subscription without membership', [
-                'stripe_dispute_id' => $message->stripeDisputeId,
+                'stripe_dispute_id' => $disputeId,
                 'stripe_subscription_id' => $subscriptionId,
             ]);
-
-            $lock->release();
 
             return;
         }
 
-        if ($membership->endsAt === null) {
-            $membership->cancel($this->clock->now());
+        $now = $this->clock->now();
 
-            $this->logger->warning('Membership terminated because a Stripe dispute was lost', [
-                'stripe_dispute_id' => $message->stripeDisputeId,
-                'stripe_subscription_id' => $subscriptionId,
-                'membership_id' => $membership->id->toString(),
-                'player_id' => $membership->player->id->toString(),
-                'dispute_reason' => $dispute->reason,
-            ]);
+        // A membership cancelled at period end still has a future `endsAt` and is still fully active -
+        // the player paid for those remaining days with the money that just went back to their bank.
+        if ($membership->endsAt !== null && $membership->endsAt <= $now) {
+            return;
         }
 
-        $this->cancelStripeSubscription($subscriptionId);
+        $membership->cancel($now);
 
-        $lock->release();
+        $this->logger->warning('Membership terminated because a Stripe dispute was lost', [
+            'stripe_dispute_id' => $disputeId,
+            'stripe_subscription_id' => $subscriptionId,
+            'membership_id' => $membership->id->toString(),
+            'player_id' => $membership->player->id->toString(),
+            'dispute_reason' => $dispute->reason,
+        ]);
     }
 
     /**

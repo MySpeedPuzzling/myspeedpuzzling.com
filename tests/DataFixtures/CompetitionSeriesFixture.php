@@ -19,13 +19,18 @@ final class CompetitionSeriesFixture extends Fixture implements DependentFixture
 {
     public const string SERIES_EJJ = '018d0005-0000-0000-0000-000000000001';
     public const string SERIES_OFFLINE = '018d0005-0000-0000-0000-000000000002';
+    public const string SERIES_PAST_ONLY = '018d0005-0000-0000-0000-000000000003';
     public const string EDITION_EJJ_68 = '018d0005-0000-0000-0000-000000000010';
     public const string EDITION_EJJ_69 = '018d0005-0000-0000-0000-000000000011';
     public const string EDITION_OFFLINE_1 = '018d0005-0000-0000-0000-000000000012';
+    public const string EDITION_PAST_ONLY_1 = '018d0005-0000-0000-0000-000000000013';
     public const string ROUND_EJJ_68 = '018d0005-0000-0000-0000-000000000020';
     public const string ROUND_EJJ_69 = '018d0005-0000-0000-0000-000000000021';
     public const string ROUND_OFFLINE_SOLO = '018d0005-0000-0000-0000-000000000022';
     public const string ROUND_OFFLINE_TEAM = '018d0005-0000-0000-0000-000000000023';
+    public const string ROUND_PAST_ONLY = '018d0005-0000-0000-0000-000000000024';
+
+    public const string SERIES_PAST_ONLY_NAME = 'Berlin Puzzle Cup';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -170,6 +175,53 @@ final class CompetitionSeriesFixture extends Fixture implements DependentFixture
             category: RoundCategory::Team,
         );
         $manager->persist($teamRound);
+
+        // Series whose only edition already happened — must never show as "upcoming"
+        $pastOnlySeries = new CompetitionSeries(
+            id: Uuid::fromString(self::SERIES_PAST_ONLY),
+            name: self::SERIES_PAST_ONLY_NAME,
+            slug: 'berlin-puzzle-cup',
+            logo: null,
+            description: 'Annual puzzle cup in Berlin',
+            link: null,
+            isOnline: false,
+            location: 'Berlin',
+            locationCountryCode: 'de',
+            addedByPlayer: $adminPlayer,
+            approvedAt: $this->clock->now(),
+            createdAt: $this->clock->now(),
+        );
+        $manager->persist($pastOnlySeries);
+        $this->addReference(self::SERIES_PAST_ONLY, $pastOnlySeries);
+
+        $pastOnlyEdition = new Competition(
+            id: Uuid::fromString(self::EDITION_PAST_ONLY_1),
+            name: 'Berlin Puzzle Cup 2026',
+            slug: 'berlin-puzzle-cup-2026',
+            shortcut: null,
+            logo: null,
+            description: null,
+            link: null,
+            registrationLink: null,
+            resultsLink: null,
+            location: 'Berlin',
+            locationCountryCode: 'de',
+            dateFrom: $this->clock->now()->modify('-45 days'),
+            dateTo: $this->clock->now()->modify('-45 days'),
+            tag: null,
+            isOnline: false,
+            series: $pastOnlySeries,
+        );
+        $manager->persist($pastOnlyEdition);
+
+        $pastOnlyRound = new CompetitionRound(
+            id: Uuid::fromString(self::ROUND_PAST_ONLY),
+            competition: $pastOnlyEdition,
+            name: 'Berlin Puzzle Cup 2026',
+            minutesLimit: 90,
+            startsAt: $this->clock->now()->modify('-45 days'),
+        );
+        $manager->persist($pastOnlyRound);
 
         $manager->flush();
     }

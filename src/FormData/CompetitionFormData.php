@@ -11,8 +11,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[Assert\Callback('validateOfflineFields')]
+#[Assert\Callback('validateDates')]
 final class CompetitionFormData
 {
+    private const int MAX_DURATION_DAYS = 30;
+
     public function __construct(
         #[Assert\NotBlank]
         #[Assert\Length(max: 250)]
@@ -67,6 +70,29 @@ final class CompetitionFormData
 
         if ($this->dateTo === null) {
             $context->buildViolation('This value should not be blank.')
+                ->atPath('dateTo')
+                ->addViolation();
+        }
+    }
+
+    public function validateDates(ExecutionContextInterface $context): void
+    {
+        if ($this->dateFrom === null || $this->dateTo === null) {
+            return;
+        }
+
+        if ($this->dateTo < $this->dateFrom) {
+            $context->buildViolation('competition_date_to_before_date_from')
+                ->atPath('dateTo')
+                ->addViolation();
+
+            return;
+        }
+
+        // Placeholder ranges like 1.1.–31.12. ("sometime this year") must not
+        // enter the system — they would show as a live event the entire year.
+        if ($this->dateFrom->diff($this->dateTo)->days > self::MAX_DURATION_DAYS) {
+            $context->buildViolation('competition_duration_too_long', ['%limit%' => self::MAX_DURATION_DAYS])
                 ->atPath('dateTo')
                 ->addViolation();
         }

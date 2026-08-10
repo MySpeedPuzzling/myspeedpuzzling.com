@@ -1,3 +1,7 @@
 image_invalid_mime_type: "有効な画像形式のファイルを入力してください。サポートされているのは: jpg, jpeg, gif, png, webp, heic, heif, avif"
 puzzling_time_format: "HH:MM:SSまたはMM:SS形式でタイムを入力してください"
 player_code: "プレイヤーコードは文字と数字のみで、特殊文字やスペースは含められません。"
+competition_date_to_before_date_from: "終了日は開始日より前にできません。"
+competition_duration_too_long: "イベントは%limit%日を超えることはできません。実際のイベント日程を入力してください。"
+finished_at_required_for_speed: "スピードパズルでは完成日が必須です。"
+duplicate_puzzle_or_url_required: "重複しているパズルを選択するか、パズルのURLを入力してください。"

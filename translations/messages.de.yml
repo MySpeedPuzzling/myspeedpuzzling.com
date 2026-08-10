@@ -338,7 +338,6 @@
   "puzzle_box_photo": "Foto des Bildes oder der Puzzle-Schachtel"
   "date_finished": "Datum der Fertigstellung"
   "do_not_remember_date": "Ich erinnere mich nicht an das Datum"
-  "finished_at_required_for_speed": "Datum der Fertigstellung ist für Speed Puzzling erforderlich."
   "ean": "EAN-Code"
   "puzzle_identification_number": "Code des Herstellers"
   "puzzle_photo_is_required": "Foto des gelösten Puzzles, Motivs oder der Schachtel ist erforderlich"
@@ -800,6 +799,7 @@
     "title": "%name% – Speed Puzzler Profil"
     "description": "Speed Puzzling Profil von %name%: schnellste Puzzle-Zeiten, Rankings, Abzeichen und aktuelle Ergebnisse auf MySpeedPuzzling."
 "flashes":
+  "photo_upload_deferred": "Ihre Daten sind gespeichert! Das Foto konnte gerade nicht hochgeladen werden – es wird automatisch hochgeladen, sobald unser Speicher wieder verfügbar ist."
   "stopwatch_already_saved": "Diese Stoppuhren wurden bereits gespeichert."
   "collection_not_found": "Die gesuchte Sammlung existiert bei uns nicht!"
   "puzzle_removed_from_collection": "Puzzle wurde aus der Sammlung entfernt."
@@ -1148,6 +1148,7 @@
     "login_required_add": "Sie müssen angemeldet sein, um Puzzles zu Sammlungen hinzuzufügen."
     "login_required_copy": "Sie müssen angemeldet sein, um Puzzles in Sammlungen zu kopieren."
     "login_required_move": "Sie müssen angemeldet sein, um Puzzles zwischen Sammlungen zu verschieben."
+    "collection_unavailable": "Diese Sammlung ist nicht mehr verfügbar – möglicherweise wurde sie gelöscht."
     "puzzle_moved": "Puzzle wurde erfolgreich in die Sammlung verschoben."
   "membership_required":
     "title": "Unbegrenzte Sammlungen freischalten"
@@ -1404,6 +1405,7 @@
     "buyer": "Käufer"
     "date": "Datum"
     "unknown_buyer": "Unbekannt"
+  "listing_unavailable": "Dieses Angebot ist nicht mehr verfügbar – möglicherweise wurde es bereits verkauft, getauscht oder entfernt."
   "mark_reserved":
     "button": "Als reserviert markieren"
     "confirm": "Reservierung bestätigen"
@@ -1508,6 +1510,7 @@
     "lent": "Puzzle wurde erfolgreich verliehen."
     "passed": "Puzzle wurde erfolgreich weitergegeben."
     "returned": "Puzzle wurde erfolgreich an den Eigentümer zurückgegeben."
+    "no_longer_available": "Sie können dieses Puzzle nicht mehr verwalten – möglicherweise wurde es bereits zurückgegeben oder an jemand anderen weitergegeben."
     "borrowed": "Puzzle wurde als ausgeliehen markiert."
     "settings_updated": "Verleihen & Ausleihen-Einstellungen wurden erfolgreich aktualisiert."
     "login_required": "Du musst angemeldet sein, um deine Verleihliste zu verwalten."
@@ -1667,6 +1670,7 @@
   "cannot_contact_yourself": "Sie können sich nicht selbst kontaktieren."
   "cannot_message_user": "Sie können diesem Benutzer keine Nachricht senden."
   "conversation_partners": "- Aus Marktplatz-Konversationen -"
+  "conversation_unavailable": "Diese Konversation ist nicht mehr verfügbar – möglicherweise wurde sie gelöscht oder Sie haben keinen Zugriff mehr darauf."
   "conversation_with": "Konversation mit %name%"
   "conversations": "Konversationen"
   "direct_messages_disabled": "Dieser Benutzer akzeptiert keine Direktnachrichten."
@@ -3059,3 +3063,11 @@ account_activity:
         oauth_login: "Mit einem verbundenen Konto angemeldet"
         oauth_identity_linked: "Anmeldemethode verbunden"
         oauth_identity_unlinked: "Anmeldemethode getrennt"
+
+wjpf:
+    connect:
+        title: "Verbinden Sie Ihr World Jigsaw Puzzle Federation-Konto"
+        question: "Sie sind als %name% angemeldet. Dieses MySpeedPuzzling-Profil mit Ihrem World Jigsaw Puzzle Federation-Konto verbinden?"
+        explanation: "Ihre MySpeedPuzzling-Profil-ID wird an worldjigsawpuzzle.org übermittelt, damit die beiden Konten verknüpft werden können. Sonst wird nichts gesendet."
+        confirm: "Konten verbinden"
+        cancel: "Abbrechen"

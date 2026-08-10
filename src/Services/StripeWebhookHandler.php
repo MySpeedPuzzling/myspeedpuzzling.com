@@ -8,7 +8,9 @@ use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
 use SpeedPuzzling\Web\Message\CreateAffiliatePayout;
 use SpeedPuzzling\Web\Message\NotifyAboutFailedPayment;
+use SpeedPuzzling\Web\Message\TerminateMembershipDueToDispute;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
+use Stripe\Dispute;
 use Stripe\Invoice;
 use Stripe\Subscription;
 use Stripe\Webhook;
@@ -81,6 +83,17 @@ readonly final class StripeWebhookHandler
                 }
                 break;
 
+            // SEPA direct debit returns arrive already lost, so `created` and `closed` fire together.
+            // Card disputes arrive as `needs_response` first - the handler decides what is actionable.
+            case 'charge.dispute.created':
+            case 'charge.dispute.closed':
+                $dispute = $event->data->object ?? null;
+
+                if ($dispute instanceof Dispute) {
+                    $this->handleDispute($dispute);
+                }
+                break;
+
             default:
                 $this->logger->error('Unsupported Stripe webhook event', [
                     'event_id' => $event->id,
@@ -107,6 +120,11 @@ readonly final class StripeWebhookHandler
     private function handleSubscriptionDeleted(Subscription $stripeSubscription): void
     {
         $this->messageBus->dispatch(new CancelMembershipSubscription($stripeSubscription->id));
+    }
+
+    private function handleDispute(Dispute $stripeDispute): void
+    {
+        $this->messageBus->dispatch(new TerminateMembershipDueToDispute($stripeDispute->id));
     }
 
     private function handlePaymentFailed(Invoice $invoice): void

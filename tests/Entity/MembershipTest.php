@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Membership;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Events\MembershipSubscriptionCancelled;
 use SpeedPuzzling\Web\Events\MembershipSubscriptionRenewed;
 use Stripe\Subscription;
 
@@ -314,6 +315,67 @@ final class MembershipTest extends TestCase
 
         self::assertNotNull($membership->billingPeriodEndsAt);
         self::assertEquals($periodEnd->getTimestamp(), $membership->billingPeriodEndsAt->getTimestamp());
+    }
+
+    /**
+     * A cancel-at-period-end reaches us as two webhooks a whole billing period apart:
+     * customer.subscription.updated with cancel_at_period_end=true when the player clicks cancel,
+     * then customer.subscription.deleted once the period actually runs out. Both call cancel(),
+     * and the player must only ever be told about that cancellation once.
+     */
+    public function testCancelAtPeriodEndFollowedByDeletionEmitsSingleEvent(): void
+    {
+        $billingPeriodEnd = new DateTimeImmutable('2026-06-12 07:11:00');
+
+        $membership = $this->createMembership(
+            stripeSubscriptionId: 'sub_1abc',
+            billingPeriodEndsAt: $billingPeriodEnd,
+        );
+
+        // Player clicks cancel - membership keeps running until the period ends
+        $membership->cancel($billingPeriodEnd);
+        $events = $membership->popEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MembershipSubscriptionCancelled::class, $events[0]);
+
+        // A month later Stripe deletes the subscription and the handler calls cancel(now).
+        // `now` is a couple of minutes past the period end - that must not look like a new cancellation.
+        $membership->cancel(new DateTimeImmutable('2026-06-12 07:13:00'));
+
+        self::assertEmpty($membership->popEvents());
+    }
+
+    /**
+     * Re-subscribing clears endsAt, so a later cancellation is a genuinely new one and must notify again.
+     */
+    public function testCancellationAfterResubscribeEmitsEventAgain(): void
+    {
+        $firstPeriodEnd = new DateTimeImmutable('2026-04-23');
+        $secondPeriodEnd = new DateTimeImmutable('2026-06-23');
+
+        $membership = $this->createMembership(
+            stripeSubscriptionId: 'sub_1abc',
+            billingPeriodEndsAt: $firstPeriodEnd,
+        );
+
+        $membership->cancel($firstPeriodEnd);
+        self::assertCount(1, $membership->popEvents());
+
+        // Player comes back with a new subscription
+        $membership->updateStripeSubscription(
+            'sub_2xyz',
+            $secondPeriodEnd,
+            Subscription::STATUS_ACTIVE,
+            new DateTimeImmutable('2026-05-23'),
+        );
+        $membership->popEvents();
+        self::assertNull($membership->endsAt);
+
+        $membership->cancel($secondPeriodEnd);
+
+        $events = $membership->popEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MembershipSubscriptionCancelled::class, $events[0]);
     }
 
     /**

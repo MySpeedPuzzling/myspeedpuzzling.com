@@ -199,6 +199,13 @@ return static function (ContainerConfigurator $configurator): void {
         \SpeedPuzzling\Web\Security\Auth0TrickleGateway::class,
     );
 
+    // The firewall's Auth0 authenticator (config/packages/security.php), wrapped so
+    // its per-request failure on a native session cannot short-circuit the request
+    // with a redirect to /login. Autowiring cannot find $inner on its own - the
+    // bundle registers the authenticator under a plain string id.
+    $services->set(\SpeedPuzzling\Web\Security\MigrationWindowAuth0Authenticator::class)
+        ->arg('$inner', service('auth0.authenticator'));
+
     // Single-use magic sign-in links (D18, issue #147): wraps the handler the
     // login_link firewall factory builds for the `main` firewall, so both the
     // issuing side (RequestSignInLinkHandler) and the consuming side (the

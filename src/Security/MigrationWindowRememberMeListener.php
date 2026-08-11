@@ -107,7 +107,15 @@ final readonly class MigrationWindowRememberMeListener implements EventSubscribe
         // authenticator failing means "this session is not an Auth0 session",
         // not "somebody tried to sign in and got it wrong", so it must not
         // invalidate a perfectly good remember-me cookie.
-        if ($event->getAuthenticator() instanceof Auth0Authenticator) {
+        //
+        // Both classes are matched on purpose: the firewall runs the wrapper
+        // (MigrationWindowAuth0Authenticator), and it is the wrapper that
+        // reaches this event - but 'auth0.authenticator' itself is still a
+        // service other code holds, and this rule is about the failure, not
+        // about which object reported it.
+        $authenticator = $event->getAuthenticator();
+
+        if ($authenticator instanceof MigrationWindowAuth0Authenticator || $authenticator instanceof Auth0Authenticator) {
             return;
         }
 

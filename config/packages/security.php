@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Auth0\Symfony\Security\UserProvider;
+use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Security\AppleLoginAuthenticator;
 use SpeedPuzzling\Web\Security\LoginEntryPoint;
 use SpeedPuzzling\Web\Security\FacebookLoginAuthenticator;
@@ -13,6 +14,7 @@ use SpeedPuzzling\Web\Security\InternalApiAuthenticator;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
 use SpeedPuzzling\Web\Security\LoginLinkFailureHandler;
 use SpeedPuzzling\Web\Security\LoginLinkSuccessHandler;
+use SpeedPuzzling\Web\Security\MigrationWindowAuth0Authenticator;
 use SpeedPuzzling\Web\Security\OAuth2UserProvider;
 use SpeedPuzzling\Web\Security\PatAuthenticator;
 use SpeedPuzzling\Web\Security\UserAccountProvider;
@@ -100,8 +102,11 @@ return App::config([
                 // Window-A dual wiring: the native login POST is handled by
                 // LoginFormAuthenticator (only supports POST /login), everything else
                 // still authenticates from the Auth0 session. The Auth0 authenticator
-                // returns a null failure response on public pages, so it never
-                // short-circuits the chain for anonymous visitors. Entry point stays
+                // is wrapped by MigrationWindowAuth0Authenticator so that its
+                // per-request failure (every native session fails it) can never
+                // short-circuit the request with a redirect to /login - neither for
+                // anonymous visitors nor, as it used to on every non-public
+                // access_control pattern, for signed-in ones. Entry point stays
                 // Auth0 until Stage B (native_login flag).
                 // The social authenticators (auth hardening PR 2) claim only their
                 // own /login/social/{provider}/callback with a login-intent state;
@@ -113,7 +118,7 @@ return App::config([
                     GoogleLoginAuthenticator::class,
                     FacebookLoginAuthenticator::class,
                     AppleLoginAuthenticator::class,
-                    'auth0.authenticator',
+                    MigrationWindowAuth0Authenticator::class,
                 ],
                 // Magic sign-in link, live from Stage A (D6): the rescue for users whose
                 // password manager filed the credential under the Auth0 domain, and for
@@ -217,9 +222,17 @@ return App::config([
                 'path' => '^/api/v1/competitions',
                 'roles' => [AuthenticatedVoter::IS_AUTHENTICATED_FULLY],
             ],
+            // Admin access, not merely "signed in": every controller under
+            // src/Controller/Admin also carries #[IsGranted(ADMIN_ACCESS)], but a
+            // firewall-level rule is what covers the one somebody forgets to
+            // annotate. IS_AUTHENTICATED_FULLY would be both weaker (any signed-in
+            // visitor passes it) and wrong under always-on remember-me: a visitor
+            // signed back in from the 30-day cookie holds a RememberMeToken, which
+            // is not "full fledged", so they were sent to /login - and, being
+            // signed in already, straight on to my_profile from there.
             [
                 'path' => '^/admin',
-                'roles' => [AuthenticatedVoter::IS_AUTHENTICATED_FULLY],
+                'roles' => [AdminAccessVoter::ADMIN_ACCESS],
             ],
             [
                 'path' => '^/',

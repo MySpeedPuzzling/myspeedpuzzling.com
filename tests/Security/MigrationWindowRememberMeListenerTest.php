@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Security;
 
+use SpeedPuzzling\Web\Security\MigrationWindowAuth0Authenticator;
 use SpeedPuzzling\Web\Security\MigrationWindowRememberMeListener;
 use SpeedPuzzling\Web\Tests\TestDouble\FakeInteractiveAuthenticator;
 use SpeedPuzzling\Web\Tests\TestDouble\RecordingRememberMeHandler;
@@ -43,6 +44,25 @@ final class MigrationWindowRememberMeListenerTest extends KernelTestCase
         // Every anonymous request and every request from a natively logged-in user
         // produces exactly this failure - clearing here would put a REMEMBERME
         // deletion cookie on all of them
+        self::assertSame(0, $handler->clearCalls);
+    }
+
+    /**
+     * The firewall runs the wrapper, not the bundle authenticator, so it is the
+     * wrapper that reaches this listener. Missing it here is not a subtle
+     * regression: it puts a deletion cookie on every anonymous response again.
+     */
+    public function testWrappedAuth0AuthenticatorFailureDoesNotClearTheCookieEither(): void
+    {
+        self::bootKernel();
+
+        $wrapped = self::getContainer()->get(MigrationWindowAuth0Authenticator::class);
+
+        $handler = new RecordingRememberMeHandler();
+        $listener = new MigrationWindowRememberMeListener($handler);
+
+        $listener->onLoginFailure($this->failureFor($wrapped));
+
         self::assertSame(0, $handler->clearCalls);
     }
 

@@ -16,7 +16,7 @@ Members can earn 10% of subscription revenue from people they refer. No discount
 - **Self-referral blocked** — players cannot refer themselves
 - **Last-touch wins** — visiting a new `?ref=` link overwrites the previous referral cookie
 - **Cookie lasts 30 days** — `referral_ref` cookie, httpOnly, SameSite=lax
-- **Admin can suspend** — toggle on `/admin/affiliates` disables a player's referral without removing their data
+- **Admin can suspend** — button on `/admin/referrals/{playerId}` disables a player's referral without removing their data (via `SuspendFromReferralProgram` / `UnsuspendFromReferralProgram` messages)
 
 ## Attribution Flow
 
@@ -54,8 +54,7 @@ Entities:
 | Dashboard | `Controller/AffiliateDashboardController.php`, `templates/affiliate_dashboard.html.twig` |
 | Code input | `Component/ReferralCodeInput.php`, `templates/components/ReferralCodeInput.html.twig` |
 | Profile supporters | `Controller/PlayerProfileController.php`, `Query/GetAffiliateSupporters.php` |
-| Admin | `Controller/Admin/AffiliatesController.php`, `templates/admin/affiliates.html.twig` |
-| Admin commissions | `Controller/Admin/ReferralsOverviewController.php`, `Controller/Admin/ReferralDetailController.php`, `Query/GetAdminReferralsOverview.php`, `Query/GetAdminReferralDetail.php`, `templates/admin/referrals.html.twig`, `templates/admin/referral_detail.html.twig` |
+| Admin | `Controller/Admin/ReferralsOverviewController.php`, `Controller/Admin/ReferralDetailController.php`, `Controller/Admin/SuspendAffiliateController.php`, `Controller/Admin/UnsuspendAffiliateController.php`, `Query/GetAdminReferralsOverview.php`, `Query/GetAdminReferralDetail.php`, `templates/admin/referrals.html.twig`, `templates/admin/referral_detail.html.twig` |
 | Stripe metadata | `MessageHandler/CreatePlayerStripeCustomerHandler.php` (`referral_player_id`) |
 
 ## UI Locations
@@ -65,9 +64,8 @@ Entities:
 - **Player profile page** — referral link copy + supporters list (own profile only for the link, supporters visible to all)
 - **Membership page** — referral code input card (always visible when not subscribed)
 - **`/referral-program`** — join CTA or dashboard with stats, referral link, supporters
-- **`/admin/affiliates`** — list members with suspend/unsuspend toggle
 - **`/admin/referrals`** — commissions overview: per-currency unpaid/paid totals + all affiliates sorted by unpaid commission (in admin topbar dropdown)
-- **`/admin/referrals/{playerId}`** — affiliate detail: contact info, per-currency totals, referred players (with subscription status), full commission list per Stripe invoice
+- **`/admin/referrals/{playerId}`** — affiliate detail: contact info, per-currency totals, referred players (with subscription status), full commission list per Stripe invoice, suspend/unsuspend button (the former `/admin/affiliates` page was consolidated into this section)
 - **Flash message** — shown on `?ref=` visit after redirect
 
 ## Race Condition: First Payment

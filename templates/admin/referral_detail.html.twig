@@ -19,6 +19,21 @@
         {% if affiliate.referral_program_suspended %}
             <span class="badge bg-danger">Suspended</span>
         {% endif %}
+
+        {% if affiliate.referral_program_joined_at is not null %}
+            <div class="ms-auto">
+                {% if affiliate.referral_program_suspended %}
+                    <form method="post" action="{{ path('admin_unsuspend_affiliate', {playerId: affiliate.player_id}) }}" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-success">Unsuspend</button>
+                    </form>
+                {% else %}
+                    <form method="post" action="{{ path('admin_suspend_affiliate', {playerId: affiliate.player_id}) }}" class="d-inline"
+                          onsubmit="return confirm('Suspend this player from the referral program?')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Suspend</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endif %}
     </div>
 
     <div class="card card-body shadow-sm mb-4">
@@ -91,8 +106,8 @@
         <div class="card shadow mb-4">
             <div class="table-responsive">
                 <table class="table table-hover mb-0 align-middle">
-                    <thead class="d-none d-md-table-header-group">
-                        <tr>
+                    <thead>
+                        <tr class="d-none d-md-table-row">
                             <th>Player</th>
                             <th>Source</th>
                             <th>Referred</th>
@@ -167,8 +182,8 @@
         <div class="card shadow">
             <div class="table-responsive">
                 <table class="table table-hover mb-0 align-middle">
-                    <thead class="d-none d-md-table-header-group">
-                        <tr>
+                    <thead>
+                        <tr class="d-none d-md-table-row">
                             <th>Date</th>
                             <th>Subscriber</th>
                             <th>Invoice</th>

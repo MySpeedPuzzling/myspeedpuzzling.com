@@ -22,9 +22,9 @@ final class LoginEntryPointTest extends WebTestCase
     {
         $browser = self::createClient();
 
-        $browser->request('GET', '/admin/affiliates');
+        $browser->request('GET', '/admin/referrals');
 
-        self::assertResponseRedirects('/login?return=/admin/affiliates');
+        self::assertResponseRedirects('/login?return=/admin/referrals');
     }
 
     public function testQueryStringSurvivesInTheDestination(): void
@@ -46,7 +46,7 @@ final class LoginEntryPointTest extends WebTestCase
     {
         $browser = self::createClient();
 
-        $browser->request('GET', '/admin/affiliates');
+        $browser->request('GET', '/admin/referrals');
 
         self::assertResponseRedirects();
         self::assertSame(

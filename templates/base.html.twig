@@ -276,6 +276,16 @@
                                             Email Audit
                                         </a>
                                     </li>
+                                    <li>
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_moderation_dashboard' or currentRoute == 'admin_moderation_history' or currentRoute == 'admin_report_detail' %}active{% endif %}" href="{{ path('admin_moderation_dashboard') }}">
+                                            Moderation
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_oauth2_client_requests' or currentRoute == 'admin_oauth2_client_request_detail' %}active{% endif %}" href="{{ path('admin_oauth2_client_requests') }}">
+                                            OAuth2 Requests
+                                        </a>
+                                    </li>
                                 </ul>
                             </div>
                         {% endif %}

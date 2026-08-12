@@ -77,15 +77,15 @@ final class WindowADualWiringTest extends WebTestCase
 
         // Anonymous hit on a protected page: LoginEntryPoint puts the destination
         // in the URL. Nothing is written server-side - no session, no cookie.
-        $browser->request('GET', '/admin/affiliates');
-        self::assertResponseRedirects('/login?return=/admin/affiliates');
+        $browser->request('GET', '/admin/referrals');
+        self::assertResponseRedirects('/login?return=/admin/referrals');
         self::assertSame([], $browser->getResponse()->headers->getCookies());
 
         // The login page echoes it back in a hidden field; the authenticator
         // validates it and redirects there
-        $this->submitLogin($browser, $email, self::PASSWORD, returnUrl: '/admin/affiliates');
+        $this->submitLogin($browser, $email, self::PASSWORD, returnUrl: '/admin/referrals');
 
-        self::assertResponseRedirects('/admin/affiliates');
+        self::assertResponseRedirects('/admin/referrals');
     }
 
     public function testEntryPointRefusesAnOffSiteDestination(): void

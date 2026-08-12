@@ -5,12 +5,7 @@
 {% macro money(cents, currency) %}{{ (cents / 100)|number_format(2) }}&nbsp;{{ currency|upper }}{% endmacro %}
 
 {% block content %}
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
-        <h1 class="h3 mb-0">Referrals</h1>
-        <a href="{{ path('admin_affiliates') }}" class="btn btn-sm btn-outline-secondary">
-            Program members &amp; suspensions
-        </a>
-    </div>
+    <h1 class="h3 mb-4">Referrals</h1>
 
     <div class="row g-3 mb-4">
         <div class="col-md-4">
@@ -55,8 +50,8 @@
         <div class="card shadow">
             <div class="table-responsive">
                 <table class="table table-hover mb-0 align-middle">
-                    <thead class="d-none d-md-table-header-group">
-                        <tr>
+                    <thead>
+                        <tr class="d-none d-md-table-row">
                             <th>Player</th>
                             <th>Referrals</th>
                             <th>Unpaid</th>

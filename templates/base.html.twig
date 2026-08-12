@@ -262,6 +262,11 @@
                                         </a>
                                     </li>
                                     <li>
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_referrals' or currentRoute == 'admin_referral_detail' %}active{% endif %}" href="{{ path('admin_referrals') }}">
+                                            Referrals
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a class="dropdown-item pb-1 {% if currentRoute == 'admin_competition_approvals' %}active{% endif %}" href="{{ path('admin_competition_approvals') }}">
                                             Competition Approvals
                                         </a>

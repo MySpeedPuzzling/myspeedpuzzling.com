@@ -1,0 +1,229 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Referrals: {{ affiliate.player_name ?? 'Unknown' }}{% endblock %}
+
+{% macro money(cents, currency) %}{{ (cents / 100)|number_format(2) }}&nbsp;{{ currency|upper }}{% endmacro %}
+
+{% block content %}
+    <div class="mb-3">
+        <a href="{{ path('admin_referrals') }}" class="text-decoration-none">
+            <i class="ci-arrow-left me-1"></i>Back to referrals
+        </a>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center mb-4 gap-2">
+        <h1 class="h3 mb-0">
+            {{ affiliate.player_name ?? 'Unknown' }}
+            <span class="text-muted fs-base">#{{ affiliate.code|upper }}</span>
+        </h1>
+        {% if affiliate.referral_program_suspended %}
+            <span class="badge bg-danger">Suspended</span>
+        {% endif %}
+    </div>
+
+    <div class="card card-body shadow-sm mb-4">
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Profile</dt>
+            <dd class="col-sm-8">
+                <a href="{{ path('player_profile', {playerId: affiliate.player_id}) }}">{{ affiliate.player_name ?? 'Unknown' }}</a>
+            </dd>
+
+            <dt class="col-sm-4">Email</dt>
+            <dd class="col-sm-8">
+                {% if affiliate.email is not null %}
+                    <a href="mailto:{{ affiliate.email }}">{{ affiliate.email }}</a>
+                {% else %}
+                    <em class="text-muted">Unknown</em>
+                {% endif %}
+            </dd>
+
+            <dt class="col-sm-4">Joined program</dt>
+            <dd class="col-sm-8">
+                {% if affiliate.referral_program_joined_at is not null %}
+                    {{ affiliate.referral_program_joined_at|date('j. n. Y H:i') }}
+                {% else %}
+                    <em class="text-muted">Not a program member</em>
+                {% endif %}
+            </dd>
+        </dl>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card card-body shadow-sm h-100">
+                <div class="text-muted fs-sm">Unpaid commission</div>
+                {% for total in totals %}
+                    <div class="h5 mb-0 {{ total.unpaid_cents > 0 ? 'text-warning' : 'text-muted' }}">
+                        {{ _self.money(total.unpaid_cents, total.currency) }}
+                    </div>
+                {% else %}
+                    <div class="h5 mb-0 text-muted">—</div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-body shadow-sm h-100">
+                <div class="text-muted fs-sm">Paid out</div>
+                {% for total in totals %}
+                    <div class="h5 mb-0">{{ _self.money(total.paid_cents, total.currency) }}</div>
+                {% else %}
+                    <div class="h5 mb-0 text-muted">—</div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-body shadow-sm h-100">
+                <div class="text-muted fs-sm">Total commission</div>
+                {% for total in totals %}
+                    <div class="h5 mb-0">{{ _self.money(total.unpaid_cents + total.paid_cents, total.currency) }}</div>
+                {% else %}
+                    <div class="h5 mb-0 text-muted">—</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h5 mb-3">Referred players ({{ referrals|length }})</h2>
+
+    {% if referrals is empty %}
+        <div class="alert alert-info">This player has not referred anyone yet.</div>
+    {% else %}
+        <div class="card shadow mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="d-none d-md-table-header-group">
+                        <tr>
+                            <th>Player</th>
+                            <th>Source</th>
+                            <th>Referred</th>
+                            <th>Subscription</th>
+                            <th>Payments</th>
+                            <th>Commission</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for referral in referrals %}
+                            <tr>
+                                <td>
+                                    <a href="{{ path('player_profile', {playerId: referral.subscriber_id}) }}">
+                                        {{ referral.subscriber_name ?? 'Unknown' }}
+                                    </a>
+                                    <span class="text-muted ms-1">#{{ referral.subscriber_code|upper }}</span>
+                                    <div class="d-md-none mt-1">
+                                        <small class="text-muted">
+                                            {{ referral.created_at|date('j. n. Y') }}
+                                            &bull; {{ referral.source }}
+                                            {% for payment in referral.payments %}
+                                                &bull; {{ _self.money(payment.commission_cents, payment.currency) }}
+                                            {% endfor %}
+                                        </small>
+                                    </div>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    <span class="badge bg-secondary">{{ referral.source }}</span>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ referral.created_at|date('j. n. Y') }}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% if referral.has_active_subscription %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% set payment_count = 0 %}
+                                    {% for payment in referral.payments %}
+                                        {% set payment_count = payment_count + payment.payment_count %}
+                                    {% endfor %}
+                                    {{ payment_count }}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% for payment in referral.payments %}
+                                        <div>
+                                            {{ _self.money(payment.commission_cents, payment.currency) }}
+                                            {% if payment.unpaid_cents > 0 %}
+                                                <small class="text-warning">({{ _self.money(payment.unpaid_cents, payment.currency) }} unpaid)</small>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
+    <h2 class="h5 mb-3">Commissions ({{ payouts|length }})</h2>
+
+    {% if payouts is empty %}
+        <div class="alert alert-info">No commissions yet.</div>
+    {% else %}
+        <div class="card shadow">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="d-none d-md-table-header-group">
+                        <tr>
+                            <th>Date</th>
+                            <th>Subscriber</th>
+                            <th>Invoice</th>
+                            <th>Payment</th>
+                            <th>Commission</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payout in payouts %}
+                            <tr>
+                                <td>
+                                    {{ payout.created_at|date('j. n. Y') }}
+                                    <div class="d-md-none mt-1">
+                                        <small class="text-muted">
+                                            {{ payout.subscriber_name ?? 'Unknown' }}
+                                            &bull; {{ _self.money(payout.payout_amount_cents, payout.currency) }}
+                                            &bull;
+                                            {% if payout.status == 'paid' %}
+                                                paid
+                                            {% else %}
+                                                <span class="text-warning fw-bold">unpaid</span>
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    <a href="{{ path('player_profile', {playerId: payout.subscriber_id}) }}">
+                                        {{ payout.subscriber_name ?? 'Unknown' }}
+                                    </a>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    <code class="fs-sm">{{ payout.stripe_invoice_id }}</code>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ _self.money(payout.payment_amount_cents, payout.currency) }}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    <strong>{{ _self.money(payout.payout_amount_cents, payout.currency) }}</strong>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% if payout.status == 'paid' %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% if payout.paid_at is not null %}
+                                            <small class="text-muted d-block">{{ payout.paid_at|date('j. n. Y') }}</small>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

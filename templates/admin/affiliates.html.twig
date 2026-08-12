@@ -3,7 +3,12 @@
 {% block title %}Referral Program{% endblock %}
 
 {% block content %}
-    <h1 class="h3 mb-4">Referral Program</h1>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <h1 class="h3 mb-0">Referral Program</h1>
+        <a href="{{ path('admin_referrals') }}" class="btn btn-sm btn-outline-secondary">
+            Commissions overview
+        </a>
+    </div>
 
     <ul class="nav nav-tabs mb-4">
         <li class="nav-item">

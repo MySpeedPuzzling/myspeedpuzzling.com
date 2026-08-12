@@ -55,6 +55,7 @@ Entities:
 | Code input | `Component/ReferralCodeInput.php`, `templates/components/ReferralCodeInput.html.twig` |
 | Profile supporters | `Controller/PlayerProfileController.php`, `Query/GetAffiliateSupporters.php` |
 | Admin | `Controller/Admin/AffiliatesController.php`, `templates/admin/affiliates.html.twig` |
+| Admin commissions | `Controller/Admin/ReferralsOverviewController.php`, `Controller/Admin/ReferralDetailController.php`, `Query/GetAdminReferralsOverview.php`, `Query/GetAdminReferralDetail.php`, `templates/admin/referrals.html.twig`, `templates/admin/referral_detail.html.twig` |
 | Stripe metadata | `MessageHandler/CreatePlayerStripeCustomerHandler.php` (`referral_player_id`) |
 
 ## UI Locations
@@ -65,6 +66,8 @@ Entities:
 - **Membership page** — referral code input card (always visible when not subscribed)
 - **`/referral-program`** — join CTA or dashboard with stats, referral link, supporters
 - **`/admin/affiliates`** — list members with suspend/unsuspend toggle
+- **`/admin/referrals`** — commissions overview: per-currency unpaid/paid totals + all affiliates sorted by unpaid commission (in admin topbar dropdown)
+- **`/admin/referrals/{playerId}`** — affiliate detail: contact info, per-currency totals, referred players (with subscription status), full commission list per Stripe invoice
 - **Flash message** — shown on `?ref=` visit after redirect
 
 ## Race Condition: First Payment

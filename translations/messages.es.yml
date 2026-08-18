@@ -530,6 +530,17 @@
   "email_not_verified": "Dirección de correo electrónico aún sin confirmar"
   "email_verify_resend": "Reenviar el correo de confirmación"
   "back": "Volver a la configuración del perfil"
+  "danger_zone":
+    "title": "Zona de peligro"
+    "intro": "¿Estás pensando en irte? Nos da pena que te vayas, pero lo entendemos: son cosas que pasan. Esperamos que hayas disfrutado de tu tiempo en MySpeedPuzzling y que algún día, cuando vuelvas a tener ganas de registrar tus tiempos, regreses."
+    "export_hint": "Antes de irte, exporta tus datos. Una vez eliminada la cuenta, tus tiempos no se podrán recuperar; con una exportación, en cambio, podrás llevártelos contigo y traerlos de vuelta si algún día regresas."
+    "how_it_works": "Eliminar tu cuenta lleva dos pasos, para que nunca ocurra por accidente: te enviamos un enlace de confirmación a %email% (válido durante una hora) y la página que abre te pide una última confirmación. Después, tu cuenta y todos sus datos se eliminan de forma permanente; no hay vuelta atrás."
+    "how_it_works_generic": "Eliminar tu cuenta lleva dos pasos, para que nunca ocurra por accidente: te enviamos un enlace de confirmación por correo (válido durante una hora) y la página que abre te pide una última confirmación. Después, tu cuenta y todos sus datos se eliminan de forma permanente; no hay vuelta atrás."
+    "export_button": "Exportar mis datos primero"
+    "request_button": "Enviarme el enlace de confirmación"
+    "sent": "Hemos enviado un enlace de confirmación a %email%. Es válido durante una hora: revisa tu bandeja de entrada (y la carpeta de spam)."
+    "too_many_requests": "Has pedido varios enlaces seguidos. Revisa tu bandeja de entrada (y la carpeta de spam) y espera un momento antes de pedir otro."
+    "failed": "No hemos podido enviar el correo de confirmación. Inténtalo de nuevo en un momento."
 "puzzle_detail":
   "meta":
     "title": "%brand% %name% – %pieces% piezas"
@@ -3063,6 +3074,45 @@ account_activity:
         oauth_login: "Inicio de sesión con una cuenta conectada"
         oauth_identity_linked: "Método de inicio de sesión conectado"
         oauth_identity_unlinked: "Método de inicio de sesión desconectado"
+        account_deletion_requested: "Eliminación de cuenta solicitada"
+
+account_deletion:
+    confirm:
+        title: "Eliminar tu cuenta"
+        headline: "Nos da pena que te vayas"
+        intro: "Este es el último paso. Esperamos que hayas disfrutado de tu tiempo en MySpeedPuzzling, y si algún día vuelves a tener ganas de registrar tus tiempos, siempre serás bienvenido de vuelta."
+        warning: "Estás a punto de eliminar de forma permanente la cuenta %email% (%player%) con todos sus datos: tiempos, colecciones, estadísticas, mensajes, todo. Esto no se puede deshacer y después no se podrá recuperar nada."
+        export_title: "Llévate tus datos contigo"
+        export_text: "¿Aún no has exportado tus datos? Hazlo ahora: después de la eliminación no quedará nada que exportar. Con una exportación podrás traer tus tiempos de vuelta si algún día regresas."
+        export_button: "Exportar mis datos"
+        checkbox: "Entiendo que esto es permanente y no se puede deshacer."
+        checkbox_required: "Marca la casilla para confirmar que lo entiendes."
+        submit: "Sí, eliminar mi cuenta de forma permanente"
+        cancel: "He cambiado de opinión"
+        summary_title: "Todo esto desaparecerá con la cuenta:"
+        summary_solving_times: "tiempos registrados"
+        summary_pieces: "piezas montadas"
+        summary_time: "dedicado a los puzles"
+        summary_collections: "puzles en colecciones"
+    dead_link:
+        nothing_deleted: "No se ha eliminado nada: tu cuenta está exactamente igual que antes."
+        to_settings: "Solicitar un enlace nuevo en la configuración del perfil"
+    expired:
+        headline: "Este enlace de eliminación ha caducado"
+        message: "Los enlaces de eliminación son válidos durante una hora. Si aún quieres eliminar tu cuenta, pide un enlace nuevo y úsalo enseguida."
+    invalid:
+        headline: "Este enlace de eliminación no funciona"
+        message: "Puede que ya se haya usado o que un enlace más reciente lo haya sustituido. Si aún quieres eliminar tu cuenta, pide un enlace nuevo."
+    failed:
+        headline: "No hemos podido eliminar tu cuenta"
+        message: "Algo ha fallado por nuestra parte y no se ha eliminado nada. Inténtalo de nuevo en un momento y, si sigue fallando, contacta con nosotros."
+    deleted:
+        title: "Cuenta eliminada"
+        headline: "Tu cuenta ha sido eliminada"
+        done: "Ya está: tu cuenta y todos tus datos han desaparecido para siempre."
+        farewell: "Nos da pena que te vayas, y gracias por el tiempo que has pasado en MySpeedPuzzling. Esperamos que lo hayas disfrutado."
+        come_back: "Si algún día vuelves a tener ganas de registrar tus tiempos, siempre serás bienvenido: solo tienes que crear una cuenta nueva. ¡Feliz puzle!"
+        to_homepage: "Volver a la página de inicio"
 
 wjpf:
     connect:

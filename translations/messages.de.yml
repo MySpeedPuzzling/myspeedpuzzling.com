@@ -765,6 +765,17 @@
   "email_not_verified": "E-Mail-Adresse noch nicht bestätigt"
   "email_verify_resend": "Bestätigungs-E-Mail erneut senden"
   "back": "Zurück zu den Profileinstellungen"
+  "danger_zone":
+    "title": "Gefahrenzone"
+    "intro": "Sie denken darüber nach zu gehen? Schade – aber wir verstehen das, so etwas passiert. Wir hoffen, Sie hatten eine schöne Zeit mit MySpeedPuzzling, und dass Sie eines Tages zurückkommen, wenn Sie wieder Lust haben, Ihre Zeiten zu erfassen."
+    "export_hint": "Bitte exportieren Sie Ihre Daten, bevor Sie gehen. Sobald das Konto gelöscht ist, lassen sich Ihre Legezeiten nicht mehr wiederherstellen – mit einem Export können Sie sie aber mitnehmen und eines Tages wieder mitbringen."
+    "how_it_works": "Das Löschen Ihres Kontos geschieht in zwei Schritten, damit es nie aus Versehen passiert: Wir schicken einen Bestätigungslink an %email% (eine Stunde gültig), und die Seite, die er öffnet, fragt ein letztes Mal nach. Danach werden Ihr Konto und alle Daten endgültig gelöscht – es gibt keinen Weg zurück."
+    "how_it_works_generic": "Das Löschen Ihres Kontos geschieht in zwei Schritten, damit es nie aus Versehen passiert: Wir schicken Ihnen per E-Mail einen Bestätigungslink (eine Stunde gültig), und die Seite, die er öffnet, fragt ein letztes Mal nach. Danach werden Ihr Konto und alle Daten endgültig gelöscht – es gibt keinen Weg zurück."
+    "export_button": "Zuerst meine Daten exportieren"
+    "request_button": "Bestätigungslink per E-Mail schicken"
+    "sent": "Wir haben einen Bestätigungslink an %email% geschickt. Er ist eine Stunde gültig – schauen Sie in Ihr Postfach (und in den Spam-Ordner)."
+    "too_many_requests": "Sie haben mehrere Links hintereinander angefordert. Bitte prüfen Sie Ihr Postfach (und den Spam-Ordner) und warten Sie einen Moment, bevor Sie einen weiteren anfordern."
+    "failed": "Wir konnten die Bestätigungs-E-Mail nicht senden. Bitte versuchen Sie es gleich noch einmal."
 "puzzle_detail":
   "meta":
     "title": "%brand% %name% – %pieces% Teile"
@@ -3063,6 +3074,45 @@ account_activity:
         oauth_login: "Mit einem verbundenen Konto angemeldet"
         oauth_identity_linked: "Anmeldemethode verbunden"
         oauth_identity_unlinked: "Anmeldemethode getrennt"
+        account_deletion_requested: "Kontolöschung angefordert"
+
+account_deletion:
+    confirm:
+        title: "Konto löschen"
+        headline: "Schade, dass Sie gehen"
+        intro: "Das ist der letzte Schritt. Wir hoffen, Sie hatten eine schöne Zeit mit MySpeedPuzzling – und falls Sie eines Tages wieder Lust haben, Ihre Zeiten zu erfassen, sind Sie jederzeit willkommen."
+        warning: "Sie sind dabei, das Konto %email% (%player%) mit allen Daten endgültig zu löschen – Legezeiten, Sammlungen, Statistiken, Nachrichten, einfach alles. Das lässt sich nicht rückgängig machen, und danach kann nichts wiederhergestellt werden."
+        export_title: "Nehmen Sie Ihre Daten mit"
+        export_text: "Noch nicht exportiert? Tun Sie es jetzt – nach dem Löschen gibt es nichts mehr zu exportieren. Mit einem Export können Sie Ihre Zeiten wieder mitbringen, falls Sie eines Tages zurückkommen."
+        export_button: "Meine Daten exportieren"
+        checkbox: "Ich verstehe, dass dies endgültig ist und nicht rückgängig gemacht werden kann."
+        checkbox_required: "Bitte setzen Sie das Häkchen, um zu bestätigen, dass Sie das verstanden haben."
+        submit: "Ja, mein Konto endgültig löschen"
+        cancel: "Ich habe es mir anders überlegt"
+        summary_title: "Das alles geht mit dem Konto verloren:"
+        summary_solving_times: "Legezeiten"
+        summary_pieces: "gelegte Teile"
+        summary_time: "mit Puzzeln verbracht"
+        summary_collections: "Puzzles in Sammlungen"
+    dead_link:
+        nothing_deleted: "Es wurde nichts gelöscht – Ihr Konto ist genau so, wie es war."
+        to_settings: "Neuen Link in den Profileinstellungen anfordern"
+    expired:
+        headline: "Dieser Löschlink ist abgelaufen"
+        message: "Löschlinks sind eine Stunde gültig. Wenn Sie Ihr Konto weiterhin löschen möchten, fordern Sie einen neuen Link an und verwenden Sie ihn sofort."
+    invalid:
+        headline: "Dieser Löschlink funktioniert nicht"
+        message: "Er wurde vielleicht schon verwendet, oder ein neuerer Link hat ihn ersetzt. Wenn Sie Ihr Konto weiterhin löschen möchten, fordern Sie einen neuen Link an."
+    failed:
+        headline: "Wir konnten Ihr Konto nicht löschen"
+        message: "Auf unserer Seite ist etwas schiefgelaufen, und es wurde nichts gelöscht. Bitte versuchen Sie es gleich noch einmal – und wenn es weiterhin nicht klappt, kontaktieren Sie uns."
+    deleted:
+        title: "Konto gelöscht"
+        headline: "Ihr Konto wurde gelöscht"
+        done: "Das war's – Ihr Konto und alle Ihre Daten sind endgültig weg."
+        farewell: "Schade, dass Sie gehen, und danke für die Zeit, die Sie mit MySpeedPuzzling verbracht haben. Wir hoffen, sie hat Ihnen gefallen."
+        come_back: "Sollten Sie eines Tages wieder Lust haben, Ihre Zeiten zu erfassen, sind Sie jederzeit willkommen – legen Sie einfach ein neues Konto an. Viel Spaß beim Puzzeln!"
+        to_homepage: "Zurück zur Startseite"
 
 wjpf:
     connect:

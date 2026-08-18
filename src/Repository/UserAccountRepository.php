@@ -20,6 +20,11 @@ readonly final class UserAccountRepository
         $this->entityManager->persist($userAccount);
     }
 
+    public function remove(UserAccount $userAccount): void
+    {
+        $this->entityManager->remove($userAccount);
+    }
+
     public function findByUserId(string $userId): null|UserAccount
     {
         return $this->entityManager->getRepository(UserAccount::class)

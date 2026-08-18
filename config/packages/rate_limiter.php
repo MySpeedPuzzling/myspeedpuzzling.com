@@ -66,6 +66,13 @@ return App::config([
                 'limit' => 3,
                 'interval' => '15 minutes',
             ],
+            // "E-mail me the account deletion link" - authenticated, so the account is
+            // the key. Enough for "it did not arrive, send another", no more.
+            'account_deletion_request' => [
+                'policy' => 'sliding_window',
+                'limit' => 3,
+                'interval' => '15 minutes',
+            ],
             // The public newsletter signup form mails an address the caller picks
             // (double opt-in confirmation) - same hazard class as the sign-in link.
             // Per address: enough for "it did not arrive, send another", no more.

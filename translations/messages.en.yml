@@ -939,6 +939,17 @@ edit_profile:
     email_not_verified: "Email address not confirmed yet"
     email_verify_resend: "Resend the confirmation email"
     back: "Back to profile settings"
+    danger_zone:
+        title: "Danger zone"
+        intro: "Thinking about leaving? We're sorry to see you go — but we get it, that happens. We hope you enjoyed your time with MySpeedPuzzling, and that one day, when you feel like tracking your times again, you'll be back."
+        export_hint: "Before you go, please export your data. Once the account is gone, your solving times cannot be recovered — but with an export you can bring them back with you if you ever return."
+        how_it_works: "Deleting your account takes two steps, so it can never happen by accident: we e-mail a confirmation link to %email% (valid for one hour), and the page it opens asks for one final confirmation. After that, your account and all its data are deleted permanently — there is no way back."
+        how_it_works_generic: "Deleting your account takes two steps, so it can never happen by accident: we e-mail you a confirmation link (valid for one hour), and the page it opens asks for one final confirmation. After that, your account and all its data are deleted permanently — there is no way back."
+        export_button: "Export my data first"
+        request_button: "E-mail me the confirmation link"
+        sent: "We've sent a confirmation link to %email%. It's valid for one hour — check your inbox (and the spam folder)."
+        too_many_requests: "You've asked for a few links in a row. Please check your inbox (and the spam folder) and wait a moment before asking for another."
+        failed: "We couldn't send the confirmation e-mail. Please try again in a moment."
 
 puzzle_detail:
     meta:
@@ -3350,6 +3361,45 @@ account_activity:
         oauth_login: "Signed in with a connected account"
         oauth_identity_linked: "Sign-in method connected"
         oauth_identity_unlinked: "Sign-in method disconnected"
+        account_deletion_requested: "Account deletion requested"
+
+account_deletion:
+    confirm:
+        title: "Delete your account"
+        headline: "Sorry to see you go"
+        intro: "This is the last step. We hope you enjoyed your time with MySpeedPuzzling — and if you ever feel like tracking your times again, you'll always be welcome back."
+        warning: "You are about to permanently delete the account %email% (%player%) together with all its data — solving times, collections, statistics, messages, everything. This cannot be undone and nothing can be recovered afterwards."
+        export_title: "Take your data with you"
+        export_text: "Haven't exported your data yet? Do it now — after the deletion there is nothing left to export. With an export you can bring your times back should you ever return."
+        export_button: "Export my data"
+        checkbox: "I understand that this is permanent and cannot be undone."
+        checkbox_required: "Please tick the box to confirm you understand."
+        submit: "Yes, permanently delete my account"
+        cancel: "I changed my mind"
+        summary_title: "This is what goes with it:"
+        summary_solving_times: "solving times"
+        summary_pieces: "pieces solved"
+        summary_time: "spent puzzling"
+        summary_collections: "puzzles in collections"
+    dead_link:
+        nothing_deleted: "Nothing has been deleted — your account is exactly as it was."
+        to_settings: "Request a new link in your profile settings"
+    expired:
+        headline: "This deletion link has expired"
+        message: "Deletion links are valid for one hour. If you still want to delete your account, ask for a new link and use it right away."
+    invalid:
+        headline: "This deletion link does not work"
+        message: "It may already have been used, or a newer link replaced it. If you still want to delete your account, ask for a new link."
+    failed:
+        headline: "We could not delete your account"
+        message: "Something went wrong on our side and nothing has been deleted. Please try again in a moment — and if it keeps failing, contact us."
+    deleted:
+        title: "Account deleted"
+        headline: "Your account has been deleted"
+        done: "That's it — your account and all your data are gone for good."
+        farewell: "Sorry to see you go, and thank you for the time you spent with MySpeedPuzzling. We hope you enjoyed it."
+        come_back: "Should you ever feel like tracking your times again, you're always welcome to come back — just create a new account. Happy puzzling!"
+        to_homepage: "Back to the homepage"
 
 wjpf:
     connect:

@@ -785,6 +785,17 @@
   "email_not_verified": "E-mailová adresa zatím není potvrzená"
   "email_verify_resend": "Poslat potvrzovací e-mail znovu"
   "back": "Zpět na nastavení profilu"
+  "danger_zone":
+    "title": "Nebezpečná zóna"
+    "intro": "Přemýšlíte o odchodu? Mrzí nás to, ale chápeme — to se stává. Doufáme, že jste si čas s MySpeedPuzzling užili a že se jednoho dne, až budete mít zase chuť sledovat své časy, vrátíte."
+    "export_hint": "Než odejdete, exportujte si prosím svá data. Jakmile bude účet smazaný, vaše časy skládání už nepůjde obnovit — s exportem si je ale můžete vzít s sebou a jednou se s nimi vrátit."
+    "how_it_works": "Smazání účtu má dva kroky, aby se nikdy nestalo omylem: na %email% pošleme potvrzovací odkaz (platí jednu hodinu) a stránka, která se z něj otevře, požádá o poslední potvrzení. Poté bude váš účet se všemi daty trvale smazán — cesta zpět neexistuje."
+    "how_it_works_generic": "Smazání účtu má dva kroky, aby se nikdy nestalo omylem: e-mailem vám pošleme potvrzovací odkaz (platí jednu hodinu) a stránka, která se z něj otevře, požádá o poslední potvrzení. Poté bude váš účet se všemi daty trvale smazán — cesta zpět neexistuje."
+    "export_button": "Nejdřív si exportovat data"
+    "request_button": "Poslat mi potvrzovací odkaz e-mailem"
+    "sent": "Potvrzovací odkaz jsme poslali na %email%. Platí jednu hodinu — podívejte se do schránky (i do spamu)."
+    "too_many_requests": "Požádali jste o několik odkazů za sebou. Zkontrolujte prosím schránku (i spam) a chvíli počkejte, než požádáte o další."
+    "failed": "Potvrzovací e-mail se nepodařilo odeslat. Zkuste to prosím za chvíli znovu."
 "puzzle_detail":
   "meta":
     "title": "%brand% %name% – %pieces% dílků"
@@ -3061,6 +3072,45 @@ account_activity:
         oauth_login: "Přihlášení přes propojený účet"
         oauth_identity_linked: "Propojení způsobu přihlášení"
         oauth_identity_unlinked: "Odpojení způsobu přihlášení"
+        account_deletion_requested: "Žádost o smazání účtu"
+
+account_deletion:
+    confirm:
+        title: "Smazání účtu"
+        headline: "Mrzí nás, že odcházíte"
+        intro: "Tohle je poslední krok. Doufáme, že jste si čas s MySpeedPuzzling užili — a kdybyste někdy zase dostali chuť sledovat své časy, budete tu vždycky vítáni."
+        warning: "Chystáte se trvale smazat účet %email% (%player%) se všemi daty — časy skládání, sbírky, statistiky, zprávy, prostě vše. Tento krok nelze vrátit a nic už poté nepůjde obnovit."
+        export_title: "Vezměte si svá data s sebou"
+        export_text: "Ještě jste si data neexportovali? Udělejte to teď — po smazání už nebude co exportovat. S exportem si můžete své časy jednou přinést zpět."
+        export_button: "Exportovat moje data"
+        checkbox: "Rozumím, že je to trvalé a nelze to vrátit."
+        checkbox_required: "Zaškrtněte prosím políčko na potvrzení, že rozumíte."
+        submit: "Ano, trvale smazat můj účet"
+        cancel: "Rozmyslel/a jsem si to"
+        summary_title: "Tohle všechno zmizí spolu s účtem:"
+        summary_solving_times: "časů skládání"
+        summary_pieces: "složených dílků"
+        summary_time: "stráveno skládáním"
+        summary_collections: "puzzlí ve sbírkách"
+    dead_link:
+        nothing_deleted: "Nic nebylo smazáno — váš účet je přesně tak, jak byl."
+        to_settings: "Požádat o nový odkaz v nastavení profilu"
+    expired:
+        headline: "Platnost odkazu ke smazání vypršela"
+        message: "Odkazy ke smazání platí jednu hodinu. Pokud chcete účet stále smazat, požádejte o nový odkaz a použijte ho hned."
+    invalid:
+        headline: "Tento odkaz ke smazání nefunguje"
+        message: "Možná už byl použit, nebo ho nahradil novější odkaz. Pokud chcete účet stále smazat, požádejte o nový."
+    failed:
+        headline: "Účet se nepodařilo smazat"
+        message: "Něco se pokazilo na naší straně a nic nebylo smazáno. Zkuste to prosím za chvíli znovu — a pokud se to bude opakovat, ozvěte se nám."
+    deleted:
+        title: "Účet smazán"
+        headline: "Váš účet byl smazán"
+        done: "A je to — váš účet i všechna data jsou nenávratně pryč."
+        farewell: "Mrzí nás, že odcházíte, a děkujeme za čas, který jste s MySpeedPuzzling strávili. Doufáme, že jste si ho užili."
+        come_back: "Kdybyste někdy zase dostali chuť sledovat své časy, budete tu vždycky vítáni — stačí si založit nový účet. Šťastné skládání!"
+        to_homepage: "Zpět na hlavní stránku"
 
 wjpf:
     connect:

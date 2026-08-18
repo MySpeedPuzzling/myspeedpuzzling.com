@@ -1,0 +1,53 @@
+{% trans_default_domain 'emails' %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig') }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'account_deletion.title'|trans }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    {{ 'account_deletion.content'|trans({'%email%': accountEmail})|raw }}
+                </columns>
+            </row>
+
+            {% if exportUrl is not null %}
+                <row>
+                    <columns>
+                        {{ 'account_deletion.export_hint'|trans|raw }}
+                        <center>
+                            <button class="secondary" href="{{ exportUrl }}">{{ 'account_deletion.export_button'|trans }}</button>
+                        </center>
+                        <spacer size-sm="16"></spacer>
+                    </columns>
+                </row>
+            {% endif %}
+
+            <row>
+                <columns>
+                    {{ 'account_deletion.confirm_hint'|trans|raw }}
+                    <center>
+                        <button href="{{ confirmUrl }}">{{ 'account_deletion.button'|trans }}</button>
+                    </center>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p class="text-center">{{ 'account_deletion.expires'|trans({'%minutes%': expiresInMinutes}) }}</p>
+                    <p class="text-center">{{ 'account_deletion.not_requested'|trans }}</p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

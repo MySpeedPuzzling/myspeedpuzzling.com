@@ -1,0 +1,96 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'account_deletion.confirm.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-7 col-md-8">
+            <h1 class="h2">{{ 'account_deletion.confirm.headline'|trans }}</h1>
+
+            <p>{{ 'account_deletion.confirm.intro'|trans }}</p>
+
+            <div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                {{ 'account_deletion.confirm.warning'|trans({
+                    '%email%': account_email,
+                    '%player%': player_name ?? (player_code is not null ? '#' ~ player_code|upper : account_email),
+                }) }}
+            </div>
+
+            {% if summary is not null and not summary.isEmpty %}
+                {# The concrete stakes: what exactly disappears with the account #}
+                <p class="fw-bold mb-2">{{ 'account_deletion.confirm.summary_title'|trans }}</p>
+                <div class="row g-2 mb-4" id="deletion-summary">
+                    <div class="col-6 col-md-3">
+                        <div class="card card-body py-2 px-3 text-center h-100">
+                            <div class="h4 mb-0"><i class="bi bi-stopwatch me-1"></i>{{ summary.solvingTimesCount|format_number([], 'decimal', 'default', 'cs') }}</div>
+                            <div class="fs-sm text-muted">{{ 'account_deletion.confirm.summary_solving_times'|trans }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card card-body py-2 px-3 text-center h-100">
+                            <div class="h4 mb-0"><i class="bi bi-puzzle me-1"></i>{{ summary.totalPieces|format_number([], 'decimal', 'default', 'cs') }}</div>
+                            <div class="fs-sm text-muted">{{ 'account_deletion.confirm.summary_pieces'|trans }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card card-body py-2 px-3 text-center h-100">
+                            <div class="h4 mb-0">
+                                <i class="bi bi-hourglass-split me-1"></i>{% if summary.totalSeconds|daysElapsed > 0 %}{{ summary.totalSeconds|daysElapsed }}d {% endif %}{{ summary.totalSeconds|hoursElapsed(false) }}h {{ summary.totalSeconds|minutesElapsed }}m
+                            </div>
+                            <div class="fs-sm text-muted">{{ 'account_deletion.confirm.summary_time'|trans }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card card-body py-2 px-3 text-center h-100">
+                            <div class="h4 mb-0"><i class="bi bi-collection me-1"></i>{{ summary.collectionPuzzlesCount|format_number([], 'decimal', 'default', 'cs') }}</div>
+                            <div class="fs-sm text-muted">{{ 'account_deletion.confirm.summary_collections'|trans }}</div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if player_id is not null %}
+                <div class="card card-body border border-primary mb-4">
+                    <h2 class="h6 mb-2">
+                        <i class="bi bi-download me-1"></i>{{ 'account_deletion.confirm.export_title'|trans }}
+                    </h2>
+                    <p class="fs-sm mb-3">{{ 'account_deletion.confirm.export_text'|trans }}</p>
+                    <p class="mb-0">
+                        {# The export page needs a signed-in session; when the link was opened
+                           elsewhere the visitor is asked to sign in first and comes back to it #}
+                        <a class="btn btn-outline-primary btn-sm" href="{{ path('export_puzzler_data', {playerId: player_id}) }}" target="_blank" rel="noopener">
+                            {{ 'account_deletion.confirm.export_button'|trans }}
+                        </a>
+                    </p>
+                </div>
+            {% endif %}
+
+            <form method="post" action="{{ path('confirm_account_deletion', {token: token}) }}" data-turbo="false">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ConfirmAccountDeletionController::CSRF_TOKEN_ID')) }}" />
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input{% if confirmation_missing %} is-invalid{% endif %}" type="checkbox" name="confirm" value="1" id="confirm-account-deletion" />
+                    <label class="form-check-label" for="confirm-account-deletion">
+                        {{ 'account_deletion.confirm.checkbox'|trans }}
+                    </label>
+                    {% if confirmation_missing %}
+                        <div class="invalid-feedback d-block">{{ 'account_deletion.confirm.checkbox_required'|trans }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>{{ 'account_deletion.confirm.submit'|trans }}
+                    </button>
+                    <a class="btn btn-link" href="{{ path('homepage') }}">{{ 'account_deletion.confirm.cancel'|trans }}</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-lg-4 offset-lg-1 col-md-4 text-center d-none d-md-block">
+            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        </div>
+    </div>
+{% endblock %}

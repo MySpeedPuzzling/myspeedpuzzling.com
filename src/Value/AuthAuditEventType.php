@@ -22,4 +22,5 @@ enum AuthAuditEventType: string
     case OauthIdentityLinked = 'oauth_identity_linked';
     case OauthIdentityUnlinked = 'oauth_identity_unlinked';
     case Auth0FallbackLogin = 'auth0_fallback_login';
+    case AccountDeletionRequested = 'account_deletion_requested';
 }

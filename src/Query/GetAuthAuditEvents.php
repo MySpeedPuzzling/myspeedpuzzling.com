@@ -27,6 +27,7 @@ readonly final class GetAuthAuditEvents
         'oauth_login',
         'oauth_identity_linked',
         'oauth_identity_unlinked',
+        'account_deletion_requested',
     ];
 
     public function __construct(

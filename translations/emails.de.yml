@@ -178,6 +178,21 @@ password_reset:
     expires: "Der Link funktioniert einmal und läuft nach %minutes% Minuten ab."
     not_requested: "Du hast das nicht angefordert? Dann kannst du diese E-Mail einfach ignorieren — dein Passwort bleibt unverändert."
 
+account_deletion:
+    subject: "Bestätige die Löschung deines MySpeedPuzzling-Kontos"
+    title: "Schade, dass du gehst"
+    content: |
+        <p>Jemand — hoffentlich du — hat uns gebeten, das MySpeedPuzzling-Konto zu löschen, das auf <b>%email%</b> registriert ist.</p>
+        <p>Schade, dass du gehst, aber so etwas passiert. Wir hoffen, du hattest eine schöne Zeit mit MySpeedPuzzling — und dass du eines Tages zurückkommst, wenn du wieder Lust hast, deine Zeiten zu erfassen. Die Tür bleibt offen.</p>
+    export_hint: |
+        <p><b>Bevor du gehst:</b> exportiere bitte zuerst deine Daten. Sobald das Konto gelöscht ist, lassen sich deine Legezeiten nicht mehr wiederherstellen — mit einem Export kannst du sie aber mitnehmen und eines Tages wieder mitbringen.</p>
+    export_button: "Meine Daten exportieren"
+    confirm_hint: |
+        <p>Um fortzufahren, klicke auf den Button unten. Die Seite, die sich öffnet, fragt ein letztes Mal nach — danach werden dein Konto und alle Daten endgültig gelöscht, und es gibt keinen Weg zurück.</p>
+    button: "Mein Konto löschen"
+    expires: "Der Link ist %minutes% Minuten gültig."
+    not_requested: "Du hast das nicht angefordert? Dann kannst du diese E-Mail einfach ignorieren — es passiert nichts, und dein Konto bleibt, wie es ist. Falls du befürchtest, dass jemand anderes Zugriff auf dein Konto hat, ändere dein Passwort."
+
 newsletter_confirmation:
     subject: "Ein Klick und die Puzzle-Neuigkeiten gehören dir 🧩"
     title: "Bestätige dein Abo"

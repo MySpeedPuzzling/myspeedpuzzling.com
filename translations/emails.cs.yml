@@ -178,6 +178,21 @@ password_reset:
     expires: "Odkaz funguje jednou a vyprší za %minutes% minut."
     not_requested: "Nežádali jste o něj? Tento e-mail můžete klidně ignorovat — vaše heslo zůstane beze změny."
 
+account_deletion:
+    subject: "Potvrďte smazání svého účtu na MySpeedPuzzling"
+    title: "Mrzí nás, že odcházíte"
+    content: |
+        <p>Někdo — doufejme, že vy — nás požádal o smazání účtu MySpeedPuzzling registrovaného na <b>%email%</b>.</p>
+        <p>Mrzí nás to, ale chápeme — to se stává. Doufáme, že jste si čas s MySpeedPuzzling užili a že se jednoho dne, až budete mít zase chuť sledovat své časy, vrátíte. Dveře zůstávají otevřené.</p>
+    export_hint: |
+        <p><b>Než odejdete:</b> exportujte si prosím nejdřív svá data. Jakmile bude účet smazaný, vaše časy skládání už nepůjde obnovit — s exportem si je ale můžete vzít s sebou a jednou se s nimi vrátit.</p>
+    export_button: "Exportovat moje data"
+    confirm_hint: |
+        <p>Pokud chcete pokračovat, klikněte na tlačítko níže. Stránka, která se otevře, požádá o poslední potvrzení — poté bude váš účet se všemi daty trvale smazán a cesta zpět neexistuje.</p>
+    button: "Smazat můj účet"
+    expires: "Odkaz platí %minutes% minut."
+    not_requested: "Nežádali jste o to? Tento e-mail můžete v klidu ignorovat — nic se nestane a váš účet zůstane, jak je. Pokud máte obavu, že má k vašemu účtu přístup někdo jiný, změňte si heslo."
+
 newsletter_confirmation:
     subject: "Jedno kliknutí a puzzle novinky jsou vaše 🧩"
     title: "Potvrďte odběr newsletteru"

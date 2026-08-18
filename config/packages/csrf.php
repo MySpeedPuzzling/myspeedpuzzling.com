@@ -33,6 +33,9 @@ return App::config([
                 // E-mail preferences page is reached from e-mail links, always
                 // anonymous (token-authenticated)
                 'email-preferences',
+                // "Delete my account" last-chance page is reached from an e-mail link,
+                // possibly anonymous, and must stay session-free (#164)
+                'confirm_account_deletion',
             ],
         ],
     ],

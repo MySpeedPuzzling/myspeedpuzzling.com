@@ -178,6 +178,21 @@ password_reset:
     expires: "Le lien ne fonctionne qu'une seule fois et expire dans %minutes% minutes."
     not_requested: "Vous n'êtes pas à l'origine de cette demande ? Vous pouvez ignorer cet e-mail sans crainte — votre mot de passe reste inchangé."
 
+account_deletion:
+    subject: "Confirmez la suppression de votre compte MySpeedPuzzling"
+    title: "Désolés de vous voir partir"
+    content: |
+        <p>Quelqu'un — nous espérons que c'est vous — nous a demandé de supprimer le compte MySpeedPuzzling enregistré à l'adresse <b>%email%</b>.</p>
+        <p>Nous sommes désolés de vous voir partir, mais cela arrive. Nous espérons que vous avez apprécié votre temps sur MySpeedPuzzling — et qu'un jour, quand l'envie de suivre vos temps vous reprendra, vous reviendrez. La porte reste ouverte.</p>
+    export_hint: |
+        <p><b>Avant de partir :</b> pensez à exporter vos données d'abord. Une fois le compte supprimé, vos temps de puzzle ne pourront plus être récupérés — mais avec un export, vous pouvez les emporter et les rapporter si vous revenez un jour.</p>
+    export_button: "Exporter mes données"
+    confirm_hint: |
+        <p>Pour continuer, cliquez sur le bouton ci-dessous. La page qui s'ouvre vous demandera une dernière confirmation — ensuite, votre compte et toutes ses données seront supprimés définitivement, sans retour en arrière possible.</p>
+    button: "Supprimer mon compte"
+    expires: "Le lien est valable %minutes% minutes."
+    not_requested: "Vous n'êtes pas à l'origine de cette demande ? Vous pouvez ignorer cet e-mail sans crainte — rien ne se passera et votre compte restera tel quel. Si vous craignez que quelqu'un d'autre ait accès à votre compte, changez votre mot de passe."
+
 newsletter_confirmation:
     subject: "Un clic et les nouveautés puzzle sont à vous 🧩"
     title: "Confirmez votre abonnement"

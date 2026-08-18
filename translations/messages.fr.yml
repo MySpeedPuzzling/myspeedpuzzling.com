@@ -768,6 +768,17 @@
   "email_not_verified": "Adresse e-mail pas encore confirmée"
   "email_verify_resend": "Renvoyer l'e-mail de confirmation"
   "back": "Retour aux paramètres du profil"
+  "danger_zone":
+    "title": "Zone de danger"
+    "intro": "Vous songez à nous quitter ? Nous sommes désolés de vous voir partir, mais nous comprenons — cela arrive. Nous espérons que vous avez apprécié votre temps sur MySpeedPuzzling et qu'un jour, quand l'envie de suivre vos temps vous reprendra, vous reviendrez."
+    "export_hint": "Avant de partir, pensez à exporter vos données. Une fois le compte supprimé, vos temps de puzzle ne pourront plus être récupérés — mais avec un export, vous pouvez les emporter et les rapporter si vous revenez un jour."
+    "how_it_works": "La suppression de votre compte se fait en deux étapes, pour qu'elle ne puisse jamais arriver par accident : nous envoyons un lien de confirmation à %email% (valable une heure), et la page qu'il ouvre vous demande une dernière confirmation. Ensuite, votre compte et toutes ses données sont supprimés définitivement — il n'y a pas de retour en arrière."
+    "how_it_works_generic": "La suppression de votre compte se fait en deux étapes, pour qu'elle ne puisse jamais arriver par accident : nous vous envoyons un lien de confirmation par e-mail (valable une heure), et la page qu'il ouvre vous demande une dernière confirmation. Ensuite, votre compte et toutes ses données sont supprimés définitivement — il n'y a pas de retour en arrière."
+    "export_button": "Exporter mes données d'abord"
+    "request_button": "M'envoyer le lien de confirmation par e-mail"
+    "sent": "Nous avons envoyé un lien de confirmation à %email%. Il est valable une heure — vérifiez votre boîte de réception (et vos spams)."
+    "too_many_requests": "Vous avez demandé plusieurs liens d'affilée. Vérifiez votre boîte de réception (et vos spams) et patientez un instant avant d'en demander un autre."
+    "failed": "Nous n'avons pas pu envoyer l'e-mail de confirmation. Veuillez réessayer dans un instant."
 "puzzle_detail":
   "meta":
     "title": "%brand% %name% – %pieces% pièces"
@@ -3065,6 +3076,45 @@ account_activity:
         oauth_login: "Connexion avec un compte associé"
         oauth_identity_linked: "Méthode de connexion associée"
         oauth_identity_unlinked: "Méthode de connexion dissociée"
+        account_deletion_requested: "Suppression du compte demandée"
+
+account_deletion:
+    confirm:
+        title: "Supprimer votre compte"
+        headline: "Désolés de vous voir partir"
+        intro: "C'est la dernière étape. Nous espérons que vous avez apprécié votre temps sur MySpeedPuzzling — et si un jour l'envie de suivre vos temps vous reprend, vous serez toujours le bienvenu."
+        warning: "Vous êtes sur le point de supprimer définitivement le compte %email% (%player%) ainsi que toutes ses données — temps de puzzle, collections, statistiques, messages, tout. Cette action est irréversible et rien ne pourra être récupéré ensuite."
+        export_title: "Emportez vos données avec vous"
+        export_text: "Vous n'avez pas encore exporté vos données ? Faites-le maintenant — après la suppression, il ne restera plus rien à exporter. Avec un export, vous pourrez rapporter vos temps si vous revenez un jour."
+        export_button: "Exporter mes données"
+        checkbox: "Je comprends que cette action est définitive et irréversible."
+        checkbox_required: "Veuillez cocher la case pour confirmer que vous avez compris."
+        submit: "Oui, supprimer définitivement mon compte"
+        cancel: "J'ai changé d'avis"
+        summary_title: "Tout cela disparaît avec le compte :"
+        summary_solving_times: "temps enregistrés"
+        summary_pieces: "pièces assemblées"
+        summary_time: "passé à puzzler"
+        summary_collections: "puzzles dans les collections"
+    dead_link:
+        nothing_deleted: "Rien n'a été supprimé — votre compte est exactement tel qu'il était."
+        to_settings: "Demander un nouveau lien dans les paramètres du profil"
+    expired:
+        headline: "Ce lien de suppression a expiré"
+        message: "Les liens de suppression sont valables une heure. Si vous souhaitez toujours supprimer votre compte, demandez un nouveau lien et utilisez-le tout de suite."
+    invalid:
+        headline: "Ce lien de suppression ne fonctionne pas"
+        message: "Il a peut-être déjà été utilisé, ou un lien plus récent l'a remplacé. Si vous souhaitez toujours supprimer votre compte, demandez un nouveau lien."
+    failed:
+        headline: "Nous n'avons pas pu supprimer votre compte"
+        message: "Quelque chose s'est mal passé de notre côté et rien n'a été supprimé. Veuillez réessayer dans un instant — et si le problème persiste, contactez-nous."
+    deleted:
+        title: "Compte supprimé"
+        headline: "Votre compte a été supprimé"
+        done: "Voilà — votre compte et toutes vos données ont disparu pour de bon."
+        farewell: "Désolés de vous voir partir, et merci pour le temps que vous avez passé sur MySpeedPuzzling. Nous espérons que vous l'avez apprécié."
+        come_back: "Si un jour l'envie de suivre vos temps vous reprend, vous serez toujours le bienvenu — il suffit de créer un nouveau compte. Bon puzzle !"
+        to_homepage: "Retour à la page d'accueil"
 
 wjpf:
     connect:

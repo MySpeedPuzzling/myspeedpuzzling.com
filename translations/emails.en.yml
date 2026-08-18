@@ -178,6 +178,21 @@ password_reset:
     expires: "The link works once and expires in %minutes% minutes."
     not_requested: "Did not request this? You can safely ignore this email — your password stays as it is."
 
+account_deletion:
+    subject: "Confirm the deletion of your MySpeedPuzzling account"
+    title: "Sorry to see you go"
+    content: |
+        <p>Somebody — hopefully you — asked us to delete the MySpeedPuzzling account registered to <b>%email%</b>.</p>
+        <p>We're sorry to see you go, but that happens. We hope you enjoyed your time with MySpeedPuzzling — and that one day, when you feel like tracking your times again, you'll come back. The door stays open.</p>
+    export_hint: |
+        <p><b>Before you go:</b> please export your data first. Once the account is gone, your solving times cannot be recovered — but with an export you can bring them back with you if you ever return.</p>
+    export_button: "Export my data"
+    confirm_hint: |
+        <p>To go ahead, click the button below. The page it opens asks for one final confirmation — after that, your account and all its data are deleted permanently and there is no way back.</p>
+    button: "Delete my account"
+    expires: "The link is valid for %minutes% minutes."
+    not_requested: "Did not request this? You can safely ignore this email — nothing will happen and your account stays as it is. If you are worried somebody else has access to your account, change your password."
+
 newsletter_confirmation:
     subject: "One click and the puzzle news is yours 🧩"
     title: "Confirm your subscription"

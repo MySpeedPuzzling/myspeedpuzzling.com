@@ -440,4 +440,41 @@
             </div>
         </div>
     </div>
+
+    {# Danger zone (docs/features/account-deletion.md): step one of the two-step
+       deletion. Nothing is deleted from here - the button only e-mails the link
+       that opens the last-chance page, so the mailbox is the second factor. #}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card card-body shadow-lg border border-danger" id="danger-zone">
+                <h3 class="h5 text-danger">
+                    <i class="bi bi-exclamation-triangle me-1"></i>{{ 'edit_profile.danger_zone.title'|trans }}
+                </h3>
+
+                <p class="mb-2">{{ 'edit_profile.danger_zone.intro'|trans }}</p>
+                <p class="mb-2">{{ 'edit_profile.danger_zone.export_hint'|trans }}</p>
+                <p class="text-muted fs-sm mb-3">
+                    {% if has_native_account %}
+                        {{ 'edit_profile.danger_zone.how_it_works'|trans({'%email%': account_email}) }}
+                    {% else %}
+                        {{ 'edit_profile.danger_zone.how_it_works_generic'|trans }}
+                    {% endif %}
+                </p>
+
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <a class="btn btn-outline-primary" href="{{ path('export_puzzler_data', {playerId: player.playerId}) }}">
+                        <i class="bi bi-download me-1"></i>{{ 'edit_profile.danger_zone.export_button'|trans }}
+                    </a>
+
+                    <form action="{{ path('request_account_deletion') }}" method="post" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\RequestAccountDeletionController::CSRF_TOKEN_ID')) }}" />
+
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="bi bi-envelope me-1"></i>{{ 'edit_profile.danger_zone.request_button'|trans }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

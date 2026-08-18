@@ -67,9 +67,13 @@ SQL;
     /**
      * @return array<CompetitionSeriesOverview>
      */
-    public function allApproved(): array
+    public function allApproved(null|string $country = null, bool $onlineOnly = false): array
     {
         $now = $this->clock->now();
+        $params = ['now' => $now->format('Y-m-d H:i:s')];
+
+        $where = 'cs.approved_at IS NOT NULL';
+        $where .= $this->filterConditions($country, $onlineOnly, $params);
 
         $query = <<<SQL
 SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
@@ -88,12 +92,12 @@ SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, 
         )
     ) AS next_edition_date
 FROM competition_series cs
-WHERE cs.approved_at IS NOT NULL
+WHERE {$where}
 ORDER BY cs.name
 SQL;
 
         $rows = $this->database
-            ->executeQuery($query, ['now' => $now->format('Y-m-d H:i:s')])
+            ->executeQuery($query, $params)
             ->fetchAllAssociative();
 
         return array_map($this->mapRow(...), $rows);
@@ -102,9 +106,13 @@ SQL;
     /**
      * @return array<CompetitionSeriesOverview>
      */
-    public function allUnapproved(): array
+    public function allUnapproved(null|string $country = null, bool $onlineOnly = false): array
     {
         $now = $this->clock->now();
+        $params = ['now' => $now->format('Y-m-d H:i:s')];
+
+        $where = 'cs.approved_at IS NULL AND cs.rejected_at IS NULL';
+        $where .= $this->filterConditions($country, $onlineOnly, $params);
 
         $query = <<<SQL
 SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
@@ -125,15 +133,35 @@ SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, 
     ) AS next_edition_date
 FROM competition_series cs
 LEFT JOIN player p ON p.id = cs.added_by_player_id
-WHERE cs.approved_at IS NULL AND cs.rejected_at IS NULL
+WHERE {$where}
 ORDER BY cs.created_at DESC NULLS LAST
 SQL;
 
         $rows = $this->database
-            ->executeQuery($query, ['now' => $now->format('Y-m-d H:i:s')])
+            ->executeQuery($query, $params)
             ->fetchAllAssociative();
 
         return array_map($this->mapRow(...), $rows);
+    }
+
+    /**
+     * @param array<string, string> $params
+     */
+    private function filterConditions(null|string $country, bool $onlineOnly, array &$params): string
+    {
+        $conditions = '';
+
+        if ($country !== null) {
+            // Historic rows carry uppercase ISO codes while the UI submits lowercase.
+            $conditions .= ' AND LOWER(cs.location_country_code) = LOWER(:country)';
+            $params['country'] = $country;
+        }
+
+        if ($onlineOnly) {
+            $conditions .= ' AND cs.is_online = true';
+        }
+
+        return $conditions;
     }
 
     /**

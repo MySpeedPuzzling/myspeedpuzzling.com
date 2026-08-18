@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\OAuth2;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\RequestApiAccessFormData;
 use SpeedPuzzling\Web\FormType\RequestApiAccessFormType;
@@ -40,7 +40,7 @@ final class RequestApiAccessController extends AbstractController
         ],
         name: 'request_api_access',
     )]
-    public function __invoke(Request $request, #[CurrentUser] User $user): Response
+    public function __invoke(Request $request, #[CurrentUser] UserInterface $user): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 

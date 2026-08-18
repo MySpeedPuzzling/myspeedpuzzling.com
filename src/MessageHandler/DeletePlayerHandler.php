@@ -34,12 +34,16 @@ use SpeedPuzzling\Web\Entity\UserBlock;
 use SpeedPuzzling\Web\Entity\WishListItem;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\DeletePlayer;
+use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
+use SpeedPuzzling\Web\Repository\NewsletterSubscriberRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use Stripe\Exception\ApiErrorException;
 use Stripe\StripeClient;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 final class DeletePlayerHandler
@@ -49,6 +53,9 @@ final class DeletePlayerHandler
         private readonly PlayerRepository $playerRepository,
         private readonly StripeClient $stripeClient,
         private readonly LoggerInterface $logger,
+        private readonly NewsletterSubscriberRepository $newsletterSubscriberRepository,
+        private readonly MessageBusInterface $messageBus,
+        private readonly UserAccountRepository $userAccountRepository,
     ) {
     }
 
@@ -78,6 +85,7 @@ final class DeletePlayerHandler
         $this->anonymizeCompetitionSeries($playerId);
         $this->anonymizeBulkSimpleFks($playerId);
         $this->hashEmailAuditLog($player);
+        $this->cleanupNewsletter($player);
 
         $membership = $this->entityManager->getRepository(Membership::class)->findOneBy(['player' => $player]);
 
@@ -85,6 +93,7 @@ final class DeletePlayerHandler
             $this->entityManager->remove($membership);
         }
 
+        $this->deleteUserAccount($player);
         $this->entityManager->remove($player);
 
         $this->logger->info('Player deleted via GDPR request', [
@@ -380,6 +389,47 @@ final class DeletePlayerHandler
         $conn->executeStatement('UPDATE lent_puzzle_transfer SET owner_player_id = NULL WHERE owner_player_id = :p', ['p' => $playerId]);
         $conn->executeStatement('UPDATE sell_swap_list_item SET reserved_for_player_id = NULL WHERE reserved_for_player_id = :p', ['p' => $playerId]);
         $conn->executeStatement('UPDATE oauth2_client_request SET reviewed_by_id = NULL WHERE reviewed_by_id = :p', ['p' => $playerId]);
+    }
+
+    /**
+     * The player row (and with it the e-mail) is gone after this transaction,
+     * so the Listmonk removal must be queued now, carrying the address. A guest
+     * newsletter subscription under the same address is wiped too.
+     */
+    private function cleanupNewsletter(Player $player): void
+    {
+        if ($player->email === null) {
+            return;
+        }
+
+        $email = mb_strtolower(trim($player->email));
+
+        $guestSubscriber = $this->newsletterSubscriberRepository->findByEmail($email);
+
+        if ($guestSubscriber !== null) {
+            $this->newsletterSubscriberRepository->remove($guestSubscriber);
+        }
+
+        $this->messageBus->dispatch(new RemoveNewsletterSubscriberFromListmonk($email));
+    }
+
+    /**
+     * The account row carries the login email + password hash - PII that must not
+     * survive a GDPR deletion (the user can always re-register). Dependent rows
+     * (auth_audit_log, reset/login-link requests) go with it via DB-level
+     * ON DELETE CASCADE.
+     */
+    private function deleteUserAccount(Player $player): void
+    {
+        if ($player->userId === null) {
+            return;
+        }
+
+        $userAccount = $this->userAccountRepository->findByUserId($player->userId);
+
+        if ($userAccount !== null) {
+            $this->entityManager->remove($userAccount);
+        }
     }
 
     private function hashEmailAuditLog(Player $player): void

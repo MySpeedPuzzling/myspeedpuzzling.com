@@ -95,38 +95,30 @@ final class SendMessageHandlerTest extends KernelTestCase
 
     public function testRecipientCannotSendMessageInPendingConversation(): void
     {
-        try {
-            // PLAYER_REGULAR is the recipient of CONVERSATION_PENDING
-            $this->messageBus->dispatch(
-                new SendMessage(
-                    conversationId: ConversationFixture::CONVERSATION_PENDING,
-                    senderId: PlayerFixture::PLAYER_REGULAR,
-                    content: 'Should not work',
-                ),
-            );
-            self::fail('Expected ConversationNotFound exception was not thrown');
-        } catch (HandlerFailedException $e) {
-            $previous = $e->getPrevious();
-            self::assertInstanceOf(ConversationNotFound::class, $previous);
-        }
+        $this->expectException(ConversationNotFound::class);
+
+        // PLAYER_REGULAR is the recipient of CONVERSATION_PENDING
+        $this->messageBus->dispatch(
+            new SendMessage(
+                conversationId: ConversationFixture::CONVERSATION_PENDING,
+                senderId: PlayerFixture::PLAYER_REGULAR,
+                content: 'Should not work',
+            ),
+        );
     }
 
     public function testNonParticipantCannotSendMessage(): void
     {
-        try {
-            // PLAYER_WITH_FAVORITES is not a participant of CONVERSATION_ACCEPTED
-            $this->messageBus->dispatch(
-                new SendMessage(
-                    conversationId: ConversationFixture::CONVERSATION_ACCEPTED,
-                    senderId: PlayerFixture::PLAYER_WITH_FAVORITES,
-                    content: 'Should not work',
-                ),
-            );
-            self::fail('Expected ConversationNotFound exception was not thrown');
-        } catch (HandlerFailedException $e) {
-            $previous = $e->getPrevious();
-            self::assertInstanceOf(ConversationNotFound::class, $previous);
-        }
+        $this->expectException(ConversationNotFound::class);
+
+        // PLAYER_WITH_FAVORITES is not a participant of CONVERSATION_ACCEPTED
+        $this->messageBus->dispatch(
+            new SendMessage(
+                conversationId: ConversationFixture::CONVERSATION_ACCEPTED,
+                senderId: PlayerFixture::PLAYER_WITH_FAVORITES,
+                content: 'Should not work',
+            ),
+        );
     }
 
     public function testMutedUserCannotSendMessage(): void

@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\RateTransaction;
 use SpeedPuzzling\Web\Query\GetTransactionRatings;
 use SpeedPuzzling\Web\Repository\SoldSwappedItemRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -46,7 +47,11 @@ final class RateTransactionController extends AbstractController
         $soldSwappedItem = $this->soldSwappedItemRepository->get($soldSwappedItemId);
 
         $isTurboFrameRequest = $request->headers->get('Turbo-Frame') === 'modal-frame';
-        $returnUrl = $request->query->getString('return');
+        // Validated, not trusted: this value ends up in a Location header, and the
+        // "cannot rate" branch below redirects on a plain GET - an unchecked value
+        // would be a one-click open redirect for any signed-in visitor.
+        $validatedReturn = ReturnUrl::tryFrom($request->query->getString('return'));
+        $returnUrl = $validatedReturn === null ? '' : $validatedReturn->path;
         $fallbackRedirect = $this->redirectToRoute('sold_swapped_history', ['playerId' => $loggedPlayer->playerId]);
 
         if (!$this->getTransactionRatings->canRate($soldSwappedItemId, $loggedPlayer->playerId)) {
@@ -69,9 +74,11 @@ final class RateTransactionController extends AbstractController
         if ($request->isMethod('POST')) {
             $stars = $request->request->getInt('stars');
             $reviewText = trim($request->request->getString('review_text'));
-            $postReturnUrl = $request->request->getString('return');
+            // The form round-trips the value, so it needs the same validation as
+            // the query-string one - the POST body is no more trustworthy
+            $postReturnUrl = ReturnUrl::tryFrom($request->request->getString('return'))?->path;
 
-            if ($postReturnUrl !== '') {
+            if ($postReturnUrl !== null) {
                 $returnUrl = $postReturnUrl;
             }
 

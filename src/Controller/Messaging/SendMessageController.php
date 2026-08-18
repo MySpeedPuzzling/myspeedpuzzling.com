@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\Messaging;
 
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
 use SpeedPuzzling\Web\Message\SendMessage;
 use SpeedPuzzling\Web\Results\MessageView;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -15,12 +16,14 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class SendMessageController extends AbstractController
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -38,11 +41,19 @@ final class SendMessageController extends AbstractController
         $content = trim($request->request->getString('message'));
 
         if ($content !== '') {
-            $this->messageBus->dispatch(new SendMessage(
-                conversationId: $conversationId,
-                senderId: $loggedPlayer->playerId,
-                content: $content,
-            ));
+            try {
+                $this->messageBus->dispatch(new SendMessage(
+                    conversationId: $conversationId,
+                    senderId: $loggedPlayer->playerId,
+                    content: $content,
+                ));
+            } catch (ConversationNotFound) {
+                // Deleted or access withdrawn while the message was being typed.
+                // Redirect (not a Turbo stream) so the warning is actually seen.
+                $this->addFlash('warning', $this->translator->trans('messaging.conversation_unavailable'));
+
+                return $this->redirectToRoute('conversations_list');
+            }
         }
 
         if (str_contains($request->headers->get('Accept', ''), 'text/vnd.turbo-stream.html') && $content !== '') {

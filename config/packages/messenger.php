@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
+use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
+use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 
 return App::config([
@@ -14,6 +16,12 @@ return App::config([
             'buses' => [
                 'command_bus' => [
                     'middleware' => [
+                        // OUTERMOST on purpose: it must see HandlerFailedException
+                        // only after doctrine_transaction has rolled back, so a
+                        // handler's 404-flavoured exception reaches the controller
+                        // as itself (→ real 404) instead of a wrapper (→ silent 500
+                        // that Sentry discards). See the class docblock.
+                        'SpeedPuzzling\Web\Services\MessengerMiddleware\UnwrapHttpExceptionMiddleware',
                         'SpeedPuzzling\Web\Services\MessengerMiddleware\ClearEntityManagerMiddleware',
                         'doctrine_transaction',
                     ],
@@ -43,6 +51,9 @@ return App::config([
                 SendEmailMessage::class => 'async',
                 PrepareDigestEmailForPlayer::class => 'async',
                 RecalculateDerivedMetricsForPuzzle::class => 'async',
+                // Listmonk API calls must not block or fail the user-facing request
+                PushNewsletterSubscriberToListmonk::class => 'async',
+                RemoveNewsletterSubscriberFromListmonk::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleAddedToCollection' => 'sync',

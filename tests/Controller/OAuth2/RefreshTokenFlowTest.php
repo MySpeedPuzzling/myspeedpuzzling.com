@@ -46,6 +46,7 @@ final class RefreshTokenFlowTest extends WebTestCase
         $this->assertArrayHasKey('token_type', $response);
         $this->assertArrayHasKey('expires_in', $response);
         $this->assertSame('Bearer', $response['token_type']);
+        $this->assertSame('profile:read', $response['scope'] ?? null);
     }
 
     public function testRefreshTokenGrantWithInvalidTokenFails(): void

@@ -161,58 +161,69 @@
         </div>
     {% endif %}
 
-    {% set items = this.items %}
-    {% set seriesItems = this.seriesItems %}
+    {% set upcomingSeries = this.upcomingSeriesItems %}
+    {% set pastSeries = this.pastSeriesItems %}
 
-    {% if items is empty and seriesItems is empty %}
-        <div class="text-center text-muted py-4">
-            {{ 'events.no_results'|trans }}
-        </div>
+    {% if this.timePeriod == 'all' %}
+        {% set liveEvents = this.liveEvents %}
+        {% set upcomingEvents = this.upcomingEvents %}
+        {% set pastEvents = this.pastEvents %}
+
+        {% if liveEvents is empty and upcomingEvents is empty and pastEvents is empty and upcomingSeries is empty and pastSeries is empty %}
+            <div class="text-center text-muted py-4">
+                {{ 'events.no_results'|trans }}
+            </div>
+        {% else %}
+            {% if liveEvents is not empty %}
+                <h2 class="mt-4 mb-3">{{ 'events.live'|trans }}</h2>
+                <div class="row">
+                    {% for event in liveEvents %}
+                        {{ include('_competition_event.html.twig') }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if upcomingSeries is not empty or upcomingEvents is not empty %}
+                <h2 class="mt-4 mb-3">{{ 'events.upcoming'|trans }}</h2>
+                <div class="row">
+                    {% for series_item in upcomingSeries %}
+                        {{ include('_competition_series_card.html.twig') }}
+                    {% endfor %}
+                    {% for event in upcomingEvents %}
+                        {{ include('_competition_event.html.twig') }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if pastSeries is not empty or pastEvents is not empty %}
+                <h2 class="mt-4 mb-3">{{ 'events.past'|trans }}</h2>
+                <div class="row">
+                    {% for series_item in pastSeries %}
+                        {{ include('_competition_series_card.html.twig') }}
+                    {% endfor %}
+                    {% for event in pastEvents %}
+                        {{ include('_competition_event.html.twig') }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endif %}
     {% else %}
-        {% set currentStatus = null %}
-        {% set seriesRendered = false %}
+        {% set items = this.items %}
 
-        {% for event in items %}
-            {% if this.timePeriod == 'all' and event.eventStatus is not null and event.eventStatus != currentStatus %}
-                {% if not loop.first %}</div>{% endif %}
-                <h2 class="mt-4 mb-3">
-                    {% if event.eventStatus == 'live' %}
-                        {{ 'events.live'|trans }}
-                    {% elseif event.eventStatus == 'upcoming' %}
-                        {{ 'events.upcoming'|trans }}
-                    {% elseif event.eventStatus == 'past' %}
-                        {{ 'events.past'|trans }}
-                    {% endif %}
-                </h2>
-                <div class="row">
-                {# Render series cards at the start of the "Upcoming" section #}
-                {% if not seriesRendered and event.eventStatus == 'upcoming' and seriesItems|length > 0 %}
-                    {% for series_item in seriesItems %}
-                        {{ include('_competition_series_card.html.twig') }}
-                    {% endfor %}
-                    {% set seriesRendered = true %}
-                {% endif %}
-                {% set currentStatus = event.eventStatus %}
-            {% endif %}
-            {% if loop.first and (this.timePeriod != 'all' or event.eventStatus is null) %}
-                <div class="row">
-                {# For non-"all" views, render series at the top #}
-                {% if not seriesRendered and seriesItems|length > 0 %}
-                    {% for series_item in seriesItems %}
-                        {{ include('_competition_series_card.html.twig') }}
-                    {% endfor %}
-                    {% set seriesRendered = true %}
-                {% endif %}
-            {% endif %}
-                {{ include('_competition_event.html.twig') }}
-            {% if loop.last %}</div>{% endif %}
-        {% endfor %}
-
-        {# Render series cards if not yet rendered (no events, or no upcoming section appeared) #}
-        {% if not seriesRendered and seriesItems|length > 0 %}
+        {% if items is empty and upcomingSeries is empty and pastSeries is empty %}
+            <div class="text-center text-muted py-4">
+                {{ 'events.no_results'|trans }}
+            </div>
+        {% else %}
             <div class="row">
-                {% for series_item in seriesItems %}
+                {% for series_item in upcomingSeries %}
                     {{ include('_competition_series_card.html.twig') }}
+                {% endfor %}
+                {% for series_item in pastSeries %}
+                    {{ include('_competition_series_card.html.twig') }}
+                {% endfor %}
+                {% for event in items %}
+                    {{ include('_competition_event.html.twig') }}
                 {% endfor %}
             </div>
         {% endif %}

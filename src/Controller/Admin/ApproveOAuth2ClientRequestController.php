@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Admin;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Message\ApproveOAuth2ClientRequest;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -29,7 +29,7 @@ final class ApproveOAuth2ClientRequestController extends AbstractController
         methods: ['POST'],
     )]
     #[IsGranted(AdminAccessVoter::ADMIN_ACCESS)]
-    public function __invoke(#[CurrentUser] User $user, string $requestId): Response
+    public function __invoke(#[CurrentUser] UserInterface $user, string $requestId): Response
     {
         $profile = $this->retrieveLoggedUserProfile->getProfile();
         assert($profile !== null);

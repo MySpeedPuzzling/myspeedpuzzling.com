@@ -35,8 +35,9 @@ subscription_payment_failed:
     title: "Platba členství selhala!"
     content: |
         <p>Všimli jsme si, že vaše poslední platba za předplatné neproběhla úspěšně. Mohlo dojít k problému s vaší platební metodou.</p>
-        <p>Pokud si přejete, aby vaše členství zůstalo aktivní, zkontrolujte a aktualizujte svou platební metodu na <a href="%billingPortalUrl%">stránce platebního portálu</a>.</p>
+        <p>Pokud si přejete, aby vaše členství zůstalo aktivní, zkontrolujte a aktualizujte svou platební metodu v platebním portálu.</p>
         <p>Pokud platba nadále selhává, vaše členství bude po několika dalších pokusech deaktivováno. Doufáme, že zůstanete součástí MySpeedPuzzling.com!</p>
+    button: "Aktualizovat platební metodu"
 
 subscription_renewed:
     subject: "Platba členství na MySpeedPuzzling.com proběhla úspěšně"
@@ -68,7 +69,7 @@ competition_submitted:
     content: |
         <p>Nová událost byla odeslána ke schválení.</p>
         <p><strong>Odeslal:</strong> %playerName%<br><strong>Událost:</strong> %competitionName%<br><strong>Místo:</strong> %location%</p>
-        <p><a href="%adminUrl%">Zkontrolovat čekající události v administraci</a></p>
+    button: "Zkontrolovat čekající události v administraci"
 
 competition_approved:
     subject: "Vaše událost byla schválena!"
@@ -92,16 +93,16 @@ oauth2_client_request:
         <p>Byla odeslána nová žádost o přístup OAuth2 klienta.</p>
         <p><strong>Žadatel:</strong> %playerName%<br><strong>Aplikace:</strong> %clientName%</p>
         <p><strong>Účel:</strong> %purpose%</p>
-        <p><a href="%adminUrl%">Zkontrolovat žádost v administraci</a></p>
+    button: "Zkontrolovat žádost v administraci"
 
 oauth2_client_approved:
     subject: "Vaše API aplikace byla schválena!"
     title: "Vaše aplikace byla schválena!"
     content: |
         <p>Skvělá zpráva! Vaše OAuth2 aplikace <strong>%clientName%</strong> byla schválena.</p>
-        <p>Klikněte na odkaz níže pro získání vašich přihlašovacích údajů. Odkaz je platný 7 dní.</p>
+        <p>Klikněte na tlačítko níže pro získání vašich přihlašovacích údajů. Odkaz je platný 7 dní.</p>
         <p><strong>Důležité:</strong> Vaše přihlašovací údaje budou zobrazeny pouze jednou. Ujistěte se, že je uložíte na bezpečné místo.</p>
-        <p><a href="%claimUrl%">Získat přihlašovací údaje</a></p>
+    button: "Získat přihlašovací údaje"
 
 oauth2_client_rejected:
     subject: "Vaše žádost o API aplikaci nebyla schválena"
@@ -148,3 +149,55 @@ feature_request_declined:
             <p>Přesto děkujeme za podporu nápadu! Vaše vstupy nám pomáhají pochopit, co komunitu zajímá.</p>
         admin_comment: |
             <p><strong>Komentář od týmu:</strong> %adminComment%</p>
+
+sign_in_link:
+    subject: "Váš přihlašovací odkaz pro MySpeedPuzzling.com"
+    title: "Tady je váš přihlašovací odkaz"
+    content: |
+        <p>Kliknutím na tlačítko níže se přihlásíte na MySpeedPuzzling.com — heslo nepotřebujete.</p>
+    button: "Přihlásit se"
+    expires: "Odkaz funguje jednou a vyprší za %minutes% minut."
+    not_requested: "Nežádali jste o něj? Tento e-mail můžete klidně ignorovat — bez odkazu se nikdo nepřihlásí."
+
+verify_email:
+    subject: "Potvrďte svou e-mailovou adresu pro MySpeedPuzzling.com"
+    title: "Potvrďte svou e-mailovou adresu"
+    content: |
+        <p>Vítejte na MySpeedPuzzling — jste v dobré společnosti více než 10 000 dalších puzzlerů!</p>
+        <p>Stačí potvrdit e-mailovou adresu a můžete začít: měřit si skládání, porovnávat výsledky s komunitou a sledovat, jak padají vaše osobní rekordy.</p>
+    button: "Potvrdit mou e-mailovou adresu"
+    expires: "Odkaz platí %hours% hodin."
+    not_requested: "Tento účet jste nezakládali? Tento e-mail můžete klidně ignorovat."
+
+password_reset:
+    subject: "Obnovení hesla k MySpeedPuzzling.com"
+    title: "Zvolte si nové heslo"
+    content: |
+        <p>Někdo — doufejme, že vy — požádal o obnovení hesla k vašemu účtu na MySpeedPuzzling.com. Kliknutím na tlačítko níže si zvolíte nové.</p>
+    button: "Zvolit nové heslo"
+    expires: "Odkaz funguje jednou a vyprší za %minutes% minut."
+    not_requested: "Nežádali jste o něj? Tento e-mail můžete klidně ignorovat — vaše heslo zůstane beze změny."
+
+account_deletion:
+    subject: "Potvrďte smazání svého účtu na MySpeedPuzzling"
+    title: "Mrzí nás, že odcházíte"
+    content: |
+        <p>Někdo — doufejme, že vy — nás požádal o smazání účtu MySpeedPuzzling registrovaného na <b>%email%</b>.</p>
+        <p>Mrzí nás to, ale chápeme — to se stává. Doufáme, že jste si čas s MySpeedPuzzling užili a že se jednoho dne, až budete mít zase chuť sledovat své časy, vrátíte. Dveře zůstávají otevřené.</p>
+    export_hint: |
+        <p><b>Než odejdete:</b> exportujte si prosím nejdřív svá data. Jakmile bude účet smazaný, vaše časy skládání už nepůjde obnovit — s exportem si je ale můžete vzít s sebou a jednou se s nimi vrátit.</p>
+    export_button: "Exportovat moje data"
+    confirm_hint: |
+        <p>Pokud chcete pokračovat, klikněte na tlačítko níže. Stránka, která se otevře, požádá o poslední potvrzení — poté bude váš účet se všemi daty trvale smazán a cesta zpět neexistuje.</p>
+    button: "Smazat můj účet"
+    expires: "Odkaz platí %minutes% minut."
+    not_requested: "Nežádali jste o to? Tento e-mail můžete v klidu ignorovat — nic se nestane a váš účet zůstane, jak je. Pokud máte obavu, že má k vašemu účtu přístup někdo jiný, změňte si heslo."
+
+newsletter_confirmation:
+    subject: "Jedno kliknutí a puzzle novinky jsou vaše 🧩"
+    title: "Potvrďte odběr newsletteru"
+    content: |
+        <p>Ahoj! Někdo — doufejme, že vy — se přihlásil k odběru newsletteru MySpeedPuzzling na tuto adresu.</p>
+        <p>Potvrďte odběr tlačítkem níže a budeme vám dávat vědět, co je na platformě nového — nové funkce, vylepšení a novinky z komunity. Žádný marketing, žádná reklama — jen novinky, maximálně jednou měsíčně.</p>
+    button: "Potvrdit odběr"
+    expires: "Odkaz platí %hours% hodin. Pokud jste o odběr nežádali, tento e-mail klidně ignorujte a nic vám chodit nebude."

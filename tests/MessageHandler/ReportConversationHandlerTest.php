@@ -10,7 +10,6 @@ use SpeedPuzzling\Web\Query\GetReports;
 use SpeedPuzzling\Web\Tests\DataFixtures\ConversationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class ReportConversationHandlerTest extends KernelTestCase
@@ -49,19 +48,15 @@ final class ReportConversationHandlerTest extends KernelTestCase
 
     public function testOnlyParticipantCanReport(): void
     {
-        try {
-            // PLAYER_WITH_FAVORITES is not a participant of CONVERSATION_ACCEPTED
-            $this->messageBus->dispatch(
-                new ReportConversation(
-                    reporterId: PlayerFixture::PLAYER_WITH_FAVORITES,
-                    conversationId: ConversationFixture::CONVERSATION_ACCEPTED,
-                    reason: 'Should not work',
-                ),
-            );
-            self::fail('Expected ConversationNotFound exception was not thrown');
-        } catch (HandlerFailedException $e) {
-            $previous = $e->getPrevious();
-            self::assertInstanceOf(ConversationNotFound::class, $previous);
-        }
+        $this->expectException(ConversationNotFound::class);
+
+        // PLAYER_WITH_FAVORITES is not a participant of CONVERSATION_ACCEPTED
+        $this->messageBus->dispatch(
+            new ReportConversation(
+                reporterId: PlayerFixture::PLAYER_WITH_FAVORITES,
+                conversationId: ConversationFixture::CONVERSATION_ACCEPTED,
+                reason: 'Should not work',
+            ),
+        );
     }
 }

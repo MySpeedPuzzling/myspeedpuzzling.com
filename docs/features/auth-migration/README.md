@@ -1,7 +1,7 @@
 # Auth0 → Native Symfony Authentication Migration
 
-**Status:** Research complete, implementation not started
-**Researched:** 2026-07-11 (all facts below verified on that date — live production DB queries, Auth0 docs/pricing, Packagist metadata, empirical tests in this repo's PHP 8.5.5 / Symfony 8.0.5 container)
+**Status (2026-07-30, end of day): STAGE A IS LIVE.** Phase 2 build complete (2a–2d; remember-me deferred to Phase 6, see implementation-plan §2b). Native registration serves on production (`/register`, `NATIVE_REGISTRATION_ENABLED=1` baked in the repo `.env`), Auth0 signups frozen tenant-side (verified: the signup API refuses), Essentials paid, hash-export ticket open with Okta (PGP key + wet-ink executive acknowledgement per their process). Announcement newsletter went out the same day naming cutover week **Aug 3–8**. Next: **Stage B** the moment the export file arrives — validate, import (arms sign-in links, the point of no return), flip `NATIVE_LOGIN_ENABLED=1`, truncate sessions. Contingency if the export drags past ~Aug 6: trickle-primary cutover (ROPG smoke test 0.5 is the insurance to verify beforehand).
+**Researched:** 2026-07-11; re-verified against the codebase 2026-07-23 (live production DB queries, Auth0 docs/pricing, Packagist metadata, empirical tests in this repo's PHP 8.5.5 / Symfony 8.0.5 container). Delta since 2026-07-11 folded in: #161 in-app change-password (new Auth0 touchpoint), #160 lily deploy pipeline, #164 anonymous cacheability, Panther suite re-enabled (d029829e)
 **Documents:**
 - [README.md](README.md) — analysis, target architecture, decisions, risks (this file)
 - [implementation-plan.md](implementation-plan.md) — step-by-step technical plan, cutover runbook, decommission checklist
@@ -13,6 +13,19 @@
 - Full ownership of the login/registration/reset UX (hosted Universal Login is unbrandable on free tier, lives on `speedpuzzling.eu.auth0.com`).
 - Dependency hygiene: the app currently pins `auth0/symfony: dev-main` from a personal fork (`janmikes/auth0-symfony`) under `minimum-stability: dev`, partly to bypass a `roave/security-advisories` block on `auth0/symfony <= 5.5`. Removing Auth0 removes this fragile posture.
 - Unlocks native features later: passkeys/WebAuthn, magic links, 2FA, per-device sessions.
+
+## Rollout model (decided 2026-07-23)
+
+Two user-visible stages instead of one big-bang cutover — sequencing insight: **freeze Auth0 signups before the paid export is generated, and the export covers 100% of Auth0 users**. There is no post-snapshot-signup gap left for the trickle to paper over; trickle only covers in-window password *changes*.
+
+| Stage | What flips | Target |
+|---|---|---|
+| **Stage A** | New **registrations** go native (`msp\|` accounts); Auth0 database connection gets **Disable Sign Ups**; announcement email + banner + FAQ go live; **pay Essentials + open the hash-export ticket the same day** | ~1 week from start (build-gated) |
+| **Stage B** | **Login** flips to the native form (invisible trickle fallback active); hash export imported; sessions flushed | ~1 week after Stage A (export-gated; hard decision gate at day 14 — see risk register) |
+| Window | Trickle runs invisibly; metrics watched; straggler nudge at B+2w | 3–4 weeks after Stage B |
+| Decommission | Trickle + fork + tenant deleted | ~6–7 weeks from start |
+
+During the A→B window the `main` firewall runs **both** systems: `custom_authenticators: [LoginFormAuthenticator, auth0.authenticator]` + a chain user provider (`user_account_provider` first) so both session user classes refresh; entry point stays `Auth0EntryPoint` (existing users still land on Auth0 to sign in). Known edge: a window-A native registrant who logs out mid-window would face the Auth0 form — rescued by the already-live magic login link; acceptable for ~1 week. The authenticator-chain interplay (Auth0 authenticator failure must return null response, not short-circuit) gets an explicit functional test before Stage A ships.
 
 ## Current state (verified)
 
@@ -26,8 +39,22 @@
 | Players with `user_id` but no stored email | 3 |
 | Duplicate-email pairs (same email, two player rows) | 7 pairs / 14 rows — likely deleted-and-re-registered Auth0 accounts; the stale row's Auth0 user no longer exists |
 | Auth0 tenant | `speedpuzzling.eu.auth0.com` (EU, no custom domain), client `miVihwBrsB47LxhQpLYEf22ySrDq9Ra9` |
-| Sessions | Symfony `PdoSessionHandler` in Postgres, cookie lifetime ~15.6 days, no remember-me |
+| Sessions | Symfony `PdoSessionHandler` in Postgres, cookie lifetime **30 days** since 2026-08-01 (was ~15.6), matching `remember_me`. The session cookie slides on every request; the remember-me cookie only re-issues when it is actually consumed, so the session lifetime is what protects a long-active-then-idle user - hence keeping the two in step |
 | Transactional email | `smtp.seznam.cz` (all three MAILER DSNs) |
+
+### Production state of the native stack (verified on the box, 2026-07-25 — after 2a/2b/2c-I/2c-II shipped)
+
+| Fact | Value |
+|---|---|
+| `select count(*) from user_account` | **0** — nothing has written the table; its only two writers are the flag-gated `RegisterUserHandler` and the manual import command |
+| Flags in the running web container's env | none set — `docker compose … exec web printenv` shows no `NATIVE_*` / `AUTH0_TRICKLE_*` |
+| Flags as Symfony resolves them | from the image's `/app/.env`: `NATIVE_REGISTRATION_ENABLED=0`, `NATIVE_LOGIN_ENABLED=0`, `AUTH0_TRICKLE_LOGIN_ENABLED=0`, `SIGN_IN_CHANGES_NOTICE_ENABLED=1` |
+| Infisical / box-rendered `.env` | sets none of them, so the image defaults stand (this closes the "can't see Infisical from the repo" gap) |
+| `/login` on production | still 302s to `speedpuzzling.eu.auth0.com/authorize` — unchanged for real users |
+| `/register`, `/password-reset`, `/welcome` | 302 → `/login` |
+| Homepage | 200 with `public, s-maxage=60` and no `Set-Cookie` — #164 cacheability intact after the flags became Twig globals |
+
+Consequence worth carrying into Stage B planning: **no user can hold a native session, and none can be created, until the import runs** — see the ⚠️ on Phase 4B step 2.
 
 **Zero social logins is the single most important finding** — it eliminates the entire social-identity-portability problem (Google sub mapping, Facebook app-scoped IDs, Apple team-scoped subs). The migration is purely email+password.
 
@@ -35,13 +62,13 @@
 
 Auth0 touches exactly **one** of four firewalls — `main`. The `api` (PAT + OAuth2 server), `internal_api`, and `stateless` firewalls are Player/token-based and have zero Auth0 dependency.
 
-- **Bundle:** forked `auth0/symfony` 5.5.0 (`janmikes/auth0-symfony@0785fc5`) — fork is only a Symfony 8 / PHP 8.4+ compat bump, no behavior change. Credentials stored inside the Symfony session; `getUserIdentifier()` returns the Auth0 `sub`.
+- **Bundle:** forked `auth0/symfony` 5.5.0 (`janmikes/auth0-symfony`, dev-main). Originally a Symfony 8 / PHP 8.4+ compat bump; since 2026-07 the fork **also carries behavior fixes** (df39b56: no session write on anonymous failure + redirect-target cookie; 9bc1eb0: `authenticate()` throws early without a previous session) that keep anonymous requests session-free — this is exactly the class of upstream-rejected maintenance that motivates the migration, and a property the native stack must preserve (see "Anonymous-cacheability constraint" below). Credentials stored inside the Symfony session; `getUserIdentifier()` returns the Auth0 `sub`.
 - **App glue:** `src/Security/Auth0EntryPoint.php` (redirect-target cookie), `src/EventSubscriber/Auth0RedirectSubscriber.php` (cookie-based post-login redirect), `src/Services/Auth0SdkResetListener.php` (FrankenPHP worker-mode safety — reflection-nulls the SDK each request), routes `login`/`callback`/`logout`/`app_logout` in `config/routes.php`, SDK config in `config/packages/auth0.php`.
 - **Identity seam:** `Player.userId` (unique, nullable string = Auth0 sub) is the real identity across the whole write path. 13+ Messenger handlers resolve/auto-create players via `PlayerRepository::getByUserIdCreateIfNotExists($userId)`; API processors reach back into `getPlayer()->userId`. **Any new auth must keep producing the same identity string.**
 - **Read chokepoint:** `src/Services/RetrieveLoggedUserProfile.php` — `security->getUser()` → `instanceof Auth0\Symfony\Models\User` → `getUserIdentifier()` → `GetPlayerProfile::byUserId()`; JIT-registers via `RegisterUserToPlay` (consumes only `sub`, `email`, `name`). Exposed to ~153 template references as the `logged_user` Twig global.
 - **Compile-time coupling:** 46 controllers type-hint the concrete `Auth0\Symfony\Models\User` in `#[CurrentUser]` (mechanical swap); 25 already hint `UserInterface` (portable). `EventSubscriber/OAuth2AuthorizationSubscriber.php` does runtime `instanceof` on the Auth0 user classes.
 - **Admin:** DB flag `player.is_admin` via `AdminAccessVoter` — **no Auth0 roles/claims involved.** Untouched by migration.
-- **No Auth0 Management API usage anywhere.** No in-app password reset, email verification, or account email change — 100% delegated to Auth0's hosted pages today. These flows are **new builds**, not ports. `email_verified` is consumed nowhere in the app.
+- **No Auth0 Management API usage anywhere.** Since #161 (2026-07-21) there IS one in-app password flow: the edit-profile "Password" card → `RequestPasswordChangeController` → `RequestPasswordChangeHandler` → Auth0 Authentication API `POST /dbconnections/change_password` (client id only, no M2M credentials; connection name from `AUTH0_DB_CONNECTION` env var; `Services/Auth0DatabaseConnection::hasPassword()` guards on the `auth0|` prefix). It sends the user an Auth0 reset-email — at Stage B this card swaps to the native change-password form and all three #161 classes + the env var are removed. Password reset, email verification, and account email change remain 100% delegated to Auth0's hosted pages — those flows are **new builds**, not ports. `email_verified` is consumed nowhere in the app.
 - **Tests:** all auth funnels through two helpers (`tests/TestingLogin.php`, `src/Controller/Test/TestLoginController.php` + `tests/Panther/AbstractPantherTestCase.php`) that fabricate an Auth0 `User`. Fixtures use `auth0|regular001`-style ids. ~40+ test files need no per-file change.
 - **Logout is two-legged** (Auth0 `/v2/logout` → local firewall logout at `/app-logout`); collapses to single local logout.
 
@@ -128,18 +155,43 @@ Rejected alternatives, for the record: **(a)** per-provider columns on `user_acc
 | Login form | One custom authenticator extending `AbstractLoginFormAuthenticator` (local hash → `PasswordCredentials`; no local hash + `legacy_auth0` → `CustomCredentials` ROPG trickle). Single authenticator because Symfony runs authenticators sequentially and the **first** `AuthenticationException` short-circuits — there is no fallback chain between authenticators | core |
 | Password hashing | `argon2id` + `migrate_from: ['bcrypt']` (sodium present; `'auto'` would mean bcrypt cost 13, NOT argon2id) | verified empirically |
 | Registration | New form → `RegisterUser` command → handler creates UserAccount + Player; `NotBlank` + `Length(min: 12)` + `PasswordStrength` + `NotCompromisedPassword(skipOnError: true)` as a `Compound` constraint | core |
-| Email verification | `symfonycasts/verify-email-bundle` ≥ 1.18.0 (Symfony 8 since 2025-11-29), signed URLs, no DB table | [releases](https://github.com/SymfonyCasts/verify-email-bundle/releases) |
-| Password reset | `symfonycasts/reset-password-bundle` ≥ 1.24.0 (Symfony 8 since 2025-11-29), hashed selector/verifier tokens, built-in enumeration protection | [releases](https://github.com/SymfonyCasts/reset-password-bundle/releases) |
-| Magic login link | Symfony native `login_link` — "email me a sign-in link" on the login page. **Primary mitigation for the password-manager-domain problem** | core |
-| Remember me | Signature-based (no storage, auto-invalidates on password change), `secure: true`, `samesite: lax` | core |
+| Email verification | Own stateless implementation (decision 2026-07-24: no auth bundles — same reasoning as password reset): HMAC-signed token binding `user_id` + email + expiry (24h), no DB table, anonymous validation, idempotent handler; changing the account email invalidates outstanding links and resets `email_verified_at`. Replayable within lifetime — accepted per D18 | app (built in 2a) |
+| Password reset | Own split-token implementation (decision 2026-07-24: `symfonycasts/reset-password-bundle` dropped — its repository contract flushes inside repositories, against project CQRS rules): selector + sha256-hashed verifier, 1h lifetime = throttle window, single-use, invalidates other open requests, uniform response for unknown email (enumeration protection) | app (built in 2a) |
+| Magic login link | Symfony native `login_link` — "email me a sign-in link" on the login page. **Primary mitigation for the password-manager-domain problem.** **Single-use per D18** — `login_link` alone is replayable within its lifetime, so add consumption storage (consume a hashed-token row at login, reject consumed links) | core + app (D18) |
+| Remember me | **LIVE since 2026-08-01, always on, no checkbox** — sliding 30 days (`always_remember_me`, signature-based on `['email', 'password']`, `secure: auto`, `samesite: lax`). Was deferred to Phase 6 because Symfony's `RememberMeListener` clears the cookie on every `LoginFailureEvent` unconditionally and the window-era Auth0 authenticator fails on every request (anonymous *and* signed-in) — that both stamps a deletion cookie on anonymous responses (breaks #164) and deletes a signed-in user's cookie on their next page view. Unblocked by `RememberMeMigrationWindowPass`, which swaps in `MigrationWindowRememberMeListener` (skips Auth0-authenticator failures only) and pins the handler's user provider to `user_account_provider`. Both die in Phase 6 | core + app (migration-window pass) |
 | Login throttling | `login_throttling` (requires `symfony/rate-limiter`), default 5/min per username+IP | core |
 | Audit logging | Listeners on `LoginSuccessEvent` / `LoginFailureEvent` / `LogoutEvent` → Monolog/Sentry | core |
+| ~~Cutover explainer modal~~ | **Dropped 2026-07-25 (D15 amendment)** — the site-wide notice strip already reaches everyone, anonymous visitors included | — |
+| Post-login-link password setup | After a magic-link login on a `legacy_auth0` account: one-time skippable "set a fresh password" prompt — see UX funnel below | app |
+| Login-failure helper | On failed password attempts, an inline helper appears: password-manager tip + one-click "email me a sign-in link" (pre-filled) | app |
 
-Post-launch candidates (not blocking): Google/Facebook login (design settled — see "Auth-method extensibility" above; `knpuniversity/oauth2-client-bundle` v2.20+ supports Symfony 8), 2FA via `scheb/2fa-bundle` (v8.6.1 supports Symfony 8 + PHP 8.5), passkeys/WebAuthn, per-device session management.
+All auth-facing UI ships in **all 6 locales** (en, cs, de, es, fr, ja — matching the #161 change-password precedent; auth pages replace Auth0's auto-localized Universal Login, so English-only would be a regression). Emails localize via the player `locale` field.
+
+Post-launch candidates (not blocking): Google/Facebook login (design settled — see "Auth-method extensibility" above; **now planned in `docs/features/auth-hardening/` (2026-07-31), which uses the league provider libraries directly — the earlier `knpuniversity/oauth2-client-bundle` candidate note is superseded by the no-third-party-bundles decision of 2026-07-24**), 2FA via `scheb/2fa-bundle` (v8.6.1 supports Symfony 8 + PHP 8.5), passkeys/WebAuthn, per-device session management.
+
+### Password-manager shock — the UX funnel (decided 2026-07-23)
+
+The single real user pain: managers saved the credential under `speedpuzzling.eu.auth0.com`, so autofill won't fire on the new login page and users conclude "I don't know my password". The design treats this as a funnel — every layer catches who the previous one missed:
+
+1. **T-7d announcement email** — "your email and password stay the same" + the tip up front: *search your password manager for "speedpuzzling" or "auth0"* (the tenant subdomain contains "speedpuzzling", so vault search finds it in every manager).
+2. ~~**One-time modal on the login page**~~ — **dropped 2026-07-25 (D15 amendment).** Its job is done by the site-wide notice strip, which went live ahead of Stage A, reaches anonymous visitors too, and links to the explainer page. Layers 3, 4 and 6 below carry the rest, and they fire when somebody is stuck rather than on arrival.
+3. **Login form itself**: password login primary; **"Email me a sign-in link"** as a prominent, permanent secondary action (not buried); "Forgot password?" tertiary; persistent microcopy for dormant players returning months later.
+4. **Failure-state helper**: a wrong-password attempt reveals an inline box — vault-search tip + one-click sign-in-link button pre-filled with the typed email. Shown on any failure (no account-existence signal → no enumeration leak).
+5. **Post-magic-link password setup**: after a sign-in-link login on a `legacy_auth0` account, a one-time skippable prompt: "Set a fresh password so your manager saves it under myspeedpuzzling.com" — `autocomplete="new-password"` field (native manager password-generation UI) plus a "Suggest strong password" button that fills the field (visible, copyable, editable — refined from the readonly-input idea: readonly blocks users who want their own password, and managers capture on submit either way). Skipping keeps the old password working.
+6. **Self-healing on success**: a successful password login is a normal form POST on our domain — managers offer to save/update under myspeedpuzzling.com natively, so the mapping heals for everyone who does find their password.
 
 ### FrankenPHP worker-mode safety
 
 Native Symfony auth uses the request-scoped token storage (reset per request by the kernel) — no equivalent of `Auth0SdkResetListener` is needed. Any new service caching user state must implement `ResetInterface` (existing project rule). The trickle ROPG HTTP client must be stateless.
+
+### Anonymous-cacheability constraint (#139/#164 — must not regress)
+
+The fork fixes + `AnonymousCacheHeadersSubscriber` (2026-07) made anonymous HTML responses session-free and shared-cacheable (`public, s-maxage=60`). The native stack must preserve this:
+
+- **No session on anonymous GETs.** Form login only acts on the login POST; the lazy firewall + `ContextListener` never start sessions for visitors without a session cookie. This is naturally *better* than the patched Auth0 authenticator — but verify with the #164 method (test env or prod, not dev; the profiler dirties dev headers).
+- **Login page GET stays session-free**: stateless CSRF already covers the `authenticate` and `logout` token ids (`config/packages/csrf.php`) — do NOT switch the login form to session-based CSRF.
+- `TargetPathTrait` writes the session only on entry-point redirects to `/login` (302s — exempt from the subscriber, and only fired on protected-page access, which is rare for anonymous traffic).
+- `AnonymousCacheHeadersSubscriber` conditions (no session cookie, session not started, no response cookies) keep holding untouched.
 
 ## Key decisions (with recommendations)
 
@@ -147,10 +199,10 @@ Native Symfony auth uses the request-scoped token storage (reset per request by 
 |---|---|---|
 | D1 | Hash algorithm | `argon2id` explicit + `migrate_from: ['bcrypt']` |
 | D2 | Identity model | Separate `user_account` entity; `getUserIdentifier()` = `user_id` string; new users `msp\|<uuid7>` |
-| D3 | Pay for hash export? | **Yes** — one month B2C Essentials (~$35). Start the ticket early; build in parallel |
-| D4 | Trickle ROPG fallback | Yes, as a branch inside the single login authenticator, active during transition window only |
-| D5 | Dual-auth UX | One login form; Auth0 fallback is invisible (no "old login" button). Satisfies the "both methods" period without UX complexity |
-| D6 | Magic login link at launch | Yes — biggest UX rescue for users whose password manager saved credentials under `auth0.com` |
+| D3 | Pay for hash export? | **Yes** — one month B2C Essentials (~$35). Pay + open the ticket **the day Stage A ships** (signups frozen first → the one export covers 100% of Auth0 users) |
+| D4 | Trickle ROPG fallback | Yes, as a branch inside the single login authenticator, active during transition window only. With the signup freeze it only covers in-window password *changes* + acts as the export-delay contingency |
+| D5 | Dual-auth UX | **Confirmed 2026-07-23**: one login form; Auth0 fallback is invisible (no "old login" button, no chooser page). The password-manager-shock fear is answered by the dedicated UX funnel (own section above), not by exposing two systems |
+| D6 | Magic login link at launch | Yes — biggest UX rescue for users whose password manager saved credentials under `auth0.com`. Live from Stage A (also rescues window-A native registrants who log out) |
 | D7 | `email_verified` handling | Import the flag (`email_verified_at = now()` where true). Don't block unverified legacy users (app never checked it anyway). Require verification for **new** registrations |
 | D8 | Registration enumeration | Accept the unique-email form error + rate-limit the endpoint (standard tradeoff for a community site) |
 | D9 | Cutover force-logout | Delete rows from the Postgres `sessions` table at deploy (sessions are `PdoSessionHandler`, not Redis). Communicated in advance |
@@ -158,6 +210,11 @@ Native Symfony auth uses the request-scoped token storage (reset per request by 
 | D11 | 2FA | Post-launch, not blocking |
 | D12 | Email deliverability | Before cutover, verify seznam.cz SMTP limits/SPF/DKIM; auth emails (reset/verify/login-link) become critical-path. Consider a dedicated transactional provider if limits are tight |
 | D13 | Social-auth data model | `oauth_identity` table (one row per linked provider identity); password stays on `user_account`. Design settled now (see "Auth-method extensibility"), table ships with the first provider — not during migration |
+| D14 | Staged rollout | **Registrations flip first** (Stage A: native `/register` + Auth0 "Disable Sign Ups"), login flips ~1 week later (Stage B). Freezing signups before the export is generated → export covers 100% of Auth0 users. Decided 2026-07-23 |
+| D15 | Cutover explainer | ~~One-time auto-modal on the **login page** (localStorage-dismissed)~~ + dismissable site-wide banner (~4 weeks) + FAQ page. Not a site-wide modal — visitors who never sign in shouldn't be interrupted. **Amended 2026-07-25 (Jan): the modal is dropped.** The site-wide notice strip went live ahead of Stage A and already reaches everyone including anonymous visitors, linking to the explainer page — a modal repeating it on the login page is a second interruption with the same content. The login page keeps funnel layers 3/4/6 (permanent microcopy, prominent sign-in-link CTA, failure helper), which fire when someone is actually stuck rather than on arrival |
+| D16 | Public "why" tone | **Layered**: emails/banner keep it simple ("sign-in now lives on our own site"); the FAQ/blog tells the honest full story — Auth0 enabled fast early development, but the unmaintained Symfony SDK + rejected upstream fixes forced us to maintain a fork and slow us down |
+| D17 | Locales | All 6 locales (en, cs, de, es, fr, ja) for every auth-facing page/modal/banner — matches #161 precedent; Auth0's Universal Login was auto-localized, English-only would regress. Emails per player `locale` |
+| D18 | Token replayability (decided 2026-07-24) | **Magic login links must be single-use**: Symfony's `login_link` is signature+expiry only (replayable within lifetime), so the implementation adds consumption storage (hashed-token row consumed at login, reset-request pattern). Email *verification* links stay stateless/replayable within their 24h lifetime — accepted deliberately: the handler is an idempotent no-op after first use, no session is created, and nothing privileged gates on `email_verified_at`. Password reset tokens were already single-use |
 
 ## What stays untouched (reassurance list)
 
@@ -171,8 +228,10 @@ Native Symfony auth uses the request-scoped token storage (reset per request by 
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| Hash export ticket delayed (no SLA) | Medium | Open ticket at phase start; build in parallel; ROPG trickle works without the export |
-| Hashes stale (password changed after export) or users registered after snapshot | Certain for some users | Fresh free bulk export at cutover for the user *list* delta; trickle fills missing/stale hashes on first login |
+| Hash export ticket delayed (no SLA) | Medium | Open ticket the day Stage A ships; build is already done by then. **Hard gate at Stage A + 14d**: if the export still hasn't arrived, decide (with Jan, explicitly) whether to cut over trickle-primary — every legacy first-login validates via ROPG once and gets hashed locally; the export then back-fills dormant users whenever it lands |
+| Hashes stale (password changed after export) | Small (window is ~1 week) | Trickle fills stale hashes on first login. Post-snapshot *signups* are eliminated by the Stage A freeze (D14). Fresh free bulk export at Stage B still runs for metadata/reconciliation |
+| Window-A native registrant logs out mid-window, faces the Auth0 form | Low (window ~1 week, fresh sessions) | Magic login link live from Stage A; support playbook entry; window kept short |
+| Dual-authenticator window wiring (Auth0 failure must not short-circuit the chain; chain provider refresh for two user classes) | Medium | Explicit functional test before Stage A ships; provider chain ordered `user_account_provider` first; verify Auth0 provider's `loadUserByIdentifier` doesn't fabricate users |
 | Users can't find their password (manager saved it under `*.auth0.com`) | High for a subset | Magic login link + prominent reset + explicit copy on login page + FAQ ("search your password manager for auth0") |
 | Email wave overwhelms seznam.cz SMTP / lands in spam | Medium | D12; send announcement via listmonk (already used for newsletters); rate-limit via Messenger |
 | Password > 72 bytes can't verify against bcrypt (`NativePasswordHasher` refuses) | Very low | Log distinctly; user resets password |
@@ -181,12 +240,13 @@ Native Symfony auth uses the request-scoped token storage (reset per request by 
 | Native auth bug at cutover | Low | Blue-green rollback to previous image restores Auth0 login (tenant stays intact until decommission); sessions already truncated either way |
 | OAuth2 `/oauth2/authorize` deep-link return regression (bespoke redirect cookie replaced by `TargetPathTrait`) | Medium | Explicit Panther test for the authorize→login→authorize round-trip |
 | All users logged out at cutover | Certain | Communicated in advance; one-time event; same credentials work immediately |
+| Trickle branch is an enumeration side channel during the window (only trickle-eligible accounts trigger an Auth0 round-trip → measurable latency; `password_leaked`/unavailable messages are distinct by design) | Accepted (2026-07-24) | Consistent with the D8 enumeration tradeoff; window is short, cohort shrinks with every login, and login is rate-limited (5/min per email+IP, in-authenticator — NOT the firewall `login_throttling`, whose failure listener would count the Auth0 authenticator's per-request anonymous failures against the per-IP budget) |
 
 ## Cost & effort estimate
 
 - **Money:** ~$35–70 (one month Auth0 B2C Essentials) + $0 extra infra (everything self-hosted already).
-- **Build:** roughly 10–15 dev-days: entities/migrations + import command (2), authenticator/provider/registration/reset/verify/login-link + templates + translations (5–7), `#[CurrentUser]` sweep + chokepoint rewrites + tests (2–3), comms + cutover + monitoring (2).
-- **Calendar:** ~6–8 weeks end-to-end, dominated by the communication lead time and the transition window, not by engineering.
+- **Build:** roughly 10–15 dev-days of scope: entities/migrations + import command (2), authenticator/provider/registration/reset/verify/login-link + templates + translations (5–7), `#[CurrentUser]` sweep (50 files as of 2026-07-23, incl. the #161 change-password swap) + chokepoint rewrites + tests (2–3), comms + cutover + monitoring (2).
+- **Calendar (compressed per 2026-07-23 decision):** Stage A ~1 week from start; Stage B ~1 week after Stage A (export-gated, hard gate at A+14d); transition window 3–4 weeks; decommission ~6–7 weeks from start. Users stop seeing Auth0 at Stage B (~2–2.5 weeks from start).
 
 ## Success criteria
 

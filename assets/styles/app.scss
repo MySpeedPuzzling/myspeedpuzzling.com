@@ -84,13 +84,20 @@ body {
     }
 }
 
-main {
-    flex-grow: 1;
-    padding-top: 101px;
+// Real height of the sticky header, published by header_height_controller.js.
+// Only viewport-fixed overlays need it - the page flow gets its spacing from the
+// header itself, which is `position: sticky` and therefore occupies real space.
+// The fallback matches a plain header with no announcement strip.
+:root {
+    --header-height: 101px;
 
     @media (min-width: 992px) {
-        padding-top: 97px;
+        --header-height: 97px;
     }
+}
+
+main {
+    flex-grow: 1;
 }
 
 @media (min-width: 992px) {
@@ -422,7 +429,7 @@ td.rank {
     height: 55px;
     left: 0;
     position: sticky;
-    top: 97px;
+    top: var(--header-height);
     padding: 10px 15px;
     margin: 0 -15px;
     background: #fff;
@@ -748,7 +755,7 @@ canvas {
     width: 100%;
     padding: 0 15px 15px 15px;
     position: fixed;
-    top: 110px;
+    top: calc(var(--header-height) + 13px);
     left: 50%;
     transform: translateX(-50%) translateY(-20px); /* Start slightly above */
     opacity: 0;
@@ -1026,13 +1033,9 @@ header {
 
 .player-profile-header {
     position: sticky;
-    top: 97px;
+    top: var(--header-height);
     background: #fff;
     z-index: 8;
-
-    @media (min-width: 992px) {
-        top: 101px;
-    }
 }
 
 .event-image {
@@ -1065,13 +1068,60 @@ header {
     }
 }
 
+// Advance notice of the sign-in migration (issue #147), same look as the
+// .competition-panel-info strip above. It is the first child of the fixed
+// header, so it makes the header taller - main's padding-top is corrected for
+// that in base.html.twig, next to the script that hides a dismissed notice.
+.sign-in-changes-notice {
+    background: $primary;
+    color: #fff;
+    font-size: 12px;
+    padding: 5px 15px;
+    text-align: center;
+
+    .container {
+        position: relative;
+        padding-right: 30px;
+    }
+
+    a {
+        color: #fff;
+        text-decoration: underline;
+        font-weight: bold;
+    }
+}
+
+// Reserves the height of the strip above without showing it twice
+.sign-in-changes-notice-spacer {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.sign-in-changes-notice-close {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    padding: 0 6px;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    opacity: .8;
+
+    &:hover {
+        opacity: 1;
+    }
+}
+
 .toast-body {
     color: #fff !important;
     font-weight: bold;
 }
 
 .toast-container {
-    top: 100px;
+    top: calc(var(--header-height) + 3px);
     right: 0;
 
     @media (max-width: 767px) {
@@ -1106,6 +1156,15 @@ header {
     }
 }
 
+// Turbo Drive's loading bar is a 3px strip fixed to the very top of the viewport,
+// so it always lands on whatever is the first thing inside the header. It used to be
+// the light topbar, and #EC726F read fine against that; since the sign-in notice
+// strip (background: $primary, #fe696a) became the header's first child the two
+// colours are a couple of RGB steps apart and the bar vanishes into it. Nothing is
+// covering it - z-index 2147483647 keeps it on top - it just cannot be told apart.
+// $accent reads against the notice strip, the topbar and plain white alike, and the
+// shadow keeps it separated from any band that ends up at the top later.
 .turbo-progress-bar {
-    background-color: #EC726F;
+    background-color: $accent;
+    box-shadow: 0 1px 3px rgba($black, .25);
 }

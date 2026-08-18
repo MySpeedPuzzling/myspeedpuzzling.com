@@ -1,0 +1,16 @@
+{#
+    Compact event date range:
+      single day          23.05.
+      same-month span     09.-11.10.
+      cross-month span    30.05.-01.06.
+    The year is appended whenever the event does not happen in the current year.
+    Expects: date_from (required), date_to (nullable)
+#}
+{%- set same_day = date_to is null or date_from|date('Y-m-d') == date_to|date('Y-m-d') -%}
+{%- set end = date_to ?? date_from -%}
+{%- set year_suffix = end|date('Y') != 'now'|date('Y') ? end|date('Y') : '' -%}
+{%- if same_day -%}
+    {{- date_from|date('d.m.') }}{{ year_suffix -}}
+{%- else -%}
+    {{- date_from|date(date_from|date('m.Y') == end|date('m.Y') ? 'd.' : 'd.m.') }}-{{ end|date('d.m.') }}{{ year_suffix -}}
+{%- endif -%}

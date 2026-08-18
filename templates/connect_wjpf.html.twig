@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'wjpf.connect.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-6 col-md-8">
+            <h1 class="h2">{{ 'wjpf.connect.title'|trans }}</h1>
+
+            <div class="card shadow my-3">
+                <div class="card-body">
+                    <p>{{ 'wjpf.connect.question'|trans({'%name%': player_name ?? ''}) }}</p>
+
+                    <p class="text-muted fs-sm">{{ 'wjpf.connect.explanation'|trans }}</p>
+
+                    <form action="{{ path('connect_wjpf_confirm') }}" method="post">
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ConnectWjpfController::CSRF_TOKEN_ID')) }}">
+                        {% if state is not null %}
+                            <input type="hidden" name="state" value="{{ state }}">
+                        {% endif %}
+
+                        <button type="submit" name="action" value="connect" class="btn btn-primary w-100">
+                            <i class="bi bi-link-45deg me-1"></i>{{ 'wjpf.connect.confirm'|trans }}
+                        </button>
+
+                        <button type="submit" name="action" value="cancel" class="btn btn-outline-secondary w-100 mt-2">
+                            {{ 'wjpf.connect.cancel'|trans }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
+            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        </div>
+    </div>
+{% endblock %}

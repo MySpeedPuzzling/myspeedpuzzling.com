@@ -18,8 +18,16 @@
                         '%playerName%': playerName,
                         '%competitionName%': competitionName,
                         '%location%': location,
-                        '%adminUrl%': adminUrl,
                     })|raw }}
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <center>
+                        <button href="{{ adminUrl }}">{{ 'competition_submitted.button'|trans }}</button>
+                    </center>
+                    <spacer size-sm="8"></spacer>
                 </columns>
             </row>
 

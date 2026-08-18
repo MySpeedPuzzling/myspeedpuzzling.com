@@ -19,6 +19,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final readonly class OAuth2TestHelper
 {
     /**
+     * Pass the client id as $userIdentifier to get a client_credentials-shaped
+     * token (sub = aud = client id): that is exactly what ClientCredentialsGrant
+     * issues, and the bundle authenticates it as ClientCredentialsUser.
+     *
+     * @param non-empty-string $clientId
      * @param array<non-empty-string> $scopes
      */
     public static function createAccessToken(
@@ -66,6 +71,7 @@ final readonly class OAuth2TestHelper
     }
 
     /**
+     * @param non-empty-string $clientId
      * @param array<non-empty-string> $scopes
      */
     private static function generateJwt(
@@ -89,13 +95,17 @@ final readonly class OAuth2TestHelper
         /** @var non-empty-string $subject */
         $subject = $userIdentifier !== null && $userIdentifier !== '' ? $userIdentifier : 'anonymous';
 
+        // Same claim set league/oauth2-server issues (AccessTokenTrait::convertToJWT):
+        // the client id travels in "aud" - BearerTokenValidator reads it from there
+        // to set oauth_client_id, and the bundle's authenticator compares it with
+        // "sub" to recognise a client_credentials token.
         $builder = $configuration->builder()
+            ->permittedFor($clientId)
             ->identifiedBy($identifier !== '' ? $identifier : 'default')
             ->issuedAt($now)
             ->canOnlyBeUsedAfter($now)
             ->expiresAt($expiry)
             ->relatedTo($subject)
-            ->withClaim('client_id', $clientId)
             ->withClaim('scopes', $scopes);
 
         return $builder->getToken($configuration->signer(), $configuration->signingKey())->toString();

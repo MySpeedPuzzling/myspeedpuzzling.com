@@ -8,6 +8,14 @@ use SpeedPuzzling\Web\Entity\Player;
 
 final readonly class OAuth2User implements ApiUser
 {
+    /**
+     * Marks a token that carries a real user (authorization-code flow). The
+     * bundle merges these roles into the scope roles, so access_control can
+     * tell "OAuth2 on behalf of a player" apart from a client_credentials token,
+     * which authenticates as ClientCredentialsUser with no roles at all.
+     */
+    public const string ROLE = 'ROLE_OAUTH2_USER';
+
     public function __construct(
         public Player $player,
     ) {
@@ -20,7 +28,7 @@ final readonly class OAuth2User implements ApiUser
 
     public function getRoles(): array
     {
-        return ['ROLE_OAUTH2_USER'];
+        return [self::ROLE];
     }
 
     public function eraseCredentials(): void

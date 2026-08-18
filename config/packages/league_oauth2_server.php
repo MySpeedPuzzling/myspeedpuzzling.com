@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use SpeedPuzzling\Web\Security\OAuth2\ScopeAwareBearerTokenResponse;
+use SpeedPuzzling\Web\Value\OAuth2Scope;
+
 return App::config([
     'league_oauth2_server' => [
         'authorization_server' => [
@@ -19,22 +22,18 @@ return App::config([
             'enable_auth_code_grant' => true,
             'enable_implicit_grant' => false,
             'require_code_challenge_for_public_clients' => true,
+            'response_type_class' => ScopeAwareBearerTokenResponse::class,
         ],
         'resource_server' => [
             'public_key' => '%env(OAUTH2_PUBLIC_KEY)%',
         ],
         'scopes' => [
-            'available' => [
-                'profile:read',
-                'email:read',
-                'results:read',
-                'statistics:read',
-                'collections:read',
-                'solving-times:write',
-                'collections:write',
-            ],
+            // Single source of truth is the OAuth2Scope enum - which scopes exist,
+            // and which of them are user-context only (stripped from
+            // client_credentials tokens by OAuth2ClientCredentialsScopeSubscriber).
+            'available' => OAuth2Scope::values(),
             'default' => [
-                'profile:read',
+                OAuth2Scope::ProfileRead->value,
             ],
         ],
         'persistence' => [

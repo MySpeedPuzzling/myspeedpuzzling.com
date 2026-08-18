@@ -9,7 +9,6 @@ use SpeedPuzzling\Web\Message\UnblockUser;
 use SpeedPuzzling\Web\Query\GetUserBlocks;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class UnblockUserHandlerTest extends KernelTestCase
@@ -45,17 +44,13 @@ final class UnblockUserHandlerTest extends KernelTestCase
 
     public function testUnblockingNonExistentBlockThrowsException(): void
     {
-        try {
-            $this->messageBus->dispatch(
-                new UnblockUser(
-                    blockerId: PlayerFixture::PLAYER_ADMIN,
-                    blockedId: PlayerFixture::PLAYER_REGULAR,
-                ),
-            );
-            self::fail('Expected UserBlockNotFound exception was not thrown');
-        } catch (HandlerFailedException $e) {
-            $previous = $e->getPrevious();
-            self::assertInstanceOf(UserBlockNotFound::class, $previous);
-        }
+        $this->expectException(UserBlockNotFound::class);
+
+        $this->messageBus->dispatch(
+            new UnblockUser(
+                blockerId: PlayerFixture::PLAYER_ADMIN,
+                blockedId: PlayerFixture::PLAYER_REGULAR,
+            ),
+        );
     }
 }

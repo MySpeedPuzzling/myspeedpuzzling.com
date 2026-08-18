@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\Tests\DataFixtures\SellSwapListItemFixture;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class EditSellSwapListItemHandlerTest extends KernelTestCase
@@ -53,21 +52,17 @@ final class EditSellSwapListItemHandlerTest extends KernelTestCase
 
     public function testNonOwnerCannotEdit(): void
     {
-        try {
-            $this->messageBus->dispatch(
-                new EditSellSwapListItem(
-                    sellSwapListItemId: SellSwapListItemFixture::SELLSWAP_01,
-                    playerId: PlayerFixture::PLAYER_ADMIN,
-                    listingType: ListingType::Swap,
-                    price: null,
-                    condition: PuzzleCondition::MissingPieces,
-                    comment: 'Hacked',
-                ),
-            );
-            self::fail('Expected SellSwapListItemNotFound exception was not thrown');
-        } catch (HandlerFailedException $e) {
-            $previous = $e->getPrevious();
-            self::assertInstanceOf(SellSwapListItemNotFound::class, $previous);
-        }
+        $this->expectException(SellSwapListItemNotFound::class);
+
+        $this->messageBus->dispatch(
+            new EditSellSwapListItem(
+                sellSwapListItemId: SellSwapListItemFixture::SELLSWAP_01,
+                playerId: PlayerFixture::PLAYER_ADMIN,
+                listingType: ListingType::Swap,
+                price: null,
+                condition: PuzzleCondition::MissingPieces,
+                comment: 'Hacked',
+            ),
+        );
     }
 }

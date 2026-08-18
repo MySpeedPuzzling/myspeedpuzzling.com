@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Membership;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Events\MembershipSubscriptionCancelled;
 use SpeedPuzzling\Web\Events\MembershipSubscriptionRenewed;
 use Stripe\Subscription;
 
@@ -314,6 +315,128 @@ final class MembershipTest extends TestCase
 
         self::assertNotNull($membership->billingPeriodEndsAt);
         self::assertEquals($periodEnd->getTimestamp(), $membership->billingPeriodEndsAt->getTimestamp());
+    }
+
+    /**
+     * A cancel-at-period-end reaches us as two webhooks a whole billing period apart:
+     * customer.subscription.updated with cancel_at_period_end=true when the player clicks cancel,
+     * then customer.subscription.deleted once the period actually runs out. Both call cancel(),
+     * and the player must only ever be told about that cancellation once.
+     */
+    public function testCancelAtPeriodEndFollowedByDeletionEmitsSingleEvent(): void
+    {
+        $billingPeriodEnd = new DateTimeImmutable('2026-06-12 07:11:00');
+
+        $membership = $this->createMembership(
+            stripeSubscriptionId: 'sub_1abc',
+            billingPeriodEndsAt: $billingPeriodEnd,
+        );
+
+        // Player clicks cancel - membership keeps running until the period ends
+        $membership->cancel($billingPeriodEnd);
+        $events = $membership->popEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MembershipSubscriptionCancelled::class, $events[0]);
+
+        // A month later Stripe deletes the subscription and the handler calls cancel(now).
+        // `now` is a couple of minutes past the period end - that must not look like a new cancellation.
+        $membership->cancel(new DateTimeImmutable('2026-06-12 07:13:00'));
+
+        self::assertEmpty($membership->popEvents());
+    }
+
+    /**
+     * Re-subscribing clears endsAt, so a later cancellation is a genuinely new one and must notify again.
+     */
+    public function testCancellationAfterResubscribeEmitsEventAgain(): void
+    {
+        $firstPeriodEnd = new DateTimeImmutable('2026-04-23');
+        $secondPeriodEnd = new DateTimeImmutable('2026-06-23');
+
+        $membership = $this->createMembership(
+            stripeSubscriptionId: 'sub_1abc',
+            billingPeriodEndsAt: $firstPeriodEnd,
+        );
+
+        $membership->cancel($firstPeriodEnd);
+        self::assertCount(1, $membership->popEvents());
+
+        // Player comes back with a new subscription
+        $membership->updateStripeSubscription(
+            'sub_2xyz',
+            $secondPeriodEnd,
+            Subscription::STATUS_ACTIVE,
+            new DateTimeImmutable('2026-05-23'),
+        );
+        $membership->popEvents();
+        self::assertNull($membership->endsAt);
+
+        $membership->cancel($secondPeriodEnd);
+
+        $events = $membership->popEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MembershipSubscriptionCancelled::class, $events[0]);
+    }
+
+    /**
+     * A subscription that stops paying gets endsAt set by updateStripeSubscription() without any
+     * notification - that path only pauses access while Stripe retries. When Stripe finally gives up and
+     * deletes the subscription, the player still has to be told the membership is gone.
+     */
+    public function testUnpaidSubscriptionStillNotifiesOnDeletion(): void
+    {
+        $billingPeriodEnd = new DateTimeImmutable('2026-04-23');
+
+        $membership = $this->createMembership(
+            stripeSubscriptionId: 'sub_1abc',
+            billingPeriodEndsAt: $billingPeriodEnd,
+        );
+
+        // Payment failed - access is paused while Stripe retries, no e-mail about a cancellation yet
+        $membership->updateStripeSubscription(
+            'sub_1abc',
+            $billingPeriodEnd,
+            Subscription::STATUS_PAST_DUE,
+            new DateTimeImmutable('2026-03-23 01:30:00'),
+        );
+        self::assertEmpty($membership->popEvents());
+
+        // Stripe exhausted its retries and deleted the subscription
+        $membership->cancel(new DateTimeImmutable('2026-04-06 09:00:00'));
+
+        $events = $membership->popEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MembershipSubscriptionCancelled::class, $events[0]);
+    }
+
+    /**
+     * Stripe keeps reporting the paid period on a cancelled subscription, so a late or out-of-order
+     * webhook must not push endsAt back into the future and revive a membership that already ended.
+     */
+    public function testCancelNeverExtendsAnAlreadyEndedMembership(): void
+    {
+        $terminatedAt = new DateTimeImmutable('2026-08-10 12:50:00');
+        $paidPeriodEnd = new DateTimeImmutable('2026-08-29 07:24:00');
+
+        $membership = $this->createMembership(
+            stripeSubscriptionId: 'sub_1abc',
+            billingPeriodEndsAt: $paidPeriodEnd,
+        );
+
+        // Dispute lost - membership ends right now, mid paid period
+        $membership->cancel($terminatedAt);
+        $membership->popEvents();
+
+        // A stray customer.subscription.updated arrives afterwards carrying status=canceled, and
+        // updateStripeSubscription() hands cancel() the still-future end of the paid period
+        $membership->updateStripeSubscription(
+            'sub_1abc',
+            $paidPeriodEnd,
+            Subscription::STATUS_CANCELED,
+            new DateTimeImmutable('2026-08-10 12:50:05'),
+        );
+
+        self::assertEquals($terminatedAt, $membership->endsAt);
     }
 
     /**

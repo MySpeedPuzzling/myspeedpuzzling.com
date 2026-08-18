@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Admin;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetAllVouchers;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
@@ -29,7 +29,7 @@ final class VouchersController extends AbstractController
     )]
     #[IsGranted(AdminAccessVoter::ADMIN_ACCESS)]
     public function __invoke(
-        #[CurrentUser] User $user,
+        #[CurrentUser] UserInterface $user,
         Request $request,
     ): Response {
         $tab = $request->query->getString('tab', 'available');

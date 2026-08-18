@@ -11,7 +11,6 @@ use SpeedPuzzling\Web\Tests\DataFixtures\ConversationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\ConversationStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class IgnoreConversationHandlerTest extends KernelTestCase
@@ -44,18 +43,14 @@ final class IgnoreConversationHandlerTest extends KernelTestCase
 
     public function testOnlyRecipientCanIgnore(): void
     {
-        try {
-            // WITH_STRIPE is the initiator, not the recipient
-            $this->messageBus->dispatch(
-                new IgnoreConversation(
-                    conversationId: ConversationFixture::CONVERSATION_PENDING,
-                    playerId: PlayerFixture::PLAYER_WITH_STRIPE,
-                ),
-            );
-            self::fail('Expected ConversationNotFound exception was not thrown');
-        } catch (HandlerFailedException $e) {
-            $previous = $e->getPrevious();
-            self::assertInstanceOf(ConversationNotFound::class, $previous);
-        }
+        $this->expectException(ConversationNotFound::class);
+
+        // WITH_STRIPE is the initiator, not the recipient
+        $this->messageBus->dispatch(
+            new IgnoreConversation(
+                conversationId: ConversationFixture::CONVERSATION_PENDING,
+                playerId: PlayerFixture::PLAYER_WITH_STRIPE,
+            ),
+        );
     }
 }

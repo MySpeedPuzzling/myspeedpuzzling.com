@@ -1,0 +1,132 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Referrals{% endblock %}
+
+{% macro money(cents, currency) %}{{ (cents / 100)|number_format(2) }}&nbsp;{{ currency|upper }}{% endmacro %}
+
+{% block content %}
+    <h1 class="h3 mb-4">Referrals</h1>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card card-body shadow-sm h-100">
+                <div class="text-muted fs-sm">Unpaid commission</div>
+                {% for total in totals %}
+                    <div class="h5 mb-0 {{ total.unpaid_cents > 0 ? 'text-warning' : 'text-muted' }}">
+                        {{ _self.money(total.unpaid_cents, total.currency) }}
+                    </div>
+                {% else %}
+                    <div class="h5 mb-0 text-muted">—</div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-body shadow-sm h-100">
+                <div class="text-muted fs-sm">Paid out</div>
+                {% for total in totals %}
+                    <div class="h5 mb-0">{{ _self.money(total.paid_cents, total.currency) }}</div>
+                {% else %}
+                    <div class="h5 mb-0 text-muted">—</div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-body shadow-sm h-100">
+                <div class="text-muted fs-sm">Total commission</div>
+                {% for total in totals %}
+                    <div class="h5 mb-0">{{ _self.money(total.unpaid_cents + total.paid_cents, total.currency) }}</div>
+                {% else %}
+                    <div class="h5 mb-0 text-muted">—</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {% if affiliates is empty %}
+        <div class="alert alert-info">
+            Nobody has joined the referral program yet.
+        </div>
+    {% else %}
+        <div class="card shadow">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr class="d-none d-md-table-row">
+                            <th>Player</th>
+                            <th>Referrals</th>
+                            <th>Unpaid</th>
+                            <th>Paid out</th>
+                            <th>Joined</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for affiliate in affiliates %}
+                            <tr>
+                                <td>
+                                    <a href="{{ path('admin_referral_detail', {playerId: affiliate.player_id}) }}">
+                                        {{ affiliate.player_name ?? 'Unknown' }}
+                                    </a>
+                                    <span class="text-muted ms-1">#{{ affiliate.code|upper }}</span>
+                                    {% if affiliate.referral_program_suspended %}
+                                        <span class="badge bg-danger ms-1">Suspended</span>
+                                    {% endif %}
+                                    <div class="d-md-none mt-1">
+                                        <small class="text-muted">
+                                            {{ affiliate.referral_count }} referrals
+                                            {% if affiliate.unpaid_total_cents > 0 %}
+                                                &bull;
+                                                <span class="text-warning fw-bold">
+                                                    {% for payout in affiliate.payouts %}{% if payout.unpaid_cents > 0 %}{{ _self.money(payout.unpaid_cents, payout.currency) }} {% endif %}{% endfor %}
+                                                    unpaid
+                                                </span>
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ affiliate.referral_count }}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% if affiliate.unpaid_total_cents > 0 %}
+                                        {% for payout in affiliate.payouts %}
+                                            {% if payout.unpaid_cents > 0 %}
+                                                <div class="text-warning fw-bold">{{ _self.money(payout.unpaid_cents, payout.currency) }}</div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% set has_paid = false %}
+                                    {% for payout in affiliate.payouts %}
+                                        {% if payout.paid_cents > 0 %}
+                                            {% set has_paid = true %}
+                                            <div>{{ _self.money(payout.paid_cents, payout.currency) }}</div>
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if not has_paid %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% if affiliate.referral_program_joined_at is not null %}
+                                        {{ affiliate.referral_program_joined_at|date('j. n. Y') }}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ path('admin_referral_detail', {playerId: affiliate.player_id}) }}" class="btn btn-sm btn-outline-primary">
+                                        Detail
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

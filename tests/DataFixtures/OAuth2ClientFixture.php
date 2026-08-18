@@ -18,6 +18,8 @@ final class OAuth2ClientFixture extends Fixture
     public const string CONFIDENTIAL_CLIENT_ID = 'confidential-test-client';
     public const string CONFIDENTIAL_CLIENT_SECRET = 'test-secret-12345678901234567890123456789012';
     public const string FIRST_PARTY_CLIENT_ID = 'first-party-client';
+    public const string WRITE_CLIENT_ID = 'write-test-client';
+    public const string WRITE_CLIENT_SECRET = 'write-secret-1234567890123456789012345678';
     public const string REDIRECT_URI = 'https://example.com/callback';
 
     public function __construct(
@@ -86,5 +88,31 @@ final class OAuth2ClientFixture extends Fixture
         );
         $this->clientManager->save($firstPartyClient);
         $this->addReference(self::FIRST_PARTY_CLIENT_ID, $firstPartyClient);
+
+        // Client approved for the write scopes AND client_credentials - the shape
+        // of the real integrators' clients. Lets tests prove that write scopes
+        // work through the auth-code flow and are stripped from machine tokens.
+        $writeClient = new Client(
+            'Write Test Client',
+            self::WRITE_CLIENT_ID,
+            self::WRITE_CLIENT_SECRET,
+        );
+        $writeClient->setRedirectUris(new RedirectUri(self::REDIRECT_URI));
+        $writeClient->setGrants(
+            new Grant('authorization_code'),
+            new Grant('client_credentials'),
+            new Grant('refresh_token'),
+        );
+        $writeClient->setScopes(
+            new Scope('profile:read'),
+            new Scope('email:read'),
+            new Scope('results:read'),
+            new Scope('statistics:read'),
+            new Scope('collections:read'),
+            new Scope('solving-times:write'),
+            new Scope('collections:write'),
+        );
+        $this->clientManager->save($writeClient);
+        $this->addReference(self::WRITE_CLIENT_ID, $writeClient);
     }
 }

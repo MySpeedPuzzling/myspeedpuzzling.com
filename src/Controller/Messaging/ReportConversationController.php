@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Messaging;
 
+use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
 use SpeedPuzzling\Web\Message\ReportConversation;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -37,11 +38,18 @@ final class ReportConversationController extends AbstractController
         $reason = trim($request->request->getString('reason'));
 
         if ($reason !== '') {
-            $this->messageBus->dispatch(new ReportConversation(
-                reporterId: $loggedPlayer->playerId,
-                conversationId: $conversationId,
-                reason: $reason,
-            ));
+            try {
+                $this->messageBus->dispatch(new ReportConversation(
+                    reporterId: $loggedPlayer->playerId,
+                    conversationId: $conversationId,
+                    reason: $reason,
+                ));
+            } catch (ConversationNotFound) {
+                // Deleted while the report was being written.
+                $this->addFlash('warning', $this->translator->trans('messaging.conversation_unavailable'));
+
+                return $this->redirectToRoute('conversations_list');
+            }
 
             $this->addFlash('success', $this->translator->trans('moderation.report_submitted'));
         }

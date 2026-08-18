@@ -170,4 +170,31 @@ final class CurrentUserEndpointTest extends WebTestCase
         $this->assertSame(PlayerFixture::PLAYER_PRIVATE, $response['id']);
         $this->assertTrue($response['is_private']);
     }
+
+    /**
+     * A client_credentials token is authenticated (as the bundle's
+     * ClientCredentialsUser) but has no player behind it. It used to pass
+     * IS_AUTHENTICATED_FULLY and die on assert($user instanceof ApiUser) - 500.
+     */
+    public function testClientCredentialsTokenReturnsForbidden(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('POST', '/oauth2/token', [
+            'grant_type' => 'client_credentials',
+            'client_id' => OAuth2ClientFixture::CONFIDENTIAL_CLIENT_ID,
+            'client_secret' => OAuth2ClientFixture::CONFIDENTIAL_CLIENT_SECRET,
+            'scope' => 'profile:read',
+        ]);
+
+        $this->assertResponseIsSuccessful();
+
+        /** @var array{access_token: string} $tokenResponse */
+        $tokenResponse = json_decode((string) $browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        OAuth2TestHelper::addBearerToken($browser, $tokenResponse['access_token']);
+        $browser->request('GET', '/api/v1/me');
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+    }
 }

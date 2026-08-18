@@ -1,0 +1,35 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'newsletter.unsubscribed.headline'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-6 col-md-8">
+            <h1 class="h2">{{ 'newsletter.unsubscribed.headline'|trans }}</h1>
+
+            <div class="alert alert-info" role="alert">
+                <i class="ci-check-circle me-2"></i>
+                {{ 'newsletter.unsubscribed.text'|trans }}
+            </div>
+
+            <p class="fs-sm text-muted">
+                {% if isPlayer and preferencesUrl %}
+                    {{ 'newsletter.unsubscribed.resubscribe_player'|trans({'%settingsUrl%': preferencesUrl})|raw }}
+                {% else %}
+                    {{ 'newsletter.unsubscribed.resubscribe_guest'|trans }}
+                {% endif %}
+            </p>
+
+            <p>
+                <a class="btn btn-primary" href="{{ path('homepage') }}">
+                    {{ 'newsletter.unsubscribed.cta_homepage'|trans }}
+                </a>
+            </p>
+        </div>
+
+        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
+            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        </div>
+    </div>
+{% endblock %}

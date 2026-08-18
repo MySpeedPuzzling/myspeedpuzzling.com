@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\GetWishListItems;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -120,11 +121,10 @@ final class RemovePuzzleFromWishListController extends AbstractController
         // Non-Turbo request: redirect with flash message
         $this->addFlash('success', $this->translator->trans('wish_list.remove.success'));
 
-        $returnUrl = $request->request->getString('returnUrl');
+        $returnUrl = ReturnUrl::tryFrom($request->request->getString('returnUrl'));
 
-        // Validate return URL to prevent open redirects
-        if ($returnUrl !== '' && str_starts_with($returnUrl, '/') && !str_starts_with($returnUrl, '//')) {
-            return $this->redirect($returnUrl);
+        if ($returnUrl !== null) {
+            return $this->redirect($returnUrl->path);
         }
 
         return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Message\RevokePersonalAccessToken;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -37,7 +37,7 @@ final class RevokePersonalAccessTokenController extends AbstractController
         name: 'revoke_personal_access_token',
         methods: ['POST'],
     )]
-    public function __invoke(#[CurrentUser] User $user, string $tokenId): Response
+    public function __invoke(#[CurrentUser] UserInterface $user, string $tokenId): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 

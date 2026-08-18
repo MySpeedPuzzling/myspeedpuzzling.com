@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\NonUniquePlayerCode;
 use SpeedPuzzling\Web\FormData\EditProfileFormData;
 use SpeedPuzzling\Web\FormData\FeaturesOptionsFormData;
@@ -22,6 +22,7 @@ use SpeedPuzzling\Web\Message\EditMessagingSettings;
 use SpeedPuzzling\Web\Message\EditPlayerCode;
 use SpeedPuzzling\Web\Message\EditPlayerVisibility;
 use SpeedPuzzling\Web\Message\EditProfile;
+use SpeedPuzzling\Web\Query\GetOauthIdentities;
 use SpeedPuzzling\Web\Query\GetOAuth2ClientRequests;
 use SpeedPuzzling\Web\Query\GetPlayerOAuth2Consents;
 use SpeedPuzzling\Web\Query\GetPlayerPersonalAccessTokens;
@@ -33,6 +34,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -48,6 +50,7 @@ final class EditProfileController extends AbstractController
         readonly private GetPlayerOAuth2Consents $getPlayerOAuth2Consents,
         readonly private GetPlayerPersonalAccessTokens $getPlayerPersonalAccessTokens,
         readonly private GetOAuth2ClientRequests $getOAuth2ClientRequests,
+        readonly private GetOauthIdentities $getOauthIdentities,
     ) {
     }
 
@@ -62,7 +65,7 @@ final class EditProfileController extends AbstractController
         ],
         name: 'edit_profile',
     )]
-    public function __invoke(Request $request, #[CurrentUser] User $user): Response
+    public function __invoke(Request $request, #[CurrentUser] UserInterface $user): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 
@@ -200,7 +203,21 @@ final class EditProfileController extends AbstractController
             'oauth2_consents' => $oauth2Consents,
             'personal_access_tokens' => $personalAccessTokens,
             'my_applications' => $myApplications,
+            // Sign-in migration (issue #147): which password/email cards to render
+            // follows the account class in the session, not a feature flag - a native
+            // account gets the native forms from the day it exists. The Auth0 branch
+            // (and this whole trio of variables) goes at Stage B.
+            'has_native_account' => $user instanceof UserAccount,
+            'account_email' => $user instanceof UserAccount ? $user->email : null,
+            'account_email_verified' => $user instanceof UserAccount && $user->emailVerifiedAt !== null,
             'can_change_password' => Auth0DatabaseConnection::hasPassword($user->getUserIdentifier()),
+            // Connected sign-in methods (auth hardening PR 2): social-only
+            // accounts (null password) get the set-password door instead of
+            // change-password, and the connect/disconnect list needs the rows
+            'account_has_password' => $user instanceof UserAccount && $user->password !== null,
+            'connected_oauth_identities' => $user instanceof UserAccount
+                ? $this->getOauthIdentities->byUserId($user->userId)
+                : [],
         ]);
     }
 }

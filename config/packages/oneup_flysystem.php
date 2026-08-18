@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use AsyncAws\S3\S3Client;
 use League\Flysystem\Filesystem;
+use SpeedPuzzling\Web\Services\Storage\FailoverS3Adapter;
 
 return App::config([
     'oneup_flysystem' => [
         'adapters' => [
             'minio' => [
-                'async_aws_s3' => [
-                    'client' => S3Client::class,
-                    'bucket' => '%env(S3_BUCKET)%',
+                // FailoverS3Adapter wraps the raw AsyncAwsS3Adapter
+                // (app.storage.s3_adapter, config/services.php) with a local
+                // spool so an object-storage outage never breaks user flows.
+                'custom' => [
+                    'service' => FailoverS3Adapter::class,
                 ],
             ],
         ],

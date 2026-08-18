@@ -35,8 +35,9 @@ subscription_payment_failed:
     title: "¡El pago de membresía falló!"
     content: |
         <p>Notamos que tu pago de membresía reciente no fue exitoso. Puede haber habido un problema con tu método de pago.</p>
-        <p>Si deseas mantener tu membresía activa, por favor verifica y actualiza tu método de pago en la <a href="%billingPortalUrl%">página del portal de facturación</a>.</p>
+        <p>Si deseas mantener tu membresía activa, por favor verifica y actualiza tu método de pago en el portal de facturación.</p>
         <p>Si el pago continúa fallando, tu membresía será desactivada después de algunos intentos más. ¡Esperamos que te quedes con MySpeedPuzzling.com!</p>
+    button: "Actualizar método de pago"
 
 subscription_renewed:
     subject: "El pago de membresía en MySpeedPuzzling.com fue exitoso"
@@ -69,16 +70,16 @@ oauth2_client_request:
         <p>Se ha enviado una nueva solicitud de acceso de cliente OAuth2.</p>
         <p><strong>Solicitante:</strong> %playerName%<br><strong>Aplicación:</strong> %clientName%</p>
         <p><strong>Propósito:</strong> %purpose%</p>
-        <p><a href="%adminUrl%">Revisar esta solicitud en administración</a></p>
+    button: "Revisar esta solicitud en administración"
 
 oauth2_client_approved:
     subject: "¡Tu aplicación API ha sido aprobada!"
     title: "¡Tu aplicación ha sido aprobada!"
     content: |
         <p>¡Buenas noticias! Tu aplicación OAuth2 <strong>%clientName%</strong> ha sido aprobada.</p>
-        <p>Haz clic en el enlace de abajo para obtener tus credenciales. El enlace es válido por 7 días.</p>
+        <p>Haz clic en el botón de abajo para obtener tus credenciales. El enlace es válido por 7 días.</p>
         <p><strong>Importante:</strong> Tus credenciales se mostrarán solo una vez. Asegúrate de guardarlas en un lugar seguro.</p>
-        <p><a href="%claimUrl%">Obtener tus credenciales</a></p>
+    button: "Obtener mis credenciales"
 
 oauth2_client_rejected:
     subject: "Tu solicitud de aplicación API no fue aprobada"
@@ -94,7 +95,7 @@ competition_submitted:
     content: |
         <p>Se ha enviado un nuevo evento para aprobación.</p>
         <p><strong>Enviado por:</strong> %playerName%<br><strong>Evento:</strong> %competitionName%<br><strong>Ubicación:</strong> %location%</p>
-        <p><a href="%adminUrl%">Revisar eventos pendientes en administración</a></p>
+    button: "Revisar eventos pendientes"
 
 competition_approved:
     subject: "¡Tu evento ha sido aprobado!"
@@ -148,3 +149,55 @@ feature_request_declined:
             <p>¡Gracias por apoyar la idea de todos modos! Tus aportes nos ayudan a entender lo que le importa a la comunidad.</p>
         admin_comment: |
             <p><strong>Comentario del equipo:</strong> %adminComment%</p>
+
+sign_in_link:
+    subject: "Tu enlace de acceso para MySpeedPuzzling.com"
+    title: "Aquí tienes tu enlace de acceso"
+    content: |
+        <p>Haz clic en el botón de abajo para iniciar sesión en MySpeedPuzzling.com, sin necesidad de contraseña.</p>
+    button: "Iniciar sesión"
+    expires: "El enlace funciona una sola vez y caduca en %minutes% minutos."
+    not_requested: "¿No lo has solicitado? Puedes ignorar este correo sin problema: nadie puede iniciar sesión sin el enlace."
+
+verify_email:
+    subject: "Confirma tu dirección de correo electrónico para MySpeedPuzzling.com"
+    title: "Confirma tu dirección de correo electrónico"
+    content: |
+        <p>¡Bienvenido a MySpeedPuzzling! Estás en buena compañía: ya somos más de 10.000 puzzlers.</p>
+        <p>Solo tienes que confirmar tu dirección de correo y listo: cronometra tus montajes, compara tus resultados con la comunidad y mira cómo caen tus récords personales.</p>
+    button: "Confirmar mi dirección de correo electrónico"
+    expires: "El enlace es válido durante %hours% horas."
+    not_requested: "¿No has creado esta cuenta? Puedes ignorar este correo sin problema."
+
+password_reset:
+    subject: "Restablece tu contraseña de MySpeedPuzzling.com"
+    title: "Elige una contraseña nueva"
+    content: |
+        <p>Alguien —esperamos que tú— ha pedido restablecer la contraseña de tu cuenta de MySpeedPuzzling.com. Haz clic en el botón de abajo para elegir una nueva.</p>
+    button: "Elegir una contraseña nueva"
+    expires: "El enlace funciona una sola vez y caduca en %minutes% minutos."
+    not_requested: "¿No lo has solicitado? Puedes ignorar este correo sin problema: tu contraseña seguirá siendo la misma."
+
+account_deletion:
+    subject: "Confirma la eliminación de tu cuenta de MySpeedPuzzling"
+    title: "Nos da pena que te vayas"
+    content: |
+        <p>Alguien —esperamos que tú— nos ha pedido eliminar la cuenta de MySpeedPuzzling registrada con <b>%email%</b>.</p>
+        <p>Nos da pena que te vayas, pero son cosas que pasan. Esperamos que hayas disfrutado de tu tiempo en MySpeedPuzzling y que algún día, cuando vuelvas a tener ganas de registrar tus tiempos, regreses. La puerta queda abierta.</p>
+    export_hint: |
+        <p><b>Antes de irte:</b> exporta primero tus datos. Una vez eliminada la cuenta, tus tiempos no se podrán recuperar; con una exportación, en cambio, podrás llevártelos contigo y traerlos de vuelta si algún día regresas.</p>
+    export_button: "Exportar mis datos"
+    confirm_hint: |
+        <p>Para continuar, haz clic en el botón de abajo. La página que se abre te pedirá una última confirmación; después, tu cuenta y todos sus datos se eliminarán de forma permanente y no habrá vuelta atrás.</p>
+    button: "Eliminar mi cuenta"
+    expires: "El enlace es válido durante %minutes% minutos."
+    not_requested: "¿No lo has solicitado? Puedes ignorar este correo sin problema: no pasará nada y tu cuenta seguirá igual. Si te preocupa que otra persona tenga acceso a tu cuenta, cambia tu contraseña."
+
+newsletter_confirmation:
+    subject: "Un clic y las novedades de puzzles son tuyas 🧩"
+    title: "Confirma tu suscripción"
+    content: |
+        <p>¡Hola! Alguien —esperamos que tú— ha pedido recibir el newsletter de MySpeedPuzzling en esta dirección.</p>
+        <p>Confírmalo abajo y te contaremos las novedades de la plataforma: nuevas funciones, mejoras y noticias de la comunidad. Sin marketing ni promociones — solo novedades, como mucho una vez al mes.</p>
+    button: "Confirmar mi suscripción"
+    expires: "El enlace es válido durante %hours% horas. Si no lo has solicitado, ignora este correo sin problema y no te enviaremos nada."

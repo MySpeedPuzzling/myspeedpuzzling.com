@@ -8,6 +8,8 @@ use SpeedPuzzling\Web\Entity\Player;
 
 final readonly class PatUser implements ApiUser
 {
+    public const string ROLE = 'ROLE_PAT';
+
     public function __construct(
         private Player $player,
     ) {
@@ -20,7 +22,7 @@ final readonly class PatUser implements ApiUser
 
     public function getRoles(): array
     {
-        return ['ROLE_PAT'];
+        return [self::ROLE];
     }
 
     public function eraseCredentials(): void

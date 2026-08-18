@@ -1,0 +1,40 @@
+{% trans_default_domain 'emails' %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig') }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'sign_in_link.title'|trans }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    {{ 'sign_in_link.content'|trans|raw }}
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <center>
+                        <button href="{{ signInUrl }}">{{ 'sign_in_link.button'|trans }}</button>
+                    </center>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p class="text-center">{{ 'sign_in_link.expires'|trans({'%minutes%': expiresInMinutes}) }}</p>
+                    <p class="text-center">{{ 'sign_in_link.not_requested'|trans }}</p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

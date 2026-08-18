@@ -14,6 +14,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\OAuth2\OAuth2UserConsent;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\OAuth2UserConsentRepository;
 use SpeedPuzzling\Web\Security\OAuth2User;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -116,6 +117,11 @@ final readonly class OAuth2AuthorizationSubscriber implements EventSubscriberInt
 
     private function getPlayerFromUser(object $user): null|Player
     {
+        // Native account (window A onwards) — shares the user_id identity string with Player
+        if ($user instanceof UserAccount) {
+            return $this->entityManager->getRepository(Player::class)->findOneBy(['userId' => $user->getUserIdentifier()]);
+        }
+
         // Production Auth0 user (stateful)
         if ($user instanceof Auth0User) {
             $userId = $user->getUserIdentifier();

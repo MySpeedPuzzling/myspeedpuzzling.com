@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -34,7 +34,7 @@ final class AddedTrackingRecapController extends AbstractController
     )]
     public function __invoke(
         Request $request,
-        #[CurrentUser] User $user,
+        #[CurrentUser] UserInterface $user,
         string $trackingId,
     ): Response {
         $trackedPuzzle = $this->getPlayerSolvedPuzzles->byTimeId($trackingId);

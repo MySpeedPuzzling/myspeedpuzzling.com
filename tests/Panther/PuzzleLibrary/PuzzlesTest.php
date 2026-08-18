@@ -18,7 +18,11 @@ final class PuzzlesTest extends AbstractPantherTestCase
 {
     /**
      * Test: Add puzzle to wishlist, then remove it.
-     * Uses PUZZLE_500_05 which is clean (no badges) for PLAYER_WITH_STRIPE.
+     * Uses PUZZLE_4000 which is clean for PLAYER_WITH_STRIPE - not in any
+     * collection (the "Add to wishlist" action only renders for puzzles the
+     * player does not own) and not on the wishlist. Clean puzzles have no
+     * solving times, so the puzzle sits beyond the first page of the list -
+     * surface it via the text search first.
      */
     public function testOwnerCanAddAndRemoveFromWishlist(): void
     {
@@ -34,9 +38,14 @@ final class PuzzlesTest extends AbstractPantherTestCase
         $client->request('GET', '/en/puzzle');
         $client->waitFor('body');
 
-        // Use PUZZLE_500_05 - clean puzzle (not in collection/wishlist for PLAYER_WITH_STRIPE)
-        $puzzleCardSelector = '#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_05;
-        $badgesSelector = '#puzzle-badges-' . PuzzleFixture::PUZZLE_500_05;
+        $puzzleCardSelector = '#puzzle-list-item-' . PuzzleFixture::PUZZLE_4000;
+        $badgesSelector = '#puzzle-badges-' . PuzzleFixture::PUZZLE_4000;
+
+        // "Puzzle 16" = PUZZLE_4000; the search re-renders the list via LiveComponent
+        $client->getCrawler()
+            ->filter('.filters input[type="search"]')
+            ->first()
+            ->sendKeys('Puzzle 16');
 
         $client->waitForVisibility($puzzleCardSelector);
 
@@ -182,7 +191,10 @@ final class PuzzlesTest extends AbstractPantherTestCase
 
     /**
      * Test: Borrow puzzle from player, then pass to someone else.
-     * Uses PUZZLE_500_05 which is clean for PLAYER_WITH_STRIPE.
+     * Uses PUZZLE_4000 which is clean for PLAYER_WITH_STRIPE - not in any
+     * collection and not solved, so the unsolved badge tracks purely the
+     * borrowed state. Clean puzzles have no solving times, so the puzzle sits
+     * beyond the first page of the list - surface it via the text search first.
      */
     public function testBorrowAndPassToSomeoneElse(): void
     {
@@ -198,8 +210,14 @@ final class PuzzlesTest extends AbstractPantherTestCase
         $client->request('GET', '/en/puzzle');
         $client->waitFor('body');
 
-        $puzzleCardSelector = '#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_05;
-        $badgesSelector = '#puzzle-badges-' . PuzzleFixture::PUZZLE_500_05;
+        $puzzleCardSelector = '#puzzle-list-item-' . PuzzleFixture::PUZZLE_4000;
+        $badgesSelector = '#puzzle-badges-' . PuzzleFixture::PUZZLE_4000;
+
+        // "Puzzle 16" = PUZZLE_4000; the search re-renders the list via LiveComponent
+        $client->getCrawler()
+            ->filter('.filters input[type="search"]')
+            ->first()
+            ->sendKeys('Puzzle 16');
 
         $client->waitForVisibility($puzzleCardSelector);
 
@@ -360,6 +378,8 @@ final class PuzzlesTest extends AbstractPantherTestCase
     /**
      * Test: Add puzzle to sell/swap list, then remove.
      * Uses PUZZLE_300 which is in COLLECTION_PUBLIC but NOT on sell/swap.
+     * PUZZLE_300 has solving times, so it is on the first page of the puzzle
+     * list (the page renders only the top 20 by most-solved).
      */
     public function testAddAndRemoveFromSellSwap(): void
     {
@@ -375,9 +395,8 @@ final class PuzzlesTest extends AbstractPantherTestCase
         $client->request('GET', '/en/puzzle');
         $client->waitFor('body');
 
-        // PUZZLE_500_04 is in COLLECTION_PUBLIC, not on sell/swap
-        $puzzleCardSelector = '#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_04;
-        $badgesSelector = '#puzzle-badges-' . PuzzleFixture::PUZZLE_500_04;
+        $puzzleCardSelector = '#puzzle-list-item-' . PuzzleFixture::PUZZLE_300;
+        $badgesSelector = '#puzzle-badges-' . PuzzleFixture::PUZZLE_300;
 
         $client->waitForVisibility($puzzleCardSelector);
 
@@ -450,7 +469,9 @@ final class PuzzlesTest extends AbstractPantherTestCase
 
     /**
      * Test: Add puzzle to second collection, verify 2 remove buttons, remove one.
-     * Uses PUZZLE_1000_04 which is only in COLLECTION_STRIPE_TREFL.
+     * Uses PUZZLE_500_05 which is only in COLLECTION_PUBLIC.
+     * PUZZLE_500_05 has solving times, so it is on the first page of the puzzle
+     * list (the page renders only the top 20 by most-solved).
      */
     public function testAddToSecondCollectionAndRemove(): void
     {
@@ -466,9 +487,9 @@ final class PuzzlesTest extends AbstractPantherTestCase
         $client->request('GET', '/en/puzzle');
         $client->waitFor('body');
 
-        $puzzleCardSelector = '#puzzle-list-item-' . PuzzleFixture::PUZZLE_1000_04;
-        $badgesSelector = '#puzzle-badges-' . PuzzleFixture::PUZZLE_1000_04;
-        $dropdownActionsSelector = '#puzzle-dropdown-actions-' . PuzzleFixture::PUZZLE_1000_04;
+        $puzzleCardSelector = '#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_05;
+        $badgesSelector = '#puzzle-badges-' . PuzzleFixture::PUZZLE_500_05;
+        $dropdownActionsSelector = '#puzzle-dropdown-actions-' . PuzzleFixture::PUZZLE_500_05;
 
         $client->waitForVisibility($puzzleCardSelector);
 

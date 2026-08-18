@@ -7,6 +7,7 @@ menu:
     players: "Players"
     faq: "FAQ"
     sign_in: "Sign in"
+    register: "Register"
     hub: "Hub"
     feedback: "Send feedback"
     support_us: "Support us"
@@ -370,7 +371,6 @@ forms:
     puzzle_box_photo: "Photo of the picture or puzzle box"
     date_finished: "Date completed"
     do_not_remember_date: "I do not remember the date"
-    finished_at_required_for_speed: "Date completed is required for speed puzzling."
     ean: "EAN code"
     puzzle_identification_number: "Manufacturer's code"
     puzzle_photo_is_required: "Photo of solved puzzle, motif or box is required"
@@ -869,7 +869,7 @@ edit_profile:
     frequency_48_hours: "Every 48 hours"
     frequency_1_week: "Once a week"
     newsletter_enabled: "Receive newsletters"
-    newsletter_help: "We will occasionally send a newsletter about what's new on the platform, usually explaining new features. Expected frequency: no more than 1 per month."
+    newsletter_help: "We will occasionally send a newsletter about what's new on the platform, usually explaining new features. No marketing, no promotions — just what's new. Expected frequency: no more than 1 per month."
     personal_access_tokens: "Personal Access Tokens"
     personal_access_tokens_description: "Tokens for accessing your own data through the API."
     pat_created_title: "Your Personal Access Token"
@@ -904,6 +904,52 @@ edit_profile:
     change_password_description: "We'll send you an email with a secure link to set a new password. The link expires after a while, so use it soon."
     change_password_button: "Send password change email"
     change_password_social_login: "You sign in through an external account (such as Google or Facebook), so there is no MySpeedPuzzling password to change. You can change your password with your login provider."
+    change_password_native_description: "Set a new password with your current one. Your password manager will save it under myspeedpuzzling.com."
+    change_password_native_button: "Change password"
+    recent_activity_description: "Review recent sign-ins and security changes on your account, including where they came from."
+    recent_activity_button: "View recent activity"
+    social:
+        title: "Connected sign-in methods"
+        description: "Sign in to this same account with Google, Apple or Facebook. Connecting a provider here links it to this account — even when it uses a different email address."
+        connect: "Connect %provider%"
+        disconnect: "Disconnect"
+        disconnected: "%provider% disconnected."
+        linked_at: "Connected"
+        cannot_unlink_last: "This is currently the only way to sign in to your account. Add a password first, then disconnect it."
+        no_password_hint: "Your account has no password — you sign in with a connected account. Add a password to also enable email + password sign-in."
+        set_password_button: "Add a password"
+        result_connected: "Connected! You can now use it to sign in."
+        result_already_linked: "That provider account is already connected to a MySpeedPuzzling account."
+        result_cancelled: "Connection cancelled — nothing changed."
+        result_failed: "Connecting failed. Please try again in a moment."
+    change_password_current: "Current password"
+    change_password_new: "New password"
+    change_password_wrong_current: "That is not your current password."
+    change_password_saved: "Your new password is saved."
+    change_password_forgot: "Do not know your current password?"
+    change_email: "Email address"
+    change_email_description: "You sign in with %email%. It is also where password resets and sign-in links are sent."
+    change_email_new: "New email address"
+    change_email_current_password: "Current password"
+    change_email_button: "Change email address"
+    change_email_saved: "Your email address is changed. Check the new inbox for a confirmation link."
+    change_email_taken: "This email address already belongs to another account."
+    change_email_failed: "We could not change your email address. Please try again in a moment."
+    email_verified: "Email address confirmed"
+    email_not_verified: "Email address not confirmed yet"
+    email_verify_resend: "Resend the confirmation email"
+    back: "Back to profile settings"
+    danger_zone:
+        title: "Danger zone"
+        intro: "Thinking about leaving? We're sorry to see you go — but we get it, that happens. We hope you enjoyed your time with MySpeedPuzzling, and that one day, when you feel like tracking your times again, you'll be back."
+        export_hint: "Before you go, please export your data. Once the account is gone, your solving times cannot be recovered — but with an export you can bring them back with you if you ever return."
+        how_it_works: "Deleting your account takes two steps, so it can never happen by accident: we e-mail a confirmation link to %email% (valid for one hour), and the page it opens asks for one final confirmation. After that, your account and all its data are deleted permanently — there is no way back."
+        how_it_works_generic: "Deleting your account takes two steps, so it can never happen by accident: we e-mail you a confirmation link (valid for one hour), and the page it opens asks for one final confirmation. After that, your account and all its data are deleted permanently — there is no way back."
+        export_button: "Export my data first"
+        request_button: "E-mail me the confirmation link"
+        sent: "We've sent a confirmation link to %email%. It's valid for one hour — check your inbox (and the spam folder)."
+        too_many_requests: "You've asked for a few links in a row. Please check your inbox (and the spam folder) and wait a moment before asking for another."
+        failed: "We couldn't send the confirmation e-mail. Please try again in a moment."
 
 puzzle_detail:
     meta:
@@ -943,6 +989,7 @@ player_profile:
         description: "%name%'s speed puzzling profile: fastest jigsaw puzzle times, rankings, badges and recent solves on MySpeedPuzzling."
 
 flashes:
+    photo_upload_deferred: "Your data is saved! The photo could not be uploaded right now — it will be uploaded automatically as soon as our storage is available again."
     stopwatch_already_saved: "These stopwatches have already been saved."
     puzzle_needs_approve: "Recently added puzzles will be publicly displayed after approval by an administrator - usually within 24 hours of adding."
     time_added: "We have saved your puzzling time."
@@ -1427,6 +1474,7 @@ collections:
         login_required_move: "You must be logged in to move puzzles between collections."
         puzzle_added: "Puzzle was successfully added to the collection."
         puzzle_removed: "Puzzle was removed from the collection."
+        collection_unavailable: "That collection is no longer available — it may have been deleted."
         puzzle_moved: "Puzzle successfully moved to collection."
     membership_required:
         title: "Unlock Unlimited Collections"
@@ -1712,6 +1760,7 @@ sell_swap_list:
     reserved: "RESERVED"
     reserved.success: "Listing was marked as reserved."
     reservation_removed.success: "Puzzle is no longer reserved and is available again."
+    listing_unavailable: "This listing is no longer available — it may have already been sold, swapped or removed."
     mark_reserved:
         button: "Mark as Reserved"
         title: "Mark as Reserved"
@@ -1819,6 +1868,7 @@ lend_borrow:
         lent: "Puzzle was successfully lent."
         passed: "Puzzle was successfully passed."
         returned: "Puzzle was successfully returned to owner."
+        no_longer_available: "This puzzle is no longer yours to manage — it may have already been returned or passed on to someone else."
         borrowed: "Puzzle was marked as borrowed."
         settings_updated: "Lend & Borrow settings were successfully updated."
         login_required: "You must be logged in to manage your lending list."
@@ -1949,6 +1999,7 @@ messaging:
     user_unblocked: "User has been unblocked."
     cannot_message_user: "You cannot message this user."
     direct_messages_disabled: "This user does not accept direct messages."
+    conversation_unavailable: "This conversation is no longer available — it may have been deleted, or you no longer have access to it."
     pending_request_exists: "You already have a pending message request with this user."
     cannot_contact_yourself: "You cannot contact yourself."
     conversations: "Conversations"
@@ -3070,3 +3121,290 @@ wjpc_hub:
         anyone:
             question: "Can anyone compete at the WJPC?"
             answer: "Yes. Registration is open to any puzzler aged 14 or older, and there are no qualification rounds required to enter. Beginners regularly share the competition floor with the world's fastest puzzlers — everyone gets the same puzzle and the same clock."
+
+sign_in_changes:
+    title: "Sign-in is moving to myspeedpuzzling.com"
+    meta_description: "Signing in to MySpeedPuzzling is moving off the external service it has used since the start, onto myspeedpuzzling.com. Your email and password stay the same — here is what it costs you, why we are doing it, and what to do if your password manager cannot find your password."
+    core_message: "Your email and password stay exactly the same. Only the sign-in screen changes — it will be part of myspeedpuzzling.com instead of sending you to auth0.com."
+    intro: "This change costs you something, so we will start there. Every puzzler will be signed out once and will have to sign in again. And your password manager may stop offering your password, because the web address it was saved under changes. That is not a popular thing to do to people, and we would rather explain it now than surprise you with it later."
+    did_you_notice: "Have you ever noticed that signing in to MySpeedPuzzling does not actually happen on myspeedpuzzling.com? Look at the address bar the next time you sign in — it says <strong>%old_domain%</strong>. That is Auth0, an external sign-in service we have used since the very beginning."
+    timing: "Nothing has changed yet, and there is nothing to prepare. The switch is planned for the coming weeks, and we will send you an email before it happens."
+    notice:
+        text: "Sign-in is moving to myspeedpuzzling.com soon."
+        text_extra: "Same email and password — but you will be signed out once."
+        text_changed: "Sign-in has moved to myspeedpuzzling.com."
+        text_extra_changed: "Same email and password — if yours is not offered, search your password manager for \"speedpuzzling\" or \"auth0\"."
+        link: "What is changing and why?"
+        dismiss: "Dismiss"
+    why:
+        heading: "Why we are moving it"
+        p1: "Auth0 was the right choice at the start. Building sign-in properly — passwords, resets, sessions, security — takes months of work, and letting Auth0 do it meant we could spend those months on puzzle features instead. MySpeedPuzzling grew from a small side project into a community while Auth0 handled the sign-in screen."
+        p2: "Our needs have changed since then. The software that connects Auth0 to the rest of MySpeedPuzzling is no longer properly maintained, we kept running into bugs in it, and the fixes we offered were not accepted — so we now maintain our own repaired copy just to keep sign-in working. Signing in with Google, Facebook or Apple, a sign-in screen in your own language, passkeys, two-factor authentication: with Auth0 each of those is either impossible or difficult for us. It is simply no longer the best choice for where MySpeedPuzzling is going."
+        p3: "Waiting would only make it worse. New puzzlers join MySpeedPuzzling every day, so every month we postpone the switch means more people who have to sign in again and update their password manager. The change affects the fewest puzzlers if we do it now."
+    what_changes:
+        heading: "What this means for you"
+        item_screen: "The sign-in screen becomes part of MySpeedPuzzling, in your own language, instead of a redirect to auth0.com."
+        item_signed_out: "On the day of the switch you are signed out once. You sign in again with the same email and the same password."
+        item_manager: "Your password manager may not offer your password on the new screen, because it saved it under the old address (%old_domain%). Search your password manager for \"speedpuzzling\" or \"auth0\" and you will find it."
+        item_link: "If you cannot find your password at all, the sign-in page can email you a link that signs you in without a password."
+        item_later: "Once sign-in is ours, we can finally add the things people keep asking for: signing in with Google, Facebook or Apple, and later passkeys and two-factor authentication."
+    what_stays:
+        heading: "What stays the same"
+        body: "Everything else: your times, statistics, collections, membership, competitions and your player code. This change is only about the screen where you sign in."
+        transition: "Your existing password keeps working — nothing is reset and there is no deadline for you. We will keep the old service running quietly in the background during the transition, so we can fall back on it if anything goes wrong. On the new screen we will offer you a fresh password, which is worth doing because your password manager then stores it under myspeedpuzzling.com, but the old one keeps working either way."
+    faq:
+        heading: "Questions"
+        why:
+            question: "Do I have to do anything now?"
+            answer: "No. Nothing has changed yet and there is nothing to prepare. We will send you an email before the switch, and the only thing you will have to do is sign in again afterwards."
+        new_password:
+            question: "Do I need a new password?"
+            answer: "No. The same email and the same password will work. Your password was never visible to us and is not being reset — only its securely encrypted form is transferred."
+        manager:
+            question: "My password manager does not offer my password. What now?"
+            answer: "It saved your password under the old sign-in address (%old_domain%). Search your password manager for \"speedpuzzling\" or \"auth0\", then let it update the entry the first time you sign in on the new screen."
+        lost_password:
+            question: "I cannot find my password at all."
+            answer: "The sign-in page can email you a link that signs you in without a password. Afterwards you can set a new password right away — your password manager will then save it under myspeedpuzzling.com."
+        safety:
+            question: "Is my password safe during this change?"
+            answer: "Yes. Passwords are stored only in a securely encrypted form that cannot be turned back into the original, before and after the change. Your actual password is never visible to us."
+        logged_out:
+            question: "Why do I have to sign in again?"
+            answer: "The new system cannot take over the sign-in sessions created by the old one, so all of them end once, on the day of the switch. It happens a single time, not repeatedly."
+        recent:
+            question: "I registered recently and never saw auth0.com."
+            answer: "Then nothing changes for you — your account was already created on the new system."
+        other:
+            question: "Something else, or I think I have two accounts."
+            answer: "Write to <a href=\"mailto:%support_email%\">%support_email%</a> or send us a message on <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>, and include your player code if you know it. We are always happy to help."
+    help:
+        heading: "Something not working?"
+        body: "If you run into any trouble signing in — before, during or after the switch — write to <a href=\"mailto:%support_email%\">%support_email%</a> or message us on <a href=\"%instagram_url%\" target=\"_blank\" rel=\"noopener\">Instagram</a>. We are always happy to help."
+
+auth:
+    login:
+        title: "Sign in"
+        microcopy: "New sign-in screen, same account. Use the same email and password as before — or get a sign-in link by email."
+        email: "Email"
+        password: "Password"
+        submit: "Sign in"
+        or: "or"
+        auth0_fallback: "Old Auth0 sign-in (temporary)"
+    failure_helper:
+        title: "Password not working?"
+        vault_tip: "If a password manager saved it, search the manager for \"speedpuzzling\" or \"auth0\" — the entry is filed under our old sign-in domain (%old_domain%)."
+        or_skip: "Or skip the password entirely:"
+        auth0_fallback: "Changed your password very recently? The old Auth0 sign-in still accepts it."
+    sign_in_link:
+        title: "Email me a sign-in link"
+        intro: "Enter your email address and we will send you a link that signs you in — no password needed."
+        submit: "Email me a sign-in link"
+        explainer: "We send the link to the address above. One click and you are in."
+        single_use_note: "The link works once and expires in %minutes% minutes."
+        sent: "If an account exists for that address, a sign-in link is on its way. Check your inbox — and your spam folder."
+        email_required: "Please enter your email address."
+        too_many_requests: "Too many sign-in link requests. Please wait a few minutes and try again."
+        failed: "We could not send the sign-in link. Please try again in a moment."
+        invalid_link: "That sign-in link is no longer valid — it may have expired or already been used. Request a new one below."
+        back_to_login: "Back to signing in with a password"
+    set_password:
+        title: "Set a fresh password?"
+        intro: "You are signed in! If you set a new password now, your password manager will save it under myspeedpuzzling.com — so next time it autofills like it should."
+        new_password: "New password"
+        password_hint: "At least %minimum% characters."
+        submit: "Save password"
+        skip: "Not now — my current password keeps working"
+        saved: "Your new password is saved."
+    register:
+        title: "Create an account"
+        intro: "One account for your times, collections and everything else on MySpeedPuzzling."
+        email: "Email"
+        password: "Password"
+        password_hint: "At least %minimum% characters."
+        submit: "Create account"
+        have_account: "Already have an account?"
+        email_already_registered: "This email address already has an account. Sign in instead — or use \"Email me a sign-in link\" if the password will not come to hand."
+        too_many_attempts: "Too many registration attempts from here. Please try again later."
+        failed: "We could not create your account. Please try again in a moment."
+    welcome:
+        title: "Welcome to MySpeedPuzzling!"
+        intro: "Your account is ready and you are signed in."
+        verification_sent: "We sent a confirmation link to %email%. Open it to confirm the address is yours."
+        signed_out_title: "If you get signed out"
+        signed_out_text: "Signing in still runs through our old provider for a few more days, and it does not know your brand-new account yet. If you are signed out before the switch, get back in with a sign-in link by email."
+        to_profile: "Go to my profile"
+    verify_email:
+        success:
+            headline: "Email address confirmed"
+            message: "Thank you — your email address is confirmed."
+        expired:
+            headline: "This link has expired"
+            message: "Confirmation links are valid for 24 hours. Sign in and send yourself a new one from your profile settings."
+        invalid:
+            headline: "This link does not work"
+            message: "It may already have been used, or the address on the account has changed since it was sent. Sign in and send yourself a new one from your profile settings."
+        failed:
+            headline: "Something went wrong"
+            message: "We could not confirm your email address. Please try again in a moment."
+        to_profile: "Go to my profile"
+        resend_sent: "Confirmation email sent. Check your inbox — and your spam folder."
+        resend_too_many: "We just sent one. Please wait a few minutes before asking for another."
+        resend_failed: "We could not send the confirmation email. Please try again in a moment."
+    password_reset:
+        link: "Forgot password?"
+        request_title: "Reset your password"
+        request_intro: "Enter your email address and we will send you a link to choose a new password."
+        request_submit: "Email me a reset link"
+        sent: "If an account exists for that address, a reset link is on its way. Check your inbox — and your spam folder."
+        email_required: "Please enter your email address."
+        too_many_requests: "Too many reset requests. Please wait a few minutes and try again."
+        failed: "We could not send the reset link. Please try again in a moment."
+        title: "Choose a new password"
+        intro: "Pick a new password for your account. Your password manager will save it under myspeedpuzzling.com."
+        new_password: "New password"
+        password_hint: "At least %minimum% characters."
+        submit: "Save new password"
+        done: "Your new password is saved. Sign in with it."
+        expired:
+            headline: "This reset link has expired"
+            message: "Reset links are valid for one hour. Ask for a new one and use it right away."
+        invalid:
+            headline: "This reset link does not work"
+            message: "It may already have been used, or a newer reset link replaced it. Ask for a new one below."
+    social:
+        or_continue_with: "or continue with"
+        continue_with: "Continue with %provider%"
+        attempt_expired: "That sign-in attempt expired or was already used. Please try again."
+        confirm:
+            title: "Create a new account?"
+            question: "You signed in with %provider% as %email%, and no MySpeedPuzzling account uses this email address yet. Create a new account?"
+            create: "Create my account"
+            have_account: "Already have a MySpeedPuzzling account under a different email address? Sign in to it first, then connect %provider% in your profile settings — otherwise you would end up with two separate accounts."
+            expired: "That sign-up confirmation expired. Please try signing in again."
+            created: "Welcome! Your account is ready and you are signed in."
+    account_set_password:
+        title: "Add a password"
+        intro: "You sign in with a connected account. Adding a password also opens the classic email + password door — useful as a backup sign-in method."
+        back: "Back to profile settings"
+
+newsletter:
+    footer:
+        title: "📬 What's new on MySpeedPuzzling"
+        pitch: "New features and platform news, once a month. No marketing, no promotions."
+        email_placeholder: "Your e-mail address"
+        subscribe_button: "Subscribe"
+        consent: 'By subscribing you agree to receiving the MySpeedPuzzling newsletter. Unsubscribe anytime with one click. <a href="%privacyUrl%">Privacy policy</a>'
+        manage_link: "Manage your newsletter subscription in notification settings"
+    flash:
+        try_again: "Something went wrong, please try again."
+        invalid_email: "Please enter a valid e-mail address."
+        too_many_attempts: "Too many attempts, please try again later."
+    check_inbox:
+        headline: "One more step — check your inbox"
+        sent: "We've just sent you a confirmation e-mail. Click the link inside and the newsletter is yours."
+        spam_hint: "Nothing there? Give it a minute — and maybe peek into the spam folder, just in case."
+        expires: "The confirmation link is valid for %hours% hours."
+        cta_homepage: "Explore MySpeedPuzzling"
+    confirm:
+        headline: "You're in! 🧩"
+        text: "Your subscription is confirmed. The next MySpeedPuzzling newsletter will land right in your inbox."
+        register_pitch: "Want more than news? Create a free account to track your solving times, build your puzzle collection and compare with puzzlers worldwide."
+        cta_register: "Create a free account"
+        cta_homepage: "Explore MySpeedPuzzling"
+    unsubscribe:
+        headline: "Unsubscribe from the newsletter?"
+        text: "This will stop the MySpeedPuzzling newsletter for <strong>%email%</strong>."
+        confirm_button: "Yes, unsubscribe me"
+        manage_hint: "Prefer fewer e-mails instead of none? You can fine-tune what we send you in your notification settings."
+        manage_button: "Manage my notification settings"
+    unsubscribed:
+        headline: "You're unsubscribed"
+        text: "Done — no more newsletters from us. Your inbox, your rules. ❤️"
+        resubscribe_player: 'Changed your mind? You can re-subscribe anytime in your <a href="%settingsUrl%">notification settings</a>.'
+        resubscribe_guest: "Changed your mind? You can subscribe again anytime using the form in the page footer."
+        cta_homepage: "Back to MySpeedPuzzling"
+    invalid:
+        headline: "This link doesn't work anymore"
+        invalid_text: "The link is invalid or no longer valid. If you wanted to subscribe to the newsletter, just use the form in the page footer."
+        expired_text: "The confirmation link has expired. No worries — subscribe again using the form in the page footer and we'll send you a fresh one."
+        cta_homepage: "Back to MySpeedPuzzling"
+
+email_preferences:
+    headline: "Your e-mail preferences"
+    intro: "What lands in the inbox of <strong>%email%</strong> — you're in control."
+    saved: "Saved! Your preferences are up to date."
+    newsletter_title: "Newsletter"
+    newsletter_description: "What's new on MySpeedPuzzling — new features and platform news, once a month. No marketing, no promotions."
+    notifications_title: "Notification e-mails"
+    notifications_description: "A friendly heads-up when someone messages you or wants to connect — sent only when something is actually waiting for you."
+    frequency_label: "How often at most?"
+    save_button: "Save my preferences"
+    more_hint: "Looking for more? All account settings live in your profile."
+    more_link: "Open profile settings"
+
+account_activity:
+    title: "Recent account activity"
+    description: "The last 50 security events on your account — sign-ins, failed attempts, and password changes."
+    no_events: "No account activity recorded yet."
+    footer_hint: "Seeing a sign-in you don't recognize? Change your password right away."
+    column_event: "Event"
+    column_when: "When"
+    column_ip: "IP address"
+    column_device: "Device"
+    event:
+        login_success: "Signed in"
+        sign_in_link_used: "Signed in with an emailed link"
+        login_failure: "Failed sign-in attempt"
+        password_changed: "Password changed"
+        password_reset_completed: "Password reset"
+        oauth_login: "Signed in with a connected account"
+        oauth_identity_linked: "Sign-in method connected"
+        oauth_identity_unlinked: "Sign-in method disconnected"
+        account_deletion_requested: "Account deletion requested"
+
+account_deletion:
+    confirm:
+        title: "Delete your account"
+        headline: "Sorry to see you go"
+        intro: "This is the last step. We hope you enjoyed your time with MySpeedPuzzling — and if you ever feel like tracking your times again, you'll always be welcome back."
+        warning: "You are about to permanently delete the account %email% (%player%) together with all its data — solving times, collections, statistics, messages, everything. This cannot be undone and nothing can be recovered afterwards."
+        export_title: "Take your data with you"
+        export_text: "Haven't exported your data yet? Do it now — after the deletion there is nothing left to export. With an export you can bring your times back should you ever return."
+        export_button: "Export my data"
+        checkbox: "I understand that this is permanent and cannot be undone."
+        checkbox_required: "Please tick the box to confirm you understand."
+        submit: "Yes, permanently delete my account"
+        cancel: "I changed my mind"
+        summary_title: "This is what goes with it:"
+        summary_solving_times: "solving times"
+        summary_pieces: "pieces solved"
+        summary_time: "spent puzzling"
+        summary_collections: "puzzles in collections"
+    dead_link:
+        nothing_deleted: "Nothing has been deleted — your account is exactly as it was."
+        to_settings: "Request a new link in your profile settings"
+    expired:
+        headline: "This deletion link has expired"
+        message: "Deletion links are valid for one hour. If you still want to delete your account, ask for a new link and use it right away."
+    invalid:
+        headline: "This deletion link does not work"
+        message: "It may already have been used, or a newer link replaced it. If you still want to delete your account, ask for a new link."
+    failed:
+        headline: "We could not delete your account"
+        message: "Something went wrong on our side and nothing has been deleted. Please try again in a moment — and if it keeps failing, contact us."
+    deleted:
+        title: "Account deleted"
+        headline: "Your account has been deleted"
+        done: "That's it — your account and all your data are gone for good."
+        farewell: "Sorry to see you go, and thank you for the time you spent with MySpeedPuzzling. We hope you enjoyed it."
+        come_back: "Should you ever feel like tracking your times again, you're always welcome to come back — just create a new account. Happy puzzling!"
+        to_homepage: "Back to the homepage"
+
+wjpf:
+    connect:
+        title: "Connect your World Jigsaw Puzzle Federation account"
+        question: "You are signed in as %name%. Connect this MySpeedPuzzling profile to your World Jigsaw Puzzle Federation account?"
+        explanation: "Your MySpeedPuzzling profile ID will be shared with worldjigsawpuzzle.org so the two accounts can be linked. Nothing else is sent."
+        confirm: "Connect accounts"
+        cancel: "Cancel"

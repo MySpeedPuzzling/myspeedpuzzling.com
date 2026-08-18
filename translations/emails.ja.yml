@@ -35,8 +35,9 @@ subscription_payment_failed:
     title: "メンバーシップ支払いが失敗しました！"
     content: |
         <p>最近のメンバーシップ支払いが失敗したことを確認いたしました。支払い方法に問題があった可能性があります。</p>
-        <p>メンバーシップをアクティブに保ちたい場合は、<a href="%billingPortalUrl%">請求ポータルページ</a>で支払い方法を確認・更新してください。</p>
+        <p>メンバーシップをアクティブに保ちたい場合は、請求ポータルで支払い方法を確認・更新してください。</p>
         <p>支払いが引き続き失敗する場合、数回の試行後にメンバーシップが無効化されます。MySpeedPuzzling.comに引き続きお付き合いいただけることを願っています！</p>
+    button: "支払い方法を更新する"
 
 subscription_renewed:
     subject: "MySpeedPuzzling.comのメンバーシップ支払いが成功しました"
@@ -69,16 +70,16 @@ oauth2_client_request:
         <p>新しいOAuth2クライアントアクセスリクエストが送信されました。</p>
         <p><strong>申請者:</strong> %playerName%<br><strong>アプリケーション:</strong> %clientName%</p>
         <p><strong>目的:</strong> %purpose%</p>
-        <p><a href="%adminUrl%">管理画面でこのリクエストを確認する</a></p>
+    button: "管理画面でこのリクエストを確認する"
 
 oauth2_client_approved:
     subject: "APIアプリケーションが承認されました！"
     title: "アプリケーションが承認されました！"
     content: |
         <p>朗報です！OAuth2アプリケーション<strong>%clientName%</strong>が承認されました。</p>
-        <p>以下のリンクをクリックして認証情報を取得してください。リンクの有効期限は7日間です。</p>
+        <p>以下のボタンをクリックして認証情報を取得してください。リンクの有効期限は7日間です。</p>
         <p><strong>重要:</strong> 認証情報は一度しか表示されません。安全な場所に必ず保存してください。</p>
-        <p><a href="%claimUrl%">認証情報を取得する</a></p>
+    button: "認証情報を取得する"
 
 oauth2_client_rejected:
     subject: "APIアプリケーションリクエストが承認されませんでした"
@@ -94,7 +95,7 @@ competition_submitted:
     content: |
         <p>新しいイベントが承認のために送信されました。</p>
         <p><strong>送信者:</strong> %playerName%<br><strong>イベント:</strong> %competitionName%<br><strong>場所:</strong> %location%</p>
-        <p><a href="%adminUrl%">管理画面で保留中のイベントを確認する</a></p>
+    button: "管理画面で保留中のイベントを確認する"
 
 competition_approved:
     subject: "イベントが承認されました！"
@@ -148,3 +149,55 @@ feature_request_declined:
             <p>それでも、このアイデアを応援してくださりありがとうございました！皆様のご意見は、コミュニティが何を大切にしているかを理解する助けになっています。</p>
         admin_comment: |
             <p><strong>チームからのコメント:</strong> %adminComment%</p>
+
+sign_in_link:
+    subject: "MySpeedPuzzling.comのサインインリンク"
+    title: "サインインリンクをお送りします"
+    content: |
+        <p>下のボタンをクリックすると、パスワードなしでMySpeedPuzzling.comにサインインできます。</p>
+    button: "サインイン"
+    expires: "リンクは1回のみ有効で、%minutes%分で期限切れになります。"
+    not_requested: "お心当たりがない場合は、このメールは無視していただいて問題ありません。リンクがなければ誰もサインインできません。"
+
+verify_email:
+    subject: "MySpeedPuzzling.comのメールアドレスを確認してください"
+    title: "メールアドレスを確認してください"
+    content: |
+        <p>MySpeedPuzzlingへようこそ！10,000人を超えるパズラーの仲間入りです。</p>
+        <p>あとはメールアドレスを確認するだけ。タイムを計測し、コミュニティと結果を比べ、自己ベストが更新されていくのをお楽しみください。</p>
+    button: "メールアドレスを確認する"
+    expires: "リンクの有効期限は%hours%時間です。"
+    not_requested: "このアカウントを作成した覚えがない場合は、このメールは無視していただいて問題ありません。"
+
+password_reset:
+    subject: "MySpeedPuzzling.comのパスワードをリセット"
+    title: "新しいパスワードを設定してください"
+    content: |
+        <p>どなたか — おそらくあなた — が、MySpeedPuzzling.comアカウントのパスワードのリセットをリクエストしました。下のボタンをクリックして、新しいパスワードを設定してください。</p>
+    button: "新しいパスワードを設定する"
+    expires: "リンクは1回のみ有効で、%minutes%分で期限切れになります。"
+    not_requested: "お心当たりがない場合は、このメールは無視していただいて問題ありません。パスワードはそのまま変わりません。"
+
+account_deletion:
+    subject: "MySpeedPuzzlingアカウントの削除を確認してください"
+    title: "お別れは寂しいですが"
+    content: |
+        <p>どなたか — おそらくあなた — が、<b>%email%</b> で登録されたMySpeedPuzzlingアカウントの削除をリクエストしました。</p>
+        <p>寂しいですが、そういうこともありますよね。MySpeedPuzzlingで過ごした時間を楽しんでいただけていたら嬉しいです。いつかまたタイムを記録したくなったら、ぜひ戻ってきてください。扉はいつでも開いています。</p>
+    export_hint: |
+        <p><b>退会前に：</b>まずデータをエクスポートしてください。アカウントを削除すると、パズルのタイム記録は復元できません。エクスポートしておけば、いつか戻ってきたときにデータを持ち帰ることができます。</p>
+    export_button: "データをエクスポートする"
+    confirm_hint: |
+        <p>続行するには、下のボタンをクリックしてください。開いたページで最終確認をしていただきます。その後、アカウントとすべてのデータは完全に削除され、元に戻すことはできません。</p>
+    button: "アカウントを削除する"
+    expires: "リンクの有効期限は%minutes%分です。"
+    not_requested: "お心当たりがない場合は、このメールは無視していただいて問題ありません。何も起こらず、アカウントはそのまま残ります。ほかの誰かがアカウントにアクセスしている心配がある場合は、パスワードを変更してください。"
+
+newsletter_confirmation:
+    subject: "ワンクリックでパズルの最新情報があなたのものに 🧩"
+    title: "ニュースレターの登録を確認してください"
+    content: |
+        <p>こんにちは！どなたか — おそらくあなた — が、このアドレスでのMySpeedPuzzlingニュースレターの受信をリクエストしました。</p>
+        <p>下のボタンで確認すると、プラットフォームの最新情報 — 新機能、改善、コミュニティのニュース — をお届けします。マーケティングや宣伝は一切なし。多くても月1回だけです。</p>
+    button: "登録を確認する"
+    expires: "リンクの有効期限は%hours%時間です。お心当たりがない場合は、このメールは無視していただいて問題ありません。今後何も届きません。"

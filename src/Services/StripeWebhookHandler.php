@@ -8,7 +8,9 @@ use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
 use SpeedPuzzling\Web\Message\CreateAffiliatePayout;
 use SpeedPuzzling\Web\Message\NotifyAboutFailedPayment;
+use SpeedPuzzling\Web\Message\TerminateMembershipDueToDispute;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
+use Stripe\Dispute;
 use Stripe\Invoice;
 use Stripe\Subscription;
 use Stripe\Webhook;
@@ -81,6 +83,28 @@ readonly final class StripeWebhookHandler
                 }
                 break;
 
+            // Visibility only. A SEPA return is lost the moment it is created, so `closed` arrives in the
+            // same breath and does the actual work - acting here too would process one dispute twice.
+            case 'charge.dispute.created':
+                $dispute = $event->data->object ?? null;
+
+                if ($dispute instanceof Dispute) {
+                    $this->logger->warning('Stripe dispute opened', [
+                        'stripe_dispute_id' => $dispute->id,
+                        'dispute_status' => $dispute->status,
+                        'dispute_reason' => $dispute->reason,
+                    ]);
+                }
+                break;
+
+            case 'charge.dispute.closed':
+                $dispute = $event->data->object ?? null;
+
+                if ($dispute instanceof Dispute) {
+                    $this->handleDisputeClosed($dispute);
+                }
+                break;
+
             default:
                 $this->logger->error('Unsupported Stripe webhook event', [
                     'event_id' => $event->id,
@@ -107,6 +131,11 @@ readonly final class StripeWebhookHandler
     private function handleSubscriptionDeleted(Subscription $stripeSubscription): void
     {
         $this->messageBus->dispatch(new CancelMembershipSubscription($stripeSubscription->id));
+    }
+
+    private function handleDisputeClosed(Dispute $stripeDispute): void
+    {
+        $this->messageBus->dispatch(new TerminateMembershipDueToDispute($stripeDispute->id));
     }
 
     private function handlePaymentFailed(Invoice $invoice): void

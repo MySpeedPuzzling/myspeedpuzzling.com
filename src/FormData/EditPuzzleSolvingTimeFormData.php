@@ -96,7 +96,7 @@ final class EditPuzzleSolvingTimeFormData
     public function validateFinishedAtForSpeed(ExecutionContextInterface $context): void
     {
         if ($this->mode === PuzzleAddMode::SpeedPuzzling && $this->finishedAt === null) {
-            $context->buildViolation('forms.finished_at_required_for_speed')
+            $context->buildViolation('finished_at_required_for_speed')
                 ->atPath('finishedAt')
                 ->addViolation();
         }

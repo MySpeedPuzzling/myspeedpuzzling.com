@@ -118,25 +118,172 @@
                 {% endif %}
             </div>
 
-            <div class="card card-body shadow-lg my-3">
-                <h3 class="h5">{{ 'edit_profile.change_password'|trans }}</h3>
+            {# Sign-in migration (issue #147). Which card shows follows the account the
+               session actually holds, not a flag: a native account gets the native
+               forms from the day it exists (window-A registrants included), a legacy
+               Auth0 session keeps the #161 reset-email button until the Stage B import
+               turns it into a user_account. The Auth0 branch and its three classes are
+               removed at Stage B - see docs/features/auth-migration. #}
+            {% if has_native_account %}
+                <div class="card card-body shadow-lg my-3">
+                    <h3 class="h5">{{ 'edit_profile.change_email'|trans }}</h3>
+                    <p class="text-muted fs-sm mb-2">{{ 'edit_profile.change_email_description'|trans({'%email%': account_email}) }}</p>
 
-                {% if can_change_password %}
-                    <p class="text-muted fs-sm mb-3">{{ 'edit_profile.change_password_description'|trans }}</p>
+                    {% if account_email_verified %}
+                        <p class="fs-sm mb-3 text-success">
+                            <i class="bi bi-check-circle me-1"></i>{{ 'edit_profile.email_verified'|trans }}
+                        </p>
+                    {% else %}
+                        <p class="fs-sm mb-2 text-warning">
+                            <i class="bi bi-exclamation-circle me-1"></i>{{ 'edit_profile.email_not_verified'|trans }}
+                        </p>
 
-                    <form action="{{ path('request_password_change') }}" method="post">
-                        <input type="hidden" name="_token" value="{{ csrf_token('change_password') }}" />
+                        <form action="{{ path('resend_email_verification') }}" method="post" class="mb-3">
+                            <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ResendEmailVerificationController::CSRF_TOKEN_ID')) }}" />
+
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-envelope me-1"></i>{{ 'edit_profile.email_verify_resend'|trans }}
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    <p class="mb-0">
+                        <a class="btn btn-outline-primary" href="{{ path('change_account_email') }}">
+                            <i class="bi bi-envelope me-1"></i>{{ 'edit_profile.change_email_button'|trans }}
+                        </a>
+                    </p>
+                </div>
+
+                <div class="card card-body shadow-lg my-3">
+                    <h3 class="h5">{{ 'edit_profile.change_password'|trans }}</h3>
+
+                    {% if account_has_password %}
+                        <p class="text-muted fs-sm mb-3">{{ 'edit_profile.change_password_native_description'|trans }}</p>
 
                         <p class="mb-0">
-                            <button type="submit" class="btn btn-outline-primary">
-                                <i class="bi bi-key me-1"></i>{{ 'edit_profile.change_password_button'|trans }}
-                            </button>
+                            <a class="btn btn-outline-primary" href="{{ path('change_account_password') }}">
+                                <i class="bi bi-key me-1"></i>{{ 'edit_profile.change_password_native_button'|trans }}
+                            </a>
                         </p>
-                    </form>
-                {% else %}
-                    <p class="text-muted fs-sm mb-0">{{ 'edit_profile.change_password_social_login'|trans }}</p>
+                    {% else %}
+                        {# Social-only account (password IS NULL): the change flow
+                           demands the current password, so the door here is
+                           set-password - it also opens the email+password and
+                           reset flows (auth hardening PR 2) #}
+                        <p class="text-muted fs-sm mb-3">{{ 'edit_profile.social.no_password_hint'|trans }}</p>
+
+                        <p class="mb-0">
+                            <a class="btn btn-outline-primary" href="{{ path('account_set_password') }}">
+                                <i class="bi bi-key me-1"></i>{{ 'edit_profile.social.set_password_button'|trans }}
+                            </a>
+                        </p>
+                    {% endif %}
+                </div>
+
+                {# Connected sign-in methods (auth hardening PR 2, settled D13 UI).
+                   While admin-only the whole section exists for admins alone; this
+                   page is per-user rendered (never shared-cached), so the
+                   conditional is safe here unlike on /login. #}
+                {% set social_any_enabled = social_login_google_enabled or social_login_apple_enabled or social_login_facebook_enabled %}
+                {% if social_any_enabled and (not social_login_admin_only or is_granted('ADMIN_ACCESS')) %}
+                    <div class="card card-body shadow-lg my-3">
+                        <h3 class="h5">{{ 'edit_profile.social.title'|trans }}</h3>
+                        <p class="text-muted fs-sm mb-2">{{ 'edit_profile.social.description'|trans }}</p>
+
+                        {# Link-flow feedback arrives as query parameters: the Apple
+                           callback is a cross-site POST without session cookies, so
+                           flashes are not an option there (see SocialLoginCallbackController) #}
+                        {% set social_link_result = app.request.query.get('social_link_result') %}
+                        {% if social_link_result == 'connected' %}
+                            <div class="alert alert-success py-2 fs-sm">{{ 'edit_profile.social.result_connected'|trans }}</div>
+                        {% elseif social_link_result == 'already_linked' %}
+                            <div class="alert alert-warning py-2 fs-sm">{{ 'edit_profile.social.result_already_linked'|trans }}</div>
+                        {% elseif social_link_result == 'cancelled' %}
+                            <div class="alert alert-warning py-2 fs-sm">{{ 'edit_profile.social.result_cancelled'|trans }}</div>
+                        {% elseif social_link_result == 'failed' %}
+                            <div class="alert alert-danger py-2 fs-sm">{{ 'edit_profile.social.result_failed'|trans }}</div>
+                        {% endif %}
+
+                        {% for identity in connected_oauth_identities %}
+                            <div class="card border mb-2">
+                                <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ identity.provider.displayName }}</strong>
+                                        {% if identity.emailAtLink %}
+                                            <span class="text-muted ms-2 fs-sm">{{ identity.emailAtLink }}</span>
+                                        {% endif %}
+                                        <div class="fs-sm text-muted mt-1">
+                                            {{ 'edit_profile.social.linked_at'|trans }}: {{ identity.linkedAt|date('j. n. Y') }}
+                                            {% if identity.lastUsedAt is not null %}
+                                                <span class="mx-1">&middot;</span>
+                                                {{ 'edit_profile.last_used_at'|trans }}: {{ identity.lastUsedAt|date('j. n. Y') }}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <form method="post" action="{{ path('social_unlink', {provider: identity.provider.value}) }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('social_unlink_' ~ identity.provider.value) }}">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">{{ 'edit_profile.social.disconnect'|trans }}</button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+
+                        {# Connect runs rule 5: the identity attaches to THIS account,
+                           no provider-email match required - linking here is exactly
+                           how a different-email provider account avoids becoming a
+                           duplicate MySpeedPuzzling account #}
+                        {% set connected_providers = connected_oauth_identities|map(identity => identity.provider.value) %}
+                        <div class="d-flex gap-2 flex-wrap mt-2">
+                            {% if social_login_google_enabled and 'google' not in connected_providers %}
+                                <a class="btn btn-outline-primary btn-sm" href="{{ path('social_link_start', {provider: 'google'}) }}" data-turbo="false">
+                                    <i class="bi bi-google me-1"></i>{{ 'edit_profile.social.connect'|trans({'%provider%': 'Google'}) }}
+                                </a>
+                            {% endif %}
+                            {% if social_login_apple_enabled and 'apple' not in connected_providers %}
+                                <a class="btn btn-outline-primary btn-sm" href="{{ path('social_link_start', {provider: 'apple'}) }}" data-turbo="false">
+                                    <i class="bi bi-apple me-1"></i>{{ 'edit_profile.social.connect'|trans({'%provider%': 'Apple'}) }}
+                                </a>
+                            {% endif %}
+                            {% if social_login_facebook_enabled and 'facebook' not in connected_providers %}
+                                <a class="btn btn-outline-primary btn-sm" href="{{ path('social_link_start', {provider: 'facebook'}) }}" data-turbo="false">
+                                    <i class="bi bi-facebook me-1"></i>{{ 'edit_profile.social.connect'|trans({'%provider%': 'Facebook'}) }}
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
                 {% endif %}
-            </div>
+
+                <div class="card card-body shadow-lg my-3">
+                    <h3 class="h5">{{ 'account_activity.title'|trans }}</h3>
+                    <p class="text-muted fs-sm mb-3">{{ 'edit_profile.recent_activity_description'|trans }}</p>
+
+                    <p class="mb-0">
+                        <a class="btn btn-outline-primary" href="{{ path('account_recent_activity') }}">
+                            <i class="bi bi-shield-check me-1"></i>{{ 'edit_profile.recent_activity_button'|trans }}
+                        </a>
+                    </p>
+                </div>
+            {% else %}
+                <div class="card card-body shadow-lg my-3">
+                    <h3 class="h5">{{ 'edit_profile.change_password'|trans }}</h3>
+
+                    {% if can_change_password %}
+                        <p class="text-muted fs-sm mb-3">{{ 'edit_profile.change_password_description'|trans }}</p>
+
+                        <form action="{{ path('request_password_change') }}" method="post">
+                            <input type="hidden" name="_token" value="{{ csrf_token('change_password') }}" />
+
+                            <p class="mb-0">
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="bi bi-key me-1"></i>{{ 'edit_profile.change_password_button'|trans }}
+                                </button>
+                            </p>
+                        </form>
+                    {% else %}
+                        <p class="text-muted fs-sm mb-0">{{ 'edit_profile.change_password_social_login'|trans }}</p>
+                    {% endif %}
+                </div>
+            {% endif %}
 
             <div class="card card-body shadow-lg my-3">
                 <h3 class="h5">{{ 'edit_profile.personal_access_tokens'|trans }}</h3>
@@ -290,6 +437,43 @@
                 </p>
 
                 {{ form_end(edit_profile_form) }}
+            </div>
+        </div>
+    </div>
+
+    {# Danger zone (docs/features/account-deletion.md): step one of the two-step
+       deletion. Nothing is deleted from here - the button only e-mails the link
+       that opens the last-chance page, so the mailbox is the second factor. #}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card card-body shadow-lg border border-danger" id="danger-zone">
+                <h3 class="h5 text-danger">
+                    <i class="bi bi-exclamation-triangle me-1"></i>{{ 'edit_profile.danger_zone.title'|trans }}
+                </h3>
+
+                <p class="mb-2">{{ 'edit_profile.danger_zone.intro'|trans }}</p>
+                <p class="mb-2">{{ 'edit_profile.danger_zone.export_hint'|trans }}</p>
+                <p class="text-muted fs-sm mb-3">
+                    {% if has_native_account %}
+                        {{ 'edit_profile.danger_zone.how_it_works'|trans({'%email%': account_email}) }}
+                    {% else %}
+                        {{ 'edit_profile.danger_zone.how_it_works_generic'|trans }}
+                    {% endif %}
+                </p>
+
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <a class="btn btn-outline-primary" href="{{ path('export_puzzler_data', {playerId: player.playerId}) }}">
+                        <i class="bi bi-download me-1"></i>{{ 'edit_profile.danger_zone.export_button'|trans }}
+                    </a>
+
+                    <form action="{{ path('request_account_deletion') }}" method="post" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\RequestAccountDeletionController::CSRF_TOKEN_ID')) }}" />
+
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="bi bi-envelope me-1"></i>{{ 'edit_profile.danger_zone.request_button'|trans }}
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

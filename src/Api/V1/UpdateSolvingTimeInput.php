@@ -15,7 +15,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Put(
             uriTemplate: '/v1/me/solving-times/{timeId}',
             openapi: new OpenApiOperation(tags: ['My Results & Solving Times']),
-            security: "is_granted('ROLE_PAT') or is_granted('ROLE_OAUTH2_SOLVING_TIMES:WRITE')",
+            security: "is_granted('ROLE_PAT') or is_granted('ROLE_OAUTH2_SOLVING-TIMES:WRITE')",
             output: SolvingTimeResponse::class,
             // No state provider exists for this DTO resource - without read: false,
             // ReadProvider resolves null state and 404s before the processor runs.

@@ -1,0 +1,42 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'auth.social.confirm.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-6 col-md-8">
+            <h1 class="h2">{{ 'auth.social.confirm.title'|trans }}</h1>
+
+            <div class="card shadow my-3">
+                <div class="card-body">
+                    <p>{{ 'auth.social.confirm.question'|trans({'%provider%': provider_name, '%email%': email}) }}</p>
+
+                    <form action="{{ path('social_register_confirm') }}" method="post">
+                        {# The single-use parked token doubles as the CSRF guard #}
+                        <input type="hidden" name="token" value="{{ token }}">
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-person-plus me-1"></i>{{ 'auth.social.confirm.create'|trans }}
+                        </button>
+                    </form>
+
+                    <hr>
+
+                    {# The whole point of this page (plan §Linking vs merging): a
+                       visitor who already has an account under another address must
+                       link from settings instead of minting a duplicate account #}
+                    <p class="text-muted fs-sm mb-2">{{ 'auth.social.confirm.have_account'|trans({'%provider%': provider_name}) }}</p>
+
+                    <a class="btn btn-outline-secondary w-100" href="{{ path('login') }}">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>{{ 'auth.login.title'|trans }}
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
+            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        </div>
+    </div>
+{% endblock %}

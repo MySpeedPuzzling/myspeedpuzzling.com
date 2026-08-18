@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\LendBorrow;
 
+use SpeedPuzzling\Web\Exceptions\LentPuzzleNotFound;
 use SpeedPuzzling\Web\Message\ReturnLentPuzzle;
 use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
@@ -66,10 +67,22 @@ final class ReturnPuzzleController extends AbstractController
         $isOwner = $lentPuzzle->ownerPlayer !== null
             && $lentPuzzle->ownerPlayer->id->toString() === $loggedPlayer->playerId;
 
-        $this->messageBus->dispatch(new ReturnLentPuzzle(
-            lentPuzzleId: $lentPuzzleId,
-            actingPlayerId: $loggedPlayer->playerId,
-        ));
+        try {
+            $this->messageBus->dispatch(new ReturnLentPuzzle(
+                lentPuzzleId: $lentPuzzleId,
+                actingPlayerId: $loggedPlayer->playerId,
+            ));
+        } catch (LentPuzzleNotFound) {
+            // The puzzle moved on between rendering the page and clicking the
+            // button — someone passed it along, or it was already returned.
+            // Observed in production: a member's own page still offered "return"
+            // ~40s before the puzzle was passed to her, and she got a crash page.
+            // A stale button is a normal race, not an error: say so and send her
+            // back to the puzzle rather than to a 404.
+            $this->addFlash('warning', $this->translator->trans('lend_borrow.flash.no_longer_available'));
+
+            return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+        }
 
         // Check if this is a Turbo request
         if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {

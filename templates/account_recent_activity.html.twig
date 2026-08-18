@@ -1,0 +1,59 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'account_activity.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-8">
+            <h1 class="h2">{{ 'account_activity.title'|trans }}</h1>
+            <p class="text-muted fs-sm">{{ 'account_activity.description'|trans }}</p>
+
+            {% if events is empty %}
+                <div class="card card-body shadow my-3">
+                    <p class="text-muted mb-0">{{ 'account_activity.no_events'|trans }}</p>
+                </div>
+            {% else %}
+                <div class="card shadow my-3">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>{{ 'account_activity.column_event'|trans }}</th>
+                                    <th>{{ 'account_activity.column_when'|trans }}</th>
+                                    <th>{{ 'account_activity.column_ip'|trans }}</th>
+                                    <th>{{ 'account_activity.column_device'|trans }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in events %}
+                                    <tr>
+                                        <td>
+                                            {% if event.eventType.value == 'login_failure' %}
+                                                <span class="badge bg-danger">{{ ('account_activity.event.' ~ event.eventType.value)|trans }}</span>
+                                            {% else %}
+                                                {{ ('account_activity.event.' ~ event.eventType.value)|trans }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {{ event.occurredAt|ago }}
+                                            <div class="fs-sm text-muted">{{ event.occurredAt|date('j. n. Y H:i') }}</div>
+                                        </td>
+                                        <td><code class="fs-sm">{{ event.ipAddress ?? '—' }}</code></td>
+                                        <td class="fs-sm">{{ event.deviceLabel ?? '—' }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <p class="text-muted fs-sm">{{ 'account_activity.footer_hint'|trans }}</p>
+            {% endif %}
+
+            <p class="fs-sm">
+                <a href="{{ path('edit_profile') }}">{{ 'edit_profile.back'|trans }}</a>
+            </p>
+        </div>
+    </div>
+{% endblock %}

@@ -82,4 +82,34 @@ final class GetSellSwapListItemsTest extends KernelTestCase
 
         self::assertSame([], $counts);
     }
+
+    public function testMarketplaceOffersByPuzzleIdReturnsPricedIsoCurrencyOffers(): void
+    {
+        // PUZZLE_500_01: SELLSWAP_01 (25.00, seller with GBP) qualifies, SELLSWAP_10 is unpublished
+        $offers = $this->getSellSwapListItems->marketplaceOffersByPuzzleId(PuzzleFixture::PUZZLE_500_01);
+
+        self::assertCount(1, $offers);
+        self::assertSame(25.0, $offers[0]->price);
+        self::assertSame('GBP', $offers[0]->currency);
+        self::assertSame('https://schema.org/UsedCondition', $offers[0]->condition->toSchemaOrgCondition());
+    }
+
+    public function testMarketplaceOffersByPuzzleIdExcludesCustomCurrencySellers(): void
+    {
+        // PUZZLE_1500_01: SELLSWAP_06 (60.00, GBP seller) qualifies, SELLSWAP_13 seller uses custom currency
+        $offers = $this->getSellSwapListItems->marketplaceOffersByPuzzleId(PuzzleFixture::PUZZLE_1500_01);
+
+        self::assertCount(1, $offers);
+        self::assertSame(60.0, $offers[0]->price);
+        self::assertSame('https://schema.org/DamagedCondition', $offers[0]->condition->toSchemaOrgCondition());
+    }
+
+    public function testMarketplaceOffersByPuzzleIdExcludesReservedAndUnpriced(): void
+    {
+        // PUZZLE_1000_01: SELLSWAP_03 is reserved, SELLSWAP_11 seller has custom currency
+        self::assertSame([], $this->getSellSwapListItems->marketplaceOffersByPuzzleId(PuzzleFixture::PUZZLE_1000_01));
+
+        // PUZZLE_500_02: swap-only listing without price
+        self::assertSame([], $this->getSellSwapListItems->marketplaceOffersByPuzzleId(PuzzleFixture::PUZZLE_500_02));
+    }
 }

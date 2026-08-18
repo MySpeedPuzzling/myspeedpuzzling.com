@@ -87,8 +87,10 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         // Get initial count
         $initialCount = $client->getCrawler()->filter('#unsolved-count')->text();
 
-        // Find the puzzle card for PUZZLE_500_02 (in 2 collections: COLLECTION_PUBLIC + COLLECTION_STRIPE_TREFL)
-        $puzzleCardSelector = '#library-unsolved-' . PuzzleFixture::PUZZLE_500_02;
+        // Find the puzzle card for PUZZLE_1000_05 (in 2 collections: COLLECTION_PUBLIC + COLLECTION_STRIPE_TREFL).
+        // PUZZLE_500_02 is not usable here - PLAYER_WITH_STRIPE has solving times on it,
+        // so it never appears on the unsolved list.
+        $puzzleCardSelector = '#library-unsolved-' . PuzzleFixture::PUZZLE_1000_05;
         $client->waitForVisibility($puzzleCardSelector);
 
         // Open the dropdown menu
@@ -365,9 +367,10 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         // Get initial count
         $initialCount = $client->getCrawler()->filter('#unsolved-count')->text();
 
-        // Find the puzzle card for PUZZLE_500_02 (in collection + on sell/swap as SELLSWAP_02)
-        // UUID: 018d0003-0000-0000-0000-000000000002 = "Puzzle 2" (500 pieces, Ravensburger)
-        $puzzleCardSelector = '#library-unsolved-' . PuzzleFixture::PUZZLE_500_02;
+        // Find the puzzle card for PUZZLE_1000_03 (in collection + on sell/swap as SELLSWAP_07).
+        // PUZZLE_500_02 is not usable here - PLAYER_WITH_STRIPE has solving times on it,
+        // so it never appears on the unsolved list.
+        $puzzleCardSelector = '#library-unsolved-' . PuzzleFixture::PUZZLE_1000_03;
 
         // Wait for the specific card
         $client->waitForVisibility($puzzleCardSelector);

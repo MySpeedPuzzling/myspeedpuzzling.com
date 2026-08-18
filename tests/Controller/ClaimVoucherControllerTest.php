@@ -13,7 +13,7 @@ final class ClaimVoucherControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/en/claim-voucher');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/en/claim-voucher');
     }
 
     public function testClaimVoucherPageCzechLocale(): void
@@ -21,7 +21,7 @@ final class ClaimVoucherControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/uplatnit-voucher');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/uplatnit-voucher');
     }
 
     public function testClaimVoucherPageGermanLocale(): void
@@ -29,6 +29,6 @@ final class ClaimVoucherControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/de/gutschein-einloesen');
 
-        $this->assertResponseRedirects('/login');
+        $this->assertResponseRedirects('/login?return=/de/gutschein-einloesen');
     }
 }

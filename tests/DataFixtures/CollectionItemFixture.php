@@ -45,6 +45,7 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
     public const string ITEM_27 = '018d0009-0000-0000-0000-000000000027';
     public const string ITEM_28 = '018d0009-0000-0000-0000-000000000028';
     public const string ITEM_29 = '018d0009-0000-0000-0000-000000000029';
+    public const string ITEM_30 = '018d0009-0000-0000-0000-000000000030';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -406,6 +407,21 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
         );
         $manager->persist($item29);
         $this->addReference(self::ITEM_29, $item29);
+
+        // ITEM_30: PUZZLE_1000_05 in COLLECTION_STRIPE_TREFL (also in COLLECTION_PUBLIC via ITEM_19)
+        // Purpose: unsolved puzzle in TWO named collections for PLAYER_WITH_STRIPE.
+        // PUZZLE_500_02 used to fill this role (ITEM_02 + ITEM_18) but is no longer
+        // unsolved - PuzzleIntelligenceFixture (INTEL_TIME_10) and TIME_45_UNBOXED
+        // give PLAYER_WITH_STRIPE solving times on it.
+        $item30 = $this->createCollectionItem(
+            id: self::ITEM_30,
+            player: $player5,
+            puzzle: $puzzle1000_05,
+            collection: $stripeTreflCollection,
+            daysAgo: 1,
+        );
+        $manager->persist($item30);
+        $this->addReference(self::ITEM_30, $item30);
 
         $manager->flush();
     }

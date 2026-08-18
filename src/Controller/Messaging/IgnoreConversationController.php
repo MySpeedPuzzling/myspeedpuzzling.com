@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Messaging;
 
+use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
 use SpeedPuzzling\Web\Message\IgnoreConversation;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,10 +35,17 @@ final class IgnoreConversationController extends AbstractController
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         assert($loggedPlayer !== null);
 
-        $this->messageBus->dispatch(new IgnoreConversation(
-            conversationId: $conversationId,
-            playerId: $loggedPlayer->playerId,
-        ));
+        try {
+            $this->messageBus->dispatch(new IgnoreConversation(
+                conversationId: $conversationId,
+                playerId: $loggedPlayer->playerId,
+            ));
+        } catch (ConversationNotFound) {
+            // Already gone — ignoring it has effectively happened anyway.
+            $this->addFlash('warning', $this->translator->trans('messaging.conversation_unavailable'));
+
+            return $this->redirectToRoute('conversations_list', ['tab' => 'requests']);
+        }
 
         $this->addFlash('success', $this->translator->trans('messaging.request_ignored'));
 

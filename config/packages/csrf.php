@@ -17,6 +17,25 @@ return App::config([
                 'submit',
                 'authenticate',
                 'logout',
+                // Sign-in link request form: rendered on anonymous pages that must stay
+                // session-free (#164), so its token id must not fall back to the
+                // session-backed manager
+                'sign_in_link',
+                // Same reason: the "forgot password" form is rendered for anonymous
+                // visitors, and a session-backed token would put a cookie on the page
+                'request_password_reset',
+                // The newsletter signup form sits in the footer of EVERY anonymous
+                // page - a session-backed token would kill shared caching site-wide
+                'newsletter-subscribe',
+                // Unsubscribe landing page is reached from e-mail links, always
+                // anonymous
+                'newsletter-unsubscribe',
+                // E-mail preferences page is reached from e-mail links, always
+                // anonymous (token-authenticated)
+                'email-preferences',
+                // "Delete my account" last-chance page is reached from an e-mail link,
+                // possibly anonymous, and must stay session-free (#164)
+                'confirm_account_deletion',
             ],
         ],
     ],

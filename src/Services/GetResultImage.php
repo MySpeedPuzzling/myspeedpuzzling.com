@@ -31,6 +31,8 @@ readonly final class GetResultImage
 
     /**
      * @throws PuzzleSolvingTimeNotFound
+     * @throws \League\Flysystem\FilesystemException reads go to object storage
+     * @throws \AsyncAws\Core\Exception\Exception fileExists() leaks raw AsyncAws exceptions on network failure
      */
     public function forSolvingTime(string $timeId): string
     {

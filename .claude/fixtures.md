@@ -77,7 +77,7 @@ Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 
 **COLLECTION_FAVORITES** (PLAYER_REGULAR): PUZZLE_500_01, PUZZLE_500_02
 
-**COLLECTION_STRIPE_TREFL** (PLAYER_WITH_STRIPE): PUZZLE_1000_04, PUZZLE_500_02
+**COLLECTION_STRIPE_TREFL** (PLAYER_WITH_STRIPE): PUZZLE_1000_04, PUZZLE_500_02, PUZZLE_1000_05
 
 **General collection (no named collection / system collection):**
 - PLAYER_REGULAR: PUZZLE_500_03, PUZZLE_1000_01, PUZZLE_1000_02
@@ -100,7 +100,9 @@ Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 
 ## Sell/Swap Listings
 
-Players with membership (`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN`) have sell/swap items:
+Players with membership (`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN`) have sell/swap items.
+
+Seller settings: `PLAYER_WITH_STRIPE` has ISO currency **GBP** (listings eligible for schema.org structured-data offers), `PLAYER_ADMIN` has **custom** currency "Kč" (listings excluded from structured-data offers).
 
 | Const | Puzzle | Owner | Type | Price | Condition | Reserved |
 |-------|--------|-------|------|-------|-----------|----------|
@@ -116,6 +118,7 @@ Players with membership (`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN`) have sell/swap
 | `SELLSWAP_10` | PUZZLE_500_01 | PLAYER_ADMIN | Both | 22.00 | Normal | No |
 | `SELLSWAP_11` | PUZZLE_1000_01 | PLAYER_ADMIN | Sell | 40.00 | LikeNew | No |
 | `SELLSWAP_12` | PUZZLE_1000_02 | PLAYER_ADMIN | Sell | 30.00 | Normal | **Yes** |
+| `SELLSWAP_13` | PUZZLE_1500_01 | PLAYER_ADMIN | Sell | 30.00 | New | No |
 
 ### Puzzles with Multiple Offers
 - **PUZZLE_500_01**: 2 offers (SELLSWAP_01 + SELLSWAP_10), none reserved
@@ -177,9 +180,11 @@ Players with membership (`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN`) have sell/swap
 
 ### Competition Series
 
-| Const | Name | Online | Approved |
-|-------|------|--------|----------|
-| `SERIES_EJJ` | Euro Jigsaw Jam | Yes | Yes |
+| Const | Name | Online | Country | Approved | Editions |
+|-------|------|--------|---------|----------|----------|
+| `SERIES_EJJ` | Euro Jigsaw Jam | Yes | - | Yes | one past, one upcoming |
+| `SERIES_OFFLINE` | Puzzle Meetup Prague | No | cz | Yes | one upcoming |
+| `SERIES_PAST_ONLY` | Berlin Puzzle Cup | No | de | Yes | only past — must never appear as "upcoming" |
 
 ### Series Editions (Competitions with series_id)
 
@@ -187,6 +192,8 @@ Players with membership (`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN`) have sell/swap
 |-------|--------|------|------|
 | `EDITION_EJJ_68` | SERIES_EJJ | EJJ #68 — February 2026 | -30 days |
 | `EDITION_EJJ_69` | SERIES_EJJ | EJJ #69 — May 2026 | +30 days |
+| `EDITION_OFFLINE_1` | SERIES_OFFLINE | Puzzle Meetup #1 | +14 days |
+| `EDITION_PAST_ONLY_1` | SERIES_PAST_ONLY | Berlin Puzzle Cup 2026 | -45 days |
 
 ### Competition Rounds
 
@@ -197,6 +204,9 @@ Players with membership (`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN`) have sell/swap
 | `ROUND_CZECH_FINAL` | Czech Nationals 2024 | Final Round | 90 min | PUZZLE_500_01 |
 | `ROUND_EJJ_68` | EDITION_EJJ_68 | EJJ #68 — February 2026 | 120 min | - |
 | `ROUND_EJJ_69` | EDITION_EJJ_69 | EJJ #69 — May 2026 | 120 min | - |
+| `ROUND_OFFLINE_SOLO` | EDITION_OFFLINE_1 | Solo Round | 60 min | - |
+| `ROUND_OFFLINE_TEAM` | EDITION_OFFLINE_1 | Team Round | 90 min | - |
+| `ROUND_PAST_ONLY` | EDITION_PAST_ONLY_1 | Berlin Puzzle Cup 2026 | 90 min | - |
 
 ## Tags
 

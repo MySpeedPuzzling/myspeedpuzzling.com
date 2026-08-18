@@ -43,3 +43,6 @@ CLAUDE.local.md
 
 # Translation checker output
 translations-missing.json
+
+.DS_Store
+/.composer-cache/

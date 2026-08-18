@@ -35,8 +35,9 @@ subscription_payment_failed:
     title: "Mitgliedschafts-Zahlung fehlgeschlagen!"
     content: |
         <p>Wir haben bemerkt, dass deine letzte Mitgliedschafts-Zahlung nicht erfolgreich war. Es könnte ein Problem mit deiner Zahlungsmethode gegeben haben.</p>
-        <p>Wenn du deine Mitgliedschaft aktiv halten möchtest, überprüfe und aktualisiere bitte deine Zahlungsmethode auf der <a href="%billingPortalUrl%">Abrechnungsportal-Seite</a>.</p>
+        <p>Wenn du deine Mitgliedschaft aktiv halten möchtest, überprüfe und aktualisiere bitte deine Zahlungsmethode im Abrechnungsportal.</p>
         <p>Wenn die Zahlung weiterhin fehlschlägt, wird deine Mitgliedschaft nach einigen weiteren Versuchen deaktiviert. Wir hoffen, dass du bei MySpeedPuzzling.com bleibst!</p>
+    button: "Zahlungsmethode aktualisieren"
 
 subscription_renewed:
     subject: "Mitgliedschafts-Zahlung auf MySpeedPuzzling.com war erfolgreich"
@@ -69,16 +70,16 @@ oauth2_client_request:
         <p>Eine neue OAuth2-Client-Zugriffsanfrage wurde eingereicht.</p>
         <p><strong>Antragsteller:</strong> %playerName%<br><strong>Anwendung:</strong> %clientName%</p>
         <p><strong>Zweck:</strong> %purpose%</p>
-        <p><a href="%adminUrl%">Diese Anfrage in der Verwaltung prüfen</a></p>
+    button: "Diese Anfrage in der Verwaltung prüfen"
 
 oauth2_client_approved:
     subject: "Deine API-Anwendung wurde genehmigt!"
     title: "Deine Anwendung wurde genehmigt!"
     content: |
         <p>Tolle Neuigkeiten! Deine OAuth2-Anwendung <strong>%clientName%</strong> wurde genehmigt.</p>
-        <p>Klicke auf den Link unten, um deine Zugangsdaten abzurufen. Der Link ist 7 Tage gültig.</p>
+        <p>Klicke auf den Button unten, um deine Zugangsdaten abzurufen. Der Link ist 7 Tage gültig.</p>
         <p><strong>Wichtig:</strong> Deine Zugangsdaten werden nur einmal angezeigt. Stelle sicher, dass du sie an einem sicheren Ort speicherst.</p>
-        <p><a href="%claimUrl%">Zugangsdaten abrufen</a></p>
+    button: "Zugangsdaten abrufen"
 
 oauth2_client_rejected:
     subject: "Deine API-Anwendungsanfrage wurde nicht genehmigt"
@@ -94,7 +95,7 @@ competition_submitted:
     content: |
         <p>Eine neue Veranstaltung wurde zur Genehmigung eingereicht.</p>
         <p><strong>Eingereicht von:</strong> %playerName%<br><strong>Veranstaltung:</strong> %competitionName%<br><strong>Ort:</strong> %location%</p>
-        <p><a href="%adminUrl%">Ausstehende Veranstaltungen in der Verwaltung prüfen</a></p>
+    button: "Ausstehende Veranstaltungen prüfen"
 
 competition_approved:
     subject: "Ihre Veranstaltung wurde genehmigt!"
@@ -148,3 +149,55 @@ feature_request_declined:
             <p>Danke, dass du die Idee trotzdem unterstützt hast! Deine Beiträge helfen uns zu verstehen, was der Community wichtig ist.</p>
         admin_comment: |
             <p><strong>Kommentar vom Team:</strong> %adminComment%</p>
+
+sign_in_link:
+    subject: "Dein Anmeldelink für MySpeedPuzzling.com"
+    title: "Hier ist dein Anmeldelink"
+    content: |
+        <p>Klicke auf den Button unten, um dich bei MySpeedPuzzling.com anzumelden — ganz ohne Passwort.</p>
+    button: "Anmelden"
+    expires: "Der Link funktioniert einmal und läuft nach %minutes% Minuten ab."
+    not_requested: "Du hast das nicht angefordert? Dann kannst du diese E-Mail einfach ignorieren — ohne den Link kann sich niemand anmelden."
+
+verify_email:
+    subject: "Bestätige deine E-Mail-Adresse für MySpeedPuzzling.com"
+    title: "Bestätige deine E-Mail-Adresse"
+    content: |
+        <p>Willkommen bei MySpeedPuzzling — du bist in guter Gesellschaft von über 10.000 weiteren Puzzlern!</p>
+        <p>Bestätige einfach deine E-Mail-Adresse und schon kann es losgehen: Zeiten stoppen, Ergebnisse mit der Community vergleichen und zusehen, wie deine persönlichen Bestzeiten purzeln.</p>
+    button: "Meine E-Mail-Adresse bestätigen"
+    expires: "Der Link ist %hours% Stunden gültig."
+    not_requested: "Du hast dieses Konto nicht erstellt? Dann kannst du diese E-Mail einfach ignorieren."
+
+password_reset:
+    subject: "Setze dein Passwort für MySpeedPuzzling.com zurück"
+    title: "Neues Passwort wählen"
+    content: |
+        <p>Jemand — hoffentlich du — hat angefordert, das Passwort für dein Konto bei MySpeedPuzzling.com zurückzusetzen. Klicke auf den Button unten, um ein neues zu wählen.</p>
+    button: "Neues Passwort wählen"
+    expires: "Der Link funktioniert einmal und läuft nach %minutes% Minuten ab."
+    not_requested: "Du hast das nicht angefordert? Dann kannst du diese E-Mail einfach ignorieren — dein Passwort bleibt unverändert."
+
+account_deletion:
+    subject: "Bestätige die Löschung deines MySpeedPuzzling-Kontos"
+    title: "Schade, dass du gehst"
+    content: |
+        <p>Jemand — hoffentlich du — hat uns gebeten, das MySpeedPuzzling-Konto zu löschen, das auf <b>%email%</b> registriert ist.</p>
+        <p>Schade, dass du gehst, aber so etwas passiert. Wir hoffen, du hattest eine schöne Zeit mit MySpeedPuzzling — und dass du eines Tages zurückkommst, wenn du wieder Lust hast, deine Zeiten zu erfassen. Die Tür bleibt offen.</p>
+    export_hint: |
+        <p><b>Bevor du gehst:</b> exportiere bitte zuerst deine Daten. Sobald das Konto gelöscht ist, lassen sich deine Legezeiten nicht mehr wiederherstellen — mit einem Export kannst du sie aber mitnehmen und eines Tages wieder mitbringen.</p>
+    export_button: "Meine Daten exportieren"
+    confirm_hint: |
+        <p>Um fortzufahren, klicke auf den Button unten. Die Seite, die sich öffnet, fragt ein letztes Mal nach — danach werden dein Konto und alle Daten endgültig gelöscht, und es gibt keinen Weg zurück.</p>
+    button: "Mein Konto löschen"
+    expires: "Der Link ist %minutes% Minuten gültig."
+    not_requested: "Du hast das nicht angefordert? Dann kannst du diese E-Mail einfach ignorieren — es passiert nichts, und dein Konto bleibt, wie es ist. Falls du befürchtest, dass jemand anderes Zugriff auf dein Konto hat, ändere dein Passwort."
+
+newsletter_confirmation:
+    subject: "Ein Klick und die Puzzle-Neuigkeiten gehören dir 🧩"
+    title: "Bestätige dein Abo"
+    content: |
+        <p>Hi! Jemand — hoffentlich du — hat darum gebeten, den MySpeedPuzzling-Newsletter an diese Adresse zu erhalten.</p>
+        <p>Bestätige das unten und wir sagen dir, was es auf der Plattform Neues gibt — neue Funktionen, Verbesserungen und Neuigkeiten aus der Community. Kein Marketing, keine Werbung — nur Neuigkeiten, höchstens einmal im Monat.</p>
+    button: "Mein Abo bestätigen"
+    expires: "Der Link ist %hours% Stunden gültig. Wenn du das nicht angefordert hast, ignoriere diese E-Mail einfach — dann wird nichts verschickt."

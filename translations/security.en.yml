@@ -1,0 +1,13 @@
+# Messages thrown by LoginFormAuthenticator (issue #147). Symfony renders an
+# authentication error as `error.messageKey|trans(error.messageData, 'security')`,
+# so the English sentence is the key; Symfony's own catalogue supplies every
+# built-in message ("Invalid credentials.", throttling, ...) in all six locales.
+"This password was found in a public data breach. To protect your account, please reset your password to sign in.": "This password was found in a public data breach. To protect your account, please reset your password to sign in."
+"Sign-in is temporarily unavailable. Please try again in a moment.": "Sign-in is temporarily unavailable. Please try again in a moment."
+
+# Messages thrown by SocialAccountResolver (auth hardening PR 2), same pattern:
+# the English sentence is the key. Rule 3 (unverified provider email matching an
+# existing account) deliberately names the way out; everything else stays on
+# Symfony's generic message (anti-enumeration).
+"An account with this email address already exists. Sign in with your password first, then connect %provider% in your profile settings.": "An account with this email address already exists. Sign in with your password first, then connect %provider% in your profile settings."
+"%provider% did not share an email address with us, so we cannot sign you in this way. Please sign in another way.": "%provider% did not share an email address with us, so we cannot sign you in this way. Please sign in another way."

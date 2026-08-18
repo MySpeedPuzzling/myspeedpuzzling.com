@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Message\JoinReferralProgram;
 use SpeedPuzzling\Web\Query\GetAffiliateSupporters;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -38,7 +38,7 @@ final class AffiliateDashboardController extends AbstractController
         ],
         name: 'affiliate_dashboard',
     )]
-    public function __invoke(#[CurrentUser] User $user, Request $request): Response
+    public function __invoke(#[CurrentUser] UserInterface $user, Request $request): Response
     {
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 

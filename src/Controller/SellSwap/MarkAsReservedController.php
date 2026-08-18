@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\SellSwap;
 
 use SpeedPuzzling\Web\FormData\MarkAsReservedFormData;
 use SpeedPuzzling\Web\FormType\MarkAsReservedFormType;
+use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
 use SpeedPuzzling\Web\Message\MarkListingAsReserved;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetConversationPartnersForListing;
@@ -117,11 +118,18 @@ final class MarkAsReservedController extends AbstractController
             /** @var MarkAsReservedFormData $formData */
             $formData = $form->getData();
 
-            $this->messageBus->dispatch(new MarkListingAsReserved(
-                sellSwapListItemId: $itemId,
-                playerId: $loggedPlayer->playerId,
-                reservedForInput: $formData->reservedForInput,
-            ));
+            try {
+                $this->messageBus->dispatch(new MarkListingAsReserved(
+                    sellSwapListItemId: $itemId,
+                    playerId: $loggedPlayer->playerId,
+                    reservedForInput: $formData->reservedForInput,
+                ));
+            } catch (SellSwapListItemNotFound) {
+                // The listing was sold, swapped or removed while this form was open.
+                $this->addFlash('warning', $this->translator->trans('sell_swap_list.listing_unavailable'));
+
+                return $this->redirectToRoute('sell_swap_list_detail', ['playerId' => $loggedPlayer->playerId]);
+            }
 
             // Check if this is a Turbo request
             if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\OAuth2;
 
 use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -39,6 +40,88 @@ final class ClientCredentialsFlowTest extends WebTestCase
         $this->assertSame('Bearer', $response['token_type']);
         $this->assertIsInt($response['expires_in']);
         $this->assertGreaterThan(0, $response['expires_in']);
+        // Granted scope is echoed back (ScopeAwareBearerTokenResponse)
+        $this->assertSame('profile:read results:read', $response['scope'] ?? null);
+    }
+
+    /**
+     * With no "scope" parameter the bundle grants everything the client holds -
+     * the response has to say so, or the client cannot know what it got.
+     */
+    public function testResponseScopeListsEverythingGrantedWhenNoneRequested(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request(
+            'POST',
+            '/oauth2/token',
+            [
+                'grant_type' => 'client_credentials',
+                'client_id' => OAuth2ClientFixture::CONFIDENTIAL_CLIENT_ID,
+                'client_secret' => OAuth2ClientFixture::CONFIDENTIAL_CLIENT_SECRET,
+            ],
+        );
+
+        $this->assertResponseIsSuccessful();
+
+        /** @var array{scope?: string} $response */
+        $response = json_decode((string) $browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('profile:read email:read results:read statistics:read', $response['scope'] ?? null);
+    }
+
+    public function testUserContextScopesAreStrippedFromClientCredentialsTokens(): void
+    {
+        $browser = self::createClient();
+
+        // Explicitly asking for the write scope does not fail the request; the
+        // scope is dropped and the response says what was actually granted.
+        $browser->request(
+            'POST',
+            '/oauth2/token',
+            [
+                'grant_type' => 'client_credentials',
+                'client_id' => OAuth2ClientFixture::WRITE_CLIENT_ID,
+                'client_secret' => OAuth2ClientFixture::WRITE_CLIENT_SECRET,
+                'scope' => 'profile:read solving-times:write collections:write results:read',
+            ],
+        );
+
+        $this->assertResponseIsSuccessful();
+
+        /** @var array{access_token: string, scope?: string} $response */
+        $response = json_decode((string) $browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('profile:read results:read', $response['scope'] ?? null);
+
+        // ...and neither does the parameter-less form, which grants "everything the client holds"
+        $browser->request(
+            'POST',
+            '/oauth2/token',
+            [
+                'grant_type' => 'client_credentials',
+                'client_id' => OAuth2ClientFixture::WRITE_CLIENT_ID,
+                'client_secret' => OAuth2ClientFixture::WRITE_CLIENT_SECRET,
+            ],
+        );
+
+        $this->assertResponseIsSuccessful();
+
+        /** @var array{access_token: string, scope?: string} $response */
+        $response = json_decode((string) $browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('profile:read email:read results:read statistics:read collections:read', $response['scope'] ?? null);
+
+        // The token itself does not carry the write role either
+        $browser->setServerParameter('HTTP_AUTHORIZATION', 'Bearer ' . $response['access_token']);
+        $browser->request(
+            'POST',
+            '/api/v1/me/solving-times',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: (string) json_encode(['puzzle_id' => PuzzleFixture::PUZZLE_500_01, 'time' => '10:00']),
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
     public function testClientCredentialsGrantWithInvalidClientIdFails(): void
@@ -89,7 +172,18 @@ final class ClientCredentialsFlowTest extends WebTestCase
             ],
         );
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        // league/oauth2-server-bundle 1.2 rejects this one step earlier than 1.1
+        // did: getClientEntityOrFail() now checks whether the client is granted
+        // the requested grant type at all, before the confidential-client check.
+        // The public fixture client holds only authorization_code + refresh_token,
+        // so the accurate answer is unauthorized_client (400, RFC 6749 §5.2)
+        // rather than the invalid_client (401) the old order produced. Rejected
+        // either way - only the wording changed.
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+
+        $payload = json_decode((string) $browser->getResponse()->getContent(), true);
+        self::assertIsArray($payload);
+        self::assertSame('unauthorized_client', $payload['error'] ?? null);
     }
 
     public function testClientCredentialsGrantWithUnsupportedScopeFails(): void

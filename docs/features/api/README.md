@@ -76,6 +76,7 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 |--------|----------|----------|
 | GET | `/api/v1/me` | PAT or `profile:read` (the `email` field is populated only for PAT or tokens granted `email:read`, otherwise `null`) |
 | GET | `/api/v1/me/results?type=solo\|duo\|team` | PAT or `results:read` |
+| GET | `/api/v1/me/puzzles/{puzzleId}/predicted-time` | PAT or `results:read` |
 | GET | `/api/v1/me/statistics` | PAT or `statistics:read` |
 | POST | `/api/v1/me/solving-times` | PAT or `solving-times:write` |
 | PUT | `/api/v1/me/solving-times/{timeId}` | PAT or `solving-times:write` |
@@ -120,6 +121,17 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 ### Members-Exclusive Data
 
 Puzzle difficulty and player skill tiers are included in responses only if the token owner has active membership. Non-members see `null` for these fields.
+
+Puzzle Insights are gated **exactly as on the website** - the token owner (PAT, or the player behind an authorization-code token) must be a member; a `client_credentials` token has no player and therefore no membership. There is deliberately no `/api/v1/players/{id}/…` variant of members-only data: predictions are self-only on the website, and a single member's token must never become a proxy that serves a members-only feature to a third-party app's non-member users.
+
+### GET `/api/v1/me/puzzles/{puzzleId}/predicted-time`
+
+The API twin of the Puzzle Insights block on the puzzle detail page (`PuzzleDetailController`), same gates:
+
+- **Not a member** → every field except `puzzle_id` is `null` (`is_personalized: false`), 200.
+- **Member** → `difficulty_score` / `difficulty_level` (`very_easy|easy|average|challenging|hard|very_hard`) / `difficulty_confidence` (`insufficient|low|medium|high`) whenever the puzzle has a difficulty row (`null` otherwise). The prediction (`predicted_seconds`, `range_low_seconds`, `range_high_seconds`, `is_personalized`, `personal_solve_count`, `last_time_seconds`) comes from `GetPlayerPrediction` — personalized when the owner has solo solves of the puzzle, otherwise the statistical baseline × difficulty estimate, `null` when there is nothing to predict from.
+- **Member who opted out of time predictions** → prediction fields `null`, difficulty still returned (same split as `templates/puzzle/_difficulty_section.html.twig`).
+- Unknown or malformed puzzle id → 404. Fixed number of queries per call (no per-item fan-out).
 
 ### POST `/api/v1/me/solving-times`
 

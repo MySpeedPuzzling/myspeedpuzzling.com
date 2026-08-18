@@ -5,6 +5,9 @@ name: Release
 permissions:
   deployments: write
   packages: write
+  # GITHUB_TOKEN is handed to the image build so Composer's GitHub downloads are
+  # authenticated (see Dockerfile) - reading public repos' zipballs needs this
+  contents: read
 
 on:
     workflow_run:
@@ -38,6 +41,25 @@ jobs:
                         type=ref,event=branch
                         type=sha
 
+            # The Tests workflow just ran on this very commit and saved Composer's
+            # download cache under this key; hand it to the image build (as a named
+            # context, see Dockerfile) so a cold `composer install` fetches nothing
+            # from GitHub. Restore-only, same paths as Tests - the entry is
+            # versioned by its path list, so `vendor` has to ride along to hit it.
+            -   name: Restore Composer download cache
+                uses: actions/cache/restore@v6
+                with:
+                    path: |
+                        vendor
+                        .composer-cache
+                    key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                    restore-keys: |
+                        ${{ runner.os }}-composer-
+
+            # A missing cache must not break the build - an empty context is fine
+            -   name: Ensure the Composer cache context exists
+                run: mkdir -p .composer-cache
+
             -   name: Set up Docker Buildx
                 uses: docker/setup-buildx-action@v4
 
@@ -59,6 +81,10 @@ jobs:
                     cache-from: type=registry,ref=ghcr.io/myspeedpuzzling/website:buildcache
                     cache-to: type=registry,ref=ghcr.io/myspeedpuzzling/website:buildcache,mode=max
                     build-args: APP_VERSION=${{ github.sha }}
+                    build-contexts: |
+                        composer-cache=.composer-cache
+                    secrets: |
+                        github_token=${{ secrets.GITHUB_TOKEN }}
 
     deploy:
         runs-on: ubuntu-latest

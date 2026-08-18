@@ -3,6 +3,12 @@
 # blue-green rollout window (see the merge step below)
 FROM ghcr.io/myspeedpuzzling/website:main AS previous-release
 
+# Composer's download cache, so a cold `composer install` (base image rotated,
+# lock file changed) does not have to fetch ~170 dists from GitHub. Empty by
+# default; the Release workflow overrides it with the cache the Tests job just
+# filled for this very commit (`--build-context composer-cache=.composer-cache`)
+FROM scratch AS composer-cache
+
 FROM ghcr.io/myspeedpuzzling/web-base-php85:main
 
 ENV APP_ENV="prod" \
@@ -17,7 +23,21 @@ RUN rm -f $PHP_INI_DIR/conf.d/docker-php-ext-xdebug.ini $PHP_INI_DIR/conf.d/dock
 COPY .docker/on-startup.sh /docker-entrypoint.d/
 
 COPY composer.json composer.lock symfony.lock ./
-RUN composer install --no-dev --no-interaction --no-scripts
+# Two guards against GitHub throttling the dist downloads (2026-08-18: the base
+# image rotated, every layer rebuilt, and codeload.github.com answered the
+# anonymous downloads from the shared runner IP with HTTP 429):
+#  - the Composer cache mounted from the `composer-cache` context, so a warm
+#    cache means no download at all (writes land in the mount and are discarded);
+#  - GITHUB_TOKEN as a BuildKit secret, so whatever still has to be fetched is
+#    fetched authenticated, under the token's own quota instead of the IP's.
+#    Read into COMPOSER_AUTH for this one command only - it never touches a layer.
+# Both are optional: a plain `docker build` without them still works.
+RUN --mount=type=secret,id=github_token \
+    --mount=type=bind,from=composer-cache,target=/tmp/composer-cache,rw \
+    if [ -s /run/secrets/github_token ]; then \
+        export COMPOSER_AUTH="{\"github-oauth\":{\"github.com\":\"$(cat /run/secrets/github_token)\"}}"; \
+    fi \
+    && COMPOSER_CACHE_DIR=/tmp/composer-cache composer install --no-dev --no-interaction --no-scripts
 
 COPY package.json package-lock.json ./
 RUN npm install

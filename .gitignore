@@ -45,3 +45,4 @@ CLAUDE.local.md
 translations-missing.json
 
 .DS_Store
+/.composer-cache/

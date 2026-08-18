@@ -45,7 +45,10 @@ jobs:
             # download cache under this key; hand it to the image build (as a named
             # context, see Dockerfile) so a cold `composer install` fetches nothing
             # from GitHub. Restore-only, same paths as Tests - the entry is
-            # versioned by its path list, so `vendor` has to ride along to hit it.
+            # versioned by its path list AND the compression tool, so `vendor` has
+            # to ride along and the Tests container must have zstd like this runner
+            # does (web-base-php85 ships it since 2026-08-18; without it Tests save
+            # gzip-versioned entries this step can never see).
             -   name: Restore Composer download cache
                 uses: actions/cache/restore@v6
                 with:

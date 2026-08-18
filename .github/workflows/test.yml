@@ -1,5 +1,8 @@
 name: Tests
 
+permissions:
+    contents: read
+
 on:
     push:
         branches:
@@ -39,6 +42,9 @@ jobs:
       -   run: composer install --no-scripts --no-progress
           env:
               COMPOSER_CACHE_DIR: .composer-cache
+              # Authenticated GitHub dist downloads on a cold cache - anonymous ones from
+              # the shared runner IP get throttled (429), see the Release Dockerfile
+              COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
       -   if: steps.webpack-cache.outputs.cache-hit != 'true'
           uses: actions/cache@v6
           with:
@@ -96,6 +102,9 @@ jobs:
       -   run: composer install --no-scripts --no-progress
           env:
               COMPOSER_CACHE_DIR: .composer-cache
+              # Authenticated GitHub dist downloads on a cold cache - anonymous ones from
+              # the shared runner IP get throttled (429), see the Release Dockerfile
+              COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
       -   if: steps.webpack-cache.outputs.cache-hit != 'true'
           uses: actions/cache@v6
           with:
@@ -133,6 +142,9 @@ jobs:
         -   run: composer install --no-scripts --no-progress
             env:
                 COMPOSER_CACHE_DIR: .composer-cache
+                # Authenticated GitHub dist downloads on a cold cache - anonymous ones from
+                # the shared runner IP get throttled (429), see the Release Dockerfile
+                COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
         -   run: bin/console cache:warmup --env=dev
         -   run: composer run-script phpstan
 
@@ -153,6 +165,9 @@ jobs:
         -   run: composer install --no-scripts --no-progress
             env:
                 COMPOSER_CACHE_DIR: .composer-cache
+                # Authenticated GitHub dist downloads on a cold cache - anonymous ones from
+                # the shared runner IP get throttled (429), see the Release Dockerfile
+                COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
         -   run: composer run cs
 
 
@@ -182,6 +197,9 @@ jobs:
           -   run: composer install --no-scripts --no-progress
               env:
                   COMPOSER_CACHE_DIR: .composer-cache
+                  # Authenticated GitHub dist downloads on a cold cache - anonymous ones from
+                  # the shared runner IP get throttled (429), see the Release Dockerfile
+                  COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
           -   run: bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
           -   run: bin/console doctrine:schema:update --dump-sql
           -   run: bin/console doctrine:schema:validate

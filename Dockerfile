@@ -23,21 +23,33 @@ RUN rm -f $PHP_INI_DIR/conf.d/docker-php-ext-xdebug.ini $PHP_INI_DIR/conf.d/dock
 COPY .docker/on-startup.sh /docker-entrypoint.d/
 
 COPY composer.json composer.lock symfony.lock ./
-# Two guards against GitHub throttling the dist downloads (2026-08-18: the base
-# image rotated, every layer rebuilt, and codeload.github.com answered the
+# Guards against GitHub throttling the dist downloads (2026-08-18: the base
+# image rotates daily, every layer rebuilt, and codeload.github.com answered the
 # anonymous downloads from the shared runner IP with HTTP 429):
-#  - the Composer cache mounted from the `composer-cache` context, so a warm
-#    cache means no download at all (writes land in the mount and are discarded);
-#  - GITHUB_TOKEN as a BuildKit secret, so whatever still has to be fetched is
-#    fetched authenticated, under the token's own quota instead of the IP's.
-#    Read into COMPOSER_AUTH for this one command only - it never touches a layer.
-# Both are optional: a plain `docker build` without them still works.
+#  - the Composer cache mounted from the `composer-cache` context - a warm cache
+#    means no download at all (writes land in the mount and are discarded). This
+#    is the guard that actually covers the codeload case: GitHub redirects every
+#    zipball to a plain codeload URL and Composer only authenticates the
+#    api.github.com leg, so a token never reaches codeload;
+#  - GITHUB_TOKEN as a BuildKit secret, read into COMPOSER_AUTH for this one
+#    command only (never touches a layer): lifts the anonymous 60/h API quota
+#    that the metadata calls for the two vcs repositories in composer.json hit;
+#  - fewer parallel connections and an outer retry with backoff for what still
+#    has to be fetched - Composer 2.9 does not retry a 429 itself, and packages
+#    already fetched sit in the cache mount, so a retry only re-asks for the rest.
+# All optional: a plain `docker build` without context or secret still works.
 RUN --mount=type=secret,id=github_token \
     --mount=type=bind,from=composer-cache,target=/tmp/composer-cache,rw \
     if [ -s /run/secrets/github_token ]; then \
         export COMPOSER_AUTH="{\"github-oauth\":{\"github.com\":\"$(cat /run/secrets/github_token)\"}}"; \
     fi \
-    && COMPOSER_CACHE_DIR=/tmp/composer-cache composer install --no-dev --no-interaction --no-scripts
+    && export COMPOSER_CACHE_DIR=/tmp/composer-cache COMPOSER_MAX_PARALLEL_HTTP=6 \
+    && for attempt in 1 2 3; do \
+        composer install --no-dev --no-interaction --no-scripts && break; \
+        if [ "$attempt" = 3 ]; then echo "composer install failed 3 times, giving up" >&2; exit 1; fi; \
+        echo "composer install failed (attempt $attempt), retrying in $((attempt * 30))s..." >&2; \
+        sleep $((attempt * 30)); \
+    done
 
 COPY package.json package-lock.json ./
 RUN npm install

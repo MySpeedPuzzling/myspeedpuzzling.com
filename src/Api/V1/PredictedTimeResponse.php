@@ -13,15 +13,17 @@ use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
     operations: [
         new Get(
             uriTemplate: '/v1/me/puzzles/{puzzleId}/predicted-time',
-            openapi: new OpenApiOperation(tags: ['My Results & Solving Times']),
+            openapi: new OpenApiOperation(
+                tags: ['My Results & Solving Times'],
+                summary: 'Predicted solving time and difficulty of a puzzle for the token owner',
+                description: 'Puzzle Insights are members-only, exactly as on the website: without an active membership every field except puzzle_id is null. '
+                    . 'The prediction additionally honours the owner\'s "time predictions" opt-out and is null when there is not enough data to predict from; '
+                    . 'the difficulty fields depend only on the membership. '
+                    . 'difficulty_level is one of very_easy, easy, average, challenging, hard, very_hard; '
+                    . 'difficulty_confidence is one of insufficient, low, medium, high.',
+            ),
             security: "is_granted('ROLE_PAT') or is_granted('ROLE_OAUTH2_RESULTS:READ')",
             provider: MyPredictedTimeResponseProvider::class,
-        ),
-        new Get(
-            uriTemplate: '/v1/players/{playerId}/puzzles/{puzzleId}/predicted-time',
-            openapi: new OpenApiOperation(tags: ['Players']),
-            security: "is_granted('ROLE_OAUTH2_RESULTS:READ')",
-            provider: PlayerPredictedTimeResponseProvider::class,
         ),
     ],
 )]
@@ -42,9 +44,10 @@ final class PredictedTimeResponse
     }
 
     /**
-     * Not a member, opted out, or not enough data to predict from.
+     * Not a member: Puzzle Insights are members-only on the website, so the API
+     * returns the same nothing (see docs/features/api/README.md, Members-Exclusive Data).
      */
-    public static function empty(string $puzzleId): self
+    public static function membersOnly(string $puzzleId): self
     {
         return new self(
             puzzle_id: $puzzleId,

@@ -13,6 +13,22 @@ enum DifficultyTier: int
     case Hard = 5;
     case VeryHard = 6;
 
+    /**
+     * Stable lowercase token for the public API (the website keys its icons and
+     * translations off strtolower(name), which is not a good wire format).
+     */
+    public function toApiValue(): string
+    {
+        return match ($this) {
+            self::VeryEasy => 'very_easy',
+            self::Easy => 'easy',
+            self::Average => 'average',
+            self::Challenging => 'challenging',
+            self::Hard => 'hard',
+            self::VeryHard => 'very_hard',
+        };
+    }
+
     public static function fromScore(float $score): self
     {
         return match (true) {

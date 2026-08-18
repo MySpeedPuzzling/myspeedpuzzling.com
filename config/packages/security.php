@@ -227,10 +227,6 @@ return App::config([
                 'roles' => [OAuth2Scope::CollectionsRead->role()],
             ],
             [
-                'path' => '^/api/v1/players/.*/puzzles/.*/predicted-time',
-                'roles' => ['ROLE_OAUTH2_RESULTS:READ'],
-            ],
-            [
                 'path' => '^/api/v1/competitions',
                 'roles' => [AuthenticatedVoter::IS_AUTHENTICATED_FULLY],
             ],

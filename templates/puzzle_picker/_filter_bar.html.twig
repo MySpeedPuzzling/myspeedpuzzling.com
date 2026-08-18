@@ -1,0 +1,26 @@
+{# Filter button + active-filter chips. Every link here is a throw-away variant of the page
+   (noindex), hence rel="nofollow" on all of them. Expects: criteria, brand_names #}
+{% set active_filters = criteria.activeFilters %}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3 puzzle-picker-filter-bar">
+    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#puzzlePickerFilters">
+        <i class="bi bi-sliders me-1"></i>{{ 'puzzle_picker.filters.button'|trans }}{% if active_filters|length > 0 %} <span class="badge bg-primary rounded-pill ms-1">{{ active_filters|length }}</span>{% endif %}
+    </button>
+
+    {% for filter in active_filters %}
+        <a class="badge rounded-pill bg-secondary text-dark fw-normal text-decoration-none py-2 px-3"
+           rel="nofollow"
+           href="{{ path('puzzle_picker', filter.queryParametersWithoutThis) }}"
+           title="{{ 'puzzle_picker.chips.remove'|trans }}">
+            {% if filter.type == 'brand' %}
+                {{ brand_names[filter.value] ?? filter.translationKey|trans }}
+            {% else %}
+                {{ filter.translationKey|trans(filter.translationParameters) }}
+            {% endif %}
+            <i class="bi bi-x-lg ms-1" aria-hidden="true"></i><span class="visually-hidden"> – {{ 'puzzle_picker.chips.remove'|trans }}</span>
+        </a>
+    {% endfor %}
+
+    {% if not criteria.isDefault %}
+        <a class="fs-sm text-muted" rel="nofollow" href="{{ path('puzzle_picker') }}">{{ 'puzzle_picker.filters.reset'|trans }}</a>
+    {% endif %}
+</div>

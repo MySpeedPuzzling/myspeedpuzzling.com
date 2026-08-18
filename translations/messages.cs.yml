@@ -3119,3 +3119,109 @@ wjpf:
         explanation: "S worldjigsawpuzzle.org bude sdíleno ID vašeho MySpeedPuzzling profilu, aby bylo možné oba účty propojit. Nic jiného se neodesílá."
         confirm: "Propojit účty"
         cancel: "Zrušit"
+
+puzzle_picker:
+    meta:
+        title: "Co skládat dál? – Výběr puzzlí"
+        description: "Nevíte, do jakých puzzlí se pustit příště? Řekněte, na co máte náladu – počet dílků, značku, něco nového nebo už poskládaného – a výběr vám vytáhne jedno puzzle z vaší vlastní poličky, i s vašimi časy a průměrem komunity."
+    title: "Co skládat dál?"
+    subtitle: "Řekněte, na co máte náladu, a já vyberu z vaší poličky."
+    menu_label: "Co dál?"
+    filters:
+        button: "Filtry"
+        title: "Filtry"
+        apply: "Vybrat puzzle"
+        reset: "Zrušit filtry"
+        guest_note: "Přihlaste se a vybírejte z vlastní kolekce a historie."
+        source:
+            label: "Odkud vybírat"
+            mine: "Moje kolekce"
+            not_mine: "Co v kolekci nemám"
+            any: "Jakékoli puzzle"
+            include_lent_out: "Včetně puzzlí, které jsem někomu půjčil/a"
+        solved:
+            label: "Moje historie"
+            any: "Bez omezení"
+            never: "Ještě neskládané"
+            before: "Už poskládané"
+        pieces:
+            label: "Počet dílků"
+            custom: "Vlastní rozsah:"
+            min: "od"
+            max: "do"
+        brand:
+            label: "Značka"
+            placeholder: "Jakákoli značka"
+    chips:
+        source:
+            mine: "Moje kolekce"
+            not_mine: "Co v kolekci nemám"
+        solved:
+            never: "Ještě neskládané"
+            before: "Už poskládané"
+        pieces:
+            exact: "%count% dílků"
+            between: "%min%–%max% dílků"
+            at_least: "%min%+ dílků"
+            at_most: "do %max% dílků"
+        brand: "Značka"
+        include_lent_out: "Vč. půjčených"
+        remove: "Odebrat tento filtr"
+    results:
+        matching: "%shown% z %total% odpovídajících puzzlí"
+        pick_another: "Vybrat jiné"
+        show_more: "Zobrazit dalších %count%"
+    card:
+        you: "Vy:"
+        solved_times: "složeno %count%×"
+        last_solved: "naposledy %ago%"
+        not_solved_yet: "Tohle puzzle jste ještě neskládali"
+        no_solo_time: "Zatím bez sólo času – skládáno v týmu"
+        first_time: "První čas:"
+        community: "Komunita:"
+        community_stats: "průměr %average% · %count% sólo časů"
+        community_none: "zatím žádné sólo časy – buďte první"
+        sign_in_for_times: "Po přihlášení tu uvidíte své vlastní časy."
+        sign_in_to_solve: "Přihlásit se a skládat"
+        detail: "Detail puzzle"
+    empty:
+        collection_title: "Vaše kolekce je prázdná"
+        collection_text: "Přidejte puzzle, které máte doma, a příště z nich výběr vybere."
+        add_puzzles: "Přidat puzzle"
+        pick_from_all: "Vybrat ze všech puzzlí"
+        nothing_title: "Těmto filtrům neodpovídá žádné puzzle"
+        nothing_text: "Odeberte některý filtr výše nebo je zrušte všechny, ať je z čeho vybírat."
+        reset: "Zrušit filtry"
+    landing:
+        lead: "Kolo štěstí pro vaši poličku s puzzlemi. Řekněte, na co máte náladu – počet dílků, značku, něco nového nebo starou oblíbenou stálici – a dostanete jedno puzzle, do kterého se můžete hned pustit, i s vašimi časy a průměrem komunity."
+        sign_in: "Přihlásit se"
+        register: "Vytvořit účet zdarma"
+        trust_free: "Zdarma pro všechny"
+        trust_shelf: "Vybírá z vaší vlastní kolekce"
+        demo_title: "Vyzkoušejte: náhodný výběr ze všech puzzlí"
+        demo_text: "Po přihlášení výběr sahá do vaší vlastní kolekce a ukáže u puzzlí i vaše časy."
+        how_title: "Jak to funguje"
+        how:
+            mood:
+                title: "Řekněte, na co máte náladu"
+                text: "Zvolte počet dílků, značku a jestli chcete něco nového, nebo puzzle, které už znáte."
+            spin:
+                title: "Zatočte"
+                text: "Vypadne jedno puzzle – s vašimi časy, průměrem komunity a počtem lidí, kteří ho složili. Není to ono? Zatočte znovu nebo si zobrazte dalších pět."
+            solve:
+                title: "Skládejte"
+                text: "Rovnou z karty spustíte stopky nebo přidáte hotový čas. Konec rozhodování, hurá skládat."
+        filters_title: "Podle čeho vybírat"
+        filters_text: "Všechno vychází z vaší vlastní kolekce a vašich vlastních časů."
+        filters:
+            source: "Puzzle z vaší kolekce, puzzle, které ještě nemáte, nebo celá databáze"
+            solved: "Ještě neskládané, už poskládané, nebo cokoli"
+            pieces: "Počet dílků – rychlé volby pro běžné velikosti nebo vlastní rozsah"
+            brand: "Jedna nebo více značek"
+            lent: "Puzzle, která jste někomu půjčili, se vynechají; vypůjčená se počítají"
+            times: "Váš nejrychlejší, poslední a první čas na každé kartě"
+        members_title: "Pro členy"
+        members_text: "Členové mají navíc přehledy – obtížnost puzzlí, předpověď času skládání a úrovně dovednosti – na stránkách puzzlí a brzy i přímo na kartě výběru."
+        members_cta: "O členství"
+        bottom_title: "Přestaňte přebírat poličku – ať rozhodne kolo"
+        bottom_text: "Vytvořte si účet zdarma, přidejte puzzle, které máte doma, a nechte výběr rozhodnout za vás."

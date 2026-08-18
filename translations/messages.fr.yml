@@ -3123,3 +3123,109 @@ wjpf:
         explanation: "L'identifiant de votre profil MySpeedPuzzling sera partagé avec worldjigsawpuzzle.org afin que les deux comptes puissent être liés. Rien d'autre n'est envoyé."
         confirm: "Connecter les comptes"
         cancel: "Annuler"
+
+puzzle_picker:
+    meta:
+        title: "Quel puzzle faire ensuite ? – Sélecteur de puzzles"
+        description: "Vous hésitez sur le prochain puzzle à faire ? Dites au sélecteur ce dont vous avez envie – nombre de pièces, marque, quelque chose de nouveau ou déjà fait – et il tire un puzzle de votre propre étagère, avec vos temps et la moyenne de la communauté."
+    title: "Quel puzzle faire ensuite ?"
+    subtitle: "Dites-moi votre humeur, je choisis sur votre étagère."
+    menu_label: "Et ensuite ?"
+    filters:
+        button: "Filtres"
+        title: "Filtres"
+        apply: "Choisir un puzzle"
+        reset: "Réinitialiser les filtres"
+        guest_note: "Connectez-vous pour choisir parmi votre propre étagère et votre historique."
+        source:
+            label: "Où choisir"
+            mine: "Ma collection"
+            not_mine: "Pas dans ma collection"
+            any: "N'importe quel puzzle"
+            include_lent_out: "Inclure les puzzles que j'ai prêtés"
+        solved:
+            label: "Mon historique"
+            any: "Peu importe"
+            never: "Jamais fait"
+            before: "Déjà fait"
+        pieces:
+            label: "Pièces"
+            custom: "Plage personnalisée :"
+            min: "de"
+            max: "à"
+        brand:
+            label: "Marque"
+            placeholder: "Toutes les marques"
+    chips:
+        source:
+            mine: "Ma collection"
+            not_mine: "Pas dans ma collection"
+        solved:
+            never: "Jamais fait"
+            before: "Déjà fait"
+        pieces:
+            exact: "%count% pièces"
+            between: "%min%–%max% pièces"
+            at_least: "%min%+ pièces"
+            at_most: "jusqu'à %max% pièces"
+        brand: "Marque"
+        include_lent_out: "Prêtés inclus"
+        remove: "Retirer ce filtre"
+    results:
+        matching: "%shown% sur %total% puzzles correspondants"
+        pick_another: "En choisir un autre"
+        show_more: "En voir %count% de plus"
+    card:
+        you: "Vous :"
+        solved_times: "fait %count% fois"
+        last_solved: "la dernière fois %ago%"
+        not_solved_yet: "Vous n'avez pas encore fait ce puzzle"
+        no_solo_time: "Pas encore de temps en solo – fait en équipe"
+        first_time: "Premier temps :"
+        community: "Communauté :"
+        community_stats: "moy. %average% · %count% temps en solo"
+        community_none: "pas encore de temps en solo – soyez le premier"
+        sign_in_for_times: "Connectez-vous et vos propres temps apparaîtront ici."
+        sign_in_to_solve: "Se connecter pour commencer"
+        detail: "Détail du puzzle"
+    empty:
+        collection_title: "Votre collection est vide"
+        collection_text: "Ajoutez les puzzles que vous possédez et le sélecteur choisira parmi eux la prochaine fois."
+        add_puzzles: "Ajouter des puzzles"
+        pick_from_all: "Choisir parmi tous les puzzles"
+        nothing_title: "Aucun puzzle ne correspond à ces filtres"
+        nothing_text: "Retirez un filtre ci-dessus ou réinitialisez-les tous pour élargir le choix."
+        reset: "Réinitialiser les filtres"
+    landing:
+        lead: "Une roue de la fortune pour votre étagère de puzzles. Dites ce dont vous avez envie – nombre de pièces, marque, quelque chose de nouveau ou un vieux favori – et recevez un puzzle à commencer tout de suite, avec vos propres temps et la moyenne de la communauté."
+        sign_in: "Se connecter"
+        register: "Créer un compte gratuit"
+        trust_free: "Gratuit pour tous"
+        trust_shelf: "Choisit dans votre propre collection"
+        demo_title: "Essayez : un puzzle au hasard parmi tous"
+        demo_text: "Une fois connecté, le sélecteur pioche dans votre propre étagère et affiche vos temps."
+        how_title: "Comment ça marche"
+        how:
+            mood:
+                title: "Dites votre humeur"
+                text: "Choisissez un nombre de pièces, une marque, et si vous voulez du nouveau ou un puzzle que vous connaissez déjà."
+            spin:
+                title: "Tournez"
+                text: "Un puzzle apparaît – avec vos temps, la moyenne de la communauté et le nombre de personnes qui l'ont fait. Pas le bon ? Tournez encore ou affichez-en cinq de plus."
+            solve:
+                title: "Lancez-vous"
+                text: "Démarrez le chronomètre ou ajoutez un temps terminé directement depuis la carte. Décision prise, à vous de jouer !"
+        filters_title: "Ce que vous pouvez filtrer"
+        filters_text: "Tout repose sur votre propre collection et vos propres temps."
+        filters:
+            source: "Les puzzles de votre collection, ceux que vous n'avez pas encore, ou toute la base de données"
+            solved: "Jamais fait, déjà fait, ou peu importe"
+            pieces: "Nombre de pièces – raccourcis pour les tailles courantes ou votre propre plage"
+            brand: "Une ou plusieurs marques"
+            lent: "Les puzzles que vous avez prêtés sont exclus ; ceux qu'on vous a prêtés sont inclus"
+            times: "Votre temps le plus rapide, le dernier et le premier sur chaque carte"
+        members_title: "Pour les membres"
+        members_text: "Les membres débloquent les Insights – difficulté des puzzles, temps prévus et niveaux de compétence – sur les pages des puzzles, et bientôt directement sur la carte du sélecteur."
+        members_cta: "À propos de l'adhésion"
+        bottom_title: "Arrêtez de scruter l'étagère – laissez la roue décider"
+        bottom_text: "Créez un compte gratuit, ajoutez les puzzles que vous possédez et laissez le sélecteur choisir pour vous."

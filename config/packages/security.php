@@ -15,9 +15,12 @@ use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
 use SpeedPuzzling\Web\Security\LoginLinkFailureHandler;
 use SpeedPuzzling\Web\Security\LoginLinkSuccessHandler;
 use SpeedPuzzling\Web\Security\MigrationWindowAuth0Authenticator;
+use SpeedPuzzling\Web\Security\OAuth2User;
 use SpeedPuzzling\Web\Security\OAuth2UserProvider;
 use SpeedPuzzling\Web\Security\PatAuthenticator;
+use SpeedPuzzling\Web\Security\PatUser;
 use SpeedPuzzling\Web\Security\UserAccountProvider;
+use SpeedPuzzling\Web\Value\OAuth2Scope;
 use Symfony\Component\Security\Core\Authorization\Voter\AuthenticatedVoter;
 
 return App::config([
@@ -202,21 +205,26 @@ return App::config([
                 'path' => '^/internal-api/',
                 'roles' => [InternalApiAuthenticator::ROLE],
             ],
+            // "Me" endpoints need a user behind the token: a PAT, or an OAuth2
+            // token issued through the authorization-code flow. A client_credentials
+            // token is authenticated too (as the bundle's ClientCredentialsUser, no
+            // roles) so IS_AUTHENTICATED_FULLY let it through to providers that
+            // assert an ApiUser - and it died with a 500 instead of this 403.
             [
                 'path' => '^/api/v1/me',
-                'roles' => [AuthenticatedVoter::IS_AUTHENTICATED_FULLY],
+                'roles' => [PatUser::ROLE, OAuth2User::ROLE],
             ],
             [
                 'path' => '^/api/v1/players/.*/results',
-                'roles' => ['ROLE_OAUTH2_RESULTS:READ'],
+                'roles' => [OAuth2Scope::ResultsRead->role()],
             ],
             [
                 'path' => '^/api/v1/players/.*/statistics',
-                'roles' => ['ROLE_OAUTH2_STATISTICS:READ'],
+                'roles' => [OAuth2Scope::StatisticsRead->role()],
             ],
             [
                 'path' => '^/api/v1/players/.*/collections',
-                'roles' => ['ROLE_OAUTH2_COLLECTIONS:READ'],
+                'roles' => [OAuth2Scope::CollectionsRead->role()],
             ],
             [
                 'path' => '^/api/v1/competitions',

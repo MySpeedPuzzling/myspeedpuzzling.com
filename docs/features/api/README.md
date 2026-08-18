@@ -44,6 +44,24 @@ Built on `league/oauth2-server-bundle`. Supports two flows:
 | `solving-times:write` | Create and edit solving times | Yes | No |
 | `collections:write` | Create, edit, delete collections and items | Yes | No |
 
+The list lives in the `OAuth2Scope` enum (`src/Value/OAuth2Scope.php`), which also feeds
+`league_oauth2_server.scopes.available`. `OAuth2Scope::requiresUserContext()` marks the two write
+scopes as auth-code-only, and `OAuth2ClientCredentialsScopeSubscriber` (`OAuth2Events::SCOPE_RESOLVE`)
+**strips them from every `client_credentials` token** instead of failing the request — the bundle
+grants *everything the client holds* when no `scope` parameter is sent, so a hard error would break
+parameter-less machine-token calls from clients approved for write scopes (RFC 6749 §3.3 permits
+narrowing). The token response says what was actually granted:
+
+```json
+{"token_type":"Bearer","expires_in":3600,"access_token":"…","refresh_token":"…","scope":"profile:read results:read"}
+```
+
+`scope` is added by `ScopeAwareBearerTokenResponse` (`authorization_server.response_type_class`) —
+`league/oauth2-server` omits it by default. Roles are derived by the bundle as
+`strtoupper('ROLE_OAUTH2_' . scope)` with no punctuation normalisation, so `solving-times:write`
+grants `ROLE_OAUTH2_SOLVING-TIMES:WRITE` (hyphen kept) — `OAuth2Scope::role()` spells it right; a
+hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #184).
+
 ### Token TTLs
 
 - Access token: 1 hour (stateless JWT)
@@ -133,6 +151,7 @@ Puzzle difficulty and player skill tiers are included in responses only if the t
 
 - Missing/invalid/expired token: 401
 - Missing scope: 403
+- `client_credentials` token on any `/api/v1/me/*` endpoint: 403 (no user context)
 - Non-existent player UUID: 404
 - Membership required: 403 with message
 - Validation error: 422
@@ -189,7 +208,10 @@ PAT uses `Authorization: Token ...` (not `Bearer`) to avoid collision with the O
 Both `PatUser` and `OAuth2User` implement the `ApiUser` interface (`getPlayer(): Player`).
 
 Access control:
-- `^/api/v1/me` → `IS_AUTHENTICATED_FULLY` (PAT or OAuth2)
+- `^/api/v1/me` → `ROLE_PAT` or `ROLE_OAUTH2_USER` (`PatUser::ROLE` / `OAuth2User::ROLE`) — i.e. a token with a
+  player behind it. A `client_credentials` token is authenticated too (as the bundle's `ClientCredentialsUser`, no
+  roles), and under `IS_AUTHENTICATED_FULLY` it used to reach the providers, fail `assert($user instanceof ApiUser)`
+  and return 500; now it gets 403
 - `^/api/v1/players/.*/results` → `ROLE_OAUTH2_RESULTS:READ`
 - `^/api/v1/players/.*/statistics` → `ROLE_OAUTH2_STATISTICS:READ`
 - `^/api/v1/players/.*/collections` → `ROLE_OAUTH2_COLLECTIONS:READ`
@@ -268,6 +290,9 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `src/FormType/RequestApiAccessFormType.php` | OAuth2 request Symfony form type |
 | `src/FormData/RequestApiAccessFormData.php` | OAuth2 request form data with validation |
 | `src/EventSubscriber/ApiTokenUsageSubscriber.php` | OAuth2 usage tracking |
+| `src/EventSubscriber/OAuth2ClientCredentialsScopeSubscriber.php` | Strips write scopes from `client_credentials` tokens |
+| `src/Security/OAuth2/ScopeAwareBearerTokenResponse.php` | Adds granted `scope` to the token response |
+| `src/Value/OAuth2Scope.php` | Scope enum: available list, auth-code-only flag, role name derivation |
 | `config/packages/security.php` | Firewalls and access control |
 | `config/packages/league_oauth2_server.php` | OAuth2 config (scopes, grants, TTLs) |
 | `config/packages/api_platform.php` | API Platform config and Swagger |

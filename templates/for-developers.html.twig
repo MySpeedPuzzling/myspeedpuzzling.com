@@ -140,7 +140,16 @@
   -d "code=AUTH_CODE_FROM_REDIRECT" \
   -d "redirect_uri=https://your-app.com/callback" \
   -d "client_id=YOUR_CLIENT_ID" \
-  -d "client_secret=YOUR_CLIENT_SECRET"</code></pre>
+  -d "client_secret=YOUR_CLIENT_SECRET"
+
+HTTP/1.1 200 OK
+{
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "access_token": "eyJ0eXAi...",
+  "refresh_token": "def50200...",
+  "scope": "profile:read results:read"
+}</code></pre>
                     <p class="mb-0">{{ 'for_developers.auth_code_step3'|trans|raw }}</p>
                     <pre class="bg-light p-3 rounded"><code>curl -H "Authorization: Bearer ACCESS_TOKEN" \
   https://myspeedpuzzling.com/api/v1/me/results</code></pre>
@@ -170,7 +179,15 @@
   -d "grant_type=client_credentials" \
   -d "client_id=YOUR_CLIENT_ID" \
   -d "client_secret=YOUR_CLIENT_SECRET" \
-  -d "scope=results:read statistics:read"</code></pre>
+  -d "scope=results:read statistics:read"
+
+HTTP/1.1 200 OK
+{
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "access_token": "eyJ0eXAi...",
+  "scope": "results:read statistics:read"
+}</code></pre>
                     <p class="mb-0">{{ 'for_developers.client_cred_step2'|trans|raw }}</p>
                     <pre class="bg-light p-3 rounded"><code>curl -H "Authorization: Bearer ACCESS_TOKEN" \
   https://myspeedpuzzling.com/api/v1/players/PLAYER_UUID/results</code></pre>

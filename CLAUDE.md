@@ -183,7 +183,7 @@ Active feature flags are documented in `docs/features/feature_flags.md`. **Alway
 - **Two auth methods:** Personal Access Tokens (PAT) for own data, OAuth2 for third-party apps
 - **PAT:** `msp_pat_*` tokens, hashed in DB, `PatAuthenticator` on `api` firewall, `ROLE_PAT`, own data only (`/api/v1/me/*`)
 - **OAuth2:** `league/oauth2-server-bundle`, JWT Bearer tokens, scope-based roles
-- **Scopes:** `profile:read` (default), `results:read`, `statistics:read`, `collections:read`, `solving-times:write`, `collections:write`
+- **Scopes:** `profile:read` (default), `results:read`, `statistics:read`, `collections:read`, `solving-times:write`, `collections:write` — single source of truth is the `OAuth2Scope` enum (feeds the bundle config). Bundle role = `strtoupper('ROLE_OAUTH2_' . scope)` **with punctuation kept** (`ROLE_OAUTH2_SOLVING-TIMES:WRITE`) — use `OAuth2Scope::role()`, don't retype. Write scopes are stripped from `client_credentials` tokens (`OAuth2ClientCredentialsScopeSubscriber`); token responses carry the granted `scope` (`ScopeAwareBearerTokenResponse`); `^/api/v1/me` requires `ROLE_PAT`/`ROLE_OAUTH2_USER`, so a client-credentials token gets 403 there, not a 500
 - **Grants:** `authorization_code` (read+write), `client_credentials` (read-only), `refresh_token`
 - **"Me" endpoints:** `/api/v1/me/*` — PAT or OAuth2 with user context
 - **Player endpoints:** `/api/v1/players/{id}/*` — OAuth2 only

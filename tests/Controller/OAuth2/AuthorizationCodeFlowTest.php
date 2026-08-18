@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller\OAuth2;
 
 use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
@@ -198,6 +199,7 @@ final class AuthorizationCodeFlowTest extends WebTestCase
         $this->assertArrayHasKey('refresh_token', $response);
         $this->assertArrayHasKey('token_type', $response);
         $this->assertSame('Bearer', $response['token_type']);
+        $this->assertSame('profile:read', $response['scope'] ?? null);
     }
 
     public function testTokenCanBeUsedToAccessUserData(): void
@@ -451,6 +453,67 @@ final class AuthorizationCodeFlowTest extends WebTestCase
         );
 
         // Should show consent screen
+        $this->assertResponseIsSuccessful();
+    }
+
+    /**
+     * The whole journey a third-party app takes to record a solve on a player's
+     * behalf: consent for solving-times:write, code exchange, POST. This is the
+     * path that was broken until the role name matched the granted scope.
+     */
+    public function testWriteScopeGrantedThroughAuthCodeFlowCanCreateSolvingTime(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request(
+            'POST',
+            '/oauth2/authorize?' . http_build_query([
+                'client_id' => OAuth2ClientFixture::WRITE_CLIENT_ID,
+                'response_type' => 'code',
+                'redirect_uri' => OAuth2ClientFixture::REDIRECT_URI,
+                'scope' => 'profile:read solving-times:write',
+                'state' => 'test-state-write',
+            ]),
+            ['consent' => 'approve'],
+        );
+
+        $this->assertResponseRedirects();
+
+        $location = $browser->getResponse()->headers->get('Location');
+        $this->assertIsString($location);
+        $query = parse_url($location, PHP_URL_QUERY);
+        $this->assertIsString($query);
+        parse_str($query, $params);
+        $this->assertIsString($params['code'] ?? null);
+
+        $browser->request(
+            'POST',
+            '/oauth2/token',
+            [
+                'grant_type' => 'authorization_code',
+                'client_id' => OAuth2ClientFixture::WRITE_CLIENT_ID,
+                'client_secret' => OAuth2ClientFixture::WRITE_CLIENT_SECRET,
+                'redirect_uri' => OAuth2ClientFixture::REDIRECT_URI,
+                'code' => $params['code'],
+            ],
+        );
+
+        $this->assertResponseIsSuccessful();
+
+        /** @var array{access_token: string, scope?: string} $tokenResponse */
+        $tokenResponse = json_decode((string) $browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('profile:read solving-times:write', $tokenResponse['scope'] ?? null);
+
+        $browser->setServerParameter('HTTP_AUTHORIZATION', 'Bearer ' . $tokenResponse['access_token']);
+        $browser->request(
+            'POST',
+            '/api/v1/me/solving-times',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: (string) json_encode(['puzzle_id' => PuzzleFixture::PUZZLE_500_01, 'time' => '12:34']),
+        );
+
         $this->assertResponseIsSuccessful();
     }
 }

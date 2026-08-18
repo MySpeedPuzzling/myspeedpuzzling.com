@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\OAuth2TestHelper;
 use SpeedPuzzling\Web\Tests\PatTestHelper;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
@@ -78,5 +80,62 @@ final class UpdateSolvingTimeEndpointTest extends WebTestCase
         );
 
         $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
+    public function testOAuth2TokenWithWriteScopeCanUpdateOwnTime(): void
+    {
+        $browser = self::createClient();
+
+        $token = OAuth2TestHelper::createAccessToken(
+            $browser,
+            OAuth2ClientFixture::WRITE_CLIENT_ID,
+            PlayerFixture::PLAYER_REGULAR,
+            ['solving-times:write'],
+        );
+        OAuth2TestHelper::addBearerToken($browser, $token);
+
+        $browser->request(
+            'PUT',
+            '/api/v1/me/solving-times/' . PuzzleSolvingTimeFixture::TIME_01,
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: (string) json_encode(['comment' => 'Updated via OAuth2']),
+        );
+
+        $this->assertResponseIsSuccessful();
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+
+        /** @var array{player_id: string, comment: null|string}|false $row */
+        $row = $database->fetchAssociative(
+            'SELECT player_id, comment FROM puzzle_solving_time WHERE id = :id',
+            ['id' => PuzzleSolvingTimeFixture::TIME_01],
+        );
+
+        self::assertNotFalse($row);
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $row['player_id']);
+        self::assertSame('Updated via OAuth2', $row['comment']);
+    }
+
+    public function testOAuth2TokenWithoutWriteScopeReturnsForbidden(): void
+    {
+        $browser = self::createClient();
+
+        $token = OAuth2TestHelper::createAccessToken(
+            $browser,
+            OAuth2ClientFixture::WRITE_CLIENT_ID,
+            PlayerFixture::PLAYER_REGULAR,
+            ['profile:read', 'results:read'],
+        );
+        OAuth2TestHelper::addBearerToken($browser, $token);
+
+        $browser->request(
+            'PUT',
+            '/api/v1/me/solving-times/' . PuzzleSolvingTimeFixture::TIME_01,
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: (string) json_encode(['comment' => 'No write scope']),
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 }

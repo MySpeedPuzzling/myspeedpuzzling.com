@@ -117,6 +117,7 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 | Method | Endpoint | Auth |
 |--------|----------|------|
 | GET | `/api/v1/puzzles?query=…&ean=…&manufacturer=…&pieces_min=…&pieces_max=…&sort=…&difficulty=…&page=…&limit=…` | Any valid PAT or OAuth2 token (no specific scope); `sort=easiest\|hardest` and `difficulty=` are members-only |
+| GET | `/api/v1/puzzles/{puzzleId}` | Any valid PAT or OAuth2 token (no specific scope); `prediction` / `solves` only with PAT or `results:read`, `difficulty` / `prediction` members-only |
 
 ### Puzzles
 
@@ -165,6 +166,14 @@ No filter at all lists the whole catalog (most solved first) - the catalog is pu
 - `hide_until` (secret competition puzzles) ⇒ never returned - not in the listing, not by `query`, not by `ean`; `hide_image_until` ⇒ `image: null` until the embargo ends.
 - **Fixed query cost** (asserted by `PuzzleSearchEndpointTest::testQueryBudgets`): the card builder (`PuzzleResponseFactory`) collects the puzzle ids once and makes one batch call per object - `GetPuzzleStatistics::forPuzzleList`, `GetPuzzleDifficulty::forPuzzleList`, `GetPlayerPredictions::forPuzzles` (itself ≤ 4 queries), `GetPlayerPuzzleSolves::forPuzzles` - each only when the token is entitled; a page of 100 costs the same as a page of 5. Measured: authentication 1 query (PAT) / 3 (OAuth2: access token, player, consent usage) + count + search + statistics + owner profile + solves + [member: difficulty + predictions] - `client_credentials` 3-4, non-member 6 (PAT) / 8 (OAuth2), member 10-11 (PAT) / 12-13 (OAuth2).
 
+#### GET `/api/v1/puzzles/{puzzleId}`
+
+The puzzle detail **is the catalog card** of that one puzzle - exactly the fields above, same names, same order, same values for the same token (`PuzzleDetailEndpointTest::testDetailIsTheCatalogCard` asserts the detail JSON equals the search card JSON). Provider: `PuzzleDetailResponseProvider` → `GetPuzzleOverview::byId` → `PuzzleResponseFactory::card()`, so the gates and the three insight objects are the one code path shared with `GET /api/v1/puzzles`; DTO `PuzzleDetailResponse` (OpenAPI `Puzzle`), built only via `fromCard()`.
+
+- `statistics` is always present (public); `difficulty`, `prediction`, `solves` are **always present** and `null` exactly when the token is not entitled (difficulty: member; prediction: member + not opted out + PAT / `results:read`; solves: a player behind the token + PAT / `results:read`; `client_credentials` ⇒ all three `null`). A member on an unscored, never-solved puzzle gets `difficulty: { …, confidence: "insufficient", sample_size: 0 }`, a `prediction` with `null` fields and `is_personalized: false`, and `solves` with zero counts - objects, not `null`.
+- **404** for an unknown or malformed id (validated before any query) **and for a secret competition puzzle** (`hide_until` in the future) - stricter than the website's puzzle page, which shows it by id; `GetPuzzleOverview::byId` loads `hide_until` for this (it does not filter it, the web needs the row). `hide_image_until` ⇒ `image: null` until the embargo ends. No 301 to a merge survivor (follow-up).
+- Query cost (asserted by `PuzzleDetailEndpointTest::testQueryBudgets`): authentication (0-1 `client_credentials`, 1 PAT, 3 OAuth2) + overview 1 + statistics 1 + [player token: owner profile 1 + solves 1 with PAT / `results:read`] + [member: difficulty 1 + prediction 3-4] - measured `client_credentials` 2-3, non-member 5 (PAT) / 7 (OAuth2), member 9-10 (PAT) / 11-12 (OAuth2); ceilings pinned one above.
+
 ### Collection Membership Gating
 
 - **System collection** (`id=default`): All users can list/add/remove items
@@ -183,7 +192,7 @@ One service decides this for every provider: `ApiTokenOwner` (`src/Services/Api/
 
 ### GET `/api/v1/me/puzzles/{puzzleId}/predicted-time`
 
-The API twin of the Puzzle Insights block on the puzzle detail page (`PuzzleDetailController`), same gates:
+The API twin of the Puzzle Insights block on the puzzle detail page (`PuzzleDetailController`), same gates. The flat shape predates the insight objects of `GET /api/v1/puzzles` and `GET /api/v1/puzzles/{puzzleId}` and stays as it is (no BC breaks); since PR 2 it is a projection of the very same objects - `MyPredictedTimeResponseProvider` gates through `ApiTokenOwner` and flattens `TimePredictionResponse` / `PuzzleDifficultyResponse` via `PredictedTimeResponse::fromInsights()` (a puzzle without a difficulty row is still `null` here, not `"insufficient"`):
 
 - **Not a member** → every field except `puzzle_id` is `null` (`is_personalized: false`), 200.
 - **Member** → `difficulty_score` / `difficulty_level` (`very_easy|easy|average|challenging|hard|very_hard`) / `difficulty_confidence` (`insufficient|low|medium|high`) whenever the puzzle has a difficulty row (`null` otherwise). The prediction (`predicted_seconds`, `range_low_seconds`, `range_high_seconds`, `is_personalized`, `personal_solve_count`, `last_time_seconds`) comes from `GetPlayerPrediction` — personalized when the owner has solo solves of the puzzle, otherwise the statistical baseline × difficulty estimate, `null` when there is nothing to predict from.
@@ -353,6 +362,7 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `src/Entity/OAuth2/OAuth2UserConsent.php` | Consent entity with `lastUsedAt` |
 | `src/Api/V1/` | All API Platform resources, providers, and processors |
 | `src/Api/V1/PuzzleListResponse.php` | `GET /api/v1/puzzles` resource: the single declaration of its query parameters (validation + OpenAPI) |
+| `src/Api/V1/PuzzleDetailResponse.php` | `GET /api/v1/puzzles/{puzzleId}` resource - the card of one puzzle, built only via `fromCard()` (provider `PuzzleDetailResponseProvider`) |
 | `src/Api/V1/PuzzleResponse.php` | The puzzle card (+ `PuzzleStatisticsResponse`, `PuzzleDifficultyResponse`, `TimePredictionResponse`, `PlayerSolvesResponse`) |
 | `src/Services/Api/ApiTokenOwner.php` | The single membership / scope gate behind every provider |
 | `src/Services/Api/PuzzleResponseFactory.php` | Builds puzzle cards for the calling token at a fixed query cost (one batch call per object) |

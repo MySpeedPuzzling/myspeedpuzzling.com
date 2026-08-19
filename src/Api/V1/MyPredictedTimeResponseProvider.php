@@ -6,12 +6,11 @@ namespace SpeedPuzzling\Web\Api\V1;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerPrediction;
-use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
-use SpeedPuzzling\Web\Security\ApiUser;
-use Symfony\Bundle\SecurityBundle\Security;
+use SpeedPuzzling\Web\Services\Api\ApiTokenOwner;
 
 /**
  * Own predicted time for a puzzle - the API twin of the Puzzle Insights block on the
@@ -21,13 +20,18 @@ use Symfony\Bundle\SecurityBundle\Security;
  * and one member's token must not become a proxy that serves a members-only feature
  * to everyone.
  *
+ * The flat shape predates the insight objects of GET /v1/puzzles and
+ * GET /v1/puzzles/{id} and stays as it is (no BC breaks); it is a projection of the
+ * very same objects, built by the same code (TimePredictionResponse,
+ * PuzzleDifficultyResponse) behind the same gate (ApiTokenOwner), so the two
+ * surfaces cannot disagree.
+ *
  * @implements ProviderInterface<PredictedTimeResponse>
  */
 final readonly class MyPredictedTimeResponseProvider implements ProviderInterface
 {
     public function __construct(
-        private Security $security,
-        private GetPlayerProfile $getPlayerProfile,
+        private ApiTokenOwner $tokenOwner,
         private GetPuzzleOverview $getPuzzleOverview,
         private GetPlayerPrediction $getPlayerPrediction,
         private GetPuzzleDifficulty $getPuzzleDifficulty,
@@ -36,18 +40,17 @@ final readonly class MyPredictedTimeResponseProvider implements ProviderInterfac
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): PredictedTimeResponse
     {
-        $user = $this->security->getUser();
-        assert($user instanceof ApiUser);
-
         /** @var string $puzzleId */
         $puzzleId = $uriVariables['puzzleId'];
 
         // Throws PuzzleNotFound (404) for a missing or malformed id.
         $this->getPuzzleOverview->byId($puzzleId);
 
-        $profile = $this->getPlayerProfile->byId($user->getPlayer()->id->toString());
+        // /api/v1/me/* is reachable only with a player behind the token (access_control),
+        // so the owner is never null here; the throw keeps that a 404, not a 500.
+        $profile = $this->tokenOwner->profile() ?? throw new PlayerNotFound();
 
-        if ($profile->activeMembership === false) {
+        if ($this->tokenOwner->isMember() === false) {
             return PredictedTimeResponse::membersOnly($puzzleId);
         }
 
@@ -57,17 +60,10 @@ final readonly class MyPredictedTimeResponseProvider implements ProviderInterfac
             ? null
             : $this->getPlayerPrediction->forPuzzle($profile->playerId, $puzzleId);
 
-        return new PredictedTimeResponse(
-            puzzle_id: $puzzleId,
-            predicted_seconds: $prediction?->predictedSeconds,
-            range_low_seconds: $prediction?->rangeLowSeconds,
-            range_high_seconds: $prediction?->rangeHighSeconds,
-            is_personalized: $prediction !== null && $prediction->isPersonalized,
-            personal_solve_count: $prediction?->personalSolveCount,
-            last_time_seconds: $prediction?->lastTimeSeconds,
-            difficulty_score: $difficulty?->difficultyScore,
-            difficulty_level: $difficulty?->difficultyTier?->toApiValue(),
-            difficulty_confidence: $difficulty?->confidence->value,
+        return PredictedTimeResponse::fromInsights(
+            $puzzleId,
+            TimePredictionResponse::fromResult($prediction),
+            $difficulty !== null ? PuzzleDifficultyResponse::fromResult($difficulty) : null,
         );
     }
 }

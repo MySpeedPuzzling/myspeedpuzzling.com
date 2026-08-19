@@ -62,4 +62,30 @@ final class PredictedTimeResponse
             difficulty_confidence: null,
         );
     }
+
+    /**
+     * The flat projection of the insight objects every puzzle endpoint carries
+     * (GET /v1/puzzles, GET /v1/puzzles/{id}): the same TimePredictionResponse and
+     * PuzzleDifficultyResponse, flattened - no sample_size, no attempt number,
+     * and a puzzle without a difficulty row is null here (not "insufficient"),
+     * exactly as this endpoint has always answered.
+     */
+    public static function fromInsights(
+        string $puzzleId,
+        TimePredictionResponse $prediction,
+        null|PuzzleDifficultyResponse $difficulty,
+    ): self {
+        return new self(
+            puzzle_id: $puzzleId,
+            predicted_seconds: $prediction->predicted_seconds,
+            range_low_seconds: $prediction->range_low_seconds,
+            range_high_seconds: $prediction->range_high_seconds,
+            is_personalized: $prediction->is_personalized,
+            personal_solve_count: $prediction->personal_solve_count,
+            last_time_seconds: $prediction->last_time_seconds,
+            difficulty_score: $difficulty?->score,
+            difficulty_level: $difficulty?->level,
+            difficulty_confidence: $difficulty?->confidence,
+        );
+    }
 }

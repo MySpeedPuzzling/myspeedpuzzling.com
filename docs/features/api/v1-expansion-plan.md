@@ -50,7 +50,7 @@ Rules: never `assert($user instanceof ApiUser)` outside `/me/*` providers — us
 
 ### 1.2 Response building blocks (`src/Api/V1/`)
 - `PuzzleManufacturerResponse { id, name }`
-- `PuzzleStatisticsResponse { solved_times:int, average_time_solo:?int, fastest_time_solo:?int, average_time_duo:?int, fastest_time_duo:?int, average_time_team:?int, fastest_time_team:?int }` (averages rounded to int seconds — the overview query yields numeric strings)
+- `PuzzleStatisticsResponse { solved_times:int, solo: PuzzleStatisticsGroupResponse, duo: …, team: … }` with `PuzzleStatisticsGroupResponse { count:int, fastest_seconds:?int, average_seconds:?int, slowest_seconds:?int }` (+ `median_seconds:?int` once PR 5a lands) — **always split by discipline**; public data; read from the precomputed `puzzle_statistics` table (event-driven recompute in `RecalculatePuzzleStatisticsOnSolvingTimeChange`, backfill `myspeedpuzzling:recalculate-puzzle-statistics`) through a new batch query `GetPuzzleStatistics::forPuzzleList(ids)` — **one** query per list, reused for cards, collection items, result items; puzzles without a row ⇒ counts 0, nulls
 - `PuzzleDifficultyResponse { score:?float, level:?string (very_easy…very_hard), confidence:string (insufficient|low|medium|high), sample_size:int }` — built from `PuzzleDifficultyResult`; **for a member with no row, synthesise `{null, null, 'insufficient', 0}`** so that `difficulty: null` means exactly "members only" (N1 semantics)
 - `TimePredictionResponse { predicted_seconds:?int, range_low_seconds:?int, range_high_seconds:?int, is_personalized:bool, personal_solve_count:?int, predicted_attempt_number:?int, last_time_seconds:?int }` — built from `TimePredictionResult`; all-null fields + `is_personalized:false` when `GetPlayerPrediction` returns null
 - `PlayerSolvesResponse { solo: SolvesGroupResponse, duo: SolvesGroupResponse, team: SolvesGroupResponse }` with `SolvesGroupResponse { count:int, best_time_seconds:?int, last_time_seconds:?int, first_solved_at:?string, last_solved_at:?string }` — the player's own history on a puzzle, **always split by discipline exactly like `/me/statistics` (`solo`/`duo`/`team` are different disciplines and are never merged)**; unboxed and suspicious-flagged times are included (it is the player's own data, the same set as `/me/results?type=…`). Built by a new batch query `GetPlayerPuzzleSolves::forPuzzles(playerId, puzzleIds)` — **one** query `GROUP BY puzzle_id, puzzling_type` with `COUNT(*)`, `MIN(seconds_to_solve)`, `(array_agg(seconds_to_solve ORDER BY solved_at DESC))[1]`, `MIN/MAX(COALESCE(finished_at, tracked_at))`, pivoted in PHP; a puzzle/discipline with no rows ⇒ `count 0` and nulls (the object is always present for an entitled token)
@@ -83,6 +83,7 @@ Rules: never `assert($user instanceof ApiUser)` outside `/me/*` providers — us
 | `GET /puzzles/{id}` (PR 2) | ✓ | any scope (`prediction`/`solves` only with `results:read`) | ✓ (insights null) | `difficulty`, `prediction`, `solves` |
 | `GET /me/results`, `/me/collections/{id}/items` (PR 3) | ✓ | as today | — | `difficulty` (results); `difficulty`, `prediction`, `solves` (collection items) |
 | `GET /players/{id}/results`, `/players/{id}/collections/{cid}/items` (PR 3) | — | as today (`solves` needs `results:read`) | ✓ (difficulty null) | `difficulty`; collection items also `solves` (owner's, public profiles only); never `prediction` |
+| `GET /me/library`, `/me/wishlist`, `/me/unsolved-puzzles`, `/me/lend-borrow`, `/me/sell-swap` + `/players/{id}/…` (PR 5) | ✓ | `collections:read` | ✓ on `/players/{id}/…` (insights null) | per-item `statistics`, `difficulty`, `prediction` (`/me` only), `solves`; owner visibility settings as on the web |
 | `POST /me/solving-times` (PR 4) | ✓ | `solving-times:write` | — | `prediction` (the one that applied before this solve) in the response |
 | `GET /me` (PR 6) | ✓ | `profile:read` | — | `rating` (opt-out aware), `skill` (members), `badges` |
 | `GET /players/{id}` (PR 6, new) | — | `profile:read` | ✓ | public profile + `rating` (private/opt-out ⇒ null) + `skill` (token owner member) + `badges`; masked when private |
@@ -143,14 +144,14 @@ The motivating case: a collection with 500+ puzzles where the app wants, per ite
 
 | Endpoint | per-item objects (always present; `null` when not entitled) |
 |---|---|
-| `GET /me/collections/{id}/items` | `difficulty` (owner member) · `prediction` (owner member + not opted out + PAT/`results:read`) · `solves` (own, always) |
-| `GET /players/{id}/collections/{cid}/items` | `difficulty` (**token owner** member) · `solves` (the **collection owner's** solves — only with `results:read` on the token, and only for public profiles; the zeroed private response stays zeroed with no queries) · never `prediction` |
-| `GET /me/results`, `GET /players/{id}/results` | `difficulty` (token owner member) |
+| `GET /me/collections/{id}/items` | `statistics` (public, always) · `difficulty` (owner member) · `prediction` (owner member + not opted out + PAT/`results:read`) · `solves` (own, always) |
+| `GET /players/{id}/collections/{cid}/items` | `statistics` · `difficulty` (**token owner** member) · `solves` (the **collection owner's** solves — only with `results:read` on the token, and only for public profiles; the zeroed private response stays zeroed with no queries) · never `prediction` |
+| `GET /me/results`, `GET /players/{id}/results` | `statistics` · `difficulty` (token owner member) |
 
-- `CollectionItemResponse` and `PlayerResultResponse` gain trailing `difficulty: ?PuzzleDifficultyResponse = null`; `CollectionItemResponse` also `prediction: ?TimePredictionResponse = null` and `solves: ?PlayerSolvesResponse = null`.
+- `CollectionItemResponse` and `PlayerResultResponse` gain trailing `statistics: PuzzleStatisticsResponse` (public, always — `GetPuzzleStatistics::forPuzzleList`, +1 query) and `difficulty: ?PuzzleDifficultyResponse = null`; `CollectionItemResponse` also `prediction: ?TimePredictionResponse = null` and `solves: ?PlayerSolvesResponse = null`. (Medians arrive inside `statistics` with PR 5a — nothing to change on these endpoints then.)
 - Providers: collect `puzzleIds` once; then at most one call each to `PuzzleResponseFactory`/`GetPuzzleDifficulty::forPuzzleList`, `GetPlayerPredictions::forPuzzles`, `GetPlayerPuzzleSolves::forPuzzles`, each guarded by its gate (no query when the result would be `null` for every item). Private-profile short-circuits stay first. Empty list ⇒ no batch queries.
 - `GetPlayerPuzzleSolves` (new, `src/Query/`): one `GROUP BY` query as in §1.2; `readonly`, no memo needed.
-- Budget (assert with two collection sizes — fixture `COLLECTION_PUBLIC` plus items seeded in the test — the count must not grow with the item count): machine token on `/players/...`: today's count; non-member player token: today + profile 1 + solves 1; member: today + profile 1 + difficulty 1 + predictions 4 + solves 1 ≈ **≤ 11 total** on collection items; results lists: today + ≤ 2.
+- Budget (assert with two collection sizes — fixture `COLLECTION_PUBLIC` plus items seeded in the test — the count must not grow with the item count): machine token on `/players/...`: today + statistics 1; non-member player token: today + statistics 1 + profile 1 + solves 1; member: today + statistics 1 + profile 1 + difficulty 1 + predictions 4 + solves 1 ≈ **≤ 12 total** on collection items; results lists: today + ≤ 3.
 - Tests per endpoint: member vs non-member vs machine token per object; opted-out ⇒ `prediction:null` but `difficulty` present; `solves` numbers for `PLAYER_REGULAR` × `PUZZLE_500_02` (3 solo solves: count 3, best 1700, last 1700 — verify against `.claude/fixtures.md`); `solves` on `/players/{id}/...` without `results:read` ⇒ `null`; private profile ⇒ zeroed as today; existing field values byte-identical (compare the pre-change JSON minus the new keys); query budgets at two collection sizes.
 - Docs: README "Members-Exclusive Data" + per-endpoint notes; for-developers table unchanged (same endpoints); OpenAPI from the DTOs.
 - Follow-ups (not in this PR): optional `page/limit` on collection items with **default unchanged (= all)**; `ranking` per item (rank/total players via `GetRanking::allForPlayer` — heavier, needs its own budget).
@@ -158,6 +159,24 @@ The motivating case: a collection with 500+ puzzles where the app wants, per ite
 ## 7. PR 4 — `prediction` in the `POST /me/solving-times` response
 
 After dispatch, when the time is **solo** (`group_players` empty/null), parsed time is non-null, owner is a member and not opted out: `prediction = TimePredictionResponse` from `GetPlayerPrediction::forPuzzle($playerId, $puzzleId, excludeTimeId: $timeId)` (the prediction *before* this solve — what the added-time recap shows); else `null`. Also fill `time_seconds` using the same parser the handler uses (today it is always `null` in the create response — filling it is additive). `SolvingTimeResponse` gains trailing `prediction: ?TimePredictionResponse = null` (the PUT response keeps `null`). Budget: + profile 1 + prediction ≤5, only for eligible requests. Tests: member solo with history (seeded) ⇒ object, `personal_solve_count` equals the count *before* this time; non-member ⇒ null; group time ⇒ null; opted-out ⇒ null; `time_seconds` filled; existing create tests unchanged.
+
+## 7b. PR 5 — the puzzle library: wishlist, lend/borrow, unsolved, sell/swap (read-only) + library summary
+
+The website's puzzle library (`PuzzleLibraryController`) has, besides collections: **unsolved puzzles** (system collection not yet solved + borrowed unsolved), **wishlist**, **lend/borrow list**, **sell/swap list** (always public), **solved puzzles** (already `/results`), each with an owner-set visibility (`CollectionVisibility` public|private) and always visible to the owner. The API mirrors it 1:1, read-only (write endpoints are a follow-up; today only collections have writes).
+
+| Endpoint | Auth | Source | Visibility (as web) |
+|---|---|---|---|
+| `GET /me/library`, `GET /players/{id}/library` | PAT or `collections:read` / `collections:read` | `GetPlayerCollectionsWithCounts`, the count queries the web page uses | summary: `collections[]` (as `/me/collections`), `unsolved {count, visibility}`, `wishlist {count, visibility}`, `lend_borrow {lent_count, borrowed_count, visibility}`, `sell_swap {count}`, `solved {count, visibility}`; for others, private sections show `count: 0` and their `visibility` |
+| `GET /me/wishlist`, `GET /players/{id}/wishlist` | PAT or `collections:read` / `collections:read` | `GetWishListItems::byPlayerId` | `wishListVisibility` public or own, else zeroed |
+| `GET /me/unsolved-puzzles`, `GET /players/{id}/unsolved-puzzles` | same | `GetUnsolvedPuzzles::byPlayerId` + `GetBorrowedPuzzles::unsolvedByHolderId` (like the web) | `unsolvedPuzzlesVisibility` |
+| `GET /me/lend-borrow`, `GET /players/{id}/lend-borrow` | same | `GetLentPuzzles::byOwnerId` + `GetBorrowedPuzzles::byHolderId` | `lendBorrowListVisibility` |
+| `GET /me/sell-swap`, `GET /players/{id}/sell-swap` | same | `GetSellSwapListItems::byPlayerId` | always public (as web) |
+
+Item shapes follow `CollectionItemResponse` (flat puzzle fields: `puzzle_id, puzzle_name, manufacturer_name, pieces_count, image`) + the per-item objects from PR 3 (`statistics`, `difficulty`, `prediction` on `/me/*` only, `solves`), plus list-specific fields: wishlist `wishlist_item_id, added_at`; unsolved `added_at, is_borrowed`; lend/borrow `lent_puzzle_id, direction: lent|borrowed, counterparty { player_id:?string, name:string }, lent_at, notes`; sell/swap `item_id, listing_type, price…` (take the public fields from `SellSwapListItemOverview`; nothing about the counterparties beyond what the web shows publicly). Whole-profile `is_private` ⇒ every `/players/{id}/…` list zeroed, as today. Budgets: base + statistics 1 + difficulty 1 + predictions 4 + solves 1 (same batch rules, asserted at two sizes). Tests per endpoint: own/other/public/private/cc, embargoed image `null`, budgets. Docs: README "Puzzle Library Endpoints" table + section, for-developers rows, OpenAPI; `collections:read` is documented as "read the puzzle library".
+
+## 7c. PR 5a — per-puzzle medians in `puzzle_statistics` → `statistics.*.median_seconds`
+
+Medians are not stored today (only brand/pieces hubs compute `percentile_cont` ad hoc); computing them per request for 500 puzzles is not acceptable. Add `median_time`, `median_time_solo`, `median_time_duo`, `median_time_team` (nullable int) to the `PuzzleStatistics` entity (**migration generated with `doctrine:migrations:diff`, never hand-written**), compute them in `RecalculatePuzzleStatisticsOnSolvingTimeChange` with `percentile_cont(0.5) WITHIN GROUP (ORDER BY seconds_to_solve)` per discipline (same row filters the averages use), backfill with the existing `myspeedpuzzling:recalculate-puzzle-statistics` (run once after deploy — ops note), then add `median_seconds:?int` to `PuzzleStatisticsGroupResponse` (BC-safe new key, flows to every endpoint at once). Tests: handler computes the median for an odd and an even count; API shows it. Ops: after the release, run the backfill on the box.
 
 ## 8. PR 6 — profile insights on `GET /me` and a new `GET /players/{id}` (what the profile page shows)
 
@@ -183,7 +202,7 @@ Docs: README (`/me` row, new `/players/{id}` row + "Profile insights" section), 
 
 ## 9. Rollout, per PR
 
-Waves (dependencies): **wave 1** PR 0 ∥ PR 1 (independent) → **wave 2** PR 2 ∥ PR 3 ∥ PR 6 (all need PR 1's foundation; disjoint files, README hunks merged by the orchestrator) → **wave 3** PR 4 (needs `TimePredictionResponse`).
+Waves (dependencies): **wave 1** PR 0 ∥ PR 1 (independent) → **wave 2** PR 2 ∥ PR 3 ∥ PR 6 ∥ PR 5a (all need PR 1's foundation; disjoint files, README hunks merged by the orchestrator) → **wave 3** PR 4 ∥ PR 5 (PR 5 needs PR 3's item objects).
 
 1. Orchestrator creates an isolated git worktree on a branch `api/<topic>` (own `DATABASE_URL` — `tests/bootstrap.php` drops and recreates the database it is pointed at — and the main tree's `vendor` bind-mounted read-only when running inside the base image); the subagent implements there from this plan and never touches the shared checkout.
 2. Gates in the worktree: `composer run phpstan`, `composer run cs-fix`, `vendor/bin/phpunit --testsuite "Project Test Suite"`, `bin/console doctrine:schema:validate`, `bin/console cache:warmup`, `bin/console api:openapi:export` (must render; the parameter test covers content), profiler query budgets.
@@ -213,9 +232,11 @@ Waves (dependencies): **wave 1** PR 0 ∥ PR 1 (independent) → **wave 2** PR 2
 - [ ] PR 2 `GET /puzzles/{id}`
 - [ ] PR 3 insights & solves on lists
 - [ ] PR 4 `prediction` on `POST /me/solving-times`
+- [ ] PR 5 puzzle library lists (wishlist, unsolved, lend/borrow, sell/swap, library summary)
+- [ ] PR 5a medians in `puzzle_statistics` (+ backfill on the box)
 - [ ] PR 6 profile insights on `/me` + `GET /players/{id}`
 
-Follow-ups deliberately out of scope: tags on puzzle card / tag filter, related puzzles, marketplace offer counts, 301 to merge-survivor on `/puzzles/{id}`, puzzle-level solvers/ranking list, exact `pieces=` shorthand, per-scope rate limits beyond search, optional pagination on collection items (default must stay = all; if added, `limit` max 100 like search), per-item `ranking`.
+Follow-ups deliberately out of scope: write endpoints for wishlist/lend-borrow (add/remove/return), `first_attempt_average_seconds` in statistics (exists for solo/duo only), tags on puzzle card / tag filter, related puzzles, marketplace offer counts, 301 to merge-survivor on `/puzzles/{id}`, puzzle-level solvers/ranking list, exact `pieces=` shorthand, per-scope rate limits beyond search, optional pagination on collection items (default must stay = all; if added, `limit` max 100 like search), per-item `ranking`.
 
 ---
 
@@ -248,7 +269,7 @@ Collection item (`GET /me/collections/{id}/items`, member) = today's item + the 
 { "collection_item_id": "018f…", "puzzle_id": "018d0003-0000-0000-0000-000000000002", "puzzle_name": "Puzzle 2",
   "manufacturer_name": "Ravensburger", "pieces_count": 500, "image": "puzzles/…/box.jpg", "comment": null,
   "added_at": "2026-06-01T09:00:00+00:00",
-  "difficulty": { … }, "prediction": { … }, "solves": { … } }
+  "statistics": { … }, "difficulty": { … }, "prediction": { … }, "solves": { … } }
 ```
 
 `GET /puzzles/{id}` (member, PAT):
@@ -257,11 +278,13 @@ Collection item (`GET /me/collections/{id}/items`, member) = today's item + the 
   "manufacturer": { "id": "018d0002-0000-0000-0000-000000000001", "name": "Ravensburger" },
   "pieces_count": 500, "image": "puzzles/…/box.jpg", "ean": "4005556123456", "identification_number": "12345",
   "is_available": true, "is_approved": true,
-  "statistics": { "solved_times": 41, "average_time_solo": 2160, "fastest_time_solo": 1500,
-                  "average_time_duo": 1320, "fastest_time_duo": 1180, "average_time_team": null, "fastest_time_team": null },
+  "statistics": { "solved_times": 41,
+                  "solo": { "count": 30, "fastest_seconds": 1500, "average_seconds": 2160, "slowest_seconds": 3900 },
+                  "duo":  { "count": 8,  "fastest_seconds": 1180, "average_seconds": 1320, "slowest_seconds": 1700 },
+                  "team": { "count": 3,  "fastest_seconds": null, "average_seconds": null, "slowest_seconds": null } },
   "difficulty": { … }, "prediction": { … }, "solves": { … } }
 ```
-`GET /puzzles` items are the same object; the list wrapper is `{ "count", "total", "page", "limit", "has_more", "puzzles": [ … ] }` with `limit` ≤ 100.
+`statistics` is public and always split by discipline; `median_seconds` joins each group with PR 5a. `GET /puzzles` items are the same object; the list wrapper is `{ "count", "total", "page", "limit", "has_more", "puzzles": [ … ] }` with `limit` ≤ 100.
 
 `POST /me/solving-times` response = today's fields (`time_seconds` now filled) + `"prediction": { … }` — the prediction that applied **before** this solve; `null` for group times / non-members / opted out.
 

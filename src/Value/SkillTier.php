@@ -14,6 +14,23 @@ enum SkillTier: int
     case Master = 6;
     case Legend = 7;
 
+    /**
+     * Stable lowercase token for the public API (the website keys its icons
+     * and translations off strtolower(name), which is not a wire format).
+     */
+    public function toApiValue(): string
+    {
+        return match ($this) {
+            self::Enthusiast => 'enthusiast',
+            self::Apprentice => 'apprentice',
+            self::Proficient => 'proficient',
+            self::Advanced => 'advanced',
+            self::Expert => 'expert',
+            self::Master => 'master',
+            self::Legend => 'legend',
+        };
+    }
+
     public static function fromPercentile(float $percentile): self
     {
         return match (true) {

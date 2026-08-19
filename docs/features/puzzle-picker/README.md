@@ -100,7 +100,6 @@ rendered (Twig + Turbo Drive); the only JS is the filter sheet, chips and a tiny
 ```
 ┌────────────────────────────────────────────┐
 │ What should I solve next?                  │
-│ Tell me the mood, I'll pick from your shelf│
 │                                            │
 │ [Surprise me] [Something new] [Quick one]  │  ← preset chips, horizontal scroll on mobile
 │ [Dust off] [Rating grind] [🔒 Beat my record]│
@@ -127,10 +126,31 @@ rendered (Twig + Turbo Drive); the only JS is the filter sheet, chips and a tiny
 └────────────────────────────────────────────┘
 ```
 
+- **Intro state** (2026-08-19): a signed-in bare visit shows no puzzle — presets, the Filters
+  button and a friendly card ("What's it going to be today? — pick a preset, set your filters, or
+  let the wheel decide") with one primary **Surprise me** CTA (the Surprise-me preset + a fresh
+  seed). Any query string is a draw. Guests keep the landing demo.
+- **The drumroll** (2026-08-19): signed-in draws start with a ~5 s reveal
+  (`PuzzlePickerController::DRAW_DURATION_MS`): the drawn puzzles' thumbnails cycle slot-machine
+  style with decelerating ticks (crossfade, alternating nudge/tilt, gentle sway, a glow ring that
+  builds with progress) under "Shuffling your shelf… / Wait for it… / Almost there…", land on the
+  chosen one with a pop, "This one!" and a modest canvas confetti burst, then the card fades up.
+  Presentation only (`puzzle-picker-draw` Stimulus controller; the card is in the HTML from the
+  start), plays once per draw URL (sessionStorage — back/forward/reload go straight to the card),
+  never with `prefers-reduced-motion`, tap anywhere or "Skip" (outline-primary button) to skip.
 - **Filter sheet**: a Bootstrap modal (`modal-fullscreen-sm-down`; offcanvas is excluded from the
   SCSS build) containing a plain `<form method="get">` — Apply = submit, the URL *is* the state
-  (bookmarkable, back button works, shareable, no Live Component state to reason about). Groups are
-  collapsible; the members group is one locked block for non-members.
+  (bookmarkable, back button works, no Live Component state to reason about). The `<form>` is itself
+  a flex column so `.modal-dialog-scrollable` really scrolls, and `.modal-body` has
+  `overscroll-behavior: contain` (PWA pull-to-refresh). Order (user feedback 2026-08-19): where to
+  pick from → pieces → brand → my history → community → time budget → insights. Every value-based
+  filter (custom pieces range, solve-count range, not solved for a while, my time, time budget,
+  "by at least N min") sits behind an explicit **switch** (`filter-toggle` Stimulus controller) that
+  reveals its inputs and disables them while off — an unused filter never looks or acts like a set
+  value. Radio groups always have an "Any" option. The brand select is the shared `tomselect-sync`
+  with **brand logos** (the filter-options endpoint carries a `logo` thumbnail for brands that have
+  one; pre-selected brands carry theirs via `data-data`). The members group is one locked block for
+  non-members.
 - **Card**: modelled on the puzzle detail page but compact — reuse `puzzle/_badges.html.twig`,
   the `puzzle_image('puzzle_medium')` filter, `compactTime`/`puzzlingTime` filters, and the
   wording of `PuzzleTimes.html.twig` "my attempts" (`puzzle_times.my_attempts.*` keys). CTAs use
@@ -141,7 +161,11 @@ rendered (Twig + Turbo Drive); the only JS is the filter sheet, chips and a tiny
   instant. If unlimited "more" is wanted later, switch to the chained Turbo-Frame pattern
   (`?seed=…&offset=6&limit=5`) — the seeded ordering makes that trivial.
 - **Pick another**: link to the same URL with a fresh `seed` (server-generated, `rel="nofollow"`).
-  Optional polish: 300 ms card shuffle animation.
+- **Seed in the address bar**: a signed-in draw URL *without* a seed (preset link, filter form)
+  redirects once to the same URL *with* one, so the browser's back button and the card's
+  "Puzzle detail" `?return=` link land on the very same filters **and** puzzle. The bare URL never
+  gets a seed (it is the intro / the canonical landing), guests keep the server-side seed (cacheable
+  demo).
 - **Empty states**: "Your collection is empty → [Add puzzles] · [Pick from all puzzles]";
   "Nothing matches → remove a chip" (chips are the loosening UI); guests → login with `?return=`.
 - **No remembered filters** (shipped in PR 3, removed 2026-08-19 on Jan's call): the URL is the
@@ -151,8 +175,12 @@ rendered (Twig + Turbo Drive); the only JS is the filter sheet, chips and a tiny
 - **Entry points** (Jan, 2026-08-19): a very small button next to the H1 on the puzzle overview
   page (`/en/puzzle`, `puzzles.html.twig`), an item in the **My profile** dropdown
   (`base.html.twig`), a small button in the header of the **puzzle library** page
-  (`puzzle_library.html.twig`, own profile only) and — from PR 3 — "Pick from this collection" on the
-  collection detail pages (deep-links with that collection preselected). Later: hub mini card.
+  (`puzzle_library.html.twig`, own profile only), "Pick from this collection" on the collection
+  detail pages (deep-links with that collection preselected) and a **footer link with a NEW badge**.
+  Later: hub mini card.
+- **Presets vs. filters**: presets are dark-outline pills (filled when active) with a ⚡ label and a
+  thin separator; active filters are grey removable chips; "Reset filters" is an outline pill
+  button with a ↺ icon.
 
 ## 5. Predictions in collections (and other new places)
 

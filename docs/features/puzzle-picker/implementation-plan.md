@@ -35,8 +35,10 @@ demo for guests, three entry points. No members-only bits yet.
   `fr /fr/quel-puzzle-faire`, `de /de/welches-puzzle-als-naechstes`, `ja /ja/次のパズル`.
 - `RetrieveLoggedUserProfile` → `PlayerProfile|null`. Criteria via
   `PuzzlePickerCriteria::fromRequest($request, isAuthenticated: $profile !== null)`; a missing/invalid
-  `seed` is generated server-side (`bin2hex(random_bytes(4))`), the generated seed is **not**
-  redirected into the URL (the bare URL stays canonical), it is only used for the "Pick another" links.
+  `seed` is generated server-side (`bin2hex(random_bytes(4))`). *As shipped in PR 1* the seed was never
+  redirected into the URL; **since the 2026-08-19 follow-ups** a signed-in draw URL without a seed
+  redirects once to carry it (back navigation must reproduce the draw), while the bare URL (intro /
+  canonical landing) and guest draws never get one.
 - Fetch `PICK_SIZE = 6` suggestions; render `puzzle_picker/index.html.twig` (signed-in) or
   `puzzle_picker/landing.html.twig` (guest). Both include `_card.html.twig`, `_filters_modal.html.twig`,
   `_results.html.twig` (card + hidden 5 + buttons + "1 of N") and `_empty_state.html.twig`.
@@ -267,6 +269,23 @@ have made the whole site depend on the migration; a tiny read query serves the t
   opted-out downgrade, CSRF, bad mode, hostile `return`), `tests/Controller/CollectionDetailControllerTest.php`
   (control for signed-in viewers only incl. locked / opted-out variants, my-times block on own, other's
   and system collections, predictions pill for an eligible member, non-member served "times" only).
+
+## Follow-ups on `main` after the four PRs (2026-08-19, Jan's feedback + user feedback)
+
+All small commits straight to `main`, each with the check suite green:
+- `c3bcbce3` collections Display dropdown header wraps on mobile
+- `e1c06ec0` share button dropped (seeded URLs only reproduce the draw for the same pool)
+- `239a18dd` intro state for the signed-in bare visit ("Surprise me" CTA), filter sheet really
+  scrolls (form as flex column), presets vs. filters styling, Reset as a button, brand logos in the
+  brand select (`PuzzleFilterOptions` carries `logo`, `tomselect-sync` renders it — also on /puzzle)
+- `1dac6258` remembered filters removed; signed-in draw URLs redirect once to carry the seed; card's
+  "Puzzle detail" link carries `?return=`; `.modal`/`.modal-body` `overscroll-behavior: contain`
+  (PWA pull-to-refresh); H1 subtitle removed
+- `5d9accce` filter sheet redesign: explicit switches for every value-based filter
+  (`filter-toggle` controller), pieces and brand moved up
+- `78af3044` + `b602c8cb` + `2f338a23` + `20ba8f21` the drumroll (5 s reveal, crossfade / nudge /
+  sway / glow ring, pop + "This one!", confetti, Skip button, stage outside the card)
+- `125920d1` + `38ad07c0` footer link with NEW badge (+ entry-point test fix)
 
 ## PR 5+ — Reach & polish (roadmap)
 Hub mini-picker, stopwatch prediction line, search listing pill, unlimited "more" via Turbo Frames,

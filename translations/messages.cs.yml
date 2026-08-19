@@ -3152,6 +3152,27 @@ puzzle_picker:
         brand:
             label: "Značka"
             placeholder: "Jakákoli značka"
+        budget:
+            label: "Kolik mám času"
+            i_have: "Mám zhruba"
+            minutes: "minut"
+            engine_personal: "Podle vašeho předpokládaného času na každé puzzle."
+            engine_community: "Podle průměrného sólo času komunity."
+        insights:
+            label: "Statistiky (pro členy)"
+            difficulty_note: "Obtížnost mají jen puzzle s dostatkem dat – tento filtr výběr hodně zúží."
+            gap:
+                label: "V porovnání s mojí predikcí"
+                any: "Bez omezení"
+                slower: "Jsem pomalejší, než se čekalo"
+                faster: "Jsem rychlejší, než se čekalo"
+                by_at_least: "alespoň o"
+                note: "Porovnává váš nejrychlejší sólo čas s predikcí – jen puzzle, která už máte poskládaná."
+            order:
+                label: "Pořadí výběru"
+                random: "Náhodně"
+                gap_slower: "Největší rozdíl první – jsem pomalejší"
+                gap_faster: "Největší rozdíl první – jsem rychlejší"
     chips:
         source:
             mine: "Moje kolekce"
@@ -3167,6 +3188,18 @@ puzzle_picker:
         brand: "Značka"
         include_lent_out: "Vč. půjčených"
         remove: "Odebrat tento filtr"
+        predicted_max: "Do %minutes% min"
+        gap:
+            slower: "Pomalejší než predikce"
+            slower_by: "Pomalejší než predikce o %minutes%+ min"
+            faster: "Rychlejší než predikce"
+            faster_by: "Rychlejší než predikce o %minutes%+ min"
+        order:
+            gap_slower: "Pořadí: největší rozdíl (jsem pomalejší)"
+            gap_faster: "Pořadí: největší rozdíl (jsem rychlejší)"
+    presets:
+        label: "Předvolby:"
+        beat_my_record: "Překonat svůj rekord"
     results:
         matching: "%shown% z %total% odpovídajících puzzlí"
         pick_another: "Vybrat jiné"
@@ -3184,6 +3217,12 @@ puzzle_picker:
         sign_in_for_times: "Po přihlášení tu uvidíte své vlastní časy."
         sign_in_to_solve: "Přihlásit se a skládat"
         detail: "Detail puzzle"
+        prediction: "Vaše predikce:"
+        prediction_locked: "Predikce vašeho času – jen pro členy"
+        prediction_unavailable: "Predikce zatím není – pro tento počet dílků je málo dat."
+        prediction_beats_record: "můžete překonat svůj rekord o %delta%"
+        prediction_slower_than_best: "o %delta% pomaleji než váš nejlepší čas"
+        prediction_at_best: "přesně na úrovni vašeho nejlepšího času"
     empty:
         collection_title: "Vaše kolekce je prázdná"
         collection_text: "Přidejte puzzle, které máte doma, a příště z nich výběr vybere."
@@ -3221,7 +3260,7 @@ puzzle_picker:
             lent: "Puzzle, která jste někomu půjčili, se vynechají; vypůjčená se počítají"
             times: "Váš nejrychlejší, poslední a první čas na každé kartě"
         members_title: "Pro členy"
-        members_text: "Členové mají navíc přehledy – obtížnost puzzlí, předpověď času skládání a úrovně dovednosti – na stránkách puzzlí a brzy i přímo na kartě výběru."
+        members_text: "Členové mají statistiky přímo na kartě i ve filtrech: predikci vašeho času u každého puzzle, stupeň obtížnosti, filtry jako „jsem pomalejší, než se čekalo“ a předvolbu „Překonat svůj rekord“ – a k tomu obtížnost a predikce na stránkách puzzlí."
         members_cta: "O členství"
         bottom_title: "Přestaňte přebírat poličku – ať rozhodne kolo"
         bottom_text: "Vytvořte si účet zdarma, přidejte puzzle, které máte doma, a nechte výběr rozhodnout za vás."

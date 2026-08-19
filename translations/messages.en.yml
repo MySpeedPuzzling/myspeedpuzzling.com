@@ -3441,6 +3441,27 @@ puzzle_picker:
         brand:
             label: "Brand"
             placeholder: "Any brand"
+        budget:
+            label: "Time budget"
+            i_have: "I have about"
+            minutes: "minutes"
+            engine_personal: "Based on your own predicted time for each puzzle."
+            engine_community: "Based on the community average solo time."
+        insights:
+            label: "Insights (members)"
+            difficulty_note: "Only puzzles with enough data have a difficulty tier – this filter shrinks the pool a lot."
+            gap:
+                label: "Compared to my prediction"
+                any: "Any"
+                slower: "I'm slower than predicted"
+                faster: "I'm faster than predicted"
+                by_at_least: "by at least"
+                note: "Compares your fastest solo time with your predicted time – only puzzles you have solved before."
+            order:
+                label: "Pick order"
+                random: "Random"
+                gap_slower: "Largest gap first – I'm slower"
+                gap_faster: "Largest gap first – I'm faster"
     chips:
         source:
             mine: "My collection"
@@ -3456,6 +3477,18 @@ puzzle_picker:
         brand: "Brand"
         include_lent_out: "Incl. lent out"
         remove: "Remove this filter"
+        predicted_max: "Up to %minutes% min"
+        gap:
+            slower: "Slower than predicted"
+            slower_by: "Slower than predicted by %minutes%+ min"
+            faster: "Faster than predicted"
+            faster_by: "Faster than predicted by %minutes%+ min"
+        order:
+            gap_slower: "Order: largest gap (I'm slower)"
+            gap_faster: "Order: largest gap (I'm faster)"
+    presets:
+        label: "Presets:"
+        beat_my_record: "Beat my record"
     results:
         matching: "%shown% of %total% matching puzzles"
         pick_another: "Pick another"
@@ -3473,6 +3506,12 @@ puzzle_picker:
         sign_in_for_times: "Sign in and your own times will show up here."
         sign_in_to_solve: "Sign in to start solving"
         detail: "Puzzle detail"
+        prediction: "Your prediction:"
+        prediction_locked: "Your time prediction – members only"
+        prediction_unavailable: "No time prediction yet – not enough data for this piece count."
+        prediction_beats_record: "could beat your record by %delta%"
+        prediction_slower_than_best: "%delta% slower than your best"
+        prediction_at_best: "right at your best"
     empty:
         collection_title: "Your collection is empty"
         collection_text: "Add the puzzles you own and the picker will choose from them next time."
@@ -3510,7 +3549,7 @@ puzzle_picker:
             lent: "Puzzles you have lent out are left out; borrowed ones are included"
             times: "Your fastest, latest and first time on every card"
         members_title: "For members"
-        members_text: "Members unlock the Insights family – puzzle difficulty, predicted solving times and skill tiers – on puzzle pages, and soon right on the picker card."
+        members_text: "Members unlock the Insights family right on the card and in the filters: your predicted time for every puzzle, the difficulty tier, filters like “I'm slower than predicted” and the “Beat my record” preset – plus difficulty and predictions on puzzle pages."
         members_cta: "About membership"
         bottom_title: "Stop scanning your shelf – let the wheel decide"
         bottom_text: "Create a free account, add the puzzles you own and let the picker do the choosing."

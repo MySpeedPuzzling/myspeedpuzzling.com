@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Tests\Value;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Value\PuzzlePickerCriteria;
+use SpeedPuzzling\Web\Value\PuzzlePickerGap;
+use SpeedPuzzling\Web\Value\PuzzlePickerOrder;
 use SpeedPuzzling\Web\Value\PuzzlePickerSolved;
 use SpeedPuzzling\Web\Value\PuzzlePickerSource;
 use Symfony\Component\HttpFoundation\Request;
@@ -351,5 +353,216 @@ final class PuzzlePickerCriteriaTest extends TestCase
 
             self::assertSame([(string) $chip], $criteria->piecesValues(), "Chip {$chip} must round-trip through the grammar");
         }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Insights layer: difficulty tiers, gap, order, time budget - and who may use what
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function insightsQuery(): array
+    {
+        return [
+            'difficulty' => ['3', '1', '3', '9', 'x', ''],
+            'gap' => 'slower',
+            'gap_min' => '5',
+            'predicted_max' => '60',
+            'order' => 'gap_slower',
+        ];
+    }
+
+    public function testMemberWithPredictionsGetsEveryInsightsFilter(): void
+    {
+        $criteria = PuzzlePickerCriteria::fromRequest(new Request(self::insightsQuery()), isAuthenticated: true, insightsAllowed: true, predictionsAllowed: true);
+
+        self::assertSame([1, 3], $criteria->difficultyTiers, 'Deduplicated, sorted, invalid tiers dropped');
+        self::assertSame(PuzzlePickerGap::Slower, $criteria->gap);
+        self::assertSame(5, $criteria->gapMinMinutes);
+        self::assertSame(300, $criteria->gapMinSeconds());
+        self::assertSame(60, $criteria->predictedMaxMinutes);
+        self::assertSame(PuzzlePickerOrder::GapSlower, $criteria->order);
+        self::assertTrue($criteria->insightsAllowed);
+        self::assertTrue($criteria->predictionsAllowed);
+        self::assertTrue($criteria->usesPersonalPrediction());
+        self::assertTrue($criteria->needsPredictions());
+        self::assertTrue($criteria->hasPersonalFilters());
+        self::assertFalse($criteria->isDefault());
+
+        self::assertSame(
+            ['difficulty' => ['1', '3'], 'gap' => 'slower', 'gap_min' => '5', 'predicted_max' => '60', 'order' => 'gap_slower'],
+            $criteria->toQueryParams(),
+        );
+        self::assertEquals($criteria, PuzzlePickerCriteria::fromRequest(new Request($criteria->toQueryParams()), true, true, true), 'Round trip');
+    }
+
+    public function testNonMemberKeepsOnlyTheCommunityTimeBudget(): void
+    {
+        $criteria = PuzzlePickerCriteria::fromRequest(new Request(['source' => 'any'] + self::insightsQuery()), isAuthenticated: true);
+
+        self::assertSame([], $criteria->difficultyTiers);
+        self::assertNull($criteria->gap);
+        self::assertNull($criteria->gapMinMinutes);
+        self::assertSame(PuzzlePickerOrder::Random, $criteria->order);
+        self::assertSame(60, $criteria->predictedMaxMinutes, 'The time budget is free - it just runs on the community engine');
+        self::assertFalse($criteria->insightsAllowed);
+        self::assertFalse($criteria->predictionsAllowed);
+        self::assertFalse($criteria->usesPersonalPrediction());
+        self::assertFalse($criteria->needsPredictions());
+        self::assertFalse($criteria->hasPersonalFilters());
+        self::assertSame(['source' => 'any', 'predicted_max' => '60'], $criteria->toQueryParams());
+        self::assertSame(['predicted_max'], array_map(static fn ($filter) => $filter->key, $criteria->activeFilters()));
+
+        // predictionsAllowed without insightsAllowed is not a thing
+        $inconsistent = PuzzlePickerCriteria::fromRequest(new Request(self::insightsQuery()), isAuthenticated: true, insightsAllowed: false, predictionsAllowed: true);
+        self::assertFalse($inconsistent->predictionsAllowed);
+        self::assertNull($inconsistent->gap);
+    }
+
+    public function testMemberWhoOptedOutOfPredictionsKeepsDifficultyButNoPredictionFilters(): void
+    {
+        $criteria = PuzzlePickerCriteria::fromRequest(new Request(self::insightsQuery()), isAuthenticated: true, insightsAllowed: true, predictionsAllowed: false);
+
+        self::assertSame([1, 3], $criteria->difficultyTiers);
+        self::assertNull($criteria->gap);
+        self::assertNull($criteria->gapMinMinutes);
+        self::assertSame(PuzzlePickerOrder::Random, $criteria->order);
+        self::assertSame(60, $criteria->predictedMaxMinutes);
+        self::assertTrue($criteria->insightsAllowed);
+        self::assertFalse($criteria->predictionsAllowed);
+        self::assertFalse($criteria->usesPersonalPrediction(), 'Community engine for the budget');
+        self::assertFalse($criteria->needsPredictions());
+        self::assertSame(['difficulty' => ['1', '3'], 'predicted_max' => '60'], $criteria->toQueryParams());
+    }
+
+    public function testGuestKeepsOnlyTheCommunityTimeBudgetWhateverTheFlagsSay(): void
+    {
+        $criteria = PuzzlePickerCriteria::fromRequest(new Request(self::insightsQuery()), isAuthenticated: false, insightsAllowed: true, predictionsAllowed: true);
+
+        self::assertSame([], $criteria->difficultyTiers);
+        self::assertNull($criteria->gap);
+        self::assertSame(PuzzlePickerOrder::Random, $criteria->order);
+        self::assertSame(60, $criteria->predictedMaxMinutes);
+        self::assertFalse($criteria->insightsAllowed);
+        self::assertFalse($criteria->predictionsAllowed);
+        self::assertSame(['predicted_max' => '60'], $criteria->toQueryParams());
+    }
+
+    public function testNeedsPredictionsOnlyForGapOrderOrPersonalBudget(): void
+    {
+        $member = static fn (array $query): PuzzlePickerCriteria => PuzzlePickerCriteria::fromRequest(new Request($query), true, true, true);
+
+        self::assertFalse($member([])->needsPredictions());
+        self::assertFalse($member(['difficulty' => ['3']])->needsPredictions(), 'Difficulty needs no prediction');
+        self::assertTrue($member(['gap' => 'faster'])->needsPredictions());
+        self::assertTrue($member(['order' => 'gap_faster'])->needsPredictions());
+        self::assertTrue($member(['predicted_max' => '45'])->needsPredictions());
+        self::assertTrue($member([])->isDefault());
+        self::assertFalse($member(['order' => 'gap_faster'])->isDefault());
+        self::assertFalse($member(['predicted_max' => '45'])->isDefault());
+        self::assertFalse($member(['difficulty' => ['3']])->isDefault());
+        self::assertTrue($member(['order' => 'random'])->isDefault(), 'Random is the default order');
+        self::assertSame([], $member(['order' => 'random'])->toQueryParams());
+    }
+
+    /**
+     * @param array<string, mixed> $query
+     */
+    #[DataProvider('provideInvalidInsightsInput')]
+    public function testInvalidInsightsInputIsDropped(array $query): void
+    {
+        $criteria = PuzzlePickerCriteria::fromRequest(new Request($query), isAuthenticated: true, insightsAllowed: true, predictionsAllowed: true);
+
+        self::assertSame([], $criteria->difficultyTiers);
+        self::assertNull($criteria->gap);
+        self::assertNull($criteria->gapMinMinutes);
+        self::assertNull($criteria->predictedMaxMinutes);
+        self::assertSame(PuzzlePickerOrder::Random, $criteria->order);
+        self::assertTrue($criteria->isDefault());
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function provideInvalidInsightsInput(): iterable
+    {
+        yield 'unknown enum values' => [['gap' => 'same', 'order' => 'newest']];
+        yield 'nested structures' => [['gap' => ['slower'], 'order' => ['gap_slower'], 'difficulty' => [['3']], 'gap_min' => ['5'], 'predicted_max' => ['60']]];
+        yield 'tiers out of range' => [['difficulty' => ['0', '7', '-1', '3.5', 'hard']]];
+        yield 'gap_min without gap' => [['gap_min' => '5']];
+        yield 'gap_min zero' => [['gap_min' => '0']];
+        yield 'gap_min too big' => [['gap_min' => '601']];
+        yield 'predicted_max out of range' => [['predicted_max' => '4']];
+        yield 'predicted_max too big' => [['predicted_max' => '1441']];
+        yield 'predicted_max not a number' => [['predicted_max' => 'hour']];
+        yield 'blank inputs from the form' => [['gap' => '', 'gap_min' => '', 'predicted_max' => '', 'order' => '']];
+    }
+
+    public function testGapMinIsOptionalAndDefaultsToOneMinute(): void
+    {
+        $criteria = PuzzlePickerCriteria::fromRequest(new Request(['gap' => 'faster']), true, true, true);
+
+        self::assertSame(PuzzlePickerGap::Faster, $criteria->gap);
+        self::assertNull($criteria->gapMinMinutes);
+        self::assertSame(60, $criteria->gapMinSeconds());
+        self::assertSame(['gap' => 'faster'], $criteria->toQueryParams());
+
+        // Out-of-range gap_min is dropped, the gap itself survives
+        $criteria = PuzzlePickerCriteria::fromRequest(new Request(['gap' => 'faster', 'gap_min' => '999']), true, true, true);
+        self::assertSame(PuzzlePickerGap::Faster, $criteria->gap);
+        self::assertNull($criteria->gapMinMinutes);
+    }
+
+    public function testInsightsChipsRemoveThemselves(): void
+    {
+        $criteria = PuzzlePickerCriteria::fromRequest(
+            new Request(['source' => 'any', 'difficulty' => ['2', '4'], 'gap' => 'slower', 'gap_min' => '3', 'predicted_max' => '90', 'order' => 'gap_slower', 'seed' => 'abcd1234']),
+            isAuthenticated: true,
+            insightsAllowed: true,
+            predictionsAllowed: true,
+        );
+
+        $byKey = [];
+
+        foreach ($criteria->activeFilters() as $filter) {
+            $byKey[$filter->key] = $filter;
+        }
+
+        self::assertSame(['predicted_max', 'difficulty:2', 'difficulty:4', 'gap', 'order'], array_keys($byKey));
+
+        self::assertSame('puzzle_picker.chips.predicted_max', $byKey['predicted_max']->translationKey);
+        self::assertSame(['%minutes%' => 90], $byKey['predicted_max']->translationParameters);
+        self::assertSame(
+            ['source' => 'any', 'difficulty' => ['2', '4'], 'gap' => 'slower', 'gap_min' => '3', 'order' => 'gap_slower', 'seed' => 'abcd1234'],
+            $byKey['predicted_max']->queryParametersWithoutThis,
+        );
+
+        self::assertSame('difficulty', $byKey['difficulty:2']->type);
+        self::assertSame('puzzle_intelligence.difficulty.tiers.easy', $byKey['difficulty:2']->translationKey);
+        self::assertSame('2', $byKey['difficulty:2']->value);
+        self::assertSame(['4'], $byKey['difficulty:2']->queryParametersWithoutThis['difficulty']);
+        self::assertSame('puzzle_intelligence.difficulty.tiers.challenging', $byKey['difficulty:4']->translationKey);
+        $onlyFour = PuzzlePickerCriteria::fromRequest(new Request($byKey['difficulty:2']->queryParametersWithoutThis), true, true, true);
+        self::assertSame([4], $onlyFour->difficultyTiers);
+        self::assertArrayNotHasKey('difficulty', $onlyFour->activeFilters()[1]->queryParametersWithoutThis, 'Removing the last tier drops the parameter');
+
+        self::assertSame('puzzle_picker.chips.gap.slower_by', $byKey['gap']->translationKey);
+        self::assertSame(['%minutes%' => 3], $byKey['gap']->translationParameters);
+        self::assertSame(
+            ['source' => 'any', 'difficulty' => ['2', '4'], 'predicted_max' => '90', 'order' => 'gap_slower', 'seed' => 'abcd1234'],
+            $byKey['gap']->queryParametersWithoutThis,
+            'Removing the gap chip drops gap_min with it',
+        );
+
+        self::assertSame('puzzle_picker.chips.order.gap_slower', $byKey['order']->translationKey);
+        self::assertSame(
+            ['source' => 'any', 'difficulty' => ['2', '4'], 'gap' => 'slower', 'gap_min' => '3', 'predicted_max' => '90', 'seed' => 'abcd1234'],
+            $byKey['order']->queryParametersWithoutThis,
+        );
+
+        // Gap chip without a minimum
+        $plain = PuzzlePickerCriteria::fromRequest(new Request(['gap' => 'faster']), true, true, true)->activeFilters();
+        self::assertSame('puzzle_picker.chips.gap.faster', $plain[1]->translationKey);
     }
 }

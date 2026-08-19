@@ -176,6 +176,8 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/SocialLogin/AppleProviderWithInlineKey.php',
             // value object, not a service
             __DIR__ . '/../src/Services/Storage/SpooledOperation.php',
+            // value object built by PuzzleResponseFactory::insightsFor(), not a service
+            __DIR__ . '/../src/Services/Api/PuzzleInsightsBatch.php',
         ]);
     $services->load('SpeedPuzzling\\Web\\Query\\', __DIR__ . '/../src/Query/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\Security\\', __DIR__ . '/../src/Security/**/{*.php}')

@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Results\CollectionItemOverview;
+use SpeedPuzzling\Web\Services\Api\PuzzleResponseFactory;
 
 /**
  * @implements ProviderInterface<PlayerCollectionItemsResponse>
@@ -20,6 +21,7 @@ final readonly class PlayerCollectionItemsResponseProvider implements ProviderIn
     public function __construct(
         private GetCollectionItems $getCollectionItems,
         private GetPlayerProfile $getPlayerProfile,
+        private PuzzleResponseFactory $puzzleResponseFactory,
     ) {
     }
 
@@ -50,6 +52,15 @@ final readonly class PlayerCollectionItemsResponseProvider implements ProviderIn
 
         $items = $this->getCollectionItems->byCollectionAndPlayer($dbCollectionId, $playerId);
 
+        // One batch per list, whatever its size. The solves are the collection
+        // owner's (results:read data, so only for a token that may read results);
+        // predictions are self-only and never appear on /players/{id} (N1)
+        $insights = $this->puzzleResponseFactory->insightsFor(
+            array_map(static fn (CollectionItemOverview $item): string => $item->puzzleId, $items),
+            solvesOfPlayerId: $playerId,
+            includePrediction: false,
+        );
+
         return new PlayerCollectionItemsResponse(
             collection_id: $collectionId,
             count: count($items),
@@ -63,6 +74,10 @@ final readonly class PlayerCollectionItemsResponseProvider implements ProviderIn
                     image: $item->image,
                     comment: $item->comment,
                     added_at: $item->addedAt->format('c'),
+                    statistics: $insights->statistics($item->puzzleId),
+                    difficulty: $insights->difficulty($item->puzzleId),
+                    prediction: null,
+                    solves: $insights->solves($item->puzzleId),
                 ),
                 $items,
             ),

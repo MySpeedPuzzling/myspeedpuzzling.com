@@ -150,16 +150,74 @@ The controller computes `insightsAllowed` / `predictionsAllowed` once and hands 
 
 ## PR 3 — Precision filters, collection targeting, remembered filters, presets, share
 
-- Filters: solve-count range, "last solved more than N days/weeks/months ago" (never-solved included,
-  checkbox to require solved-before), my fastest/latest/first `<`/`>` hh:mm, community results
-  (few/popular), custom pieces min–max already in PR 1.
-- Specific collections (members): `collections[]` → `mi.collection_ids && :ids` (system collection =
-  `Collection::SYSTEM_ID` sentinel → `NULL`); "Pick from this collection" on `collections/detail.html.twig`.
-- Session-remembered filters (`puzzle_picker.filters`), auto-applied on bare visit, "Reset" chip.
-- Presets: "Surprise me", "Something new", "Quick one", "Dust off the shelf", "Rating grind" (free);
-  share button with the seeded URL.
-- Tests for each predicate (fixtures have lent/borrowed puzzles), collection multi-select incl. system
-  collection, session restore.
+Everything free unless said otherwise; the criteria strip what a guest / non-member may not use.
+
+- **Solve-count range** replaces the three-way `solved` enum inside the criteria: the state is one range
+  `[solvedMin, solvedMax]` — `solved=never` = [0, 0], `solved=before` = [1, ∞[, `solved_min` /
+  `solved_max` (0–999) refine or override it bound by bound (`solved=before&solved_max=5` → [1, 5];
+  a collision such as `solved=never&solved_min=2` keeps the explicit bound). The public `solved`
+  property is derived (Never / Before / Any — what the radio shows) and the canonical URL keeps
+  `solved=never|before` for the two named shapes, `solved_min` / `solved_max` otherwise. SQL:
+  `COALESCE(s.solve_count_any, 0) + COALESCE(ts.solve_count, 0) >= :solvedMin AND (:solvedMax::int IS NULL
+  OR … <= :solvedMax)`. One chip for the whole constraint (never / before / exact / between / at least /
+  at most), its × clears shape and bounds together.
+- **Not solved since**: `since=<1–999>&since_unit=d|w|m` (days default), `since_require_solved=1`. The
+  query turns it into a timestamp with the clock (`now->modify("-6 months")`) and compares it with my last
+  solve incl. team participation: `(:notSolvedSince::timestamp IS NULL OR GREATEST(s.last_solved_at,
+  ts.last_solved_at) IS NULL OR GREATEST(…) < :notSolvedSince::timestamp) AND (:sinceRequireSolved = 0 OR
+  GREATEST(…) IS NOT NULL)` — never-solved puzzles are included by default (§8 decision 6). Enum
+  `PuzzlePickerSinceUnit`. Chips `puzzle_picker.chips.since.{d,w,m}` / `since_solved.{d,w,m}` (pluralised).
+- **My time**: `my_time=fastest|latest|first`, `my_time_op=lt|gt` (`lt` default), `my_time_minutes`
+  (1–1440; the criteria expose `myTimeSeconds()`). Half a filter is no filter. SQL
+  `AND s.<fastest|latest|first>_seconds <|> :myTimeSeconds` — column and operator come from the enums
+  `PuzzlePickerMyTime` / `PuzzlePickerMyTimeOperator`, never from the request; puzzles without a solo time
+  never match (NULL comparison).
+- **Community results**: `community=few|rated|popular` (`PuzzlePickerCommunity`: solo solves ≤ 5 / ≥ 20 /
+  ≥ 50, `puzzle_statistics.solved_times_solo_count`, `COALESCE(…, 0)` for "few" so puzzles without a
+  statistics row count as few). `puzzle_statistics` is joined before the LIMIT once when either this
+  filter or the community time budget needs it. Free for guests too (puzzle attribute).
+- **Specific collections (members)**: `collections[]` = collection uuid and/or `Collection::SYSTEM_ID`
+  (`__system_collection__`), deduplicated, max 20, stripped for non-members and guests; when set the
+  source is implied `mine`. The `my_items` CTE aggregates `array_remove(array_agg(ci.collection_id),
+  NULL) AS collection_ids, bool_or(ci.collection_id IS NULL) AS has_system`; predicate
+  `((:includeSystemCollection = 1 AND mi.has_system) OR mi.collection_ids && :collectionIds::uuid[])`
+  (custom ids as a Postgres array literal). Borrowed puzzles are on the shelf but in no collection, so
+  they drop out; a foreign collection id matches nothing (only my own items are aggregated). Chips
+  `collection:<id>` replace the shelf chip; the filters modal shows a checkbox list (system first) built
+  by the controller from `GetPlayerCollectionsWithCounts` for members, the locked pattern (lock + members
+  modal button, no button for guests) otherwise. `collections/detail.html.twig` got "Pick from this
+  collection" (`.puzzle-picker-collection-link`) on the viewer's own collections: members deep-link with
+  `collections[]=<id|sentinel>`, non-members get `?source=mine`.
+- **Remembered filters (session)**: `PuzzlePickerController::SESSION_KEY = 'puzzle_picker.filters'`.
+  Signed-in players only — guests never touch the session (`$request->getSession()` is only called when
+  the profile is not null; a test pins "no cookie, session not started" for guest requests). Any request
+  with a query string (chips, form, presets, spin, even a seed-only URL) stores
+  `criteria->withSeed(null)->toQueryParams()`, an empty result removes the key. A bare visit with a stored
+  value builds the criteria from it (`PuzzlePickerCriteria::fromQuery()`), renders on the bare URL without
+  a redirect, shows a "Your last filters" marker (`.puzzle-picker-remembered`) and the "Reset" link
+  (`.puzzle-picker-reset`) points to `?reset=1`, which removes the key and renders the defaults (no
+  redirect). The modal footer / empty-state reset links use the same `reset_url` (bare URL for guests).
+  The empty state's "Pick from all puzzles" now keeps the other filters and only widens the source
+  (collections dropped, since they imply the shelf).
+- **Presets** (`PuzzlePickerPreset` enum, rendered from `presets` + `active_preset` passed by the
+  controller): Surprise me (`source=mine`), Something new (`source=mine&solved=never`), Quick one
+  (`predicted_max=60`), Dust off the shelf (`since=6&since_unit=m&since_require_solved=1`), Rating grind
+  (`pieces[]=500&solved=never&community=rated`), Beat my record (`solved=before&gap=slower&order=gap_slower`,
+  predictions only). `PuzzlePickerCriteria::activePreset()` compares the normalised query params
+  (seed aside), skipping presets the player is not eligible for; the bare default highlights "Surprise me".
+  Every chip is `rel="nofollow"`, `data-preset="<value>"`.
+- **Share**: `_share_button.html.twig` in `_results.html.twig` with `url('puzzle_picker',
+  criteria.toQueryParams(seed))` — the seeded URL of the current draw.
+- **Not shipped (roadmap)**: the free "longest not solved first" / "fewest solves first" pick orders from
+  README §3, hh:mm inputs for the my-time threshold (a minutes input is enough for now).
+- Tests: `tests/Value/PuzzlePickerCriteriaTest.php` (range grammar, since, my time, community, collections
+  gating, chips, presets), `tests/Query/GetPuzzlePickerSuggestionsTest.php` (every predicate against the
+  fixtures — PLAYER_REGULAR's 11 solved puzzles, PLAYER_PRIVATE's team participation, PLAYER_WITH_STRIPE's
+  collections incl. the system sentinel and borrowed / lent-out puzzles, community thresholds by editing
+  `puzzle_statistics` inside the test transaction), `tests/Controller/PuzzlePickerControllerTest.php`
+  (chips + form state, presets, share URL, session memory / reset / seed-only forgetting, guest
+  session-free, member collections list, locked list) and `tests/Controller/CollectionDetailControllerTest.php`
+  ("Pick from this collection" for member / non-member / other's collection / guest + the deep link).
 
 ## PR 4 — My times (+ predictions) in collections
 

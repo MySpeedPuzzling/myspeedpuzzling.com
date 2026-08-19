@@ -3127,11 +3127,14 @@ puzzle_picker:
     title: "Co skládat dál?"
     subtitle: "Řekněte, na co máte náladu, a já vyberu z vaší poličky."
     menu_label: "Co dál?"
+    pick_from_collection: "Vybrat z této kolekce"
     filters:
         button: "Filtry"
         title: "Filtry"
         apply: "Vybrat puzzle"
         reset: "Zrušit filtry"
+        remembered: "Vaše poslední filtry"
+        remembered_title: "Filtry z minula – použily se automaticky. Zrušte je a začněte nanovo."
         guest_note: "Přihlaste se a vybírejte z vlastní kolekce a historie."
         source:
             label: "Odkud vybírat"
@@ -3139,11 +3142,36 @@ puzzle_picker:
             not_mine: "Co v kolekci nemám"
             any: "Jakékoli puzzle"
             include_lent_out: "Včetně puzzlí, které jsem někomu půjčil/a"
+            collections_label: "Jen tyto kolekce"
+            collections_note: "Nic nezaškrtnuto = celá polička."
+            collections_locked: "Výběr z konkrétních kolekcí – pro členy."
         solved:
             label: "Moje historie"
             any: "Bez omezení"
             never: "Ještě neskládané"
             before: "Už poskládané"
+            between: "Poskládáno"
+            and: "až"
+            times: "krát"
+        since:
+            label: "Neskládané déle než"
+            unit: "Jednotka"
+            units:
+                d: "dní"
+                w: "týdnů"
+                m: "měsíců"
+            require_solved: "Jen puzzle, která jsem už skládal/a"
+            note: "Puzzle, která jste ještě neskládali, jsou zahrnuta – pokud nezaškrtnete políčko."
+        my_time:
+            label: "Můj čas"
+            off: "– bez omezení –"
+            fastest: "nejrychlejší"
+            latest: "poslední"
+            first: "první"
+            op_label: "Porovnání"
+            lt: "je pod"
+            gt: "je nad"
+            note: "Jen sólo časy – puzzle bez sólo času nikdy neprojde."
         pieces:
             label: "Počet dílků"
             custom: "Vlastní rozsah:"
@@ -3152,6 +3180,12 @@ puzzle_picker:
         brand:
             label: "Značka"
             placeholder: "Jakákoli značka"
+        community:
+            label: "Výsledky komunity"
+            any: "Bez omezení"
+            few: "Málo výsledků (do %count%) – buďte průkopník"
+            rated: "Hodnocené (%count%+ složení)"
+            popular: "Oblíbené (%count%+ složení)"
         budget:
             label: "Kolik mám času"
             i_have: "Mám zhruba"
@@ -3180,6 +3214,25 @@ puzzle_picker:
         solved:
             never: "Ještě neskládané"
             before: "Už poskládané"
+            exact: "Poskládáno %count%×"
+            between: "Poskládáno %min%–%max%×"
+            at_least: "Poskládáno %min%+×"
+            at_most: "Poskládáno max. %max%×"
+        since:
+            d: "Neskládané poslední %count% den|Neskládané poslední %count% dny|Neskládané posledních %count% dní"
+            w: "Neskládané poslední %count% týden|Neskládané poslední %count% týdny|Neskládané posledních %count% týdnů"
+            m: "Neskládané poslední %count% měsíc|Neskládané poslední %count% měsíce|Neskládané posledních %count% měsíců"
+        since_solved:
+            d: "Poskládané, ale ne poslední %count% den|Poskládané, ale ne poslední %count% dny|Poskládané, ale ne posledních %count% dní"
+            w: "Poskládané, ale ne poslední %count% týden|Poskládané, ale ne poslední %count% týdny|Poskládané, ale ne posledních %count% týdnů"
+            m: "Poskládané, ale ne poslední %count% měsíc|Poskládané, ale ne poslední %count% měsíce|Poskládané, ale ne posledních %count% měsíců"
+        my_time:
+            fastest_lt: "Nejrychlejší pod %minutes% min"
+            fastest_gt: "Nejrychlejší nad %minutes% min"
+            latest_lt: "Poslední pod %minutes% min"
+            latest_gt: "Poslední nad %minutes% min"
+            first_lt: "První pod %minutes% min"
+            first_gt: "První nad %minutes% min"
         pieces:
             exact: "%count% dílků"
             between: "%min%–%max% dílků"
@@ -3187,6 +3240,11 @@ puzzle_picker:
             at_most: "do %max% dílků"
         brand: "Značka"
         include_lent_out: "Vč. půjčených"
+        collection: "Kolekce"
+        community:
+            few: "Málo výsledků (≤ %count%)"
+            rated: "Hodnocené (%count%+ složení)"
+            popular: "Oblíbené (%count%+ složení)"
         remove: "Odebrat tento filtr"
         predicted_max: "Do %minutes% min"
         gap:
@@ -3200,6 +3258,11 @@ puzzle_picker:
     presets:
         label: "Předvolby:"
         beat_my_record: "Překonat svůj rekord"
+        surprise_me: "Překvap mě"
+        something_new: "Něco nového"
+        quick_one: "Rychlovka"
+        dust_off: "Oprášit poličku"
+        rating_grind: "Sbírání ratingu"
     results:
         matching: "%shown% z %total% odpovídajících puzzlí"
         pick_another: "Vybrat jiné"

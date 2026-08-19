@@ -6,9 +6,15 @@ namespace SpeedPuzzling\Web\Tests\Value;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use SpeedPuzzling\Web\Entity\Collection;
+use SpeedPuzzling\Web\Value\PuzzlePickerCommunity;
 use SpeedPuzzling\Web\Value\PuzzlePickerCriteria;
 use SpeedPuzzling\Web\Value\PuzzlePickerGap;
+use SpeedPuzzling\Web\Value\PuzzlePickerMyTime;
+use SpeedPuzzling\Web\Value\PuzzlePickerMyTimeOperator;
 use SpeedPuzzling\Web\Value\PuzzlePickerOrder;
+use SpeedPuzzling\Web\Value\PuzzlePickerPreset;
+use SpeedPuzzling\Web\Value\PuzzlePickerSinceUnit;
 use SpeedPuzzling\Web\Value\PuzzlePickerSolved;
 use SpeedPuzzling\Web\Value\PuzzlePickerSource;
 use Symfony\Component\HttpFoundation\Request;
@@ -564,5 +570,322 @@ final class PuzzlePickerCriteriaTest extends TestCase
         // Gap chip without a minimum
         $plain = PuzzlePickerCriteria::fromRequest(new Request(['gap' => 'faster']), true, true, true)->activeFilters();
         self::assertSame('puzzle_picker.chips.gap.faster', $plain[1]->translationKey);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Precision filters: solve-count range, "not solved since", my time, community results
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * @param array<string, mixed> $query
+     * @param array{int, null|int} $expectedRange
+     * @param array<string, mixed> $expectedParams
+     */
+    #[DataProvider('provideSolveCountRanges')]
+    public function testSolvedStateIsOneSolveCountRange(array $query, array $expectedRange, PuzzlePickerSolved $expectedShape, array $expectedParams): void
+    {
+        $criteria = PuzzlePickerCriteria::fromRequest(new Request($query), isAuthenticated: true);
+
+        self::assertSame($expectedRange, [$criteria->solvedMin, $criteria->solvedMax]);
+        self::assertSame($expectedShape, $criteria->solved);
+        self::assertSame($expectedParams, $criteria->toQueryParams());
+        self::assertEquals($criteria, PuzzlePickerCriteria::fromRequest(new Request($criteria->toQueryParams()), true), 'Round trip');
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>, array{int, null|int}, PuzzlePickerSolved, array<string, mixed>}>
+     */
+    public static function provideSolveCountRanges(): iterable
+    {
+        yield 'any' => [[], [0, null], PuzzlePickerSolved::Any, []];
+        yield 'never' => [['solved' => 'never'], [0, 0], PuzzlePickerSolved::Never, ['solved' => 'never']];
+        yield 'before' => [['solved' => 'before'], [1, null], PuzzlePickerSolved::Before, ['solved' => 'before']];
+        yield 'explicit never' => [['solved_max' => '0'], [0, 0], PuzzlePickerSolved::Never, ['solved' => 'never']];
+        yield 'explicit before' => [['solved_min' => '1'], [1, null], PuzzlePickerSolved::Before, ['solved' => 'before']];
+        yield 'between' => [['solved_min' => '2', 'solved_max' => '5'], [2, 5], PuzzlePickerSolved::Any, ['solved_min' => '2', 'solved_max' => '5']];
+        yield 'between reversed is normalized' => [['solved_min' => '5', 'solved_max' => '2'], [2, 5], PuzzlePickerSolved::Any, ['solved_min' => '2', 'solved_max' => '5']];
+        yield 'at least' => [['solved_min' => '3'], [3, null], PuzzlePickerSolved::Any, ['solved_min' => '3']];
+        yield 'at most' => [['solved_max' => '3'], [0, 3], PuzzlePickerSolved::Any, ['solved_max' => '3']];
+        yield 'before refined by a maximum' => [['solved' => 'before', 'solved_max' => '5'], [1, 5], PuzzlePickerSolved::Any, ['solved_min' => '1', 'solved_max' => '5']];
+        yield 'before refined by a minimum' => [['solved' => 'before', 'solved_min' => '2'], [2, null], PuzzlePickerSolved::Any, ['solved_min' => '2']];
+        yield 'explicit minimum wins over never' => [['solved' => 'never', 'solved_min' => '2'], [2, null], PuzzlePickerSolved::Any, ['solved_min' => '2']];
+        yield 'explicit maximum wins over before' => [['solved' => 'before', 'solved_max' => '0'], [0, 0], PuzzlePickerSolved::Never, ['solved' => 'never']];
+        yield 'zero minimum is no bound' => [['solved_min' => '0'], [0, null], PuzzlePickerSolved::Any, []];
+        yield 'blank inputs from the form' => [['solved' => 'any', 'solved_min' => '', 'solved_max' => ''], [0, null], PuzzlePickerSolved::Any, []];
+        yield 'garbage is dropped' => [['solved_min' => 'many', 'solved_max' => '1000'], [0, null], PuzzlePickerSolved::Any, []];
+    }
+
+    public function testSolveCountChipDescribesTheWholeRangeAndClearsItAtOnce(): void
+    {
+        $chip = static function (array $query): \SpeedPuzzling\Web\Value\PuzzlePickerActiveFilter {
+            $filters = PuzzlePickerCriteria::fromRequest(new Request(['source' => 'any'] + $query), true)->activeFilters();
+            self::assertCount(1, $filters);
+
+            return $filters[0];
+        };
+
+        self::assertSame('puzzle_picker.chips.solved.never', $chip(['solved' => 'never'])->translationKey);
+        self::assertSame('puzzle_picker.chips.solved.before', $chip(['solved' => 'before'])->translationKey);
+        self::assertSame('puzzle_picker.chips.solved.exact', $chip(['solved_min' => '3', 'solved_max' => '3'])->translationKey);
+        self::assertSame(['%count%' => 3], $chip(['solved_min' => '3', 'solved_max' => '3'])->translationParameters);
+        self::assertSame('puzzle_picker.chips.solved.between', $chip(['solved_min' => '2', 'solved_max' => '5'])->translationKey);
+        self::assertSame(['%min%' => 2, '%max%' => 5], $chip(['solved_min' => '2', 'solved_max' => '5'])->translationParameters);
+        self::assertSame('puzzle_picker.chips.solved.at_least', $chip(['solved_min' => '2'])->translationKey);
+        self::assertSame('puzzle_picker.chips.solved.at_most', $chip(['solved_max' => '4'])->translationKey);
+        self::assertSame(['%max%' => 4], $chip(['solved_max' => '4'])->translationParameters);
+
+        self::assertSame('solved', $chip(['solved' => 'before', 'solved_max' => '5'])->key);
+        self::assertSame(['source' => 'any'], $chip(['solved' => 'before', 'solved_max' => '5'])->queryParametersWithoutThis, 'The × drops the shape and both bounds');
+
+        self::assertSame([], PuzzlePickerCriteria::fromRequest(new Request(['source' => 'any', 'solved_min' => '0']), true)->activeFilters());
+    }
+
+    public function testNotSolvedSinceParsesAmountUnitAndTheSolvedOnlySwitch(): void
+    {
+        $criteria = PuzzlePickerCriteria::fromRequest(new Request(['since' => '6', 'since_unit' => 'm', 'since_require_solved' => '1']), true);
+
+        self::assertSame(6, $criteria->sinceAmount);
+        self::assertSame(PuzzlePickerSinceUnit::Month, $criteria->sinceUnit);
+        self::assertTrue($criteria->sinceRequireSolved);
+        self::assertTrue($criteria->hasPersonalFilters());
+        self::assertFalse($criteria->isDefault());
+        self::assertSame(['since' => '6', 'since_unit' => 'm', 'since_require_solved' => '1'], $criteria->toQueryParams());
+        self::assertEquals($criteria, PuzzlePickerCriteria::fromRequest(new Request($criteria->toQueryParams()), true));
+
+        // Days are the default unit and are not spelled out; unknown units fall back to days
+        self::assertSame(['since' => '30'], PuzzlePickerCriteria::fromRequest(new Request(['since' => '30']), true)->toQueryParams());
+        self::assertSame(PuzzlePickerSinceUnit::Day, PuzzlePickerCriteria::fromRequest(new Request(['since' => '30', 'since_unit' => 'y']), true)->sinceUnit);
+        self::assertSame(['since' => '2', 'since_unit' => 'w'], PuzzlePickerCriteria::fromRequest(new Request(['since' => '2', 'since_unit' => 'w']), true)->toQueryParams());
+
+        // Without a period the unit and the checkbox mean nothing
+        $none = PuzzlePickerCriteria::fromRequest(new Request(['since_unit' => 'm', 'since_require_solved' => '1']), true);
+        self::assertNull($none->sinceAmount);
+        self::assertFalse($none->sinceRequireSolved);
+        self::assertTrue($none->isDefault());
+
+        foreach (['0', '-3', '1000', 'six', ''] as $invalid) {
+            self::assertNull(PuzzlePickerCriteria::fromRequest(new Request(['since' => $invalid, 'since_unit' => 'm']), true)->sinceAmount, "since={$invalid}");
+        }
+
+        // Guests have no history
+        self::assertNull(PuzzlePickerCriteria::fromRequest(new Request(['since' => '6', 'since_unit' => 'm']), false)->sinceAmount);
+        self::assertSame([], PuzzlePickerCriteria::fromRequest(new Request(['since' => '6', 'since_unit' => 'm']), false)->toQueryParams());
+
+        self::assertSame('-6 months', PuzzlePickerSinceUnit::Month->modifier(6));
+        self::assertSame('-2 weeks', PuzzlePickerSinceUnit::Week->modifier(2));
+        self::assertSame('-30 days', PuzzlePickerSinceUnit::Day->modifier(30));
+    }
+
+    public function testNotSolvedSinceChips(): void
+    {
+        $filters = PuzzlePickerCriteria::fromRequest(new Request(['source' => 'any', 'since' => '6', 'since_unit' => 'm', 'seed' => 'abcd1234']), true)->activeFilters();
+        self::assertCount(1, $filters);
+        self::assertSame('since', $filters[0]->key);
+        self::assertSame('puzzle_picker.chips.since.m', $filters[0]->translationKey);
+        self::assertSame(['%count%' => 6], $filters[0]->translationParameters);
+        self::assertSame(['source' => 'any', 'seed' => 'abcd1234'], $filters[0]->queryParametersWithoutThis);
+
+        $solvedOnly = PuzzlePickerCriteria::fromRequest(new Request(['source' => 'any', 'since' => '3', 'since_unit' => 'w', 'since_require_solved' => '1']), true)->activeFilters();
+        self::assertSame('puzzle_picker.chips.since_solved.w', $solvedOnly[0]->translationKey);
+        self::assertSame(['source' => 'any'], $solvedOnly[0]->queryParametersWithoutThis, 'The × drops the period, the unit and the switch together');
+
+        $days = PuzzlePickerCriteria::fromRequest(new Request(['source' => 'any', 'since' => '10']), true)->activeFilters();
+        self::assertSame('puzzle_picker.chips.since.d', $days[0]->translationKey);
+    }
+
+    public function testMyTimeThresholdNeedsMetricAndMinutes(): void
+    {
+        $criteria = PuzzlePickerCriteria::fromRequest(new Request(['my_time' => 'latest', 'my_time_op' => 'gt', 'my_time_minutes' => '90']), true);
+
+        self::assertSame(PuzzlePickerMyTime::Latest, $criteria->myTime);
+        self::assertSame(PuzzlePickerMyTimeOperator::Over, $criteria->myTimeOperator);
+        self::assertSame(90, $criteria->myTimeMinutes);
+        self::assertSame(5400, $criteria->myTimeSeconds());
+        self::assertTrue($criteria->hasPersonalFilters());
+        self::assertFalse($criteria->isDefault());
+        self::assertSame(['my_time' => 'latest', 'my_time_op' => 'gt', 'my_time_minutes' => '90'], $criteria->toQueryParams());
+        self::assertEquals($criteria, PuzzlePickerCriteria::fromRequest(new Request($criteria->toQueryParams()), true));
+
+        // "under" is the default operator and is not spelled out; unknown operators fall back to it
+        $under = PuzzlePickerCriteria::fromRequest(new Request(['my_time' => 'fastest', 'my_time_minutes' => '30']), true);
+        self::assertSame(PuzzlePickerMyTimeOperator::Under, $under->myTimeOperator);
+        self::assertSame(['my_time' => 'fastest', 'my_time_minutes' => '30'], $under->toQueryParams());
+        self::assertSame(PuzzlePickerMyTimeOperator::Under, PuzzlePickerCriteria::fromRequest(new Request(['my_time' => 'first', 'my_time_op' => 'eq', 'my_time_minutes' => '30']), true)->myTimeOperator);
+
+        // Half a filter is no filter
+        foreach (
+            [
+            ['my_time' => 'fastest'],
+            ['my_time_minutes' => '30'],
+            ['my_time' => 'fastest', 'my_time_minutes' => ''],
+            ['my_time' => '', 'my_time_op' => 'gt', 'my_time_minutes' => '30'],
+            ['my_time' => 'average', 'my_time_minutes' => '30'],
+            ['my_time' => 'fastest', 'my_time_minutes' => '0'],
+            ['my_time' => 'fastest', 'my_time_minutes' => '1441'],
+            ['my_time' => ['fastest'], 'my_time_minutes' => ['30']],
+            ] as $query
+        ) {
+            $none = PuzzlePickerCriteria::fromRequest(new Request($query), true);
+            self::assertNull($none->myTime, json_encode($query) ?: '');
+            self::assertNull($none->myTimeMinutes);
+            self::assertNull($none->myTimeSeconds());
+            self::assertTrue($none->isDefault());
+        }
+
+        // Guests have no times
+        self::assertNull(PuzzlePickerCriteria::fromRequest(new Request(['my_time' => 'fastest', 'my_time_minutes' => '30']), false)->myTime);
+
+        $chip = PuzzlePickerCriteria::fromRequest(new Request(['source' => 'any', 'my_time' => 'first', 'my_time_op' => 'gt', 'my_time_minutes' => '45', 'pieces' => ['500']]), true)->activeFilters();
+        self::assertSame(['my_time', 'pieces:500'], array_map(static fn ($filter) => $filter->key, $chip));
+        self::assertSame('puzzle_picker.chips.my_time.first_gt', $chip[0]->translationKey);
+        self::assertSame(['%minutes%' => 45], $chip[0]->translationParameters);
+        self::assertSame(['source' => 'any', 'pieces' => ['500']], $chip[0]->queryParametersWithoutThis, 'The × drops metric, operator and minutes together');
+        self::assertSame('puzzle_picker.chips.my_time.fastest_lt', $under->activeFilters()[1]->translationKey);
+    }
+
+    public function testCommunityResultsFilterIsFreeForEveryone(): void
+    {
+        foreach (['few' => PuzzlePickerCommunity::Few, 'rated' => PuzzlePickerCommunity::Rated, 'popular' => PuzzlePickerCommunity::Popular] as $value => $expected) {
+            self::assertSame($expected, PuzzlePickerCriteria::fromRequest(new Request(['community' => $value]), true)->community);
+            self::assertSame($expected, PuzzlePickerCriteria::fromRequest(new Request(['community' => $value]), false)->community, 'Guests keep the community filter');
+        }
+
+        $criteria = PuzzlePickerCriteria::fromRequest(new Request(['community' => 'rated', 'seed' => 'abcd1234']), false);
+        self::assertSame(['community' => 'rated', 'seed' => 'abcd1234'], $criteria->toQueryParams());
+        self::assertFalse($criteria->isDefault());
+        self::assertFalse($criteria->hasPersonalFilters(), 'Community results are not a personal filter');
+
+        $chips = $criteria->activeFilters();
+        self::assertCount(1, $chips);
+        self::assertSame('community', $chips[0]->key);
+        self::assertSame('puzzle_picker.chips.community.rated', $chips[0]->translationKey);
+        self::assertSame(['%count%' => 20], $chips[0]->translationParameters);
+        self::assertSame(['seed' => 'abcd1234'], $chips[0]->queryParametersWithoutThis);
+
+        self::assertNull(PuzzlePickerCriteria::fromRequest(new Request(['community' => 'famous']), true)->community);
+        self::assertNull(PuzzlePickerCriteria::fromRequest(new Request(['community' => '']), true)->community);
+        self::assertNull(PuzzlePickerCriteria::fromRequest(new Request(['community' => ['few']]), true)->community);
+
+        self::assertSame('COALESCE(ps.solved_times_solo_count, 0) <= 5', PuzzlePickerCommunity::Few->sqlCondition('ps.solved_times_solo_count'));
+        self::assertSame('ps.solved_times_solo_count >= 20', PuzzlePickerCommunity::Rated->sqlCondition('ps.solved_times_solo_count'));
+        self::assertSame('ps.solved_times_solo_count >= 50', PuzzlePickerCommunity::Popular->sqlCondition('ps.solved_times_solo_count'));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Specific collections (members)
+    // ---------------------------------------------------------------------------------------------
+
+    private const string COLLECTION_A = '018d0008-0000-0000-0000-000000000001';
+    private const string COLLECTION_B = '018d0008-0000-0000-0000-000000000004';
+
+    public function testMembersCanPickFromSpecificCollectionsWhichImplyTheirShelf(): void
+    {
+        $criteria = PuzzlePickerCriteria::fromRequest(
+            new Request(['source' => 'not_mine', 'collections' => [self::COLLECTION_A, Collection::SYSTEM_ID, self::COLLECTION_A, 'not-a-uuid', '', self::COLLECTION_B]]),
+            isAuthenticated: true,
+            insightsAllowed: true,
+        );
+
+        self::assertSame([self::COLLECTION_A, Collection::SYSTEM_ID, self::COLLECTION_B], $criteria->collectionIds, 'Deduplicated, invalid ids dropped, sentinel kept');
+        self::assertSame(PuzzlePickerSource::Mine, $criteria->source, 'Specific collections imply my shelf');
+        self::assertTrue($criteria->includesSystemCollection());
+        self::assertSame([self::COLLECTION_A, self::COLLECTION_B], $criteria->customCollectionIds());
+        self::assertTrue($criteria->hasPersonalFilters());
+        self::assertFalse($criteria->isDefault());
+        self::assertSame(['collections' => [self::COLLECTION_A, Collection::SYSTEM_ID, self::COLLECTION_B]], $criteria->toQueryParams(), 'Source mine is the default and stays implicit');
+        self::assertEquals($criteria, PuzzlePickerCriteria::fromRequest(new Request($criteria->toQueryParams()), true, true), 'Round trip');
+
+        // A single value is accepted as a string
+        self::assertSame([Collection::SYSTEM_ID], PuzzlePickerCriteria::fromRequest(new Request(['collections' => Collection::SYSTEM_ID]), true, true)->collectionIds);
+        self::assertFalse(PuzzlePickerCriteria::fromRequest(new Request(['collections' => [self::COLLECTION_A]]), true, true)->includesSystemCollection());
+
+        // Capped
+        $many = [];
+
+        for ($i = 1; $i <= 25; $i++) {
+            $many[] = sprintf('018d0008-0000-0000-0000-%012d', $i);
+        }
+
+        self::assertCount(PuzzlePickerCriteria::MAX_COLLECTIONS, PuzzlePickerCriteria::fromRequest(new Request(['collections' => $many]), true, true)->collectionIds);
+    }
+
+    public function testCollectionsAreStrippedForNonMembersAndGuests(): void
+    {
+        $nonMember = PuzzlePickerCriteria::fromRequest(new Request(['collections' => [self::COLLECTION_A]]), isAuthenticated: true);
+        self::assertSame([], $nonMember->collectionIds);
+        self::assertTrue($nonMember->isDefault());
+        self::assertSame([], $nonMember->toQueryParams());
+
+        $guest = PuzzlePickerCriteria::fromRequest(new Request(['collections' => [self::COLLECTION_A]]), isAuthenticated: false, insightsAllowed: true, predictionsAllowed: true);
+        self::assertSame([], $guest->collectionIds);
+        self::assertSame(PuzzlePickerSource::Any, $guest->source);
+    }
+
+    public function testCollectionChipsReplaceTheShelfChipAndRemoveThemselves(): void
+    {
+        $criteria = PuzzlePickerCriteria::fromRequest(
+            new Request(['collections' => [Collection::SYSTEM_ID, self::COLLECTION_A], 'solved' => 'never']),
+            isAuthenticated: true,
+            insightsAllowed: true,
+        );
+
+        $filters = $criteria->activeFilters();
+        self::assertSame(['collection:' . Collection::SYSTEM_ID, 'collection:' . self::COLLECTION_A, 'solved'], array_map(static fn ($filter) => $filter->key, $filters), 'No separate "My collection" chip next to the collection chips');
+
+        self::assertSame('collection', $filters[0]->type);
+        self::assertSame(Collection::SYSTEM_ID, $filters[0]->value);
+        self::assertSame('collections.system_name', $filters[0]->translationKey, 'The system collection has a fixed name');
+        self::assertSame(['solved' => 'never', 'collections' => [self::COLLECTION_A]], $filters[0]->queryParametersWithoutThis);
+
+        self::assertSame('puzzle_picker.chips.collection', $filters[1]->translationKey);
+        self::assertSame(self::COLLECTION_A, $filters[1]->value);
+        self::assertSame(['solved' => 'never', 'collections' => [Collection::SYSTEM_ID]], $filters[1]->queryParametersWithoutThis);
+
+        // Removing the last collection chip falls back to the whole shelf - and its chip
+        $shelf = PuzzlePickerCriteria::fromRequest(new Request($filters[1]->queryParametersWithoutThis), true, true)->activeFilters()[0];
+        $shelfOnly = PuzzlePickerCriteria::fromRequest(new Request($shelf->queryParametersWithoutThis), true, true);
+        self::assertSame([], $shelfOnly->collectionIds);
+        self::assertSame(PuzzlePickerSource::Mine, $shelfOnly->source);
+        self::assertSame('puzzle_picker.chips.source.mine', $shelfOnly->activeFilters()[0]->translationKey);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Presets
+    // ---------------------------------------------------------------------------------------------
+
+    public function testActivePresetIsTheOneWhoseFiltersEqualTheCriteria(): void
+    {
+        $member = static fn (array $query): PuzzlePickerCriteria => PuzzlePickerCriteria::fromRequest(new Request($query), true, true, true);
+
+        foreach (PuzzlePickerPreset::cases() as $preset) {
+            self::assertSame($preset, $member($preset->queryParams())->activePreset(), $preset->value);
+            self::assertSame($preset, $member($preset->queryParams() + ['seed' => 'abcd1234'])->activePreset(), 'The seed does not count');
+        }
+
+        self::assertSame(PuzzlePickerPreset::SurpriseMe, $member([])->activePreset(), 'The bare default is "surprise me from my shelf"');
+        self::assertNull($member(['source' => 'any'])->activePreset());
+        self::assertNull($member(['solved' => 'never', 'pieces' => ['1000']])->activePreset(), 'A superset of a preset is not the preset');
+        self::assertNull($member(['pieces' => ['500'], 'solved' => 'never'])->activePreset(), 'A subset of a preset is not the preset');
+
+        // A player without predictions never has "Beat my record" active - the stripped
+        // criteria would otherwise look like plain "solved before"
+        $nonMember = PuzzlePickerCriteria::fromRequest(new Request(PuzzlePickerPreset::BeatMyRecord->queryParams()), true);
+        self::assertNull($nonMember->activePreset());
+        self::assertSame(PuzzlePickerPreset::SomethingNew, PuzzlePickerCriteria::fromRequest(new Request(PuzzlePickerPreset::SomethingNew->queryParams()), true)->activePreset(), 'Free presets work for non-members');
+        self::assertSame(PuzzlePickerPreset::RatingGrind, PuzzlePickerCriteria::fromRequest(new Request(PuzzlePickerPreset::RatingGrind->queryParams()), true)->activePreset());
+
+        self::assertNull(PuzzlePickerCriteria::fromRequest(new Request(), false)->activePreset(), 'Guests get no presets');
+        self::assertTrue(PuzzlePickerPreset::BeatMyRecord->requiresPredictions());
+        self::assertFalse(PuzzlePickerPreset::RatingGrind->requiresPredictions());
+    }
+
+    public function testPresetsAreBuiltFromFreeFilters(): void
+    {
+        self::assertSame(['source' => 'mine'], PuzzlePickerPreset::SurpriseMe->queryParams());
+        self::assertSame(['source' => 'mine', 'solved' => 'never'], PuzzlePickerPreset::SomethingNew->queryParams());
+        self::assertSame(['predicted_max' => '60'], PuzzlePickerPreset::QuickOne->queryParams());
+        self::assertSame(['since' => '6', 'since_unit' => 'm', 'since_require_solved' => '1'], PuzzlePickerPreset::DustOffTheShelf->queryParams());
+        self::assertSame(['pieces' => ['500'], 'solved' => 'never', 'community' => 'rated'], PuzzlePickerPreset::RatingGrind->queryParams());
+        self::assertSame(['solved' => 'before', 'gap' => 'slower', 'order' => 'gap_slower'], PuzzlePickerPreset::BeatMyRecord->queryParams());
     }
 }

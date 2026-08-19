@@ -30,6 +30,15 @@ use SpeedPuzzling\Web\Value\PuzzlePickerOrder;
  * non-suspicious, timed solves; "when solved" = COALESCE(finished_at, tracked_at).
  * A null player (guest) leaves every personal CTE empty.
  *
+ * Precision filters (all null-tolerant, so an unset filter costs nothing):
+ * the solve-count range covers "never" / "solved before" / "between N and M";
+ * "not solved since" compares my last solve (incl. team solves) with a
+ * timestamp computed from the clock and keeps never-solved puzzles unless asked
+ * not to; "my time" compares one of my solo times with a threshold (no solo
+ * time = no match); "only these collections" reads the collection ids
+ * aggregated per item, the system collection being the NULL collection_id
+ * (has_system); "community results" needs puzzle_statistics before the LIMIT.
+ *
  * Insights layer (members, design doc §6.4): only when an insights filter is
  * active are puzzle_difficulty / player_baseline / puzzle_statistics joined
  * *before* the LIMIT. My personal predictions (bulk GetPlayerPredictions, PHP)
@@ -48,17 +57,42 @@ readonly final class GetPuzzlePickerSuggestions
 
     public function pick(PuzzlePickerCriteria $criteria, null|string $playerId, int $limit, int $offset = 0): PuzzlePickerPick
     {
+        $now = $this->clock->now();
         $params = [
-            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            'now' => $now->format('Y-m-d H:i:s'),
             'playerId' => $playerId,
             'source' => $criteria->source->value,
-            'solved' => $criteria->solved->value,
             'includeLentOut' => $criteria->includeLentOut ? 1 : 0,
+            'solvedMin' => $criteria->solvedMin,
+            'solvedMax' => $criteria->solvedMax,
+            'notSolvedSince' => $criteria->sinceAmount !== null
+                ? $now->modify($criteria->sinceUnit->modifier($criteria->sinceAmount))->format('Y-m-d H:i:s')
+                : null,
+            'sinceRequireSolved' => $criteria->sinceRequireSolved ? 1 : 0,
             'seed' => $criteria->seed ?? '',
             'limit' => $limit,
             'offset' => $offset,
         ];
         $types = [];
+
+        // --- Free precision filters: my times, my collections, community results ---
+
+        $myTimeCondition = '';
+
+        if ($criteria->myTime !== null && $criteria->myTimeSeconds() !== null) {
+            // Column and operator come from enums, never from the request
+            $myTimeCondition = sprintf('AND s.%s %s :myTimeSeconds', $criteria->myTime->column(), $criteria->myTimeOperator->sql());
+            $params['myTimeSeconds'] = $criteria->myTimeSeconds();
+        }
+
+        $collectionsCondition = '';
+
+        if ($criteria->collectionIds !== []) {
+            // The system collection has no id (collection_id IS NULL), hence the has_system flag
+            $collectionsCondition = 'AND ((:includeSystemCollection = 1 AND mi.has_system) OR mi.collection_ids && :collectionIds::uuid[])';
+            $params['includeSystemCollection'] = $criteria->includesSystemCollection() ? 1 : 0;
+            $params['collectionIds'] = '{' . implode(',', $criteria->customCollectionIds()) . '}';
+        }
 
         $piecesCondition = '';
 
@@ -87,6 +121,7 @@ readonly final class GetPuzzlePickerSuggestions
         $needsPredictions = $playerId !== null && $criteria->needsPredictions();
         $needsDifficulty = $needsPredictions || $criteria->difficultyTiers !== [];
         $needsCommunityAverage = $criteria->predictedMaxMinutes !== null && $criteria->usesPersonalPrediction() === false;
+        $needsStatistics = $needsCommunityAverage || $criteria->community !== null;
 
         $insightsJoins = '';
         $insightsConditions = '';
@@ -104,10 +139,17 @@ readonly final class GetPuzzlePickerSuggestions
             $types['difficultyTiers'] = ArrayParameterType::INTEGER;
         }
 
-        if ($needsCommunityAverage) {
+        if ($needsStatistics) {
             $insightsJoins .= "\n    LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = p.id";
+        }
+
+        if ($needsCommunityAverage) {
             $insightsConditions .= "\n        AND ps.average_time_solo <= :predictedMaxSeconds";
             $params['predictedMaxSeconds'] = $criteria->predictedMaxMinutes * 60;
+        }
+
+        if ($criteria->community !== null) {
+            $insightsConditions .= "\n        AND " . $criteria->community->sqlCondition('ps.solved_times_solo_count');
         }
 
         if ($playerId !== null && $needsPredictions) {
@@ -183,7 +225,10 @@ my_team_solves AS (
     GROUP BY pst.puzzle_id
 ),
 my_items AS (
-    SELECT ci.puzzle_id, array_agg(ci.collection_id) AS collection_ids
+    SELECT
+        ci.puzzle_id,
+        array_remove(array_agg(ci.collection_id), NULL) AS collection_ids,
+        bool_or(ci.collection_id IS NULL) AS has_system
     FROM collection_item ci
     WHERE :playerId::uuid IS NOT NULL
         AND ci.player_id = :playerId
@@ -229,11 +274,16 @@ picked AS (
             OR (:source = 'not_mine' AND mi.puzzle_id IS NULL)
         )
         AND (:includeLentOut = 1 OR lo.puzzle_id IS NULL)
+        {$collectionsCondition}
+        AND COALESCE(s.solve_count_any, 0) + COALESCE(ts.solve_count, 0) >= :solvedMin
+        AND (:solvedMax::int IS NULL OR COALESCE(s.solve_count_any, 0) + COALESCE(ts.solve_count, 0) <= :solvedMax)
         AND (
-            :solved = 'any'
-            OR (:solved = 'never' AND COALESCE(s.solve_count_any, 0) + COALESCE(ts.solve_count, 0) = 0)
-            OR (:solved = 'before' AND COALESCE(s.solve_count_any, 0) + COALESCE(ts.solve_count, 0) > 0)
+            :notSolvedSince::timestamp IS NULL
+            OR GREATEST(s.last_solved_at, ts.last_solved_at) IS NULL
+            OR GREATEST(s.last_solved_at, ts.last_solved_at) < :notSolvedSince::timestamp
         )
+        AND (:sinceRequireSolved = 0 OR GREATEST(s.last_solved_at, ts.last_solved_at) IS NOT NULL)
+        {$myTimeCondition}
         {$piecesCondition}
         {$brandCondition}{$insightsConditions}
     ORDER BY {$innerOrder}

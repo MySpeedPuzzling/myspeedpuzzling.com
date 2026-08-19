@@ -1,8 +1,9 @@
 {# Filter sheet: a plain GET form - Apply submits, the URL is the state (bookmarkable, back
    button works). Personal groups (shelf, history, lent-out) are disabled for guests with a
-   sign-in note; the "Insights (members)" group is one locked block for non-members and its
-   prediction controls are disabled for members who opted out of predictions. The server drops
-   every non-eligible value anyway. Expects: criteria, brand_names #}
+   sign-in note; the "only these collections" list and the "Insights (members)" group are locked
+   for non-members and the prediction controls are disabled for members who opted out of
+   predictions. The server drops every non-eligible value anyway.
+   Expects: criteria, brand_names, collections (member's collections, system first), reset_url #}
 {% set is_guest = not criteria.isAuthenticated %}
 {% set is_member = criteria.insightsAllowed %}
 {% set predictions_on = criteria.predictionsAllowed %}
@@ -15,6 +16,12 @@
     {value: 4, name: 'challenging', icon: 'diff-challenging'},
     {value: 5, name: 'hard', icon: 'diff-hard'},
     {value: 6, name: 'veryhard', icon: 'diff-very-hard'},
+] %}
+{% set community_options = [
+    {value: '', key: 'any'},
+    {value: 'few', key: 'few', count: constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCommunity::FEW_MAX_SOLVES')},
+    {value: 'rated', key: 'rated', count: constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCommunity::RATED_MIN_SOLVES')},
+    {value: 'popular', key: 'popular', count: constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCommunity::POPULAR_MIN_SOLVES')},
 ] %}
 <div class="modal fade" id="puzzlePickerFilters" tabindex="-1" aria-labelledby="puzzlePickerFiltersLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
@@ -43,6 +50,37 @@
                                 </div>
                             {% endfor %}
                         </div>
+
+                        {# Specific collections (members): checkbox list, system collection first. Ticking
+                           any of them narrows "my collection" down to those; nothing ticked = whole shelf. #}
+                        <div class="mt-2 puzzle-picker-collections {{ not is_member ? 'puzzle-picker-collections-locked' }}">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                <span class="fs-sm text-muted">
+                                    {% if not is_member %}<i class="ci-locked me-1"></i>{% endif %}{{ 'puzzle_picker.filters.source.collections_label'|trans }}
+                                </span>
+                                {% if not is_member and not is_guest %}
+                                    <button type="button" class="btn btn-outline-secondary btn-xs" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                        <i class="ci-locked me-1"></i>{{ 'membership.members_exclusive_short'|trans }}
+                                    </button>
+                                {% endif %}
+                            </div>
+                            {% if is_member %}
+                                <div class="d-flex flex-wrap align-items-center gap-1">
+                                    {% for collection in collections %}
+                                        <div class="form-check form-option form-check-inline mb-0">
+                                            <input type="checkbox" class="form-check-input" name="collections[]" id="picker-collection-{{ loop.index }}" value="{{ collection.id }}" {{ collection.id in criteria.collectionIds ? 'checked' }}>
+                                            <label class="form-option-label" for="picker-collection-{{ loop.index }}">
+                                                <i class="bi {{ collection.system ? 'bi-puzzle' : 'bi-collection' }} me-1"></i>{{ collection.name }} <span class="text-muted">({{ collection.count }})</span>
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="form-text">{{ 'puzzle_picker.filters.source.collections_note'|trans }}</div>
+                            {% else %}
+                                <div class="form-text opacity-75">{{ 'puzzle_picker.filters.source.collections_locked'|trans }}</div>
+                            {% endif %}
+                        </div>
+
                         <div class="form-check mt-2 mb-0">
                             <input class="form-check-input" type="checkbox" name="lent" value="1" id="picker-lent" {{ criteria.includeLentOut ? 'checked' }}>
                             <label class="form-check-label fs-sm" for="picker-lent">{{ 'puzzle_picker.filters.source.include_lent_out'|trans }}</label>
@@ -59,6 +97,55 @@
                                 </div>
                             {% endfor %}
                         </div>
+
+                        {# Solve-count range: refines the radio bound by bound (never = 0-0, before = 1+) #}
+                        {% set show_count_min = criteria.solved.value == 'any' and criteria.solvedMin > 0 %}
+                        {% set show_count_max = criteria.solvedMax is not null and criteria.solved.value != 'never' %}
+                        <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                            <label class="fs-sm text-muted mb-0" for="picker-solved-min">{{ 'puzzle_picker.filters.solved.between'|trans }}</label>
+                            <input type="number" class="form-control form-control-sm" style="max-width: 5rem;" id="picker-solved-min" name="solved_min" min="0" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_SOLVE_COUNT') }}" step="1" inputmode="numeric" value="{{ show_count_min ? criteria.solvedMin : '' }}">
+                            <label class="fs-sm text-muted mb-0" for="picker-solved-max">{{ 'puzzle_picker.filters.solved.and'|trans }}</label>
+                            <input type="number" class="form-control form-control-sm" style="max-width: 5rem;" id="picker-solved-max" name="solved_max" min="0" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_SOLVE_COUNT') }}" step="1" inputmode="numeric" value="{{ show_count_max ? criteria.solvedMax : '' }}">
+                            <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.solved.times'|trans }}</span>
+                        </div>
+
+                        {# Last solved more than N days / weeks / months ago - never-solved included by default #}
+                        <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                            <label class="fs-sm text-muted mb-0" for="picker-since">{{ 'puzzle_picker.filters.since.label'|trans }}</label>
+                            <input type="number" class="form-control form-control-sm" style="max-width: 5rem;" id="picker-since" name="since" min="1" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_SINCE_AMOUNT') }}" step="1" inputmode="numeric" placeholder="6" value="{{ criteria.sinceAmount ?? '' }}">
+                            <label class="visually-hidden" for="picker-since-unit">{{ 'puzzle_picker.filters.since.unit'|trans }}</label>
+                            <select class="form-select form-select-sm" style="max-width: 8rem;" id="picker-since-unit" name="since_unit">
+                                {% for unit in ['d', 'w', 'm'] %}
+                                    <option value="{{ unit }}" {{ (criteria.sinceAmount is not null ? criteria.sinceUnit.value : 'm') == unit ? 'selected' }}>{{ ('puzzle_picker.filters.since.units.' ~ unit)|trans }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-check mt-1 mb-0">
+                            <input class="form-check-input" type="checkbox" name="since_require_solved" value="1" id="picker-since-require-solved" {{ criteria.sinceRequireSolved ? 'checked' }}>
+                            <label class="form-check-label fs-sm" for="picker-since-require-solved">{{ 'puzzle_picker.filters.since.require_solved'|trans }}</label>
+                        </div>
+                        <div class="form-text">{{ 'puzzle_picker.filters.since.note'|trans }}</div>
+
+                        {# My fastest / latest / first time is under / over N minutes (solo times only) #}
+                        <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                            <label class="fs-sm text-muted mb-0" for="picker-my-time">{{ 'puzzle_picker.filters.my_time.label'|trans }}</label>
+                            <select class="form-select form-select-sm" style="max-width: 9rem;" id="picker-my-time" name="my_time">
+                                <option value="" {{ criteria.myTime is null ? 'selected' }}>{{ 'puzzle_picker.filters.my_time.off'|trans }}</option>
+                                {% for metric in ['fastest', 'latest', 'first'] %}
+                                    <option value="{{ metric }}" {{ criteria.myTime is not null and criteria.myTime.value == metric ? 'selected' }}>{{ ('puzzle_picker.filters.my_time.' ~ metric)|trans }}</option>
+                                {% endfor %}
+                            </select>
+                            <label class="visually-hidden" for="picker-my-time-op">{{ 'puzzle_picker.filters.my_time.op_label'|trans }}</label>
+                            <select class="form-select form-select-sm" style="max-width: 8rem;" id="picker-my-time-op" name="my_time_op">
+                                {% for op in ['lt', 'gt'] %}
+                                    <option value="{{ op }}" {{ criteria.myTimeOperator.value == op ? 'selected' }}>{{ ('puzzle_picker.filters.my_time.' ~ op)|trans }}</option>
+                                {% endfor %}
+                            </select>
+                            <label class="visually-hidden" for="picker-my-time-minutes">{{ 'puzzle_picker.filters.budget.minutes'|trans }}</label>
+                            <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-my-time-minutes" name="my_time_minutes" min="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MIN_MY_TIME_MINUTES') }}" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_MY_TIME_MINUTES') }}" step="1" inputmode="numeric" placeholder="60" value="{{ criteria.myTimeMinutes ?? '' }}">
+                            <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.budget.minutes'|trans }}</span>
+                        </div>
+                        <div class="form-text">{{ 'puzzle_picker.filters.my_time.note'|trans }}</div>
                     </fieldset>
 
                     <fieldset class="mb-3">
@@ -101,6 +188,19 @@
                                 <option value="{{ brand_id }}" selected>{{ brand_names[brand_id] ?? brand_id }}</option>
                             {% endfor %}
                         </select>
+                    </fieldset>
+
+                    {# Community results: how many solo solves the puzzle has - free, from puzzle_statistics #}
+                    <fieldset class="mb-3">
+                        <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.community.label'|trans }}</legend>
+                        <div class="d-flex flex-wrap align-items-center gap-1">
+                            {% for option in community_options %}
+                                <div class="form-check form-option form-check-inline mb-0">
+                                    <input type="radio" class="form-check-input" name="community" id="picker-community-{{ option.key }}" value="{{ option.value }}" {{ (option.value == '' ? criteria.community is null : (criteria.community is not null and criteria.community.value == option.value)) ? 'checked' }}>
+                                    <label class="form-option-label" for="picker-community-{{ option.key }}">{{ ('puzzle_picker.filters.community.' ~ option.key)|trans({'%count%': option.count|default(0)}) }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
                     </fieldset>
 
                     {# Time budget - free for everyone, the engine differs: my prediction for members
@@ -191,7 +291,7 @@
                 </div>
 
                 <div class="modal-footer justify-content-between">
-                    <a class="btn btn-link btn-sm text-muted" rel="nofollow" href="{{ path('puzzle_picker') }}">{{ 'puzzle_picker.filters.reset'|trans }}</a>
+                    <a class="btn btn-link btn-sm text-muted" rel="nofollow" href="{{ reset_url|default(path('puzzle_picker')) }}">{{ 'puzzle_picker.filters.reset'|trans }}</a>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-shuffle me-1"></i>{{ 'puzzle_picker.filters.apply'|trans }}
                     </button>

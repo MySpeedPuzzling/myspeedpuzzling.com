@@ -3416,11 +3416,14 @@ puzzle_picker:
     title: "What should I solve next?"
     subtitle: "Tell me the mood, I'll pick from your shelf."
     menu_label: "What next?"
+    pick_from_collection: "Pick from this collection"
     filters:
         button: "Filters"
         title: "Filters"
         apply: "Pick a puzzle"
         reset: "Reset filters"
+        remembered: "Your last filters"
+        remembered_title: "These are the filters you used last time – applied automatically. Reset to start fresh."
         guest_note: "Sign in to pick from your own shelf and history."
         source:
             label: "Where to pick from"
@@ -3428,11 +3431,36 @@ puzzle_picker:
             not_mine: "Not in my collection"
             any: "Any puzzle"
             include_lent_out: "Include puzzles I have lent out"
+            collections_label: "Only these collections"
+            collections_note: "Nothing ticked = your whole shelf."
+            collections_locked: "Pick from specific collections – for members."
         solved:
             label: "My history"
             any: "Any"
             never: "Never solved"
             before: "Solved before"
+            between: "Solved between"
+            and: "and"
+            times: "times"
+        since:
+            label: "Not solved for more than"
+            unit: "Unit"
+            units:
+                d: "days"
+                w: "weeks"
+                m: "months"
+            require_solved: "Only puzzles I have solved before"
+            note: "Puzzles you have never solved are included unless you tick the box."
+        my_time:
+            label: "My time"
+            off: "– any –"
+            fastest: "fastest"
+            latest: "latest"
+            first: "first"
+            op_label: "Comparison"
+            lt: "is under"
+            gt: "is over"
+            note: "Solo times only – puzzles without a solo time never match."
         pieces:
             label: "Pieces"
             custom: "Custom range:"
@@ -3441,6 +3469,12 @@ puzzle_picker:
         brand:
             label: "Brand"
             placeholder: "Any brand"
+        community:
+            label: "Community results"
+            any: "Any"
+            few: "Few results (up to %count%) – be a pioneer"
+            rated: "Rated (%count%+ solves)"
+            popular: "Popular (%count%+ solves)"
         budget:
             label: "Time budget"
             i_have: "I have about"
@@ -3469,6 +3503,25 @@ puzzle_picker:
         solved:
             never: "Never solved"
             before: "Solved before"
+            exact: "Solved %count%×"
+            between: "Solved %min%–%max%×"
+            at_least: "Solved %min%+×"
+            at_most: "Solved up to %max%×"
+        since:
+            d: "Not solved in the last %count% day|Not solved in the last %count% days"
+            w: "Not solved in the last %count% week|Not solved in the last %count% weeks"
+            m: "Not solved in the last %count% month|Not solved in the last %count% months"
+        since_solved:
+            d: "Solved, but not in the last %count% day|Solved, but not in the last %count% days"
+            w: "Solved, but not in the last %count% week|Solved, but not in the last %count% weeks"
+            m: "Solved, but not in the last %count% month|Solved, but not in the last %count% months"
+        my_time:
+            fastest_lt: "Fastest under %minutes% min"
+            fastest_gt: "Fastest over %minutes% min"
+            latest_lt: "Latest under %minutes% min"
+            latest_gt: "Latest over %minutes% min"
+            first_lt: "First time under %minutes% min"
+            first_gt: "First time over %minutes% min"
         pieces:
             exact: "%count% pieces"
             between: "%min%–%max% pieces"
@@ -3476,6 +3529,11 @@ puzzle_picker:
             at_most: "up to %max% pieces"
         brand: "Brand"
         include_lent_out: "Incl. lent out"
+        collection: "Collection"
+        community:
+            few: "Few results (≤ %count%)"
+            rated: "Rated (%count%+ solves)"
+            popular: "Popular (%count%+ solves)"
         remove: "Remove this filter"
         predicted_max: "Up to %minutes% min"
         gap:
@@ -3489,6 +3547,11 @@ puzzle_picker:
     presets:
         label: "Presets:"
         beat_my_record: "Beat my record"
+        surprise_me: "Surprise me"
+        something_new: "Something new"
+        quick_one: "Quick one"
+        dust_off: "Dust off the shelf"
+        rating_grind: "Rating grind"
     results:
         matching: "%shown% of %total% matching puzzles"
         pick_another: "Pick another"

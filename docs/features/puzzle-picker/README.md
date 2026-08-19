@@ -78,7 +78,7 @@ Grouped the way the filter sheet shows them. `★` = requested by Jan, `+` = pro
 - ★ Pieces: chips for the common counts (54, 100, 150, 200, 300, 500, 750, 1000, 1500, 2000+ — production distribution: 500 = 14k, 1000 = 11k, 300 = 3.5k) + custom min–max
 - ★ Brand / manufacturer: multi-select (TomSelect, same `puzzle_search_filter_options` endpoint the search page uses)
 - + "I have about **N** minutes" — time budget. Free: community solo average ≤ N; members: my predicted time ≤ N (same control, better engine, small "uses your prediction" badge). Fits the fortune-wheel mood perfectly ("it's 9 pm, I have an hour").
-- + Community results: "few results (≤ 5) — be a pioneer" / "popular (≥ 50)". `puzzle_statistics.solved_times_count`, indexed.
+- + Community results: "few results (≤ 5) — be a pioneer" / "rated (≥ 20, the MSP-rating threshold)" / "popular (≥ 50)". `puzzle_statistics.solved_times_solo_count` (solo solves, the number the card shows).
 - + (later) Tag — only 767 tag rows in prod, low value today.
 
 **Insights (members)**

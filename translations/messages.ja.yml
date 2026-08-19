@@ -3118,11 +3118,14 @@ puzzle_picker:
     title: "次はどのパズルを組む？"
     subtitle: "気分を教えてください。あなたの棚から選びます。"
     menu_label: "次は何を？"
+    pick_from_collection: "このコレクションから選ぶ"
     filters:
         button: "フィルター"
         title: "フィルター"
         apply: "パズルを選ぶ"
         reset: "フィルターをリセット"
+        remembered: "前回のフィルター"
+        remembered_title: "前回使ったフィルターを自動で適用しています。リセットすると最初からになります。"
         guest_note: "サインインすると、自分の棚と履歴から選べます。"
         source:
             label: "どこから選ぶか"
@@ -3130,11 +3133,36 @@ puzzle_picker:
             not_mine: "コレクションにないもの"
             any: "すべてのパズル"
             include_lent_out: "貸出中のパズルも含める"
+            collections_label: "このコレクションだけ"
+            collections_note: "何もチェックしなければ棚全体から選びます。"
+            collections_locked: "特定のコレクションから選ぶ – メンバー限定。"
         solved:
             label: "自分の履歴"
             any: "指定なし"
             never: "未完成"
             before: "完成済み"
+            between: "完成回数"
+            and: "〜"
+            times: "回"
+        since:
+            label: "組んでいない期間"
+            unit: "単位"
+            units:
+                d: "日以上"
+                w: "週間以上"
+                m: "か月以上"
+            require_solved: "完成済みのパズルだけ"
+            note: "チェックしない限り、まだ組んだことのないパズルも含まれます。"
+        my_time:
+            label: "自分の"
+            off: "– 指定なし –"
+            fastest: "最速タイム"
+            latest: "最新タイム"
+            first: "初回タイム"
+            op_label: "比較"
+            lt: "が次より短い"
+            gt: "が次より長い"
+            note: "ソロのタイムのみ – ソロタイムのないパズルは対象外です。"
         pieces:
             label: "ピース数"
             custom: "範囲を指定："
@@ -3143,6 +3171,12 @@ puzzle_picker:
         brand:
             label: "ブランド"
             placeholder: "すべてのブランド"
+        community:
+            label: "コミュニティの結果"
+            any: "指定なし"
+            few: "結果が少ない（%count%件以下）– 開拓者になろう"
+            rated: "レーティング対象（%count%件以上）"
+            popular: "人気（%count%件以上）"
         budget:
             label: "使える時間"
             i_have: "だいたい"
@@ -3171,6 +3205,25 @@ puzzle_picker:
         solved:
             never: "未完成"
             before: "完成済み"
+            exact: "完成%count%回"
+            between: "完成%min%〜%max%回"
+            at_least: "完成%min%回以上"
+            at_most: "完成%max%回以下"
+        since:
+            d: "直近%count%日は未完成"
+            w: "直近%count%週間は未完成"
+            m: "直近%count%か月は未完成"
+        since_solved:
+            d: "完成済みだが直近%count%日は未完成"
+            w: "完成済みだが直近%count%週間は未完成"
+            m: "完成済みだが直近%count%か月は未完成"
+        my_time:
+            fastest_lt: "最速%minutes%分未満"
+            fastest_gt: "最速%minutes%分超"
+            latest_lt: "最新%minutes%分未満"
+            latest_gt: "最新%minutes%分超"
+            first_lt: "初回%minutes%分未満"
+            first_gt: "初回%minutes%分超"
         pieces:
             exact: "%count%ピース"
             between: "%min%〜%max%ピース"
@@ -3178,6 +3231,11 @@ puzzle_picker:
             at_most: "%max%ピース以下"
         brand: "ブランド"
         include_lent_out: "貸出中を含む"
+        collection: "コレクション"
+        community:
+            few: "結果が少ない（%count%件以下）"
+            rated: "レーティング対象（%count%件以上）"
+            popular: "人気（%count%件以上）"
         remove: "このフィルターを外す"
         predicted_max: "%minutes%分以内"
         gap:
@@ -3191,6 +3249,11 @@ puzzle_picker:
     presets:
         label: "プリセット："
         beat_my_record: "自己ベスト更新"
+        surprise_me: "おまかせ"
+        something_new: "新しいもの"
+        quick_one: "サクッと1つ"
+        dust_off: "棚のほこりを払う"
+        rating_grind: "レーティング稼ぎ"
     results:
         matching: "該当パズル%total%件中%shown%件"
         pick_another: "別のパズルを選ぶ"

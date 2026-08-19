@@ -22,7 +22,7 @@ use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
 final class PlayerStatisticsResponse
 {
     public function __construct(
-        public string $player_id,
+        public string $playerId,
         public StatisticsGroupResponse $solo,
         public StatisticsGroupResponse $duo,
         public StatisticsGroupResponse $team,

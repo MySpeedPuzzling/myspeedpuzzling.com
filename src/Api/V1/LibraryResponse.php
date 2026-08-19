@@ -61,12 +61,12 @@ final class LibraryResponse
      * @param array<LibraryCollectionResponse> $collections
      */
     public function __construct(
-        public string $player_id,
+        public string $playerId,
         array $collections,
         public LibrarySectionResponse $unsolved,
         public LibrarySectionResponse $wishlist,
-        public LibraryLendBorrowSectionResponse $lend_borrow,
-        public LibrarySellSwapSectionResponse $sell_swap,
+        public LibraryLendBorrowSectionResponse $lendBorrow,
+        public LibrarySellSwapSectionResponse $sellSwap,
         public LibrarySectionResponse $solved,
     ) {
         $this->collections = $collections;

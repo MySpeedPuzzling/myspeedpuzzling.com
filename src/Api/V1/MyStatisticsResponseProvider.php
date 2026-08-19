@@ -34,7 +34,7 @@ final readonly class MyStatisticsResponseProvider implements ProviderInterface
         $team = $this->getPlayerStatistics->team($playerId);
 
         return new MyStatisticsResponse(
-            player_id: $playerId,
+            playerId: $playerId,
             solo: $this->mapStatistics($solo),
             duo: $this->mapStatistics($duo),
             team: $this->mapStatistics($team),
@@ -44,9 +44,9 @@ final readonly class MyStatisticsResponseProvider implements ProviderInterface
     private function mapStatistics(PlayerStatistics $stats): StatisticsGroupResponse
     {
         return new StatisticsGroupResponse(
-            total_seconds: $stats->totalSeconds,
-            total_pieces: $stats->totalPieces,
-            solved_puzzles_count: $stats->solvedPuzzlesCount,
+            totalSeconds: $stats->totalSeconds,
+            totalPieces: $stats->totalPieces,
+            solvedPuzzlesCount: $stats->solvedPuzzlesCount,
         );
     }
 }

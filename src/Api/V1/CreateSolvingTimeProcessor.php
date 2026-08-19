@@ -53,26 +53,26 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
         // Validate the optional round here so an invalid/unknown id surfaces as 404
         // (CompetitionRoundNotFound is a NotFoundHttpException). The handler re-resolves
         // the round to wire it onto the entity.
-        if ($data->round_id !== null) {
-            $this->competitionRoundRepository->get($data->round_id);
+        if ($data->roundId !== null) {
+            $this->competitionRoundRepository->get($data->roundId);
         }
 
-        $finishedAt = $data->finished_at !== null ? new DateTimeImmutable($data->finished_at) : null;
+        $finishedAt = $data->finishedAt !== null ? new DateTimeImmutable($data->finishedAt) : null;
 
         $this->messageBus->dispatch(
             new AddPuzzleSolvingTime(
                 timeId: $timeId,
                 userId: $userId,
-                puzzleId: $data->puzzle_id,
+                puzzleId: $data->puzzleId,
                 competitionId: null,
                 time: $data->time,
                 comment: $data->comment,
                 finishedPuzzlesPhoto: null,
-                groupPlayers: $data->group_players,
+                groupPlayers: $data->groupPlayers,
                 finishedAt: $finishedAt,
-                firstAttempt: $data->first_attempt,
+                firstAttempt: $data->firstAttempt,
                 unboxed: $data->unboxed,
-                roundId: $data->round_id,
+                roundId: $data->roundId,
             ),
         );
 
@@ -81,14 +81,14 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
         $timeSeconds = SolvingTime::fromUserInput($data->time)->seconds;
 
         return new SolvingTimeResponse(
-            time_id: $timeId->toString(),
-            puzzle_id: $data->puzzle_id,
-            time_seconds: $timeSeconds,
-            finished_at: $finishedAt?->format('c'),
-            first_attempt: $data->first_attempt,
+            timeId: $timeId->toString(),
+            puzzleId: $data->puzzleId,
+            timeSeconds: $timeSeconds,
+            finishedAt: $finishedAt?->format('c'),
+            firstAttempt: $data->firstAttempt,
             unboxed: $data->unboxed,
             comment: $data->comment,
-            round_id: $data->round_id,
+            roundId: $data->roundId,
             prediction: $this->predictionBefore($data, $timeSeconds, $timeId->toString()),
         );
     }
@@ -107,7 +107,7 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
     private function predictionBefore(CreateSolvingTimeInput $data, null|int $timeSeconds, string $timeId): null|TimePredictionResponse
     {
         // A non-empty group_players list always makes a duo/team time (or fails in the handler)
-        if ($data->group_players !== [] || $timeSeconds === null) {
+        if ($data->groupPlayers !== [] || $timeSeconds === null) {
             return null;
         }
 
@@ -122,7 +122,7 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
         }
 
         return TimePredictionResponse::fromResult(
-            $this->getPlayerPrediction->forPuzzle($profile->playerId, $data->puzzle_id, excludeTimeId: $timeId),
+            $this->getPlayerPrediction->forPuzzle($profile->playerId, $data->puzzleId, excludeTimeId: $timeId),
         );
     }
 }

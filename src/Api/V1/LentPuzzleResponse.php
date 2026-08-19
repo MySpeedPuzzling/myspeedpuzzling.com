@@ -17,15 +17,15 @@ final class LentPuzzleResponse
     public const string DIRECTION_BORROWED = 'borrowed';
 
     public function __construct(
-        public string $lent_puzzle_id,
+        public string $lentPuzzleId,
         public string $direction,
-        public string $puzzle_id,
-        public string $puzzle_name,
-        public null|string $manufacturer_name,
-        public int $pieces_count,
+        public string $puzzleId,
+        public string $puzzleName,
+        public null|string $manufacturerName,
+        public int $piecesCount,
         public null|string $image,
         public LentPuzzleCounterpartyResponse $counterparty,
-        public string $lent_at,
+        public string $lentAt,
         public null|string $notes,
         public PuzzleStatisticsResponse $statistics,
         public null|PuzzleDifficultyResponse $difficulty,

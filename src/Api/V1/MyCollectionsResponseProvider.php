@@ -38,7 +38,7 @@ final readonly class MyCollectionsResponseProvider implements ProviderInterface
 
         if ($systemItemCount > 0 || $collections === []) {
             $responses[] = new CollectionResponse(
-                collection_id: 'default',
+                collectionId: 'default',
                 name: 'Default Collection',
                 description: null,
                 visibility: 'private',
@@ -47,7 +47,7 @@ final readonly class MyCollectionsResponseProvider implements ProviderInterface
 
         foreach ($collections as $collection) {
             $responses[] = new CollectionResponse(
-                collection_id: $collection->collectionId ?? 'default',
+                collectionId: $collection->collectionId ?? 'default',
                 name: $collection->name,
                 description: $collection->description,
                 visibility: $collection->visibility->value,
@@ -55,7 +55,7 @@ final readonly class MyCollectionsResponseProvider implements ProviderInterface
         }
 
         return new MyCollectionsResponse(
-            player_id: $playerId,
+            playerId: $playerId,
             count: count($responses),
             collections: $responses,
         );

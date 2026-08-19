@@ -34,7 +34,7 @@ final readonly class MyLendBorrowResponseProvider implements ProviderInterface
         $items = $this->itemsFactory->lendBorrow($playerId);
 
         return new LendBorrowResponse(
-            player_id: $playerId,
+            playerId: $playerId,
             count: count($items),
             items: $items,
         );

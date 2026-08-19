@@ -19,7 +19,7 @@ final class PuzzleDifficultyResponse
         public null|float $score,
         public null|string $level,
         public string $confidence,
-        public int $sample_size,
+        public int $sampleSize,
     ) {
     }
 
@@ -29,7 +29,7 @@ final class PuzzleDifficultyResponse
             score: $difficulty->difficultyScore,
             level: $difficulty->difficultyTier?->toApiValue(),
             confidence: $difficulty->confidence->value,
-            sample_size: $difficulty->sampleSize,
+            sampleSize: $difficulty->sampleSize,
         );
     }
 
@@ -43,7 +43,7 @@ final class PuzzleDifficultyResponse
             score: null,
             level: null,
             confidence: MetricConfidence::Insufficient->value,
-            sample_size: 0,
+            sampleSize: 0,
         );
     }
 }

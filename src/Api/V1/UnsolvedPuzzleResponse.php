@@ -14,13 +14,13 @@ namespace SpeedPuzzling\Web\Api\V1;
 final class UnsolvedPuzzleResponse
 {
     public function __construct(
-        public string $puzzle_id,
-        public string $puzzle_name,
-        public null|string $manufacturer_name,
-        public int $pieces_count,
+        public string $puzzleId,
+        public string $puzzleName,
+        public null|string $manufacturerName,
+        public int $piecesCount,
         public null|string $image,
-        public string $added_at,
-        public bool $is_borrowed,
+        public string $addedAt,
+        public bool $isBorrowed,
         public PuzzleStatisticsResponse $statistics,
         public null|PuzzleDifficultyResponse $difficulty,
         public null|TimePredictionResponse $prediction,

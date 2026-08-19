@@ -41,7 +41,7 @@ final readonly class PlayerWishlistResponseProvider implements ProviderInterface
             : [];
 
         return new WishlistResponse(
-            player_id: $playerId,
+            playerId: $playerId,
             count: count($items),
             items: $items,
         );

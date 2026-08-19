@@ -24,7 +24,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 final class AddCollectionItemInput
 {
     #[Assert\NotBlank]
-    public string $puzzle_id = '';
+    public string $puzzleId = '';
 
     #[Assert\Length(max: 500)]
     public null|string $comment = null;

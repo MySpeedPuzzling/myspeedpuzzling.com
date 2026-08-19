@@ -15,8 +15,8 @@ final class CompetitionRoundResponse
     public function __construct(
         public string $id,
         public string $name,
-        public null|string $starts_at,
-        public int $minutes_limit,
+        public null|string $startsAt,
+        public int $minutesLimit,
         public string $category,
         array $puzzles,
     ) {

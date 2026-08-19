@@ -33,7 +33,7 @@ final readonly class MySellSwapResponseProvider implements ProviderInterface
         $items = $this->itemsFactory->sellSwap($profile);
 
         return new SellSwapResponse(
-            player_id: $profile->playerId,
+            playerId: $profile->playerId,
             count: count($items),
             items: $items,
         );

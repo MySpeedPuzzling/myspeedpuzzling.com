@@ -59,18 +59,18 @@ final readonly class MyCollectionItemsResponseProvider implements ProviderInterf
         );
 
         return new MyCollectionItemsResponse(
-            collection_id: $collectionId,
+            collectionId: $collectionId,
             count: count($items),
             items: array_map(
                 static fn(CollectionItemOverview $item) => new CollectionItemResponse(
-                    collection_item_id: $item->collectionItemId,
-                    puzzle_id: $item->puzzleId,
-                    puzzle_name: $item->puzzleName,
-                    manufacturer_name: $item->manufacturerName,
-                    pieces_count: $item->piecesCount,
+                    collectionItemId: $item->collectionItemId,
+                    puzzleId: $item->puzzleId,
+                    puzzleName: $item->puzzleName,
+                    manufacturerName: $item->manufacturerName,
+                    piecesCount: $item->piecesCount,
                     image: $item->image,
                     comment: $item->comment,
-                    added_at: $item->addedAt->format('c'),
+                    addedAt: $item->addedAt->format('c'),
                     statistics: $insights->statistics($item->puzzleId),
                     difficulty: $insights->difficulty($item->puzzleId),
                     prediction: $insights->prediction($item->puzzleId),

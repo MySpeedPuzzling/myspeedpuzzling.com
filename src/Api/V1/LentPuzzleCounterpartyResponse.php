@@ -14,7 +14,7 @@ namespace SpeedPuzzling\Web\Api\V1;
 final class LentPuzzleCounterpartyResponse
 {
     public function __construct(
-        public null|string $player_id,
+        public null|string $playerId,
         public string $name,
     ) {
     }

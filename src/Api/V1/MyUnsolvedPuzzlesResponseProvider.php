@@ -33,7 +33,7 @@ final readonly class MyUnsolvedPuzzlesResponseProvider implements ProviderInterf
         $items = $this->itemsFactory->unsolvedPuzzles($playerId);
 
         return new UnsolvedPuzzlesResponse(
-            player_id: $playerId,
+            playerId: $playerId,
             count: count($items),
             items: $items,
         );

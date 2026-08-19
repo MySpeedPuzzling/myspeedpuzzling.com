@@ -30,16 +30,16 @@ use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
 final class PredictedTimeResponse
 {
     public function __construct(
-        public string $puzzle_id,
-        public null|int $predicted_seconds,
-        public null|int $range_low_seconds,
-        public null|int $range_high_seconds,
-        public bool $is_personalized,
-        public null|int $personal_solve_count,
-        public null|int $last_time_seconds,
-        public null|float $difficulty_score,
-        public null|string $difficulty_level,
-        public null|string $difficulty_confidence,
+        public string $puzzleId,
+        public null|int $predictedSeconds,
+        public null|int $rangeLowSeconds,
+        public null|int $rangeHighSeconds,
+        public bool $isPersonalized,
+        public null|int $personalSolveCount,
+        public null|int $lastTimeSeconds,
+        public null|float $difficultyScore,
+        public null|string $difficultyLevel,
+        public null|string $difficultyConfidence,
     ) {
     }
 
@@ -50,16 +50,16 @@ final class PredictedTimeResponse
     public static function membersOnly(string $puzzleId): self
     {
         return new self(
-            puzzle_id: $puzzleId,
-            predicted_seconds: null,
-            range_low_seconds: null,
-            range_high_seconds: null,
-            is_personalized: false,
-            personal_solve_count: null,
-            last_time_seconds: null,
-            difficulty_score: null,
-            difficulty_level: null,
-            difficulty_confidence: null,
+            puzzleId: $puzzleId,
+            predictedSeconds: null,
+            rangeLowSeconds: null,
+            rangeHighSeconds: null,
+            isPersonalized: false,
+            personalSolveCount: null,
+            lastTimeSeconds: null,
+            difficultyScore: null,
+            difficultyLevel: null,
+            difficultyConfidence: null,
         );
     }
 
@@ -76,16 +76,16 @@ final class PredictedTimeResponse
         null|PuzzleDifficultyResponse $difficulty,
     ): self {
         return new self(
-            puzzle_id: $puzzleId,
-            predicted_seconds: $prediction->predicted_seconds,
-            range_low_seconds: $prediction->range_low_seconds,
-            range_high_seconds: $prediction->range_high_seconds,
-            is_personalized: $prediction->is_personalized,
-            personal_solve_count: $prediction->personal_solve_count,
-            last_time_seconds: $prediction->last_time_seconds,
-            difficulty_score: $difficulty?->score,
-            difficulty_level: $difficulty?->level,
-            difficulty_confidence: $difficulty?->confidence,
+            puzzleId: $puzzleId,
+            predictedSeconds: $prediction->predictedSeconds,
+            rangeLowSeconds: $prediction->rangeLowSeconds,
+            rangeHighSeconds: $prediction->rangeHighSeconds,
+            isPersonalized: $prediction->isPersonalized,
+            personalSolveCount: $prediction->personalSolveCount,
+            lastTimeSeconds: $prediction->lastTimeSeconds,
+            difficultyScore: $difficulty?->score,
+            difficultyLevel: $difficulty?->level,
+            difficultyConfidence: $difficulty?->confidence,
         );
     }
 }

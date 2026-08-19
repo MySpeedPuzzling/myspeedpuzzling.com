@@ -19,22 +19,22 @@ use SpeedPuzzling\Web\Results\PlayerSkillResult;
 final class PlayerSkillResponse
 {
     public function __construct(
-        public int $pieces_count,
+        public int $piecesCount,
         public string $tier,
         public float $percentile,
         public string $confidence,
-        public int $qualifying_puzzles_count,
+        public int $qualifyingPuzzlesCount,
     ) {
     }
 
     public static function fromResult(PlayerSkillResult $skill): self
     {
         return new self(
-            pieces_count: $skill->piecesCount,
+            piecesCount: $skill->piecesCount,
             tier: $skill->skillTier->toApiValue(),
             percentile: $skill->skillPercentile,
             confidence: $skill->confidence->value,
-            qualifying_puzzles_count: $skill->qualifyingPuzzlesCount,
+            qualifyingPuzzlesCount: $skill->qualifyingPuzzlesCount,
         );
     }
 }

@@ -35,7 +35,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 final class CreateSolvingTimeInput
 {
     #[Assert\NotBlank]
-    public string $puzzle_id = '';
+    public string $puzzleId = '';
 
     #[Assert\NotBlank]
     #[Assert\Regex(pattern: '/^\d{1,2}:\d{2}(:\d{2})?$/', message: 'Time must be in format HH:MM:SS or MM:SS')]
@@ -43,14 +43,14 @@ final class CreateSolvingTimeInput
 
     public null|string $comment = null;
 
-    public null|string $finished_at = null;
+    public null|string $finishedAt = null;
 
-    public bool $first_attempt = false;
+    public bool $firstAttempt = false;
 
     public bool $unboxed = false;
 
-    public null|string $round_id = null;
+    public null|string $roundId = null;
 
     /** @var array<string> */
-    public array $group_players = [];
+    public array $groupPlayers = [];
 }

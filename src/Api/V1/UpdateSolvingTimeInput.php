@@ -31,12 +31,12 @@ final class UpdateSolvingTimeInput
 
     public null|string $comment = null;
 
-    public null|string $finished_at = null;
+    public null|string $finishedAt = null;
 
-    public bool $first_attempt = false;
+    public bool $firstAttempt = false;
 
     public bool $unboxed = false;
 
     /** @var array<string> */
-    public array $group_players = [];
+    public array $groupPlayers = [];
 }

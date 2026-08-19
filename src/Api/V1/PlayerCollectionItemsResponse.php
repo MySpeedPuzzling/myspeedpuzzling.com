@@ -28,7 +28,7 @@ final class PlayerCollectionItemsResponse
      * @param array<CollectionItemResponse> $items
      */
     public function __construct(
-        public string $collection_id,
+        public string $collectionId,
         public int $count,
         array $items,
     ) {

@@ -135,7 +135,7 @@ final readonly class PuzzleSearchResponseProvider implements ProviderInterface
             total: $total,
             page: $page,
             limit: $limit,
-            has_more: $page * $limit < $total,
+            hasMore: $page * $limit < $total,
             puzzles: $puzzles,
         );
     }
@@ -164,7 +164,7 @@ final readonly class PuzzleSearchResponseProvider implements ProviderInterface
             total: $total,
             page: $page,
             limit: $limit,
-            has_more: $page * $limit < $total,
+            hasMore: $page * $limit < $total,
             puzzles: $puzzles,
         );
     }

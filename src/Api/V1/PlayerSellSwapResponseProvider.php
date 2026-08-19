@@ -42,7 +42,7 @@ final readonly class PlayerSellSwapResponseProvider implements ProviderInterface
             : [];
 
         return new SellSwapResponse(
-            player_id: $playerId,
+            playerId: $playerId,
             count: count($items),
             items: $items,
         );

@@ -14,11 +14,11 @@ namespace SpeedPuzzling\Web\Api\V1;
 final class LibraryCollectionResponse
 {
     public function __construct(
-        public string $collection_id,
+        public string $collectionId,
         public string $name,
         public null|string $description,
         public string $visibility,
-        public int $item_count,
+        public int $itemCount,
     ) {
     }
 }

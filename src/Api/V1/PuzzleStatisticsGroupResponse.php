@@ -16,10 +16,10 @@ final class PuzzleStatisticsGroupResponse
 {
     public function __construct(
         public int $count,
-        public null|int $fastest_seconds,
-        public null|int $average_seconds,
-        public null|int $slowest_seconds,
-        public null|int $median_seconds,
+        public null|int $fastestSeconds,
+        public null|int $averageSeconds,
+        public null|int $slowestSeconds,
+        public null|int $medianSeconds,
     ) {
     }
 
@@ -27,10 +27,10 @@ final class PuzzleStatisticsGroupResponse
     {
         return new self(
             count: $statistics->count,
-            fastest_seconds: $statistics->fastestSeconds,
-            average_seconds: $statistics->averageSeconds,
-            slowest_seconds: $statistics->slowestSeconds,
-            median_seconds: $statistics->medianSeconds,
+            fastestSeconds: $statistics->fastestSeconds,
+            averageSeconds: $statistics->averageSeconds,
+            slowestSeconds: $statistics->slowestSeconds,
+            medianSeconds: $statistics->medianSeconds,
         );
     }
 }

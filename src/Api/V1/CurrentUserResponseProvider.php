@@ -55,15 +55,15 @@ final readonly class CurrentUserResponseProvider implements ProviderInterface
             bio: $profile->bio,
             facebook: $profile->facebook,
             instagram: $profile->instagram,
-            is_private: $profile->isPrivate,
-            has_active_membership: $profile->activeMembership,
+            isPrivate: $profile->isPrivate,
+            hasActiveMembership: $profile->activeMembership,
             // GetPlayerProfile coalesces a missing/expired membership to the 1970 epoch
             // (GREATEST over COALESCEd columns), so the date is only meaningful - and
             // only exposed - while the membership is active.
-            membership_ends_at: $profile->activeMembership ? $profile->membershipEndsAt?->format('c') : null,
-            time_predictions_opted_out: $profile->timePredictionsOptedOut,
-            ranking_opted_out: $profile->rankingOptedOut,
-            streak_opted_out: $profile->streakOptedOut,
+            membershipEndsAt: $profile->activeMembership ? $profile->membershipEndsAt?->format('c') : null,
+            timePredictionsOptedOut: $profile->timePredictionsOptedOut,
+            rankingOptedOut: $profile->rankingOptedOut,
+            streakOptedOut: $profile->streakOptedOut,
             rating: $showsRanking ? $this->profileInsights->rating($profile->playerId) : null,
             skill: $showsRanking && $this->tokenOwner->isMember() ? $this->profileInsights->skill($profile->playerId) : null,
             badges: $this->profileInsights->badges($profile->playerId),

@@ -61,7 +61,7 @@ final class UnsolvedPuzzlesResponse
      * @param array<UnsolvedPuzzleResponse> $items
      */
     public function __construct(
-        public string $player_id,
+        public string $playerId,
         public int $count,
         array $items,
     ) {

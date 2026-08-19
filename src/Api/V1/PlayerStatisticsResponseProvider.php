@@ -29,14 +29,14 @@ final readonly class PlayerStatisticsResponseProvider implements ProviderInterfa
         $profile = $this->getPlayerProfile->byId($playerId);
 
         $emptyStats = new StatisticsGroupResponse(
-            total_seconds: 0,
-            total_pieces: 0,
-            solved_puzzles_count: 0,
+            totalSeconds: 0,
+            totalPieces: 0,
+            solvedPuzzlesCount: 0,
         );
 
         if ($profile->isPrivate) {
             return new PlayerStatisticsResponse(
-                player_id: $playerId,
+                playerId: $playerId,
                 solo: $emptyStats,
                 duo: $emptyStats,
                 team: $emptyStats,
@@ -48,7 +48,7 @@ final readonly class PlayerStatisticsResponseProvider implements ProviderInterfa
         $team = $this->getPlayerStatistics->team($playerId);
 
         return new PlayerStatisticsResponse(
-            player_id: $playerId,
+            playerId: $playerId,
             solo: $this->mapStatistics($solo),
             duo: $this->mapStatistics($duo),
             team: $this->mapStatistics($team),
@@ -58,9 +58,9 @@ final readonly class PlayerStatisticsResponseProvider implements ProviderInterfa
     private function mapStatistics(PlayerStatistics $stats): StatisticsGroupResponse
     {
         return new StatisticsGroupResponse(
-            total_seconds: $stats->totalSeconds,
-            total_pieces: $stats->totalPieces,
-            solved_puzzles_count: $stats->solvedPuzzlesCount,
+            totalSeconds: $stats->totalSeconds,
+            totalPieces: $stats->totalPieces,
+            solvedPuzzlesCount: $stats->solvedPuzzlesCount,
         );
     }
 }

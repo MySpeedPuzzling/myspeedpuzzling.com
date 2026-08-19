@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\Api\V1;
 final class CollectionResponse
 {
     public function __construct(
-        public string $collection_id,
+        public string $collectionId,
         public string $name,
         public null|string $description,
         public string $visibility,

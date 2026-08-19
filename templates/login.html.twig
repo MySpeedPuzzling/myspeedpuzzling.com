@@ -13,8 +13,6 @@
         <div class="col-lg-6 col-md-8" data-controller="sign-in-link">
             <h1 class="h2">{{ 'auth.login.title'|trans }}</h1>
 
-            <p class="text-muted">{{ 'auth.login.microcopy'|trans }}</p>
-
             {% if app.request.query.get('social') == 'expired' %}
                 <div class="alert alert-warning" role="alert">
                     <i class="ci-time me-2"></i>
@@ -109,6 +107,19 @@
                     {% endif %}
                 </div>
             </div>
+
+            {# The sign-in migration notice (issue #147), formerly a site-wide strip
+               above the navbar. This page is only reached with native login ON, so it
+               always carries the "changed" wording. Deliberately quiet: a footnote under
+               the card for anyone whose password manager still files the password under
+               the old Auth0 domain. Retires with the flag. #}
+            {% if sign_in_changes_notice_enabled %}
+                <p class="fs-xs text-muted mb-0">
+                    {{ 'sign_in_changes.notice.text_changed'|trans }}
+                    {{ 'sign_in_changes.notice.text_extra_changed'|trans }}
+                    <a href="{{ path('sign_in_changes') }}">{{ 'sign_in_changes.notice.link'|trans }}</a>
+                </p>
+            {% endif %}
 
             {# Carries the address the user typed (mirrored by the Stimulus controller);
                without JavaScript it carries the last attempted one, and an empty value

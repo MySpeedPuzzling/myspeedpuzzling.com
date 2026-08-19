@@ -41,6 +41,7 @@ final class CollectionDetailControllerTest extends WebTestCase
     public function testOwnCollectionPagesLinkToThePuzzlePicker(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects(); // picker draw URLs redirect once to carry their seed
 
         // Guest: no button
         $crawler = $browser->request('GET', '/en/collection/' . CollectionFixture::COLLECTION_PUBLIC);
@@ -78,6 +79,7 @@ final class CollectionDetailControllerTest extends WebTestCase
         // The deep link really lands on a picker restricted to that collection
         self::ensureKernelShutdown();
         $browser = self::createClient();
+        $browser->followRedirects(); // picker draw URLs redirect once to carry their seed
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $crawler = $browser->request('GET', '/en/what-to-solve-next?collections%5B0%5D=' . CollectionFixture::COLLECTION_STRIPE_TREFL);
         $this->assertResponseIsSuccessful();

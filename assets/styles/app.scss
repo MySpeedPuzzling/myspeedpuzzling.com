@@ -63,7 +63,6 @@
 
 @import "flag-icons/sass/flag-icons";
 
-
 body {
     display: flex;
     flex-direction: column;
@@ -423,7 +422,6 @@ td.rank {
     width: 100%;
     display: block;
 }
-
 
 .wjpc-search {
     height: 55px;
@@ -809,6 +807,13 @@ canvas {
     }
 }
 
+// Scrolling inside a modal must never chain to the page: in the installed PWA the first
+// upward swipe at the top of a long modal body otherwise triggers pull-to-refresh.
+.modal,
+.modal-body {
+    overscroll-behavior-y: contain;
+}
+
 .modal-barcode-scan {
     background: #fff;
     padding: 5px;
@@ -1065,53 +1070,6 @@ header {
 
     @media (min-width: 768px) {
         top: 101px;
-    }
-}
-
-// Advance notice of the sign-in migration (issue #147), same look as the
-// .competition-panel-info strip above. It is the first child of the fixed
-// header, so it makes the header taller - main's padding-top is corrected for
-// that in base.html.twig, next to the script that hides a dismissed notice.
-.sign-in-changes-notice {
-    background: $primary;
-    color: #fff;
-    font-size: 12px;
-    padding: 5px 15px;
-    text-align: center;
-
-    .container {
-        position: relative;
-        padding-right: 30px;
-    }
-
-    a {
-        color: #fff;
-        text-decoration: underline;
-        font-weight: bold;
-    }
-}
-
-// Reserves the height of the strip above without showing it twice
-.sign-in-changes-notice-spacer {
-    visibility: hidden;
-    pointer-events: none;
-}
-
-.sign-in-changes-notice-close {
-    position: absolute;
-    top: 50%;
-    right: 0;
-    transform: translateY(-50%);
-    padding: 0 6px;
-    border: 0;
-    background: transparent;
-    color: #fff;
-    font-size: 18px;
-    line-height: 1;
-    opacity: .8;
-
-    &:hover {
-        opacity: 1;
     }
 }
 

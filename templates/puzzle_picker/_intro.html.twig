@@ -1,23 +1,13 @@
 {# The intro state of the signed-in tool (bare visit): no puzzle yet. A friendly nudge to pick a
-   preset, set filters, or let the wheel decide. With remembered filters the primary CTA draws with
-   them and "Surprise me" is the secondary one. Expects: criteria, next_seed, filters_remembered #}
+   preset, set filters, or let the wheel decide. Expects: next_seed #}
 {% set surprise_params = constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerPreset::SurpriseMe').queryParams|merge({seed: next_seed}) %}
 <div class="card card-body shadow text-center p-4 p-md-5 mb-4 puzzle-picker-intro">
     <div class="display-5 text-primary mb-2"><i class="bi bi-shuffle"></i></div>
     <h2 class="h4 mb-2">{{ 'puzzle_picker.intro.title'|trans }}</h2>
     <p class="text-muted mb-4 mx-auto" style="max-width: 34rem;">{{ 'puzzle_picker.intro.text'|trans }}</p>
     <div class="d-flex flex-wrap justify-content-center gap-2">
-        {% if filters_remembered|default(false) or not criteria.isDefault %}
-            <a class="btn btn-primary btn-lg puzzle-picker-intro-pick" rel="nofollow" href="{{ path('puzzle_picker', criteria.toQueryParams(next_seed)) }}">
-                <i class="bi bi-dice-5 me-1"></i>{{ 'puzzle_picker.intro.pick_with_filters'|trans }}
-            </a>
-            <a class="btn btn-outline-primary btn-lg puzzle-picker-intro-surprise" rel="nofollow" href="{{ path('puzzle_picker', surprise_params) }}">
-                <i class="bi bi-shuffle me-1"></i>{{ 'puzzle_picker.presets.surprise_me'|trans }}
-            </a>
-        {% else %}
-            <a class="btn btn-primary btn-lg puzzle-picker-intro-surprise" rel="nofollow" href="{{ path('puzzle_picker', surprise_params) }}">
-                <i class="bi bi-shuffle me-1"></i>{{ 'puzzle_picker.presets.surprise_me'|trans }}
-            </a>
-        {% endif %}
+        <a class="btn btn-primary btn-lg puzzle-picker-intro-surprise" rel="nofollow" href="{{ path('puzzle_picker', surprise_params) }}">
+            <i class="bi bi-shuffle me-1"></i>{{ 'puzzle_picker.presets.surprise_me'|trans }}
+        </a>
     </div>
 </div>

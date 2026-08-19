@@ -26,24 +26,16 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * One public route, two experiences: signed-in players get the tool (their
  * shelf, their history, their filters); guests get an indexable landing page
  * with a live demo drawn from all approved puzzles. The seed is generated
- * server-side and never redirected into the URL, so the bare URL stays the
- * canonical one — it only travels in the "Pick another" links.
+ * server-side; the bare (canonical) URL never gets it, signed-in draw URLs are
+ * redirected once to carry it, so back navigation reproduces the draw.
  *
  * Insights layer: members get difficulty tiers and specific collections;
  * members who have not opted out of time predictions additionally get the
  * prediction row on the card and the gap / order / personal-budget filters.
  * Non-eligible input is stripped by the criteria, so the gating lives in one place.
- *
- * Remembered filters: for signed-in players the last used filters are kept in
- * the session (`puzzle_picker.filters`) after every request that carries query
- * parameters, and applied again on a bare visit — rendered on the bare URL, no
- * redirect, with a "Reset" link to `?reset=1` that forgets them. Guests never
- * touch the session: anonymous requests must stay session-free.
  */
 final class PuzzlePickerController extends AbstractController
 {
-    public const string SESSION_KEY = 'puzzle_picker.filters';
-
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetPuzzlePickerSuggestions $getPuzzlePickerSuggestions,
@@ -78,37 +70,17 @@ final class PuzzlePickerController extends AbstractController
             insightsAllowed: $insightsAllowed,
             predictionsAllowed: $predictionsAllowed,
         );
-        $filtersRemembered = false;
-
-        if ($profile !== null) {
-            $session = $request->getSession();
-
-            if ($request->query->has('reset')) {
-                $session->remove(self::SESSION_KEY);
-            } elseif ($request->query->count() === 0) {
-                $stored = $session->get(self::SESSION_KEY);
-
-                if (is_array($stored) && $stored !== []) {
-                    $criteria = PuzzlePickerCriteria::fromQuery($stored, true, $insightsAllowed, $predictionsAllowed);
-                    $filtersRemembered = $criteria->isDefault() === false;
-                }
-            } else {
-                // Any query string is a filter change (chips, form, presets, spin) - remember it
-                // without the seed; a return to the bare defaults forgets the previous filters
-                $filters = $criteria->withSeed(null)->toQueryParams();
-
-                if ($filters === []) {
-                    $session->remove(self::SESSION_KEY);
-                } else {
-                    $session->set(self::SESSION_KEY, $filters);
-                }
-            }
+        // A signed-in draw without a seed (preset link, filter form) gets its seed into the
+        // address bar first: the browser's back button and the cards' return links must land on
+        // the very same puzzle again. Guests keep the server-side seed (cacheable demo).
+        if ($profile !== null && $criteria->seed === null && $request->query->count() > 0) {
+            return $this->redirectToRoute('puzzle_picker', $criteria->toQueryParams(self::generateSeed()));
         }
 
         $seed = $criteria->seed ?? self::generateSeed();
 
         // A signed-in player's bare visit is the intro: no draw yet, just the presets, the
-        // filters (remembered ones included) and a "Surprise me" CTA - the first puzzle should
+        // filters and a "Surprise me" CTA - the first puzzle should
         // be something the player asked for, not something that appeared. Any query string
         // (preset, filters, seed) is a draw. Guests keep the landing demo.
         $intro = $profile !== null && $request->query->count() === 0;
@@ -151,10 +123,6 @@ final class PuzzlePickerController extends AbstractController
             'collection_names' => $collectionNames,
             'presets' => PuzzlePickerPreset::cases(),
             'active_preset' => $criteria->activePreset(),
-            'filters_remembered' => $filtersRemembered,
-            'reset_url' => $profile !== null
-                ? $this->generateUrl('puzzle_picker', ['reset' => 1])
-                : $this->generateUrl('puzzle_picker'),
         ]);
     }
 

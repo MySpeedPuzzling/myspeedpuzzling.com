@@ -23,8 +23,8 @@ export default class extends Controller {
             return;
         }
 
-        // The header changes height on its own: the mobile menu expands, the
-        // announcement strip is dismissed, fonts swap in, the viewport rotates
+        // The header changes height on its own: the mobile menu expands, fonts
+        // swap in, the viewport rotates
         this.observer = new ResizeObserver(() => this.publish());
         this.observer.observe(this.element);
     }

@@ -2854,12 +2854,9 @@ fair_use_policy:
   "did_you_notice": "¿Te has fijado alguna vez en que iniciar sesión en MySpeedPuzzling no ocurre en realidad en myspeedpuzzling.com? Mira la barra de direcciones la próxima vez que inicies sesión: pone <strong>%old_domain%</strong>. Eso es Auth0, un servicio de inicio de sesión externo que usamos desde el primer día."
   "timing": "Todavía no ha cambiado nada y no tienes que preparar nada. El cambio está previsto para las próximas semanas, y te enviaremos un email antes de que ocurra."
   "notice":
-    "text": "El inicio de sesión se traslada pronto a myspeedpuzzling.com."
-    "text_extra": "El mismo email y la misma contraseña, pero se te cerrará la sesión una vez."
     "text_changed": "El inicio de sesión se ha trasladado a myspeedpuzzling.com."
     "text_extra_changed": "El mismo email y la misma contraseña — si tu gestor de contraseñas no la ofrece, busca en él \"speedpuzzling\" o \"auth0\"."
     "link": "¿Qué cambia y por qué?"
-    "dismiss": "Cerrar"
   "why":
     "heading": "Por qué lo trasladamos"
     "p1": "Auth0 fue la elección correcta al principio. Hacer bien un sistema de inicio de sesión —contraseñas, restablecimientos, sesiones, seguridad— lleva meses de trabajo, y dejárselo a Auth0 nos permitió dedicar esos meses a funciones para puzzles. MySpeedPuzzling pasó de ser un pequeño proyecto paralelo a ser una comunidad mientras Auth0 se encargaba de la pantalla de inicio de sesión."
@@ -2909,7 +2906,6 @@ fair_use_policy:
 "auth":
   "login":
     "title": "Iniciar sesión"
-    "microcopy": "Nueva pantalla de inicio de sesión, la misma cuenta de siempre. Usa el mismo correo electrónico y la misma contraseña que antes, o recibe un enlace de acceso por correo."
     "email": "Correo electrónico"
     "password": "Contraseña"
     "submit": "Iniciar sesión"
@@ -3142,7 +3138,6 @@ puzzle_picker:
         title: "¿Qué puzzle armar ahora? – Selector de puzzles"
         description: "¿No sabes qué puzzle armar a continuación? Dile al selector qué te apetece – número de piezas, marca, algo nuevo o ya armado – y sacará un puzzle de tu propia estantería, con tus tiempos y la media de la comunidad."
     title: "¿Qué puzzle armar ahora?"
-    subtitle: "Dime qué te apetece y elegiré de tu estantería."
     menu_label: "¿Y ahora qué?"
     pick_from_collection: "Elegir de esta colección"
     filters:
@@ -3150,8 +3145,6 @@ puzzle_picker:
         title: "Filtros"
         apply: "Elegir un puzzle"
         reset: "Quitar filtros"
-        remembered: "Tus últimos filtros"
-        remembered_title: "Son los filtros de la última vez, aplicados automáticamente. Quítalos para empezar de cero."
         guest_note: "Inicia sesión para elegir de tu propia estantería e historial."
         source:
             label: "De dónde elegir"

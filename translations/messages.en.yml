@@ -3141,12 +3141,9 @@ sign_in_changes:
     did_you_notice: "Have you ever noticed that signing in to MySpeedPuzzling does not actually happen on myspeedpuzzling.com? Look at the address bar the next time you sign in — it says <strong>%old_domain%</strong>. That is Auth0, an external sign-in service we have used since the very beginning."
     timing: "Nothing has changed yet, and there is nothing to prepare. The switch is planned for the coming weeks, and we will send you an email before it happens."
     notice:
-        text: "Sign-in is moving to myspeedpuzzling.com soon."
-        text_extra: "Same email and password — but you will be signed out once."
         text_changed: "Sign-in has moved to myspeedpuzzling.com."
         text_extra_changed: "Same email and password — if yours is not offered, search your password manager for \"speedpuzzling\" or \"auth0\"."
         link: "What is changing and why?"
-        dismiss: "Dismiss"
     why:
         heading: "Why we are moving it"
         p1: "Auth0 was the right choice at the start. Building sign-in properly — passwords, resets, sessions, security — takes months of work, and letting Auth0 do it meant we could spend those months on puzzle features instead. MySpeedPuzzling grew from a small side project into a community while Auth0 handled the sign-in screen."
@@ -3196,7 +3193,6 @@ sign_in_changes:
 auth:
     login:
         title: "Sign in"
-        microcopy: "New sign-in screen, same account. Use the same email and password as before — or get a sign-in link by email."
         email: "Email"
         password: "Password"
         submit: "Sign in"
@@ -3429,7 +3425,6 @@ puzzle_picker:
         title: "What should I solve next? – Puzzle picker"
         description: "Can't decide which jigsaw puzzle to do next? Tell the picker your mood – piece count, brand, something new or already solved – and it draws one puzzle from your own shelf, together with your times and the community average."
     title: "What should I solve next?"
-    subtitle: "Tell me the mood, I'll pick from your shelf."
     menu_label: "What next?"
     pick_from_collection: "Pick from this collection"
     filters:
@@ -3437,8 +3432,6 @@ puzzle_picker:
         title: "Filters"
         apply: "Pick a puzzle"
         reset: "Reset filters"
-        remembered: "Your last filters"
-        remembered_title: "These are the filters you used last time – applied automatically. Reset to start fresh."
         guest_note: "Sign in to pick from your own shelf and history."
         source:
             label: "Where to pick from"

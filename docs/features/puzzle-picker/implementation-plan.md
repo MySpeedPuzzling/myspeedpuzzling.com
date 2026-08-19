@@ -148,7 +148,7 @@ The controller computes `insightsAllowed` / `predictionsAllowed` once and hands 
   personal vs. community budget; tier filter; criteria stripping for non-member / opted-out / guest;
   controller: member, non-member, guest, opted-out member markup.
 
-## PR 3 — Precision filters, collection targeting, remembered filters, presets
+## PR 3 — Precision filters, collection targeting, presets (+ remembered filters, since removed)
 
 Everything free unless said otherwise; the criteria strip what a guest / non-member may not use.
 
@@ -188,17 +188,11 @@ Everything free unless said otherwise; the criteria strip what a guest / non-mem
   modal button, no button for guests) otherwise. `collections/detail.html.twig` got "Pick from this
   collection" (`.puzzle-picker-collection-link`) on the viewer's own collections: members deep-link with
   `collections[]=<id|sentinel>`, non-members get `?source=mine`.
-- **Remembered filters (session)**: `PuzzlePickerController::SESSION_KEY = 'puzzle_picker.filters'`.
-  Signed-in players only — guests never touch the session (`$request->getSession()` is only called when
-  the profile is not null; a test pins "no cookie, session not started" for guest requests). Any request
-  with a query string (chips, form, presets, spin, even a seed-only URL) stores
-  `criteria->withSeed(null)->toQueryParams()`, an empty result removes the key. A bare visit with a stored
-  value builds the criteria from it (`PuzzlePickerCriteria::fromQuery()`), renders on the bare URL without
-  a redirect, shows a "Your last filters" marker (`.puzzle-picker-remembered`) and the "Reset" link
-  (`.puzzle-picker-reset`) points to `?reset=1`, which removes the key and renders the defaults (no
-  redirect). The modal footer / empty-state reset links use the same `reset_url` (bare URL for guests).
-  The empty state's "Pick from all puzzles" now keeps the other filters and only widens the source
-  (collections dropped, since they imply the shelf).
+- **Remembered filters (session)**: shipped here, **removed 2026-08-19** (follow-up on `main`, Jan's call) —
+  the URL is the only state, presets cover the common moods, reset = the bare URL everywhere; the picker
+  never touches the session (guests and players alike — a test pins "no cookie, no session" for guests and
+  "a bare visit never carries previous filters" for players). The empty state's "Pick from all puzzles"
+  keeps the other filters and only widens the source (collections dropped, since they imply the shelf).
 - **Presets** (`PuzzlePickerPreset` enum, rendered from `presets` + `active_preset` passed by the
   controller): Surprise me (`source=mine`), Something new (`source=mine&solved=never`), Quick one
   (`predicted_max=60`), Dust off the shelf (`since=6&since_unit=m&since_require_solved=1`), Rating grind

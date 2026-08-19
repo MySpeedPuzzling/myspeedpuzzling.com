@@ -21,6 +21,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testGuestGetsTheIndexableLandingPageWithADemoCard(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
 
         $crawler = $browser->request('GET', '/en/what-to-solve-next');
 
@@ -57,6 +58,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testEveryLocalePathIsServed(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
 
         foreach (['/co-skladat-dal', '/en/what-to-solve-next', '/es/que-puzzle-armar', '/fr/quel-puzzle-faire', '/de/welches-puzzle-als-naechstes', '/ja/' . rawurlencode('次のパズル')] as $path) {
             $browser->request('GET', $path);
@@ -69,6 +71,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testAnyQueryParameterMakesThePageNoindexButKeepsTheCanonical(string $query): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
 
         $browser->request('GET', '/en/what-to-solve-next?' . $query);
 
@@ -94,6 +97,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testFilterAndSpinLinksAreNofollowAndTheSeedNeverLeaksIntoTheBareUrl(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
 
         $crawler = $browser->request('GET', '/en/what-to-solve-next?pieces[]=500&brand[]=' . ManufacturerFixture::MANUFACTURER_TREFL);
 
@@ -123,6 +127,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testSignedInPlayerGetsTheToolWithTheirOwnData(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
         $crawler = $browser->request('GET', '/en/what-to-solve-next?seed=abcd1234');
@@ -158,6 +163,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testEmptyStateWhenNothingMatches(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
         // Everything on PLAYER_REGULAR's shelf is solved
@@ -168,14 +174,19 @@ final class PuzzlePickerControllerTest extends WebTestCase
 
         self::assertCount(0, $crawler->filter('.puzzle-picker-card'));
         self::assertStringContainsString('Nothing matches these filters', $content);
-        // Reset forgets the remembered filters (?reset=1); "all puzzles" keeps the mood and only widens the pool
-        self::assertCount(1, $crawler->filter('.card a[href="/en/what-to-solve-next?reset=1"]:contains("Reset filters")'));
-        self::assertCount(1, $crawler->filter('.card a[href="/en/what-to-solve-next?solved=never&source=any"]:contains("Pick from all puzzles")'));
+        // Reset is the bare URL; "all puzzles" keeps the mood and only widens the pool
+        self::assertCount(1, $crawler->filter('.card a[href="/en/what-to-solve-next"]:contains("Reset filters")'));
+        $widen = $crawler->filter('.card a:contains("Pick from all puzzles")');
+        self::assertCount(1, $widen);
+        self::assertStringContainsString('solved=never', (string) $widen->attr('href'));
+        self::assertStringContainsString('source=any', (string) $widen->attr('href'));
+        self::assertStringContainsString('seed=', (string) $widen->attr('href'), 'Widening keeps the seed');
     }
 
     public function testBorrowedPuzzlesAreTheShelfOfAPlayerWithoutCollectionItems(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
 
         $crawler = $browser->request('GET', '/en/what-to-solve-next?seed=abcd1234');
@@ -193,6 +204,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testGuestPersonalFiltersAreIgnored(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
 
         $crawler = $browser->request('GET', '/en/what-to-solve-next?source=mine&solved=never&lent=1');
 
@@ -204,6 +216,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testEntryPointsLinkToThePicker(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
 
         $crawler = $browser->request('GET', '/en/puzzle');
         $this->assertResponseIsSuccessful();
@@ -224,6 +237,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testStaticSitemapContainsThePickerInEveryLocale(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
 
         $browser->request('GET', '/sitemap-static.xml');
 
@@ -242,6 +256,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testMemberSeesDifficultyAndTheirPredictionOnTheCard(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $this->recalculateIntelligence($browser);
 
@@ -287,6 +302,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testMemberInsightsFiltersAreAppliedAndShownAsChips(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $this->recalculateIntelligence($browser);
 
@@ -325,6 +341,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testNonMemberGetsOneLockedPredictionRowPerCardAndALockedInsightsGroup(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
         $this->recalculateIntelligence($browser);
 
@@ -364,6 +381,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testGuestSeesNeitherPredictionNorLockOnTheCards(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
 
         $crawler = $browser->request('GET', '/en/what-to-solve-next?gap=slower&difficulty[]=3&order=gap_slower&predicted_max=60');
 
@@ -388,6 +406,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testMemberWhoOptedOutOfPredictionsKeepsDifficultyButGetsNoPrediction(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $this->recalculateIntelligence($browser);
 
@@ -428,12 +447,13 @@ final class PuzzlePickerControllerTest extends WebTestCase
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Precision filters, collections, remembered filters, presets
+    // Precision filters, collections, presets
     // ---------------------------------------------------------------------------------------------
 
     public function testPrecisionFiltersRenderAsChipsAndFillTheForm(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
         $crawler = $browser->request('GET', '/en/what-to-solve-next?source=any&lent=1&solved_min=2&solved_max=5&since=6&since_unit=m&since_require_solved=1&my_time=fastest&my_time_op=gt&my_time_minutes=45&community=few&seed=abcd1234');
@@ -482,6 +502,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testFreePresetsAreLinksAndTheActiveOneIsHighlighted(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
         $crawler = $browser->request('GET', '/en/what-to-solve-next');
@@ -526,6 +547,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testTheSeededUrlReproducesTheSameDraw(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
 
         $crawler = $browser->request('GET', '/en/what-to-solve-next?pieces[]=500&seed=abcd1234');
         $this->assertResponseIsSuccessful();
@@ -536,77 +558,23 @@ final class PuzzlePickerControllerTest extends WebTestCase
         self::assertSame($first, $again->filter('.puzzle-picker-card a.h5')->first()->attr('href'), 'Same seed, same first card');
     }
 
-    public function testFiltersAreRememberedInTheSessionAndResetForgetsThem(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-
-        // A filtered visit ...
-        $crawler = $browser->request('GET', '/en/what-to-solve-next?pieces[]=500&solved=before&seed=abcd1234');
-        $this->assertResponseIsSuccessful();
-        self::assertEqualsCanonicalizing(['My collection', 'Solved before', '500 pieces'], self::chipLabels($crawler));
-        self::assertCount(0, $crawler->filter('.puzzle-picker-remembered'));
-        self::assertStringContainsString('of 3 matching puzzles', (string) $browser->getResponse()->getContent());
-
-        // ... is applied again on the bare URL - no redirect, marker + reset link, seed not remembered
-        $crawler = $browser->request('GET', '/en/what-to-solve-next');
-        $this->assertResponseIsSuccessful();
-        self::assertSame('/en/what-to-solve-next', $browser->getRequest()->getRequestUri());
-        self::assertEqualsCanonicalizing(['My collection', 'Solved before', '500 pieces'], self::chipLabels($crawler));
-        self::assertCount(1, $crawler->filter('.puzzle-picker-remembered'));
-        self::assertStringContainsString('Your last filters', $crawler->filter('.puzzle-picker-remembered')->text());
-        self::assertCount(1, $crawler->filter('.puzzle-picker-filter-bar a.puzzle-picker-reset[href="/en/what-to-solve-next?reset=1"]'));
-        self::assertCount(1, $crawler->filter('#puzzlePickerFilters input[name="pieces[]"][value="500"][checked]'));
-        self::assertCount(1, $crawler->filter('#puzzlePickerFilters input[name="solved"][value="before"][checked]'));
-        self::assertStringContainsString('<meta name="robots" content="index, follow">', (string) $browser->getResponse()->getContent(), 'Still the bare canonical URL');
-
-        // The bare visit is the intro (no draw yet); its primary CTA draws with the remembered filters
-        self::assertCount(1, $crawler->filter('.puzzle-picker-intro'));
-        self::assertCount(0, $crawler->filter('.puzzle-picker-card'));
-        $spin = $crawler->filter('a.puzzle-picker-intro-pick');
-        self::assertCount(1, $spin);
-        self::assertStringContainsString('pieces', (string) $spin->attr('href'), 'Drawing from the intro keeps the remembered filters');
-        self::assertStringContainsString('seed=', (string) $spin->attr('href'));
-        self::assertStringNotContainsString('abcd1234', (string) $spin->attr('href'));
-        self::assertCount(1, $crawler->filter('a.puzzle-picker-intro-surprise[href^="/en/what-to-solve-next?source=mine&seed="]'));
-
-        // Changing a filter replaces the memory
-        $crawler = $browser->request('GET', '/en/what-to-solve-next?pieces[]=1000');
-        $crawler = $browser->request('GET', '/en/what-to-solve-next');
-        self::assertEqualsCanonicalizing(['My collection', '1000 pieces'], self::chipLabels($crawler));
-
-        // Reset forgets it and renders the defaults; the next bare visit is bare again
-        $crawler = $browser->request('GET', '/en/what-to-solve-next?reset=1');
-        $this->assertResponseIsSuccessful();
-        self::assertEqualsCanonicalizing(['My collection'], self::chipLabels($crawler));
-        self::assertCount(0, $crawler->filter('.puzzle-picker-remembered'));
-        self::assertCount(0, $crawler->filter('.puzzle-picker-filter-bar a.puzzle-picker-reset'));
-        self::assertStringContainsString('of 7 matching puzzles', (string) $browser->getResponse()->getContent());
-
-        $crawler = $browser->request('GET', '/en/what-to-solve-next');
-        self::assertEqualsCanonicalizing(['My collection'], self::chipLabels($crawler));
-        self::assertCount(0, $crawler->filter('.puzzle-picker-remembered'));
-
-        // Removing the last chip (a seed-only URL) forgets too - what you see is what is remembered
-        $browser->request('GET', '/en/what-to-solve-next?solved=before');
-        $browser->request('GET', '/en/what-to-solve-next?seed=abcd1234');
-        $crawler = $browser->request('GET', '/en/what-to-solve-next');
-        self::assertEqualsCanonicalizing(['My collection'], self::chipLabels($crawler));
-        self::assertCount(0, $crawler->filter('.puzzle-picker-remembered'));
-    }
-
     public function testSignedInBareVisitIsTheIntroWithASurpriseMeCta(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
         $crawler = $browser->request('GET', '/en/what-to-solve-next');
         $this->assertResponseIsSuccessful();
 
-        // No puzzle yet: presets, the filter button and one primary "Surprise me" CTA
+        // No puzzle yet: presets, the filter button and one primary "Surprise me" CTA; nothing is remembered
         self::assertCount(1, $crawler->filter('.puzzle-picker-intro'));
         self::assertCount(0, $crawler->filter('.puzzle-picker-card'));
-        self::assertCount(0, $crawler->filter('.puzzle-picker-intro-pick'));
+        self::assertCount(0, $crawler->filter('.puzzle-picker-reset'));
+        $browser->request('GET', '/en/what-to-solve-next?pieces[]=500&solved=before');
+        $crawler = $browser->request('GET', '/en/what-to-solve-next');
+        self::assertSame(['My collection'], self::chipLabels($crawler), 'A bare visit never carries previous filters');
+        self::assertCount(1, $crawler->filter('.puzzle-picker-intro'));
         self::assertCount(1, $crawler->filter('.puzzle-picker-presets'));
         self::assertCount(1, $crawler->filter('button[data-bs-target="#puzzlePickerFilters"]'));
         $cta = $crawler->filter('a.puzzle-picker-intro-surprise');
@@ -621,11 +589,33 @@ final class PuzzlePickerControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.puzzle-picker-presets .puzzle-picker-preset.btn-dark[data-preset="surprise_me"]'));
     }
 
+    public function testSignedInDrawWithoutSeedRedirectsToTheSeededUrl(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        // A preset / filter-form URL has no seed yet: one redirect puts it into the address bar,
+        // so the back button and the cards' return links reproduce this very draw
+        $browser->request('GET', '/en/what-to-solve-next?solved=never&pieces[]=500');
+        $this->assertResponseRedirects();
+        $location = (string) $browser->getResponse()->headers->get('Location');
+        self::assertMatchesRegularExpression('#^/en/what-to-solve-next\\?solved=never&pieces%5B0%5D=500&seed=[a-z0-9]{8}$#', $location);
+
+        // The seeded URL renders (no further redirect) and the puzzle-detail link returns to it
+        $crawler = $browser->request('GET', $location);
+        $this->assertResponseIsSuccessful();
+        $detail = $crawler->filter('.puzzle-picker-card a:contains("Puzzle detail")')->first();
+        if ($detail->count() > 0) {
+            self::assertStringContainsString('return=' . rawurlencode($location), (string) $detail->attr('href'));
+        }
+    }
+
     public function testGuestsNeverGetASessionFromThePicker(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
 
-        foreach (['/en/what-to-solve-next', '/en/what-to-solve-next?since=6&since_unit=m&pieces[]=500', '/en/what-to-solve-next?reset=1'] as $url) {
+        foreach (['/en/what-to-solve-next', '/en/what-to-solve-next?since=6&since_unit=m&pieces[]=500'] as $url) {
             $browser->request('GET', $url);
 
             $this->assertResponseIsSuccessful();
@@ -633,17 +623,14 @@ final class PuzzlePickerControllerTest extends WebTestCase
             self::assertFalse($browser->getRequest()->hasSession() && $browser->getRequest()->getSession()->isStarted(), "{$url} must not start a session");
         }
 
-        // ... and are never shown remembered filters; their reset link is the bare URL, not ?reset=1
-        $crawler = $browser->request('GET', '/en/what-to-solve-next');
-        self::assertCount(0, $crawler->filter('.puzzle-picker-remembered'));
         $crawler = $browser->request('GET', '/en/what-to-solve-next?pieces[]=500');
-        self::assertCount(0, $crawler->filter('.puzzle-picker-remembered'));
-        self::assertCount(1, $crawler->filter('.puzzle-picker-filter-bar a.puzzle-picker-reset[href="/en/what-to-solve-next"]'), 'Guest reset link is the bare URL');
+        self::assertCount(1, $crawler->filter('.puzzle-picker-filter-bar a.puzzle-picker-reset[href="/en/what-to-solve-next"]'), 'Reset link is the bare URL');
     }
 
     public function testMemberPicksFromSpecificCollections(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         // System collection (sentinel) + "My Trefl Collection": 1000_02, 500_02, 1000_04, 1000_05
@@ -685,6 +672,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     public function testNonMembersAndGuestsSeeTheCollectionsFilterLocked(): void
     {
         $browser = self::createClient();
+        $browser->followRedirects();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
         // A crafted URL is ignored: the whole shelf, no collection chips
@@ -698,6 +686,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
 
         self::ensureKernelShutdown();
         $browser = self::createClient();
+        $browser->followRedirects();
         $crawler = $browser->request('GET', '/en/what-to-solve-next?collections[]=' . Collection::SYSTEM_ID);
         $this->assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('#puzzlePickerFilters input[name="collections[]"]'));

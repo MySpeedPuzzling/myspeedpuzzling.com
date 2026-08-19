@@ -57,8 +57,10 @@ final class LoginControllerTest extends WebTestCase
         self::assertSame('/login-link', $crawler->filter('form#sign-in-link-form')->attr('action'));
         self::assertCount(0, $crawler->filter('form#sign-in-link-form input[name="password"]'));
 
-        // Persistent migration microcopy
-        self::assertStringContainsString('same email and password', $crawler->filter('main')->text());
+        // The sign-in migration notice lives here now, as a footnote under the card
+        // (it used to be a strip above the navbar on every page)
+        self::assertStringContainsString('Sign-in has moved to myspeedpuzzling.com', $crawler->filter('main')->text());
+        self::assertCount(1, $crawler->filter('main a[href="/en/sign-in-is-moving"]'));
     }
 
     public function testNativeLoginPageStartsNoSessionAndStaysOutOfSharedCaches(): void

@@ -2854,12 +2854,9 @@ qr_code:
   "did_you_notice": "Ist Ihnen schon einmal aufgefallen, dass die Anmeldung bei MySpeedPuzzling gar nicht auf myspeedpuzzling.com stattfindet? Schauen Sie beim nächsten Anmelden in die Adresszeile — dort steht <strong>%old_domain%</strong>. Das ist Auth0, ein externer Anmeldedienst, den wir seit dem allerersten Tag nutzen."
   "timing": "Bisher hat sich nichts geändert, und Sie müssen nichts vorbereiten. Die Umstellung ist für die kommenden Wochen geplant, und wir schicken Ihnen vorher eine E-Mail."
   "notice":
-    "text": "Die Anmeldung zieht bald auf myspeedpuzzling.com um."
-    "text_extra": "Gleiche E-Mail, gleiches Passwort — aber Sie werden einmal abgemeldet."
     "text_changed": "Die Anmeldung ist auf myspeedpuzzling.com umgezogen."
     "text_extra_changed": "Gleiche E-Mail, gleiches Passwort — falls Ihr Passwort-Manager es nicht anbietet, suchen Sie darin nach „speedpuzzling“ oder „auth0“."
     "link": "Was ändert sich und warum?"
-    "dismiss": "Schließen"
   "why":
     "heading": "Warum wir umziehen"
     "p1": "Auth0 war am Anfang die richtige Wahl. Eine Anmeldung ordentlich zu bauen — Passwörter, Zurücksetzen, Sitzungen, Sicherheit — kostet Monate an Arbeit, und weil Auth0 das übernommen hat, konnten wir diese Monate stattdessen in Puzzle-Funktionen stecken. MySpeedPuzzling ist von einem kleinen Nebenprojekt zu einer Community gewachsen, während Auth0 sich um den Anmeldebildschirm gekümmert hat."
@@ -2909,7 +2906,6 @@ qr_code:
 auth:
     login:
         title: "Anmelden"
-        microcopy: "Neue Anmeldeseite, gleiches Konto. Verwenden Sie dieselbe E-Mail-Adresse und dasselbe Passwort wie bisher – oder lassen Sie sich einen Anmeldelink per E-Mail schicken."
         email: "E-Mail"
         password: "Passwort"
         submit: "Anmelden"
@@ -3142,7 +3138,6 @@ puzzle_picker:
         title: "Welches Puzzle als Nächstes? – Puzzle-Auswahl"
         description: "Sie können sich nicht entscheiden, welches Puzzle als Nächstes dran ist? Sagen Sie der Auswahl, wonach Ihnen ist – Teilezahl, Marke, etwas Neues oder schon einmal gelegt – und sie zieht ein Puzzle aus Ihrem eigenen Regal, samt Ihren Zeiten und dem Community-Durchschnitt."
     title: "Welches Puzzle als Nächstes?"
-    subtitle: "Sagen Sie mir, wonach Ihnen ist – ich wähle aus Ihrem Regal."
     menu_label: "Was als Nächstes?"
     pick_from_collection: "Aus dieser Sammlung wählen"
     filters:
@@ -3150,8 +3145,6 @@ puzzle_picker:
         title: "Filter"
         apply: "Puzzle auswählen"
         reset: "Filter zurücksetzen"
-        remembered: "Ihre letzten Filter"
-        remembered_title: "Das sind die Filter vom letzten Mal – automatisch angewendet. Zurücksetzen, um neu zu beginnen."
         guest_note: "Melden Sie sich an, um aus Ihrem eigenen Regal und Ihrer Historie zu wählen."
         source:
             label: "Woraus wählen"

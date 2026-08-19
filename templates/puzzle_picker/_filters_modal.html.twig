@@ -3,7 +3,7 @@
    sign-in note; the "only these collections" list and the "Insights (members)" group are locked
    for non-members and the prediction controls are disabled for members who opted out of
    predictions. The server drops every non-eligible value anyway.
-   Expects: criteria, brand_names, brand_logos (id => raw logo path), collections (member's collections, system first), reset_url #}
+   Expects: criteria, brand_names, brand_logos (id => raw logo path), collections (member's collections, system first) #}
 {% set is_guest = not criteria.isAuthenticated %}
 {% set is_member = criteria.insightsAllowed %}
 {% set predictions_on = criteria.predictionsAllowed %}
@@ -294,7 +294,7 @@
                 </div>
 
                 <div class="modal-footer justify-content-between">
-                    <a class="btn btn-link btn-sm text-muted" rel="nofollow" href="{{ reset_url|default(path('puzzle_picker')) }}">{{ 'puzzle_picker.filters.reset'|trans }}</a>
+                    <a class="btn btn-link btn-sm text-muted" rel="nofollow" href="{{ path('puzzle_picker') }}">{{ 'puzzle_picker.filters.reset'|trans }}</a>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-shuffle me-1"></i>{{ 'puzzle_picker.filters.apply'|trans }}
                     </button>

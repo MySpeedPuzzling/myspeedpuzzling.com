@@ -1,8 +1,6 @@
 {# Filter button + active-filter chips. Every link here is a throw-away variant of the page
-   (noindex), hence rel="nofollow" on all of them. When the filters were restored from the session
-   (bare visit of a signed-in player) a small marker says so - remembered filters must never feel
-   sticky-by-surprise - and "Reset" forgets them (?reset=1). Expects: criteria, brand_names,
-   collection_names, filters_remembered, reset_url #}
+   (noindex), hence rel="nofollow" on all of them. "Reset" is the bare URL.
+   Expects: criteria, brand_names, collection_names #}
 {% set active_filters = criteria.activeFilters %}
 <div class="d-flex flex-wrap align-items-center gap-2 mb-3 puzzle-picker-filter-bar">
     <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#puzzlePickerFilters">
@@ -27,11 +25,8 @@
         </a>
     {% endfor %}
 
-    {% if filters_remembered|default(false) %}
-        <span class="fs-sm text-muted puzzle-picker-remembered" title="{{ 'puzzle_picker.filters.remembered_title'|trans }}"><i class="bi bi-clock-history me-1"></i>{{ 'puzzle_picker.filters.remembered'|trans }}</span>
-    {% endif %}
     {% if not criteria.isDefault %}
-        <a class="btn btn-outline-secondary btn-sm rounded-pill puzzle-picker-reset" rel="nofollow" href="{{ reset_url|default(path('puzzle_picker')) }}">
+        <a class="btn btn-outline-secondary btn-sm rounded-pill puzzle-picker-reset" rel="nofollow" href="{{ path('puzzle_picker') }}">
             <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'puzzle_picker.filters.reset'|trans }}
         </a>
     {% endif %}

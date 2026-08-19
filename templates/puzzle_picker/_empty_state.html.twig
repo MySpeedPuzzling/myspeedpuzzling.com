@@ -1,6 +1,6 @@
 {# Nothing to pick. Two cases: the default view of a player with an empty shelf (nothing to
    filter yet -> add puzzles / widen to all), or filters that leave no candidate (loosen: reset,
-   or keep the filters and widen the pool to every puzzle). Expects: criteria, reset_url #}
+   or keep the filters and widen the pool to every puzzle). Expects: criteria #}
 {% set empty_shelf = criteria.isAuthenticated and criteria.isDefault and criteria.source.value == 'mine' %}
 <div class="row justify-content-center">
     <div class="col-12 col-md-8 col-lg-6">
@@ -21,7 +21,7 @@
                 <h2 class="h5">{{ 'puzzle_picker.empty.nothing_title'|trans }}</h2>
                 <p class="fs-sm text-muted mb-3">{{ 'puzzle_picker.empty.nothing_text'|trans }}</p>
                 <div class="d-flex flex-wrap justify-content-center gap-2">
-                    <a class="btn btn-primary btn-sm" rel="nofollow" href="{{ reset_url|default(path('puzzle_picker')) }}">
+                    <a class="btn btn-primary btn-sm" rel="nofollow" href="{{ path('puzzle_picker') }}">
                         <i class="bi bi-arrow-counterclockwise me-1"></i>{{ 'puzzle_picker.empty.reset'|trans }}
                     </a>
                     {% if criteria.isAuthenticated and criteria.source.value != 'any' %}

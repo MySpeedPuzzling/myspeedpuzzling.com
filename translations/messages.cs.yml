@@ -2852,12 +2852,9 @@ qr_code:
   "did_you_notice": "Všimli jste si někdy, že přihlašování na MySpeedPuzzling se ve skutečnosti neodehrává na myspeedpuzzling.com? Až se budete příště přihlašovat, podívejte se do adresního řádku — je v něm <strong>%old_domain%</strong>. To je Auth0, externí přihlašovací služba, kterou používáme od úplného začátku."
   "timing": "Zatím se nic nezměnilo a není potřeba se na nic připravovat. Přepnutí plánujeme v následujících týdnech a než k němu dojde, pošleme vám e-mail."
   "notice":
-    "text": "Přihlašování se brzy přestěhuje na myspeedpuzzling.com."
-    "text_extra": "E-mail i heslo zůstávají — ale jednou vás odhlásíme."
     "text_changed": "Přihlašování se přestěhovalo na myspeedpuzzling.com."
     "text_extra_changed": "E-mail i heslo zůstávají stejné — pokud vám ho správce hesel nenabídne, vyhledejte v něm „speedpuzzling“ nebo „auth0“."
     "link": "Co se mění a proč?"
-    "dismiss": "Zavřít"
   "why":
     "heading": "Proč to stěhujeme"
     "p1": "Auth0 byla na začátku správná volba. Udělat přihlašování pořádně — hesla, obnovení, relace, bezpečnost — zabere měsíce práce, a když jsme to nechali na Auth0, mohli jsme ty měsíce věnovat funkcím kolem puzzlí. MySpeedPuzzling se z malého vedlejšího projektu rozrostl v komunitu, zatímco přihlašovací obrazovku měl na starosti Auth0."
@@ -2907,7 +2904,6 @@ qr_code:
 auth:
     login:
         title: "Přihlásit se"
-        microcopy: "Nová přihlašovací obrazovka, stejný účet. Použijte stejný e-mail a heslo jako dosud — nebo si nechte poslat přihlašovací odkaz e-mailem."
         email: "E-mail"
         password: "Heslo"
         submit: "Přihlásit se"
@@ -3140,7 +3136,6 @@ puzzle_picker:
         title: "Co skládat dál? – Výběr puzzlí"
         description: "Nevíte, do jakých puzzlí se pustit příště? Řekněte, na co máte náladu – počet dílků, značku, něco nového nebo už poskládaného – a výběr vám vytáhne jedno puzzle z vaší vlastní poličky, i s vašimi časy a průměrem komunity."
     title: "Co skládat dál?"
-    subtitle: "Řekněte, na co máte náladu, a já vyberu z vaší poličky."
     menu_label: "Co dál?"
     pick_from_collection: "Vybrat z této kolekce"
     filters:
@@ -3148,8 +3143,6 @@ puzzle_picker:
         title: "Filtry"
         apply: "Vybrat puzzle"
         reset: "Zrušit filtry"
-        remembered: "Vaše poslední filtry"
-        remembered_title: "Filtry z minula – použily se automaticky. Zrušte je a začněte nanovo."
         guest_note: "Přihlaste se a vybírejte z vlastní kolekce a historie."
         source:
             label: "Odkud vybírat"

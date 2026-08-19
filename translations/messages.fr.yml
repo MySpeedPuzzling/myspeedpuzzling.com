@@ -2856,12 +2856,9 @@ edition:
   "did_you_notice": "Avez-vous déjà remarqué que la connexion à MySpeedPuzzling ne se fait pas vraiment sur myspeedpuzzling.com ? Regardez la barre d'adresse la prochaine fois que vous vous connectez : elle affiche <strong>%old_domain%</strong>. C'est Auth0, un service de connexion externe que nous utilisons depuis les tout débuts."
   "timing": "Rien n'a encore changé et il n'y a rien à préparer. Le basculement est prévu dans les prochaines semaines, et nous vous enverrons un e-mail avant qu'il ait lieu."
   "notice":
-    "text": "La connexion déménage bientôt sur myspeedpuzzling.com."
-    "text_extra": "Même e-mail, même mot de passe — mais vous serez déconnecté une fois."
     "text_changed": "La connexion a déménagé sur myspeedpuzzling.com."
     "text_extra_changed": "Même e-mail, même mot de passe — s'il ne vous est pas proposé, recherchez « speedpuzzling » ou « auth0 » dans votre gestionnaire de mots de passe."
     "link": "Qu'est-ce qui change et pourquoi ?"
-    "dismiss": "Fermer"
   "why":
     "heading": "Pourquoi nous déménageons"
     "p1": "Auth0 était le bon choix au départ. Construire une connexion correctement — mots de passe, réinitialisations, sessions, sécurité — demande des mois de travail, et laisser Auth0 s'en charger nous a permis de consacrer ces mois-là aux fonctionnalités de puzzle. MySpeedPuzzling est passé d'un petit projet parallèle à une communauté pendant qu'Auth0 s'occupait de l'écran de connexion."
@@ -2911,7 +2908,6 @@ edition:
 "auth":
   "login":
     "title": "Se connecter"
-    "microcopy": "Nouvel écran de connexion, même compte. Utilisez la même adresse e-mail et le même mot de passe qu'avant — ou recevez un lien de connexion par e-mail."
     "email": "E-mail"
     "password": "Mot de passe"
     "submit": "Se connecter"
@@ -3144,7 +3140,6 @@ puzzle_picker:
         title: "Quel puzzle faire ensuite ? – Sélecteur de puzzles"
         description: "Vous hésitez sur le prochain puzzle à faire ? Dites au sélecteur ce dont vous avez envie – nombre de pièces, marque, quelque chose de nouveau ou déjà fait – et il tire un puzzle de votre propre étagère, avec vos temps et la moyenne de la communauté."
     title: "Quel puzzle faire ensuite ?"
-    subtitle: "Dites-moi votre humeur, je choisis sur votre étagère."
     menu_label: "Et ensuite ?"
     pick_from_collection: "Choisir dans cette collection"
     filters:
@@ -3152,8 +3147,6 @@ puzzle_picker:
         title: "Filtres"
         apply: "Choisir un puzzle"
         reset: "Réinitialiser les filtres"
-        remembered: "Vos derniers filtres"
-        remembered_title: "Ce sont les filtres de la dernière fois, appliqués automatiquement. Réinitialisez pour repartir de zéro."
         guest_note: "Connectez-vous pour choisir parmi votre propre étagère et votre historique."
         source:
             label: "Où choisir"

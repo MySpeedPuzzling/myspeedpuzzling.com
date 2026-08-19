@@ -128,28 +128,6 @@
             {% endif %}
         {% endblock %}
 
-        {% if sign_in_changes_notice_enabled %}
-            {# The sign-in migration notice is dismissed per browser (localStorage), because
-               the pages it appears on are shared-cacheable for anonymous visitors (#164) and
-               must not gain a session cookie. Hiding it here, before first paint and before
-               the stylesheet, keeps a dismissed notice from flashing in and shifting the page
-               down on every navigation. Inline and dependency-free for the same reason as the
-               asset-failure beacon above: it has to run whether or not the bundles do. #}
-            <script>
-            (function () {
-                try {
-                    {# The key follows the migration phase (see _sign_in_changes_notice.html.twig):
-                       Stage B swaps the wording and the "changed" notice must show once even to
-                       someone who dismissed the "coming" one. #}
-                    if (window.localStorage.getItem('{{ native_login_enabled ? 'sign-in-changes-notice-dismissed-changed' : 'sign-in-changes-notice-dismissed' }}') === '1') {
-                        document.documentElement.className += ' sign-in-changes-notice-dismissed';
-                    }
-                } catch (e) {}
-            })();
-            </script>
-            <style>.sign-in-changes-notice-dismissed .sign-in-changes-notice{display:none}</style>
-        {% endif %}
-
         {# Critical CSS: header styles for instant first paint + hide main/footer until full CSS loads #}
         {# Icon fonts are NOT preloaded on purpose: both are font-display:swap and the
            full files (195KB) at High priority were stealing bandwidth from CSS/LCP. #}
@@ -233,9 +211,6 @@
         {% block header %}
         {% if is_web() %}
         <header class="sticky-top shadow-sm" data-controller="header-height">
-            {% if sign_in_changes_notice_enabled %}
-                {{ include('_sign_in_changes_notice.html.twig') }}
-            {% endif %}
             <div class="topbar topbar-light">
                 <div class="container">
                     <div class="topbar-text text-nowrap">

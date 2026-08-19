@@ -144,9 +144,9 @@ rendered (Twig + Turbo Drive); the only JS is the filter sheet, chips and a tiny
   Optional polish: 300 ms card shuffle animation.
 - **Empty states**: "Your collection is empty → [Add puzzles] · [Pick from all puzzles]";
   "Nothing matches → remove a chip" (chips are the loosening UI); guests → login with `?return=`.
-- **Remember filters**: last used query string is stored in the session (`puzzle_picker.filters`)
-  and auto-applied on a bare visit, with the chips + "Reset" always visible so it never feels
-  sticky-by-surprise. Session, not a player column: cheap, no migration, per-device is fine.
+- **No remembered filters** (shipped in PR 3, removed 2026-08-19 on Jan's call): the URL is the
+  only state — bookmark a combination if you want it back; presets cover the common moods. Keeps one
+  mental model, no session writes from the picker, reset = the bare URL.
 - **No share button** (dropped 2026-08-19): with personal filters a shared seeded URL shows the recipient *their* pick, not yours; the seed stays an internal mechanic (reproducible refresh/back, duplicate-free "5 more").
 - **Entry points** (Jan, 2026-08-19): a very small button next to the H1 on the puzzle overview
   page (`/en/puzzle`, `puzzles.html.twig`), an item in the **My profile** dropdown
@@ -380,7 +380,7 @@ distributions at list scale — out of scope until someone asks for it; noted in
 2. Free vs. members line as in §2 (Insights family + multi-collection + "Beat my record" preset are
    members; everything else free).
 3. "5 more" v1 = over-fetch & reveal; unlimited paging later via Turbo Frames (§4).
-4. Last filters remembered in the **session** and auto-applied on a bare visit (§4).
+4. ~~Last filters remembered in the session~~ — removed again 2026-08-19 (§4).
 5. Collections display persisted as `player.collection_display_mode` (§5) — my times first,
    predictions on top for members.
 6. "Last solved > X" includes never-solved puzzles by default (§3).

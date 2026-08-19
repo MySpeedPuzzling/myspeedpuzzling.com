@@ -26,19 +26,19 @@ This file documents all active feature flags in the codebase — where they are,
   - `src/Controller/LoginController.php` — `/login` renders the native form when ON, hands over to the Auth0 bundle controller when OFF
   - `templates/login.html.twig` — reached only when ON; carries the cutover explainer modal (D15) and the "Create an account" link
   - `src/Controller/RegistrationWelcomeController.php` — while OFF, the welcome screen warns a fresh registrant that being signed out means falling back to the sign-in link; the warning retires when login goes native
-  - `templates/_sign_in_changes_notice.html.twig` + `templates/base.html.twig` (added 2d, 2026-07-30) — the site-wide notice switches from the "coming" to the "changed" wording when this flag turns ON, and the localStorage dismissal key switches with it (`sign-in-changes-notice-dismissed` → `…-dismissed-changed`) so everyone sees the new wording once
+  - ~~`templates/_sign_in_changes_notice.html.twig` + `templates/base.html.twig`~~ (added 2d, 2026-07-30; **removed 2026-08-19**) — the site-wide strip used to switch from the "coming" to the "changed" wording on this flag. The strip is gone; the notice is now a footnote on `templates/login.html.twig`, which is only reached with this flag ON, so it always carries the "changed" wording and no longer branches
 - **Not gated on purpose:** the magic sign-in link (`/login-link`, `/login-link/check`, `/set-password`) is live from Stage A per D6 — it is the rescue for window-A native registrants who log out while `/login` still points at Auth0. The native change-password/change-email cards on profile settings are likewise not flag-gated: `templates/edit-profile.html.twig` branches on whether the session holds a `UserAccount`, so a native account gets the native cards from the day it exists and a legacy Auth0 session keeps the #161 reset-email button until the Stage B import
 - **Remove when:** Phase 6 decommission
 
 ## Sign-in Migration Notice (`SIGN_IN_CHANGES_NOTICE_ENABLED`)
 
-- **Feature:** advance announcement of the Auth0 → native sign-in migration (issue #147) — the site-wide notice pointing at the explainer page
+- **Feature:** announcement of the Auth0 → native sign-in migration (issue #147) — the notice pointing at the explainer page. Until 2026-08-19 it was a dismissable site-wide strip above the navbar (`_sign_in_changes_notice.html.twig`, localStorage dismissal, inline `<head>` hide script, `sign_in_changes_notice_controller.js`, `tests/Panther/SignInChangesNoticeTest.php`); all of that is gone. It is now a quiet `fs-xs text-muted` footnote under the card on the sign-in page, reusing the same `sign_in_changes.notice.text_changed` / `text_extra_changed` / `link` keys (the "coming" `text`/`text_extra` and `dismiss` keys were deleted)
 - **Flag:** env var `SIGN_IN_CHANGES_NOTICE_ENABLED` → Twig global `sign_in_changes_notice_enabled` (`config/packages/twig.php`)
-- **Default:** **ON**, unlike every other flag here. It is announcement copy rather than a feature: it went live ahead of Stage A so nobody meets the change unwarned. The switch exists to retire the notice (~4 weeks after Stage B), not to hold it back.
+- **Default:** **ON**, unlike every other flag here. It is announcement copy rather than a feature: it went live ahead of Stage A so nobody meets the change unwarned. The switch exists to retire the notice, not to hold it back.
 - **Gated files:**
-  - `templates/base.html.twig` — the notice include and the inline dismissal script/style in `<head>`
+  - `templates/login.html.twig` — the footnote under the sign-in card
 - **Not gated:** the explainer page itself (`/en/sign-in-is-moving` and its five locale paths) stays reachable either way — emails and support replies link to it.
-- **Remove when:** ~4 weeks after Stage B, when the banner comes down (the page stays as long as dormant players keep returning)
+- **Remove when:** the footnote comes down — latest with the Auth0 stack in Phase 6 (the page stays as long as dormant players keep returning)
 
 ## Auth0 Trickle Login (`AUTH0_TRICKLE_LOGIN_ENABLED`)
 

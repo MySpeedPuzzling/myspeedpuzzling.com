@@ -175,7 +175,7 @@
                 <i class="bi bi-person me-1"></i>{{ 'puzzle_picker.card.sign_in_to_solve'|trans }}
             </a>
         {% endif %}
-        <a class="ms-auto fs-sm" href="{{ path('puzzle_detail', {puzzleId: suggestion.puzzleId}) }}">
+        <a class="ms-auto fs-sm" href="{{ path('puzzle_detail', {puzzleId: suggestion.puzzleId, return: app.request.requestUri, return_title: 'puzzle_picker.title'|trans}) }}">
             {{ 'puzzle_picker.card.detail'|trans }} <i class="bi bi-chevron-right"></i>
         </a>
     </div>

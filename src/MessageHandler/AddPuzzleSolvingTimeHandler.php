@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
@@ -37,6 +38,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private CompetitionRoundRepository $competitionRoundRepository,
         private ImageOptimizer $imageOptimizer,
         private MistypedYearNormalizer $mistypedYearNormalizer,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -66,8 +68,17 @@ readonly final class AddPuzzleSolvingTimeHandler
         } elseif ($message->competitionId !== null) {
             try {
                 $competition = $this->competitionRepository->get($message->competitionId);
-            } catch (CompetitionNotFound) {
-                // Already null ...
+            } catch (CompetitionNotFound $e) {
+                // The form validates the id against the picker's set, so this is only reachable when the
+                // competition disappeared between render and submit — saving the time without the link
+                // beats losing the upload, but it must not pass silently
+                $this->logger->warning('Solving time saved without competition: submitted competition id does not exist', [
+                    'timeId' => $solvingTimeId->toString(),
+                    'puzzleId' => $message->puzzleId,
+                    'competitionId' => $message->competitionId,
+                    'userId' => $message->userId,
+                    'exception' => $e,
+                ]);
             }
         }
 

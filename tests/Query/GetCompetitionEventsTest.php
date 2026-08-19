@@ -51,8 +51,8 @@ final class GetCompetitionEventsTest extends KernelTestCase
 
     public function testSeriesEditionsExcludedFromUpcomingAndPast(): void
     {
-        $upcoming = $this->query->allUpcoming();
-        $past = $this->query->allPast();
+        $upcoming = $this->query->search('upcoming');
+        $past = $this->query->search('past');
 
         $upcomingIds = array_map(static fn($c) => $c->id, $upcoming);
         $pastIds = array_map(static fn($c) => $c->id, $past);

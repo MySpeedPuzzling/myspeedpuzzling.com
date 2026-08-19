@@ -6,7 +6,6 @@ namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
 use Ramsey\Uuid\UuidInterface;
-use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class AddPuzzleSolvingTime
@@ -26,28 +25,5 @@ readonly final class AddPuzzleSolvingTime
         public bool $unboxed,
         public null|string $roundId = null,
     ) {
-    }
-
-    /**
-     * @param array<string> $groupPlayers
-     */
-    public static function fromFormData(UuidInterface $timeId, string $userId, array $groupPlayers, PuzzleSolvingTimeFormData $data): self
-    {
-        assert($data->puzzle !== null);
-        assert($data->time !== null);
-
-        return new self(
-            timeId: $timeId,
-            userId: $userId,
-            puzzleId: $data->puzzle,
-            competitionId: $data->competition,
-            time: $data->time,
-            comment: $data->comment,
-            finishedPuzzlesPhoto: $data->finishedPuzzlesPhoto,
-            groupPlayers: $groupPlayers,
-            finishedAt: $data->finishedAt,
-            firstAttempt: $data->firstAttempt,
-            unboxed: $data->unboxed,
-        );
     }
 }

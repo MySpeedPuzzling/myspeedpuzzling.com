@@ -2,7 +2,7 @@ import { Controller } from '@hotwired/stimulus';
 import * as bootstrap from 'bootstrap';
 
 export default class extends Controller {
-    static targets = ['brand', 'puzzle', 'competition', 'newPuzzle', 'scannerModal', 'scannerMessage', 'eanInput', 'hideOptions'];
+    static targets = ['brand', 'puzzle', 'newPuzzle', 'scannerModal', 'scannerMessage', 'eanInput', 'hideOptions'];
 
     static values = {
         eanSearchUrl: String,
@@ -21,7 +21,6 @@ export default class extends Controller {
     _puzzleOptionsFetchPromise = null; // Track the current fetch promise for puzzle options
 
     initialize() {
-        this._onCompetitionConnect = this._onCompetitionConnect.bind(this);
         this._onBrandConnect = this._onBrandConnect.bind(this);
         this._onPuzzleConnect = this._onPuzzleConnect.bind(this);
         this._handleBarcodeScanned = this._handleBarcodeScanned.bind(this);
@@ -37,11 +36,6 @@ export default class extends Controller {
         this.brandTarget.addEventListener('autocomplete:pre-connect', this._onBrandConnect);
         this.puzzleTarget.addEventListener('autocomplete:pre-connect', this._onPuzzleConnect);
 
-        if (this.hasCompetitionTarget) {
-            this.initialCompetitionValue = this.competitionTarget.value;
-            this.competitionTarget.addEventListener('autocomplete:pre-connect', this._onCompetitionConnect);
-        }
-
         // Listen for barcode scanner events
         document.addEventListener('barcode-scanner:scanned', this._handleBarcodeScanned);
 
@@ -54,10 +48,6 @@ export default class extends Controller {
         // Remove listeners when the controller is disconnected to avoid side-effects
         this.brandTarget.removeEventListener('autocomplete:pre-connect', this._onBrandConnect);
         this.puzzleTarget.removeEventListener('autocomplete:pre-connect', this._onPuzzleConnect);
-
-        if (this.hasCompetitionTarget) {
-            this.competitionTarget.removeEventListener('autocomplete:pre-connect', this._onCompetitionConnect);
-        }
 
         document.removeEventListener('barcode-scanner:scanned', this._handleBarcodeScanned);
         document.removeEventListener('submit', this._onFormSubmit, true);
@@ -112,12 +102,6 @@ export default class extends Controller {
 
         event.detail.options.onInitialize = () => {
             this.handleInitialValues();
-        };
-    }
-
-    _onCompetitionConnect(event) {
-        event.detail.options.onChange = (value) => {
-            this.onCompetitionValueChanged(value);
         };
     }
 
@@ -184,10 +168,6 @@ export default class extends Controller {
                 bubbles: true
             }));
         }
-    }
-
-    onCompetitionValueChanged(value) {
-        this.competitionTarget.tomselect.blur();
     }
 
     fetchPuzzleOptions(brandValue, openDropdown) {

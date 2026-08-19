@@ -6,12 +6,12 @@ namespace SpeedPuzzling\Web\FormType;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\PuzzleAddFormData;
-use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
+use SpeedPuzzling\Web\Services\CompetitionChoicesBuilder;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
-use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
+use SpeedPuzzling\Web\Value\CompetitionChoices;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -41,8 +41,7 @@ final class PuzzleAddFormType extends AbstractType
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private UrlGeneratorInterface $urlGenerator,
-        readonly private GetCompetitionEvents $getCompetitionEvents,
-        readonly private ImageThumbnailTwigExtension $imageThumbnail,
+        readonly private CompetitionChoicesBuilder $competitionChoicesBuilder,
     ) {
     }
 
@@ -61,6 +60,10 @@ final class PuzzleAddFormType extends AbstractType
         $extraManufacturerId = $activePuzzle?->manufacturerId;
 
         $brandChoices = $this->brandChoicesBuilder->build($userProfile->playerId, $extraManufacturerId);
+
+        /** @var null|string $currentCompetitionId */
+        $currentCompetitionId = $options['current_competition_id'] ?? null;
+        $competitionChoices = $this->competitionChoicesBuilder->build($currentCompetitionId);
 
         // Mode field (hidden, controlled by JS)
         $builder->add('mode', EnumType::class, [
@@ -203,7 +206,9 @@ final class PuzzleAddFormType extends AbstractType
                 'create' => false,
                 'persist' => false,
                 'maxItems' => 1,
-                'options' => $this->getCompetitionsAutocompleteData(),
+                'options' => $competitionChoices->options,
+                'optgroups' => $competitionChoices->optgroups,
+                'searchField' => ['text', 'keywords'],
                 'closeAfterSelect' => true,
                 'createOnBlur' => false,
             ],
@@ -326,12 +331,12 @@ final class PuzzleAddFormType extends AbstractType
             ],
         ]);
 
-        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
+        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) use ($competitionChoices): void {
             $form = $event->getForm();
             $data = $event->getData();
             assert($data instanceof PuzzleAddFormData);
 
-            $this->applyDynamicRules($form, $data);
+            $this->applyDynamicRules($form, $data, $competitionChoices);
         });
     }
 
@@ -342,10 +347,14 @@ final class PuzzleAddFormType extends AbstractType
             'active_puzzle' => null,
             'collections' => [],
             'has_active_membership' => true,
+            // The competition the edited time is linked to — always offered by the picker (edit form);
+            // symmetric with EditPuzzleSolvingTimeFormType, unused by the add form so far
+            'current_competition_id' => null,
         ]);
 
         $resolver->setAllowedTypes('collections', 'array');
         $resolver->setAllowedTypes('has_active_membership', 'bool');
+        $resolver->setAllowedTypes('current_competition_id', ['null', 'string']);
     }
 
     /**
@@ -354,6 +363,7 @@ final class PuzzleAddFormType extends AbstractType
     private function applyDynamicRules(
         FormInterface $form,
         PuzzleAddFormData $data,
+        CompetitionChoices $competitionChoices,
     ): void {
         $mode = $data->mode;
 
@@ -394,68 +404,10 @@ final class PuzzleAddFormType extends AbstractType
         if ($mode === PuzzleAddMode::Collection && empty($data->collection)) {
             $form->get('collection')->addError(new FormError($this->translator->trans('forms.required_field')));
         }
-    }
 
-    /**
-     * @return array<array{value: string, text: string}>
-     */
-    public function getCompetitionsAutocompleteData(): array
-    {
-        $events = [];
-        $results = [];
-
-        array_push($events, ...$this->getCompetitionEvents->allLive());
-        array_push($events, ...$this->getCompetitionEvents->allPast());
-
-        foreach ($events as $competition) {
-            $img = '';
-
-            if ($competition->logo !== null) {
-                $img = <<<HTML
-<img alt="Logo image" class="img-fluid rounded-2"
-    style="max-width: 60px; max-height: 60px;"
-    src="{$this->imageThumbnail->thumbnailUrl($competition->logo, 'puzzle_small')}"
-/>
-HTML;
-            }
-
-            $date = '';
-
-            if ($competition->dateFrom !== null) {
-                $date = $competition->dateFrom->format('d.m.Y');
-
-                if ($competition->dateTo !== null) {
-                    $date .= ' - ' . $competition->dateTo->format('d.m.Y');
-                }
-            }
-
-            $location = '';
-
-            if ($competition->locationCountryCode !== null) {
-                $location = '<span class="shadow-custom fi fi-' . $competition->locationCountryCode->name . ' me-2"></span>';
-            }
-
-            $location .= $competition->location ?? '';
-
-            $html = <<<HTML
-<div class="py-1 d-flex low-line-height">
-    <div class="icon me-2">{$img}</div>
-    <div class="pe-1">
-        <div class="mb-1">
-            <span class="h6">{$competition->name}</span>
-            <small class="text-muted">{$date}</small>
-        </div>
-        <div class="description"><small>{$location}</small></div>
-    </div>
-</div>
-HTML;
-
-            $results[] = [
-                'value' => $competition->id,
-                'text' => $html,
-            ];
+        // Competition: only an id the picker offered (TomSelect can't create, but the value is user-controlled)
+        if ($data->competition !== null && $competitionChoices->contains($data->competition) === false) {
+            $form->get('competition')->addError(new FormError($this->translator->trans('forms.competition_not_selectable')));
         }
-
-        return $results;
     }
 }

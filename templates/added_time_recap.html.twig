@@ -21,6 +21,8 @@
 
     <div class="row">
         <div class="col-md-7 col-lg-8 order-2 order-md-1">
+            <twig:XpRecapCelebration solvingTimeId="{{ solved_puzzle.timeId }}" />
+
             {% if is_solo and solved_puzzle.time is not null %}
                 {% if not player.rankingOptedOut %}
                     {{ include('added_time_recap/_ranking.html.twig') }}

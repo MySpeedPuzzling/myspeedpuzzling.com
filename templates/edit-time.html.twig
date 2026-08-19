@@ -59,6 +59,12 @@
                 </div>
                 <div class="modal-body">
                     <p class="fs-sm">{{ 'edit_time.delete_modal_confirm'|trans }}</p>
+                    {% if xp_delete_warning|default(0) > 0 %}
+                        <p class="fs-sm text-danger mb-0">
+                            <i class="ci-security-announcement me-1"></i>
+                            {{ 'edit_time.delete_xp_warning'|trans({'%xp%': xp_delete_warning}) }}
+                        </p>
+                    {% endif %}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ 'edit_time.delete_modal_discard_button'|trans }}</button>

@@ -16,6 +16,9 @@
                 <div class="card shadow my-4">
                     <div class="card-body">
                         {% if membership and membership.isActive(now) %}
+                            {% if logged_user.profile is not null %}
+                                <twig:XpRevealInvite playerId="{{ logged_user.profile.playerId }}" />
+                            {% endif %}
                             {% if membership.billingPeriodEndsAt %}
                                 <p class="text-success fs-5">
                                     <i class="ci-check-circle me-2"></i> {{ 'membership.subscription_active'|trans }}

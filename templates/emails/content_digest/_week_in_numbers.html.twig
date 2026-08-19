@@ -1,0 +1,15 @@
+{% trans_default_domain 'emails' %}
+<row>
+    <columns>
+        <h4>{{ 'content_digest.weekly.numbers_title'|trans }}</h4>
+        <p>
+            {{ 'content_digest.weekly.numbers_line'|trans({'%solves%': data.solvesCount, '%pieces%': data.piecesCount}) }}
+            {% if data.minutesSpent > 0 %}
+                {{ 'content_digest.weekly.numbers_minutes'|trans({'%minutes%': data.minutesSpent}) }}
+            {% endif %}
+            {% if data.previousSolvesCount > 0 or data.previousPiecesCount > 0 %}
+                <br><em>{{ 'content_digest.weekly.numbers_previous'|trans({'%solves%': data.previousSolvesCount, '%pieces%': data.previousPiecesCount}) }}</em>
+            {% endif %}
+        </p>
+    </columns>
+</row>

@@ -1,0 +1,51 @@
+{% trans_default_domain 'emails' %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig') }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>
+                        {% if playerName %}
+                            {{ 'content_digest.weekly.greeting'|trans({'%name%': playerName}) }}
+                        {% else %}
+                            {{ 'content_digest.weekly.greeting_anonymous'|trans }}
+                        {% endif %}
+                    </h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            {% if hadActivity %}
+                {{ include('emails/content_digest/_xp_block.html.twig') }}
+                {{ include('emails/content_digest/_week_in_numbers.html.twig') }}
+                {{ include('emails/content_digest/_streak.html.twig') }}
+            {% else %}
+                {{ include('emails/content_digest/_no_activity.html.twig') }}
+            {% endif %}
+
+            {{ include('emails/content_digest/_favorites.html.twig') }}
+
+            {% if isMember %}
+                {{ include('emails/content_digest/_next_achievements.html.twig') }}
+            {% endif %}
+
+            {{ include('emails/content_digest/_community.html.twig') }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <p style="font-size: 12px; color: #6c757d;">
+                        {{ 'content_digest.weekly.footer_settings'|trans({'%settingsUrl%': url('edit_profile')})|raw }}
+                        <br>
+                        {{ 'content_digest.weekly.footer_unsubscribe'|trans({'%unsubscribeUrl%': unsubscribeUrl})|raw }}
+                    </p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

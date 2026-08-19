@@ -1,0 +1,64 @@
+<div{{ attributes }} {% if this.visible and not checked %}data-poll="delay(2500)|checkProgress"{% endif %}>
+    {% if this.visible %}
+        <twig:XpSolveReceipt solvingTimeId="{{ solvingTimeId }}" />
+
+        {% if this.showLevelUp %}
+            {% set is_max = this.isMaxLevelCelebration %}
+            <div
+                class="xp-levelup-overlay {{ is_max ? 'xp-levelup-overlay-max' }}"
+                data-action="click->live#action"
+                data-live-action-param="dismissCelebration"
+                role="dialog"
+                aria-modal="true"
+                aria-label="{{ 'xp.levelup.aria'|trans({'%level%': this.currentLevel}) }}"
+            >
+                <div class="xp-confetti" aria-hidden="true">
+                    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                </div>
+
+                <div class="xp-levelup-label">{{ (is_max ? 'xp.levelup.max_label' : 'xp.levelup.label')|trans }}</div>
+                <div class="xp-levelup-number">{{ this.currentLevel }}</div>
+
+                {% if is_max %}
+                    <p class="mb-1">{{ 'xp.levelup.max_message'|trans }}</p>
+
+                    {% if this.viewerIsMember %}
+                        <a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}" class="btn btn-light btn-sm mt-2">
+                            <i class="ci-trophy me-1"></i>
+                            {{ 'xp.levelup.enter_ap_ladder'|trans }}
+                        </a>
+                    {% else %}
+                        <a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}" class="btn btn-light btn-sm mt-2">
+                            <i class="ci-trophy me-1"></i>
+                            {{ 'xp.levelup.view_ap_ladder'|trans }}
+                        </a>
+                        <a href="{{ path('membership') }}" class="btn btn-outline-light btn-sm mt-2">
+                            <i class="ci-heart me-1"></i>
+                            {{ 'badges.unlock_with_membership'|trans }}
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <p class="mb-0">{{ 'xp.levelup.message'|trans }}</p>
+                {% endif %}
+
+                <div class="xp-levelup-hint">{{ 'xp.levelup.skip_hint'|trans }}</div>
+            </div>
+        {% endif %}
+
+        {% set recent_badge = this.recentBadge %}
+        {% if recent_badge is not null %}
+            <div class="toast show align-items-center border-0 shadow mb-3" role="status" aria-live="polite">
+                <div class="d-flex align-items-center gap-2 p-2">
+                    {% set tier = recent_badge.tier %}
+                    <span class="badge-medallion badge-medallion-sm {{ tier ? tier.cssClass() : 'badge-tier-supporter' }}">
+                        {% if tier %}<span class="badge-medallion-tier">{{ tier.romanNumeral() }}</span>{% else %}<i class="ci-heart"></i>{% endif %}
+                    </span>
+                    <div class="fs-sm">
+                        <strong>{{ 'xp.achievement_toast.title'|trans }}</strong><br>
+                        {{ recent_badge.type.translationKey()|trans }}{% if tier %} — {{ tier.translationKey()|trans }}{% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>

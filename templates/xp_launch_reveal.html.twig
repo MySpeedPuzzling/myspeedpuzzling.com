@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'xp.reveal.meta_title'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="text-center mx-auto" style="max-width: 560px;">
+        <img
+            src="{{ asset('img/xp/xp-hero-1200.webp') }}"
+            alt=""
+            width="1200"
+            height="675"
+            style="width: 100%; height: auto; max-width: 480px;"
+            class="rounded-3 mb-3"
+            fetchpriority="high"
+        >
+
+        <h1 class="h3 mb-2">{{ 'xp.reveal.title'|trans }}</h1>
+        <p class="text-body-secondary">{{ 'xp.reveal.intro'|trans }}</p>
+
+        <div class="my-4">
+            <span class="xp-ring {{ xp_profile.isMaxLevel ? 'xp-ring-milestone-50' }}" style="--xp-progress: {{ xp_profile.progressToNext ?? 1 }}; padding: 6px;">
+                <span class="d-inline-flex flex-column align-items-center justify-content-center bg-white" style="width: 120px; height: 120px;">
+                    <span class="fs-xs text-body-secondary text-uppercase">{{ 'xp.reveal.level_label'|trans }}</span>
+                    <span class="display-5 fw-bold lh-1">{{ xp_profile.level }}</span>
+                </span>
+            </span>
+
+            <div class="mt-3 h4 mb-0">
+                <span data-controller="xp-count" data-xp-count-amount-value="{{ xp_profile.xpTotal }}">{{ xp_profile.xpTotal|number_format(0, '.', ' ') }}</span>
+                XP
+            </div>
+            <p class="text-body-secondary fs-sm">{{ 'xp.reveal.xp_note'|trans }}</p>
+        </div>
+
+        {% if badges_count > 0 %}
+            <div class="xp-teaser justify-content-center mb-4">
+                <i class="ci-medal" aria-hidden="true"></i>
+                <span>
+                    {% if is_member %}
+                        {{ 'xp.reveal.achievements_member'|trans({'%count%': badges_count}) }}
+                    {% else %}
+                        {{ 'badges.waiting_teaser'|trans({'%count%': badges_count}) }}
+                    {% endif %}
+                </span>
+            </div>
+        {% endif %}
+
+        <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+            <button
+                data-controller="share-image"
+                data-share-image-title-value="{{ 'xp.reveal.share_title'|trans({'%level%': xp_profile.level}) }}"
+                data-share-image-image-url-value="{{ path('xp_share_card', {playerId: player_id, variant: 'launch'}) }}"
+                data-action="click->share-image#shareImageAsset"
+                class="btn btn-primary"
+            >
+                <i class="ci-share me-1"></i> {{ 'xp.reveal.share_button'|trans }}
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-outline-primary"
+                data-controller="xp-reveal-finish"
+                data-xp-reveal-finish-url-value="{{ path('dismiss_hint') }}"
+                data-xp-reveal-finish-redirect-value="{{ path('my_profile') }}"
+                data-action="click->xp-reveal-finish#finish"
+            >
+                {{ 'xp.reveal.continue'|trans }}
+            </button>
+        </div>
+
+        {% if is_member %}
+            <p class="mt-3 fs-sm">
+                <a href="{{ path('badge_reveals') }}">{{ 'xp.reveal.to_badge_reveals'|trans }}</a>
+            </p>
+        {% endif %}
+    </div>
+{% endblock %}

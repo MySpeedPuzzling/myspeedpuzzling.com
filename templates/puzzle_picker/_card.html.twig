@@ -1,0 +1,122 @@
+{# One picker card: puzzle basics, my history on it, community numbers, CTAs.
+   Expects: suggestion (PuzzlePickerSuggestion), position (1-based, for eager image loading), criteria #}
+{% set puzzle_full_name = (suggestion.manufacturerName is not null ? suggestion.manufacturerName ~ ' ' : '') ~ suggestion.puzzleName %}
+{% set is_authenticated = criteria.isAuthenticated %}
+<div class="card card-body shadow p-3 puzzle-picker-card">
+    <div class="d-flex">
+        <div class="flex-shrink-0 me-3" style="width: 90px;">
+            <a href="{{ path('puzzle_detail', {puzzleId: suggestion.puzzleId}) }}">
+                {{ lazy_puzzle_image(
+                    suggestion.puzzleImage,
+                    'puzzle_medium',
+                    'puzzle_img_alt'|trans({'%puzzle%': puzzle_full_name}),
+                    position,
+                    90,
+                    'rounded',
+                    null,
+                    suggestion.puzzleImageRatio,
+                    position == 1
+                ) }}
+            </a>
+        </div>
+
+        <div class="flex-grow-1">
+            <div class="fs-sm text-muted">{{ suggestion.manufacturerName ?? '–' }}</div>
+            <a class="h5 d-block mb-1 low-line-height text-decoration-none" href="{{ path('puzzle_detail', {puzzleId: suggestion.puzzleId}) }}">{{ suggestion.puzzleName }}</a>
+            <div class="fs-sm">
+                <span class="fw-bold">{{ 'pieces_count'|trans({'%count%': suggestion.piecesCount})|raw }}</span>
+                {% if suggestion.puzzleIdentificationNumber is not null %}
+                    <span class="text-muted ms-1">{{ suggestion.puzzleIdentificationNumber }}</span>
+                {% endif %}
+            </div>
+            {% if is_authenticated and (suggestion.inMyCollection or suggestion.isBorrowed or suggestion.isLentOut) %}
+                <div class="mt-1">
+                    {% if suggestion.inMyCollection %}
+                        <span class="badge border border-primary text-primary rounded-pill"><i class="bi bi-collection"></i> {{ 'status.collection'|trans }}</span>
+                    {% endif %}
+                    {% if suggestion.isBorrowed %}
+                        <span class="badge border border-dark text-dark rounded-pill"><i class="bi bi-box-arrow-in-left"></i> {{ 'status.borrowed'|trans }}</span>
+                    {% endif %}
+                    {% if suggestion.isLentOut %}
+                        <span class="badge border border-dark text-dark rounded-pill"><i class="bi bi-box-arrow-right"></i> {{ 'status.lent'|trans }}</span>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <hr class="my-2">
+
+    <div class="fs-sm">
+        {% if is_authenticated %}
+            {% if suggestion.mySolveCountAny == 0 %}
+                <div class="text-muted"><i class="bi bi-hourglass me-1"></i>{{ 'puzzle_picker.card.not_solved_yet'|trans }}</div>
+            {% else %}
+                <div>
+                    <span class="text-muted">{{ 'puzzle_picker.card.you'|trans }}</span>
+                    {{ 'puzzle_picker.card.solved_times'|trans({'%count%': suggestion.mySolveCountAny}) }}
+                    {% if suggestion.myLastSolvedAt is not null %}
+                        <span class="text-muted">· {{ 'puzzle_picker.card.last_solved'|trans({'%ago%': suggestion.myLastSolvedAt|ago}) }}</span>
+                    {% endif %}
+                </div>
+                {% if suggestion.mySolveCountSolo == 0 %}
+                    <div class="text-muted">{{ 'puzzle_picker.card.no_solo_time'|trans }}</div>
+                {% elseif suggestion.mySolveCountSolo == 1 %}
+                    <div>
+                        <span class="text-muted">{{ 'puzzle_times.my_attempts.my_time'|trans }}</span>
+                        <span class="font-monospace">{{ suggestion.myFastestSeconds|puzzlingTime }}</span>
+                    </div>
+                {% else %}
+                    <div>
+                        <span class="text-muted">{{ 'puzzle_times.my_attempts.fastest_time'|trans }}</span>
+                        <span class="font-monospace">{{ suggestion.myFastestSeconds|puzzlingTime }}</span>
+                        <i class="bi bi-star-fill text-warning ms-1"></i>
+                    </div>
+                    {% if suggestion.myLatestSeconds == suggestion.myFastestSeconds %}
+                        <div class="text-success">{{ 'puzzle_times.my_attempts.latest_is_fastest_note'|trans }}</div>
+                    {% else %}
+                        <div>
+                            <span class="text-muted">{{ 'puzzle_times.my_attempts.latest_time'|trans }}</span>
+                            <span class="font-monospace">{{ suggestion.myLatestSeconds|puzzlingTime }}</span>
+                        </div>
+                    {% endif %}
+                    <div>
+                        <span class="text-muted">{{ 'puzzle_picker.card.first_time'|trans }}</span>
+                        <span class="font-monospace">{{ suggestion.myFirstSeconds|puzzlingTime }}</span>
+                    </div>
+                {% endif %}
+            {% endif %}
+        {% else %}
+            <div class="text-muted"><i class="bi bi-person me-1"></i>{{ 'puzzle_picker.card.sign_in_for_times'|trans }}</div>
+        {% endif %}
+
+        <div>
+            <span class="text-muted">{{ 'puzzle_picker.card.community'|trans }}</span>
+            {% if suggestion.communitySolvedCountSolo > 0 and suggestion.communityAverageTimeSolo is not null %}
+                {{ 'puzzle_picker.card.community_stats'|trans({'%average%': suggestion.communityAverageTimeSolo|compactTime, '%count%': suggestion.communitySolvedCountSolo}) }}
+            {% else %}
+                {{ 'puzzle_picker.card.community_none'|trans }}
+            {% endif %}
+        </div>
+    </div>
+
+    <hr class="my-2">
+
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        {% if is_authenticated %}
+            <a class="btn btn-primary btn-sm" rel="nofollow" href="{{ path('stopwatch_puzzle', {puzzleId: suggestion.puzzleId}) }}">
+                <i class="ci-time me-1"></i>{{ 'start_solving'|trans }}
+            </a>
+            <a class="btn btn-outline-primary btn-sm" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: suggestion.puzzleId}) }}">
+                <i class="ci-add me-1"></i>{{ 'add_solving'|trans }}
+            </a>
+        {% else %}
+            <a class="btn btn-primary btn-sm" rel="nofollow" href="{{ path('login', {return: path('puzzle_picker')}) }}">
+                <i class="bi bi-person me-1"></i>{{ 'puzzle_picker.card.sign_in_to_solve'|trans }}
+            </a>
+        {% endif %}
+        <a class="ms-auto fs-sm" href="{{ path('puzzle_detail', {puzzleId: suggestion.puzzleId}) }}">
+            {{ 'puzzle_picker.card.detail'|trans }} <i class="bi bi-chevron-right"></i>
+        </a>
+    </div>
+</div>

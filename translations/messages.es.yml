@@ -3121,3 +3121,109 @@ wjpf:
         explanation: "Tu ID de perfil de MySpeedPuzzling se compartirá con worldjigsawpuzzle.org para que las dos cuentas puedan vincularse. No se envía nada más."
         confirm: "Conectar cuentas"
         cancel: "Cancelar"
+
+puzzle_picker:
+    meta:
+        title: "¿Qué puzzle armar ahora? – Selector de puzzles"
+        description: "¿No sabes qué puzzle armar a continuación? Dile al selector qué te apetece – número de piezas, marca, algo nuevo o ya armado – y sacará un puzzle de tu propia estantería, con tus tiempos y la media de la comunidad."
+    title: "¿Qué puzzle armar ahora?"
+    subtitle: "Dime qué te apetece y elegiré de tu estantería."
+    menu_label: "¿Y ahora qué?"
+    filters:
+        button: "Filtros"
+        title: "Filtros"
+        apply: "Elegir un puzzle"
+        reset: "Quitar filtros"
+        guest_note: "Inicia sesión para elegir de tu propia estantería e historial."
+        source:
+            label: "De dónde elegir"
+            mine: "Mi colección"
+            not_mine: "No está en mi colección"
+            any: "Cualquier puzzle"
+            include_lent_out: "Incluir puzzles que he prestado"
+        solved:
+            label: "Mi historial"
+            any: "Cualquiera"
+            never: "Nunca armado"
+            before: "Ya armado"
+        pieces:
+            label: "Piezas"
+            custom: "Rango personalizado:"
+            min: "desde"
+            max: "hasta"
+        brand:
+            label: "Marca"
+            placeholder: "Cualquier marca"
+    chips:
+        source:
+            mine: "Mi colección"
+            not_mine: "No está en mi colección"
+        solved:
+            never: "Nunca armado"
+            before: "Ya armado"
+        pieces:
+            exact: "%count% piezas"
+            between: "%min%–%max% piezas"
+            at_least: "%min%+ piezas"
+            at_most: "hasta %max% piezas"
+        brand: "Marca"
+        include_lent_out: "Incl. prestados"
+        remove: "Quitar este filtro"
+    results:
+        matching: "%shown% de %total% puzzles que coinciden"
+        pick_another: "Elegir otro"
+        show_more: "Mostrar %count% más"
+    card:
+        you: "Tú:"
+        solved_times: "armado %count%×"
+        last_solved: "la última vez %ago%"
+        not_solved_yet: "Aún no has armado este puzzle"
+        no_solo_time: "Aún sin tiempo en solitario – armado en equipo"
+        first_time: "Primer tiempo:"
+        community: "Comunidad:"
+        community_stats: "media %average% · %count% tiempos en solitario"
+        community_none: "aún sin tiempos en solitario – sé el primero"
+        sign_in_for_times: "Inicia sesión y aquí verás tus propios tiempos."
+        sign_in_to_solve: "Inicia sesión para empezar a armar"
+        detail: "Detalle del puzzle"
+    empty:
+        collection_title: "Tu colección está vacía"
+        collection_text: "Añade los puzzles que tienes y la próxima vez el selector elegirá entre ellos."
+        add_puzzles: "Añadir puzzles"
+        pick_from_all: "Elegir entre todos los puzzles"
+        nothing_title: "Ningún puzzle coincide con estos filtros"
+        nothing_text: "Quita algún filtro de arriba o restablécelos todos para ampliar las opciones."
+        reset: "Quitar filtros"
+    landing:
+        lead: "Una ruleta para tu estantería de puzzles. Di qué te apetece – número de piezas, marca, algo nuevo o un viejo favorito – y recibe un puzzle para empezar ahora mismo, junto con tus propios tiempos y la media de la comunidad."
+        sign_in: "Iniciar sesión"
+        register: "Crear una cuenta gratis"
+        trust_free: "Gratis para todos"
+        trust_shelf: "Elige de tu propia colección"
+        demo_title: "Pruébalo: un puzzle al azar entre todos"
+        demo_text: "Con sesión iniciada, el selector elige de tu propia estantería y muestra tus tiempos."
+        how_title: "Cómo funciona"
+        how:
+            mood:
+                title: "Dile qué te apetece"
+                text: "Elige un número de piezas, una marca, y si quieres algo nuevo o un puzzle que ya conoces."
+            spin:
+                title: "Gira"
+                text: "Aparece un puzzle – con tus tiempos, la media de la comunidad y cuánta gente lo ha armado. ¿No es ese? Gira de nuevo o muestra cinco más."
+            solve:
+                title: "Empieza a armar"
+                text: "Arranca el cronómetro o añade un tiempo terminado directamente desde la tarjeta. Decisión tomada, ¡a armar!"
+        filters_title: "Qué puedes filtrar"
+        filters_text: "Todo se basa en tu propia colección y en tus propios tiempos."
+        filters:
+            source: "Puzzles de tu colección, puzzles que aún no tienes o toda la base de datos"
+            solved: "Nunca armado, ya armado o cualquiera"
+            pieces: "Número de piezas – accesos rápidos para los tamaños habituales o tu propio rango"
+            brand: "Una o varias marcas"
+            lent: "Los puzzles que has prestado se excluyen; los que te han prestado se incluyen"
+            times: "Tu tiempo más rápido, el último y el primero en cada tarjeta"
+        members_title: "Para miembros"
+        members_text: "Los miembros desbloquean los Insights – dificultad de los puzzles, tiempos previstos y niveles de habilidad – en las páginas de puzzles, y pronto también en la tarjeta del selector."
+        members_cta: "Sobre la membresía"
+        bottom_title: "Deja de repasar la estantería – que decida la ruleta"
+        bottom_text: "Crea una cuenta gratis, añade los puzzles que tienes y deja que el selector elija por ti."

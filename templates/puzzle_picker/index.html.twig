@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'puzzle_picker.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'puzzle_picker.meta.description'|trans }}{% endblock %}
+{% block robots %}
+    {# Only the six clean locale URLs are indexable - any query string (filters, seed) is a
+       throw-away variant of the same page. Canonical + hreflang come from base.html.twig. #}
+    {% if app.request.query.count > 0 %}
+        <meta name="robots" content="noindex, follow">
+    {% else %}
+        <meta name="robots" content="index, follow">
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <div class="puzzle-picker">
+        <h1 class="mb-1">{{ 'puzzle_picker.title'|trans }}</h1>
+        <p class="text-muted mb-3">{{ 'puzzle_picker.subtitle'|trans }}</p>
+
+        {{ include('puzzle_picker/_filter_bar.html.twig') }}
+
+        {{ include('puzzle_picker/_results.html.twig') }}
+    </div>
+
+    {{ include('puzzle_picker/_filters_modal.html.twig') }}
+{% endblock %}

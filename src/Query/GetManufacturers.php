@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\ManufacturerOverview;
 
@@ -54,6 +55,40 @@ SQL;
              */
             return ManufacturerOverview::fromDatabaseRow($row);
         }, $data);
+    }
+
+    /**
+     * Plain names for a handful of manufacturer ids (filter chips, pre-selected
+     * options). Unknown ids are simply absent from the result.
+     *
+     * @param list<string> $manufacturerIds
+     *
+     * @return array<string, string> manufacturerId => name
+     */
+    public function namesByIds(array $manufacturerIds): array
+    {
+        if ($manufacturerIds === []) {
+            return [];
+        }
+
+        $query = <<<SQL
+SELECT manufacturer.id AS manufacturer_id, manufacturer.name AS manufacturer_name
+FROM manufacturer
+WHERE manufacturer.id IN (:manufacturerIds)
+SQL;
+
+        /** @var array<array{manufacturer_id: string, manufacturer_name: string}> $rows */
+        $rows = $this->database
+            ->executeQuery($query, ['manufacturerIds' => $manufacturerIds], ['manufacturerIds' => ArrayParameterType::STRING])
+            ->fetchAllAssociative();
+
+        $names = [];
+
+        foreach ($rows as $row) {
+            $names[$row['manufacturer_id']] = $row['manufacturer_name'];
+        }
+
+        return $names;
     }
 
     /**

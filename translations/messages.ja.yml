@@ -3110,3 +3110,109 @@ wjpf:
         explanation: "2つのアカウントを連携するため、あなたのMySpeedPuzzlingプロフィールIDがworldjigsawpuzzle.orgと共有されます。それ以外の情報は送信されません。"
         confirm: "アカウントを接続"
         cancel: "キャンセル"
+
+puzzle_picker:
+    meta:
+        title: "次はどのパズルを組む？ – パズルピッカー"
+        description: "次にどのパズルを組むか決められない？気分をピッカーに伝えるだけ – ピース数、ブランド、新しいものか組んだことのあるものか – あなたの棚からパズルを1つ引き当て、あなたのタイムとコミュニティ平均も一緒に表示します。"
+    title: "次はどのパズルを組む？"
+    subtitle: "気分を教えてください。あなたの棚から選びます。"
+    menu_label: "次は何を？"
+    filters:
+        button: "フィルター"
+        title: "フィルター"
+        apply: "パズルを選ぶ"
+        reset: "フィルターをリセット"
+        guest_note: "サインインすると、自分の棚と履歴から選べます。"
+        source:
+            label: "どこから選ぶか"
+            mine: "自分のコレクション"
+            not_mine: "コレクションにないもの"
+            any: "すべてのパズル"
+            include_lent_out: "貸出中のパズルも含める"
+        solved:
+            label: "自分の履歴"
+            any: "指定なし"
+            never: "未完成"
+            before: "完成済み"
+        pieces:
+            label: "ピース数"
+            custom: "範囲を指定："
+            min: "から"
+            max: "まで"
+        brand:
+            label: "ブランド"
+            placeholder: "すべてのブランド"
+    chips:
+        source:
+            mine: "自分のコレクション"
+            not_mine: "コレクションにないもの"
+        solved:
+            never: "未完成"
+            before: "完成済み"
+        pieces:
+            exact: "%count%ピース"
+            between: "%min%〜%max%ピース"
+            at_least: "%min%ピース以上"
+            at_most: "%max%ピース以下"
+        brand: "ブランド"
+        include_lent_out: "貸出中を含む"
+        remove: "このフィルターを外す"
+    results:
+        matching: "該当パズル%total%件中%shown%件"
+        pick_another: "別のパズルを選ぶ"
+        show_more: "さらに%count%件表示"
+    card:
+        you: "あなた："
+        solved_times: "%count%回完成"
+        last_solved: "最後は%ago%"
+        not_solved_yet: "このパズルはまだ組んでいません"
+        no_solo_time: "ソロのタイムはまだありません – チームで完成"
+        first_time: "初回タイム："
+        community: "コミュニティ："
+        community_stats: "平均 %average% · ソロ%count%件"
+        community_none: "ソロのタイムはまだありません – 最初の一人になりましょう"
+        sign_in_for_times: "サインインすると、ここに自分のタイムが表示されます。"
+        sign_in_to_solve: "サインインして始める"
+        detail: "パズルの詳細"
+    empty:
+        collection_title: "コレクションが空です"
+        collection_text: "持っているパズルを追加すると、次回からその中から選びます。"
+        add_puzzles: "パズルを追加"
+        pick_from_all: "すべてのパズルから選ぶ"
+        nothing_title: "このフィルターに該当するパズルはありません"
+        nothing_text: "上のフィルターを外すか、すべてリセットして候補を広げてください。"
+        reset: "フィルターをリセット"
+    landing:
+        lead: "パズル棚のためのルーレット。気分を伝えるだけ – ピース数、ブランド、新しいものかお気に入りか – すぐに始められるパズルを1つ、あなたのタイムとコミュニティ平均と一緒にお届けします。"
+        sign_in: "サインイン"
+        register: "無料アカウントを作成"
+        trust_free: "誰でも無料"
+        trust_shelf: "自分のコレクションから選ぶ"
+        demo_title: "お試し：すべてのパズルからランダムに1つ"
+        demo_text: "サインインすると、自分の棚から選ばれ、自分のタイムも表示されます。"
+        how_title: "使い方"
+        how:
+            mood:
+                title: "気分を伝える"
+                text: "ピース数、ブランド、新しいものにするか、知っているパズルにするかを選びます。"
+            spin:
+                title: "回す"
+                text: "パズルが1つ表示されます – あなたのタイム、コミュニティ平均、完成した人数と一緒に。違うなと思ったら、もう一度回すか、さらに5件表示。"
+            solve:
+                title: "組み始める"
+                text: "カードからそのままストップウォッチを開始するか、完成タイムを追加できます。迷いは終わり、さあパズルへ。"
+        filters_title: "絞り込める条件"
+        filters_text: "すべてあなた自身のコレクションとタイムに基づいています。"
+        filters:
+            source: "コレクション内のパズル、まだ持っていないパズル、またはデータベース全体"
+            solved: "未完成、完成済み、または指定なし"
+            pieces: "ピース数 – 定番サイズのクイック選択、または独自の範囲"
+            brand: "1つまたは複数のブランド"
+            lent: "貸出中のパズルは除外、借りているパズルは含まれます"
+            times: "各カードにあなたの最速・最新・初回タイムを表示"
+        members_title: "メンバー向け"
+        members_text: "メンバーはインサイト – パズルの難易度、予測タイム、スキルティア – をパズルページで利用でき、まもなくピッカーのカードにも表示されます。"
+        members_cta: "メンバーシップについて"
+        bottom_title: "棚を眺めるのはもう終わり – ルーレットに決めてもらいましょう"
+        bottom_text: "無料アカウントを作成し、持っているパズルを追加して、ピッカーに選んでもらいましょう。"

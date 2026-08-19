@@ -1,0 +1,148 @@
+{% extends 'base.html.twig' %}
+
+{# Guest experience of the puzzle picker: an indexable landing page (what / how / filters /
+   members) with a live demo drawn from all approved puzzles on the very same URL that becomes
+   the personal tool after sign-in. Personal filters render disabled in the modal. #}
+
+{% block title %}{{ 'puzzle_picker.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'puzzle_picker.meta.description'|trans }}{% endblock %}
+{% block robots %}
+    {% if app.request.query.count > 0 %}
+        <meta name="robots" content="noindex, follow">
+    {% else %}
+        <meta name="robots" content="index, follow">
+    {% endif %}
+{% endblock %}
+
+{% set login_url = path('login', {return: path('puzzle_picker')}) %}
+{% set register_url = path('register', {return: path('puzzle_picker')}) %}
+
+{% block full_content %}
+    {# Hero #}
+    <section class="bg-secondary py-4 py-md-5">
+        <div class="container px-3">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="display-6 fw-bold mb-3">{{ 'puzzle_picker.title'|trans }}</h1>
+                    <p class="lead text-muted mb-4">{{ 'puzzle_picker.landing.lead'|trans }}</p>
+                    <div class="d-flex flex-wrap gap-2 gap-md-3 mb-3">
+                        <a href="{{ login_url }}" rel="nofollow" class="btn btn-primary btn-shadow px-3 py-2 px-md-4">
+                            <i class="bi bi-person me-1"></i>{{ 'puzzle_picker.landing.sign_in'|trans }}
+                        </a>
+                        <a href="{{ register_url }}" rel="nofollow" class="btn btn-outline-primary px-3 py-2 px-md-4">
+                            {{ 'puzzle_picker.landing.register'|trans }}
+                        </a>
+                    </div>
+                    <div class="d-flex flex-wrap gap-3 gap-md-4 text-muted small">
+                        <span><i class="bi bi-check-circle text-primary me-1"></i> {{ 'puzzle_picker.landing.trust_free'|trans }}</span>
+                        <span><i class="bi bi-check-circle text-primary me-1"></i> {{ 'puzzle_picker.landing.trust_shelf'|trans }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# Live demo - the same card, drawn from all approved puzzles #}
+    <section class="py-4 py-md-5">
+        <div class="container px-3 puzzle-picker">
+            <div class="text-center mb-3">
+                <h2 class="h3 mb-2">{{ 'puzzle_picker.landing.demo_title'|trans }}</h2>
+                <p class="text-muted mb-0">{{ 'puzzle_picker.landing.demo_text'|trans }}</p>
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-md-8 col-lg-6">
+                    {{ include('puzzle_picker/_filter_bar.html.twig') }}
+                </div>
+            </div>
+
+            {{ include('puzzle_picker/_results.html.twig') }}
+        </div>
+    </section>
+
+    {# How it works #}
+    <section class="bg-secondary py-4 py-md-5">
+        <div class="container px-3">
+            <h2 class="h3 text-center mb-4">{{ 'puzzle_picker.landing.how_title'|trans }}</h2>
+            <div class="row g-3 g-md-4">
+                {% for step in [
+                    {icon: 'bi-sliders', key: 'mood'},
+                    {icon: 'bi-shuffle', key: 'spin'},
+                    {icon: 'bi-stopwatch', key: 'solve'},
+                ] %}
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body p-4 text-center">
+                                <span class="badge bg-primary rounded-pill mb-2">{{ loop.index }}</span>
+                                <i class="bi {{ step.icon }} fs-1 text-primary mb-2 d-block" aria-hidden="true"></i>
+                                <h3 class="h5">{{ ('puzzle_picker.landing.how.' ~ step.key ~ '.title')|trans }}</h3>
+                                <p class="text-muted mb-0">{{ ('puzzle_picker.landing.how.' ~ step.key ~ '.text')|trans }}</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    {# What you can filter #}
+    <section class="py-4 py-md-5">
+        <div class="container px-3">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <h2 class="h3 text-center mb-2">{{ 'puzzle_picker.landing.filters_title'|trans }}</h2>
+                    <p class="text-muted text-center mb-4">{{ 'puzzle_picker.landing.filters_text'|trans }}</p>
+                    <ul class="list-unstyled row g-2 mb-0">
+                        {% for item in [
+                            {icon: 'bi-collection', key: 'source'},
+                            {icon: 'bi-check2-circle', key: 'solved'},
+                            {icon: 'bi-grid-3x3-gap', key: 'pieces'},
+                            {icon: 'bi-tag', key: 'brand'},
+                            {icon: 'bi-box-arrow-right', key: 'lent'},
+                            {icon: 'bi-clock-history', key: 'times'},
+                        ] %}
+                            <li class="col-md-6 d-flex align-items-start">
+                                <i class="bi {{ item.icon }} text-primary me-2 mt-1" aria-hidden="true"></i>
+                                <span>{{ ('puzzle_picker.landing.filters.' ~ item.key)|trans }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# For members #}
+    <section class="bg-secondary py-4 py-md-5">
+        <div class="container px-3">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4 d-md-flex align-items-center gap-4">
+                            <i class="bi bi-gem fs-1 text-primary d-block mb-3 mb-md-0" aria-hidden="true"></i>
+                            <div>
+                                <h2 class="h4 mb-2">{{ 'puzzle_picker.landing.members_title'|trans }}</h2>
+                                <p class="text-muted mb-3">{{ 'puzzle_picker.landing.members_text'|trans }}</p>
+                                <a href="{{ path('membership') }}" class="btn btn-outline-primary btn-sm">{{ 'puzzle_picker.landing.members_cta'|trans }}</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# Bottom CTA #}
+    <section class="py-4 py-md-5">
+        <div class="container px-3 text-center">
+            <h2 class="h3 mb-2">{{ 'puzzle_picker.landing.bottom_title'|trans }}</h2>
+            <p class="text-muted mb-4">{{ 'puzzle_picker.landing.bottom_text'|trans }}</p>
+            <div class="d-flex flex-wrap justify-content-center gap-2 gap-md-3">
+                <a href="{{ register_url }}" rel="nofollow" class="btn btn-primary btn-shadow px-3 py-2 px-md-4">{{ 'puzzle_picker.landing.register'|trans }}</a>
+                <a href="{{ login_url }}" rel="nofollow" class="btn btn-outline-primary px-3 py-2 px-md-4">{{ 'puzzle_picker.landing.sign_in'|trans }}</a>
+            </div>
+        </div>
+    </section>
+
+    {{ include('puzzle_picker/_filters_modal.html.twig') }}
+{% endblock %}

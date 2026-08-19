@@ -1,0 +1,37 @@
+{# The draw: one visible card, the rest hidden until "Show N more" (over-fetched in the same
+   query - zero extra requests), the "1 of N matching" counter and the spin button.
+   Expects: pick, criteria, next_seed #}
+{% if pick.isEmpty %}
+    {{ include('puzzle_picker/_empty_state.html.twig') }}
+{% else %}
+    {% set hidden_count = pick.suggestions|length - 1 %}
+    <div class="row justify-content-center" data-controller="puzzle-picker-reveal">
+        <div class="col-12 col-md-8 col-lg-6">
+            {% for suggestion in pick.suggestions %}
+                <div class="mb-3{{ loop.first ? '' : ' d-none' }}" data-puzzle-picker-reveal-target="card">
+                    {{ include('puzzle_picker/_card.html.twig', {suggestion: suggestion, position: loop.index}) }}
+                </div>
+            {% endfor %}
+
+            <p class="text-center text-muted fs-sm mb-2">
+                {{ 'puzzle_picker.results.matching'|trans({
+                    '%shown%': '<span data-puzzle-picker-reveal-target="count">1</span>',
+                    '%total%': pick.totalMatching,
+                })|raw }}
+            </p>
+
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                {% if pick.totalMatching > 1 %}
+                    <a class="btn btn-primary" rel="nofollow" href="{{ path('puzzle_picker', criteria.toQueryParams(next_seed)) }}">
+                        <i class="bi bi-shuffle me-1"></i>{{ 'puzzle_picker.results.pick_another'|trans }}
+                    </a>
+                {% endif %}
+                {% if hidden_count > 0 %}
+                    <button type="button" class="btn btn-outline-primary" data-action="puzzle-picker-reveal#reveal" data-puzzle-picker-reveal-target="button">
+                        <i class="bi bi-chevron-down me-1"></i>{{ 'puzzle_picker.results.show_more'|trans({'%count%': hidden_count}) }}
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endif %}

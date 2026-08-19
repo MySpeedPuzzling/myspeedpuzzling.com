@@ -443,6 +443,12 @@
                                         </a>
                                     </li>
                                     <li>
+                                        <a class="dropdown-item {% if currentRoute == 'puzzle_picker' %}active{% endif %}" href="{{ path('puzzle_picker') }}">
+                                            <i class="bi bi-shuffle me-1"></i> {{ 'puzzle_picker.menu_label'|trans }}
+                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a class="dropdown-item {% if currentRoute == 'export_puzzler_data' %}active{% endif %}" href="{{ path('export_puzzler_data', {'playerId': logged_user.profile.playerId}) }}">
                                             <i class="bi bi-download me-1"></i> {{ 'menu.export_data'|trans }}
                                         </a>

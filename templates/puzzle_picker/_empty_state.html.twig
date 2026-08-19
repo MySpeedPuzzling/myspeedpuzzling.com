@@ -1,0 +1,36 @@
+{# Nothing to pick. Two cases: the default view of a player with an empty shelf (nothing to
+   filter yet -> add puzzles / widen to all), or filters that leave no candidate (loosen).
+   Expects: criteria #}
+{% set empty_shelf = criteria.isAuthenticated and criteria.isDefault and criteria.source.value == 'mine' %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card card-body shadow p-4 text-center">
+            <i class="bi bi-shuffle fs-1 text-muted d-block mb-2" aria-hidden="true"></i>
+            {% if empty_shelf %}
+                <h2 class="h5">{{ 'puzzle_picker.empty.collection_title'|trans }}</h2>
+                <p class="fs-sm text-muted mb-3">{{ 'puzzle_picker.empty.collection_text'|trans }}</p>
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <a class="btn btn-primary btn-sm" href="{{ path('puzzle_add') }}?mode=collection">
+                        <i class="bi bi-puzzle me-1"></i>{{ 'puzzle_picker.empty.add_puzzles'|trans }}
+                    </a>
+                    <a class="btn btn-outline-primary btn-sm" rel="nofollow" href="{{ path('puzzle_picker', {source: 'any'}) }}">
+                        <i class="bi bi-globe2 me-1"></i>{{ 'puzzle_picker.empty.pick_from_all'|trans }}
+                    </a>
+                </div>
+            {% else %}
+                <h2 class="h5">{{ 'puzzle_picker.empty.nothing_title'|trans }}</h2>
+                <p class="fs-sm text-muted mb-3">{{ 'puzzle_picker.empty.nothing_text'|trans }}</p>
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <a class="btn btn-primary btn-sm" rel="nofollow" href="{{ path('puzzle_picker') }}">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>{{ 'puzzle_picker.empty.reset'|trans }}
+                    </a>
+                    {% if criteria.isAuthenticated and criteria.source.value != 'any' %}
+                        <a class="btn btn-outline-primary btn-sm" rel="nofollow" href="{{ path('puzzle_picker', {source: 'any'}) }}">
+                            <i class="bi bi-globe2 me-1"></i>{{ 'puzzle_picker.empty.pick_from_all'|trans }}
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>

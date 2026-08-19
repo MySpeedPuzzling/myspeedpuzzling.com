@@ -3121,3 +3121,109 @@ wjpf:
         explanation: "Ihre MySpeedPuzzling-Profil-ID wird an worldjigsawpuzzle.org übermittelt, damit die beiden Konten verknüpft werden können. Sonst wird nichts gesendet."
         confirm: "Konten verbinden"
         cancel: "Abbrechen"
+
+puzzle_picker:
+    meta:
+        title: "Welches Puzzle als Nächstes? – Puzzle-Auswahl"
+        description: "Sie können sich nicht entscheiden, welches Puzzle als Nächstes dran ist? Sagen Sie der Auswahl, wonach Ihnen ist – Teilezahl, Marke, etwas Neues oder schon einmal gelegt – und sie zieht ein Puzzle aus Ihrem eigenen Regal, samt Ihren Zeiten und dem Community-Durchschnitt."
+    title: "Welches Puzzle als Nächstes?"
+    subtitle: "Sagen Sie mir, wonach Ihnen ist – ich wähle aus Ihrem Regal."
+    menu_label: "Was als Nächstes?"
+    filters:
+        button: "Filter"
+        title: "Filter"
+        apply: "Puzzle auswählen"
+        reset: "Filter zurücksetzen"
+        guest_note: "Melden Sie sich an, um aus Ihrem eigenen Regal und Ihrer Historie zu wählen."
+        source:
+            label: "Woraus wählen"
+            mine: "Meine Sammlung"
+            not_mine: "Nicht in meiner Sammlung"
+            any: "Beliebiges Puzzle"
+            include_lent_out: "Auch Puzzles, die ich verliehen habe"
+        solved:
+            label: "Meine Historie"
+            any: "Egal"
+            never: "Noch nie gelegt"
+            before: "Schon gelegt"
+        pieces:
+            label: "Teile"
+            custom: "Eigener Bereich:"
+            min: "von"
+            max: "bis"
+        brand:
+            label: "Marke"
+            placeholder: "Beliebige Marke"
+    chips:
+        source:
+            mine: "Meine Sammlung"
+            not_mine: "Nicht in meiner Sammlung"
+        solved:
+            never: "Noch nie gelegt"
+            before: "Schon gelegt"
+        pieces:
+            exact: "%count% Teile"
+            between: "%min%–%max% Teile"
+            at_least: "%min%+ Teile"
+            at_most: "bis %max% Teile"
+        brand: "Marke"
+        include_lent_out: "Inkl. verliehen"
+        remove: "Diesen Filter entfernen"
+    results:
+        matching: "%shown% von %total% passenden Puzzles"
+        pick_another: "Ein anderes"
+        show_more: "%count% weitere zeigen"
+    card:
+        you: "Sie:"
+        solved_times: "%count%× gelegt"
+        last_solved: "zuletzt %ago%"
+        not_solved_yet: "Dieses Puzzle haben Sie noch nicht gelegt"
+        no_solo_time: "Noch keine Solo-Zeit – im Team gelegt"
+        first_time: "Erste Zeit:"
+        community: "Community:"
+        community_stats: "Ø %average% · %count% Solo-Zeiten"
+        community_none: "noch keine Solo-Zeiten – seien Sie die/der Erste"
+        sign_in_for_times: "Nach der Anmeldung sehen Sie hier Ihre eigenen Zeiten."
+        sign_in_to_solve: "Anmelden und lospuzzeln"
+        detail: "Puzzle-Details"
+    empty:
+        collection_title: "Ihre Sammlung ist leer"
+        collection_text: "Fügen Sie die Puzzles hinzu, die Sie besitzen – beim nächsten Mal wählt die Auswahl daraus."
+        add_puzzles: "Puzzles hinzufügen"
+        pick_from_all: "Aus allen Puzzles wählen"
+        nothing_title: "Kein Puzzle passt zu diesen Filtern"
+        nothing_text: "Entfernen Sie oben einen Filter oder setzen Sie alle zurück, damit die Auswahl größer wird."
+        reset: "Filter zurücksetzen"
+    landing:
+        lead: "Ein Glücksrad für Ihr Puzzleregal. Sagen Sie, wonach Ihnen ist – Teilezahl, Marke, etwas Neues oder ein alter Liebling – und Sie bekommen ein Puzzle, mit dem Sie sofort loslegen können, samt Ihren eigenen Zeiten und dem Community-Durchschnitt."
+        sign_in: "Anmelden"
+        register: "Kostenloses Konto erstellen"
+        trust_free: "Kostenlos für alle"
+        trust_shelf: "Wählt aus Ihrer eigenen Sammlung"
+        demo_title: "Probieren Sie es aus: ein Zufallspuzzle aus allen Puzzles"
+        demo_text: "Angemeldet zieht die Auswahl aus Ihrem eigenen Regal und zeigt Ihre Zeiten dazu."
+        how_title: "So funktioniert es"
+        how:
+            mood:
+                title: "Sagen Sie, wonach Ihnen ist"
+                text: "Wählen Sie Teilezahl und Marke und ob es etwas Neues oder ein bekanntes Puzzle sein soll."
+            spin:
+                title: "Drehen"
+                text: "Ein Puzzle erscheint – mit Ihren Zeiten, dem Community-Durchschnitt und der Zahl der Puzzler, die es gelegt haben. Nicht das Richtige? Noch einmal drehen oder fünf weitere anzeigen."
+            solve:
+                title: "Loslegen"
+                text: "Starten Sie die Stoppuhr oder tragen Sie eine fertige Zeit direkt von der Karte aus ein. Entscheidung getroffen – puzzeln!"
+        filters_title: "Wonach Sie filtern können"
+        filters_text: "Alles basiert auf Ihrer eigenen Sammlung und Ihren eigenen Legezeiten."
+        filters:
+            source: "Puzzles aus Ihrer Sammlung, Puzzles, die Sie noch nicht besitzen, oder die ganze Datenbank"
+            solved: "Noch nie gelegt, schon gelegt oder egal"
+            pieces: "Teilezahl – Schnellauswahl für die gängigen Größen oder ein eigener Bereich"
+            brand: "Eine oder mehrere Marken"
+            lent: "Verliehene Puzzles bleiben außen vor, geliehene zählen mit"
+            times: "Ihre schnellste, letzte und erste Zeit auf jeder Karte"
+        members_title: "Für Mitglieder"
+        members_text: "Mitglieder schalten die Insights frei – Puzzle-Schwierigkeit, vorhergesagte Legezeiten und Könnensstufen – auf den Puzzleseiten und bald direkt auf der Auswahlkarte."
+        members_cta: "Über die Mitgliedschaft"
+        bottom_title: "Schluss mit Regal-Scannen – lassen Sie das Rad entscheiden"
+        bottom_text: "Erstellen Sie ein kostenloses Konto, fügen Sie Ihre Puzzles hinzu und überlassen Sie der Auswahl die Wahl."

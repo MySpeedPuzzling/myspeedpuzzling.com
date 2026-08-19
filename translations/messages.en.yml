@@ -3408,3 +3408,109 @@ wjpf:
         explanation: "Your MySpeedPuzzling profile ID will be shared with worldjigsawpuzzle.org so the two accounts can be linked. Nothing else is sent."
         confirm: "Connect accounts"
         cancel: "Cancel"
+
+puzzle_picker:
+    meta:
+        title: "What should I solve next? – Puzzle picker"
+        description: "Can't decide which jigsaw puzzle to do next? Tell the picker your mood – piece count, brand, something new or already solved – and it draws one puzzle from your own shelf, together with your times and the community average."
+    title: "What should I solve next?"
+    subtitle: "Tell me the mood, I'll pick from your shelf."
+    menu_label: "What next?"
+    filters:
+        button: "Filters"
+        title: "Filters"
+        apply: "Pick a puzzle"
+        reset: "Reset filters"
+        guest_note: "Sign in to pick from your own shelf and history."
+        source:
+            label: "Where to pick from"
+            mine: "My collection"
+            not_mine: "Not in my collection"
+            any: "Any puzzle"
+            include_lent_out: "Include puzzles I have lent out"
+        solved:
+            label: "My history"
+            any: "Any"
+            never: "Never solved"
+            before: "Solved before"
+        pieces:
+            label: "Pieces"
+            custom: "Custom range:"
+            min: "from"
+            max: "to"
+        brand:
+            label: "Brand"
+            placeholder: "Any brand"
+    chips:
+        source:
+            mine: "My collection"
+            not_mine: "Not in my collection"
+        solved:
+            never: "Never solved"
+            before: "Solved before"
+        pieces:
+            exact: "%count% pieces"
+            between: "%min%–%max% pieces"
+            at_least: "%min%+ pieces"
+            at_most: "up to %max% pieces"
+        brand: "Brand"
+        include_lent_out: "Incl. lent out"
+        remove: "Remove this filter"
+    results:
+        matching: "%shown% of %total% matching puzzles"
+        pick_another: "Pick another"
+        show_more: "Show %count% more"
+    card:
+        you: "You:"
+        solved_times: "solved %count%×"
+        last_solved: "last time %ago%"
+        not_solved_yet: "You haven't solved this one yet"
+        no_solo_time: "No solo time yet – solved in a team"
+        first_time: "First time:"
+        community: "Community:"
+        community_stats: "avg. %average% · %count% solo solves"
+        community_none: "no solo times yet – be the first"
+        sign_in_for_times: "Sign in and your own times will show up here."
+        sign_in_to_solve: "Sign in to start solving"
+        detail: "Puzzle detail"
+    empty:
+        collection_title: "Your collection is empty"
+        collection_text: "Add the puzzles you own and the picker will choose from them next time."
+        add_puzzles: "Add puzzles"
+        pick_from_all: "Pick from all puzzles"
+        nothing_title: "Nothing matches these filters"
+        nothing_text: "Remove a chip above or reset the filters to widen the pool."
+        reset: "Reset filters"
+    landing:
+        lead: "A fortune wheel for your puzzle shelf. Say what mood you're in – piece count, brand, something new or an old favourite – and get one puzzle to start right away, together with your own times and the community average."
+        sign_in: "Sign in"
+        register: "Create a free account"
+        trust_free: "Free for everyone"
+        trust_shelf: "Picks from your own collection"
+        demo_title: "Try it: a random pick from all puzzles"
+        demo_text: "Signed in, the picker draws from your own shelf and shows your times on it."
+        how_title: "How it works"
+        how:
+            mood:
+                title: "Tell it your mood"
+                text: "Pick a piece count, a brand, whether you want something new or a puzzle you already know."
+            spin:
+                title: "Spin"
+                text: "One puzzle comes up – with your times, the community average and how many people solved it. Not the one? Spin again or show five more."
+            solve:
+                title: "Start solving"
+                text: "Start the stopwatch or add a finished time straight from the card. Done deciding, start puzzling."
+        filters_title: "What you can filter"
+        filters_text: "Everything is built from your own collection and your own solving times."
+        filters:
+            source: "Puzzles in your collection, puzzles you don't own yet, or the whole database"
+            solved: "Never solved, solved before, or anything"
+            pieces: "Piece count – quick chips for the common sizes or your own range"
+            brand: "One or more brands"
+            lent: "Puzzles you have lent out are left out; borrowed ones are included"
+            times: "Your fastest, latest and first time on every card"
+        members_title: "For members"
+        members_text: "Members unlock the Insights family – puzzle difficulty, predicted solving times and skill tiers – on puzzle pages, and soon right on the picker card."
+        members_cta: "About membership"
+        bottom_title: "Stop scanning your shelf – let the wheel decide"
+        bottom_text: "Create a free account, add the puzzles you own and let the picker do the choosing."

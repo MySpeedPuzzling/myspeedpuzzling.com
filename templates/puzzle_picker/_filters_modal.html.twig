@@ -1,0 +1,104 @@
+{# Filter sheet: a plain GET form - Apply submits, the URL is the state (bookmarkable, back
+   button works). Personal groups (shelf, history, lent-out) are disabled for guests with a
+   sign-in note; the server drops those values for guests anyway. Expects: criteria, brand_names #}
+{% set is_guest = not criteria.isAuthenticated %}
+{% set pieces_values = criteria.piecesValues %}
+{% set custom_range = criteria.customPiecesRange %}
+<div class="modal fade" id="puzzlePickerFilters" tabindex="-1" aria-labelledby="puzzlePickerFiltersLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <form method="get" action="{{ path('puzzle_picker') }}" data-turbo-frame="_top">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="puzzlePickerFiltersLabel"><i class="bi bi-sliders me-1"></i>{{ 'puzzle_picker.filters.title'|trans }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+                </div>
+
+                <div class="modal-body">
+                    {% if is_guest %}
+                        <div class="alert alert-info fs-sm py-2 px-3 mb-3">
+                            <i class="bi bi-person me-1"></i>{{ 'puzzle_picker.filters.guest_note'|trans }}
+                            <a rel="nofollow" href="{{ path('login', {return: path('puzzle_picker')}) }}" class="alert-link">{{ 'menu.sign_in'|trans }}</a>
+                        </div>
+                    {% endif %}
+
+                    <fieldset class="mb-3 {{ is_guest ? 'opacity-50' }}" {{ is_guest ? 'disabled' }}>
+                        <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.source.label'|trans }}</legend>
+                        <div class="d-flex flex-wrap align-items-center gap-1">
+                            {% for option in ['mine', 'not_mine', 'any'] %}
+                                <div class="form-check form-option form-check-inline mb-0">
+                                    <input type="radio" class="form-check-input" name="source" id="picker-source-{{ option }}" value="{{ option }}" {{ criteria.source.value == option ? 'checked' }}>
+                                    <label class="form-option-label" for="picker-source-{{ option }}">{{ ('puzzle_picker.filters.source.' ~ option)|trans }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-check mt-2 mb-0">
+                            <input class="form-check-input" type="checkbox" name="lent" value="1" id="picker-lent" {{ criteria.includeLentOut ? 'checked' }}>
+                            <label class="form-check-label fs-sm" for="picker-lent">{{ 'puzzle_picker.filters.source.include_lent_out'|trans }}</label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="mb-3 {{ is_guest ? 'opacity-50' }}" {{ is_guest ? 'disabled' }}>
+                        <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.solved.label'|trans }}</legend>
+                        <div class="d-flex flex-wrap align-items-center gap-1">
+                            {% for option in ['any', 'never', 'before'] %}
+                                <div class="form-check form-option form-check-inline mb-0">
+                                    <input type="radio" class="form-check-input" name="solved" id="picker-solved-{{ option }}" value="{{ option }}" {{ criteria.solved.value == option ? 'checked' }}>
+                                    <label class="form-option-label" for="picker-solved-{{ option }}">{{ ('puzzle_picker.filters.solved.' ~ option)|trans }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="mb-3">
+                        <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.pieces.label'|trans }}</legend>
+                        <div class="d-flex flex-wrap align-items-center gap-1">
+                            {% for chip in constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::PIECES_CHIPS') %}
+                                {% set chip_value = chip ~ '' %}
+                                <div class="form-check form-option form-check-inline mb-0">
+                                    <input type="checkbox" class="form-check-input" name="pieces[]" id="picker-pieces-{{ chip_value|replace({'-': 'plus'}) }}" value="{{ chip_value }}" {{ chip_value in pieces_values ? 'checked' }}>
+                                    <label class="form-option-label" for="picker-pieces-{{ chip_value|replace({'-': 'plus'}) }}">{{ chip_value|replace({'-': '+'}) }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="d-flex align-items-center gap-2 mt-2">
+                            <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.pieces.custom'|trans }}</span>
+                            <label class="visually-hidden" for="picker-pieces-min">{{ 'puzzle_picker.filters.pieces.min'|trans }}</label>
+                            <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-pieces-min" name="pieces_min" min="1" step="1" inputmode="numeric" placeholder="{{ 'puzzle_picker.filters.pieces.min'|trans }}" value="{{ custom_range is not null and custom_range[0] is not null ? custom_range[0] : '' }}">
+                            <span class="text-muted">–</span>
+                            <label class="visually-hidden" for="picker-pieces-max">{{ 'puzzle_picker.filters.pieces.max'|trans }}</label>
+                            <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-pieces-max" name="pieces_max" min="1" step="1" inputmode="numeric" placeholder="{{ 'puzzle_picker.filters.pieces.max'|trans }}" value="{{ custom_range is not null and custom_range[1] is not null ? custom_range[1] : '' }}">
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="mb-1">
+                        <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.brand.label'|trans }}</legend>
+                        {# Option list is NOT rendered here (hundreds of brands) - tomselect-sync fetches
+                           it from the cached filter-options endpoint on first focus. Only the currently
+                           selected brands are pre-rendered. #}
+                        <select
+                            id="picker-brand"
+                            class="form-select"
+                            name="brand[]"
+                            multiple
+                            data-placeholder="{{ 'puzzle_picker.filters.brand.placeholder'|trans }}"
+                            data-controller="tomselect-sync"
+                            data-tomselect-sync-options-url-value="{{ path('puzzle_search_filter_options') }}"
+                            data-tomselect-sync-options-key-value="manufacturers"
+                        >
+                            {% for brand_id in criteria.brandIds %}
+                                <option value="{{ brand_id }}" selected>{{ brand_names[brand_id] ?? brand_id }}</option>
+                            {% endfor %}
+                        </select>
+                    </fieldset>
+                </div>
+
+                <div class="modal-footer justify-content-between">
+                    <a class="btn btn-link btn-sm text-muted" rel="nofollow" href="{{ path('puzzle_picker') }}">{{ 'puzzle_picker.filters.reset'|trans }}</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-shuffle me-1"></i>{{ 'puzzle_picker.filters.apply'|trans }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -12,10 +12,10 @@
     <button class="btn btn-outline-secondary btn-sm dropdown-toggle collection-display-toggle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false" title="{{ 'collections.display.hint'|trans }}">
         <i class="bi bi-eye me-1"></i>{{ 'collections.display.label'|trans }}{% if display_mode.showsTimes %}: <span class="fw-bold">{{ ('collections.display.mode.' ~ display_mode.value)|trans }}</span>{% endif %}
     </button>
-    <div class="dropdown-menu dropdown-menu-end" style="min-width: 16rem;">
+    <div class="dropdown-menu dropdown-menu-end" style="min-width: 16rem; max-width: min(22rem, 92vw);">
         <form method="post" action="{{ path('collection_display_mode', {return: return_path}) }}">
             <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ChangeCollectionDisplayModeController::CSRF_TOKEN_ID')) }}">
-            <h6 class="dropdown-header">{{ 'collections.display.hint'|trans }}</h6>
+            <h6 class="dropdown-header text-wrap">{{ 'collections.display.hint'|trans }}</h6>
             {% for mode in ['off', 'times'] %}
                 <button type="submit" name="mode" value="{{ mode }}" class="dropdown-item d-flex align-items-center {{ display_mode.value == mode ? 'active' }}">
                     <i class="bi {{ display_mode.value == mode ? 'bi-check-circle-fill' : 'bi-circle' }} me-2"></i>{{ ('collections.display.mode.' ~ mode)|trans }}

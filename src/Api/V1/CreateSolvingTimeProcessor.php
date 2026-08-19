@@ -9,8 +9,11 @@ use ApiPlatform\State\ProcessorInterface;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
+use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\ApiUser;
+use SpeedPuzzling\Web\Services\Api\ApiTokenOwner;
+use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -24,6 +27,8 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
         private Security $security,
         private MessageBusInterface $messageBus,
         private CompetitionRoundRepository $competitionRoundRepository,
+        private ApiTokenOwner $tokenOwner,
+        private GetPlayerPrediction $getPlayerPrediction,
     ) {
     }
 
@@ -71,15 +76,53 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
             ),
         );
 
+        // The same parser the handler stores from (SolvingTime::fromUserInput);
+        // the input regex guarantees the HH:MM:SS / MM:SS shape it asserts.
+        $timeSeconds = SolvingTime::fromUserInput($data->time)->seconds;
+
         return new SolvingTimeResponse(
             time_id: $timeId->toString(),
             puzzle_id: $data->puzzle_id,
-            time_seconds: null,
+            time_seconds: $timeSeconds,
             finished_at: $finishedAt?->format('c'),
             first_attempt: $data->first_attempt,
             unboxed: $data->unboxed,
             comment: $data->comment,
             round_id: $data->round_id,
+            prediction: $this->predictionBefore($data, $timeSeconds, $timeId->toString()),
+        );
+    }
+
+    /**
+     * The prediction that applied *before* this solve - what the website's added-time
+     * recap shows (AddedTimeRecapController: solo, time present, owner not opted out;
+     * the template reveals it to members only). The new time is excluded from the
+     * prediction query, so personal_solve_count is the count before it. Null when the
+     * token is not entitled to one: group time, no time, not a member, opted out, or an
+     * OAuth2 token without results:read (the write scope alone does not grant reading
+     * insights - the same PAT / results:read rule as every other prediction object).
+     * The cheap checks come first so a non-eligible request costs at most the one
+     * owner-profile query.
+     */
+    private function predictionBefore(CreateSolvingTimeInput $data, null|int $timeSeconds, string $timeId): null|TimePredictionResponse
+    {
+        // A non-empty group_players list always makes a duo/team time (or fails in the handler)
+        if ($data->group_players !== [] || $timeSeconds === null) {
+            return null;
+        }
+
+        if ($this->tokenOwner->canReadResults() === false || $this->tokenOwner->isMember() === false) {
+            return null;
+        }
+
+        $profile = $this->tokenOwner->profile();
+
+        if ($profile === null || $profile->timePredictionsOptedOut) {
+            return null;
+        }
+
+        return TimePredictionResponse::fromResult(
+            $this->getPlayerPrediction->forPuzzle($profile->playerId, $data->puzzle_id, excludeTimeId: $timeId),
         );
     }
 }

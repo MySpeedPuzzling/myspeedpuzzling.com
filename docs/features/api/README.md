@@ -78,7 +78,7 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 | GET | `/api/v1/me/results?type=solo\|duo\|team` | PAT or `results:read`. Each result also carries the puzzle's `statistics` (public) and `difficulty` (members, else `null`) - see Insights on lists below |
 | GET | `/api/v1/me/puzzles/{puzzleId}/predicted-time` | PAT or `results:read` |
 | GET | `/api/v1/me/statistics` | PAT or `statistics:read` |
-| POST | `/api/v1/me/solving-times` | PAT or `solving-times:write` |
+| POST | `/api/v1/me/solving-times` | PAT or `solving-times:write`. The response carries the parsed `time_seconds` and `prediction` - the time prediction that applied *before* this solve (solo times, token owner a member who has not opted out, PAT or `results:read`; else `null`) - see the POST section below |
 | PUT | `/api/v1/me/solving-times/{timeId}` | PAT or `solving-times:write` |
 | GET | `/api/v1/me/collections` | PAT or `collections:read` |
 | GET | `/api/v1/me/collections/{id}/items` | PAT or `collections:read`. Each item also carries `statistics` (public), `difficulty` (members), `prediction` (members, not opted out, PAT or `results:read`) and `solves` (own history, PAT or `results:read`) - see Insights on lists below |
@@ -252,6 +252,21 @@ The three blocks the profile page shows, under the page's own gates (`templates/
 - `group_players`: player codes prefixed with `#`, or plain names for unregistered players
 - `round_id`: optional, nullable. When set, the time is linked to that competition round and automatically to its competition. An invalid or unknown `round_id` returns 404.
 - Photo uploads not supported via API (use the website)
+
+Response (`SolvingTimeResponse`, shared with `PUT …/solving-times/{timeId}`):
+
+```json
+{
+    "time_id": "uuid", "puzzle_id": "uuid", "time_seconds": 5025, "finished_at": "2025-12-01T14:30:00+00:00",
+    "first_attempt": true, "unboxed": false, "comment": "Optional comment", "round_id": null,
+    "prediction": { "predicted_seconds": 1890, "range_low_seconds": 1607, "range_high_seconds": 2174,
+                    "is_personalized": true, "personal_solve_count": 1, "predicted_attempt_number": 2, "last_time_seconds": 2100 }
+}
+```
+
+- `time_seconds` - the submitted `time` parsed with the same parser the handler stores from (`SolvingTime::fromUserInput`), so it is the number that lands in the database (`"1:23:45"` ⇒ `5025`, `"25:10"` ⇒ `1510`). Filled on `POST` since PR 4 of the expansion plan (it used to be `null`); still `null` on `PUT`.
+- `prediction` - the time prediction that applied **before** this solve, the one the website shows on the added-time recap page (`AddedTimeRecapController`): the new time is excluded from the prediction query, so `personal_solve_count` is the count before it, `predicted_attempt_number` the attempt this time was, and `last_time_seconds` the previous solve - an app can show "12% faster than predicted" right after submitting. Same shape as the `prediction` object on puzzle cards (Puzzles above). Gates, exactly as on the recap page plus the API's own read rule: **solo** time (`group_players` empty), a time present, the token owner a **member** who has **not opted out** of time predictions, and PAT or `results:read` on the token (`solving-times:write` alone writes, it does not read insights) - `null` otherwise; a `client_credentials` token never reaches `/me/*` at all. When present, the object is always complete: the statistical (baseline × difficulty) estimate comes with `is_personalized: false` and the three `personal_*`/`last_*` fields `null`; every field `null` when there is nothing to predict from. Always `null` on `PUT` (the "before" prediction is a property of creating a time).
+- **Query cost** (asserted in `CreateSolvingTimePredictionEndpointTest`, request only, PAT): the create itself already runs the `PuzzleSolved` event's synchronous recalculations (statistics, intelligence, wishlist removal, notifications), so its count depends on the data - measured 2026-08-19 with the prediction switched off: 28-35 for a solo time, 21 for a duo time. On top of that the feature adds the owner profile (1, `ApiTokenOwner`, only when the time is solo and the token may read results) and `GetPlayerPrediction::forPuzzle` (≤ 5: personal - solves, pieces, player ratio, global ratio(s); statistical - solves + 1) only for an eligible request; a group time adds nothing.
 
 ### Privacy
 

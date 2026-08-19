@@ -15,6 +15,12 @@ final class SolvingTimeResponse
         public bool $unboxed,
         public null|string $comment,
         public null|string $round_id = null,
+        /**
+         * POST only: the time prediction that applied *before* this solve (the one the
+         * added-time recap page shows) - solo times, token owner a member who has not
+         * opted out, PAT or results:read. Null otherwise, and always null on PUT.
+         */
+        public null|TimePredictionResponse $prediction = null,
     ) {
     }
 }

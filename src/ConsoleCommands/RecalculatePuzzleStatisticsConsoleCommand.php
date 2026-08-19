@@ -79,7 +79,11 @@ final class RecalculatePuzzleStatisticsConsoleCommand extends Command
                 fastest_time_first_attempt = NULL,
                 fastest_time_first_attempt_solo = NULL,
                 fastest_time_first_attempt_duo = NULL,
-                fastest_time_first_attempt_team = NULL
+                fastest_time_first_attempt_team = NULL,
+                median_time = NULL,
+                median_time_solo = NULL,
+                median_time_duo = NULL,
+                median_time_team = NULL
             WHERE NOT EXISTS (
                 SELECT 1 FROM puzzle_solving_time pst WHERE pst.puzzle_id = ps.puzzle_id
             )
@@ -101,7 +105,8 @@ final class RecalculatePuzzleStatisticsConsoleCommand extends Command
                 solved_times_duo_count, fastest_time_duo, average_time_duo, slowest_time_duo,
                 solved_times_team_count, fastest_time_team, average_time_team, slowest_time_team,
                 average_time_first_attempt, average_time_first_attempt_solo, average_time_first_attempt_duo, average_time_first_attempt_team,
-                fastest_time_first_attempt, fastest_time_first_attempt_solo, fastest_time_first_attempt_duo, fastest_time_first_attempt_team
+                fastest_time_first_attempt, fastest_time_first_attempt_solo, fastest_time_first_attempt_duo, fastest_time_first_attempt_team,
+                median_time, median_time_solo, median_time_duo, median_time_team
             ) VALUES (
                 :puzzleId,
                 :totalCount, :fastestTime, :averageTime, :slowestTime,
@@ -109,7 +114,8 @@ final class RecalculatePuzzleStatisticsConsoleCommand extends Command
                 :duoCount, :fastestTimeDuo, :averageTimeDuo, :slowestTimeDuo,
                 :teamCount, :fastestTimeTeam, :averageTimeTeam, :slowestTimeTeam,
                 :averageTimeFirstAttempt, :averageTimeFirstAttemptSolo, :averageTimeFirstAttemptDuo, :averageTimeFirstAttemptTeam,
-                :fastestTimeFirstAttempt, :fastestTimeFirstAttemptSolo, :fastestTimeFirstAttemptDuo, :fastestTimeFirstAttemptTeam
+                :fastestTimeFirstAttempt, :fastestTimeFirstAttemptSolo, :fastestTimeFirstAttemptDuo, :fastestTimeFirstAttemptTeam,
+                :medianTime, :medianTimeSolo, :medianTimeDuo, :medianTimeTeam
             )
             ON CONFLICT (puzzle_id) DO UPDATE SET
                 solved_times_count = EXCLUDED.solved_times_count,
@@ -135,7 +141,11 @@ final class RecalculatePuzzleStatisticsConsoleCommand extends Command
                 fastest_time_first_attempt = EXCLUDED.fastest_time_first_attempt,
                 fastest_time_first_attempt_solo = EXCLUDED.fastest_time_first_attempt_solo,
                 fastest_time_first_attempt_duo = EXCLUDED.fastest_time_first_attempt_duo,
-                fastest_time_first_attempt_team = EXCLUDED.fastest_time_first_attempt_team
+                fastest_time_first_attempt_team = EXCLUDED.fastest_time_first_attempt_team,
+                median_time = EXCLUDED.median_time,
+                median_time_solo = EXCLUDED.median_time_solo,
+                median_time_duo = EXCLUDED.median_time_duo,
+                median_time_team = EXCLUDED.median_time_team
         ", [
             'puzzleId' => $puzzleId,
             'totalCount' => $data->totalCount,
@@ -162,6 +172,10 @@ final class RecalculatePuzzleStatisticsConsoleCommand extends Command
             'fastestTimeFirstAttemptSolo' => $data->fastestTimeFirstAttemptSolo,
             'fastestTimeFirstAttemptDuo' => $data->fastestTimeFirstAttemptDuo,
             'fastestTimeFirstAttemptTeam' => $data->fastestTimeFirstAttemptTeam,
+            'medianTime' => $data->medianTime,
+            'medianTimeSolo' => $data->medianTimeSolo,
+            'medianTimeDuo' => $data->medianTimeDuo,
+            'medianTimeTeam' => $data->medianTimeTeam,
         ]);
     }
 }

@@ -29,24 +29,28 @@ readonly final class PuzzleStatisticsCalculator
                 COUNT(*) AS total_count,
                 MIN(seconds_to_solve) AS fastest_time,
                 (SELECT AVG(best_time)::int FROM player_best_per_type) AS average_time,
+                (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY best_time) FROM player_best_per_type) AS median_time,
                 MAX(seconds_to_solve) AS slowest_time,
 
                 -- Solo
                 COUNT(*) FILTER (WHERE puzzling_type = 'solo') AS solo_count,
                 MIN(seconds_to_solve) FILTER (WHERE puzzling_type = 'solo') AS fastest_time_solo,
                 (SELECT AVG(best_time)::int FROM player_best_per_type WHERE puzzling_type = 'solo') AS average_time_solo,
+                (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY best_time) FROM player_best_per_type WHERE puzzling_type = 'solo') AS median_time_solo,
                 MAX(seconds_to_solve) FILTER (WHERE puzzling_type = 'solo') AS slowest_time_solo,
 
                 -- Duo
                 COUNT(*) FILTER (WHERE puzzling_type = 'duo') AS duo_count,
                 MIN(seconds_to_solve) FILTER (WHERE puzzling_type = 'duo') AS fastest_time_duo,
                 (SELECT AVG(best_time)::int FROM player_best_per_type WHERE puzzling_type = 'duo') AS average_time_duo,
+                (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY best_time) FROM player_best_per_type WHERE puzzling_type = 'duo') AS median_time_duo,
                 MAX(seconds_to_solve) FILTER (WHERE puzzling_type = 'duo') AS slowest_time_duo,
 
                 -- Team
                 COUNT(*) FILTER (WHERE puzzling_type = 'team') AS team_count,
                 MIN(seconds_to_solve) FILTER (WHERE puzzling_type = 'team') AS fastest_time_team,
                 (SELECT AVG(best_time)::int FROM player_best_per_type WHERE puzzling_type = 'team') AS average_time_team,
+                (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY best_time) FROM player_best_per_type WHERE puzzling_type = 'team') AS median_time_team,
                 MAX(seconds_to_solve) FILTER (WHERE puzzling_type = 'team') AS slowest_time_team,
 
                 -- First attempt stats
@@ -62,7 +66,7 @@ readonly final class PuzzleStatisticsCalculator
             WHERE puzzle_id = :puzzleId
         ", ['puzzleId' => $puzzleId->toString()])->fetchAssociative();
 
-        /** @var array{total_count: int|string, fastest_time: int|string|null, average_time: int|string|null, slowest_time: int|string|null, solo_count: int|string, fastest_time_solo: int|string|null, average_time_solo: int|string|null, slowest_time_solo: int|string|null, duo_count: int|string, fastest_time_duo: int|string|null, average_time_duo: int|string|null, slowest_time_duo: int|string|null, team_count: int|string, fastest_time_team: int|string|null, average_time_team: int|string|null, slowest_time_team: int|string|null, average_time_first_attempt: int|string|null, average_time_first_attempt_solo: int|string|null, average_time_first_attempt_duo: int|string|null, average_time_first_attempt_team: int|string|null, fastest_time_first_attempt: int|string|null, fastest_time_first_attempt_solo: int|string|null, fastest_time_first_attempt_duo: int|string|null, fastest_time_first_attempt_team: int|string|null}|false $result */
+        /** @var array{total_count: int|string, fastest_time: int|string|null, average_time: int|string|null, slowest_time: int|string|null, solo_count: int|string, fastest_time_solo: int|string|null, average_time_solo: int|string|null, slowest_time_solo: int|string|null, duo_count: int|string, fastest_time_duo: int|string|null, average_time_duo: int|string|null, slowest_time_duo: int|string|null, team_count: int|string, fastest_time_team: int|string|null, average_time_team: int|string|null, slowest_time_team: int|string|null, average_time_first_attempt: int|string|null, average_time_first_attempt_solo: int|string|null, average_time_first_attempt_duo: int|string|null, average_time_first_attempt_team: int|string|null, fastest_time_first_attempt: int|string|null, fastest_time_first_attempt_solo: int|string|null, fastest_time_first_attempt_duo: int|string|null, fastest_time_first_attempt_team: int|string|null, median_time: int|float|string|null, median_time_solo: int|float|string|null, median_time_duo: int|float|string|null, median_time_team: int|float|string|null}|false $result */
 
         if ($result === false || (int) $result['total_count'] === 0) {
             return PuzzleStatisticsData::empty();
@@ -93,6 +97,10 @@ readonly final class PuzzleStatisticsCalculator
             fastestTimeFirstAttemptSolo: $this->toNullableInt($result['fastest_time_first_attempt_solo']),
             fastestTimeFirstAttemptDuo: $this->toNullableInt($result['fastest_time_first_attempt_duo']),
             fastestTimeFirstAttemptTeam: $this->toNullableInt($result['fastest_time_first_attempt_team']),
+            medianTime: $this->toRoundedInt($result['median_time']),
+            medianTimeSolo: $this->toRoundedInt($result['median_time_solo']),
+            medianTimeDuo: $this->toRoundedInt($result['median_time_duo']),
+            medianTimeTeam: $this->toRoundedInt($result['median_time_team']),
         );
     }
 
@@ -103,5 +111,19 @@ readonly final class PuzzleStatisticsCalculator
         }
 
         return (int) $value;
+    }
+
+    /**
+     * percentile_cont interpolates between the two middle values of an even
+     * count, so the driver hands it back as a float or a numeric string
+     * ("4150.5") - round half up to whole seconds.
+     */
+    private function toRoundedInt(null|int|float|string $value): null|int
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        return (int) round((float) $value);
     }
 }

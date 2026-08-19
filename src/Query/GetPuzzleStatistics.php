@@ -41,14 +41,17 @@ SELECT
     ps.fastest_time_solo,
     ps.average_time_solo,
     ps.slowest_time_solo,
+    ps.median_time_solo,
     ps.solved_times_duo_count,
     ps.fastest_time_duo,
     ps.average_time_duo,
     ps.slowest_time_duo,
+    ps.median_time_duo,
     ps.solved_times_team_count,
     ps.fastest_time_team,
     ps.average_time_team,
-    ps.slowest_time_team
+    ps.slowest_time_team,
+    ps.median_time_team
 FROM puzzle_statistics ps
 WHERE ps.puzzle_id IN (:puzzleIds)
 SQL;
@@ -61,14 +64,17 @@ SQL;
          *     fastest_time_solo: null|int|string,
          *     average_time_solo: null|int|string,
          *     slowest_time_solo: null|int|string,
+         *     median_time_solo: null|int|string,
          *     solved_times_duo_count: int|string,
          *     fastest_time_duo: null|int|string,
          *     average_time_duo: null|int|string,
          *     slowest_time_duo: null|int|string,
+         *     median_time_duo: null|int|string,
          *     solved_times_team_count: int|string,
          *     fastest_time_team: null|int|string,
          *     average_time_team: null|int|string,
          *     slowest_time_team: null|int|string,
+         *     median_time_team: null|int|string,
          * }> $rows
          */
         $rows = $this->database->executeQuery(

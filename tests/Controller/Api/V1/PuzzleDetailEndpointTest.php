@@ -37,7 +37,7 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
  * PUZZLE_1000_01. PUZZLE_5000 has never been solved by anyone. Difficulty rows
  * are seeded per test - the intelligence recalculation is batch.
  *
- * @phpstan-type StatisticsGroup array{count: int, fastest_seconds: null|int, average_seconds: null|int, slowest_seconds: null|int}
+ * @phpstan-type StatisticsGroup array{count: int, fastest_seconds: null|int, average_seconds: null|int, slowest_seconds: null|int, median_seconds: null|int}
  * @phpstan-type SolvesGroup array{count: int, best_time_seconds: null|int, last_time_seconds: null|int, first_solved_at: null|string, last_solved_at: null|string}
  * @phpstan-type Detail array{
  *     id: string,
@@ -68,7 +68,7 @@ final class PuzzleDetailEndpointTest extends WebTestCase
 
     private const array EMPTY_SOLVES_GROUP = ['count' => 0, 'best_time_seconds' => null, 'last_time_seconds' => null, 'first_solved_at' => null, 'last_solved_at' => null];
 
-    private const array EMPTY_STATISTICS_GROUP = ['count' => 0, 'fastest_seconds' => null, 'average_seconds' => null, 'slowest_seconds' => null];
+    private const array EMPTY_STATISTICS_GROUP = ['count' => 0, 'fastest_seconds' => null, 'average_seconds' => null, 'slowest_seconds' => null, 'median_seconds' => null];
 
     public function testAnonymousRequestIsUnauthorized(): void
     {
@@ -286,7 +286,7 @@ final class PuzzleDetailEndpointTest extends WebTestCase
 
         $this->assertSame($statistics['solo']['count'] + $statistics['duo']['count'] + $statistics['team']['count'], $statistics['solved_times']);
         $this->assertGreaterThan(0, $statistics['solo']['count']);
-        $this->assertSame(['count' => 1, 'fastest_seconds' => 3600, 'average_seconds' => 3600, 'slowest_seconds' => 3600], $statistics['duo']);
+        $this->assertSame(['count' => 1, 'fastest_seconds' => 3600, 'average_seconds' => 3600, 'slowest_seconds' => 3600, 'median_seconds' => 3600], $statistics['duo']);
         $this->assertSame(self::EMPTY_STATISTICS_GROUP, $statistics['team']);
 
         // and the owner's own duo solve is a duo in "solves" too

@@ -213,8 +213,10 @@ rendered (Twig + Turbo Drive); the only JS is the filter sheet, chips and a tiny
   same CTE as the picker's `my_solves`); predictions come from the bulk service (§6.4): one query
   for the viewer's solves, one for improvement ratios, one batch fetch of `puzzle_difficulty` +
   `player_baseline` for the item ids, then PHP. Each only runs when its mode is on.
-- **Later places** (roadmap, not in the first four PRs): stopwatch page ("predicted 1:12 — go beat
-  it"), search listing pill behind the same toggle, hub mini-picker, wishlist, `/api/v1/me/…`.
+- **Next** (planned 2026-08-19, `implementation-plan.md` PR 5 + PR 6): community average + **median**
+  from `puzzle_statistics` on every puzzle list (median column added to the statistics table, PK join
+  only), and the Display mode extended to the whole puzzle library — wishlist, unsolved, lend/borrow,
+  sell/swap. Later: stopwatch page prediction, search listing pill, hub mini-picker, `/api/v1/me/…`.
 
 ## 6. Data & query design (read model, performance)
 

@@ -287,7 +287,62 @@ All small commits straight to `main`, each with the check suite green:
   sway / glow ring, pop + "This one!", confetti, Skip button, stage outside the card)
 - `125920d1` + `38ad07c0` footer link with NEW badge (+ entry-point test fix)
 
-## PR 5+ — Reach & polish (roadmap)
+## PR 5 — Community times on every puzzle list: average + median from `puzzle_statistics` (planned 2026-08-19)
+
+**Question answered:** yes, cheaply — `puzzle_statistics` (PK `puzzle_id`, maintained by
+`RecalculatePuzzleStatisticsOnSolvingTimeChange` on every solve change + the
+`myspeedpuzzling:recalculate-puzzle-statistics` rebuild) already holds `average_time(_solo/_duo/_team)`
+(= average of each player's *best* per type), `fastest_time*`, `slowest_time*`, `solved_times*_count` and
+first-attempt variants. What is missing is a **median**: the puzzle page computes it at runtime from the
+full list (`PuzzleTimes.php:255-262`), the search listing/collection items show nothing. Plan:
+
+- `PuzzleStatistics` entity + **generated** migration: `median_time`, `median_time_solo`, `median_time_duo`,
+  `median_time_team` (int seconds, nullable) — median of each player's best per type, consistent with
+  the existing average (`percentile_cont(0.5) WITHIN GROUP (ORDER BY best_time)` over the
+  `player_best_per_type` CTE in `PuzzleStatisticsCalculator`); `PuzzleStatisticsData` + repository
+  upsert + `PuzzleStatisticsFixture`; `myspeedpuzzling:recalculate-puzzle-statistics` rebuild run once
+  after deploy (one query per puzzle with solves, a few minutes). Note in `docs/` that the puzzle page
+  median (all attempts of the shown category) and the cached one (per-player best) differ on purpose;
+  optionally switch the page to the cached value later for consistency.
+- Read models: every list query that renders `_puzzle_library_item.html.twig` gets a
+  `LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = puzzle.id` (PK join, free) and carries
+  `communitySolvedCountSolo`, `communityAverageTimeSolo`, `communityMedianTimeSolo`:
+  `GetCollectionItems`, `GetWishListItems`, `GetUnsolvedPuzzles` (+ borrowed unsolved),
+  `GetSellSwapListItems`, `GetLentPuzzles` / `GetBorrowedPuzzles`; `PuzzlePickerSuggestion` gains
+  `communityMedianTimeSolo`; `SearchPuzzle` / `_puzzle_item.html.twig` (already joins statistics)
+  adds the median next to the solve count.
+- UI: one compact muted "community" line on the item card (same wording as the picker card:
+  `avg 1h 42min · median 1h 35min · 87 solo solves`, "no solo times yet – be the first" otherwise),
+  always on (public data, free) — no toggle; the picker card shows avg · median · count. Six locales.
+- Tests: calculator median (odd/even counts, per-type), fixture-backed list query assertions, item
+  partial smoke on collection/wishlist/unsolved pages.
+- Perf: PK joins only; no runtime aggregation anywhere; the statistics row is already maintained.
+
+## PR 6 — Display mode (my times + predictions) on every system list (planned 2026-08-19)
+
+The PR 4 "Display" control (Off / My times / My times + predictions, `player.collection_display_mode`,
+`ResolveCollectionDisplay`) currently lives on the collection detail pages only (system collection +
+custom collections). Extend it to the rest of the puzzle library — the same one persisted preference,
+the same resolver, the same item block:
+- **Wishlist** (`WishListDetailController`, `wishlist/detail.html.twig`): my times (usually "not solved
+  yet") + predictions — "how long would this take me" is the point of a wishlist.
+- **Unsolved puzzles** (`UnsolvedPuzzlesDetailController`, `unsolved_puzzles/detail.html.twig`): my
+  times are trivially empty, predictions are the value (the list is the shelf's to-do).
+- **Lend / borrow** (`LendBorrowListDetailController`, `lend-borrow/detail.html.twig`): borrowed
+  puzzles (my times + prediction — they are on my table now) and lent-out puzzles (my times).
+- **Sell / swap** (`SellSwapListDetailController`, `sell-swap/*`): my times (did I solve it before
+  selling) — lowest value, last.
+- Solved puzzles page already is a times page (`PlayerSolvedPuzzles`) — out of scope.
+- Implementation: each controller calls `ResolveCollectionDisplay::forViewer($viewerProfile,
+  $puzzleIds)` and spreads `templateParameters()`; `_puzzle_library_item.html.twig` renders the
+  my-times block for every `page_context` (not only `collection`); the `collections/_display_mode`
+  dropdown is included in each page header with that page's `return_path`; the Turbo-stream
+  single-item re-renders (`_library_item_stream.html.twig`) keep not carrying the maps (documented).
+- Tests per page (owner with `times`, member with `times_predictions`, guest sees no control).
+- Later: client-side sort by `data-my-fastest-seconds` / `data-predicted-seconds` /
+  community median in the existing `collection_filter` Stimulus controller.
+
+## PR 7+ — Reach & polish (roadmap)
 Hub mini-picker, stopwatch prediction line, search listing pill, unlimited "more" via Turbo Frames,
 wishlist source, tag filter, "why this puzzle", MSP expected-gain estimate, API, materialised
 `player_puzzle_prediction` escape hatch.

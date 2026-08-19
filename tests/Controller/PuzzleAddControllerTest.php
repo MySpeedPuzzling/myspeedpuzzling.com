@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 
 final class PuzzleAddControllerTest extends WebTestCase
 {
@@ -112,6 +113,77 @@ final class PuzzleAddControllerTest extends WebTestCase
         self::assertStringNotContainsString(CompetitionSeriesFixture::EDITION_UNAPPROVED_1, $tomSelectOptions);
     }
 
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function provideVisibleCompetitionIds(): array
+    {
+        return [
+            'live standalone competition' => [CompetitionFixture::COMPETITION_RECURRING_ONLINE],
+            'edition of an approved series' => [CompetitionSeriesFixture::EDITION_EJJ_68],
+        ];
+    }
+
+    #[DataProvider('provideVisibleCompetitionIds')]
+    public function testCompetitionQueryParamPrefillsVisibleCompetition(string $competitionId): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add?competition=' . $competitionId);
+        $this->assertResponseIsSuccessful();
+
+        self::assertSame(
+            $competitionId,
+            $crawler->filter('input[name="puzzle_add_form[competition]"]')->attr('value'),
+        );
+        self::assertFalse(
+            $this->isCompetitionSectionHidden($crawler),
+            'The competition section must be expanded when the deep link pre-selects an event',
+        );
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function provideNonVisibleCompetitionQueryValues(): array
+    {
+        return [
+            'unapproved standalone competition' => [CompetitionFixture::COMPETITION_UNAPPROVED],
+            'edition of an unapproved series' => [CompetitionSeriesFixture::EDITION_UNAPPROVED_1],
+            'not a uuid' => ['not-a-uuid'],
+            'unknown uuid' => ['019999aa-0000-7000-8000-000000000000'],
+        ];
+    }
+
+    #[DataProvider('provideNonVisibleCompetitionQueryValues')]
+    public function testCompetitionQueryParamIgnoresNonVisible(string $queryValue): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add?competition=' . $queryValue);
+        $this->assertResponseIsSuccessful();
+
+        self::assertSame('', (string) $crawler->filter('input[name="puzzle_add_form[competition]"]')->attr('value'));
+        self::assertTrue($this->isCompetitionSectionHidden($crawler));
+    }
+
+    public function testCompetitionQueryParamIgnoredInRelaxMode(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add?mode=relax&competition=' . CompetitionFixture::COMPETITION_RECURRING_ONLINE);
+        $this->assertResponseIsSuccessful();
+
+        self::assertSame('', (string) $crawler->filter('input[name="puzzle_add_form[competition]"]')->attr('value'));
+        self::assertTrue($this->isCompetitionSectionHidden($crawler));
+    }
+
     public function testSubmitWithNotSelectableCompetitionIsRejected(): void
     {
         $browser = self::createClient();
@@ -181,6 +253,16 @@ final class PuzzleAddControllerTest extends WebTestCase
             'competition' => $competitionId,
             'collection' => '__system_collection__',
         ];
+    }
+
+    private function isCompetitionSectionHidden(Crawler $crawler): bool
+    {
+        $section = $crawler->filter('div[data-toggle-target="competition"]');
+        self::assertCount(1, $section);
+
+        $classes = explode(' ', (string) $section->attr('class'));
+
+        return in_array('hidden', $classes, true);
     }
 
     private function countPlayerTimes(Connection $database): int

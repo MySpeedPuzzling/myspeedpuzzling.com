@@ -178,6 +178,11 @@
                 <i class="bi bi-person-plus me-1"></i>{{ 'competition.join.im_going'|trans }}
             </a>
         {% endif %}
+        {% if can_add_time %}
+            <a href="{{ path('puzzle_add', {competition: event.id}) }}" class="btn btn-sm btn-outline-primary ms-1">
+                <i class="bi bi-stopwatch me-1"></i>{{ 'events.add_my_time'|trans }}
+            </a>
+        {% endif %}
     </div>
 
     <twig:CompetitionParticipants competitionId="{{ event.id }}" eventSlug="{{ event.slug }}" />

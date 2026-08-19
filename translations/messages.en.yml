@@ -515,6 +515,7 @@ events:
     past_editions: "Past editions"
     edition_date: "Date"
     no_editions_yet: "No editions yet."
+    add_my_time: "Add my time from this event"
     filter:
         filters: "Filters"
         time_period: "Time period"

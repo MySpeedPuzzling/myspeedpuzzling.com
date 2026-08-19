@@ -108,6 +108,22 @@ readonly final class CompetitionEvent
         );
     }
 
+    /**
+     * Whether the event only starts on a later calendar day than the given one — i.e. it is still
+     * "upcoming" on that day. The start is COALESCE(date_from, date_to), the same rule the event lists
+     * classify by; an undated event is perpetual and never upcoming. Compared by calendar day on purpose:
+     * `fromDatabaseRow` pins dateFrom to 09:00, so datetimes would disagree with the SQL `::date` rule.
+     */
+    public function startsAfter(DateTimeImmutable $day): bool
+    {
+        $start = $this->dateFrom ?? $this->dateTo;
+
+        if ($start === null) {
+            return false;
+        }
+
+        return $start->format('Y-m-d') > $day->format('Y-m-d');
+    }
 
     private function appendUtm(null|string $link): null|string
     {

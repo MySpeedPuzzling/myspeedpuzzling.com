@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
+use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,6 +27,8 @@ final class EventDetailController extends AbstractController
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -69,11 +73,18 @@ final class EventDetailController extends AbstractController
             );
         }
 
+        // "Add my time from this event" deep link: signed-in, the event is publicly visible (so the
+        // add-time picker offers it) and it has already started — no times for an upcoming event.
+        $canAddTime = $loggedPlayer !== null
+            && $competitionEvent->startsAfter($this->clock->now()) === false
+            && $this->isCompetitionPubliclyVisible->check($competitionEvent->id);
+
         return $this->render('event_detail.html.twig', [
             'event' => $competitionEvent,
             'puzzles' => $puzzles,
             'puzzle_statuses' => $puzzleStatuses,
             'is_going' => count($playerConnections) > 0,
+            'can_add_time' => $canAddTime,
         ]);
     }
 }

@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
+use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -27,6 +29,8 @@ final class EditionDetailController extends AbstractController
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -64,12 +68,19 @@ final class EditionDetailController extends AbstractController
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId);
 
+        // "Add my time from this event" deep link: signed-in, the edition is publicly visible (its
+        // series approved, so the add-time picker offers it) and it has already started.
+        $canAddTime = $loggedPlayer !== null
+            && $competitionEvent->startsAfter($this->clock->now()) === false
+            && $this->isCompetitionPubliclyVisible->check($competitionId);
+
         return $this->render('edition_detail.html.twig', [
             'series' => $seriesOverview,
             'event' => $competitionEvent,
             'rounds' => $rounds,
             'puzzles' => $puzzles,
             'puzzle_statuses' => $puzzleStatuses,
+            'can_add_time' => $canAddTime,
         ]);
     }
 }

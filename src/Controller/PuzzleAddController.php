@@ -23,6 +23,7 @@ use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
+use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
@@ -50,6 +51,7 @@ final class PuzzleAddController extends AbstractController
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private LoggerInterface $logger,
         readonly private GetPlayerCollections $getPlayerCollections,
+        readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
     ) {
     }
 
@@ -132,6 +134,20 @@ final class PuzzleAddController extends AbstractController
         } elseif ($queryMode === 'relax') {
             $data->mode = PuzzleAddMode::Relax;
             $initialMode = 'relax';
+        }
+
+        // Deep link from an event page (`?competition=<uuid>`): pre-select the competition in the picker.
+        // Only a publicly visible competition is honoured — anything else is ignored silently, the form
+        // simply opens without a pre-selection. On POST handleRequest() overwrites the data anyway.
+        $queryCompetition = $request->query->getString('competition');
+
+        if (
+            $data->mode === PuzzleAddMode::SpeedPuzzling
+            && $queryCompetition !== ''
+            && Uuid::isValid($queryCompetition)
+            && $this->isCompetitionPubliclyVisible->check($queryCompetition)
+        ) {
+            $data->competition = $queryCompetition;
         }
 
         // Get player collections for form options (include system collection)

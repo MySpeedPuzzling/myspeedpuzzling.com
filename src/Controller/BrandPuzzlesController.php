@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Results\BrandHubStats;
 use SpeedPuzzling\Web\Results\PiecesFilter;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\PiecesRange;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -66,7 +67,7 @@ final class BrandPuzzlesController extends AbstractController
         $puzzles = $this->searchPuzzle->byUserInput(
             brandId: $stats->brandId,
             search: null,
-            pieces: PiecesFilter::Any,
+            pieces: PiecesRange::fromFilter(PiecesFilter::Any),
             tag: null,
             sortBy: 'most-solved',
             offset: 0,

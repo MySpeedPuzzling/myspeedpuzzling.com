@@ -10,8 +10,8 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Results\AutocompletePuzzle;
-use SpeedPuzzling\Web\Results\PiecesFilter;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Value\PiecesRange;
 
 readonly final class SearchPuzzle
 {
@@ -22,15 +22,14 @@ readonly final class SearchPuzzle
     }
 
     /**
-     * @throws ManufacturerNotFound
-     */
-    /**
      * @param list<int> $difficultyTiers
+     *
+     * @throws ManufacturerNotFound
      */
     public function countByUserInput(
         null|string $brandId,
         null|string $search,
-        PiecesFilter $pieces,
+        PiecesRange $pieces,
         null|string $tag,
         array $difficultyTiers = [],
     ): int {
@@ -76,8 +75,8 @@ SQL;
             'searchFullLikeQuery' => "%$search%",
             'eanSearchFullLikeQuery' => "%$eanSearch%",
             'brandId' => $brandId,
-            'minPieces' => $pieces->minPieces(),
-            'maxPieces' => $pieces->maxPieces(),
+            'minPieces' => $pieces->minPieces,
+            'maxPieces' => $pieces->maxPieces,
             'useTags' => $tag !== null ? 1 : 0,
             'tag' => $tag ? [$tag] : [],
         ];
@@ -109,7 +108,7 @@ SQL;
     public function byUserInput(
         null|string $brandId,
         null|string $search,
-        PiecesFilter $pieces,
+        PiecesRange $pieces,
         null|string $tag,
         null|string $sortBy = null,
         int $offset = 0,
@@ -257,8 +256,8 @@ SQL;
             'eanSearchFullLikeQuery' => "%$eanSearch%",
             'brandId' => $brandId,
             'limit' => $limit,
-            'minPieces' => $pieces->minPieces(),
-            'maxPieces' => $pieces->maxPieces(),
+            'minPieces' => $pieces->minPieces,
+            'maxPieces' => $pieces->maxPieces,
             'offset' => $offset,
             'useTags' => $tag !== null ? 1 : 0,
             'tag' => $tag ? [$tag] : [],
@@ -308,10 +307,12 @@ SQL;
     }
 
     /**
-     * Search for all puzzles by EAN code.
-     * Strips leading zeros for flexible matching.
+     * Every puzzle whose barcode matches the given EAN, leading and trailing
+     * zeros tolerated on both sides (barcode scanners and typed-in codes differ
+     * in exactly that). Secret competition puzzles (hide_until in the future)
+     * are never returned; an embargoed image (hide_image_until) comes back null.
      *
-     * @return array<array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, puzzle_image_ratio: null|string, puzzle_ean: null|string, pieces_count: int, manufacturer_id: string, manufacturer_name: string}>
+     * @return list<PuzzleOverview>
      */
     public function allByEan(string $ean): array
     {
@@ -328,16 +329,31 @@ SELECT
     puzzle.name AS puzzle_name,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
-    puzzle.ean AS puzzle_ean,
+    puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.pieces_count,
+    puzzle.is_available,
+    puzzle.approved AS puzzle_approved,
+    puzzle.ean AS puzzle_ean,
+    puzzle.identification_number AS puzzle_identification_number,
+    puzzle.hide_image_until,
     manufacturer.id AS manufacturer_id,
-    manufacturer.name AS manufacturer_name
+    manufacturer.name AS manufacturer_name,
+    COALESCE(ps.solved_times_count, 0) AS solved_times,
+    ps.average_time_solo,
+    ps.fastest_time_solo,
+    ps.average_time_duo,
+    ps.fastest_time_duo,
+    ps.average_time_team,
+    ps.fastest_time_team
 FROM puzzle
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
-WHERE puzzle.ean LIKE :eanPattern
+LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = puzzle.id
+WHERE
+    puzzle.ean LIKE :eanPattern
+    AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
+ORDER BY solved_times DESC, puzzle.name, manufacturer.name
 SQL;
 
-        /** @var array<array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, puzzle_image_ratio: null|string, puzzle_ean: null|string, pieces_count: int, manufacturer_id: string, manufacturer_name: string}> $rows */
         $rows = $this->database
             ->executeQuery($query, [
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
@@ -345,7 +361,34 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return $rows;
+        return array_map(static function (array $row): PuzzleOverview {
+            /**
+             * @var array{
+             *     puzzle_id: string,
+             *     puzzle_name: string,
+             *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
+             *     puzzle_alternative_name: null|string,
+             *     puzzle_approved: bool,
+             *     manufacturer_name: string,
+             *     manufacturer_id: string,
+             *     pieces_count: int,
+             *     average_time_solo: null|string,
+             *     fastest_time_solo: null|int,
+             *     average_time_duo: null|string,
+             *     fastest_time_duo: null|int,
+             *     average_time_team: null|string,
+             *     fastest_time_team: null|int,
+             *     solved_times: int,
+             *     is_available: bool,
+             *     puzzle_ean: null|string,
+             *     puzzle_identification_number: null|string,
+             *     hide_image_until: null|string,
+             * } $row
+             */
+
+            return PuzzleOverview::fromDatabaseRow($row);
+        }, $rows);
     }
 
     /**

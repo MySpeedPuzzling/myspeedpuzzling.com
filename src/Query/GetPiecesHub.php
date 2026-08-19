@@ -99,8 +99,8 @@ SQL;
 
     /**
      * Most-solved puzzles with an exact piece count. Mirrors the row shape of
-     * SearchPuzzle::byUserInput (which cannot express exact piece counts
-     * outside its fixed filter buckets).
+     * SearchPuzzle::byUserInput (kept separate: a lean query for a cached hub
+     * page, no search / tag / difficulty machinery).
      *
      * @return list<PuzzleOverview>
      */

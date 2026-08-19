@@ -86,6 +86,16 @@ return App::config([
                 'limit' => 20,
                 'interval' => '1 hour',
             ],
+            // Public API catalog search (GET /api/v1/puzzles) - the only unbounded
+            // read in V1, so scraping is kept to a walk. Keyed by the token owner
+            // (player behind a PAT / auth-code token, client id for client_credentials);
+            // rejection is a 429 with Retry-After. Documented on /for-developers and
+            // in docs/features/api/README.md - keep the three in sync.
+            'api_puzzle_search' => [
+                'policy' => 'sliding_window',
+                'limit' => 60,
+                'interval' => '1 minute',
+            ],
         ],
     ],
 ]);

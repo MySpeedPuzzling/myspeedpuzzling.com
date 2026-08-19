@@ -112,6 +112,59 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
   - `hideMode = ImageOnly` → the puzzle is returned but `image` is `null` (name, pieces count, manufacturer remain visible).
   - After reveal, everything is visible. This behavior is covered by dedicated tests in `CompetitionDetailEndpointTest`.
 
+### Puzzle Endpoints (any authenticated token)
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| GET | `/api/v1/puzzles?query=…&ean=…&manufacturer=…&pieces_min=…&pieces_max=…&sort=…&difficulty=…&page=…&limit=…` | Any valid PAT or OAuth2 token (no specific scope); `sort=easiest\|hardest` and `difficulty=` are members-only |
+
+### Puzzles
+
+`GET /api/v1/puzzles` is the catalog: the same search as the website's `/puzzle` page (`SearchPuzzle::byUserInput`, brand / sort / difficulty normalised through `PuzzleSearchCriteria` so the two can never drift on what is members-only), plus the barcode lookup of the web scanner (`SearchPuzzle::allByEan`). Provider: `PuzzleSearchResponseProvider`; the query parameters are declared once on `PuzzleListResponse` (API Platform `QueryParameter`) - the declaration validates the input and renders the Swagger documentation.
+
+| Parameter | Type / constraints | Meaning |
+|-----------|-------------------|---------|
+| `query` | string, trimmed, 2-100 characters | name / alternative name (accent-insensitive), identification number, EAN substring - the same matching as the web search box |
+| `ean` | `^\d{8,14}$` | exact barcode lookup, leading / trailing zeros tolerated. **Mutually exclusive** with `query`, `manufacturer`, `pieces_min`, `pieces_max`, `sort`, `difficulty` (422 "ean cannot be combined with …"). `page` / `limit` still apply |
+| `manufacturer` | UUID | brand filter; an unknown id yields an empty result, not 404 |
+| `pieces_min`, `pieces_max` | int 1-50000, `pieces_min ≤ pieces_max` (422 otherwise) | inclusive piece-count range; exact count = both equal (`PiecesRange`) |
+| `sort` | `most-solved` (default) `least-solved` `a-z` `z-a` `easiest` `hardest` | `easiest` / `hardest` are **members-only → 403** `sort=easiest requires an active membership` (the website silently falls back, the API is explicit) |
+| `difficulty` | comma list of `very_easy` `easy` `average` `challenging` `hard` `very_hard` | tier filter, **members-only → 403**; each token must be valid (422) |
+| `page` | int 1-500, default 1 | |
+| `limit` | int 1-100, default 20 | |
+
+No filter at all lists the whole catalog (most solved first) - the catalog is public, scraping is bounded by the caps (≤ 100 items per page, ≤ 500 pages) and the rate limit. Invalid input is a `422 application/problem+json` with `violations[].propertyPath`, never a 500.
+
+**Rate limit:** 60 requests per minute per token owner (`api_puzzle_search` sliding window in `config/packages/rate_limiter.php`; key = player id for PAT / authorization-code tokens, client id for `client_credentials`). Over the limit → `429` with `Retry-After` (seconds). A 422 never consumes the budget (validation runs first).
+
+**Response** `{ count, total, page, limit, has_more, puzzles: [ … ] }` - `count` is this page, `total` the whole result. Each card:
+
+```json
+{ "id": "018d0003-0000-0000-0000-000000000002", "name": "Puzzle 2", "alternative_name": null,
+  "manufacturer": { "id": "018d0002-0000-0000-0000-000000000001", "name": "Ravensburger" },
+  "pieces_count": 500, "image": "puzzles/…/box.jpg", "ean": "4005556123456", "identification_number": null,
+  "is_available": true, "is_approved": true,
+  "statistics": { "solved_times": 41,
+                  "solo": { "count": 30, "fastest_seconds": 1500, "average_seconds": 2160, "slowest_seconds": 3900 },
+                  "duo":  { "count": 8,  "fastest_seconds": 1180, "average_seconds": 1320, "slowest_seconds": 1700 },
+                  "team": { "count": 3,  "fastest_seconds": null, "average_seconds": null, "slowest_seconds": null } },
+  "difficulty": { "score": 1.18, "level": "challenging", "confidence": "medium", "sample_size": 14 },
+  "prediction": { "predicted_seconds": 1890, "range_low_seconds": 1607, "range_high_seconds": 2174,
+                  "is_personalized": true, "personal_solve_count": 3, "predicted_attempt_number": 4, "last_time_seconds": 2100 },
+  "solves": { "solo": { "count": 3, "best_time_seconds": 1700, "last_time_seconds": 1700, "first_solved_at": "2026-07-30T10:12:45+00:00", "last_solved_at": "2026-08-09T14:30:00+00:00" },
+              "duo":  { "count": 0, "best_time_seconds": null, "last_time_seconds": null, "first_solved_at": null, "last_solved_at": null },
+              "team": { "count": 0, "best_time_seconds": null, "last_time_seconds": null, "first_solved_at": null, "last_solved_at": null } } }
+```
+
+- `statistics` is public, from the precomputed `puzzle_statistics` row (`GetPuzzleStatistics::forPuzzleList`), **always split by discipline** - solo, duo and team are different disciplines and are never merged; a puzzle nobody has solved has zeros and nulls.
+- The three insight objects are **always present** and `null` means exactly "not available to this token" (never an error, so one client code path works for every kind of token). When present, the object is complete and carries `null` *inside* for "not enough data":
+  - `difficulty` - token owner is a member (`ApiTokenOwner::isMember()`); a member looking at a puzzle without a difficulty row gets `{ score: null, level: null, confidence: "insufficient", sample_size: 0 }`
+  - `prediction` - member **and** not opted out of time predictions **and** the token may read results (PAT or `results:read`); all fields `null` + `is_personalized: false` when there is nothing to predict from
+  - `solves` - the token owner's **own** history (the same row set as `/me/results?type=`, unboxed and suspicious-flagged times included), for a token with a player behind it **and** PAT / `results:read`; always split by discipline like `/me/statistics`
+  - a `client_credentials` token has no player ⇒ all three are `null`
+- `hide_until` (secret competition puzzles) ⇒ never returned - not in the listing, not by `query`, not by `ean`; `hide_image_until` ⇒ `image: null` until the embargo ends.
+- **Fixed query cost** (asserted by `PuzzleSearchEndpointTest::testQueryBudgets`): the card builder (`PuzzleResponseFactory`) collects the puzzle ids once and makes one batch call per object - `GetPuzzleStatistics::forPuzzleList`, `GetPuzzleDifficulty::forPuzzleList`, `GetPlayerPredictions::forPuzzles` (itself ≤ 4 queries), `GetPlayerPuzzleSolves::forPuzzles` - each only when the token is entitled; a page of 100 costs the same as a page of 5. Measured: authentication 1 query (PAT) / 3 (OAuth2: access token, player, consent usage) + count + search + statistics + owner profile + solves + [member: difficulty + predictions] - `client_credentials` 3-4, non-member 6 (PAT) / 8 (OAuth2), member 10-11 (PAT) / 12-13 (OAuth2).
+
 ### Collection Membership Gating
 
 - **System collection** (`id=default`): All users can list/add/remove items
@@ -125,6 +178,8 @@ Puzzle difficulty and player skill tiers are included in responses only if the t
 An app tells the reasons for a `null` members-only block apart from `GET /api/v1/me` alone: `has_active_membership` (false ⇒ upgrade) and the opt-out flags `time_predictions_opted_out`, `ranking_opted_out`, `streak_opted_out` (true ⇒ the player switched that feature off on the website) — there is deliberately no per-endpoint `unavailable_reason` field.
 
 Puzzle Insights are gated **exactly as on the website** - the token owner (PAT, or the player behind an authorization-code token) must be a member; a `client_credentials` token has no player and therefore no membership. There is deliberately no `/api/v1/players/{id}/…` variant of members-only data: predictions are self-only on the website, and a single member's token must never become a proxy that serves a members-only feature to a third-party app's non-member users.
+
+One service decides this for every provider: `ApiTokenOwner` (`src/Services/Api/`) - `profile()` (the player behind the token, `null` for a machine token, memoised per request), `isMember()`, `canReadResults()` (PAT or `results:read`), `canReadStatistics()`. Providers never `assert($user instanceof ApiUser)` outside `/me/*`; they ask `ApiTokenOwner` and return `null` objects for what the token is not entitled to. Members-only blocks are **nullable objects**: `null` ⇔ "not available to this token" (not a member / machine token / missing scope / opted out); when available, the object is always present and carries `null` inside for "not enough data" (the `GET /me` flags above tell the reasons apart). Design and progress: `docs/features/api/v1-expansion-plan.md`.
 
 ### GET `/api/v1/me/puzzles/{puzzleId}/predicted-time`
 
@@ -230,12 +285,15 @@ Access control:
 - `^/api/v1/players/.*/statistics` → `ROLE_OAUTH2_STATISTICS:READ`
 - `^/api/v1/players/.*/collections` → `ROLE_OAUTH2_COLLECTIONS:READ`
 - `^/api/v1/competitions` → `IS_AUTHENTICATED_FULLY` (PAT or any OAuth2 token, no specific scope)
+- `^/api/v1/puzzles` → `IS_AUTHENTICATED_FULLY` (PAT or any OAuth2 token, no specific scope; members-only parts of the response are gated per token owner inside the providers)
 
 ## Fair Use Policy
 
 Full policy page at `/en/fair-use-policy` with 10 sections: welcome, rate limits, permitted use, data ownership, API keys, monitoring, attribution, community, policy updates, and contact.
 
 **Acceptance flow:** Users must read the full policy and click "I Accept the API Usage Policy" at the bottom. Acceptance is stored as `fairUsePolicyAcceptedAt` on the `Player` entity. Until accepted, PAT generation and OAuth2 client request forms are locked with a CTA to read and accept the policy.
+
+**Enforced limits:** `GET /api/v1/puzzles` - 60 requests per minute per token owner (`429` + `Retry-After`, see Puzzles above). Other endpoints are not rate-limited beyond the policy (yet).
 
 - Controller: `FairUsePolicyController` (GET), `AcceptFairUsePolicyController` (POST)
 - Message: `AcceptFairUsePolicy` → `AcceptFairUsePolicyHandler`
@@ -294,6 +352,12 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `src/Entity/OAuth2/OAuth2ClientRequest.php` | Client registration request entity |
 | `src/Entity/OAuth2/OAuth2UserConsent.php` | Consent entity with `lastUsedAt` |
 | `src/Api/V1/` | All API Platform resources, providers, and processors |
+| `src/Api/V1/PuzzleListResponse.php` | `GET /api/v1/puzzles` resource: the single declaration of its query parameters (validation + OpenAPI) |
+| `src/Api/V1/PuzzleResponse.php` | The puzzle card (+ `PuzzleStatisticsResponse`, `PuzzleDifficultyResponse`, `TimePredictionResponse`, `PlayerSolvesResponse`) |
+| `src/Services/Api/ApiTokenOwner.php` | The single membership / scope gate behind every provider |
+| `src/Services/Api/PuzzleResponseFactory.php` | Builds puzzle cards for the calling token at a fixed query cost (one batch call per object) |
+| `src/Query/GetPuzzleStatistics.php`, `GetPlayerPuzzleSolves.php` | Batch queries behind the cards' `statistics` and `solves` objects |
+| `tests/QueryCountAssertions.php`, `tests/OpenApiAssertions.php` | Test traits: query budgets via the profiler, parameter documentation via `/api/docs.jsonopenapi` |
 | `src/Controller/FairUsePolicyController.php` | Fair use policy page |
 | `src/Controller/AcceptFairUsePolicyController.php` | Accept FUP action |
 | `src/Controller/CreatePersonalAccessTokenController.php` | PAT generation |

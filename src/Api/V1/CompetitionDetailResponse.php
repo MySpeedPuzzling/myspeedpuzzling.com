@@ -43,6 +43,7 @@ final class CompetitionDetailResponse
         public null|string $registrationLink,
         public null|string $resultsLink,
         array $rounds,
+        public null|CompetitionSeriesSummaryResponse $series = null,
     ) {
         $this->rounds = $rounds;
     }

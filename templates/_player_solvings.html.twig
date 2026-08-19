@@ -143,16 +143,7 @@
                                                 </span>
                                             {% endif %}
 
-                                            {% if puzzle.competitionName %}
-                                                <br>
-                                                {% if puzzle.competitionSlug %}
-                                                    <a href="{{ path('event_detail', {'slug': puzzle.competitionSlug}) }}">
-                                                {% endif %}
-                                                <span class="badge rounded-pill bg-primary"><i class="bi bi-trophy-fill"></i>{{ puzzle.competitionShortcut ?? puzzle.competitionName }}</span>
-                                                {% if puzzle.competitionSlug %}
-                                                    </a>
-                                                {% endif %}
-                                            {% endif %}
+                                            {{ include('_competition_badge.html.twig', {time: puzzle}) }}
                                         </span>
 
                                         {# Display edit icon only to current user #}

@@ -163,16 +163,7 @@
                                     <span class="badge rounded-pill bg-warning"><i class="bi bi-eye-slash"></i> {{ 'unboxed'|trans }}</span>
                                 {% endif %}
 
-                                {% if item.competitionName %}
-                                    <br>
-                                    {% if item.competitionSlug %}
-                                        <a href="{{ path('event_detail', {'slug': item.competitionSlug}) }}">
-                                    {% endif %}
-                                    <span class="badge rounded-pill bg-primary"><i class="bi bi-trophy-fill"></i> {{ item.competitionShortcut ?? item.competitionName }}</span>
-                                    {% if item.competitionSlug %}
-                                        </a>
-                                    {% endif %}
-                                {% endif %}
+                                {{ include('_competition_badge.html.twig', {time: item}) }}
                             {% else %}
                                 <span class="badge rounded-pill bg-secondary fs-sm">
                                     <i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}

@@ -57,6 +57,9 @@ SELECT
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
     competition.slug AS competition_slug,
+    cs.name AS competition_series_name,
+    cs.shortcut AS competition_series_shortcut,
+    cs.slug AS competition_series_slug,
     ps.skill_tier,
     player.ranking_opted_out,
     CASE WHEN puzzle_solving_time.team IS NOT NULL THEN
@@ -78,6 +81,7 @@ INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
+LEFT JOIN competition_series cs ON cs.id = competition.series_id
 LEFT JOIN player_skill ps ON ps.player_id = player.id
 WHERE
     (puzzle_solving_time.player_id = :playerId OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
@@ -122,6 +126,9 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     competition_series_name: null|string,
+             *     competition_series_shortcut: null|string,
+             *     competition_series_slug: null|string,
              *     players: null|string,
              *     skill_tier: null|int,
              *     ranking_opted_out: bool,
@@ -169,6 +176,9 @@ SELECT
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
     competition.slug AS competition_slug,
+    cs.name AS competition_series_name,
+    cs.shortcut AS competition_series_shortcut,
+    cs.slug AS competition_series_slug,
     ps.skill_tier,
     player.ranking_opted_out,
     CASE WHEN puzzle_solving_time.team IS NOT NULL THEN
@@ -190,6 +200,7 @@ INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
+LEFT JOIN competition_series cs ON cs.id = competition.series_id
 LEFT JOIN player_skill ps ON ps.player_id = player.id
 WHERE player.is_private = false
 ORDER BY puzzle_solving_time.tracked_at DESC
@@ -232,6 +243,9 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     competition_series_name: null|string,
+             *     competition_series_shortcut: null|string,
+             *     competition_series_slug: null|string,
              *     players: null|string,
              *     skill_tier: null|int,
              *     ranking_opted_out: bool,
@@ -303,6 +317,9 @@ SELECT
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
     competition.slug AS competition_slug,
+    cs.name AS competition_series_name,
+    cs.shortcut AS competition_series_shortcut,
+    cs.slug AS competition_series_slug,
     ps.skill_tier,
     player.ranking_opted_out,
     CASE WHEN pst.team IS NOT NULL THEN
@@ -326,6 +343,7 @@ INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN player ON pst.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
+LEFT JOIN competition_series cs ON cs.id = competition.series_id
 LEFT JOIN player_skill ps ON ps.player_id = player.id
 WHERE is_private = false
 ORDER BY pst.tracked_at DESC
@@ -368,6 +386,9 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     competition_series_name: null|string,
+             *     competition_series_shortcut: null|string,
+             *     competition_series_slug: null|string,
              *     players: null|string,
              *     skill_tier: null|int,
              *     ranking_opted_out: bool,

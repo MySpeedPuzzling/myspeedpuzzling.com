@@ -196,6 +196,9 @@ SELECT
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
     competition.slug AS competition_slug,
+    cs.name AS competition_series_name,
+    cs.shortcut AS competition_series_shortcut,
+    cs.slug AS competition_series_slug,
     puzzle_solving_time.suspicious
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -203,6 +206,7 @@ FROM puzzle_solving_time
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN solved_counts ON solved_counts.puzzle_id = puzzle_solving_time.puzzle_id
     LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
+    LEFT JOIN competition_series cs ON cs.id = competition.series_id
 WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.puzzling_type = 'solo'
@@ -273,6 +277,9 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     competition_series_name: null|string,
+             *     competition_series_shortcut: null|string,
+             *     competition_series_slug: null|string,
              *     suspicious: bool,
              * } $row
              */
@@ -328,6 +335,9 @@ SELECT
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
     competition.slug AS competition_slug,
+    cs.name AS competition_series_name,
+    cs.shortcut AS competition_series_shortcut,
+    cs.slug AS competition_series_slug,
     puzzle_solving_time.suspicious
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -335,6 +345,7 @@ FROM puzzle_solving_time
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN solved_counts ON solved_counts.puzzle_id = puzzle_solving_time.puzzle_id
     LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
+    LEFT JOIN competition_series cs ON cs.id = competition.series_id
 WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.puzzle_id = :puzzleId
@@ -378,6 +389,9 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     competition_series_name: null|string,
+             *     competition_series_shortcut: null|string,
+             *     competition_series_slug: null|string,
              *     suspicious: bool,
              * } $row
              */
@@ -460,12 +474,16 @@ SELECT
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
     competition.slug AS competition_slug,
+    cs.name AS competition_series_name,
+    cs.shortcut AS competition_series_shortcut,
+    cs.slug AS competition_series_slug,
     pst.suspicious
 FROM filtered_pst_ids fids
 INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
+LEFT JOIN competition_series cs ON cs.id = competition.series_id
 ORDER BY pst.seconds_to_solve ASC
 SQL;
 
@@ -511,6 +529,9 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     competition_series_name: null|string,
+             *     competition_series_shortcut: null|string,
+             *     competition_series_slug: null|string,
              *     suspicious: bool,
              * } $row
              */
@@ -600,12 +621,16 @@ SELECT
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
     competition.slug AS competition_slug,
+    cs.name AS competition_series_name,
+    cs.shortcut AS competition_series_shortcut,
+    cs.slug AS competition_series_slug,
     pst.suspicious
 FROM filtered_pst_ids fids
 INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
+LEFT JOIN competition_series cs ON cs.id = competition.series_id
 ORDER BY pst.seconds_to_solve ASC
 SQL;
 
@@ -651,6 +676,9 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     competition_series_name: null|string,
+             *     competition_series_shortcut: null|string,
+             *     competition_series_slug: null|string,
              *     suspicious: bool,
              * } $row
              */

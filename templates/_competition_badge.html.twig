@@ -1,0 +1,37 @@
+{#
+    Event badge of a solving time.
+
+    `time` is any read model exposing competitionName / competitionShortcut / competitionSlug and
+    competitionSeriesName / competitionSeriesShortcut / competitionSeriesSlug
+    (SolvedPuzzle, PuzzleSolver, PuzzleSolversGroup, RecentActivityItem).
+
+    - Standalone competition: label = shortcut ?? name, links to event_detail.
+    - Series edition: label = "<series shortcut ?? series name> · <edition name>" (series label only when the
+      edition is named like its series, e.g. competitions converted to a series), links to edition_detail —
+      never to event_detail, an edition slug is only unique within its series.
+    - Renders nothing when the time is not linked to any competition.
+#}
+{% if time.competitionName %}
+    {% if time.competitionSeriesName %}
+        {% set series_label = time.competitionSeriesShortcut ?? time.competitionSeriesName %}
+        {% if time.competitionName|lower == time.competitionSeriesName|lower %}
+            {% set label = series_label %}
+        {% else %}
+            {% set label = series_label ~ ' · ' ~ time.competitionName %}
+        {% endif %}
+        {% set href = (time.competitionSeriesSlug and time.competitionSlug)
+            ? path('edition_detail', {seriesSlug: time.competitionSeriesSlug, editionSlug: time.competitionSlug})
+            : null %}
+    {% else %}
+        {% set label = time.competitionShortcut ?? time.competitionName %}
+        {% set href = time.competitionSlug ? path('event_detail', {slug: time.competitionSlug}) : null %}
+    {% endif %}
+    <br>
+    {% if href %}
+        <a href="{{ href }}">
+    {% endif %}
+    <span class="badge rounded-pill bg-primary"><i class="bi bi-trophy-fill"></i> {{ label }}</span>
+    {% if href %}
+        </a>
+    {% endif %}
+{% endif %}

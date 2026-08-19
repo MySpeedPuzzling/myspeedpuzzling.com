@@ -4,19 +4,32 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetPuzzleSolversTest extends KernelTestCase
 {
     private GetPuzzleSolvers $query;
+    private Connection $database;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $container = self::getContainer();
         $this->query = $container->get(GetPuzzleSolvers::class);
+        $this->database = $container->get(Connection::class);
+    }
+
+    private function linkTimeToCompetition(string $timeId, string $competitionId): void
+    {
+        $this->database->executeStatement(
+            'UPDATE puzzle_solving_time SET competition_id = :competitionId WHERE id = :timeId',
+            ['competitionId' => $competitionId, 'timeId' => $timeId],
+        );
     }
 
     public function testSoloByPuzzleIdReturnsSoloSolvers(): void
@@ -101,5 +114,51 @@ final class GetPuzzleSolversTest extends KernelTestCase
         self::assertSame(0, $counts['solo']);
         self::assertSame(0, $counts['duo']);
         self::assertSame(0, $counts['team']);
+    }
+
+    public function testSoloByPuzzleIdExposesSeriesOfEditionAndKeepsStandaloneShape(): void
+    {
+        // TIME_36 (PLAYER_REGULAR on PUZZLE_500_01, no competition) is pointed at an EJJ edition;
+        // TIME_09 on the same puzzle stays linked to the standalone WJPC 2024.
+        $this->linkTimeToCompetition(PuzzleSolvingTimeFixture::TIME_36, CompetitionSeriesFixture::EDITION_EJJ_68);
+
+        $byTimeId = [];
+        foreach ($this->query->soloByPuzzleId(PuzzleFixture::PUZZLE_500_01) as $solver) {
+            $byTimeId[$solver->timeId] = $solver;
+        }
+
+        $edition = $byTimeId[PuzzleSolvingTimeFixture::TIME_36];
+        self::assertSame('EJJ #68 — February 2026', $edition->competitionName);
+        self::assertSame('ejj-68-february-2026', $edition->competitionSlug);
+        self::assertSame('Euro Jigsaw Jam', $edition->competitionSeriesName);
+        self::assertSame('euro-jigsaw-jam-series', $edition->competitionSeriesSlug);
+        self::assertNull($edition->competitionSeriesShortcut);
+
+        $standalone = $byTimeId[PuzzleSolvingTimeFixture::TIME_09];
+        self::assertSame('WJPC 2024', $standalone->competitionName);
+        self::assertSame('WJPC24', $standalone->competitionShortcut);
+        self::assertSame('wjpc-2024', $standalone->competitionSlug);
+        self::assertNull($standalone->competitionSeriesName);
+        self::assertNull($standalone->competitionSeriesShortcut);
+        self::assertNull($standalone->competitionSeriesSlug);
+    }
+
+    public function testDuoByPuzzleIdExposesSeriesOfEdition(): void
+    {
+        // The duo block aggregates players (GROUP BY) — the series columns must survive it too.
+        $this->linkTimeToCompetition(PuzzleSolvingTimeFixture::TIME_12, CompetitionSeriesFixture::EDITION_EJJ_68);
+
+        $byTimeId = [];
+        foreach ($this->query->duoByPuzzleId(PuzzleFixture::PUZZLE_1000_01) as $group) {
+            $byTimeId[$group->timeId] = $group;
+        }
+
+        $edition = $byTimeId[PuzzleSolvingTimeFixture::TIME_12];
+        self::assertCount(2, $edition->players);
+        self::assertSame('EJJ #68 — February 2026', $edition->competitionName);
+        self::assertSame('ejj-68-february-2026', $edition->competitionSlug);
+        self::assertSame('Euro Jigsaw Jam', $edition->competitionSeriesName);
+        self::assertSame('euro-jigsaw-jam-series', $edition->competitionSeriesSlug);
+        self::assertNull($edition->competitionSeriesShortcut);
     }
 }

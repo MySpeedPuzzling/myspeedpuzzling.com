@@ -63,6 +63,9 @@ player_data AS (
         competition.shortcut AS competition_shortcut,
         competition.name AS competition_name,
         competition.slug AS competition_slug,
+        cs.name AS competition_series_name,
+        cs.shortcut AS competition_series_shortcut,
+        cs.slug AS competition_series_slug,
         ps_main.skill_tier,
         player.ranking_opted_out,
         JSON_AGG(
@@ -82,11 +85,12 @@ player_data AS (
     INNER JOIN player ON pst.player_id = player.id
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN competition ON pst.competition_id = competition.id
+    LEFT JOIN competition_series cs ON cs.id = competition.series_id
     LEFT JOIN player_skill ps_main ON ps_main.player_id = player.id,
     LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
     LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id
-    GROUP BY puzzle.id, player.id, manufacturer.id, pst.id, competition.id, ps_main.skill_tier
+    GROUP BY puzzle.id, player.id, manufacturer.id, pst.id, competition.id, cs.id, ps_main.skill_tier
     HAVING bool_or(p.is_private = false)
 )
 SELECT *
@@ -145,6 +149,9 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     competition_series_name: null|string,
+             *     competition_series_shortcut: null|string,
+             *     competition_series_slug: null|string,
              *     skill_tier: null|int,
              *     ranking_opted_out: bool,
              * } $row

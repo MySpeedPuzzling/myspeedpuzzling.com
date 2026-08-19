@@ -28,6 +28,9 @@ readonly final class PuzzleSolver
         public null|string $competitionSlug,
         public null|string $skillTierName = null,
         public bool $rankingOptedOut = false,
+        public null|string $competitionSeriesName = null,
+        public null|string $competitionSeriesShortcut = null,
+        public null|string $competitionSeriesSlug = null,
     ) {
     }
 
@@ -49,6 +52,9 @@ readonly final class PuzzleSolver
      *     competition_shortcut: null|string,
      *     competition_name: null|string,
      *     competition_slug: null|string,
+     *     competition_series_name: null|string,
+     *     competition_series_shortcut: null|string,
+     *     competition_series_slug: null|string,
      *     skill_tier_name?: null|string,
      *     ranking_opted_out?: bool,
      *     ...
@@ -73,6 +79,9 @@ readonly final class PuzzleSolver
             competitionShortcut: $row['competition_shortcut'],
             competitionName: $row['competition_name'],
             competitionSlug: $row['competition_slug'],
+            competitionSeriesName: $row['competition_series_name'],
+            competitionSeriesShortcut: $row['competition_series_shortcut'],
+            competitionSeriesSlug: $row['competition_series_slug'],
             skillTierName: $row['skill_tier_name'] ?? null,
             rankingOptedOut: $row['ranking_opted_out'] ?? false,
         );

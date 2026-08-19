@@ -185,6 +185,7 @@ Seller settings: `PLAYER_WITH_STRIPE` has ISO currency **GBP** (listings eligibl
 | `SERIES_EJJ` | Euro Jigsaw Jam | Yes | - | Yes | one past, one upcoming |
 | `SERIES_OFFLINE` | Puzzle Meetup Prague | No | cz | Yes | one upcoming |
 | `SERIES_PAST_ONLY` | Berlin Puzzle Cup | No | de | Yes | only past — must never appear as "upcoming" |
+| `SERIES_UNAPPROVED` | Pending Puzzle League | Yes | - | **No** (`approvedAt` null) | one upcoming — its edition must never be publicly visible (`IsCompetitionPubliclyVisible` false) |
 
 ### Series Editions (Competitions with series_id)
 
@@ -194,6 +195,7 @@ Seller settings: `PLAYER_WITH_STRIPE` has ISO currency **GBP** (listings eligibl
 | `EDITION_EJJ_69` | SERIES_EJJ | EJJ #69 — May 2026 | +30 days |
 | `EDITION_OFFLINE_1` | SERIES_OFFLINE | Puzzle Meetup #1 | +14 days |
 | `EDITION_PAST_ONLY_1` | SERIES_PAST_ONLY | Berlin Puzzle Cup 2026 | -45 days |
+| `EDITION_UNAPPROVED_1` | SERIES_UNAPPROVED | Pending Puzzle League #1 | +7 days (no rounds) |
 
 ### Competition Rounds
 

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\OAuth2TestHelper;
@@ -22,6 +24,10 @@ final class CompetitionDetailEndpointTest extends WebTestCase
         $this->assertSame(CompetitionFixture::COMPETITION_WJPC_2024, $response['id']);
         $this->assertArrayHasKey('name', $response);
         $this->assertArrayHasKey('rounds', $response);
+
+        // A standalone competition has no parent series.
+        $this->assertArrayHasKey('series', $response);
+        $this->assertNull($response['series']);
 
         /** @var array<int, array<string, mixed>> $rounds */
         $rounds = $response['rounds'];
@@ -163,6 +169,51 @@ final class CompetitionDetailEndpointTest extends WebTestCase
         // Approved-then-rejected competitions must not leak (rejected vetoes a stale approval).
         $browser = $this->authenticatedClient();
         $browser->request('GET', '/api/v1/competitions/' . CompetitionApiFixture::COMPETITION_API_REJECTED);
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
+    public function testEditionOfApprovedSeriesIsReadable(): void
+    {
+        // An edition is never approved on its own (approved_at stays NULL) — the approval of its
+        // series is what makes it public, and the detail carries the series so clients can
+        // build the /series/{seriesSlug}/{editionSlug} link.
+        $response = $this->requestDetail(CompetitionSeriesFixture::EDITION_EJJ_68);
+
+        $this->assertSame(CompetitionSeriesFixture::EDITION_EJJ_68, $response['id']);
+        $this->assertSame('EJJ #68 — February 2026', $response['name']);
+
+        /** @var array<int, array<string, mixed>> $rounds */
+        $rounds = $response['rounds'];
+        $this->assertContains(CompetitionSeriesFixture::ROUND_EJJ_68, array_column($rounds, 'id'));
+
+        /** @var array{id: string, name: string, slug: null|string} $series */
+        $series = $response['series'];
+        $this->assertSame(CompetitionSeriesFixture::SERIES_EJJ, $series['id']);
+        $this->assertSame('Euro Jigsaw Jam', $series['name']);
+        $this->assertSame('euro-jigsaw-jam-series', $series['slug']);
+    }
+
+    public function testEditionOfRejectedSeriesReturnsNotFound(): void
+    {
+        $browser = $this->authenticatedClient();
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement(
+            'UPDATE competition_series SET rejected_at = now() WHERE id = :seriesId',
+            ['seriesId' => CompetitionSeriesFixture::SERIES_EJJ],
+        );
+
+        $browser->request('GET', '/api/v1/competitions/' . CompetitionSeriesFixture::EDITION_EJJ_68);
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
+    public function testEditionOfUnapprovedSeriesReturnsNotFound(): void
+    {
+        $browser = $this->authenticatedClient();
+        $browser->request('GET', '/api/v1/competitions/' . CompetitionSeriesFixture::EDITION_UNAPPROVED_1);
 
         $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }

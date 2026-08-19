@@ -20,10 +20,12 @@ final class CompetitionSeriesFixture extends Fixture implements DependentFixture
     public const string SERIES_EJJ = '018d0005-0000-0000-0000-000000000001';
     public const string SERIES_OFFLINE = '018d0005-0000-0000-0000-000000000002';
     public const string SERIES_PAST_ONLY = '018d0005-0000-0000-0000-000000000003';
+    public const string SERIES_UNAPPROVED = '018d0005-0000-0000-0000-000000000004';
     public const string EDITION_EJJ_68 = '018d0005-0000-0000-0000-000000000010';
     public const string EDITION_EJJ_69 = '018d0005-0000-0000-0000-000000000011';
     public const string EDITION_OFFLINE_1 = '018d0005-0000-0000-0000-000000000012';
     public const string EDITION_PAST_ONLY_1 = '018d0005-0000-0000-0000-000000000013';
+    public const string EDITION_UNAPPROVED_1 = '018d0005-0000-0000-0000-000000000014';
     public const string ROUND_EJJ_68 = '018d0005-0000-0000-0000-000000000020';
     public const string ROUND_EJJ_69 = '018d0005-0000-0000-0000-000000000021';
     public const string ROUND_OFFLINE_SOLO = '018d0005-0000-0000-0000-000000000022';
@@ -222,6 +224,43 @@ final class CompetitionSeriesFixture extends Fixture implements DependentFixture
             startsAt: $this->clock->now()->modify('-45 days'),
         );
         $manager->persist($pastOnlyRound);
+
+        // Series still waiting for admin approval — its editions must stay publicly invisible
+        // (editions are never approved individually; the series approval governs them).
+        $unapprovedSeries = new CompetitionSeries(
+            id: Uuid::fromString(self::SERIES_UNAPPROVED),
+            name: 'Pending Puzzle League',
+            slug: 'pending-puzzle-league',
+            logo: null,
+            description: 'Online league awaiting approval',
+            link: null,
+            isOnline: true,
+            addedByPlayer: $adminPlayer,
+            approvedAt: null,
+            createdAt: $this->clock->now(),
+        );
+        $manager->persist($unapprovedSeries);
+        $this->addReference(self::SERIES_UNAPPROVED, $unapprovedSeries);
+
+        $unapprovedEdition = new Competition(
+            id: Uuid::fromString(self::EDITION_UNAPPROVED_1),
+            name: 'Pending Puzzle League #1',
+            slug: 'pending-puzzle-league-1',
+            shortcut: null,
+            logo: null,
+            description: null,
+            link: null,
+            registrationLink: null,
+            resultsLink: null,
+            location: null,
+            locationCountryCode: null,
+            dateFrom: $this->clock->now()->modify('+7 days'),
+            dateTo: $this->clock->now()->modify('+7 days'),
+            tag: null,
+            isOnline: true,
+            series: $unapprovedSeries,
+        );
+        $manager->persist($unapprovedEdition);
 
         $manager->flush();
     }

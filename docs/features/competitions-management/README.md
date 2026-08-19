@@ -116,6 +116,16 @@ CompetitionSeries ("Euro Jigsaw Jam")
 - Series appear in a dedicated "Recurring" section as single cards, showing the next upcoming edition date
 - Editions (competitions with `series_id`) are excluded from Live/Upcoming/Past
 
+### Event badge on solving times
+
+A solving time may be linked to a standalone competition **or to a series edition** (`puzzle_solving_time.competition_id` points at the edition's `Competition` row). Every list that shows a time's event (player results, puzzle leaderboards, ladders, recent activity) renders the one partial `templates/_competition_badge.html.twig` (`{{ include('_competition_badge.html.twig', {time: x}) }}`, where `x` is a `SolvedPuzzle`, `PuzzleSolver`, `PuzzleSolversGroup` or `RecentActivityItem` — all carry `competitionName/Shortcut/Slug` plus `competitionSeriesName/Shortcut/Slug`, selected by every read model via `LEFT JOIN competition_series cs ON cs.id = competition.series_id`):
+
+- **Label** — standalone: `shortcut ?? name` (e.g. `WJPC24`); edition: `<series shortcut ?? series name> · <edition name>` (e.g. `Euro Jigsaw Jam · EJJ #68 — February 2026`); when the edition is named exactly like its series (competitions converted to a series keep the name) only the series label is shown.
+- **Link** — standalone: `event_detail` (`/en/events/{slug}`); edition: `edition_detail` (`/en/series/{seriesSlug}/{editionSlug}`) — **never** `event_detail`, an edition slug is only unique within its series. An edition whose series has no slug renders the badge unlinked.
+- Nothing is rendered when the time has no competition.
+
+**Public visibility of a competition row** (standalone or edition) is decided in one place, `IsCompetitionPubliclyVisible` (`check($competitionId)` + the reusable `SQL_CONDITION` fragment): a standalone competition is visible when approved and not rejected; an edition is visible iff its **series** is approved and not rejected — editions are never approved individually (their own `approved_at` stays `NULL`). The API competition detail uses this rule to decide what is readable.
+
 ## Round Management
 
 A competition has multiple **rounds**, each with:

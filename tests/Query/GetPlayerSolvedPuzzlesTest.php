@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Query;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
@@ -14,12 +16,14 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
 {
     private GetPlayerSolvedPuzzles $query;
+    private Connection $database;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $container = self::getContainer();
         $this->query = $container->get(GetPlayerSolvedPuzzles::class);
+        $this->database = $container->get(Connection::class);
     }
 
     public function testSoloByPlayerIdReturnsOnlySoloSolves(): void
@@ -177,5 +181,36 @@ final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
             $timeIds,
             'Entries with null finished_at should be included in all-time statistics',
         );
+    }
+
+    public function testSoloByPlayerIdExposesSeriesOfEditionAndKeepsStandaloneShape(): void
+    {
+        // TIME_36 (PLAYER_REGULAR, no competition) is pointed at an edition of the EJJ series.
+        $this->database->executeStatement(
+            'UPDATE puzzle_solving_time SET competition_id = :competitionId WHERE id = :timeId',
+            ['competitionId' => CompetitionSeriesFixture::EDITION_EJJ_68, 'timeId' => PuzzleSolvingTimeFixture::TIME_36],
+        );
+
+        $byTimeId = [];
+        foreach ($this->query->soloByPlayerId(PlayerFixture::PLAYER_REGULAR) as $solvedPuzzle) {
+            $byTimeId[$solvedPuzzle->timeId] = $solvedPuzzle;
+        }
+
+        $edition = $byTimeId[PuzzleSolvingTimeFixture::TIME_36];
+        self::assertSame('EJJ #68 — February 2026', $edition->competitionName);
+        self::assertSame('ejj-68-february-2026', $edition->competitionSlug);
+        self::assertNull($edition->competitionShortcut);
+        self::assertSame('Euro Jigsaw Jam', $edition->competitionSeriesName);
+        self::assertSame('euro-jigsaw-jam-series', $edition->competitionSeriesSlug);
+        self::assertNull($edition->competitionSeriesShortcut);
+
+        // TIME_09 is linked to the standalone WJPC 2024 — the standalone shape is untouched.
+        $standalone = $byTimeId[PuzzleSolvingTimeFixture::TIME_09];
+        self::assertSame('WJPC 2024', $standalone->competitionName);
+        self::assertSame('WJPC24', $standalone->competitionShortcut);
+        self::assertSame('wjpc-2024', $standalone->competitionSlug);
+        self::assertNull($standalone->competitionSeriesName);
+        self::assertNull($standalone->competitionSeriesShortcut);
+        self::assertNull($standalone->competitionSeriesSlug);
     }
 }

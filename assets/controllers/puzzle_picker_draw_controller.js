@@ -9,13 +9,13 @@ import { Controller } from '@hotwired/stimulus';
  * Plays once per draw URL (sessionStorage, so back/forward and reloads go straight to the card),
  * never with prefers-reduced-motion, and a tap anywhere on the stage skips it.
  *
- * Values: duration (ms, default 3800), key (the draw seed), play (server decides: signed-in
+ * Values: duration (ms, default 5000), key (the draw seed), play (server decides: signed-in
  * draws only), captions (3 strings, switched at 0 / 35 / 70 % of the duration), done (final caption).
  */
 export default class extends Controller {
     static targets = ['stage', 'result', 'image', 'name', 'caption', 'candidates'];
     static values = {
-        duration: { type: Number, default: 3800 },
+        duration: { type: Number, default: 5000 },
         key: String,
         play: Boolean,
         captions: Array,
@@ -92,7 +92,7 @@ export default class extends Controller {
 
         this.index = (this.index + 1) % this.candidates.length;
         this.show(this.index);
-        this.pulse();
+        this.pulse(progress);
         this.schedule(nextDelay);
     }
 
@@ -100,8 +100,11 @@ export default class extends Controller {
         const candidate = this.candidates[index];
 
         if (this.hasImageTarget) {
+            // Crossfade: dip the opacity, swap the source, fade back in (CSS transition)
+            this.imageTarget.classList.add('is-swapping');
             this.imageTarget.src = candidate.image;
             this.imageTarget.alt = candidate.name;
+            window.setTimeout(() => this.imageTarget.classList.remove('is-swapping'), 70);
         }
 
         if (this.hasNameTarget) {
@@ -109,9 +112,16 @@ export default class extends Controller {
         }
     }
 
-    pulse() {
-        this.stageTarget.classList.add('is-ticking');
-        window.setTimeout(() => this.stageTarget.classList.remove('is-ticking'), 90);
+    /**
+     * One tick of motion: the frame nudges and tilts to alternating sides, and a glow ring
+     * builds up with the progress (CSS variable), so the slowdown is felt, not just seen.
+     */
+    pulse(progress) {
+        this.side = this.side === 'left' ? 'right' : 'left';
+        this.stageTarget.style.setProperty('--picker-progress', String(progress));
+        this.stageTarget.classList.remove('is-ticking-left', 'is-ticking-right');
+        this.stageTarget.classList.add(`is-ticking-${this.side}`);
+        window.setTimeout(() => this.stageTarget.classList.remove('is-ticking-left', 'is-ticking-right'), 110);
     }
 
     setCaption(step) {
@@ -128,13 +138,14 @@ export default class extends Controller {
         this.finished = true;
         window.clearTimeout(this.timer);
         this.show(0);
+        this.stageTarget.style.setProperty('--picker-progress', '1');
         this.stageTarget.classList.add('is-done');
 
         if (this.hasCaptionTarget && this.doneValue) {
             this.captionTarget.textContent = this.doneValue;
         }
 
-        window.setTimeout(() => this.revealResult(), 800);
+        window.setTimeout(() => this.revealResult(), 900);
     }
 
     skip() {

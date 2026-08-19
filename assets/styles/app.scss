@@ -814,10 +814,12 @@ canvas {
     overscroll-behavior-y: contain;
 }
 
-// Puzzle picker drumroll: thumbnails cycle slot-machine style and stop on the chosen puzzle
+// Puzzle picker drumroll: thumbnails cycle slot-machine style and stop on the chosen puzzle.
+// --picker-progress (0..1, set by the controller) drives the glow ring that builds up over the spin.
 .puzzle-picker-draw {
     cursor: pointer;
     user-select: none;
+    --picker-progress: 0;
 }
 
 .puzzle-picker-draw-frame {
@@ -830,37 +832,61 @@ canvas {
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.12);
-    transition: transform 0.1s ease-out, box-shadow 0.2s ease-out;
+    box-shadow:
+        0 0 0 calc(var(--picker-progress) * 6px) rgba(254, 105, 106, calc(var(--picker-progress) * 0.55)),
+        0 0.5rem 1.25rem rgba(0, 0, 0, 0.12);
+    transition: transform 0.11s ease-out, box-shadow 0.25s ease-out;
+    animation: puzzle-picker-sway 2.6s ease-in-out infinite;
 
     img {
         max-width: 100%;
         max-height: 100%;
         object-fit: contain;
+        transition: opacity 0.14s ease-out, transform 0.14s ease-out;
+    }
+
+    img.is-swapping {
+        opacity: 0.25;
+        transform: scale(0.92);
     }
 }
 
-.puzzle-picker-draw.is-ticking .puzzle-picker-draw-frame {
-    transform: scale(0.95);
+.puzzle-picker-draw.is-ticking-left .puzzle-picker-draw-frame {
+    transform: scale(0.95) translateX(-6px) rotate(-1.5deg);
+}
+
+.puzzle-picker-draw.is-ticking-right .puzzle-picker-draw-frame {
+    transform: scale(0.95) translateX(6px) rotate(1.5deg);
+}
+
+.puzzle-picker-draw-caption {
+    transition: opacity 0.3s ease-out;
 }
 
 .puzzle-picker-draw.is-done .puzzle-picker-draw-frame {
-    animation: puzzle-picker-pop 0.5s ease-out;
-    box-shadow: 0 0 0 4px #fe696a, 0 0.5rem 1.25rem rgba(0, 0, 0, 0.12);
+    animation: puzzle-picker-pop 0.55s ease-out;
+    box-shadow: 0 0 0 5px #fe696a, 0 0 1.5rem rgba(254, 105, 106, 0.45), 0 0.5rem 1.25rem rgba(0, 0, 0, 0.12);
 }
 
 .puzzle-picker-draw.is-done .puzzle-picker-draw-caption {
     color: #fe696a;
+    animation: puzzle-picker-fade-up 0.35s ease-out;
+}
+
+@keyframes puzzle-picker-sway {
+    0%, 100% { transform: rotate(-1deg) translateY(0); }
+    50% { transform: rotate(1deg) translateY(-3px); }
 }
 
 @keyframes puzzle-picker-pop {
-    0% { transform: scale(0.9) rotate(-2deg); }
-    55% { transform: scale(1.08) rotate(2deg); }
+    0% { transform: scale(0.88) rotate(-3deg); }
+    55% { transform: scale(1.1) rotate(2.5deg); }
+    80% { transform: scale(0.98) rotate(-0.5deg); }
     100% { transform: scale(1) rotate(0); }
 }
 
 .puzzle-picker-result-in {
-    animation: puzzle-picker-fade-up 0.4s ease-out;
+    animation: puzzle-picker-fade-up 0.45s ease-out;
 }
 
 @keyframes puzzle-picker-fade-up {

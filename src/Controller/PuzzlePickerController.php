@@ -37,7 +37,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class PuzzlePickerController extends AbstractController
 {
     /** How long the drumroll before the card runs (signed-in draws), in milliseconds. */
-    public const int DRAW_DURATION_MS = 3800;
+    public const int DRAW_DURATION_MS = 5000;
 
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,

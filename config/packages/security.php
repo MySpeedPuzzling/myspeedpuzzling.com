@@ -234,6 +234,13 @@ return App::config([
                 'path' => '^/api/v1/players/.*/collections',
                 'roles' => [OAuth2Scope::CollectionsRead->role()],
             ],
+            // The puzzle library (summary, wishlist, unsolved puzzles, lend/borrow,
+            // sell/swap) is collections:read - "read the puzzle library"; the owner's
+            // visibility settings are applied inside the providers, never as 403.
+            [
+                'path' => '^/api/v1/players/.*/(library|wishlist|unsolved-puzzles|lend-borrow|sell-swap)',
+                'roles' => [OAuth2Scope::CollectionsRead->role()],
+            ],
             [
                 'path' => '^/api/v1/competitions',
                 'roles' => [AuthenticatedVoter::IS_AUTHENTICATED_FULLY],

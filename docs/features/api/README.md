@@ -40,7 +40,7 @@ Built on `league/oauth2-server-bundle`. Supports two flows:
 | `email:read` | View user email address | Yes | Yes |
 | `results:read` | View puzzle solving results | Yes | Yes |
 | `statistics:read` | View solving statistics | Yes | Yes |
-| `collections:read` | View puzzle collections | Yes | Yes |
+| `collections:read` | Read the puzzle library - collections, wishlist, unsolved puzzles, lend/borrow list, sell/swap list, library summary | Yes | Yes |
 | `solving-times:write` | Create and edit solving times | Yes | No |
 | `collections:write` | Create, edit, delete collections and items | Yes | No |
 
@@ -87,6 +87,11 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 | DELETE | `/api/v1/me/collections/{id}` | PAT or `collections:write` (members only) |
 | POST | `/api/v1/me/collections/{id}/items` | PAT or `collections:write` (the created item is returned in the same shape as a `GET …/items` item, the four objects included) |
 | DELETE | `/api/v1/me/collections/{id}/items/{itemId}` | PAT or `collections:write` |
+| GET | `/api/v1/me/library` | PAT or `collections:read` - the puzzle library summary: collections with item counts, and the count + visibility of the unsolved / wishlist / lend-borrow / sell-swap / solved sections - see Puzzle Library Endpoints below |
+| GET | `/api/v1/me/wishlist` | PAT or `collections:read`. Items carry `statistics`, `difficulty`, `prediction`, `solves` with the collection-item gates |
+| GET | `/api/v1/me/unsolved-puzzles` | PAT or `collections:read` (puzzles of your collections you have not solved + borrowed unsolved ones) |
+| GET | `/api/v1/me/lend-borrow` | PAT or `collections:read` (lent out + borrowed, `direction` per item) |
+| GET | `/api/v1/me/sell-swap` | PAT or `collections:read` |
 
 ### Player Endpoints (OAuth2 only)
 
@@ -97,6 +102,11 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 | GET | `/api/v1/players/{id}/statistics` | `statistics:read` |
 | GET | `/api/v1/players/{id}/collections` | `collections:read` (public only) |
 | GET | `/api/v1/players/{id}/collections/{cid}/items` | `collections:read`. Visibility as on the website: a private profile, a private custom collection and a private system collection (`default` - the player's puzzle-collection setting) are zeroed for everyone but the player behind the token. Each item also carries `statistics` (public), `difficulty` (**token owner** member), `solves` (the **collection owner's** history, only with `results:read` on the token) and `prediction` (the **token owner's own** forecast - what the website shows a visitor next to each item of somebody else's collection; member + not opted out + `results:read`) |
+| GET | `/api/v1/players/{id}/library` | `collections:read` (client_credentials allowed) - the library summary as the website shows it to a visitor: public collections, private sections as `count: 0` + `"private"`, a private profile zeroed - see Puzzle Library Endpoints below |
+| GET | `/api/v1/players/{id}/wishlist` | `collections:read` - when the player made the wishlist public (else zeroed). Items: `difficulty` (**token owner** member), `prediction` = the **token owner's own** forecast (member, `results:read`), `solves` = the **list owner's** (`results:read`) |
+| GET | `/api/v1/players/{id}/unsolved-puzzles` | `collections:read` - when the player made the list public (else zeroed); same item gates |
+| GET | `/api/v1/players/{id}/lend-borrow` | `collections:read` - when the player made the list public (else zeroed); same item gates |
+| GET | `/api/v1/players/{id}/sell-swap` | `collections:read` - always public on the website, only a private profile is zeroed; same item gates |
 
 ### Competition Endpoints (any authenticated token)
 
@@ -205,6 +215,48 @@ Private profiles keep today's zeroed `/players/{id}/…` response (`count: 0`, n
 
 **Fixed query cost** (asserted at two collection sizes by `MyCollectionItemsEndpointTest`, `PlayerCollectionItemsEndpointTest`, `MyResultsInsightsEndpointTest`, `PlayerResultsInsightsEndpointTest`): every provider collects the puzzle ids once and calls `PuzzleResponseFactory::insightsFor($puzzleIds, $solvesOfPlayerId, $includePrediction)` - the same batch method the puzzle cards use - which runs one query per object the token is entitled to (`GetPuzzleStatistics::forPuzzleList`, `GetPuzzleDifficulty::forPuzzleList`, `GetPlayerPredictions::forPuzzles` (≤ 4), `GetPlayerPuzzleSolves::forPuzzles`) and hands back a `PuzzleInsightsBatch` the provider maps onto its items. Measured 2026-08-19 (request only): collection items - `client_credentials` 4-5, non-member 5-6 (PAT) / 7-8 (OAuth2), member 9-11 (PAT) / 13 (OAuth2) on `/me`, 9 on `/players`; result lists - today + 2 (non-member: statistics, owner profile) or + 3 (member: + difficulty), `client_credentials` + 1.
 
+### Puzzle Library Endpoints
+
+The website's puzzle library (`PuzzleLibraryController` and the list pages behind its cards) as the API, read-only: a **library summary** and the four lists that are not collections - **wishlist**, **unsolved puzzles**, **lend/borrow list**, **sell/swap list** (the solved puzzles are `/results`, the collections `/collections`). The scope is `collections:read` - "read the puzzle library"; a PAT reads the owner's own. Write endpoints (add / remove / return) are a follow-up. Plan: `docs/features/api/v1-expansion-plan.md` §7b.
+
+| Endpoint | Source (the page's own query) | Visibility |
+|---|---|---|
+| `GET /me/library`, `GET /players/{id}/library` | the count queries of `PuzzleLibraryController` (`GetPlayerCollectionsWithCounts`, `GetUnsolvedPuzzles::countByPlayerId` + `GetBorrowedPuzzles::countUnsolvedByHolderId`, `GetWishListItems::countByPlayerId`, `GetLentPuzzles::countByOwnerId` + `GetBorrowedPuzzles::countByHolderId`, `GetSellSwapListItems::countByPlayerId`, `GetPlayerSolvedPuzzles::countByPlayerId`) | per section, below |
+| `GET /me/wishlist`, `GET /players/{id}/wishlist` | `GetWishListItems::byPlayerId` (newest first) | the owner's wish-list setting |
+| `GET /me/unsolved-puzzles`, `GET /players/{id}/unsolved-puzzles` | `GetBorrowedPuzzles::unsolvedByHolderId` (borrowed, first) + `GetUnsolvedPuzzles::byPlayerId` (one entry per puzzle of any of the player's collections, newest first) | the owner's unsolved-puzzles setting |
+| `GET /me/lend-borrow`, `GET /players/{id}/lend-borrow` | `GetLentPuzzles::byOwnerId` (direction `lent`, first) + `GetBorrowedPuzzles::byHolderId` (`borrowed`), each newest first | the owner's lend/borrow setting |
+| `GET /me/sell-swap`, `GET /players/{id}/sell-swap` | `GetSellSwapListItems::byPlayerId` (newest first) | always public |
+
+**Visibility** (`PuzzleLibraryVisibility`, `src/Services/Api/`) is the website's rule, in order: the player behind the token always sees their own - also through `/players/{their id}` (exactly as under `/me`); a **private profile hides everything** from anyone else (zeroed, never 403, like every `/players/{id}` endpoint - the website masks only the profile header on these pages, the API keeps its privacy rule); otherwise the section's own setting decides (`public` / `private`; the system collection follows the puzzle-collection setting; the sell/swap list has none and is public). A list the token may not see is `{ player_id, count: 0, items: [] }` and runs no batch query; the summary reports such a section as `count: 0` with its visibility (`"private"` throughout for a private profile - the setting would otherwise promise a public list the token cannot see). A machine token (`client_credentials`) is a stranger.
+
+**Summary** (`GET /me/library`, `GET /players/{id}/library`):
+
+```json
+{ "player_id": "018d…",
+  "collections": [ { "collection_id": "default", "name": "Default Collection", "description": null, "visibility": "public", "item_count": 5 },
+                   { "collection_id": "018d0008-…", "name": "My Trefl Collection", "description": "All my Trefl puzzles", "visibility": "public", "item_count": 3 } ],
+  "unsolved":    { "count": 7, "visibility": "private" },
+  "wishlist":    { "count": 3, "visibility": "private" },
+  "lend_borrow": { "lent_count": 4, "borrowed_count": 2, "visibility": "private" },
+  "sell_swap":   { "count": 7 },
+  "solved":      { "count": 10, "visibility": "private" } }
+```
+
+`collections` are the cards of the library page: the system collection (`default`, the owner's puzzle-collection visibility, listed when public or own) and the custom collections the token may see (all of them for the owner, public ones for others), newest first, each with its `item_count` - the same four fields as `GET /me/collections` plus the count (`LibraryCollectionResponse`). `unsolved` = puzzles of the player's collections not solved yet + borrowed unsolved ones; `solved` = distinct puzzles with a solving time (what `/results` lists).
+
+**List items** follow the collection item (flat puzzle fields `puzzle_id, puzzle_name, manufacturer_name, pieces_count, image`, then the four insight objects `statistics, difficulty, prediction, solves` - shapes under Puzzles, gates under Insights on lists) plus the list's own fields:
+
+| List | Item fields before the insight objects |
+|---|---|
+| wishlist | `wishlist_item_id`, puzzle fields, `added_at` |
+| unsolved-puzzles | puzzle fields, `added_at` (when it first entered a collection / was lent to the player), `is_borrowed` |
+| lend-borrow | `lent_puzzle_id`, `direction` (`lent` / `borrowed`), puzzle fields, `counterparty { player_id: ?string, name }` (the holder of a lent puzzle, the owner of a borrowed one - a registered player's id + display name, or the free-text name; `name: ""` and no id for a returned puzzle), `lent_at`, `notes` |
+| sell-swap | `item_id`, puzzle fields, `listing_type` (`sell` / `swap` / `both` / `free`), `price` (number or null), `currency` (the seller's list-wide currency - custom name or ISO code - `null` when not set or the listing has no price), `condition` (`new` / `like_new` / `normal` / `not_so_good` / `missing_pieces`), `comment`, `is_reserved`, `is_published_on_marketplace`, `added_at`. **Who an offer is reserved for is not exposed** (the website shows it to the seller only) |
+
+The four objects are gated exactly as on `/players/{id}/collections/{cid}/items`: `statistics` always; `difficulty` when the **token owner** is a member; `prediction` is always the **token owner's own** forecast (member, not opted out, PAT or `results:read`) - on another player's list as well, because the website shows the visitor their own predicted time next to each puzzle, never the owner's (plan §0 N1); `solves` are the **list owner's** own history (PAT or `results:read` - on `/players` that is the same data `/players/{id}/results` exposes). Puzzle images honour `hide_image_until` (`image: null` until the embargo ends; every list query applies it). `hide_until` is not filtered on these lists - like collection items and results, it is the player's own library and a puzzle gets there only through the player's own action.
+
+**Fixed query cost** (asserted at two list sizes by `WishlistEndpointTest`, `UnsolvedPuzzlesEndpointTest`, `LendBorrowEndpointTest`, `SellSwapEndpointTest`; the summary by `LibraryEndpointTest`): `PuzzleLibraryItemsFactory` builds every list from the page's query and one `PuzzleResponseFactory::insightsFor()` batch; `PuzzleLibrarySummaryFactory` runs one count query per visible section. Measured 2026-08-19 (request only; authentication 1 PAT / 3 OAuth2 / 1-2 `client_credentials`): wishlist `/me` 5 (non-member PAT) · 10 (member PAT) · 12 (member OAuth2 with `results:read`), `/players` 4-5 (`client_credentials`) · 8 (non-member) · 13 (member); unsolved-puzzles and lend-borrow (two item queries each) one more: 6 · 11 · 13 / 5-6 · 9 · 14; sell-swap 3 (empty list, no batch) · 10 · 12 / 4-5 · 8 · 13; library summary 11 (PAT) · 13 (OAuth2) own, 11 (`client_credentials`) · 14 (OAuth2) for a complete public library, 8 for a stranger with the default (private) settings; a private profile 5 (OAuth2) / 2 (`client_credentials`) on every path.
+
 ### GET `/api/v1/me/puzzles/{puzzleId}/predicted-time`
 
 The API twin of the Puzzle Insights block on the puzzle detail page (`PuzzleDetailController`), same gates. The flat shape predates the insight objects of `GET /api/v1/puzzles` and `GET /api/v1/puzzles/{puzzleId}` and stays as it is (no BC breaks); since PR 2 it is a projection of the very same objects - `MyPredictedTimeResponseProvider` gates through `ApiTokenOwner` and flattens `TimePredictionResponse` / `PuzzleDifficultyResponse` via `PredictedTimeResponse::fromInsights()` (a puzzle without a difficulty row is still `null` here, not `"insufficient"`):
@@ -272,6 +324,7 @@ Response (`SolvingTimeResponse`, shared with `PUT …/solving-times/{timeId}`):
 
 - `/api/v1/me/*` always returns full data for the token owner
 - `/api/v1/players/{id}/*` returns empty/zeroed data for private profiles (not 403); `/api/v1/players/{id}` itself returns the masked shape (`is_private: true`, `id` + `code` + `has_active_membership`, everything else `null` / `[]`)
+- the puzzle-library lists also follow the owner's per-list visibility settings (zeroed, not 403), the library summary reports a hidden section as `count: 0` + its visibility
 - Hidden players are never returned in service-to-service queries
 
 ### Error Handling
@@ -343,6 +396,7 @@ Access control:
 - `^/api/v1/players/.*/results` → `ROLE_OAUTH2_RESULTS:READ`
 - `^/api/v1/players/.*/statistics` → `ROLE_OAUTH2_STATISTICS:READ`
 - `^/api/v1/players/.*/collections` → `ROLE_OAUTH2_COLLECTIONS:READ`
+- `^/api/v1/players/.*/(library|wishlist|unsolved-puzzles|lend-borrow|sell-swap)` → `ROLE_OAUTH2_COLLECTIONS:READ` (the puzzle library)
 - `^/api/v1/competitions` → `IS_AUTHENTICATED_FULLY` (PAT or any OAuth2 token, no specific scope)
 - `^/api/v1/puzzles` → `IS_AUTHENTICATED_FULLY` (PAT or any OAuth2 token, no specific scope; members-only parts of the response are gated per token owner inside the providers)
 
@@ -413,6 +467,8 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `src/Api/V1/` | All API Platform resources, providers, and processors |
 | `src/Api/V1/PuzzleListResponse.php` | `GET /api/v1/puzzles` resource: the single declaration of its query parameters (validation + OpenAPI) |
 | `src/Api/V1/PuzzleDetailResponse.php` | `GET /api/v1/puzzles/{puzzleId}` resource - the card of one puzzle, built only via `fromCard()` (provider `PuzzleDetailResponseProvider`) |
+| `src/Api/V1/LibraryResponse.php`, `WishlistResponse.php`, `UnsolvedPuzzlesResponse.php`, `LendBorrowResponse.php`, `SellSwapResponse.php` | The puzzle-library resources, each with its `/me/…` and `/players/{playerId}/…` operation (providers `My*ResponseProvider` / `Player*ResponseProvider`) |
+| `src/Services/Api/PuzzleLibraryVisibility.php`, `PuzzleLibraryItemsFactory.php`, `PuzzleLibrarySummaryFactory.php` | The website's library visibility rule; the list items (one insights batch per list); the summary counts |
 | `src/Api/V1/PuzzleResponse.php` | The puzzle card (+ `PuzzleStatisticsResponse`, `PuzzleDifficultyResponse`, `TimePredictionResponse`, `PlayerSolvesResponse`) |
 | `src/Services/Api/ApiTokenOwner.php` | The single membership / scope gate behind every provider |
 | `src/Services/Api/PuzzleResponseFactory.php` | Builds puzzle cards for the calling token at a fixed query cost (one batch call per object); `insightsFor()` + `PuzzleInsightsBatch` serve the collection-item and result lists with the same batch |

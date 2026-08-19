@@ -20,9 +20,11 @@ read, under five non-negotiables.
 | N2 | **No BC breaks.** Only additive fields/endpoints. Never rename, retype, re-null or reorder existing fields. The flat `PredictedTime` shape from #186 stays as is. | Diff review: existing `*Response` constructors only gain trailing nullable/defaulted params; existing tests untouched and green |
 | N3 | **Performance: fixed, small query count per request; no N+1.** Every list builds `puzzleIds` and makes **one** batch call (`GetPuzzleDifficulty::forPuzzleList`). Deep pagination capped. Search is rate-limited. | Each endpoint has a query budget (table per PR) **asserted in a test** via the profiler (`QueryCountAssertions`, §1.3) |
 | N4 | **Every query parameter is validated and documented from one declaration.** Use API Platform `QueryParameter(key, schema, description, constraints, required, castToNativeType/nativeType)` on the operation: invalid input ⇒ `422 application/problem+json` with `violations`, never a 500 or a raw SQL error; the same declaration renders in Swagger/OpenAPI. Cross-parameter rules and membership-gated values are enforced in the provider (422 / 403 with a message). | Test per invalid value; one test that reads `/api/docs.jsonopenapi` and asserts the parameter names, enums and descriptions are present |
-| N5 | **Security defaults:** all `/api/v1/*` endpoints require a valid token (no anonymous API); UUID-shaped input is validated before any query; `hide_until` (secret competition puzzles) ⇒ **never returned** by any puzzle endpoint (404 / excluded — stricter than the web's by-id page, same as the competition API's "critical" reveal rule); `hide_image_until` ⇒ `image: null`; no personal data in catalog responses. | Security checklist per PR (§7) |
+| N5 | **Security defaults:** all `/api/v1/*` endpoints require a valid token (no anonymous API); UUID-shaped input is validated before any query; `hide_until` (secret competition puzzles) ⇒ **never returned** by any puzzle endpoint (404 / excluded — stricter than the web's by-id page, same as the competition API's "critical" reveal rule); **puzzle image embargo (`hide_image_until`) is respected on every endpoint that returns an image** — search, detail, results, collection items (competitions already do) — `image: null` until the embargo ends, asserted with a seeded embargoed puzzle in each new/changed endpoint's tests; no personal data in catalog responses. | Security checklist per PR (§7) |
 
 Conventions (match the existing `src/Api/V1`): single-action providers, `final class XResponse` DTOs with snake_case public props, `shortName` + `openapi: new OpenApiOperation(tags:, summary:, description:)`, `security:` expression on the operation **and** an `access_control` rule, ids as UUID strings, seconds as ints, dates as ISO-8601 strings (`format('c')`), enums as lowercase tokens (`very_easy`, `medium`, `solo`). Members-only blocks are **nullable objects**: `null` ⇔ "not available to this token" (not a member / machine token / missing scope / opted out); when available, the object is always present and carries `null` *inside* for "not enough data". An app tells the reasons apart from `GET /me` (`has_active_membership`, opt-out flags — PR 0). Decision (Jan, 2026-08-19): **no `unavailable_reason` field** — it would be derivable and would multiply across endpoints.
+
+**Everything the API has is always included — no `include=`/`fields=` switches** (decision, Jan 2026-08-19: opt-in parameters are a code smell and a bad consumer experience). Every endpoint returns every insight object it can for the calling token; what the token is not entitled to is `null` (not a member / machine token / missing scope / opted out). The cost of this is kept **fixed per request** by batch queries: a list of 500 items costs the same number of queries as a list of 5 (difficulty via `forPuzzleList`, predictions via `GetPlayerPredictions::forPuzzles`, solves via `GetPlayerPuzzleSolves::forPuzzles` — one query each). `prediction` objects appear only on `/me/*` lists and `/puzzles` (self-only, N1); on `/players/{id}` collection items `solves` are the *collection owner's* solves and are `null` unless the token also has `results:read`.
 
 ---
 
@@ -50,7 +52,12 @@ Rules: never `assert($user instanceof ApiUser)` outside `/me/*` providers — us
 - `PuzzleManufacturerResponse { id, name }`
 - `PuzzleStatisticsResponse { solved_times:int, average_time_solo:?int, fastest_time_solo:?int, average_time_duo:?int, fastest_time_duo:?int, average_time_team:?int, fastest_time_team:?int }` (averages rounded to int seconds — the overview query yields numeric strings)
 - `PuzzleDifficultyResponse { score:?float, level:?string (very_easy…very_hard), confidence:string (insufficient|low|medium|high), sample_size:int }` — built from `PuzzleDifficultyResult`; **for a member with no row, synthesise `{null, null, 'insufficient', 0}`** so that `difficulty: null` means exactly "members only" (N1 semantics)
-- `TimePredictionResponse { predicted_seconds:?int, range_low_seconds:?int, range_high_seconds:?int, is_personalized:bool, personal_solve_count:?int, last_time_seconds:?int, predicted_attempt_number:?int }` — built from `TimePredictionResult`; all-null fields + `is_personalized:false` when `GetPlayerPrediction` returns null
+- `TimePredictionResponse { predicted_seconds:?int, range_low_seconds:?int, range_high_seconds:?int, is_personalized:bool, personal_solve_count:?int, predicted_attempt_number:?int, last_time_seconds:?int }` — built from `TimePredictionResult`; all-null fields + `is_personalized:false` when `GetPlayerPrediction` returns null
+- `PlayerSolvesResponse { solo: SolvesGroupResponse, duo: SolvesGroupResponse, team: SolvesGroupResponse }` with `SolvesGroupResponse { count:int, best_time_seconds:?int, last_time_seconds:?int, first_solved_at:?string, last_solved_at:?string }` — the player's own history on a puzzle, **always split by discipline exactly like `/me/statistics` (`solo`/`duo`/`team` are different disciplines and are never merged)**; unboxed and suspicious-flagged times are included (it is the player's own data, the same set as `/me/results?type=…`). Built by a new batch query `GetPlayerPuzzleSolves::forPuzzles(playerId, puzzleIds)` — **one** query `GROUP BY puzzle_id, puzzling_type` with `COUNT(*)`, `MIN(seconds_to_solve)`, `(array_agg(seconds_to_solve ORDER BY solved_at DESC))[1]`, `MIN/MAX(COALESCE(finished_at, tracked_at))`, pivoted in PHP; a puzzle/discipline with no rows ⇒ `count 0` and nulls (the object is always present for an entitled token)
+- **Bulk predictions are already solved**: `GetPlayerPredictions::forPuzzles($playerId, $puzzleIds)` (Puzzle Picker, on `main` since 2026-08-19) = 4 queries for any N (all of the player's solo attempts once, player ratios once, global ratios once, baseline×difficulty for the ids not personally solved once), memoised per request, `ResetInterface`, same `TimePredictionCalculator` as the single query. **Never call `GetPlayerPrediction::forPuzzle` in a loop** — lists use `forPuzzles`
+- `PlayerRatingResponse { pieces_count:int, points:int, rank:int, total_players:int }` — MSP Rating as shown on the profile page (`points = round(elo_rating × 1000)`; from `GetPlayerRatingRanking::allForPlayer` — 1 query)
+- `PlayerSkillResponse { pieces_count:int, tier:string (enthusiast…legend, `SkillTier::toApiValue()`), percentile:float, confidence:string, qualifying_puzzles_count:int }` — from `GetPlayerSkill::byPlayerId` (1 query)
+- `badges: list<string>` — badge enum values from `GetBadges::forPlayer` (1 query)
 - `PuzzleResponse` (the catalog card, list item and detail base):
   `id, name, alternative_name, manufacturer, pieces_count, image (null while hidden), ean, identification_number, is_available, is_approved, statistics, difficulty (?PuzzleDifficultyResponse)`
 - `PuzzleResponseFactory` (`src/Services/Api/`): `card(PuzzleOverview $o, null|PuzzleDifficultyResult $d, bool $ownerIsMember): PuzzleResponse` and `cards(list<PuzzleOverview>, bool $ownerIsMember): list<PuzzleResponse>` (does the **one** `forPuzzleList` call when member, none otherwise).
@@ -72,13 +79,13 @@ Rules: never `assert($user instanceof ApiUser)` outside `/me/*` providers — us
 |---|---|---|---|---|
 | `GET /me` (+flags, PR 0) | ✓ | `profile:read` | — (403) | — |
 | `GET /me/puzzles/{id}/predicted-time` (#186) | ✓ | `results:read` | — (403) | all fields (null for non-members) |
-| `GET /puzzles` (PR 1) | ✓ | any scope | ✓ | `difficulty` per item; `sort=easiest\|hardest`, `difficulty=` filter ⇒ 403 for non-members |
-| `GET /puzzles/{id}` (PR 2) | ✓ | any scope (`predicted_time` only with `results:read`) | ✓ (insights null) | `difficulty`, `predicted_time` |
-| `GET /me/results`, `/me/collections/{id}/items` (PR 3) | ✓ | as today | — | `difficulty` per item |
-| `GET /players/{id}/results`, `/players/{id}/collections/{cid}/items` (PR 3) | — | as today | ✓ (difficulty null) | `difficulty` per item (token owner's membership) |
-| `POST /me/solving-times` (PR 4) | ✓ | `solving-times:write` | — | `predicted_time` in the response |
-| `GET /me/statistics` (PR 6) | ✓ | `statistics:read` | — | `skill` (members), `rating` (public, opt-out aware) |
-| `GET /players/{id}/statistics` (PR 6) | — | `statistics:read` | ✓ | `rating` only (public ladder), never `skill` |
+| `GET /puzzles` (PR 1) | ✓ | any scope | ✓ | per item `difficulty` (members), `prediction` + `solves` (player + `results:read`/PAT); `sort=easiest\|hardest`, `difficulty=` filter ⇒ 403 for non-members |
+| `GET /puzzles/{id}` (PR 2) | ✓ | any scope (`prediction`/`solves` only with `results:read`) | ✓ (insights null) | `difficulty`, `prediction`, `solves` |
+| `GET /me/results`, `/me/collections/{id}/items` (PR 3) | ✓ | as today | — | `difficulty` (results); `difficulty`, `prediction`, `solves` (collection items) |
+| `GET /players/{id}/results`, `/players/{id}/collections/{cid}/items` (PR 3) | — | as today (`solves` needs `results:read`) | ✓ (difficulty null) | `difficulty`; collection items also `solves` (owner's, public profiles only); never `prediction` |
+| `POST /me/solving-times` (PR 4) | ✓ | `solving-times:write` | — | `prediction` (the one that applied before this solve) in the response |
+| `GET /me` (PR 6) | ✓ | `profile:read` | — | `rating` (opt-out aware), `skill` (members), `badges` |
+| `GET /players/{id}` (PR 6, new) | — | `profile:read` | ✓ | public profile + `rating` (private/opt-out ⇒ null) + `skill` (token owner member) + `badges`; masked when private |
 
 ---
 
@@ -107,46 +114,76 @@ Rules: never `assert($user instanceof ApiUser)` outside `/me/*` providers — us
 | `sort` | `Choice(most-solved\|least-solved\|a-z\|z-a\|easiest\|hardest)`, default `most-solved` | `easiest`/`hardest` are members-only ⇒ **403** `AccessDeniedHttpException('sort=easiest requires an active membership')` for non-members and machine tokens (the web silently falls back; the API is explicit) |
 | `difficulty` | comma list of `very_easy…very_hard` (`castToNativeType` to array, each `Choice`) | members-only tier filter ⇒ 403 as above; mapped with `DifficultyTier::fromApiValue()` |
 | `page` | int, `Range(1, 500)`, default 1 | offset = (page−1)·limit |
-| `limit` | int, `Range(1, 50)`, default 20 | |
+| `limit` | int, `Range(1, 100)`, default 20 | max 100 (decision, Jan 2026-08-19) |
 
-No filter at all is allowed (same as `/en/puzzle`) — the catalog is public; scraping is bounded by page/limit caps and the 60/min limiter.
+No filter at all is allowed (same as `/en/puzzle`) — the catalog is public; scraping is bounded by the page/limit caps (≤ 100 items per page, ≤ 500 pages) and the 60/min limiter.
 
-**Response** `PuzzleListResponse { count:int (on this page), total:int, page:int, limit:int, has_more:bool, puzzles: list<PuzzleResponse> }`. `difficulty` per item only for members (one batch query), `null` otherwise.
+**Response** `PuzzleListResponse { count:int (on this page), total:int, page:int, limit:int, has_more:bool, puzzles: list<PuzzleResponse> }`. Every item always carries `difficulty` (members, else `null`), `prediction` (member + not opted out + PAT/`results:read`, else `null`) and `solves` (token owner's own solves; `null` for machine tokens or without PAT/`results:read`). Machine tokens therefore get three `null`s per item — accepted, never an error, so one client code path works for every token.
 
 **Errors:** 401 no token · 403 premium sort/filter without membership · 422 invalid/contradicting params · 429 limiter.
 
-**Query budget (assert in test):** non-member/cc: auth (≤2) + count 1 + search 1 = **≤ 4**; member: + owner profile 1 + difficulty batch 1 = **≤ 6**. EAN path: ≤ 5.
+**Query budget (assert in test):** machine token: auth (≤2) + count 1 + search 1 = **≤ 4**; non-member player token: + owner profile 1 + solves 1 = ≤ 6; member: + difficulty batch 1 + predictions 4 = **≤ 11** — and the same number at `limit=100` as at `limit=5` (assert both). EAN path: same rules, no count query.
 
-**Tests** (`tests/Controller/Api/V1/PuzzleSearchEndpointTest.php`): 401 anonymous; PAT / auth-code (`profile:read` only) / cc all 200; `query=Puzzle 1` hits, accent-insensitive hit, `ean` exact hit + zero-tolerance, `ean`+`query` ⇒ 422, each constraint violation ⇒ 422 with `violations[].propertyPath`; `pieces_min>pieces_max` ⇒ 422; `manufacturer` filter; `sort=easiest` non-member ⇒ 403, member ⇒ 200 sorted; `difficulty=hard` non-member ⇒ 403; pagination `total/has_more/page` over `limit=2`; seeded `hide_until` puzzle absent from `query`, `ean` and default listing; seeded `hide_image_until` ⇒ `image:null`; member sees `difficulty` object (seeded + synthesised insufficient), non-member `null`; `assertQueryCountAtMost` for member and cc; 429 after the limit with `Retry-After`; OpenAPI lists all 9 parameters with enum/description.
+**Tests** (`tests/Controller/Api/V1/PuzzleSearchEndpointTest.php`): 401 anonymous; non-member ⇒ items with `difficulty:null`, `prediction:null`, `solves` present; member with seeded history ⇒ `prediction.is_personalized:true` on that item; machine token ⇒ all three `null`; PAT / auth-code (`profile:read` only) / cc all 200; `query=Puzzle 1` hits, accent-insensitive hit, `ean` exact hit + zero-tolerance, `ean`+`query` ⇒ 422, each constraint violation ⇒ 422 with `violations[].propertyPath`; `pieces_min>pieces_max` ⇒ 422; `manufacturer` filter; `sort=easiest` non-member ⇒ 403, member ⇒ 200 sorted; `difficulty=hard` non-member ⇒ 403; pagination `total/has_more/page` over `limit=2`; `limit=101` ⇒ 422; seeded `hide_until` puzzle absent from `query`, `ean` and default listing; seeded `hide_image_until` ⇒ `image:null`; member sees `difficulty` object (seeded + synthesised insufficient), non-member `null`; `solves` counts/best/last for a puzzle with fixture solves; `assertQueryCountAtMost` for machine token, non-member, and member at two page sizes; 429 after the limit with `Retry-After`; OpenAPI lists all 9 parameters with enum/description.
 
 **Docs:** README — new "Puzzle Endpoints" table + a "Puzzles" section (params, exclusivity, members-only sort/filter, pagination caps, rate limit); `for-developers.html.twig` — new section row `for_developers.table_section_puzzles` (English key in `translations/messages.en.yml` only) + endpoint rows (PAT ✓ / Auth Code ✓ / Client Credentials ✓); OpenAPI from attributes (tag `Puzzles`).
 
 ## 5. PR 2 — `GET /api/v1/puzzles/{puzzleId}` (detail with insights)
 
 **Route:** tag `Puzzles`, `security: IS_AUTHENTICATED_FULLY` (covered by the PR 1 access rule).
-**Response** `PuzzleDetailResponse` = all `PuzzleResponse` fields (same names, same order) + `predicted_time: ?TimePredictionResponse`.
-**Gates:** `difficulty` ⇒ owner member (cc ⇒ null). `predicted_time` ⇒ owner present **and** `canReadResults()` (PAT or `results:read` — it exposes `last_time_seconds`/`personal_solve_count`, which are `results:read` data on the standalone endpoint) **and** member **and** not `timePredictionsOptedOut`; else `null`. Unknown/malformed id, or `hide_until` in the future ⇒ 404 (document; follow-up idea: 301 to the merge survivor via `GetPuzzleRedirect`). `hide_image_until` ⇒ `image:null`.
+**Response** `PuzzleDetailResponse` = all `PuzzleResponse` fields (same names, same order) + `prediction: ?TimePredictionResponse` + `solves: ?PlayerSolvesResponse` (token owner's solves; `null` for machine tokens or without `results:read`/PAT — one query via `GetPlayerPuzzleSolves`). Object names are `prediction` and `solves` on every endpoint (never `predicted_time`/`my_solves`).
+**Gates:** `difficulty` ⇒ owner member (cc ⇒ null). `prediction` ⇒ owner present **and** `canReadResults()` (PAT or `results:read` — it exposes `last_time_seconds`/`personal_solve_count`, which are `results:read` data on the standalone endpoint) **and** member **and** not `timePredictionsOptedOut`; else `null`. Unknown/malformed id, or `hide_until` in the future ⇒ 404 (document; follow-up idea: 301 to the merge survivor via `GetPuzzleRedirect`). `hide_image_until` ⇒ `image:null`.
 **Refactor:** extract the prediction/difficulty assembly used by `MyPredictedTimeResponseProvider` into `PuzzleInsightsAssembler` (`src/Services/Api/`) and have both providers use it — the standalone endpoint's **output must not change** (its #186 tests are the guard).
-**Budget:** auth (≤2) + overview 1 + owner profile 1 + difficulty 1 + prediction ≤5 ⇒ **≤ 10**; cc token ≤ 4.
-**Tests:** gating matrix — cc (difficulty null, predicted null) · auth-code `profile:read` member (difficulty object, predicted **null** because of scope) · auth-code `results:read` member (both) · PAT member (both) · non-member (both null) · opted-out member (difficulty only) · member without history & baseline (predicted object with null fields, `is_personalized:false`); hidden image; `hide_until` ⇒ 404; bad id ⇒ 404; query budgets; standalone `/me/.../predicted-time` tests still green unchanged.
+**Budget:** auth (≤2) + overview 1 + owner profile 1 + difficulty 1 + prediction ≤5 + solves 1 ⇒ **≤ 11**; cc token ≤ 4.
+**Tests:** gating matrix — cc (difficulty/prediction/solves null) · auth-code `profile:read` member (difficulty object, prediction **and** solves `null` because of scope) · auth-code `results:read` member (all three) · PAT member (all three) · non-member (difficulty/prediction null, solves present) · opted-out member (difficulty + solves, prediction null) · member without history & baseline (prediction object with null fields, `is_personalized:false`; solves zeros); hidden image; `hide_until` ⇒ 404; bad id ⇒ 404; query budgets; standalone `/me/.../predicted-time` tests still green unchanged.
 
-## 6. PR 3 — `difficulty` on result and collection-item lists
+## 6. PR 3 — insights & solves on the list endpoints (collections first)
 
-`PlayerResultResponse` and `CollectionItemResponse` gain a trailing `difficulty: ?PuzzleDifficultyResponse` (default `null`). Providers (`MyResults`, `PlayerResults`, `MyCollectionItems`, `PlayerCollectionItems`) collect `puzzleIds` and call `PuzzleResponseFactory`/`forPuzzleList` **once** when `ApiTokenOwner::isMember()`; nothing extra otherwise. Private-profile short-circuits stay first (no queries for zeroed responses). Budget: existing + 2 for members, + 0 for non-members — assert both; assert an empty list triggers no difficulty query. Tests per endpoint: member sees object (seeded), non-member null, cc on `/players/...` null, query budget. Docs: README "Members-Exclusive Data" lists the four endpoints.
+The motivating case: a collection with 500+ puzzles where the app wants, per item, "how hard is it, how would I do, how often have I solved it" — always present, at a fixed query count.
 
-## 7. PR 4 — `predicted_time` in the `POST /me/solving-times` response
+| Endpoint | per-item objects (always present; `null` when not entitled) |
+|---|---|
+| `GET /me/collections/{id}/items` | `difficulty` (owner member) · `prediction` (owner member + not opted out + PAT/`results:read`) · `solves` (own, always) |
+| `GET /players/{id}/collections/{cid}/items` | `difficulty` (**token owner** member) · `solves` (the **collection owner's** solves — only with `results:read` on the token, and only for public profiles; the zeroed private response stays zeroed with no queries) · never `prediction` |
+| `GET /me/results`, `GET /players/{id}/results` | `difficulty` (token owner member) |
 
-After dispatch, when the time is **solo** (`group_players` empty/null), parsed time is non-null, owner is a member and not opted out: `predicted_time = TimePredictionResponse` from `GetPlayerPrediction::forPuzzle($playerId, $puzzleId, excludeTimeId: $timeId)` (the prediction *before* this solve — what the added-time recap shows); else `null`. Also fill `time_seconds` using the same parser the handler uses (today it is always `null` in the create response — filling it is additive). `SolvingTimeResponse` gains trailing `predicted_time: ?TimePredictionResponse = null` (the PUT response keeps `null`). Budget: + profile 1 + prediction ≤5, only for eligible requests. Tests: member solo with history (seeded) ⇒ object, `personal_solve_count` equals the count *before* this time; non-member ⇒ null; group time ⇒ null; opted-out ⇒ null; `time_seconds` filled; existing create tests unchanged.
+- `CollectionItemResponse` and `PlayerResultResponse` gain trailing `difficulty: ?PuzzleDifficultyResponse = null`; `CollectionItemResponse` also `prediction: ?TimePredictionResponse = null` and `solves: ?PlayerSolvesResponse = null`.
+- Providers: collect `puzzleIds` once; then at most one call each to `PuzzleResponseFactory`/`GetPuzzleDifficulty::forPuzzleList`, `GetPlayerPredictions::forPuzzles`, `GetPlayerPuzzleSolves::forPuzzles`, each guarded by its gate (no query when the result would be `null` for every item). Private-profile short-circuits stay first. Empty list ⇒ no batch queries.
+- `GetPlayerPuzzleSolves` (new, `src/Query/`): one `GROUP BY` query as in §1.2; `readonly`, no memo needed.
+- Budget (assert with two collection sizes — fixture `COLLECTION_PUBLIC` plus items seeded in the test — the count must not grow with the item count): machine token on `/players/...`: today's count; non-member player token: today + profile 1 + solves 1; member: today + profile 1 + difficulty 1 + predictions 4 + solves 1 ≈ **≤ 11 total** on collection items; results lists: today + ≤ 2.
+- Tests per endpoint: member vs non-member vs machine token per object; opted-out ⇒ `prediction:null` but `difficulty` present; `solves` numbers for `PLAYER_REGULAR` × `PUZZLE_500_02` (3 solo solves: count 3, best 1700, last 1700 — verify against `.claude/fixtures.md`); `solves` on `/players/{id}/...` without `results:read` ⇒ `null`; private profile ⇒ zeroed as today; existing field values byte-identical (compare the pre-change JSON minus the new keys); query budgets at two collection sizes.
+- Docs: README "Members-Exclusive Data" + per-endpoint notes; for-developers table unchanged (same endpoints); OpenAPI from the DTOs.
+- Follow-ups (not in this PR): optional `page/limit` on collection items with **default unchanged (= all)**; `ranking` per item (rank/total players via `GetRanking::allForPlayer` — heavier, needs its own budget).
 
-## 8. PR 6 — statistics insights
+## 7. PR 4 — `prediction` in the `POST /me/solving-times` response
 
-- `MyStatisticsResponse` gains `skill: ?list<PlayerSkillResponse>` (members only; `PlayerSkillResponse { pieces_count, tier (enthusiast…legend via SkillTier::toApiValue), score, percentile, confidence, qualifying_puzzles_count }`, from `GetPlayerSkill::byPlayerId` — 1 query) and `rating: ?list<PlayerRatingResponse>` (`{ pieces_count, rating, rank, total }` from `GetPlayerRatingRanking::allForPlayer` — 1 query; **public** on the web, but `null` when the owner `rankingOptedOut`).
-- `PlayerStatisticsResponse` gains `rating` only (same rules + `null` for private targets), **never** `skill` (skill is viewer-membership-gated on the web ⇒ would reintroduce the proxy problem).
-- Budget: +2 / +1. Tests: member vs non-member, opted-out, private target, cc token on `/players/{id}/statistics` gets `rating` (public) but the response stays zeroed for private profiles.
+After dispatch, when the time is **solo** (`group_players` empty/null), parsed time is non-null, owner is a member and not opted out: `prediction = TimePredictionResponse` from `GetPlayerPrediction::forPuzzle($playerId, $puzzleId, excludeTimeId: $timeId)` (the prediction *before* this solve — what the added-time recap shows); else `null`. Also fill `time_seconds` using the same parser the handler uses (today it is always `null` in the create response — filling it is additive). `SolvingTimeResponse` gains trailing `prediction: ?TimePredictionResponse = null` (the PUT response keeps `null`). Budget: + profile 1 + prediction ≤5, only for eligible requests. Tests: member solo with history (seeded) ⇒ object, `personal_solve_count` equals the count *before* this time; non-member ⇒ null; group time ⇒ null; opted-out ⇒ null; `time_seconds` filled; existing create tests unchanged.
+
+## 8. PR 6 — profile insights on `GET /me` and a new `GET /players/{id}` (what the profile page shows)
+
+**`GET /me`** gains (all from the token owner's own data):
+- `rating: ?list<PlayerRatingResponse>` — `null` when the owner `rankingOptedOut` (the web shows the explanation instead of numbers); otherwise the list (empty when not ranked yet)
+- `skill: ?list<PlayerSkillResponse>` — members only (`null` for non-members; the web shows the locked "Player insights" button), also `null` when `rankingOptedOut`
+- `badges: list<string>`
+- budget: + 3 queries (rating, skill only when member, badges)
+
+**`GET /players/{id}`** (new) — tag `Players`, `security: is_granted(OAuth2Scope::ProfileRead->role())` (+ `access_control` `^/api/v1/players/[^/]+$` ⇒ `ROLE_OAUTH2_PROFILE:READ`; cc tokens allowed — public profile data), provider `PlayerProfileResponseProvider`, DTO `PlayerProfileResponse`:
+- public profile: `id, name, code, avatar, country, city, bio, facebook, instagram, is_private, has_active_membership` (same names as `GET /me`, no `email`)
+- `rating: ?list<PlayerRatingResponse>` — `null` when target is private or `rankingOptedOut`
+- `skill: ?list<PlayerSkillResponse>` — **token owner** must be a member (viewer gate, as on the web) **and** target not private / not `rankingOptedOut`; else `null`. (Target's own skill is puzzle-intelligence data about the target, shown on the web to any member viewer — not the proxy problem, because it is not a per-viewer personal feature; it mirrors the profile page 1:1)
+- `badges: list<string>` (empty for private)
+- **masked private profile** (private target, not the token owner): the API returns `name: null, avatar: null, country: null, city: null, bio: null, facebook: null, instagram: null, is_private: true` and keeps `id`, `code`, `has_active_membership`; insights `null`, `badges: []` — the web's "Secret puzzler #CODE" label is presentation, clients render it from `is_private` + `code`. When the token owner *is* the target (auth-code token on own id) the response is the full one.
+- unknown/malformed id ⇒ 404
+- budget: auth + profile 1 + rating 1 + skill 1 (members) + badges 1 + owner profile 1 ⇒ ≤ 7
+
+Tests: own/other/private/opted-out/non-member-viewer/cc matrix for both endpoints; `points = round(elo × 1000)` against a seeded `player_elo` row; `skill` null for non-member viewer; masked profile shape; existing `/me` assertions unchanged.
+Docs: README (`/me` row, new `/players/{id}` row + "Profile insights" section), for-developers table row (PAT — / Auth Code ✓ / Client Credentials ✓), OpenAPI.
 
 ---
 
 ## 9. Rollout, per PR
+
+Waves (dependencies): **wave 1** PR 0 ∥ PR 1 (independent) → **wave 2** PR 2 ∥ PR 3 ∥ PR 6 (all need PR 1's foundation; disjoint files, README hunks merged by the orchestrator) → **wave 3** PR 4 (needs `TimePredictionResponse`).
 
 1. Orchestrator creates an isolated git worktree on a branch `api/<topic>` (own `DATABASE_URL` — `tests/bootstrap.php` drops and recreates the database it is pointed at — and the main tree's `vendor` bind-mounted read-only when running inside the base image); the subagent implements there from this plan and never touches the shared checkout.
 2. Gates in the worktree: `composer run phpstan`, `composer run cs-fix`, `vendor/bin/phpunit --testsuite "Project Test Suite"`, `bin/console doctrine:schema:validate`, `bin/console cache:warmup`, `bin/console api:openapi:export` (must render; the parameter test covers content), profiler query budgets.
@@ -174,8 +211,67 @@ After dispatch, when the time is **solo** (`group_players` empty/null), parsed t
 - [ ] PR 0 `GET /me` flags
 - [ ] PR 1 `GET /puzzles` + foundation (§1)
 - [ ] PR 2 `GET /puzzles/{id}`
-- [ ] PR 3 `difficulty` on lists
-- [ ] PR 4 `predicted_time` on `POST /me/solving-times`
-- [ ] PR 6 statistics insights
+- [ ] PR 3 insights & solves on lists
+- [ ] PR 4 `prediction` on `POST /me/solving-times`
+- [ ] PR 6 profile insights on `/me` + `GET /players/{id}`
 
-Follow-ups deliberately out of scope: tags on puzzle card / tag filter, related puzzles, marketplace offer counts, 301 to merge-survivor on `/puzzles/{id}`, puzzle-level solvers/ranking list, exact `pieces=` shorthand, per-scope rate limits beyond search.
+Follow-ups deliberately out of scope: tags on puzzle card / tag filter, related puzzles, marketplace offer counts, 301 to merge-survivor on `/puzzles/{id}`, puzzle-level solvers/ranking list, exact `pieces=` shorthand, per-scope rate limits beyond search, optional pagination on collection items (default must stay = all; if added, `limit` max 100 like search), per-item `ranking`.
+
+---
+
+## 13. Appendix — reference payloads (agreed 2026-08-19; subagents match these field-for-field)
+
+`difficulty` (puzzle-level, members-only; `null` ⇔ not a member / machine token):
+```json
+"difficulty": { "score": 1.18, "level": "challenging", "confidence": "medium", "sample_size": 14 }
+```
+member, puzzle not scored yet: `{ "score": null, "level": null, "confidence": "insufficient", "sample_size": 0 }`
+
+`prediction` (personal, members-only, self-only; `null` ⇔ non-member / opted out / machine token / no `results:read`):
+```json
+"prediction": { "predicted_seconds": 1890, "range_low_seconds": 1607, "range_high_seconds": 2174,
+                "is_personalized": true, "personal_solve_count": 3, "predicted_attempt_number": 4, "last_time_seconds": 2100 }
+```
+statistical: `is_personalized:false`, the three `personal_*`/`last_*` fields `null`; not enough data: every field `null`, `is_personalized:false`.
+
+`solves` (own history, not members-only; `null` ⇔ machine token / no `results:read`; always split by discipline):
+```json
+"solves": {
+  "solo": { "count": 3, "best_time_seconds": 1700, "last_time_seconds": 1700, "first_solved_at": "2026-07-30T10:12:45+00:00", "last_solved_at": "2026-08-09T14:30:00+00:00" },
+  "duo":  { "count": 1, "best_time_seconds": 1180, "last_time_seconds": 1180, "first_solved_at": "2026-08-02T18:00:00+00:00", "last_solved_at": "2026-08-02T18:00:00+00:00" },
+  "team": { "count": 0, "best_time_seconds": null, "last_time_seconds": null, "first_solved_at": null, "last_solved_at": null }
+}
+```
+
+Collection item (`GET /me/collections/{id}/items`, member) = today's item + the three objects appended:
+```json
+{ "collection_item_id": "018f…", "puzzle_id": "018d0003-0000-0000-0000-000000000002", "puzzle_name": "Puzzle 2",
+  "manufacturer_name": "Ravensburger", "pieces_count": 500, "image": "puzzles/…/box.jpg", "comment": null,
+  "added_at": "2026-06-01T09:00:00+00:00",
+  "difficulty": { … }, "prediction": { … }, "solves": { … } }
+```
+
+`GET /puzzles/{id}` (member, PAT):
+```json
+{ "id": "018d0003-0000-0000-0000-000000000002", "name": "Puzzle 2", "alternative_name": null,
+  "manufacturer": { "id": "018d0002-0000-0000-0000-000000000001", "name": "Ravensburger" },
+  "pieces_count": 500, "image": "puzzles/…/box.jpg", "ean": "4005556123456", "identification_number": "12345",
+  "is_available": true, "is_approved": true,
+  "statistics": { "solved_times": 41, "average_time_solo": 2160, "fastest_time_solo": 1500,
+                  "average_time_duo": 1320, "fastest_time_duo": 1180, "average_time_team": null, "fastest_time_team": null },
+  "difficulty": { … }, "prediction": { … }, "solves": { … } }
+```
+`GET /puzzles` items are the same object; the list wrapper is `{ "count", "total", "page", "limit", "has_more", "puzzles": [ … ] }` with `limit` ≤ 100.
+
+`POST /me/solving-times` response = today's fields (`time_seconds` now filled) + `"prediction": { … }` — the prediction that applied **before** this solve; `null` for group times / non-members / opted out.
+
+Profile insights (`GET /me`, and `GET /players/{id}` for public, non-opted-out targets):
+```json
+"rating": [ { "pieces_count": 500, "points": 1532, "rank": 87, "total_players": 1204 },
+            { "pieces_count": 1000, "points": 1498, "rank": 120, "total_players": 863 } ],
+"skill":  [ { "pieces_count": 500, "tier": "proficient", "percentile": 62.5, "confidence": "medium", "qualifying_puzzles_count": 14 } ],
+"badges": [ "wjpc_2025_participant", "early_adopter" ]
+```
+`rating: null` ⇔ ranking opted out (or private target); `skill: null` ⇔ token owner not a member (or target private / opted out); `badges` always a list.
+
+`GET /players/{id}` = `GET /me` shape without `email`/flags/`membership_ends_at`, plus the three blocks above; masked private profile ⇒ `id`, `code`, `is_private: true`, `has_active_membership`, everything else `null`/`[]`.

@@ -1,9 +1,21 @@
 {# Filter sheet: a plain GET form - Apply submits, the URL is the state (bookmarkable, back
    button works). Personal groups (shelf, history, lent-out) are disabled for guests with a
-   sign-in note; the server drops those values for guests anyway. Expects: criteria, brand_names #}
+   sign-in note; the "Insights (members)" group is one locked block for non-members and its
+   prediction controls are disabled for members who opted out of predictions. The server drops
+   every non-eligible value anyway. Expects: criteria, brand_names #}
 {% set is_guest = not criteria.isAuthenticated %}
+{% set is_member = criteria.insightsAllowed %}
+{% set predictions_on = criteria.predictionsAllowed %}
 {% set pieces_values = criteria.piecesValues %}
 {% set custom_range = criteria.customPiecesRange %}
+{% set difficulty_tiers = [
+    {value: 1, name: 'veryeasy', icon: 'diff-very-easy'},
+    {value: 2, name: 'easy', icon: 'diff-easy'},
+    {value: 3, name: 'average', icon: 'diff-average'},
+    {value: 4, name: 'challenging', icon: 'diff-challenging'},
+    {value: 5, name: 'hard', icon: 'diff-hard'},
+    {value: 6, name: 'veryhard', icon: 'diff-very-hard'},
+] %}
 <div class="modal fade" id="puzzlePickerFilters" tabindex="-1" aria-labelledby="puzzlePickerFiltersLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
@@ -21,7 +33,7 @@
                         </div>
                     {% endif %}
 
-                    <fieldset class="mb-3 {{ is_guest ? 'opacity-50' }}" {{ is_guest ? 'disabled' }}>
+                    <fieldset class="mb-3 {{ is_guest ? 'opacity-50' }}" data-picker-group="personal" {{ is_guest ? 'disabled' }}>
                         <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.source.label'|trans }}</legend>
                         <div class="d-flex flex-wrap align-items-center gap-1">
                             {% for option in ['mine', 'not_mine', 'any'] %}
@@ -37,7 +49,7 @@
                         </div>
                     </fieldset>
 
-                    <fieldset class="mb-3 {{ is_guest ? 'opacity-50' }}" {{ is_guest ? 'disabled' }}>
+                    <fieldset class="mb-3 {{ is_guest ? 'opacity-50' }}" data-picker-group="personal" {{ is_guest ? 'disabled' }}>
                         <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.solved.label'|trans }}</legend>
                         <div class="d-flex flex-wrap align-items-center gap-1">
                             {% for option in ['any', 'never', 'before'] %}
@@ -70,7 +82,7 @@
                         </div>
                     </fieldset>
 
-                    <fieldset class="mb-1">
+                    <fieldset class="mb-3">
                         <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.brand.label'|trans }}</legend>
                         {# Option list is NOT rendered here (hundreds of brands) - tomselect-sync fetches
                            it from the cached filter-options endpoint on first focus. Only the currently
@@ -90,6 +102,92 @@
                             {% endfor %}
                         </select>
                     </fieldset>
+
+                    {# Time budget - free for everyone, the engine differs: my prediction for members
+                       with predictions, the community solo average for everybody else #}
+                    <fieldset class="mb-3">
+                        <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.budget.label'|trans }}</legend>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="fs-sm text-muted mb-0" for="picker-predicted-max">{{ 'puzzle_picker.filters.budget.i_have'|trans }}</label>
+                            <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-predicted-max" name="predicted_max" min="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MIN_PREDICTED_MINUTES') }}" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_PREDICTED_MINUTES') }}" step="5" inputmode="numeric" placeholder="60" value="{{ criteria.predictedMaxMinutes ?? '' }}">
+                            <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.budget.minutes'|trans }}</span>
+                        </div>
+                        <div class="form-text puzzle-picker-budget-engine">
+                            {% if criteria.usesPersonalPrediction %}
+                                <i class="bi bi-person-check me-1"></i>{{ 'puzzle_picker.filters.budget.engine_personal'|trans }}
+                            {% else %}
+                                <i class="bi bi-people me-1"></i>{{ 'puzzle_picker.filters.budget.engine_community'|trans }}
+                            {% endif %}
+                        </div>
+                    </fieldset>
+
+                    {# Insights (members): one group, one lock. Difficulty needs membership; the
+                       prediction controls additionally need the player not to have opted out. #}
+                    <div class="puzzle-picker-insights-filters {{ not is_member ? 'puzzle-picker-insights-locked' }}">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                            <span class="fs-sm fw-bold">
+                                {% if not is_member %}<i class="ci-locked me-1"></i>{% endif %}{{ 'puzzle_picker.filters.insights.label'|trans }}
+                            </span>
+                            {% if not is_member and not is_guest %}
+                                <button type="button" class="btn btn-outline-secondary btn-xs" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                    <i class="ci-locked me-1"></i>{{ 'membership.members_exclusive_short'|trans }}
+                                </button>
+                            {% endif %}
+                        </div>
+
+                        <fieldset class="mb-3 {{ not is_member ? 'opacity-50' }}" data-picker-group="insights" {{ not is_member ? 'disabled' }}>
+                            <legend class="fs-sm text-muted mb-1">{{ 'puzzle_intelligence.difficulty.tier_label'|trans }}</legend>
+                            <div class="d-flex flex-wrap align-items-center gap-1">
+                                {% for tier in difficulty_tiers %}
+                                    <div class="form-check form-option form-check-inline mb-0">
+                                        <input type="checkbox" class="form-check-input" name="difficulty[]" id="picker-difficulty-{{ tier.value }}" value="{{ tier.value }}" {{ tier.value in criteria.difficultyTiers ? 'checked' }}>
+                                        <label class="form-option-label d-inline-flex align-items-center gap-1" for="picker-difficulty-{{ tier.value }}">
+                                            <svg class="diff-icon" width="16" height="16" style="color: var(--{{ tier.icon }})"><use href="/difficulty-icons-sprite.svg#{{ tier.icon }}"/></svg>
+                                            {{ ('puzzle_intelligence.difficulty.tiers.' ~ tier.name)|trans }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="form-text">{{ 'puzzle_picker.filters.insights.difficulty_note'|trans }}</div>
+                        </fieldset>
+
+                        <fieldset class="mb-3 {{ not predictions_on ? 'opacity-50' }}" data-picker-group="predictions" {{ not predictions_on ? 'disabled' }}>
+                            <legend class="fs-sm text-muted mb-1">{{ 'puzzle_picker.filters.insights.gap.label'|trans }}</legend>
+                            <div class="d-flex flex-wrap align-items-center gap-1">
+                                {% for option in ['any', 'slower', 'faster'] %}
+                                    <div class="form-check form-option form-check-inline mb-0">
+                                        <input type="radio" class="form-check-input" name="gap" id="picker-gap-{{ option }}" value="{{ option == 'any' ? '' : option }}" {{ (option == 'any' ? criteria.gap is null : (criteria.gap is not null and criteria.gap.value == option)) ? 'checked' }}>
+                                        <label class="form-option-label" for="picker-gap-{{ option }}">{{ ('puzzle_picker.filters.insights.gap.' ~ option)|trans }}</label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="d-flex align-items-center gap-2 mt-2">
+                                <label class="fs-sm text-muted mb-0" for="picker-gap-min">{{ 'puzzle_picker.filters.insights.gap.by_at_least'|trans }}</label>
+                                <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-gap-min" name="gap_min" min="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MIN_GAP_MINUTES') }}" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_GAP_MINUTES') }}" step="1" inputmode="numeric" placeholder="1" value="{{ criteria.gapMinMinutes ?? '' }}">
+                                <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.budget.minutes'|trans }}</span>
+                            </div>
+                            <div class="form-text">{{ 'puzzle_picker.filters.insights.gap.note'|trans }}</div>
+                        </fieldset>
+
+                        <fieldset class="mb-1 {{ not predictions_on ? 'opacity-50' }}" data-picker-group="predictions" {{ not predictions_on ? 'disabled' }}>
+                            <legend class="fs-sm text-muted mb-1">{{ 'puzzle_picker.filters.insights.order.label'|trans }}</legend>
+                            <div class="d-flex flex-wrap align-items-center gap-1">
+                                {% for option in ['random', 'gap_slower', 'gap_faster'] %}
+                                    <div class="form-check form-option form-check-inline mb-0">
+                                        <input type="radio" class="form-check-input" name="order" id="picker-order-{{ option }}" value="{{ option }}" {{ criteria.order.value == option ? 'checked' }}>
+                                        <label class="form-option-label" for="picker-order-{{ option }}">{{ ('puzzle_picker.filters.insights.order.' ~ option)|trans }}</label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+
+                        {% if is_member and not predictions_on %}
+                            <div class="form-text puzzle-picker-insights-opted-out">
+                                <i class="bi bi-eye-slash me-1"></i>{{ 'puzzle_intelligence.prediction.time_predictions_opted_out'|trans }}
+                                <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
 
                 <div class="modal-footer justify-content-between">

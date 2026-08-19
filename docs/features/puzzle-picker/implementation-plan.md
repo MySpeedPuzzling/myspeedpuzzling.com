@@ -114,22 +114,39 @@ myLatestSeconds, myLastSolvedAt (?DateTimeImmutable), inMyCollection, isBorrowed
 ## PR 2 — Insights layer for members: prediction on the card + insights filters
 
 Gated by `activeMembership && !timePredictionsOptedOut` (difficulty tier only by `activeMembership`).
+The controller computes `insightsAllowed` / `predictionsAllowed` once and hands them to
+`PuzzlePickerCriteria::fromRequest()`, which strips every non-eligible value — the gating lives in one place.
 
-- `src/Query/GetPlayerPredictions.php` (bulk): `forPuzzles(playerId, puzzleIds[])`,
-  `forAllSolvedPuzzles(playerId)`; extract the per-puzzle math out of `GetPlayerPrediction` into a shared
-  helper (one implementation, parity test); small per-request memo (`ResetInterface`).
-- Criteria: `difficultyTiers[]`, `gap` (`slower`|`faster`) + `gapMin` (minutes), `predictedMax`
-  (minutes; the "I have ~N minutes" control — community `average_time_solo` for non-members),
-  `order` (`random`|`gap_slower`|`gap_faster`); non-eligible → dropped server-side.
-- Query: conditional pre-LIMIT joins on `puzzle_difficulty` + `player_baseline`; personal predictions
-  injected via `unnest(:ids::uuid[], :predictions::int[])`; `predicted = COALESCE(personal, statistical)`.
-  Result gains `difficultyTier`, `difficultyConfidence`, `predictedSeconds`, `predictedLow/High`,
-  `predictionIsPersonalized`, `gapSeconds`.
-- Card: difficulty badge, prediction row (wording of `_difficulty_section.html.twig:65-98`); one locked
-  row for non-members. Filters modal: one "Insights (members)" group, locked for non-members; preset
-  "Beat my record" (🔒). Note the reduced pool ("puzzles with enough data").
-- Tests: bulk vs. single parity for every fixture pair; gap both directions; budget; order; non-member
-  criteria ignored even if present; opted-out player gets no prediction fields.
+- `src/Services/PuzzleIntelligence/TimePredictionCalculator.php`: the pure math (personal: ratio ×
+  Holt blend, 70 % floor, MAD range; statistical: baseline × difficulty, p25/p75 range) extracted out of
+  `GetPlayerPrediction`, which now only fetches rows and delegates. `src/Query/GetPlayerPredictions.php`
+  (bulk): `forPuzzles(playerId, puzzleIds[])`, `forAllSolvedPuzzles(playerId)` — attempts in one query,
+  the two ratio tables in one each, statistical inputs for the asked ids in one; per-request memo
+  (`ResetInterface`); `tests/Query/GetPlayerPredictionsTest.php` pins parity with `forPuzzle()` for
+  every fixture player × puzzle.
+- Criteria: `difficulty[]` (tiers 1–6), `gap` (`slower`|`faster`) + `gap_min` (minutes, default 1),
+  `predicted_max` (minutes; the "I have ~N minutes" control — my prediction for members with
+  predictions, community `average_time_solo` otherwise, `usesPersonalPrediction()`), `order`
+  (`random`|`gap_slower`|`gap_faster`); non-eligible → dropped server-side.
+- Query: only when an insights filter is active are `puzzle_difficulty` / `player_baseline` /
+  `puzzle_statistics` joined *before* the LIMIT; personal predictions injected via
+  `LEFT JOIN unnest(:ids::uuid[], :seconds::int[])`; `predicted = COALESCE(personal, round(baseline ×
+  difficulty))` and `gap = fastest − predicted` computed in `CROSS JOIN LATERAL` so they can be filtered
+  and ordered on; gap orders = `gap DESC/ASC NULLS LAST, md5(seed || id)`. Result gains
+  `difficultyTier`, `difficultyConfidence` (always hydrated post-LIMIT), `predictedSeconds`, `gapSeconds`
+  (only when computed pre-LIMIT). The card renders the full `TimePredictionResult` from
+  `GetPlayerPredictions::forPuzzles()` for the ≤ 6 picked puzzles (same numbers as the puzzle detail page).
+  Measured on a prod-like copy: "any puzzle" pool, 1.7k injected predictions, gap filter + gap order ≈ 27 ms.
+- Card: difficulty tier (icon + name) for members, prediction row (wording of
+  `_difficulty_section.html.twig:65-98`) + "could beat your record by N / N slower than your best / right at
+  your best"; one locked row for non-members; opt-out notice for opted-out members; guests nothing.
+  Filters modal: one "Insights (members)" group (tier pills + "only puzzles with enough data", compared to
+  my prediction + "by at least N min", pick order), locked for non-members, prediction controls disabled
+  for opted-out members; time budget in its own free group with the engine helper text; preset
+  "Beat my record" (link / muted / 🔒).
+- Tests: parity; gap both directions; gap orders (deterministic incl. seed tie-break, paging windows);
+  personal vs. community budget; tier filter; criteria stripping for non-member / opted-out / guest;
+  controller: member, non-member, guest, opted-out member markup.
 
 ## PR 3 — Precision filters, collection targeting, remembered filters, presets, share
 

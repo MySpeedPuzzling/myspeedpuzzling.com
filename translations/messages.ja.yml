@@ -3143,6 +3143,27 @@ puzzle_picker:
         brand:
             label: "ブランド"
             placeholder: "すべてのブランド"
+        budget:
+            label: "使える時間"
+            i_have: "だいたい"
+            minutes: "分ある"
+            engine_personal: "各パズルのあなたの予測タイムに基づきます。"
+            engine_community: "コミュニティのソロ平均タイムに基づきます。"
+        insights:
+            label: "インサイト（メンバー）"
+            difficulty_note: "難易度があるのは十分なデータのあるパズルだけです – このフィルターで候補はかなり絞られます。"
+            gap:
+                label: "自分の予測との比較"
+                any: "指定なし"
+                slower: "予測より遅い"
+                faster: "予測より速い"
+                by_at_least: "少なくとも"
+                note: "あなたのソロ最速タイムと予測タイムを比較します – 完成済みのパズルのみ。"
+            order:
+                label: "選ぶ順番"
+                random: "ランダム"
+                gap_slower: "差が大きい順 – 自分が遅い"
+                gap_faster: "差が大きい順 – 自分が速い"
     chips:
         source:
             mine: "自分のコレクション"
@@ -3158,6 +3179,18 @@ puzzle_picker:
         brand: "ブランド"
         include_lent_out: "貸出中を含む"
         remove: "このフィルターを外す"
+        predicted_max: "%minutes%分以内"
+        gap:
+            slower: "予測より遅い"
+            slower_by: "予測より%minutes%分以上遅い"
+            faster: "予測より速い"
+            faster_by: "予測より%minutes%分以上速い"
+        order:
+            gap_slower: "順番：差が大きい順（自分が遅い）"
+            gap_faster: "順番：差が大きい順（自分が速い）"
+    presets:
+        label: "プリセット："
+        beat_my_record: "自己ベスト更新"
     results:
         matching: "該当パズル%total%件中%shown%件"
         pick_another: "別のパズルを選ぶ"
@@ -3175,6 +3208,12 @@ puzzle_picker:
         sign_in_for_times: "サインインすると、ここに自分のタイムが表示されます。"
         sign_in_to_solve: "サインインして始める"
         detail: "パズルの詳細"
+        prediction: "あなたの予測："
+        prediction_locked: "あなたのタイム予測 – メンバー限定"
+        prediction_unavailable: "まだ予測がありません – このピース数のデータが不足しています。"
+        prediction_beats_record: "自己ベストを%delta%更新できるかも"
+        prediction_slower_than_best: "自己ベストより%delta%遅い"
+        prediction_at_best: "ちょうど自己ベスト並み"
     empty:
         collection_title: "コレクションが空です"
         collection_text: "持っているパズルを追加すると、次回からその中から選びます。"
@@ -3212,7 +3251,7 @@ puzzle_picker:
             lent: "貸出中のパズルは除外、借りているパズルは含まれます"
             times: "各カードにあなたの最速・最新・初回タイムを表示"
         members_title: "メンバー向け"
-        members_text: "メンバーはインサイト – パズルの難易度、予測タイム、スキルティア – をパズルページで利用でき、まもなくピッカーのカードにも表示されます。"
+        members_text: "メンバーはカード上とフィルターでインサイトを直接使えます：各パズルのあなたの予測タイム、難易度、「予測より遅い」などのフィルター、「自己ベスト更新」プリセット – さらにパズルページでの難易度と予測も。"
         members_cta: "メンバーシップについて"
         bottom_title: "棚を眺めるのはもう終わり – ルーレットに決めてもらいましょう"
         bottom_text: "無料アカウントを作成し、持っているパズルを追加して、ピッカーに選んでもらいましょう。"

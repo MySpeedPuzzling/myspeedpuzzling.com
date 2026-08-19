@@ -3154,6 +3154,27 @@ puzzle_picker:
         brand:
             label: "Marke"
             placeholder: "Beliebige Marke"
+        budget:
+            label: "Zeitbudget"
+            i_have: "Ich habe etwa"
+            minutes: "Minuten"
+            engine_personal: "Basierend auf Ihrer eigenen vorhergesagten Zeit für jedes Puzzle."
+            engine_community: "Basierend auf der durchschnittlichen Solo-Zeit der Community."
+        insights:
+            label: "Einblicke (Mitglieder)"
+            difficulty_note: "Nur Puzzles mit genügend Daten haben eine Schwierigkeitsstufe – dieser Filter verkleinert die Auswahl stark."
+            gap:
+                label: "Im Vergleich zu meiner Vorhersage"
+                any: "Egal"
+                slower: "Ich bin langsamer als vorhergesagt"
+                faster: "Ich bin schneller als vorhergesagt"
+                by_at_least: "um mindestens"
+                note: "Vergleicht Ihre schnellste Solo-Zeit mit Ihrer vorhergesagten Zeit – nur Puzzles, die Sie schon gelegt haben."
+            order:
+                label: "Reihenfolge"
+                random: "Zufällig"
+                gap_slower: "Größter Abstand zuerst – ich bin langsamer"
+                gap_faster: "Größter Abstand zuerst – ich bin schneller"
     chips:
         source:
             mine: "Meine Sammlung"
@@ -3169,6 +3190,18 @@ puzzle_picker:
         brand: "Marke"
         include_lent_out: "Inkl. verliehen"
         remove: "Diesen Filter entfernen"
+        predicted_max: "Bis %minutes% Min."
+        gap:
+            slower: "Langsamer als vorhergesagt"
+            slower_by: "Langsamer als vorhergesagt um %minutes%+ Min."
+            faster: "Schneller als vorhergesagt"
+            faster_by: "Schneller als vorhergesagt um %minutes%+ Min."
+        order:
+            gap_slower: "Reihenfolge: größter Abstand (ich bin langsamer)"
+            gap_faster: "Reihenfolge: größter Abstand (ich bin schneller)"
+    presets:
+        label: "Vorlagen:"
+        beat_my_record: "Meinen Rekord schlagen"
     results:
         matching: "%shown% von %total% passenden Puzzles"
         pick_another: "Ein anderes"
@@ -3186,6 +3219,12 @@ puzzle_picker:
         sign_in_for_times: "Nach der Anmeldung sehen Sie hier Ihre eigenen Zeiten."
         sign_in_to_solve: "Anmelden und lospuzzeln"
         detail: "Puzzle-Details"
+        prediction: "Ihre Vorhersage:"
+        prediction_locked: "Ihre Zeitvorhersage – nur für Mitglieder"
+        prediction_unavailable: "Noch keine Zeitvorhersage – zu wenig Daten für diese Teilezahl."
+        prediction_beats_record: "könnte Ihren Rekord um %delta% schlagen"
+        prediction_slower_than_best: "%delta% langsamer als Ihre Bestzeit"
+        prediction_at_best: "genau auf Ihrer Bestzeit"
     empty:
         collection_title: "Ihre Sammlung ist leer"
         collection_text: "Fügen Sie die Puzzles hinzu, die Sie besitzen – beim nächsten Mal wählt die Auswahl daraus."
@@ -3223,7 +3262,7 @@ puzzle_picker:
             lent: "Verliehene Puzzles bleiben außen vor, geliehene zählen mit"
             times: "Ihre schnellste, letzte und erste Zeit auf jeder Karte"
         members_title: "Für Mitglieder"
-        members_text: "Mitglieder schalten die Insights frei – Puzzle-Schwierigkeit, vorhergesagte Legezeiten und Könnensstufen – auf den Puzzleseiten und bald direkt auf der Auswahlkarte."
+        members_text: "Mitglieder erhalten die Einblicke direkt auf der Karte und in den Filtern: Ihre vorhergesagte Zeit für jedes Puzzle, die Schwierigkeitsstufe, Filter wie „ich bin langsamer als vorhergesagt“ und die Vorlage „Meinen Rekord schlagen“ – dazu Schwierigkeit und Vorhersagen auf den Puzzle-Seiten."
         members_cta: "Über die Mitgliedschaft"
         bottom_title: "Schluss mit Regal-Scannen – lassen Sie das Rad entscheiden"
         bottom_text: "Erstellen Sie ein kostenloses Konto, fügen Sie Ihre Puzzles hinzu und überlassen Sie der Auswahl die Wahl."

@@ -389,6 +389,28 @@ td.rank {
     line-height: 110%;
 }
 
+// "Competition / event" picker on the add-time / edit-time forms (CompetitionChoicesBuilder cards,
+// competition_picker_controller.js optgroup headers)
+.competition-option {
+    line-height: 110%;
+}
+
+.competition-option-logo {
+    max-width: 48px;
+    max-height: 48px;
+}
+
+.competition-optgroup-logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+[data-controller~="competition-picker"] .ts-dropdown-content {
+    // cards are ~48px tall; TomSelect's default 200px shows only 4 rows
+    max-height: 60vh;
+}
+
 .navbar-tool .navbar-tool-label {
     top: 1.6rem;
     right: -0.1rem;

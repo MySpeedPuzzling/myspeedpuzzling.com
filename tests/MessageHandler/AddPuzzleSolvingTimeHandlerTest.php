@@ -125,7 +125,9 @@ final class AddPuzzleSolvingTimeHandlerTest extends KernelTestCase
 
     public function testUnknownCompetitionIdIsSilentlyDroppedWithoutFailing(): void
     {
-        // Controller passes user-selectable competitionId; a stale value shouldn't crash the whole save.
+        // The form validates the competition id against the picker's set, so an unknown id only reaches
+        // the handler when the competition vanished between render and submit. The time is still saved
+        // (without the link) and a warning is logged - a stale value must not crash the whole save.
         $timeId = Uuid::uuid7();
 
         $this->messageBus->dispatch(new AddPuzzleSolvingTime(

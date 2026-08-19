@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
@@ -34,6 +35,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         private CompetitionRepository $competitionRepository,
         private ImageOptimizer $imageOptimizer,
         private MistypedYearNormalizer $mistypedYearNormalizer,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -58,8 +60,16 @@ readonly final class EditPuzzleSolvingTimeHandler
         if ($message->competitionId !== null) {
             try {
                 $competition = $this->competitionRepository->get($message->competitionId);
-            } catch (CompetitionNotFound) {
-                // Already null ...
+            } catch (CompetitionNotFound $e) {
+                // The form validates the id against the picker's set, so this is only reachable when the
+                // competition disappeared between render and submit — saving the time without the link
+                // beats failing the edit, but it must not pass silently
+                $this->logger->warning('Solving time saved without competition: submitted competition id does not exist', [
+                    'timeId' => $message->puzzleSolvingTimeId,
+                    'competitionId' => $message->competitionId,
+                    'userId' => $message->currentUserId,
+                    'exception' => $e,
+                ]);
             }
         }
 

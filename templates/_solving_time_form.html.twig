@@ -250,10 +250,11 @@
                             <i class="bi-trophy me-1"></i> {{ 'puzzle_add.competition_result'|trans }}
                         </button>
 
-                        <div class="card card-body shadow mb-3 {{ not competition_filled ? 'hidden' }}" data-toggle-target="competition">
+                        <div class="card card-body shadow mb-3 {{ not competition_filled ? 'hidden' }}" data-toggle-target="competition" data-controller="competition-picker">
                             {{ form_label(solving_time_form.competition) }}
-                            {{ form_widget(solving_time_form.competition, {'attr': {'data-time-form-autocomplete-target': 'competition'}}) }}
+                            {{ form_widget(solving_time_form.competition) }}
                             {{ form_help(solving_time_form.competition) }}
+                            <div class="form-text">{{ 'forms.competition_hint_series'|trans }}</div>
                             {{ form_errors(solving_time_form.competition) }}
                         </div>
                     </div>

@@ -111,7 +111,11 @@ final class EditTimeController extends AbstractController
             }
         }
 
-        $editTimeForm = $this->createForm(EditPuzzleSolvingTimeFormType::class, $data);
+        $editTimeForm = $this->createForm(EditPuzzleSolvingTimeFormType::class, $data, [
+            // Server-derived from the owner-checked row, never from the request: the picker must
+            // keep offering the linked competition even when it is not publicly selectable
+            'current_competition_id' => $solvedPuzzle->competitionId,
+        ]);
         $editTimeForm->handleRequest($request);
 
         if ($isGroupPuzzlersValid === true && $editTimeForm->isSubmitted() && $editTimeForm->isValid()) {

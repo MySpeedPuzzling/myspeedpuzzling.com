@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Repository\CollectionRepository;
 use SpeedPuzzling\Web\Results\CollectionItemOverview;
 use SpeedPuzzling\Web\Security\ApiUser;
+use SpeedPuzzling\Web\Services\Api\PuzzleResponseFactory;
 use Symfony\Bundle\SecurityBundle\Security;
 
 /**
@@ -22,6 +23,7 @@ final readonly class MyCollectionItemsResponseProvider implements ProviderInterf
         private Security $security,
         private GetCollectionItems $getCollectionItems,
         private CollectionRepository $collectionRepository,
+        private PuzzleResponseFactory $puzzleResponseFactory,
     ) {
     }
 
@@ -48,6 +50,14 @@ final readonly class MyCollectionItemsResponseProvider implements ProviderInterf
 
         $items = $this->getCollectionItems->byCollectionAndPlayer($dbCollectionId, $playerId);
 
+        // One batch per list, whatever its size: the owner's own solves and
+        // (member, not opted out, results:read) predictions - self-only data
+        $insights = $this->puzzleResponseFactory->insightsFor(
+            array_map(static fn (CollectionItemOverview $item): string => $item->puzzleId, $items),
+            solvesOfPlayerId: $playerId,
+            includePrediction: true,
+        );
+
         return new MyCollectionItemsResponse(
             collection_id: $collectionId,
             count: count($items),
@@ -61,6 +71,10 @@ final readonly class MyCollectionItemsResponseProvider implements ProviderInterf
                     image: $item->image,
                     comment: $item->comment,
                     added_at: $item->addedAt->format('c'),
+                    statistics: $insights->statistics($item->puzzleId),
+                    difficulty: $insights->difficulty($item->puzzleId),
+                    prediction: $insights->prediction($item->puzzleId),
+                    solves: $insights->solves($item->puzzleId),
                 ),
                 $items,
             ),

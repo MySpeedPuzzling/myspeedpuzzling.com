@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Repository\CollectionRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Security\ApiUser;
+use SpeedPuzzling\Web\Services\Api\PuzzleResponseFactory;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -29,6 +30,7 @@ final readonly class AddCollectionItemProcessor implements ProcessorInterface
         private GetCollectionItems $getCollectionItems,
         private CollectionRepository $collectionRepository,
         private PuzzleRepository $puzzleRepository,
+        private PuzzleResponseFactory $puzzleResponseFactory,
     ) {
     }
 
@@ -78,6 +80,9 @@ final readonly class AddCollectionItemProcessor implements ProcessorInterface
             throw new \RuntimeException('Collection item was not found after adding it to the collection.');
         }
 
+        // The created item has the same shape as an item of GET /me/collections/{id}/items
+        $insights = $this->puzzleResponseFactory->insightsFor([$item->puzzleId], solvesOfPlayerId: $playerId, includePrediction: true);
+
         return new CollectionItemResponse(
             collection_item_id: $item->collectionItemId,
             puzzle_id: $item->puzzleId,
@@ -87,6 +92,10 @@ final readonly class AddCollectionItemProcessor implements ProcessorInterface
             image: $item->image,
             comment: $item->comment,
             added_at: $item->addedAt->format('c'),
+            statistics: $insights->statistics($item->puzzleId),
+            difficulty: $insights->difficulty($item->puzzleId),
+            prediction: $insights->prediction($item->puzzleId),
+            solves: $insights->solves($item->puzzleId),
         );
     }
 }

@@ -75,27 +75,27 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 | Method | Endpoint | Required |
 |--------|----------|----------|
 | GET | `/api/v1/me` | PAT or `profile:read` (the `email` field is populated only for PAT or tokens granted `email:read`, otherwise `null`). Also carries `has_active_membership`, `membership_ends_at` (ISO-8601, `null` without an active membership) and the owner's opt-out flags `time_predictions_opted_out`, `ranking_opted_out`, `streak_opted_out` |
-| GET | `/api/v1/me/results?type=solo\|duo\|team` | PAT or `results:read` |
+| GET | `/api/v1/me/results?type=solo\|duo\|team` | PAT or `results:read`. Each result also carries the puzzle's `statistics` (public) and `difficulty` (members, else `null`) - see Insights on lists below |
 | GET | `/api/v1/me/puzzles/{puzzleId}/predicted-time` | PAT or `results:read` |
 | GET | `/api/v1/me/statistics` | PAT or `statistics:read` |
 | POST | `/api/v1/me/solving-times` | PAT or `solving-times:write` |
 | PUT | `/api/v1/me/solving-times/{timeId}` | PAT or `solving-times:write` |
 | GET | `/api/v1/me/collections` | PAT or `collections:read` |
-| GET | `/api/v1/me/collections/{id}/items` | PAT or `collections:read` |
+| GET | `/api/v1/me/collections/{id}/items` | PAT or `collections:read`. Each item also carries `statistics` (public), `difficulty` (members), `prediction` (members, not opted out, PAT or `results:read`) and `solves` (own history, PAT or `results:read`) - see Insights on lists below |
 | POST | `/api/v1/me/collections` | PAT or `collections:write` (members only) |
 | PUT | `/api/v1/me/collections/{id}` | PAT or `collections:write` (members only) |
 | DELETE | `/api/v1/me/collections/{id}` | PAT or `collections:write` (members only) |
-| POST | `/api/v1/me/collections/{id}/items` | PAT or `collections:write` |
+| POST | `/api/v1/me/collections/{id}/items` | PAT or `collections:write` (the created item is returned in the same shape as a `GET …/items` item, the four objects included) |
 | DELETE | `/api/v1/me/collections/{id}/items/{itemId}` | PAT or `collections:write` |
 
 ### Player Endpoints (OAuth2 only)
 
 | Method | Endpoint | Scope |
 |--------|----------|-------|
-| GET | `/api/v1/players/{id}/results?type=solo\|duo\|team` | `results:read` |
+| GET | `/api/v1/players/{id}/results?type=solo\|duo\|team` | `results:read`. Each result also carries the puzzle's `statistics` (public) and `difficulty` (**token owner** member, else `null`) |
 | GET | `/api/v1/players/{id}/statistics` | `statistics:read` |
 | GET | `/api/v1/players/{id}/collections` | `collections:read` (public only) |
-| GET | `/api/v1/players/{id}/collections/{cid}/items` | `collections:read` (public only) |
+| GET | `/api/v1/players/{id}/collections/{cid}/items` | `collections:read` (public only). Each item also carries `statistics` (public), `difficulty` (**token owner** member), `solves` (the **collection owner's** history, only with `results:read` on the token) and `prediction: null` always - predictions are self-only |
 
 ### Competition Endpoints (any authenticated token)
 
@@ -189,6 +189,20 @@ An app tells the reasons for a `null` members-only block apart from `GET /api/v1
 Puzzle Insights are gated **exactly as on the website** - the token owner (PAT, or the player behind an authorization-code token) must be a member; a `client_credentials` token has no player and therefore no membership. There is deliberately no `/api/v1/players/{id}/…` variant of members-only data: predictions are self-only on the website, and a single member's token must never become a proxy that serves a members-only feature to a third-party app's non-member users.
 
 One service decides this for every provider: `ApiTokenOwner` (`src/Services/Api/`) - `profile()` (the player behind the token, `null` for a machine token, memoised per request), `isMember()`, `canReadResults()` (PAT or `results:read`), `canReadStatistics()`. Providers never `assert($user instanceof ApiUser)` outside `/me/*`; they ask `ApiTokenOwner` and return `null` objects for what the token is not entitled to. Members-only blocks are **nullable objects**: `null` ⇔ "not available to this token" (not a member / machine token / missing scope / opted out); when available, the object is always present and carries `null` inside for "not enough data" (the `GET /me` flags above tell the reasons apart). Design and progress: `docs/features/api/v1-expansion-plan.md`.
+
+#### Insights on lists (collection items, result lists)
+
+The per-puzzle objects of the puzzle card (`statistics`, `difficulty`, `prediction`, `solves` - shapes above, under Puzzles) are appended to every item of the list endpoints, **always present**, `null` when the token is not entitled. The motivating case is a collection of 500 puzzles where an app wants, per item, "how hard is it, how would I do, how often have I solved it" - at a fixed query cost.
+
+| Endpoint | `statistics` | `difficulty` | `prediction` | `solves` |
+|---|---|---|---|---|
+| `GET /me/collections/{id}/items` (and the item `POST …/items` returns) | always | token owner member | member **and** not opted out **and** PAT / `results:read` | the token owner's own, PAT / `results:read` |
+| `GET /players/{id}/collections/{cid}/items` | always | token owner member (a `client_credentials` token never) | **never** - always `null` (predictions are self-only, N1) | the **collection owner's** history, only with `results:read` on the token (the same data `/players/{id}/results` exposes) |
+| `GET /me/results`, `GET /players/{id}/results` | always | token owner member | - (no field) | - (no field) |
+
+Private profiles keep today's zeroed `/players/{id}/…` response (`count: 0`, no items) and run no batch query; an empty list runs none either. Puzzle images on these lists honour the `hide_image_until` embargo (`image` / `puzzle_image` are `null` until it ends).
+
+**Fixed query cost** (asserted at two collection sizes by `MyCollectionItemsEndpointTest`, `PlayerCollectionItemsEndpointTest`, `MyResultsInsightsEndpointTest`, `PlayerResultsInsightsEndpointTest`): every provider collects the puzzle ids once and calls `PuzzleResponseFactory::insightsFor($puzzleIds, $solvesOfPlayerId, $includePrediction)` - the same batch method the puzzle cards use - which runs one query per object the token is entitled to (`GetPuzzleStatistics::forPuzzleList`, `GetPuzzleDifficulty::forPuzzleList`, `GetPlayerPredictions::forPuzzles` (≤ 4), `GetPlayerPuzzleSolves::forPuzzles`) and hands back a `PuzzleInsightsBatch` the provider maps onto its items. Measured 2026-08-19 (request only): collection items - `client_credentials` 4-5, non-member 5-6 (PAT) / 7-8 (OAuth2), member 9-11 (PAT) / 13 (OAuth2) on `/me`, 9 on `/players`; result lists - today + 2 (non-member: statistics, owner profile) or + 3 (member: + difficulty), `client_credentials` + 1.
 
 ### GET `/api/v1/me/puzzles/{puzzleId}/predicted-time`
 
@@ -365,7 +379,7 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `src/Api/V1/PuzzleDetailResponse.php` | `GET /api/v1/puzzles/{puzzleId}` resource - the card of one puzzle, built only via `fromCard()` (provider `PuzzleDetailResponseProvider`) |
 | `src/Api/V1/PuzzleResponse.php` | The puzzle card (+ `PuzzleStatisticsResponse`, `PuzzleDifficultyResponse`, `TimePredictionResponse`, `PlayerSolvesResponse`) |
 | `src/Services/Api/ApiTokenOwner.php` | The single membership / scope gate behind every provider |
-| `src/Services/Api/PuzzleResponseFactory.php` | Builds puzzle cards for the calling token at a fixed query cost (one batch call per object) |
+| `src/Services/Api/PuzzleResponseFactory.php` | Builds puzzle cards for the calling token at a fixed query cost (one batch call per object); `insightsFor()` + `PuzzleInsightsBatch` serve the collection-item and result lists with the same batch |
 | `src/Query/GetPuzzleStatistics.php`, `GetPlayerPuzzleSolves.php` | Batch queries behind the cards' `statistics` and `solves` objects |
 | `tests/QueryCountAssertions.php`, `tests/OpenApiAssertions.php` | Test traits: query budgets via the profiler, parameter documentation via `/api/docs.jsonopenapi` |
 | `src/Controller/FairUsePolicyController.php` | Fair use policy page |

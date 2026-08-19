@@ -4,35 +4,34 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\Api;
 
-use SpeedPuzzling\Web\Api\V1\PlayerSolvesResponse;
-use SpeedPuzzling\Web\Api\V1\PuzzleDifficultyResponse;
 use SpeedPuzzling\Web\Api\V1\PuzzleManufacturerResponse;
 use SpeedPuzzling\Web\Api\V1\PuzzleResponse;
-use SpeedPuzzling\Web\Api\V1\PuzzleStatisticsResponse;
-use SpeedPuzzling\Web\Api\V1\TimePredictionResponse;
 use SpeedPuzzling\Web\Query\GetPlayerPredictions;
 use SpeedPuzzling\Web\Query\GetPlayerPuzzleSolves;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetPuzzleStatistics;
-use SpeedPuzzling\Web\Results\PlayerPuzzleSolves;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
-use SpeedPuzzling\Web\Results\PuzzleStatisticsResult;
 
 /**
- * Builds the public API's puzzle cards for the calling token, at a fixed
- * query cost: whatever the list size, one batch query for the community
- * statistics (GetPuzzleStatistics::forPuzzleList) and at most one per insight
- * object - difficulty (GetPuzzleDifficulty::forPuzzleList), the owner's
+ * Builds the public API's per-puzzle insight objects for the calling token,
+ * at a fixed query cost: whatever the list size, one batch query for the
+ * community statistics (GetPuzzleStatistics::forPuzzleList) and at most one
+ * per insight object - difficulty (GetPuzzleDifficulty::forPuzzleList),
  * predictions (GetPlayerPredictions::forPuzzles, itself at most 4 queries) and
- * the owner's solves (GetPlayerPuzzleSolves::forPuzzles) - each of the latter
- * only when the token is entitled to the object at all. What the token is not
- * entitled to is null on every card, never an error (plan §0 N1/N3).
+ * solves (GetPlayerPuzzleSolves::forPuzzles) - each of the latter only when
+ * the token is entitled to the object at all. What the token is not entitled
+ * to is null on every item, never an error (plan §0 N1/N3). One implementation
+ * serves the puzzle cards (/puzzles), collection items and result lists.
  *
  * Gates (docs/features/api/README.md, Members-Exclusive Data):
+ *   statistics  - public, always
  *   difficulty  - token owner is a member
- *   prediction  - owner is a member, has not opted out of time predictions,
- *                 and the token may read results (PAT or results:read)
- *   solves      - there is an owner and the token may read results
+ *   prediction  - only where the endpoint is self-only (includePrediction),
+ *                 and the owner is a member, has not opted out of time
+ *                 predictions, and the token may read results (PAT or results:read)
+ *   solves      - a player whose solves to show was given (the token owner on
+ *                 /me and /puzzles, the collection owner on /players/{id}/…)
+ *                 and the token may read results
  */
 final readonly class PuzzleResponseFactory
 {
@@ -43,6 +42,51 @@ final readonly class PuzzleResponseFactory
         private GetPlayerPredictions $getPlayerPredictions,
         private GetPlayerPuzzleSolves $getPlayerPuzzleSolves,
     ) {
+    }
+
+    /**
+     * The insight objects for a list of puzzles, gated for the calling token.
+     * Duplicate ids are fine (a result list repeats a puzzle per solve); an
+     * empty list costs no query at all.
+     *
+     * @param array<string> $puzzleIds
+     * @param null|string $solvesOfPlayerId whose solves the "solves" object shows; null = the endpoint has no solves object
+     * @param bool $includePrediction whether the endpoint carries the self-only "prediction" object at all
+     */
+    public function insightsFor(array $puzzleIds, null|string $solvesOfPlayerId, bool $includePrediction): PuzzleInsightsBatch
+    {
+        $puzzleIds = array_values(array_unique($puzzleIds));
+
+        if ($puzzleIds === []) {
+            return PuzzleInsightsBatch::empty();
+        }
+
+        $isMember = $this->tokenOwner->isMember();
+        $canReadResults = $this->tokenOwner->canReadResults();
+
+        $predictionsOf = null;
+
+        if ($includePrediction && $isMember && $canReadResults) {
+            $profile = $this->tokenOwner->profile();
+
+            if ($profile !== null && $profile->timePredictionsOptedOut === false) {
+                $predictionsOf = $profile->playerId;
+            }
+        }
+
+        return new PuzzleInsightsBatch(
+            // public, always; a puzzle nobody has solved has no row
+            statistics: $this->getPuzzleStatistics->forPuzzleList($puzzleIds),
+            difficulties: $isMember
+                ? $this->getPuzzleDifficulty->forPuzzleList($puzzleIds)
+                : null,
+            predictions: $predictionsOf !== null
+                ? $this->getPlayerPredictions->forPuzzles($predictionsOf, $puzzleIds)
+                : null,
+            solves: $solvesOfPlayerId !== null && $canReadResults
+                ? $this->getPlayerPuzzleSolves->forPuzzles($solvesOfPlayerId, $puzzleIds)
+                : null,
+        );
     }
 
     /**
@@ -58,26 +102,11 @@ final readonly class PuzzleResponseFactory
 
         $puzzleIds = array_map(static fn (PuzzleOverview $overview): string => $overview->puzzleId, $overviews);
 
-        $profile = $this->tokenOwner->profile();
-        $isMember = $this->tokenOwner->isMember();
-        $canReadResults = $this->tokenOwner->canReadResults();
-
-        // public, always; a puzzle nobody has solved has no row
-        $statistics = $this->getPuzzleStatistics->forPuzzleList($puzzleIds);
-
-        // null = not entitled (the object is null on every card); array = entitled,
-        // keyed by puzzle id, with a default synthesised for ids the query did not return
-        $difficulties = $isMember
-            ? $this->getPuzzleDifficulty->forPuzzleList($puzzleIds)
-            : null;
-
-        $predictions = $profile !== null && $isMember && $profile->timePredictionsOptedOut === false && $canReadResults
-            ? $this->getPlayerPredictions->forPuzzles($profile->playerId, $puzzleIds)
-            : null;
-
-        $solves = $profile !== null && $canReadResults
-            ? $this->getPlayerPuzzleSolves->forPuzzles($profile->playerId, $puzzleIds)
-            : null;
+        $insights = $this->insightsFor(
+            $puzzleIds,
+            solvesOfPlayerId: $this->tokenOwner->profile()?->playerId,
+            includePrediction: true,
+        );
 
         $cards = [];
 
@@ -98,16 +127,10 @@ final readonly class PuzzleResponseFactory
                 identification_number: $overview->puzzleIdentificationNumber,
                 is_available: $overview->isAvailable,
                 is_approved: $overview->puzzleApproved,
-                statistics: PuzzleStatisticsResponse::fromResult($statistics[$puzzleId] ?? PuzzleStatisticsResult::empty($puzzleId)),
-                difficulty: $difficulties === null
-                    ? null
-                    : (isset($difficulties[$puzzleId]) ? PuzzleDifficultyResponse::fromResult($difficulties[$puzzleId]) : PuzzleDifficultyResponse::insufficient()),
-                prediction: $predictions === null
-                    ? null
-                    : TimePredictionResponse::fromResult($predictions[$puzzleId] ?? null),
-                solves: $solves === null
-                    ? null
-                    : PlayerSolvesResponse::fromResult($solves[$puzzleId] ?? PlayerPuzzleSolves::empty($puzzleId)),
+                statistics: $insights->statistics($puzzleId),
+                difficulty: $insights->difficulty($puzzleId),
+                prediction: $insights->prediction($puzzleId),
+                solves: $insights->solves($puzzleId),
             );
         }
 

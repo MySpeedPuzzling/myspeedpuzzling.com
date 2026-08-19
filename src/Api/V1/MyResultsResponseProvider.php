@@ -9,6 +9,7 @@ use ApiPlatform\State\ProviderInterface;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Security\ApiUser;
+use SpeedPuzzling\Web\Services\Api\PuzzleResponseFactory;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -21,6 +22,7 @@ final readonly class MyResultsResponseProvider implements ProviderInterface
         private Security $security,
         private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         private RequestStack $requestStack,
+        private PuzzleResponseFactory $puzzleResponseFactory,
     ) {
     }
 
@@ -40,6 +42,15 @@ final readonly class MyResultsResponseProvider implements ProviderInterface
             default => $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId),
         };
 
+        // One batch per list, whatever its size: community statistics (public)
+        // and difficulty (token owner member); a result list has no solves or
+        // prediction object
+        $insights = $this->puzzleResponseFactory->insightsFor(
+            array_map(static fn (SolvedPuzzle $puzzle): string => $puzzle->puzzleId, $results),
+            solvesOfPlayerId: null,
+            includePrediction: false,
+        );
+
         return new MyResultsResponse(
             player_id: $playerId,
             type: $type,
@@ -56,6 +67,8 @@ final readonly class MyResultsResponseProvider implements ProviderInterface
                     first_attempt: $puzzle->firstAttempt,
                     puzzle_image: $puzzle->puzzleImage,
                     comment: $puzzle->comment,
+                    statistics: $insights->statistics($puzzle->puzzleId),
+                    difficulty: $insights->difficulty($puzzle->puzzleId),
                 ),
                 $results,
             ),

@@ -113,6 +113,7 @@ SELECT
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     puzzle.hide_image_until,
+    puzzle.hide_until,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.pieces_count,
     puzzle.is_available,
@@ -158,6 +159,7 @@ SQL;
          *     puzzle_ean: null|string,
          *     puzzle_identification_number: null|string,
          *     hide_image_until: null|string,
+         *     hide_until: null|string,
          * } $row
          */
         $row = $this->database

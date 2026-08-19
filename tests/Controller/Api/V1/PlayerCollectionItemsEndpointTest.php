@@ -28,9 +28,12 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * GET /api/v1/players/{playerId}/collections/{collectionId}/items - every item
  * carries statistics (public), difficulty (the *token owner* is a member) and
- * solves (the *collection owner's* history, only for a token with results:read);
- * never a prediction - predictions are self-only (plan §0 N1). The private
- * profile short-circuit is untouched.
+ * solves (the *collection owner's* history, only for a token with results:read)
+ * and prediction (always the *token owner's* own forecast - the website shows the
+ * visitor's predicted time next to each item of somebody else's collection; never
+ * the owner's, plan §0 N1). Visibility follows the website: a private profile, a
+ * private custom collection and a private system collection ("default" - the
+ * player's puzzle-collection setting) are zeroed for everyone but that player.
  *
  * Fixtures (.claude/fixtures.md): PLAYER_WITH_STRIPE (member) owns
  * COLLECTION_PUBLIC with PUZZLE_500_01 (solved once, 2100 s) and PUZZLE_500_02
@@ -148,7 +151,8 @@ final class PlayerCollectionItemsEndpointTest extends WebTestCase
         $browser = self::createClient();
         $this->seedDifficulty($browser, PuzzleFixture::PUZZLE_500_02, 1.18, MetricConfidence::Medium);
 
-        // member token owner looking at a non-member's collection
+        // member token owner looking at a non-member's (public) system collection
+        $this->setPuzzleCollectionVisibility($browser, PlayerFixture::PLAYER_REGULAR, CollectionVisibility::Public);
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['collections:read']);
         $browser->request('GET', $this->path(PlayerFixture::PLAYER_REGULAR, 'default'));
         $this->assertResponseIsSuccessful();
@@ -158,6 +162,7 @@ final class PlayerCollectionItemsEndpointTest extends WebTestCase
         foreach ($response['items'] as $item) {
             // present for every item - a seeded row or the synthesised "insufficient" one
             $this->assertIsArray($item['difficulty']);
+            // the token's own prediction needs results:read - collections:read alone gets none
             $this->assertNull($item['prediction']);
         }
 
@@ -170,13 +175,16 @@ final class PlayerCollectionItemsEndpointTest extends WebTestCase
             $this->item($this->decode($browser), PuzzleFixture::PUZZLE_500_02)['difficulty'],
         );
 
-        // a member looking at their own collection through /players: still no prediction (self-only lives on /me)
+        // a member with results:read looking at their own collection through /players:
+        // their own prediction, exactly as under /me (personal - they solved PUZZLE_500_01 once)
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['collections:read', 'results:read']);
         $browser->request('GET', $this->path(PlayerFixture::PLAYER_WITH_STRIPE, CollectionFixture::COLLECTION_PUBLIC));
         $this->assertResponseIsSuccessful();
         $item = $this->item($this->decode($browser), PuzzleFixture::PUZZLE_500_01);
         $this->assertIsArray($item['difficulty']);
-        $this->assertNull($item['prediction']);
+        $this->assertIsArray($item['prediction']);
+        $this->assertTrue($item['prediction']['is_personalized']);
+        $this->assertSame(1, $item['prediction']['personal_solve_count']);
         $this->assertSame(1, $item['solves']['solo']['count'] ?? null);
 
         // non-member token owner looking at a member's collection
@@ -212,6 +220,87 @@ final class PlayerCollectionItemsEndpointTest extends WebTestCase
         $this->assertNull($item['difficulty']);
         $this->assertNull($item['prediction']);
         $this->assertSame(1, $item['solves']['solo']['count'] ?? null);
+    }
+
+    /**
+     * The prediction on somebody else's collection is the token owner's own
+     * (what the website shows a visitor), never the collection owner's.
+     */
+    public function testPredictionIsTheTokenOwnersOwnOnAnotherPlayersCollection(): void
+    {
+        $browser = self::createClient();
+
+        // PLAYER_ADMIN (member) has their own solo history on PUZZLE_500_01 (last 1780 s in
+        // the fixtures); the collection owner PLAYER_WITH_STRIPE solved it once in 2100 s -
+        // the prediction learns from the viewer's times, the solves report the owner's
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_ADMIN, ['collections:read', 'results:read']);
+        $browser->request('GET', $this->path(PlayerFixture::PLAYER_WITH_STRIPE, CollectionFixture::COLLECTION_PUBLIC));
+        $this->assertResponseIsSuccessful();
+        $item = $this->item($this->decode($browser), PuzzleFixture::PUZZLE_500_01);
+        $this->assertIsArray($item['prediction']);
+        $this->assertTrue($item['prediction']['is_personalized']);
+        $this->assertNotSame(2100, $item['prediction']['last_time_seconds']);
+        $this->assertSame(1780, $item['prediction']['last_time_seconds']);
+        $this->assertSame(2100, $item['solves']['solo']['last_time_seconds'] ?? null);
+
+        // a non-member visitor gets no prediction, a machine token neither
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_REGULAR, ['collections:read', 'results:read']);
+        $browser->request('GET', $this->path(PlayerFixture::PLAYER_WITH_STRIPE, CollectionFixture::COLLECTION_PUBLIC));
+        $this->assertNull($this->item($this->decode($browser), PuzzleFixture::PUZZLE_500_02)['prediction']);
+
+        $this->authenticateClientCredentials($browser, ['collections:read', 'results:read']);
+        $browser->request('GET', $this->path(PlayerFixture::PLAYER_WITH_STRIPE, CollectionFixture::COLLECTION_PUBLIC));
+        $this->assertNull($this->item($this->decode($browser), PuzzleFixture::PUZZLE_500_02)['prediction']);
+    }
+
+    /**
+     * The website's visibility rules: a private system collection (the player's
+     * puzzle-collection setting, PLAYER_REGULAR's default in the fixtures) and a
+     * private custom collection (COLLECTION_PRIVATE) are zeroed for a stranger
+     * and a machine token - and fully visible to the player behind the token.
+     */
+    public function testPrivateCollectionsAreZeroedForEveryoneButTheirOwner(): void
+    {
+        $browser = self::createClient();
+
+        // system collection, private setting
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['collections:read', 'results:read']);
+        $browser->request('GET', $this->path(PlayerFixture::PLAYER_REGULAR, 'default'));
+        $this->assertResponseIsSuccessful();
+        $zeroed = $this->decode($browser);
+        $this->assertSame('default', $zeroed['collection_id']);
+        $this->assertSame(0, $zeroed['count']);
+        $this->assertSame([], $zeroed['items']);
+
+        $this->authenticateClientCredentials($browser, ['collections:read']);
+        $browser->request('GET', $this->path(PlayerFixture::PLAYER_REGULAR, 'default'));
+        $this->assertSame(0, $this->decode($browser)['count']);
+
+        // the owner sees it through /players as under /me
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_REGULAR, ['collections:read']);
+        $browser->request('GET', $this->path(PlayerFixture::PLAYER_REGULAR, 'default'));
+        $this->assertSame(3, $this->decode($browser)['count']);
+
+        // ... and so does everybody once it is public
+        $this->setPuzzleCollectionVisibility($browser, PlayerFixture::PLAYER_REGULAR, CollectionVisibility::Public);
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['collections:read']);
+        $browser->request('GET', $this->path(PlayerFixture::PLAYER_REGULAR, 'default'));
+        $this->assertSame(3, $this->decode($browser)['count']);
+
+        // private custom collection (4 puzzles)
+        $browser->request('GET', $this->path(PlayerFixture::PLAYER_REGULAR, CollectionFixture::COLLECTION_PRIVATE));
+        $this->assertResponseIsSuccessful();
+        $this->assertSame(0, $this->decode($browser)['count']);
+
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_REGULAR, ['collections:read']);
+        $browser->request('GET', $this->path(PlayerFixture::PLAYER_REGULAR, CollectionFixture::COLLECTION_PRIVATE));
+        $this->assertSame(4, $this->decode($browser)['count']);
+
+        // an unknown (well-formed) collection id is indistinguishable from a private one
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['collections:read']);
+        $browser->request('GET', $this->path(PlayerFixture::PLAYER_REGULAR, '00000000-0000-0000-0000-000000000000'));
+        $this->assertResponseIsSuccessful();
+        $this->assertSame(0, $this->decode($browser)['count']);
     }
 
     public function testPrivateProfileStaysZeroedWithoutBatchQueries(): void
@@ -251,7 +340,9 @@ final class PlayerCollectionItemsEndpointTest extends WebTestCase
      * player, consent usage; a client_credentials token 1-2), the listed
      * player's profile 1, the items 1; then statistics 1, and per entitlement
      * the token owner's profile 1, difficulty 1 (member), solves 1
-     * (results:read).
+     * (results:read), the token owner's own predictions <= 4 (member with
+     * results:read, not opted out). A custom collection costs one more query
+     * (its visibility), the system collection none.
      */
     public function testQueryBudgets(): void
     {
@@ -261,19 +352,27 @@ final class PlayerCollectionItemsEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->path(PlayerFixture::PLAYER_WITH_STRIPE, CollectionFixture::COLLECTION_PUBLIC));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 5, 'client_credentials token (statistics, owner solves)');
+        $this->assertQueryCountAtMost($browser, 6, 'client_credentials token (collection visibility, statistics, owner solves)');
 
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_REGULAR, ['collections:read', 'results:read']);
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->path(PlayerFixture::PLAYER_WITH_STRIPE, CollectionFixture::COLLECTION_PUBLIC));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 8, 'non-member authorization-code token (statistics, profile, owner solves)');
+        $this->assertQueryCountAtMost($browser, 9, 'non-member authorization-code token (collection visibility, statistics, profile, owner solves)');
 
+        $this->setPuzzleCollectionVisibility($browser, PlayerFixture::PLAYER_REGULAR, CollectionVisibility::Public);
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['collections:read', 'results:read']);
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->path(PlayerFixture::PLAYER_REGULAR, 'default'));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 9, 'member authorization-code token (statistics, profile, difficulty, owner solves)');
+        $this->assertQueryCountAtMost($browser, 13, 'member authorization-code token (statistics, profile, difficulty, own predictions, owner solves)');
+
+        // a private collection of a stranger: profile + visibility, nothing else
+        $this->setPuzzleCollectionVisibility($browser, PlayerFixture::PLAYER_REGULAR, CollectionVisibility::Private);
+        $this->startCountingQueries($browser);
+        $browser->request('GET', $this->path(PlayerFixture::PLAYER_REGULAR, 'default'));
+        $this->assertResponseIsSuccessful();
+        $this->assertQueryCountAtMost($browser, 5, 'private system collection of a stranger (no items, no batch)');
     }
 
     public function testQueryCountDoesNotGrowWithTheCollectionSize(): void
@@ -350,6 +449,18 @@ final class PlayerCollectionItemsEndpointTest extends WebTestCase
         );
 
         OAuth2TestHelper::addBearerToken($browser, $token);
+    }
+
+    private function setPuzzleCollectionVisibility(KernelBrowser $browser, string $playerId, CollectionVisibility $visibility): void
+    {
+        $entityManager = $this->entityManager($browser);
+
+        $player = $entityManager->find(Player::class, $playerId);
+        $this->assertNotNull($player);
+
+        $player->changePuzzleCollectionVisibility($visibility);
+        $entityManager->flush();
+        $entityManager->clear();
     }
 
     private function seedDifficulty(KernelBrowser $browser, string $puzzleId, float $score, MetricConfidence $confidence): void

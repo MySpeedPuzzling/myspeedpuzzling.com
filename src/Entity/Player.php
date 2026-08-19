@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Exceptions\CanNotFavoriteYourself;
 use SpeedPuzzling\Web\Exceptions\PlayerIsAlreadyInFavorites;
 use SpeedPuzzling\Web\Exceptions\PlayerIsNotInFavorites;
 use SpeedPuzzling\Web\Doctrine\SellSwapListSettingsDoctrineType;
+use SpeedPuzzling\Web\Value\CollectionDisplayMode;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
@@ -155,6 +156,10 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::BOOLEAN, options: ['default' => false])]
     public bool $timePredictionsOptedOut = false;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, enumType: CollectionDisplayMode::class, options: ['default' => 'off'])]
+    public CollectionDisplayMode $collectionDisplayMode = CollectionDisplayMode::Off;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
@@ -417,6 +422,11 @@ class Player
     public function changeTimePredictionsOptedOut(bool $optedOut): void
     {
         $this->timePredictionsOptedOut = $optedOut;
+    }
+
+    public function changeCollectionDisplayMode(CollectionDisplayMode $mode): void
+    {
+        $this->collectionDisplayMode = $mode;
     }
 
     public function joinReferralProgram(DateTimeImmutable $now): void

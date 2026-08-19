@@ -1122,6 +1122,17 @@
       \ de messagerie que j'ai choisi inclut également fail2ban, qui est conçu pour bloquer l'accès depuis des adresses IP suspectes—par exemple, s'il y a trop de tentatives de connexion échouées ou d'autres menaces. Je vais passer environ deux heures de plus de diagnostic—mais essentiellement, fail2ban n'était pas configuré correctement (il était laissé dans ses paramètres par défaut), et combiné avec UFW, il a d'une manière ou d'une autre mystérieusement bloqué tout le trafic sur les ports 22, 80 et 443—même si nous ne comprenons toujours pas entièrement pourquoi c'est arrivé de cette façon.</p>\n<p>Une fois que j'ai connu la cause, la correction finale n'a pas pris trop de temps—désinstaller rapidement le serveur de messagerie (y compris UFW), vider iptables, rajouter les règles de réseau Docker, \"rebondir\" tout quelques fois, déconnecter le système de secours, redémarrer tout, et… finalement, après cinq heures atroces à jurer devant l'écran, MSP était de retour à la normale…</p>\n\
       <p>J'ai sauté quelques détails inutiles—comme comment j'ai basculé DNS vers un proxy CloudFlare en cinq minutes entre temps et mis en place un worker Node.js pour afficher un message sur la panne—juste pour qu'il n'y ait pas une page blanche…</p>\n<p>Pour l'instant, je mets le travail du serveur de messagerie de côté, et je sais qu'il sera \"sur le côté\", sur un serveur séparé, loin de MSP. D'un côté, c'était intéressant de tester notre processus de \"récupération après sinistre\"—à un moment j'étais si désespéré que j'étais prêt à laisser ce serveur brûler en enfer, tout faire tourner sur un nouveau, et juste mettre à jour les enregistrements DNS… Heureusement, cela s'est avéré inutile à la fin.</p>\n<p>PS. Ça s'est vraiment cassé \"tout seul\", grâce au serveur de messagerie, après une semaine sans aucune intervention humaine… C'est quelque chose…</p>\n<p>PS2. Vous êtes courageux si vous avez lu jusqu'au bout :-).</p>\n"
 "collections":
+  "display":
+    "label": "Affichage"
+    "hint": "Vos propres temps à côté de chaque puzzle de cette collection"
+    "mode":
+      "off": "Désactivé"
+      "times": "Mes temps"
+      "times_predictions": "Mes temps + prédictions"
+    "not_solved_yet": "Pas encore fait"
+    "solved_times": "Fait %count%×"
+    "fastest": "record %time%"
+    "latest": "dernier %time%"
   "add_puzzle": "Ajouter puzzle à la collection"
   "moving_from": "Déplacement depuis %collection%"
   "private": "Privée"

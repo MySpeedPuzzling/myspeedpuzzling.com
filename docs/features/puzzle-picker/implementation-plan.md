@@ -221,15 +221,59 @@ Everything free unless said otherwise; the criteria strip what a guest / non-mem
 
 ## PR 4 — My times (+ predictions) in collections
 
-- `CollectionDisplayMode` enum (`off`|`times`|`times_predictions`), `player.collection_display_mode`
-  column (generated migration), `PlayerProfile` field, message `ChangeCollectionDisplayMode` + handler,
-  POST controller (`IS_AUTHENTICATED_FULLY`, CSRF, redirect back).
-- `src/Query/GetPlayerPuzzleTimes.php`: `forPuzzles(playerId, puzzleIds[])` → per puzzle
-  `solveCount, fastestSeconds, latestSeconds, lastSolvedAt` (solo, valid).
-- "Display ▾" control on `collections/detail.html.twig` (both system & custom, own or others' public):
-  Off / My times / My times + predictions (locked for non-members). Item partial shows the my-times
-  block (not solved yet / solved N× · fastest ⭐ · latest unless identical) and the prediction pill.
-- Tests: handler, controller (member modes, non-member downgrade), query, template smoke.
+Shipped as designed in README §5, with one deliberate change: the persisted mode is **not** on
+`PlayerProfile` — that DTO is loaded on every signed-in page, and putting the new column there would
+have made the whole site depend on the migration; a tiny read query serves the two pages that need it.
+
+- **Preference**: `CollectionDisplayMode` string enum (`off` | `times` | `times_predictions`, helpers
+  `showsTimes()` / `showsPredictions()`), `Player::$collectionDisplayMode` (`enumType` column, default
+  `off`, `changeCollectionDisplayMode()`), generated migration `Version20260819010848` (one `ALTER TABLE
+  player ADD collection_display_mode VARCHAR(255) DEFAULT 'off' NOT NULL`). Read model
+  `GetCollectionDisplayMode::forPlayer()` (Off for a missing row). Message `ChangeCollectionDisplayMode`
+  + handler (loads the Player, sets, no flush).
+- **POST** `ChangeCollectionDisplayModeController` — route `collection_display_mode` (six locale paths,
+  e.g. `/en/collection-display-mode`), `IS_AUTHENTICATED_FULLY`, session-backed CSRF token
+  `collection_display_mode` (the form only ever renders for signed-in viewers, who already have a
+  session), body field `mode`; unknown mode → 400, bad token → redirect without change; a non-member or a
+  predictions-opted-out member asking for `times_predictions` is downgraded to `times`; redirects to a
+  `ReturnUrl::tryFrom()`-validated `?return=` (the collection page puts its own path there) or to the
+  viewer's puzzle library.
+- **Read models**: `GetPlayerPuzzleTimes::forPuzzles(playerId, puzzleIds)` → `PlayerPuzzleTimes` per
+  puzzle (`solveCountAny`, `solveCountSolo`, `fastestSeconds`, `latestSeconds`, `lastSolvedAt`,
+  `latestDiffersFromFastest()`), one query mirroring the picker's `my_solves` / `my_team_solves` CTEs
+  restricted to the listed puzzle ids; never-solved puzzles are absent. Predictions reuse
+  `GetPlayerPredictions::forPuzzles()` (PR 2).
+- **`ResolveCollectionDisplay::forViewer(profile, puzzleIds)`** (service shared by
+  `CollectionDetailController` and `SystemCollectionDetailController`) → `CollectionDisplay` (effective
+  mode + the two maps). Eligibility for predictions = `activeMembership && !timePredictionsOptedOut`
+  (`ResolveCollectionDisplay::predictionsAllowed()`, also used by the POST). Guests get Off without a
+  query. `CollectionDisplay::templateParameters()` passes `display_mode` always and `my_times` /
+  `predictions` **only for the active mode** — the item partial keys on `my_times` being defined.
+- **UI**: `collections/_display_mode.html.twig` — "Display ▾" (`btn-outline-secondary btn-sm`,
+  `.collection-display`) in the header actions of `collections/detail.html.twig` for every signed-in
+  viewer (own or other's public collection; the toggle shows the active mode). The menu is one POST form
+  with submit buttons Off / My times / My times + predictions; the third is the locked pattern
+  (`.collection-display-locked`, `ci-locked` + `#membersExclusiveModal`) for non-members and a disabled
+  item + opt-out notice with the settings link (`.collection-display-opted-out`) for opted-out members.
+  `_puzzle_library_item.html.twig` (page_context `collection`, `my_times` defined) renders
+  `.collection-my-times` under the manufacturer line: "Not solved yet" or "Solved N× · fastest 00:28:20 ⭐
+  [· latest 00:31:40 only when it differs] · last time 10 days ago" ("No solo time yet – solved in a
+  team" for team-only solves), plus the `.collection-prediction` pill `⏱ ~31min 30s` (title = "Your
+  prediction: range · personal/statistical explanation", `bi-person-check` vs `bi-graph-up` glyph) when a
+  prediction exists; `data-my-fastest-seconds` / `data-predicted-seconds` on the item column (empty when
+  unknown) for future client-side sorting. Turbo-stream re-renders of a single item (`_library_item_stream`)
+  do not carry `my_times`, so a replaced card shows the block again on the next full render.
+- **Translations**: `collections.display.{label,hint,mode.off,mode.times,mode.times_predictions,
+  not_solved_yet,solved_times,fastest,latest}` in all six locales; the rest reuses
+  `puzzle_picker.card.*`, `puzzle_times.my_attempts.*`, `puzzle_intelligence.prediction.*`,
+  `membership.members_exclusive_short`, `statistics.change_in_settings`.
+- **Tests**: `tests/MessageHandler/ChangeCollectionDisplayModeHandlerTest.php`,
+  `tests/Query/GetPlayerPuzzleTimesTest.php` (PLAYER_REGULAR × PUZZLE_500_02 = 3 / 1700 / 1700, slower
+  latest on PUZZLE_1000_02, team participation, absent never-solved),
+  `tests/Controller/ChangeCollectionDisplayModeControllerTest.php` (auth, member modes, non-member and
+  opted-out downgrade, CSRF, bad mode, hostile `return`), `tests/Controller/CollectionDetailControllerTest.php`
+  (control for signed-in viewers only incl. locked / opted-out variants, my-times block on own, other's
+  and system collections, predictions pill for an eligible member, non-member served "times" only).
 
 ## PR 5+ — Reach & polish (roadmap)
 Hub mini-picker, stopwatch prediction line, search listing pill, unlimited "more" via Turbo Frames,

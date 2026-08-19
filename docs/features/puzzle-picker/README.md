@@ -1,10 +1,11 @@
 # Puzzle Picker — "What should I solve next?"
 
-> Status: **design agreed 2026-08-19, implementation in progress** (stacked PRs, see
-> [`implementation-plan.md`](implementation-plan.md)). Jan's decisions of 2026-08-19 are folded in below;
-> the former ❓ items are resolved in §8. Rules for every stage: **all six locales** (cs, de, en, es,
-> fr, ja) for every user-facing string and route path, **tests for everything** (query, value object,
-> controller, handler), full check suite green.
+> Status: **implemented 2026-08-19** as four stacked PRs — #189 foundation, #193 insights layer,
+> #191 precision filters / collections targeting / remembered filters / presets, #192 my times +
+> predictions in collections (adds `player.collection_display_mode`, migration `Version20260819010848`).
+> Rules kept in every stage: **all six locales** (cs, de, en, es, fr, ja) for every user-facing string
+> and route path, **tests for everything** (query, value object, controller, handler), full check suite
+> green. Roadmap items live in [`implementation-plan.md`](implementation-plan.md) "PR 5+".
 
 ## 1. What it is (and is not)
 
@@ -168,11 +169,15 @@ rendered (Twig + Turbo Drive); the only JS is the filter sheet, chips and a tiny
   is applied server-side (the page re-renders through a small POST → redirect back).
 - **Persistence**: `player.collection_display_mode` (string-backed enum
   `CollectionDisplayMode`: `off` | `times` | `times_predictions`), changed via a Messenger message
-  (`ChangeCollectionDisplayMode`) from a small POST controller (model: `DismissHintController`),
-  exposed on `PlayerProfile` like `timePredictionsOptedOut`. A player column follows the house
+  (`ChangeCollectionDisplayMode`) from a small POST controller (model: `DismissHintController`,
+  route `collection_display_mode`). Shipped (PR 4) **not** on `PlayerProfile`: that DTO is read on
+  every signed-in page, so the column would have become a site-wide dependency on the migration —
+  instead the tiny `GetCollectionDisplayMode::forPlayer()` serves the two collection pages and the
+  POST, through the shared `ResolveCollectionDisplay` service. A player column follows the house
   pattern for opt-in/out flags, survives logout and syncs across devices; a non-member (or a
   predictions-opted-out player) asking for `times_predictions` is downgraded to `times`
-  server-side.
+  server-side — both when saving and when rendering (a member whose membership lapsed keeps the
+  stored value but sees "My times").
 - **Whose times / prediction**: always the *viewer's* (the control is labelled "My times") — on
   someone else's public collection a member sees "how did / would I do on these".
 - **Cost**: collection pages render all items (up to ~1.7k for the heaviest player). "My times"

@@ -1436,6 +1436,17 @@ navigation:
     home: "Home"
 
 collections:
+    display:
+        label: "Display"
+        hint: "Your own times next to every puzzle in this collection"
+        mode:
+            off: "Off"
+            times: "My times"
+            times_predictions: "My times + predictions"
+        not_solved_yet: "Not solved yet"
+        solved_times: "Solved %count%×"
+        fastest: "fastest %time%"
+        latest: "latest %time%"
     meta:
         title: "Puzzle Library"
     title: "Puzzle Library"

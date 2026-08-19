@@ -1121,6 +1121,17 @@
   "no_activity": "Keine kürzlichen Aktivitäten"
   "title": "Kürzliche Aktivitäten"
 "collections":
+  "display":
+    "label": "Anzeige"
+    "hint": "Ihre eigenen Zeiten neben jedem Puzzle dieser Sammlung"
+    "mode":
+      "off": "Aus"
+      "times": "Meine Zeiten"
+      "times_predictions": "Meine Zeiten + Prognosen"
+    "not_solved_yet": "Noch nicht gelegt"
+    "solved_times": "%count%× gelegt"
+    "fastest": "schnellste %time%"
+    "latest": "zuletzt %time%"
   "meta":
     "title": "Puzzlebibliothek"
   "title": "Puzzlebibliothek"

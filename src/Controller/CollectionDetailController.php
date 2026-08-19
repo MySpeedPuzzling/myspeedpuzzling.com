@@ -10,7 +10,9 @@ use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\CollectionRepository;
+use SpeedPuzzling\Web\Results\CollectionItemOverview;
 use SpeedPuzzling\Web\Results\CollectionOverview;
+use SpeedPuzzling\Web\Services\ResolveCollectionDisplay;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -29,6 +31,7 @@ final class CollectionDetailController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
+        readonly private ResolveCollectionDisplay $resolveCollectionDisplay,
     ) {
     }
 
@@ -71,6 +74,13 @@ final class CollectionDetailController extends AbstractController
 
         $items = $this->getCollectionItems->byCollectionAndPlayer($collectionId, $player->playerId);
 
+        // The viewer's own times (+ predictions) next to each item - always the
+        // viewer's, also on somebody else's public collection
+        $display = $this->resolveCollectionDisplay->forViewer(
+            $loggedPlayerProfile,
+            array_map(static fn (CollectionItemOverview $item): string => $item->puzzleId, $items),
+        );
+
         $collectionOverview = new CollectionOverview(
             playerId: $collection->player->id->toString(),
             collectionId: $collection->id->toString(),
@@ -85,6 +95,7 @@ final class CollectionDetailController extends AbstractController
             'player' => $player,
             'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($player->playerId),
             'system_collection_id' => Collection::SYSTEM_ID,
+            ...$display->templateParameters(),
         ]);
     }
 }

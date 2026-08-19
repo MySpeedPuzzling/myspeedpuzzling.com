@@ -27,7 +27,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * shelf, their history, their filters); guests get an indexable landing page
  * with a live demo drawn from all approved puzzles. The seed is generated
  * server-side and never redirected into the URL, so the bare URL stays the
- * canonical one — it only travels in the "Pick another" / share links.
+ * canonical one — it only travels in the "Pick another" links.
  *
  * Insights layer: members get difficulty tiers and specific collections;
  * members who have not opted out of time predictions additionally get the

@@ -36,7 +36,7 @@ demo for guests, three entry points. No members-only bits yet.
 - `RetrieveLoggedUserProfile` → `PlayerProfile|null`. Criteria via
   `PuzzlePickerCriteria::fromRequest($request, isAuthenticated: $profile !== null)`; a missing/invalid
   `seed` is generated server-side (`bin2hex(random_bytes(4))`), the generated seed is **not**
-  redirected into the URL (the bare URL stays canonical), it is only used for the "Pick another"/share links.
+  redirected into the URL (the bare URL stays canonical), it is only used for the "Pick another" links.
 - Fetch `PICK_SIZE = 6` suggestions; render `puzzle_picker/index.html.twig` (signed-in) or
   `puzzle_picker/landing.html.twig` (guest). Both include `_card.html.twig`, `_filters_modal.html.twig`,
   `_results.html.twig` (card + hidden 5 + buttons + "1 of N") and `_empty_state.html.twig`.
@@ -148,7 +148,7 @@ The controller computes `insightsAllowed` / `predictionsAllowed` once and hands 
   personal vs. community budget; tier filter; criteria stripping for non-member / opted-out / guest;
   controller: member, non-member, guest, opted-out member markup.
 
-## PR 3 — Precision filters, collection targeting, remembered filters, presets, share
+## PR 3 — Precision filters, collection targeting, remembered filters, presets
 
 Everything free unless said otherwise; the criteria strip what a guest / non-member may not use.
 
@@ -206,8 +206,7 @@ Everything free unless said otherwise; the criteria strip what a guest / non-mem
   predictions only). `PuzzlePickerCriteria::activePreset()` compares the normalised query params
   (seed aside), skipping presets the player is not eligible for; the bare default highlights "Surprise me".
   Every chip is `rel="nofollow"`, `data-preset="<value>"`.
-- **Share**: `_share_button.html.twig` in `_results.html.twig` with `url('puzzle_picker',
-  criteria.toQueryParams(seed))` — the seeded URL of the current draw.
+- **Share**: shipped in PR 3, **removed again 2026-08-19** (c3bcbce3 follow-up) — a seeded URL only reproduces the draw for the same pool; with personal filters recipients got their own pick. The seed remains internal.
 - **Not shipped (roadmap)**: the free "longest not solved first" / "fewest solves first" pick orders from
   README §3, hh:mm inputs for the my-time threshold (a minutes input is enough for now).
 - Tests: `tests/Value/PuzzlePickerCriteriaTest.php` (range grammar, since, my time, community, collections
@@ -215,7 +214,7 @@ Everything free unless said otherwise; the criteria strip what a guest / non-mem
   fixtures — PLAYER_REGULAR's 11 solved puzzles, PLAYER_PRIVATE's team participation, PLAYER_WITH_STRIPE's
   collections incl. the system sentinel and borrowed / lent-out puzzles, community thresholds by editing
   `puzzle_statistics` inside the test transaction), `tests/Controller/PuzzlePickerControllerTest.php`
-  (chips + form state, presets, share URL, session memory / reset / seed-only forgetting, guest
+  (chips + form state, presets, session memory / reset / seed-only forgetting, guest
   session-free, member collections list, locked list) and `tests/Controller/CollectionDetailControllerTest.php`
   ("Pick from this collection" for member / non-member / other's collection / guest + the deep link).
 

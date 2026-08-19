@@ -428,7 +428,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Precision filters, collections, remembered filters, presets, share
+    // Precision filters, collections, remembered filters, presets
     // ---------------------------------------------------------------------------------------------
 
     public function testPrecisionFiltersRenderAsChipsAndFillTheForm(): void
@@ -523,28 +523,17 @@ final class PuzzlePickerControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('.puzzle-picker-preset.bg-primary'));
     }
 
-    public function testShareButtonCarriesTheSeededUrlOfTheCurrentPick(): void
+    public function testTheSeededUrlReproducesTheSameDraw(): void
     {
         $browser = self::createClient();
 
         $crawler = $browser->request('GET', '/en/what-to-solve-next?pieces[]=500&seed=abcd1234');
-
         $this->assertResponseIsSuccessful();
-        $shareInput = $crawler->filter('.puzzle-picker-share input[readonly]');
-        self::assertCount(1, $shareInput);
-        self::assertSame('http://localhost/en/what-to-solve-next?pieces%5B0%5D=500&seed=abcd1234', $shareInput->attr('value'));
+        self::assertCount(0, $crawler->filter('.puzzle-picker-share'), 'The picker has no share button');
 
-        // Without a seed in the URL the generated one is shared, so the link reproduces this very draw
-        $crawler = $browser->request('GET', '/en/what-to-solve-next');
-        $shared = (string) $crawler->filter('.puzzle-picker-share input[readonly]')->attr('value');
-        self::assertMatchesRegularExpression('#^http://localhost/en/what-to-solve-next\?seed=[a-z0-9]{8}$#', $shared);
-
-        $sharedCrawler = $browser->request('GET', substr($shared, strlen('http://localhost')));
-        self::assertSame(
-            $crawler->filter('.puzzle-picker-card a.h5')->first()->attr('href'),
-            $sharedCrawler->filter('.puzzle-picker-card a.h5')->first()->attr('href'),
-            'The shared link shows the same first card',
-        );
+        $first = $crawler->filter('.puzzle-picker-card a.h5')->first()->attr('href');
+        $again = $browser->request('GET', '/en/what-to-solve-next?pieces[]=500&seed=abcd1234');
+        self::assertSame($first, $again->filter('.puzzle-picker-card a.h5')->first()->attr('href'), 'Same seed, same first card');
     }
 
     public function testFiltersAreRememberedInTheSessionAndResetForgetsThem(): void

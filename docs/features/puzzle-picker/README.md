@@ -47,7 +47,7 @@ for non-members server-side.
 | My fastest / latest / first time `<` or `>` X | Predicted time range / "I have ~N minutes" using *my* prediction |
 | Pieces (chips + custom range), brand (multi) | Prediction gap filter: "I'm slower / faster than predicted by ≥ X min or %" (both directions) |
 | "I have ~N minutes" using the community solo average (`puzzle_statistics.average_time_solo`) | Pick order "largest gap first" (both directions) |
-| Random pick, 5 more, spin again, share link, presets built from free filters (incl. "Rating grind" — the MSP ladder itself is public) | Presets that need insights ("Beat my record") |
+| Random pick, 5 more, spin again, presets built from free filters (incl. "Rating grind" — the MSP ladder itself is public) | Presets that need insights ("Beat my record") |
 | Card: image, name, brand, pieces, community avg + solves, **my** solved count / fastest ⭐ / latest / first / last-solved-ago | Predictions in collection pages (toggle) |
 | Exclude puzzles I lent out (default), include borrowed (default) | |
 
@@ -147,7 +147,7 @@ rendered (Twig + Turbo Drive); the only JS is the filter sheet, chips and a tiny
 - **Remember filters**: last used query string is stored in the session (`puzzle_picker.filters`)
   and auto-applied on a bare visit, with the chips + "Reset" always visible so it never feels
   sticky-by-surprise. Session, not a player column: cheap, no migration, per-device is fine.
-- **Share**: `_share_button.html.twig` with the seeded URL ("look what the wheel gave me").
+- **No share button** (dropped 2026-08-19): with personal filters a shared seeded URL shows the recipient *their* pick, not yours; the seed stays an internal mechanic (reproducible refresh/back, duplicate-free "5 more").
 - **Entry points** (Jan, 2026-08-19): a very small button next to the H1 on the puzzle overview
   page (`/en/puzzle`, `puzzles.html.twig`), an item in the **My profile** dropdown
   (`base.html.twig`), a small button in the header of the **puzzle library** page

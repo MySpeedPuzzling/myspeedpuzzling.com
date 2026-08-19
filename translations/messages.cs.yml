@@ -3132,6 +3132,10 @@ wjpf:
         cancel: "Zrušit"
 
 puzzle_picker:
+    intro:
+        title: "Tak na co to dnes bude?"
+        text: "Vyberte si předvolbu nahoře, nastavte vlastní filtry – nebo nechte rozhodnout kolo štěstí."
+        pick_with_filters: "Vybrat puzzle podle těchto filtrů"
     meta:
         title: "Co skládat dál? – Výběr puzzlí"
         description: "Nevíte, do jakých puzzlí se pustit příště? Řekněte, na co máte náladu – počet dílků, značku, něco nového nebo už poskládaného – a výběr vám vytáhne jedno puzzle z vaší vlastní poličky, i s vašimi časy a průměrem komunity."

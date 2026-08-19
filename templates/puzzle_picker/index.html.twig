@@ -21,7 +21,11 @@
 
         {{ include('puzzle_picker/_filter_bar.html.twig') }}
 
-        {{ include('puzzle_picker/_results.html.twig') }}
+        {% if intro %}
+            {{ include('puzzle_picker/_intro.html.twig') }}
+        {% else %}
+            {{ include('puzzle_picker/_results.html.twig') }}
+        {% endif %}
     </div>
 
     {{ include('puzzle_picker/_filters_modal.html.twig') }}

@@ -178,7 +178,7 @@ final class PuzzlePickerControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
 
-        $crawler = $browser->request('GET', '/en/what-to-solve-next');
+        $crawler = $browser->request('GET', '/en/what-to-solve-next?seed=abcd1234');
 
         $this->assertResponseIsSuccessful();
         $content = (string) $browser->getResponse()->getContent();
@@ -318,8 +318,8 @@ final class PuzzlePickerControllerTest extends WebTestCase
         // The preset chip is highlighted when its filters are active - and only that one
         $crawler = $browser->request('GET', '/en/what-to-solve-next?solved=before&gap=slower&order=gap_slower');
         $this->assertResponseIsSuccessful();
-        self::assertStringContainsString('bg-primary', (string) $crawler->filter('a.puzzle-picker-preset[data-preset="beat_my_record"]')->attr('class'));
-        self::assertCount(1, $crawler->filter('a.puzzle-picker-preset.bg-primary'));
+        self::assertStringContainsString('btn-dark', (string) $crawler->filter('a.puzzle-picker-preset[data-preset="beat_my_record"]')->attr('class'));
+        self::assertCount(1, $crawler->filter('a.puzzle-picker-preset.btn-dark'));
     }
 
     public function testNonMemberGetsOneLockedPredictionRowPerCardAndALockedInsightsGroup(): void
@@ -500,8 +500,8 @@ final class PuzzlePickerControllerTest extends WebTestCase
         });
 
         // The bare default *is* "Surprise me"
-        self::assertStringContainsString('bg-primary', (string) $crawler->filter('a.puzzle-picker-preset[data-preset="surprise_me"]')->attr('class'));
-        self::assertCount(1, $crawler->filter('.puzzle-picker-preset.bg-primary'));
+        self::assertStringContainsString('btn-dark', (string) $crawler->filter('a.puzzle-picker-preset[data-preset="surprise_me"]')->attr('class'));
+        self::assertCount(1, $crawler->filter('.puzzle-picker-preset.btn-dark'));
 
         self::assertStringContainsString('predicted_max=60', (string) $crawler->filter('a.puzzle-picker-preset[data-preset="quick_one"]')->attr('href'));
         self::assertStringContainsString('since=6', (string) $crawler->filter('a.puzzle-picker-preset[data-preset="dust_off"]')->attr('href'));
@@ -511,16 +511,16 @@ final class PuzzlePickerControllerTest extends WebTestCase
         // Following a preset highlights it (and only it)
         $crawler = $browser->click($crawler->filter('a.puzzle-picker-preset[data-preset="dust_off"]')->link());
         $this->assertResponseIsSuccessful();
-        self::assertStringContainsString('bg-primary', (string) $crawler->filter('.puzzle-picker-preset[data-preset="dust_off"]')->attr('class'));
-        self::assertCount(1, $crawler->filter('.puzzle-picker-preset.bg-primary'));
+        self::assertStringContainsString('btn-dark', (string) $crawler->filter('.puzzle-picker-preset[data-preset="dust_off"]')->attr('class'));
+        self::assertCount(1, $crawler->filter('.puzzle-picker-preset.btn-dark'));
         self::assertContains('Solved, but not in the last 6 months', self::chipLabels($crawler));
 
         $crawler = $browser->request('GET', '/en/what-to-solve-next?solved=never&pieces[]=500&community=rated&seed=abcd1234');
-        self::assertStringContainsString('bg-primary', (string) $crawler->filter('.puzzle-picker-preset[data-preset="rating_grind"]')->attr('class'));
+        self::assertStringContainsString('btn-dark', (string) $crawler->filter('.puzzle-picker-preset[data-preset="rating_grind"]')->attr('class'));
 
         // A tweak on top of a preset switches the highlight off
         $crawler = $browser->request('GET', '/en/what-to-solve-next?solved=never&pieces[]=500&pieces[]=1000&community=rated');
-        self::assertCount(0, $crawler->filter('.puzzle-picker-preset.bg-primary'));
+        self::assertCount(0, $crawler->filter('.puzzle-picker-preset.btn-dark'));
     }
 
     public function testTheSeededUrlReproducesTheSameDraw(): void
@@ -556,14 +556,19 @@ final class PuzzlePickerControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.puzzle-picker-remembered'));
         self::assertStringContainsString('Your last filters', $crawler->filter('.puzzle-picker-remembered')->text());
         self::assertCount(1, $crawler->filter('.puzzle-picker-filter-bar a.puzzle-picker-reset[href="/en/what-to-solve-next?reset=1"]'));
-        self::assertStringContainsString('of 3 matching puzzles', (string) $browser->getResponse()->getContent());
         self::assertCount(1, $crawler->filter('#puzzlePickerFilters input[name="pieces[]"][value="500"][checked]'));
         self::assertCount(1, $crawler->filter('#puzzlePickerFilters input[name="solved"][value="before"][checked]'));
         self::assertStringContainsString('<meta name="robots" content="index, follow">', (string) $browser->getResponse()->getContent(), 'Still the bare canonical URL');
 
-        $spin = $crawler->filter('a:contains("Pick another")');
-        self::assertStringContainsString('pieces', (string) $spin->attr('href'), 'Spinning keeps the remembered filters');
+        // The bare visit is the intro (no draw yet); its primary CTA draws with the remembered filters
+        self::assertCount(1, $crawler->filter('.puzzle-picker-intro'));
+        self::assertCount(0, $crawler->filter('.puzzle-picker-card'));
+        $spin = $crawler->filter('a.puzzle-picker-intro-pick');
+        self::assertCount(1, $spin);
+        self::assertStringContainsString('pieces', (string) $spin->attr('href'), 'Drawing from the intro keeps the remembered filters');
+        self::assertStringContainsString('seed=', (string) $spin->attr('href'));
         self::assertStringNotContainsString('abcd1234', (string) $spin->attr('href'));
+        self::assertCount(1, $crawler->filter('a.puzzle-picker-intro-surprise[href^="/en/what-to-solve-next?source=mine&seed="]'));
 
         // Changing a filter replaces the memory
         $crawler = $browser->request('GET', '/en/what-to-solve-next?pieces[]=1000');
@@ -588,6 +593,32 @@ final class PuzzlePickerControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/what-to-solve-next');
         self::assertEqualsCanonicalizing(['My collection'], self::chipLabels($crawler));
         self::assertCount(0, $crawler->filter('.puzzle-picker-remembered'));
+    }
+
+    public function testSignedInBareVisitIsTheIntroWithASurpriseMeCta(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/what-to-solve-next');
+        $this->assertResponseIsSuccessful();
+
+        // No puzzle yet: presets, the filter button and one primary "Surprise me" CTA
+        self::assertCount(1, $crawler->filter('.puzzle-picker-intro'));
+        self::assertCount(0, $crawler->filter('.puzzle-picker-card'));
+        self::assertCount(0, $crawler->filter('.puzzle-picker-intro-pick'));
+        self::assertCount(1, $crawler->filter('.puzzle-picker-presets'));
+        self::assertCount(1, $crawler->filter('button[data-bs-target="#puzzlePickerFilters"]'));
+        $cta = $crawler->filter('a.puzzle-picker-intro-surprise');
+        self::assertCount(1, $cta);
+        self::assertMatchesRegularExpression('#^/en/what-to-solve-next\\?source=mine&seed=[a-z0-9]{8}$#', (string) $cta->attr('href'));
+
+        // Following it draws from the shelf (the "Surprise me" preset)
+        $crawler = $browser->request('GET', (string) $cta->attr('href'));
+        $this->assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('.puzzle-picker-intro'));
+        self::assertGreaterThan(0, $crawler->filter('.puzzle-picker-card')->count());
+        self::assertCount(1, $crawler->filter('.puzzle-picker-presets .puzzle-picker-preset.btn-dark[data-preset="surprise_me"]'));
     }
 
     public function testGuestsNeverGetASessionFromThePicker(): void

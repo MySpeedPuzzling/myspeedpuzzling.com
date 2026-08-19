@@ -44,6 +44,12 @@ export default class extends Controller {
                 dropdown_input: {},
                 clear_button: { title: '' },
             },
+            // Options may carry a `logo` (thumbnail URL) - brands do, like in the add form.
+            // Pre-rendered <option data-data='{"logo": ...}'> elements are picked up too.
+            render: {
+                option: (data, escape) => this.renderWithLogo(data, escape),
+                item: (data, escape) => this.renderWithLogo(data, escape),
+            },
             ...(remoteOptions ? {
                 preload: 'focus',
                 shouldLoad: () => !this.optionsLoaded,
@@ -80,6 +86,14 @@ export default class extends Controller {
         } catch (e) {
             callback();
         }
+    }
+
+    renderWithLogo(data, escape) {
+        const logo = data.logo
+            ? `<img class="rounded-1 me-2 flex-shrink-0" style="width: 24px; height: 24px; object-fit: contain;" alt="" loading="lazy" src="${escape(data.logo)}">`
+            : '';
+
+        return `<div class="d-flex align-items-center">${logo}<span>${escape(data.text)}</span></div>`;
     }
 
     disconnect() {

@@ -3421,6 +3421,10 @@ wjpf:
         cancel: "Cancel"
 
 puzzle_picker:
+    intro:
+        title: "What's it going to be today?"
+        text: "Pick a preset above, set your own filters – or let the wheel decide."
+        pick_with_filters: "Pick a puzzle with these filters"
     meta:
         title: "What should I solve next? – Puzzle picker"
         description: "Can't decide which jigsaw puzzle to do next? Tell the picker your mood – piece count, brand, something new or already solved – and it draws one puzzle from your own shelf, together with your times and the community average."

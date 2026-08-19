@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Results\ManufacturerOverview;
 use SpeedPuzzling\Web\Results\PuzzleTag;
+use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 
@@ -23,26 +24,38 @@ final readonly class PuzzleFilterOptions
         private GetManufacturers $getManufacturers,
         private GetTags $getTags,
         private CacheInterface $cache,
+        private ImageThumbnailTwigExtension $imageThumbnail,
     ) {
     }
 
     /**
+     * Brand entries carry a `logo` thumbnail URL when the brand has one (a few dozen
+     * of them) - tomselect-sync renders it next to the name, like the add form.
+     *
      * @return array{
-     *     manufacturers: list<array{value: string, text: string}>,
+     *     manufacturers: list<array{value: string, text: string, logo?: string}>,
      *     tags: list<array{value: string, text: string}>,
      * }
      */
     public function all(): array
     {
-        return $this->cache->get('puzzle_filter_options_v1', function (ItemInterface $item): array {
+        return $this->cache->get('puzzle_filter_options_v2', function (ItemInterface $item): array {
             $item->expiresAfter(3600);
 
             return [
                 'manufacturers' => array_values(array_map(
-                    static fn (ManufacturerOverview $manufacturer): array => [
-                        'value' => $manufacturer->manufacturerId,
-                        'text' => "{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount})",
-                    ],
+                    function (ManufacturerOverview $manufacturer): array {
+                        $option = [
+                            'value' => $manufacturer->manufacturerId,
+                            'text' => "{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount})",
+                        ];
+
+                        if ($manufacturer->manufacturerLogo !== null) {
+                            $option['logo'] = $this->imageThumbnail->thumbnailUrl($manufacturer->manufacturerLogo, 'puzzle_small');
+                        }
+
+                        return $option;
+                    },
                     $this->getManufacturers->onlyApprovedOrAddedByPlayer(),
                 )),
                 'tags' => array_values(array_map(
@@ -67,7 +80,7 @@ final readonly class PuzzleFilterOptions
     }
 
     /**
-     * @param list<array{value: string, text: string}> $options
+     * @param list<array{value: string, text: string, logo?: string}> $options
      */
     private function findLabel(array $options, string $value): null|string
     {

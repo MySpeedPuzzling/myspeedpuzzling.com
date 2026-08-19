@@ -67,28 +67,41 @@ SQL;
      */
     public function namesByIds(array $manufacturerIds): array
     {
+        return array_map(static fn (array $row): string => $row['name'], $this->namesAndLogosByIds($manufacturerIds));
+    }
+
+    /**
+     * Names + raw logo paths for a handful of manufacturer ids (pre-selected
+     * Tom Select options render the logo like the option list does).
+     *
+     * @param list<string> $manufacturerIds
+     *
+     * @return array<string, array{name: string, logo: null|string}> manufacturerId => name/logo
+     */
+    public function namesAndLogosByIds(array $manufacturerIds): array
+    {
         if ($manufacturerIds === []) {
             return [];
         }
 
         $query = <<<SQL
-SELECT manufacturer.id AS manufacturer_id, manufacturer.name AS manufacturer_name
+SELECT manufacturer.id AS manufacturer_id, manufacturer.name AS manufacturer_name, manufacturer.logo AS manufacturer_logo
 FROM manufacturer
 WHERE manufacturer.id IN (:manufacturerIds)
 SQL;
 
-        /** @var array<array{manufacturer_id: string, manufacturer_name: string}> $rows */
+        /** @var array<array{manufacturer_id: string, manufacturer_name: string, manufacturer_logo: null|string}> $rows */
         $rows = $this->database
             ->executeQuery($query, ['manufacturerIds' => $manufacturerIds], ['manufacturerIds' => ArrayParameterType::STRING])
             ->fetchAllAssociative();
 
-        $names = [];
+        $result = [];
 
         foreach ($rows as $row) {
-            $names[$row['manufacturer_id']] = $row['manufacturer_name'];
+            $result[$row['manufacturer_id']] = ['name' => $row['manufacturer_name'], 'logo' => $row['manufacturer_logo']];
         }
 
-        return $names;
+        return $result;
     }
 
     /**

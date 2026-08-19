@@ -3,7 +3,7 @@
    sign-in note; the "only these collections" list and the "Insights (members)" group are locked
    for non-members and the prediction controls are disabled for members who opted out of
    predictions. The server drops every non-eligible value anyway.
-   Expects: criteria, brand_names, collections (member's collections, system first), reset_url #}
+   Expects: criteria, brand_names, brand_logos (id => raw logo path), collections (member's collections, system first), reset_url #}
 {% set is_guest = not criteria.isAuthenticated %}
 {% set is_member = criteria.insightsAllowed %}
 {% set predictions_on = criteria.predictionsAllowed %}
@@ -26,7 +26,10 @@
 <div class="modal fade" id="puzzlePickerFilters" tabindex="-1" aria-labelledby="puzzlePickerFiltersLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
-            <form method="get" action="{{ path('puzzle_picker') }}" data-turbo-frame="_top">
+            {# The form sits between .modal-content and header/body/footer, so it must take part in the
+                   flex column itself - otherwise .modal-dialog-scrollable cannot constrain the body and
+                   a long filter list is simply cut off instead of scrolling. #}
+            <form method="get" action="{{ path('puzzle_picker') }}" data-turbo-frame="_top" class="d-flex flex-column overflow-hidden">
                 <div class="modal-header">
                     <h5 class="modal-title" id="puzzlePickerFiltersLabel"><i class="bi bi-sliders me-1"></i>{{ 'puzzle_picker.filters.title'|trans }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
@@ -185,7 +188,7 @@
                             data-tomselect-sync-options-key-value="manufacturers"
                         >
                             {% for brand_id in criteria.brandIds %}
-                                <option value="{{ brand_id }}" selected>{{ brand_names[brand_id] ?? brand_id }}</option>
+                                <option value="{{ brand_id }}" selected{% if (brand_logos|default({}))[brand_id] is defined %} data-data="{{ {logo: brand_logos[brand_id]|thumbnail('puzzle_small')}|json_encode|e('html_attr') }}"{% endif %}>{{ brand_names[brand_id] ?? brand_id }}</option>
                             {% endfor %}
                         </select>
                     </fieldset>

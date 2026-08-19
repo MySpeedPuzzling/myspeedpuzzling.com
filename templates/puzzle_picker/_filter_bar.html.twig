@@ -31,6 +31,8 @@
         <span class="fs-sm text-muted puzzle-picker-remembered" title="{{ 'puzzle_picker.filters.remembered_title'|trans }}"><i class="bi bi-clock-history me-1"></i>{{ 'puzzle_picker.filters.remembered'|trans }}</span>
     {% endif %}
     {% if not criteria.isDefault %}
-        <a class="fs-sm text-muted puzzle-picker-reset" rel="nofollow" href="{{ reset_url|default(path('puzzle_picker')) }}">{{ 'puzzle_picker.filters.reset'|trans }}</a>
+        <a class="btn btn-outline-secondary btn-sm rounded-pill puzzle-picker-reset" rel="nofollow" href="{{ reset_url|default(path('puzzle_picker')) }}">
+            <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'puzzle_picker.filters.reset'|trans }}
+        </a>
     {% endif %}
 </div>

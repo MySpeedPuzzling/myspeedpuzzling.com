@@ -3,13 +3,15 @@
    record" needs predictions: members get the link, members who opted out see it muted, non-members
    get the lock (-> members modal). The preset whose filters equal the current criteria is
    highlighted. Expects: criteria, presets (list of PuzzlePickerPreset), active_preset #}
+{# Presets are styled as outline buttons (dark border, filled when active) so they read as
+   "quick starts", distinct from the grey removable filter chips in the bar below. #}
 <div class="d-flex flex-wrap align-items-center gap-2 mb-2 puzzle-picker-presets">
-    <span class="fs-sm text-muted">{{ 'puzzle_picker.presets.label'|trans }}</span>
+    <span class="fs-sm text-muted"><i class="bi bi-lightning-charge me-1"></i>{{ 'puzzle_picker.presets.label'|trans }}</span>
     {% for preset in presets %}
         {% set is_active = active_preset is not null and active_preset.value == preset.value %}
         {% set label = ('puzzle_picker.presets.' ~ preset.value)|trans %}
         {% if not preset.requiresPredictions or criteria.predictionsAllowed %}
-            <a class="badge rounded-pill {{ is_active ? 'bg-primary text-white' : 'bg-secondary text-dark' }} fw-normal text-decoration-none py-2 px-3 puzzle-picker-preset"
+            <a class="btn btn-sm rounded-pill {{ is_active ? 'btn-dark' : 'btn-outline-dark' }} puzzle-picker-preset"
                rel="nofollow"
                data-preset="{{ preset.value }}"
                {% if is_active %}aria-current="true"{% endif %}
@@ -17,13 +19,14 @@
                 <i class="bi {{ preset.icon }} me-1"></i>{{ label }}
             </a>
         {% elseif criteria.insightsAllowed %}
-            <span class="badge rounded-pill bg-secondary text-muted fw-normal py-2 px-3 puzzle-picker-preset" data-preset="{{ preset.value }}" title="{{ 'puzzle_intelligence.prediction.time_predictions_opted_out'|trans }}">
+            <span class="btn btn-sm rounded-pill btn-outline-secondary disabled puzzle-picker-preset" data-preset="{{ preset.value }}" title="{{ 'puzzle_intelligence.prediction.time_predictions_opted_out'|trans }}">
                 <i class="bi bi-eye-slash me-1"></i>{{ label }}
             </span>
         {% else %}
-            <button type="button" class="badge rounded-pill bg-secondary text-muted fw-normal py-2 px-3 border-0 puzzle-picker-preset" data-preset="{{ preset.value }}" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+            <button type="button" class="btn btn-sm rounded-pill btn-outline-secondary puzzle-picker-preset" data-preset="{{ preset.value }}" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
                 <i class="ci-locked me-1"></i>{{ label }}
             </button>
         {% endif %}
     {% endfor %}
 </div>
+<hr class="my-2 opacity-25">

@@ -3136,6 +3136,10 @@ wjpf:
         cancel: "Annuler"
 
 puzzle_picker:
+    intro:
+        title: "Ce sera quoi aujourd'hui ?"
+        text: "Choisissez un raccourci ci-dessus, réglez vos propres filtres – ou laissez la roue décider."
+        pick_with_filters: "Choisir un puzzle avec ces filtres"
     meta:
         title: "Quel puzzle faire ensuite ? – Sélecteur de puzzles"
         description: "Vous hésitez sur le prochain puzzle à faire ? Dites au sélecteur ce dont vous avez envie – nombre de pièces, marque, quelque chose de nouveau ou déjà fait – et il tire un puzzle de votre propre étagère, avec vos temps et la moyenne de la communauté."

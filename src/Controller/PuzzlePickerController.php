@@ -107,7 +107,13 @@ final class PuzzlePickerController extends AbstractController
 
         $seed = $criteria->seed ?? self::generateSeed();
 
-        $pick = $this->getPuzzlePickerSuggestions->pick(
+        // A signed-in player's bare visit is the intro: no draw yet, just the presets, the
+        // filters (remembered ones included) and a "Surprise me" CTA - the first puzzle should
+        // be something the player asked for, not something that appeared. Any query string
+        // (preset, filters, seed) is a draw. Guests keep the landing demo.
+        $intro = $profile !== null && $request->query->count() === 0;
+
+        $pick = $intro ? null : $this->getPuzzlePickerSuggestions->pick(
             $criteria->withSeed($seed),
             $profile?->playerId,
             PuzzlePickerCriteria::PICK_SIZE,
@@ -118,7 +124,7 @@ final class PuzzlePickerController extends AbstractController
         // puzzle detail page shows, from the same calculator
         $predictions = [];
 
-        if ($profile !== null && $predictionsAllowed && $pick->isEmpty() === false) {
+        if ($pick !== null && $profile !== null && $predictionsAllowed && $pick->isEmpty() === false) {
             $predictions = $this->getPlayerPredictions->forPuzzles(
                 $profile->playerId,
                 array_map(static fn (PuzzlePickerSuggestion $suggestion): string => $suggestion->puzzleId, $pick->suggestions),
@@ -136,9 +142,11 @@ final class PuzzlePickerController extends AbstractController
             'criteria' => $criteria,
             'seed' => $seed,
             'next_seed' => self::generateSeed(),
+            'intro' => $intro,
             'pick' => $pick,
             'predictions' => $predictions,
-            'brand_names' => $this->getManufacturers->namesByIds($criteria->brandIds),
+            'brand_names' => array_map(static fn (array $brand): string => $brand['name'], $brands = $this->getManufacturers->namesAndLogosByIds($criteria->brandIds)),
+            'brand_logos' => array_filter(array_map(static fn (array $brand): null|string => $brand['logo'], $brands)),
             'collections' => $collections,
             'collection_names' => $collectionNames,
             'presets' => PuzzlePickerPreset::cases(),

@@ -3134,6 +3134,10 @@ wjpf:
         cancel: "Abbrechen"
 
 puzzle_picker:
+    intro:
+        title: "Worauf haben Sie heute Lust?"
+        text: "Wählen Sie oben eine Vorlage, stellen Sie eigene Filter ein – oder lassen Sie das Glücksrad entscheiden."
+        pick_with_filters: "Puzzle mit diesen Filtern wählen"
     meta:
         title: "Welches Puzzle als Nächstes? – Puzzle-Auswahl"
         description: "Sie können sich nicht entscheiden, welches Puzzle als Nächstes dran ist? Sagen Sie der Auswahl, wonach Ihnen ist – Teilezahl, Marke, etwas Neues oder schon einmal gelegt – und sie zieht ein Puzzle aus Ihrem eigenen Regal, samt Ihren Zeiten und dem Community-Durchschnitt."

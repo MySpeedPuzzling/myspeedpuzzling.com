@@ -208,7 +208,7 @@ Waves (dependencies): **wave 1** PR 0 ∥ PR 1 (independent) → **wave 2** PR 2
 ## 12. Progress
 
 - [x] #186 `GET /me/puzzles/{id}/predicted-time` (2026-08-18)
-- [ ] PR 0 `GET /me` flags
+- [x] PR 0 `GET /me` flags
 - [ ] PR 1 `GET /puzzles` + foundation (§1)
 - [ ] PR 2 `GET /puzzles/{id}`
 - [ ] PR 3 insights & solves on lists

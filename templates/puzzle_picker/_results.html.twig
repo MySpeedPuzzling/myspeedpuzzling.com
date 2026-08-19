@@ -1,6 +1,7 @@
 {# The draw: one visible card, the rest hidden until "Show N more" (over-fetched in the same
-   query - zero extra requests), the "1 of N matching" counter and the spin button.
-   Expects: pick, criteria, next_seed #}
+   query - zero extra requests), the "1 of N matching" counter, the spin button and the share
+   button (the seeded URL of this very draw - "look what the wheel gave me").
+   Expects: pick, criteria, seed, next_seed #}
 {% if pick.isEmpty %}
     {{ include('puzzle_picker/_empty_state.html.twig') }}
 {% else %}
@@ -20,7 +21,7 @@
                 })|raw }}
             </p>
 
-            <div class="d-flex flex-wrap justify-content-center gap-2">
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
                 {% if pick.totalMatching > 1 %}
                     <a class="btn btn-primary" rel="nofollow" href="{{ path('puzzle_picker', criteria.toQueryParams(next_seed)) }}">
                         <i class="bi bi-shuffle me-1"></i>{{ 'puzzle_picker.results.pick_another'|trans }}
@@ -31,6 +32,9 @@
                         <i class="bi bi-chevron-down me-1"></i>{{ 'puzzle_picker.results.show_more'|trans({'%count%': hidden_count}) }}
                     </button>
                 {% endif %}
+                <div class="puzzle-picker-share">
+                    {{ include('_share_button.html.twig', {share_url: url('puzzle_picker', criteria.toQueryParams(seed))}) }}
+                </div>
             </div>
         </div>
     </div>

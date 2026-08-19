@@ -3131,11 +3131,14 @@ puzzle_picker:
     title: "Quel puzzle faire ensuite ?"
     subtitle: "Dites-moi votre humeur, je choisis sur votre étagère."
     menu_label: "Et ensuite ?"
+    pick_from_collection: "Choisir dans cette collection"
     filters:
         button: "Filtres"
         title: "Filtres"
         apply: "Choisir un puzzle"
         reset: "Réinitialiser les filtres"
+        remembered: "Vos derniers filtres"
+        remembered_title: "Ce sont les filtres de la dernière fois, appliqués automatiquement. Réinitialisez pour repartir de zéro."
         guest_note: "Connectez-vous pour choisir parmi votre propre étagère et votre historique."
         source:
             label: "Où choisir"
@@ -3143,11 +3146,36 @@ puzzle_picker:
             not_mine: "Pas dans ma collection"
             any: "N'importe quel puzzle"
             include_lent_out: "Inclure les puzzles que j'ai prêtés"
+            collections_label: "Seulement ces collections"
+            collections_note: "Rien de coché = toute votre étagère."
+            collections_locked: "Choisir dans des collections précises – pour les membres."
         solved:
             label: "Mon historique"
             any: "Peu importe"
             never: "Jamais fait"
             before: "Déjà fait"
+            between: "Fait entre"
+            and: "et"
+            times: "fois"
+        since:
+            label: "Pas fait depuis plus de"
+            unit: "Unité"
+            units:
+                d: "jours"
+                w: "semaines"
+                m: "mois"
+            require_solved: "Seulement les puzzles déjà faits"
+            note: "Les puzzles jamais faits sont inclus, sauf si vous cochez la case."
+        my_time:
+            label: "Mon temps"
+            off: "– peu importe –"
+            fastest: "le meilleur"
+            latest: "le dernier"
+            first: "le premier"
+            op_label: "Comparaison"
+            lt: "est inférieur à"
+            gt: "est supérieur à"
+            note: "Temps en solo uniquement – un puzzle sans temps en solo ne correspond jamais."
         pieces:
             label: "Pièces"
             custom: "Plage personnalisée :"
@@ -3156,6 +3184,12 @@ puzzle_picker:
         brand:
             label: "Marque"
             placeholder: "Toutes les marques"
+        community:
+            label: "Résultats de la communauté"
+            any: "Peu importe"
+            few: "Peu de résultats (jusqu'à %count%) – soyez pionnier"
+            rated: "Coté (%count%+ réalisations)"
+            popular: "Populaire (%count%+ réalisations)"
         budget:
             label: "Temps disponible"
             i_have: "J'ai environ"
@@ -3184,6 +3218,25 @@ puzzle_picker:
         solved:
             never: "Jamais fait"
             before: "Déjà fait"
+            exact: "Fait %count%×"
+            between: "Fait %min%–%max%×"
+            at_least: "Fait %min%+×"
+            at_most: "Fait jusqu'à %max%×"
+        since:
+            d: "Pas fait depuis %count% jour|Pas fait depuis %count% jours"
+            w: "Pas fait depuis %count% semaine|Pas fait depuis %count% semaines"
+            m: "Pas fait depuis %count% mois|Pas fait depuis %count% mois"
+        since_solved:
+            d: "Déjà fait, mais pas depuis %count% jour|Déjà fait, mais pas depuis %count% jours"
+            w: "Déjà fait, mais pas depuis %count% semaine|Déjà fait, mais pas depuis %count% semaines"
+            m: "Déjà fait, mais pas depuis %count% mois|Déjà fait, mais pas depuis %count% mois"
+        my_time:
+            fastest_lt: "Meilleur temps sous %minutes% min"
+            fastest_gt: "Meilleur temps au-dessus de %minutes% min"
+            latest_lt: "Dernier temps sous %minutes% min"
+            latest_gt: "Dernier temps au-dessus de %minutes% min"
+            first_lt: "Premier temps sous %minutes% min"
+            first_gt: "Premier temps au-dessus de %minutes% min"
         pieces:
             exact: "%count% pièces"
             between: "%min%–%max% pièces"
@@ -3191,6 +3244,11 @@ puzzle_picker:
             at_most: "jusqu'à %max% pièces"
         brand: "Marque"
         include_lent_out: "Prêtés inclus"
+        collection: "Collection"
+        community:
+            few: "Peu de résultats (≤ %count%)"
+            rated: "Coté (%count%+ réalisations)"
+            popular: "Populaire (%count%+ réalisations)"
         remove: "Retirer ce filtre"
         predicted_max: "Jusqu'à %minutes% min"
         gap:
@@ -3204,6 +3262,11 @@ puzzle_picker:
     presets:
         label: "Raccourcis :"
         beat_my_record: "Battre mon record"
+        surprise_me: "Surprenez-moi"
+        something_new: "Du nouveau"
+        quick_one: "Un rapide"
+        dust_off: "Dépoussiérer l'étagère"
+        rating_grind: "Gagner du rating"
     results:
         matching: "%shown% sur %total% puzzles correspondants"
         pick_another: "En choisir un autre"

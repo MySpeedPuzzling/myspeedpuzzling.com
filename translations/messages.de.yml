@@ -3129,11 +3129,14 @@ puzzle_picker:
     title: "Welches Puzzle als Nächstes?"
     subtitle: "Sagen Sie mir, wonach Ihnen ist – ich wähle aus Ihrem Regal."
     menu_label: "Was als Nächstes?"
+    pick_from_collection: "Aus dieser Sammlung wählen"
     filters:
         button: "Filter"
         title: "Filter"
         apply: "Puzzle auswählen"
         reset: "Filter zurücksetzen"
+        remembered: "Ihre letzten Filter"
+        remembered_title: "Das sind die Filter vom letzten Mal – automatisch angewendet. Zurücksetzen, um neu zu beginnen."
         guest_note: "Melden Sie sich an, um aus Ihrem eigenen Regal und Ihrer Historie zu wählen."
         source:
             label: "Woraus wählen"
@@ -3141,11 +3144,36 @@ puzzle_picker:
             not_mine: "Nicht in meiner Sammlung"
             any: "Beliebiges Puzzle"
             include_lent_out: "Auch Puzzles, die ich verliehen habe"
+            collections_label: "Nur diese Sammlungen"
+            collections_note: "Nichts angehakt = das ganze Regal."
+            collections_locked: "Aus bestimmten Sammlungen wählen – für Mitglieder."
         solved:
             label: "Meine Historie"
             any: "Egal"
             never: "Noch nie gelegt"
             before: "Schon gelegt"
+            between: "Gelegt zwischen"
+            and: "und"
+            times: "Mal"
+        since:
+            label: "Nicht gelegt seit mehr als"
+            unit: "Einheit"
+            units:
+                d: "Tagen"
+                w: "Wochen"
+                m: "Monaten"
+            require_solved: "Nur Puzzles, die ich schon gelegt habe"
+            note: "Noch nie gelegte Puzzles sind enthalten, sofern Sie das Kästchen nicht anhaken."
+        my_time:
+            label: "Meine Zeit"
+            off: "– egal –"
+            fastest: "schnellste"
+            latest: "letzte"
+            first: "erste"
+            op_label: "Vergleich"
+            lt: "ist unter"
+            gt: "ist über"
+            note: "Nur Solo-Zeiten – Puzzles ohne Solo-Zeit passen nie."
         pieces:
             label: "Teile"
             custom: "Eigener Bereich:"
@@ -3154,6 +3182,12 @@ puzzle_picker:
         brand:
             label: "Marke"
             placeholder: "Beliebige Marke"
+        community:
+            label: "Community-Ergebnisse"
+            any: "Egal"
+            few: "Wenige Ergebnisse (bis %count%) – Pionier sein"
+            rated: "Bewertet (%count%+ Legungen)"
+            popular: "Beliebt (%count%+ Legungen)"
         budget:
             label: "Zeitbudget"
             i_have: "Ich habe etwa"
@@ -3182,6 +3216,25 @@ puzzle_picker:
         solved:
             never: "Noch nie gelegt"
             before: "Schon gelegt"
+            exact: "%count%× gelegt"
+            between: "%min%–%max%× gelegt"
+            at_least: "%min%+× gelegt"
+            at_most: "Bis %max%× gelegt"
+        since:
+            d: "Nicht gelegt im letzten Tag|Nicht gelegt in den letzten %count% Tagen"
+            w: "Nicht gelegt in der letzten Woche|Nicht gelegt in den letzten %count% Wochen"
+            m: "Nicht gelegt im letzten Monat|Nicht gelegt in den letzten %count% Monaten"
+        since_solved:
+            d: "Gelegt, aber nicht im letzten Tag|Gelegt, aber nicht in den letzten %count% Tagen"
+            w: "Gelegt, aber nicht in der letzten Woche|Gelegt, aber nicht in den letzten %count% Wochen"
+            m: "Gelegt, aber nicht im letzten Monat|Gelegt, aber nicht in den letzten %count% Monaten"
+        my_time:
+            fastest_lt: "Schnellste unter %minutes% Min."
+            fastest_gt: "Schnellste über %minutes% Min."
+            latest_lt: "Letzte unter %minutes% Min."
+            latest_gt: "Letzte über %minutes% Min."
+            first_lt: "Erste unter %minutes% Min."
+            first_gt: "Erste über %minutes% Min."
         pieces:
             exact: "%count% Teile"
             between: "%min%–%max% Teile"
@@ -3189,6 +3242,11 @@ puzzle_picker:
             at_most: "bis %max% Teile"
         brand: "Marke"
         include_lent_out: "Inkl. verliehen"
+        collection: "Sammlung"
+        community:
+            few: "Wenige Ergebnisse (≤ %count%)"
+            rated: "Bewertet (%count%+ Legungen)"
+            popular: "Beliebt (%count%+ Legungen)"
         remove: "Diesen Filter entfernen"
         predicted_max: "Bis %minutes% Min."
         gap:
@@ -3202,6 +3260,11 @@ puzzle_picker:
     presets:
         label: "Vorlagen:"
         beat_my_record: "Meinen Rekord schlagen"
+        surprise_me: "Überrasch mich"
+        something_new: "Etwas Neues"
+        quick_one: "Was Schnelles"
+        dust_off: "Regal entstauben"
+        rating_grind: "Rating sammeln"
     results:
         matching: "%shown% von %total% passenden Puzzles"
         pick_another: "Ein anderes"

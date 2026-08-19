@@ -12,11 +12,11 @@ final readonly class PuzzlePickerActiveFilter
 {
     /**
      * @param string $key Unique within one criteria, e.g. "source", "pieces:500", "brand:<uuid>"
-     * @param string $type One of "source", "solved", "pieces", "brand", "lent", "predicted_max", "difficulty", "gap", "order"
-     * @param string $translationKey Chip label; brand chips render the manufacturer name instead
+     * @param string $type One of "collection", "source", "solved", "since", "my_time", "pieces", "brand", "lent", "community", "predicted_max", "difficulty", "gap", "order"
+     * @param string $translationKey Chip label; brand / collection chips render the manufacturer / collection name instead
      * @param array<string, int|string> $translationParameters
      * @param array<string, mixed> $queryParametersWithoutThis
-     * @param null|string $value Raw value for label lookups (manufacturer id for brand chips, tier value for difficulty chips)
+     * @param null|string $value Raw value for label lookups (manufacturer id for brand chips, collection id or system sentinel for collection chips, tier value for difficulty chips)
      */
     public function __construct(
         public string $key,

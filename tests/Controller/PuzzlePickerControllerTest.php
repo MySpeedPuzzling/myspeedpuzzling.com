@@ -6,7 +6,9 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -166,8 +168,9 @@ final class PuzzlePickerControllerTest extends WebTestCase
 
         self::assertCount(0, $crawler->filter('.puzzle-picker-card'));
         self::assertStringContainsString('Nothing matches these filters', $content);
-        self::assertCount(1, $crawler->filter('.card a[href="/en/what-to-solve-next"]:contains("Reset filters")'));
-        self::assertCount(1, $crawler->filter('.card a[href="/en/what-to-solve-next?source=any"]:contains("Pick from all puzzles")'));
+        // Reset forgets the remembered filters (?reset=1); "all puzzles" keeps the mood and only widens the pool
+        self::assertCount(1, $crawler->filter('.card a[href="/en/what-to-solve-next?reset=1"]:contains("Reset filters")'));
+        self::assertCount(1, $crawler->filter('.card a[href="/en/what-to-solve-next?solved=never&source=any"]:contains("Pick from all puzzles")'));
     }
 
     public function testBorrowedPuzzlesAreTheShelfOfAPlayerWithoutCollectionItems(): void
@@ -272,8 +275,9 @@ final class PuzzlePickerControllerTest extends WebTestCase
         self::assertStringContainsString('Based on your own predicted time', $crawler->filter('.puzzle-picker-budget-engine')->text());
         self::assertStringContainsString('only puzzles with enough data', strtolower($content));
 
-        // "Beat my record" preset is a real link
-        $preset = $crawler->filter('a.puzzle-picker-preset');
+        // "Beat my record" preset is a real link (next to the five free presets)
+        self::assertCount(6, $crawler->filter('a.puzzle-picker-preset'));
+        $preset = $crawler->filter('a.puzzle-picker-preset[data-preset="beat_my_record"]');
         self::assertCount(1, $preset);
         self::assertStringContainsString('solved=before', (string) $preset->attr('href'));
         self::assertStringContainsString('gap=slower', (string) $preset->attr('href'));
@@ -311,10 +315,11 @@ final class PuzzlePickerControllerTest extends WebTestCase
         self::assertSame('2', $crawler->filter('#puzzlePickerFilters input[name="gap_min"]')->attr('value'));
         self::assertSame('90', $crawler->filter('#puzzlePickerFilters input[name="predicted_max"]')->attr('value'));
 
-        // The preset chip is highlighted when its filters are active
+        // The preset chip is highlighted when its filters are active - and only that one
         $crawler = $browser->request('GET', '/en/what-to-solve-next?solved=before&gap=slower&order=gap_slower');
         $this->assertResponseIsSuccessful();
-        self::assertStringContainsString('bg-primary', (string) $crawler->filter('a.puzzle-picker-preset')->attr('class'));
+        self::assertStringContainsString('bg-primary', (string) $crawler->filter('a.puzzle-picker-preset[data-preset="beat_my_record"]')->attr('class'));
+        self::assertCount(1, $crawler->filter('a.puzzle-picker-preset.bg-primary'));
     }
 
     public function testNonMemberGetsOneLockedPredictionRowPerCardAndALockedInsightsGroup(): void
@@ -350,9 +355,10 @@ final class PuzzlePickerControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('#puzzlePickerFilters input[name="predicted_max"]:not([disabled])'), 'The time budget stays free');
         self::assertStringContainsString('community average', $crawler->filter('.puzzle-picker-budget-engine')->text());
 
-        // Preset chip is the lock -> members modal, not a link
-        self::assertCount(0, $crawler->filter('a.puzzle-picker-preset'));
-        self::assertCount(1, $crawler->filter('button.puzzle-picker-preset[data-bs-target="#membersExclusiveModal"]'));
+        // "Beat my record" is the lock -> members modal, not a link; the free presets stay links
+        self::assertCount(0, $crawler->filter('a.puzzle-picker-preset[data-preset="beat_my_record"]'));
+        self::assertCount(1, $crawler->filter('button.puzzle-picker-preset[data-preset="beat_my_record"][data-bs-target="#membersExclusiveModal"]'));
+        self::assertCount(5, $crawler->filter('a.puzzle-picker-preset'));
     }
 
     public function testGuestSeesNeitherPredictionNorLockOnTheCards(): void
@@ -414,10 +420,269 @@ final class PuzzlePickerControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('#puzzlePickerFilters .puzzle-picker-insights-opted-out'));
         self::assertStringContainsString('community average', $crawler->filter('.puzzle-picker-budget-engine')->text());
 
-        // Preset chip is muted, neither a link nor the members lock
-        self::assertCount(0, $crawler->filter('a.puzzle-picker-preset'));
+        // "Beat my record" is muted, neither a link nor the members lock; the free presets stay links
+        self::assertCount(0, $crawler->filter('a.puzzle-picker-preset[data-preset="beat_my_record"]'));
         self::assertCount(0, $crawler->filter('button.puzzle-picker-preset'));
-        self::assertCount(1, $crawler->filter('span.puzzle-picker-preset'));
+        self::assertCount(1, $crawler->filter('span.puzzle-picker-preset[data-preset="beat_my_record"]'));
+        self::assertCount(5, $crawler->filter('a.puzzle-picker-preset'));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Precision filters, collections, remembered filters, presets, share
+    // ---------------------------------------------------------------------------------------------
+
+    public function testPrecisionFiltersRenderAsChipsAndFillTheForm(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/what-to-solve-next?source=any&lent=1&solved_min=2&solved_max=5&since=6&since_unit=m&since_require_solved=1&my_time=fastest&my_time_op=gt&my_time_minutes=45&community=few&seed=abcd1234');
+
+        $this->assertResponseIsSuccessful();
+
+        self::assertEqualsCanonicalizing(
+            ['Solved 2–5×', 'Solved, but not in the last 6 months', 'Fastest over 45 min', 'Incl. lent out', 'Few results (≤ 5)'],
+            self::chipLabels($crawler),
+        );
+
+        // Every chip removes exactly itself
+        $chips = $crawler->filter('.puzzle-picker-filter-bar a[title="Remove this filter"]');
+        $chips->each(static function (Crawler $chip): void {
+            self::assertSame('nofollow', $chip->attr('rel'));
+        });
+        $withoutSince = $chips->reduce(static fn (Crawler $chip): bool => str_contains($chip->text(), 'last 6 months'))->attr('href');
+        self::assertStringNotContainsString('since', (string) $withoutSince);
+        self::assertStringContainsString('my_time=fastest', (string) $withoutSince);
+        self::assertStringContainsString('solved_min=2', (string) $withoutSince);
+        self::assertStringContainsString('community=few', (string) $withoutSince);
+
+        // The form shows the state back
+        self::assertSame('2', $crawler->filter('#puzzlePickerFilters input[name="solved_min"]')->attr('value'));
+        self::assertSame('5', $crawler->filter('#puzzlePickerFilters input[name="solved_max"]')->attr('value'));
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters input[name="solved"][value="any"][checked]'));
+        self::assertSame('6', $crawler->filter('#puzzlePickerFilters input[name="since"]')->attr('value'));
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters select[name="since_unit"] option[value="m"][selected]'));
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters input[name="since_require_solved"][checked]'));
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters select[name="my_time"] option[value="fastest"][selected]'));
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters select[name="my_time_op"] option[value="gt"][selected]'));
+        self::assertSame('45', $crawler->filter('#puzzlePickerFilters input[name="my_time_minutes"]')->attr('value'));
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters input[name="community"][value="few"][checked]'));
+        self::assertCount(4, $crawler->filter('#puzzlePickerFilters input[name="community"]'));
+
+        // The named shapes keep their radio; the count inputs stay blank
+        $crawler = $browser->request('GET', '/en/what-to-solve-next?solved=never&since=10');
+        $this->assertResponseIsSuccessful();
+        self::assertEqualsCanonicalizing(['My collection', 'Never solved', 'Not solved in the last 10 days'], self::chipLabels($crawler));
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters input[name="solved"][value="never"][checked]'));
+        self::assertSame('', $crawler->filter('#puzzlePickerFilters input[name="solved_min"]')->attr('value'));
+        self::assertSame('', $crawler->filter('#puzzlePickerFilters input[name="solved_max"]')->attr('value'));
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters select[name="since_unit"] option[value="d"][selected]'));
+    }
+
+    public function testFreePresetsAreLinksAndTheActiveOneIsHighlighted(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/what-to-solve-next');
+        $this->assertResponseIsSuccessful();
+
+        $presets = $crawler->filter('.puzzle-picker-presets .puzzle-picker-preset');
+        self::assertCount(6, $presets);
+        self::assertSame(
+            ['surprise_me', 'something_new', 'quick_one', 'dust_off', 'rating_grind', 'beat_my_record'],
+            $presets->each(static fn (Crawler $preset): string => (string) $preset->attr('data-preset')),
+        );
+        self::assertSame(['Surprise me', 'Something new', 'Quick one', 'Dust off the shelf', 'Rating grind', 'Beat my record'], $presets->each(static fn (Crawler $preset): string => trim($preset->text())));
+
+        $crawler->filter('a.puzzle-picker-preset')->each(static function (Crawler $preset): void {
+            self::assertSame('nofollow', $preset->attr('rel'));
+        });
+
+        // The bare default *is* "Surprise me"
+        self::assertStringContainsString('bg-primary', (string) $crawler->filter('a.puzzle-picker-preset[data-preset="surprise_me"]')->attr('class'));
+        self::assertCount(1, $crawler->filter('.puzzle-picker-preset.bg-primary'));
+
+        self::assertStringContainsString('predicted_max=60', (string) $crawler->filter('a.puzzle-picker-preset[data-preset="quick_one"]')->attr('href'));
+        self::assertStringContainsString('since=6', (string) $crawler->filter('a.puzzle-picker-preset[data-preset="dust_off"]')->attr('href'));
+        self::assertStringContainsString('since_unit=m', (string) $crawler->filter('a.puzzle-picker-preset[data-preset="dust_off"]')->attr('href'));
+        self::assertStringContainsString('community=rated', (string) $crawler->filter('a.puzzle-picker-preset[data-preset="rating_grind"]')->attr('href'));
+
+        // Following a preset highlights it (and only it)
+        $crawler = $browser->click($crawler->filter('a.puzzle-picker-preset[data-preset="dust_off"]')->link());
+        $this->assertResponseIsSuccessful();
+        self::assertStringContainsString('bg-primary', (string) $crawler->filter('.puzzle-picker-preset[data-preset="dust_off"]')->attr('class'));
+        self::assertCount(1, $crawler->filter('.puzzle-picker-preset.bg-primary'));
+        self::assertContains('Solved, but not in the last 6 months', self::chipLabels($crawler));
+
+        $crawler = $browser->request('GET', '/en/what-to-solve-next?solved=never&pieces[]=500&community=rated&seed=abcd1234');
+        self::assertStringContainsString('bg-primary', (string) $crawler->filter('.puzzle-picker-preset[data-preset="rating_grind"]')->attr('class'));
+
+        // A tweak on top of a preset switches the highlight off
+        $crawler = $browser->request('GET', '/en/what-to-solve-next?solved=never&pieces[]=500&pieces[]=1000&community=rated');
+        self::assertCount(0, $crawler->filter('.puzzle-picker-preset.bg-primary'));
+    }
+
+    public function testShareButtonCarriesTheSeededUrlOfTheCurrentPick(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/what-to-solve-next?pieces[]=500&seed=abcd1234');
+
+        $this->assertResponseIsSuccessful();
+        $shareInput = $crawler->filter('.puzzle-picker-share input[readonly]');
+        self::assertCount(1, $shareInput);
+        self::assertSame('http://localhost/en/what-to-solve-next?pieces%5B0%5D=500&seed=abcd1234', $shareInput->attr('value'));
+
+        // Without a seed in the URL the generated one is shared, so the link reproduces this very draw
+        $crawler = $browser->request('GET', '/en/what-to-solve-next');
+        $shared = (string) $crawler->filter('.puzzle-picker-share input[readonly]')->attr('value');
+        self::assertMatchesRegularExpression('#^http://localhost/en/what-to-solve-next\?seed=[a-z0-9]{8}$#', $shared);
+
+        $sharedCrawler = $browser->request('GET', substr($shared, strlen('http://localhost')));
+        self::assertSame(
+            $crawler->filter('.puzzle-picker-card a.h5')->first()->attr('href'),
+            $sharedCrawler->filter('.puzzle-picker-card a.h5')->first()->attr('href'),
+            'The shared link shows the same first card',
+        );
+    }
+
+    public function testFiltersAreRememberedInTheSessionAndResetForgetsThem(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        // A filtered visit ...
+        $crawler = $browser->request('GET', '/en/what-to-solve-next?pieces[]=500&solved=before&seed=abcd1234');
+        $this->assertResponseIsSuccessful();
+        self::assertEqualsCanonicalizing(['My collection', 'Solved before', '500 pieces'], self::chipLabels($crawler));
+        self::assertCount(0, $crawler->filter('.puzzle-picker-remembered'));
+        self::assertStringContainsString('of 3 matching puzzles', (string) $browser->getResponse()->getContent());
+
+        // ... is applied again on the bare URL - no redirect, marker + reset link, seed not remembered
+        $crawler = $browser->request('GET', '/en/what-to-solve-next');
+        $this->assertResponseIsSuccessful();
+        self::assertSame('/en/what-to-solve-next', $browser->getRequest()->getRequestUri());
+        self::assertEqualsCanonicalizing(['My collection', 'Solved before', '500 pieces'], self::chipLabels($crawler));
+        self::assertCount(1, $crawler->filter('.puzzle-picker-remembered'));
+        self::assertStringContainsString('Your last filters', $crawler->filter('.puzzle-picker-remembered')->text());
+        self::assertCount(1, $crawler->filter('.puzzle-picker-filter-bar a.puzzle-picker-reset[href="/en/what-to-solve-next?reset=1"]'));
+        self::assertStringContainsString('of 3 matching puzzles', (string) $browser->getResponse()->getContent());
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters input[name="pieces[]"][value="500"][checked]'));
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters input[name="solved"][value="before"][checked]'));
+        self::assertStringContainsString('<meta name="robots" content="index, follow">', (string) $browser->getResponse()->getContent(), 'Still the bare canonical URL');
+
+        $spin = $crawler->filter('a:contains("Pick another")');
+        self::assertStringContainsString('pieces', (string) $spin->attr('href'), 'Spinning keeps the remembered filters');
+        self::assertStringNotContainsString('abcd1234', (string) $spin->attr('href'));
+
+        // Changing a filter replaces the memory
+        $crawler = $browser->request('GET', '/en/what-to-solve-next?pieces[]=1000');
+        $crawler = $browser->request('GET', '/en/what-to-solve-next');
+        self::assertEqualsCanonicalizing(['My collection', '1000 pieces'], self::chipLabels($crawler));
+
+        // Reset forgets it and renders the defaults; the next bare visit is bare again
+        $crawler = $browser->request('GET', '/en/what-to-solve-next?reset=1');
+        $this->assertResponseIsSuccessful();
+        self::assertEqualsCanonicalizing(['My collection'], self::chipLabels($crawler));
+        self::assertCount(0, $crawler->filter('.puzzle-picker-remembered'));
+        self::assertCount(0, $crawler->filter('.puzzle-picker-filter-bar a.puzzle-picker-reset'));
+        self::assertStringContainsString('of 7 matching puzzles', (string) $browser->getResponse()->getContent());
+
+        $crawler = $browser->request('GET', '/en/what-to-solve-next');
+        self::assertEqualsCanonicalizing(['My collection'], self::chipLabels($crawler));
+        self::assertCount(0, $crawler->filter('.puzzle-picker-remembered'));
+
+        // Removing the last chip (a seed-only URL) forgets too - what you see is what is remembered
+        $browser->request('GET', '/en/what-to-solve-next?solved=before');
+        $browser->request('GET', '/en/what-to-solve-next?seed=abcd1234');
+        $crawler = $browser->request('GET', '/en/what-to-solve-next');
+        self::assertEqualsCanonicalizing(['My collection'], self::chipLabels($crawler));
+        self::assertCount(0, $crawler->filter('.puzzle-picker-remembered'));
+    }
+
+    public function testGuestsNeverGetASessionFromThePicker(): void
+    {
+        $browser = self::createClient();
+
+        foreach (['/en/what-to-solve-next', '/en/what-to-solve-next?since=6&since_unit=m&pieces[]=500', '/en/what-to-solve-next?reset=1'] as $url) {
+            $browser->request('GET', $url);
+
+            $this->assertResponseIsSuccessful();
+            self::assertSame([], $browser->getResponse()->headers->getCookies(), "{$url} must not set a cookie");
+            self::assertFalse($browser->getRequest()->hasSession() && $browser->getRequest()->getSession()->isStarted(), "{$url} must not start a session");
+        }
+
+        // ... and are never shown remembered filters; their reset link is the bare URL, not ?reset=1
+        $crawler = $browser->request('GET', '/en/what-to-solve-next');
+        self::assertCount(0, $crawler->filter('.puzzle-picker-remembered'));
+        $crawler = $browser->request('GET', '/en/what-to-solve-next?pieces[]=500');
+        self::assertCount(0, $crawler->filter('.puzzle-picker-remembered'));
+        self::assertCount(1, $crawler->filter('.puzzle-picker-filter-bar a.puzzle-picker-reset[href="/en/what-to-solve-next"]'), 'Guest reset link is the bare URL');
+    }
+
+    public function testMemberPicksFromSpecificCollections(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        // System collection (sentinel) + "My Trefl Collection": 1000_02, 500_02, 1000_04, 1000_05
+        $crawler = $browser->request('GET', '/en/what-to-solve-next?collections[]=' . Collection::SYSTEM_ID . '&collections[]=' . CollectionFixture::COLLECTION_STRIPE_TREFL . '&seed=abcd1234');
+
+        $this->assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+
+        self::assertCount(4, $crawler->filter('.puzzle-picker-card'));
+        self::assertStringContainsString('of 4 matching puzzles', $content);
+        self::assertEqualsCanonicalizing(['Puzzle Collection', 'My Trefl Collection'], self::chipLabels($crawler), 'Collection chips replace the shelf chip');
+
+        // Chips remove one collection at a time
+        $treflChip = $crawler->filter('.puzzle-picker-filter-bar a[title="Remove this filter"]')->reduce(static fn (Crawler $chip): bool => str_contains($chip->text(), 'Trefl'));
+        self::assertStringContainsString(rawurlencode(Collection::SYSTEM_ID), (string) $treflChip->attr('href'));
+        self::assertStringNotContainsString(CollectionFixture::COLLECTION_STRIPE_TREFL, (string) $treflChip->attr('href'));
+
+        // Filters modal: checkbox list, system first, the two picked ones checked
+        $checkboxes = $crawler->filter('#puzzlePickerFilters input[name="collections[]"]');
+        self::assertCount(3, $checkboxes);
+        self::assertSame(Collection::SYSTEM_ID, $checkboxes->first()->attr('value'));
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters input[name="collections[]"][value="' . Collection::SYSTEM_ID . '"][checked]'));
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters input[name="collections[]"][value="' . CollectionFixture::COLLECTION_STRIPE_TREFL . '"][checked]'));
+        self::assertCount(0, $crawler->filter('#puzzlePickerFilters input[name="collections[]"][value="' . CollectionFixture::COLLECTION_PUBLIC . '"][checked]'));
+        self::assertStringContainsString('Puzzle Collection', $crawler->filter('#puzzlePickerFilters .puzzle-picker-collections')->text());
+        self::assertStringContainsString('My Ravensburger Collection', $crawler->filter('#puzzlePickerFilters .puzzle-picker-collections')->text());
+        self::assertCount(0, $crawler->filter('#puzzlePickerFilters .puzzle-picker-collections-locked'));
+
+        // The empty state's "all puzzles" keeps the mood but drops the collections (they imply the shelf)
+        $crawler = $browser->request('GET', '/en/what-to-solve-next?collections[]=' . CollectionFixture::COLLECTION_STRIPE_TREFL . '&pieces[]=9000');
+        self::assertCount(0, $crawler->filter('.puzzle-picker-card'));
+        $widen = $crawler->filter('.card a:contains("Pick from all puzzles")');
+        self::assertCount(1, $widen);
+        self::assertStringContainsString('source=any', (string) $widen->attr('href'));
+        self::assertStringContainsString('pieces', (string) $widen->attr('href'));
+        self::assertStringNotContainsString('collections', (string) $widen->attr('href'));
+    }
+
+    public function testNonMembersAndGuestsSeeTheCollectionsFilterLocked(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        // A crafted URL is ignored: the whole shelf, no collection chips
+        $crawler = $browser->request('GET', '/en/what-to-solve-next?collections[]=' . CollectionFixture::COLLECTION_PRIVATE . '&seed=abcd1234');
+        $this->assertResponseIsSuccessful();
+        self::assertStringContainsString('of 7 matching puzzles', (string) $browser->getResponse()->getContent());
+        self::assertEqualsCanonicalizing(['My collection'], self::chipLabels($crawler));
+        self::assertCount(0, $crawler->filter('#puzzlePickerFilters input[name="collections[]"]'));
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters .puzzle-picker-collections-locked'));
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters .puzzle-picker-collections button[data-bs-target="#membersExclusiveModal"]'));
+
+        self::ensureKernelShutdown();
+        $browser = self::createClient();
+        $crawler = $browser->request('GET', '/en/what-to-solve-next?collections[]=' . Collection::SYSTEM_ID);
+        $this->assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('#puzzlePickerFilters input[name="collections[]"]'));
+        self::assertCount(1, $crawler->filter('#puzzlePickerFilters .puzzle-picker-collections-locked'));
+        self::assertCount(0, $crawler->filter('#puzzlePickerFilters .puzzle-picker-collections button[data-bs-target="#membersExclusiveModal"]'), 'No members button for somebody who is not even signed in');
     }
 
     /**

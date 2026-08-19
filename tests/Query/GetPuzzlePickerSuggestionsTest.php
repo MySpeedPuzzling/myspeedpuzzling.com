@@ -9,7 +9,9 @@ use SpeedPuzzling\Web\Query\GetPlayerPredictions;
 use SpeedPuzzling\Web\Query\GetPuzzlePickerSuggestions;
 use SpeedPuzzling\Web\Results\PuzzlePickerPick;
 use SpeedPuzzling\Web\Results\PuzzlePickerSuggestion;
+use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -429,6 +431,333 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
         self::assertSame(0, $none->totalMatching);
     }
 
+
+    // ---------------------------------------------------------------------------------------------
+    // Precision filters: solve-count range, not solved since, my time thresholds, community results
+    // ---------------------------------------------------------------------------------------------
+
+    public function testSolveCountRangeCoversNeverBeforeAndBetween(): void
+    {
+        // PLAYER_REGULAR (all types counted, incl. the duo / team rows she owns and the untimed
+        // relax row): 3× on 500_01, 500_02, 500_03 and 1000_02; 1× on 1000_01, 1000_03, 1500_01,
+        // 2000, 300, INTEL_A and INTEL_B - 11 solved puzzles
+        $playerId = PlayerFixture::PLAYER_REGULAR;
+        $all = $this->pickAll(['source' => 'any', 'lent' => '1'], $playerId);
+        $threeTimes = [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03, PuzzleFixture::PUZZLE_1000_02];
+        $once = [
+            PuzzleFixture::PUZZLE_1000_01,
+            PuzzleFixture::PUZZLE_1000_03,
+            PuzzleFixture::PUZZLE_1500_01,
+            PuzzleFixture::PUZZLE_2000,
+            PuzzleFixture::PUZZLE_300,
+            PuzzleIntelligenceFixture::INTEL_PUZZLE_A,
+            PuzzleIntelligenceFixture::INTEL_PUZZLE_B,
+        ];
+
+        self::assertEqualsCanonicalizing($threeTimes, self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '3'], $playerId)));
+        self::assertEqualsCanonicalizing($threeTimes, self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '3', 'solved_max' => '3'], $playerId)));
+        self::assertEqualsCanonicalizing($once, self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '1', 'solved_max' => '1'], $playerId)));
+        self::assertEqualsCanonicalizing([...$threeTimes, ...$once], self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '1'], $playerId)));
+        self::assertTrue($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '2', 'solved_max' => '2'], $playerId)->isEmpty(), 'Nobody solved anything exactly twice');
+        self::assertTrue($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '4'], $playerId)->isEmpty());
+
+        // "at most 2" = everything but the four 3× puzzles (never-solved included)
+        $atMostTwo = $this->pickAll(['source' => 'any', 'lent' => '1', 'solved_max' => '2'], $playerId);
+        self::assertSame($all->totalMatching - 4, $atMostTwo->totalMatching);
+        self::assertSame([], array_intersect($threeTimes, self::ids($atMostTwo)));
+
+        // The named shapes are the same ranges spelled short
+        self::assertSame(
+            self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved' => 'never'], $playerId)),
+            self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_max' => '0'], $playerId)),
+        );
+        self::assertSame(
+            self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved' => 'before'], $playerId)),
+            self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '1'], $playerId)),
+        );
+
+        foreach ($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '1', 'solved_max' => '2'], $playerId)->suggestions as $suggestion) {
+            self::assertSame(1, $suggestion->mySolveCountAny);
+        }
+
+        // Guests: no history, the range is ignored
+        self::assertSame($this->pickAll([], null)->totalMatching, $this->pickAll(['solved_min' => '3'], null)->totalMatching);
+    }
+
+    public function testNotSolvedSinceKeepsNeverSolvedPuzzlesUnlessAskedNotTo(): void
+    {
+        // PLAYER_REGULAR's last solves: 500_01 3 d, 500_03 5 d, 1000_02 3 d (untimed relax row),
+        // 500_02 10 d, 1000_01 12 d (duo), 1000_03 8 d (team owner), 1500_01 30 d, 2000 35 d,
+        // 300 28 d, INTEL_A 36 d, INTEL_B 31 d
+        $playerId = PlayerFixture::PLAYER_REGULAR;
+        $all = $this->pickAll(['source' => 'any', 'lent' => '1'], $playerId);
+        $solvedCount = 11;
+        $olderThanThreeWeeks = [
+            PuzzleFixture::PUZZLE_1500_01,
+            PuzzleFixture::PUZZLE_2000,
+            PuzzleFixture::PUZZLE_300,
+            PuzzleIntelligenceFixture::INTEL_PUZZLE_A,
+            PuzzleIntelligenceFixture::INTEL_PUZZLE_B,
+        ];
+        $olderThanSixDays = [...$olderThanThreeWeeks, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_1000_03];
+
+        // Never-solved puzzles are "not solved since forever" and included by default
+        $weeks = $this->pickAll(['source' => 'any', 'lent' => '1', 'since' => '3', 'since_unit' => 'w'], $playerId);
+        self::assertSame($all->totalMatching - $solvedCount + count($olderThanThreeWeeks), $weeks->totalMatching);
+
+        foreach ($olderThanThreeWeeks as $puzzleId) {
+            self::assertContains($puzzleId, self::ids($weeks));
+        }
+
+        foreach ([PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03, PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_1000_02, PuzzleFixture::PUZZLE_1000_03] as $puzzleId) {
+            self::assertNotContains($puzzleId, self::ids($weeks), 'Solved within the last three weeks');
+        }
+
+        self::assertContains(PuzzleFixture::PUZZLE_9000, self::ids($weeks), 'Never solved');
+
+        // ... unless only puzzles solved before are wanted
+        self::assertEqualsCanonicalizing($olderThanThreeWeeks, self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'since' => '3', 'since_unit' => 'w', 'since_require_solved' => '1'], $playerId)));
+        self::assertEqualsCanonicalizing($olderThanSixDays, self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'since' => '6', 'since_require_solved' => '1'], $playerId)), 'Days are the default unit');
+        self::assertEqualsCanonicalizing($olderThanSixDays, self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'since' => '6', 'since_unit' => 'd', 'since_require_solved' => '1'], $playerId)));
+
+        // Months go through the same clock arithmetic as the query
+        /** @var list<string> $olderThanAMonth */
+        $olderThanAMonth = $this->database->fetchFirstColumn(
+            'SELECT puzzle_id FROM puzzle_solving_time WHERE player_id = :playerId GROUP BY puzzle_id HAVING max(COALESCE(finished_at, tracked_at)) < :threshold',
+            ['playerId' => $playerId, 'threshold' => (new \DateTimeImmutable())->modify('-1 months')->format('Y-m-d H:i:s')],
+        );
+        self::assertNotSame([], $olderThanAMonth);
+        self::assertEqualsCanonicalizing($olderThanAMonth, self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'since' => '1', 'since_unit' => 'm', 'since_require_solved' => '1'], $playerId)));
+
+        // "Dust off the shelf": my shelf, solved before, not in the last 6 months - PLAYER_REGULAR
+        // solved everything on her shelf within the last five weeks
+        self::assertTrue($this->pickAll(['since' => '6', 'since_unit' => 'm', 'since_require_solved' => '1'], $playerId)->isEmpty());
+        self::assertSame(2, $this->pickAll(['since' => '4', 'since_unit' => 'w', 'since_require_solved' => '1'], $playerId)->totalMatching, '1500_01 (30 d) and 2000 (35 d) on the shelf');
+
+        // Guests: no history, the period is ignored
+        self::assertSame($this->pickAll([], null)->totalMatching, $this->pickAll(['since' => '3', 'since_unit' => 'w', 'since_require_solved' => '1'], null)->totalMatching);
+    }
+
+    public function testNotSolvedSinceCountsTeamSolvesWhereIAmOnlyAParticipant(): void
+    {
+        // PLAYER_PRIVATE is a participant of team-002 on PUZZLE_1000_03 (8 days ago) and owns
+        // no row on that puzzle: her "last solved" is the team date
+        $playerId = PlayerFixture::PLAYER_PRIVATE;
+
+        self::assertContains(PuzzleFixture::PUZZLE_1000_03, self::ids($this->pickAll(['source' => 'any', 'since' => '6', 'since_require_solved' => '1'], $playerId)), 'Solved 8 days ago = not in the last 6 days, and solved before');
+        self::assertNotContains(PuzzleFixture::PUZZLE_1000_03, self::ids($this->pickAll(['source' => 'any', 'since' => '10', 'since_require_solved' => '1'], $playerId)));
+        self::assertContains(PuzzleFixture::PUZZLE_1000_03, self::ids($this->pickAll(['source' => 'any', 'since' => '6'], $playerId)));
+        self::assertNotContains(PuzzleFixture::PUZZLE_1000_03, self::ids($this->pickAll(['source' => 'any', 'since' => '10'], $playerId)), 'Team participation counts as a recent solve - the puzzle is not "never solved"');
+
+        // team-001 on PUZZLE_1000_01: her own solo row is 22 days old, the team row 12 days old
+        self::assertNotContains(PuzzleFixture::PUZZLE_1000_01, self::ids($this->pickAll(['source' => 'any', 'since' => '2', 'since_unit' => 'w', 'since_require_solved' => '1'], $playerId)), 'The newer team date wins over the older own row');
+        self::assertContains(PuzzleFixture::PUZZLE_1000_01, self::ids($this->pickAll(['source' => 'any', 'since' => '11', 'since_require_solved' => '1'], $playerId)));
+    }
+
+    public function testMyTimeThresholdsCompareOneOfMySoloTimesAndSkipPuzzlesWithoutOne(): void
+    {
+        // PLAYER_REGULAR solo times (fastest / first / latest, seconds):
+        // 500_01 1750 / 1800 / 1750, 500_02 1700 / 2200 / 1700, 500_03 1700 / 1950 / 1700,
+        // 1000_02 3950 / 3950 / 4500, 1500_01 7200, 2000 10800, 300 800, INTEL_A 1900, INTEL_B 1850;
+        // 1000_01 and 1000_03 are solved but have no solo time
+        $playerId = PlayerFixture::PLAYER_REGULAR;
+        $base = ['source' => 'any', 'lent' => '1'];
+
+        self::assertEqualsCanonicalizing(
+            [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03, PuzzleFixture::PUZZLE_300],
+            self::ids($this->pickAll($base + ['my_time' => 'fastest', 'my_time_op' => 'lt', 'my_time_minutes' => '30'], $playerId)),
+        );
+        self::assertEqualsCanonicalizing(
+            [PuzzleIntelligenceFixture::INTEL_PUZZLE_A, PuzzleFixture::PUZZLE_1000_02, PuzzleFixture::PUZZLE_1500_01, PuzzleFixture::PUZZLE_2000],
+            self::ids($this->pickAll($base + ['my_time' => 'fastest', 'my_time_op' => 'gt', 'my_time_minutes' => '31'], $playerId)),
+        );
+        self::assertEqualsCanonicalizing(
+            [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03, PuzzleFixture::PUZZLE_300, PuzzleIntelligenceFixture::INTEL_PUZZLE_B],
+            self::ids($this->pickAll($base + ['my_time' => 'latest', 'my_time_minutes' => '31'], $playerId)),
+            '"under" is the default operator',
+        );
+        self::assertEqualsCanonicalizing(
+            [PuzzleFixture::PUZZLE_1000_02, PuzzleFixture::PUZZLE_1500_01, PuzzleFixture::PUZZLE_2000],
+            self::ids($this->pickAll($base + ['my_time' => 'latest', 'my_time_op' => 'gt', 'my_time_minutes' => '60'], $playerId)),
+        );
+        self::assertEqualsCanonicalizing(
+            [PuzzleFixture::PUZZLE_500_01, PuzzleIntelligenceFixture::INTEL_PUZZLE_B, PuzzleFixture::PUZZLE_300],
+            self::ids($this->pickAll($base + ['my_time' => 'first', 'my_time_op' => 'lt', 'my_time_minutes' => '31'], $playerId)),
+        );
+        self::assertEqualsCanonicalizing(
+            [PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03, PuzzleIntelligenceFixture::INTEL_PUZZLE_A, PuzzleFixture::PUZZLE_1000_02, PuzzleFixture::PUZZLE_1500_01, PuzzleFixture::PUZZLE_2000],
+            self::ids($this->pickAll($base + ['my_time' => 'first', 'my_time_op' => 'gt', 'my_time_minutes' => '31'], $playerId)),
+        );
+
+        // Puzzles without a solo time never match, whatever the direction
+        foreach (['lt', 'gt'] as $op) {
+            $ids = self::ids($this->pickAll($base + ['my_time' => 'fastest', 'my_time_op' => $op, 'my_time_minutes' => '600'], $playerId));
+            self::assertNotContains(PuzzleFixture::PUZZLE_1000_01, $ids);
+            self::assertNotContains(PuzzleFixture::PUZZLE_1000_03, $ids);
+            self::assertNotContains(PuzzleFixture::PUZZLE_9000, $ids);
+        }
+
+        // Combines with the other filters
+        self::assertEqualsCanonicalizing(
+            [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03],
+            self::ids($this->pickAll($base + ['my_time' => 'fastest', 'my_time_minutes' => '30', 'pieces' => ['500']], $playerId)),
+        );
+
+        // Guests: no times, the threshold is ignored
+        self::assertSame($this->pickAll([], null)->totalMatching, $this->pickAll(['my_time' => 'fastest', 'my_time_minutes' => '30'], null)->totalMatching);
+    }
+
+    public function testCommunityResultsThresholdsUseTheSoloSolveCount(): void
+    {
+        /** @var list<string> $expectedFew */
+        $expectedFew = $this->database->fetchFirstColumn(
+            'SELECT p.id FROM puzzle p LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = p.id WHERE p.approved = true AND (p.hide_until IS NULL OR p.hide_until < now()) AND COALESCE(ps.solved_times_solo_count, 0) <= 5',
+        );
+        $few = $this->pickAll(['community' => 'few'], null);
+
+        self::assertEqualsCanonicalizing($expectedFew, self::ids($few));
+        self::assertContains(PuzzleFixture::PUZZLE_9000, self::ids($few), 'No statistics row = zero solves = few');
+        self::assertContains(PuzzleFixture::PUZZLE_1500_02, self::ids($few), 'One solo solve');
+        self::assertNotContains(PuzzleFixture::PUZZLE_500_01, self::ids($few), 'Eleven solo solves');
+        self::assertLessThan($this->pickAll([], null)->totalMatching, $few->totalMatching);
+
+        foreach ($few->suggestions as $suggestion) {
+            self::assertLessThanOrEqual(5, $suggestion->communitySolvedCountSolo);
+        }
+
+        // Nothing in the fixtures reaches 20 solo solves - until we say so
+        self::assertTrue($this->pickAll(['community' => 'rated'], null)->isEmpty());
+        self::assertTrue($this->pickAll(['community' => 'popular'], null)->isEmpty());
+
+        $this->database->executeStatement('UPDATE puzzle_statistics SET solved_times_solo_count = 20 WHERE puzzle_id = :id', ['id' => PuzzleFixture::PUZZLE_500_02]);
+        self::assertSame([PuzzleFixture::PUZZLE_500_02], self::ids($this->pickAll(['community' => 'rated'], null)));
+        self::assertTrue($this->pickAll(['community' => 'popular'], null)->isEmpty(), '20 is rated, not yet popular');
+        self::assertNotContains(PuzzleFixture::PUZZLE_500_02, self::ids($this->pickAll(['community' => 'few'], null)));
+
+        $this->database->executeStatement('UPDATE puzzle_statistics SET solved_times_solo_count = 49 WHERE puzzle_id = :id', ['id' => PuzzleFixture::PUZZLE_500_02]);
+        self::assertTrue($this->pickAll(['community' => 'popular'], null)->isEmpty());
+
+        $this->database->executeStatement('UPDATE puzzle_statistics SET solved_times_solo_count = 50 WHERE puzzle_id = :id', ['id' => PuzzleFixture::PUZZLE_500_02]);
+        self::assertSame([PuzzleFixture::PUZZLE_500_02], self::ids($this->pickAll(['community' => 'popular'], null)));
+        self::assertSame([PuzzleFixture::PUZZLE_500_02], self::ids($this->pickAll(['community' => 'rated'], null)), 'Popular is also rated');
+
+        // "Rating grind": 500 pieces, never solved by me, rated - every fixture player solved
+        // 500_02, so a second rated puzzle is needed: 500_05 (solved by PLAYER_ADMIN and
+        // PLAYER_PRIVATE only)
+        $this->database->executeStatement('UPDATE puzzle_statistics SET solved_times_solo_count = 20 WHERE puzzle_id = :id', ['id' => PuzzleFixture::PUZZLE_500_05]);
+        self::assertEqualsCanonicalizing([PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_05], self::ids($this->pickAll(['pieces' => ['500'], 'community' => 'rated'], null)));
+        self::assertTrue($this->pickAll(['source' => 'any', 'pieces' => ['500'], 'solved' => 'never', 'community' => 'rated'], PlayerFixture::PLAYER_PRIVATE)->isEmpty(), 'PLAYER_PRIVATE solved both');
+        self::assertSame([PuzzleFixture::PUZZLE_500_05], self::ids($this->pickAll(['source' => 'any', 'pieces' => ['500'], 'solved' => 'never', 'community' => 'rated', 'lent' => '1'], PlayerFixture::PLAYER_WITH_FAVORITES)), 'PLAYER_WITH_FAVORITES never solved 500_05');
+
+        // Statistics are joined once even when the community budget needs them too
+        $fewNow = $this->pickAll(['community' => 'few'], null);
+        $budgetAndFew = $this->pickAll(['community' => 'few', 'predicted_max' => '60'], null);
+        $budget = $this->pickAll(['predicted_max' => '60'], null);
+        self::assertNotSame([], self::ids($budgetAndFew));
+        self::assertEqualsCanonicalizing(array_values(array_intersect(self::ids($budget), self::ids($fewNow))), self::ids($budgetAndFew));
+        self::assertSame(array_values(array_unique(self::ids($budgetAndFew))), self::ids($budgetAndFew), 'No duplicate rows from the single statistics join');
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Specific collections (members)
+    // ---------------------------------------------------------------------------------------------
+
+    public function testMembersCanPickFromSpecificCollectionsIncludingTheSystemOne(): void
+    {
+        // PLAYER_WITH_STRIPE (member): COLLECTION_PUBLIC = 500_01, 500_02, 1000_01, 1000_03,
+        // 1000_05, 300, 500_04, 500_05; COLLECTION_STRIPE_TREFL = 1000_04, 500_02, 1000_05;
+        // system collection = 500_03, 1000_02, 1500_01, 2000, 500_02. Lent out (hidden by
+        // default): 2000, 1500_01, 1000_01 (returned row still counts), 500_03. Borrowed:
+        // 1500_02, 3000.
+        $playerId = PlayerFixture::PLAYER_WITH_STRIPE;
+
+        $public = $this->pickAll(['collections' => [CollectionFixture::COLLECTION_PUBLIC]], $playerId, member: true);
+        self::assertEqualsCanonicalizing([
+            PuzzleFixture::PUZZLE_500_01,
+            PuzzleFixture::PUZZLE_500_02,
+            PuzzleFixture::PUZZLE_1000_03,
+            PuzzleFixture::PUZZLE_1000_05,
+            PuzzleFixture::PUZZLE_300,
+            PuzzleFixture::PUZZLE_500_04,
+            PuzzleFixture::PUZZLE_500_05,
+        ], self::ids($public));
+        self::assertSame(7, $public->totalMatching);
+
+        foreach ($public->suggestions as $suggestion) {
+            self::assertTrue($suggestion->inMyCollection);
+        }
+
+        // Lent-out items of the collection come back when asked for
+        self::assertEqualsCanonicalizing(
+            [...self::ids($public), PuzzleFixture::PUZZLE_1000_01],
+            self::ids($this->pickAll(['collections' => [CollectionFixture::COLLECTION_PUBLIC], 'lent' => '1'], $playerId, member: true)),
+        );
+
+        $trefl = $this->pickAll(['collections' => [CollectionFixture::COLLECTION_STRIPE_TREFL]], $playerId, member: true);
+        self::assertEqualsCanonicalizing([PuzzleFixture::PUZZLE_1000_04, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_1000_05], self::ids($trefl));
+
+        // Several collections are OR-ed (500_02 and 1000_05 are in both - once each)
+        $both = $this->pickAll(['collections' => [CollectionFixture::COLLECTION_PUBLIC, CollectionFixture::COLLECTION_STRIPE_TREFL]], $playerId, member: true);
+        self::assertEqualsCanonicalizing(array_values(array_unique([...self::ids($public), ...self::ids($trefl)])), self::ids($both));
+        self::assertSame(8, $both->totalMatching);
+
+        // The system collection is the sentinel id (its items have collection_id NULL)
+        $system = $this->pickAll(['collections' => [Collection::SYSTEM_ID]], $playerId, member: true);
+        self::assertEqualsCanonicalizing([PuzzleFixture::PUZZLE_1000_02, PuzzleFixture::PUZZLE_500_02], self::ids($system));
+        self::assertEqualsCanonicalizing(
+            [PuzzleFixture::PUZZLE_1000_02, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03, PuzzleFixture::PUZZLE_1500_01, PuzzleFixture::PUZZLE_2000],
+            self::ids($this->pickAll(['collections' => [Collection::SYSTEM_ID], 'lent' => '1'], $playerId, member: true)),
+        );
+        self::assertEqualsCanonicalizing(
+            [PuzzleFixture::PUZZLE_1000_02, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_1000_04, PuzzleFixture::PUZZLE_1000_05],
+            self::ids($this->pickAll(['collections' => [Collection::SYSTEM_ID, CollectionFixture::COLLECTION_STRIPE_TREFL]], $playerId, member: true)),
+            'System sentinel and a custom collection together',
+        );
+
+        // Borrowed puzzles are on my shelf but in none of my collections
+        $mine = $this->pickAll(['source' => 'mine'], $playerId, member: true);
+        self::assertContains(PuzzleFixture::PUZZLE_1500_02, self::ids($mine));
+        self::assertContains(PuzzleFixture::PUZZLE_3000, self::ids($mine));
+        self::assertNotContains(PuzzleFixture::PUZZLE_1500_02, self::ids($system));
+        self::assertNotContains(PuzzleFixture::PUZZLE_3000, self::ids($both));
+        self::assertEqualsCanonicalizing(
+            self::ids($mine),
+            array_values(array_unique([...self::ids($both), ...self::ids($system), PuzzleFixture::PUZZLE_1500_02, PuzzleFixture::PUZZLE_3000])),
+            'All collections + borrowed = my shelf',
+        );
+
+        // Collections imply my shelf, whatever the source parameter says
+        self::assertSame(
+            self::ids($trefl),
+            self::ids($this->pickAll(['source' => 'any', 'collections' => [CollectionFixture::COLLECTION_STRIPE_TREFL]], $playerId, member: true)),
+        );
+
+        // Somebody else's collection matches nothing (only my own items are looked at)
+        self::assertTrue($this->pickAll(['collections' => [CollectionFixture::COLLECTION_PRIVATE]], $playerId, member: true)->isEmpty());
+
+        // Combines with the free filters
+        self::assertEqualsCanonicalizing(
+            [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_04, PuzzleFixture::PUZZLE_500_05],
+            self::ids($this->pickAll(['collections' => [CollectionFixture::COLLECTION_PUBLIC], 'pieces' => ['500']], $playerId, member: true)),
+        );
+        self::assertEqualsCanonicalizing(
+            [PuzzleFixture::PUZZLE_1000_03, PuzzleFixture::PUZZLE_1000_05, PuzzleFixture::PUZZLE_300, PuzzleFixture::PUZZLE_500_04, PuzzleFixture::PUZZLE_500_05],
+            self::ids($this->pickAll(['collections' => [CollectionFixture::COLLECTION_PUBLIC], 'solved' => 'never'], $playerId, member: true)),
+            'Something new from this collection',
+        );
+    }
+
+    public function testCollectionsAreIgnoredForNonMembers(): void
+    {
+        // PLAYER_REGULAR is no member: her whole 7-puzzle shelf, not just COLLECTION_PRIVATE
+        $stripped = $this->pickAll(['collections' => [CollectionFixture::COLLECTION_PRIVATE]], PlayerFixture::PLAYER_REGULAR);
+
+        self::assertSame(7, $stripped->totalMatching);
+        self::assertSame(self::ids($this->pickAll(['source' => 'mine'], PlayerFixture::PLAYER_REGULAR)), self::ids($stripped));
+
+        // ... and for guests
+        self::assertSame($this->pickAll([], null)->totalMatching, $this->pickAll(['collections' => [Collection::SYSTEM_ID]], null)->totalMatching);
+    }
 
     // ---------------------------------------------------------------------------------------------
     // Insights layer (members): difficulty tiers, gap vs. my prediction, gap orders, time budget

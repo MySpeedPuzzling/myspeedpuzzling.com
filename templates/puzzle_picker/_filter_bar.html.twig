@@ -1,5 +1,8 @@
 {# Filter button + active-filter chips. Every link here is a throw-away variant of the page
-   (noindex), hence rel="nofollow" on all of them. Expects: criteria, brand_names #}
+   (noindex), hence rel="nofollow" on all of them. When the filters were restored from the session
+   (bare visit of a signed-in player) a small marker says so - remembered filters must never feel
+   sticky-by-surprise - and "Reset" forgets them (?reset=1). Expects: criteria, brand_names,
+   collection_names, filters_remembered, reset_url #}
 {% set active_filters = criteria.activeFilters %}
 <div class="d-flex flex-wrap align-items-center gap-2 mb-3 puzzle-picker-filter-bar">
     <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#puzzlePickerFilters">
@@ -13,6 +16,8 @@
            title="{{ 'puzzle_picker.chips.remove'|trans }}">
             {% if filter.type == 'brand' %}
                 {{ brand_names[filter.value] ?? filter.translationKey|trans }}
+            {% elseif filter.type == 'collection' %}
+                <i class="bi bi-collection me-1"></i>{{ collection_names[filter.value] ?? filter.translationKey|trans }}
             {% elseif filter.type == 'difficulty' %}
                 {{ 'puzzle_intelligence.difficulty.tier_label'|trans }}: {{ filter.translationKey|trans }}
             {% else %}
@@ -22,7 +27,10 @@
         </a>
     {% endfor %}
 
+    {% if filters_remembered|default(false) %}
+        <span class="fs-sm text-muted puzzle-picker-remembered" title="{{ 'puzzle_picker.filters.remembered_title'|trans }}"><i class="bi bi-clock-history me-1"></i>{{ 'puzzle_picker.filters.remembered'|trans }}</span>
+    {% endif %}
     {% if not criteria.isDefault %}
-        <a class="fs-sm text-muted" rel="nofollow" href="{{ path('puzzle_picker') }}">{{ 'puzzle_picker.filters.reset'|trans }}</a>
+        <a class="fs-sm text-muted puzzle-picker-reset" rel="nofollow" href="{{ reset_url|default(path('puzzle_picker')) }}">{{ 'puzzle_picker.filters.reset'|trans }}</a>
     {% endif %}
 </div>

@@ -40,6 +40,11 @@
                 {% endif %}
             {% endif %}
             {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
+                {# Puzzle picker deep link: members get this very collection preselected (system
+                   collection = sentinel id), everybody else the whole shelf #}
+                <a href="{{ path('puzzle_picker', logged_user.profile.activeMembership ? {collections: [collection.collectionId ?? system_collection_id]} : {source: 'mine'}) }}" class="btn btn-sm btn-outline-primary puzzle-picker-collection-link" rel="nofollow" title="{{ 'puzzle_picker.pick_from_collection'|trans }}">
+                    <i class="bi bi-shuffle me-1"></i> {{ 'puzzle_picker.pick_from_collection'|trans }}
+                </a>
                 {% if collection.collectionId %}
                     <a href="{{ path('puzzle_add') }}?mode=collection&collection={{ collection.collectionId }}" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-puzzle me-1"></i> {{ 'collections.add_puzzle_here.button'|trans }}

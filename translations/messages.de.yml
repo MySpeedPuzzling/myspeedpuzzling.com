@@ -3156,6 +3156,7 @@ puzzle_picker:
             collections_note: "Nichts angehakt = das ganze Regal."
             collections_locked: "Aus bestimmten Sammlungen wählen – für Mitglieder."
         solved:
+            count_toggle: "Anzahl der Lösungen eingrenzen"
             label: "Meine Historie"
             any: "Egal"
             never: "Noch nie gelegt"
@@ -3164,7 +3165,8 @@ puzzle_picker:
             and: "und"
             times: "Mal"
         since:
-            label: "Nicht gelegt seit mehr als"
+            more_than: "länger als"
+            toggle: "Länger nicht gelöst"
             unit: "Einheit"
             units:
                 d: "Tagen"
@@ -3173,8 +3175,8 @@ puzzle_picker:
             require_solved: "Nur Puzzles, die ich schon gelegt habe"
             note: "Noch nie gelegte Puzzles sind enthalten, sofern Sie das Kästchen nicht anhaken."
         my_time:
+            toggle: "Nach meiner Zeit filtern"
             label: "Meine Zeit"
-            off: "– egal –"
             fastest: "schnellste"
             latest: "letzte"
             first: "erste"
@@ -3183,8 +3185,9 @@ puzzle_picker:
             gt: "ist über"
             note: "Nur Solo-Zeiten – Puzzles ohne Solo-Zeit passen nie."
         pieces:
+            pieces_word: "Teile"
             label: "Teile"
-            custom: "Eigener Bereich:"
+            custom: "Eigener Bereich"
             min: "von"
             max: "bis"
         brand:
@@ -3197,6 +3200,7 @@ puzzle_picker:
             rated: "Bewertet (%count%+ Legungen)"
             popular: "Beliebt (%count%+ Legungen)"
         budget:
+            toggle: "Ich habe begrenzt Zeit"
             label: "Zeitbudget"
             i_have: "Ich habe etwa"
             minutes: "Minuten"

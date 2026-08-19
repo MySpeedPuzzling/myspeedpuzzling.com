@@ -3156,6 +3156,7 @@ puzzle_picker:
             collections_note: "Nada marcado = toda tu estantería."
             collections_locked: "Elegir de colecciones concretas – para miembros."
         solved:
+            count_toggle: "Limitar el número de veces armado"
             label: "Mi historial"
             any: "Cualquiera"
             never: "Nunca armado"
@@ -3164,7 +3165,8 @@ puzzle_picker:
             and: "y"
             times: "veces"
         since:
-            label: "Sin armar desde hace más de"
+            more_than: "más de"
+            toggle: "Sin armar desde hace tiempo"
             unit: "Unidad"
             units:
                 d: "días"
@@ -3173,8 +3175,8 @@ puzzle_picker:
             require_solved: "Solo puzzles que ya he armado"
             note: "Los puzzles que nunca has armado se incluyen, salvo que marques la casilla."
         my_time:
+            toggle: "Filtrar por mi tiempo"
             label: "Mi tiempo"
-            off: "– cualquiera –"
             fastest: "más rápido"
             latest: "último"
             first: "primero"
@@ -3183,8 +3185,9 @@ puzzle_picker:
             gt: "es mayor de"
             note: "Solo tiempos en solitario – los puzzles sin tiempo en solitario nunca coinciden."
         pieces:
+            pieces_word: "piezas"
             label: "Piezas"
-            custom: "Rango personalizado:"
+            custom: "Rango personalizado"
             min: "desde"
             max: "hasta"
         brand:
@@ -3197,6 +3200,7 @@ puzzle_picker:
             rated: "Con valoración (%count%+ armados)"
             popular: "Popular (%count%+ armados)"
         budget:
+            toggle: "Tengo poco tiempo"
             label: "Tiempo disponible"
             i_have: "Tengo unos"
             minutes: "minutos"

@@ -3145,6 +3145,7 @@ puzzle_picker:
             collections_note: "何もチェックしなければ棚全体から選びます。"
             collections_locked: "特定のコレクションから選ぶ – メンバー限定。"
         solved:
+            count_toggle: "完成回数で絞り込む"
             label: "自分の履歴"
             any: "指定なし"
             never: "未完成"
@@ -3153,7 +3154,8 @@ puzzle_picker:
             and: "〜"
             times: "回"
         since:
-            label: "組んでいない期間"
+            more_than: "次の期間より前"
+            toggle: "しばらく解いていない"
             unit: "単位"
             units:
                 d: "日以上"
@@ -3162,8 +3164,8 @@ puzzle_picker:
             require_solved: "完成済みのパズルだけ"
             note: "チェックしない限り、まだ組んだことのないパズルも含まれます。"
         my_time:
+            toggle: "自分のタイムで絞り込む"
             label: "自分の"
-            off: "– 指定なし –"
             fastest: "最速タイム"
             latest: "最新タイム"
             first: "初回タイム"
@@ -3172,8 +3174,9 @@ puzzle_picker:
             gt: "が次より長い"
             note: "ソロのタイムのみ – ソロタイムのないパズルは対象外です。"
         pieces:
+            pieces_word: "ピース"
             label: "ピース数"
-            custom: "範囲を指定："
+            custom: "範囲を指定"
             min: "から"
             max: "まで"
         brand:
@@ -3186,6 +3189,7 @@ puzzle_picker:
             rated: "レーティング対象（%count%件以上）"
             popular: "人気（%count%件以上）"
         budget:
+            toggle: "時間が限られている"
             label: "使える時間"
             i_have: "だいたい"
             minutes: "分ある"

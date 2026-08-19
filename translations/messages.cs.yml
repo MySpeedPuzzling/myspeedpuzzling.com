@@ -3154,6 +3154,7 @@ puzzle_picker:
             collections_note: "Nic nezaškrtnuto = celá polička."
             collections_locked: "Výběr z konkrétních kolekcí – pro členy."
         solved:
+            count_toggle: "Omezit počet složení"
             label: "Moje historie"
             any: "Bez omezení"
             never: "Ještě neskládané"
@@ -3162,7 +3163,8 @@ puzzle_picker:
             and: "až"
             times: "krát"
         since:
-            label: "Neskládané déle než"
+            more_than: "déle než"
+            toggle: "Dlouho neskládané"
             unit: "Jednotka"
             units:
                 d: "dní"
@@ -3171,8 +3173,8 @@ puzzle_picker:
             require_solved: "Jen puzzle, která jsem už skládal/a"
             note: "Puzzle, která jste ještě neskládali, jsou zahrnuta – pokud nezaškrtnete políčko."
         my_time:
+            toggle: "Filtrovat podle mého času"
             label: "Můj čas"
-            off: "– bez omezení –"
             fastest: "nejrychlejší"
             latest: "poslední"
             first: "první"
@@ -3181,8 +3183,9 @@ puzzle_picker:
             gt: "je nad"
             note: "Jen sólo časy – puzzle bez sólo času nikdy neprojde."
         pieces:
+            pieces_word: "dílků"
             label: "Počet dílků"
-            custom: "Vlastní rozsah:"
+            custom: "Vlastní rozsah"
             min: "od"
             max: "do"
         brand:
@@ -3195,6 +3198,7 @@ puzzle_picker:
             rated: "Hodnocené (%count%+ složení)"
             popular: "Oblíbené (%count%+ složení)"
         budget:
+            toggle: "Mám omezený čas"
             label: "Kolik mám času"
             i_have: "Mám zhruba"
             minutes: "minut"

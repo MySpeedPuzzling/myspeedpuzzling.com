@@ -3443,6 +3443,7 @@ puzzle_picker:
             collections_note: "Nothing ticked = your whole shelf."
             collections_locked: "Pick from specific collections – for members."
         solved:
+            count_toggle: "Limit the number of solves"
             label: "My history"
             any: "Any"
             never: "Never solved"
@@ -3451,7 +3452,8 @@ puzzle_picker:
             and: "and"
             times: "times"
         since:
-            label: "Not solved for more than"
+            more_than: "more than"
+            toggle: "Not solved for a while"
             unit: "Unit"
             units:
                 d: "days"
@@ -3460,8 +3462,8 @@ puzzle_picker:
             require_solved: "Only puzzles I have solved before"
             note: "Puzzles you have never solved are included unless you tick the box."
         my_time:
+            toggle: "Filter by my time"
             label: "My time"
-            off: "– any –"
             fastest: "fastest"
             latest: "latest"
             first: "first"
@@ -3470,8 +3472,9 @@ puzzle_picker:
             gt: "is over"
             note: "Solo times only – puzzles without a solo time never match."
         pieces:
+            pieces_word: "pieces"
             label: "Pieces"
-            custom: "Custom range:"
+            custom: "Custom range"
             min: "from"
             max: "to"
         brand:
@@ -3484,6 +3487,7 @@ puzzle_picker:
             rated: "Rated (%count%+ solves)"
             popular: "Popular (%count%+ solves)"
         budget:
+            toggle: "I have limited time"
             label: "Time budget"
             i_have: "I have about"
             minutes: "minutes"

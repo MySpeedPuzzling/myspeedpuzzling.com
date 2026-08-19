@@ -43,6 +43,7 @@
                         </div>
                     {% endif %}
 
+                    {# 1. Where to pick from #}
                     <fieldset class="mb-3 {{ is_guest ? 'opacity-50' }}" data-picker-group="personal" {{ is_guest ? 'disabled' }}>
                         <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.source.label'|trans }}</legend>
                         <div class="d-flex flex-wrap align-items-center gap-1">
@@ -90,67 +91,7 @@
                         </div>
                     </fieldset>
 
-                    <fieldset class="mb-3 {{ is_guest ? 'opacity-50' }}" data-picker-group="personal" {{ is_guest ? 'disabled' }}>
-                        <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.solved.label'|trans }}</legend>
-                        <div class="d-flex flex-wrap align-items-center gap-1">
-                            {% for option in ['any', 'never', 'before'] %}
-                                <div class="form-check form-option form-check-inline mb-0">
-                                    <input type="radio" class="form-check-input" name="solved" id="picker-solved-{{ option }}" value="{{ option }}" {{ criteria.solved.value == option ? 'checked' }}>
-                                    <label class="form-option-label" for="picker-solved-{{ option }}">{{ ('puzzle_picker.filters.solved.' ~ option)|trans }}</label>
-                                </div>
-                            {% endfor %}
-                        </div>
-
-                        {# Solve-count range: refines the radio bound by bound (never = 0-0, before = 1+) #}
-                        {% set show_count_min = criteria.solved.value == 'any' and criteria.solvedMin > 0 %}
-                        {% set show_count_max = criteria.solvedMax is not null and criteria.solved.value != 'never' %}
-                        <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
-                            <label class="fs-sm text-muted mb-0" for="picker-solved-min">{{ 'puzzle_picker.filters.solved.between'|trans }}</label>
-                            <input type="number" class="form-control form-control-sm" style="max-width: 5rem;" id="picker-solved-min" name="solved_min" min="0" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_SOLVE_COUNT') }}" step="1" inputmode="numeric" value="{{ show_count_min ? criteria.solvedMin : '' }}">
-                            <label class="fs-sm text-muted mb-0" for="picker-solved-max">{{ 'puzzle_picker.filters.solved.and'|trans }}</label>
-                            <input type="number" class="form-control form-control-sm" style="max-width: 5rem;" id="picker-solved-max" name="solved_max" min="0" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_SOLVE_COUNT') }}" step="1" inputmode="numeric" value="{{ show_count_max ? criteria.solvedMax : '' }}">
-                            <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.solved.times'|trans }}</span>
-                        </div>
-
-                        {# Last solved more than N days / weeks / months ago - never-solved included by default #}
-                        <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
-                            <label class="fs-sm text-muted mb-0" for="picker-since">{{ 'puzzle_picker.filters.since.label'|trans }}</label>
-                            <input type="number" class="form-control form-control-sm" style="max-width: 5rem;" id="picker-since" name="since" min="1" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_SINCE_AMOUNT') }}" step="1" inputmode="numeric" placeholder="6" value="{{ criteria.sinceAmount ?? '' }}">
-                            <label class="visually-hidden" for="picker-since-unit">{{ 'puzzle_picker.filters.since.unit'|trans }}</label>
-                            <select class="form-select form-select-sm" style="max-width: 8rem;" id="picker-since-unit" name="since_unit">
-                                {% for unit in ['d', 'w', 'm'] %}
-                                    <option value="{{ unit }}" {{ (criteria.sinceAmount is not null ? criteria.sinceUnit.value : 'm') == unit ? 'selected' }}>{{ ('puzzle_picker.filters.since.units.' ~ unit)|trans }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-check mt-1 mb-0">
-                            <input class="form-check-input" type="checkbox" name="since_require_solved" value="1" id="picker-since-require-solved" {{ criteria.sinceRequireSolved ? 'checked' }}>
-                            <label class="form-check-label fs-sm" for="picker-since-require-solved">{{ 'puzzle_picker.filters.since.require_solved'|trans }}</label>
-                        </div>
-                        <div class="form-text">{{ 'puzzle_picker.filters.since.note'|trans }}</div>
-
-                        {# My fastest / latest / first time is under / over N minutes (solo times only) #}
-                        <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
-                            <label class="fs-sm text-muted mb-0" for="picker-my-time">{{ 'puzzle_picker.filters.my_time.label'|trans }}</label>
-                            <select class="form-select form-select-sm" style="max-width: 9rem;" id="picker-my-time" name="my_time">
-                                <option value="" {{ criteria.myTime is null ? 'selected' }}>{{ 'puzzle_picker.filters.my_time.off'|trans }}</option>
-                                {% for metric in ['fastest', 'latest', 'first'] %}
-                                    <option value="{{ metric }}" {{ criteria.myTime is not null and criteria.myTime.value == metric ? 'selected' }}>{{ ('puzzle_picker.filters.my_time.' ~ metric)|trans }}</option>
-                                {% endfor %}
-                            </select>
-                            <label class="visually-hidden" for="picker-my-time-op">{{ 'puzzle_picker.filters.my_time.op_label'|trans }}</label>
-                            <select class="form-select form-select-sm" style="max-width: 8rem;" id="picker-my-time-op" name="my_time_op">
-                                {% for op in ['lt', 'gt'] %}
-                                    <option value="{{ op }}" {{ criteria.myTimeOperator.value == op ? 'selected' }}>{{ ('puzzle_picker.filters.my_time.' ~ op)|trans }}</option>
-                                {% endfor %}
-                            </select>
-                            <label class="visually-hidden" for="picker-my-time-minutes">{{ 'puzzle_picker.filters.budget.minutes'|trans }}</label>
-                            <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-my-time-minutes" name="my_time_minutes" min="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MIN_MY_TIME_MINUTES') }}" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_MY_TIME_MINUTES') }}" step="1" inputmode="numeric" placeholder="60" value="{{ criteria.myTimeMinutes ?? '' }}">
-                            <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.budget.minutes'|trans }}</span>
-                        </div>
-                        <div class="form-text">{{ 'puzzle_picker.filters.my_time.note'|trans }}</div>
-                    </fieldset>
-
+                    {# 2. Pieces #}
                     <fieldset class="mb-3">
                         <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.pieces.label'|trans }}</legend>
                         <div class="d-flex flex-wrap align-items-center gap-1">
@@ -162,21 +103,28 @@
                                 </div>
                             {% endfor %}
                         </div>
-                        <div class="d-flex align-items-center gap-2 mt-2">
-                            <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.pieces.custom'|trans }}</span>
-                            <label class="visually-hidden" for="picker-pieces-min">{{ 'puzzle_picker.filters.pieces.min'|trans }}</label>
-                            <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-pieces-min" name="pieces_min" min="1" step="1" inputmode="numeric" placeholder="{{ 'puzzle_picker.filters.pieces.min'|trans }}" value="{{ custom_range is not null and custom_range[0] is not null ? custom_range[0] : '' }}">
-                            <span class="text-muted">–</span>
-                            <label class="visually-hidden" for="picker-pieces-max">{{ 'puzzle_picker.filters.pieces.max'|trans }}</label>
-                            <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-pieces-max" name="pieces_max" min="1" step="1" inputmode="numeric" placeholder="{{ 'puzzle_picker.filters.pieces.max'|trans }}" value="{{ custom_range is not null and custom_range[1] is not null ? custom_range[1] : '' }}">
+                        <div data-controller="filter-toggle" class="mt-2">
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" role="switch" id="picker-pieces-custom-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ custom_range is not null ? 'checked' }}>
+                                <label class="form-check-label fs-sm" for="picker-pieces-custom-on">{{ 'puzzle_picker.filters.pieces.custom'|trans }}</label>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 ms-4 puzzle-picker-toggle-panel" data-filter-toggle-target="panel">
+                                <label class="visually-hidden" for="picker-pieces-min">{{ 'puzzle_picker.filters.pieces.min'|trans }}</label>
+                                <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-pieces-min" name="pieces_min" min="1" step="1" inputmode="numeric" placeholder="{{ 'puzzle_picker.filters.pieces.min'|trans }}" data-filter-toggle-target="field" value="{{ custom_range is not null and custom_range[0] is not null ? custom_range[0] : '' }}">
+                                <span class="text-muted">–</span>
+                                <label class="visually-hidden" for="picker-pieces-max">{{ 'puzzle_picker.filters.pieces.max'|trans }}</label>
+                                <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-pieces-max" name="pieces_max" min="1" step="1" inputmode="numeric" placeholder="{{ 'puzzle_picker.filters.pieces.max'|trans }}" data-filter-toggle-target="field" value="{{ custom_range is not null and custom_range[1] is not null ? custom_range[1] : '' }}">
+                                <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.pieces.pieces_word'|trans }}</span>
+                            </div>
                         </div>
                     </fieldset>
 
+                    {# 3. Brand #}
                     <fieldset class="mb-3">
                         <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.brand.label'|trans }}</legend>
                         {# Option list is NOT rendered here (hundreds of brands) - tomselect-sync fetches
                            it from the cached filter-options endpoint on first focus. Only the currently
-                           selected brands are pre-rendered. #}
+                           selected brands are pre-rendered (with their logo). #}
                         <select
                             id="picker-brand"
                             class="form-select"
@@ -193,7 +141,90 @@
                         </select>
                     </fieldset>
 
-                    {# Community results: how many solo solves the puzzle has - free, from puzzle_statistics #}
+                    {# 4. My history #}
+                    <fieldset class="mb-3 {{ is_guest ? 'opacity-50' }}" data-picker-group="personal" {{ is_guest ? 'disabled' }}>
+                        <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.solved.label'|trans }}</legend>
+                        <div class="d-flex flex-wrap align-items-center gap-1">
+                            {% for option in ['any', 'never', 'before'] %}
+                                <div class="form-check form-option form-check-inline mb-0">
+                                    <input type="radio" class="form-check-input" name="solved" id="picker-solved-{{ option }}" value="{{ option }}" {{ criteria.solved.value == option ? 'checked' }}>
+                                    <label class="form-option-label" for="picker-solved-{{ option }}">{{ ('puzzle_picker.filters.solved.' ~ option)|trans }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        {# Solve-count range: refines the radio bound by bound (never = 0-0, before = 1+) #}
+                        {% set show_count_min = criteria.solved.value == 'any' and criteria.solvedMin > 0 %}
+                        {% set show_count_max = criteria.solvedMax is not null and criteria.solved.value != 'never' %}
+                        <div data-controller="filter-toggle" class="mt-2">
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" role="switch" id="picker-solved-count-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ show_count_min or show_count_max ? 'checked' }}>
+                                <label class="form-check-label fs-sm" for="picker-solved-count-on">{{ 'puzzle_picker.filters.solved.count_toggle'|trans }}</label>
+                            </div>
+                            <div class="d-flex flex-wrap align-items-center gap-2 ms-4 puzzle-picker-toggle-panel" data-filter-toggle-target="panel">
+                                <label class="fs-sm text-muted mb-0" for="picker-solved-min">{{ 'puzzle_picker.filters.solved.between'|trans }}</label>
+                                <input type="number" class="form-control form-control-sm" style="max-width: 5rem;" id="picker-solved-min" name="solved_min" min="0" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_SOLVE_COUNT') }}" step="1" inputmode="numeric" data-filter-toggle-target="field" data-filter-toggle-default="1" value="{{ show_count_min ? criteria.solvedMin : '' }}">
+                                <label class="fs-sm text-muted mb-0" for="picker-solved-max">{{ 'puzzle_picker.filters.solved.and'|trans }}</label>
+                                <input type="number" class="form-control form-control-sm" style="max-width: 5rem;" id="picker-solved-max" name="solved_max" min="0" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_SOLVE_COUNT') }}" step="1" inputmode="numeric" data-filter-toggle-target="field" data-filter-toggle-default="3" value="{{ show_count_max ? criteria.solvedMax : '' }}">
+                                <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.solved.times'|trans }}</span>
+                            </div>
+                        </div>
+
+                        {# Last solved more than N days / weeks / months ago - never-solved included by default #}
+                        <div data-controller="filter-toggle" class="mt-2">
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" role="switch" id="picker-since-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ criteria.sinceAmount is not null ? 'checked' }}>
+                                <label class="form-check-label fs-sm" for="picker-since-on">{{ 'puzzle_picker.filters.since.toggle'|trans }}</label>
+                            </div>
+                            <div class="ms-4 puzzle-picker-toggle-panel" data-filter-toggle-target="panel">
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <label class="fs-sm text-muted mb-0" for="picker-since">{{ 'puzzle_picker.filters.since.more_than'|trans }}</label>
+                                    <input type="number" class="form-control form-control-sm" style="max-width: 5rem;" id="picker-since" name="since" min="1" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_SINCE_AMOUNT') }}" step="1" inputmode="numeric" data-filter-toggle-target="field" data-filter-toggle-default="6" value="{{ criteria.sinceAmount ?? '' }}">
+                                    <label class="visually-hidden" for="picker-since-unit">{{ 'puzzle_picker.filters.since.unit'|trans }}</label>
+                                    <select class="form-select form-select-sm" style="max-width: 8rem;" id="picker-since-unit" name="since_unit" data-filter-toggle-target="field">
+                                        {% for unit in ['d', 'w', 'm'] %}
+                                            <option value="{{ unit }}" {{ (criteria.sinceAmount is not null ? criteria.sinceUnit.value : 'm') == unit ? 'selected' }}>{{ ('puzzle_picker.filters.since.units.' ~ unit)|trans }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-check mt-1 mb-0">
+                                    <input class="form-check-input" type="checkbox" name="since_require_solved" value="1" id="picker-since-require-solved" data-filter-toggle-target="field" {{ criteria.sinceRequireSolved ? 'checked' }}>
+                                    <label class="form-check-label fs-sm" for="picker-since-require-solved">{{ 'puzzle_picker.filters.since.require_solved'|trans }}</label>
+                                </div>
+                                <div class="form-text">{{ 'puzzle_picker.filters.since.note'|trans }}</div>
+                            </div>
+                        </div>
+
+                        {# My fastest / latest / first time is under / over N minutes (solo times only) #}
+                        <div data-controller="filter-toggle" class="mt-2">
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" role="switch" id="picker-my-time-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ criteria.myTime is not null ? 'checked' }}>
+                                <label class="form-check-label fs-sm" for="picker-my-time-on">{{ 'puzzle_picker.filters.my_time.toggle'|trans }}</label>
+                            </div>
+                            <div class="ms-4 puzzle-picker-toggle-panel" data-filter-toggle-target="panel">
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <label class="fs-sm text-muted mb-0" for="picker-my-time">{{ 'puzzle_picker.filters.my_time.label'|trans }}</label>
+                                    <select class="form-select form-select-sm" style="max-width: 9rem;" id="picker-my-time" name="my_time" data-filter-toggle-target="field">
+                                        {% for metric in ['fastest', 'latest', 'first'] %}
+                                            <option value="{{ metric }}" {{ (criteria.myTime is not null ? criteria.myTime.value : 'fastest') == metric ? 'selected' }}>{{ ('puzzle_picker.filters.my_time.' ~ metric)|trans }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <label class="visually-hidden" for="picker-my-time-op">{{ 'puzzle_picker.filters.my_time.op_label'|trans }}</label>
+                                    <select class="form-select form-select-sm" style="max-width: 8rem;" id="picker-my-time-op" name="my_time_op" data-filter-toggle-target="field">
+                                        {% for op in ['lt', 'gt'] %}
+                                            <option value="{{ op }}" {{ criteria.myTimeOperator.value == op ? 'selected' }}>{{ ('puzzle_picker.filters.my_time.' ~ op)|trans }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <label class="visually-hidden" for="picker-my-time-minutes">{{ 'puzzle_picker.filters.budget.minutes'|trans }}</label>
+                                    <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-my-time-minutes" name="my_time_minutes" min="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MIN_MY_TIME_MINUTES') }}" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_MY_TIME_MINUTES') }}" step="1" inputmode="numeric" data-filter-toggle-target="field" data-filter-toggle-default="60" value="{{ criteria.myTimeMinutes ?? '' }}">
+                                    <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.budget.minutes'|trans }}</span>
+                                </div>
+                                <div class="form-text">{{ 'puzzle_picker.filters.my_time.note'|trans }}</div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    {# 5. Community results: how many solo solves the puzzle has - free, from puzzle_statistics #}
                     <fieldset class="mb-3">
                         <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.community.label'|trans }}</legend>
                         <div class="d-flex flex-wrap align-items-center gap-1">
@@ -206,25 +237,31 @@
                         </div>
                     </fieldset>
 
-                    {# Time budget - free for everyone, the engine differs: my prediction for members
+                    {# 6. Time budget - free for everyone, the engine differs: my prediction for members
                        with predictions, the community solo average for everybody else #}
-                    <fieldset class="mb-3">
+                    <fieldset class="mb-3" data-controller="filter-toggle">
                         <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.budget.label'|trans }}</legend>
-                        <div class="d-flex align-items-center gap-2">
-                            <label class="fs-sm text-muted mb-0" for="picker-predicted-max">{{ 'puzzle_picker.filters.budget.i_have'|trans }}</label>
-                            <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-predicted-max" name="predicted_max" min="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MIN_PREDICTED_MINUTES') }}" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_PREDICTED_MINUTES') }}" step="5" inputmode="numeric" placeholder="60" value="{{ criteria.predictedMaxMinutes ?? '' }}">
-                            <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.budget.minutes'|trans }}</span>
+                        <div class="form-check form-switch mb-1">
+                            <input class="form-check-input" type="checkbox" role="switch" id="picker-budget-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ criteria.predictedMaxMinutes is not null ? 'checked' }}>
+                            <label class="form-check-label fs-sm" for="picker-budget-on">{{ 'puzzle_picker.filters.budget.toggle'|trans }}</label>
                         </div>
-                        <div class="form-text puzzle-picker-budget-engine">
-                            {% if criteria.usesPersonalPrediction %}
-                                <i class="bi bi-person-check me-1"></i>{{ 'puzzle_picker.filters.budget.engine_personal'|trans }}
-                            {% else %}
-                                <i class="bi bi-people me-1"></i>{{ 'puzzle_picker.filters.budget.engine_community'|trans }}
-                            {% endif %}
+                        <div class="ms-4 puzzle-picker-toggle-panel" data-filter-toggle-target="panel">
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="fs-sm text-muted mb-0" for="picker-predicted-max">{{ 'puzzle_picker.filters.budget.i_have'|trans }}</label>
+                                <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-predicted-max" name="predicted_max" min="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MIN_PREDICTED_MINUTES') }}" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_PREDICTED_MINUTES') }}" step="5" inputmode="numeric" data-filter-toggle-target="field" data-filter-toggle-default="60" value="{{ criteria.predictedMaxMinutes ?? '' }}">
+                                <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.budget.minutes'|trans }}</span>
+                            </div>
+                            <div class="form-text puzzle-picker-budget-engine">
+                                {% if criteria.usesPersonalPrediction %}
+                                    <i class="bi bi-person-check me-1"></i>{{ 'puzzle_picker.filters.budget.engine_personal'|trans }}
+                                {% else %}
+                                    <i class="bi bi-people me-1"></i>{{ 'puzzle_picker.filters.budget.engine_community'|trans }}
+                                {% endif %}
+                            </div>
                         </div>
                     </fieldset>
 
-                    {# Insights (members): one group, one lock. Difficulty needs membership; the
+                    {# 7. Insights (members): one group, one lock. Difficulty needs membership; the
                        prediction controls additionally need the player not to have opted out. #}
                     <div class="puzzle-picker-insights-filters {{ not is_member ? 'puzzle-picker-insights-locked' }}">
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
@@ -254,20 +291,22 @@
                             <div class="form-text">{{ 'puzzle_picker.filters.insights.difficulty_note'|trans }}</div>
                         </fieldset>
 
-                        <fieldset class="mb-3 {{ not predictions_on ? 'opacity-50' }}" data-picker-group="predictions" {{ not predictions_on ? 'disabled' }}>
+                        <fieldset class="mb-3 {{ not predictions_on ? 'opacity-50' }}" data-picker-group="predictions" {{ not predictions_on ? 'disabled' }} data-controller="filter-toggle">
                             <legend class="fs-sm text-muted mb-1">{{ 'puzzle_picker.filters.insights.gap.label'|trans }}</legend>
                             <div class="d-flex flex-wrap align-items-center gap-1">
                                 {% for option in ['any', 'slower', 'faster'] %}
                                     <div class="form-check form-option form-check-inline mb-0">
-                                        <input type="radio" class="form-check-input" name="gap" id="picker-gap-{{ option }}" value="{{ option == 'any' ? '' : option }}" {{ (option == 'any' ? criteria.gap is null : (criteria.gap is not null and criteria.gap.value == option)) ? 'checked' }}>
+                                        <input type="radio" class="form-check-input" name="gap" id="picker-gap-{{ option }}" value="{{ option == 'any' ? '' : option }}" data-filter-toggle-target="switch" data-action="filter-toggle#update" {% if option == 'any' %}data-filter-toggle-opens="false"{% endif %} {{ (option == 'any' ? criteria.gap is null : (criteria.gap is not null and criteria.gap.value == option)) ? 'checked' }}>
                                         <label class="form-option-label" for="picker-gap-{{ option }}">{{ ('puzzle_picker.filters.insights.gap.' ~ option)|trans }}</label>
                                     </div>
                                 {% endfor %}
                             </div>
-                            <div class="d-flex align-items-center gap-2 mt-2">
-                                <label class="fs-sm text-muted mb-0" for="picker-gap-min">{{ 'puzzle_picker.filters.insights.gap.by_at_least'|trans }}</label>
-                                <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-gap-min" name="gap_min" min="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MIN_GAP_MINUTES') }}" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_GAP_MINUTES') }}" step="1" inputmode="numeric" placeholder="1" value="{{ criteria.gapMinMinutes ?? '' }}">
-                                <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.budget.minutes'|trans }}</span>
+                            <div class="ms-1 mt-2 puzzle-picker-toggle-panel" data-filter-toggle-target="panel">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="fs-sm text-muted mb-0" for="picker-gap-min">{{ 'puzzle_picker.filters.insights.gap.by_at_least'|trans }}</label>
+                                    <input type="number" class="form-control form-control-sm" style="max-width: 6rem;" id="picker-gap-min" name="gap_min" min="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MIN_GAP_MINUTES') }}" max="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::MAX_GAP_MINUTES') }}" step="1" inputmode="numeric" data-filter-toggle-target="field" data-filter-toggle-default="1" value="{{ criteria.gapMinMinutes ?? '' }}">
+                                    <span class="fs-sm text-muted">{{ 'puzzle_picker.filters.budget.minutes'|trans }}</span>
+                                </div>
                             </div>
                             <div class="form-text">{{ 'puzzle_picker.filters.insights.gap.note'|trans }}</div>
                         </fieldset>

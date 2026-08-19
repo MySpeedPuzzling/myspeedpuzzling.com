@@ -3158,6 +3158,7 @@ puzzle_picker:
             collections_note: "Rien de coché = toute votre étagère."
             collections_locked: "Choisir dans des collections précises – pour les membres."
         solved:
+            count_toggle: "Limiter le nombre de fois fait"
             label: "Mon historique"
             any: "Peu importe"
             never: "Jamais fait"
@@ -3166,7 +3167,8 @@ puzzle_picker:
             and: "et"
             times: "fois"
         since:
-            label: "Pas fait depuis plus de"
+            more_than: "depuis plus de"
+            toggle: "Pas fait depuis longtemps"
             unit: "Unité"
             units:
                 d: "jours"
@@ -3175,8 +3177,8 @@ puzzle_picker:
             require_solved: "Seulement les puzzles déjà faits"
             note: "Les puzzles jamais faits sont inclus, sauf si vous cochez la case."
         my_time:
+            toggle: "Filtrer par mon temps"
             label: "Mon temps"
-            off: "– peu importe –"
             fastest: "le meilleur"
             latest: "le dernier"
             first: "le premier"
@@ -3185,8 +3187,9 @@ puzzle_picker:
             gt: "est supérieur à"
             note: "Temps en solo uniquement – un puzzle sans temps en solo ne correspond jamais."
         pieces:
+            pieces_word: "pièces"
             label: "Pièces"
-            custom: "Plage personnalisée :"
+            custom: "Plage personnalisée"
             min: "de"
             max: "à"
         brand:
@@ -3199,6 +3202,7 @@ puzzle_picker:
             rated: "Coté (%count%+ réalisations)"
             popular: "Populaire (%count%+ réalisations)"
         budget:
+            toggle: "J'ai peu de temps"
             label: "Temps disponible"
             i_have: "J'ai environ"
             minutes: "minutes"

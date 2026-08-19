@@ -41,7 +41,7 @@ final readonly class PlayerLendBorrowResponseProvider implements ProviderInterfa
             : [];
 
         return new LendBorrowResponse(
-            player_id: $playerId,
+            playerId: $playerId,
             count: count($items),
             items: $items,
         );

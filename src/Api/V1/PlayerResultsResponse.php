@@ -44,7 +44,7 @@ final class PlayerResultsResponse
      * @param array<PlayerResultResponse> $results
      */
     public function __construct(
-        public string $player_id,
+        public string $playerId,
         public string $type,
         public int $count,
         array $results,

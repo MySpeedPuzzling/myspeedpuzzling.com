@@ -13,14 +13,14 @@ final class CompetitionListItemResponse
         public null|string $slug,
         public null|string $logo,
         public null|string $location,
-        public null|string $country_code,
-        public bool $is_online,
-        public null|string $date_from,
-        public null|string $date_to,
+        public null|string $countryCode,
+        public bool $isOnline,
+        public null|string $dateFrom,
+        public null|string $dateTo,
         public null|string $status,
         public null|string $link,
-        public null|string $registration_link,
-        public null|string $results_link,
+        public null|string $registrationLink,
+        public null|string $resultsLink,
     ) {
     }
 }

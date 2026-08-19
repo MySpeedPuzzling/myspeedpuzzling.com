@@ -25,6 +25,17 @@
             <property name="searchAnnotations" value="true"/>
         </properties>
     </rule>
+    <!-- The API DTOs (src/Api) follow the camelCase standard like the rest of the code; the
+         snake_case wire format (puzzle_id, is_private, ...) is produced by the name converter in
+         config/packages/api_platform.php + ApiDtoNormalizer, never by property names. Scoped to
+         src/Api because elsewhere the sniffs would only flag third-party members (Stripe objects) and
+         fixture variables; promoted constructor properties are parameters to the sniff, hence both. -->
+    <rule ref="Squiz.NamingConventions.ValidVariableName.NotCamelCaps">
+        <include-pattern>src/Api/</include-pattern>
+    </rule>
+    <rule ref="Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps">
+        <include-pattern>src/Api/</include-pattern>
+    </rule>
     <rule ref="SlevomatCodingStandard.Namespaces.UseFromSameNamespace"/>
     <rule ref="SlevomatCodingStandard.PHP.UselessSemicolon"/>
     <rule ref="SlevomatCodingStandard.Arrays.TrailingArrayComma"/>

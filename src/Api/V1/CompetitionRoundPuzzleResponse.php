@@ -9,9 +9,9 @@ final class CompetitionRoundPuzzleResponse
     public function __construct(
         public string $id,
         public string $name,
-        public int $pieces_count,
+        public int $piecesCount,
         public null|string $image,
-        public null|string $manufacturer_name,
+        public null|string $manufacturerName,
     ) {
     }
 }

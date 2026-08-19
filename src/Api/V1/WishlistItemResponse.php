@@ -17,13 +17,13 @@ namespace SpeedPuzzling\Web\Api\V1;
 final class WishlistItemResponse
 {
     public function __construct(
-        public string $wishlist_item_id,
-        public string $puzzle_id,
-        public string $puzzle_name,
-        public null|string $manufacturer_name,
-        public int $pieces_count,
+        public string $wishlistItemId,
+        public string $puzzleId,
+        public string $puzzleName,
+        public null|string $manufacturerName,
+        public int $piecesCount,
         public null|string $image,
-        public string $added_at,
+        public string $addedAt,
         public PuzzleStatisticsResponse $statistics,
         public null|PuzzleDifficultyResponse $difficulty,
         public null|TimePredictionResponse $prediction,

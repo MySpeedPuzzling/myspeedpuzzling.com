@@ -32,7 +32,7 @@ final readonly class MyWishlistResponseProvider implements ProviderInterface
         $items = $this->itemsFactory->wishlist($playerId);
 
         return new WishlistResponse(
-            player_id: $playerId,
+            playerId: $playerId,
             count: count($items),
             items: $items,
         );

@@ -49,7 +49,7 @@ final readonly class AddCollectionItemProcessor implements ProcessorInterface
         $dbCollectionId = $collectionId === 'default' ? null : $collectionId;
 
         // Validate here so an invalid/unknown id surfaces as 404 instead of a wrapped 500 from the handler
-        $this->puzzleRepository->get($data->puzzle_id);
+        $this->puzzleRepository->get($data->puzzleId);
 
         if ($dbCollectionId !== null) {
             $collection = $this->collectionRepository->get($dbCollectionId);
@@ -68,13 +68,13 @@ final readonly class AddCollectionItemProcessor implements ProcessorInterface
         $this->messageBus->dispatch(
             new AddPuzzleToCollection(
                 playerId: $playerId,
-                puzzleId: $data->puzzle_id,
+                puzzleId: $data->puzzleId,
                 collectionId: $dbCollectionId,
                 comment: $data->comment,
             ),
         );
 
-        $item = $this->getCollectionItems->getByPuzzleIdAndPlayerId($data->puzzle_id, $playerId, $dbCollectionId);
+        $item = $this->getCollectionItems->getByPuzzleIdAndPlayerId($data->puzzleId, $playerId, $dbCollectionId);
 
         if ($item === null) {
             throw new \RuntimeException('Collection item was not found after adding it to the collection.');
@@ -84,14 +84,14 @@ final readonly class AddCollectionItemProcessor implements ProcessorInterface
         $insights = $this->puzzleResponseFactory->insightsFor([$item->puzzleId], solvesOfPlayerId: $playerId, includePrediction: true);
 
         return new CollectionItemResponse(
-            collection_item_id: $item->collectionItemId,
-            puzzle_id: $item->puzzleId,
-            puzzle_name: $item->puzzleName,
-            manufacturer_name: $item->manufacturerName,
-            pieces_count: $item->piecesCount,
+            collectionItemId: $item->collectionItemId,
+            puzzleId: $item->puzzleId,
+            puzzleName: $item->puzzleName,
+            manufacturerName: $item->manufacturerName,
+            piecesCount: $item->piecesCount,
             image: $item->image,
             comment: $item->comment,
-            added_at: $item->addedAt->format('c'),
+            addedAt: $item->addedAt->format('c'),
             statistics: $insights->statistics($item->puzzleId),
             difficulty: $insights->difficulty($item->puzzleId),
             prediction: $insights->prediction($item->puzzleId),

@@ -55,7 +55,7 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
             throw new AccessDeniedHttpException('Player account has no linked user login.');
         }
 
-        $finishedAt = $data->finished_at !== null ? new DateTimeImmutable($data->finished_at) : null;
+        $finishedAt = $data->finishedAt !== null ? new DateTimeImmutable($data->finishedAt) : null;
 
         $this->messageBus->dispatch(
             new EditPuzzleSolvingTime(
@@ -64,20 +64,20 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
                 competitionId: null,
                 time: $data->time,
                 comment: $data->comment,
-                groupPlayers: $data->group_players,
+                groupPlayers: $data->groupPlayers,
                 finishedAt: $finishedAt,
                 finishedPuzzlesPhoto: null,
-                firstAttempt: $data->first_attempt,
+                firstAttempt: $data->firstAttempt,
                 unboxed: $data->unboxed,
             ),
         );
 
         return new SolvingTimeResponse(
-            time_id: $timeId,
-            puzzle_id: $solvingTime->puzzle->id->toString(),
-            time_seconds: null,
-            finished_at: $finishedAt?->format('c'),
-            first_attempt: $data->first_attempt,
+            timeId: $timeId,
+            puzzleId: $solvingTime->puzzle->id->toString(),
+            timeSeconds: null,
+            finishedAt: $finishedAt?->format('c'),
+            firstAttempt: $data->firstAttempt,
             unboxed: $data->unboxed,
             comment: $data->comment,
         );

@@ -13,8 +13,8 @@ namespace SpeedPuzzling\Web\Api\V1;
 final class LibraryLendBorrowSectionResponse
 {
     public function __construct(
-        public int $lent_count,
-        public int $borrowed_count,
+        public int $lentCount,
+        public int $borrowedCount,
         public string $visibility,
     ) {
     }

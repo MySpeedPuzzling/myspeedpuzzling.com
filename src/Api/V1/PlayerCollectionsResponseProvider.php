@@ -29,7 +29,7 @@ final readonly class PlayerCollectionsResponseProvider implements ProviderInterf
 
         if ($profile->isPrivate) {
             return new PlayerCollectionsResponse(
-                player_id: $playerId,
+                playerId: $playerId,
                 count: 0,
                 collections: [],
             );
@@ -39,7 +39,7 @@ final readonly class PlayerCollectionsResponseProvider implements ProviderInterf
 
         $responses = array_map(
             static fn($collection) => new CollectionResponse(
-                collection_id: $collection->collectionId ?? 'default',
+                collectionId: $collection->collectionId ?? 'default',
                 name: $collection->name,
                 description: $collection->description,
                 visibility: $collection->visibility->value,
@@ -48,7 +48,7 @@ final readonly class PlayerCollectionsResponseProvider implements ProviderInterf
         );
 
         return new PlayerCollectionsResponse(
-            player_id: $playerId,
+            playerId: $playerId,
             count: count($responses),
             collections: $responses,
         );

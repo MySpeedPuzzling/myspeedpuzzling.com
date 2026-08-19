@@ -60,7 +60,7 @@ final class LendBorrowResponse
      * @param array<LentPuzzleResponse> $items
      */
     public function __construct(
-        public string $player_id,
+        public string $playerId,
         public int $count,
         array $items,
     ) {

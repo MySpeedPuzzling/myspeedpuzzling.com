@@ -415,6 +415,16 @@ Full policy page at `/en/fair-use-policy` with 10 sections: welcome, rate limits
 
 Configured in `config/packages/nelmio_cors.php` with `allow_origin: ['*']` globally.
 
+## Conventions: camelCase PHP, snake_case JSON
+
+The wire format of the API is snake_case (`puzzle_id`, `is_private`, `predicted_seconds`, ...) and is a contract. The PHP DTOs in `src/Api/V1` use the project's camelCase standard (`$puzzleId`) — the mapping is automatic in both directions:
+
+- `config/packages/api_platform.php` sets `name_converter: serializer.name_converter.camel_case_to_snake_case`, which API Platform applies to the resources it serializes, to request inputs (`puzzle_id` → `$puzzleId`), to the OpenAPI schema and to the `propertyPath` of validation violations;
+- `src/Services/Api/ApiDtoNormalizer.php` applies the same converter to the **nested** DTOs (statistics groups, cards inside a list, rating entries, ...), which the framework serializer would otherwise emit camelCase — scoped to `SpeedPuzzling\Web\Api\*` non-resource classes so nothing else in the application changes;
+- `phpcs.xml` enforces camelCase in `src/Api/` (`Squiz.NamingConventions.ValidVariableName`), so a snake_case property cannot come back.
+
+Adding a field therefore means writing it in camelCase; the JSON key follows. The 2026-08-19 migration was verified by a byte-identical OpenAPI export before/after and the full API test suite (which asserts JSON keys).
+
 ## Deprecated: V0 Legacy API
 
 > **Deprecated** — Do not develop further. Kept for backward compatibility only.

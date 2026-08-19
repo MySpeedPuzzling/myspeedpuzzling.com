@@ -52,20 +52,20 @@ final readonly class MyResultsResponseProvider implements ProviderInterface
         );
 
         return new MyResultsResponse(
-            player_id: $playerId,
+            playerId: $playerId,
             type: $type,
             count: count($results),
             results: array_map(
                 static fn(SolvedPuzzle $puzzle) => new PlayerResultResponse(
-                    time_id: $puzzle->timeId,
-                    puzzle_id: $puzzle->puzzleId,
-                    puzzle_name: $puzzle->puzzleName,
-                    manufacturer_name: $puzzle->manufacturerName,
-                    pieces_count: $puzzle->piecesCount,
-                    time_seconds: $puzzle->time,
-                    finished_at: $puzzle->finishedAt?->format('c'),
-                    first_attempt: $puzzle->firstAttempt,
-                    puzzle_image: $puzzle->puzzleImage,
+                    timeId: $puzzle->timeId,
+                    puzzleId: $puzzle->puzzleId,
+                    puzzleName: $puzzle->puzzleName,
+                    manufacturerName: $puzzle->manufacturerName,
+                    piecesCount: $puzzle->piecesCount,
+                    timeSeconds: $puzzle->time,
+                    finishedAt: $puzzle->finishedAt?->format('c'),
+                    firstAttempt: $puzzle->firstAttempt,
+                    puzzleImage: $puzzle->puzzleImage,
                     comment: $puzzle->comment,
                     statistics: $insights->statistics($puzzle->puzzleId),
                     difficulty: $insights->difficulty($puzzle->puzzleId),

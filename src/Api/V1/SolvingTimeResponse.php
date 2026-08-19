@@ -7,14 +7,14 @@ namespace SpeedPuzzling\Web\Api\V1;
 final class SolvingTimeResponse
 {
     public function __construct(
-        public string $time_id,
-        public string $puzzle_id,
-        public null|int $time_seconds,
-        public null|string $finished_at,
-        public bool $first_attempt,
+        public string $timeId,
+        public string $puzzleId,
+        public null|int $timeSeconds,
+        public null|string $finishedAt,
+        public bool $firstAttempt,
         public bool $unboxed,
         public null|string $comment,
-        public null|string $round_id = null,
+        public null|string $roundId = null,
         /**
          * POST only: the time prediction that applied *before* this solve (the one the
          * added-time recap page shows) - solo times, token owner a member who has not

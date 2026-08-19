@@ -17,10 +17,10 @@ namespace SpeedPuzzling\Web\Api\V1;
 final class PlayerRatingResponse
 {
     public function __construct(
-        public int $pieces_count,
+        public int $piecesCount,
         public int $points,
         public int $rank,
-        public int $total_players,
+        public int $totalPlayers,
     ) {
     }
 
@@ -30,10 +30,10 @@ final class PlayerRatingResponse
     public static function fromRating(int $piecesCount, array $rating): self
     {
         return new self(
-            pieces_count: $piecesCount,
+            piecesCount: $piecesCount,
             points: (int) round($rating['elo_rating'] * 1000),
             rank: $rating['rank'],
-            total_players: $rating['total'],
+            totalPlayers: $rating['total'],
         );
     }
 }

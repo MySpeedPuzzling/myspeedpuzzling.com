@@ -57,13 +57,13 @@ final readonly class CompetitionDetailResponseProvider implements ProviderInterf
             logo: $competition->logo,
             description: $competition->description,
             location: $competition->location,
-            country_code: $competition->locationCountryCode?->name,
-            is_online: $competition->isOnline,
-            date_from: $competition->dateFrom?->format('c'),
-            date_to: $competition->dateTo?->format('c'),
+            countryCode: $competition->locationCountryCode?->name,
+            isOnline: $competition->isOnline,
+            dateFrom: $competition->dateFrom?->format('c'),
+            dateTo: $competition->dateTo?->format('c'),
             link: $competition->link,
-            registration_link: $competition->registrationLink,
-            results_link: $competition->resultsLink,
+            registrationLink: $competition->registrationLink,
+            resultsLink: $competition->resultsLink,
             rounds: $rounds,
         );
     }
@@ -73,8 +73,8 @@ final readonly class CompetitionDetailResponseProvider implements ProviderInterf
         return new CompetitionRoundResponse(
             id: $round->id,
             name: $round->name,
-            starts_at: $round->startsAt->format('c'),
-            minutes_limit: $round->minutesLimit,
+            startsAt: $round->startsAt->format('c'),
+            minutesLimit: $round->minutesLimit,
             category: $round->category->value,
             puzzles: array_map($this->mapPuzzle(...), $round->puzzles),
         );
@@ -85,9 +85,9 @@ final readonly class CompetitionDetailResponseProvider implements ProviderInterf
         return new CompetitionRoundPuzzleResponse(
             id: $puzzle->puzzleId,
             name: $puzzle->puzzleName,
-            pieces_count: $puzzle->piecesCount,
+            piecesCount: $puzzle->piecesCount,
             image: $puzzle->puzzleImage,
-            manufacturer_name: $puzzle->manufacturerName,
+            manufacturerName: $puzzle->manufacturerName,
         );
     }
 }

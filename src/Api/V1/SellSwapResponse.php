@@ -59,7 +59,7 @@ final class SellSwapResponse
      * @param array<SellSwapItemResponse> $items
      */
     public function __construct(
-        public string $player_id,
+        public string $playerId,
         public int $count,
         array $items,
     ) {

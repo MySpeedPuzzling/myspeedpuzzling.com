@@ -41,7 +41,7 @@ final readonly class PlayerUnsolvedPuzzlesResponseProvider implements ProviderIn
             : [];
 
         return new UnsolvedPuzzlesResponse(
-            player_id: $playerId,
+            playerId: $playerId,
             count: count($items),
             items: $items,
         );

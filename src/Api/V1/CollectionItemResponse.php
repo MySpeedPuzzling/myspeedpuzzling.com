@@ -19,14 +19,14 @@ namespace SpeedPuzzling\Web\Api\V1;
 final class CollectionItemResponse
 {
     public function __construct(
-        public string $collection_item_id,
-        public string $puzzle_id,
-        public string $puzzle_name,
-        public null|string $manufacturer_name,
-        public int $pieces_count,
+        public string $collectionItemId,
+        public string $puzzleId,
+        public string $puzzleName,
+        public null|string $manufacturerName,
+        public int $piecesCount,
         public null|string $image,
         public null|string $comment,
-        public string $added_at,
+        public string $addedAt,
         public PuzzleStatisticsResponse $statistics,
         public null|PuzzleDifficultyResponse $difficulty = null,
         public null|TimePredictionResponse $prediction = null,

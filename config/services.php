@@ -14,6 +14,7 @@ use Sentry\Monolog\BreadcrumbHandler as SentryBreadcrumbHandler;
 use Sentry\Monolog\LogToSentryIssueHandler;
 use Sentry\State\HubInterface;
 use SpeedPuzzling\Web\Doctrine\RegexSchemaAssetFilter;
+use SpeedPuzzling\Web\Services\Api\ApiDtoNormalizer;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
 use SpeedPuzzling\Web\Services\Storage\FailoverS3Adapter;
@@ -219,6 +220,11 @@ return static function (ContainerConfigurator $configurator): void {
 
     // API Resource Providers and Processors
     $services->load('SpeedPuzzling\\Web\\Api\\', __DIR__ . '/../src/Api/**/{*Provider.php,*Processor.php}');
+
+    // The nested API DTOs are normalized with the same snake_case converter API Platform
+    // uses for the resources themselves (config/packages/api_platform.php)
+    $services->set(ApiDtoNormalizer::class)
+        ->arg('$nameConverter', service('serializer.name_converter.camel_case_to_snake_case'));
 
     // Components
     $services->load('SpeedPuzzling\\Web\\Component\\', __DIR__ . '/../src/Component/**/{*.php}');

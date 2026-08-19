@@ -56,7 +56,7 @@ final readonly class CreateCollectionProcessor implements ProcessorInterface
         );
 
         return new CollectionResponse(
-            collection_id: $collectionId,
+            collectionId: $collectionId,
             name: $data->name,
             description: $data->description,
             visibility: $visibility->value,

@@ -137,7 +137,7 @@ final class PuzzleListResponse
         public int $total,
         public int $page,
         public int $limit,
-        public bool $has_more,
+        public bool $hasMore,
         /** @var list<PuzzleResponse> */
         public array $puzzles,
     ) {

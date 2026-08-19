@@ -14,7 +14,7 @@ use SpeedPuzzling\Web\Results\PuzzleStatisticsResult;
 final class PuzzleStatisticsResponse
 {
     public function __construct(
-        public int $solved_times,
+        public int $solvedTimes,
         public PuzzleStatisticsGroupResponse $solo,
         public PuzzleStatisticsGroupResponse $duo,
         public PuzzleStatisticsGroupResponse $team,
@@ -24,7 +24,7 @@ final class PuzzleStatisticsResponse
     public static function fromResult(PuzzleStatisticsResult $statistics): self
     {
         return new self(
-            solved_times: $statistics->solvedTimes,
+            solvedTimes: $statistics->solvedTimes,
             solo: PuzzleStatisticsGroupResponse::fromResult($statistics->solo),
             duo: PuzzleStatisticsGroupResponse::fromResult($statistics->duo),
             team: PuzzleStatisticsGroupResponse::fromResult($statistics->team),

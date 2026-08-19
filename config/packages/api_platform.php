@@ -11,6 +11,13 @@ return static function (ContainerConfigurator $configurator): void {
         'mapping' => [
             'paths' => ['%kernel.project_dir%/src/Api'],
         ],
+        // The wire format of the public API is snake_case (puzzle_id, is_private, ...);
+        // the PHP side follows the project's camelCase standard. The converter maps
+        // both directions (responses, request inputs, the OpenAPI schema and the
+        // propertyPath of validation violations) - adding a DTO property means
+        // writing it in camelCase, nothing else. Scoped to API Platform, the rest of
+        // the application's serializer is untouched.
+        'name_converter' => 'serializer.name_converter.camel_case_to_snake_case',
         'formats' => [
             'json' => ['mime_types' => ['application/json']],
         ],

@@ -16,26 +16,26 @@ use SpeedPuzzling\Web\Results\TimePredictionResult;
 final class TimePredictionResponse
 {
     public function __construct(
-        public null|int $predicted_seconds,
-        public null|int $range_low_seconds,
-        public null|int $range_high_seconds,
-        public bool $is_personalized,
-        public null|int $personal_solve_count,
-        public null|int $predicted_attempt_number,
-        public null|int $last_time_seconds,
+        public null|int $predictedSeconds,
+        public null|int $rangeLowSeconds,
+        public null|int $rangeHighSeconds,
+        public bool $isPersonalized,
+        public null|int $personalSolveCount,
+        public null|int $predictedAttemptNumber,
+        public null|int $lastTimeSeconds,
     ) {
     }
 
     public static function fromResult(null|TimePredictionResult $prediction): self
     {
         return new self(
-            predicted_seconds: $prediction?->predictedSeconds,
-            range_low_seconds: $prediction?->rangeLowSeconds,
-            range_high_seconds: $prediction?->rangeHighSeconds,
-            is_personalized: $prediction !== null && $prediction->isPersonalized,
-            personal_solve_count: $prediction?->personalSolveCount,
-            predicted_attempt_number: $prediction?->predictedAttemptNumber,
-            last_time_seconds: $prediction?->lastTimeSeconds,
+            predictedSeconds: $prediction?->predictedSeconds,
+            rangeLowSeconds: $prediction?->rangeLowSeconds,
+            rangeHighSeconds: $prediction?->rangeHighSeconds,
+            isPersonalized: $prediction !== null && $prediction->isPersonalized,
+            personalSolveCount: $prediction?->personalSolveCount,
+            predictedAttemptNumber: $prediction?->predictedAttemptNumber,
+            lastTimeSeconds: $prediction?->lastTimeSeconds,
         );
     }
 }

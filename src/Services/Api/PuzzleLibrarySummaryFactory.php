@@ -58,7 +58,7 @@ final readonly class PuzzleLibrarySummaryFactory
         }
 
         return new LibraryResponse(
-            player_id: $playerId,
+            playerId: $playerId,
             collections: $this->collections($owner),
             unsolved: new LibrarySectionResponse(
                 count: $this->visibility->isVisibleToTokenOwner($owner, $owner->unsolvedPuzzlesVisibility)
@@ -72,13 +72,13 @@ final readonly class PuzzleLibrarySummaryFactory
                     : 0,
                 visibility: $this->visibility->reportedVisibility($owner, $owner->wishListVisibility),
             ),
-            lend_borrow: new LibraryLendBorrowSectionResponse(
-                lent_count: $lentCount,
-                borrowed_count: $borrowedCount,
+            lendBorrow: new LibraryLendBorrowSectionResponse(
+                lentCount: $lentCount,
+                borrowedCount: $borrowedCount,
                 visibility: $this->visibility->reportedVisibility($owner, $owner->lendBorrowListVisibility),
             ),
             // always public on the website - only a private profile hides it
-            sell_swap: new LibrarySellSwapSectionResponse(
+            sellSwap: new LibrarySellSwapSectionResponse(
                 count: $this->visibility->isVisibleToTokenOwner($owner, CollectionVisibility::Public)
                     ? $this->getSellSwapListItems->countByPlayerId($playerId)
                     : 0,
@@ -107,21 +107,21 @@ final readonly class PuzzleLibrarySummaryFactory
 
         if ($this->visibility->isVisibleToTokenOwner($owner, $owner->puzzleCollectionVisibility)) {
             $collections[] = new LibraryCollectionResponse(
-                collection_id: 'default',
+                collectionId: 'default',
                 name: self::SYSTEM_COLLECTION_NAME,
                 description: null,
                 visibility: $owner->puzzleCollectionVisibility->value,
-                item_count: $this->getPlayerCollectionsWithCounts->countSystemCollection($owner->playerId),
+                itemCount: $this->getPlayerCollectionsWithCounts->countSystemCollection($owner->playerId),
             );
         }
 
         foreach ($this->getPlayerCollectionsWithCounts->byPlayerId($owner->playerId, includePrivate: $isOwner) as $collection) {
             $collections[] = new LibraryCollectionResponse(
-                collection_id: $collection->collectionId ?? 'default',
+                collectionId: $collection->collectionId ?? 'default',
                 name: $collection->name,
                 description: $collection->description,
                 visibility: $collection->visibility->value,
-                item_count: $collection->itemCount,
+                itemCount: $collection->itemCount,
             );
         }
 

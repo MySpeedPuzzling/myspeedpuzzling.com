@@ -140,6 +140,7 @@ export default class extends Controller {
         this.show(0);
         this.stageTarget.style.setProperty('--picker-progress', '1');
         this.stageTarget.classList.add('is-done');
+        this.confetti();
 
         if (this.hasCaptionTarget && this.doneValue) {
             this.captionTarget.textContent = this.doneValue;
@@ -158,5 +159,101 @@ export default class extends Controller {
         this.stageTarget.classList.add('d-none');
         this.resultTarget.classList.remove('d-none');
         this.resultTarget.classList.add('puzzle-picker-result-in');
+    }
+
+    /**
+     * A modest confetti burst from the frame when the draw lands - a few dozen pieces in the
+     * site palette, ~1.8 s, on a canvas laid over the controller element so it keeps raining
+     * onto the card once the stage is gone. Dependency-free, pointer-events: none.
+     */
+    confetti() {
+        const frame = this.stageTarget.querySelector('.puzzle-picker-draw-frame');
+
+        if (!frame || typeof document.createElement('canvas').getContext !== 'function') {
+            return;
+        }
+
+        const host = this.element;
+        const hostBox = host.getBoundingClientRect();
+        const frameBox = frame.getBoundingClientRect();
+        const padTop = 80;
+        const width = hostBox.width;
+        const height = hostBox.height + padTop;
+        const ratio = window.devicePixelRatio || 1;
+        const canvas = document.createElement('canvas');
+
+        canvas.className = 'puzzle-picker-confetti';
+        canvas.style.top = `-${padTop}px`;
+        canvas.style.height = `${height}px`;
+        canvas.width = Math.round(width * ratio);
+        canvas.height = Math.round(height * ratio);
+        host.classList.add('puzzle-picker-confetti-host');
+        host.appendChild(canvas);
+
+        const context = canvas.getContext('2d');
+        context.scale(ratio, ratio);
+
+        const origin = {
+            x: frameBox.left - hostBox.left + frameBox.width / 2,
+            y: frameBox.top - hostBox.top + frameBox.height / 2 + padTop,
+        };
+        const colors = ['#fe696a', '#ffb648', '#4e9f7f', '#5a8dee', '#f8d5d5', '#7e57c2'];
+        const pieces = Array.from({ length: 70 }, () => {
+            const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.9;
+            const speed = 5 + Math.random() * 6;
+
+            return {
+                x: origin.x,
+                y: origin.y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                size: 5 + Math.random() * 5,
+                rotation: Math.random() * Math.PI,
+                spin: (Math.random() - 0.5) * 0.3,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                round: Math.random() < 0.3,
+                life: 1,
+            };
+        });
+        const duration = 1800;
+        const started = performance.now();
+
+        const step = (now) => {
+            const elapsed = now - started;
+            context.clearRect(0, 0, width, height);
+
+            pieces.forEach((piece) => {
+                piece.vy += 0.22;
+                piece.vx *= 0.99;
+                piece.x += piece.vx;
+                piece.y += piece.vy;
+                piece.rotation += piece.spin;
+                piece.life = Math.max(0, 1 - Math.max(0, elapsed - 900) / 900);
+
+                context.save();
+                context.globalAlpha = piece.life;
+                context.fillStyle = piece.color;
+                context.translate(piece.x, piece.y);
+                context.rotate(piece.rotation);
+
+                if (piece.round) {
+                    context.beginPath();
+                    context.arc(0, 0, piece.size / 2, 0, Math.PI * 2);
+                    context.fill();
+                } else {
+                    context.fillRect(-piece.size / 2, -piece.size / 4, piece.size, piece.size / 2);
+                }
+
+                context.restore();
+            });
+
+            if (elapsed < duration) {
+                window.requestAnimationFrame(step);
+            } else {
+                canvas.remove();
+            }
+        };
+
+        window.requestAnimationFrame(step);
     }
 }

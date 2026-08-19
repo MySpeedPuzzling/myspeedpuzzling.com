@@ -885,6 +885,19 @@ canvas {
     100% { transform: scale(1) rotate(0); }
 }
 
+// Confetti canvas of the drumroll: laid over the results column, never catches taps
+.puzzle-picker-confetti-host {
+    position: relative;
+}
+
+.puzzle-picker-confetti {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
+    z-index: 2;
+}
+
 .puzzle-picker-result-in {
     animation: puzzle-picker-fade-up 0.45s ease-out;
 }

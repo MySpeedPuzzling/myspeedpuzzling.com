@@ -36,6 +36,10 @@ class PuzzleStatistics
     public null|int $slowestTime = null;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $medianTime = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(options: ['default' => 0])]
     public int $solvedTimesSoloCount = 0;
 
@@ -50,6 +54,10 @@ class PuzzleStatistics
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|int $slowestTimeSolo = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $medianTimeSolo = null;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(options: ['default' => 0])]
@@ -68,6 +76,10 @@ class PuzzleStatistics
     public null|int $slowestTimeDuo = null;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $medianTimeDuo = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(options: ['default' => 0])]
     public int $solvedTimesTeamCount = 0;
 
@@ -82,6 +94,10 @@ class PuzzleStatistics
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|int $slowestTimeTeam = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $medianTimeTeam = null;
 
     // First attempt stats
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
@@ -131,21 +147,25 @@ class PuzzleStatistics
         $this->fastestTime = $data->fastestTime;
         $this->averageTime = $data->averageTime;
         $this->slowestTime = $data->slowestTime;
+        $this->medianTime = $data->medianTime;
 
         $this->solvedTimesSoloCount = $data->soloCount;
         $this->fastestTimeSolo = $data->fastestTimeSolo;
         $this->averageTimeSolo = $data->averageTimeSolo;
         $this->slowestTimeSolo = $data->slowestTimeSolo;
+        $this->medianTimeSolo = $data->medianTimeSolo;
 
         $this->solvedTimesDuoCount = $data->duoCount;
         $this->fastestTimeDuo = $data->fastestTimeDuo;
         $this->averageTimeDuo = $data->averageTimeDuo;
         $this->slowestTimeDuo = $data->slowestTimeDuo;
+        $this->medianTimeDuo = $data->medianTimeDuo;
 
         $this->solvedTimesTeamCount = $data->teamCount;
         $this->fastestTimeTeam = $data->fastestTimeTeam;
         $this->averageTimeTeam = $data->averageTimeTeam;
         $this->slowestTimeTeam = $data->slowestTimeTeam;
+        $this->medianTimeTeam = $data->medianTimeTeam;
 
         $this->averageTimeFirstAttempt = $data->averageTimeFirstAttempt;
         $this->averageTimeFirstAttemptSolo = $data->averageTimeFirstAttemptSolo;

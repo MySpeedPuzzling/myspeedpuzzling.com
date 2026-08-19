@@ -31,6 +31,12 @@ readonly final class PuzzleStatisticsData
         public null|int $fastestTimeFirstAttemptSolo = null,
         public null|int $fastestTimeFirstAttemptDuo = null,
         public null|int $fastestTimeFirstAttemptTeam = null,
+        // Medians of the same population as the averages - each player's best
+        // time per discipline; null when nobody has solved the puzzle in it
+        public null|int $medianTime = null,
+        public null|int $medianTimeSolo = null,
+        public null|int $medianTimeDuo = null,
+        public null|int $medianTimeTeam = null,
     ) {
     }
 

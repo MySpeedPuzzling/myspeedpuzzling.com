@@ -42,14 +42,17 @@ readonly final class PuzzleStatisticsResult
      *     fastest_time_solo: null|int|string,
      *     average_time_solo: null|int|string,
      *     slowest_time_solo: null|int|string,
+     *     median_time_solo: null|int|string,
      *     solved_times_duo_count: int|string,
      *     fastest_time_duo: null|int|string,
      *     average_time_duo: null|int|string,
      *     slowest_time_duo: null|int|string,
+     *     median_time_duo: null|int|string,
      *     solved_times_team_count: int|string,
      *     fastest_time_team: null|int|string,
      *     average_time_team: null|int|string,
      *     slowest_time_team: null|int|string,
+     *     median_time_team: null|int|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -62,18 +65,21 @@ readonly final class PuzzleStatisticsResult
                 fastestSeconds: self::seconds($row['fastest_time_solo']),
                 averageSeconds: self::seconds($row['average_time_solo']),
                 slowestSeconds: self::seconds($row['slowest_time_solo']),
+                medianSeconds: self::seconds($row['median_time_solo']),
             ),
             duo: new PuzzleDisciplineStatistics(
                 count: (int) $row['solved_times_duo_count'],
                 fastestSeconds: self::seconds($row['fastest_time_duo']),
                 averageSeconds: self::seconds($row['average_time_duo']),
                 slowestSeconds: self::seconds($row['slowest_time_duo']),
+                medianSeconds: self::seconds($row['median_time_duo']),
             ),
             team: new PuzzleDisciplineStatistics(
                 count: (int) $row['solved_times_team_count'],
                 fastestSeconds: self::seconds($row['fastest_time_team']),
                 averageSeconds: self::seconds($row['average_time_team']),
                 slowestSeconds: self::seconds($row['slowest_time_team']),
+                medianSeconds: self::seconds($row['median_time_team']),
             ),
         );
     }

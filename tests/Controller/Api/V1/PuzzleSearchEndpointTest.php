@@ -36,7 +36,7 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
  * the EAN 4005556123456, PUZZLE_500_01 the identification number RB-500-001.
  * Difficulty rows are seeded per test - the intelligence recalculation is batch.
  *
- * @phpstan-type StatisticsGroup array{count: int, fastest_seconds: null|int, average_seconds: null|int, slowest_seconds: null|int}
+ * @phpstan-type StatisticsGroup array{count: int, fastest_seconds: null|int, average_seconds: null|int, slowest_seconds: null|int, median_seconds: null|int}
  * @phpstan-type SolvesGroup array{count: int, best_time_seconds: null|int, last_time_seconds: null|int, first_solved_at: null|string, last_solved_at: null|string}
  * @phpstan-type Card array{
  *     id: string,
@@ -533,7 +533,7 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $rawStatistics = $card['statistics'];
         $this->assertIsArray($rawStatistics);
         $this->assertSame(['solved_times', 'solo', 'duo', 'team'], array_keys($rawStatistics));
-        $this->assertSame(['count', 'fastest_seconds', 'average_seconds', 'slowest_seconds'], $this->keys($rawStatistics['solo']));
+        $this->assertSame(['count', 'fastest_seconds', 'average_seconds', 'slowest_seconds', 'median_seconds'], $this->keys($rawStatistics['solo']));
 
         $puzzle = $this->decode($browser)['puzzles'][0];
         $this->assertSame(PuzzleFixture::PUZZLE_500_01, $puzzle['id']);
@@ -556,8 +556,10 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $this->assertIsInt($statistics['solo']['average_seconds']);
         $this->assertGreaterThan(1200, $statistics['solo']['average_seconds']);
         $this->assertLessThan(3000, $statistics['solo']['average_seconds']);
-        $this->assertSame(['count' => 0, 'fastest_seconds' => null, 'average_seconds' => null, 'slowest_seconds' => null], $statistics['duo']);
-        $this->assertSame(['count' => 0, 'fastest_seconds' => null, 'average_seconds' => null, 'slowest_seconds' => null], $statistics['team']);
+        // median of the five solvers' best times 1200 1400 1750 2100 3000
+        $this->assertSame(1750, $statistics['solo']['median_seconds']);
+        $this->assertSame(['count' => 0, 'fastest_seconds' => null, 'average_seconds' => null, 'slowest_seconds' => null, 'median_seconds' => null], $statistics['duo']);
+        $this->assertSame(['count' => 0, 'fastest_seconds' => null, 'average_seconds' => null, 'slowest_seconds' => null, 'median_seconds' => null], $statistics['team']);
     }
 
     public function testStatisticsAreSplitByDiscipline(): void
@@ -572,8 +574,11 @@ final class PuzzleSearchEndpointTest extends WebTestCase
 
         $this->assertSame($statistics['solo']['count'] + $statistics['duo']['count'] + $statistics['team']['count'], $statistics['solved_times']);
         $this->assertGreaterThan(0, $statistics['solo']['count']);
-        $this->assertSame(['count' => 1, 'fastest_seconds' => 3600, 'average_seconds' => 3600, 'slowest_seconds' => 3600], $statistics['duo']);
+        $this->assertSame(['count' => 1, 'fastest_seconds' => 3600, 'average_seconds' => 3600, 'slowest_seconds' => 3600, 'median_seconds' => 3600], $statistics['duo']);
         $this->assertSame(0, $statistics['team']['count']);
+        // median of the solo solvers' best times (3900 4100 4200 5100), from the precomputed row
+        $this->assertSame(4150, $statistics['solo']['median_seconds']);
+        $this->assertNull($statistics['team']['median_seconds']);
 
         // a puzzle nobody has solved: no statistics row, zeros and nulls
         $browser->request('GET', self::ENDPOINT, ['pieces_min' => '9000', 'pieces_max' => '9000']);
@@ -581,9 +586,9 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $this->assertSame(
             [
                 'solved_times' => 0,
-                'solo' => ['count' => 0, 'fastest_seconds' => null, 'average_seconds' => null, 'slowest_seconds' => null],
-                'duo' => ['count' => 0, 'fastest_seconds' => null, 'average_seconds' => null, 'slowest_seconds' => null],
-                'team' => ['count' => 0, 'fastest_seconds' => null, 'average_seconds' => null, 'slowest_seconds' => null],
+                'solo' => ['count' => 0, 'fastest_seconds' => null, 'average_seconds' => null, 'slowest_seconds' => null, 'median_seconds' => null],
+                'duo' => ['count' => 0, 'fastest_seconds' => null, 'average_seconds' => null, 'slowest_seconds' => null, 'median_seconds' => null],
+                'team' => ['count' => 0, 'fastest_seconds' => null, 'average_seconds' => null, 'slowest_seconds' => null, 'median_seconds' => null],
             ],
             $this->decode($browser)['puzzles'][0]['statistics'],
         );

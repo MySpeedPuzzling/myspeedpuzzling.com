@@ -146,9 +146,9 @@ No filter at all lists the whole catalog (most solved first) - the catalog is pu
   "pieces_count": 500, "image": "puzzles/…/box.jpg", "ean": "4005556123456", "identification_number": null,
   "is_available": true, "is_approved": true,
   "statistics": { "solved_times": 41,
-                  "solo": { "count": 30, "fastest_seconds": 1500, "average_seconds": 2160, "slowest_seconds": 3900 },
-                  "duo":  { "count": 8,  "fastest_seconds": 1180, "average_seconds": 1320, "slowest_seconds": 1700 },
-                  "team": { "count": 3,  "fastest_seconds": null, "average_seconds": null, "slowest_seconds": null } },
+                  "solo": { "count": 30, "fastest_seconds": 1500, "average_seconds": 2160, "slowest_seconds": 3900, "median_seconds": 2040 },
+                  "duo":  { "count": 8,  "fastest_seconds": 1180, "average_seconds": 1320, "slowest_seconds": 1700, "median_seconds": 1290 },
+                  "team": { "count": 3,  "fastest_seconds": null, "average_seconds": null, "slowest_seconds": null, "median_seconds": null } },
   "difficulty": { "score": 1.18, "level": "challenging", "confidence": "medium", "sample_size": 14 },
   "prediction": { "predicted_seconds": 1890, "range_low_seconds": 1607, "range_high_seconds": 2174,
                   "is_personalized": true, "personal_solve_count": 3, "predicted_attempt_number": 4, "last_time_seconds": 2100 },
@@ -157,7 +157,7 @@ No filter at all lists the whole catalog (most solved first) - the catalog is pu
               "team": { "count": 0, "best_time_seconds": null, "last_time_seconds": null, "first_solved_at": null, "last_solved_at": null } } }
 ```
 
-- `statistics` is public, from the precomputed `puzzle_statistics` row (`GetPuzzleStatistics::forPuzzleList`), **always split by discipline** - solo, duo and team are different disciplines and are never merged; a puzzle nobody has solved has zeros and nulls.
+- `statistics` is public, from the precomputed `puzzle_statistics` row (`GetPuzzleStatistics::forPuzzleList`), **always split by discipline** - solo, duo and team are different disciplines and are never merged; a puzzle nobody has solved has zeros and nulls. `count` is the number of recorded solves; `average_seconds` and `median_seconds` are both over **each player's best time** in the discipline (one value per player, so a player who solved the puzzle ten times weighs the same as one who solved it once - the `player_best_per_type` population in `PuzzleStatisticsCalculator`), the median as `percentile_cont(0.5)` rounded to whole seconds (the puzzle page's runtime median is over all attempts of the shown category and differs on purpose). The row is recomputed by `RecalculatePuzzleStatisticsOnSolvingTimeChange` on every solve change; `median_seconds` is `null` for rows written before the medians existed. **Ops note (PR 5a, 2026-08-19): after deploying, run `php bin/console myspeedpuzzling:recalculate-puzzle-statistics` once on the box to backfill medians; until then `median_seconds` is null.**
 - The three insight objects are **always present** and `null` means exactly "not available to this token" (never an error, so one client code path works for every kind of token). When present, the object is complete and carries `null` *inside* for "not enough data":
   - `difficulty` - token owner is a member (`ApiTokenOwner::isMember()`); a member looking at a puzzle without a difficulty row gets `{ score: null, level: null, confidence: "insufficient", sample_size: 0 }`
   - `prediction` - member **and** not opted out of time predictions **and** the token may read results (PAT or `results:read`); all fields `null` + `is_personalized: false` when there is nothing to predict from

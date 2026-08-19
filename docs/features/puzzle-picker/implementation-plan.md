@@ -296,7 +296,10 @@ All small commits straight to `main`, each with the check suite green:
 first-attempt variants. What is missing is a **median**: the puzzle page computes it at runtime from the
 full list (`PuzzleTimes.php:255-262`), the search listing/collection items show nothing. Plan:
 
-- `PuzzleStatistics` entity + **generated** migration: `median_time`, `median_time_solo`, `median_time_duo`,
+- **Landed with API PR 5a (2026-08-19, branch `api/puzzle-medians`): the four columns, the calculator
+  medians, the rebuild command's upsert and `PuzzleStatisticsData::medianTime*` already exist — this PR
+  only adds the read models + UI below; the post-deploy rebuild run is shared with PR 5a.**
+  `PuzzleStatistics` entity + **generated** migration: `median_time`, `median_time_solo`, `median_time_duo`,
   `median_time_team` (int seconds, nullable) — median of each player's best per type, consistent with
   the existing average (`percentile_cont(0.5) WITHIN GROUP (ORDER BY best_time)` over the
   `player_best_per_type` CTE in `PuzzleStatisticsCalculator`); `PuzzleStatisticsData` + repository

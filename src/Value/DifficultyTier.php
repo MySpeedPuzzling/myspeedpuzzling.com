@@ -14,19 +14,29 @@ enum DifficultyTier: int
     case VeryHard = 6;
 
     /**
-     * Stable lowercase token for the public API (the website keys its icons and
-     * translations off strtolower(name), which is not a good wire format).
+     * Stable lowercase tokens for the public API, in tier order (index + 1 =
+     * tier value). The website keys its icons and translations off
+     * strtolower(name), which is not a good wire format. A list constant so
+     * that API parameter declarations (attributes) can reference the enum.
+     *
+     * @var list<string>
      */
+    public const array API_VALUES = ['very_easy', 'easy', 'average', 'challenging', 'hard', 'very_hard'];
+
     public function toApiValue(): string
     {
-        return match ($this) {
-            self::VeryEasy => 'very_easy',
-            self::Easy => 'easy',
-            self::Average => 'average',
-            self::Challenging => 'challenging',
-            self::Hard => 'hard',
-            self::VeryHard => 'very_hard',
-        };
+        return self::API_VALUES[$this->value - 1];
+    }
+
+    /**
+     * Inverse of toApiValue(): the tier for a public API token, null for
+     * anything that is not one (the API reports that as a validation error).
+     */
+    public static function fromApiValue(string $value): null|self
+    {
+        $index = array_search($value, self::API_VALUES, true);
+
+        return $index === false ? null : self::from($index + 1);
     }
 
     public static function fromScore(float $score): self

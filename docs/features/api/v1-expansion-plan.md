@@ -228,7 +228,7 @@ Waves (dependencies): **wave 1** PR 0 ∥ PR 1 (independent) → **wave 2** PR 2
 
 - [x] #186 `GET /me/puzzles/{id}/predicted-time` (2026-08-18)
 - [x] PR 0 `GET /me` flags
-- [ ] PR 1 `GET /puzzles` + foundation (§1)
+- [x] PR 1 `GET /puzzles` + foundation (§1) (2026-08-19; `statistics` shipped split by discipline - `{ solved_times, solo, duo, team }` from `puzzle_statistics` via `GetPuzzleStatistics::forPuzzleList`, as §1.2/§13 now say; measured budgets: OAuth2 auth costs 3 queries, not 2, so auth-code tokens sit one above the §4 ceilings - cc 3-4, non-member 6 PAT / 8 OAuth2, member 10-11 PAT / 12-13 OAuth2)
 - [ ] PR 2 `GET /puzzles/{id}`
 - [ ] PR 3 insights & solves on lists
 - [ ] PR 4 `prediction` on `POST /me/solving-times`

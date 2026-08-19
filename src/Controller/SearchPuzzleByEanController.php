@@ -53,19 +53,19 @@ final class SearchPuzzleByEanController extends AbstractController
 
         foreach ($puzzleResults as $result) {
             $puzzles[] = [
-                'id' => $result['puzzle_id'],
-                'name' => $result['puzzle_name'],
-                'piecesCount' => $result['pieces_count'],
-                'image' => $result['puzzle_image'],
-                'ean' => $result['puzzle_ean'],
+                'id' => $result->puzzleId,
+                'name' => $result->puzzleName,
+                'piecesCount' => $result->piecesCount,
+                'image' => $result->puzzleImage,
+                'ean' => $result->puzzleEan,
             ];
 
             // Add unique brands
-            if (!isset($seenBrandIds[$result['manufacturer_id']])) {
-                $seenBrandIds[$result['manufacturer_id']] = true;
+            if (!isset($seenBrandIds[$result->manufacturerId])) {
+                $seenBrandIds[$result->manufacturerId] = true;
                 $brands[] = [
-                    'id' => $result['manufacturer_id'],
-                    'name' => $result['manufacturer_name'],
+                    'id' => $result->manufacturerId,
+                    'name' => $result->manufacturerName,
                 ];
             }
         }

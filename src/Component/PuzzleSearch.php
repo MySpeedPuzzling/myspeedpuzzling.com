@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Results\UserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\PuzzleFilterOptions;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DifficultyTier;
+use SpeedPuzzling\Web\Value\PiecesRange;
 use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
@@ -188,7 +189,7 @@ final class PuzzleSearch
             return true;
         }
 
-        $piecesFilter = PiecesFilter::fromUserInput($this->criteria->pieces);
+        $piecesFilter = PiecesRange::fromFilter(PiecesFilter::fromUserInput($this->criteria->pieces));
 
         $this->totalCount = $this->searchPuzzle->countByUserInput(
             $this->criteria->brandId,
@@ -360,7 +361,7 @@ final class PuzzleSearch
     {
         return $this->cache->get('initial_puzzles_v2', function (ItemInterface $item): array {
             $item->expiresAfter(3600);
-            $pieces = PiecesFilter::fromUserInput(null);
+            $pieces = PiecesRange::fromFilter(PiecesFilter::fromUserInput(null));
 
             $puzzles = $this->searchPuzzle->byUserInput(null, null, $pieces, null, 'most-solved', 0);
             $puzzleIds = array_map(static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId, $puzzles);

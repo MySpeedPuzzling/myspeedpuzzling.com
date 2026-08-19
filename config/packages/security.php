@@ -230,6 +230,13 @@ return App::config([
                 'path' => '^/api/v1/competitions',
                 'roles' => [AuthenticatedVoter::IS_AUTHENTICATED_FULLY],
             ],
+            // The puzzle catalog is public data, but never an anonymous API: any
+            // valid token (PAT, auth-code, client_credentials) - members-only parts
+            // of the response are gated per token owner inside the providers.
+            [
+                'path' => '^/api/v1/puzzles',
+                'roles' => [AuthenticatedVoter::IS_AUTHENTICATED_FULLY],
+            ],
             // Admin access, not merely "signed in": every controller under
             // src/Controller/Admin also carries #[IsGranted(ADMIN_ACCESS)], but a
             // firewall-level rule is what covers the one somebody forgets to

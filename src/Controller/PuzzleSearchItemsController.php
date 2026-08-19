@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Results\PiecesFilter;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\PiecesRange;
 use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -63,7 +64,7 @@ final class PuzzleSearchItemsController extends AbstractController
         $rawOffset = $request->query->get('offset');
         $offset = is_numeric($rawOffset) ? max(0, (int) $rawOffset) : 0;
 
-        $piecesFilter = PiecesFilter::fromUserInput($criteria->pieces);
+        $piecesFilter = PiecesRange::fromFilter(PiecesFilter::fromUserInput($criteria->pieces));
 
         $totalCount = $this->searchPuzzle->countByUserInput(
             $criteria->brandId,

@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Results\PiecesFilter;
 use SpeedPuzzling\Web\Results\PlayerIdentification;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Value\PiecesRange;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\ComponentToolsTrait;
@@ -66,7 +67,7 @@ final class GlobalSearch
         $this->puzzle = $this->searchPuzzle->byUserInput(
             brandId: null,
             search: $query,
-            pieces: PiecesFilter::Any,
+            pieces: PiecesRange::fromFilter(PiecesFilter::Any),
             tag: null,
             limit: 15,
         );

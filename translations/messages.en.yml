@@ -583,6 +583,7 @@ for_developers:
     table_endpoint: "Endpoint"
     table_section_me: "Your own data (/me)"
     table_section_players: "Other players' public data"
+    table_section_puzzles: "Puzzle catalog"
     summary_pat: "<i class=\"bi bi-key me-1 text-primary\"></i><strong>PAT</strong> — your own data only. No scopes needed, full access to all <code>/me</code> endpoints."
     summary_auth_code: "<i class=\"bi bi-person-badge me-1 text-primary\"></i><strong>Auth Code</strong> — all endpoints. Access depends on granted scopes. Write scopes available."
     summary_client_cred: "<i class=\"bi bi-hdd-network me-1 text-primary\"></i><strong>Client Credentials</strong> — read-only access to any public player. No <code>/me</code> endpoints."

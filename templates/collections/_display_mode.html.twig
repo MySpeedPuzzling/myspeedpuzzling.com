@@ -1,0 +1,45 @@
+{#
+    "Display" control of a collection page: Off / My times / My times + predictions.
+    Signed-in viewers only (own or somebody else's public collection) - the choice is the
+    viewer's, persisted per player through a small POST that redirects back here.
+
+    Expects: display_mode (CollectionDisplayMode, the effective mode), return_path (where the
+    POST sends the viewer back to), logged_user.
+#}
+{% set is_member = logged_user.profile.activeMembership %}
+{% set predictions_opted_out = logged_user.profile.timePredictionsOptedOut %}
+<div class="dropdown collection-display">
+    <button class="btn btn-outline-secondary btn-sm dropdown-toggle collection-display-toggle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false" title="{{ 'collections.display.hint'|trans }}">
+        <i class="bi bi-eye me-1"></i>{{ 'collections.display.label'|trans }}{% if display_mode.showsTimes %}: <span class="fw-bold">{{ ('collections.display.mode.' ~ display_mode.value)|trans }}</span>{% endif %}
+    </button>
+    <div class="dropdown-menu dropdown-menu-end" style="min-width: 16rem;">
+        <form method="post" action="{{ path('collection_display_mode', {return: return_path}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ChangeCollectionDisplayModeController::CSRF_TOKEN_ID')) }}">
+            <h6 class="dropdown-header">{{ 'collections.display.hint'|trans }}</h6>
+            {% for mode in ['off', 'times'] %}
+                <button type="submit" name="mode" value="{{ mode }}" class="dropdown-item d-flex align-items-center {{ display_mode.value == mode ? 'active' }}">
+                    <i class="bi {{ display_mode.value == mode ? 'bi-check-circle-fill' : 'bi-circle' }} me-2"></i>{{ ('collections.display.mode.' ~ mode)|trans }}
+                </button>
+            {% endfor %}
+            {% if not is_member %}
+                {# Locked pattern: the only place a non-member meets the upsell on this page #}
+                <button type="button" class="dropdown-item d-flex align-items-center text-muted collection-display-locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                    <i class="ci-locked me-2"></i>{{ 'collections.display.mode.times_predictions'|trans }}
+                    <span class="badge bg-primary ms-auto">{{ 'membership.members_exclusive_short'|trans }}</span>
+                </button>
+            {% elseif predictions_opted_out %}
+                <span class="dropdown-item d-flex align-items-center disabled collection-display-opted-out" aria-disabled="true">
+                    <i class="bi bi-eye-slash me-2"></i>{{ 'collections.display.mode.times_predictions'|trans }}
+                </span>
+                <div class="px-3 pb-2 fs-xs text-muted">
+                    {{ 'puzzle_intelligence.prediction.time_predictions_opted_out'|trans }}
+                    <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+                </div>
+            {% else %}
+                <button type="submit" name="mode" value="times_predictions" class="dropdown-item d-flex align-items-center {{ display_mode.value == 'times_predictions' ? 'active' }}">
+                    <i class="bi {{ display_mode.value == 'times_predictions' ? 'bi-check-circle-fill' : 'bi-circle' }} me-2"></i>{{ 'collections.display.mode.times_predictions'|trans }}
+                </button>
+            {% endif %}
+        </form>
+    </div>
+</div>

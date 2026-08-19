@@ -52,10 +52,14 @@ Hides personal time predictions on puzzle detail pages and added-time recaps. In
 **Affected controllers:**
 - `AddedTimeRecapController` — skips `GetPlayerPrediction` call
 - `PuzzleDetailController` — skips `GetPlayerPrediction` call
+- `PuzzlePickerController` — no prediction row / insights-with-predictions filters (`predictionsAllowed`)
+- `CollectionDetailController` / `SystemCollectionDetailController` via `ResolveCollectionDisplay` — a persisted collection display mode `times_predictions` is served as `times` (no predictions loaded), and `ChangeCollectionDisplayModeController` downgrades the choice on save
 
 **Affected templates:**
 - `templates/added_time_recap/_performance_summary.html.twig` — replaces the prediction card with an info banner + "Change in settings" link
 - `templates/puzzle/_difficulty_section.html.twig` — replaces the Time Prediction block in Puzzle Insights with an info banner + "Change in settings" link
+- `templates/puzzle_picker/_card.html.twig` — opt-out notice instead of the prediction row
+- `templates/collections/_display_mode.html.twig` — "My times + predictions" is disabled with the opt-out notice + "Change in settings" link (`player.collection_display_mode`, see `docs/features/puzzle-picker/README.md` §5)
 
 ## Data Flow
 

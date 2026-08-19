@@ -1119,6 +1119,17 @@
 "navigation":
   "home": "Domů"
 "collections":
+  "display":
+    "label": "Zobrazení"
+    "hint": "Vaše vlastní časy u každého puzzle v této kolekci"
+    "mode":
+      "off": "Vypnuto"
+      "times": "Moje časy"
+      "times_predictions": "Moje časy + predikce"
+    "not_solved_yet": "Zatím nesloženo"
+    "solved_times": "Složeno %count%×"
+    "fastest": "nejrychleji %time%"
+    "latest": "naposledy %time%"
   "meta":
     "title": "Puzzle knihovna"
   "title": "Puzzle knihovna"

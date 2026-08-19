@@ -15,6 +15,10 @@
     - settings: SellSwapListSettings object (for 'sell-swap' context, currency display)
     - source_collection_id: For collection move action (collection context)
     - currentCollectionId: Current collection being viewed (collection context)
+    - my_times: map puzzle id => PlayerPuzzleTimes (collection context, only when the viewer's
+      display mode shows times - see collections/_display_mode.html.twig)
+    - predictions: map puzzle id => TimePredictionResult (collection context, members with the
+      "times + predictions" display mode)
 #}
 
 {# Set defaults for optional parameters #}
@@ -57,12 +61,21 @@
 {# Determine if should show solving actions in dropdown #}
 {% set show_solving_actions = page_context in ['collection', 'unsolved'] %}
 
+{# The viewer's own history on this puzzle (collection pages, "My times" display mode) #}
+{% set show_my_times = page_context == 'collection' and my_times is defined %}
+{% set my_time = show_my_times ? (my_times[item.puzzleId] ?? null) : null %}
+{% set my_prediction = show_my_times ? ((predictions|default({}))[item.puzzleId] ?? null) : null %}
+
 <div class="col-12 col-lg-6"
      id="{{ container_id }}"
      data-collection-items-target="item"
      data-puzzle-id="{{ item.puzzleId }}"
      data-collection-filter-target="item"
      data-pieces-count="{{ item.piecesCount }}"
+     {% if show_my_times %}
+     data-my-fastest-seconds="{{ my_time is not null and my_time.fastestSeconds is not null ? my_time.fastestSeconds : '' }}"
+     data-predicted-seconds="{{ my_prediction is not null ? my_prediction.predictedSeconds : '' }}"
+     {% endif %}
      data-puzzle-name="{{ item.puzzleName }}"
      data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"
      data-puzzle-code="{{ item.puzzleIdentificationNumber ?? '' }}"
@@ -106,6 +119,38 @@
                         <div class="fs-sm text-muted">
                             {{ item.manufacturerName ?? '-' }}
                         </div>
+
+                        {# My times (+ prediction): the viewer's own results on this puzzle. "Not solved yet",
+                           or solved N× with the fastest time (and the latest one only when it is a different
+                           result); the prediction pill for members with the "times + predictions" mode. #}
+                        {% if show_my_times %}
+                            <div class="fs-xs mt-1 collection-my-times">
+                                {% if my_time is null or my_time.solveCountAny == 0 %}
+                                    <span class="text-muted collection-my-times-unsolved"><i class="bi bi-hourglass me-1"></i>{{ 'collections.display.not_solved_yet'|trans }}</span>
+                                {% else %}
+                                    <span class="collection-my-times-solved">{{ 'collections.display.solved_times'|trans({'%count%': my_time.solveCountAny}) }}</span>
+                                    {% if my_time.fastestSeconds is not null %}
+                                        <span class="text-muted">·</span>
+                                        <span class="collection-my-times-fastest">{{ 'collections.display.fastest'|trans({'%time%': my_time.fastestSeconds|puzzlingTime}) }} <i class="bi bi-star-fill text-warning"></i></span>
+                                        {% if my_time.latestDiffersFromFastest %}
+                                            <span class="text-muted">·</span>
+                                            <span class="collection-my-times-latest">{{ 'collections.display.latest'|trans({'%time%': my_time.latestSeconds|puzzlingTime}) }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">· {{ 'puzzle_picker.card.no_solo_time'|trans }}</span>
+                                    {% endif %}
+                                    {% if my_time.lastSolvedAt is not null %}
+                                        <span class="text-muted">· {{ 'puzzle_picker.card.last_solved'|trans({'%ago%': my_time.lastSolvedAt|ago}) }}</span>
+                                    {% endif %}
+                                {% endif %}
+                                {% if my_prediction is not null %}
+                                    <span class="badge border border-primary text-primary rounded-pill collection-prediction ms-1"
+                                          title="{{ 'puzzle_picker.card.prediction'|trans }} {{ 'puzzle_intelligence.prediction.range'|trans({'%low%': my_prediction.rangeLowSeconds|compactTime, '%high%': my_prediction.rangeHighSeconds|compactTime}) }} · {{ my_prediction.isPersonalized ? 'puzzle_intelligence.prediction.personal_explanation'|trans({'%count%': my_prediction.personalSolveCount}) : 'puzzle_intelligence.prediction.explanation'|trans }}">
+                                        <i class="bi bi-clock-history"></i> ~{{ my_prediction.predictedSeconds|compactTime }} <i class="bi {{ my_prediction.isPersonalized ? 'bi-person-check' : 'bi-graph-up' }}"></i>
+                                    </span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
 
                         {# Context-specific badges #}
                         {% if page_context == 'lend-borrow-lent' %}

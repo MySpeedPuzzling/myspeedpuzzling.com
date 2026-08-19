@@ -1121,6 +1121,17 @@
       \ fail2ban no estaba configurado apropiadamente (se dejó en su configuración predeterminada), y combinado con UFW, de alguna manera misteriosamente bloqueó todo el tráfico en los puertos 22, 80 y 443—aunque todavía no entendemos completamente por qué pasó de esa manera.</p>\n<p>Una vez que supe la causa, la solución final no tomó mucho tiempo—rápidamente desinstalar el servidor de correo (incluyendo UFW), limpiar iptables, re-añadir las reglas de red de Docker, \"rebotar\" todo unas pocas veces, desconectar el sistema de rescate, reiniciar todo, y… finalmente, después de cinco horas agonizantes maldiciendo al monitor, MSP estaba de vuelta a la normalidad…</p>\n<p>Salté algunos detalles innecesarios—como cómo cambié DNS a un proxy de CloudFlare en cinco minutos mientras tanto y configuré un worker de Node.js para mostrar un mensaje sobre la interrupción—solo para que no hubiera una página en blanco…</p>\n<p>Por ahora, estoy dejando el trabajo del servidor de correo a un lado, y sé que\
       \ estará \"a un lado,\" en un servidor separado, lejos de MSP. Por un lado, fue interesante probar nuestro proceso de \"recuperación de desastres\"—en un punto estaba tan desesperado que estaba listo para dejar que este servidor se quemara en el infierno, girar todo en uno nuevo, y solo actualizar los registros DNS… Afortunadamente, eso resultó innecesario al final.</p>\n<p>PS. Realmente se rompió \"por sí solo\", gracias al servidor de correo, después de una semana sin ninguna intervención humana… Eso es bastante algo…</p>\n<p>PS2. Eres valiente si has leído hasta el final :-).</p>\n"
 "collections":
+  "display":
+    "label": "Mostrar"
+    "hint": "Tus propios tiempos junto a cada puzzle de esta colección"
+    "mode":
+      "off": "Desactivado"
+      "times": "Mis tiempos"
+      "times_predictions": "Mis tiempos + predicciones"
+    "not_solved_yet": "Aún sin armar"
+    "solved_times": "Armado %count%×"
+    "fastest": "más rápido %time%"
+    "latest": "último %time%"
   "add_puzzle_here":
     "button": "Añadir puzzle"
   "add_puzzle_form":

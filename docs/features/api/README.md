@@ -96,7 +96,7 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 | GET | `/api/v1/players/{id}/results?type=solo\|duo\|team` | `results:read`. Each result also carries the puzzle's `statistics` (public) and `difficulty` (**token owner** member, else `null`) |
 | GET | `/api/v1/players/{id}/statistics` | `statistics:read` |
 | GET | `/api/v1/players/{id}/collections` | `collections:read` (public only) |
-| GET | `/api/v1/players/{id}/collections/{cid}/items` | `collections:read` (public only). Each item also carries `statistics` (public), `difficulty` (**token owner** member), `solves` (the **collection owner's** history, only with `results:read` on the token) and `prediction: null` always - predictions are self-only |
+| GET | `/api/v1/players/{id}/collections/{cid}/items` | `collections:read`. Visibility as on the website: a private profile, a private custom collection and a private system collection (`default` - the player's puzzle-collection setting) are zeroed for everyone but the player behind the token. Each item also carries `statistics` (public), `difficulty` (**token owner** member), `solves` (the **collection owner's** history, only with `results:read` on the token) and `prediction` (the **token owner's own** forecast - what the website shows a visitor next to each item of somebody else's collection; member + not opted out + `results:read`) |
 
 ### Competition Endpoints (any authenticated token)
 
@@ -198,7 +198,7 @@ The per-puzzle objects of the puzzle card (`statistics`, `difficulty`, `predicti
 | Endpoint | `statistics` | `difficulty` | `prediction` | `solves` |
 |---|---|---|---|---|
 | `GET /me/collections/{id}/items` (and the item `POST …/items` returns) | always | token owner member | member **and** not opted out **and** PAT / `results:read` | the token owner's own, PAT / `results:read` |
-| `GET /players/{id}/collections/{cid}/items` | always | token owner member (a `client_credentials` token never) | **never** - always `null` (predictions are self-only, N1) | the **collection owner's** history, only with `results:read` on the token (the same data `/players/{id}/results` exposes) |
+| `GET /players/{id}/collections/{cid}/items` | always | token owner member (a `client_credentials` token never) | the **token owner's own** forecast (member, not opted out, `results:read`) - never the collection owner's (predictions are self-only, N1); the website shows the visitor's predicted time on a friend's collection the same way | the **collection owner's** history, only with `results:read` on the token (the same data `/players/{id}/results` exposes) |
 | `GET /me/results`, `GET /players/{id}/results` | always | token owner member | - (no field) | - (no field) |
 
 Private profiles keep today's zeroed `/players/{id}/…` response (`count: 0`, no items) and run no batch query; an empty list runs none either. Puzzle images on these lists honour the `hide_image_until` embargo (`image` / `puzzle_image` are `null` until it ends).

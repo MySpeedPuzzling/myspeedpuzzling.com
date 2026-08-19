@@ -154,6 +154,28 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         }
     }
 
+    /**
+     * A cleared search box sends query= (or spaces): that is "no filter", not a 422.
+     */
+    public function testEmptyQueryMeansNoFilter(): void
+    {
+        $browser = self::createClient();
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_REGULAR, ['profile:read']);
+
+        $browser->request('GET', self::ENDPOINT, ['query' => '']);
+        $this->assertResponseIsSuccessful();
+        $unfiltered = $this->decode($browser);
+
+        $browser->request('GET', self::ENDPOINT, ['query' => '   ']);
+        $this->assertResponseIsSuccessful();
+        $this->assertSame($unfiltered['total'], $this->decode($browser)['total']);
+
+        $browser->request('GET', self::ENDPOINT);
+        $this->assertResponseIsSuccessful();
+        $this->assertSame($unfiltered['total'], $this->decode($browser)['total']);
+        $this->assertGreaterThan(0, $unfiltered['total']);
+    }
+
     public function testQueryMatchesIdentificationNumberAndIsAccentInsensitive(): void
     {
         $browser = $this->createApiClient();

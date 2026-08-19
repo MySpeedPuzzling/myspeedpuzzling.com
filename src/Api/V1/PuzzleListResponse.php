@@ -61,7 +61,7 @@ use Symfony\Component\Validator\Constraints\Type;
                 'query' => new QueryParameter(
                     key: 'query',
                     schema: ['type' => 'string', 'minLength' => 2, 'maxLength' => 100],
-                    description: 'Free-text search (2-100 characters): puzzle name and alternative name (accent-insensitive), identification number, barcode substring - the same matching as the website search box. Surrounding whitespace is ignored.',
+                    description: 'Free-text search (2-100 characters): puzzle name and alternative name (accent-insensitive), identification number, barcode substring - the same matching as the website search box. Surrounding whitespace is ignored; an empty value is the same as omitting the parameter.',
                     constraints: [new Length(min: 2, max: 100)],
                     castToNativeType: true,
                     castFn: [QueryParameterCaster::class, 'trim'],

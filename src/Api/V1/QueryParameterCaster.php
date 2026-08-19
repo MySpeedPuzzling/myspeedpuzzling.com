@@ -15,9 +15,20 @@ final class QueryParameterCaster
      * Trims surrounding whitespace so that the length constraint judges what
      * the search will actually use.
      */
+    /**
+     * Surrounding whitespace never counts; an empty (or whitespace-only) value is
+     * the same as not sending the parameter at all - a cleared search box must not
+     * turn into a 422.
+     */
     public static function trim(mixed $value): mixed
     {
-        return is_string($value) ? trim($value) : $value;
+        if (!is_string($value)) {
+            return $value;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $trimmed;
     }
 
     /**

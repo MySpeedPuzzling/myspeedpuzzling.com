@@ -3128,6 +3128,12 @@ wjpf:
         cancel: "Zrušit"
 
 puzzle_picker:
+    draw:
+        caption_1: "Míchám vaši poličku…"
+        caption_2: "Počkejte si…"
+        caption_3: "Už to bude…"
+        done: "Tohle!"
+        skip: "Přeskočit"
     intro:
         title: "Tak na co to dnes bude?"
         text: "Vyberte si předvolbu nahoře, nastavte vlastní filtry – nebo nechte rozhodnout kolo štěstí."

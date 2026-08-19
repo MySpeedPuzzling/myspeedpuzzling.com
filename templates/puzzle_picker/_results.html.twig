@@ -1,12 +1,37 @@
 {# The draw: one visible card, the rest hidden until "Show N more" (over-fetched in the same
    query - zero extra requests), the "1 of N matching" counter and the spin button.
-   Expects: pick, criteria, seed, next_seed #}
+   Expects: pick, criteria, seed, next_seed, play_draw, draw_duration_ms #}
 {% if pick.isEmpty %}
     {{ include('puzzle_picker/_empty_state.html.twig') }}
 {% else %}
     {% set hidden_count = pick.suggestions|length - 1 %}
-    <div class="row justify-content-center" data-controller="puzzle-picker-reveal">
+    {# The drumroll (signed-in draws): the drawn thumbnails cycle and stop on the chosen one before
+       the card shows. Presentation only - the card is in the HTML from the start. #}
+    {% set draw_candidates = [] %}
+    {% for suggestion in pick.suggestions %}
+        {% set draw_candidates = draw_candidates|merge([{
+            image: suggestion.puzzleImage|puzzle_image('puzzle_small'),
+            name: (suggestion.manufacturerName is not null ? suggestion.manufacturerName ~ ' ' : '') ~ suggestion.puzzleName,
+        }]) %}
+    {% endfor %}
+    <div class="row justify-content-center"
+         data-controller="puzzle-picker-draw puzzle-picker-reveal"
+         data-puzzle-picker-draw-play-value="{{ play_draw|default(false) ? 'true' : 'false' }}"
+         data-puzzle-picker-draw-duration-value="{{ draw_duration_ms|default(3800) }}"
+         data-puzzle-picker-draw-key-value="{{ seed }}"
+         data-puzzle-picker-draw-captions-value="{{ ['puzzle_picker.draw.caption_1'|trans, 'puzzle_picker.draw.caption_2'|trans, 'puzzle_picker.draw.caption_3'|trans]|json_encode|e('html_attr') }}"
+         data-puzzle-picker-draw-done-value="{{ 'puzzle_picker.draw.done'|trans }}">
         <div class="col-12 col-md-8 col-lg-6">
+            <script type="application/json" data-puzzle-picker-draw-target="candidates">{{ draw_candidates|json_encode|raw }}</script>
+            <div class="puzzle-picker-draw d-none card card-body shadow text-center mb-3" data-puzzle-picker-draw-target="stage" data-action="click->puzzle-picker-draw#skip" role="status" aria-live="polite">
+                <div class="puzzle-picker-draw-frame">
+                    <img data-puzzle-picker-draw-target="image" src="" alt="" width="160" height="160">
+                </div>
+                <div class="puzzle-picker-draw-name fs-sm text-muted text-truncate" data-puzzle-picker-draw-target="name">&nbsp;</div>
+                <div class="puzzle-picker-draw-caption h5 mb-2" data-puzzle-picker-draw-target="caption">{{ 'puzzle_picker.draw.caption_1'|trans }}</div>
+                <button type="button" class="btn btn-link btn-sm text-muted">{{ 'puzzle_picker.draw.skip'|trans }}</button>
+            </div>
+            <div data-puzzle-picker-draw-target="result">
             {% for suggestion in pick.suggestions %}
                 <div class="mb-3{{ loop.first ? '' : ' d-none' }}" data-puzzle-picker-reveal-target="card">
                     {{ include('puzzle_picker/_card.html.twig', {suggestion: suggestion, position: loop.index}) }}
@@ -31,6 +56,7 @@
                         <i class="bi bi-chevron-down me-1"></i>{{ 'puzzle_picker.results.show_more'|trans({'%count%': hidden_count}) }}
                     </button>
                 {% endif %}
+            </div>
             </div>
         </div>
     </div>

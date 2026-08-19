@@ -3132,6 +3132,12 @@ wjpf:
         cancel: "Annuler"
 
 puzzle_picker:
+    draw:
+        caption_1: "Je mélange votre étagère…"
+        caption_2: "Attendez…"
+        caption_3: "Presque…"
+        done: "Celui-ci !"
+        skip: "Passer"
     intro:
         title: "Ce sera quoi aujourd'hui ?"
         text: "Choisissez un raccourci ci-dessus, réglez vos propres filtres – ou laissez la roue décider."

@@ -3130,6 +3130,12 @@ wjpf:
         cancel: "Abbrechen"
 
 puzzle_picker:
+    draw:
+        caption_1: "Ich mische Ihr Regal…"
+        caption_2: "Warten Sie's ab…"
+        caption_3: "Gleich…"
+        done: "Dieses!"
+        skip: "Überspringen"
     intro:
         title: "Worauf haben Sie heute Lust?"
         text: "Wählen Sie oben eine Vorlage, stellen Sie eigene Filter ein – oder lassen Sie das Glücksrad entscheiden."

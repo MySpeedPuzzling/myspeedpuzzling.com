@@ -814,6 +814,60 @@ canvas {
     overscroll-behavior-y: contain;
 }
 
+// Puzzle picker drumroll: thumbnails cycle slot-machine style and stop on the chosen puzzle
+.puzzle-picker-draw {
+    cursor: pointer;
+    user-select: none;
+}
+
+.puzzle-picker-draw-frame {
+    width: 180px;
+    height: 180px;
+    margin: 0.5rem auto 0.75rem;
+    border-radius: 1rem;
+    background: #f3f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.12);
+    transition: transform 0.1s ease-out, box-shadow 0.2s ease-out;
+
+    img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+}
+
+.puzzle-picker-draw.is-ticking .puzzle-picker-draw-frame {
+    transform: scale(0.95);
+}
+
+.puzzle-picker-draw.is-done .puzzle-picker-draw-frame {
+    animation: puzzle-picker-pop 0.5s ease-out;
+    box-shadow: 0 0 0 4px #fe696a, 0 0.5rem 1.25rem rgba(0, 0, 0, 0.12);
+}
+
+.puzzle-picker-draw.is-done .puzzle-picker-draw-caption {
+    color: #fe696a;
+}
+
+@keyframes puzzle-picker-pop {
+    0% { transform: scale(0.9) rotate(-2deg); }
+    55% { transform: scale(1.08) rotate(2deg); }
+    100% { transform: scale(1) rotate(0); }
+}
+
+.puzzle-picker-result-in {
+    animation: puzzle-picker-fade-up 0.4s ease-out;
+}
+
+@keyframes puzzle-picker-fade-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .modal-barcode-scan {
     background: #fff;
     padding: 5px;

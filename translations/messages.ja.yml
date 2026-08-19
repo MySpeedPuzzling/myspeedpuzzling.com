@@ -3119,6 +3119,12 @@ wjpf:
         cancel: "キャンセル"
 
 puzzle_picker:
+    draw:
+        caption_1: "棚をシャッフル中…"
+        caption_2: "お待ちください…"
+        caption_3: "もうすぐ…"
+        done: "これだ！"
+        skip: "スキップ"
     intro:
         title: "今日は何にしますか？"
         text: "上のプリセットを選ぶか、自分でフィルターを設定するか――それともルーレットに任せましょう。"

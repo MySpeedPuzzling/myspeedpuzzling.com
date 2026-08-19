@@ -36,6 +36,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class PuzzlePickerController extends AbstractController
 {
+    /** How long the drumroll before the card runs (signed-in draws), in milliseconds. */
+    public const int DRAW_DURATION_MS = 3800;
+
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetPuzzlePickerSuggestions $getPuzzlePickerSuggestions,
@@ -115,6 +118,8 @@ final class PuzzlePickerController extends AbstractController
             'seed' => $seed,
             'next_seed' => self::generateSeed(),
             'intro' => $intro,
+            'play_draw' => $profile !== null && $intro === false,
+            'draw_duration_ms' => self::DRAW_DURATION_MS,
             'pick' => $pick,
             'predictions' => $predictions,
             'brand_names' => array_map(static fn (array $brand): string => $brand['name'], $brands = $this->getManufacturers->namesAndLogosByIds($criteria->brandIds)),

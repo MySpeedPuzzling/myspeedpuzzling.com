@@ -3417,6 +3417,12 @@ wjpf:
         cancel: "Cancel"
 
 puzzle_picker:
+    draw:
+        caption_1: "Shuffling your shelf…"
+        caption_2: "Wait for it…"
+        caption_3: "Almost there…"
+        done: "This one!"
+        skip: "Skip"
     intro:
         title: "What's it going to be today?"
         text: "Pick a preset above, set your own filters – or let the wheel decide."

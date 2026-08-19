@@ -74,7 +74,7 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 
 | Method | Endpoint | Required |
 |--------|----------|----------|
-| GET | `/api/v1/me` | PAT or `profile:read` (the `email` field is populated only for PAT or tokens granted `email:read`, otherwise `null`). Also carries `has_active_membership`, `membership_ends_at` (ISO-8601, `null` without an active membership) and the owner's opt-out flags `time_predictions_opted_out`, `ranking_opted_out`, `streak_opted_out` |
+| GET | `/api/v1/me` | PAT or `profile:read` (the `email` field is populated only for PAT or tokens granted `email:read`, otherwise `null`). Also carries `has_active_membership`, `membership_ends_at` (ISO-8601, `null` without an active membership), the owner's opt-out flags `time_predictions_opted_out`, `ranking_opted_out`, `streak_opted_out`, and the profile insights `rating` (MSP Rating per piece count, `null` when opted out of rankings), `skill` (skill tiers, members only), `badges` - see Profile insights below |
 | GET | `/api/v1/me/results?type=solo\|duo\|team` | PAT or `results:read`. Each result also carries the puzzle's `statistics` (public) and `difficulty` (members, else `null`) - see Insights on lists below |
 | GET | `/api/v1/me/puzzles/{puzzleId}/predicted-time` | PAT or `results:read` |
 | GET | `/api/v1/me/statistics` | PAT or `statistics:read` |
@@ -92,6 +92,7 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 
 | Method | Endpoint | Scope |
 |--------|----------|-------|
+| GET | `/api/v1/players/{id}` | `profile:read` (client_credentials allowed) - public profile + `rating` / `skill` / `badges`; a private profile is masked, see Profile insights |
 | GET | `/api/v1/players/{id}/results?type=solo\|duo\|team` | `results:read`. Each result also carries the puzzle's `statistics` (public) and `difficulty` (**token owner** member, else `null`) |
 | GET | `/api/v1/players/{id}/statistics` | `statistics:read` |
 | GET | `/api/v1/players/{id}/collections` | `collections:read` (public only) |
@@ -213,6 +214,25 @@ The API twin of the Puzzle Insights block on the puzzle detail page (`PuzzleDeta
 - **Member who opted out of time predictions** → prediction fields `null`, difficulty still returned (same split as `templates/puzzle/_difficulty_section.html.twig`).
 - Unknown or malformed puzzle id → 404. Fixed number of queries per call (no per-item fan-out).
 
+### Profile insights (`GET /api/v1/me`, `GET /api/v1/players/{id}`)
+
+The three blocks the profile page shows, under the page's own gates (`templates/player_profile.html.twig`). Built by `ProfileInsightsResponseFactory` (`src/Services/Api/`), one query each; the providers (`CurrentUserResponseProvider`, `PlayerProfileResponseProvider`) decide who sees what.
+
+```json
+"rating": [ { "pieces_count": 500, "points": 1532, "rank": 87, "total_players": 1204 },
+            { "pieces_count": 1000, "points": 1498, "rank": 120, "total_players": 863 } ],
+"skill":  [ { "pieces_count": 500, "tier": "proficient", "percentile": 62.5, "confidence": "medium", "qualifying_puzzles_count": 14 } ],
+"badges": [ "supporter" ]
+```
+
+- `rating` - the MSP Rating per piece count from `GetPlayerRatingRanking::allForPlayer` (ascending by piece count). **`points = round(elo_rating × 1000)`** - exactly the number the website prints (`PlayerRatingEntry::displayRating()`, `PlayerRatingProfile.html.twig`), never the raw elo; `rank` / `total_players` count the ranked public players of that piece count (plus the player themself). `null` when the player **opted out of rankings** (`ranking_opted_out` on `/me` says so) or the profile is masked; an empty list when the player is not ranked yet.
+- `skill` - the skill tier per piece count from `GetPlayerSkill::byPlayerId`: `tier` is one of `enthusiast`, `apprentice`, `proficient`, `advanced`, `expert`, `master`, `legend` (`SkillTier::toApiValue()`), `confidence` one of `insufficient`, `low`, `medium`, `high`. Puzzle Insights, so **members-only for the token owner** (`ApiTokenOwner::isMember()`) - on `/players/{id}` it is the *viewer's* membership that counts, whoever the profile belongs to, exactly as the profile page checks the logged-in visitor; a `client_credentials` token is never a member. Also `null` when the player opted out of rankings or the profile is masked; an empty list when there is no tier yet.
+- `badges` - `BadgeType` values from `GetBadges::forPlayer`; always a list (empty for a masked profile).
+
+`GET /api/v1/players/{id}` is the `GET /me` shape without `email`, `membership_ends_at` and the opt-out flags: `id, name, code, avatar, country, city, bio, facebook, instagram, is_private, has_active_membership, rating, skill, badges`. Any OAuth2 token with `profile:read` (machine tokens included - it is public profile data); PAT is `/me/*` only, so 403. **Masked private profile** - the target is private and the token does not belong to that player (a machine token never does): `name, avatar, country, city, bio, facebook, instagram` are `null`, `is_private: true`, `id`, `code` and `has_active_membership` stay, `rating: null`, `skill: null`, `badges: []` - and no insight query runs. The website's "Secret puzzler #CODE" label is presentation; clients render it from `is_private` + `code`. The player behind the token asking for their own private profile gets the full response. Unknown or malformed id → 404.
+
+**Fixed query cost** (asserted in `PlayerProfileEndpointTest::testQueryBudgets`, `CurrentUserEndpointTest::testRequestQueryBudget*`): `/me` = authentication (OAuth2 3: access token, player, consent usage; PAT 1) + profile + rating + badges + skill (member) → 7 / 5; `/players/{id}` = authentication + target profile + owner profile (`ApiTokenOwner`, not for a machine token) + the same blocks → member viewer 8, non-member 7, `client_credentials` 4, masked private 5 (auth-code) / 2 (machine token).
+
 ### POST `/api/v1/me/solving-times`
 
 ```json
@@ -236,7 +256,7 @@ The API twin of the Puzzle Insights block on the puzzle detail page (`PuzzleDeta
 ### Privacy
 
 - `/api/v1/me/*` always returns full data for the token owner
-- `/api/v1/players/{id}/*` returns empty/zeroed data for private profiles (not 403)
+- `/api/v1/players/{id}/*` returns empty/zeroed data for private profiles (not 403); `/api/v1/players/{id}` itself returns the masked shape (`is_private: true`, `id` + `code` + `has_active_membership`, everything else `null` / `[]`)
 - Hidden players are never returned in service-to-service queries
 
 ### Error Handling
@@ -304,6 +324,7 @@ Access control:
   player behind it. A `client_credentials` token is authenticated too (as the bundle's `ClientCredentialsUser`, no
   roles), and under `IS_AUTHENTICATED_FULLY` it used to reach the providers, fail `assert($user instanceof ApiUser)`
   and return 500; now it gets 403
+- `^/api/v1/players/[^/]+/?$` → `ROLE_OAUTH2_PROFILE:READ` (the public profile; the regex ends at the id segment so it cannot shadow the per-scope rules below)
 - `^/api/v1/players/.*/results` → `ROLE_OAUTH2_RESULTS:READ`
 - `^/api/v1/players/.*/statistics` → `ROLE_OAUTH2_STATISTICS:READ`
 - `^/api/v1/players/.*/collections` → `ROLE_OAUTH2_COLLECTIONS:READ`
@@ -380,6 +401,9 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `src/Api/V1/PuzzleResponse.php` | The puzzle card (+ `PuzzleStatisticsResponse`, `PuzzleDifficultyResponse`, `TimePredictionResponse`, `PlayerSolvesResponse`) |
 | `src/Services/Api/ApiTokenOwner.php` | The single membership / scope gate behind every provider |
 | `src/Services/Api/PuzzleResponseFactory.php` | Builds puzzle cards for the calling token at a fixed query cost (one batch call per object); `insightsFor()` + `PuzzleInsightsBatch` serve the collection-item and result lists with the same batch |
+| `src/Api/V1/PlayerProfileResponse.php` | `GET /api/v1/players/{id}` resource (+ `PlayerRatingResponse`, `PlayerSkillResponse`, shared with `CurrentUserResponse`) |
+| `src/Services/Api/ProfileInsightsResponseFactory.php` | Builds the profile insight blocks (MSP Rating, skill tiers, badges), one query each |
+| `tests/ProfileInsightsSeeding.php` | Test trait seeding `player_elo` / `player_skill` / `badge` rows (the fixtures carry none) |
 | `src/Query/GetPuzzleStatistics.php`, `GetPlayerPuzzleSolves.php` | Batch queries behind the cards' `statistics` and `solves` objects |
 | `tests/QueryCountAssertions.php`, `tests/OpenApiAssertions.php` | Test traits: query budgets via the profiler, parameter documentation via `/api/docs.jsonopenapi` |
 | `src/Controller/FairUsePolicyController.php` | Fair use policy page |

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
 use DateTimeImmutable;
-use Doctrine\Bundle\DoctrineBundle\DataCollector\DoctrineDataCollector;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Membership;
 use SpeedPuzzling\Web\Entity\Player;
@@ -13,15 +12,21 @@ use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\OAuth2TestHelper;
 use SpeedPuzzling\Web\Tests\PatTestHelper;
-use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
+use SpeedPuzzling\Web\Tests\ProfileInsightsSeeding;
+use SpeedPuzzling\Web\Tests\QueryCountAssertions;
+use SpeedPuzzling\Web\Value\BadgeType;
+use SpeedPuzzling\Web\Value\MetricConfidence;
+use SpeedPuzzling\Web\Value\SkillTier;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Profiler\Profile;
 
 final class CurrentUserEndpointTest extends WebTestCase
 {
+    use ProfileInsightsSeeding;
+    use QueryCountAssertions;
+
     public function testWithoutTokenReturnsUnauthorized(): void
     {
         $browser = self::createClient();
@@ -364,36 +369,190 @@ final class CurrentUserEndpointTest extends WebTestCase
     }
 
     /**
-     * The four new fields come from the PlayerProfile the provider already loads -
-     * the request must not issue a single extra query. Measured before the fields
-     * were added: OAuth2 = 3 queries (player, access token, profile), PAT = 2
-     * (token, profile). Only the request is counted - the token-creation queries
-     * are flushed from the Doctrine debug log right before it.
+     * The profile page's insight blocks, for the owner: the MSP Rating rows
+     * (points = round(elo x 1000), the number the website prints), the skill
+     * tiers (members-only) and the badges. Seeded: PLAYER_REGULAR is rated
+     * higher, so PLAYER_WITH_STRIPE is #2 of 2 at 500 pieces.
      */
-    public function testRequestQueryBudgetIsUnchangedViaOAuth2(): void
+    public function testMemberGetsRatingSkillAndBadges(): void
+    {
+        $browser = self::createClient();
+        $this->seedRating($browser, PlayerFixture::PLAYER_REGULAR, 500, 1.601);
+        $this->seedRating($browser, PlayerFixture::PLAYER_WITH_STRIPE, 500, 1.5324);
+        $this->seedRating($browser, PlayerFixture::PLAYER_WITH_STRIPE, 1000, 1.4978);
+        $this->seedSkill($browser, PlayerFixture::PLAYER_WITH_STRIPE, 500, SkillTier::Proficient, 62.5, MetricConfidence::Medium, 14);
+        $this->seedBadge($browser, PlayerFixture::PLAYER_WITH_STRIPE, BadgeType::Supporter);
+
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['profile:read']);
+        $browser->request('GET', '/api/v1/me');
+
+        $this->assertResponseIsSuccessful();
+        $response = $this->decode($browser);
+
+        $this->assertTrue($response['has_active_membership']);
+        $this->assertSame([
+            ['pieces_count' => 500, 'points' => 1532, 'rank' => 2, 'total_players' => 2],
+            ['pieces_count' => 1000, 'points' => 1498, 'rank' => 1, 'total_players' => 1],
+        ], $response['rating']);
+        $this->assertSame([
+            ['pieces_count' => 500, 'tier' => 'proficient', 'percentile' => 62.5, 'confidence' => 'medium', 'qualifying_puzzles_count' => 14],
+        ], $response['skill']);
+        $this->assertSame(['supporter'], $response['badges']);
+    }
+
+    public function testMemberGetsRatingSkillAndBadgesViaPersonalAccessToken(): void
+    {
+        $browser = self::createClient();
+        $this->seedRating($browser, PlayerFixture::PLAYER_WITH_STRIPE, 500, 1.5324);
+        $this->seedSkill($browser, PlayerFixture::PLAYER_WITH_STRIPE, 500, SkillTier::Expert, 88.0, MetricConfidence::High, 25);
+
+        PatTestHelper::addBearerToken($browser, PatTestHelper::createToken($browser, PlayerFixture::PLAYER_WITH_STRIPE));
+        $browser->request('GET', '/api/v1/me');
+
+        $this->assertResponseIsSuccessful();
+        $response = $this->decode($browser);
+
+        $this->assertSame([['pieces_count' => 500, 'points' => 1532, 'rank' => 1, 'total_players' => 1]], $response['rating']);
+        $this->assertSame([['pieces_count' => 500, 'tier' => 'expert', 'percentile' => 88.0, 'confidence' => 'high', 'qualifying_puzzles_count' => 25]], $response['skill']);
+        $this->assertSame([], $response['badges']);
+    }
+
+    /**
+     * A member who is not ranked yet and has no tier: the lists are present and
+     * empty - null is reserved for "not available to this token".
+     */
+    public function testMemberWithoutRowsGetsEmptyLists(): void
     {
         $browser = self::createClient();
 
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['profile:read']);
-        $browser->enableProfiler();
-        $this->resetQueryLog($browser);
         $browser->request('GET', '/api/v1/me');
 
         $this->assertResponseIsSuccessful();
-        $this->assertLessThanOrEqual(3, $this->queryCount($browser));
+        $response = $this->decode($browser);
+
+        $this->assertSame([], $response['rating']);
+        $this->assertSame([], $response['skill']);
+        $this->assertSame([], $response['badges']);
     }
 
-    public function testRequestQueryBudgetIsUnchangedViaPersonalAccessToken(): void
+    /**
+     * The skill tiers are Puzzle Insights - members-only on the profile page (the
+     * locked "Player insights" button) - so a non-member gets null even when a
+     * row exists; the MSP Rating is public and stays.
+     */
+    public function testNonMemberGetsRatingButNoSkill(): void
     {
         $browser = self::createClient();
+        $this->seedRating($browser, PlayerFixture::PLAYER_REGULAR, 500, 1.601);
+        $this->seedSkill($browser, PlayerFixture::PLAYER_REGULAR, 500, SkillTier::Advanced, 75.0, MetricConfidence::Low, 6);
+        $this->seedBadge($browser, PlayerFixture::PLAYER_REGULAR, BadgeType::Supporter);
 
-        PatTestHelper::addBearerToken($browser, PatTestHelper::createToken($browser, PlayerFixture::PLAYER_WITH_STRIPE));
-        $browser->enableProfiler();
-        $this->resetQueryLog($browser);
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_REGULAR, ['profile:read']);
         $browser->request('GET', '/api/v1/me');
 
         $this->assertResponseIsSuccessful();
-        $this->assertLessThanOrEqual(2, $this->queryCount($browser));
+        $response = $this->decode($browser);
+
+        $this->assertFalse($response['has_active_membership']);
+        $this->assertSame([['pieces_count' => 500, 'points' => 1601, 'rank' => 1, 'total_players' => 1]], $response['rating']);
+        $this->assertArrayHasKey('skill', $response);
+        $this->assertNull($response['skill']);
+        $this->assertSame(['supporter'], $response['badges']);
+
+        PatTestHelper::addBearerToken($browser, PatTestHelper::createToken($browser, PlayerFixture::PLAYER_REGULAR));
+        $browser->request('GET', '/api/v1/me');
+
+        $this->assertResponseIsSuccessful();
+        $response = $this->decode($browser);
+        $this->assertSame([['pieces_count' => 500, 'points' => 1601, 'rank' => 1, 'total_players' => 1]], $response['rating']);
+        $this->assertNull($response['skill']);
+    }
+
+    /**
+     * Opted out of rankings: the profile page replaces both blocks with an
+     * explanation, the API says null for both - ranking_opted_out tells why.
+     * Badges are not part of the opt-out.
+     */
+    public function testRankingOptOutHidesRatingAndSkill(): void
+    {
+        $browser = self::createClient();
+        $this->seedRating($browser, PlayerFixture::PLAYER_WITH_STRIPE, 500, 1.5324);
+        $this->seedSkill($browser, PlayerFixture::PLAYER_WITH_STRIPE, 500, SkillTier::Proficient, 62.5, MetricConfidence::Medium, 14);
+        $this->seedBadge($browser, PlayerFixture::PLAYER_WITH_STRIPE, BadgeType::Supporter);
+        $this->optOutOfRankings($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['profile:read']);
+        $browser->request('GET', '/api/v1/me');
+
+        $this->assertResponseIsSuccessful();
+        $response = $this->decode($browser);
+
+        $this->assertTrue($response['has_active_membership']);
+        $this->assertTrue($response['ranking_opted_out']);
+        $this->assertArrayHasKey('rating', $response);
+        $this->assertNull($response['rating']);
+        $this->assertArrayHasKey('skill', $response);
+        $this->assertNull($response['skill']);
+        $this->assertSame(['supporter'], $response['badges']);
+    }
+
+    /**
+     * The flags come from the PlayerProfile the provider already loads (no query
+     * of their own); the insight blocks cost one query each - rating, badges, and
+     * skill for a member - on top of the authentication and the profile. Measured:
+     * OAuth2 = 3 (access token, player, consent usage) + profile + 3 = 7 for a
+     * member, PAT = 1 (token) + profile + 3 = 5. Only the request is counted
+     * (QueryCountAssertions resets the Doctrine debug log right before it).
+     */
+    public function testRequestQueryBudgetViaOAuth2(): void
+    {
+        $browser = self::createClient();
+        $this->seedRating($browser, PlayerFixture::PLAYER_WITH_STRIPE, 500, 1.5324);
+        $this->seedSkill($browser, PlayerFixture::PLAYER_WITH_STRIPE, 500, SkillTier::Proficient, 62.5, MetricConfidence::Medium, 14);
+
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['profile:read']);
+        $this->startCountingQueries($browser);
+        $browser->request('GET', '/api/v1/me');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertQueryCountAtMost($browser, 7, 'member, authorization-code token');
+
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_REGULAR, ['profile:read']);
+        $this->startCountingQueries($browser);
+        $browser->request('GET', '/api/v1/me');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertQueryCountAtMost($browser, 6, 'non-member, authorization-code token (no skill query)');
+
+        $this->optOutOfRankings($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['profile:read']);
+        $this->startCountingQueries($browser);
+        $browser->request('GET', '/api/v1/me');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertQueryCountAtMost($browser, 5, 'member opted out of rankings (badges only)');
+    }
+
+    public function testRequestQueryBudgetViaPersonalAccessToken(): void
+    {
+        $browser = self::createClient();
+        $this->seedRating($browser, PlayerFixture::PLAYER_WITH_STRIPE, 500, 1.5324);
+        $this->seedSkill($browser, PlayerFixture::PLAYER_WITH_STRIPE, 500, SkillTier::Proficient, 62.5, MetricConfidence::Medium, 14);
+
+        PatTestHelper::addBearerToken($browser, PatTestHelper::createToken($browser, PlayerFixture::PLAYER_WITH_STRIPE));
+        $this->startCountingQueries($browser);
+        $browser->request('GET', '/api/v1/me');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertQueryCountAtMost($browser, 5, 'member, personal access token');
+
+        PatTestHelper::addBearerToken($browser, PatTestHelper::createToken($browser, PlayerFixture::PLAYER_REGULAR));
+        $this->startCountingQueries($browser);
+        $browser->request('GET', '/api/v1/me');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertQueryCountAtMost($browser, 4, 'non-member, personal access token (no skill query)');
     }
 
     /**
@@ -439,32 +598,6 @@ final class CurrentUserEndpointTest extends WebTestCase
         $membership->cancel(new DateTimeImmutable('-1 day'));
         $entityManager->flush();
         $entityManager->clear();
-    }
-
-    /**
-     * The first request of a test reuses the kernel that the token helpers already
-     * booted, so the Doctrine data collector would also count the queries those
-     * helpers issued. Empty the debug log so the profile covers the request only.
-     */
-    private function resetQueryLog(KernelBrowser $browser): void
-    {
-        /** @var ContainerInterface $container */
-        $container = $browser->getContainer();
-
-        /** @var DebugDataHolder $debugDataHolder */
-        $debugDataHolder = $container->get('doctrine.debug_data_holder');
-        $debugDataHolder->reset();
-    }
-
-    private function queryCount(KernelBrowser $browser): int
-    {
-        $profile = $browser->getProfile();
-        $this->assertInstanceOf(Profile::class, $profile);
-
-        $collector = $profile->getCollector('db');
-        $this->assertInstanceOf(DoctrineDataCollector::class, $collector);
-
-        return $collector->getQueryCount();
     }
 
     private function entityManager(KernelBrowser $browser): EntityManagerInterface

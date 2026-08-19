@@ -214,6 +214,14 @@ return App::config([
                 'path' => '^/api/v1/me',
                 'roles' => [PatUser::ROLE, OAuth2User::ROLE],
             ],
+            // The public profile of a player (GET /players/{id}): profile:read, any
+            // OAuth2 token - a client_credentials token sees public profile data
+            // too. The regex ends at the id segment so it cannot shadow the
+            // per-scope rules for /players/{id}/results|statistics|collections.
+            [
+                'path' => '^/api/v1/players/[^/]+/?$',
+                'roles' => [OAuth2Scope::ProfileRead->role()],
+            ],
             [
                 'path' => '^/api/v1/players/.*/results',
                 'roles' => [OAuth2Scope::ResultsRead->role()],

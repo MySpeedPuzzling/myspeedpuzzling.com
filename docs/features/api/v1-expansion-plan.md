@@ -234,7 +234,7 @@ Waves (dependencies): **wave 1** PR 0 ∥ PR 1 (independent) → **wave 2** PR 2
 - [ ] PR 4 `prediction` on `POST /me/solving-times`
 - [ ] PR 5 puzzle library lists (wishlist, unsolved, lend/borrow, sell/swap, library summary)
 - [x] PR 5a medians in `puzzle_statistics` — code (2026-08-19: `median_time(_solo/_duo/_team)` columns, computed with `percentile_cont(0.5)` over the same per-player-best population as the averages, `median_seconds` on every `statistics` group); **backfill on the box still to do after deploy: `php bin/console myspeedpuzzling:recalculate-puzzle-statistics` once — until then `median_seconds` is `null`**
-- [ ] PR 6 profile insights on `/me` + `GET /players/{id}`
+- [x] PR 6 profile insights on `/me` + `GET /players/{id}` (2026-08-19; measured budgets: `/me` member 7 OAuth2 / 5 PAT - the §8 "+3" on top of auth 3 + profile; `/players/{id}` member viewer 8, non-member 7, cc 4, masked 5 (auth-code) / 2 (cc). The owner's own private profile on `/players/{id}` and on `/me` returns the rating (plan §8, "the full one"), while the web's own-private-profile view replaces both blocks with an explanation - the API follows the plan)
 
 Follow-ups deliberately out of scope: write endpoints for wishlist/lend-borrow (add/remove/return), `first_attempt_average_seconds` in statistics (exists for solo/duo only), tags on puzzle card / tag filter, related puzzles, marketplace offer counts, 301 to merge-survivor on `/puzzles/{id}`, puzzle-level solvers/ranking list, exact `pieces=` shorthand, per-scope rate limits beyond search, optional pagination on collection items (default must stay = all; if added, `limit` max 100 like search), per-item `ranking`.
 

@@ -23,13 +23,13 @@
          data-puzzle-picker-draw-done-value="{{ 'puzzle_picker.draw.done'|trans }}">
         <div class="col-12 col-md-8 col-lg-6">
             <script type="application/json" data-puzzle-picker-draw-target="candidates">{{ draw_candidates|json_encode|raw }}</script>
-            <div class="puzzle-picker-draw d-none card card-body shadow text-center mb-3" data-puzzle-picker-draw-target="stage" data-action="click->puzzle-picker-draw#skip" role="status" aria-live="polite">
+            <div class="puzzle-picker-draw d-none text-center py-3 mb-3" data-puzzle-picker-draw-target="stage" data-action="click->puzzle-picker-draw#skip" role="status" aria-live="polite">
                 <div class="puzzle-picker-draw-frame">
                     <img data-puzzle-picker-draw-target="image" src="" alt="" width="160" height="160">
                 </div>
                 <div class="puzzle-picker-draw-name fs-sm text-muted text-truncate" data-puzzle-picker-draw-target="name">&nbsp;</div>
                 <div class="puzzle-picker-draw-caption h5 mb-2" data-puzzle-picker-draw-target="caption">{{ 'puzzle_picker.draw.caption_1'|trans }}</div>
-                <button type="button" class="btn btn-link btn-sm text-muted">{{ 'puzzle_picker.draw.skip'|trans }}</button>
+                <button type="button" class="btn btn-outline-primary btn-sm mt-1">{{ 'puzzle_picker.draw.skip'|trans }}</button>
             </div>
             <div data-puzzle-picker-draw-target="result">
             {% for suggestion in pick.suggestions %}

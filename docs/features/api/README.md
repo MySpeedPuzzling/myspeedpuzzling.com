@@ -303,6 +303,7 @@ The three blocks the profile page shows, under the page's own gates (`templates/
 - `time` format: `HH:MM:SS` or `MM:SS`
 - `group_players`: player codes prefixed with `#`, or plain names for unregistered players
 - `round_id`: optional, nullable. When set, the time is linked to that competition round and automatically to its competition. An invalid or unknown `round_id` returns 404.
+- `PUT` never changes the event link: the payload has no `round_id`/competition field, and the processor carries the time's current competition through to the handler (`PuzzleSolvingTime::modify()` assigns whatever it is given, and the round link is never touched by it). Before 2026-08-19 a `PUT` silently detached the time from its competition.
 - Photo uploads not supported via API (use the website)
 
 Response (`SolvingTimeResponse`, shared with `PUT …/solving-times/{timeId}`):

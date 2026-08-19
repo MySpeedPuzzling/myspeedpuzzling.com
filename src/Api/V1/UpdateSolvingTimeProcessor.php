@@ -57,11 +57,17 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
 
         $finishedAt = $data->finishedAt !== null ? new DateTimeImmutable($data->finishedAt) : null;
 
+        // The API payload has no notion of the event link, but the handler passes the message's
+        // competition straight to PuzzleSolvingTime::modify(), which assigns it unconditionally —
+        // so `null` here would silently detach the time from its competition on every PUT.
+        // Carry the current link through; the round link is never touched by modify().
+        $competitionId = $solvingTime->competition?->id->toString();
+
         $this->messageBus->dispatch(
             new EditPuzzleSolvingTime(
                 currentUserId: $userId,
                 puzzleSolvingTimeId: $timeId,
-                competitionId: null,
+                competitionId: $competitionId,
                 time: $data->time,
                 comment: $data->comment,
                 groupPlayers: $data->groupPlayers,

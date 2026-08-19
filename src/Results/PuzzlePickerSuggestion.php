@@ -5,10 +5,18 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\DifficultyTier;
+use SpeedPuzzling\Web\Value\MetricConfidence;
 
 /**
  * One puzzle card of the picker: puzzle basics, community numbers and the
  * viewer's own history on it. The "my*" fields are zero/null for guests.
+ *
+ * Insights fields: difficultyTier / difficultyConfidence are always hydrated
+ * (cheap post-LIMIT join; the template decides who may see them);
+ * predictedSeconds / gapSeconds are only set when the query had to compute
+ * predictions before sampling (gap filter, gap order, personal time budget) —
+ * the card itself renders the full TimePredictionResult from GetPlayerPredictions.
  */
 readonly final class PuzzlePickerSuggestion
 {
@@ -34,7 +42,21 @@ readonly final class PuzzlePickerSuggestion
         public bool $inMyCollection,
         public bool $isBorrowed,
         public bool $isLentOut,
+        public null|DifficultyTier $difficultyTier = null,
+        public null|MetricConfidence $difficultyConfidence = null,
+        public null|int $predictedSeconds = null,
+        public null|int $gapSeconds = null,
     ) {
+    }
+
+    /**
+     * A difficulty worth showing: a tier backed by enough data.
+     */
+    public function hasDifficulty(): bool
+    {
+        return $this->difficultyTier !== null
+            && $this->difficultyConfidence !== null
+            && $this->difficultyConfidence !== MetricConfidence::Insufficient;
     }
 
     /**
@@ -60,10 +82,17 @@ readonly final class PuzzlePickerSuggestion
      *     in_my_collection: bool,
      *     is_borrowed: bool,
      *     is_lent_out: bool,
+     *     difficulty_tier?: null|int|string,
+     *     difficulty_confidence?: null|string,
+     *     predicted_seconds?: null|int|string,
+     *     gap_seconds?: null|int|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
     {
+        $difficultyTier = isset($row['difficulty_tier']) ? DifficultyTier::tryFrom((int) $row['difficulty_tier']) : null;
+        $difficultyConfidence = isset($row['difficulty_confidence']) ? MetricConfidence::tryFrom($row['difficulty_confidence']) : null;
+
         return new self(
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
@@ -86,6 +115,10 @@ readonly final class PuzzlePickerSuggestion
             inMyCollection: $row['in_my_collection'],
             isBorrowed: $row['is_borrowed'],
             isLentOut: $row['is_lent_out'],
+            difficultyTier: $difficultyTier,
+            difficultyConfidence: $difficultyConfidence,
+            predictedSeconds: isset($row['predicted_seconds']) ? (int) $row['predicted_seconds'] : null,
+            gapSeconds: isset($row['gap_seconds']) ? (int) $row['gap_seconds'] : null,
         );
     }
 }

@@ -9,7 +9,10 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzlePickerPick;
 use SpeedPuzzling\Web\Results\PuzzlePickerSuggestion;
+use SpeedPuzzling\Web\Results\TimePredictionResult;
 use SpeedPuzzling\Web\Value\PuzzlePickerCriteria;
+use SpeedPuzzling\Web\Value\PuzzlePickerGap;
+use SpeedPuzzling\Web\Value\PuzzlePickerOrder;
 
 /**
  * Read model of the puzzle picker ("What should I solve next?").
@@ -19,19 +22,27 @@ use SpeedPuzzling\Web\Value\PuzzlePickerCriteria;
  * lent/borrowed rows), aggregated at runtime in CTEs; the candidate set is
  * ordered by md5(seed || id) so the same seed always yields the same order
  * (offset paging never repeats or skips, links are reproducible) and only the
- * LIMIT rows are joined to manufacturer / statistics.
+ * LIMIT rows are joined to manufacturer / statistics / difficulty.
  *
  * Semantics (design doc §6.3): "solved" = any solving time of mine incl. duo /
  * team rows I own and team rows where I am a participant — the same meaning as
  * the "Unsolved puzzles" page; my fastest / first / latest use solo,
  * non-suspicious, timed solves; "when solved" = COALESCE(finished_at, tracked_at).
  * A null player (guest) leaves every personal CTE empty.
+ *
+ * Insights layer (members, design doc §6.4): only when an insights filter is
+ * active are puzzle_difficulty / player_baseline / puzzle_statistics joined
+ * *before* the LIMIT. My personal predictions (bulk GetPlayerPredictions, PHP)
+ * are handed to SQL as unnest(ids, seconds); the statistical fallback
+ * round(baseline × difficulty) is plain arithmetic, so one query still does the
+ * filtering, the gap ordering and the sampling.
  */
 readonly final class GetPuzzlePickerSuggestions
 {
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
+        private GetPlayerPredictions $getPlayerPredictions,
     ) {
     }
 
@@ -69,6 +80,77 @@ readonly final class GetPuzzlePickerSuggestions
             $brandCondition = 'AND p.manufacturer_id IN (:brandIds)';
             $params['brandIds'] = $criteria->brandIds;
             $types['brandIds'] = ArrayParameterType::STRING;
+        }
+
+        // --- Insights layer: joined and computed before the LIMIT only when asked for ---
+
+        $needsPredictions = $playerId !== null && $criteria->needsPredictions();
+        $needsDifficulty = $needsPredictions || $criteria->difficultyTiers !== [];
+        $needsCommunityAverage = $criteria->predictedMaxMinutes !== null && $criteria->usesPersonalPrediction() === false;
+
+        $insightsJoins = '';
+        $insightsConditions = '';
+        $predictedSelect = 'NULL::int AS predicted_seconds, NULL::int AS gap_seconds,';
+        $innerOrder = 'md5(:seed || p.id::text)';
+        $outerOrder = 'md5(:seed || picked.puzzle_id::text)';
+
+        if ($needsDifficulty) {
+            $insightsJoins .= "\n    LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = p.id";
+        }
+
+        if ($criteria->difficultyTiers !== []) {
+            $insightsConditions .= "\n        AND pd.confidence <> 'insufficient' AND pd.difficulty_tier IN (:difficultyTiers)";
+            $params['difficultyTiers'] = $criteria->difficultyTiers;
+            $types['difficultyTiers'] = ArrayParameterType::INTEGER;
+        }
+
+        if ($needsCommunityAverage) {
+            $insightsJoins .= "\n    LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = p.id";
+            $insightsConditions .= "\n        AND ps.average_time_solo <= :predictedMaxSeconds";
+            $params['predictedMaxSeconds'] = $criteria->predictedMaxMinutes * 60;
+        }
+
+        if ($playerId !== null && $needsPredictions) {
+            [$predictionIds, $predictionSeconds] = self::predictionArrays($this->getPlayerPredictions->forAllSolvedPuzzles($playerId));
+
+            $insightsJoins .= <<<SQL
+
+    LEFT JOIN player_baseline pb ON pb.player_id = :playerId AND pb.pieces_count = p.pieces_count
+    LEFT JOIN unnest(:predictionIds::uuid[], :predictionSeconds::int[]) AS pp(puzzle_id, predicted) ON pp.puzzle_id = p.id
+    CROSS JOIN LATERAL (
+        SELECT COALESCE(
+            pp.predicted,
+            CASE WHEN pd.difficulty_score IS NOT NULL AND pd.confidence <> 'insufficient' THEN round(pb.baseline_seconds * pd.difficulty_score)::int END
+        ) AS predicted_seconds
+    ) pr
+    CROSS JOIN LATERAL (
+        SELECT CASE WHEN COALESCE(s.solve_count_solo, 0) > 0 THEN s.fastest_seconds - pr.predicted_seconds END AS gap_seconds
+    ) gp
+SQL;
+            $params['predictionIds'] = $predictionIds;
+            $params['predictionSeconds'] = $predictionSeconds;
+            $predictedSelect = 'pr.predicted_seconds, gp.gap_seconds,';
+
+            if ($criteria->predictedMaxMinutes !== null) {
+                $insightsConditions .= "\n        AND pr.predicted_seconds <= :predictedMaxSeconds";
+                $params['predictedMaxSeconds'] = $criteria->predictedMaxMinutes * 60;
+            }
+
+            if ($criteria->gap === PuzzlePickerGap::Slower) {
+                $insightsConditions .= "\n        AND gp.gap_seconds >= :gapMinSeconds";
+                $params['gapMinSeconds'] = $criteria->gapMinSeconds();
+            } elseif ($criteria->gap === PuzzlePickerGap::Faster) {
+                $insightsConditions .= "\n        AND gp.gap_seconds <= -1 * :gapMinSeconds";
+                $params['gapMinSeconds'] = $criteria->gapMinSeconds();
+            }
+
+            if ($criteria->order === PuzzlePickerOrder::GapSlower) {
+                $innerOrder = 'gp.gap_seconds DESC NULLS LAST, ' . $innerOrder;
+                $outerOrder = 'picked.gap_seconds DESC NULLS LAST, ' . $outerOrder;
+            } elseif ($criteria->order === PuzzlePickerOrder::GapFaster) {
+                $innerOrder = 'gp.gap_seconds ASC NULLS LAST, ' . $innerOrder;
+                $outerOrder = 'picked.gap_seconds ASC NULLS LAST, ' . $outerOrder;
+            }
         }
 
         $query = <<<SQL
@@ -131,13 +213,14 @@ picked AS (
         (mi.puzzle_id IS NOT NULL) AS in_my_collection,
         (b.puzzle_id IS NOT NULL) AS is_borrowed,
         (lo.puzzle_id IS NOT NULL) AS is_lent_out,
+        {$predictedSelect}
         count(*) OVER () AS total_matching
     FROM puzzle p
     LEFT JOIN my_solves s ON s.puzzle_id = p.id
     LEFT JOIN my_team_solves ts ON ts.puzzle_id = p.id
     LEFT JOIN my_items mi ON mi.puzzle_id = p.id
     LEFT JOIN lent_out lo ON lo.puzzle_id = p.id
-    LEFT JOIN borrowed b ON b.puzzle_id = p.id
+    LEFT JOIN borrowed b ON b.puzzle_id = p.id{$insightsJoins}
     WHERE p.approved = true
         AND (p.hide_until IS NULL OR p.hide_until < :now::timestamp)
         AND (
@@ -152,8 +235,8 @@ picked AS (
             OR (:solved = 'before' AND COALESCE(s.solve_count_any, 0) + COALESCE(ts.solve_count, 0) > 0)
         )
         {$piecesCondition}
-        {$brandCondition}
-    ORDER BY md5(:seed || p.id::text)
+        {$brandCondition}{$insightsConditions}
+    ORDER BY {$innerOrder}
     LIMIT :limit OFFSET :offset
 )
 SELECT
@@ -167,6 +250,8 @@ SELECT
     picked.in_my_collection,
     picked.is_borrowed,
     picked.is_lent_out,
+    picked.predicted_seconds,
+    picked.gap_seconds,
     picked.total_matching,
     p.name AS puzzle_name,
     p.alternative_name AS puzzle_alternative_name,
@@ -178,12 +263,15 @@ SELECT
     m.id AS manufacturer_id,
     m.name AS manufacturer_name,
     COALESCE(ps.solved_times_solo_count, 0) AS community_solved_count_solo,
-    ps.average_time_solo AS community_average_time_solo
+    ps.average_time_solo AS community_average_time_solo,
+    pd.difficulty_tier,
+    pd.confidence AS difficulty_confidence
 FROM picked
 JOIN puzzle p ON p.id = picked.puzzle_id
 LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
 LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = p.id
-ORDER BY md5(:seed || picked.puzzle_id::text)
+LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = p.id
+ORDER BY {$outerOrder}
 SQL;
 
         $rows = $this->database
@@ -217,6 +305,10 @@ SQL;
              *     in_my_collection: bool,
              *     is_borrowed: bool,
              *     is_lent_out: bool,
+             *     difficulty_tier: null|int|string,
+             *     difficulty_confidence: null|string,
+             *     predicted_seconds: null|int|string,
+             *     gap_seconds: null|int|string,
              *     total_matching: int|string,
              * } $row
              */
@@ -227,5 +319,29 @@ SQL;
         }
 
         return new PuzzlePickerPick($suggestions, $totalMatching);
+    }
+
+    /**
+     * Personal predictions as two parallel Postgres array literals for
+     * unnest(:ids::uuid[], :seconds::int[]) — empty arrays when there are none.
+     *
+     * @param array<string, TimePredictionResult> $predictions
+     *
+     * @return array{string, string}
+     */
+    private static function predictionArrays(array $predictions): array
+    {
+        $ids = [];
+        $seconds = [];
+
+        foreach ($predictions as $puzzleId => $prediction) {
+            $ids[] = $puzzleId;
+            $seconds[] = $prediction->predictedSeconds;
+        }
+
+        return [
+            '{' . implode(',', $ids) . '}',
+            '{' . implode(',', $seconds) . '}',
+        ];
     }
 }

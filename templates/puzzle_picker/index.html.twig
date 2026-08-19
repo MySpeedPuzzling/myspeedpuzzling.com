@@ -17,6 +17,8 @@
         <h1 class="mb-1">{{ 'puzzle_picker.title'|trans }}</h1>
         <p class="text-muted mb-3">{{ 'puzzle_picker.subtitle'|trans }}</p>
 
+        {{ include('puzzle_picker/_presets.html.twig') }}
+
         {{ include('puzzle_picker/_filter_bar.html.twig') }}
 
         {{ include('puzzle_picker/_results.html.twig') }}

@@ -1,7 +1,10 @@
-{# One picker card: puzzle basics, my history on it, community numbers, CTAs.
-   Expects: suggestion (PuzzlePickerSuggestion), position (1-based, for eager image loading), criteria #}
+{# One picker card: puzzle basics, my history on it, community numbers, insights (members), CTAs.
+   Expects: suggestion (PuzzlePickerSuggestion), position (1-based, for eager image loading), criteria,
+   predictions (puzzle id => TimePredictionResult, only for members with predictions) #}
+{% from 'puzzle_intelligence/_macros.html.twig' import difficulty_icon %}
 {% set puzzle_full_name = (suggestion.manufacturerName is not null ? suggestion.manufacturerName ~ ' ' : '') ~ suggestion.puzzleName %}
 {% set is_authenticated = criteria.isAuthenticated %}
+{% set prediction = (predictions|default({}))[suggestion.puzzleId] ?? null %}
 <div class="card card-body shadow p-3 puzzle-picker-card">
     <div class="d-flex">
         <div class="flex-shrink-0 me-3" style="width: 90px;">
@@ -23,10 +26,20 @@
         <div class="flex-grow-1">
             <div class="fs-sm text-muted">{{ suggestion.manufacturerName ?? '–' }}</div>
             <a class="h5 d-block mb-1 low-line-height text-decoration-none" href="{{ path('puzzle_detail', {puzzleId: suggestion.puzzleId}) }}">{{ suggestion.puzzleName }}</a>
-            <div class="fs-sm">
-                <span class="fw-bold">{{ 'pieces_count'|trans({'%count%': suggestion.piecesCount})|raw }}</span>
-                {% if suggestion.puzzleIdentificationNumber is not null %}
-                    <span class="text-muted ms-1">{{ suggestion.puzzleIdentificationNumber }}</span>
+            <div class="fs-sm d-flex flex-wrap align-items-center gap-2">
+                <span>
+                    <span class="fw-bold">{{ 'pieces_count'|trans({'%count%': suggestion.piecesCount})|raw }}</span>
+                    {% if suggestion.puzzleIdentificationNumber is not null %}
+                        <span class="text-muted ms-1">{{ suggestion.puzzleIdentificationNumber }}</span>
+                    {% endif %}
+                </span>
+                {# Difficulty tier - members only; non-members get no lock here, the one lock on the card is the prediction row #}
+                {% if criteria.insightsAllowed and suggestion.hasDifficulty %}
+                    {% set tier_name = suggestion.difficultyTier.name|lower %}
+                    <span class="d-inline-flex align-items-center gap-1 puzzle-picker-difficulty" title="{{ 'puzzle_intelligence.difficulty.tier_label'|trans }}">
+                        {{ difficulty_icon(tier_name, 20) }}
+                        {{ ('puzzle_intelligence.difficulty.tiers.' ~ tier_name)|trans }}
+                    </span>
                 {% endif %}
             </div>
             {% if is_authenticated and (suggestion.inMyCollection or suggestion.isBorrowed or suggestion.isLentOut) %}
@@ -98,6 +111,53 @@
                 {{ 'puzzle_picker.card.community_none'|trans }}
             {% endif %}
         </div>
+
+        {# Prediction row - the Insights layer on the card. Guests: nothing. Non-members: one locked
+           row. Members who opted out: the opt-out notice. Eligible members: the same numbers as the
+           puzzle detail page (personalised or statistical), plus how it compares to my best. #}
+        {% if is_authenticated %}
+            {% if not criteria.insightsAllowed %}
+                <div class="mt-1 puzzle-picker-prediction-locked">
+                    <a href="#" class="text-muted text-decoration-none" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                        <i class="ci-locked me-1"></i>{{ 'puzzle_picker.card.prediction_locked'|trans }}
+                    </a>
+                </div>
+            {% elseif not criteria.predictionsAllowed %}
+                <div class="mt-1 text-muted puzzle-picker-prediction-opted-out">
+                    <i class="bi bi-eye-slash me-1"></i>{{ 'puzzle_intelligence.prediction.time_predictions_opted_out'|trans }}
+                    <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+                </div>
+            {% elseif prediction is not null %}
+                <div class="mt-1 puzzle-picker-prediction">
+                    <span class="text-muted"><i class="bi bi-clock-history me-1"></i>{{ 'puzzle_picker.card.prediction'|trans }}</span>
+                    <span class="fw-bold">~{{ prediction.predictedSeconds|compactTime }}</span>
+                    <span class="text-muted">({{ 'puzzle_intelligence.prediction.range'|trans({'%low%': prediction.rangeLowSeconds|compactTime, '%high%': prediction.rangeHighSeconds|compactTime}) }})</span>
+                </div>
+                <div class="text-muted small">
+                    {% if prediction.isPersonalized and prediction.predictedAttemptNumber is not null %}
+                        {{ 'puzzle_intelligence.prediction.personal_attempt_explanation'|trans({'%attempt%': prediction.predictedAttemptNumber, '%count%': prediction.personalSolveCount}) }}
+                    {% elseif prediction.isPersonalized %}
+                        {{ 'puzzle_intelligence.prediction.personal_explanation'|trans({'%count%': prediction.personalSolveCount}) }}
+                    {% else %}
+                        {{ 'puzzle_intelligence.prediction.explanation'|trans }}
+                    {% endif %}
+                </div>
+                {% if suggestion.myFastestSeconds is not null %}
+                    {% set delta_minutes = ((suggestion.myFastestSeconds - prediction.predictedSeconds) / 60)|round %}
+                    {% if delta_minutes > 0 %}
+                        <div class="text-success puzzle-picker-prediction-vs-best"><i class="bi bi-arrow-right-short"></i>{{ 'puzzle_picker.card.prediction_beats_record'|trans({'%delta%': (delta_minutes * 60)|compactTime}) }}</div>
+                    {% elseif delta_minutes < 0 %}
+                        <div class="text-muted puzzle-picker-prediction-vs-best"><i class="bi bi-arrow-right-short"></i>{{ 'puzzle_picker.card.prediction_slower_than_best'|trans({'%delta%': (delta_minutes|abs * 60)|compactTime}) }}</div>
+                    {% else %}
+                        <div class="text-muted puzzle-picker-prediction-vs-best"><i class="bi bi-arrow-right-short"></i>{{ 'puzzle_picker.card.prediction_at_best'|trans }}</div>
+                    {% endif %}
+                {% endif %}
+            {% else %}
+                <div class="mt-1 text-muted puzzle-picker-prediction-unavailable">
+                    <i class="bi bi-clock-history me-1"></i>{{ 'puzzle_picker.card.prediction_unavailable'|trans }}
+                </div>
+            {% endif %}
+        {% endif %}
     </div>
 
     <hr class="my-2">

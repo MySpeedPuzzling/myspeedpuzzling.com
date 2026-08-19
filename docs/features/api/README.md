@@ -74,7 +74,7 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 
 | Method | Endpoint | Required |
 |--------|----------|----------|
-| GET | `/api/v1/me` | PAT or `profile:read` (the `email` field is populated only for PAT or tokens granted `email:read`, otherwise `null`) |
+| GET | `/api/v1/me` | PAT or `profile:read` (the `email` field is populated only for PAT or tokens granted `email:read`, otherwise `null`). Also carries `has_active_membership`, `membership_ends_at` (ISO-8601, `null` without an active membership) and the owner's opt-out flags `time_predictions_opted_out`, `ranking_opted_out`, `streak_opted_out` |
 | GET | `/api/v1/me/results?type=solo\|duo\|team` | PAT or `results:read` |
 | GET | `/api/v1/me/puzzles/{puzzleId}/predicted-time` | PAT or `results:read` |
 | GET | `/api/v1/me/statistics` | PAT or `statistics:read` |
@@ -121,6 +121,8 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 ### Members-Exclusive Data
 
 Puzzle difficulty and player skill tiers are included in responses only if the token owner has active membership. Non-members see `null` for these fields.
+
+An app tells the reasons for a `null` members-only block apart from `GET /api/v1/me` alone: `has_active_membership` (false ⇒ upgrade) and the opt-out flags `time_predictions_opted_out`, `ranking_opted_out`, `streak_opted_out` (true ⇒ the player switched that feature off on the website) — there is deliberately no per-endpoint `unavailable_reason` field.
 
 Puzzle Insights are gated **exactly as on the website** - the token owner (PAT, or the player behind an authorization-code token) must be a member; a `client_credentials` token has no player and therefore no membership. There is deliberately no `/api/v1/players/{id}/…` variant of members-only data: predictions are self-only on the website, and a single member's token must never become a proxy that serves a members-only feature to a third-party app's non-member users.
 

@@ -9,7 +9,7 @@
         <h1 class="h2">{{ isOwnProfile ? 'collections.title'|trans : 'collections.title_other'|trans({'%name%': player.playerName}) }}</h1>
         {% if isOwnProfile %}
             <div class="d-flex flex-wrap gap-2">
-                <a href="{{ path('puzzle_picker') }}" class="btn btn-sm btn-outline-primary" title="{{ 'puzzle_picker.title'|trans }}">
+                <a href="{{ path('puzzle_picker') }}" class="btn btn-sm btn-outline-primary puzzle-picker-entry" title="{{ 'puzzle_picker.title'|trans }}">
                     <i class="bi bi-shuffle me-1"></i>{{ 'puzzle_picker.menu_label'|trans }}
                 </a>
                 <a href="{{ path('puzzle_add') }}?mode=collection" class="btn btn-sm btn-outline-primary">

@@ -220,18 +220,21 @@ final class PuzzlePickerControllerTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/puzzle');
         $this->assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('h1 + a[href="/en/what-to-solve-next"], .d-flex a[href="/en/what-to-solve-next"]'), 'Small button next to the H1 of the puzzle overview');
+        self::assertCount(1, $crawler->filter('a.puzzle-picker-entry[href="/en/what-to-solve-next"]'), 'Small button next to the H1 of the puzzle overview');
+        self::assertCount(1, $crawler->filter('footer a[href="/en/what-to-solve-next"]:contains("What should I solve next?")'), 'Footer link (with the NEW badge)');
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
         $crawler = $browser->request('GET', '/en/puzzle-library/' . PlayerFixture::PLAYER_REGULAR);
         $this->assertResponseIsSuccessful();
-        self::assertCount(2, $crawler->filter('a[href="/en/what-to-solve-next"]'), 'Profile dropdown item + library header button on the own library');
-        self::assertCount(1, $crawler->filter('.dropdown-menu a[href="/en/what-to-solve-next"]:contains("What next?")'));
+        self::assertCount(1, $crawler->filter('a.puzzle-picker-entry[href="/en/what-to-solve-next"]'), 'Library header button on the own library');
+        self::assertCount(1, $crawler->filter('.dropdown-menu a[href="/en/what-to-solve-next"]:contains("What next?")'), 'Profile dropdown item');
+        self::assertCount(3, $crawler->filter('a[href="/en/what-to-solve-next"]'), 'Header button + dropdown item + footer link');
 
         $crawler = $browser->request('GET', '/en/puzzle-library/' . PlayerFixture::PLAYER_WITH_STRIPE);
         $this->assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('a[href="/en/what-to-solve-next"]'), 'Only the dropdown item on somebody else\'s library');
+        self::assertCount(0, $crawler->filter('a.puzzle-picker-entry'), 'No header button on somebody else\'s library');
+        self::assertCount(2, $crawler->filter('a[href="/en/what-to-solve-next"]'), 'Only the dropdown item and the footer link');
     }
 
     public function testStaticSitemapContainsThePickerInEveryLocale(): void

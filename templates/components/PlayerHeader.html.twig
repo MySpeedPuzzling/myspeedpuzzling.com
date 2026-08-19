@@ -59,7 +59,6 @@
 
                 <a href="{{ path('activity_calendar', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'activity_calendar' %}active{% endif %}">
                     <i class="bi bi-calendar-event me-1"></i> {{ 'menu.activity_calendar'|trans }}
-                    <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                 </a>
 
                 <a href="{{ path('player_favorite_puzzlers', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_favorite_puzzlers' %}active{% endif %}">
@@ -102,7 +101,6 @@
 
                 <a href="{{ path('affiliate_dashboard') }}" class="dropdown-item {% if route == 'affiliate_dashboard' %}active{% endif %}">
                     <i class="me-1 bi bi-megaphone"></i> {{ 'menu.referral_program'|trans }}
-                    <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                 </a>
             {% endif %}
         </div>

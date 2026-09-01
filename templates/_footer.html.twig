@@ -7,6 +7,10 @@
             <ul class="footer-links">
                 <li><a href="{{ path('puzzles') }}">{{ 'footer.puzzle_database'|trans }}</a></li>
                 <li><a href="{{ path('ladder') }}">{{ 'menu.ladder'|trans }}</a></li>
+                {% if xp_system_visible() %}
+                    <li><a href="{{ path('xp_leaderboard') }}">{{ 'xp.leaderboard.title'|trans }}</a></li>
+                    <li><a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}">{{ 'xp.leaderboard.ap_title'|trans }}</a></li>
+                {% endif %}
                 <li><a href="{{ path('players') }}">{{ 'menu.players'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
                 <li><a href="{{ path('recent_activity') }}">{{ 'footer.latest_puzzle_times'|trans }}</a></li>
                 <li><a href="{{ path('events') }}">{{ 'menu.events'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>

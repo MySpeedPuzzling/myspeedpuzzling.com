@@ -52,7 +52,7 @@ final class BadgesOverviewControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $content = (string) $browser->getResponse()->getContent();
-        self::assertStringNotContainsString('ci-medal', $content);
+        self::assertStringNotContainsString('xp-achievements-strip', $content);
         self::assertStringNotContainsString('/en/achievements', $content);
     }
 
@@ -65,7 +65,7 @@ final class BadgesOverviewControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $content = (string) $browser->getResponse()->getContent();
-        self::assertStringContainsString('ci-medal', $content);
+        self::assertStringContainsString('xp-achievements-strip', $content);
         self::assertStringContainsString('/en/achievements', $content);
     }
 }

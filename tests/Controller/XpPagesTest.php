@@ -22,7 +22,6 @@ final class XpPagesTest extends WebTestCase
     {
         return [
             'leaderboard' => ['/en/players/xp-leaderboard'],
-            'leaderboard all-time tab' => ['/en/players/xp-leaderboard?tab=all-time'],
             'leaderboard AP tab' => ['/en/players/xp-leaderboard?tab=achievement-points'],
             'achievement detail' => ['/en/achievements/puzzles_solved'],
             'achievements catalog' => ['/en/achievements'],

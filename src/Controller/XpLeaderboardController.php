@@ -14,7 +14,8 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class XpLeaderboardController extends AbstractController
 {
-    private const array TABS = ['this-week', 'all-time', 'achievement-points'];
+    /** Two disciplines, two boards: chase XP, chase Achievement Points, or both. */
+    private const array TABS = ['xp', 'achievement-points'];
 
     public function __construct(
         readonly private GetXpLeaderboard $getXpLeaderboard,
@@ -42,10 +43,10 @@ final class XpLeaderboardController extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $tab = $request->query->getString('tab', 'this-week');
+        $tab = $request->query->getString('tab', 'xp');
 
         if (in_array($tab, self::TABS, true) === false) {
-            $tab = 'this-week';
+            $tab = 'xp';
         }
 
         $country = $request->query->getString('country');
@@ -58,11 +59,9 @@ final class XpLeaderboardController extends AbstractController
         if ($tab === 'achievement-points' && $profile === null) {
             $rows = [];
         } else {
-            $rows = match ($tab) {
-                'all-time' => $this->getXpLeaderboard->allTime($country, $favoriteIds),
-                'achievement-points' => $this->getXpLeaderboard->achievementPoints($country, $favoriteIds),
-                default => $this->getXpLeaderboard->thisWeek($country, $favoriteIds),
-            };
+            $rows = $tab === 'achievement-points'
+                ? $this->getXpLeaderboard->achievementPoints($country, $favoriteIds)
+                : $this->getXpLeaderboard->xp($country, $favoriteIds);
         }
 
         $selfRank = null;

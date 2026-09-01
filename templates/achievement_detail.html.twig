@@ -14,7 +14,7 @@
 
     <header class="mb-4">
         <h1 class="h3 mb-1">
-            <i class="ci-medal me-1"></i>
+            <i class="bi bi-award me-1"></i>
             {{ type_label }}
         </h1>
         <p class="text-body-secondary mb-0">{{ ('badges.description.' ~ type.value)|trans }}</p>
@@ -86,7 +86,6 @@
                                 {% if holder.countryCode is not null %}
                                     <span class="fi fi-{{ holder.countryCode.name }}"></span>
                                 {% endif %}
-                                <span class="text-body-secondary">{{ holder.earnedAt|format_date('short') }}</span>
                             </a>
                         {% endfor %}
 
@@ -110,7 +109,7 @@
     {% endfor %}
 
     <p class="small text-body-secondary mt-3">
-        <i class="ci-info me-1"></i>
+        <i class="bi bi-info-circle me-1"></i>
         {{ 'badges.detail.listing_note'|trans }}
     </p>
 {% endblock %}

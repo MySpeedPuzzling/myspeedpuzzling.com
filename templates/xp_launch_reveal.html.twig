@@ -18,7 +18,7 @@
         <p class="text-body-secondary">{{ 'xp.reveal.intro'|trans }}</p>
 
         <div class="my-4">
-            <span class="xp-ring {{ xp_profile.isMaxLevel ? 'xp-ring-milestone-50' }}" style="--xp-progress: {{ xp_profile.progressToNext ?? 1 }}; padding: 6px;">
+            <span class="xp-ring {{ xp_profile.isMaxLevel ? 'xp-ring-milestone-50' }}" style="--xp-progress: {{ xp_profile.progressToNext ?? 1 }}; --xp-ring-width: 6px;">
                 <span class="d-inline-flex flex-column align-items-center justify-content-center bg-white" style="width: 120px; height: 120px;">
                     <span class="fs-xs text-body-secondary text-uppercase">{{ 'xp.reveal.level_label'|trans }}</span>
                     <span class="display-5 fw-bold lh-1">{{ xp_profile.level }}</span>
@@ -34,7 +34,7 @@
 
         {% if badges_count > 0 %}
             <div class="xp-teaser justify-content-center mb-4">
-                <i class="ci-medal" aria-hidden="true"></i>
+                <i class="bi bi-award" aria-hidden="true"></i>
                 <span>
                     {% if is_member %}
                         {{ 'xp.reveal.achievements_member'|trans({'%count%': badges_count}) }}

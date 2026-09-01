@@ -47,10 +47,11 @@ holders/audit/explainer/reveal page + a test solve end-to-end.
 If numbers are off → investigate BEFORE removing the flag; the public saw nothing yet.
 Fixes + `myspeedpuzzling:xp-backfill` re-runs are cheap at this stage.
 
-## 3. Launch = remove the flag (deploy)
+## 3. Launch = flip the flag (no deploy)
 
-1. Flip `XpFeatureGate` (`$adminOnly = true` → `false`) — or remove the gate + call
-   sites entirely per `feature_flags.md` (also DELETE the leak WebTestCases:
+1. Set `XP_SYSTEM_ADMIN_ONLY=0` in the production env (Infisical) — the flip needs no
+   deploy and rolling it back is the same one-line change. Then (separately, at leisure)
+   remove the gate + call sites entirely per `feature_flags.md` (also DELETE the leak WebTestCases:
    `XpPagesTest`, `XpSurfacesTest`, flag-specific tests in
    `BadgesOverviewControllerTest` / `RecalculateBadgesForPlayerHandlerTest` /
    `DigestSettingsVisibilityTest` — they assert 404s that stop existing).
@@ -83,7 +84,7 @@ README §13.)
 
 ## Rollback
 
-Re-add the flag (`$adminOnly = true`) + deploy — every surface disappears for
+Set `XP_SYSTEM_ADMIN_ONLY=1` again (no deploy) — every surface disappears for
 non-admins again, emails stop. Data (ledger, badges, logs) stays intact and keeps
 accruing silently; nothing else to undo. Reveal emails already sent cannot be unsent —
 that is why verification (step 2) happens before flag removal.

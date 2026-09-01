@@ -24,6 +24,7 @@ use SpeedPuzzling\Web\Services\Storage\ObjectStorageHttpClientFactory;
 use SpeedPuzzling\Web\Services\Storage\UploadSpool;
 use SpeedPuzzling\Web\Services\Storage\UploadSpoolProcessor;
 use SpeedPuzzling\Web\Services\StripeWebhookHandler;
+use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use Stripe\StripeClient;
 use Symfony\Bridge\Doctrine\SchemaListener\PdoSessionHandlerSchemaListener;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -99,6 +100,11 @@ return static function (ContainerConfigurator $configurator): void {
 
     // Pairs & teams picker rollout (docs/features/feature_flags.md): admins only until flipped to 1.
     $parameters->set('pairsTeamsPickerPublic', '%env(bool:PAIRS_TEAMS_PICKER_PUBLIC)%');
+
+    // XP / Levels / Achievements launch flag (`xp-system`, docs/features/feature_flags.md).
+    // While ON the bundle is admin-only and every feature email stays suppressed;
+    // launch = flip the env var to 0 (docs/features/xp-levels/launch-runbook.md).
+    $parameters->set('xpSystemAdminOnly', '%env(bool:XP_SYSTEM_ADMIN_ONLY)%');
 
     $services = $configurator->services();
 
@@ -226,6 +232,12 @@ return static function (ContainerConfigurator $configurator): void {
 
     // The nested API DTOs are normalized with the same snake_case converter API Platform
     // uses for the resources themselves (config/packages/api_platform.php)
+    // The gate is autoloaded with the rest of Services/; this definition only feeds
+    // it the flag value (its constructor default keeps the admin-only side in tests
+    // that build it directly).
+    $services->set(XpFeatureGate::class)
+        ->arg('$adminOnly', '%xpSystemAdminOnly%');
+
     $services->set(ApiDtoNormalizer::class)
         ->arg('$nameConverter', service('serializer.name_converter.camel_case_to_snake_case'));
 

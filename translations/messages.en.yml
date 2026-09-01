@@ -2050,6 +2050,7 @@ messaging:
     waiting_for_acceptance: "Waiting for %name% to accept your message request."
     view: "View"
     no_messages_yet: "No messages yet. Start the conversation!"
+    load_older_messages: "Load older messages"
     type_message: "Type a message..."
     shift_enter_hint: "Shift+Enter for a new line"
     message_label: "Message"

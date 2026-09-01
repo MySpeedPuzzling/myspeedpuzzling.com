@@ -47,7 +47,7 @@ final class SendMessageHandlerTest extends KernelTestCase
         $messages = $this->getMessages->forConversation(
             ConversationFixture::CONVERSATION_ACCEPTED,
             PlayerFixture::PLAYER_REGULAR,
-        );
+        )->messages;
 
         $lastMessage = end($messages);
         self::assertNotFalse($lastMessage);
@@ -86,7 +86,7 @@ final class SendMessageHandlerTest extends KernelTestCase
         $messages = $this->getMessages->forConversation(
             ConversationFixture::CONVERSATION_PENDING,
             PlayerFixture::PLAYER_WITH_STRIPE,
-        );
+        )->messages;
 
         $lastMessage = end($messages);
         self::assertNotFalse($lastMessage);

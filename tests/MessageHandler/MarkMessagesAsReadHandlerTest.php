@@ -30,7 +30,7 @@ final class MarkMessagesAsReadHandlerTest extends KernelTestCase
         $messagesBefore = $this->getMessages->forConversation(
             ConversationFixture::CONVERSATION_ACCEPTED,
             PlayerFixture::PLAYER_REGULAR,
-        );
+        )->messages;
 
         $unreadBefore = array_filter($messagesBefore, static fn ($m) => $m->readAt === null && !$m->isOwnMessage);
         self::assertNotEmpty($unreadBefore, 'Should have unread messages from other participant before marking');
@@ -45,7 +45,7 @@ final class MarkMessagesAsReadHandlerTest extends KernelTestCase
         $messagesAfter = $this->getMessages->forConversation(
             ConversationFixture::CONVERSATION_ACCEPTED,
             PlayerFixture::PLAYER_REGULAR,
-        );
+        )->messages;
 
         $unreadAfter = array_filter($messagesAfter, static fn ($m) => $m->readAt === null && !$m->isOwnMessage);
         self::assertEmpty($unreadAfter, 'All messages from other participant should be marked as read');
@@ -65,7 +65,7 @@ final class MarkMessagesAsReadHandlerTest extends KernelTestCase
         $messages = $this->getMessages->forConversation(
             ConversationFixture::CONVERSATION_ACCEPTED,
             PlayerFixture::PLAYER_REGULAR,
-        );
+        )->messages;
 
         // Messages from REGULAR (msg01, msg03) were already read in fixtures
         // Message from ADMIN (msg04) was not read - marking as ADMIN should not affect it
@@ -76,7 +76,7 @@ final class MarkMessagesAsReadHandlerTest extends KernelTestCase
         $messagesFromAdminView = $this->getMessages->forConversation(
             ConversationFixture::CONVERSATION_ACCEPTED,
             PlayerFixture::PLAYER_ADMIN,
-        );
+        )->messages;
 
         $ownMessageCount = 0;
         foreach ($messagesFromAdminView as $message) {
@@ -94,7 +94,7 @@ final class MarkMessagesAsReadHandlerTest extends KernelTestCase
         $messagesBefore = $this->getMessages->forConversation(
             ConversationFixture::CONVERSATION_ACCEPTED,
             PlayerFixture::PLAYER_REGULAR,
-        );
+        )->messages;
 
         $unreadSystemBefore = array_filter($messagesBefore, static fn ($m) => $m->isSystemMessage && $m->readAt === null);
         self::assertNotEmpty($unreadSystemBefore, 'Should have unread system messages before marking');
@@ -109,7 +109,7 @@ final class MarkMessagesAsReadHandlerTest extends KernelTestCase
         $messagesAfter = $this->getMessages->forConversation(
             ConversationFixture::CONVERSATION_ACCEPTED,
             PlayerFixture::PLAYER_REGULAR,
-        );
+        )->messages;
 
         $unreadSystemAfter = array_filter($messagesAfter, static fn ($m) => $m->isSystemMessage && $m->readAt === null);
         self::assertEmpty($unreadSystemAfter, 'System messages should be marked as read');

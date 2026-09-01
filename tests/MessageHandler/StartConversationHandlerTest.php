@@ -161,7 +161,7 @@ final class StartConversationHandlerTest extends KernelTestCase
         $messages = $this->getMessages->forConversation(
             ConversationFixture::CONVERSATION_ACCEPTED,
             PlayerFixture::PLAYER_ADMIN,
-        );
+        )->messages;
 
         $lastMessage = end($messages);
         self::assertNotFalse($lastMessage);

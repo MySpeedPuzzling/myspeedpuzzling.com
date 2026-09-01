@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\Messaging;
 use SpeedPuzzling\Web\Message\MarkMessagesAsRead;
 use SpeedPuzzling\Web\Query\GetMessages;
 use SpeedPuzzling\Web\Query\GetTransactionRatings;
+use SpeedPuzzling\Web\Results\MessagesPage;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Services\MercureTopicCollector;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -52,9 +53,9 @@ final class ConversationDetailController extends AbstractController
 
         $otherPlayer = $isInitiator ? $conversation->recipient : $conversation->initiator;
 
-        $messages = [];
+        $messagesPage = new MessagesPage(messages: [], hasOlderMessages: false);
         if ($conversation->status === ConversationStatus::Accepted) {
-            $messages = $this->getMessages->forConversation($conversationId, $loggedPlayer->playerId);
+            $messagesPage = $this->getMessages->forConversation($conversationId, $loggedPlayer->playerId);
 
             // Mark messages as read
             $this->messageBus->dispatch(new MarkMessagesAsRead(
@@ -63,7 +64,7 @@ final class ConversationDetailController extends AbstractController
             ));
         } elseif (in_array($conversation->status, [ConversationStatus::Pending, ConversationStatus::Ignored], true)) {
             // Both parties can see messages, but do NOT mark as read for recipient
-            $messages = $this->getMessages->forConversation($conversationId, $loggedPlayer->playerId);
+            $messagesPage = $this->getMessages->forConversation($conversationId, $loggedPlayer->playerId);
         }
 
         $puzzleContext = null;
@@ -118,7 +119,9 @@ final class ConversationDetailController extends AbstractController
 
         return $this->render('messaging/conversation_detail.html.twig', [
             'conversation' => $conversation,
-            'messages' => $messages,
+            'messages' => $messagesPage->messages,
+            'has_older_messages' => $messagesPage->hasOlderMessages,
+            'oldest_message_id' => $messagesPage->oldestMessageId(),
             'other_player' => $otherPlayer,
             'is_recipient' => $isRecipient,
             'puzzle_context' => $puzzleContext,

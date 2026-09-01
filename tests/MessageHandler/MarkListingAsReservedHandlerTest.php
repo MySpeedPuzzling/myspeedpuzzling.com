@@ -124,7 +124,7 @@ final class MarkListingAsReservedHandlerTest extends KernelTestCase
         $messages = $this->getMessages->forConversation(
             ConversationFixture::CONVERSATION_MARKETPLACE,
             PlayerFixture::PLAYER_WITH_FAVORITES,
-        );
+        )->messages;
 
         $systemMessages = array_filter($messages, static fn ($m) => $m->isSystemMessage);
         self::assertCount(1, $systemMessages);

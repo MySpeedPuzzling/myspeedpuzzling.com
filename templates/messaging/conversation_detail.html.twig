@@ -94,6 +94,18 @@
          data-messaging-target="messages"
          data-conversation-realtime-target="messages">
 
+        {% if has_older_messages %}
+            <div class="text-center mb-3" data-messaging-target="loadOlder">
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                        data-action="messaging#loadOlderMessages"
+                        data-url="{{ path('conversation_older_messages', {conversationId: conversation.id}) }}"
+                        data-oldest-id="{{ oldest_message_id }}">
+                    <span class="spinner-border spinner-border-sm me-1 d-none" data-messaging-target="loadOlderSpinner" aria-hidden="true"></span>
+                    <i class="bi bi-clock-history me-1"></i>{{ 'messaging.load_older_messages'|trans }}
+                </button>
+            </div>
+        {% endif %}
+
         {% if conversation.status.value in ['pending', 'ignored'] and is_recipient %}
             {% if messages is not empty %}
                 {% for message in messages %}

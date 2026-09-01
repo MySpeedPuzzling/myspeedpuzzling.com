@@ -1,0 +1,5 @@
+<div data-has-older="{{ has_older_messages ? '1' : '0' }}" data-oldest-id="{{ oldest_message_id }}">
+    {% for message in messages %}
+        {{ include('messaging/_message_bubble.html.twig') }}
+    {% endfor %}
+</div>

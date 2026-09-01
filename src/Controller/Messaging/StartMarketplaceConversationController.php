@@ -105,7 +105,7 @@ final class StartMarketplaceConversationController extends AbstractController
                 }
             }
 
-            $messages = $this->getMessages->forConversation($existingConversation->id->toString(), $loggedPlayer->playerId);
+            $messages = $this->getMessages->forConversation($existingConversation->id->toString(), $loggedPlayer->playerId)->messages;
 
             if ($existingConversation->status === ConversationStatus::Accepted) {
                 $this->messageBus->dispatch(new MarkMessagesAsRead(

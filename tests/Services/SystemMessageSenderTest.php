@@ -48,7 +48,7 @@ final class SystemMessageSenderTest extends KernelTestCase
         $messages = $this->getMessages->forConversation(
             ConversationFixture::CONVERSATION_MARKETPLACE,
             PlayerFixture::PLAYER_WITH_FAVORITES,
-        );
+        )->messages;
 
         $systemMessages = array_filter($messages, static fn ($m) => $m->isSystemMessage);
         self::assertCount(1, $systemMessages);
@@ -73,7 +73,7 @@ final class SystemMessageSenderTest extends KernelTestCase
         $messages = $this->getMessages->forConversation(
             ConversationFixture::CONVERSATION_MARKETPLACE,
             PlayerFixture::PLAYER_WITH_STRIPE,
-        );
+        )->messages;
         $systemMessages = array_values(array_filter($messages, static fn ($m) => $m->isSystemMessage));
         self::assertSame('messaging.system.listing_reserved_for_you', $systemMessages[0]->systemTranslationKey);
 
@@ -81,7 +81,7 @@ final class SystemMessageSenderTest extends KernelTestCase
         $messages = $this->getMessages->forConversation(
             ConversationFixture::CONVERSATION_MARKETPLACE,
             PlayerFixture::PLAYER_WITH_FAVORITES,
-        );
+        )->messages;
         $systemMessages = array_values(array_filter($messages, static fn ($m) => $m->isSystemMessage));
         self::assertSame('messaging.system.listing_reserved_for_this_puzzler', $systemMessages[0]->systemTranslationKey);
     }

@@ -15,8 +15,12 @@ use SpeedPuzzling\Web\Results\PlayerProfile;
  * for admins only. Persistence (badge rows, XP ledger) keeps running for everyone so production
  * accumulates data silently before the launch reveal.
  *
- * Launch day: remove this gate and all its call sites — the full surface checklist lives in
- * docs/features/xp-levels/leak-inventory.md.
+ * The value comes from the XP_SYSTEM_ADMIN_ONLY env var (config/services.php), so the
+ * launch flip needs no code change; the constructor default keeps the flag ACTIVE for
+ * anything that builds the gate directly.
+ *
+ * Launch day: flip the env var, then remove this gate and all its call sites — the full
+ * surface checklist lives in docs/features/xp-levels/leak-inventory.md.
  */
 readonly final class XpFeatureGate
 {

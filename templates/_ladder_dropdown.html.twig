@@ -46,5 +46,17 @@
         <a href="{{ path('ladder_groups_1000_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="dropdown-item {{ currentLadder == 'ladder_groups_1000_pieces' ? 'active'}}">
             {{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
         </a>
+
+        {% if xp_system_visible() %}
+            <div class="dropdown-divider"></div>
+
+            <a href="{{ path('xp_leaderboard') }}" class="dropdown-item">
+                {{ 'xp.leaderboard.title'|trans }}
+            </a>
+
+            <a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}" class="dropdown-item">
+                {{ 'xp.leaderboard.ap_title'|trans }}
+            </a>
+        {% endif %}
     </div>
 </div>

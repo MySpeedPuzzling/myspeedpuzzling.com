@@ -22,7 +22,7 @@ Rules while flagged:
 - [x] Post-solve XP receipt on recap page (`added_time_recap` + `added_tracking_recap`) — verified: `XpSurfacesTest::testRecapShowsNoXpTracesToNonAdminOwner`
 - [x] Lazy Live Component `XpRecapCelebration` — gate-checked in every render incl. the live endpoint; renders nothing for non-admins (covered by the recap assertions)
 - [x] Profile: avatar XP ring + level chip + progress bar — verified: `XpSurfacesTest::testProfileShowsNoXpTracesToNonAdmins`
-- [x] Profile: achievements strip (incl. free-user locked strip + "N waiting" teaser) — matrix inside `BadgesProfileSection`; verified: xp-teaser + ci-medal absence for non-admins
+- [x] Profile: achievements strip (incl. free-user locked strip + "N waiting" teaser) — matrix inside `BadgesProfileSection`; verified: xp-teaser + medallion absence for non-admins
 - [x] Badge reveal endpoint (POST, `revealed_at` flip) — 404 while flagged: `XpSurfacesTest::testRevealEndpointIs404ForNonAdmins`
 - [x] Membership-activation reveal page (`/my/achievement-reveals` + membership-page invite) — 404/hidden while flagged: `XpSurfacesTest`
 - [x] Header avatar XP ring — verified: `XpSurfacesTest::testHeaderShowsNoRingToNonAdmins`
@@ -33,7 +33,9 @@ Rules while flagged:
 
 - [x] Achievements catalog rework (route + `/badges` 301 redirect) — 404 for non-admins: `XpPagesTest` + `BadgesOverviewControllerTest`
 - [x] Achievement holders directory (`/achievements/{type}`) — 404 for non-admins: `XpPagesTest`
-- [x] XP leaderboard (`/players/xp-leaderboard`) — all three tabs 404 for non-admins: `XpPagesTest`
+- [x] Achievement explainer modal (`/achievements/{type}/info`) — gate-checked in `AchievementInfoController`
+- [x] Links into the gated pages from ungated templates (`/ladder` CTA + switcher dropdown entries for both boards, footer leaderboards list, achievements catalog, own-profile XP-history link) — all wrapped in `xp_system_visible()` (`src/Twig/XpTwigExtension.php`)
+- [x] XP + AP leaderboards (`/players/xp-leaderboard`, both tabs) — 404 for non-admins: `XpPagesTest`
 - [x] XP audit page (`/my/xp-history`) — 404 for non-admins: `XpPagesTest::testXpHistoryIs404ForNonAdmins`
 - [x] Explainer page (`/how-xp-works`) — 404 for non-admins: `XpExplainerControllerTest` + `XpPagesTest`
 - [x] Fair-play page (`/fair-play-xp`) — 404 for non-admins: `FairPlayXpControllerTest` + `XpPagesTest`
@@ -52,7 +54,7 @@ Rules while flagged:
 ## SEO / discovery
 
 - [x] Sitemap: new pages excluded while flagged — none of the XP routes are referenced by any Sitemap*Controller (verified by grep)
-- [x] No links/menu items to gated pages rendered for non-admins — all links live inside gate-checked components/pages (profile strip, catalog, receipt, membership invite); header/menu untouched
+- [x] No links/menu items to gated pages rendered for non-admins — links inside gate-checked components/pages (profile strip, catalog, receipt, membership invite), plus the four ungated templates that call `xp_system_visible()` (see Pages above); header/menu otherwise untouched
 
 ## Final pass
 

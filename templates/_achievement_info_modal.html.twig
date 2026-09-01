@@ -1,0 +1,77 @@
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">
+            <i class="bi bi-award me-1"></i>
+            {{ (type.translationKey())|trans }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <p class="text-body-secondary">{{ ('badges.description.' ~ type.value)|trans }}</p>
+
+        {% if group is null %}
+            <p class="fs-sm text-body-secondary mb-0">{{ 'badges.info.single_tier_note'|trans }}</p>
+        {% else %}
+            <ul class="list-unstyled mb-0">
+                {% for entry in group.tiers %}
+                    <li class="d-flex align-items-center gap-3 py-2 {{ not loop.last ? 'border-bottom' }}">
+                        <div class="badge-medallion badge-medallion-sm {{ entry.tier.cssClass() }} {{ entry.earned ? '' : 'badge-locked' }}">
+                            <span class="badge-medallion-tier">{{ entry.tier.romanNumeral() }}</span>
+                        </div>
+
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="{{ entry.earned ? 'fw-semibold' }}">{{ (entry.tier.translationKey())|trans }}</span>
+                                {% if entry.earned %}
+                                    <i class="ci-check-circle text-success" title="{{ 'badges.info.earned'|trans }}" aria-label="{{ 'badges.info.earned'|trans }}"></i>
+                                {% endif %}
+                                <span class="ms-auto small text-body-secondary text-nowrap">+{{ entry.tier.points }} AP</span>
+                            </div>
+                            <div class="small text-body-secondary">{{ (entry.requirementTranslationKey)|trans }}</div>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            {% if group.progressToNext is not null %}
+                {% set progress = group.progressToNext %}
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between small text-body-secondary mb-1">
+                        <span>{{ 'badges.info.next_tier'|trans({'%tier%': (progress.nextTier.translationKey())|trans}) }}</span>
+                        <span class="fw-semibold text-nowrap">
+                            {{ include('_achievement_progress_numbers.html.twig', {progress: progress}) }}
+                            <span class="text-body-secondary fw-normal">({{ progress.percent }}%)</span>
+                        </span>
+                    </div>
+                    <div class="progress" role="progressbar"
+                         aria-valuenow="{{ progress.percent }}" aria-valuemin="0" aria-valuemax="100"
+                         style="height: 10px;">
+                        <div class="progress-bar bg-primary" style="width: {{ progress.percent }}%"></div>
+                    </div>
+                </div>
+            {% elseif logged_in and group.hasAnyEarned() %}
+                <p class="small text-success mb-0 mt-3">
+                    <i class="ci-check-circle me-1"></i>
+                    {{ 'badges.highest_earned'|trans }}
+                </p>
+            {% elseif logged_in == false %}
+                <p class="small text-body-secondary mb-0 mt-3">
+                    <i class="ci-user me-1"></i>
+                    {{ 'badges.login_to_track'|trans }}
+                </p>
+            {% endif %}
+        {% endif %}
+
+        <div class="mt-3 d-flex flex-wrap gap-2">
+            {% if type.isTiered() %}
+                <a href="{{ path('achievement_detail', {type: type.value}) }}" class="btn btn-sm btn-outline-primary">
+                    {{ 'badges.view_holders'|trans }}
+                </a>
+            {% endif %}
+            <a href="{{ path('badges_overview') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-trophy me-1"></i>
+                {{ 'badges.browse_all'|trans }}
+            </a>
+        </div>
+    </div>
+</turbo-frame>

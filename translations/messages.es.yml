@@ -181,6 +181,8 @@
   "link_to_hub": "¿Buscas el rompecabezas más resuelto o los jugadores más activos? ¡Lo movimos al&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">nuevo Centro</a>!"
   "msp_elo_banner": "Acabamos de lanzar <a class=\"fw-bold text-decoration-underline\" href=\"%link%\">Escalera MSP Rating</a>&nbsp;<span class=\"badge bg-light text-dark\">BETA</span> — un nuevo sistema de clasificación basado en habilidad. Está recién salido del horno, ¡así que espera ajustes mientras lo perfeccionamos!"
   "msp_elo_cta": "Escalera MSP Rating"
+  "xp_ladder_banner": "Dos clasificaciones nuevas: XP por cuánto resuelves y Puntos de Logro por lo que completas."
+  "xp_ladder_cta": "Clasificación XP"
 "filters":
   "button": "Filtros"
   "filter_by": "Filtrar por"
@@ -999,23 +1001,22 @@ xp:
         meta_title: "Clasificación de XP"
         title: "Clasificación de XP"
         subtitle: "La actividad, celebrada."
-        tab:
-            this-week: "Esta semana"
-            all-time: "Todo el tiempo"
-            achievement-points: "Puntos de Logro"
+        all_leaderboards: "Todas las clasificaciones"
         favorites_only: "Solo favoritos"
         player: "Puzzlero"
         value:
-            this-week: "XP esta semana"
-            all-time: "XP total"
+            xp: "XP total"
             achievement-points: "AP"
+        tab:
+            xp: "XP"
+            achievement-points: "Puntos de Logro"
+        ap_title: "Clasificación de Puntos de Logro"
+        ap_subtitle: "La colección, clasificada."
+        ap_login_required: "Inicia sesión para explorar la escalera de Puntos de Logro."
         xp_value: "%xp% XP"
         ap_value: "%points% AP"
-        lv50_ap: "Nv 50 · %points% AP"
         your_position: "Tu posición"
-        ap_login_required: "Inicia sesión para explorar la escalera de Puntos de Logro."
         empty: "Aún no hay nada por aquí — ¡registra una resolución e inaugura el tablero!"
-        weekly_note: "El XP de esta semana proviene de resoluciones y logros; las liquidaciones y la conversión inicial del lanzamiento no cuentan aquí."
     history:
         meta_title: "Mi historial de XP"
         title: "Mi historial de XP"
@@ -1164,6 +1165,11 @@ badges:
     not_earned_yet: "Aún no conseguido"
     keep_going: "¡Sigue así!"
     login_to_track: "Inicia sesión para ver tu progreso hacia cada logro."
+    info:
+        open: "¿Para qué es %achievement%?"
+        earned: "Conseguido"
+        next_tier: "Siguiente: %tier%"
+        single_tier_note: "Este logro tiene un solo nivel: se concede a mano, no se consigue resolviendo."
     tier:
         bronze: "Bronce"
         silver: "Plata"

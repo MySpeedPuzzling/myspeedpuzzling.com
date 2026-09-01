@@ -50,6 +50,15 @@
                     </span>
                 {% endif %}
             </twig:XpRing>
+
+            {% if xp_system_visible()
+                and logged_user.profile is not null
+                and logged_user.profile.playerId is same as player.playerId
+                and not logged_user.profile.experienceSystemOptedOut %}
+                <a href="{{ path('xp_history') }}" class="ms-2 fs-sm text-decoration-none text-nowrap">
+                    <i class="ci-time me-1"></i>{{ 'xp.history.title'|trans }}
+                </a>
+            {% endif %}
         </div>
     {% endif %}
 

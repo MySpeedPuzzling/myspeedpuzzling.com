@@ -789,6 +789,18 @@
                                     {{ 'footer.speed_puzzling_leaderboard'|trans }}
                                 </a>
                             </li>
+                            {% if xp_system_visible() %}
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                    <a href="{{ path('xp_leaderboard') }}" class="widget-list-link">
+                                        {{ 'xp.leaderboard.title'|trans }}
+                                    </a>
+                                </li>
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                    <a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}" class="widget-list-link">
+                                        {{ 'xp.leaderboard.ap_title'|trans }}
+                                    </a>
+                                </li>
+                            {% endif %}
                             <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                 <a href="{{ path('players') }}" class="widget-list-link">
                                     {{ 'footer.speed_puzzling_players'|trans }}

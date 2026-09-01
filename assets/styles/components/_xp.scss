@@ -17,6 +17,7 @@ $xp-gold-deep: #f0a500;
 
 .xp-ring {
   --xp-progress: 0;
+  --xp-ring-width: 3px;
   --xp-ring-from: #{$xp-sky};
   --xp-ring-to: #{$xp-sky};
   --xp-ring-track: rgba(43, 52, 69, .14);
@@ -24,15 +25,37 @@ $xp-gold-deep: #f0a500;
   position: relative;
   display: inline-flex;
   border-radius: 50%;
-  padding: 3px;
-  background: conic-gradient(
-    from 0deg,
-    var(--xp-ring-from),
-    var(--xp-ring-to) calc(var(--xp-progress) * 360deg),
-    var(--xp-ring-track) calc(var(--xp-progress) * 360deg)
-  );
+  padding: var(--xp-ring-width);
+
+  // The arc lives on a masked pseudo-element, NOT on the box background: the ring wraps
+  // avatars and icons that are often transparent (the header's default user glyph), and a
+  // plain background would show through them as a filled disc instead of a ring.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      var(--xp-ring-from),
+      var(--xp-ring-to) calc(var(--xp-progress) * 360deg),
+      var(--xp-ring-track) calc(var(--xp-progress) * 360deg)
+    );
+    -webkit-mask: radial-gradient(
+      farthest-side,
+      transparent calc(100% - var(--xp-ring-width)),
+      #000 calc(100% - var(--xp-ring-width))
+    );
+    mask: radial-gradient(
+      farthest-side,
+      transparent calc(100% - var(--xp-ring-width)),
+      #000 calc(100% - var(--xp-ring-width))
+    );
+    pointer-events: none;
+  }
 
   > * {
+    position: relative;
     border-radius: 50%;
     display: block;
   }
@@ -72,7 +95,7 @@ $xp-gold-deep: #f0a500;
 // Ambient variant (site header): full quiet ring, no progress, no numbers.
 .xp-ring-ambient {
   --xp-progress: 1;
-  padding: 2px;
+  --xp-ring-width: 2px;
   opacity: .9;
 }
 

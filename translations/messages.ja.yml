@@ -181,6 +181,8 @@
   "link_to_hub": "最多解決パズルや最もアクティブなプレイヤーをお探しですか？<a class=\"text-decoration-underline\" href=\"%link%\">新しいハブ</a>に移動しました！"
   "msp_elo_banner": "<a class=\"fw-bold text-decoration-underline\" href=\"%link%\">MSP Ratingラダー</a>&nbsp;<span class=\"badge bg-light text-dark\">BETA</span>をリリースしました — スキルベースの新しいランキングシステムです。できたてほやほやなので、微調整を重ねながら改善していきます！"
   "msp_elo_cta": "MSP Ratingラダー"
+  "xp_ladder_banner": "2つのランキングが登場：どれだけ組んだかのXPと、何を達成したかの実績ポイント。"
+  "xp_ladder_cta": "XPランキング"
 "filters":
   "button": "フィルター"
   "filter_by": "フィルター条件"
@@ -1043,23 +1045,22 @@ xp:
         meta_title: "XPリーダーボード"
         title: "XPリーダーボード"
         subtitle: "活動に、拍手を。"
-        tab:
-            this-week: "今週"
-            all-time: "全期間"
-            achievement-points: "実績ポイント"
+        all_leaderboards: "すべてのリーダーボード"
         favorites_only: "お気に入りのみ"
         player: "パズラー"
         value:
-            this-week: "今週のXP"
-            all-time: "合計XP"
+            xp: "合計XP"
             achievement-points: "AP"
+        tab:
+            xp: "XP"
+            achievement-points: "実績ポイント"
+        ap_title: "実績ポイントランキング"
+        ap_subtitle: "コンプリートを競う。"
+        ap_login_required: "実績ポイントのラダーを見るにはログインしてください。"
         xp_value: "%xp% XP"
         ap_value: "%points% AP"
-        lv50_ap: "Lv 50 · %points% AP"
         your_position: "あなたの順位"
-        ap_login_required: "実績ポイントのラダーを見るにはログインしてください。"
         empty: "まだ何もありません — 記録を追加して、ボードの幕を開けましょう！"
-        weekly_note: "今週の完成と実績によるXPです。確定分やリリース時の一括付与はここには含まれません。"
     history:
         meta_title: "マイXP履歴"
         title: "マイXP履歴"
@@ -1208,6 +1209,11 @@ badges:
     not_earned_yet: "未獲得"
     keep_going: "その調子！"
     login_to_track: "ログインすると、各実績への進捗を確認できます。"
+    info:
+        open: "%achievement% はどんな実績？"
+        earned: "獲得済み"
+        next_tier: "次: %tier%"
+        single_tier_note: "この実績は単一ティアで、手動で付与されます（完成では獲得できません）。"
     tier:
         bronze: "ブロンズ"
         silver: "シルバー"

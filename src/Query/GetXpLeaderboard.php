@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
-use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
-use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\XpLeaderboardRow;
 use SpeedPuzzling\Web\Value\CountryCode;
 
 /**
- * XP leaderboards (§1.9): weekly delta straight from the ledger (settlements and
- * backfilled achievements excluded via in_weekly_delta), all-time from the
- * denormalized player totals, and the members-only Achievement Points ladder.
- * Private profiles and experience-system-opted-out players never appear.
+ * Two ladders, two disciplines (§1.9): XP ranks activity and is open to everyone
+ * forever, Achievement Points rank completion and are a membership perk. They are
+ * deliberately NOT merged — hunting XP and hunting AP are different games, and a
+ * player may chase either or both.
+ *
+ * Both read the denormalized player columns (`xp_total`, `achievement_points`), so
+ * neither aggregates anything at scale. Private profiles and experience-system
+ * opt-outs never appear on either.
  */
 readonly class GetXpLeaderboard
 {
@@ -36,17 +38,20 @@ SQL;
 
     public function __construct(
         private Connection $database,
-        private ClockInterface $clock,
     ) {
     }
 
     /**
+     * XP ladder — all-time, everyone, ranked purely by total XP. The level cap does not
+     * end this board: XP keeps accruing past Level 50 and keeps being shown.
+     *
      * @param list<string> $favoritePlayerIds
      * @return list<XpLeaderboardRow>
      */
-    public function allTime(null|string $country, null|array $favoritePlayerIds, int $limit = 100): array
+    public function xp(null|string $country, null|array $favoritePlayerIds, int $limit = 100): array
     {
         [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
+        $eligibility = self::PUBLIC_ELIGIBILITY;
 
         $sql = <<<SQL
 SELECT
@@ -58,12 +63,10 @@ SELECT
     p.avatar,
     p.xp_total AS value,
     p.level,
-    CASE WHEN p.level >= 50 AND EXISTS (
-        SELECT 1 FROM membership m WHERE m.player_id = p.id AND {$this->activeMembership()}
-    ) THEN p.achievement_points END AS achievement_points
+    NULL::int AS achievement_points
 FROM player p
 WHERE p.xp_total > 0
-  AND {$this->publicEligibility()}
+  AND {$eligibility}
   AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
   {$favoritesCondition}
 ORDER BY p.xp_total DESC, p.id ASC
@@ -74,55 +77,8 @@ SQL;
     }
 
     /**
-     * @param list<string> $favoritePlayerIds
-     * @return list<XpLeaderboardRow>
-     */
-    public function thisWeek(null|string $country, null|array $favoritePlayerIds, int $limit = 100): array
-    {
-        [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
-        [$weekStart, $weekEnd] = $this->currentWeekWindow();
-
-        $sql = <<<SQL
-SELECT
-    ROW_NUMBER() OVER (ORDER BY delta.value DESC, p.id ASC) AS rank,
-    p.id AS player_id,
-    p.name AS player_name,
-    p.code,
-    p.country,
-    p.avatar,
-    delta.value,
-    p.level,
-    CASE WHEN p.level >= 50 AND EXISTS (
-        SELECT 1 FROM membership m WHERE m.player_id = p.id AND {$this->activeMembership()}
-    ) THEN p.achievement_points END AS achievement_points
-FROM (
-    SELECT e.player_id, SUM(e.amount) AS value
-    FROM xp_entry e
-    WHERE e.in_weekly_delta = true
-      AND e.earned_at >= CAST(:weekStart AS TIMESTAMP)
-      AND e.earned_at < CAST(:weekEnd AS TIMESTAMP)
-    GROUP BY e.player_id
-    HAVING SUM(e.amount) > 0
-) delta
-JOIN player p ON p.id = delta.player_id
-WHERE {$this->publicEligibility()}
-  AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
-  {$favoritesCondition}
-ORDER BY delta.value DESC, p.id ASC
-LIMIT :limit
-SQL;
-
-        return $this->hydrate($sql, [
-            'country' => $country,
-            'limit' => $limit,
-            'weekStart' => $weekStart->format('Y-m-d H:i:s'),
-            'weekEnd' => $weekEnd->format('Y-m-d H:i:s'),
-        ] + $params, $types);
-    }
-
-    /**
-     * Achievement Points ladder — members ranked by AP; viewable by all logged-in
-     * users (this is the read-only ladder free level-50 players are pointed to).
+     * Achievement Points ladder — members ranked by AP; viewable by every logged-in
+     * user (this is the read-only ladder free players are pointed to).
      *
      * @param list<string> $favoritePlayerIds
      * @return list<XpLeaderboardRow>
@@ -130,6 +86,8 @@ SQL;
     public function achievementPoints(null|string $country, null|array $favoritePlayerIds, int $limit = 100): array
     {
         [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
+        $eligibility = self::PUBLIC_ELIGIBILITY;
+        $membership = self::ACTIVE_MEMBERSHIP;
 
         $sql = <<<SQL
 SELECT
@@ -143,9 +101,9 @@ SELECT
     p.level,
     p.achievement_points
 FROM player p
-JOIN membership m ON m.player_id = p.id AND {$this->activeMembership()}
+JOIN membership m ON m.player_id = p.id AND {$membership}
 WHERE p.achievement_points > 0
-  AND {$this->publicEligibility()}
+  AND {$eligibility}
   AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
   {$favoritesCondition}
 ORDER BY p.achievement_points DESC, p.id ASC
@@ -157,40 +115,22 @@ SQL;
 
     /**
      * The viewer's own standing for the pinned self-row: [rank, value] within the
-     * unfiltered public set, or null when they have nothing on that board.
+     * unfiltered public board of that discipline, or null when they are not on it.
      *
      * @return array{rank: int, value: int}|null
      */
     public function selfRank(string $playerId, string $tab): null|array
     {
-        [$weekStart, $weekEnd] = $this->currentWeekWindow();
+        $eligibility = self::PUBLIC_ELIGIBILITY;
+        $membership = self::ACTIVE_MEMBERSHIP;
 
         $sql = match ($tab) {
-            'this-week' => <<<SQL
-WITH deltas AS (
-    SELECT e.player_id, SUM(e.amount) AS value
-    FROM xp_entry e
-    WHERE e.in_weekly_delta = true
-      AND e.earned_at >= CAST(:weekStart AS TIMESTAMP)
-      AND e.earned_at < CAST(:weekEnd AS TIMESTAMP)
-    GROUP BY e.player_id
-    HAVING SUM(e.amount) > 0
-)
-SELECT mine.value,
-       1 + (
-           SELECT COUNT(*) FROM deltas d
-           JOIN player p ON p.id = d.player_id
-           WHERE d.value > mine.value AND {$this->publicEligibility()}
-       ) AS rank
-FROM deltas mine
-WHERE mine.player_id = :playerId
-SQL,
             'achievement-points' => <<<SQL
 SELECT mine.achievement_points AS value,
        1 + (
            SELECT COUNT(*) FROM player p
-           JOIN membership m ON m.player_id = p.id AND {$this->activeMembership()}
-           WHERE p.achievement_points > mine.achievement_points AND {$this->publicEligibility()}
+           JOIN membership m ON m.player_id = p.id AND {$membership}
+           WHERE p.achievement_points > mine.achievement_points AND {$eligibility}
        ) AS rank
 FROM player mine
 WHERE mine.id = :playerId AND mine.achievement_points > 0
@@ -199,22 +139,15 @@ SQL,
 SELECT mine.xp_total AS value,
        1 + (
            SELECT COUNT(*) FROM player p
-           WHERE p.xp_total > mine.xp_total AND {$this->publicEligibility()}
+           WHERE p.xp_total > mine.xp_total AND {$eligibility}
        ) AS rank
 FROM player mine
 WHERE mine.id = :playerId AND mine.xp_total > 0
 SQL,
         };
 
-        $params = ['playerId' => $playerId];
-
-        if ($tab === 'this-week') {
-            $params['weekStart'] = $weekStart->format('Y-m-d H:i:s');
-            $params['weekEnd'] = $weekEnd->format('Y-m-d H:i:s');
-        }
-
         /** @var array{value: int|string, rank: int|string}|false $row */
-        $row = $this->database->executeQuery($sql, $params)->fetchAssociative();
+        $row = $this->database->executeQuery($sql, ['playerId' => $playerId])->fetchAssociative();
 
         if ($row === false) {
             return null;
@@ -231,12 +164,14 @@ SQL,
      */
     public function countries(): array
     {
+        $eligibility = self::PUBLIC_ELIGIBILITY;
+
         $sql = <<<SQL
 SELECT DISTINCT p.country
 FROM player p
 WHERE p.xp_total > 0
   AND p.country IS NOT NULL
-  AND {$this->publicEligibility()}
+  AND {$eligibility}
 ORDER BY p.country
 SQL;
 
@@ -244,19 +179,6 @@ SQL;
         $countries = $this->database->executeQuery($sql)->fetchFirstColumn();
 
         return $countries;
-    }
-
-    /**
-     * @return array{DateTimeImmutable, DateTimeImmutable}
-     */
-    private function currentWeekWindow(): array
-    {
-        $now = $this->clock->now();
-        $weekStart = $now
-            ->setISODate((int) $now->format('o'), (int) $now->format('W'))
-            ->setTime(0, 0);
-
-        return [$weekStart, $weekStart->modify('+7 days')];
     }
 
     /**
@@ -308,15 +230,5 @@ SQL;
         }
 
         return $result;
-    }
-
-    private function publicEligibility(): string
-    {
-        return self::PUBLIC_ELIGIBILITY;
-    }
-
-    private function activeMembership(): string
-    {
-        return self::ACTIVE_MEMBERSHIP;
     }
 }

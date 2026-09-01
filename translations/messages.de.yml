@@ -179,6 +179,8 @@
   "link_to_hub": "Suchen Sie nach dem meist gelösten Puzzle oder den aktivsten Spielern? Wir haben es zum&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">neuen Hub</a> verschoben!"
   "msp_elo_banner": "Wir haben gerade die <a class=\"fw-bold text-decoration-underline\" href=\"%link%\">MSP Rating Rangliste</a>&nbsp;<span class=\"badge bg-light text-dark\">BETA</span> gestartet — ein neues fähigkeitsbasiertes Ranking-System. Es ist ganz frisch, also rechnet mit Anpassungen, während wir es feintunen!"
   "msp_elo_cta": "MSP Rating Rangliste"
+  "xp_ladder_banner": "Zwei neue Ranglisten sind da: XP dafür, wie viel du puzzelst, Erfolgspunkte dafür, was du vollendest."
+  "xp_ladder_cta": "XP-Bestenliste"
 "filters":
   "button": "Filter"
   "filter_by": "Filtern nach"
@@ -978,23 +980,22 @@ xp:
         meta_title: "XP-Bestenliste"
         title: "XP-Bestenliste"
         subtitle: "Aktivität, gefeiert."
-        tab:
-            this-week: "Diese Woche"
-            all-time: "Allzeit"
-            achievement-points: "Erfolgspunkte"
+        all_leaderboards: "Alle Bestenlisten"
         favorites_only: "Nur Favoriten"
         player: "Puzzler"
         value:
-            this-week: "XP diese Woche"
-            all-time: "XP gesamt"
+            xp: "XP gesamt"
             achievement-points: "AP"
+        tab:
+            xp: "XP"
+            achievement-points: "Erfolgspunkte"
+        ap_title: "Erfolgspunkte-Rangliste"
+        ap_subtitle: "Sammeln, im Ranking."
+        ap_login_required: "Melde dich an, um die Erfolgspunkte-Rangliste zu sehen."
         xp_value: "%xp% XP"
         ap_value: "%points% AP"
-        lv50_ap: "Lv 50 · %points% AP"
         your_position: "Deine Platzierung"
-        ap_login_required: "Melde dich an, um die Erfolgspunkte-Rangliste zu sehen."
         empty: "Noch nichts zu sehen — erfasse ein Ergebnis und eröffne die Bestenliste!"
-        weekly_note: "XP dieser Woche aus Puzzles und Erfolgen; Nachreichungen und die Start-Umwandlung zählen hier nicht."
     history:
         meta_title: "Mein XP-Verlauf"
         title: "Mein XP-Verlauf"
@@ -1143,6 +1144,11 @@ badges:
     not_earned_yet: "Noch nicht verdient"
     keep_going: "Weiter so!"
     login_to_track: "Melde dich an, um deinen Fortschritt bei jedem Erfolg zu sehen."
+    info:
+        open: "Wofür gibt es %achievement%?"
+        earned: "Erhalten"
+        next_tier: "Als Nächstes: %tier%"
+        single_tier_note: "Dieser Erfolg hat nur eine Stufe — er wird von Hand vergeben, nicht erpuzzelt."
     tier:
         bronze: "Bronze"
         silver: "Silber"

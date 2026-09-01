@@ -7,15 +7,18 @@
 {% block content %}
     <header class="mb-4">
         <h1 class="h3 mb-1">
-            <i class="ci-trophy me-1"></i>
+            <i class="bi bi-trophy me-1"></i>
             {{ 'badges.overview_title'|trans }}
         </h1>
-        <p class="text-body-secondary mb-0">{{ 'badges.overview_subtitle'|trans }}</p>
+        <p class="text-body-secondary mb-0">
+            {{ 'badges.overview_subtitle'|trans }}
+            <a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}" class="text-nowrap">{{ 'xp.leaderboard.ap_title'|trans }}</a>
+        </p>
 
         {% if ap_total is not null %}
             <p class="mt-2 mb-0">
                 <span class="xp-level-chip" title="{{ 'badges.ap_total_tooltip'|trans }}">
-                    <i class="ci-medal" aria-hidden="true"></i>
+                    <i class="bi bi-award" aria-hidden="true"></i>
                     {{ 'badges.ap_total'|trans({'%points%': ap_total}) }}
                 </span>
             </p>
@@ -84,7 +87,10 @@
                             <div class="mt-3">
                                 <div class="d-flex justify-content-between small text-body-secondary mb-1">
                                     <span>{{ ('badges.requirement.' ~ group.type.value ~ '_' ~ progress.nextTier.value)|trans }}</span>
-                                    <span class="fw-semibold">{{ progress.percent }}%</span>
+                                    <span class="fw-semibold text-nowrap">
+                                        {{ include('_achievement_progress_numbers.html.twig', {progress: progress}) }}
+                                        <span class="text-body-secondary fw-normal">({{ progress.percent }}%)</span>
+                                    </span>
                                 </div>
                                 <div class="progress" role="progressbar"
                                      aria-label="Progress toward next achievement tier"
@@ -101,7 +107,7 @@
                             </p>
                         {% elseif logged_in %}
                             <p class="small text-body-secondary mb-0 mt-2">
-                                <i class="ci-info me-1"></i>
+                                <i class="bi bi-info-circle me-1"></i>
                                 {{ 'badges.not_earned_yet'|trans }} — {{ 'badges.keep_going'|trans }}
                             </p>
                         {% endif %}

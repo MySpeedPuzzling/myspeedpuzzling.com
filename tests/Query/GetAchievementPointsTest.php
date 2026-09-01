@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetAchievementPoints;
 use SpeedPuzzling\Web\Query\GetXpLeaderboard;
+use SpeedPuzzling\Web\Results\XpLeaderboardRow;
 use SpeedPuzzling\Web\Services\Badges\BadgeEvaluator;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -58,16 +59,33 @@ final class GetAchievementPointsTest extends KernelTestCase
         self::assertSame($expected, $this->columnValue($playerId));
 
         // The AP ladder ranks straight off the column (member + public profile required).
-        $mine = null;
-        foreach (self::getContainer()->get(GetXpLeaderboard::class)->achievementPoints(null, null) as $row) {
-            if ($row->playerId === $playerId) {
-                $mine = $row;
-            }
-        }
+        $mine = $this->apLadderRow($playerId);
 
         self::assertNotNull($mine);
         self::assertSame($expected, $mine->value);
         self::assertSame($expected, $mine->achievementPoints);
+    }
+
+    public function testApLadderListsMembersOnlyWhileTheXpLadderIsOpenToEveryone(): void
+    {
+        $freePlayer = $this->insertFreshPlayer(member: false);
+        $this->insertBadge($freePlayer, 'puzzles_solved', BadgeTier::Diamond->value);
+        $this->evaluate($freePlayer);
+
+        // AP is a membership perk: a free player never appears on the AP ladder...
+        self::assertNull($this->apLadderRow($freePlayer));
+
+        // ...but XP is free forever, so the XP ladder carries them all the same.
+        $this->database->executeStatement(
+            'UPDATE player SET xp_total = 500, level = 20 WHERE id = :id',
+            ['id' => $freePlayer],
+        );
+
+        $xpRow = $this->xpLadderRow($freePlayer);
+
+        self::assertNotNull($xpRow);
+        self::assertSame(500, $xpRow->value);
+        self::assertNull($xpRow->achievementPoints);
     }
 
     public function testEvaluationSelfHealsManualDrift(): void
@@ -123,6 +141,36 @@ final class GetAchievementPointsTest extends KernelTestCase
         }
 
         return $playerId;
+    }
+
+    private function apLadderRow(string $playerId): null|XpLeaderboardRow
+    {
+        return $this->findRow(
+            self::getContainer()->get(GetXpLeaderboard::class)->achievementPoints(null, null, 1_000),
+            $playerId,
+        );
+    }
+
+    private function xpLadderRow(string $playerId): null|XpLeaderboardRow
+    {
+        return $this->findRow(
+            self::getContainer()->get(GetXpLeaderboard::class)->xp(null, null, 1_000),
+            $playerId,
+        );
+    }
+
+    /**
+     * @param list<XpLeaderboardRow> $rows
+     */
+    private function findRow(array $rows, string $playerId): null|XpLeaderboardRow
+    {
+        foreach ($rows as $row) {
+            if ($row->playerId === $playerId) {
+                return $row;
+            }
+        }
+
+        return null;
     }
 
     private function insertBadge(string $playerId, string $type, null|int $tier): void

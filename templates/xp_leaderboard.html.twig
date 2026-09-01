@@ -1,21 +1,26 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'xp.leaderboard.meta_title'|trans }}{% endblock %}
+{% set is_ap = tab == 'achievement-points' %}
+
+{% block title %}{{ (is_ap ? 'xp.leaderboard.ap_title' : 'xp.leaderboard.meta_title')|trans }}{% endblock %}
 
 {% block content %}
     <header class="mb-3">
         <h1 class="h3 mb-1">
-            <i class="ci-trophy me-1"></i>
-            {{ 'xp.leaderboard.title'|trans }}
+            <i class="bi bi-trophy me-1"></i>
+            {{ (is_ap ? 'xp.leaderboard.ap_title' : 'xp.leaderboard.title')|trans }}
         </h1>
         <p class="text-body-secondary fs-sm mb-0">
-            {{ 'xp.leaderboard.subtitle'|trans }}
+            {{ (is_ap ? 'xp.leaderboard.ap_subtitle' : 'xp.leaderboard.subtitle')|trans }}
             <a href="{{ path('xp_explainer') }}">{{ 'badges.how_it_works_link'|trans }}</a>
+            <span class="mx-1">·</span>
+            <a href="{{ path('ladder') }}">{{ 'xp.leaderboard.all_leaderboards'|trans }}</a>
         </p>
     </header>
 
+    {# Two disciplines, deliberately separate boards - chase XP, chase AP, or both. #}
     <ul class="nav nav-tabs mb-3">
-        {% for tab_option in ['this-week', 'all-time', 'achievement-points'] %}
+        {% for tab_option in ['xp', 'achievement-points'] %}
             <li class="nav-item">
                 <a class="nav-link {{ tab == tab_option ? 'active' }}"
                    href="{{ path('xp_leaderboard', {tab: tab_option, country: selected_country, favorites: favorites_only ? 1 : null}) }}">
@@ -47,7 +52,7 @@
         {% endif %}
     </form>
 
-    {% if tab == 'achievement-points' and viewer is null %}
+    {% if is_ap and viewer is null %}
         <div class="xp-teaser">
             <i class="ci-user" aria-hidden="true"></i>
             <span>{{ 'xp.leaderboard.ap_login_required'|trans }}</span>
@@ -64,7 +69,7 @@
                     <strong>#{{ self_rank.rank }}</strong>
                     <span>{{ 'xp.leaderboard.your_position'|trans }}</span>
                     <span class="ms-auto xp-receipt-amount">
-                        {{ tab == 'achievement-points'
+                        {{ is_ap
                             ? 'xp.leaderboard.ap_value'|trans({'%points%': self_rank.value})
                             : 'xp.leaderboard.xp_value'|trans({'%xp%': self_rank.value}) }}
                     </span>
@@ -78,9 +83,7 @@
                     <tr class="fs-sm">
                         <th scope="col" style="width: 3.5rem;">#</th>
                         <th scope="col">{{ 'xp.leaderboard.player'|trans }}</th>
-                        <th scope="col" class="text-end">
-                            {{ ('xp.leaderboard.value.' ~ tab)|trans }}
-                        </th>
+                        <th scope="col" class="text-end">{{ ('xp.leaderboard.value.' ~ tab)|trans }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -98,15 +101,11 @@
                                     {% if row.countryCode is not null %}
                                         <span class="fi fi-{{ row.countryCode.name }}"></span>
                                     {% endif %}
-                                    {% if row.isMaxLevel and row.achievementPoints is not null %}
-                                        <span class="xp-level-chip xp-level-chip-max">{{ 'xp.leaderboard.lv50_ap'|trans({'%points%': row.achievementPoints}) }}</span>
-                                    {% else %}
-                                        <span class="xp-level-chip {{ row.isMaxLevel ? 'xp-level-chip-max' }}">{{ 'xp.level_chip'|trans({'%level%': row.level}) }}</span>
-                                    {% endif %}
+                                    <span class="xp-level-chip {{ row.isMaxLevel ? 'xp-level-chip-max' }}">{{ 'xp.level_chip'|trans({'%level%': row.level}) }}</span>
                                 </a>
                             </td>
                             <td class="text-end fw-semibold">
-                                {{ tab == 'achievement-points'
+                                {{ is_ap
                                     ? 'xp.leaderboard.ap_value'|trans({'%points%': row.value})
                                     : 'xp.leaderboard.xp_value'|trans({'%xp%': row.value}) }}
                             </td>
@@ -115,12 +114,5 @@
                 </tbody>
             </table>
         </div>
-    {% endif %}
-
-    {% if tab == 'this-week' %}
-        <p class="small text-body-secondary mt-3 mb-0">
-            <i class="ci-info me-1"></i>
-            {{ 'xp.leaderboard.weekly_note'|trans }}
-        </p>
     {% endif %}
 {% endblock %}

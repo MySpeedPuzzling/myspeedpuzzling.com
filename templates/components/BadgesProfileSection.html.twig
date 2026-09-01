@@ -1,9 +1,9 @@
 {% set mode = this.mode %}
 
 {% if mode == 'detail' %}
-<div class="mt-4">
+<div class="mt-4 xp-achievements-strip">
     <h3>
-        <i class="ci-medal me-1"></i>
+        <i class="bi bi-award me-1"></i>
         {{ 'badges.title'|trans }}
         <span class="badge bg-primary ms-1 align-middle fs-sm">{{ badges|length }}</span>
     </h3>
@@ -15,7 +15,9 @@
             {% set label = (badge.type.translationKey())|trans %}
             {% set tier_suffix = tier ? ' ' ~ (tier.translationKey())|trans : '' %}
 
-            <div class="badge-earned text-center" title="{{ label }}{{ tier_suffix }}">
+            {% set info_url = path('achievement_info', {type: badge.type.value}) %}
+
+            <div class="badge-earned text-center">
                 <div class="position-relative d-inline-block">
                     {% if this.needsReveal(badge) %}
                         <button
@@ -38,13 +40,19 @@
                             </span>
                         </button>
                     {% else %}
-                        <div class="badge-medallion {{ tier_class }}">
-                            {% if tier %}
-                                <span class="badge-medallion-tier">{{ tier.romanNumeral() }}</span>
-                            {% else %}
-                                <i class="ci-heart"></i>
-                            {% endif %}
-                        </div>
+                        {# The medallion itself opens the explainer - "what is Steady Hands for?"
+                           has to be answerable without leaving the profile. #}
+                        <a href="{{ info_url }}" data-turbo-frame="modal-frame"
+                           class="d-inline-block text-decoration-none"
+                           title="{{ 'badges.info.open'|trans({'%achievement%': label}) }}">
+                            <div class="badge-medallion {{ tier_class }}">
+                                {% if tier %}
+                                    <span class="badge-medallion-tier">{{ tier.romanNumeral() }}</span>
+                                {% else %}
+                                    <i class="ci-heart"></i>
+                                {% endif %}
+                            </div>
+                        </a>
                     {% endif %}
 
                     {% if this.isNew(badge) %}
@@ -52,8 +60,10 @@
                     {% endif %}
                 </div>
 
-                <div class="small mt-1 text-body-secondary" style="max-width: 90px;">
-                    {{ label }}
+                <div class="small mt-1" style="max-width: 90px;">
+                    <a href="{{ info_url }}" data-turbo-frame="modal-frame" class="text-body-secondary text-decoration-none">
+                        {{ label }}
+                    </a>
                 </div>
                 {% if tier %}
                     <div class="small fw-semibold">{{ (tier.translationKey())|trans }}</div>
@@ -63,14 +73,14 @@
     </div>
 
     <a href="{{ path('badges_overview') }}" class="btn btn-sm btn-outline-primary mt-3">
-        <i class="ci-trophy me-1"></i>
+        <i class="bi bi-trophy me-1"></i>
         {{ 'badges.browse_all'|trans }}
     </a>
 </div>
 {% elseif mode == 'teaser' %}
-<div class="mt-4">
+<div class="mt-4 xp-achievements-strip">
     <h3>
-        <i class="ci-medal me-1"></i>
+        <i class="bi bi-award me-1"></i>
         {{ 'badges.title'|trans }}
     </h3>
 
@@ -89,7 +99,7 @@
         </div>
     {% else %}
         <div class="xp-teaser mt-3">
-            <i class="ci-medal" aria-hidden="true"></i>
+            <i class="bi bi-award" aria-hidden="true"></i>
             <span>{{ 'badges.waiting_teaser_zero'|trans }}</span>
         </div>
     {% endif %}

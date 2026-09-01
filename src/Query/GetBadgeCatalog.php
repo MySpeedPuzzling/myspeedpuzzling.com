@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Results\BadgeCatalogEntry;
 use SpeedPuzzling\Web\Results\BadgeCatalogGroup;
 use SpeedPuzzling\Web\Results\PlayerStatsSnapshot;
 use SpeedPuzzling\Web\Value\BadgeTier;
+use SpeedPuzzling\Web\Value\BadgeType;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 readonly final class GetBadgeCatalog
@@ -22,6 +23,21 @@ readonly final class GetBadgeCatalog
         private GetPlayerStatsSnapshot $getPlayerStatsSnapshot,
         private GetBadges $getBadges,
     ) {
+    }
+
+    /**
+     * One achievement's catalog group for the viewer — powers the explainer modal, so
+     * it deliberately reuses the same computation the catalog page shows.
+     */
+    public function forPlayerAndType(null|string $playerId, BadgeType $type): null|BadgeCatalogGroup
+    {
+        foreach ($this->forPlayer($playerId) as $group) {
+            if ($group->type === $type) {
+                return $group;
+            }
+        }
+
+        return null;
     }
 
     /**

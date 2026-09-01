@@ -180,6 +180,8 @@
   "link_to_hub": "Hledáte nejskládanější puzzle nebo nejaktivnější hráče? Přesunuli jsme je&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">do nového Hubu</a>!"
   "msp_elo_banner": "Právě jsme spustili <a class=\"fw-bold text-decoration-underline\" href=\"%link%\">MSP Rating žebříček</a>&nbsp;<span class=\"badge bg-light text-dark\">BETA</span> — nový systém hodnocení založený na dovednostech. Je čerstvě z pece, takže očekávejte úpravy, jak ho budeme ladit!"
   "msp_elo_cta": "MSP Rating žebříček"
+  "xp_ladder_banner": "Máme dva nové žebříčky: XP za to, kolik skládáš, a body za úspěchy za to, co posbíráš."
+  "xp_ladder_cta": "Žebříček XP"
 "filters":
   "button": "Filtry"
   "filter_by": "Filtrovat podle"
@@ -998,23 +1000,22 @@ xp:
         meta_title: "XP žebříček"
         title: "XP žebříček"
         subtitle: "Aktivita, která se slaví."
-        tab:
-            this-week: "Tento týden"
-            all-time: "Celkově"
-            achievement-points: "Body za úspěchy"
+        all_leaderboards: "Všechny žebříčky"
         favorites_only: "Pouze oblíbení"
         player: "Puzzler"
         value:
-            this-week: "XP tento týden"
-            all-time: "XP celkem"
+            xp: "XP celkem"
             achievement-points: "AP"
+        tab:
+            xp: "XP"
+            achievement-points: "Body za úspěchy"
+        ap_title: "Žebříček bodů za úspěchy"
+        ap_subtitle: "Sbírání úspěchů v žebříčku."
+        ap_login_required: "Pro prohlížení žebříčku bodů za úspěchy se přihlas."
         xp_value: "%xp% XP"
         ap_value: "%points% AP"
-        lv50_ap: "Lv 50 · %points% AP"
         your_position: "Tvoje pozice"
-        ap_login_required: "Pro prohlížení žebříčku bodů za úspěchy se přihlas."
         empty: "Zatím tu nic není — zaznamenej složení a otevři žebříček!"
-        weekly_note: "XP tohoto týdne ze složení a úspěchů; doúčtování a zpětný přepočet při spuštění se sem nepočítají."
     history:
         meta_title: "Moje XP historie"
         title: "Moje XP historie"
@@ -1163,6 +1164,11 @@ badges:
     not_earned_yet: "Zatím nezískáno"
     keep_going: "Jen tak dál!"
     login_to_track: "Přihlas se a uvidíš svůj postup ke každému úspěchu."
+    info:
+        open: "Za co je %achievement%?"
+        earned: "Získáno"
+        next_tier: "Další: %tier%"
+        single_tier_note: "Tenhle úspěch má jen jednu úroveň — uděluje se ručně, nedá se získat skládáním."
     tier:
         bronze: "Bronz"
         silver: "Stříbro"

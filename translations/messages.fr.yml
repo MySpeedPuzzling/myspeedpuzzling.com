@@ -182,6 +182,8 @@
   "link_to_hub": "Vous cherchez le puzzle le plus résolu ou les joueurs les plus actifs ? Nous l'avons déplacé vers&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">le nouveau Centre</a> !"
   "msp_elo_banner": "Nous venons de lancer le <a class=\"fw-bold text-decoration-underline\" href=\"%link%\">Classement MSP Rating</a>&nbsp;<span class=\"badge bg-light text-dark\">BÊTA</span> — un nouveau système de classement basé sur les compétences. C'est tout frais, attendez-vous à des ajustements au fur et à mesure que nous l'affinons !"
   "msp_elo_cta": "Classement MSP Rating"
+  "xp_ladder_banner": "Deux nouveaux classements : les XP pour ce que vous assemblez, les points de succès pour ce que vous complétez."
+  "xp_ladder_cta": "Classement XP"
 "filters":
   "button": "Filtres"
   "filter_by": "Filtrer par"
@@ -1000,23 +1002,22 @@
     "meta_title": "Classement XP"
     "title": "Classement XP"
     "subtitle": "L'activité, célébrée."
-    "tab":
-      "this-week": "Cette semaine"
-      "all-time": "Depuis toujours"
-      "achievement-points": "Points de succès"
+    "all_leaderboards": "Tous les classements"
     "favorites_only": "Favoris uniquement"
     "player": "Puzzleur"
     "value":
-      "this-week": "XP cette semaine"
-      "all-time": "XP au total"
+      "xp": "XP au total"
       "achievement-points": "AP"
+    "tab":
+      "xp": "XP"
+      "achievement-points": "Points de succès"
+    "ap_title": "Classement des points de succès"
+    "ap_subtitle": "La collection, classée."
+    "ap_login_required": "Connectez-vous pour parcourir le classement des points de succès."
     "xp_value": "%xp% XP"
     "ap_value": "%points% AP"
-    "lv50_ap": "Niv. 50 · %points% AP"
     "your_position": "Votre position"
-    "ap_login_required": "Connectez-vous pour parcourir le classement des points de succès."
     "empty": "Rien ici pour l'instant — enregistrez une résolution et inaugurez le tableau !"
-    "weekly_note": "Les XP de la semaine proviennent des résolutions et des succès ; les régularisations et la reprise d'historique du lancement ne comptent pas ici."
   "history":
     "meta_title": "Mon historique d'XP"
     "title": "Mon historique d'XP"
@@ -1163,6 +1164,11 @@
   "not_earned_yet": "Pas encore obtenu"
   "keep_going": "Continuez comme ça !"
   "login_to_track": "Connectez-vous pour voir votre progression vers chaque succès."
+  "info":
+    "open": "À quoi sert %achievement% ?"
+    "earned": "Obtenu"
+    "next_tier": "Ensuite : %tier%"
+    "single_tier_note": "Ce succès n'a qu'un seul niveau : il est attribué à la main, il ne s'obtient pas en résolvant."
   "tier":
     "bronze": "Bronze"
     "silver": "Argent"

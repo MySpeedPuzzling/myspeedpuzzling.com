@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\BadgeConditions;
 
 use SpeedPuzzling\Web\Results\BadgeProgress;
 use SpeedPuzzling\Web\Results\PlayerStatsSnapshot;
+use SpeedPuzzling\Web\Value\BadgeProgressUnit;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 
@@ -75,6 +76,7 @@ readonly final class Speed500PiecesCondition implements BadgeConditionInterface
             currentValue: $best,
             targetValue: $target,
             percent: $percent,
+            unit: BadgeProgressUnit::Seconds,
         );
     }
 

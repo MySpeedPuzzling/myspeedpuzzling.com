@@ -30,9 +30,9 @@ XP is never purchasable. Levels gate nothing functional. Level 50 = 3,160 XP
 - `earned_at` carries the SOLVE's timestamp (`COALESCE(finished_at, tracked_at)`) for
   solve-derived entries, the badge's `earned_at` for achievements, clock-now only for
   settlements (which are excluded from weekly deltas via `in_weekly_delta = false`).
-- Leaderboards never aggregate at scale: all-time reads `player.xp_total` (indexed),
-  the AP ladder reads `player.achievement_points` (indexed), and the weekly tab scans
-  only the current ISO-week slice via the partial covering index
+- Leaderboards never aggregate at scale: both ladders read the denormalized
+  `player.xp_total` / `player.achievement_points` columns (both indexed), and the weekly
+  digest scans only its ISO-week slice via the partial covering index
   `custom_xp_entry_weekly_delta (earned_at, player_id, amount) WHERE in_weekly_delta`
   (mirrored in `tests/bootstrap.php`). `xp_entry.solving_time_id` is indexed for the
   receipt/delete/edit lookups.
@@ -83,11 +83,29 @@ picks it up automatically.
 
 Recap receipt + celebration (`XpSolveReceipt` inside the `XpRecapCelebration`
 LiveComponent — one poll bridges the async award), profile/header rings (`XpRing`,
-CSS-only milestone styling), achievements catalog `/achievements` + holders directory
-`/achievements/{type}`, XP leaderboard `/players/xp-leaderboard` (weekly ledger delta /
-all-time / AP tabs), audit page `/my/xp-history`, explainer `/how-xp-works`, fair-play
-`/fair-play-xp`, one-time launch reveal `/my/xp-reveal` (DismissedHint-backed), share
-cards `/xp-card/{playerId}/{launch|level-up}`.
+CSS-only milestone styling; the arc is a masked `::before`, so transparent avatars never
+show a filled disc), achievements catalog `/achievements` + holders directory
+`/achievements/{type}` + explainer modal `/achievements/{type}/info`
+(`AchievementInfoController`, opened from every medallion on a profile through the shared
+`modal-frame`), the XP + Achievement Points ladders `/players/xp-leaderboard`, audit page
+`/my/xp-history`, explainer `/how-xp-works`, fair-play `/fair-play-xp`, one-time launch
+reveal `/my/xp-reveal` (DismissedHint-backed), share cards
+`/xp-card/{playerId}/{launch|level-up}`.
+
+**Two ladders, two disciplines** (`GetXpLeaderboard::xp()` / `::achievementPoints()`,
+both on `xp_leaderboard` as tabs `xp` + `achievement-points`): XP ranks activity and is
+open to everyone, Achievement Points rank completion and list members only (free players
+may look, logged-in only). Deliberately NOT merged — chasing XP and chasing AP are
+different games and a player may play either or both. **XP is always shown, including past
+Level 50**, where it keeps accruing even though the level stops moving. The weekly-delta
+tab is gone (a 7-day slice was noise next to two all-time boards); `xp_entry.in_weekly_delta`
+stays because the weekly digest still reads it.
+
+Discovery: both boards are linked from `/ladder` (CTA banner + two entries in the ladder
+switcher dropdown) and the footer leaderboards list; the achievements catalog links the AP
+board; the audit page is linked from the owner's own profile next to the ring. Every one of
+those links is wrapped in `xp_system_visible()` (`XpTwigExtension`) so nothing points at a
+page that 404s while the flag is active.
 
 ### Weekly digest
 

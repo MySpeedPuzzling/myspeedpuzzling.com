@@ -202,6 +202,8 @@ ladder:
     link_to_hub: "Looking for most solved puzzle or most active players? We moved it to&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">the new Hub</a>!"
     msp_elo_banner: "We just launched <a class=\"fw-bold text-decoration-underline\" href=\"%link%\">MSP Rating Ladder</a>&nbsp;<span class=\"badge bg-light text-dark\">BETA</span> — a new skill-based ranking system. It's fresh out of the oven, so expect tweaks as we fine-tune it!"
     msp_elo_cta: "MSP Rating Ladder"
+    xp_ladder_banner: "Two new ladders are live: XP for how much you puzzle, Achievement Points for what you complete."
+    xp_ladder_cta: "XP ladder"
 
 filters:
     button: "Filters"
@@ -1172,23 +1174,22 @@ xp:
         meta_title: "XP Leaderboard"
         title: "XP Leaderboard"
         subtitle: "Activity, celebrated."
-        tab:
-            this-week: "This week"
-            all-time: "All time"
-            achievement-points: "Achievement Points"
+        all_leaderboards: "All leaderboards"
         favorites_only: "Favorites only"
         player: "Puzzler"
         value:
-            this-week: "XP this week"
-            all-time: "Total XP"
+            xp: "Total XP"
             achievement-points: "AP"
+        tab:
+            xp: "XP"
+            achievement-points: "Achievement Points"
+        ap_title: "Achievement Points Ladder"
+        ap_subtitle: "Completion, ranked."
+        ap_login_required: "Log in to browse the Achievement Points ladder."
         xp_value: "%xp% XP"
         ap_value: "%points% AP"
-        lv50_ap: "Lv 50 · %points% AP"
         your_position: "Your position"
-        ap_login_required: "Log in to browse the Achievement Points ladder."
         empty: "Nothing here yet — log a solve and open the board!"
-        weekly_note: "This week's XP from solves and achievements; settlements and launch backfill don't count here."
     history:
         meta_title: "My XP history"
         title: "My XP history"
@@ -1337,6 +1338,11 @@ badges:
     not_earned_yet: "Not earned yet"
     keep_going: "Keep going!"
     login_to_track: "Log in to see your progress toward each achievement."
+    info:
+        open: "What is %achievement% for?"
+        earned: "Earned"
+        next_tier: "Next: %tier%"
+        single_tier_note: "This one has a single tier — it is granted by hand, never earned by solving."
     tier:
         bronze: "Bronze"
         silver: "Silver"

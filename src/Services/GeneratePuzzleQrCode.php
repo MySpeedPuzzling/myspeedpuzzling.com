@@ -37,6 +37,15 @@ readonly final class GeneratePuzzleQrCode
             UrlGeneratorInterface::ABSOLUTE_URL,
         );
 
+        return $this->generateForUrl($url);
+    }
+
+    /**
+     * Branded QR code (logo in the middle) for any absolute URL - e.g. the
+     * human-readable Ravensburger Puzzle Month link printed on the boxes.
+     */
+    public function generateForUrl(string $url): string
+    {
         $renderer = new ImageRenderer(
             new RendererStyle(
                 self::QR_SIZE,

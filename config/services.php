@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Services\Storage\FailoverS3Adapter;
 use SpeedPuzzling\Web\Services\Storage\UploadSpool;
 use SpeedPuzzling\Web\Services\Storage\UploadSpoolProcessor;
 use SpeedPuzzling\Web\Services\StripeWebhookHandler;
+use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use Stripe\StripeClient;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\Psr18Client;
@@ -97,6 +98,11 @@ return static function (ContainerConfigurator $configurator): void {
     $parameters->set('socialLoginGoogleEnabled', '%env(bool:SOCIAL_LOGIN_GOOGLE_ENABLED)%');
     $parameters->set('socialLoginFacebookEnabled', '%env(bool:SOCIAL_LOGIN_FACEBOOK_ENABLED)%');
     $parameters->set('socialLoginAppleEnabled', '%env(bool:SOCIAL_LOGIN_APPLE_ENABLED)%');
+
+    // XP / Levels / Achievements launch flag (`xp-system`, docs/features/feature_flags.md).
+    // While ON the bundle is admin-only and every feature email stays suppressed;
+    // launch = flip the env var to 0 (docs/features/xp-levels/launch-runbook.md).
+    $parameters->set('xpSystemAdminOnly', '%env(bool:XP_SYSTEM_ADMIN_ONLY)%');
 
     $services = $configurator->services();
 
@@ -181,6 +187,7 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/Api/PuzzleInsightsBatch.php',
         ]);
     $services->load('SpeedPuzzling\\Web\\Query\\', __DIR__ . '/../src/Query/**/{*.php}');
+    $services->load('SpeedPuzzling\\Web\\BadgeConditions\\', __DIR__ . '/../src/BadgeConditions/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\Security\\', __DIR__ . '/../src/Security/**/{*.php}')
         ->exclude([
             __DIR__ . '/../src/Security/OAuth2User.php',
@@ -223,6 +230,12 @@ return static function (ContainerConfigurator $configurator): void {
 
     // The nested API DTOs are normalized with the same snake_case converter API Platform
     // uses for the resources themselves (config/packages/api_platform.php)
+    // The gate is autoloaded with the rest of Services/; this definition only feeds
+    // it the flag value (its constructor default keeps the admin-only side in tests
+    // that build it directly).
+    $services->set(XpFeatureGate::class)
+        ->arg('$adminOnly', '%xpSystemAdminOnly%');
+
     $services->set(ApiDtoNormalizer::class)
         ->arg('$nameConverter', service('serializer.name_converter.camel_case_to_snake_case'));
 

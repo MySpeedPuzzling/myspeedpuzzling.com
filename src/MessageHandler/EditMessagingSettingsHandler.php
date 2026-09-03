@@ -34,6 +34,10 @@ readonly final class EditMessagingSettingsHandler
         $player->changeEmailNotificationFrequency($message->emailNotificationFrequency);
         $player->changeNewsletterEnabled($message->newsletterEnabled);
 
+        if ($message->contentDigestFrequency !== null) {
+            $player->changeContentDigestFrequency($message->contentDigestFrequency);
+        }
+
         if ($newsletterChanged && $player->email !== null) {
             $this->messageBus->dispatch(new PushNewsletterSubscriberToListmonk($player->email));
         }

@@ -42,6 +42,10 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * 2026-08-19 with the prediction switched off (PAT authentication included), so the
  * ceilings pin only what this feature adds: owner profile 1 + prediction <= 5 for an
  * eligible request, owner profile 1 at most otherwise, nothing for a group time.
+ * Re-measured after the XP/badges branch: AddPuzzleSolvingTimeHandler now dispatches
+ * RecalculateBadgesForPlayer + AwardXpForSolvingTime (async — the handlers do not run
+ * in-request), and each dispatch inside the open transaction costs a SAVEPOINT +
+ * RELEASE pair from the doctrine_transaction middleware => every write path is +4.
  *
  * @phpstan-type Prediction array{predicted_seconds: null|int, range_low_seconds: null|int, range_high_seconds: null|int, is_personalized: bool, personal_solve_count: null|int, predicted_attempt_number: null|int, last_time_seconds: null|int}
  * @phpstan-type SolvingTimeResponse array{time_id: string, puzzle_id: string, time_seconds: null|int, finished_at: null|string, first_attempt: bool, unboxed: bool, comment: null|string, round_id: null|string}
@@ -53,16 +57,16 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
     private const string ENDPOINT = '/api/v1/me/solving-times';
 
     /** PLAYER_WITH_STRIPE, solo, PUZZLE_500_01 (one earlier solve - the create recomputes improvement ratios) */
-    private const int WRITE_PATH_MEMBER_SOLO_500_01 = 29;
+    private const int WRITE_PATH_MEMBER_SOLO_500_01 = 33;
 
     /** PLAYER_WITH_STRIPE, solo, PUZZLE_500_04 (first solve of the puzzle) */
-    private const int WRITE_PATH_MEMBER_SOLO_500_04 = 28;
+    private const int WRITE_PATH_MEMBER_SOLO_500_04 = 32;
 
     /** PLAYER_REGULAR, solo, PUZZLE_500_02 (three earlier solves, a subscriber to notify) */
-    private const int WRITE_PATH_NON_MEMBER_SOLO_500_02 = 35;
+    private const int WRITE_PATH_NON_MEMBER_SOLO_500_02 = 39;
 
     /** PLAYER_WITH_STRIPE, duo with a guest, PUZZLE_500_01 */
-    private const int WRITE_PATH_MEMBER_GROUP_500_01 = 21;
+    private const int WRITE_PATH_MEMBER_GROUP_500_01 = 25;
 
     /** ApiTokenOwner::profile(), memoised - once per request at most */
     private const int OWNER_PROFILE_QUERIES = 1;

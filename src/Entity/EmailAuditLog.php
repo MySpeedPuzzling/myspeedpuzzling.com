@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Value\EmailAuditStatus;
 #[Index(columns: ['sent_at'])]
 #[Index(columns: ['status'])]
 #[Index(columns: ['message_id'])]
+#[Index(columns: ['email_type', 'sent_at'])]
 class EmailAuditLog
 {
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]

@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
+use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
@@ -47,6 +48,8 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     rating_count: int|string,
  *     average_rating: null|string,
  *     streak_opted_out: bool,
+ *     content_digest_frequency: string,
+ *     experience_system_opted_out: bool,
  *     ranking_opted_out: bool,
  *     time_predictions_opted_out: bool,
  *     fair_use_policy_accepted_at: null|string,
@@ -89,6 +92,8 @@ readonly final class PlayerProfile
         public bool $emailNotificationsEnabled = true,
         public EmailNotificationFrequency $emailNotificationFrequency = EmailNotificationFrequency::TwentyFourHours,
         public bool $newsletterEnabled = true,
+        public ContentDigestFrequency $contentDigestFrequency = ContentDigestFrequency::Weekly,
+        public bool $experienceSystemOptedOut = false,
         public int $ratingCount = 0,
         public null|float $averageRating = null,
         public bool $streakOptedOut = false,
@@ -183,6 +188,8 @@ readonly final class PlayerProfile
             ratingCount: (int) $row['rating_count'],
             averageRating: $row['average_rating'] !== null ? (float) $row['average_rating'] : null,
             streakOptedOut: (bool) $row['streak_opted_out'],
+            contentDigestFrequency: ContentDigestFrequency::from($row['content_digest_frequency']),
+            experienceSystemOptedOut: (bool) $row['experience_system_opted_out'],
             rankingOptedOut: (bool) $row['ranking_opted_out'],
             timePredictionsOptedOut: (bool) $row['time_predictions_opted_out'],
             fairUsePolicyAccepted: $row['fair_use_policy_accepted_at'] !== null,

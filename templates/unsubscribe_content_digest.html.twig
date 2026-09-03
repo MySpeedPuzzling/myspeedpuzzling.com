@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'content_digest.unsubscribe.meta_title'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="text-center mx-auto py-5" style="max-width: 480px;">
+        {% if state == 'done' %}
+            <i class="ci-check-circle text-success" style="font-size: 3rem;" aria-hidden="true"></i>
+            <h1 class="h3 mt-3">{{ 'content_digest.unsubscribe.done_title'|trans }}</h1>
+            <p class="text-body-secondary">{{ 'content_digest.unsubscribe.done_text'|trans }}</p>
+            <a href="{{ path('homepage') }}" class="btn btn-outline-primary mt-2">{{ 'content_digest.unsubscribe.back_home'|trans }}</a>
+        {% else %}
+            <i class="ci-mail" style="font-size: 3rem;" aria-hidden="true"></i>
+            <h1 class="h3 mt-3">{{ 'content_digest.unsubscribe.confirm_title'|trans }}</h1>
+            <p class="text-body-secondary">{{ 'content_digest.unsubscribe.confirm_text'|trans }}</p>
+            <form method="post" action="{{ confirm_url }}" data-turbo="false">
+                <button type="submit" class="btn btn-primary">{{ 'content_digest.unsubscribe.confirm_button'|trans }}</button>
+            </form>
+        {% endif %}
+    </div>
+{% endblock %}

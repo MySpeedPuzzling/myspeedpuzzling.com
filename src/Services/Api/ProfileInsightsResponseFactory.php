@@ -10,7 +10,7 @@ use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetPlayerRatingRanking;
 use SpeedPuzzling\Web\Query\GetPlayerSkill;
 use SpeedPuzzling\Web\Results\PlayerSkillResult;
-use SpeedPuzzling\Web\Value\BadgeType;
+use SpeedPuzzling\Web\Results\BadgeResult;
 
 /**
  * Builds the three profile-insight blocks the profile page shows - MSP Rating,
@@ -59,7 +59,7 @@ final readonly class ProfileInsightsResponseFactory
     public function badges(string $playerId): array
     {
         return array_map(
-            static fn (BadgeType $badge): string => $badge->value,
+            static fn (BadgeResult $badge): string => $badge->type->value,
             $this->getBadges->forPlayer($playerId),
         );
     }

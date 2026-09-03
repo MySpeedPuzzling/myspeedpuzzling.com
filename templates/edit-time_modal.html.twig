@@ -10,7 +10,7 @@
                 <form action="{{ path('delete_time', {timeId: solved_puzzle.timeId}) }}"
                       method="post"
                       class="d-inline"
-                      data-turbo-confirm="{{ 'edit_time.delete_modal_confirm'|trans }}">
+                      data-turbo-confirm="{{ 'edit_time.delete_modal_confirm'|trans }}{% if xp_delete_warning|default(0) > 0 %} {{ 'edit_time.delete_xp_warning'|trans({'%xp%': xp_delete_warning}) }}{% endif %}">
                     <input type="hidden" name="context" value="{{ return_context }}">
                     <button type="submit" class="btn btn-sm btn-outline-danger">
                         <i class="ci-trash"></i> {{ 'edit_time.delete_button'|trans }}

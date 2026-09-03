@@ -1,0 +1,9 @@
+{% trans_default_domain 'emails' %}
+{% if data.mostSolvedPuzzleName is not null %}
+    <row>
+        <columns>
+            <h4>{{ 'content_digest.weekly.community_title'|trans }}</h4>
+            <p>{{ 'content_digest.weekly.most_solved_line'|trans({'%puzzle%': data.mostSolvedPuzzleName, '%solvers%': data.mostSolvedPuzzleSolvers}) }}</p>
+        </columns>
+    </row>
+{% endif %}

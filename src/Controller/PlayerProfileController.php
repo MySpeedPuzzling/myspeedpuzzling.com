@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetAffiliateSupporters;
-use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetRanking;
@@ -25,7 +24,6 @@ final class PlayerProfileController extends AbstractController
         readonly private GetRanking $getRanking,
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private GetTags $getTags,
-        readonly private GetBadges $getBadges,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private HasExistingConversation $hasExistingConversation,
         readonly private GetAffiliateSupporters $getAffiliateSupporters,
@@ -65,7 +63,6 @@ final class PlayerProfileController extends AbstractController
             'ranking' => $this->getRanking->allForPlayer($player->playerId),
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),
             'tags' => $this->getTags->allGroupedPerPuzzle(),
-            'badges' => $this->getBadges->forPlayer($player->playerId),
             'can_message' => $canMessage,
             'affiliate_supporters' => $affiliateSupporters,
         ]);

@@ -1,0 +1,30 @@
+{% trans_default_domain 'emails' %}
+<row>
+    <columns>
+        <h4>{{ 'content_digest.weekly.xp_title'|trans }}</h4>
+        <p>
+            <strong>{{ 'content_digest.weekly.xp_gained'|trans({'%xp%': data.xpGained}) }}</strong>
+            {% if data.levelsGained > 0 %}
+                — {{ 'content_digest.weekly.levels_gained'|trans({'%count%': data.levelsGained, '%level%': data.currentLevel}) }}
+            {% endif %}
+        </p>
+
+        {% if data.achievementsEarned|length > 0 %}
+            {% if isMember %}
+                <p>{{ 'content_digest.weekly.achievements_intro'|trans({'%count%': data.achievementsEarned|length}) }}</p>
+                <ul>
+                    {% for entry in data.achievementsEarned %}
+                        {% set type_label = (entry.type.translationKey())|trans({}, 'messages', locale) %}
+                        {% if entry.tier %}
+                            <li><strong>{{ type_label }}</strong> — {{ (entry.tier.translationKey())|trans({}, 'messages', locale) }}</li>
+                        {% else %}
+                            <li><strong>{{ type_label }}</strong></li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>{{ 'content_digest.weekly.achievements_teaser'|trans({'%count%': data.achievementsEarned|length}) }}</p>
+            {% endif %}
+        {% endif %}
+    </columns>
+</row>

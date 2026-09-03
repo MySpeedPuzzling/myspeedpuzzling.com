@@ -39,6 +39,29 @@
     <h1 class="visually-hidden">{{ player_display_name }}</h1>
     <twig:PlayerHeader player="{{ player }}" />
 
+    {% if not is_masked_profile %}
+        <div class="mb-3">
+            <twig:XpRing playerId="{{ player.playerId }}" :showProgress="true">
+                {% if player.avatar is not null %}
+                    <img src="{{ player.avatar|thumbnail('avatar') }}" alt="" width="52" height="52" style="object-fit: cover; width: 52px; height: 52px;">
+                {% else %}
+                    <span class="d-inline-flex align-items-center justify-content-center bg-secondary" style="width: 52px; height: 52px;">
+                        <i class="ci-user fs-4 text-muted" aria-hidden="true"></i>
+                    </span>
+                {% endif %}
+            </twig:XpRing>
+
+            {% if xp_system_visible()
+                and logged_user.profile is not null
+                and logged_user.profile.playerId is same as player.playerId
+                and not logged_user.profile.experienceSystemOptedOut %}
+                <a href="{{ path('xp_history') }}" class="ms-2 fs-sm text-decoration-none text-nowrap">
+                    <i class="ci-time me-1"></i>{{ 'xp.history.title'|trans }}
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+
     <div class="row mb-3">
         {% if player.activeMembership %}
             <p class="col-sm">
@@ -274,18 +297,11 @@
             </div>
         </div>
 
-        {% if badges is not empty %}
-            <div class="mt-4">
-                <h3>{{ 'badges.title'|trans }}</h3>
-
-                {% for badge in badges %}
-                    <span class="d-inline-block text-center small">
-                    <img alt="{{ ('badges.badge.' ~ badge.value)|trans }}" src="{{ asset('img/badges/' ~ badge.value ~ '.png') }}" style="width: 80px;"><br>
-                    {{ ('badges.badge.' ~ badge.value)|trans }}
-                </span>
-                {% endfor %}
-            </div>
-        {% endif %}
+        <twig:BadgesProfileSection
+            playerId="{{ player.playerId }}"
+            :subjectHasMembership="player.activeMembership"
+            :subjectIsPrivate="player.isPrivate"
+        />
 
         {% if affiliate_supporters is not null %}
             <div class="mt-4">

@@ -37,12 +37,24 @@ final class FeaturesOptionsFormType extends AbstractType
             'help' => 'edit_profile.hide_time_predictions_help',
             'required' => false,
         ]);
+
+        // Hidden while the xp-system flag is active.
+        if ($options['show_experience_system'] === true) {
+            $builder->add('experienceSystemOptedOut', CheckboxType::class, [
+                'label' => 'edit_profile.hide_experience_system',
+                'help' => 'edit_profile.hide_experience_system_help',
+                'required' => false,
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
             'data_class' => FeaturesOptionsFormData::class,
+            'show_experience_system' => false,
         ]);
+
+        $resolver->setAllowedTypes('show_experience_system', 'bool');
     }
 }

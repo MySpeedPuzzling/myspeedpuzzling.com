@@ -1,0 +1,7 @@
+{# Concrete progress numbers for one BadgeProgress — "37 / 100" for counters, best-time
+   vs target for the speed achievements (where the bar fills as the time SHRINKS). #}
+{% if progress.unit.value == 'seconds' %}
+    {{ progress.currentValue|puzzlingTime }} <span class="mx-1">→</span> {{ progress.targetValue|puzzlingTime }}
+{% else %}
+    {{ progress.currentValue }} / {{ progress.targetValue }}
+{% endif %}

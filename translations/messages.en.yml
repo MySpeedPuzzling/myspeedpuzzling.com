@@ -3222,6 +3222,10 @@ auth:
         failed: "We could not send the sign-in link. Please try again in a moment."
         invalid_link: "That sign-in link is no longer valid — it may have expired or already been used. Request a new one below."
         back_to_login: "Back to signing in with a password"
+        check_title: "Signing you in…"
+        check_intro: "Just a moment — you are being signed in. If nothing happens within a few seconds, press the button."
+        check_submit: "Sign me in"
+        check_request_new: "Link not working? Request a new one"
     set_password:
         title: "Set a fresh password?"
         intro: "You are signed in! If you set a new password now, your password manager will save it under myspeedpuzzling.com — so next time it autofills like it should."

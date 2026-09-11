@@ -2935,6 +2935,10 @@ fair_use_policy:
     "failed": "No hemos podido enviar el enlace de acceso. Inténtalo de nuevo en un momento."
     "invalid_link": "Ese enlace de acceso ya no es válido: puede que haya caducado o que ya se haya usado. Solicita uno nuevo aquí abajo."
     "back_to_login": "Volver al inicio de sesión con contraseña"
+    "check_title": "Iniciando sesión…"
+    "check_intro": "Un momento: estamos iniciando tu sesión. Si no ocurre nada en unos segundos, pulsa el botón."
+    "check_submit": "Iniciar sesión"
+    "check_request_new": "¿El enlace no funciona? Solicita uno nuevo"
   "set_password":
     "title": "¿Quieres establecer una contraseña nueva?"
     "intro": "¡Ya has iniciado sesión! Si estableces ahora una contraseña nueva, tu gestor de contraseñas la guardará bajo myspeedpuzzling.com, así la próxima vez se rellenará sola como debe ser."

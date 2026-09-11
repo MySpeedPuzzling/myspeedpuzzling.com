@@ -77,6 +77,12 @@ return static function (ContainerConfigurator $configurator): void {
     // long the link is good for.
     $parameters->set('signInLinkLifetimeSeconds', 1800);
 
+    // How long after its first use a sign-in link still signs in (second layer
+    // against mail-provider link scanners, see SingleUseLoginLinkHandler). The
+    // scanner fetch and the reader's click are seconds apart, so a short window
+    // covers it while keeping the replay exposure of D18 to that minute.
+    $parameters->set('signInLinkReuseGraceSeconds', 60);
+
     // Failed S3 uploads are spooled here and re-uploaded by the
     // myspeedpuzzling:upload-spooled-files cron. Production mounts a persistent
     // named volume at this path (lily.srv compose.yaml) - without it the spool
@@ -120,6 +126,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$nativeLoginEnabled', '%nativeLoginEnabled%')
         ->bind('$nativeRegistrationEnabled', '%nativeRegistrationEnabled%')
         ->bind('$signInLinkLifetimeSeconds', '%signInLinkLifetimeSeconds%')
+        ->bind('$signInLinkReuseGraceSeconds', '%signInLinkReuseGraceSeconds%')
         ->bind('$socialLoginAdminOnly', '%socialLoginAdminOnly%')
         ->bind('$socialLoginGoogleEnabled', '%socialLoginGoogleEnabled%')
         ->bind('$socialLoginFacebookEnabled', '%socialLoginFacebookEnabled%')

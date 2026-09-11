@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'auth.sign_in_link.check_title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-6 col-md-8">
+            <h1 class="h2">{{ 'auth.sign_in_link.check_title'|trans }}</h1>
+
+            <p class="text-muted">{{ 'auth.sign_in_link.check_intro'|trans }}</p>
+
+            <div class="card shadow my-3">
+                <div class="card-body">
+                    {# Plain full-page POST, no Turbo: the response sets the session and the
+                       30-day remember-me cookie, and a native navigation is the one path
+                       every browser handles identically. No CSRF token - the signed hash
+                       already proves the request came from a link we issued, and the page
+                       is opened from an email client rather than from our own site. #}
+                    <form action="{{ path('sign_in_link_check') }}" method="post" id="sign-in-link-check-form" data-turbo="false">
+                        <input type="hidden" name="user" value="{{ user }}">
+                        <input type="hidden" name="expires" value="{{ expires }}">
+                        <input type="hidden" name="hash" value="{{ hash }}">
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>{{ 'auth.sign_in_link.check_submit'|trans }}
+                        </button>
+                    </form>
+
+                    {# Submits the form the moment the page is parsed, so a person sees at
+                       most a flash of this page and lands where the link always took them.
+                       Mail-provider link scanners (the reason this page exists) fetch with
+                       a bare HTTP client that runs no JavaScript - every scanner hit in the
+                       audit log arrived without a User-Agent - so for them the link stays
+                       unused. Inline and dependency-free on purpose: it must work before
+                       and without the app bundle, and with Turbo out of the picture. #}
+                    <script>
+                        document.getElementById('sign-in-link-check-form').submit();
+                    </script>
+                </div>
+            </div>
+
+            <p class="fs-sm">
+                <a href="{{ path('sign_in_link_request') }}">{{ 'auth.sign_in_link.check_request_new'|trans }}</a>
+            </p>
+        </div>
+
+        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
+            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        </div>
+    </div>
+{% endblock %}

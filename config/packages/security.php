@@ -131,6 +131,17 @@ return App::config([
                 // needs a PSR-6 pool and cannot express "issued by us".
                 'login_link' => [
                     'check_route' => 'sign_in_link_check',
+                    // Only a POST signs in. Mail providers fetch links before (Gmail
+                    // pre-fetch) or at the moment (Outlook Safe Links "time of click")
+                    // the reader clicks them; with GET sign-in that fetch consumed the
+                    // single-use link and the person behind it was told it was already
+                    // used (26 accounts in the 30 days before 2026-09-11, all Microsoft
+                    // mailboxes). GET on the check route now renders a self-submitting
+                    // form carrying the link parameters (SignInLinkCheckController);
+                    // scanners fetch with bare HTTP clients and submit no forms. Second
+                    // layer for any scanner that does: SingleUseLoginLinkHandler keeps
+                    // a link usable for signInLinkReuseGraceSeconds after its first use.
+                    'check_post_only' => true,
                     // The link dies when the address it was sent to changes, and when the
                     // password changes (a reset must not leave older links usable)
                     'signature_properties' => ['email', 'password'],

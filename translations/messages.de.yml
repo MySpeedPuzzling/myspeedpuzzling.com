@@ -2935,6 +2935,10 @@ auth:
         failed: "Wir konnten den Anmeldelink nicht senden. Bitte versuchen Sie es gleich noch einmal."
         invalid_link: "Dieser Anmeldelink ist nicht mehr gültig – er ist abgelaufen oder wurde bereits verwendet. Fordern Sie unten einen neuen an."
         back_to_login: "Zurück zur Anmeldung mit Passwort"
+        check_title: "Sie werden angemeldet…"
+        check_intro: "Einen Moment – Sie werden gerade angemeldet. Falls innerhalb weniger Sekunden nichts passiert, drücken Sie die Schaltfläche."
+        check_submit: "Jetzt anmelden"
+        check_request_new: "Link funktioniert nicht? Neuen anfordern"
     set_password:
         title: "Neues Passwort festlegen?"
         intro: "Sie sind angemeldet! Wenn Sie jetzt ein neues Passwort festlegen, speichert Ihr Passwort-Manager es unter myspeedpuzzling.com – und füllt es beim nächsten Mal automatisch aus, wie es sein soll."

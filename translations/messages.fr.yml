@@ -2937,6 +2937,10 @@ edition:
     "failed": "Nous n'avons pas pu envoyer le lien de connexion. Veuillez réessayer dans un instant."
     "invalid_link": "Ce lien de connexion n'est plus valide — il a peut-être expiré ou déjà été utilisé. Demandez-en un nouveau ci-dessous."
     "back_to_login": "Revenir à la connexion par mot de passe"
+    "check_title": "Connexion en cours…"
+    "check_intro": "Un instant — nous vous connectons. Si rien ne se passe dans les secondes qui suivent, appuyez sur le bouton."
+    "check_submit": "Me connecter"
+    "check_request_new": "Le lien ne fonctionne pas ? Demandez-en un nouveau"
   "set_password":
     "title": "Définir un nouveau mot de passe ?"
     "intro": "Vous êtes connecté ! Si vous définissez un nouveau mot de passe maintenant, votre gestionnaire de mots de passe l'enregistrera sous myspeedpuzzling.com — et la prochaine fois, il le remplira automatiquement, comme il se doit."

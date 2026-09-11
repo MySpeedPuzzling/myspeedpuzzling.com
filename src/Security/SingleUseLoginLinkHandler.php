@@ -26,6 +26,16 @@ use Symfony\Component\Security\Http\LoginLink\LoginLinkHandlerInterface;
  * the row on the first successful login. Unknown and already-consumed links are
  * rejected identically to a forged one, so a replay leaks nothing.
  *
+ * Two layers keep mail-provider link scanners (Outlook Safe Links fetches every
+ * link at the moment of the click, from Microsoft's servers) from spending the
+ * one use before the reader's browser arrives:
+ *   1. consumption happens on the POST from the self-submitting check page only
+ *      (`check_post_only`) - a scanner's GET renders a form and burns nothing;
+ *   2. a link stays usable for a short grace window after its first use
+ *      (`signInLinkReuseGraceSeconds`), for any scanner that does submit the
+ *      form. The window is measured from the FIRST use and never slides, so the
+ *      replay exposure D18 closes is reopened for that minute only.
+ *
  * Symfony's own `max_uses` option is not used: it needs a PSR-6 pool
  * (ExpiredSignatureStorage is final), which would put auth state in a cache
  * instead of the database and cannot express "issued by us" at all.
@@ -36,6 +46,7 @@ final readonly class SingleUseLoginLinkHandler implements LoginLinkHandlerInterf
         private LoginLinkHandlerInterface $inner,
         private LoginLinkRequestRepository $loginLinkRequestRepository,
         private ClockInterface $clock,
+        private int $signInLinkReuseGraceSeconds,
     ) {
     }
 
@@ -88,7 +99,15 @@ final readonly class SingleUseLoginLinkHandler implements LoginLinkHandlerInterf
             throw new InvalidLoginLinkException('Login link was not issued or is no longer known.');
         }
 
-        if (!$this->loginLinkRequestRepository->consumeIfOpen($loginLinkRequest, $this->clock->now())) {
+        $now = $this->clock->now();
+
+        if (
+            !$this->loginLinkRequestRepository->consumeIfOpen(
+                $loginLinkRequest,
+                $now,
+                $now->modify(sprintf('-%d seconds', $this->signInLinkReuseGraceSeconds)),
+            )
+        ) {
             throw new InvalidLoginLinkException('Login link has already been used.');
         }
 

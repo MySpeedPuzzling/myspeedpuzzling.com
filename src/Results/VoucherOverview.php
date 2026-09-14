@@ -95,9 +95,9 @@ readonly final class VoucherOverview
 
     public function isUsed(): bool
     {
-        // For free_months vouchers, check usedAt
+        // For single-use vouchers (free_months, lifetime), check usedAt
         // For percentage_discount vouchers, check if usage count reached max
-        if ($this->voucherType === VoucherType::FreeMonths) {
+        if ($this->voucherType->isSingleUse()) {
             return $this->usedAt !== null;
         }
 
@@ -116,16 +116,16 @@ readonly final class VoucherOverview
 
     public function getValue(): string
     {
-        if ($this->voucherType === VoucherType::PercentageDiscount) {
-            return $this->percentageDiscount . '%';
-        }
-
-        return $this->monthsValue . ' month' . ($this->monthsValue !== 1 ? 's' : '');
+        return match ($this->voucherType) {
+            VoucherType::PercentageDiscount => $this->percentageDiscount . '%',
+            VoucherType::Lifetime => 'Lifetime',
+            VoucherType::FreeMonths => $this->monthsValue . ' month' . ($this->monthsValue !== 1 ? 's' : ''),
+        };
     }
 
     public function getUsageDisplay(): string
     {
-        if ($this->voucherType === VoucherType::FreeMonths) {
+        if ($this->voucherType->isSingleUse()) {
             return $this->usedAt !== null ? 'Used' : 'Available';
         }
 

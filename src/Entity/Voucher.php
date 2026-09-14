@@ -95,6 +95,11 @@ class Voucher
         return $this->voucherType === VoucherType::PercentageDiscount;
     }
 
+    public function isLifetime(): bool
+    {
+        return $this->voucherType === VoucherType::Lifetime;
+    }
+
     public function hasRemainingUses(int $currentUsageCount): bool
     {
         return $currentUsageCount < $this->maxUses;

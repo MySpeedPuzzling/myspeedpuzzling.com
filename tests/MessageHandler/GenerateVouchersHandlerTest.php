@@ -200,6 +200,34 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
         }
     }
 
+    public function testGeneratesLifetimeVouchers(): void
+    {
+        $envelope = $this->messageBus->dispatch(
+            new GenerateVouchers(
+                count: 2,
+                validUntil: new DateTimeImmutable('+90 days'),
+                voucherType: VoucherType::Lifetime,
+                internalNote: 'Lifetime batch',
+            ),
+        );
+
+        /** @var HandledStamp|null $handledStamp */
+        $handledStamp = $envelope->last(HandledStamp::class);
+        self::assertNotNull($handledStamp);
+
+        /** @var array<Voucher> $vouchers */
+        $vouchers = $handledStamp->getResult();
+        self::assertCount(2, $vouchers);
+
+        foreach ($vouchers as $voucher) {
+            self::assertSame(VoucherType::Lifetime, $voucher->voucherType);
+            self::assertTrue($voucher->isLifetime());
+            self::assertNull($voucher->monthsValue);
+            self::assertNull($voucher->percentageDiscount);
+            self::assertSame(1, $voucher->maxUses);
+        }
+    }
+
     public function testDefaultVoucherTypeIsFreeMonths(): void
     {
         $envelope = $this->messageBus->dispatch(

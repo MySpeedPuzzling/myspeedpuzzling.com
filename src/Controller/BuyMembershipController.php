@@ -59,6 +59,11 @@ final class BuyMembershipController extends AbstractController
         try {
             $paymentUrl = $this->membershipManagement->getMembershipPaymentUrl($player->locale, $billingPeriod, $priceLookupKey, $referralPlayerId);
         } catch (PlayerAlreadyHaveMembership) {
+            // billing_portal sends players without a Stripe customer back here - e.g. a lifetime voucher member
+            if ($player->stripeCustomerId === null) {
+                return $this->redirectToRoute('membership');
+            }
+
             return $this->redirectToRoute('billing_portal');
         }
 

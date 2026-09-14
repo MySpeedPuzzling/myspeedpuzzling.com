@@ -13,6 +13,8 @@
                         <i class="ci-check-circle me-2"></i>
                         {% if result.voucherType.value == 'percentage_discount' %}
                             Voucher claimed successfully! Your {{ result.percentageDiscount }}% discount has been applied to your subscription.
+                        {% elseif result.voucherType.value == 'lifetime' %}
+                            Voucher claimed successfully! You are now a lifetime member. If you had a subscription, it has been cancelled and you will not be charged again.
                         {% else %}
                             Voucher claimed successfully! Your membership has been extended.
                         {% endif %}

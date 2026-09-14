@@ -112,6 +112,23 @@ final class VoucherTest extends TestCase
         self::assertFalse($voucher->isFreeMonths());
     }
 
+    public function testIsLifetimeReturnsTrueForLifetimeVoucher(): void
+    {
+        $voucher = new Voucher(
+            id: Uuid::uuid7(),
+            code: 'TESTCODE12345678',
+            monthsValue: null,
+            validUntil: new DateTimeImmutable('+30 days'),
+            createdAt: new DateTimeImmutable(),
+            voucherType: VoucherType::Lifetime,
+        );
+
+        self::assertTrue($voucher->isLifetime());
+        self::assertFalse($voucher->isFreeMonths());
+        self::assertFalse($voucher->isPercentageDiscount());
+        self::assertFalse($this->createVoucher()->isLifetime());
+    }
+
     public function testHasRemainingUsesReturnsTrueWhenUnderLimit(): void
     {
         $voucher = new Voucher(

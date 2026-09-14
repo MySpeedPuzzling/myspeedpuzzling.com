@@ -32,7 +32,7 @@ The player has an active membership if **either** the subscription date or the g
 - `ends_at`: null
 - `billing_period_ends_at`: null
 - `granted_until`: future date
-- Set by: `GrantMembershipHandler`, `ClaimVoucherHandler` (free months, no active subscription)
+- Set by: `GrantMembershipHandler`, `ClaimVoucherHandler` (free months, no active subscription; lifetime → `2199-12-31`, see [Lifetime Voucher](#lifetime-voucher))
 
 ### 3. Active Stripe subscription
 - `stripe_subscription_id`: `sub_...`
@@ -176,6 +176,25 @@ T+3d    customer.subscription.updated (status: active)
 **With active subscription:** Creates Stripe coupon and applies to subscription immediately.
 
 **Without active subscription:** Stored on `player.claimed_discount_voucher`. Applied during next Stripe checkout. Cleared on subscription cancellation.
+
+### Lifetime Voucher
+
+Grants a membership that never ends. There is no dedicated column: `granted_until` is set to `LifetimeMembership::GRANTED_UNTIL` (`2199-12-31 23:59:59`), so every existing active-membership check keeps working. Always ask `hasLifetimeGrant()` before showing that date to a player and say "Lifetime" instead.
+
+Single-use like free months (`voucher.used_at`). The voucher code itself still has a normal claim deadline (`valid_until`).
+
+**With a Stripe subscription:** the subscription is stopped so the player is never charged again.
+- `active` / `trialing` → `cancel_at_period_end: true` (the already-paid period runs out; skipped if already set)
+- `past_due` / `unpaid` / `incomplete` / `paused` → cancelled immediately, so Stripe stops retrying the charge
+- `canceled` / `incomplete_expired` → nothing to do
+
+The webhooks that follow only move `ends_at`; `granted_until` keeps the membership active. `NotifyWhenMembershipSubscriptionCancelled` skips the "membership cancelled" e-mail for lifetime members.
+
+**Without a subscription:** sets `granted_until` on the existing membership, or creates a new one.
+
+**Afterwards:** a lifetime member cannot claim any other voucher (`PlayerAlreadyHasLifetimeMembership`, the code stays unused), and `MembershipManagement` refuses checkout (`PlayerAlreadyHaveMembership`) — Stripe would reject a trial running until 2199 anyway.
+
+Generate with: `php bin/console myspeedpuzzling:vouchers:generate --type=lifetime --valid-until=2026-12-31 [--count=5] [--note="..."]` (no `--months`/`--percentage`, `--max-uses` must stay 1).
 
 ## Concurrency & Idempotency
 

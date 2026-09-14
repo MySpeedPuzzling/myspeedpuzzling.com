@@ -114,6 +114,7 @@ readonly final class GenerateVoucherImage
                 $voucher->monthsValue === 1 ? 'month' : 'months',
             ),
             VoucherType::PercentageDiscount => sprintf('%d%% discount', $voucher->percentageDiscount),
+            VoucherType::Lifetime => 'Lifetime membership',
         };
     }
 }

@@ -33,7 +33,7 @@ final class GenerateVouchersConsoleCommand extends Command
         parent::configure();
 
         $this->addOption('count', 'c', InputOption::VALUE_REQUIRED, 'Number of vouchers to generate', '1');
-        $this->addOption('type', 't', InputOption::VALUE_REQUIRED, 'Voucher type (free_months|percentage_discount)', 'free_months');
+        $this->addOption('type', 't', InputOption::VALUE_REQUIRED, 'Voucher type (free_months|percentage_discount|lifetime)', 'free_months');
         $this->addOption('months', 'm', InputOption::VALUE_REQUIRED, 'Months value for free_months vouchers');
         $this->addOption('percentage', 'p', InputOption::VALUE_REQUIRED, 'Discount percentage (1-100) for percentage_discount vouchers');
         $this->addOption('max-uses', null, InputOption::VALUE_REQUIRED, 'Maximum number of claims allowed', '1');
@@ -55,7 +55,7 @@ final class GenerateVouchersConsoleCommand extends Command
         $voucherType = VoucherType::tryFrom($typeString);
 
         if ($voucherType === null) {
-            $io->error('Invalid voucher type. Use "free_months" or "percentage_discount"');
+            $io->error('Invalid voucher type. Use "free_months", "percentage_discount" or "lifetime"');
             return self::FAILURE;
         }
 
@@ -114,6 +114,19 @@ final class GenerateVouchersConsoleCommand extends Command
             }
         }
 
+        if ($voucherType === VoucherType::Lifetime) {
+            if ($months !== null || $percentage !== null) {
+                $io->error('Lifetime vouchers grant membership forever - do not combine them with --months or --percentage');
+                return self::FAILURE;
+            }
+
+            // Every code is single-use - a shared lifetime code would be a free membership for anyone who sees it
+            if ($maxUses !== 1) {
+                $io->error('Lifetime vouchers are single-use - generate more of them with --count instead of --max-uses');
+                return self::FAILURE;
+            }
+        }
+
         if ($maxUses < 1) {
             $io->error('Max uses must be at least 1');
             return self::FAILURE;
@@ -124,22 +137,26 @@ final class GenerateVouchersConsoleCommand extends Command
             return self::FAILURE;
         }
 
-        if ($voucherType === VoucherType::FreeMonths) {
-            $io->info(sprintf(
+        $io->info(match ($voucherType) {
+            VoucherType::FreeMonths => sprintf(
                 'Generating %d free months voucher(s) with %d month(s) value, valid until %s',
                 $count,
                 $months,
                 $validUntil->format('Y-m-d'),
-            ));
-        } else {
-            $io->info(sprintf(
+            ),
+            VoucherType::PercentageDiscount => sprintf(
                 'Generating %d percentage discount voucher(s) with %d%% off, max %d uses, valid until %s',
                 $count,
                 $percentage,
                 $maxUses,
                 $validUntil->format('Y-m-d'),
-            ));
-        }
+            ),
+            VoucherType::Lifetime => sprintf(
+                'Generating %d lifetime membership voucher(s), valid until %s',
+                $count,
+                $validUntil->format('Y-m-d'),
+            ),
+        });
 
         $envelope = $this->messageBus->dispatch(
             new GenerateVouchers(
@@ -166,9 +183,11 @@ final class GenerateVouchersConsoleCommand extends Command
             $io->writeln('');
 
             foreach ($vouchers as $voucher) {
-                $value = $voucher->isFreeMonths()
-                    ? sprintf('%d months', $voucher->monthsValue)
-                    : sprintf('%d%%', $voucher->percentageDiscount);
+                $value = match ($voucher->voucherType) {
+                    VoucherType::FreeMonths => sprintf('%d months', $voucher->monthsValue),
+                    VoucherType::PercentageDiscount => sprintf('%d%%', $voucher->percentageDiscount),
+                    VoucherType::Lifetime => 'lifetime',
+                };
 
                 $imageUrls = [];
                 for ($variant = 1; $variant <= 4; $variant++) {

@@ -33,6 +33,9 @@ final class VoucherFixture extends Fixture implements DependentFixtureInterface
     public const string VOUCHER_PERCENTAGE_EXPIRED = '018d0008-0000-0000-0000-000000000006';
     public const string VOUCHER_PERCENTAGE_EXPIRED_CODE = 'EXPIREDDISCOUNT1';
 
+    public const string VOUCHER_LIFETIME_AVAILABLE = '018d0008-0000-0000-0000-000000000007';
+    public const string VOUCHER_LIFETIME_AVAILABLE_CODE = 'LIFETIMEMEMBER01';
+
     public function __construct(
         private readonly ClockInterface $clock,
     ) {
@@ -124,6 +127,19 @@ final class VoucherFixture extends Fixture implements DependentFixtureInterface
         );
         $manager->persist($percentageExpiredVoucher);
         $this->addReference(self::VOUCHER_PERCENTAGE_EXPIRED, $percentageExpiredVoucher);
+
+        // Lifetime membership voucher - available
+        $lifetimeAvailableVoucher = new Voucher(
+            id: Uuid::fromString(self::VOUCHER_LIFETIME_AVAILABLE),
+            code: self::VOUCHER_LIFETIME_AVAILABLE_CODE,
+            monthsValue: null,
+            validUntil: $now->modify('+30 days'),
+            createdAt: $now->modify('-1 day'),
+            internalNote: 'Test lifetime voucher',
+            voucherType: VoucherType::Lifetime,
+        );
+        $manager->persist($lifetimeAvailableVoucher);
+        $this->addReference(self::VOUCHER_LIFETIME_AVAILABLE, $lifetimeAvailableVoucher);
 
         $manager->flush();
     }

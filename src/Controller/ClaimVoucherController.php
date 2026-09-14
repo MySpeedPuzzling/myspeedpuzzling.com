@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PlayerAlreadyClaimedVoucher;
+use SpeedPuzzling\Web\Exceptions\PlayerAlreadyHasLifetimeMembership;
 use SpeedPuzzling\Web\Exceptions\VoucherAlreadyUsed;
 use SpeedPuzzling\Web\Exceptions\VoucherExpired;
 use SpeedPuzzling\Web\Exceptions\VoucherNotFound;
@@ -98,6 +99,7 @@ final class ClaimVoucherController extends AbstractController
                     $nested instanceof VoucherExpired => $this->addFlash('danger', 'This voucher has expired.'),
                     $nested instanceof VoucherUsageLimitReached => $this->addFlash('danger', 'This voucher has reached its usage limit.'),
                     $nested instanceof PlayerAlreadyClaimedVoucher => $this->addFlash('danger', 'You have already claimed this voucher.'),
+                    $nested instanceof PlayerAlreadyHasLifetimeMembership => $this->addFlash('danger', 'You already have a lifetime membership, so this voucher would not add anything. Pass it on to a fellow puzzler!'),
                     default => throw $e,
                 };
             }

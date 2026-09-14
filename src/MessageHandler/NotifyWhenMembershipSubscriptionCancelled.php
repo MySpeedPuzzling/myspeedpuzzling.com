@@ -30,6 +30,11 @@ readonly final class NotifyWhenMembershipSubscriptionCancelled
             return;
         }
 
+        // Claiming a lifetime voucher cancels the subscription on purpose - "your membership is ending" would be wrong
+        if ($membership->hasLifetimeGrant()) {
+            return;
+        }
+
         $playerLocale = $player->locale;
         $subject = $this->translator->trans(
             'membership_cancelled.subject',

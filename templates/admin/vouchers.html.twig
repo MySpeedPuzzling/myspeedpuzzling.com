@@ -67,13 +67,15 @@
                                         <small class="text-muted">
                                             {% if voucher.voucherType.value == 'percentage_discount' %}
                                                 {{ voucher.percentageDiscount }}% off
+                                            {% elseif voucher.voucherType.value == 'lifetime' %}
+                                                Lifetime membership
                                             {% else %}
                                                 {{ voucher.monthsValue }} month{% if voucher.monthsValue > 1 %}s{% endif %}
                                             {% endif %}
                                             &bull; Valid until {{ voucher.validUntil|date('d.m.Y') }}
                                         </small>
                                     </div>
-                                    {% if active_tab == 'used' and voucher.voucherType.value == 'free_months' %}
+                                    {% if active_tab == 'used' and voucher.voucherType.singleUse %}
                                         <div class="d-md-none">
                                             <small class="text-muted">
                                                 Used {{ voucher.usedAt|ago }}
@@ -92,6 +94,8 @@
                                 <td class="d-none d-md-table-cell">
                                     {% if voucher.voucherType.value == 'percentage_discount' %}
                                         <span class="badge bg-info">Discount</span>
+                                    {% elseif voucher.voucherType.value == 'lifetime' %}
+                                        <span class="badge bg-warning text-dark">Lifetime</span>
                                     {% else %}
                                         <span class="badge bg-primary">Free Months</span>
                                     {% endif %}
@@ -116,7 +120,7 @@
                                 </td>
                                 {% if active_tab == 'used' %}
                                     <td class="d-none d-md-table-cell">
-                                        {% if voucher.voucherType.value == 'free_months' %}
+                                        {% if voucher.voucherType.singleUse %}
                                             {% if voucher.usedByName %}
                                                 <a href="{{ path('player_profile', {playerId: voucher.usedById}) }}">
                                                     {{ voucher.usedByName }}

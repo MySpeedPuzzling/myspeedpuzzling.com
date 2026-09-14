@@ -109,6 +109,11 @@ readonly final class MembershipManagement
                 throw new PlayerAlreadyHaveMembership();
             }
 
+            // Also keeps the trial below sane - Stripe refuses a trial running until the lifetime date
+            if ($membership->hasLifetimeGrant()) {
+                throw new PlayerAlreadyHaveMembership();
+            }
+
             if ($membership->grantedUntil !== null && $now < $membership->grantedUntil) {
                 $daysBetweenTrialEnds = $now->diff($membership->grantedUntil)->days;
 

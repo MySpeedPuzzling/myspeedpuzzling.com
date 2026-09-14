@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Entity\Voucher;
 use SpeedPuzzling\Web\Entity\VoucherClaim;
 use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerAlreadyClaimedVoucher;
+use SpeedPuzzling\Web\Exceptions\PlayerAlreadyHasLifetimeMembership;
 use SpeedPuzzling\Web\Exceptions\VoucherAlreadyUsed;
 use SpeedPuzzling\Web\Exceptions\VoucherExpired;
 use SpeedPuzzling\Web\Exceptions\VoucherNotFound;
@@ -25,8 +26,10 @@ use SpeedPuzzling\Web\Repository\VoucherClaimRepository;
 use SpeedPuzzling\Web\Repository\VoucherRepository;
 use SpeedPuzzling\Web\Results\ClaimVoucherResult;
 use SpeedPuzzling\Web\Services\StripeCouponManager;
+use SpeedPuzzling\Web\Value\LifetimeMembership;
 use SpeedPuzzling\Web\Value\VoucherType;
 use Stripe\StripeClient;
+use Stripe\Subscription;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -52,6 +55,7 @@ readonly final class ClaimVoucherHandler
      * @throws VoucherExpired
      * @throws VoucherUsageLimitReached
      * @throws PlayerAlreadyClaimedVoucher
+     * @throws PlayerAlreadyHasLifetimeMembership
      */
     public function __invoke(ClaimVoucher $message): ClaimVoucherResult
     {
@@ -67,14 +71,108 @@ readonly final class ClaimVoucherHandler
                 throw new VoucherExpired();
             }
 
-            if ($voucher->voucherType === VoucherType::FreeMonths) {
-                return $this->handleFreeMonthsVoucher($voucher, $player, $now);
+            // Nothing a voucher gives can add to a membership that never ends - don't let the code go to waste
+            if ($this->hasLifetimeMembership($player)) {
+                throw new PlayerAlreadyHasLifetimeMembership();
             }
 
-            return $this->handlePercentageVoucher($voucher, $player, $now);
+            return match ($voucher->voucherType) {
+                VoucherType::FreeMonths => $this->handleFreeMonthsVoucher($voucher, $player, $now),
+                VoucherType::PercentageDiscount => $this->handlePercentageVoucher($voucher, $player, $now),
+                VoucherType::Lifetime => $this->handleLifetimeVoucher($voucher, $player, $now),
+            };
         } finally {
             $lock->release();
         }
+    }
+
+    private function hasLifetimeMembership(Player $player): bool
+    {
+        try {
+            return $this->membershipRepository->getByPlayerId($player->id->toString())->hasLifetimeGrant();
+        } catch (MembershipNotFound) {
+            return false;
+        }
+    }
+
+    /**
+     * @throws VoucherAlreadyUsed
+     */
+    private function handleLifetimeVoucher(
+        Voucher $voucher,
+        Player $player,
+        \DateTimeImmutable $now,
+    ): ClaimVoucherResult {
+        if ($voucher->isUsed()) {
+            throw new VoucherAlreadyUsed();
+        }
+
+        try {
+            $membership = $this->membershipRepository->getByPlayerId($player->id->toString());
+
+            if ($membership->stripeSubscriptionId !== null) {
+                $this->stopSubscriptionBilling($membership->stripeSubscriptionId);
+            }
+
+            $membership->grantLifetime();
+        } catch (MembershipNotFound) {
+            $membership = new Membership(
+                id: Uuid::uuid7(),
+                player: $player,
+                createdAt: $now,
+                grantedUntil: LifetimeMembership::grantedUntil(),
+            );
+
+            $this->membershipRepository->save($membership);
+        }
+
+        $voucher->markAsUsed($player, $now);
+
+        $this->logger->info('Lifetime voucher claimed successfully', [
+            'voucher_id' => $voucher->id->toString(),
+            'voucher_code' => $voucher->code,
+            'player_id' => $player->id->toString(),
+            'stripe_subscription_id' => $membership->stripeSubscriptionId,
+        ]);
+
+        return new ClaimVoucherResult(
+            success: true,
+            voucherType: VoucherType::Lifetime,
+            redirectToMembership: false,
+        );
+    }
+
+    /**
+     * A lifetime member must never be charged again. A subscription in good standing runs out the period
+     * that is already paid for; one that is behind on payment is cancelled right away, so Stripe stops
+     * retrying the charge. The webhooks that follow only move `ends_at` - `granted_until` keeps access.
+     */
+    private function stopSubscriptionBilling(string $subscriptionId): void
+    {
+        $subscription = $this->stripeClient->subscriptions->retrieve($subscriptionId);
+
+        if ($subscription->status === Subscription::STATUS_CANCELED || $subscription->status === Subscription::STATUS_INCOMPLETE_EXPIRED) {
+            return;
+        }
+
+        if ($subscription->status === Subscription::STATUS_ACTIVE || $subscription->status === Subscription::STATUS_TRIALING) {
+            if ($subscription->cancel_at_period_end !== true) {
+                $this->stripeClient->subscriptions->update($subscriptionId, [
+                    'cancel_at_period_end' => true,
+                ]);
+            }
+
+            $cancellation = 'at_period_end';
+        } else {
+            $this->stripeClient->subscriptions->cancel($subscriptionId);
+            $cancellation = 'immediately';
+        }
+
+        $this->logger->info('Stripe subscription cancelled for lifetime voucher', [
+            'subscription_id' => $subscriptionId,
+            'subscription_status' => $subscription->status,
+            'cancellation' => $cancellation,
+        ]);
     }
 
     /**

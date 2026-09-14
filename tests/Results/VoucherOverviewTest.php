@@ -347,6 +347,41 @@ final class VoucherOverviewTest extends TestCase
         self::assertSame('3 months', $voucherMultiMonth->getValue());
     }
 
+    public function testLifetimeVoucherIsSingleUse(): void
+    {
+        $availableVoucher = $this->createLifetimeOverview(usedAt: null);
+        $usedVoucher = $this->createLifetimeOverview(usedAt: new DateTimeImmutable('-1 day'));
+
+        self::assertSame('Lifetime', $availableVoucher->getValue());
+        self::assertFalse($availableVoucher->isUsed());
+        self::assertSame('Available', $availableVoucher->getUsageDisplay());
+        self::assertTrue($usedVoucher->isUsed());
+        self::assertSame('Used', $usedVoucher->getUsageDisplay());
+    }
+
+    public function testFromDatabaseRowLifetimeVoucher(): void
+    {
+        $voucher = VoucherOverview::fromDatabaseRow([
+            'id' => '00000000-0000-0000-0000-000000000001',
+            'code' => 'LIFETIMEMEMBER01',
+            'months_value' => null,
+            'valid_until' => '2026-12-31 23:59:59',
+            'created_at' => '2026-09-01 10:00:00',
+            'used_at' => null,
+            'used_by_id' => null,
+            'used_by_name' => null,
+            'internal_note' => null,
+            'voucher_type' => 'lifetime',
+            'percentage_discount' => null,
+            'max_uses' => 1,
+            'usage_count' => 0,
+        ]);
+
+        self::assertSame(VoucherType::Lifetime, $voucher->voucherType);
+        self::assertNull($voucher->monthsValue);
+        self::assertSame('Lifetime', $voucher->getValue());
+    }
+
     public function testGetUsageDisplayForFreeMonthsVoucher(): void
     {
         $availableVoucher = new VoucherOverview(
@@ -383,5 +418,24 @@ final class VoucherOverviewTest extends TestCase
 
         self::assertSame('Available', $availableVoucher->getUsageDisplay());
         self::assertSame('Used', $usedVoucher->getUsageDisplay());
+    }
+
+    private function createLifetimeOverview(null|DateTimeImmutable $usedAt): VoucherOverview
+    {
+        return new VoucherOverview(
+            id: '00000000-0000-0000-0000-000000000001',
+            code: 'LIFETIMEMEMBER01',
+            monthsValue: null,
+            validUntil: new DateTimeImmutable('+30 days'),
+            createdAt: new DateTimeImmutable(),
+            usedAt: $usedAt,
+            usedById: null,
+            usedByName: null,
+            internalNote: null,
+            voucherType: VoucherType::Lifetime,
+            percentageDiscount: null,
+            maxUses: 1,
+            usageCount: 0,
+        );
     }
 }

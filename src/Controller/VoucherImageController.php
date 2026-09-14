@@ -8,7 +8,6 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Repository\VoucherClaimRepository;
 use SpeedPuzzling\Web\Repository\VoucherRepository;
 use SpeedPuzzling\Web\Services\GenerateVoucherImage;
-use SpeedPuzzling\Web\Value\VoucherType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -36,7 +35,7 @@ final class VoucherImageController extends AbstractController
         }
 
         // Check availability based on voucher type
-        if ($voucher->voucherType === VoucherType::FreeMonths) {
+        if ($voucher->voucherType->isSingleUse()) {
             if ($voucher->isUsed()) {
                 throw $this->createNotFoundException('Voucher has already been used');
             }

@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Events\MembershipSubscriptionCancelled;
 use SpeedPuzzling\Web\Events\MembershipStarted;
 use SpeedPuzzling\Web\Events\MembershipSubscriptionRenewed;
 use SpeedPuzzling\Web\Events\MembershipTrialEnded;
+use SpeedPuzzling\Web\Value\LifetimeMembership;
 use SpeedPuzzling\Web\Value\Platform;
 use Stripe\Subscription;
 
@@ -65,6 +66,16 @@ class Membership implements EntityWithEvents
     public function isManagedByStripe(): bool
     {
         return $this->platform === Platform::Web;
+    }
+
+    public function hasLifetimeGrant(): bool
+    {
+        return LifetimeMembership::isLifetime($this->grantedUntil);
+    }
+
+    public function grantLifetime(): void
+    {
+        $this->grantedUntil = LifetimeMembership::grantedUntil();
     }
 
     public function updateStripeSubscription(

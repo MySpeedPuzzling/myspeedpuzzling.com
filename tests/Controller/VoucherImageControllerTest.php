@@ -41,6 +41,16 @@ final class VoucherImageControllerTest extends WebTestCase
         $this->assertResponseHeaderSame('Content-Type', 'image/png');
     }
 
+    public function testLifetimeAvailableVoucherReturnsImage(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/voucher/' . VoucherFixture::VOUCHER_LIFETIME_AVAILABLE . '/image-3.png');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertResponseHeaderSame('Content-Type', 'image/png');
+    }
+
     public function testUsedVoucherReturns404(): void
     {
         $browser = self::createClient();

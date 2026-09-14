@@ -24,17 +24,17 @@ readonly final class GetAllVouchers
 SELECT
     COUNT(*) FILTER (WHERE
         valid_until >= :now AND (
-            (voucher_type = 'free_months' AND used_at IS NULL) OR
+            (voucher_type IN ('free_months', 'lifetime') AND used_at IS NULL) OR
             (voucher_type = 'percentage_discount' AND (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) < v.max_uses)
         )
     ) as available,
     COUNT(*) FILTER (WHERE
-        (voucher_type = 'free_months' AND used_at IS NOT NULL) OR
+        (voucher_type IN ('free_months', 'lifetime') AND used_at IS NOT NULL) OR
         (voucher_type = 'percentage_discount' AND (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) >= v.max_uses)
     ) as used,
     COUNT(*) FILTER (WHERE
         valid_until < :now AND (
-            (voucher_type = 'free_months' AND used_at IS NULL) OR
+            (voucher_type IN ('free_months', 'lifetime') AND used_at IS NULL) OR
             (voucher_type = 'percentage_discount' AND (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) < v.max_uses)
         )
     ) as expired
@@ -86,7 +86,7 @@ SELECT
 FROM voucher v
 LEFT JOIN player p ON p.id = v.used_by_id
 WHERE v.valid_until >= :now AND (
-    (v.voucher_type = 'free_months' AND v.used_at IS NULL) OR
+    (v.voucher_type IN ('free_months', 'lifetime') AND v.used_at IS NULL) OR
     (v.voucher_type = 'percentage_discount' AND (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) < v.max_uses)
 )
 ORDER BY v.created_at DESC
@@ -125,7 +125,7 @@ SELECT
 FROM voucher v
 LEFT JOIN player p ON p.id = v.used_by_id
 WHERE
-    (v.voucher_type = 'free_months' AND v.used_at IS NOT NULL) OR
+    (v.voucher_type IN ('free_months', 'lifetime') AND v.used_at IS NOT NULL) OR
     (v.voucher_type = 'percentage_discount' AND (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) >= v.max_uses)
 ORDER BY COALESCE(v.used_at, v.created_at) DESC
 SQL;
@@ -161,7 +161,7 @@ SELECT
 FROM voucher v
 LEFT JOIN player p ON p.id = v.used_by_id
 WHERE v.valid_until < :now AND (
-    (v.voucher_type = 'free_months' AND v.used_at IS NULL) OR
+    (v.voucher_type IN ('free_months', 'lifetime') AND v.used_at IS NULL) OR
     (v.voucher_type = 'percentage_discount' AND (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) < v.max_uses)
 )
 ORDER BY v.valid_until DESC

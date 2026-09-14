@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\LifetimeMembership;
 
 readonly final class PlayerMembership
 {
@@ -32,6 +33,11 @@ readonly final class PlayerMembership
     public function hasActiveGrant(DateTimeImmutable $now): bool
     {
         return $this->grantedUntil !== null && $this->grantedUntil > $now;
+    }
+
+    public function hasLifetimeGrant(): bool
+    {
+        return LifetimeMembership::isLifetime($this->grantedUntil);
     }
 
     /**

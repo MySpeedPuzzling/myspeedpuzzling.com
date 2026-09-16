@@ -1,10 +1,3 @@
-// Cache-poisoning recovery marker, 2026-09-16. /build is served immutable for a
-// year, so a browser holding a corrupt copy of app.css keeps serving it to
-// itself: the URL never changes, and neither a reload nor a CacheStorage purge
-// can dislodge it. Touching this file re-hashes app.css, which hands every
-// affected visitor a URL they cannot already have a bad copy of. Bump the date
-// if we ever need to force that again.
-
 // User variables
 @import 'user-variables';
 
@@ -1247,4 +1240,17 @@ header {
 .turbo-progress-bar {
     background-color: $accent;
     box-shadow: 0 1px 3px rgba($black, .25);
+}
+
+// Lever for forcing a new app.css URL. /build is served immutable for a year, so
+// a browser holding a corrupt copy of app.css keeps handing it to itself: the
+// URL never changes, and neither a reload nor a CacheStorage purge dislodges it.
+// Re-hashing the file is the one remedy that needs nothing from the client.
+// Bump this number to do that; it has no effect beyond changing the bytes.
+//
+// It must stay a real declaration. The first attempt at this was a `//` comment,
+// which Sass never emits, so the compiled CSS was byte-identical, the hash did
+// not move and the deploy silently did nothing.
+:root {
+    --msp-asset-generation: 2;
 }

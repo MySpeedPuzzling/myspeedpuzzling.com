@@ -53,7 +53,7 @@ final class EditSellSwapListItemController extends AbstractController
         ],
         name: 'edit_sell_swap_list_item',
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(Request $request, string $itemId): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

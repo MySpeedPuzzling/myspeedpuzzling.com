@@ -24,7 +24,7 @@ final class BlockedUsersController extends AbstractController
         name: 'blocked_users',
         methods: ['GET'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

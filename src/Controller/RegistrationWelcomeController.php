@@ -23,7 +23,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  *   or link from - so if they get signed out before Stage B, this is the one
  *   thing that gets them back in (implementation-plan §2c, support playbook 4).
  */
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class RegistrationWelcomeController extends AbstractController
 {
     public function __construct(

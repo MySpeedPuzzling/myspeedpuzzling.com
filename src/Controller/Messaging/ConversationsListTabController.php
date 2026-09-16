@@ -28,7 +28,7 @@ final class ConversationsListTabController extends AbstractController
         methods: ['GET'],
         priority: 1,
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(Request $request): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

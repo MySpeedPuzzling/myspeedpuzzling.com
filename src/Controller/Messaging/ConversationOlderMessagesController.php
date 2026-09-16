@@ -29,7 +29,7 @@ final class ConversationOlderMessagesController extends AbstractController
         name: 'conversation_older_messages',
         methods: ['GET'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(string $conversationId, Request $request): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

@@ -27,7 +27,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * last-chance page (docs/features/account-deletion.md). Nothing is deleted
  * here - and nothing can be, the link is the second factor.
  */
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class RequestAccountDeletionController extends AbstractController
 {
     public const string CSRF_TOKEN_ID = 'request_account_deletion';

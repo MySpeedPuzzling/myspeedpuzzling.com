@@ -21,7 +21,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * authenticator redirects there on success, so the authorization request
  * survives the sign-in without any server-side state.
  */
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class AuthorizationController extends AbstractController
 {
     public function __construct(

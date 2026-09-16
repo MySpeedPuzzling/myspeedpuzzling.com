@@ -55,7 +55,7 @@ final class AddPuzzleToCollectionController extends AbstractController
         name: 'collection_add',
         methods: ['GET', 'POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(
         Request $request,
         string $puzzleId,

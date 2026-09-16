@@ -35,7 +35,7 @@ final class ConversationDetailController extends AbstractController
         name: 'conversation_detail',
         methods: ['GET'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(string $conversationId): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

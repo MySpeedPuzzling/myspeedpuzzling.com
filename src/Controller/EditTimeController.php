@@ -31,7 +31,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\Turbo\TurboBundle;
 
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class EditTimeController extends AbstractController
 {
     public function __construct(

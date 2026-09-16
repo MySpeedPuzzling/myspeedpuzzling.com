@@ -37,7 +37,7 @@ final class DeleteFeatureRequestController extends AbstractController
         name: 'feature_request_delete',
         methods: ['POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(string $featureRequestId): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

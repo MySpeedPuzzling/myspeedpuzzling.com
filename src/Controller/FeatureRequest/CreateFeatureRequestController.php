@@ -39,7 +39,7 @@ final class CreateFeatureRequestController extends AbstractController
         ],
         name: 'feature_request_create',
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(Request $request): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

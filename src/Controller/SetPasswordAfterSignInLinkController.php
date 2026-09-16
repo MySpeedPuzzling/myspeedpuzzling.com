@@ -29,7 +29,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * without proving the current one may only happen in the moments right after the
  * user proved control of their mailbox.
  */
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class SetPasswordAfterSignInLinkController extends AbstractController
 {
     public function __construct(

@@ -38,7 +38,14 @@ final class LoginController extends AbstractController
             return $this->auth0AuthenticationController->login($request);
         }
 
-        if ($this->getUser() !== null) {
+        // Only a *fully* authenticated visitor is bounced away. A visitor holding
+        // nothing but the 30-day remember-me cookie must be able to reach this
+        // form, or any access_control/IsGranted rule that still asks for
+        // IS_AUTHENTICATED_FULLY turns into an infinite redirect: the rule denies,
+        // LoginEntryPoint sends them to /login, and /login sends them back to the
+        // page that denied them. Rendering the form instead lets them upgrade the
+        // remember-me token to a full one, which is the only way out of that loop.
+        if ($this->isGranted('IS_AUTHENTICATED_FULLY')) {
             return $this->redirectToRoute('my_profile');
         }
 

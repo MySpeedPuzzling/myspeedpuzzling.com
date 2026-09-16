@@ -26,7 +26,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * entered through a provider-verified identity). Accounts that already HAVE a
  * password keep the change-password flow, which demands the current one.
  */
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class AccountSetPasswordController extends AbstractController
 {
     public function __construct(

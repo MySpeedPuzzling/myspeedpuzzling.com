@@ -29,7 +29,7 @@ final class ReportConversationController extends AbstractController
         name: 'report_conversation',
         methods: ['POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(Request $request, string $conversationId): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

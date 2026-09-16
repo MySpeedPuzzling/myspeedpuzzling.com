@@ -31,7 +31,7 @@ final class TypingIndicatorController extends AbstractController
         name: 'typing_indicator',
         methods: ['POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(string $conversationId, Request $request): JsonResponse
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

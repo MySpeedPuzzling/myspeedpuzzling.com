@@ -29,7 +29,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * lives in user_account: native registrants during window A, everybody after the
  * Stage B import. Legacy Auth0 sessions keep the old card until then.
  */
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ChangeAccountPasswordController extends AbstractController
 {
     public function __construct(

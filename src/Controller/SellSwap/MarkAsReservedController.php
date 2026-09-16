@@ -50,7 +50,7 @@ final class MarkAsReservedController extends AbstractController
         name: 'sell_swap_mark_reserved',
         methods: ['GET', 'POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(
         Request $request,
         string $itemId,

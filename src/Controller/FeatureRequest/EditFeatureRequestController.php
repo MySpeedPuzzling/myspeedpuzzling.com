@@ -42,7 +42,7 @@ final class EditFeatureRequestController extends AbstractController
         ],
         name: 'feature_request_edit',
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(string $featureRequestId, Request $request): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

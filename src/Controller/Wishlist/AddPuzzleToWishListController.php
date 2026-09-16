@@ -48,7 +48,7 @@ final class AddPuzzleToWishListController extends AbstractController
         name: 'wishlist_add',
         methods: ['GET', 'POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(
         Request $request,
         string $puzzleId,

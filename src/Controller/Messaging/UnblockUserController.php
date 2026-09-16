@@ -28,7 +28,7 @@ final class UnblockUserController extends AbstractController
         name: 'unblock_user',
         methods: ['POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(Request $request, string $playerId): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

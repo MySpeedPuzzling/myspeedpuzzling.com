@@ -28,7 +28,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * removable even after its provider gets switched off. The ≥1-sign-in-method
  * invariant lives in the handler.
  */
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class UnlinkSocialIdentityController extends AbstractController
 {
     public function __construct(

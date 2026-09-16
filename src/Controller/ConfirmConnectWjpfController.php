@@ -24,7 +24,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * from the caller would make this an open redirect, and this page sits right after a login
  * prompt, which is the worst place for one.
  */
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ConfirmConnectWjpfController extends AbstractController
 {
     public function __construct(

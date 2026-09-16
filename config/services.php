@@ -225,6 +225,14 @@ return static function (ContainerConfigurator $configurator): void {
         ->arg('$inner', service('.inner'));
     $services->load('SpeedPuzzling\\Web\\EventSubscriber\\', __DIR__ . '/../src/EventSubscriber/**/{*.php}');
 
+    // Sliding 30-day login. Neither argument is autowirable: the remember-me
+    // handler is registered by the firewall factory under a per-firewall string
+    // id (there is no RememberMeHandlerInterface alias), and the session options
+    // are a container parameter rather than a service.
+    $services->set(\SpeedPuzzling\Web\EventSubscriber\SlidingLoginCookiesSubscriber::class)
+        ->arg('$rememberMeHandler', service('security.authenticator.remember_me_handler.main'))
+        ->arg('$sessionOptions', param('session.storage.options'));
+
     // API Resource Providers and Processors
     $services->load('SpeedPuzzling\\Web\\Api\\', __DIR__ . '/../src/Api/**/{*Provider.php,*Processor.php}');
 

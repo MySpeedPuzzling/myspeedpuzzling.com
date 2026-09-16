@@ -51,7 +51,7 @@ final class ReturnPuzzleController extends AbstractController
         name: 'return_puzzle',
         methods: ['POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(
         Request $request,
         string $lentPuzzleId,

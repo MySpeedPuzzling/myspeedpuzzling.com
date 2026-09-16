@@ -17,7 +17,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ApiPauseController extends AbstractController
 {
     public function __construct(

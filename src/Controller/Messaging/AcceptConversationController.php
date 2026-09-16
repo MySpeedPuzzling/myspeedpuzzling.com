@@ -29,7 +29,7 @@ final class AcceptConversationController extends AbstractController
         name: 'accept_conversation',
         methods: ['POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(Request $request, string $conversationId): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

@@ -22,10 +22,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * address here and another there is invisible to the bulk sync. Here the identity comes from
  * the session, so no address has to agree.
  *
- * IS_AUTHENTICATED_FULLY sends anonymous visitors through the standard ?return= login flow,
+ * IS_AUTHENTICATED_REMEMBERED sends anonymous visitors through the standard ?return= login flow,
  * which brings them back to this exact URL, state intact.
  */
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ConnectWjpfController extends AbstractController
 {
     public const string CSRF_TOKEN_ID = 'connect_wjpf';

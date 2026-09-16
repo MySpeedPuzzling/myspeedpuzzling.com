@@ -64,15 +64,12 @@ final class RememberMeTest extends WebTestCase
 
     /**
      * The session and the remember-me cookie must agree on how long "stay signed
-     * in" lasts, because only one of them slides while the visitor is active.
+     * in" lasts, because SlidingLoginCookiesSubscriber renews the two together
+     * and a visitor is signed out as soon as the shorter of them lapses.
      *
-     * The session cookie is re-sent with a fresh Max-Age on every request, so an
-     * active visitor is never signed out. The remember-me cookie is NOT renewed
-     * during that time - RememberMeAuthenticator::supports() declines whenever a
-     * token is already present, so the handler only re-issues on the one path
-     * that consumes it. If the session lifetime were the shorter of the two,
-     * someone active for months and then idle would fall back to it rather than
-     * to the advertised 30 days.
+     * Neither cookie renews itself - see config/packages/framework.php. Without
+     * that subscriber both expire 30 days after the password was typed, however
+     * active the visitor has been.
      */
     public function testSessionLifetimeMatchesTheRememberMeLifetime(): void
     {
@@ -104,8 +101,16 @@ final class RememberMeTest extends WebTestCase
         $browser->request('GET', '/en/puzzle');
         self::assertResponseIsSuccessful();
 
-        // Nothing may touch the cookie on an ordinary authenticated page view
-        self::assertNull($this->responseCookie($browser));
+        // SlidingLoginCookiesSubscriber may RENEW the cookie here (that is its
+        // job), but nothing may DELETE it: a deletion cookie carries an empty
+        // value and an expiry in the past.
+        $onResponse = $this->responseCookie($browser);
+
+        if ($onResponse !== null) {
+            self::assertNotSame('', (string) $onResponse->getValue(), 'A renewal must not be a deletion cookie');
+            self::assertGreaterThan(time(), $onResponse->getExpiresTime());
+        }
+
         self::assertNotNull(
             $browser->getCookieJar()->get(self::COOKIE_NAME),
             'The Auth0 authenticator failing on a native session must not delete the remember-me cookie',
@@ -319,6 +324,95 @@ final class RememberMeTest extends WebTestCase
             'msp|remember9',
             RememberMeDetails::fromRawCookie((string) $cookieOne->getValue())->getUserIdentifier(),
         );
+    }
+
+    /**
+     * The regression guard for the bug that made always-on remember-me useless in
+     * practice: the cookie authenticated fine, but the resulting RememberMeToken
+     * is not "full fledged", so all 125 IsGranted('IS_AUTHENTICATED_FULLY') gates
+     * in src/Controller rejected it. The entry point then sent the visitor to
+     * /login, and /login - seeing a user in the token storage - sent them straight
+     * back to the page that had just rejected them. Opening the app after the
+     * session died was an infinite redirect, which reads to a user as "it logged
+     * me out again".
+     */
+    public function testRememberMeRestoredVisitorReachesTheSignedInAreaInsteadOfLooping(): void
+    {
+        $browser = self::createClient();
+        $email = $this->seedAccount($browser, 'msp|remember11', 'remember.eleven');
+
+        $this->submitLogin($browser, $email, self::PASSWORD);
+        $this->dropEverythingButTheRememberMeCookie($browser);
+
+        $browser->request('GET', '/en/my-profile');
+
+        // This account has no Player row, so my_profile redirects to the homepage.
+        // What matters is where it does NOT send them.
+        $location = (string) $browser->getResponse()->headers->get('Location');
+
+        self::assertStringNotContainsString(
+            '/login',
+            $location,
+            'A visitor restored from the remember-me cookie must not be bounced to the login page',
+        );
+        self::assertNotNull(
+            $browser->getContainer()->get(TokenStorageInterface::class)->getToken(),
+            'The remember-me cookie must still authenticate the request',
+        );
+    }
+
+    /**
+     * Neither cookie renews itself (see config/packages/framework.php), so without
+     * SlidingLoginCookiesSubscriber both expire 30 days after the password was
+     * typed no matter how active the visitor is. The subscriber re-sends them, at
+     * most once a day.
+     */
+    public function testBothLoginCookiesSlideOnALaterPageViewAndThenThrottle(): void
+    {
+        $browser = self::createClient();
+        $email = $this->seedAccount($browser, 'msp|remember12', 'remember.twelve');
+
+        $this->submitLogin($browser, $email, self::PASSWORD);
+
+        // First page view after login: no renewal has been recorded in the session
+        // yet, so both cookies are re-sent with a fresh 30-day window. This is also
+        // what rescues everyone who was already signed in when this shipped.
+        $browser->request('GET', '/en/puzzle');
+        self::assertResponseIsSuccessful();
+
+        $rememberMe = $this->responseCookie($browser);
+        self::assertNotNull($rememberMe, 'The remember-me cookie must be renewed on a later page view');
+        self::assertEqualsWithDelta(time() + self::LIFETIME, $rememberMe->getExpiresTime(), 30);
+
+        $sessionCookie = $this->responseCookieNamed($browser, $this->sessionName($browser));
+        self::assertNotNull($sessionCookie, 'The session cookie must be renewed alongside it');
+
+        // Second page view: inside the throttle window, so nothing is re-sent.
+        $browser->request('GET', '/en/puzzle');
+        self::assertResponseIsSuccessful();
+
+        self::assertNull(
+            $this->responseCookie($browser),
+            'Renewal must be throttled - one Set-Cookie per visitor per day, not one per request',
+        );
+    }
+
+    private function sessionName(KernelBrowser $browser): string
+    {
+        $session = $browser->getContainer()->get('session.factory')->createSession();
+
+        return $session->getName();
+    }
+
+    private function responseCookieNamed(KernelBrowser $browser, string $name): null|Cookie
+    {
+        foreach ($browser->getResponse()->headers->getCookies() as $cookie) {
+            if ($cookie->getName() === $name) {
+                return $cookie;
+            }
+        }
+
+        return null;
     }
 
     private function responseCookie(KernelBrowser $browser): null|Cookie

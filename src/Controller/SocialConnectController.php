@@ -29,7 +29,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * duplicate accounts). The target account travels in the state payload because
  * Apple's cross-site POST callback arrives without session cookies.
  */
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class SocialConnectController extends AbstractController
 {
     public function __construct(

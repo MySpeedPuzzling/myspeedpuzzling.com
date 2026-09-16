@@ -17,7 +17,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * The last 50 auth events for the logged-in account - a security feature, so
  * deliberately NOT membership-gated. "Someone tried to get in" is the point.
  */
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class AccountRecentActivityController extends AbstractController
 {
     public function __construct(

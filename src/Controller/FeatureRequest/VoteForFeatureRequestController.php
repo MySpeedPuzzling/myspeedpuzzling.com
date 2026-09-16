@@ -39,7 +39,7 @@ final class VoteForFeatureRequestController extends AbstractController
         name: 'feature_request_vote',
         methods: ['POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(string $featureRequestId, Request $request): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

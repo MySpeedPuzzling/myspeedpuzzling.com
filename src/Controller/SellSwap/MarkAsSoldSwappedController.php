@@ -55,7 +55,7 @@ final class MarkAsSoldSwappedController extends AbstractController
         name: 'sellswap_mark_sold',
         methods: ['GET', 'POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(
         Request $request,
         string $itemId,

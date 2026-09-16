@@ -35,7 +35,7 @@ final class ReportFeatureRequestCommentController extends AbstractController
         name: 'feature_request_report_comment',
         methods: ['POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(string $commentId, Request $request): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

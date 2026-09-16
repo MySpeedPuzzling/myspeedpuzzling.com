@@ -18,16 +18,20 @@ return App::config([
             // 30 days, matching remember_me (config/packages/security.php) so the
             // two agree on how long "stay signed in" means.
             //
-            // They are independent mechanisms and BOTH are needed. The session
-            // cookie genuinely slides - session_start() re-sends it with a fresh
-            // Max-Age on every request - so an active visitor is never signed out.
-            // The remember-me cookie does NOT slide while a session is alive:
-            // RememberMeAuthenticator::supports() declines whenever a token is
-            // already present, so the handler only re-issues on the one path that
-            // consumes it (an expired session). Before these matched, someone
-            // active for months and then idle fell back to the session's 15.6 days
-            // rather than the advertised 30 - their remember-me cookie had expired
-            // 30 days after login and was never renewed.
+            // Neither cookie renews itself, and an earlier version of this comment
+            // wrongly claimed the session cookie did. It does not: PHP only emits
+            // Set-Cookie for a session id it generated, and AbstractSessionListener
+            // re-sends it only when the id changes. The remember-me cookie is
+            // likewise only re-issued when it is consumed, which never happens
+            // while a session is alive. Both were minted in the same instant at
+            // login, so they expired together exactly 30 days later however active
+            // the visitor had been - the sliding server-side row could not help,
+            // because the browser had stopped sending the id.
+            //
+            // SlidingLoginCookiesSubscriber is what makes the window actually
+            // slide, re-sending both cookies (at most once a day) for signed-in
+            // visitors. These two values stay in step because that subscriber
+            // renews them together.
             //
             // Affordable only since anonymous requests stopped creating sessions
             // (docs/features/return-url.md): at ~450 real sessions/day, 30-day

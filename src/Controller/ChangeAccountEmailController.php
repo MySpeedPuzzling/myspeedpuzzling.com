@@ -31,7 +31,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * inbox - so a typo is a recoverable mistake (sign in with the old password, fix
  * it again) rather than a locked-out account.
  */
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ChangeAccountEmailController extends AbstractController
 {
     public function __construct(

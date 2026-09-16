@@ -38,7 +38,7 @@ final class RateTransactionController extends AbstractController
         name: 'rate_transaction',
         methods: ['GET', 'POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(Request $request, string $soldSwappedItemId): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

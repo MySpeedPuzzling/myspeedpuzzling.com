@@ -53,7 +53,7 @@ final class BorrowPuzzleController extends AbstractController
         name: 'borrow_puzzle',
         methods: ['GET', 'POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(
         Request $request,
         string $puzzleId,

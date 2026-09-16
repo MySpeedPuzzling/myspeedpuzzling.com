@@ -47,7 +47,7 @@ final class RemovePuzzleFromWishListController extends AbstractController
         name: 'remove_puzzle_from_wish_list',
         methods: ['POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(Request $request, string $puzzleId): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

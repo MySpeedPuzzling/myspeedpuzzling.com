@@ -19,7 +19,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ResendEmailVerificationController extends AbstractController
 {
     public const string CSRF_TOKEN_ID = 'resend_email_verification';

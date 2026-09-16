@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Repairing MySpeedPuzzling</title>
+    {# Deliberately no /build assets and no base.html.twig: this page has to render
+       correctly on exactly the browsers where those assets are broken. #}
+    <style>
+        body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fff;color:#4b566b;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+        .box{max-width:32rem;padding:2rem 1.25rem;text-align:center}
+        h1{margin:0 0 .75rem;font-size:1.375rem;font-weight:500;color:#373f50}
+        p{margin:0 0 1rem}
+        .status{font-weight:500;color:#fe696a}
+        a{color:#fe696a}
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>Repairing MySpeedPuzzling</h1>
+        <p>Clearing out the stored files your browser is holding. This takes a few seconds.</p>
+        <p class="status" id="status">Working…</p>
+        <p><a id="manual" href="{{ path('homepage', {'_locale': app.request.locale}) }}" hidden>Continue to MySpeedPuzzling</a></p>
+    </div>
+
+    <script>
+    (function () {
+        var statusEl = document.getElementById('status');
+        var manualEl = document.getElementById('manual');
+        var home = manualEl.getAttribute('href');
+
+        function say(text) { statusEl.textContent = text; }
+        function forget(promise) { return promise.then(function () {}, function () {}); }
+
+        // Re-arm the automatic self-heal in base.html.twig, which stops itself
+        // after a capped number of attempts per session.
+        try { window.sessionStorage.removeItem('msp-asset-heal'); } catch (e) {}
+
+        function unregisterWorkers() {
+            if (!navigator.serviceWorker || !navigator.serviceWorker.getRegistrations) return Promise.resolve();
+            return forget(navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                return Promise.all(registrations.map(function (registration) {
+                    return forget(registration.unregister());
+                }));
+            }));
+        }
+
+        function deleteCaches() {
+            if (!window.caches) return Promise.resolve();
+            return forget(window.caches.keys().then(function (names) {
+                return Promise.all(names.map(function (name) {
+                    return forget(window.caches.delete(name));
+                }));
+            }));
+        }
+
+        function reload(url) {
+            return forget(fetch(url, { cache: 'reload', credentials: 'same-origin' }));
+        }
+
+        // Deleting CacheStorage is not enough: the poisoned copy lives in the
+        // browser's own HTTP cache under an immutable, year-long entry. Only a
+        // forced revalidation overwrites it, so every current asset is refetched
+        // here rather than left for the next page load to stumble over again.
+        function refetchAssets() {
+            return fetch('{{ asset('build/entrypoints.json') }}', { cache: 'reload' }).then(function (response) {
+                if (!response.ok) return [];
+                return response.json().then(function (data) {
+                    var urls = [];
+                    var entrypoints = data.entrypoints || {};
+                    for (var name in entrypoints) {
+                        if (!Object.prototype.hasOwnProperty.call(entrypoints, name)) continue;
+                        urls = urls.concat(entrypoints[name].js || [], entrypoints[name].css || []);
+                    }
+                    return urls;
+                });
+            }).then(function (urls) {
+                // A poisoned icon font shows wrong glyphs rather than a broken
+                // layout, so the fonts in the manifest matter as much as the bundles.
+                return fetch('{{ asset('build/manifest.json') }}', { cache: 'reload' }).then(function (response) {
+                    if (!response.ok) return urls;
+                    return response.json().then(function (manifest) {
+                        for (var key in manifest) {
+                            if (!Object.prototype.hasOwnProperty.call(manifest, key)) continue;
+                            if (String(manifest[key]).indexOf('/fonts/') !== -1) urls.push(manifest[key]);
+                        }
+                        return urls;
+                    });
+                }, function () { return urls; });
+            }).then(function (urls) {
+                var unique = [];
+                for (var i = 0; i < urls.length; i++) {
+                    if (unique.indexOf(urls[i]) === -1) unique.push(urls[i]);
+                }
+                say('Downloading fresh files (' + unique.length + ')…');
+                return Promise.all(unique.map(reload));
+            }, function () { return null; });
+        }
+
+        function finish() {
+            say('Done. Taking you back…');
+            manualEl.hidden = false;
+            window.setTimeout(function () { window.location.replace(home); }, 800);
+        }
+
+        unregisterWorkers()
+            .then(deleteCaches)
+            .then(refetchAssets)
+            .then(finish, finish);
+    })();
+    </script>
+</body>
+</html>

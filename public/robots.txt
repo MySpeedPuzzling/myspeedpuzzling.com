@@ -9,6 +9,10 @@ User-agent: *
 Disallow: /admin
 Disallow: /internal-api
 
+# Client-repair utilities, not content: /-/reset clears a visitor's cached
+# assets and /-/asset-load-failure only answers POST.
+Disallow: /-/
+
 Disallow: /_components
 Disallow: /en/_components
 Disallow: /es/_components

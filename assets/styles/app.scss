@@ -1,3 +1,10 @@
+// Cache-poisoning recovery marker, 2026-09-16. /build is served immutable for a
+// year, so a browser holding a corrupt copy of app.css keeps serving it to
+// itself: the URL never changes, and neither a reload nor a CacheStorage purge
+// can dislodge it. Touching this file re-hashes app.css, which hands every
+// affected visitor a URL they cannot already have a bad copy of. Bump the date
+// if we ever need to force that again.
+
 // User variables
 @import 'user-variables';
 

@@ -1,4 +1,9 @@
-const CACHE_VERSION = 'v6';
+// v7: the fetch router used to classify every Chromium/Firefox navigation as an
+// image and answer it from the image cache. Bumping the version is what evicts
+// the HTML those browsers already stored under images-v6 - the activate handler
+// deletes every cache not carrying the current suffix, and without that bump a
+// signed-out homepage would keep being replayed on existing installs.
+const CACHE_VERSION = 'v7';
 const STATIC_CACHE = 'static-' + CACHE_VERSION;
 const IMAGES_CACHE = 'images-' + CACHE_VERSION;
 
@@ -110,15 +115,25 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Strategy: Stale-while-revalidate for images
-    if (isImageRequest(request, url)) {
-        event.respondWith(staleWhileRevalidate(request, IMAGES_CACHE));
+    // Strategy: Network-only for HTML navigation (offline fallback only).
+    //
+    // This MUST stay above the image check. Chrome, Edge and Firefox send
+    // "image/avif,image/webp" inside the Accept header of every top-level
+    // navigation, so any Accept-based "is this an image?" test matches documents
+    // too. While it did, every navigation in those browsers was answered from the
+    // stale-while-revalidate cache: the PWA (start_url "/") relaunched into
+    // whatever copy of the homepage was cached first - usually the signed-out one -
+    // and personalized HTML was stored in a shared cache and replayed to whoever
+    // opened the app next. Safari never matched, which is why only Chromium
+    // users saw it.
+    if (request.mode === 'navigate' || request.destination === 'document' || accept.includes('text/html')) {
+        event.respondWith(networkFirstNavigation(request));
         return;
     }
 
-    // Strategy: Network-only for HTML navigation (offline fallback only)
-    if (request.mode === 'navigate' || accept.includes('text/html')) {
-        event.respondWith(networkFirstNavigation(request));
+    // Strategy: Stale-while-revalidate for images
+    if (isImageRequest(request, url)) {
+        event.respondWith(staleWhileRevalidate(request, IMAGES_CACHE));
         return;
     }
 
@@ -182,6 +197,15 @@ async function staleWhileRevalidate(request, cacheName) {
         // Cache opaque responses (cross-origin) and successful same-origin responses.
         // Best-effort background write: images self-correct on the next request,
         // but trim must only run after the write to keep the count accurate.
+        //
+        // HTML is refused outright as a second line of defence. Routing already
+        // keeps documents out of here, but this cache is keyed by URL alone and a
+        // page carrying someone's name, times or admin links must never be
+        // replayable to the next visitor if routing regresses again.
+        if (isHtmlResponse(response)) {
+            return response;
+        }
+
         if (response.ok || response.type === 'opaque') {
             cache.put(request, response.clone())
                 .then(() => trimCache(cacheName, IMAGES_CACHE_LIMIT))
@@ -255,11 +279,25 @@ async function pruneStaticCache() {
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
-function isImageRequest(request, url) {
-    const accept = request.headers.get('Accept') || '';
-    if (accept.includes('image/')) return true;
+// Opaque (cross-origin) responses expose no headers - type 'opaque' reports an
+// empty Content-Type - so they read as "not HTML" and stay cacheable as today.
+function isHtmlResponse(response) {
+    return (response.headers.get('Content-Type') || '').indexOf('text/html') !== -1;
+}
 
-    const ext = url.pathname.split('.').pop();
+// Never test the Accept header here: a navigation's Accept advertises image
+// formats too (image/avif, image/webp), so an Accept-based test classifies every
+// Chromium/Firefox page load as an image. `destination` is the browser's own
+// classification of what the request is FOR - 'image' for <img>/CSS images,
+// 'document' for navigations - and cannot be confused by content negotiation.
+function isImageRequest(request, url) {
+    if (request.destination === 'image') return true;
+
+    // A non-empty destination that is not 'image' has already answered the
+    // question. Only fall back to the extension when the browser told us nothing.
+    if (request.destination !== '') return false;
+
+    const ext = url.pathname.split('.').pop().toLowerCase();
     return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'svg', 'ico'].includes(ext);
 }
 

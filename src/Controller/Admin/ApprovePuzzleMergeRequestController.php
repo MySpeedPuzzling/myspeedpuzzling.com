@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
+use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -64,6 +65,7 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
                 mergedPiecesCount: $mergedPiecesCount,
                 mergedManufacturerId: $mergedManufacturerId !== '' ? $mergedManufacturerId : null,
                 selectedImagePuzzleId: $selectedImagePuzzleId !== '' ? $selectedImagePuzzleId : null,
+                decisionSource: MergeDecisionSource::AdminUi,
             ),
         );
 

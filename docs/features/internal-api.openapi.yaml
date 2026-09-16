@@ -90,6 +90,104 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /internal-api/puzzle-merge-requests:
+    get:
+      summary: Review queue of pending puzzle merge requests
+      operationId: listPuzzleMergeRequests
+      description: |
+        Every pending duplicate report with all the puzzles it proposes to merge.
+
+        Each candidate carries a ready-to-fetch `imageUrl`: whether two puzzles are
+        really the same product is normally settled by comparing the artwork, not the
+        names. The history counts (`solvedTimesCount` and friends) say which record
+        should survive - normally the heaviest one.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Requests per page (1-100).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: The pending queue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PuzzleMergeReviewQueue"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /internal-api/puzzle-merge-requests/{mergeRequestId}/approve:
+    post:
+      summary: Approve a puzzle merge
+      operationId: approvePuzzleMergeRequest
+      description: |
+        Destructive. The merged puzzles are deleted and their solving times,
+        collection items, wish-list/sell-swap entries and lendings move onto the
+        survivor. A `puzzle_merge_audit` row records the full before/after state
+        first, so the merge can be reviewed and unpicked by hand.
+
+        Anything omitted keeps the survivor's own value, and any EAN, catalogue
+        number, alternative name, cover image or manufacturer held **only** by a
+        puzzle about to be deleted is carried over rather than lost.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      parameters:
+        - $ref: "#/components/parameters/MergeRequestId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PuzzleMergeApproval"
+      responses:
+        "204":
+          description: Puzzles merged
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /internal-api/puzzle-merge-requests/{mergeRequestId}/reject:
+    post:
+      summary: Reject a puzzle merge request
+      operationId: rejectPuzzleMergeRequest
+      description: |
+        Declines the duplicate report. The reason is delivered to the player who
+        reported it, as a notification, so it should be written for them.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      parameters:
+        - $ref: "#/components/parameters/MergeRequestId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PuzzleMergeRejection"
+      responses:
+        "204":
+          description: Request rejected
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     InternalApiBearer:
@@ -108,6 +206,15 @@ components:
         type: string
         format: uuid
 
+    MergeRequestId:
+      name: mergeRequestId
+      in: path
+      required: true
+      description: UUID (v7) of the puzzle merge request.
+      schema:
+        type: string
+        format: uuid
+
   schemas:
     FeatureRequestStatusUpdate:
       type: object
@@ -122,6 +229,132 @@ components:
           type: string
           description: Optional admin-facing comment attached to the transition.
           example: Shipped in v2.4.
+
+    PuzzleMergeReviewQueue:
+      type: object
+      required: [totalPending, limit, offset, mergeRequests]
+      properties:
+        totalPending:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        mergeRequests:
+          type: array
+          items:
+            $ref: "#/components/schemas/PuzzleMergeReviewItem"
+
+    PuzzleMergeReviewItem:
+      type: object
+      properties:
+        mergeRequestId:
+          type: string
+          format: uuid
+        submittedAt:
+          type: string
+        reporterName:
+          type: [string, "null"]
+        reporterCode:
+          type: [string, "null"]
+        sourcePuzzleId:
+          type: [string, "null"]
+        sourcePuzzleName:
+          type: string
+        actionable:
+          type: boolean
+          description: False when fewer than two reported puzzles still exist; such a request can only be rejected.
+        missingPuzzleIds:
+          type: array
+          description: Reported puzzles already deleted by an earlier merge.
+          items:
+            type: string
+            format: uuid
+        candidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/PuzzleMergeCandidate"
+
+    PuzzleMergeCandidate:
+      type: object
+      properties:
+        puzzleId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        alternativeName:
+          type: [string, "null"]
+        piecesCount:
+          type: integer
+        ean:
+          type: [string, "null"]
+        identificationNumber:
+          type: [string, "null"]
+        manufacturerId:
+          type: [string, "null"]
+        manufacturerName:
+          type: [string, "null"]
+        image:
+          type: [string, "null"]
+          description: Storage path.
+        imageUrl:
+          type: [string, "null"]
+          description: Fetchable thumbnail URL - the decisive signal when judging a duplicate.
+        approved:
+          type: boolean
+        addedAt:
+          type: [string, "null"]
+        solvedTimesCount:
+          type: integer
+        collectionItemsCount:
+          type: integer
+        wishListItemsCount:
+          type: integer
+        sellSwapItemsCount:
+          type: integer
+
+    PuzzleMergeApproval:
+      type: object
+      additionalProperties: false
+      required: [survivorPuzzleId, mergedName, mergedPiecesCount]
+      properties:
+        survivorPuzzleId:
+          type: string
+          format: uuid
+          description: The puzzle that stays; every other reported puzzle is deleted.
+        mergedName:
+          type: string
+        mergedPiecesCount:
+          type: integer
+          minimum: 1
+        mergedEan:
+          type: [string, "null"]
+          description: Omit or blank to keep the survivor's own.
+        mergedIdentificationNumber:
+          type: [string, "null"]
+        mergedManufacturerId:
+          type: [string, "null"]
+        selectedImagePuzzleId:
+          type: [string, "null"]
+          description: Take the cover image from this puzzle.
+        decisionConfidence:
+          type: [string, "null"]
+          enum: [high, medium, low, null]
+          description: Stored on the audit row so weakly-evidenced merges can be re-examined first.
+        decisionNote:
+          type: [string, "null"]
+          description: Why. Stored on the audit row; never shown to players.
+
+    PuzzleMergeRejection:
+      type: object
+      additionalProperties: false
+      required: [rejectionReason]
+      properties:
+        rejectionReason:
+          type: string
+          minLength: 1
+          description: Shown to the player who reported the duplicate, as a notification.
 
     Error:
       type: object
@@ -145,5 +378,11 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    InvalidRequest:
+      description: Malformed JSON, a missing or invalid field, or no reviewer configured
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     NotFound:
-      description: Unknown feature request ID
+      description: Unknown feature request or merge request ID

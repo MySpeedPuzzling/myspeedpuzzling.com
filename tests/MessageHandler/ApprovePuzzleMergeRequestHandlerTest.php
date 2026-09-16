@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CollectionItem;
 use SpeedPuzzling\Web\Entity\LentPuzzle;
+use SpeedPuzzling\Web\Entity\PuzzleMergeAudit;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Entity\SoldSwappedItem;
@@ -22,6 +23,8 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\MergeDecisionConfidence;
+use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -375,5 +378,164 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
             ->findBy(['puzzle' => $survivorPuzzle]);
         // Original survivor had 0 solving times, duplicate had 2 (TIME_43, TIME_44)
         self::assertCount(2, $survivorSolvingTimes, 'All solving times should be migrated (no deduplication for solving times)');
+    }
+
+    public function testApprovedMergeIsRecordedInAuditTrailWithBeforeAndAfterSnapshots(): void
+    {
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $duplicatePuzzle->name = 'Doomed Duplicate';
+        $duplicatePuzzle->updateProductIdentifiers(ean: '1111111111111', identificationNumber: 'DUP-001');
+        $this->entityManager->flush();
+
+        $migratedSolvingTimeIds = array_map(
+            static fn(PuzzleSolvingTime $time): string => $time->id->toString(),
+            $this->entityManager->getRepository(PuzzleSolvingTime::class)->findBy(['puzzle' => $duplicatePuzzle]),
+        );
+        self::assertNotEmpty($migratedSolvingTimeIds, 'Fixture should give the duplicate puzzle some solving times to migrate');
+
+        $mergeRequestId = $this->submitMergeRequest();
+
+        $this->messageBus->dispatch(
+            new ApprovePuzzleMergeRequest(
+                mergeRequestId: $mergeRequestId,
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+                mergedName: 'Survivor Name',
+                mergedEan: null,
+                mergedIdentificationNumber: null,
+                mergedPiecesCount: 500,
+                mergedManufacturerId: null,
+                selectedImagePuzzleId: null,
+                decisionSource: MergeDecisionSource::InternalApi,
+                decisionConfidence: MergeDecisionConfidence::Medium,
+                decisionNote: 'Same artwork, manufacturer recorded under two names.',
+            ),
+        );
+
+        $audit = $this->entityManager->getRepository(PuzzleMergeAudit::class)
+            ->findOneBy(['mergeRequestId' => $mergeRequestId]);
+
+        self::assertNotNull($audit, 'Approving a merge must leave an audit record');
+        self::assertSame(PuzzleFixture::PUZZLE_500_04, $audit->survivorPuzzleId->toString());
+        self::assertSame(MergeDecisionSource::InternalApi, $audit->decisionSource);
+        self::assertSame(MergeDecisionConfidence::Medium, $audit->decisionConfidence);
+        self::assertSame('Same artwork, manufacturer recorded under two names.', $audit->decisionNote);
+        self::assertNotNull($audit->performedBy);
+        self::assertSame(PlayerFixture::PLAYER_ADMIN, $audit->performedBy->id->toString());
+
+        // The deleted puzzle survives only here - its full row must be recoverable
+        $mergedSnapshots = $audit->snapshotBefore['mergedPuzzles'];
+        self::assertIsArray($mergedSnapshots);
+        self::assertCount(1, $mergedSnapshots);
+
+        $deletedPuzzleSnapshot = $mergedSnapshots[0];
+        self::assertIsArray($deletedPuzzleSnapshot);
+        self::assertSame(PuzzleFixture::PUZZLE_500_05, $deletedPuzzleSnapshot['id']);
+        self::assertSame('Doomed Duplicate', $deletedPuzzleSnapshot['name']);
+        self::assertSame('1111111111111', $deletedPuzzleSnapshot['ean']);
+        self::assertSame('DUP-001', $deletedPuzzleSnapshot['identificationNumber']);
+
+        // And what moved, so the migration can be unpicked row by row
+        $migrated = $audit->snapshotBefore['migrated'];
+        self::assertIsArray($migrated);
+        self::assertEqualsCanonicalizing($migratedSolvingTimeIds, $migrated['solvingTimes']);
+
+        $survivorAfter = $audit->snapshotAfter['survivorPuzzle'];
+        self::assertIsArray($survivorAfter);
+        self::assertSame('Survivor Name', $survivorAfter['name']);
+    }
+
+    public function testMergeCarriesOverDetailsOnlyTheDeletedPuzzleHad(): void
+    {
+        // The survivor is the bare record; everything descriptive sits on the duplicate
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        $survivorPuzzle->updateProductIdentifiers(ean: null, identificationNumber: null);
+        $survivorPuzzle->alternativeName = null;
+        $survivorPuzzle->image = null;
+
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $duplicatePuzzle->updateProductIdentifiers(ean: '5900511374414', identificationNumber: '37441');
+        $duplicatePuzzle->alternativeName = 'Americké koblihy';
+        $duplicatePuzzle->image = 'puzzles/duplicate-cover.jpg';
+        $duplicatePuzzle->imageRatio = 1.4;
+        $this->entityManager->flush();
+
+        $mergeRequestId = $this->submitMergeRequest();
+
+        // Reviewer supplies no identifiers at all - the merge must not drop them
+        $this->messageBus->dispatch(
+            new ApprovePuzzleMergeRequest(
+                mergeRequestId: $mergeRequestId,
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+                mergedName: 'Survivor Name',
+                mergedEan: null,
+                mergedIdentificationNumber: null,
+                mergedPiecesCount: 500,
+                mergedManufacturerId: null,
+                selectedImagePuzzleId: null,
+            ),
+        );
+
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        self::assertSame('5900511374414', $survivorPuzzle->ean, 'EAN known only to the deleted puzzle must be kept');
+        self::assertSame('37441', $survivorPuzzle->identificationNumber);
+        self::assertSame('Americké koblihy', $survivorPuzzle->alternativeName);
+        self::assertSame('puzzles/duplicate-cover.jpg', $survivorPuzzle->image);
+        self::assertSame(1.4, $survivorPuzzle->imageRatio);
+    }
+
+    public function testMergeNeverOverwritesDetailsTheSurvivorAlreadyHas(): void
+    {
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        $survivorPuzzle->updateProductIdentifiers(ean: '1234567890123', identificationNumber: 'KEEP-ME');
+        $survivorPuzzle->alternativeName = 'Survivor Alternative';
+        $survivorPuzzle->image = 'puzzles/survivor-cover.jpg';
+
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $duplicatePuzzle->updateProductIdentifiers(ean: '9999999999999', identificationNumber: 'DISCARD-ME');
+        $duplicatePuzzle->alternativeName = 'Duplicate Alternative';
+        $duplicatePuzzle->image = 'puzzles/duplicate-cover.jpg';
+        $this->entityManager->flush();
+
+        $mergeRequestId = $this->submitMergeRequest();
+
+        $this->messageBus->dispatch(
+            new ApprovePuzzleMergeRequest(
+                mergeRequestId: $mergeRequestId,
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+                mergedName: 'Survivor Name',
+                mergedEan: null,
+                mergedIdentificationNumber: null,
+                mergedPiecesCount: 500,
+                mergedManufacturerId: null,
+                selectedImagePuzzleId: null,
+            ),
+        );
+
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        self::assertSame('1234567890123', $survivorPuzzle->ean);
+        self::assertSame('KEEP-ME', $survivorPuzzle->identificationNumber);
+        self::assertSame('Survivor Alternative', $survivorPuzzle->alternativeName);
+        self::assertSame('puzzles/survivor-cover.jpg', $survivorPuzzle->image);
+    }
+
+    private function submitMergeRequest(): string
+    {
+        $mergeRequestId = Uuid::uuid7()->toString();
+
+        $this->messageBus->dispatch(
+            new SubmitPuzzleMergeRequest(
+                mergeRequestId: $mergeRequestId,
+                sourcePuzzleId: PuzzleFixture::PUZZLE_500_04,
+                reporterId: PlayerFixture::PLAYER_REGULAR,
+                duplicatePuzzleIds: [
+                    PuzzleFixture::PUZZLE_500_05,
+                ],
+            ),
+        );
+
+        return $mergeRequestId;
     }
 }

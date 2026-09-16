@@ -9,8 +9,10 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CollectionItem;
 use SpeedPuzzling\Web\Entity\LentPuzzle;
+use SpeedPuzzling\Web\Entity\LentPuzzleTransfer;
 use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Entity\PuzzleMergeAudit;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Entity\SoldSwappedItem;
@@ -24,6 +26,7 @@ use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\PuzzleMergeSnapshotBuilder;
 use SpeedPuzzling\Web\Value\NotificationType;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -39,6 +42,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
         private LoggerInterface $logger,
+        private PuzzleMergeSnapshotBuilder $snapshotBuilder,
     ) {
     }
 
@@ -73,6 +77,15 @@ readonly final class ApprovePuzzleMergeRequestHandler
             }
         }
 
+        // Snapshot everything the merge is about to rewrite or destroy, before it happens
+        $snapshotBefore = [
+            'survivorPuzzle' => $this->snapshotBuilder->puzzleToArray($survivorPuzzle),
+            'mergedPuzzles' => array_map(
+                fn(Puzzle $puzzle): array => $this->snapshotBuilder->puzzleToArray($puzzle),
+                $puzzlesToMerge,
+            ),
+        ];
+
         // Update survivor puzzle with merged data
         $survivorPuzzle->name = $message->mergedName;
         $survivorPuzzle->piecesCount = $message->mergedPiecesCount;
@@ -103,8 +116,13 @@ readonly final class ApprovePuzzleMergeRequestHandler
             }
         }
 
+        // A merged puzzle is deleted moments from now, so any product detail only it
+        // carried would be gone for good. Carry those over wherever the survivor has
+        // nothing of its own - this never overwrites a value the reviewer chose.
+        $this->preserveDetailsFromMergedPuzzles($puzzlesToMerge, $survivorPuzzle);
+
         // Migrate all puzzle-related records from merged puzzles to survivor
-        $this->migrateRecordsToSurvivor($puzzlesToMerge, $survivorPuzzle);
+        $migrationInventory = $this->migrateRecordsToSurvivor($puzzlesToMerge, $survivorPuzzle);
 
         // Mark merge request as approved (this records PuzzleMergeApproved event for puzzle deletion)
         $mergeRequest->approve(
@@ -140,6 +158,22 @@ readonly final class ApprovePuzzleMergeRequestHandler
             $this->entityManager->persist($notification);
         }
 
+        // Forensic record: what the puzzles looked like before, what moved where, and
+        // what the survivor became. The merged puzzle rows are deleted right after this,
+        // so this snapshot is the only remaining trace of them.
+        $this->entityManager->persist(new PuzzleMergeAudit(
+            id: Uuid::uuid7(),
+            mergeRequestId: $mergeRequest->id,
+            survivorPuzzleId: $survivorPuzzle->id,
+            performedAt: $this->clock->now(),
+            performedBy: $reviewer,
+            decisionSource: $message->decisionSource,
+            snapshotBefore: $snapshotBefore + ['migrated' => $migrationInventory],
+            snapshotAfter: ['survivorPuzzle' => $this->snapshotBuilder->puzzleToArray($survivorPuzzle)],
+            decisionNote: $message->decisionNote,
+            decisionConfidence: $message->decisionConfidence,
+        ));
+
         // Puzzle deletions are handled by PuzzleMergeApproved event (recorded in approve() method)
         // This ensures migrations are flushed first, then deletions happen in a separate transaction
 
@@ -155,15 +189,67 @@ readonly final class ApprovePuzzleMergeRequestHandler
     }
 
     /**
+     * Fills gaps on the survivor from the puzzles about to be deleted.
+     *
+     * Only ever writes where the survivor holds nothing, so an explicit choice made
+     * by the reviewer always wins. Without this, merging a bare duplicate into a
+     * richer record silently discards whichever EAN, catalogue number, localised
+     * name or cover image only the duplicate happened to have.
+     *
      * @param array<Puzzle> $puzzlesToMerge
      */
-    private function migrateRecordsToSurvivor(array $puzzlesToMerge, Puzzle $survivorPuzzle): void
+    private function preserveDetailsFromMergedPuzzles(array $puzzlesToMerge, Puzzle $survivorPuzzle): void
     {
+        foreach ($puzzlesToMerge as $puzzleToMerge) {
+            $survivorPuzzle->updateProductIdentifiers(
+                ean: self::isBlank($survivorPuzzle->ean) ? $puzzleToMerge->ean : $survivorPuzzle->ean,
+                identificationNumber: self::isBlank($survivorPuzzle->identificationNumber)
+                    ? $puzzleToMerge->identificationNumber
+                    : $survivorPuzzle->identificationNumber,
+            );
+
+            if (self::isBlank($survivorPuzzle->alternativeName) && self::isBlank($puzzleToMerge->alternativeName) === false) {
+                $survivorPuzzle->alternativeName = $puzzleToMerge->alternativeName;
+            }
+
+            if ($survivorPuzzle->image === null && $puzzleToMerge->image !== null) {
+                $survivorPuzzle->image = $puzzleToMerge->image;
+                $survivorPuzzle->imageRatio = $puzzleToMerge->imageRatio;
+            }
+
+            if ($survivorPuzzle->manufacturer === null && $puzzleToMerge->manufacturer !== null) {
+                $survivorPuzzle->manufacturer = $puzzleToMerge->manufacturer;
+            }
+        }
+    }
+
+    private static function isBlank(null|string $value): bool
+    {
+        return $value === null || trim($value) === '';
+    }
+
+    /**
+     * @param array<Puzzle> $puzzlesToMerge
+     * @return array<string, mixed>
+     */
+    private function migrateRecordsToSurvivor(array $puzzlesToMerge, Puzzle $survivorPuzzle): array
+    {
+        $inventory = [
+            'solvingTimes' => [],
+            'collectionItems' => ['moved' => [], 'droppedAsDuplicate' => []],
+            'wishListItems' => ['moved' => [], 'droppedAsDuplicate' => []],
+            'sellSwapListItems' => ['moved' => [], 'droppedAsDuplicate' => []],
+            'lentPuzzles' => ['moved' => [], 'droppedAsDuplicate' => []],
+            'lentPuzzleTransfers' => [],
+            'soldSwappedItems' => [],
+        ];
+
         foreach ($puzzlesToMerge as $puzzleToMerge) {
             // Migrate solving times (records PuzzleSolvingTimeModified event which triggers statistics recalculation)
             $solvingTimes = $this->entityManager->getRepository(PuzzleSolvingTime::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($solvingTimes as $solvingTime) {
                 $solvingTime->migrateToPuzzle($survivorPuzzle);
+                $inventory['solvingTimes'][] = $solvingTime->id->toString();
             }
 
             // Migrate collection items (unique on collection_id + player_id + puzzle_id)
@@ -177,8 +263,10 @@ readonly final class ApprovePuzzleMergeRequestHandler
                 ]);
                 if ($existingItem !== null) {
                     $this->entityManager->remove($item);
+                    $inventory['collectionItems']['droppedAsDuplicate'][] = $item->id->toString();
                 } else {
                     $item->puzzle = $survivorPuzzle;
+                    $inventory['collectionItems']['moved'][] = $item->id->toString();
                 }
             }
 
@@ -192,8 +280,10 @@ readonly final class ApprovePuzzleMergeRequestHandler
                 ]);
                 if ($existingItem !== null) {
                     $this->entityManager->remove($item);
+                    $inventory['wishListItems']['droppedAsDuplicate'][] = $item->id->toString();
                 } else {
                     $item->puzzle = $survivorPuzzle;
+                    $inventory['wishListItems']['moved'][] = $item->id->toString();
                 }
             }
 
@@ -207,8 +297,10 @@ readonly final class ApprovePuzzleMergeRequestHandler
                 ]);
                 if ($existingItem !== null) {
                     $this->entityManager->remove($item);
+                    $inventory['sellSwapListItems']['droppedAsDuplicate'][] = $item->id->toString();
                 } else {
                     $item->puzzle = $survivorPuzzle;
+                    $inventory['sellSwapListItems']['moved'][] = $item->id->toString();
                 }
             }
 
@@ -222,9 +314,17 @@ readonly final class ApprovePuzzleMergeRequestHandler
                 ]);
                 if ($existingItem !== null) {
                     $this->entityManager->remove($item);
+                    $inventory['lentPuzzles']['droppedAsDuplicate'][] = $item->id->toString();
                 } else {
                     $item->puzzle = $survivorPuzzle;
+                    $inventory['lentPuzzles']['moved'][] = $item->id->toString();
                 }
+            }
+
+            // Record which transfers move before the bulk update rewrites them - afterwards
+            // they can no longer be told apart from the survivor's own transfers.
+            foreach ($this->entityManager->getRepository(LentPuzzleTransfer::class)->findBy(['puzzle' => $puzzleToMerge]) as $transfer) {
+                $inventory['lentPuzzleTransfers'][] = $transfer->id->toString();
             }
 
             // Migrate lent puzzle transfer references to survivor puzzle
@@ -236,7 +336,10 @@ readonly final class ApprovePuzzleMergeRequestHandler
             $soldSwappedItems = $this->entityManager->getRepository(SoldSwappedItem::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($soldSwappedItems as $item) {
                 $item->puzzle = $survivorPuzzle;
+                $inventory['soldSwappedItems'][] = $item->id->toString();
             }
         }
+
+        return $inventory;
     }
 }

@@ -97,12 +97,12 @@ final class EventDetailControllerTest extends WebTestCase
         $this->assertSelectorExists(sprintf('#puzzle-list-item-%s use[href$="#diff-hard"]', PuzzleFixture::PUZZLE_500_01));
     }
 
-    public function testEventPuzzlesShowTheirRoundInScheduleOrder(): void
+    public function testEventPuzzlesShowTheirRoundLatestFirst(): void
     {
         $browser = self::createClient();
 
         // Final Round (+32 days) puzzle is tagged first, Qualification Round (+30 days) puzzle second -
-        // the page must still list the qualification puzzle first
+        // the page lists the latest round first, whatever the tagging order
         $connection = self::getContainer()->get(Connection::class);
         foreach ([PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_500_01] as $puzzleId) {
             $connection->executeStatement(
@@ -123,8 +123,8 @@ final class EventDetailControllerTest extends WebTestCase
             static fn ($item): string => (string) $item->attr('id'),
         );
         self::assertSame([
-            'puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01,
             'puzzle-list-item-' . PuzzleFixture::PUZZLE_1000_01,
+            'puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01,
         ], $order);
     }
 

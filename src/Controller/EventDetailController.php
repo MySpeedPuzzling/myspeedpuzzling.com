@@ -87,21 +87,24 @@ final class EventDetailController extends AbstractController
             }
         }
 
-        // With rounds, the schedule is the natural order (rounds come sorted by start, so [0] is the
-        // earliest); puzzles outside any round follow in their original order - usort is stable
-        $firstRoundStart = static fn (PuzzleOverview $puzzle): null|DateTimeImmutable => isset($puzzleRounds[$puzzle->puzzleId])
-            ? $puzzleRounds[$puzzle->puzzleId][0]->startsAt
-            : null;
+        // Latest round first - during a multi-day event the round just played is what visitors look
+        // for. Rounds come sorted by start, so the last one is a puzzle's most recent use; puzzles
+        // outside any round follow in their original order - usort is stable
+        $latestRoundStart = static function (PuzzleOverview $puzzle) use ($puzzleRounds): null|DateTimeImmutable {
+            $rounds = $puzzleRounds[$puzzle->puzzleId] ?? [];
 
-        usort($puzzles, static function (PuzzleOverview $a, PuzzleOverview $b) use ($firstRoundStart): int {
-            $aStartsAt = $firstRoundStart($a);
-            $bStartsAt = $firstRoundStart($b);
+            return $rounds === [] ? null : $rounds[count($rounds) - 1]->startsAt;
+        };
+
+        usort($puzzles, static function (PuzzleOverview $a, PuzzleOverview $b) use ($latestRoundStart): int {
+            $aStartsAt = $latestRoundStart($a);
+            $bStartsAt = $latestRoundStart($b);
 
             if ($aStartsAt === null || $bStartsAt === null) {
                 return ($aStartsAt === null) <=> ($bStartsAt === null);
             }
 
-            return $aStartsAt <=> $bStartsAt;
+            return $bStartsAt <=> $aStartsAt;
         });
 
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

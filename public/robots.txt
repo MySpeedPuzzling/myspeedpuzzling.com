@@ -10,7 +10,7 @@ Disallow: /admin
 Disallow: /internal-api
 
 # Client-repair utilities, not content: /-/reset clears a visitor's cached
-# assets and /-/asset-load-failure only answers POST.
+# assets, /-/asset-load-failure and /-/stale-document only answer POST.
 Disallow: /-/
 
 Disallow: /_components

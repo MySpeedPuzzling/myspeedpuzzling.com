@@ -21,9 +21,10 @@ use PHPUnit\Framework\TestCase;
  * Firefox users ever saw it. Commit 98532b87 ("Service worker - disable
  * caching") believed it had already fixed this and had only edited the comment.
  *
- * There is no JS test runner in this project, so these assertions are made
- * against the source text. They are deliberately about the two design decisions
- * that matter and not about formatting.
+ * These assertions are made against the source text and are deliberately about
+ * the two design decisions behind the fix, not about formatting. The rule itself
+ * - a document is never answered from a cache - is checked by actually running
+ * the worker in ServiceWorkerBehaviourTest.
  */
 final class ServiceWorkerRoutingTest extends TestCase
 {

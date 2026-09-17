@@ -77,11 +77,11 @@ return App::config([
             'stateless' => [
                 // /homepage-stats: public JSON for the homepage live counters - identical
                 // for every visitor, must stay session/cookie-free to be cacheable end to end.
-                // /-/asset-load-failure: sendBeacon telemetry from broken clients - beacons
-                // carry no cookies-worth of context and must never start a session.
+                // /-/asset-load-failure, /-/stale-document: sendBeacon telemetry from broken
+                // clients - beacons carry no cookies-worth of context and must never start a session.
                 // /api/v0/wjpf-pairing: server-to-server call from worldjigsawpuzzle.org,
                 // authenticated by its own static token in the request - no user, no session.
-                'pattern' => '^(/-/health-check|/-/asset-load-failure$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$)',
+                'pattern' => '^(/-/health-check|/-/asset-load-failure$|/-/stale-document$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$)',
                 'stateless' => true,
                 'security' => false,
             ],

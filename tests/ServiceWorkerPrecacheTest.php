@@ -21,10 +21,46 @@ use PHPUnit\Framework\TestCase;
  * either font (?ufvuz0 is icomoon's own cache-buster and does change) fails here
  * rather than silently turning the optimisation off again.
  */
-final class ServiceWorkerIconFontPrecacheTest extends TestCase
+final class ServiceWorkerPrecacheTest extends TestCase
 {
     private const string SERVICE_WORKER = __DIR__ . '/../public/service-worker.js';
     private const string MANIFEST = __DIR__ . '/../public/build/manifest.json';
+
+    /**
+     * install() opens with an unguarded `await cache.addAll([OFFLINE_URL,
+     * ...FONT_URLS])`, outside every try/catch, and addAll is atomic: one
+     * request that fails rejects the lot. That rejection reaches waitUntil, so
+     * install fails and the worker never activates — no offline page, no
+     * caching, and no activate handler to purge stale caches. Renaming or
+     * moving any one of these files would do it, silently and site-wide.
+     */
+    public function testUnconditionallyPrecachedFilesExist(): void
+    {
+        $serviceWorker = (string) file_get_contents(self::SERVICE_WORKER);
+
+        preg_match_all("/^const OFFLINE_URL = '([^']+)';/m", $serviceWorker, $offline);
+        preg_match_all("/^const FONT_URLS = \[(.*?)\];/ms", $serviceWorker, $fontBlock);
+
+        $paths = $offline[1];
+
+        if (isset($fontBlock[1][0])) {
+            preg_match_all("/'([^']+)'/", $fontBlock[1][0], $fonts);
+            $paths = [...$paths, ...$fonts[1]];
+        }
+
+        self::assertNotEmpty($paths, 'Found neither OFFLINE_URL nor FONT_URLS — has the service worker been restructured?');
+
+        foreach ($paths as $path) {
+            self::assertFileExists(
+                __DIR__ . '/../public' . $path,
+                sprintf(
+                    'The service worker precaches "%s" in an unguarded addAll. If it does not exist, '
+                    . 'install() rejects and the service worker never activates at all.',
+                    $path,
+                ),
+            );
+        }
+    }
 
     public function testEveryIconFontPrefixResolvesToABuiltFile(): void
     {

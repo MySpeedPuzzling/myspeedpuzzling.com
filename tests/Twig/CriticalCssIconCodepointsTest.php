@@ -23,6 +23,50 @@ final class CriticalCssIconCodepointsTest extends TestCase
     private const string BASE_TEMPLATE = __DIR__ . '/../../templates/base.html.twig';
     private const string CARTZILLA_SCSS = __DIR__ . '/../../assets/styles/components/_icons.scss';
     private const string BOOTSTRAP_ICONS_CSS = __DIR__ . '/../../node_modules/bootstrap-icons/font/bootstrap-icons.css';
+    private const string MANIFEST = __DIR__ . '/../../public/build/manifest.json';
+
+    /**
+     * The same inline block hardcodes the manifest keys of both icon fonts,
+     * query string and all: asset('build/fonts/cartzilla-icons.woff?ufvuz0').
+     * That ?ufvuz0 is icomoon's cache-buster, it lives in _icons.scss and it
+     * changes every time the font is regenerated.
+     *
+     * assets.strict_mode is off, so a key that no longer exists does not throw —
+     * asset() hands back the unversioned path, the page still returns 200, the
+     * font 404s and every .ci-* icon in the header quietly disappears. Verified
+     * by pointing the key at a regenerated-looking suffix: the page rendered
+     * url(/build/fonts/cartzilla-icons.woff?REGENERATED) and stayed HTTP 200.
+     */
+    public function testInlinedFontKeysStillResolveInTheAssetManifest(): void
+    {
+        if (!is_file(self::MANIFEST)) {
+            self::markTestSkipped('Assets are not built (public/build/manifest.json missing).');
+        }
+
+        /** @var array<string, string> $manifest */
+        $manifest = (array) json_decode((string) file_get_contents(self::MANIFEST), associative: true);
+
+        preg_match_all(
+            "/asset\('(build\/fonts\/[^']+)'\)/",
+            (string) file_get_contents(self::BASE_TEMPLATE),
+            $matches,
+        );
+
+        self::assertNotEmpty($matches[1], 'No build/fonts asset() keys found in base.html.twig — has the block moved?');
+
+        foreach ($matches[1] as $key) {
+            self::assertArrayHasKey(
+                $key,
+                $manifest,
+                sprintf(
+                    'base.html.twig asks for "%s", which is not in manifest.json. asset() will return the '
+                    . 'unversioned path, the font will 404 and every icon using it will vanish silently. '
+                    . 'The query string comes from _icons.scss and changes when the font is regenerated.',
+                    $key,
+                ),
+            );
+        }
+    }
 
     public function testInlinedCartzillaCodepointsMatchTheIconFont(): void
     {

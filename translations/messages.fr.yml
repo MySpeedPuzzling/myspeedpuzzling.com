@@ -108,6 +108,7 @@
 "new_badge": "Nouveau"
 "secret_puzzler_name": "Puzzleur masqué"
 "right_now": "En ce moment"
+"live_event_strip": "En direct : %event% – Ajouter & voir les résultats"
 "badge":
   "relax": "Relax"
   "suspicious": "Vérification requise"

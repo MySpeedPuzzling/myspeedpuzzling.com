@@ -8,10 +8,12 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
+use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,6 +29,7 @@ final class EditionDetailController extends AbstractController
         readonly private GetCompetitionSeries $getCompetitionSeries,
         readonly private GetEditionRounds $getEditionRounds,
         readonly private GetPuzzleOverview $getPuzzleOverview,
+        readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
@@ -79,6 +82,10 @@ final class EditionDetailController extends AbstractController
             'event' => $competitionEvent,
             'rounds' => $rounds,
             'puzzles' => $puzzles,
+            'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList(array_values(array_map(
+                static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId,
+                $puzzles,
+            ))),
             'puzzle_statuses' => $puzzleStatuses,
             'can_add_time' => $canAddTime,
         ]);

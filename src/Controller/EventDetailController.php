@@ -8,10 +8,12 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
+use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
+use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,6 +27,7 @@ final class EventDetailController extends AbstractController
         readonly private GetCompetitionEvents $getCompetitionEvents,
         readonly private GetCompetitionParticipants $getCompetitionParticipants,
         readonly private GetPuzzleOverview $getPuzzleOverview,
+        readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
@@ -82,6 +85,10 @@ final class EventDetailController extends AbstractController
         return $this->render('event_detail.html.twig', [
             'event' => $competitionEvent,
             'puzzles' => $puzzles,
+            'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList(array_values(array_map(
+                static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId,
+                $puzzles,
+            ))),
             'puzzle_statuses' => $puzzleStatuses,
             'is_going' => count($playerConnections) > 0,
             'can_add_time' => $canAddTime,

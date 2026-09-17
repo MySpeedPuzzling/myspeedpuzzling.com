@@ -1,0 +1,30 @@
+{% if this.shouldShow %}
+    <span id="{{ this.elementId }}" {{ attributes }}>
+        {% if this.hasActiveMembership %}
+            {# Member: collection picker in the shared modal #}
+            <a href="{{ path('collection_add', {puzzleId: this.puzzleId, context: 'recap'}) }}"
+               rel="nofollow"
+               class="{{ this.buttonClass }}"
+               data-turbo="true"
+               data-turbo-frame="modal-frame">
+                <i class="bi bi-bookmark-plus"></i> {{ 'added_time_recap.add_to_collection'|trans }}
+            </a>
+        {% else %}
+            {# Non-member: only the system collection exists, so one click is enough #}
+            {% set form = this.formView %}
+            <form action="{{ path('collection_add', {puzzleId: this.puzzleId}) }}"
+                  method="post"
+                  data-turbo="true"
+                  class="d-inline">
+                <input type="hidden" name="context" value="recap">
+                <input type="hidden" name="{{ form.collection.vars.full_name }}" value="{{ this.systemCollectionId }}">
+                <input type="hidden" name="{{ form.collectionVisibility.vars.full_name }}" value="{{ form.collectionVisibility.vars.value }}">
+                <button type="submit"
+                        class="{{ this.buttonClass }}"
+                        data-loading-text="{{ 'forms.saving'|trans }}">
+                    <i class="bi bi-bookmark-plus"></i> {{ 'added_time_recap.add_to_collection'|trans }}
+                </button>
+            </form>
+        {% endif %}
+    </span>
+{% endif %}

@@ -464,6 +464,36 @@ td.rank {
     }
 }
 
+// Action row of the recap pages shown after adding a time
+.recap-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+
+    // Three actions have to share one line on a 360px phone
+    @media (max-width: 420px) {
+        gap: .25rem;
+
+        .btn {
+            --#{$prefix}btn-padding-x: .375rem;
+            --#{$prefix}btn-padding-y: .375rem;
+            --#{$prefix}btn-font-size: .75rem;
+        }
+
+        // The theme pads the split toggle directly, not through the button variables
+        .btn + .dropdown-toggle-split {
+            padding-right: .375rem;
+            padding-left: .375rem;
+        }
+
+        // Decorative only - the bookmark icon stays, it is what identifies the collection action
+        .ci-add {
+            display: none;
+        }
+    }
+}
+
 .time-result-recap {
     position: relative;
 

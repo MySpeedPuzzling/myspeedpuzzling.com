@@ -1199,6 +1199,8 @@ added_time_recap:
     add_time: "Add new time"
     the_same_puzzle: "For the same puzzle"
     puzzle_detail: "All results"
+    add_to_collection: "Add to my collection"
+    in_collection: "In your collection"
     meta:
         title: "Time Added"
     performance:

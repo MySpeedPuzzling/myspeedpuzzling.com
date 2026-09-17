@@ -995,6 +995,8 @@
   "add_time": "Přidat další čas"
   "the_same_puzzle": "Ke stejným puzzlím"
   "puzzle_detail": "Výsledky"
+  "add_to_collection": "Přidat do mé kolekce"
+  "in_collection": "Ve vaší kolekci"
   "performance":
     "your_time": "Váš čas"
     "ppm": "%ppm% dílků za minutu"

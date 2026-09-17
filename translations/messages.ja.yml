@@ -1074,6 +1074,8 @@
   "add_time": "新しいタイムを追加"
   "the_same_puzzle": "同じパズルに"
   "puzzle_detail": "結果"
+  "add_to_collection": "マイコレクションに追加"
+  "in_collection": "コレクションに追加済み"
   "meta":
     "title": "タイム追加完了"
   "performance":

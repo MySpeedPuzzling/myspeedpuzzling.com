@@ -1,0 +1,11 @@
+{#
+    Stream for a collection action that did not go through: closes the modal and says why.
+    The page underneath stays as it was, so the visitor can simply try again.
+
+    Parameters:
+    - message: Toast message
+#}
+
+{{ include('_modal_close_stream.html.twig') }}
+
+{{ include('_toast_stream.html.twig', {message: message, type: 'warning'}) }}

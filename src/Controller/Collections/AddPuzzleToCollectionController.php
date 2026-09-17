@@ -118,9 +118,7 @@ final class AddPuzzleToCollectionController extends AbstractController
             if ($collectionId !== null && Uuid::isValid($collectionId) === false) {
                 // Check if user has active membership to create collections
                 if ($hasActiveMembership === false) {
-                    $this->addFlash('warning', $this->translator->trans('collections.membership_required.toast'));
-
-                    return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+                    return $this->notAdded($request, $puzzleId, $this->translator->trans('collections.membership_required.toast'));
                 }
 
                 // Generate new UUID for the collection
@@ -160,9 +158,7 @@ final class AddPuzzleToCollectionController extends AbstractController
             } catch (CollectionNotFound) {
                 // The chosen collection was deleted while this form was open
                 // (another tab, another device).
-                $this->addFlash('warning', $this->translator->trans('collections.flash.collection_unavailable'));
-
-                return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+                return $this->notAdded($request, $puzzleId, $this->translator->trans('collections.flash.collection_unavailable'));
             }
 
             // Check if this is a Turbo request
@@ -215,6 +211,25 @@ final class AddPuzzleToCollectionController extends AbstractController
 
         // Non-Turbo request: return full page for progressive enhancement
         return $this->render('collections/add.html.twig', $templateParams);
+    }
+
+    /**
+     * Nothing was added: say so where the visitor is. A redirect answered into the modal frame
+     * would only close the modal silently, so Turbo requests get a warning toast instead.
+     */
+    private function notAdded(Request $request, string $puzzleId, string $message): Response
+    {
+        if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('collections/_not_added_stream.html.twig', [
+                'message' => $message,
+            ]);
+        }
+
+        $this->addFlash('warning', $message);
+
+        return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
     }
 
     /**

@@ -6,7 +6,7 @@
     - puzzle_id: The puzzle ID
     - puzzle_statuses: UserPuzzleStatuses object
     - message: Toast message
-    - context: 'detail' (puzzle detail page) or 'list' (wishlist page)
+    - context: 'detail' (puzzle detail page), 'list' (wishlist page) or 'recap' (page shown after adding a time)
 
     For list context (wishlist), additional parameters:
     - remaining_count: Number of remaining items in wishlist
@@ -37,6 +37,13 @@
         </turbo-stream>
         {% endif %}
     {% endif %}
+{% elseif context|default('detail') == 'recap' %}
+    {# Recap page after adding a time: the CTA becomes a quiet confirmation #}
+    <turbo-stream action="update" target="recap-collection-cta">
+        <template>
+            <span class="small text-success text-nowrap"><i class="bi bi-bookmark-check-fill"></i> {{ 'added_time_recap.in_collection'|trans }}</span>
+        </template>
+    </turbo-stream>
 {% else %}
     {# Puzzle detail page: update badges and dropdown #}
     <turbo-stream action="update" target="puzzle-badges-{{ puzzle_id }}">

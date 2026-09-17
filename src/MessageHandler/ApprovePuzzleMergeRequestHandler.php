@@ -8,6 +8,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CollectionItem;
+use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Entity\Conversation;
 use SpeedPuzzling\Web\Entity\LentPuzzle;
 use SpeedPuzzling\Web\Entity\LentPuzzleTransfer;
 use SpeedPuzzling\Web\Entity\Notification;
@@ -16,6 +18,8 @@ use SpeedPuzzling\Web\Entity\PuzzleMergeAudit;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Entity\SoldSwappedItem;
+use SpeedPuzzling\Web\Entity\Stopwatch;
+use SpeedPuzzling\Web\Entity\Tag;
 use SpeedPuzzling\Web\Entity\WishListItem;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -242,6 +246,10 @@ readonly final class ApprovePuzzleMergeRequestHandler
             'lentPuzzles' => ['moved' => [], 'droppedAsDuplicate' => []],
             'lentPuzzleTransfers' => [],
             'soldSwappedItems' => [],
+            'competitionRoundPuzzles' => ['moved' => [], 'droppedAsDuplicate' => []],
+            'conversations' => [],
+            'stopwatches' => [],
+            'tags' => [],
         ];
 
         foreach ($puzzlesToMerge as $puzzleToMerge) {
@@ -337,6 +345,58 @@ readonly final class ApprovePuzzleMergeRequestHandler
             foreach ($soldSwappedItems as $item) {
                 $item->puzzle = $survivorPuzzle;
                 $inventory['soldSwappedItems'][] = $item->id->toString();
+            }
+
+            // Competition rounds reference the puzzle with a blocking foreign key: leaving
+            // these behind aborts the whole merge when the puzzle is deleted. A round must
+            // not end up listing the survivor twice, so drop rather than move a row whose
+            // round already uses it.
+            $roundPuzzles = $this->entityManager->getRepository(CompetitionRoundPuzzle::class)->findBy(['puzzle' => $puzzleToMerge]);
+            foreach ($roundPuzzles as $roundPuzzle) {
+                $existing = $this->entityManager->getRepository(CompetitionRoundPuzzle::class)->findOneBy([
+                    'round' => $roundPuzzle->round,
+                    'puzzle' => $survivorPuzzle,
+                ]);
+
+                if ($existing !== null) {
+                    $this->entityManager->remove($roundPuzzle);
+                    $inventory['competitionRoundPuzzles']['droppedAsDuplicate'][] = $roundPuzzle->id->toString();
+                } else {
+                    $roundPuzzle->puzzle = $survivorPuzzle;
+                    $inventory['competitionRoundPuzzles']['moved'][] = $roundPuzzle->id->toString();
+                }
+            }
+
+            // Marketplace conversations are about a puzzle - also a blocking foreign key
+            $conversations = $this->entityManager->getRepository(Conversation::class)->findBy(['puzzle' => $puzzleToMerge]);
+            foreach ($conversations as $conversation) {
+                $conversation->puzzle = $survivorPuzzle;
+                $inventory['conversations'][] = $conversation->id->toString();
+            }
+
+            // Stopwatches cascade-delete with the puzzle: without this, merging silently
+            // throws away a timer somebody is running right now.
+            $stopwatches = $this->entityManager->getRepository(Stopwatch::class)->findBy(['puzzle' => $puzzleToMerge]);
+            foreach ($stopwatches as $stopwatch) {
+                $stopwatch->puzzle = $survivorPuzzle;
+                $inventory['stopwatches'][] = $stopwatch->id->toString();
+            }
+
+            // Tags also cascade-delete through the join table
+            $tags = $this->entityManager->getRepository(Tag::class)->createQueryBuilder('t')
+                ->join('t.puzzles', 'p')
+                ->where('p = :puzzle')
+                ->setParameter('puzzle', $puzzleToMerge)
+                ->getQuery()
+                ->getResult();
+
+            foreach ($tags as $tag) {
+                $tag->puzzles->removeElement($puzzleToMerge);
+
+                if ($tag->puzzles->contains($survivorPuzzle) === false) {
+                    $tag->puzzles->add($survivorPuzzle);
+                    $inventory['tags'][] = $tag->id->toString();
+                }
             }
         }
 

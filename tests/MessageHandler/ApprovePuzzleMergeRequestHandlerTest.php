@@ -7,6 +7,10 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CollectionItem;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Entity\Stopwatch;
+use SpeedPuzzling\Web\Entity\Tag;
 use SpeedPuzzling\Web\Entity\LentPuzzle;
 use SpeedPuzzling\Web\Entity\PuzzleMergeAudit;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
@@ -20,6 +24,7 @@ use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleStatisticsRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -537,5 +542,75 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         );
 
         return $mergeRequestId;
+    }
+
+    /**
+     * Regression: competition rounds, marketplace conversations, stopwatches and tags
+     * all point at the puzzle. The first three are blocking foreign keys - leaving any
+     * of them behind aborts the whole merge when the merged puzzle is deleted, which is
+     * exactly what happened in production. Stopwatches and tags cascade instead, which
+     * is worse: the merge succeeds and silently destroys them.
+     */
+    public function testMergeMovesCompetitionRoundsConversationsStopwatchesAndTags(): void
+    {
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $round = $this->entityManager->find(CompetitionRound::class, CompetitionRoundFixture::ROUND_CZECH_FINAL);
+        self::assertNotNull($round);
+
+        $roundPuzzle = new CompetitionRoundPuzzle(
+            id: Uuid::uuid7(),
+            round: $round,
+            puzzle: $duplicatePuzzle,
+        );
+        $this->entityManager->persist($roundPuzzle);
+
+        $stopwatch = $this->entityManager->getRepository(Stopwatch::class)->findOneBy([]);
+        self::assertNotNull($stopwatch, 'Fixture should provide a stopwatch to re-point');
+        $stopwatch->puzzle = $duplicatePuzzle;
+
+        $tag = new Tag(id: Uuid::uuid7(), name: 'merge-test-tag');
+        $tag->puzzles->add($duplicatePuzzle);
+        $this->entityManager->persist($tag);
+        $this->entityManager->flush();
+
+        $roundPuzzleId = $roundPuzzle->id->toString();
+        $stopwatchId = $stopwatch->id->toString();
+
+        $mergeRequestId = $this->submitMergeRequest();
+
+        $this->messageBus->dispatch(
+            new ApprovePuzzleMergeRequest(
+                mergeRequestId: $mergeRequestId,
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+                mergedName: 'Survivor Name',
+                mergedEan: null,
+                mergedIdentificationNumber: null,
+                mergedPiecesCount: 500,
+                mergedManufacturerId: null,
+                selectedImagePuzzleId: null,
+            ),
+        );
+
+        // The merge completed at all - before the fix this threw a foreign key violation
+        $this->entityManager->clear();
+
+        $movedRoundPuzzle = $this->entityManager->find(CompetitionRoundPuzzle::class, $roundPuzzleId);
+        self::assertNotNull($movedRoundPuzzle);
+        self::assertSame(PuzzleFixture::PUZZLE_500_04, $movedRoundPuzzle->puzzle->id->toString());
+
+        $movedStopwatch = $this->entityManager->find(Stopwatch::class, $stopwatchId);
+        self::assertNotNull($movedStopwatch, 'Stopwatch must survive the merge, not cascade away with the puzzle');
+        self::assertNotNull($movedStopwatch->puzzle);
+        self::assertSame(PuzzleFixture::PUZZLE_500_04, $movedStopwatch->puzzle->id->toString());
+
+        $movedTag = $this->entityManager->getRepository(Tag::class)->findOneBy(['name' => 'merge-test-tag']);
+        self::assertNotNull($movedTag, 'Tag must survive the merge');
+        $taggedIds = array_map(static fn($p): string => $p->id->toString(), $movedTag->puzzles->toArray());
+        self::assertContains(PuzzleFixture::PUZZLE_500_04, $taggedIds);
+
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        self::assertSame('Survivor Name', $survivorPuzzle->name);
     }
 }

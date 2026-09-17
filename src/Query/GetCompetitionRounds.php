@@ -51,12 +51,29 @@ SQL;
             $results[$row['id']] = new CompetitionRoundInfo(
                 id: $row['id'],
                 name: $row['name'],
-                textColor: $row['badge_text_color'] ?? self::TEXT_COLORS[$i],
-                color: $row['badge_background_color'] ?? self::COLORS[$i],
+                // Cycle the palette - a competition can have more rounds than it has colours
+                textColor: $row['badge_text_color'] ?? self::TEXT_COLORS[$i % count(self::TEXT_COLORS)],
+                color: $row['badge_background_color'] ?? self::COLORS[$i % count(self::COLORS)],
             );
         }
 
         return $results;
+    }
+
+    public function hasParticipantsAssignedToRounds(string $competitionId): bool
+    {
+        $query = <<<SQL
+SELECT EXISTS (
+    SELECT 1
+    FROM competition_participant_round
+    INNER JOIN competition_round ON competition_participant_round.round_id = competition_round.id
+    WHERE competition_round.competition_id = :competitionId
+)
+SQL;
+
+        return (bool) $this->database
+            ->executeQuery($query, ['competitionId' => $competitionId])
+            ->fetchOne();
     }
 
     /**

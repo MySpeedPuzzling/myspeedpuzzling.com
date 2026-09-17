@@ -81,6 +81,14 @@
                             }) }}
                         </span>
 
+                        {# Only the event page passes puzzle_rounds: the competition round(s) this puzzle was solved in #}
+                        {% for round in puzzle_rounds[puzzle.puzzleId] ?? [] %}
+                            <span
+                                class="badge text-wrap rounded-pill mt-1 {{ round.badgeBackgroundColor ? '' : 'bg-dark' }}"
+                                {% if round.badgeBackgroundColor %}style="background-color: {{ round.badgeBackgroundColor }}; color: {{ round.badgeTextColor ?? '#fff' }}"{% endif %}
+                            ><i class="bi bi-flag-fill me-1"></i>{{ round.name }} · {{ round.startsAt|date('d.m. H:i') }}</span>
+                        {% endfor %}
+
                         {% for tag in tags[puzzle.puzzleId] ?? [] %}
                             <span class="badge text-wrap bg-primary rounded-pill mt-1"><i class="ci-diamond"></i> {{ tag.name }}</span>
                         {% endfor %}

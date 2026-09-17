@@ -62,7 +62,11 @@ final class CompetitionParticipants
     #[PreReRender]
     public function populate(): void
     {
-        $this->competitionRounds = $this->getCompetitionRounds->ofCompetition($this->competitionId);
+        // Round chips filter participants by their round assignment - without any assignment
+        // (e.g. rounds entered only to describe the puzzles) every chip would filter to nothing
+        $this->competitionRounds = $this->getCompetitionRounds->hasParticipantsAssignedToRounds($this->competitionId)
+            ? $this->getCompetitionRounds->ofCompetition($this->competitionId)
+            : [];
         $this->participantsRounds = $this->getCompetitionRounds->forAllCompetitionParticipants($this->competitionId, $this->roundsFilter);
         $this->connectedParticipants = $this->getCompetitionParticipants->getConnectedParticipants($this->competitionId, $this->roundsFilter, $this->firstTryOnly);
         $this->notConnectedParticipants = $this->getCompetitionParticipants->getNotConnectedParticipants($this->competitionId, $this->roundsFilter);

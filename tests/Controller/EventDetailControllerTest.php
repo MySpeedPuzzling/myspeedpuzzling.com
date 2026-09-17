@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\TagFixture;
@@ -94,6 +95,57 @@ final class EventDetailControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorExists(sprintf('#puzzle-list-item-%s use[href$="#diff-hard"]', PuzzleFixture::PUZZLE_500_01));
+    }
+
+    public function testEventPuzzlesShowTheirRoundInScheduleOrder(): void
+    {
+        $browser = self::createClient();
+
+        // Final Round (+32 days) puzzle is tagged first, Qualification Round (+30 days) puzzle second -
+        // the page must still list the qualification puzzle first
+        $connection = self::getContainer()->get(Connection::class);
+        foreach ([PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_500_01] as $puzzleId) {
+            $connection->executeStatement(
+                'INSERT INTO tag_puzzle (tag_id, puzzle_id) VALUES (:tagId, :puzzleId)',
+                ['tagId' => TagFixture::TAG_WJPC, 'puzzleId' => $puzzleId],
+            );
+        }
+
+        $crawler = $browser->request('GET', '/en/events/wjpc-2024');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01, 'Qualification Round');
+        $this->assertSelectorTextContains('#puzzle-list-item-' . PuzzleFixture::PUZZLE_1000_01, 'Final Round');
+
+        $order = $crawler->filter('[id^="puzzle-list-item-"]')->each(
+            static fn ($item): string => (string) $item->attr('id'),
+        );
+        self::assertSame([
+            'puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01,
+            'puzzle-list-item-' . PuzzleFixture::PUZZLE_1000_01,
+        ], $order);
+    }
+
+    public function testRoundChipsAreShownWhenParticipantsAreAssignedToRounds(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/en/events/wjpc-2024');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorExists('[data-live-round-id-param="' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION . '"]');
+    }
+
+    public function testRoundChipsAreHiddenWhenNobodyIsAssignedToARound(): void
+    {
+        $browser = self::createClient();
+
+        self::getContainer()->get(Connection::class)->executeStatement('DELETE FROM competition_participant_round');
+
+        $browser->request('GET', '/en/events/wjpc-2024');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorNotExists('[data-live-round-id-param]');
     }
 
     private static function addTimeLinkSelector(string $competitionId): string

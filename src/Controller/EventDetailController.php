@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
+use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
+use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -28,6 +31,7 @@ final class EventDetailController extends AbstractController
         readonly private GetCompetitionParticipants $getCompetitionParticipants,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
+        readonly private GetEditionRounds $getEditionRounds,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
@@ -64,6 +68,33 @@ final class EventDetailController extends AbstractController
             $puzzles = $this->getPuzzleOverview->byTagId($competitionEvent->tagId);
         }
 
+        // Which round each puzzle was solved in. The query already applies the round's hide rules,
+        // so a puzzle hidden until its round starts gets no round badge either.
+        /** @var array<string, list<EditionRoundDetail>> $puzzleRounds */
+        $puzzleRounds = [];
+        foreach ($this->getEditionRounds->forCompetition($competition->id->toString()) as $round) {
+            foreach ($round->puzzles as $roundPuzzle) {
+                $puzzleRounds[$roundPuzzle->puzzleId][] = $round;
+            }
+        }
+
+        // With rounds, the schedule is the natural order (rounds come sorted by start, so [0] is the
+        // earliest); puzzles outside any round follow in their original order - usort is stable
+        $firstRoundStart = static fn (PuzzleOverview $puzzle): null|DateTimeImmutable => isset($puzzleRounds[$puzzle->puzzleId])
+            ? $puzzleRounds[$puzzle->puzzleId][0]->startsAt
+            : null;
+
+        usort($puzzles, static function (PuzzleOverview $a, PuzzleOverview $b) use ($firstRoundStart): int {
+            $aStartsAt = $firstRoundStart($a);
+            $bStartsAt = $firstRoundStart($b);
+
+            if ($aStartsAt === null || $bStartsAt === null) {
+                return ($aStartsAt === null) <=> ($bStartsAt === null);
+            }
+
+            return $aStartsAt <=> $bStartsAt;
+        });
+
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
 
         $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId);
@@ -85,10 +116,11 @@ final class EventDetailController extends AbstractController
         return $this->render('event_detail.html.twig', [
             'event' => $competitionEvent,
             'puzzles' => $puzzles,
-            'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList(array_values(array_map(
+            'puzzle_rounds' => $puzzleRounds,
+            'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList(array_map(
                 static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId,
                 $puzzles,
-            ))),
+            )),
             'puzzle_statuses' => $puzzleStatuses,
             'is_going' => count($playerConnections) > 0,
             'can_add_time' => $canAddTime,

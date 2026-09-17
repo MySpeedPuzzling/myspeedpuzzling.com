@@ -54,6 +54,12 @@
         (function () {
             var MAX_ATTEMPTS = 2;
             var reported = 0;
+            // Guards against healing twice on one page load. Every failing asset
+            // fires its own error event and the sweep below can fire as well, so
+            // without this a page with two broken bundles spends the whole
+            // attempt budget at once and schedules two reloads. One purge covers
+            // every /build entry regardless of which asset reported it.
+            var healing = false;
 
             function attempts() {
                 try { return parseInt(window.sessionStorage.getItem('msp-asset-heal') || '0', 10) || 0; }
@@ -74,9 +80,12 @@
             }
 
             function heal(assetUrls) {
+                if (healing) return;
+
                 var done = attempts();
                 if (done === null || done >= MAX_ATTEMPTS || !window.caches) return;
                 try { window.sessionStorage.setItem('msp-asset-heal', String(done + 1)); } catch (e) { return; }
+                healing = true;
 
                 window.caches.keys().then(function (cacheNames) {
                     return Promise.all(cacheNames.map(function (cacheName) {

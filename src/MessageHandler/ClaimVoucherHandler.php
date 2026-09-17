@@ -321,13 +321,13 @@ readonly final class ClaimVoucherHandler
      */
     private function extendMembership(Membership $membership, \DateTimeImmutable $now, int $months): array
     {
-        $currentGrantedUntil = $membership->grantedUntil;
-
-        if ($currentGrantedUntil === null || $currentGrantedUntil < $now) {
-            $baseDate = $now;
-        } else {
-            $baseDate = $currentGrantedUntil;
-        }
+        // The free months are added after everything the player already has: an earlier grant, or the
+        // paid period a cancelled subscription still runs until - starting them today would eat that overlap
+        $baseDate = max(
+            $now,
+            $membership->grantedUntil ?? $now,
+            $membership->endsAt ?? $now,
+        );
 
         $newGrantedUntil = $baseDate->add(new DateInterval('P' . $months . 'M'));
         $membership->grantedUntil = $newGrantedUntil;

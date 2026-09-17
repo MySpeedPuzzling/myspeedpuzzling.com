@@ -119,6 +119,28 @@ final class ClaimVoucherHandlerTest extends KernelTestCase
         self::assertEquals($voucher->freePeriodEndsAt, $membership->billingPeriodEndsAt);
     }
 
+    public function testFreeMonthsAfterCancelledSubscriptionStartWhenThePaidPeriodEnds(): void
+    {
+        $paidUntil = new \DateTimeImmutable('+20 days 12:00:00');
+
+        $membership = $this->membershipRepository->get(MembershipFixture::MEMBERSHIP_ACTIVE);
+        $membership->cancel($paidUntil);
+
+        $this->messageBus->dispatch(
+            new ClaimVoucher(
+                playerId: PlayerFixture::PLAYER_WITH_STRIPE,
+                voucherCode: VoucherFixture::VOUCHER_AVAILABLE_CODE,
+            ),
+        );
+
+        $voucher = $this->voucherRepository->getByCode(VoucherFixture::VOUCHER_AVAILABLE_CODE);
+        self::assertEquals($paidUntil, $voucher->freePeriodStartsAt);
+        self::assertEquals($paidUntil->modify('+1 month'), $voucher->freePeriodEndsAt);
+
+        $membership = $this->membershipRepository->get(MembershipFixture::MEMBERSHIP_ACTIVE);
+        self::assertEquals($paidUntil->modify('+1 month'), $membership->grantedUntil);
+    }
+
     public function testReclaimingOwnFreeMonthsVoucherIsReportedAsAlreadyClaimed(): void
     {
         // VOUCHER_USED was redeemed by PLAYER_REGULAR - entering it again must not read as "used by someone"

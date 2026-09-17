@@ -15,14 +15,15 @@ use SpeedPuzzling\Web\Value\RoundResultStatus;
 use SpeedPuzzling\Web\Value\SkillTier;
 
 /**
- * Ranking of one competition round, per round puzzle.
+ * Times puzzlers added for one competition round, per round puzzle, in result order. Deliberately without
+ * positions: only puzzlers who added their time are here, so "1." would read as an official placing it is not.
  *
  * - The solving times linked to the round (puzzle_solving_time.competition_round_id, kept current by
  *   SolvingTimeRoundResolver + RoundResultsReconciler).
  * - One result per player (solo) or per group of puzzlers (duo/team): their EARLIEST time. There is no date
  *   check on the round link, so a later practice run on the same puzzle is linked too - and it is faster.
  * - Finished within the limit (by time), then unfinished (by pieces placed), then over the limit without
- *   pieces reported (by time). Equal values share a rank.
+ *   pieces reported (by time).
  * - Private players are left out exactly like on the puzzle page: a solo result unless it is the viewer's
  *   own, a group only when every member is private and the viewer is not one of them.
  */
@@ -108,7 +109,7 @@ SQL,
         $results = [];
 
         foreach ($candidates as $puzzleId => $puzzleCandidates) {
-            $results[$puzzleId] = $this->rank($puzzleCandidates);
+            $results[$puzzleId] = $this->order($puzzleCandidates);
         }
 
         return $results;
@@ -118,7 +119,7 @@ SQL,
      * @param list<array{players: non-empty-list<RoundResultPlayer>, row: array{time_id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, ...}, status: RoundResultStatus}> $candidates
      * @return list<RoundResult>
      */
-    private function rank(array $candidates): array
+    private function order(array $candidates): array
     {
         $statusOrder = [
             RoundResultStatus::Finished->value => 0,
@@ -141,22 +142,12 @@ SQL,
             return (int) $a['row']['seconds_to_solve'] <=> (int) $b['row']['seconds_to_solve'];
         });
 
-        $ranked = [];
-        $previousKey = null;
-        $rank = 0;
+        $ordered = [];
 
-        foreach ($candidates as $position => $candidate) {
+        foreach ($candidates as $candidate) {
             $row = $candidate['row'];
-            $value = $candidate['status'] === RoundResultStatus::Unfinished ? $row['pieces_placed'] : $row['seconds_to_solve'];
-            $key = $candidate['status']->value . ':' . $value;
 
-            if ($key !== $previousKey) {
-                $rank = $position + 1;
-                $previousKey = $key;
-            }
-
-            $ranked[] = new RoundResult(
-                rank: $rank,
+            $ordered[] = new RoundResult(
                 timeId: $row['time_id'],
                 puzzleId: $row['puzzle_id'],
                 players: $candidate['players'],
@@ -168,7 +159,7 @@ SQL,
             );
         }
 
-        return $ranked;
+        return $ordered;
     }
 
     /**

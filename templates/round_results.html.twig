@@ -69,6 +69,15 @@
         {% endif %}
     </div>
 
+    {% if page.hasStarted and page.resultsCount > 0 %}
+        <p class="small text-muted mb-3">
+            <i class="bi bi-info-circle me-1"></i>{{ 'round_results.unofficial_note'|trans }}
+            {% if page.officialResultsLink %}
+                <a href="{{ page.officialResultsLink }}" target="_blank" rel="noopener" class="text-nowrap">{{ 'round_results.see_official_results'|trans }} <i class="bi bi-box-arrow-up-right"></i></a>
+            {% endif %}
+        </p>
+    {% endif %}
+
     {% if round.puzzles is empty %}
         <p class="text-muted">{{ 'round_results.no_puzzle_yet'|trans }}</p>
     {% endif %}
@@ -117,7 +126,6 @@
                 <table class="table custom-table table-striped table-hover mb-0">
                     <thead>
                     <tr>
-                        <th></th>
                         <th>{{ 'puzzler_name'|trans }}</th>
                         <th class="text-end">{{ 'round_results.column_result'|trans }}</th>
                     </tr>
@@ -127,14 +135,13 @@
                     {% for result in puzzle_results %}
                         {% if previous_status is not null and result.status != previous_status %}
                             <tr>
-                                <td colspan="3" class="small text-muted fw-medium">{{ ('round_results.section.' ~ result.status.value)|trans }}</td>
+                                <td colspan="2" class="small text-muted fw-medium">{{ ('round_results.section.' ~ result.status.value)|trans }}</td>
                             </tr>
                         {% endif %}
                         {% set previous_status = result.status %}
 
                         {% set is_own_row = logged_user.profile is not null and result.containsPlayer(logged_user.profile.playerId) %}
                         <tr class="{{ is_own_row ? 'table-active-player' }}" data-round-result-status="{{ result.status.value }}">
-                            <td class="rank">{{ result.rank }}.</td>
                             <td class="player-name">
                                 {% for player in result.players %}
                                     {% if not loop.first %}<br>{% endif %}

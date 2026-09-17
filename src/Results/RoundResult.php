@@ -13,7 +13,6 @@ readonly final class RoundResult
      * @param non-empty-list<RoundResultPlayer> $players
      */
     public function __construct(
-        public int $rank,
         public string $timeId,
         public string $puzzleId,
         public array $players,

@@ -39,6 +39,9 @@ final class RoundResultsControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         // Three fixture results, the private player's is hidden from anonymous visitors
         self::assertCount(2, $crawler->filter('[data-round-result-status="finished"]'));
+        // Only puzzlers who added a time are listed - no positions that could pass for official placings
+        $this->assertSelectorNotExists('td.rank');
+        $this->assertSelectorTextContains('main', 'not the official placings');
         $this->assertSelectorTextContains('title', 'Qualification Round');
     }
 

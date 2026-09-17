@@ -128,6 +128,8 @@ round_results:
     no_results: "No results yet. Did you compete in this round? Add your time and it will show up here."
     no_puzzle_yet: "The puzzle for this round has not been revealed yet."
     column_result: "Result"
+    unofficial_note: "Times added by puzzlers on MySpeedPuzzling, fastest first - not the official placings, and only for those who added their time."
+    see_official_results: "See the official results"
     pieces_placed: "%placed% / %total% pcs"
     finished_later: "finished in %time%"
     section:

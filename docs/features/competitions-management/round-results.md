@@ -12,8 +12,9 @@ Every competition round gets its own public results page with a shareable, reada
 - **A player's (or team's) earliest time for the round is their result**, not the fastest — without a date check a later practice run on the same puzzle also matches, and a repeat solve is quicker.
 - **URL uses a readable round slug**, e.g. `/en/events/world-jigsaw-puzzle-championship-2026/results/individual-b`.
 - **Rounds get their own official results link**, because some organisers publish results per round.
-- **Unfinished results follow competition rules**: time = the round's limit, ranked by pieces placed. Entered in the existing collapsed **Competition result** card of the add/edit-time form, shipped to everyone (no feature flag).
-- **Times over the limit without pieces reported are ranked after the unfinished ones.**
+- **Unfinished results follow competition rules**: listed after the finished ones by pieces placed. Entered in the existing collapsed **Competition result** card of the add/edit-time form, shipped to everyone (no feature flag).
+- **Times over the limit without pieces reported are listed after the unfinished ones.**
+- **Round pages show no position numbers** — only puzzlers who added a time are listed, so positions would pass for official placings; a note links to the official results.
 - **On the puzzle page, unfinished results — including ones finished later — sit at the bottom of the leaderboard without a rank.** A player who also has a finished time on that puzzle keeps one ranked row; their unfinished entry sits under "show more".
 - **Unfinished results keep counting as solved** in profile counts for now; revisit with real data.
 
@@ -167,13 +168,17 @@ Profile solved counts keep counting them (decided — revisit later).
 - `competition_round.slug` — unique per competition, generated on create like edition slugs (`AddEditionHandler::generateUniqueSlug`), **kept on rename** so shared links survive. Existing 155 rounds get slugs in the same migration.
 - 404 when the competition is not publicly visible (`IsCompetitionPubliclyVisible`).
 
-### Ranking
+### Order — no positions (decided after launch)
+
+The page lists only puzzlers who added their time here, so a "1." would read as an official placing it is not (Jan, 2026-09-17: the first puzzler to add a WJPC time showed as "1." although she was not first in the round). The list carries **no position numbers** and a note says these are times added by puzzlers, not the official placings, with a link to the official results.
+
+Order:
 
 1. **Finished within the limit** — by time, fastest first.
-2. **Unfinished** (`pieces_placed` set) — shown as "{limit} · 479 / 500 pcs" (plus "finished in …" when `finished_later_seconds` is set), by pieces placed, most first; equal pieces share a rank. On the round page unfinished results *are* ranked — that is the competition's own ranking.
-3. **Over the limit with no pieces reported** (the old workaround) — ranked after the unfinished ones, by time (decided).
+2. **Unfinished** (`pieces_placed` set) — shown as "479 / 500 pcs" (plus "finished in …" when `finished_later_seconds` is set), by pieces placed, most first.
+3. **Over the limit with no pieces reported** (the old workaround) — after the unfinished ones, by time.
 
-**One result per player (solo) or team (duo/team): the earliest** — by `finished_at`, then `tracked_at`. Without a date check a later practice run also belongs to the round, and it would be faster.
+Section rows separate the three groups. **One result per player (solo) or team (duo/team): the earliest** — by `finished_at`, then `tracked_at`. Without a date check a later practice run also belongs to the round, and it would be faster.
 
 Rows reuse the `PuzzleSolver` / `PuzzleSolversGroup` DTOs and `PuzzleTimes` row markup, so private players, secret puzzlers, ranking opt-outs and members-only skill tiers behave exactly as on the puzzle page. Suspicious times are excluded. Duo/team rows list the members.
 

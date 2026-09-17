@@ -38,12 +38,11 @@ final class GetRoundResultsTest extends KernelTestCase
         $this->messageBus = self::getContainer()->get(MessageBusInterface::class);
     }
 
-    public function testFinishedResultsRankByTimeAndPrivatePlayersAreHidden(): void
+    public function testFinishedResultsAreOrderedByTimeAndPrivatePlayersAreHidden(): void
     {
         $results = $this->results(viewerPlayerId: null);
 
         self::assertSame([PuzzleSolvingTimeFixture::TIME_11, PuzzleSolvingTimeFixture::TIME_09], $this->timeIds($results));
-        self::assertSame([1, 2], array_map(static fn (RoundResult $result): int => $result->rank, $results));
         self::assertSame(RoundResultStatus::Finished, $results[0]->status);
     }
 
@@ -57,7 +56,7 @@ final class GetRoundResultsTest extends KernelTestCase
         );
     }
 
-    public function testUnfinishedRankAfterFinishedAndOverLimitRankLast(): void
+    public function testUnfinishedComeAfterFinishedAndOverLimitComeLast(): void
     {
         $overLimit = $this->addTime(PlayerFixture::PLAYER_WITH_FAVORITES_USER_ID, '01:10:00');
         $unfinished = $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, '00:59:00');
@@ -72,7 +71,6 @@ final class GetRoundResultsTest extends KernelTestCase
             [PuzzleSolvingTimeFixture::TIME_11, PuzzleSolvingTimeFixture::TIME_09, $unfinished, $overLimit],
             $this->timeIds($results),
         );
-        self::assertSame([1, 2, 3, 4], array_map(static fn (RoundResult $result): int => $result->rank, $results));
         self::assertSame(RoundResultStatus::Unfinished, $results[2]->status);
         self::assertSame(450, $results[2]->piecesPlaced);
         self::assertSame(3900, $results[2]->finishedLaterSeconds);
@@ -87,18 +85,6 @@ final class GetRoundResultsTest extends KernelTestCase
         $results = $this->results(viewerPlayerId: null);
 
         self::assertSame([PuzzleSolvingTimeFixture::TIME_11, PuzzleSolvingTimeFixture::TIME_09], $this->timeIds($results));
-    }
-
-    public function testEqualTimesShareARank(): void
-    {
-        $this->database->executeStatement(
-            'UPDATE puzzle_solving_time SET seconds_to_solve = 1780 WHERE id = :id',
-            ['id' => PuzzleSolvingTimeFixture::TIME_09],
-        );
-
-        $results = $this->results(viewerPlayerId: PlayerFixture::PLAYER_PRIVATE);
-
-        self::assertSame([1, 1, 3], array_map(static fn (RoundResult $result): int => $result->rank, $results));
     }
 
     public function testSuspiciousTimesAreLeftOut(): void

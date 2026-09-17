@@ -83,6 +83,13 @@ return static function (ContainerConfigurator $configurator): void {
     // covers it while keeping the replay exposure of D18 to that minute.
     $parameters->set('signInLinkReuseGraceSeconds', 60);
 
+    // How long "stay signed in" lasts, sliding. The single source for all four
+    // places that have to agree, because a visitor is signed out the moment the
+    // shortest of them lapses: the session cookie and the server-side row
+    // (config/packages/framework.php), the remember-me cookie
+    // (config/packages/security.php), and the PdoSessionHandler row TTL below.
+    $parameters->set('loginLifetimeSeconds', 2592000);
+
     // Failed S3 uploads are spooled here and re-uploaded by the
     // myspeedpuzzling:upload-spooled-files cron. Production mounts a persistent
     // named volume at this path (lily.srv compose.yaml) - without it the spool
@@ -152,6 +159,14 @@ return static function (ContainerConfigurator $configurator): void {
                 // Disable session locking to allow concurrent requests (Live Components, AJAX)
                 // Without this, concurrent requests for the same session block each other
                 'lock_mode' => PdoSessionHandler::LOCK_NONE,
+                // Explicit, because the fallback is ini_get('session.gc_maxlifetime').
+                // That ini is only correct while NativeSessionStorage::setOptions() gets
+                // to apply it - it returns early if headers are already sent or a session
+                // is active, and this app runs FrankenPHP workers. Were that ever to
+                // happen, every row written on that request would silently get php.ini's
+                // default (commonly 1440 = 24 minutes) and those visitors would be
+                // genuinely signed out. Naming the TTL here removes the dependency.
+                'ttl' => '%loginLifetimeSeconds%',
             ],
         ]);
 

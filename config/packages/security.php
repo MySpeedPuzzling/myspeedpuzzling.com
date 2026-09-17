@@ -166,7 +166,10 @@ return App::config([
                 // #164 shared cacheability) and delete a signed-in user's cookie on
                 // their next page view. Both listener and pass die in Phase 6.
                 'remember_me' => [
-                    'lifetime' => 2592000, // 30 days, slides on every use
+                    // 30 days. Shared with the session cookie and the session row
+                    // (config/services.php) - SlidingLoginCookiesSubscriber renews
+                    // them together, so they have to be the same number.
+                    'lifetime' => '%loginLifetimeSeconds%',
                     // No checkbox in the login form - being kept signed in is the
                     // default for everyone (product decision, 2026-08-01)
                     'always_remember_me' => true,

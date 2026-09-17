@@ -11,6 +11,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\EventSubscriber\AuthenticationAuditSubscriber;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
+use SpeedPuzzling\Web\Security\MigrationWindowAuth0Authenticator;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -120,6 +121,38 @@ final class AuthenticationAuditSubscriberTest extends KernelTestCase
         self::assertSame('203.0.113.9', $row['ip_address']);
     }
 
+    /**
+     * The Auth0 authenticator succeeds on every request a legacy session makes,
+     * not once when somebody signs in. Auditing each one produced 30,339 of the
+     * 32,408 "login" rows in a 14-day production sample, from 140 users - which
+     * buries the real sign-ins on the recent-activity page that exists to make a
+     * stranger's login visible.
+     */
+    public function testLegacyAuth0SessionIsAuditedOncePerSessionNotPerRequest(): void
+    {
+        $account = $this->createAccount('auth0|subscriber-refresh');
+        $authenticator = self::getContainer()->get(MigrationWindowAuth0Authenticator::class);
+        $session = $this->requestWithSession();
+
+        foreach (range(1, 3) as $ignored) {
+            $this->subscriber->onLoginSuccess($this->loginSuccessEvent($account, $authenticator, 'main', $session));
+        }
+
+        self::assertSame(
+            1,
+            $this->countEventsFor($account),
+            'Three page views on one legacy session are one sign-in, not three',
+        );
+
+        // A different session is a different sign-in and must still be recorded -
+        // suppressing the refreshes must not suppress the real thing.
+        $this->subscriber->onLoginSuccess(
+            $this->loginSuccessEvent($account, $authenticator, 'main', $this->requestWithSession()),
+        );
+
+        self::assertSame(2, $this->countEventsFor($account));
+    }
+
     private function formAuthenticator(): LoginFormAuthenticator
     {
         return self::getContainer()->get(LoginFormAuthenticator::class);
@@ -129,11 +162,32 @@ final class AuthenticationAuditSubscriberTest extends KernelTestCase
         UserAccount $account,
         AuthenticatorInterface $authenticator,
         string $firewallName,
+        null|Request $request = null,
     ): LoginSuccessEvent {
         $passport = new SelfValidatingPassport(new UserBadge($account->email, static fn(): UserAccount => $account));
         $token = new PostAuthenticationToken($account, $firewallName, $account->getRoles());
 
-        return new LoginSuccessEvent($authenticator, $passport, $token, $this->request(), null, $firewallName);
+        return new LoginSuccessEvent(
+            $authenticator,
+            $passport,
+            $token,
+            $request ?? $this->request(),
+            null,
+            $firewallName,
+        );
+    }
+
+    /**
+     * One browser session. The window-era Auth0 authenticator re-authenticates
+     * from it on every request, so every page view reaches onLoginSuccess with
+     * the same session attached.
+     */
+    private function requestWithSession(): Request
+    {
+        $request = $this->request();
+        $request->setSession(new Session(new MockArraySessionStorage()));
+
+        return $request;
     }
 
     private function request(): Request

@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\EventSubscriber;
 
+use Auth0\Symfony\Security\Authenticator as Auth0Authenticator;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Security\MigrationWindowAuth0Authenticator;
+use Symfony\Component\HttpFoundation\Request;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
@@ -40,6 +43,9 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
 {
     private const string MAIN_FIREWALL = 'main';
 
+    /** Marks a legacy Auth0 session whose sign-in has already been audited. */
+    private const string AUTH0_LOGIN_RECORDED_KEY = '_msp_auth0_login_recorded';
+
     public function __construct(
         private LoggerInterface $logger,
         private EntityManagerInterface $entityManager,
@@ -65,6 +71,12 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
 
         $user = $event->getUser();
         $authenticator = $event->getAuthenticator();
+        $request = $event->getRequest();
+
+        if ($this->isAuth0SessionRefresh($authenticator, $request)) {
+            return;
+        }
+
         $signInLinkUsed = $authenticator instanceof LoginLinkAuthenticator;
 
         $this->logger->info('Login succeeded.', [
@@ -82,8 +94,6 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
             // transaction exists - without an immediate flush the timestamp never persists.
             $this->entityManager->flush();
         }
-
-        $request = $event->getRequest();
 
         $eventType = match (true) {
             $signInLinkUsed => AuthAuditEventType::SignInLinkUsed,
@@ -159,6 +169,48 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
             ipAddress: $request->getClientIp(),
             userAgent: $request->headers->get('User-Agent'),
         ));
+    }
+
+    /**
+     * The window-era Auth0 authenticator re-authenticates from the session on
+     * every single request, so LoginSuccessEvent fires on every page view of
+     * every legacy session rather than once when somebody signs in. In a 14-day
+     * production sample that was 30,339 of 32,408 "login" rows, produced by 140
+     * users - one every couple of minutes each.
+     *
+     * That buries the real sign-ins on /account/recent-activity, which exists so
+     * a user can spot a login that was not theirs, and writes an audit row (plus
+     * a last_login_at update) on every page view for those accounts.
+     *
+     * So record the first success of a session and treat the rest as what they
+     * are: refreshes, not logins. A genuine Auth0 sign-in still lands here,
+     * because it arrives on a session that has not been marked yet. Dies in
+     * Phase 6 with the authenticator it is about.
+     */
+    private function isAuth0SessionRefresh(AuthenticatorInterface $authenticator, Request $request): bool
+    {
+        if (
+            !$authenticator instanceof MigrationWindowAuth0Authenticator
+            && !$authenticator instanceof Auth0Authenticator
+        ) {
+            return false;
+        }
+
+        // An Auth0 login is a session by definition; without one there is nothing
+        // to mark and no way to tell a refresh from a sign-in, so stay quiet.
+        if (!$request->hasSession()) {
+            return true;
+        }
+
+        $session = $request->getSession();
+
+        if ($session->get(self::AUTH0_LOGIN_RECORDED_KEY) === true) {
+            return true;
+        }
+
+        $session->set(self::AUTH0_LOGIN_RECORDED_KEY, true);
+
+        return false;
     }
 
     private static function authenticatorLabel(AuthenticatorInterface $authenticator): string

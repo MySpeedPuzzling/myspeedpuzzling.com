@@ -39,8 +39,8 @@ return App::config([
             // 200k-1M crawler sessions/day this would have doubled a 1.8 GB table.
             // Existing rows keep their stored sess_lifetime until rewritten, so the
             // legacy anonymous rows still expire on the old, shorter clock.
-            'cookie_lifetime' => 2592000,
-            'gc_maxlifetime' => 2592000,
+            'cookie_lifetime' => '%loginLifetimeSeconds%',
+            'gc_maxlifetime' => '%loginLifetimeSeconds%',
             'storage_factory_id' => 'session.storage.factory.native',
         ],
         'php_errors' => [

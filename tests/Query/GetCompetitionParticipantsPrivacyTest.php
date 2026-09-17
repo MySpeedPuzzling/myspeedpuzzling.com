@@ -65,17 +65,4 @@ final class GetCompetitionParticipantsPrivacyTest extends KernelTestCase
             'Soft-deleted participant should not appear in public queries',
         );
     }
-
-    public function testSoftDeletedParticipantExcludedFromPairingMapping(): void
-    {
-        $mapping = $this->getCompetitionParticipants->mappingForPairing(
-            CompetitionFixture::COMPETITION_WJPC_2024,
-        );
-
-        self::assertNotContains(
-            CompetitionParticipantFixture::PARTICIPANT_DELETED,
-            $mapping,
-            'Soft-deleted participant should not appear in pairing mapping',
-        );
-    }
 }

@@ -100,20 +100,30 @@ If there are imported/manual participants not yet linked to any player:
 └─────────────────────────────────────────────────────┘
 ```
 
+The picker offers **only unclaimed participants** (`player IS NULL`, not soft-deleted) — never names already connected to someone, self-joined MSP names or private profiles (`GetCompetitionParticipants::getNotConnectedParticipants()`). Submitting it without a name does nothing; "Join as" posts its own `self_join=1` so an empty picker can never fall through to a self-join.
+
+If the player's MSP name matches **exactly one** unclaimed participant (ignoring case, accents and extra whitespace; a different country never matches — `findNotConnectedParticipantMatchingName()`):
+
+→ Skip the picker, connect to that participant. Clicking "I'm going" is the opt-in — nobody is ever connected to an organizer's row without it.
+
 If there are NO unconnected participants (empty list or all already paired):
 
 → Skip the picker, immediately create self-join participant from player profile. Redirect back with success flash.
 
-**Step 2 — Result:**
+**Step 2 — Result (`JoinCompetitionHandler`):**
 
-- **Picked from list** → existing `ConnectCompetitionParticipant` logic (disconnect previous if any, connect to selected)
-- **"Not on the list"** → create new `CompetitionParticipant` with `source=self_joined`, `player` linked immediately, `name` and `country` from player profile
+- **Picked from list** → validates first (same competition, not soft-deleted, not connected to another player), only then releases the player's other rows and connects the selected one. Validation must precede any change: a rolled-back handler leaves its changed entities in the entity manager, and the next flush in the same request (e.g. `PlayerActivitySubscriber` on `kernel.terminate`) would still write them — that is how nameless orphan rows appeared on WJPC 2026.
+- **"Not on the list"** → create new `CompetitionParticipant` with `source=self_joined`, `player` linked immediately, `name` and `country` from player profile. **Idempotent**: a player who already has an active self-joined row gets no second one; one connected to an organizer's row is disconnected from it first.
 
-**Re-connecting:** A player who is already connected can visit this flow again to change their connection (pick a different participant from the list). The old connection is disconnected, new one established.
+**Releasing rows:** whenever the player switches, their self-joined row is soft-deleted (it would otherwise stay as an unclaimed row with their MSP name that anyone could pick) and an imported/manual row is only disconnected.
+
+**Re-connecting:** A player who is already connected can visit this flow again to change their connection (pick a different participant from the list). The "Change" link is hidden when nobody is left on the list to switch to.
 
 ### Leaving / Disconnecting
 
 The button label and behavior depend on how the participant was created:
+
+Leaving handles **every** active row of the player in the competition, not just one.
 
 - **Self-joined participant** → button says **"Leave"** → soft deletes the participant record (`deletedAt` set). Player can re-join later.
 - **Imported/manual participant** → button says **"Disconnect"** → unlinks player from participant (`player=NULL`, `connectedAt=NULL`), does NOT soft delete. The organizer's imported record stays intact. Player can reconnect later.
@@ -223,7 +233,7 @@ Import is **always additive** — it never deletes participants not present in t
 4. **Unique name match** — if exactly one participant with the exact same name exists (regardless of country) → update
 5. **No match** → create new participant with `source=imported`
 
-**Soft-deleted participants are included in upsert matching.** If a match hits a soft-deleted participant, it is restored (`deletedAt` cleared) and updated with the imported data.
+**Soft-deleted participants are included in upsert matching.** If a match hits a soft-deleted participant, it is restored (`deletedAt` cleared) and updated with the imported data. Active rows win over soft-deleted ones. **Exception:** a soft-deleted *self-joined* row is the player's own "I left" record — it is never matched, so an import can't sign a player up again.
 
 Best practice for organizers: always use `external_id` or `msp_player_id` for reliable matching. Name-based matching is a convenience fallback.
 
@@ -238,7 +248,9 @@ Best practice for organizers: always use `external_id` or `msp_player_id` for re
 ### Self-Join + Import Collision
 
 When an organizer imports a file containing a `msp_player_id` that matches a self-joined participant's player:
-→ **Merge automatically.** The existing self-join participant is updated with the imported data (`externalId`, etc.). No duplicate created.
+→ **Merge automatically.** The existing self-join participant is updated with the imported data (`externalId`, etc.) and becomes `source=imported` — it is on the organizer's list now, so leaving disconnects instead of deleting it. No duplicate created.
+
+Only put `msp_player_id` in a file for players who opted in themselves. WJPC 2026 (2026-09-17): the list scraped from worldjigsawpuzzle.org carried `msp_player_id` only for players who had already clicked "I'm going" **and** whose name matched the WJPF name — a WJPF e-mail pairing (`wjpf_identity`) alone is not consent to be listed as going.
 
 **Name handling on merge:** Participant `name` and MSP player display name are separate fields (see Two-Name Concept). On merge, the **organizer's imported `name` overwrites** the existing participant `name` — the organizer is authoritative for official competition names. The player's MSP display name (from the `Player` entity) is unaffected and always available separately.
 

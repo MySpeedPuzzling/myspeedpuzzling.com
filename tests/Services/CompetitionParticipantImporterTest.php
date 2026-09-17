@@ -230,6 +230,57 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
         self::assertStringContainsString('duplicate name', $result->warnings[0]);
     }
 
+    public function testImportAdoptsSelfJoinedRowOfListedPlayer(): void
+    {
+        // PARTICIPANT_SELF_JOINED 'Michael Johnson' is linked to PLAYER_WITH_FAVORITES
+        $file = $this->createXlsx([
+            ['name', 'country', 'msp_player_id'],
+            ['Michael Johnson', 'de', PlayerFixture::PLAYER_WITH_FAVORITES],
+        ]);
+
+        $result = $this->importer->import(CompetitionFixture::COMPETITION_WJPC_2024, $file);
+        unlink($file);
+
+        self::assertSame(0, $result->added);
+        self::assertSame(1, $result->updated);
+
+        /** @var array{source: string, player_id: string} $row */
+        $row = $this->database->executeQuery(
+            'SELECT source, player_id FROM competition_participant WHERE id = :id',
+            ['id' => CompetitionParticipantFixture::PARTICIPANT_SELF_JOINED],
+        )->fetchAssociative();
+
+        // Now on the organizer's list: leaving disconnects instead of deleting the row
+        self::assertSame('imported', $row['source']);
+        self::assertSame(PlayerFixture::PLAYER_WITH_FAVORITES, $row['player_id']);
+    }
+
+    public function testImportNeverRestoresSelfJoinedRowThePlayerLeft(): void
+    {
+        $this->database->executeStatement(
+            'UPDATE competition_participant SET deleted_at = now() WHERE id = :id',
+            ['id' => CompetitionParticipantFixture::PARTICIPANT_SELF_JOINED],
+        );
+
+        $file = $this->createXlsx([
+            ['name'],
+            ['Michael Johnson'],
+        ]);
+
+        $result = $this->importer->import(CompetitionFixture::COMPETITION_WJPC_2024, $file);
+        unlink($file);
+
+        self::assertSame(1, $result->added);
+
+        /** @var array{deleted_at: null|string} $row */
+        $row = $this->database->executeQuery(
+            'SELECT deleted_at FROM competition_participant WHERE id = :id',
+            ['id' => CompetitionParticipantFixture::PARTICIPANT_SELF_JOINED],
+        )->fetchAssociative();
+
+        self::assertNotNull($row['deleted_at']);
+    }
+
     /**
      * @param array<array<string>> $rows
      */

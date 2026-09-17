@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
@@ -57,5 +58,33 @@ final class LeaveCompetitionHandlerTest extends KernelTestCase
 
         self::assertNull($participant->player);
         self::assertFalse($participant->isDeleted());
+    }
+
+    public function testLeaveHandlesEveryRowOfThePlayer(): void
+    {
+        $database = self::getContainer()->get(Connection::class);
+
+        // A duplicate from before joining was idempotent
+        $database->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, player_id, connected_at, source)
+             VALUES (:id, 'Michael Johnson', 'de', :cid, :pid, now(), 'self_joined')",
+            [
+                'id' => '018d0006-0000-0000-0000-0000000000ff',
+                'cid' => CompetitionFixture::COMPETITION_WJPC_2024,
+                'pid' => PlayerFixture::PLAYER_WITH_FAVORITES,
+            ],
+        );
+
+        $this->messageBus->dispatch(new LeaveCompetition(
+            competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
+            playerId: PlayerFixture::PLAYER_WITH_FAVORITES,
+        ));
+
+        $activeCount = $database->fetchOne(
+            'SELECT count(*) FROM competition_participant WHERE competition_id = :cid AND player_id = :pid AND deleted_at IS NULL',
+            ['cid' => CompetitionFixture::COMPETITION_WJPC_2024, 'pid' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+
+        self::assertSame(0, $activeCount);
     }
 }

@@ -121,6 +121,9 @@ readonly final class CompetitionParticipantImporter
                 assert($participant instanceof CompetitionParticipant);
 
                 $participant->updateName($name);
+                if ($participant->source === ParticipantSource::SelfJoined) {
+                    $participant->markAsImported();
+                }
                 if ($countryCode !== null) {
                     $participant->updateCountry($countryCode->name);
                 }
@@ -223,6 +226,10 @@ readonly final class CompetitionParticipantImporter
 SELECT id, name, country, external_id, player_id
 FROM competition_participant
 WHERE competition_id = :competitionId
+-- A player's own "I left" record is not the organizer's data: restoring it would sign them up again
+AND NOT (source = 'self_joined' AND deleted_at IS NOT NULL)
+-- Active rows first, so a player's live row wins over a soft-deleted one with the same match
+ORDER BY deleted_at IS NOT NULL, id
 SQL;
 
         /** @var array<array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string}> $rows */

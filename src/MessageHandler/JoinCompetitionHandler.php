@@ -8,7 +8,9 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDifferentPlayer;
+use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
@@ -31,6 +33,7 @@ readonly final class JoinCompetitionHandler
     }
 
     /**
+     * @throws CompetitionParticipantNotFound
      * @throws CompetitionParticipantAlreadyConnectedToDifferentPlayer
      */
     public function __invoke(JoinCompetition $message): void
@@ -38,21 +41,32 @@ readonly final class JoinCompetitionHandler
         $player = $this->playerRepository->get($message->playerId);
 
         if ($message->participantId !== null) {
-            // Picking from organizer's list — disconnect existing, connect to selected
-            $this->disconnectExisting($message->competitionId, $message->playerId);
-
             $participant = $this->participantRepository->get($message->participantId);
+
+            // Validate everything before touching the player's current rows: a rolled-back handler
+            // leaves its changed entities in the entity manager, and the next flush of the same
+            // request would still write them
+            if ($participant->competition->id->toString() !== $message->competitionId || $participant->isDeleted()) {
+                throw new CompetitionParticipantNotFound();
+            }
 
             if ($participant->player !== null && $participant->player->id->equals($player->id) === false) {
                 throw new CompetitionParticipantAlreadyConnectedToDifferentPlayer();
             }
 
+            $this->releaseOtherParticipants($message->competitionId, $player, keep: $participant);
             $participant->connect($player, $this->clock->now());
 
             return;
         }
 
-        // Self-join — check for soft-deleted record to restore
+        if ($this->getCompetitionParticipants->isPlayerSelfJoined($message->competitionId, $message->playerId)) {
+            return;
+        }
+
+        // "Not on the list" — whatever organizer's row the player was connected to is not them
+        $this->releaseOtherParticipants($message->competitionId, $player, keep: null);
+
         $existingId = $this->findSoftDeletedSelfJoin($message->competitionId, $message->playerId);
 
         if ($existingId !== null) {
@@ -63,7 +77,6 @@ readonly final class JoinCompetitionHandler
             return;
         }
 
-        // Create new self-join participant
         $competition = $this->competitionRepository->get($message->competitionId);
 
         $participant = new CompetitionParticipant(
@@ -79,13 +92,25 @@ readonly final class JoinCompetitionHandler
         $this->participantRepository->save($participant);
     }
 
-    private function disconnectExisting(string $competitionId, string $playerId): void
+    /**
+     * A self-joined row is the player's own and goes away; an organizer's row stays on their list.
+     */
+    private function releaseOtherParticipants(string $competitionId, Player $player, null|CompetitionParticipant $keep): void
     {
-        $connections = $this->getCompetitionParticipants->getPlayerConnections($competitionId, $playerId);
+        $connections = $this->getCompetitionParticipants->getPlayerConnections($competitionId, $player->id->toString());
 
         foreach ($connections as $participantId) {
+            if ($keep !== null && $keep->id->toString() === $participantId) {
+                continue;
+            }
+
             $participant = $this->participantRepository->get($participantId);
-            $participant->disconnect();
+
+            if ($participant->source === ParticipantSource::SelfJoined) {
+                $participant->softDelete($this->clock->now());
+            } else {
+                $participant->disconnect();
+            }
         }
     }
 

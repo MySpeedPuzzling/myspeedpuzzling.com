@@ -133,6 +133,9 @@ final class EventDetailController extends AbstractController
             )),
             'puzzle_statuses' => $puzzleStatuses,
             'is_going' => count($playerConnections) > 0,
+            // "Change" only makes sense while the organizer's list still has someone to switch to
+            'can_change_participant' => count($playerConnections) > 0
+                && $this->getCompetitionParticipants->hasNotConnectedParticipants($competition->id->toString()),
             'can_add_time' => $canAddTime,
         ]);
     }

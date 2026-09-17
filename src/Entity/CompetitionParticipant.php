@@ -104,4 +104,13 @@ class CompetitionParticipant
     {
         return $this->deletedAt !== null;
     }
+
+    /**
+     * A self-joined player found on the organizer's list: from now on the row is the organizer's,
+     * so leaving the event disconnects it instead of deleting it.
+     */
+    public function markAsImported(): void
+    {
+        $this->source = ParticipantSource::Imported;
+    }
 }

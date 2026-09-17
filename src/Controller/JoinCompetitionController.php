@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -50,53 +51,67 @@ final class JoinCompetitionController extends AbstractController
             return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);
         }
 
-        // POST: Handle form submission
         if ($request->isMethod('POST')) {
             $participantId = $request->request->getString('participant_id');
 
-            try {
-                $this->messageBus->dispatch(new JoinCompetition(
-                    competitionId: $competitionId,
-                    playerId: $profile->playerId,
-                    participantId: $participantId !== '' ? $participantId : null,
-                ));
-
-                $this->addFlash('success', $this->translator->trans('flashes.competition_join_success'));
-            } catch (HandlerFailedException $e) {
-                if ($e->getPrevious() instanceof CompetitionParticipantAlreadyConnectedToDifferentPlayer) {
-                    $this->addFlash('danger', $this->translator->trans('flashes.competition_duplicate_connection'));
-                } else {
-                    throw $e;
-                }
+            if ($participantId !== '') {
+                $this->join($competitionId, $profile->playerId, $participantId);
+            } elseif ($request->request->getBoolean('self_join')) {
+                $this->join($competitionId, $profile->playerId, null);
+            } else {
+                // Picker submitted without a name — never fall through to joining under the profile name
+                return $this->redirectToRoute('join_competition', ['competitionId' => $competitionId]);
             }
 
             return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);
         }
 
-        // GET: Check if we can direct-join or need to show picker
-        $notConnected = $this->getCompetitionParticipants->getNotConnectedParticipants($competitionId);
-        $existingConnections = $this->getCompetitionParticipants->getPlayerConnections($competitionId, $profile->playerId);
+        $isGoing = count($this->getCompetitionParticipants->getPlayerConnections($competitionId, $profile->playerId)) > 0;
+        $hasNotConnected = $this->getCompetitionParticipants->hasNotConnectedParticipants($competitionId);
 
-        // If no unconnected participants and not already connected → direct self-join
-        if (count($notConnected) === 0 && count($existingConnections) === 0) {
-            $this->messageBus->dispatch(new JoinCompetition(
-                competitionId: $competitionId,
-                playerId: $profile->playerId,
-            ));
+        if ($isGoing === false) {
+            // Opted in and their name is on the organizer's list: no need to make them pick it
+            $matchingParticipantId = $profile->playerName !== null
+                ? $this->getCompetitionParticipants->findNotConnectedParticipantMatchingName($competitionId, $profile->playerName, $profile->country)
+                : null;
 
-            $this->addFlash('success', $this->translator->trans('flashes.competition_join_success'));
+            if ($matchingParticipantId !== null || $hasNotConnected === false) {
+                $this->join($competitionId, $profile->playerId, $matchingParticipantId);
 
-            return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);
+                return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);
+            }
         }
 
-        // Build pairing mapping for the picker
-        $pairingMapping = $this->getCompetitionParticipants->mappingForPairing($competitionId);
+        if ($hasNotConnected === false) {
+            // Already going and nobody left on the list to switch to
+            return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);
+        }
 
         return $this->render('join_competition.html.twig', [
             'competition' => $competition,
             'profile' => $profile,
-            'pairingMapping' => $pairingMapping,
-            'hasExistingConnection' => count($existingConnections) > 0,
+            'profile_country' => CountryCode::fromCode($profile->country),
+            'not_connected_participants' => $this->getCompetitionParticipants->getNotConnectedParticipants($competitionId),
+            'is_self_joined' => $this->getCompetitionParticipants->isPlayerSelfJoined($competitionId, $profile->playerId),
         ]);
+    }
+
+    private function join(string $competitionId, string $playerId, null|string $participantId): void
+    {
+        try {
+            $this->messageBus->dispatch(new JoinCompetition(
+                competitionId: $competitionId,
+                playerId: $playerId,
+                participantId: $participantId,
+            ));
+
+            $this->addFlash('success', $this->translator->trans('flashes.competition_join_success'));
+        } catch (HandlerFailedException $e) {
+            if ($e->getPrevious() instanceof CompetitionParticipantAlreadyConnectedToDifferentPlayer) {
+                $this->addFlash('danger', $this->translator->trans('flashes.competition_duplicate_connection'));
+            } else {
+                throw $e;
+            }
+        }
     }
 }

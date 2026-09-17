@@ -35,7 +35,6 @@ yarn-error.log
 .phpunit.result.cache
 ###< phpunit/phpunit ###
 myspeedpuzzling.xml
-wjpc_individuals.csv
 competitions_data.csv
 
 CLAUDE.local.md

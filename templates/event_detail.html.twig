@@ -161,9 +161,11 @@
             <span class="btn btn-sm btn-success disabled me-2">
                 <i class="bi bi-check-lg me-1"></i>{{ 'competition.join.you_are_going'|trans }}
             </span>
-            <a href="{{ path('join_competition', {'competitionId': event.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
-                {{ 'competition.join.change'|trans }}
-            </a>
+            {% if can_change_participant %}
+                <a href="{{ path('join_competition', {'competitionId': event.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
+                    {{ 'competition.join.change'|trans }}
+                </a>
+            {% endif %}
             <form method="post" action="{{ path('leave_competition', {'competitionId': event.id}) }}" class="d-inline">
                 <button type="submit" class="btn btn-sm btn-outline-danger">
                     {{ 'competition.join.leave'|trans }}

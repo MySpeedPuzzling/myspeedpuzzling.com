@@ -9,7 +9,6 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\ConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Results\NotConnectedCompetitionParticipant;
-use SpeedPuzzling\Web\Results\CompetitionParticipantInfo;
 use SpeedPuzzling\Web\Value\CountryCode;
 
 readonly final class GetCompetitionParticipants
@@ -18,66 +17,6 @@ readonly final class GetCompetitionParticipants
         private Connection $database,
         private ClockInterface $clock,
     ) {
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public function mappingForPairing(string $competitionId): array
-    {
-        $query = <<<SQL
-SELECT name, id
-FROM competition_participant
-WHERE competition_id = :competitionId
-AND deleted_at IS NULL
-SQL;
-        $results = [];
-
-        $rows = $this->database
-            ->executeQuery($query, [
-                'competitionId' => $competitionId,
-            ])
-            ->fetchAllAssociative();
-
-        foreach ($rows as $row) {
-            /**
-             * @var array{name: string, id: string} $row
-             */
-
-            $results[$row['name']] = $row['id'];
-        }
-
-        return $results;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public function mappingToPlayers(string $competitionId): array
-    {
-        $query = <<<SQL
-SELECT player_id, name
-FROM competition_participant
-WHERE player_id IS NOT NULL AND competition_id = :competitionId
-AND deleted_at IS NULL
-SQL;
-        $results = [];
-
-        $rows = $this->database
-            ->executeQuery($query, [
-                'competitionId' => $competitionId,
-            ])
-            ->fetchAllAssociative();
-
-        foreach ($rows as $row) {
-            /**
-             * @var array{player_id: string, name: string} $row
-             */
-
-            $results[$row['player_id']] = $row['name'];
-        }
-
-        return $results;
     }
 
     /**
@@ -334,38 +273,75 @@ SQL;
         return $rows;
     }
 
-    public function forPlayer(string $playerId): null|CompetitionParticipantInfo
+    public function isPlayerSelfJoined(string $competitionId, string $playerId): bool
     {
         $query = <<<SQL
-SELECT 
-    competition_participant.id AS participant_id,
-    competition_participant.name AS participant_name, 
-    competition_participant.rounds
-FROM 
-    competition_participant
-WHERE
-    competition_participant.player_id = :playerId
-    AND competition_participant.deleted_at IS NULL
+SELECT EXISTS (
+    SELECT 1
+    FROM competition_participant
+    WHERE player_id = :playerId AND competition_id = :competitionId
+    AND deleted_at IS NULL
+    AND source = 'self_joined'
+)
 SQL;
 
-        /**
-         * @var false|array{
-         *     participant_id: string,
-         *     participant_name: string,
-         * } $row
-         */
-        $row = $this->database
-            ->executeQuery($query, ['playerId' => $playerId])
-            ->fetchAssociative();
+        return (bool) $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+                'competitionId' => $competitionId,
+            ])
+            ->fetchOne();
+    }
 
-        if (is_array($row) === false) {
+    public function hasNotConnectedParticipants(string $competitionId): bool
+    {
+        $query = <<<SQL
+SELECT EXISTS (
+    SELECT 1
+    FROM competition_participant
+    WHERE competition_id = :competitionId
+    AND player_id IS NULL
+    AND deleted_at IS NULL
+)
+SQL;
+
+        return (bool) $this->database
+            ->executeQuery($query, ['competitionId' => $competitionId])
+            ->fetchOne();
+    }
+
+    /**
+     * The one not-connected participant whose name equals the given name, ignoring case, accents
+     * and extra whitespace. A participant with a different country does not match, and neither
+     * does an ambiguous name — then the player picks from the list themselves.
+     */
+    public function findNotConnectedParticipantMatchingName(string $competitionId, string $name, null|string $country): null|string
+    {
+        if (trim($name) === '') {
             return null;
         }
 
-        return new CompetitionParticipantInfo(
-            participantId: $row['participant_id'],
-            participantName: $row['participant_name'],
-            rounds: [],
-        );
+        $query = <<<SQL
+SELECT id
+FROM competition_participant
+WHERE competition_id = :competitionId
+AND player_id IS NULL
+AND deleted_at IS NULL
+AND lower(regexp_replace(trim(immutable_unaccent(name)), '\s+', ' ', 'g'))
+    = lower(regexp_replace(trim(immutable_unaccent(:name)), '\s+', ' ', 'g'))
+AND (country IS NULL OR CAST(:country AS TEXT) IS NULL OR country = :country)
+LIMIT 2
+SQL;
+
+        /** @var array<string> $ids */
+        $ids = $this->database
+            ->executeQuery($query, [
+                'competitionId' => $competitionId,
+                'name' => $name,
+                'country' => $country,
+            ])
+            ->fetchFirstColumn();
+
+        return count($ids) === 1 ? $ids[0] : null;
     }
 }

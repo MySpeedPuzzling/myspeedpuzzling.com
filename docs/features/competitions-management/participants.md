@@ -250,7 +250,7 @@ Best practice for organizers: always use `external_id` or `msp_player_id` for re
 When an organizer imports a file containing a `msp_player_id` that matches a self-joined participant's player:
 → **Merge automatically.** The existing self-join participant is updated with the imported data (`externalId`, etc.) and becomes `source=imported` — it is on the organizer's list now, so leaving disconnects instead of deleting it. No duplicate created.
 
-Only put `msp_player_id` in a file for players who opted in themselves. WJPC 2026 (2026-09-17): the list scraped from worldjigsawpuzzle.org carried `msp_player_id` only for players who had already clicked "I'm going" **and** whose name matched the WJPF name — a WJPF e-mail pairing (`wjpf_identity`) alone is not consent to be listed as going.
+Only put `msp_player_id` in a file for players who opted in themselves. WJPC 2026 (2026-09-17): the 812 individuals scraped from worldjigsawpuzzle.org (`/wjpc/2026/participants/individual/{a..d}` — the plain `/participants` page shows only the group currently playing) carried `msp_player_id` only for players who had already clicked "I'm going" **and** were identified either by their WJPF e-mail pairing (`wjpf_identity.wjpf_name_url` = the WJPF profile slug, used as `external_id`) or, unpaired, by an exact name + country match. A player whose name and e-mail pairing disagreed was left to pick. A WJPF e-mail pairing alone is not consent to be listed as going.
 
 **Name handling on merge:** Participant `name` and MSP player display name are separate fields (see Two-Name Concept). On merge, the **organizer's imported `name` overwrites** the existing participant `name` — the organizer is authoritative for official competition names. The player's MSP display name (from the `Player` entity) is unaffected and always available separately.
 
@@ -266,6 +266,15 @@ Below the columns, a **"How does import work?"** documentation panel explains:
 1. **Merge behavior:** New names are added, existing participants (matched by name) are updated, participants not in the file are left untouched — nothing gets deleted unless `status` is set to `"deleted"`.
 2. **Column reference table:** Each column (`name`, `country`, `external_id`, `msp_player_id`, `status`) with required/optional flag and description. The `status` column explicitly documents allowed values: `"active"` (default) or `"deleted"`.
 3. **Recommended workflow:** Download template/export → edit → upload.
+
+### Import from the console
+
+Same importer, for files prepared outside the UI (e.g. a list scraped from the organizer's site) — dispatches `ImportCompetitionParticipants`, prints warnings, errors and the added/updated counts:
+
+```bash
+docker compose exec -T web sh -c 'cat > /tmp/list.xlsx' < list.xlsx
+docker compose exec -T web php bin/console myspeedpuzzling:import-competition-participants <competitionId> /tmp/list.xlsx
+```
 
 ### Post-Import Feedback
 

@@ -27,7 +27,7 @@
 
                                 {% if is_web() %}
                                     <p class="mb-1">
-                                        <a data-turbo-prefetch="false" class="btn btn-outline-primary" href="{{ path('billing_portal') }}">{{ 'membership.payment_portal_button'|trans }}</a>
+                                        <a data-turbo-prefetch="false" class="btn btn-outline-primary" href="{{ path('billing_portal') }}">{{ 'membership.payment_portal_button'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i></a>
                                     </p>
 
                                     <p class="text-muted small mb-0">{{ 'membership.billing_portal_info'|trans }}</p>
@@ -88,14 +88,14 @@
                             {% if has_management %}
                                 <p class="mb-1">
                                     {% if is_web() and has_payment_portal %}
-                                        <a data-turbo-prefetch="false" class="btn btn-outline-primary" href="{{ path('billing_portal') }}">{{ 'membership.payment_portal_button'|trans }}</a>
+                                        <a data-turbo-prefetch="false" class="btn btn-outline-primary" href="{{ path('billing_portal') }}">{{ 'membership.payment_portal_button'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i></a>
                                     {% elseif is_ios() %}
                                         <a class="btn btn-outline-primary" href="itms-apps://apps.apple.com/account/subscriptions">
-                                            <i class="bi bi-apple me-1"></i> {{ 'membership.manage_in_app_store'|trans }}
+                                            <i class="bi bi-apple me-1"></i> {{ 'membership.manage_in_app_store'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
                                         </a>
                                     {% elseif is_android() %}
                                         <a class="btn btn-outline-primary" href="https://play.google.com/store/account/subscriptions">
-                                            <i class="bi bi-google-play me-1"></i> {{ 'membership.manage_in_play_store'|trans }}
+                                            <i class="bi bi-google-play me-1"></i> {{ 'membership.manage_in_play_store'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
                                         </a>
                                     {% endif %}
                                 </p>

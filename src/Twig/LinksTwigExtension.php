@@ -36,7 +36,7 @@ final class LinksTwigExtension extends AbstractExtension
     {
         $link = $this->generateInstagramLink->fromUserInput($input);
 
-        return new Markup("<a target='_blank' href='{$link->link}'>{$link->text}</a>", 'UTF-8');
+        return $this->externalAnchor($link->link, $link->text);
     }
 
     public function generateFacebookLink(string $input): Markup|string
@@ -47,13 +47,26 @@ final class LinksTwigExtension extends AbstractExtension
             return $link->text;
         }
 
-        return new Markup("<a target='_blank' href='{$link->link}'>{$link->text}</a>", 'UTF-8');
+        return $this->externalAnchor($link->link, $link->text);
     }
 
     public function generateTwitchLink(string $input): Markup
     {
         $link = $this->generateTwitchLink->fromUserInput($input);
 
-        return new Markup("<a target='_blank' href='{$link->link}'>{$link->text}</a>", 'UTF-8');
+        return $this->externalAnchor($link->link, $link->text);
+    }
+
+    /**
+     * Both values come straight from what a player typed into their profile, so both are escaped - an apostrophe
+     * in a name used to end the href attribute early. The icon marks a link that leaves MySpeedPuzzling.
+     */
+    private function externalAnchor(null|string $href, string $text): Markup
+    {
+        return new Markup(sprintf(
+            '<a target="_blank" rel="noopener nofollow" href="%s">%s<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i></a>',
+            htmlspecialchars((string) $href, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8'),
+            htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8'),
+        ), 'UTF-8');
     }
 }

@@ -277,6 +277,14 @@
         {% block header %}
         {% if is_web() %}
         <header class="sticky-top shadow-sm" data-controller="header-height">
+            {# Live-event strip: first child of the sticky header, so it takes its own space
+               and --header-height follows it. Not on the event page it links to. #}
+            {% set live_event_slug = 'world-jigsaw-puzzle-championship-2026' %}
+            {% if not (currentRoute == 'event_detail' and currentRouteParams.slug is defined and currentRouteParams.slug == live_event_slug) %}
+                <a class="competition-panel-info" href="{{ path('event_detail', {slug: live_event_slug}) }}">
+                    <span class="competition-panel-info-live-dot" aria-hidden="true"></span>{{ 'live_event_strip'|trans({'%event%': 'WJPC 2026'}) }}
+                </a>
+            {% endif %}
             <div class="topbar topbar-light">
                 <div class="container">
                     <div class="topbar-text text-nowrap">
@@ -615,12 +623,6 @@
         </header>
         {% endif %}
         {% endblock %}
-
-        {#
-        <div class="competition-panel-info">
-            <i class="bi bi-trophy-fill me-1"></i> {{ 'right_now'|trans }}: <a href="{{ path('event_detail', {'slug': 'world-jigsaw-puzzle-championship-2025'}) }}">World Jigsaw Puzzle Championship</a>
-        </div>
-        #}
 
         <main id="main-content">
             <div data-global-search-target="searchBar" class="global-search">

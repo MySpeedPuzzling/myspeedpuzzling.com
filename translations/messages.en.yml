@@ -112,6 +112,7 @@ active_membership: "Active membership"
 new_badge: "New"
 secret_puzzler_name: "Hidden Puzzler"
 right_now: "Right now"
+live_event_strip: "Now live: %event% – Add & see results"
 
 badge:
     relax: "Relax"

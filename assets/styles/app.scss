@@ -1166,26 +1166,44 @@ header {
     }
 }
 
+// Live-event strip at the top of the sticky header - the whole strip is one link
 .competition-panel-info {
+    display: block;
     background: $primary;
     color: #fff;
     font-size: 12px;
-    position: absolute;
-    left: 0;
-    top: 98px;
-    width: 100%;
+    font-weight: 500;
+    line-height: 1.5;
     padding: 4px 15px;
     text-align: center;
 
-    a {
+    &:hover,
+    &:focus {
         color: #fff;
+        background: darken($primary, 6%);
         text-decoration: underline;
-        font-weight: bold;
     }
+}
 
-    @media (min-width: 768px) {
-        top: 101px;
+.competition-panel-info-live-dot {
+    display: inline-block;
+    width: .5rem;
+    height: .5rem;
+    margin-right: .5rem;
+    vertical-align: .05em;
+    background: #fff;
+    border-radius: 50%;
+
+    @media (prefers-reduced-motion: no-preference) {
+        animation: competition-panel-info-live-pulse 1.6s ease-out infinite;
     }
+}
+
+@keyframes competition-panel-info-live-pulse {
+    0% { opacity: 1; box-shadow: 0 0 0 0 rgba(#fff, .7); }
+    50% { opacity: .45; }
+    70% { box-shadow: 0 0 0 .375rem rgba(#fff, 0); }
+    100% { opacity: 1; box-shadow: 0 0 0 0 rgba(#fff, 0); }
 }
 
 .toast-body {

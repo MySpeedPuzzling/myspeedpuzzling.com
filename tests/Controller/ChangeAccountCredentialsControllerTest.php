@@ -92,7 +92,8 @@ final class ChangeAccountCredentialsControllerTest extends WebTestCase
             $form->getName() . '[newPassword]' => 'a-brand-new-passphrase',
         ]);
 
-        self::assertResponseIsSuccessful();
+        // 422, not 200: Turbo Drive discards a 200 answer to a form submission and the error with it
+        self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('not your current password', $crawler->filter('form')->text());
 
         $hasher = $browser->getContainer()->get(UserPasswordHasherInterface::class);
@@ -149,7 +150,8 @@ final class ChangeAccountCredentialsControllerTest extends WebTestCase
             $form->getName() . '[currentPassword]' => 'not-the-current-passphrase',
         ]);
 
-        self::assertResponseIsSuccessful();
+        // 422, not 200: Turbo Drive discards a 200 answer to a form submission and the error with it
+        self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('not your current password', $crawler->filter('form')->text());
 
         $reloaded = $browser->getContainer()->get(UserAccountRepository::class)

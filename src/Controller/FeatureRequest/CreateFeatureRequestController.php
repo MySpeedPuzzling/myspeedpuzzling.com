@@ -84,7 +84,7 @@ final class CreateFeatureRequestController extends AbstractController
         }
 
         return $this->render('feature_request/create.html.twig', [
-            'form' => $form->createView(),
+            'form' => $form,
         ]);
     }
 }

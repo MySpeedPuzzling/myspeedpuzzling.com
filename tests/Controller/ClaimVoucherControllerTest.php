@@ -58,6 +58,9 @@ final class ClaimVoucherControllerTest extends WebTestCase
         $this->assertSelectorTextContains('.card-body', 'Free months from your voucher');
         $this->assertSelectorTextContains('.card-body', VoucherFixture::VOUCHER_AVAILABLE_CODE);
         $this->assertSelectorTextContains('.card-body', 'nothing will be charged');
+
+        // No Stripe customer, nothing to manage - the portal link would only bounce back to this page
+        $this->assertSelectorNotExists('a[href$="/billing-portal"]');
     }
 
     public function testReclaimingOwnVoucherReassuresInsteadOfFailing(): void

@@ -72,7 +72,7 @@ final class FeatureRequestDetailController extends AbstractController
                     return $this->redirectToRoute('feature_request_detail', ['featureRequestId' => $featureRequestId]);
                 }
 
-                $commentForm = $form->createView();
+                $commentForm = $form;
             }
         }
 

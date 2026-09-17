@@ -97,9 +97,10 @@ final class PasswordResetController extends AbstractController
 
                 $this->addFlash('danger', $this->translator->trans('auth.password_reset.failed'));
 
+                // The form itself is valid, so render() would answer 200 - which Turbo Drive discards, flash included
                 return $this->noReferrer($this->render('password_reset.html.twig', [
-                    'form' => $form->createView(),
-                ]));
+                    'form' => $form,
+                ], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY)));
             }
 
             // Not logged in here on purpose: proving control of the mailbox resets the
@@ -110,7 +111,7 @@ final class PasswordResetController extends AbstractController
         }
 
         return $this->noReferrer($this->render('password_reset.html.twig', [
-            'form' => $form->createView(),
+            'form' => $form,
         ]));
     }
 

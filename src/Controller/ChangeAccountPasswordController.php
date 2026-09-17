@@ -86,7 +86,8 @@ final class ChangeAccountPasswordController extends AbstractController
 
                 $this->addFlash('danger', $this->translator->trans('flashes.password_change_failed'));
 
-                return $this->renderPage($form);
+                // The form itself is valid, so render() would answer 200 - which Turbo Drive discards, flash included
+                return $this->renderPage($form, Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
             $this->addFlash('success', $this->translator->trans('edit_profile.change_password_saved'));
@@ -100,10 +101,12 @@ final class ChangeAccountPasswordController extends AbstractController
     /**
      * @param FormInterface<ChangePasswordFormData> $form
      */
-    private function renderPage(FormInterface $form): Response
+    private function renderPage(FormInterface $form, int $status = Response::HTTP_OK): Response
     {
+        // The form itself, not its view: render() answers 422 for a submitted invalid form, and Turbo Drive
+        // silently discards a 200 answer to a form submission - field errors included
         return $this->render('change_account_password.html.twig', [
-            'form' => $form->createView(),
-        ]);
+            'form' => $form,
+        ], new Response(status: $status));
     }
 }

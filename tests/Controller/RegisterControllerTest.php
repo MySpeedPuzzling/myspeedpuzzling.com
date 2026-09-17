@@ -115,7 +115,8 @@ final class RegisterControllerTest extends WebTestCase
 
         $crawler = $this->submitRegistration($browser, strtoupper($email), 'a-properly-long-passphrase');
 
-        self::assertResponseIsSuccessful();
+        // 422, not 200: Turbo Drive discards a 200 answer to a form submission and the error with it
+        self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('already has an account', $crawler->filter('form')->text());
     }
 
@@ -146,7 +147,8 @@ final class RegisterControllerTest extends WebTestCase
 
         $crawler = $this->submitRegistration($browser, $email, 'a-properly-long-passphrase');
 
-        self::assertResponseIsSuccessful();
+        // 422, not 200: Turbo Drive discards a 200 answer to a form submission and the error with it
+        self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('already has an account', $crawler->filter('form')->text());
         self::assertNull($browser->getContainer()->get(TokenStorageInterface::class)->getToken());
     }
@@ -158,7 +160,8 @@ final class RegisterControllerTest extends WebTestCase
 
         $this->submitRegistration($browser, $email, 'short');
 
-        self::assertResponseIsSuccessful();
+        // 422, not 200: Turbo Drive discards a 200 answer to a form submission and the error with it
+        self::assertResponseStatusCodeSame(422);
         self::assertNull($browser->getContainer()->get(UserAccountRepository::class)->findByEmail($email));
     }
 

@@ -65,7 +65,7 @@ final class AccountSetPasswordController extends AbstractController
         }
 
         return $this->render('account_set_password.html.twig', [
-            'form' => $form->createView(),
+            'form' => $form,
         ]);
     }
 }

@@ -98,7 +98,8 @@ final class ChangeAccountEmailController extends AbstractController
 
                 $this->addFlash('danger', $this->translator->trans('edit_profile.change_email_failed'));
 
-                return $this->renderPage($form, $user);
+                // The form itself is valid, so render() would answer 200 - which Turbo Drive discards, flash included
+                return $this->renderPage($form, $user, Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
             // Sent after the change is committed, so the token binds the new address
@@ -120,11 +121,13 @@ final class ChangeAccountEmailController extends AbstractController
     /**
      * @param FormInterface<ChangeEmailFormData> $form
      */
-    private function renderPage(FormInterface $form, UserAccount $userAccount): Response
+    private function renderPage(FormInterface $form, UserAccount $userAccount, int $status = Response::HTTP_OK): Response
     {
+        // The form itself, not its view: render() answers 422 for a submitted invalid form, and Turbo Drive
+        // silently discards a 200 answer to a form submission - field errors included
         return $this->render('change_account_email.html.twig', [
-            'form' => $form->createView(),
+            'form' => $form,
             'current_email' => $userAccount->email,
-        ]);
+        ], new Response(status: $status));
     }
 }

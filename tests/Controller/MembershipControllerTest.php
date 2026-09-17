@@ -46,4 +46,14 @@ final class MembershipControllerTest extends WebTestCase
         $this->assertSelectorTextNotContains('.card-body', '2199');
         $this->assertSelectorNotExists('a[href$="/en/buy-membership/yearly"]');
     }
+
+    public function testSubscriberCanOpenThePaymentPortal(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $browser->request('GET', '/en/membership');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorExists('a[href$="/billing-portal"]');
+    }
 }

@@ -90,7 +90,7 @@ final class EditFeatureRequestController extends AbstractController
         }
 
         return $this->render('feature_request/edit.html.twig', [
-            'form' => $form->createView(),
+            'form' => $form,
             'feature_request' => $featureRequest,
         ]);
     }

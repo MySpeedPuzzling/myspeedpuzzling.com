@@ -79,7 +79,7 @@ final class SetPasswordAfterSignInLinkController extends AbstractController
         }
 
         return $this->render('set_password_after_sign_in_link.html.twig', [
-            'form' => $form->createView(),
+            'form' => $form,
         ]);
     }
 }

@@ -206,10 +206,11 @@ readonly final class ApprovePuzzleMergeRequestHandler
     {
         foreach ($puzzlesToMerge as $puzzleToMerge) {
             $survivorPuzzle->updateProductIdentifiers(
-                ean: self::isBlank($survivorPuzzle->ean) ? $puzzleToMerge->ean : $survivorPuzzle->ean,
-                identificationNumber: self::isBlank($survivorPuzzle->identificationNumber)
-                    ? $puzzleToMerge->identificationNumber
-                    : $survivorPuzzle->identificationNumber,
+                ean: self::unionIdentifiers($survivorPuzzle->ean, $puzzleToMerge->ean),
+                identificationNumber: self::unionIdentifiers(
+                    $survivorPuzzle->identificationNumber,
+                    $puzzleToMerge->identificationNumber,
+                ),
             );
 
             if (self::isBlank($survivorPuzzle->alternativeName) && self::isBlank($puzzleToMerge->alternativeName) === false) {
@@ -230,6 +231,33 @@ readonly final class ApprovePuzzleMergeRequestHandler
     private static function isBlank(null|string $value): bool
     {
         return $value === null || trim($value) === '';
+    }
+
+    /**
+     * Combines two product-code fields into one list.
+     *
+     * A single puzzle legitimately carries more than one EAN or catalogue number -
+     * the same product gets its own code per edition or region - and those are held
+     * as a comma-separated list. Merging two records therefore has to take the union:
+     * picking one and discarding the other throws away a code that identifies a real
+     * product, and the puzzle it belonged to is about to be deleted. Existing entries
+     * keep their order, so the survivor's own codes stay first.
+     */
+    private static function unionIdentifiers(null|string $survivorValue, null|string $mergedValue): null|string
+    {
+        $codes = [];
+
+        foreach ([$survivorValue, $mergedValue] as $list) {
+            foreach (explode(',', $list ?? '') as $code) {
+                $code = trim($code);
+
+                if ($code !== '' && in_array($code, $codes, true) === false) {
+                    $codes[] = $code;
+                }
+            }
+        }
+
+        return $codes === [] ? null : implode(', ', $codes);
     }
 
     /**

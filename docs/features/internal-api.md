@@ -65,14 +65,16 @@ Approve body:
 | `survivorPuzzleId` | yes | The puzzle that stays. Normally the one carrying the most history |
 | `mergedName` | yes | Name the survivor ends up with |
 | `mergedPiecesCount` | yes | Positive integer |
-| `mergedEan` | no | Leave out to keep the survivor's own |
+| `mergedEan` | no | Leave out to keep the survivor's own. May be a comma-separated list; the merged puzzle's codes are unioned in either way |
 | `mergedIdentificationNumber` | no | As above |
 | `mergedManufacturerId` | no | Leave out to keep the survivor's own |
 | `selectedImagePuzzleId` | no | Take the cover image from this puzzle |
 | `decisionConfidence` | no | `high`, `medium` or `low` |
 | `decisionNote` | no | Why — stored on the audit row, not shown to players |
 
-Blank strings count as absent, so a blank `mergedEan` never blanks a real one. Whatever the reviewer omits, the merge still carries over any EAN, catalogue number, alternative name, cover image or manufacturer that **only** a deleted puzzle had — a merge never loses product data it could have kept.
+Blank strings count as absent, so a blank `mergedEan` never blanks a real one.
+
+**A puzzle may legitimately carry several EANs or catalogue numbers**, held as a comma-separated list, because the same puzzle gets its own code per edition or region. A merge therefore takes the *union* of both records' codes rather than choosing between them, and `mergedEan` may itself be such a list. Never reduce an existing list to a single value — the codes you drop identify real editions, and the record holding them is deleted moments later. The merge likewise carries over any alternative name, cover image or manufacturer that **only** a deleted puzzle had.
 
 Reject body: `rejectionReason` (required). **It is shown to the player who reported the duplicate**, as a notification, so write it for them.
 

@@ -490,7 +490,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         self::assertSame(1.4, $survivorPuzzle->imageRatio);
     }
 
-    public function testMergeNeverOverwritesDetailsTheSurvivorAlreadyHas(): void
+    public function testMergeKeepsBothProductCodesAndNeverOverwritesOtherSurvivorDetails(): void
     {
         $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
         $survivorPuzzle->updateProductIdentifiers(ean: '1234567890123', identificationNumber: 'KEEP-ME');
@@ -498,7 +498,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         $survivorPuzzle->image = 'puzzles/survivor-cover.jpg';
 
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
-        $duplicatePuzzle->updateProductIdentifiers(ean: '9999999999999', identificationNumber: 'DISCARD-ME');
+        $duplicatePuzzle->updateProductIdentifiers(ean: '9999999999999', identificationNumber: 'SECOND-EDITION');
         $duplicatePuzzle->alternativeName = 'Duplicate Alternative';
         $duplicatePuzzle->image = 'puzzles/duplicate-cover.jpg';
         $this->entityManager->flush();
@@ -520,8 +520,11 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         );
 
         $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
-        self::assertSame('1234567890123', $survivorPuzzle->ean);
-        self::assertSame('KEEP-ME', $survivorPuzzle->identificationNumber);
+        // One puzzle can carry several product codes (one per edition or region), so a
+        // merge unions them - discarding either would lose a real product's identifier.
+        self::assertSame('1234567890123, 9999999999999', $survivorPuzzle->ean);
+        self::assertSame('KEEP-ME, SECOND-EDITION', $survivorPuzzle->identificationNumber);
+        // Everything else still belongs to the survivor alone
         self::assertSame('Survivor Alternative', $survivorPuzzle->alternativeName);
         self::assertSame('puzzles/survivor-cover.jpg', $survivorPuzzle->image);
     }
@@ -612,5 +615,72 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
 
         $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
         self::assertSame('Survivor Name', $survivorPuzzle->name);
+    }
+
+    /**
+     * A puzzle that already lists two EANs must not come out of a merge with one.
+     * Reducing the list loses a code that identifies a real edition - and the record
+     * that carried it is deleted moments later.
+     */
+    public function testMergePreservesAnExistingMultiCodeListAndAddsTheNewOne(): void
+    {
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        $survivorPuzzle->updateProductIdentifiers(
+            ean: '4005556147090, 4005555001997',
+            identificationNumber: '14709, 12000199',
+        );
+
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $duplicatePuzzle->updateProductIdentifiers(ean: '4005555012740', identificationNumber: '12001274');
+        $this->entityManager->flush();
+
+        $mergeRequestId = $this->submitMergeRequest();
+
+        $this->messageBus->dispatch(
+            new ApprovePuzzleMergeRequest(
+                mergeRequestId: $mergeRequestId,
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+                mergedName: 'Survivor Name',
+                mergedEan: null,
+                mergedIdentificationNumber: null,
+                mergedPiecesCount: 500,
+                mergedManufacturerId: null,
+                selectedImagePuzzleId: null,
+            ),
+        );
+
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        self::assertSame('4005556147090, 4005555001997, 4005555012740', $survivorPuzzle->ean);
+        self::assertSame('14709, 12000199, 12001274', $survivorPuzzle->identificationNumber);
+    }
+
+    public function testMergeDoesNotRepeatACodeBothPuzzlesAlreadyShare(): void
+    {
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        $survivorPuzzle->updateProductIdentifiers(ean: '4005556147564, 4005555002017', identificationNumber: null);
+
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $duplicatePuzzle->updateProductIdentifiers(ean: '4005556147564', identificationNumber: null);
+        $this->entityManager->flush();
+
+        $mergeRequestId = $this->submitMergeRequest();
+
+        $this->messageBus->dispatch(
+            new ApprovePuzzleMergeRequest(
+                mergeRequestId: $mergeRequestId,
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+                mergedName: 'Survivor Name',
+                mergedEan: null,
+                mergedIdentificationNumber: null,
+                mergedPiecesCount: 500,
+                mergedManufacturerId: null,
+                selectedImagePuzzleId: null,
+            ),
+        );
+
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        self::assertSame('4005556147564, 4005555002017', $survivorPuzzle->ean);
     }
 }

@@ -27,6 +27,9 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(\SpeedPuzzling\Web\Services\CompetitionParticipantExporter::class)->public();
     $services->set(\SpeedPuzzling\Web\Query\GetCompetitionParticipantsForManagement::class)->public();
 
+    // Fails a test whose form POST answers 200 - Turbo Drive would discard it in the browser
+    $services->set(\SpeedPuzzling\Web\Tests\TestDouble\SilentFormSubmissionGuard::class)->tag('kernel.event_subscriber');
+
     // Mercure test double
     $services->set(NullMercureHub::class);
     $services->alias(HubInterface::class, NullMercureHub::class);

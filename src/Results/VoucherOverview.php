@@ -23,6 +23,8 @@ readonly final class VoucherOverview
         public null|int $percentageDiscount,
         public int $maxUses,
         public int $usageCount,
+        public null|DateTimeImmutable $freePeriodStartsAt = null,
+        public null|DateTimeImmutable $freePeriodEndsAt = null,
     ) {
     }
 
@@ -59,6 +61,12 @@ readonly final class VoucherOverview
         assert(is_int($usageCount) || is_string($usageCount));
         $usageCount = (int) $usageCount;
 
+        // Only the used-vouchers listing selects the free period
+        $freePeriodStartsAt = $row['free_period_starts_at'] ?? null;
+        assert(is_string($freePeriodStartsAt) || $freePeriodStartsAt === null);
+        $freePeriodEndsAt = $row['free_period_ends_at'] ?? null;
+        assert(is_string($freePeriodEndsAt) || $freePeriodEndsAt === null);
+
         return new self(
             id: $id,
             code: $code,
@@ -73,6 +81,8 @@ readonly final class VoucherOverview
             percentageDiscount: $percentageDiscount,
             maxUses: $maxUses,
             usageCount: $usageCount,
+            freePeriodStartsAt: $freePeriodStartsAt !== null ? new DateTimeImmutable($freePeriodStartsAt) : null,
+            freePeriodEndsAt: $freePeriodEndsAt !== null ? new DateTimeImmutable($freePeriodEndsAt) : null,
         );
     }
 

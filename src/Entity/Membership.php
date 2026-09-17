@@ -26,6 +26,13 @@ class Membership implements EntityWithEvents
 {
     use HasEvents;
 
+    /**
+     * The coupon currently on the Stripe subscription, as Stripe reports it on every subscription webhook -
+     * a percentage voucher's discount lives there, and disappears with the subscription it was applied to.
+     */
+    #[Column(nullable: true)]
+    public null|string $stripeDiscountCouponId = null;
+
     public function __construct(
         #[Id]
         #[Immutable]

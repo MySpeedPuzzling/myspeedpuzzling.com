@@ -14,6 +14,9 @@ readonly final class PlayerMembership
         public null|DateTimeImmutable $endsAt,
         public null|DateTimeImmutable $billingPeriodEndsAt,
         public null|DateTimeImmutable $grantedUntil,
+        /** Percentage discount from a voucher, currently on the Stripe subscription */
+        public null|int $discountPercent = null,
+        public null|string $discountVoucherCode = null,
     ) {
     }
 
@@ -62,6 +65,8 @@ readonly final class PlayerMembership
      *     ends_at: null|string,
      *     billing_period_ends_at: null|string,
      *     granted_until: null|string,
+     *     discount_percent: null|int,
+     *     discount_voucher_code: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -89,6 +94,8 @@ readonly final class PlayerMembership
             endsAt: $endsAt,
             billingPeriodEndsAt: $billingPeriodEndsAt,
             grantedUntil: $grantedUntil,
+            discountPercent: $row['discount_percent'],
+            discountVoucherCode: $row['discount_voucher_code'],
         );
     }
 }

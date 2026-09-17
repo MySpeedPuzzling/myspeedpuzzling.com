@@ -1089,6 +1089,8 @@
   "redeem_voucher": "Gutschein einlösen"
   "discount_ready": "%discount% % Rabatt bereit!"
   "discount_ready_info": "Ihr Rabatt wird beim Bezahlen automatisch angewendet."
+  "discount_applied": "%discount% % Rabatt auf jede Zahlung"
+  "discount_applied_info": "Er gilt, solange dieses Abonnement läuft."
   "voucher":
     "title": "Gratismonate aus Ihrem Gutschein"
     "lead_upcoming": "Ihr aktueller Zeitraum endet am <strong>%current_period_ends%</strong>. <strong>Dann wird Ihnen nichts berechnet</strong> – die folgenden Monate deckt Ihr Gutschein ab. Die nächste Zahlung erfolgt am <strong>%next_payment%</strong>."
@@ -1101,6 +1103,7 @@
     "voucher_code": "Gutschein"
     "next_payment": "Nächste Zahlung"
     "next_payment_info": "Danach läuft Ihr Abonnement zum regulären Preis weiter."
+    "next_payment_info_discounted": "Danach läuft Ihr Abonnement mit Ihrem Rabatt von %discount% % weiter."
     "membership_ends": "Mitgliedschaft endet"
     "membership_ends_info": "Keine automatische Zahlung – sie endet einfach."
 "membership_payment_cancelled":

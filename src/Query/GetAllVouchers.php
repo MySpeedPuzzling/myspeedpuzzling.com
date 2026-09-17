@@ -119,6 +119,8 @@ SELECT
     v.voucher_type,
     v.percentage_discount,
     v.max_uses,
+    v.free_period_starts_at,
+    v.free_period_ends_at,
     p.id as used_by_id,
     p.name as used_by_name,
     (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) as usage_count

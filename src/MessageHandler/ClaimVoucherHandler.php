@@ -279,6 +279,8 @@ readonly final class ClaimVoucherHandler
                 ]);
 
                 $claim->markAsApplied($now);
+                // Right away, so the membership page shows it - the subscription webhook that follows confirms it
+                $membership->stripeDiscountCouponId = $couponId;
 
                 $this->logger->info('Percentage voucher applied to existing subscription', [
                     'voucher_id' => $voucher->id->toString(),

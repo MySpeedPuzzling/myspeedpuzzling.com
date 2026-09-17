@@ -135,6 +135,9 @@
                                     <td class="d-none d-md-table-cell">
                                         {% if voucher.usedAt %}
                                             {{ voucher.usedAt|ago }}
+                                            {% if voucher.freePeriodStartsAt and voucher.freePeriodEndsAt %}
+                                                <br><small class="text-muted">Free {{ voucher.freePeriodStartsAt|date('d.m.Y') }} – {{ voucher.freePeriodEndsAt|date('d.m.Y') }}</small>
+                                            {% endif %}
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}

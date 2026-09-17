@@ -260,4 +260,108 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
         $events = $membership->popEvents();
         self::assertEmpty($events);
     }
+
+    public function testStoresTheCouponCurrentlyOnTheSubscription(): void
+    {
+        $membership = $this->membershipWithSubscription('sub_test_discounted');
+        $membership->stripeDiscountCouponId = 'coupon_stale';
+
+        $this->handleWebhook($membership, 'sub_test_discounted', discounts: [
+            [
+                'id' => 'di_test',
+                'object' => 'discount',
+                'source' => ['type' => 'coupon', 'coupon' => 'coupon_voucher_20'],
+            ],
+        ]);
+
+        self::assertSame('coupon_voucher_20', $membership->stripeDiscountCouponId);
+    }
+
+    public function testClearsTheCouponOnceTheSubscriptionHasNone(): void
+    {
+        $membership = $this->membershipWithSubscription('sub_test_plain');
+        $membership->stripeDiscountCouponId = 'coupon_voucher_20';
+
+        $this->handleWebhook($membership, 'sub_test_plain', discounts: []);
+
+        self::assertNull($membership->stripeDiscountCouponId);
+    }
+
+    private function membershipWithSubscription(string $subscriptionId): Membership
+    {
+        $player = new Player(
+            id: Uuid::uuid7(),
+            code: 'discounted',
+            userId: 'auth0|discounted',
+            email: 'discounted@example.com',
+            name: 'Discounted Player',
+            registeredAt: new DateTimeImmutable(),
+        );
+
+        return new Membership(
+            id: Uuid::uuid7(),
+            player: $player,
+            createdAt: new DateTimeImmutable('-30 days'),
+            stripeSubscriptionId: $subscriptionId,
+            billingPeriodEndsAt: new DateTimeImmutable('+15 days'),
+        );
+    }
+
+    /**
+     * @param list<array<string, mixed>> $discounts
+     */
+    private function handleWebhook(Membership $membership, string $subscriptionId, array $discounts): void
+    {
+        $subscription = Subscription::constructFrom([
+            'id' => $subscriptionId,
+            'status' => 'active',
+            'customer' => 'cus_test_discounted',
+            'cancel_at_period_end' => false,
+            'pause_collection' => null,
+            'discounts' => $discounts,
+            'items' => [
+                'data' => [
+                    [
+                        'id' => 'si_test',
+                        'current_period_end' => (new DateTimeImmutable('+30 days'))->getTimestamp(),
+                    ],
+                ],
+            ],
+        ]);
+
+        $subscriptionService = $this->createMock(SubscriptionService::class);
+        $subscriptionService->expects(self::once())
+            ->method('retrieve')
+            ->with($subscriptionId, ['expand' => ['discounts']])
+            ->willReturn($subscription);
+
+        $customerService = $this->createStub(CustomerService::class);
+        $customerService->method('retrieve')->willReturn(Customer::constructFrom([
+            'id' => 'cus_test_discounted',
+            'metadata' => ['player_id' => $membership->player->id->toString()],
+        ]));
+
+        $stripeClient = $this->createStub(StripeClient::class);
+        $stripeClient->method('__get')->willReturnCallback(
+            fn (string $name) => match ($name) {
+                'subscriptions' => $subscriptionService,
+                'customers' => $customerService,
+                default => null,
+            },
+        );
+
+        $membershipRepository = $this->createStub(MembershipRepository::class);
+        $membershipRepository->method('getByStripeSubscriptionId')->willReturn($membership);
+
+        $handler = new UpdateMembershipSubscriptionHandler(
+            stripeClient: $stripeClient,
+            membershipRepository: $membershipRepository,
+            logger: new NullLogger(),
+            lockFactory: new LockFactory(new InMemoryStore()),
+            playerRepository: $this->createStub(PlayerRepository::class),
+            clock: new MockClock(),
+        );
+
+        $handler(new UpdateMembershipSubscription($subscriptionId));
+    }
 }

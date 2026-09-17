@@ -1,0 +1,18 @@
+{#
+    A percentage voucher's discount on the running Stripe subscription - the flash after claiming it is the only
+    other place it was ever mentioned. Expects: membership (PlayerMembership with discountPercent), last (bool - no margin below)
+#}
+<div class="rounded-3 bg-faded-success p-3 {{ last|default(false) ? 'mb-0' : 'mb-3' }} d-flex align-items-start">
+    <span class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center flex-shrink-0 me-3" style="width: 32px; height: 32px;">
+        <i class="ci-discount"></i>
+    </span>
+    <div>
+        <div class="fw-medium">{{ 'membership.discount_applied'|trans({'%discount%': membership.discountPercent}) }}</div>
+        <div class="small text-muted">
+            {% if membership.discountVoucherCode %}
+                {{ 'membership.voucher.voucher_code'|trans }} <code class="text-body">{{ membership.discountVoucherCode }}</code> ·
+            {% endif %}
+            {{ 'membership.discount_applied_info'|trans }}
+        </div>
+    </div>
+</div>

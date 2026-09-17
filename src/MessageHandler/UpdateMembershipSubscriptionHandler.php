@@ -111,6 +111,8 @@ readonly final class UpdateMembershipSubscriptionHandler
                 }
             }
 
+            $membership->stripeDiscountCouponId = $this->discountCouponId($subscription);
+
             if ($subscription->cancel_at_period_end === true) {
                 $membership->cancel($billingPeriodEnd);
             } else {
@@ -130,6 +132,7 @@ readonly final class UpdateMembershipSubscriptionHandler
                     $subscriptionId,
                     $billingPeriodEnd,
                 );
+                $membership->stripeDiscountCouponId = $this->discountCouponId($subscription);
 
                 $this->membershipRepository->save($membership);
             }
@@ -140,7 +143,33 @@ readonly final class UpdateMembershipSubscriptionHandler
 
     private function retrieveSubscriptionWithRetry(string $subscriptionId): \Stripe\Subscription
     {
-        return $this->retryStripeCall(fn () => $this->stripeClient->subscriptions->retrieve($subscriptionId));
+        // Discounts expanded, so the coupon behind each one is readable
+        return $this->retryStripeCall(fn () => $this->stripeClient->subscriptions->retrieve($subscriptionId, ['expand' => ['discounts']]));
+    }
+
+    private function discountCouponId(\Stripe\Subscription $subscription): null|string
+    {
+        if (!isset($subscription->discounts)) {
+            return null;
+        }
+
+        foreach ($subscription->discounts as $discount) {
+            if (!$discount instanceof \Stripe\Discount) {
+                continue;
+            }
+
+            $coupon = $discount->source->coupon ?? null;
+
+            if (is_string($coupon)) {
+                return $coupon;
+            }
+
+            if ($coupon instanceof \Stripe\Coupon) {
+                return $coupon->id;
+            }
+        }
+
+        return null;
     }
 
     private function retrieveCustomerWithRetry(string $customerId): \Stripe\Customer

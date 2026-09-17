@@ -141,6 +141,32 @@ final class ClaimVoucherHandlerTest extends KernelTestCase
         self::assertEquals($paidUntil->modify('+1 month'), $membership->grantedUntil);
     }
 
+    public function testPercentageVoucherOnRunningSubscriptionRecordsTheCouponOnTheMembership(): void
+    {
+        $voucher = $this->voucherRepository->getByCode(VoucherFixture::VOUCHER_PERCENTAGE_AVAILABLE_CODE);
+        $voucher->setStripeCouponId('coupon_test_percentage');
+
+        $subscriptionService = $this->createMock(SubscriptionService::class);
+        $subscriptionService->expects(self::once())
+            ->method('update')
+            ->with('sub_test_123456789', ['discounts' => [['coupon' => 'coupon_test_percentage']]]);
+        $this->replaceStripeSubscriptions($subscriptionService);
+
+        $this->messageBus->dispatch(
+            new ClaimVoucher(
+                playerId: PlayerFixture::PLAYER_WITH_STRIPE,
+                voucherCode: VoucherFixture::VOUCHER_PERCENTAGE_AVAILABLE_CODE,
+            ),
+        );
+
+        $membership = $this->membershipRepository->get(MembershipFixture::MEMBERSHIP_ACTIVE);
+        self::assertSame('coupon_test_percentage', $membership->stripeDiscountCouponId);
+
+        $claim = $this->voucherClaimRepository->findByPlayerAndVoucher(PlayerFixture::PLAYER_WITH_STRIPE, $voucher->id->toString());
+        self::assertNotNull($claim);
+        self::assertNotNull($claim->appliedAt);
+    }
+
     public function testReclaimingOwnFreeMonthsVoucherIsReportedAsAlreadyClaimed(): void
     {
         // VOUCHER_USED was redeemed by PLAYER_REGULAR - entering it again must not read as "used by someone"

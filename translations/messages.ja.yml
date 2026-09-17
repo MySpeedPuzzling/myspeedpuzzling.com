@@ -487,6 +487,8 @@
   "redeem_voucher": "バウチャーを利用する"
   "discount_ready": "%discount%%割引の準備ができました！"
   "discount_ready_info": "割引はお支払い時に自動的に適用されます。"
+  "discount_applied": "毎回のお支払いが%discount%%割引"
+  "discount_applied_info": "このサブスクリプションが続く限り適用されます。"
   "voucher":
     "title": "バウチャーによる無料期間"
     "lead_upcoming": "現在の期間は<strong>%current_period_ends%</strong>に終了しますが、<strong>その時点で料金は請求されません</strong>。その後の期間はバウチャーでカバーされます。次回のお支払いは<strong>%next_payment%</strong>です。"
@@ -499,6 +501,7 @@
     "voucher_code": "バウチャー"
     "next_payment": "次回のお支払い"
     "next_payment_info": "その後は通常料金でサブスクリプションが継続されます。"
+    "next_payment_info_discounted": "その後は%discount%%割引の料金でサブスクリプションが継続されます。"
     "membership_ends": "メンバーシップ終了"
     "membership_ends_info": "自動でのお支払いはなく、そのまま終了します。"
 "feedback":

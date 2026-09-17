@@ -1108,6 +1108,8 @@
   "redeem_voucher": "Uplatnit voucher"
   "discount_ready": "Sleva %discount% % je připravena!"
   "discount_ready_info": "Sleva se automaticky uplatní při platbě."
+  "discount_applied": "Sleva %discount% % na každou platbu"
+  "discount_applied_info": "Platí po celou dobu tohoto předplatného."
   "voucher":
     "title": "Měsíce zdarma z voucheru"
     "lead_upcoming": "Vaše aktuální období končí <strong>%current_period_ends%</strong>. <strong>Tehdy vám nic strženo nebude</strong> – následující měsíce pokrývá váš voucher. Další platba proběhne <strong>%next_payment%</strong>."
@@ -1120,6 +1122,7 @@
     "voucher_code": "Voucher"
     "next_payment": "Další platba"
     "next_payment_info": "Poté předplatné pokračuje za běžnou cenu."
+    "next_payment_info_discounted": "Poté předplatné pokračuje se slevou %discount% %."
     "membership_ends": "Konec členství"
     "membership_ends_info": "Žádná automatická platba – členství prostě skončí."
 "membership_payment_cancelled":

@@ -1111,6 +1111,8 @@
   "redeem_voucher": "Utiliser un bon"
   "discount_ready": "Réduction de %discount% % prête !"
   "discount_ready_info": "Votre réduction sera appliquée automatiquement lors du paiement."
+  "discount_applied": "%discount% % de réduction sur chaque paiement"
+  "discount_applied_info": "Elle s'applique tant que cet abonnement est actif."
   "voucher":
     "title": "Mois gratuits de votre bon"
     "lead_upcoming": "Votre période en cours se termine le <strong>%current_period_ends%</strong>. <strong>Rien ne vous sera facturé à cette date</strong> – votre bon couvre les mois suivants. Votre prochain paiement aura lieu le <strong>%next_payment%</strong>."
@@ -1123,6 +1125,7 @@
     "voucher_code": "Bon"
     "next_payment": "Prochain paiement"
     "next_payment_info": "Ensuite, votre abonnement continue au tarif normal."
+    "next_payment_info_discounted": "Ensuite, votre abonnement continue avec votre réduction de %discount% %."
     "membership_ends": "Fin de l'adhésion"
     "membership_ends_info": "Aucun paiement automatique – elle prend simplement fin."
 "membership_payment_cancelled":

@@ -1309,6 +1309,8 @@ membership:
     redeem_voucher: "Redeem a voucher"
     discount_ready: "%discount%% discount ready!"
     discount_ready_info: "Your discount will be applied automatically at checkout."
+    discount_applied: "%discount%% discount on every payment"
+    discount_applied_info: "It applies for as long as this subscription runs."
     voucher:
         title: "Free months from your voucher"
         lead_upcoming: "Your current period ends on <strong>%current_period_ends%</strong>. <strong>You will not be charged then</strong> – your voucher covers the months that follow. Your next payment is on <strong>%next_payment%</strong>."
@@ -1321,6 +1323,7 @@ membership:
         voucher_code: "Voucher"
         next_payment: "Next payment"
         next_payment_info: "Your subscription then continues at the regular price."
+        next_payment_info_discounted: "Your subscription then continues with your %discount%% discount."
         membership_ends: "Membership ends"
         membership_ends_info: "No automatic payment – it simply ends."
     members_exclusive_button: "Members exclusive"

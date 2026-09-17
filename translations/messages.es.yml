@@ -1110,6 +1110,8 @@
   "redeem_voucher": "Canjear cupón"
   "discount_ready": "¡Descuento del %discount% % listo!"
   "discount_ready_info": "Tu descuento se aplicará automáticamente al pagar."
+  "discount_applied": "%discount% % de descuento en cada pago"
+  "discount_applied_info": "Se aplica mientras dure esta suscripción."
   "voucher":
     "title": "Meses gratis de tu cupón"
     "lead_upcoming": "Tu periodo actual termina el <strong>%current_period_ends%</strong>. <strong>Ese día no se te cobrará nada</strong>: tu cupón cubre los meses siguientes. Tu próximo pago será el <strong>%next_payment%</strong>."
@@ -1122,6 +1124,7 @@
     "voucher_code": "Cupón"
     "next_payment": "Próximo pago"
     "next_payment_info": "Después, tu suscripción continúa al precio habitual."
+    "next_payment_info_discounted": "Después, tu suscripción continúa con tu descuento del %discount% %."
     "membership_ends": "Fin de la membresía"
     "membership_ends_info": "Sin pago automático: simplemente termina."
 "membership_payment_cancelled":

@@ -14,6 +14,7 @@ Every competition round gets its own public results page with a shareable, reada
 - **Rounds get their own official results link**, because some organisers publish results per round.
 - **Unfinished results follow competition rules**: time = the round's limit, ranked by pieces placed. Entered in the existing collapsed **Competition result** card of the add/edit-time form, shipped to everyone (no feature flag).
 - **Times over the limit without pieces reported are ranked after the unfinished ones.**
+- **On the puzzle page, unfinished results — including ones finished later — sit at the bottom of the leaderboard without a rank.** A player who also has a finished time on that puzzle keeps one ranked row; their unfinished entry sits under "show more".
 - **Unfinished results keep counting as solved** in profile counts for now; revisit with real data.
 
 ## What exists today (production, 2026-09-17)
@@ -86,7 +87,11 @@ Round and competition deletes already null the column.
 
 ## Unfinished results
 
-- Replace the unused `missing_pieces` column with **`pieces_placed`** (nullable int) — what competitors and official results actually report. Both columns are empty in production, so this is a plain generated migration.
+### Storage (decided)
+
+- Replace the unused `missing_pieces` column with **`pieces_placed`** (nullable int) — what competitors and official results actually report — and add **`finished_later_seconds`** (nullable int): the total time of someone who kept solving after the limit. Both old columns are empty in production, so this is a plain generated migration.
+- **An unfinished result never has `seconds_to_solve`** (`pieces_placed IS NOT NULL ⇒ seconds_to_solve IS NULL`, enforced in the handlers). Every leaderboard, statistic, insight, MSP rating, skill and ladder query reads only `seconds_to_solve`, so unfinished results — finished later or not — are excluded from all of them **without touching those queries**. Storing the later total in `seconds_to_solve` would have forced exactly that wide change, because Jan decided a later finish is not ranked either.
+- `finished_later_seconds` is display-only ("finished in 1:48:12").
 ### Where it is entered (decided)
 
 Inside the existing collapsed **🏆 Competition result** card of `_solving_time_form.html.twig`, under the event picker. 97 % of submissions never open that card, so the default path does not change. The same template serves the edit-time page and modal, so older entries can be corrected too.
@@ -104,15 +109,55 @@ Inside the existing collapsed **🏆 Competition result** card of `_solving_time
 └──────────────────────────────────────────┘
 ```
 
-- **No separate "total time" field** — the form's normal time field carries it:
-  - stopped at the limit → time empty → `seconds_to_solve = NULL`, `pieces_placed = N`. A NULL time is already excluded from leaderboards, statistics and insights everywhere;
-  - finished afterwards → time filled → `seconds_to_solve` = the full time, `pieces_placed = N`. The full time is a real solve and stays in puzzle leaderboards and statistics; only the round ranking treats it as unfinished.
+- **No separate "total time" field in the form** — the form's normal time field carries it, the handler routes it:
+  - stopped at the limit → time empty → `pieces_placed = N`, `seconds_to_solve = NULL`, `finished_later_seconds = NULL`;
+  - finished afterwards → time filled → `pieces_placed = N`, `finished_later_seconds` = that time, `seconds_to_solve = NULL`.
+  - Editing an unfinished result back to finished moves the time back to `seconds_to_solve` and clears both columns.
 - **Server-side rules** (`PuzzleAddFormType` + `EditPuzzleSolvingTimeFormType`, `POST_SUBMIT`): speed mode still requires a time **unless** "didn't finish" is ticked; pieces placed is required when ticked, must be `1 … pieces_count − 1` (skip the upper bound for a new puzzle without a piece count), and requires a selected competition. Relax and collection modes never show or accept it.
 - **Client side**: the checkbox reveals the pieces field (existing `toggle` controller pattern); `ppm-validator` must not warn on an empty time.
 - **Stopwatch finish flow** (`finish_stopwatch`) uses the same form — a measured time is by definition finished, so the checkbox is hidden there.
 - **API**: `piecesPlaced` on the solving-time write DTO, same validation.
 - **Rollout: straight to everyone, no feature flag** (decided). Because this touches the platform's most critical form, the tests cover: normal speed add without competition still requires a time; relax and collection unchanged; stopwatch finish unchanged; unfinished solo, duo and team with and without a total time; edit form round-trip; every validation error.
 - The limit time is never stored as a solving time — that is what pollutes statistics today.
+
+## How unfinished results appear elsewhere
+
+### Puzzle detail page (`PuzzleTimes`) — decided
+
+```
+ #   Puzzler            Time
+ 1.  Anna K.   🏆WJPC  0:42:17
+ 2.  Tom B.           0:47:03
+ ...
+12.  Petr N.          0:51:20
+     ▾ show more
+       0:58:02
+       412/500 pcs 🏆WJPC
+ ...
+38.  Jan M.           1:52:40
+
+ –   Eva S.   🏆WJPC  479/500 pcs
+              (finished in 1:48:12)
+ –   Lucie P. 🏆WJPC  390/500 pcs
+```
+
+- **Bottom of the same table, same tab (solo / duo / team), no rank** ("–"), pieces placed instead of a time, "finished in …" under it when `finished_later_seconds` is set, the usual event badge. Ordered by pieces placed, most first.
+- **One row per player/team stays true**: someone with any finished time on the puzzle keeps their ranked row and the unfinished entry is listed under their "show more"; only players/teams with no finished time get a bottom row.
+- **Implemented beside the ranked pipeline, not inside it**: a separate `GetPuzzleSolvers` read for unfinished entries, rendered after the ranked rows. `PuzzlesSorter`, grouping and rank numbering are untouched.
+- Country / first-try / unboxed filters and the private-profile rule apply to the bottom rows exactly as to ranked ones.
+- **"X× solved in relax mode"** (`relaxCountsByPuzzleId`, counts every time-less row today) must add `pieces_placed IS NULL`, or unfinished results would be counted as relax solves.
+- **My attempts** panel: unfinished entries appear in the attempt history as "412/500 pcs"; best time, rank and median ignore them (no `seconds_to_solve`).
+
+### Everywhere a time-less entry is shown as "Relax" today
+
+These treat `seconds_to_solve IS NULL` as a relax solve and must show a "412/500 pcs" badge instead of the ☕ Relax badge:
+
+- `components/RecentActivity.html.twig`
+- `_player_solvings.html.twig` (player profile results)
+- `components/PlayerSolvedPuzzles.html.twig` — the "only relax" filter must exclude unfinished results
+- `notifications.html.twig`
+
+Profile solved counts keep counting them (decided — revisit later).
 
 ## The round page
 
@@ -127,7 +172,7 @@ Inside the existing collapsed **🏆 Competition result** card of `_solving_time
 ### Ranking
 
 1. **Finished within the limit** — by time, fastest first.
-2. **Unfinished** (`pieces_placed` set) — shown as "{limit} · 479 / 500 pcs", by pieces placed, most first; equal pieces share a rank.
+2. **Unfinished** (`pieces_placed` set) — shown as "{limit} · 479 / 500 pcs" (plus "finished in …" when `finished_later_seconds` is set), by pieces placed, most first; equal pieces share a rank. On the round page unfinished results *are* ranked — that is the competition's own ranking.
 3. **Over the limit with no pieces reported** (the old workaround) — ranked after the unfinished ones, by time (decided).
 
 **One result per player (solo) or team (duo/team): the earliest** — by `finished_at`, then `tracked_at`. Without a date check a later practice run also belongs to the round, and it would be faster.
@@ -153,7 +198,7 @@ Phase 1a adds a **Results** link (and the round's official results link) next to
 
 ### Phase 1a — result pages (aim: during WJPC 2026, ends Sept 20)
 
-1. Migration (generated): `competition_round.slug`, `competition_round.results_link`, `puzzle_solving_time.pieces_placed` replacing `missing_pieces`; slug backfill.
+1. Migration (generated): `competition_round.slug`, `competition_round.results_link`, `puzzle_solving_time.pieces_placed` replacing `missing_pieces`, `puzzle_solving_time.finished_later_seconds`; slug backfill.
 2. Invariant validation (add puzzle to round, edit round category).
 3. Reconciler + handler hooks + console command + message + cron; initial run.
 4. `GetRoundResults` read model; the two round controllers + shared template; Results links on the event page's puzzle cards and the edition page; sitemap.
@@ -165,6 +210,10 @@ Tests: reconciler (rule, category collision, re-link on edit, unlink on removal,
 ### Phase 1b — unfinished results entry
 
 "Didn't finish within the time limit" + pieces placed in the competition card of the add/edit-time form and the API write DTO, as specified in [Unfinished results](#unfinished-results); round ranking already supports it from 1a. No feature flag.
+
+Ships together with [how unfinished results appear elsewhere](#how-unfinished-results-appear-elsewhere) — the puzzle page bottom rows, the relax count fix and the "pcs" badge in the four lists — so no unfinished result is ever shown as a relax solve.
+
+Tests on top of the form matrix: puzzle page bottom rows (ordering, "finished in", player with both kinds under "show more", filters, private players), relax count excludes unfinished, profile / activity / notification badges, "only relax" filter, and that an unfinished result — with or without a later total — changes no puzzle statistic.
 
 ### Phase 2 — optional
 

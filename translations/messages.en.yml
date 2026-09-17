@@ -1231,6 +1231,26 @@ global_search:
     no_player_found: "No player found :-("
     no_puzzle_found: "No puzzle found :-("
 
+claim_voucher:
+    title: "Claim voucher"
+    intro: "Enter your voucher code to claim membership benefits."
+    code_label: "Voucher code"
+    code_placeholder: "Enter your voucher code"
+    submit: "Claim voucher"
+    how_it_works: "Free months from a voucher are added to your membership. If you have an active subscription, they start when your current billing period ends – you will not be charged for them."
+    back_to_membership: "Back to membership"
+    errors:
+        not_found: "This voucher code does not exist. Please check it and try again."
+        already_used: "This voucher has already been used on another account."
+        expired: "This voucher has expired."
+        usage_limit_reached: "This voucher has reached its usage limit."
+        lifetime_member: "You already have a lifetime membership, so this voucher would not add anything. Pass it on to a fellow puzzler!"
+    claimed:
+        free_months: "Voucher claimed! %count% free month has been added to your membership.|Voucher claimed! %count% free months have been added to your membership."
+        lifetime: "Voucher claimed! You are now a lifetime member. If you had a subscription, it has been cancelled and you will not be charged again."
+        discount_applied: "Voucher claimed! Your %discount%% discount has been applied to your subscription."
+        discount_waiting: "Voucher claimed! Your %discount%% discount will be applied automatically when you subscribe."
+        already_claimed: "Good news – voucher %code% is already applied to your account. Everything is in order, there is nothing more to do."
 membership:
     meta:
         title: "Membership"
@@ -1287,6 +1307,22 @@ membership:
         </ul>
     have_voucher_code: "Have a voucher code?"
     redeem_voucher: "Redeem a voucher"
+    discount_ready: "%discount%% discount ready!"
+    discount_ready_info: "Your discount will be applied automatically at checkout."
+    voucher:
+        title: "Free months from your voucher"
+        lead_upcoming: "Your current period ends on <strong>%current_period_ends%</strong>. <strong>You will not be charged then</strong> – your voucher covers the months that follow. Your next payment is on <strong>%next_payment%</strong>."
+        lead_running: "You are in a free period from your voucher. <strong>Nothing will be charged until %next_payment%</strong>."
+        lead_not_renewing: "Your membership does not renew automatically, so <strong>nothing will be charged</strong>. It stays active until <strong>%active_until%</strong>."
+        current_period: "Current period"
+        current_period_until: "until %date%"
+        free_months: "%count% free month|%count% free months"
+        running_now: "Now"
+        voucher_code: "Voucher"
+        next_payment: "Next payment"
+        next_payment_info: "Your subscription then continues at the regular price."
+        membership_ends: "Membership ends"
+        membership_ends_info: "No automatic payment – it simply ends."
     members_exclusive_button: "Members exclusive"
     members_exclusive_short: "Members"
     modal:

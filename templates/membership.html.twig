@@ -39,9 +39,11 @@
                                     <i class="ci-check-circle me-2"></i> {{ 'membership.subscription_active'|trans }}
                                 </p>
 
-                                <p>
-                                    {{ 'membership.next_payment'|trans }}: <strong>{{ membership.billingPeriodEndsAt|date('d.m.Y H:i') }}</strong>
-                                </p>
+                                {% if voucher_free_periods is empty %}
+                                    <p>
+                                        {{ 'membership.next_payment'|trans }}: <strong>{{ membership.billingPeriodEndsAt|format_date('long') }}</strong>
+                                    </p>
+                                {% endif %}
                             {% elseif membership.endsAt and membership.endsAt > now %}
                                 <p class="text-warning fs-5">
                                     <i class="ci-close-circle me-2"></i> {{ 'membership.membership_cancelling'|trans }}
@@ -56,13 +58,15 @@
                                 </p>
                             {% endif %}
 
-                            {% if membership.endsAt and membership.endsAt > now %}
+                            {% if voucher_free_periods is not empty %}
+                                {{ include('membership/_voucher_free_periods.html.twig', {
+                                    membership: membership,
+                                    periods: voucher_free_periods,
+                                    now: now,
+                                }) }}
+                            {% elseif not membership.billingPeriodEndsAt and membership.activeUntil(now) %}
                                 <p>
-                                    {{ 'membership.membership_active_until'|trans }}: <strong>{{ membership.endsAt|date('d.m.Y') }}</strong>
-                                </p>
-                            {% elseif membership.hasActiveGrant(now) %}
-                                <p>
-                                    {{ 'membership.membership_active_until'|trans }}: <strong>{{ membership.grantedUntil|date('d.m.Y') }}</strong>
+                                    {{ 'membership.membership_active_until'|trans }}: <strong>{{ membership.activeUntil(now)|format_date('long') }}</strong>
                                 </p>
                             {% endif %}
 
@@ -101,8 +105,8 @@
                             {% if discountedMonthlyPrice is not null %}
                                 <div class="alert alert-success mb-3">
                                     <i class="ci-check-circle me-2"></i>
-                                    <strong>{{ player.claimedDiscountVoucher.percentageDiscount }}% discount ready!</strong>
-                                    <br><small>Your discount will be applied automatically at checkout.</small>
+                                    <strong>{{ 'membership.discount_ready'|trans({'%discount%': player.claimedDiscountVoucher.percentageDiscount}) }}</strong>
+                                    <br><small>{{ 'membership.discount_ready_info'|trans }}</small>
                                 </div>
                             {% endif %}
 

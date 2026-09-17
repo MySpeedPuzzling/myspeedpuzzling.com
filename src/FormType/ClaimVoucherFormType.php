@@ -21,9 +21,9 @@ final class ClaimVoucherFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder->add('code', TextType::class, [
-            'label' => 'Voucher code',
+            'label' => 'claim_voucher.code_label',
             'attr' => [
-                'placeholder' => 'Enter your voucher code',
+                'placeholder' => 'claim_voucher.code_placeholder',
                 'autocomplete' => 'off',
             ],
         ]);

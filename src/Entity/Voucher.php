@@ -32,6 +32,18 @@ class Voucher
     #[Column(nullable: true)]
     public null|string $stripeCouponId = null;
 
+    /**
+     * When the free months of a claimed free-months voucher begin - for a running subscription that is
+     * the end of its current billing period, so the membership page can say when billing pauses.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|DateTimeImmutable $freePeriodStartsAt = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|DateTimeImmutable $freePeriodEndsAt = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -68,6 +80,17 @@ class Voucher
     {
         $this->usedBy = $player;
         $this->usedAt = $usedAt;
+    }
+
+    public function recordFreePeriod(DateTimeImmutable $startsAt, DateTimeImmutable $endsAt): void
+    {
+        $this->freePeriodStartsAt = $startsAt;
+        $this->freePeriodEndsAt = $endsAt;
+    }
+
+    public function isUsedBy(Player $player): bool
+    {
+        return $this->usedBy !== null && $this->usedBy->id->equals($player->id);
     }
 
     public function isUsed(): bool

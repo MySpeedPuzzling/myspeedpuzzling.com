@@ -25,6 +25,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ClaimVoucherController extends AbstractController
@@ -32,6 +33,7 @@ final class ClaimVoucherController extends AbstractController
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -76,19 +78,27 @@ final class ClaimVoucherController extends AbstractController
             } catch (HandlerFailedException $e) {
                 $nested = $e->getPrevious() ?? $e;
 
+                // Re-entering a code you already redeemed is not an error - say it is in place and show what it gives
+                if ($nested instanceof PlayerAlreadyClaimedVoucher) {
+                    $this->addFlash('success', $this->translator->trans('claim_voucher.claimed.already_claimed', [
+                        '%code%' => strtoupper(trim($data->code)),
+                    ]));
+
+                    return $this->redirectToRoute('membership');
+                }
+
                 $error = match (true) {
-                    $nested instanceof VoucherNotFound => 'Invalid voucher code. Please check and try again.',
-                    $nested instanceof VoucherAlreadyUsed => 'This voucher has already been used.',
-                    $nested instanceof VoucherExpired => 'This voucher has expired.',
-                    $nested instanceof VoucherUsageLimitReached => 'This voucher has reached its usage limit.',
-                    $nested instanceof PlayerAlreadyClaimedVoucher => 'You have already claimed this voucher.',
-                    $nested instanceof PlayerAlreadyHasLifetimeMembership => 'You already have a lifetime membership, so this voucher would not add anything. Pass it on to a fellow puzzler!',
+                    $nested instanceof VoucherNotFound => 'claim_voucher.errors.not_found',
+                    $nested instanceof VoucherAlreadyUsed => 'claim_voucher.errors.already_used',
+                    $nested instanceof VoucherExpired => 'claim_voucher.errors.expired',
+                    $nested instanceof VoucherUsageLimitReached => 'claim_voucher.errors.usage_limit_reached',
+                    $nested instanceof PlayerAlreadyHasLifetimeMembership => 'claim_voucher.errors.lifetime_member',
                     default => throw $e,
                 };
 
                 // A form error makes the form invalid, so render() answers 422 - Turbo Drive
                 // silently discards a 200 answer to a form submission, and the error with it
-                $form->get('code')->addError(new FormError($error));
+                $form->get('code')->addError(new FormError($this->translator->trans($error)));
 
                 return $this->render('claim_voucher.html.twig', [
                     'form' => $form,
@@ -104,11 +114,14 @@ final class ClaimVoucherController extends AbstractController
             // page rendered here would never reach the browser - the voucher gets claimed while the
             // visitor sees nothing happen
             $this->addFlash('success', match ($result->voucherType) {
-                VoucherType::PercentageDiscount => $result->redirectToMembership
-                    ? sprintf('Voucher claimed! You have a %d%% discount waiting for you.', $result->percentageDiscount)
-                    : sprintf('Voucher claimed! Your %d%% discount has been applied to your subscription.', $result->percentageDiscount),
-                VoucherType::Lifetime => 'Voucher claimed! You are now a lifetime member. If you had a subscription, it has been cancelled and you will not be charged again.',
-                VoucherType::FreeMonths => 'Voucher claimed! Your membership has been extended.',
+                VoucherType::PercentageDiscount => $this->translator->trans(
+                    $result->redirectToMembership ? 'claim_voucher.claimed.discount_waiting' : 'claim_voucher.claimed.discount_applied',
+                    ['%discount%' => $result->percentageDiscount],
+                ),
+                VoucherType::Lifetime => $this->translator->trans('claim_voucher.claimed.lifetime'),
+                VoucherType::FreeMonths => $this->translator->trans('claim_voucher.claimed.free_months', [
+                    '%count%' => $result->freeMonths,
+                ]),
             });
 
             return $this->redirectToRoute('membership');

@@ -13,6 +13,7 @@ readonly final class ClaimVoucherResult
         public VoucherType $voucherType,
         public bool $redirectToMembership,
         public null|int $percentageDiscount = null,
+        public null|int $freeMonths = null,
     ) {
     }
 }

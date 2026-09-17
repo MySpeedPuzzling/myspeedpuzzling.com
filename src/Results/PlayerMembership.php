@@ -35,6 +35,22 @@ readonly final class PlayerMembership
         return $this->grantedUntil !== null && $this->grantedUntil > $now;
     }
 
+    /**
+     * The last day of a membership that does not renew - whichever of a cancelled subscription's
+     * paid period and a free grant (e.g. from a voucher) reaches further.
+     */
+    public function activeUntil(DateTimeImmutable $now): null|DateTimeImmutable
+    {
+        $endsAt = $this->endsAt !== null && $this->endsAt > $now ? $this->endsAt : null;
+        $grantedUntil = $this->hasActiveGrant($now) ? $this->grantedUntil : null;
+
+        if ($endsAt === null || $grantedUntil === null) {
+            return $endsAt ?? $grantedUntil;
+        }
+
+        return max($endsAt, $grantedUntil);
+    }
+
     public function hasLifetimeGrant(): bool
     {
         return LifetimeMembership::isLifetime($this->grantedUntil);

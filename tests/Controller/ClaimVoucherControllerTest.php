@@ -45,27 +45,61 @@ final class ClaimVoucherControllerTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
         $browser->request('GET', '/en/claim-voucher');
-        $browser->submitForm('Claim Voucher', [
+        $browser->submitForm('Claim voucher', [
             'claim_voucher_form[code]' => VoucherFixture::VOUCHER_AVAILABLE_CODE,
         ]);
 
         $this->assertResponseRedirects('/en/membership');
 
         $browser->followRedirect();
-        $this->assertSelectorTextContains('.alert-success', 'Voucher claimed!');
+        $this->assertSelectorTextContains('.alert-success', 'Voucher claimed! 1 free month has been added to your membership.');
+
+        // The membership page spells out what the voucher covers and that nothing gets charged
+        $this->assertSelectorTextContains('.card-body', 'Free months from your voucher');
+        $this->assertSelectorTextContains('.card-body', VoucherFixture::VOUCHER_AVAILABLE_CODE);
+        $this->assertSelectorTextContains('.card-body', 'nothing will be charged');
+    }
+
+    public function testReclaimingOwnVoucherReassuresInsteadOfFailing(): void
+    {
+        $browser = self::createClient();
+        // VOUCHER_USED was redeemed by PLAYER_REGULAR
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/claim-voucher');
+        $browser->submitForm('Claim voucher', [
+            'claim_voucher_form[code]' => strtolower(VoucherFixture::VOUCHER_USED_CODE),
+        ]);
+
+        $this->assertResponseRedirects('/en/membership');
+
+        $browser->followRedirect();
+        $this->assertSelectorTextContains('.alert-success', 'voucher ' . VoucherFixture::VOUCHER_USED_CODE . ' is already applied to your account');
     }
 
     public function testRejectedClaimRendersErrorWithUnprocessableStatus(): void
     {
         $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
 
         $browser->request('GET', '/en/claim-voucher');
-        $browser->submitForm('Claim Voucher', [
+        $browser->submitForm('Claim voucher', [
             'claim_voucher_form[code]' => VoucherFixture::VOUCHER_USED_CODE,
         ]);
 
         $this->assertResponseStatusCodeSame(422);
-        $this->assertSelectorTextContains('form', 'This voucher has already been used.');
+        $this->assertSelectorTextContains('form .alert-danger', 'This voucher has already been used on another account.');
+    }
+
+    public function testClaimPageIsTranslated(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/uplatnit-voucher');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('h1', 'Uplatnit voucher');
+        $this->assertSelectorTextContains('label', 'Kód voucheru');
     }
 }

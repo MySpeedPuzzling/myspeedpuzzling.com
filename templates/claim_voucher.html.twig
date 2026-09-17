@@ -1,33 +1,45 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Claim Voucher{% endblock %}
+{% block title %}{{ 'claim_voucher.title'|trans }}{% endblock %}
 
 {% block content %}
     <div class="pb-4">
         <div class="row gy-3 pb-3">
             <div class="col-lg-6 col-md-8">
-                <h1 class="h2">Claim Voucher</h1>
+                <h1 class="h2">{{ 'claim_voucher.title'|trans }}</h1>
 
-                <p>Enter your voucher code to claim membership benefits.</p>
+                <p>{{ 'claim_voucher.intro'|trans }}</p>
 
                 <div class="card shadow my-4">
                     <div class="card-body">
                         {{ form_start(form) }}
+                            {{ form_errors(form) }}
+
+                            {% for error in form.code.vars.errors %}
+                                <div class="alert alert-danger d-flex align-items-start" role="alert">
+                                    <i class="ci-close-circle fs-5 me-2"></i>
+                                    <div>{{ error.message }}</div>
+                                </div>
+                            {% endfor %}
+
                             <div class="mb-3">
                                 {{ form_label(form.code) }}
                                 {{ form_widget(form.code, {'attr': {'class': 'form-control text-uppercase'}}) }}
-                                {{ form_errors(form.code) }}
                             </div>
 
                             <button type="submit" class="btn btn-primary">
-                                Claim Voucher
+                                {{ 'claim_voucher.submit'|trans }}
                             </button>
                         {{ form_end(form) }}
                     </div>
                 </div>
 
                 <p class="text-muted small">
-                    <a href="{{ path('membership') }}">Back to Membership</a>
+                    <i class="ci-gift me-1"></i> {{ 'claim_voucher.how_it_works'|trans }}
+                </p>
+
+                <p class="text-muted small">
+                    <a href="{{ path('membership') }}">{{ 'claim_voucher.back_to_membership'|trans }}</a>
                 </p>
             </div>
 

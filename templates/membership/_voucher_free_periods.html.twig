@@ -1,0 +1,82 @@
+{#
+    Free months from claimed vouchers, spelled out as a timeline - players who redeem a voucher on a running
+    subscription must be able to see that the end of their current period does not trigger a payment.
+    Expects: membership (PlayerMembership), periods (non-empty list<VoucherFreePeriod>), now
+#}
+{% set first_period = periods|first %}
+{% set is_renewing = membership.billingPeriodEndsAt is not null %}
+{% set current_period_ahead = is_renewing and not first_period.hasStarted(now) %}
+{% set active_until = membership.activeUntil(now) ?? (periods|last).endsAt %}
+
+<div class="rounded-3 bg-faded-success p-3 mb-3">
+    <h2 class="h6 d-flex align-items-center mb-2">
+        <i class="ci-gift fs-5 text-success me-2"></i>
+        {{ 'membership.voucher.title'|trans }}
+    </h2>
+
+    <p class="mb-3">
+        {% if current_period_ahead %}
+            {{ 'membership.voucher.lead_upcoming'|trans({
+                '%current_period_ends%': first_period.startsAt|format_date('long'),
+                '%next_payment%': membership.billingPeriodEndsAt|format_date('long'),
+            })|raw }}
+        {% elseif is_renewing %}
+            {{ 'membership.voucher.lead_running'|trans({
+                '%next_payment%': membership.billingPeriodEndsAt|format_date('long'),
+            })|raw }}
+        {% else %}
+            {{ 'membership.voucher.lead_not_renewing'|trans({
+                '%active_until%': active_until|format_date('long'),
+            })|raw }}
+        {% endif %}
+    </p>
+
+    <ul class="list-unstyled mb-0">
+        {% if current_period_ahead %}
+            <li class="d-flex align-items-start mb-2">
+                <span class="rounded-circle bg-white d-flex align-items-center justify-content-center flex-shrink-0 me-3" style="width: 32px; height: 32px;">
+                    <i class="ci-card"></i>
+                </span>
+                <div>
+                    <div class="fw-medium">{{ 'membership.voucher.current_period'|trans }}</div>
+                    <div class="small text-muted">{{ 'membership.voucher.current_period_until'|trans({'%date%': first_period.startsAt|format_date('long')}) }}</div>
+                </div>
+            </li>
+        {% endif %}
+
+        {% for period in periods %}
+            <li class="d-flex align-items-start mb-2">
+                <span class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center flex-shrink-0 me-3" style="width: 32px; height: 32px;">
+                    <i class="ci-gift"></i>
+                </span>
+                <div>
+                    <div class="fw-medium">
+                        {{ 'membership.voucher.free_months'|trans({'%count%': period.months}) }}
+                        {% if period.hasStarted(now) %}
+                            <span class="badge bg-success ms-1">{{ 'membership.voucher.running_now'|trans }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="small text-muted">
+                        {{ period.startsAt|format_date('long') }} – {{ period.endsAt|format_date('long') }}
+                        <br>{{ 'membership.voucher.voucher_code'|trans }} <code class="text-body">{{ period.voucherCode }}</code>
+                    </div>
+                </div>
+            </li>
+        {% endfor %}
+
+        <li class="d-flex align-items-start">
+            <span class="rounded-circle bg-white d-flex align-items-center justify-content-center flex-shrink-0 me-3" style="width: 32px; height: 32px;">
+                <i class="ci-calendar"></i>
+            </span>
+            <div>
+                {% if is_renewing %}
+                    <div class="fw-medium">{{ 'membership.voucher.next_payment'|trans }}: {{ membership.billingPeriodEndsAt|format_date('long') }}</div>
+                    <div class="small text-muted">{{ 'membership.voucher.next_payment_info'|trans }}</div>
+                {% else %}
+                    <div class="fw-medium">{{ 'membership.voucher.membership_ends'|trans }}: {{ active_until|format_date('long') }}</div>
+                    <div class="small text-muted">{{ 'membership.voucher.membership_ends_info'|trans }}</div>
+                {% endif %}
+            </div>
+        </li>
+    </ul>
+</div>

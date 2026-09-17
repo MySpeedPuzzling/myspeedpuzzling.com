@@ -67,6 +67,12 @@ readonly final class ClaimVoucherHandler
             $player = $this->playerRepository->get($message->playerId);
             $now = $this->clock->now();
 
+            // Checked before anything else: re-entering a code you already redeemed is not a failure,
+            // and "expired" or "already used" would wrongly suggest the benefit was lost
+            if ($this->hasPlayerClaimed($voucher, $player)) {
+                throw new PlayerAlreadyClaimedVoucher();
+            }
+
             if ($voucher->isExpired($now)) {
                 throw new VoucherExpired();
             }
@@ -84,6 +90,15 @@ readonly final class ClaimVoucherHandler
         } finally {
             $lock->release();
         }
+    }
+
+    private function hasPlayerClaimed(Voucher $voucher, Player $player): bool
+    {
+        if ($voucher->voucherType === VoucherType::PercentageDiscount) {
+            return $this->voucherClaimRepository->hasPlayerClaimedVoucher($player->id->toString(), $voucher->id->toString());
+        }
+
+        return $voucher->isUsedBy($player);
     }
 
     private function hasLifetimeMembership(Player $player): bool
@@ -195,10 +210,10 @@ readonly final class ClaimVoucherHandler
 
             if ($membership->stripeSubscriptionId !== null && $membership->endsAt === null) {
                 // Active Stripe subscription: extend billing via trial_end (works for both monthly and yearly)
-                $trialEnd = $this->applyFreeMonthsToSubscription($membership->stripeSubscriptionId, $voucher->monthsValue);
-                $membership->billingPeriodEndsAt = $trialEnd;
+                [$freePeriodStartsAt, $freePeriodEndsAt] = $this->applyFreeMonthsToSubscription($membership->stripeSubscriptionId, $voucher->monthsValue);
+                $membership->billingPeriodEndsAt = $freePeriodEndsAt;
             } else {
-                $this->extendMembership($membership, $now, $voucher->monthsValue);
+                [$freePeriodStartsAt, $freePeriodEndsAt] = $this->extendMembership($membership, $now, $voucher->monthsValue);
             }
         } catch (MembershipNotFound) {
             $membership = new Membership(
@@ -209,9 +224,12 @@ readonly final class ClaimVoucherHandler
             );
 
             $this->membershipRepository->save($membership);
+
+            [$freePeriodStartsAt, $freePeriodEndsAt] = [$now, $voucherEndDate];
         }
 
         $voucher->markAsUsed($player, $now);
+        $voucher->recordFreePeriod($freePeriodStartsAt, $freePeriodEndsAt);
 
         $this->logger->info('Free months voucher claimed successfully', [
             'voucher_id' => $voucher->id->toString(),
@@ -224,12 +242,12 @@ readonly final class ClaimVoucherHandler
             success: true,
             voucherType: VoucherType::FreeMonths,
             redirectToMembership: false,
+            freeMonths: $voucher->monthsValue,
         );
     }
 
     /**
      * @throws VoucherUsageLimitReached
-     * @throws PlayerAlreadyClaimedVoucher
      */
     private function handlePercentageVoucher(
         Voucher $voucher,
@@ -240,10 +258,6 @@ readonly final class ClaimVoucherHandler
 
         if (!$voucher->hasRemainingUses($usageCount)) {
             throw new VoucherUsageLimitReached();
-        }
-
-        if ($this->voucherClaimRepository->hasPlayerClaimedVoucher($player->id->toString(), $voucher->id->toString())) {
-            throw new PlayerAlreadyClaimedVoucher();
         }
 
         $claim = new VoucherClaim(
@@ -302,7 +316,10 @@ readonly final class ClaimVoucherHandler
         );
     }
 
-    private function extendMembership(Membership $membership, \DateTimeImmutable $now, int $months): void
+    /**
+     * @return array{\DateTimeImmutable, \DateTimeImmutable} the free period the months cover
+     */
+    private function extendMembership(Membership $membership, \DateTimeImmutable $now, int $months): array
     {
         $currentGrantedUntil = $membership->grantedUntil;
 
@@ -314,16 +331,20 @@ readonly final class ClaimVoucherHandler
 
         $newGrantedUntil = $baseDate->add(new DateInterval('P' . $months . 'M'));
         $membership->grantedUntil = $newGrantedUntil;
+
+        return [$baseDate, $newGrantedUntil];
     }
 
-    private function applyFreeMonthsToSubscription(string $subscriptionId, int $months): \DateTimeImmutable
+    /**
+     * @return array{\DateTimeImmutable, \DateTimeImmutable} the free period: from the end of the paid period to the new trial end
+     */
+    private function applyFreeMonthsToSubscription(string $subscriptionId, int $months): array
     {
         $subscription = $this->stripeClient->subscriptions->retrieve($subscriptionId);
         $currentPeriodEnd = $subscription->items->data[0]->current_period_end;
 
-        $trialEnd = (new \DateTimeImmutable())
-            ->setTimestamp($currentPeriodEnd)
-            ->add(new DateInterval('P' . $months . 'M'));
+        $paidPeriodEnd = (new \DateTimeImmutable())->setTimestamp($currentPeriodEnd);
+        $trialEnd = $paidPeriodEnd->add(new DateInterval('P' . $months . 'M'));
 
         $this->stripeClient->subscriptions->update($subscriptionId, [
             'trial_end' => $trialEnd->getTimestamp(),
@@ -337,6 +358,6 @@ readonly final class ClaimVoucherHandler
             'months_added' => $months,
         ]);
 
-        return $trialEnd;
+        return [$paidPeriodEnd, $trialEnd];
     }
 }

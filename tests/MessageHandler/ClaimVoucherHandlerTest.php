@@ -72,6 +72,92 @@ final class ClaimVoucherHandlerTest extends KernelTestCase
         $membership = $this->membershipRepository->getByPlayerId($playerId);
         self::assertNotNull($membership->grantedUntil);
         self::assertNull($membership->endsAt);
+
+        // The free period is recorded, so the membership page can show what the voucher covers
+        self::assertEquals($voucher->usedAt, $voucher->freePeriodStartsAt);
+        self::assertEquals($membership->grantedUntil, $voucher->freePeriodEndsAt);
+    }
+
+    public function testFreeMonthsOnRunningSubscriptionStartAfterThePaidPeriod(): void
+    {
+        $paidPeriodEnd = new \DateTimeImmutable('2026-10-02 19:56:10');
+
+        $subscriptionService = $this->createMock(SubscriptionService::class);
+        $subscriptionService->expects(self::once())
+            ->method('retrieve')
+            ->with('sub_test_123456789')
+            ->willReturn(Subscription::constructFrom([
+                'id' => 'sub_test_123456789',
+                'status' => 'active',
+                'items' => [
+                    'object' => 'list',
+                    'data' => [['id' => 'si_test', 'current_period_end' => $paidPeriodEnd->getTimestamp()]],
+                ],
+            ]));
+        $subscriptionService->expects(self::once())
+            ->method('update')
+            ->with('sub_test_123456789', [
+                'trial_end' => $paidPeriodEnd->modify('+1 month')->getTimestamp(),
+                'proration_behavior' => 'none',
+            ]);
+        $this->replaceStripeSubscriptions($subscriptionService);
+
+        $this->messageBus->dispatch(
+            new ClaimVoucher(
+                playerId: PlayerFixture::PLAYER_WITH_STRIPE,
+                voucherCode: VoucherFixture::VOUCHER_AVAILABLE_CODE,
+            ),
+        );
+
+        $voucher = $this->voucherRepository->getByCode(VoucherFixture::VOUCHER_AVAILABLE_CODE);
+        self::assertNotNull($voucher->freePeriodStartsAt);
+        self::assertNotNull($voucher->freePeriodEndsAt);
+        self::assertSame($paidPeriodEnd->getTimestamp(), $voucher->freePeriodStartsAt->getTimestamp());
+        self::assertSame($paidPeriodEnd->modify('+1 month')->getTimestamp(), $voucher->freePeriodEndsAt->getTimestamp());
+
+        $membership = $this->membershipRepository->get(MembershipFixture::MEMBERSHIP_ACTIVE);
+        self::assertEquals($voucher->freePeriodEndsAt, $membership->billingPeriodEndsAt);
+    }
+
+    public function testReclaimingOwnFreeMonthsVoucherIsReportedAsAlreadyClaimed(): void
+    {
+        // VOUCHER_USED was redeemed by PLAYER_REGULAR - entering it again must not read as "used by someone"
+        try {
+            $this->messageBus->dispatch(
+                new ClaimVoucher(
+                    playerId: PlayerFixture::PLAYER_REGULAR,
+                    voucherCode: VoucherFixture::VOUCHER_USED_CODE,
+                ),
+            );
+            self::fail('Expected PlayerAlreadyClaimedVoucher exception was not thrown');
+        } catch (HandlerFailedException $e) {
+            self::assertInstanceOf(PlayerAlreadyClaimedVoucher::class, $e->getPrevious());
+        }
+    }
+
+    public function testReclaimingOwnLifetimeVoucherIsReportedAsAlreadyClaimed(): void
+    {
+        $playerId = PlayerFixture::PLAYER_WITH_FAVORITES;
+
+        $this->messageBus->dispatch(
+            new ClaimVoucher(
+                playerId: $playerId,
+                voucherCode: VoucherFixture::VOUCHER_LIFETIME_AVAILABLE_CODE,
+            ),
+        );
+
+        try {
+            $this->messageBus->dispatch(
+                new ClaimVoucher(
+                    playerId: $playerId,
+                    voucherCode: VoucherFixture::VOUCHER_LIFETIME_AVAILABLE_CODE,
+                ),
+            );
+            self::fail('Expected PlayerAlreadyClaimedVoucher exception was not thrown');
+        } catch (HandlerFailedException $e) {
+            // Not PlayerAlreadyHasLifetimeMembership - its "pass it on" advice makes no sense for a spent code
+            self::assertInstanceOf(PlayerAlreadyClaimedVoucher::class, $e->getPrevious());
+        }
     }
 
     public function testClaimingVoucherWithInvalidCodeThrowsException(): void
@@ -91,7 +177,8 @@ final class ClaimVoucherHandlerTest extends KernelTestCase
         try {
             $this->messageBus->dispatch(
                 new ClaimVoucher(
-                    playerId: PlayerFixture::PLAYER_REGULAR,
+                    // VOUCHER_USED belongs to PLAYER_REGULAR
+                    playerId: PlayerFixture::PLAYER_WITH_FAVORITES,
                     voucherCode: VoucherFixture::VOUCHER_USED_CODE,
                 ),
             );

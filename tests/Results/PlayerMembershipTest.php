@@ -93,4 +93,31 @@ final class PlayerMembershipTest extends TestCase
         // Both endsAt and grantedUntil are in the past
         self::assertFalse($membership->isActive($now));
     }
+
+    public function testActiveUntilPrefersTheLaterOfCancelledPeriodAndGrant(): void
+    {
+        $now = new DateTimeImmutable('2026-04-01');
+        $membership = new PlayerMembership(
+            stripeSubscriptionId: 'sub_1abc',
+            endsAt: new DateTimeImmutable('2026-04-23'),
+            billingPeriodEndsAt: null,
+            grantedUntil: new DateTimeImmutable('2026-10-23'),
+        );
+
+        self::assertEquals(new DateTimeImmutable('2026-10-23'), $membership->activeUntil($now));
+    }
+
+    public function testActiveUntilIgnoresDatesInThePast(): void
+    {
+        $now = new DateTimeImmutable('2026-05-01');
+        $membership = new PlayerMembership(
+            stripeSubscriptionId: 'sub_1abc',
+            endsAt: new DateTimeImmutable('2026-06-01'),
+            billingPeriodEndsAt: null,
+            grantedUntil: new DateTimeImmutable('2026-04-01'),
+        );
+
+        self::assertEquals(new DateTimeImmutable('2026-06-01'), $membership->activeUntil($now));
+        self::assertNull($membership->activeUntil(new DateTimeImmutable('2026-07-01')));
+    }
 }

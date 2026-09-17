@@ -19,7 +19,13 @@ const FONT_URLS = [
 ];
 
 // Icon font source paths to resolve from manifest.json (content-hashed in production)
-const ICON_FONT_KEYS = [
+// Matched as PREFIXES, never as whole keys. Webpack keeps the query string the
+// stylesheet asked for, so the manifest actually holds
+// 'build/fonts/cartzilla-icons.woff?ufvuz0' and 'build/fonts/bootstrap-icons.woff2?'.
+// Exact lookups returned undefined for both and this precaching silently did
+// nothing. Hardcoding the suffixes would rot again - ?ufvuz0 is icomoon's own
+// cache-buster and changes whenever the font is regenerated.
+const ICON_FONT_KEY_PREFIXES = [
     'build/fonts/cartzilla-icons.woff',
     'build/fonts/bootstrap-icons.woff2',
 ];
@@ -61,7 +67,8 @@ self.addEventListener('install', (event) => {
                 const manifestResponse = await fetch(MANIFEST_URL, { cache: 'no-cache' });
                 if (manifestResponse.ok) {
                     const manifest = await manifestResponse.json();
-                    const fontUrls = ICON_FONT_KEYS
+                    const fontUrls = Object.keys(manifest)
+                        .filter((key) => ICON_FONT_KEY_PREFIXES.some((prefix) => key.startsWith(prefix)))
                         .map((key) => manifest[key])
                         .filter(Boolean);
                     if (fontUrls.length) await cache.addAll(fontUrls);

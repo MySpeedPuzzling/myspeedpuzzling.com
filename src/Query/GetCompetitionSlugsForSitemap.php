@@ -87,4 +87,35 @@ SQL;
 
         return $rows;
     }
+
+    /**
+     * Round result pages worth indexing: publicly visible competition, round with a slug and at least one
+     * result - an empty ranking is not a page anyone searches for.
+     *
+     * @return list<array{event_slug: string, series_slug: null|string, round_slug: string}>
+     */
+    public function roundResultSlugs(): array
+    {
+        $visibility = IsCompetitionPubliclyVisible::SQL_CONDITION;
+
+        $query = <<<SQL
+SELECT c.slug AS event_slug, cs.slug AS series_slug, cr.slug AS round_slug
+FROM competition_round cr
+JOIN competition c ON c.id = cr.competition_id
+LEFT JOIN competition_series cs ON cs.id = c.series_id
+WHERE {$visibility}
+    AND c.slug IS NOT NULL
+    AND cr.slug IS NOT NULL
+    AND (c.series_id IS NULL OR cs.slug IS NOT NULL)
+    AND EXISTS (SELECT 1 FROM puzzle_solving_time pst WHERE pst.competition_round_id = cr.id)
+ORDER BY cs.slug NULLS FIRST, c.slug, cr.starts_at
+SQL;
+
+        /** @var list<array{event_slug: string, series_slug: null|string, round_slug: string}> $rows */
+        $rows = $this->database
+            ->executeQuery($query)
+            ->fetchAllAssociative();
+
+        return $rows;
+    }
 }

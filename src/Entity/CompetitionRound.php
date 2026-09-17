@@ -14,14 +14,19 @@ use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use Doctrine\ORM\Mapping\OneToMany;
+use Doctrine\ORM\Mapping\UniqueConstraint;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Events\CompetitionRoundsChanged;
 use SpeedPuzzling\Web\Value\RoundCategory;
 
 #[Entity]
-class CompetitionRound
+#[UniqueConstraint(name: 'competition_round_slug_unique', columns: ['competition_id', 'slug'])]
+class CompetitionRound implements EntityWithEvents
 {
+    use HasEvents;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -53,7 +58,18 @@ class CompetitionRound
         public null|string $stopwatchStatus = null,
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $stopwatchStoppedAt = null,
+        // Unique per competition, generated once on create and kept on rename, so shared result links survive
+        #[Column(nullable: true)]
+        public null|string $slug = null,
+        // The organiser's own results page for this round, when they publish results per round
+        #[Column(type: Types::TEXT, nullable: true)]
+        public null|string $resultsLink = null,
     ) {
+    }
+
+    public function assignSlug(string $slug): void
+    {
+        $this->slug = $slug;
     }
 
     public function edit(
@@ -63,13 +79,19 @@ class CompetitionRound
         null|string $badgeBackgroundColor,
         null|string $badgeTextColor,
         RoundCategory $category = RoundCategory::Solo,
+        null|string $resultsLink = null,
     ): void {
+        if ($category !== $this->category) {
+            $this->recordThat(new CompetitionRoundsChanged($this->competition->id));
+        }
+
         $this->name = $name;
         $this->minutesLimit = $minutesLimit;
         $this->startsAt = $startsAt;
         $this->badgeBackgroundColor = $badgeBackgroundColor;
         $this->badgeTextColor = $badgeTextColor;
         $this->category = $category;
+        $this->resultsLink = $resultsLink;
     }
 
     public function startStopwatch(DateTimeImmutable $startedAt): void

@@ -11,7 +11,9 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
+use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
@@ -38,9 +40,13 @@ readonly final class AddPuzzleToCompetitionRoundHandler
         private ImageOptimizer $imageOptimizer,
         private GenerateManufacturerSlug $generateManufacturerSlug,
         private PuzzleImageNamer $puzzleImageNamer,
+        private GetCompetitionRounds $getCompetitionRounds,
     ) {
     }
 
+    /**
+     * @throws PuzzleAlreadyInCompetitionRoundCategory
+     */
     public function __invoke(AddPuzzleToCompetitionRound $message): void
     {
         $round = $this->competitionRoundRepository->get($message->roundId);
@@ -51,6 +57,16 @@ readonly final class AddPuzzleToCompetitionRoundHandler
             $puzzle = $this->createNewPuzzle($message);
         } else {
             $puzzle = $this->puzzleRepository->get($message->puzzle);
+
+            $conflictingRound = $this->getCompetitionRounds->roundWithPuzzleInCategory(
+                competitionId: $round->competition->id->toString(),
+                puzzleIds: [$puzzle->id->toString()],
+                category: $round->category,
+            );
+
+            if ($conflictingRound !== null) {
+                throw new PuzzleAlreadyInCompetitionRoundCategory($conflictingRound);
+            }
         }
 
         // For new puzzles, also hide platform-wide since they don't exist anywhere else yet

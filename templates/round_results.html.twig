@@ -1,0 +1,183 @@
+{% extends 'base.html.twig' %}
+
+{% from 'puzzle_intelligence/_macros.html.twig' import skill_icon %}
+
+{% set round = page.round %}
+{% set event = page.event %}
+
+{% block title %}{{ 'round_results.meta.title'|trans({'%round%': round.name, '%event%': event.name}) }}{% endblock %}
+
+{% block meta_description %}{{ 'round_results.meta.description'|trans({'%round%': round.name, '%event%': event.name}) }}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: event_url, fallbackTitle: event.name}) }}
+
+    <p class="mb-1 small">
+        <a href="{{ event_url }}" class="text-muted">{{ event.name }}</a>
+    </p>
+
+    <h1 class="h4 mb-2">
+        {% if round.badgeBackgroundColor %}
+            <span class="badge align-middle" style="background-color: {{ round.badgeBackgroundColor }}; color: {{ round.badgeTextColor ?? '#fff' }}">{{ round.name }}</span>
+        {% else %}
+            {{ round.name }}
+        {% endif %}
+        <span class="text-muted fw-normal">– {{ 'round_results.heading_suffix'|trans }}</span>
+    </h1>
+
+    <div class="text-muted small mb-3">
+        <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i') }}
+        <span class="mx-1">&middot;</span>
+        <i class="bi bi-stopwatch me-1"></i>{{ 'round_results.time_limit'|trans({'%minutes%': round.minutesLimit}) }}
+        {% if round.category.value != 'solo' %}
+            <span class="mx-1">&middot;</span>
+            {{ ('competition.round.category.' ~ round.category.value)|trans }}
+        {% endif %}
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+        {% if page.previousRound %}
+            <a class="btn btn-sm btn-outline-secondary" href="{{ path(round_route, round_route_params|merge({roundSlug: page.previousRound.slug})) }}">
+                <i class="bi bi-chevron-left"></i> {{ page.previousRound.name }}
+            </a>
+        {% endif %}
+
+        {% if page.rounds|length > 1 %}
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    {{ 'round_results.all_rounds'|trans }}
+                </button>
+                <ul class="dropdown-menu">
+                    {% for other_round in page.rounds %}
+                        <li>
+                            <a class="dropdown-item {{ other_round.id == round.id ? 'active' }}" href="{{ path(round_route, round_route_params|merge({roundSlug: other_round.slug})) }}">
+                                {{ other_round.name }}
+                                <small class="{{ other_round.id == round.id ? '' : 'text-muted' }} ms-1">{{ other_round.startsAt|date('d.m. H:i') }}</small>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {% if page.nextRound %}
+            <a class="btn btn-sm btn-outline-secondary" href="{{ path(round_route, round_route_params|merge({roundSlug: page.nextRound.slug})) }}">
+                {{ page.nextRound.name }} <i class="bi bi-chevron-right"></i>
+            </a>
+        {% endif %}
+
+        {% if page.officialResultsLink %}
+            <a class="btn btn-sm btn-outline-primary ms-md-auto" href="{{ page.officialResultsLink }}" target="_blank" rel="noopener">
+                <i class="bi bi-trophy me-1"></i>{{ 'round_results.official_results'|trans }}
+            </a>
+        {% endif %}
+    </div>
+
+    {% if round.puzzles is empty %}
+        <p class="text-muted">{{ 'round_results.no_puzzle_yet'|trans }}</p>
+    {% endif %}
+
+    {% for puzzle in round.puzzles %}
+        {% set puzzle_results = page.results[puzzle.puzzleId] ?? [] %}
+
+        <div class="card card-body shadow-sm p-2 mb-3">
+            <div class="d-flex align-items-center">
+                <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="flex-shrink-0" style="width: 90px;">
+                    {# Hidden-until-round-starts puzzles come with a null image - the helper renders its placeholder #}
+                    {{ lazy_puzzle_image(
+                        puzzle.puzzleImage,
+                        'puzzle_small',
+                        'puzzle_img_alt'|trans({'%puzzle%': (puzzle.manufacturerName ?? '') ~ ' ' ~ puzzle.puzzleName}),
+                        loop.index,
+                        90,
+                        'rounded-2',
+                        60,
+                        puzzle.puzzleImageRatio,
+                        loop.first
+                    ) }}
+                </a>
+
+                <div class="ps-3 flex-grow-1">
+                    <a class="text-decoration-underline" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.puzzleName }}</a>
+                    <div class="small text-muted">
+                        {% if puzzle.manufacturerName %}{{ puzzle.manufacturerName }} &middot; {% endif %}{{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }}
+                    </div>
+                </div>
+
+                {% if page.canAddTime %}
+                    <a class="btn btn-sm btn-outline-primary ms-2 flex-shrink-0" href="{{ path('puzzle_add', {puzzleId: puzzle.puzzleId, competition: event.id}) }}">
+                        <i class="bi bi-stopwatch me-1"></i>{{ 'round_results.add_my_time'|trans }}
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if not page.hasStarted %}
+            <p class="text-muted mb-4">{{ 'round_results.not_started'|trans({'%when%': round.startsAt|ago}) }}</p>
+        {% elseif puzzle_results is empty %}
+            <p class="text-muted mb-4">{{ 'round_results.no_results'|trans }}</p>
+        {% else %}
+            <div class="table-responsive custom-table-wrapper mb-4">
+                <table class="table custom-table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>{{ 'puzzler_name'|trans }}</th>
+                        <th class="text-end">{{ 'round_results.column_result'|trans }}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% set previous_status = null %}
+                    {% for result in puzzle_results %}
+                        {% if previous_status is not null and result.status != previous_status %}
+                            <tr>
+                                <td colspan="3" class="small text-muted fw-medium">{{ ('round_results.section.' ~ result.status.value)|trans }}</td>
+                            </tr>
+                        {% endif %}
+                        {% set previous_status = result.status %}
+
+                        {% set is_own_row = logged_user.profile is not null and result.containsPlayer(logged_user.profile.playerId) %}
+                        <tr class="{{ is_own_row ? 'table-active-player' }}" data-round-result-status="{{ result.status.value }}">
+                            <td class="rank">{{ result.rank }}.</td>
+                            <td class="player-name">
+                                {% for player in result.players %}
+                                    {% if not loop.first %}<br>{% endif %}
+                                    {% if player.isPrivate and (logged_user.profile is null or player.playerId != logged_user.profile.playerId) %}
+                                        <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+                                        <i class="bi bi-incognito text-muted"></i>
+                                    {% elseif player.playerId is not null %}
+                                        {% if logged_user.profile is not null and logged_user.profile.activeMembership and not player.rankingOptedOut %}
+                                            {{ skill_icon(player.skillTierName ?? 'unknown', 16) }}
+                                        {% else %}
+                                            {{ skill_icon('locked', 16) }}
+                                        {% endif %}
+                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: player.playerId}) }}">{{ player.playerName ?? ('#' ~ player.playerCode) }}</a>
+                                        {% if player.playerCountry is not null %}
+                                            <small class="shadow-custom fi fi-{{ player.playerCountry.name }}"></small>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="player-name-item">{{ player.playerName }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td class="text-end">
+                                {% if result.status.value == 'unfinished' %}
+                                    <span class="font-monospace">{{ 'round_results.pieces_placed'|trans({'%placed%': result.piecesPlaced, '%total%': puzzle.piecesCount}) }}</span>
+                                    {% if result.finishedLaterSeconds is not null %}
+                                        <br><small class="text-muted">{{ 'round_results.finished_later'|trans({'%time%': result.finishedLaterSeconds|puzzlingTime}) }}</small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="font-monospace">{{ result.seconds|puzzlingTime }}</span>
+                                {% endif %}
+                                {% if result.finishedAt is not null %}
+                                    <br><small class="text-muted">{{ result.finishedAt|date('d.m.Y') }}</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    {% endfor %}
+{% endblock %}

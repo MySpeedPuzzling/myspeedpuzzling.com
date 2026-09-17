@@ -86,6 +86,7 @@ final class CompetitionSeriesFixture extends Fixture implements DependentFixture
             name: 'EJJ #68 — February 2026',
             minutesLimit: 120,
             startsAt: $this->clock->now()->modify('-30 days'),
+            slug: 'main-round',
         );
         $manager->persist($round68);
 

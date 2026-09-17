@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Symfony\Component\Security\Core\User\UserInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\FormData\RoundPuzzleFormData;
 use SpeedPuzzling\Web\FormType\RoundPuzzleFormType;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
@@ -13,8 +14,10 @@ use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -60,19 +63,39 @@ final class AddPuzzleToRoundController extends AbstractController
             assert($data->puzzle !== null);
             assert($data->brand !== null);
 
-            $this->messageBus->dispatch(new AddPuzzleToCompetitionRound(
-                roundPuzzleId: Uuid::uuid7(),
-                roundId: $roundId,
-                userId: $user->getUserIdentifier(),
-                brand: $data->brand,
-                puzzle: $data->puzzle,
-                piecesCount: $data->piecesCount,
-                puzzlePhoto: $data->puzzlePhoto,
-                puzzleEan: $data->puzzleEan,
-                puzzleIdentificationNumber: $data->puzzleIdentificationNumber,
-                hideUntilRoundStarts: $data->hideUntilRoundStarts,
-                hideMode: $data->hideMode,
-            ));
+            try {
+                $this->messageBus->dispatch(new AddPuzzleToCompetitionRound(
+                    roundPuzzleId: Uuid::uuid7(),
+                    roundId: $roundId,
+                    userId: $user->getUserIdentifier(),
+                    brand: $data->brand,
+                    puzzle: $data->puzzle,
+                    piecesCount: $data->piecesCount,
+                    puzzlePhoto: $data->puzzlePhoto,
+                    puzzleEan: $data->puzzleEan,
+                    puzzleIdentificationNumber: $data->puzzleIdentificationNumber,
+                    hideUntilRoundStarts: $data->hideUntilRoundStarts,
+                    hideMode: $data->hideMode,
+                ));
+            } catch (HandlerFailedException $e) {
+                $nested = $e->getPrevious() ?? $e;
+
+                if (!$nested instanceof PuzzleAlreadyInCompetitionRoundCategory) {
+                    throw $e;
+                }
+
+                // A form error makes the form invalid, so render() answers 422 - Turbo Drive drops a 200
+                $form->get('puzzle')->addError(new FormError($this->translator->trans(
+                    'competition.round.form.puzzle_already_in_category',
+                    ['%round%' => $nested->conflictingRoundName],
+                )));
+
+                return $this->render('add_puzzle_to_round.html.twig', [
+                    'form' => $form,
+                    'competition' => $competition,
+                    'round' => $round,
+                ]);
+            }
 
             $this->addFlash('success', $this->translator->trans('competition.flash.puzzle_added'));
 

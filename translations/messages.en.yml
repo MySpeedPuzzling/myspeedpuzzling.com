@@ -114,6 +114,26 @@ secret_puzzler_name: "Hidden Puzzler"
 right_now: "Right now"
 live_event_strip: "Now live: %event% – Add & see results"
 
+round_results:
+    meta:
+        title: "%round% – %event% results"
+        description: "Results of %round% at %event% – the speed puzzlers who solved the round's puzzle, ranked by time."
+    heading_suffix: "results"
+    link: "Results"
+    time_limit: "%minutes% min limit"
+    all_rounds: "All rounds"
+    official_results: "Official results"
+    add_my_time: "Add my time"
+    not_started: "This round starts %when%. Results appear here as soon as puzzlers add their times."
+    no_results: "No results yet. Did you compete in this round? Add your time and it will show up here."
+    no_puzzle_yet: "The puzzle for this round has not been revealed yet."
+    column_result: "Result"
+    pieces_placed: "%placed% / %total% pcs"
+    finished_later: "finished in %time%"
+    section:
+        unfinished: "Didn't finish within the time limit"
+        over_limit: "Over the time limit"
+
 badge:
     relax: "Relax"
     suspicious: "Verification needed"
@@ -2790,6 +2810,9 @@ competition:
             badge_text_color: "Badge text color"
             category: "Category"
             category_help: "Solo — each participant solves individually. Duo — in pairs. Team — in groups. For duo and team rounds, you can manage team assignments after creating the round."
+            results_link: "Official results URL"
+            results_link_help: "Link to this round's results on the organiser's website, if they publish results per round."
+            puzzle_already_in_category: "This puzzle is already in round \"%round%\" of the same category. A puzzle can be in only one round per category of an event."
     puzzle:
         name: "Name"
         brand: "Brand"

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\CompetitionRoundInfo;
+use SpeedPuzzling\Web\Value\RoundCategory;
 
 readonly final class GetCompetitionRounds
 {
@@ -58,6 +59,64 @@ SQL;
         }
 
         return $results;
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function slugsOfCompetition(string $competitionId): array
+    {
+        /** @var array<string> $slugs */
+        $slugs = $this->database
+            ->executeQuery(
+                'SELECT slug FROM competition_round WHERE competition_id = :competitionId AND slug IS NOT NULL',
+                ['competitionId' => $competitionId],
+            )
+            ->fetchFirstColumn();
+
+        return $slugs;
+    }
+
+    /**
+     * Name of another round of the competition that already has one of these puzzles in the given category,
+     * null when there is none. A puzzle may be in only one round per category per competition.
+     *
+     * @param array<string> $puzzleIds
+     */
+    public function roundWithPuzzleInCategory(
+        string $competitionId,
+        array $puzzleIds,
+        RoundCategory $category,
+        null|string $exceptRoundId = null,
+    ): null|string {
+        if ($puzzleIds === []) {
+            return null;
+        }
+
+        $name = $this->database
+            ->executeQuery(
+                <<<SQL
+SELECT cr.name
+FROM competition_round cr
+INNER JOIN competition_round_puzzle crp ON crp.round_id = cr.id
+WHERE cr.competition_id = :competitionId
+    AND cr.category = :category
+    AND crp.puzzle_id IN (:puzzleIds)
+    AND (CAST(:exceptRoundId AS UUID) IS NULL OR cr.id <> CAST(:exceptRoundId AS UUID))
+ORDER BY cr.starts_at
+LIMIT 1
+SQL,
+                [
+                    'competitionId' => $competitionId,
+                    'category' => $category->value,
+                    'puzzleIds' => $puzzleIds,
+                    'exceptRoundId' => $exceptRoundId,
+                ],
+                ['puzzleIds' => ArrayParameterType::STRING],
+            )
+            ->fetchOne();
+
+        return is_string($name) ? $name : null;
     }
 
     public function hasParticipantsAssignedToRounds(string $competitionId): bool

@@ -116,6 +116,8 @@ final class EventDetailControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextContains('#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01, 'Qualification Round');
         $this->assertSelectorTextContains('#puzzle-list-item-' . PuzzleFixture::PUZZLE_1000_01, 'Final Round');
+        // Each round badge links to that round's results
+        $this->assertSelectorExists('#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01 . ' a[href="/en/events/wjpc-2024/results/qualification-round"]');
 
         $order = $crawler->filter('[id^="puzzle-list-item-"]')->each(
             static fn ($item): string => (string) $item->attr('id'),

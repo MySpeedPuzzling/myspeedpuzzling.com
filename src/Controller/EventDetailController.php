@@ -72,9 +72,18 @@ final class EventDetailController extends AbstractController
         // so a puzzle hidden until its round starts gets no round badge either.
         /** @var array<string, list<EditionRoundDetail>> $puzzleRounds */
         $puzzleRounds = [];
+        /** @var array<string, string> $roundResultsUrls */
+        $roundResultsUrls = [];
         foreach ($this->getEditionRounds->forCompetition($competition->id->toString()) as $round) {
             foreach ($round->puzzles as $roundPuzzle) {
                 $puzzleRounds[$roundPuzzle->puzzleId][] = $round;
+            }
+
+            if ($round->slug !== null) {
+                $roundResultsUrls[$round->id] = $this->generateUrl('event_round_results', [
+                    'slug' => $competition->slug,
+                    'roundSlug' => $round->slug,
+                ]);
             }
         }
 
@@ -117,6 +126,7 @@ final class EventDetailController extends AbstractController
             'event' => $competitionEvent,
             'puzzles' => $puzzles,
             'puzzle_rounds' => $puzzleRounds,
+            'round_results_urls' => $roundResultsUrls,
             'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList(array_map(
                 static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId,
                 $puzzles,

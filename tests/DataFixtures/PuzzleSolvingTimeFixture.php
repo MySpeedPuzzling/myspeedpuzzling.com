@@ -452,7 +452,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
         null|CompetitionRound $competitionRound = null,
         null|PuzzlersGroup $team = null,
         null|string $comment = null,
-        null|int $missingPieces = null,
+        null|int $piecesPlaced = null,
         null|\DateTimeImmutable|false $finishedAt = false,
     ): PuzzleSolvingTime {
         $now = $this->clock->now();
@@ -476,7 +476,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
             unboxed: false,
             competitionRound: $competitionRound,
             competition: $competition,
-            missingPieces: $missingPieces,
+            piecesPlaced: $piecesPlaced,
         );
     }
 }

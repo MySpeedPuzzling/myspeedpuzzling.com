@@ -13,6 +13,7 @@ use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\Extension\Core\Type\TimezoneType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -88,6 +89,12 @@ final class CompetitionRoundFormType extends AbstractType
                 RoundCategory::Team => 'competition.round.category.team',
             },
             'expanded' => true,
+        ]);
+
+        $builder->add('resultsLink', UrlType::class, [
+            'label' => 'competition.round.form.results_link',
+            'help' => 'competition.round.form.results_link_help',
+            'required' => false,
         ]);
 
         $builder->add('badgeBackgroundColor', TextType::class, [

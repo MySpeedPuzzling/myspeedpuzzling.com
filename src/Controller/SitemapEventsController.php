@@ -42,6 +42,23 @@ final class SitemapEventsController extends AbstractController
             ]));
         }
 
+        foreach ($this->getCompetitionSlugsForSitemap->roundResultSlugs() as $round) {
+            if ($round['series_slug'] === null) {
+                array_push($entries, ...$this->localizedEntries('event_round_results', [
+                    'slug' => $round['event_slug'],
+                    'roundSlug' => $round['round_slug'],
+                ]));
+
+                continue;
+            }
+
+            array_push($entries, ...$this->localizedEntries('edition_round_results', [
+                'seriesSlug' => $round['series_slug'],
+                'editionSlug' => $round['event_slug'],
+                'roundSlug' => $round['round_slug'],
+            ]));
+        }
+
         return $this->urlsetResponse($entries);
     }
 }

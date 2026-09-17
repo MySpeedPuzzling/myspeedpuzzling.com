@@ -12,11 +12,14 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Events\CompetitionRoundsChanged;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 
 #[Entity]
-class CompetitionRoundPuzzle
+class CompetitionRoundPuzzle implements EntityWithEvents
 {
+    use HasEvents;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -33,5 +36,14 @@ class CompetitionRoundPuzzle
         #[Column(nullable: true, enumType: PuzzleHideMode::class)]
         public null|PuzzleHideMode $hideMode = null,
     ) {
+        $this->recordThat(new CompetitionRoundsChanged($this->round->competition->id));
+    }
+
+    /**
+     * Call right before removing it - times that belonged to the round through this puzzle must be unlinked.
+     */
+    public function recordRemoval(): void
+    {
+        $this->recordThat(new CompetitionRoundsChanged($this->round->competition->id));
     }
 }

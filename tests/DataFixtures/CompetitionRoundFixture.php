@@ -39,6 +39,7 @@ final class CompetitionRoundFixture extends Fixture implements DependentFixtureI
             id: self::ROUND_WJPC_QUALIFICATION,
             competition: $wjpcCompetition,
             name: 'Qualification Round',
+            slug: 'qualification-round',
             minutesLimit: 60,
             daysFromNow: 30,
             badgeBackgroundColor: '#007bff',
@@ -54,6 +55,7 @@ final class CompetitionRoundFixture extends Fixture implements DependentFixtureI
             id: self::ROUND_WJPC_FINAL,
             competition: $wjpcCompetition,
             name: 'Final Round',
+            slug: 'final-round',
             minutesLimit: 120,
             daysFromNow: 32,
             badgeBackgroundColor: '#ffc107',
@@ -96,6 +98,7 @@ final class CompetitionRoundFixture extends Fixture implements DependentFixtureI
         int $daysFromNow,
         null|string $badgeBackgroundColor = null,
         null|string $badgeTextColor = null,
+        null|string $slug = null,
     ): CompetitionRound {
         $startsAt = $this->clock->now()->modify("+{$daysFromNow} days");
 
@@ -107,6 +110,7 @@ final class CompetitionRoundFixture extends Fixture implements DependentFixtureI
             startsAt: $startsAt,
             badgeBackgroundColor: $badgeBackgroundColor,
             badgeTextColor: $badgeTextColor,
+            slug: $slug,
         );
     }
 

@@ -17,6 +17,7 @@ readonly final class EditCompetitionRound
         public null|string $badgeBackgroundColor,
         public null|string $badgeTextColor,
         public RoundCategory $category = RoundCategory::Solo,
+        public null|string $resultsLink = null,
     ) {
     }
 }

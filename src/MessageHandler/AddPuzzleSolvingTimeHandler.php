@@ -23,6 +23,7 @@ use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
 
 #[AsMessageHandler]
 readonly final class AddPuzzleSolvingTimeHandler
@@ -39,6 +40,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private ImageOptimizer $imageOptimizer,
         private MistypedYearNormalizer $mistypedYearNormalizer,
         private LoggerInterface $logger,
+        private SolvingTimeRoundResolver $roundResolver,
     ) {
     }
 
@@ -124,6 +126,8 @@ readonly final class AddPuzzleSolvingTimeHandler
             competitionRound: $competitionRound,
             competition: $competition,
         );
+
+        $solvingTime->changeCompetitionRound($this->roundResolver->resolve($solvingTime));
 
         $this->entityManager->persist($solvingTime);
     }

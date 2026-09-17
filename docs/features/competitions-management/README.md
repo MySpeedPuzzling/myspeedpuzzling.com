@@ -138,6 +138,10 @@ The "Competition / event" picker on the add-time form (`PuzzleAddFormType`, rout
 - **Deep link** `puzzle_add?competition=<uuid>` (`/en/puzzle-add?competition=…`, built with `path('puzzle_add', {competition: id})`): `PuzzleAddController` pre-selects the competition in the picker when the form opens in speed-puzzling mode and `IsCompetitionPubliclyVisible::check()` passes — the `_solving_time_form` template then renders the competition section expanded. Any other value (not a uuid, unknown, unapproved, edition of an unapproved series, `?mode=relax|collection`) is ignored silently: no flash, no error, the form just opens without a pre-selection. It only seeds the GET render; on POST `handleRequest()` overwrites the data, so a cleared field is never re-filled from the URL.
 - **"Add my time from this event" CTA** (`events.add_my_time`) on the standalone event page (`EventDetailController` → `event_detail.html.twig`, next to the "I'm going" / "You are going" buttons) and the edition page (`EditionDetailController` → `edition_detail.html.twig`, in the registration/results link row) links to that deep link. Shown only when `can_add_time` = signed in **and** the competition row is publicly visible (`IsCompetitionPubliclyVisible::check()`) **and** the event has started — `CompetitionEvent::startsAfter(now)` is false, i.e. `COALESCE(date_from, date_to)` is not a later calendar day than today (`ClockInterface`; an undated event is perpetual and always qualifies). No per-edition CTA on the series page or in the editions table — a time links to a concrete edition, so the CTA lives on the edition page.
 
+## Round Results
+
+Every round with a slug has a public results page — `/en/events/{slug}/results/{roundSlug}` for standalone events, `/en/series/{seriesSlug}/{editionSlug}/results/{roundSlug}` for editions. A solving time's round follows from its competition + puzzle + solo/duo/team; it is stored in `puzzle_solving_time.competition_round_id` and kept current automatically. Full design, decisions and the WJPC 2026 data: [round-results.md](round-results.md).
+
 ## Round Management
 
 A competition has multiple **rounds**, each with:

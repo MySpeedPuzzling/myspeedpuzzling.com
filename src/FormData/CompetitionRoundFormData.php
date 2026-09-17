@@ -23,6 +23,9 @@ final class CompetitionRoundFormData
         #[Assert\Length(max: 250)]
         public null|string $badgeTextColor = '#ffffff',
         public RoundCategory $category = RoundCategory::Solo,
+        #[Assert\Url]
+        #[Assert\Length(max: 2000)]
+        public null|string $resultsLink = null,
     ) {
     }
 
@@ -35,6 +38,7 @@ final class CompetitionRoundFormData
         $data->badgeBackgroundColor = $round->badgeBackgroundColor;
         $data->badgeTextColor = $round->badgeTextColor;
         $data->category = $round->category;
+        $data->resultsLink = $round->resultsLink;
 
         return $data;
     }

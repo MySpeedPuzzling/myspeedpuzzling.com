@@ -81,12 +81,15 @@
                             }) }}
                         </span>
 
-                        {# Only the event page passes puzzle_rounds: the competition round(s) this puzzle was solved in #}
+                        {# Only the event page passes puzzle_rounds: the competition round(s) this puzzle was solved in,
+                           linking to the round's results when it has a result page #}
                         {% for round in puzzle_rounds[puzzle.puzzleId] ?? [] %}
-                            <span
+                            {% set round_results_url = round_results_urls[round.id] ?? null %}
+                            <{{ round_results_url ? 'a' : 'span' }}
+                                {% if round_results_url %}href="{{ round_results_url }}" data-turbo-frame="_top"{% endif %}
                                 class="badge text-wrap rounded-pill mt-1 {{ round.badgeBackgroundColor ? '' : 'bg-dark' }}"
                                 {% if round.badgeBackgroundColor %}style="background-color: {{ round.badgeBackgroundColor }}; color: {{ round.badgeTextColor ?? '#fff' }}"{% endif %}
-                            ><i class="bi bi-flag-fill me-1"></i>{{ round.name }} · {{ round.startsAt|date('d.m. H:i') }}</span>
+                            ><i class="bi bi-flag-fill me-1"></i>{{ round.name }} · {{ round.startsAt|date('d.m. H:i') }}{% if round_results_url %} · {{ 'round_results.link'|trans }} <i class="bi bi-chevron-right"></i>{% endif %}</{{ round_results_url ? 'a' : 'span' }}>
                         {% endfor %}
 
                         {% for tag in tags[puzzle.puzzleId] ?? [] %}

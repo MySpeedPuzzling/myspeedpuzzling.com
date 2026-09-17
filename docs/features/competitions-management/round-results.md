@@ -1,6 +1,6 @@
 # Round Results Pages — Plan
 
-**Status:** planned, all decisions settled (2026-09-17)
+**Status:** phase 1a implemented (2026-09-17) — round pages, derived round links, reconciler, slugs, per-round official results link. Phase 1b (entering unfinished results) not started.
 
 ## Goal
 

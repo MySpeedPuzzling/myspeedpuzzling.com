@@ -71,12 +71,17 @@ class PuzzleSolvingTime implements EntityWithEvents
         public null|CompetitionRound $competitionRound = null,
         #[ManyToOne]
         public null|Competition $competition = null,
+        // Unfinished competition result: pieces placed when the round's time ran out. Such a result never has
+        // secondsToSolve, so every leaderboard and statistic (which read only secondsToSolve) leaves it out
         #[Column(nullable: true)]
-        public null|int $missingPieces = null,
+        public null|int $piecesPlaced = null,
         #[Column(nullable: true)]
         public null|bool $qualified = null,
         #[Column(options: ['default' => false])]
         public bool $suspicious = false,
+        // Total time of an unfinished result whose solver kept going after the limit - display only
+        #[Column(nullable: true)]
+        public null|int $finishedLaterSeconds = null,
     ) {
         $this->puzzlersCount = $this->calculatePuzzlersCount();
         $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
@@ -84,6 +89,15 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(
             new PuzzleSolved($this->id, $this->puzzle->id),
         );
+    }
+
+    /**
+     * The round is never chosen by hand - it follows from competition + puzzle + solo/duo/team
+     * (see SolvingTimeRoundResolver), so callers set it after the time's other data is final.
+     */
+    public function changeCompetitionRound(null|CompetitionRound $competitionRound): void
+    {
+        $this->competitionRound = $competitionRound;
     }
 
     public function modify(

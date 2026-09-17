@@ -34,7 +34,9 @@ SELECT
     cr.starts_at,
     cr.category,
     cr.badge_background_color,
-    cr.badge_text_color
+    cr.badge_text_color,
+    cr.slug,
+    cr.results_link
 FROM competition_round cr
 WHERE cr.competition_id = :competitionId
 ORDER BY cr.starts_at
@@ -127,7 +129,7 @@ SQL;
         }
 
         return array_map(static function (array $row) use ($puzzlesByRound): EditionRoundDetail {
-            /** @var array{id: string, name: string, minutes_limit: int|string, starts_at: string, category: string, badge_background_color: null|string, badge_text_color: null|string} $row */
+            /** @var array{id: string, name: string, minutes_limit: int|string, starts_at: string, category: string, badge_background_color: null|string, badge_text_color: null|string, slug: null|string, results_link: null|string} $row */
 
             return new EditionRoundDetail(
                 id: $row['id'],
@@ -138,6 +140,8 @@ SQL;
                 badgeBackgroundColor: $row['badge_background_color'],
                 badgeTextColor: $row['badge_text_color'],
                 puzzles: $puzzlesByRound[$row['id']] ?? [],
+                slug: $row['slug'],
+                resultsLink: $row['results_link'],
             );
         }, $rounds);
     }

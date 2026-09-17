@@ -64,6 +64,8 @@ return App::config([
                 'SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted' => 'sync',
                 // Events that must run synchronously for proper transaction ordering
                 'SpeedPuzzling\Web\Events\PuzzleMergeApproved' => 'sync',
+                // Reconciles solving times to rounds on postFlush, inside the transaction that changed the rounds
+                'SpeedPuzzling\Web\Events\CompetitionRoundsChanged' => 'sync',
                 // All other events can run asynchronously
                 'SpeedPuzzling\Web\Events\*' => 'async',
             ],

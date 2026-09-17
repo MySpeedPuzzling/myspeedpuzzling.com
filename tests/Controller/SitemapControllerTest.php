@@ -107,4 +107,19 @@ final class SitemapControllerTest extends WebTestCase
 
         $this->assertResponseStatusCodeSame(404);
     }
+
+    public function testEventsSitemapListsRoundResultPagesThatHaveResults(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/sitemap-events.xml');
+
+        $this->assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+
+        // Both WJPC 2024 rounds have linked fixture results, the Czech final has none
+        self::assertStringContainsString('/en/events/wjpc-2024/results/qualification-round</loc>', $content);
+        self::assertStringContainsString('/en/events/wjpc-2024/results/final-round</loc>', $content);
+        self::assertStringNotContainsString('/en/events/czech-nationals-2024/results/', $content);
+    }
 }

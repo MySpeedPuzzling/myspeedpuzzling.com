@@ -22,6 +22,7 @@ use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
 
 #[AsMessageHandler]
 readonly final class EditPuzzleSolvingTimeHandler
@@ -36,6 +37,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         private ImageOptimizer $imageOptimizer,
         private MistypedYearNormalizer $mistypedYearNormalizer,
         private LoggerInterface $logger,
+        private SolvingTimeRoundResolver $roundResolver,
     ) {
     }
 
@@ -120,5 +122,8 @@ readonly final class EditPuzzleSolvingTimeHandler
             $message->unboxed,
             competition: $competition,
         );
+
+        // After modify(): the round depends on the competition and on solo/duo/team, both final only now
+        $solvingTime->changeCompetitionRound($this->roundResolver->resolve($solvingTime));
     }
 }

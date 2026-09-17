@@ -152,6 +152,12 @@
                     <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i') }}
                     <span class="mx-1">&middot;</span>
                     <i class="bi bi-stopwatch me-1"></i>{{ round.minutesLimit }} min
+                    {% if round.slug is not null and series.slug is not null and event.slug is not null %}
+                        <span class="mx-1">&middot;</span>
+                        <a href="{{ path('edition_round_results', {seriesSlug: series.slug, editionSlug: event.slug, roundSlug: round.slug}) }}">
+                            <i class="bi bi-trophy me-1"></i>{{ 'round_results.link'|trans }}
+                        </a>
+                    {% endif %}
                 </div>
 
                 {% if round.puzzles|length > 0 %}

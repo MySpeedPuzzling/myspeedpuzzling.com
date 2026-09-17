@@ -21,6 +21,8 @@ readonly final class EditionRoundDetail
         public null|string $badgeBackgroundColor,
         public null|string $badgeTextColor,
         public array $puzzles,
+        public null|string $slug = null,
+        public null|string $resultsLink = null,
     ) {
     }
 }

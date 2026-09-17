@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormType\CompetitionRoundFormType;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
@@ -13,8 +14,10 @@ use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -93,15 +96,36 @@ final class EditCompetitionRoundController extends AbstractController
                 $startsAt = $localDateTime->setTimezone(new DateTimeZone('UTC'));
             }
 
-            $this->messageBus->dispatch(new EditCompetitionRound(
-                roundId: $roundId,
-                name: $data->name,
-                minutesLimit: $data->minutesLimit,
-                startsAt: $startsAt,
-                badgeBackgroundColor: $data->badgeBackgroundColor,
-                badgeTextColor: $data->badgeTextColor,
-                category: $data->category,
-            ));
+            try {
+                $this->messageBus->dispatch(new EditCompetitionRound(
+                    roundId: $roundId,
+                    name: $data->name,
+                    minutesLimit: $data->minutesLimit,
+                    startsAt: $startsAt,
+                    badgeBackgroundColor: $data->badgeBackgroundColor,
+                    badgeTextColor: $data->badgeTextColor,
+                    category: $data->category,
+                    resultsLink: $data->resultsLink,
+                ));
+            } catch (HandlerFailedException $e) {
+                $nested = $e->getPrevious() ?? $e;
+
+                if (!$nested instanceof PuzzleAlreadyInCompetitionRoundCategory) {
+                    throw $e;
+                }
+
+                // A form error makes the form invalid, so render() answers 422 - Turbo Drive drops a 200
+                $form->get('category')->addError(new FormError($this->translator->trans(
+                    'competition.round.form.puzzle_already_in_category',
+                    ['%round%' => $nested->conflictingRoundName],
+                )));
+
+                return $this->render('edit_competition_round.html.twig', [
+                    'form' => $form,
+                    'competition' => $competition,
+                    'round' => $round,
+                ]);
+            }
 
             $this->addFlash('success', $this->translator->trans('competition.flash.round_updated'));
 

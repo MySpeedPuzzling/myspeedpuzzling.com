@@ -61,4 +61,14 @@ final class EditionDetailControllerTest extends WebTestCase
     {
         return sprintf('a[href$="?competition=%s"]', $competitionId);
     }
+
+    public function testRoundLinksToItsResults(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', self::PAST_EDITION_URL);
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorExists('a[href="' . self::PAST_EDITION_URL . '/results/main-round"]');
+    }
 }

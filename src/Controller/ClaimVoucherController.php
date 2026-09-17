@@ -15,7 +15,9 @@ use SpeedPuzzling\Web\FormType\ClaimVoucherFormType;
 use SpeedPuzzling\Web\Message\ClaimVoucher;
 use SpeedPuzzling\Web\Results\ClaimVoucherResult;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\VoucherType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -57,8 +59,6 @@ final class ClaimVoucherController extends AbstractController
         $form = $this->createForm(ClaimVoucherFormType::class, $data);
         $form->handleRequest($request);
 
-        $result = null;
-
         if ($form->isSubmitted() && $form->isValid()) {
             $profile = $this->retrieveLoggedUserProfile->getProfile();
 
@@ -73,41 +73,49 @@ final class ClaimVoucherController extends AbstractController
                         voucherCode: $data->code,
                     ),
                 );
-
-                /** @var HandledStamp|null $handledStamp */
-                $handledStamp = $envelope->last(HandledStamp::class);
-
-                if ($handledStamp !== null) {
-                    $result = $handledStamp->getResult();
-                    assert($result instanceof ClaimVoucherResult);
-
-                    if ($result->redirectToMembership) {
-                        $this->addFlash(
-                            'success',
-                            sprintf('Voucher claimed! You have a %d%% discount waiting for you.', $result->percentageDiscount),
-                        );
-
-                        return $this->redirectToRoute('membership');
-                    }
-                }
             } catch (HandlerFailedException $e) {
                 $nested = $e->getPrevious() ?? $e;
 
-                match (true) {
-                    $nested instanceof VoucherNotFound => $this->addFlash('danger', 'Invalid voucher code. Please check and try again.'),
-                    $nested instanceof VoucherAlreadyUsed => $this->addFlash('danger', 'This voucher has already been used.'),
-                    $nested instanceof VoucherExpired => $this->addFlash('danger', 'This voucher has expired.'),
-                    $nested instanceof VoucherUsageLimitReached => $this->addFlash('danger', 'This voucher has reached its usage limit.'),
-                    $nested instanceof PlayerAlreadyClaimedVoucher => $this->addFlash('danger', 'You have already claimed this voucher.'),
-                    $nested instanceof PlayerAlreadyHasLifetimeMembership => $this->addFlash('danger', 'You already have a lifetime membership, so this voucher would not add anything. Pass it on to a fellow puzzler!'),
+                $error = match (true) {
+                    $nested instanceof VoucherNotFound => 'Invalid voucher code. Please check and try again.',
+                    $nested instanceof VoucherAlreadyUsed => 'This voucher has already been used.',
+                    $nested instanceof VoucherExpired => 'This voucher has expired.',
+                    $nested instanceof VoucherUsageLimitReached => 'This voucher has reached its usage limit.',
+                    $nested instanceof PlayerAlreadyClaimedVoucher => 'You have already claimed this voucher.',
+                    $nested instanceof PlayerAlreadyHasLifetimeMembership => 'You already have a lifetime membership, so this voucher would not add anything. Pass it on to a fellow puzzler!',
                     default => throw $e,
                 };
+
+                // A form error makes the form invalid, so render() answers 422 - Turbo Drive
+                // silently discards a 200 answer to a form submission, and the error with it
+                $form->get('code')->addError(new FormError($error));
+
+                return $this->render('claim_voucher.html.twig', [
+                    'form' => $form,
+                ]);
             }
+
+            /** @var HandledStamp $handledStamp */
+            $handledStamp = $envelope->last(HandledStamp::class);
+            $result = $handledStamp->getResult();
+            assert($result instanceof ClaimVoucherResult);
+
+            // Always redirect: Turbo Drive discards a 200 answer to a form submission, so a success
+            // page rendered here would never reach the browser - the voucher gets claimed while the
+            // visitor sees nothing happen
+            $this->addFlash('success', match ($result->voucherType) {
+                VoucherType::PercentageDiscount => $result->redirectToMembership
+                    ? sprintf('Voucher claimed! You have a %d%% discount waiting for you.', $result->percentageDiscount)
+                    : sprintf('Voucher claimed! Your %d%% discount has been applied to your subscription.', $result->percentageDiscount),
+                VoucherType::Lifetime => 'Voucher claimed! You are now a lifetime member. If you had a subscription, it has been cancelled and you will not be charged again.',
+                VoucherType::FreeMonths => 'Voucher claimed! Your membership has been extended.',
+            });
+
+            return $this->redirectToRoute('membership');
         }
 
         return $this->render('claim_voucher.html.twig', [
             'form' => $form,
-            'result' => $result,
         ]);
     }
 }

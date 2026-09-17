@@ -135,13 +135,9 @@
         {% for round in rounds %}
             <div class="mt-4">
                 <h2 class="h5 mb-3">
-                    {% if round.badgeBackgroundColor %}
-                        <span class="badge me-2" style="background-color: {{ round.badgeBackgroundColor }}; color: {{ round.badgeTextColor ?? '#fff' }}">
-                            {{ round.name }}
-                        </span>
-                    {% else %}
+                    <span class="badge me-2" style="background-color: {{ round.color }}; color: {{ round.textColor }};">
                         {{ round.name }}
-                    {% endif %}
+                    </span>
 
                     {% if round.category.value != 'solo' %}
                         <span class="badge bg-secondary ms-1">{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>

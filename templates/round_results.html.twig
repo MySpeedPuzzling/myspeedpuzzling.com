@@ -17,11 +17,7 @@
     </p>
 
     <h1 class="h4 mb-2">
-        {% if round.badgeBackgroundColor %}
-            <span class="badge align-middle" style="background-color: {{ round.badgeBackgroundColor }}; color: {{ round.badgeTextColor ?? '#fff' }}">{{ round.name }}</span>
-        {% else %}
-            {{ round.name }}
-        {% endif %}
+        <span class="badge align-middle" style="background-color: {{ round.color }}; color: {{ round.textColor }};">{{ round.name }}</span>
         <span class="text-muted fw-normal">– {{ 'round_results.heading_suffix'|trans }}</span>
     </h1>
 
@@ -51,7 +47,7 @@
                     {% for other_round in page.rounds %}
                         <li>
                             <a class="dropdown-item {{ other_round.id == round.id ? 'active' }}" href="{{ path(round_route, round_route_params|merge({roundSlug: other_round.slug})) }}">
-                                {{ other_round.name }}
+                                <span class="d-inline-block rounded-circle me-2 align-middle" style="width: .625rem; height: .625rem; background-color: {{ other_round.color }};" aria-hidden="true"></span>{{ other_round.name }}
                                 <small class="{{ other_round.id == round.id ? '' : 'text-muted' }} ms-1">{{ other_round.startsAt|date('d.m. H:i') }}</small>
                             </a>
                         </li>

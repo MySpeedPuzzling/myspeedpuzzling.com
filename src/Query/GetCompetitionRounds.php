@@ -8,12 +8,10 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\CompetitionRoundInfo;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundBadgeColor;
 
 readonly final class GetCompetitionRounds
 {
-    private const array COLORS = ['#E6194B', '#3CB44B', '#FFE119', '#0082C8', '#F58231', '#911EB4', '#46F0F0', '#D2F53C', '#FABEBE', '#008080', '#E6BEFF', '#AA6E28', '#800000', '#000075', '#808000', '#000000', '#9A6324', '#469990', '#FFFAC8', '#DCBEFF'];
-    private const array TEXT_COLORS = ['#FFFFFF', '#FFFFFF', '#000000', '#000000', '#000000', '#FFFFFF', '#000000', '#000000', '#000000', '#FFFFFF', '#000000', '#000000', '#FFFFFF', '#FFFFFF', '#000000', '#FFFFFF', '#FFFFFF', '#000000', '#000000', '#000000'];
-
     public function __construct(
         private Connection $database,
     ) {
@@ -25,7 +23,12 @@ readonly final class GetCompetitionRounds
     public function ofCompetition(string $competitionId): array
     {
         $query = <<<SQL
-SELECT id, name, badge_background_color, badge_text_color
+SELECT
+    id,
+    name,
+    badge_background_color,
+    -- Colour by schedule position, like the round's pill on the event pages, while the chips stay sorted by name
+    ROW_NUMBER() OVER (ORDER BY starts_at, id) - 1 AS schedule_position
 FROM competition_round
 WHERE competition_id = :competitionId
 ORDER BY name
@@ -39,22 +42,23 @@ SQL;
 
         $results = [];
 
-        foreach ($data as $i => $row) {
+        foreach ($data as $row) {
             /**
              * @var array{
              *     id: string,
              *     name: string,
              *     badge_background_color: null|string,
-             *     badge_text_color: null|string,
+             *     schedule_position: int|string,
              * } $row
              */
+
+            $color = RoundBadgeColor::background($row['badge_background_color'], (int) $row['schedule_position']);
 
             $results[$row['id']] = new CompetitionRoundInfo(
                 id: $row['id'],
                 name: $row['name'],
-                // Cycle the palette - a competition can have more rounds than it has colours
-                textColor: $row['badge_text_color'] ?? self::TEXT_COLORS[$i % count(self::TEXT_COLORS)],
-                color: $row['badge_background_color'] ?? self::COLORS[$i % count(self::COLORS)],
+                textColor: RoundBadgeColor::text($color),
+                color: $color,
             );
         }
 

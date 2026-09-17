@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\EditionRoundPuzzle;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundBadgeColor;
 
 readonly final class GetEditionRounds
 {
@@ -128,8 +129,11 @@ SQL;
             }
         }
 
-        return array_map(static function (array $row) use ($puzzlesByRound): EditionRoundDetail {
+        // Rounds come ordered by start, so the index is the round's position in the schedule
+        return array_map(static function (array $row, int $schedulePosition) use ($puzzlesByRound): EditionRoundDetail {
             /** @var array{id: string, name: string, minutes_limit: int|string, starts_at: string, category: string, badge_background_color: null|string, badge_text_color: null|string, slug: null|string, results_link: null|string} $row */
+
+            $color = RoundBadgeColor::background($row['badge_background_color'], $schedulePosition);
 
             return new EditionRoundDetail(
                 id: $row['id'],
@@ -140,9 +144,11 @@ SQL;
                 badgeBackgroundColor: $row['badge_background_color'],
                 badgeTextColor: $row['badge_text_color'],
                 puzzles: $puzzlesByRound[$row['id']] ?? [],
+                color: $color,
+                textColor: RoundBadgeColor::text($color),
                 slug: $row['slug'],
                 resultsLink: $row['results_link'],
             );
-        }, $rounds);
+        }, $rounds, array_keys($rounds));
     }
 }

@@ -1,6 +1,6 @@
 # Round Results Pages — Plan
 
-**Status:** draft, decisions partly settled (2026-09-17)
+**Status:** planned, all decisions settled (2026-09-17)
 
 ## Goal
 
@@ -8,10 +8,13 @@ Every competition round gets its own public results page with a shareable, reada
 
 ## Settled
 
-- **A time's round is determined by its competition + puzzle + category**, materialised in `puzzle_solving_time.competition_round_id` by a reconciler (Jan's idea — see below).
+- **A time's round is determined by its competition + puzzle + category — no date check**, materialised in `puzzle_solving_time.competition_round_id` by a reconciler (Jan's idea — see below). People add results from home days later or backfill them; the event link the player chose is trusted.
+- **A player's (or team's) earliest time for the round is their result**, not the fastest — without a date check a later practice run on the same puzzle also matches, and a repeat solve is quicker.
 - **URL uses a readable round slug**, e.g. `/en/events/world-jigsaw-puzzle-championship-2026/results/individual-b`.
 - **Rounds get their own official results link**, because some organisers publish results per round.
-- **Unfinished results follow competition rules**: time = the round's limit, ranked by pieces placed.
+- **Unfinished results follow competition rules**: time = the round's limit, ranked by pieces placed. Entered in the existing collapsed **Competition result** card of the add/edit-time form, shipped to everyone (no feature flag).
+- **Times over the limit without pieces reported are ranked after the unfinished ones.**
+- **Unfinished results keep counting as solved** in profile counts for now; revisit with real data.
 
 ## What exists today (production, 2026-09-17)
 
@@ -33,6 +36,7 @@ Across every competition that has round puzzles, **613 times** are linked to the
 | before the round | 15 |
 
 - `first_attempt` does not separate the outliers — 28 of the 33 are marked first attempt.
+- **Decision:** no date check anyway — some of the "later" ones are real results added from home with the form's default date. The ~5 % practice runs are neutralised by taking each player's *earliest* time for the round.
 - **A puzzle is never in two rounds of the same category**, but **8 competitions reuse a puzzle across categories**: Ou La La SPC runs "Individual" and "Pairs" on the same puzzle every edition, "#1 – July 2024" shares one between Pairs and Teams. The 57 matches whose type differs from the round's category are all these. So *competition + puzzle* is not unique, *competition + puzzle + category* is.
 
 ### What the data says about unfinished results
@@ -46,12 +50,9 @@ Competitors who run out of time work around the form today: either they enter th
 A time belongs to round R of its competition when
 
 1. R's puzzles include the time's puzzle, **and**
-2. R's category equals the time's `puzzling_type` (solo / duo / team), **and**
-3. `finished_at::date` is within R's start day ±1.
+2. R's category equals the time's `puzzling_type` (solo / duo / team).
 
-Thanks to the invariant below, at most one round can match.
-
-The ±1 day absorbs people adding their time the next morning with the form's default date, and online events whose `starts_at` is UTC while `finished_at` is the solver's local date. A time outside the window keeps its competition link and simply has no round; correcting the date on the time fixes it.
+No date condition. Thanks to the invariant below, at most one round can match.
 
 ### The invariant
 
@@ -68,8 +69,8 @@ Cheap: only the 17k competition-linked times are ever candidates.
 
 **Runs synchronously, scoped to the affected competition(s)**, at the end of the handlers that can change the answer:
 
-- `AddPuzzleSolvingTimeHandler`, `EditPuzzleSolvingTimeHandler` (competition, date, group/type change)
-- `AddCompetitionRoundHandler`, `EditCompetitionRoundHandler` (date, category)
+- `AddPuzzleSolvingTimeHandler`, `EditPuzzleSolvingTimeHandler` (competition or group/type change)
+- `AddCompetitionRoundHandler`, `EditCompetitionRoundHandler` (category change)
 - `AddPuzzleToCompetitionRoundHandler`, `RemovePuzzleFromCompetitionRoundHandler`
 - `ApprovePuzzleMergeRequestHandler` (moves times and round puzzles between puzzle ids)
 
@@ -79,16 +80,38 @@ Round and competition deletes already null the column.
 
 **Why both, not cron alone:** during a live round people add their time and open the round page straight away — a cron-only link would leave them missing for up to 15 minutes. The cron repairs anything a write path misses.
 
-**API:** `POST /api/v1/me/solving-times` keeps accepting `roundId` to derive the competition; the reconciler then applies the rule, so a `roundId` that does not fit (wrong puzzle, category or date) does not stick.
+**API:** `POST /api/v1/me/solving-times` keeps accepting `roundId` to derive the competition; the reconciler then applies the rule, so a `roundId` that does not fit (wrong puzzle or category) does not stick.
 
 **No manual round picker is needed** — with the invariant, the round is fully determined.
 
 ## Unfinished results
 
 - Replace the unused `missing_pieces` column with **`pieces_placed`** (nullable int) — what competitors and official results actually report. Both columns are empty in production, so this is a plain generated migration.
-- **Add-time / edit-time form**, in the competition section: *"Didn't finish within the time limit"* → **Pieces placed** (required, `1 … pieces_count − 1`) and an optional **"I finished it afterwards — total time"**.
-  - Stopped at the limit → `seconds_to_solve = NULL`, `pieces_placed = N`. A NULL time is already excluded from leaderboards, statistics and insights everywhere.
-  - Finished afterwards → `seconds_to_solve` = the full time, `pieces_placed = N`. The full time is a real solve, so it stays in puzzle leaderboards and statistics; only the round ranking treats it as unfinished.
+### Where it is entered (decided)
+
+Inside the existing collapsed **🏆 Competition result** card of `_solving_time_form.html.twig`, under the event picker. 97 % of submissions never open that card, so the default path does not change. The same template serves the edit-time page and modal, so older entries can be corrected too.
+
+```
+┌ 🏆 Competition result ───────────────────┐
+│ Competition / event                      │
+│ [ WJPC 2026 · Valladolid          ▾ ]    │
+│                                          │
+│ ☑ I didn't finish within the time limit  │
+│   Pieces placed  [ 479 ] / 500           │
+│   ⓘ Time: leave empty if you stopped at  │
+│     the limit, or enter your total time  │
+│     if you finished it afterwards.       │
+└──────────────────────────────────────────┘
+```
+
+- **No separate "total time" field** — the form's normal time field carries it:
+  - stopped at the limit → time empty → `seconds_to_solve = NULL`, `pieces_placed = N`. A NULL time is already excluded from leaderboards, statistics and insights everywhere;
+  - finished afterwards → time filled → `seconds_to_solve` = the full time, `pieces_placed = N`. The full time is a real solve and stays in puzzle leaderboards and statistics; only the round ranking treats it as unfinished.
+- **Server-side rules** (`PuzzleAddFormType` + `EditPuzzleSolvingTimeFormType`, `POST_SUBMIT`): speed mode still requires a time **unless** "didn't finish" is ticked; pieces placed is required when ticked, must be `1 … pieces_count − 1` (skip the upper bound for a new puzzle without a piece count), and requires a selected competition. Relax and collection modes never show or accept it.
+- **Client side**: the checkbox reveals the pieces field (existing `toggle` controller pattern); `ppm-validator` must not warn on an empty time.
+- **Stopwatch finish flow** (`finish_stopwatch`) uses the same form — a measured time is by definition finished, so the checkbox is hidden there.
+- **API**: `piecesPlaced` on the solving-time write DTO, same validation.
+- **Rollout: straight to everyone, no feature flag** (decided). Because this touches the platform's most critical form, the tests cover: normal speed add without competition still requires a time; relax and collection unchanged; stopwatch finish unchanged; unfinished solo, duo and team with and without a total time; edit form round-trip; every validation error.
 - The limit time is never stored as a solving time — that is what pollutes statistics today.
 
 ## The round page
@@ -105,9 +128,11 @@ Round and competition deletes already null the column.
 
 1. **Finished within the limit** — by time, fastest first.
 2. **Unfinished** (`pieces_placed` set) — shown as "{limit} · 479 / 500 pcs", by pieces placed, most first; equal pieces share a rank.
-3. **Over the limit with no pieces reported** (the old workaround) — listed last, unranked, with their time.
+3. **Over the limit with no pieces reported** (the old workaround) — ranked after the unfinished ones, by time (decided).
 
-Rows reuse the `PuzzleSolver` / `PuzzleSolversGroup` DTOs and `PuzzleTimes` row markup, so private players, secret puzzlers, ranking opt-outs and members-only skill tiers behave exactly as on the puzzle page. Suspicious times are excluded. Duo/team rows list the members. One row per player for solo.
+**One result per player (solo) or team (duo/team): the earliest** — by `finished_at`, then `tracked_at`. Without a date check a later practice run also belongs to the round, and it would be faster.
+
+Rows reuse the `PuzzleSolver` / `PuzzleSolversGroup` DTOs and `PuzzleTimes` row markup, so private players, secret puzzlers, ranking opt-outs and members-only skill tiers behave exactly as on the puzzle page. Suspicious times are excluded. Duo/team rows list the members.
 
 ### Content
 
@@ -115,12 +140,14 @@ Rows reuse the `PuzzleSolver` / `PuzzleSolversGroup` DTOs and `PuzzleTimes` row 
 2. **Round puzzle(s)** — honours `hideUntilRoundStarts` / `hide_until` / `hide_image_until` (same rules as `GetEditionRounds`).
 3. **State** — upcoming ("starts in …", no ranking), running / finished (ranking so far).
 4. **"Add my time from this round"** — the existing `puzzle_add` deep link with the puzzle and `?competition=`; signed-in only, once the round has started.
-5. **Round navigation** — previous / next and a round switcher; with 20 rounds this matters most.
+5. **Round navigation** — previous / next and a round switcher; with 13+ rounds this matters most.
 6. **SEO** — indexable, title "{round} – {event} results", canonical from the base route, started rounds in `SitemapEventsController`.
 
 ### Event pages
 
-The edition page's rounds section becomes a shared partial used by **both** the standalone event page and the edition page, with per round: status, result count, **Results** link, official results link. The tag's puzzle grid stays for events without rounds.
+**Shipped already (095c8c4b):** the standalone event page's puzzle cards show their round ("Individual A · 17.09. 09:00") and follow the round schedule; the participants section only shows round filter chips when someone is assigned to a round.
+
+Phase 1a adds a **Results** link (and the round's official results link) next to that round badge on each puzzle card, and to each round on the edition page.
 
 ## Phases
 
@@ -129,16 +156,15 @@ The edition page's rounds section becomes a shared partial used by **both** the 
 1. Migration (generated): `competition_round.slug`, `competition_round.results_link`, `puzzle_solving_time.pieces_placed` replacing `missing_pieces`; slug backfill.
 2. Invariant validation (add puzzle to round, edit round category).
 3. Reconciler + handler hooks + console command + message + cron; initial run.
-4. `GetRoundResults` read model; the two round controllers + shared template; shared rounds partial; sitemap.
+4. `GetRoundResults` read model; the two round controllers + shared template; Results links on the event page's puzzle cards and the edition page; sitemap.
 5. Round add/edit form: official results link field.
 6. **Data**: remaining WJPC 2026 round puzzles attached and tagged `WJPC 2026` as they are revealed; per-round official results links filled in from the table below once the column exists.
-7. **Fix `GetCompetitionRounds::ofCompetition()`** — it picks chip colours with `COLORS[$i]` from a 20-entry palette, so the participants component on an event page throws for a competition with more than 20 rounds. Cycle the palette.
 
-Tests: reconciler (rule, category collision, ±1 day, re-link on edit, unlink on removal, merge), invariant, `GetRoundResults` ordering incl. unfinished and legacy over-limit, controllers for both routes, hidden puzzles before start, private players.
+Tests: reconciler (rule, category collision, re-link on edit, unlink on removal, merge), invariant, `GetRoundResults` ordering incl. unfinished, over-limit and earliest-time-per-player, controllers for both routes, hidden puzzles before start, private players.
 
 ### Phase 1b — unfinished results entry
 
-`pieces_placed` + "finished afterwards" in the add/edit-time forms and the API write DTO; round ranking already supports it from 1a.
+"Didn't finish within the time limit" + pieces placed in the competition card of the add/edit-time form and the API write DTO, as specified in [Unfinished results](#unfinished-results); round ranking already supports it from 1a. No feature flag.
 
 ### Phase 2 — optional
 
@@ -148,12 +174,9 @@ Tests: reconciler (rule, category collision, ±1 day, re-link on edit, unlink on
 - Live refresh of a running round via Mercure (anonymous pages are shared-cached for 60 s today, which may be enough).
 - API V1: `GET /api/v1/competitions/{id}/rounds/{roundId}/results`.
 
-## Still open
+## Later
 
-1. **Date window** — round day ±1 (recommended; 95 % of matches), exact day, or the whole event?
-2. **Over the limit with no pieces reported** — list last unranked (recommended), or hide?
-3. **Does an unfinished result count as a solved puzzle** in the player's profile counts? Today every time row counts, including time-less ones. Excluding unfinished ones touches the player statistics queries — recommend leaving counts as they are in 1b and deciding separately.
-4. **WJPC 2026 rounds** — you via the manage-rounds UI, or scripted from a list of rounds + puzzle ids?
+- **Should unfinished results count as solved** in profile counts? Kept counting for now; revisit once real unfinished results exist. Excluding them touches every player statistics query.
 
 ## WJPC 2026 data
 
@@ -163,7 +186,7 @@ Entered on production 2026-09-17 from the official schedule (worldjigsawpuzzle.o
 |---|---|---|---|---|---|
 | Individual A | solo | 17/09 09:00 | 90 | Yellowstone National Park | https://worldjigsawpuzzle.org/wjpc/2026/individual/a |
 | Individual B | solo | 17/09 11:00 | 90 | Glacier National Park | https://worldjigsawpuzzle.org/wjpc/2026/individual/b |
-| Individual C | solo | 17/09 13:00 | 90 | — | https://worldjigsawpuzzle.org/wjpc/2026/individual/c |
+| Individual C | solo | 17/09 13:00 | 90 | Zion National Park | https://worldjigsawpuzzle.org/wjpc/2026/individual/c |
 | Individual D | solo | 17/09 15:00 | 90 | — | https://worldjigsawpuzzle.org/wjpc/2026/individual/d |
 | Individual Semifinal S1 | solo | 17/09 18:00 | 75 | — | https://worldjigsawpuzzle.org/wjpc/2026/individual/s1 |
 | Individual Semifinal S2 | solo | 17/09 19:45 | 75 | — | https://worldjigsawpuzzle.org/wjpc/2026/individual/s2 |
@@ -175,4 +198,4 @@ Entered on production 2026-09-17 from the official schedule (worldjigsawpuzzle.o
 | Pairs Final | duo | 20/09 09:30 | 120 | — | https://worldjigsawpuzzle.org/wjpc/2026/pairs/final |
 | Individual Final | solo | 20/09 12:00 | 75 | — | https://worldjigsawpuzzle.org/wjpc/2026/individual/final |
 
-Side effect already live: the participants section on the event page shows the 13 rounds as filter chips; nobody is assigned to a round, so filtering by one shows an empty list.
+Individual C → Zion National Park was attached after this table was first written. Round puzzles are attached and tagged by SQL as Jan reports them.

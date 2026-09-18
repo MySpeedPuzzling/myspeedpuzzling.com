@@ -76,7 +76,7 @@ final class SentryMonologHandlersTest extends KernelTestCase
 
         foreach (self::productionSentryIssueHandlers() as $handlerClass => $channels) {
             // Tripled channels would report the same problem twice - see prod/monolog.php
-            foreach (['!messenger', '!php', '!sentry_sdk'] as $excludedChannel) {
+            foreach (['!messenger', '!php', '!sentry_sdk', '!object_storage'] as $excludedChannel) {
                 self::assertContains($excludedChannel, $channels, "{$handlerClass} must not capture {$excludedChannel}");
             }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -57,5 +58,43 @@ final class GetUserPuzzleStatusesTest extends KernelTestCase
         self::assertEmpty($statuses->wishlist);
         self::assertEmpty($statuses->unsolved);
         self::assertEmpty($statuses->collection);
+    }
+
+    /**
+     * The team-membership test was rewritten from an EXISTS over json_array_elements()
+     * (a scan of every team time) to an index-backed jsonb containment (Sentry WEB-C1):
+     * every player must see exactly the same solved puzzles as before.
+     */
+    public function testSolvedPuzzlesMatchThePreviousTeamMembershipPredicate(): void
+    {
+        /** @var Connection $connection */
+        $connection = self::getContainer()->get(Connection::class);
+
+        /** @var list<string> $playerIds */
+        $playerIds = $connection->fetchFirstColumn('SELECT id FROM player');
+        $teamOnlySeen = false;
+
+        foreach ($playerIds as $playerId) {
+            /** @var list<string> $expected */
+            $expected = $connection->fetchFirstColumn(
+                "SELECT DISTINCT puzzle_id FROM puzzle_solving_time WHERE player_id = :playerId OR (team IS NOT NULL AND EXISTS (SELECT 1 FROM json_array_elements(team -> 'puzzlers') AS puzzler WHERE puzzler ->> 'player_id' = :playerId))",
+                ['playerId' => $playerId],
+            );
+            /** @var list<string> $ownOnly */
+            $ownOnly = $connection->fetchFirstColumn(
+                'SELECT DISTINCT puzzle_id FROM puzzle_solving_time WHERE player_id = :playerId',
+                ['playerId' => $playerId],
+            );
+
+            $actual = $this->query->byPlayerId($playerId)->solved;
+
+            sort($expected);
+            sort($actual);
+            self::assertSame($expected, $actual, sprintf('solved puzzles of player %s', $playerId));
+
+            $teamOnlySeen = $teamOnlySeen || count($expected) > count($ownOnly);
+        }
+
+        self::assertTrue($teamOnlySeen, 'Fixtures must contain a puzzle solved only as a team member');
     }
 }

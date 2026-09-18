@@ -35,8 +35,10 @@ final class GetUserPuzzleStatuses implements ResetInterface
 
         // Fetch all statuses in one query using UNION ALL
         // Includes holder/owner names for lent/borrowed and listing type for sell/swap
+        // Team membership is a jsonb containment test so it can use custom_pst_team_puzzlers_gin -
+        // an EXISTS over json_array_elements() scanned every team time (~230 ms, Sentry WEB-C1)
         $query = <<<SQL
-SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, NULL::text as holder_name, NULL::text as owner_name, NULL::text as listing_type, NULL::boolean as reserved, 'solved' as status FROM puzzle_solving_time WHERE player_id = :playerId OR (team IS NOT NULL AND EXISTS (SELECT 1 FROM json_array_elements(team -> 'puzzlers') AS puzzler WHERE puzzler ->> 'player_id' = :playerId))
+SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, NULL::text as holder_name, NULL::text as owner_name, NULL::text as listing_type, NULL::boolean as reserved, 'solved' as status FROM puzzle_solving_time WHERE player_id = :playerId OR (team IS NOT NULL AND (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
 UNION ALL
 SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, NULL::text as holder_name, NULL::text as owner_name, NULL::text as listing_type, NULL::boolean as reserved, 'wishlist' as status FROM wish_list_item WHERE player_id = :playerId
 UNION ALL

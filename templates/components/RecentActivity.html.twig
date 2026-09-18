@@ -146,10 +146,10 @@
                                 </small>
 
                                 {% if logged_user.profile is not null and item.playerId is not same as logged_user.profile.playerId %}
-                                    {% set ranking = this.ranking %}
-                                    {% if item.players is null and ranking[item.puzzleId] is defined %}
+                                    {% set my_best_times = this.myBestTimes %}
+                                    {% if item.players is null and my_best_times[item.puzzleId] is defined %}
                                         <br>
-                                        <small class="low-line-height d-inline-block">{{ 'my_time'|trans }} {{ ranking[item.puzzleId].time|puzzlingTime }}</small>
+                                        <small class="low-line-height d-inline-block">{{ 'my_time'|trans }} {{ my_best_times[item.puzzleId]|puzzlingTime }}</small>
                                     {% endif %}
                                 {% endif %}
 

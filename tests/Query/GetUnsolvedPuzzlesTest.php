@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
+use SpeedPuzzling\Web\Results\UnsolvedPuzzleItem;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -68,5 +70,82 @@ final class GetUnsolvedPuzzlesTest extends KernelTestCase
             $item,
             'byPuzzleIdAndPlayerId should return null for puzzles solved as team member',
         );
+    }
+
+    /**
+     * The team-membership test was rewritten from an EXISTS over json_array_elements() (a scan of
+     * the team times of every puzzle in the collection) to an index-backed jsonb containment:
+     * every player must see exactly the same unsolved puzzles as before, from all three methods.
+     */
+    public function testUnsolvedPuzzlesMatchThePreviousTeamMembershipPredicate(): void
+    {
+        /** @var Connection $connection */
+        $connection = self::getContainer()->get(Connection::class);
+
+        /** @var list<string> $playerIds */
+        $playerIds = $connection->fetchFirstColumn('SELECT DISTINCT player_id FROM collection_item');
+        $solvedOnlyAsTeamMemberSeen = false;
+        $othersTeamTimeSeen = false;
+
+        foreach ($playerIds as $playerId) {
+            /** @var list<string> $expected */
+            $expected = $connection->fetchFirstColumn(
+                <<<'SQL'
+SELECT DISTINCT ci.puzzle_id
+FROM collection_item ci
+WHERE ci.player_id = :playerId
+  AND NOT EXISTS (
+    SELECT 1 FROM puzzle_solving_time pst
+    WHERE pst.puzzle_id = ci.puzzle_id
+      AND (
+        pst.player_id = ci.player_id
+        OR (pst.team IS NOT NULL AND EXISTS (
+            SELECT 1 FROM json_array_elements(pst.team -> 'puzzlers') AS puzzler
+            WHERE puzzler ->> 'player_id' = ci.player_id::text
+        ))
+      )
+  )
+SQL,
+                ['playerId' => $playerId],
+            );
+            /** @var list<string> $collectionPuzzleIds */
+            $collectionPuzzleIds = $connection->fetchFirstColumn(
+                'SELECT DISTINCT puzzle_id FROM collection_item WHERE player_id = :playerId',
+                ['playerId' => $playerId],
+            );
+            /** @var list<string> $unsolvedByOwnTimes */
+            $unsolvedByOwnTimes = $connection->fetchFirstColumn(
+                'SELECT DISTINCT ci.puzzle_id FROM collection_item ci WHERE ci.player_id = :playerId AND NOT EXISTS (SELECT 1 FROM puzzle_solving_time pst WHERE pst.puzzle_id = ci.puzzle_id AND pst.player_id = ci.player_id)',
+                ['playerId' => $playerId],
+            );
+            /** @var list<string> $puzzlesWithTeamTimes */
+            $puzzlesWithTeamTimes = $connection->fetchFirstColumn(
+                'SELECT DISTINCT puzzle_id FROM puzzle_solving_time WHERE team IS NOT NULL',
+            );
+
+            $actual = array_map(
+                static fn (UnsolvedPuzzleItem $item): string => $item->puzzleId,
+                $this->getUnsolvedPuzzles->byPlayerId($playerId),
+            );
+
+            sort($expected);
+            sort($actual);
+            self::assertSame($expected, $actual, sprintf('unsolved puzzles of player %s', $playerId));
+            self::assertSame(count($expected), $this->getUnsolvedPuzzles->countByPlayerId($playerId), sprintf('unsolved count of player %s', $playerId));
+
+            foreach ($collectionPuzzleIds as $puzzleId) {
+                self::assertSame(
+                    in_array($puzzleId, $expected, true),
+                    $this->getUnsolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $playerId) !== null,
+                    sprintf('puzzle %s of player %s', $puzzleId, $playerId),
+                );
+            }
+
+            $solvedOnlyAsTeamMemberSeen = $solvedOnlyAsTeamMemberSeen || count($expected) < count($unsolvedByOwnTimes);
+            $othersTeamTimeSeen = $othersTeamTimeSeen || array_intersect($expected, $puzzlesWithTeamTimes) !== [];
+        }
+
+        self::assertTrue($solvedOnlyAsTeamMemberSeen, 'Fixtures must contain a collection puzzle solved only as a team member');
+        self::assertTrue($othersTeamTimeSeen, 'Fixtures must contain an unsolved collection puzzle with a team time the player is not part of');
     }
 }

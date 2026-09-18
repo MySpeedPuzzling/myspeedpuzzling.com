@@ -9,6 +9,14 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\UnsolvedPuzzleItem;
 
+/**
+ * "Solved" means a time of the player's own or one as a team member. Team membership is a jsonb
+ * containment test so that custom_pst_team_puzzlers_gin can answer it - an EXISTS over
+ * json_array_elements() scanned the team times of every puzzle in the collection (~370 ms for the
+ * largest collection on prod). Both tests name the player by the :playerId parameter, not by
+ * ci.player_id (equal, per the outer WHERE): only a constant lets the planner build the solved set
+ * once from the player_id and GIN indexes instead of probing every collection puzzle.
+ */
 readonly final class GetUnsolvedPuzzles
 {
     public function __construct(
@@ -42,11 +50,8 @@ WHERE ci.player_id = :playerId
     SELECT 1 FROM puzzle_solving_time pst
     WHERE pst.puzzle_id = ci.puzzle_id
       AND (
-        pst.player_id = ci.player_id
-        OR (pst.team IS NOT NULL AND EXISTS (
-            SELECT 1 FROM json_array_elements(pst.team -> 'puzzlers') AS puzzler
-            WHERE puzzler ->> 'player_id' = ci.player_id::text
-        ))
+        pst.player_id = :playerId
+        OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
       )
   )
 GROUP BY p.id, p.name, p.alternative_name, p.identification_number, p.ean, p.pieces_count, m.name
@@ -101,11 +106,8 @@ WHERE ci.player_id = :playerId
     SELECT 1 FROM puzzle_solving_time pst
     WHERE pst.puzzle_id = ci.puzzle_id
       AND (
-        pst.player_id = ci.player_id
-        OR (pst.team IS NOT NULL AND EXISTS (
-            SELECT 1 FROM json_array_elements(pst.team -> 'puzzlers') AS puzzler
-            WHERE puzzler ->> 'player_id' = ci.player_id::text
-        ))
+        pst.player_id = :playerId
+        OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
       )
   )
 SQL;
@@ -140,11 +142,8 @@ WHERE ci.player_id = :playerId
     SELECT 1 FROM puzzle_solving_time pst
     WHERE pst.puzzle_id = ci.puzzle_id
       AND (
-        pst.player_id = ci.player_id
-        OR (pst.team IS NOT NULL AND EXISTS (
-            SELECT 1 FROM json_array_elements(pst.team -> 'puzzlers') AS puzzler
-            WHERE puzzler ->> 'player_id' = ci.player_id::text
-        ))
+        pst.player_id = :playerId
+        OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
       )
   )
 GROUP BY p.id, p.name, p.alternative_name, p.identification_number, p.ean, p.pieces_count, m.name

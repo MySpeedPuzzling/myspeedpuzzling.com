@@ -15,7 +15,6 @@ use SpeedPuzzling\Web\Security\SignInLinkPasswordPrompt;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
@@ -409,7 +408,6 @@ final class SignInLinkTest extends WebTestCase
     private function plantLegacyAuth0Session(KernelBrowser $browser, string $userId, string $email): void
     {
         $session = $browser->getContainer()->get('session.factory')->createSession();
-        assert($session instanceof SessionInterface);
 
         $session->set('auth0_session', [
             'user' => [

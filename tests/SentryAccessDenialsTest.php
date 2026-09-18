@@ -11,7 +11,6 @@ use Monolog\LogRecord;
 use Sentry\ClientBuilder;
 use Sentry\Event;
 use Sentry\Monolog\ExceptionToSentryIssueHandler;
-use Sentry\Options;
 use Sentry\State\Hub;
 use Sentry\Transport\Result;
 use Sentry\Transport\ResultStatus;
@@ -50,7 +49,6 @@ final class SentryAccessDenialsTest extends KernelTestCase
         self::bootKernel();
 
         $productionOptions = self::getContainer()->get('sentry.client.options');
-        self::assertInstanceOf(Options::class, $productionOptions);
 
         $this->sentEvents = new ArrayObject();
 

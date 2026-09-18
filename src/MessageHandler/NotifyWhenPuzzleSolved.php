@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
-use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Events\PuzzleSolved;
+use SpeedPuzzling\Web\Query\GetSubscribedPlayers;
+use SpeedPuzzling\Web\Repository\NotificationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Value\NotificationType;
@@ -20,7 +19,8 @@ readonly final class NotifyWhenPuzzleSolved
     public function __construct(
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         private PlayerRepository $playerRepository,
-        private EntityManagerInterface $entityManager,
+        private GetSubscribedPlayers $getSubscribedPlayers,
+        private NotificationRepository $notificationRepository,
         private ClockInterface $clock,
     ) {
     }
@@ -29,56 +29,41 @@ readonly final class NotifyWhenPuzzleSolved
     {
         $solvingTime = $this->puzzleSolvingTimeRepository->get($event->puzzleSolvingTimeId->toString());
 
+        // Players whose followers get notified - private profiles notify nobody
+        $solvingPlayerIds = [];
+
         if ($solvingTime->team === null) {
-            // Skip notifying if the player has private profile
-            if ($solvingTime->player->isPrivate === true) {
-                return;
+            if ($solvingTime->player->isPrivate === false) {
+                $solvingPlayerIds[] = $solvingTime->player->id->toString();
             }
-
-            $subscribedPlayers = $this->playerRepository->findPlayersByFavoriteUuid($solvingTime->player->id->toString());
         } else {
-            $subscribedPlayers = [];
-
-            // Collect all favorites from all puzzlers from team
             foreach ($solvingTime->team->puzzlers as $puzzler) {
-                if ($puzzler->playerId !== null) {
-                    $teamPuzzler = $this->playerRepository->get($puzzler->playerId);
-
-                    // Skip notifying if the player has private profile
-                    if ($teamPuzzler->isPrivate === true) {
-                        continue;
-                    }
-
-                    foreach ($this->playerRepository->findPlayersByFavoriteUuid($puzzler->playerId) as $subscribedPlayer) {
-                        $subscribedPlayers[] = $subscribedPlayer;
-                    }
-                }
-            }
-
-            // Deduplicate, so one subscriber does not get multiple notifications
-            $playersAboutToBeNotified = [];
-            foreach ($subscribedPlayers as $key => $player) {
-                $playerId = $player->id->toString();
-
-                if (isset($playersAboutToBeNotified[$playerId])) {
-                    unset($subscribedPlayers[$key]);
+                if ($puzzler->playerId === null) {
                     continue;
                 }
 
-                $playersAboutToBeNotified[$playerId] = true;
+                if ($this->playerRepository->get($puzzler->playerId)->isPrivate === false) {
+                    $solvingPlayerIds[] = $puzzler->playerId;
+                }
             }
         }
 
-        foreach ($subscribedPlayers as $targetPlayer) {
-            $notification = new Notification(
-                Uuid::uuid7(),
-                $targetPlayer,
-                NotificationType::SubscribedPlayerAddedTime,
-                $this->clock->now(),
-                $solvingTime,
-            );
-
-            $this->entityManager->persist($notification);
+        if ($solvingPlayerIds === []) {
+            return;
         }
+
+        // One subscriber gets one notification, however many of the team they follow
+        $subscribedPlayerIds = $this->getSubscribedPlayers->ofPlayers($solvingPlayerIds);
+
+        if ($subscribedPlayerIds === []) {
+            return;
+        }
+
+        $this->notificationRepository->addForSolvingTime(
+            $subscribedPlayerIds,
+            NotificationType::SubscribedPlayerAddedTime,
+            $solvingTime->id,
+            $this->clock->now(),
+        );
     }
 }

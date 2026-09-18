@@ -86,4 +86,9 @@ readonly final class PuzzleSolver
             rankingOptedOut: $row['ranking_opted_out'] ?? false,
         );
     }
+
+    public function isEditableBy(null|string $playerId): bool
+    {
+        return $playerId !== null && $playerId === $this->playerId;
+    }
 }

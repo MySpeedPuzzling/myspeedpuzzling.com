@@ -45,7 +45,9 @@
                     <div>
                         <span class="text-muted">{{ 'puzzle_times.my_attempts.my_time'|trans }}</span>
                         <span class="font-monospace">{{ myLast.time|puzzlingTime }}</span>
-                        {{ include('_edit_time_button.html.twig', {timeId: myLast.timeId, context: 'puzzle-detail'}) }}
+                        {% if myLast.isEditableBy(logged_user.profile.playerId) %}
+                            {{ include('_edit_time_button.html.twig', {timeId: myLast.timeId, context: 'puzzle-detail'}) }}
+                        {% endif %}
                     </div>
                 {% else %}
                     <div>
@@ -112,7 +114,9 @@
                                             {% endif %}
                                             <i class="bi bi-stopwatch text-muted me-1"></i>
                                             <span class="font-monospace">{{ row.attempt.time|puzzlingTime }}</span>
-                                            {{ include('_edit_time_button.html.twig', {timeId: row.attempt.timeId, context: 'puzzle-detail'}) }}
+                                            {% if row.attempt.isEditableBy(logged_user.profile.playerId) %}
+                                                {{ include('_edit_time_button.html.twig', {timeId: row.attempt.timeId, context: 'puzzle-detail'}) }}
+                                            {% endif %}
                                         </span>
                                     </div>
 
@@ -381,7 +385,7 @@
 
                         <td class="text-end with-ppm">
                             {{ aggregated_solver[0].time|puzzlingTime }}
-                            {% if is_own_row %}
+                            {% if is_own_row and aggregated_solver[0].isEditableBy(logged_user.profile.playerId) %}
                                 {{ include('_edit_time_button.html.twig', {timeId: aggregated_solver[0].timeId, context: 'puzzle-detail'}) }}
                             {% endif %}
                             {% if aggregated_solver[0].finishedAt is not null %}
@@ -416,7 +420,7 @@
                                         {% if not loop.first %}
                                             <span class="d-inline-block mt-1">
                                                         {{ solving_time.time|puzzlingTime }}
-                                                        {% if is_own_row %}
+                                                        {% if is_own_row and solving_time.isEditableBy(logged_user.profile.playerId) %}
                                                             {{ include('_edit_time_button.html.twig', {timeId: solving_time.timeId, context: 'puzzle-detail'}) }}
                                                         {% endif %}
                                                         {% if solving_time.finishedAt is not null %}

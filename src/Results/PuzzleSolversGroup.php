@@ -11,6 +11,10 @@ readonly final class PuzzleSolversGroup
 {
     public function __construct(
         public string $timeId,
+        // Whoever tracked the time - the only player allowed to edit or delete it
+        // (EditTimeController, EditPuzzleSolvingTimeHandler), even though every
+        // member of the group sees it among their own attempts
+        public string $addedByPlayerId,
         public null|string $teamId,
         public null|int $time,
         /** @var array<Puzzler> */
@@ -57,6 +61,7 @@ readonly final class PuzzleSolversGroup
 
         return new self(
             timeId: $row['time_id'],
+            addedByPlayerId: $row['player_id'],
             teamId: $row['team_id'],
             time: $row['time'],
             players: $players,
@@ -85,5 +90,14 @@ readonly final class PuzzleSolversGroup
         }
 
         return false;
+    }
+
+    /**
+     * Group members other than the one who tracked the time must not be offered
+     * the edit button - EditTimeController answers them with 403.
+     */
+    public function isEditableBy(null|string $playerId): bool
+    {
+        return $playerId !== null && $playerId === $this->addedByPlayerId;
     }
 }

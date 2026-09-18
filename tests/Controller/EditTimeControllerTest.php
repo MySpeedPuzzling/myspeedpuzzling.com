@@ -41,6 +41,19 @@ final class EditTimeControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(403);
     }
 
+    public function testGroupMemberWhoDidNotTrackTheTimeIsForbidden(): void
+    {
+        // TIME_12 is a duo tracked by PLAYER_REGULAR - PLAYER_PRIVATE is the partner. The puzzle
+        // detail page must therefore not offer PLAYER_PRIVATE an edit button (PuzzleTimesEditButtonTest)
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+
+        $browser->request('GET', '/en/edit-time/' . PuzzleSolvingTimeFixture::TIME_12);
+
+        $this->assertResponseStatusCodeSame(403);
+    }
+
     public function testLinkedSeriesEditionIsOfferedAndSurvivesResave(): void
     {
         $browser = self::createClient();

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sentry\Monolog\BreadcrumbHandler;
+use Sentry\Monolog\ExceptionToSentryIssueHandler;
 use Sentry\Monolog\LogToSentryIssueHandler;
 
 return App::config([
@@ -20,7 +21,10 @@ return App::config([
             ],
             'grouped' => [
                 'type' => 'group',
-                'members' => ['nested', 'sentry'],
+                // sentry = log messages, sentry_exceptions = records carrying an
+                // exception. Each skips what the other takes: drop either and a
+                // whole class of errors silently stops reaching Sentry.
+                'members' => ['nested', 'sentry', 'sentry_exceptions'],
             ],
             'nested' => [
                 'type' => 'stream',
@@ -31,6 +35,10 @@ return App::config([
             'sentry' => [
                 'type' => 'service',
                 'id' => LogToSentryIssueHandler::class,
+            ],
+            'sentry_exceptions' => [
+                'type' => 'service',
+                'id' => ExceptionToSentryIssueHandler::class,
             ],
             'console' => [
                 'type' => 'console',

@@ -11,6 +11,7 @@ use League\Flysystem\Local\LocalFilesystemAdapter;
 use Monolog\Level;
 use Monolog\Processor\PsrLogMessageProcessor;
 use Sentry\Monolog\BreadcrumbHandler as SentryBreadcrumbHandler;
+use Sentry\Monolog\ExceptionToSentryIssueHandler;
 use Sentry\Monolog\LogToSentryIssueHandler;
 use Sentry\State\HubInterface;
 use SpeedPuzzling\Web\Doctrine\RegexSchemaAssetFilter;
@@ -346,14 +347,26 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(\SpeedPuzzling\Web\Services\SocialLogin\SocialLoginProviders::class)
         ->arg('$httpClient', service('social_login.http_client'));
 
-    // Captures error-level log records as Sentry issues (successor of the
-    // deprecated Sentry\Monolog\Handler, which is removed in sentry/sentry 5.0)
+    // The deprecated Sentry\Monolog\Handler (removed in sentry/sentry 5.0) was split
+    // in two, and both are needed. This one captures error-level log messages - and
+    // deliberately SKIPS every record carrying an 'exception' in its context...
     $services->set(LogToSentryIssueHandler::class)
         ->args([
             service(HubInterface::class),
             Level::Error,
             true, // bubble
             true, // fillExtraContext
+        ]);
+
+    // ...which is exactly what this one captures: uncaught exceptions (Symfony logs
+    // them with the exception attached) and every `'exception' => $e` log call. With
+    // only the handler above, none of them reached Sentry from 2026-07-12 until this
+    // was added.
+    $services->set(ExceptionToSentryIssueHandler::class)
+        ->args([
+            service(HubInterface::class),
+            Level::Error,
+            true, // bubble
         ]);
 
     // Sentry Breadcrumb Handler for capturing logs as breadcrumbs

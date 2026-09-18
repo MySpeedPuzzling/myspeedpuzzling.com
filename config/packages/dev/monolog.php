@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sentry\Monolog\BreadcrumbHandler;
+use Sentry\Monolog\ExceptionToSentryIssueHandler;
 use Sentry\Monolog\LogToSentryIssueHandler;
 
 return App::config([
@@ -35,6 +36,10 @@ return App::config([
             'sentry' => [
                 'type' => 'service',
                 'id' => LogToSentryIssueHandler::class,
+            ],
+            'sentry_exceptions' => [
+                'type' => 'service',
+                'id' => ExceptionToSentryIssueHandler::class,
             ],
             'sentry_breadcrumbs' => [
                 'type' => 'service',

@@ -63,70 +63,56 @@ readonly final class GetPlayerBaselineProgress
     }
 
     /**
-     * Count distinct first-attempt solo puzzles per piece count for a player.
+     * Per piece count the player has solved solo: how many distinct puzzles
+     * (baseline_solves) and how many of those qualify for skill computation
+     * (qualifying_puzzles - a puzzle difficulty exists and at least
+     * $minSolversPerPuzzle first-attempt solo times were recorded for it).
+     *
+     * One query for all piece counts - it used to be one more per piece count
+     * (Sentry WEB-BN), each scanning every first attempt of that piece count.
      *
      * @return array<int, array{baseline_solves: int, qualifying_puzzles: int}>
      */
     public function solveProgress(string $playerId, int $minSolversPerPuzzle): array
     {
-        /** @var list<array{pieces_count: int|string, solve_count: int|string}> $rows */
+        /** @var list<array{pieces_count: int|string, solve_count: int|string, qualifying_count: int|string}> $rows */
         $rows = $this->database->executeQuery("
-            WITH first_per_puzzle AS (
-                SELECT DISTINCT ON (pst.puzzle_id) p.pieces_count
+            WITH player_puzzles AS (
+                SELECT DISTINCT pst.puzzle_id, p.pieces_count
                 FROM puzzle_solving_time pst
                 JOIN puzzle p ON p.id = pst.puzzle_id
                 WHERE pst.player_id = :playerId
                     AND pst.puzzling_type = 'solo'
                     AND pst.suspicious = false
                     AND pst.seconds_to_solve IS NOT NULL
-                ORDER BY pst.puzzle_id, pst.first_attempt DESC, COALESCE(pst.finished_at, pst.tracked_at) ASC
+            ),
+            qualifying_puzzles AS (
+                SELECT fa.puzzle_id
+                FROM puzzle_solving_time fa
+                JOIN player_puzzles pp ON pp.puzzle_id = fa.puzzle_id
+                JOIN puzzle_difficulty pd ON pd.puzzle_id = fa.puzzle_id
+                WHERE fa.first_attempt = true
+                    AND fa.puzzling_type = 'solo'
+                    AND fa.suspicious = false
+                    AND fa.seconds_to_solve IS NOT NULL
+                    AND pd.difficulty_score IS NOT NULL
+                    AND pd.confidence != 'insufficient'
+                GROUP BY fa.puzzle_id
+                HAVING COUNT(*) >= :minSolvers
             )
-            SELECT pieces_count, COUNT(*) AS solve_count
-            FROM first_per_puzzle
-            GROUP BY pieces_count
-            ORDER BY pieces_count
-        ", ['playerId' => $playerId])->fetchAllAssociative();
+            SELECT pp.pieces_count, COUNT(*) AS solve_count, COUNT(qp.puzzle_id) AS qualifying_count
+            FROM player_puzzles pp
+            LEFT JOIN qualifying_puzzles qp ON qp.puzzle_id = pp.puzzle_id
+            GROUP BY pp.pieces_count
+            ORDER BY pp.pieces_count
+        ", ['playerId' => $playerId, 'minSolvers' => $minSolversPerPuzzle])->fetchAllAssociative();
 
         $result = [];
 
         foreach ($rows as $row) {
-            $pc = (int) $row['pieces_count'];
-            $baselineSolves = (int) $row['solve_count'];
-
-            /** @var array{count: int|string}|false $qualRow */
-            $qualRow = $this->database->executeQuery("
-                WITH player_first_attempt_puzzles AS (
-                    SELECT DISTINCT pst.puzzle_id
-                    FROM puzzle_solving_time pst
-                    JOIN puzzle p ON p.id = pst.puzzle_id
-                    WHERE pst.player_id = :playerId
-                        AND p.pieces_count = :piecesCount
-                        AND pst.puzzling_type = 'solo'
-                        AND pst.suspicious = false
-                        AND pst.seconds_to_solve IS NOT NULL
-                ),
-                puzzle_solver_counts AS (
-                    SELECT pst.puzzle_id
-                    FROM puzzle_solving_time pst
-                    JOIN puzzle p ON p.id = pst.puzzle_id
-                    WHERE p.pieces_count = :piecesCount
-                        AND pst.first_attempt = true
-                        AND pst.puzzling_type = 'solo'
-                        AND pst.suspicious = false
-                        AND pst.seconds_to_solve IS NOT NULL
-                    GROUP BY pst.puzzle_id
-                    HAVING COUNT(*) >= :minSolvers
-                )
-                SELECT COUNT(*) AS count
-                FROM player_first_attempt_puzzles pfp
-                JOIN puzzle_difficulty pd ON pd.puzzle_id = pfp.puzzle_id
-                JOIN puzzle_solver_counts psc ON psc.puzzle_id = pfp.puzzle_id
-                WHERE pd.difficulty_score IS NOT NULL AND pd.confidence != 'insufficient'
-            ", ['playerId' => $playerId, 'piecesCount' => $pc, 'minSolvers' => $minSolversPerPuzzle])->fetchAssociative();
-
-            $result[$pc] = [
-                'baseline_solves' => $baselineSolves,
-                'qualifying_puzzles' => $qualRow !== false ? (int) $qualRow['count'] : 0,
+            $result[(int) $row['pieces_count']] = [
+                'baseline_solves' => (int) $row['solve_count'],
+                'qualifying_puzzles' => (int) $row['qualifying_count'],
             ];
         }
 

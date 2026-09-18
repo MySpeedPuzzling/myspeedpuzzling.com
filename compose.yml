@@ -23,6 +23,11 @@ services:
         environment:
             FRANKENPHP_WORKER: "1"
             FRANKENPHP_WATCH: "1"
+            # Every watcher reload restarts the whole PHP module, which dlclose()s intl.so and with it
+            # libicui18n - while libicuuc (held by libxml2) keeps its process-wide cache of objects whose
+            # vtables lived in the unloaded copy. The next `new NumberFormatter()` can then SIGSEGV while
+            # holding ICU's global cache mutex, and every later intl request hangs until max_wait_time.
+            ZEND_DONT_UNLOAD_MODULES: "1"
             FRANKENPHP_MAX_WAIT_TIME: "30s"
             FRANKENPHP_WORKER_NUM: "15"
             XDEBUG_CONFIG: "client_host=host.docker.internal"

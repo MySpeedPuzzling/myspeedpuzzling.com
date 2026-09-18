@@ -1170,3 +1170,11 @@ return $this->redirect(...);
 **Cause:** Live Components re-render as their own HTTP request. During re-render, `app.request.uri` is the component's AJAX endpoint, not the hosting page URL.
 
 **Fix:** don't capture the hosting-page URL inside a Live Component. Either (a) pass a stable identifier like a context enum string and let the server resolve the URL, or (b) if you really need a URL, accept it as a `#[LiveProp]` from the embedding template.
+
+### 5. "Invalid checksum sent when updating the live component" reloads the page - and a repeat is a real bug
+
+**What it means:** every Live Component embeds its props with an HMAC (`APP_SECRET`, pre-image changed by ux-live-component 2.36/3.1). A mismatch means the page was signed under another key/algorithm - an `APP_SECRET` rotation, a library release that changes the checksum, or a document served from a cache long after (open tab across a deploy, tab restore, the pre-v7 service worker). Out of the box the controller then shows the 400 error page in a full-screen modal on every re-render.
+
+**Handled by** `StaleLiveComponentPageSubscriber`: it answers with the library's own redirect protocol (204 + `X-Live-Redirect`, `Location` = the page's `X-Live-Url`), so the controller `Turbo.visit()`s the page fresh; logged at info, not Sentry. A `live_component_reload` cookie (10 min, per page path) remembers the reload - if the **freshly reloaded page fails again**, the 400 is left alone and reaches Sentry as an error.
+
+**So if it shows up in Sentry, look for a deterministic cause**, e.g. a LiveProp whose dehydrated value does not survive the JSON round trip through the browser (an integer above 2^53 loses precision in JavaScript), custom JS writing into `data-live-props-value`, or web replicas running with different `APP_SECRET`s. Never rotate `APP_SECRET` casually - it breaks every open page (and signed newsletter links).

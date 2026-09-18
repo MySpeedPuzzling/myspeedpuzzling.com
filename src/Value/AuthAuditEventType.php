@@ -21,6 +21,9 @@ enum AuthAuditEventType: string
     case OauthRegistration = 'oauth_registration';
     case OauthIdentityLinked = 'oauth_identity_linked';
     case OauthIdentityUnlinked = 'oauth_identity_unlinked';
+    // Historical: recorded 2026-07-31 - 2026-09-18 by the retired /login/auth0
+    // fallback (Auth0 migration, issue #147). Nothing writes it any more; the case
+    // stays so the stored rows remain readable (the column is enum-mapped).
     case Auth0FallbackLogin = 'auth0_fallback_login';
     case AccountDeletionRequested = 'account_deletion_requested';
 }

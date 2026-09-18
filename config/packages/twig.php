@@ -25,9 +25,6 @@ return App::config([
             // (issue #147, docs/features/feature_flags.md). ON by default: it is
             // announcement copy, not a feature - the switch exists to retire it.
             'sign_in_changes_notice_enabled' => '%env(bool:SIGN_IN_CHANGES_NOTICE_ENABLED)%',
-            // Transition-window escape hatch: the "old Auth0 sign-in" link on the
-            // native login page. Retires in Phase 6.
-            'auth0_fallback_login_enabled' => '%auth0FallbackLoginEnabled%',
             // Social login (auth hardening PR 2). While admin_only is ON the
             // login/register buttons render for NOBODY - those pages are
             // anonymously cached and must stay uniform (#164).

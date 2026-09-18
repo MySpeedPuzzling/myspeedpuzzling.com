@@ -15,13 +15,4 @@
     <button type="submit" class="btn btn-sm btn-primary" form="sign-in-link-form">
         <i class="bi bi-envelope me-1"></i>{{ 'auth.sign_in_link.submit'|trans }}
     </button>
-
-    {# The one failure native login cannot absorb: a password changed on Auth0
-       after the hash export was cut. The old hosted login still knows it. #}
-    {% if auth0_fallback_login_enabled %}
-        <p class="fs-sm mt-3 mb-1">{{ 'auth.failure_helper.auth0_fallback'|trans }}</p>
-        <a class="btn btn-sm btn-outline-secondary text-wrap" href="{{ path('auth0_fallback_login') }}" data-turbo="false">
-            <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'auth.login.auth0_fallback'|trans }}
-        </a>
-    {% endif %}
 </div>

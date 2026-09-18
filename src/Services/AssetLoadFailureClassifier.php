@@ -89,7 +89,18 @@ final readonly class AssetLoadFailureClassifier
         // fails outright, every time. The browser refuses the request itself (the
         // Chrome/118 scraper, Sentry WEB-CC). Before any heal it may still be a
         // flaky connection, so that case stays actionable.
-        if ($report->refetch === 'unreachable' && $report->retry && !$report->serviceWorkerControlled) {
+        //
+        // No verdict at all after a heal (refetch null) is the same scraper: the file
+        // failed only after the heal had started, so the heal never refetched it. With
+        // the page reloaded from here and no service worker of ours in between, one
+        // client's missing verdict is no evidence against the delivery - a real outage
+        // shows up as fresh-page, corrupt or service-worker verdicts across visitors.
+        // A timeout or an HTTP error still is, so those stay actionable.
+        if (
+            ($report->refetch === 'unreachable' || $report->refetch === null)
+            && $report->retry
+            && !$report->serviceWorkerControlled
+        ) {
             return AssetLoadFailureVerdict::BlockedInBrowser;
         }
 

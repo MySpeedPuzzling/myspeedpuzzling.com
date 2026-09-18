@@ -200,6 +200,18 @@ final class AssetLoadFailureClassifierTest extends TestCase
         self::assertFalse($verdict->isActionable());
     }
 
+    /**
+     * Sentry WEB-CC again: a file that failed only after the heal had started was
+     * never refetched, so the final report carries no verdict at all.
+     */
+    public function testStillBrokenAfterAHealWithoutAnyVerdictAndNoServiceWorkerIsBlockedInTheBrowser(): void
+    {
+        $verdict = $this->classifier->classify($this->report(self::SERVED, healing: false, refetch: null, retry: true, controlled: false));
+
+        self::assertSame(AssetLoadFailureVerdict::BlockedInBrowser, $verdict);
+        self::assertFalse($verdict->isActionable());
+    }
+
     public function testStillBrokenWhenTheRefetchCouldNotVerifyIsActionable(): void
     {
         // No heal ran yet - an unanswered refetch may be a flaky connection
@@ -215,6 +227,19 @@ final class AssetLoadFailureClassifierTest extends TestCase
         self::assertSame(
             AssetLoadFailureVerdict::HealFailed,
             $this->classifier->classify($this->report(self::SERVED, healing: false, refetch: null, retry: false, controlled: false)),
+        );
+        // No verdict under the service worker, or a refetch that timed out or got an HTTP error
+        self::assertSame(
+            AssetLoadFailureVerdict::HealFailed,
+            $this->classifier->classify($this->report(self::SERVED, healing: false, refetch: null, retry: true, controlled: true)),
+        );
+        self::assertSame(
+            AssetLoadFailureVerdict::HealFailed,
+            $this->classifier->classify($this->report(self::SERVED, healing: false, refetch: 'timeout', retry: true, controlled: false)),
+        );
+        self::assertSame(
+            AssetLoadFailureVerdict::HealFailed,
+            $this->classifier->classify($this->report(self::SERVED, healing: false, refetch: 'http-503', retry: true, controlled: false)),
         );
     }
 

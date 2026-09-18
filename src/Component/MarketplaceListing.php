@@ -76,10 +76,20 @@ final class MarketplaceListing
     #[LiveProp]
     public string $filterHash = '';
 
+    /**
+     * The overview the page controller already loaded for puzzleId - saves reloading it for the
+     * first render. Not a LiveProp: re-renders load it (once) themselves.
+     */
+    public null|PuzzleOverview $puzzleOverview = null;
+
     /** @var null|array<MarketplaceListingItem> */
     private null|array $cachedItems = null;
 
     private null|int $cachedCount = null;
+
+    private bool $filteredPuzzleOverviewLoaded = false;
+
+    private null|PuzzleOverview $filteredPuzzleOverview = null;
 
     public function __construct(
         readonly private GetMarketplaceListings $getMarketplaceListings,
@@ -96,6 +106,8 @@ final class MarketplaceListing
     {
         $this->cachedItems = null;
         $this->cachedCount = null;
+        $this->filteredPuzzleOverviewLoaded = false;
+        $this->filteredPuzzleOverview = null;
 
         $currentHash = $this->computeFilterHash();
 
@@ -216,10 +228,27 @@ final class MarketplaceListing
         return $this->getFilteredPuzzleOverview()?->puzzleImageRatio;
     }
 
+    /**
+     * The template reads name, image and image ratio - one lookup for all three.
+     */
     private function getFilteredPuzzleOverview(): null|PuzzleOverview
+    {
+        if ($this->filteredPuzzleOverviewLoaded === false) {
+            $this->filteredPuzzleOverview = $this->loadFilteredPuzzleOverview();
+            $this->filteredPuzzleOverviewLoaded = true;
+        }
+
+        return $this->filteredPuzzleOverview;
+    }
+
+    private function loadFilteredPuzzleOverview(): null|PuzzleOverview
     {
         if ($this->puzzleId === '' || !Uuid::isValid($this->puzzleId)) {
             return null;
+        }
+
+        if ($this->puzzleOverview !== null && $this->puzzleOverview->puzzleId === $this->puzzleId) {
+            return $this->puzzleOverview;
         }
 
         try {

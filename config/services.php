@@ -19,11 +19,11 @@ use SpeedPuzzling\Web\Services\Api\ApiDtoNormalizer;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
 use SpeedPuzzling\Web\Services\Storage\FailoverS3Adapter;
+use SpeedPuzzling\Web\Services\Storage\ObjectStorageHttpClientFactory;
 use SpeedPuzzling\Web\Services\Storage\UploadSpool;
 use SpeedPuzzling\Web\Services\Storage\UploadSpoolProcessor;
 use SpeedPuzzling\Web\Services\StripeWebhookHandler;
 use Stripe\StripeClient;
-use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\Psr18Client;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
@@ -272,18 +272,20 @@ return static function (ContainerConfigurator $configurator): void {
         ->args(['~^(?!tmp_|custom_)~'])
         ->tag('doctrine.dbal.schema_filter');
 
-    // Short timeouts so a dead object storage degrades a request by seconds,
-    // not minutes. Passing an explicit client also disables async-aws's
-    // built-in 3-attempt RetryableHttpClient - the upload spool is the retry.
+    // Short timeouts plus one immediate retry: a slow Hetzner answer costs a
+    // few seconds, a dead object storage still degrades a request by seconds,
+    // not minutes - and the upload spool catches what the retry does not.
     $services->set('app.storage.s3_http_client', HttpClientInterface::class)
-        ->factory([HttpClient::class, 'create'])
+        ->factory([ObjectStorageHttpClientFactory::class, 'create'])
         ->args([
-            [
-                'timeout' => 3.0,
-                'max_duration' => 10.0,
-            ],
+            service('monolog.logger.object_storage'),
+            null, // own transport - autowiring would hand it the framework http_client
         ]);
 
+    // AsyncAws logs every failed request at error level before it throws. The
+    // caller decides what the failure means (a spooled upload, a missing file,
+    // a 404 page), so these go to their own channel: kept in the logs for the
+    // request URL they carry, kept out of Sentry (prod/monolog.php).
     $services->set(S3Client::class)
         ->args([
             '$configuration' => [
@@ -294,6 +296,7 @@ return static function (ContainerConfigurator $configurator): void {
                 Configuration::OPTION_PATH_STYLE_ENDPOINT => true,
             ],
             '$httpClient' => service('app.storage.s3_http_client'),
+            '$logger' => service('monolog.logger.object_storage'),
         ]);
 
     // S3 failover stack: oneup's `minio` filesystem uses FailoverS3Adapter

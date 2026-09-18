@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Log\LoggerInterface;
+use Psr\Log\LogLevel;
+use SpeedPuzzling\Web\Services\AssetLoadFailureClassifier;
+use SpeedPuzzling\Web\Value\AssetLoadFailureReport;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,7 +18,12 @@ use Symfony\Component\Routing\Attribute\Route;
  * base.html.twig. A client whose cached /build bundle is corrupt gets it
  * silently refused by SRI on every page load — the browser Sentry SDK lives
  * inside that dead bundle, so this endpoint is the only way to hear about it.
- * Logged at warning - the lowest level that becomes a Sentry issue.
+ *
+ * Only reports someone can act on are logged at warning, the lowest level that
+ * becomes a Sentry issue: the rest (crawlers, pages older than the asset
+ * retention, a first failure the self-heal is already repairing) arrived at
+ * ~1,500 a day and would bury everything else. They stay at info, so their
+ * volume is still visible in the logs - see AssetLoadFailureClassifier.
  */
 final class AssetLoadFailureController extends AbstractController
 {
@@ -23,6 +31,7 @@ final class AssetLoadFailureController extends AbstractController
 
     public function __construct(
         readonly private LoggerInterface $logger,
+        readonly private AssetLoadFailureClassifier $classifier,
     ) {
     }
 
@@ -34,19 +43,24 @@ final class AssetLoadFailureController extends AbstractController
             associative: true,
         );
 
-        if (is_array($payload)) {
-            $assetUrl = $payload['url'] ?? null;
-            $page = $payload['page'] ?? null;
+        $report = is_array($payload) ? AssetLoadFailureReport::fromBeacon($payload, $request->headers->get('User-Agent')) : null;
 
-            if (is_string($assetUrl) && str_contains($assetUrl, '/build/')) {
-                $this->logger->warning('Client failed to load a build asset (corrupt cache / SRI rejection or network failure)', [
-                    'asset_url' => mb_substr($assetUrl, 0, 500),
-                    'page' => is_string($page) ? mb_substr($page, 0, 500) : null,
-                    'sw_controlled' => ($payload['controlled'] ?? null) === true,
-                    'retry_after_heal' => ($payload['retry'] ?? null) === true,
-                    'user_agent' => $request->headers->get('User-Agent'),
-                ]);
-            }
+        if ($report !== null) {
+            $verdict = $this->classifier->classify($report);
+
+            $this->logger->log($verdict->isActionable() ? LogLevel::WARNING : LogLevel::INFO, $verdict->logMessage(), [
+                'verdict' => $verdict->value,
+                'asset_url' => $report->assetUrl,
+                'page' => $report->page,
+                'page_age_seconds' => $this->classifier->pageAgeSeconds($report),
+                'sw_controlled' => $report->serviceWorkerControlled,
+                'retry_after_heal' => $report->retry,
+                'healing' => $report->healing,
+                'refetch' => $report->refetch,
+                'webdriver' => $report->webdriver,
+                'script_version' => $report->scriptVersion,
+                'user_agent' => $report->userAgent,
+            ]);
         }
 
         return new Response(status: Response::HTTP_NO_CONTENT);

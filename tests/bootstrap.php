@@ -166,6 +166,10 @@ function createCustomIndexes(): void
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_name_unaccent_trgm ON puzzle USING GIN (immutable_unaccent(name) gin_trgm_ops)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_alt_name_unaccent_trgm ON puzzle USING GIN (immutable_unaccent(alternative_name) gin_trgm_ops)');
 
+    // Puzzle search by catalogue number and EAN (Version20260918131133)
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_identification_number_trgm ON puzzle USING GIN (identification_number gin_trgm_ops)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_ean_trgm ON puzzle USING GIN (ean gin_trgm_ops)');
+
     // Query optimization composite indexes (Version20260102230000)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_player_puzzle_type ON puzzle_solving_time (player_id, puzzle_id, puzzling_type)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_tracked_at_type ON puzzle_solving_time (tracked_at, puzzling_type)');

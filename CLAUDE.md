@@ -50,6 +50,7 @@ Indexes that Doctrine cannot manage (e.g., GIN trigram indexes, expression index
 2. **Created in migrations** - add them manually to migration files
 3. **Mirrored in `tests/bootstrap.php`** - The `createPostgresExtensions()` function must create any required extensions/functions
 4. **Automatically ignored by Doctrine** - `CustomIndexFilteringSchemaManagerFactory` filters out `custom_*` indexes during schema introspection, so Doctrine will NOT generate `DROP INDEX` statements for them
+5. **Registered in `docs/database-indexes.md`** - every custom index with the query it serves and what it measured
 
 Example custom index (from `Version20260102200000.php`):
 ```sql

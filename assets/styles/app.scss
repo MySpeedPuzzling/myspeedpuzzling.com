@@ -471,8 +471,9 @@ td.rank {
     align-items: center;
     gap: .5rem;
 
-    // Three actions have to share one line on a 360px phone
-    @media (max-width: 420px) {
+    // Three actions have to share one line on a 360px phone; the full-size row
+    // needs ~440px, so every phone-width viewport gets the compact sizing
+    @include media-breakpoint-down(sm) {
         gap: .25rem;
 
         .btn {

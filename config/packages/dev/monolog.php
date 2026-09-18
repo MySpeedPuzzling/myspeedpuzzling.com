@@ -33,13 +33,16 @@ return App::config([
                 'process_psr_3_messages' => false,
                 'channels' => ['!event', '!doctrine', '!console'],
             ],
+            // Same split and channel filter as prod/monolog.php, which explains both
             'sentry' => [
                 'type' => 'service',
                 'id' => LogToSentryIssueHandler::class,
+                'channels' => ['!sentry_sdk', '!messenger', '!php'],
             ],
             'sentry_exceptions' => [
                 'type' => 'service',
                 'id' => ExceptionToSentryIssueHandler::class,
+                'channels' => ['!sentry_sdk', '!messenger', '!php'],
             ],
             'sentry_breadcrumbs' => [
                 'type' => 'service',

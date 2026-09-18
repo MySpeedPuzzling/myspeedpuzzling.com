@@ -18,7 +18,7 @@ use Symfony\Component\Routing\Attribute\Route;
  * Nothing on the server can see this. The v6 service worker answered every
  * Chromium navigation from a cache for months - people had to refresh twice to
  * see a time they had just added - and the only signal was users writing in.
- * Logged at warning so it flushes through fingers_crossed into Sentry.
+ * Logged at warning - the lowest level that becomes a Sentry issue.
  */
 final class StaleDocumentController extends AbstractController
 {

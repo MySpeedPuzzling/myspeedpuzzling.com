@@ -132,7 +132,9 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
             ? $request->getSession()->get(SecurityRequestAttributes::LAST_USERNAME)
             : null;
 
-        $this->logger->warning('Login failed.', [
+        // Info, not warning: a mistyped password is not a problem to be alerted about
+        // (warnings become Sentry issues). Every failure is in auth_audit_log below.
+        $this->logger->info('Login failed.', [
             'authenticator' => $authenticator::class,
             'email' => $email,
             'client_ip' => $request->getClientIp(),

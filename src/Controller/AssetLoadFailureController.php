@@ -15,7 +15,7 @@ use Symfony\Component\Routing\Attribute\Route;
  * base.html.twig. A client whose cached /build bundle is corrupt gets it
  * silently refused by SRI on every page load — the browser Sentry SDK lives
  * inside that dead bundle, so this endpoint is the only way to hear about it.
- * Logged at warning so it flushes through fingers_crossed into Sentry.
+ * Logged at warning - the lowest level that becomes a Sentry issue.
  */
 final class AssetLoadFailureController extends AbstractController
 {

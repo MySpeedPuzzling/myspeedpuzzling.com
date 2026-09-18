@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use SpeedPuzzling\Web\Services\Sentry\GenericObjectSerializer;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
@@ -65,6 +66,9 @@ return App::config([
             'ignore_exceptions' => [
                 AccessDeniedException::class,
                 NotFoundHttpException::class,
+                // Crawlers probing POST-only routes; the Sentry log handlers sit outside
+                // fingers_crossed, so its excluded_http_codes no longer filter these
+                MethodNotAllowedHttpException::class,
             ],
             'traces_sampler' => 'sentry.traces_sampler',
             // Relative to traced requests (traces_sampler decides what is traced)

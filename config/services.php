@@ -348,12 +348,13 @@ return static function (ContainerConfigurator $configurator): void {
         ->arg('$httpClient', service('social_login.http_client'));
 
     // The deprecated Sentry\Monolog\Handler (removed in sentry/sentry 5.0) was split
-    // in two, and both are needed. This one captures error-level log messages - and
-    // deliberately SKIPS every record carrying an 'exception' in its context...
+    // in two, and both are needed. Both start at Warning: warnings are problems we want
+    // to see too. This one captures log messages - and deliberately SKIPS every record
+    // carrying an 'exception' in its context...
     $services->set(LogToSentryIssueHandler::class)
         ->args([
             service(HubInterface::class),
-            Level::Error,
+            Level::Warning,
             true, // bubble
             true, // fillExtraContext
         ]);
@@ -365,7 +366,7 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(ExceptionToSentryIssueHandler::class)
         ->args([
             service(HubInterface::class),
-            Level::Error,
+            Level::Warning,
             true, // bubble
         ]);
 

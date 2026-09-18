@@ -10,14 +10,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
-use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\TestDouble\PredictableTrickleVerifier;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
 use Symfony\Component\Security\Core\Exception\TooManyLoginAttemptsAuthenticationException;
 use Symfony\Component\Security\Http\SecurityRequestAttributes;
 
@@ -34,11 +31,6 @@ use Symfony\Component\Security\Http\SecurityRequestAttributes;
 final class WindowADualWiringTest extends WebTestCase
 {
     private const string PASSWORD = 'window-a-test-password';
-
-    protected function setUp(): void
-    {
-        PredictableTrickleVerifier::reset();
-    }
 
     public function testNativeLoginVerifiesBcryptHashRehashesToArgon2idAndKeepsSession(): void
     {
@@ -179,81 +171,6 @@ final class WindowADualWiringTest extends WebTestCase
         self::assertSame([], $browser->getResponse()->headers->getCookies());
     }
 
-    public function testTrickleLoginAdoptsThePasswordLocallyAndConsultsAuth0Once(): void
-    {
-        $browser = self::createClient();
-        $email = $this->seedAccount($browser, 'auth0|windowa4', 'windowa.four');
-
-        $this->submitLogin($browser, $email, PredictableTrickleVerifier::CORRECT_PASSWORD);
-
-        self::assertResponseRedirects('/en/my-profile');
-        self::assertSame([$email], PredictableTrickleVerifier::calls());
-
-        $password = $this->reloadAccountPassword($browser, 'auth0|windowa4');
-        self::assertNotNull($password);
-        self::assertStringStartsWith('$argon2id$', $password);
-        self::assertTrue(password_verify(PredictableTrickleVerifier::CORRECT_PASSWORD, $password));
-
-        // Second login now takes the local-hash branch - Auth0 consulted at most once
-        $this->submitLogin($browser, $email, PredictableTrickleVerifier::CORRECT_PASSWORD);
-
-        self::assertResponseRedirects('/en/my-profile');
-        self::assertCount(1, PredictableTrickleVerifier::calls());
-    }
-
-    public function testTrickleRejectionFailsTheLoginAndAdoptsNothing(): void
-    {
-        $browser = self::createClient();
-        $email = $this->seedAccount($browser, 'auth0|windowa5', 'windowa.five');
-
-        $this->submitLogin($browser, $email, 'not-the-right-password');
-
-        self::assertResponseRedirects('/login');
-        self::assertCount(1, PredictableTrickleVerifier::calls());
-        self::assertNull($this->reloadAccountPassword($browser, 'auth0|windowa5'));
-    }
-
-    public function testTrickleLeakedPasswordFailsWithDistinctResetMessage(): void
-    {
-        $browser = self::createClient();
-        $email = $this->seedAccount($browser, 'auth0|windowa6', 'windowa.six');
-
-        $this->submitLogin($browser, $email, PredictableTrickleVerifier::LEAKED_PASSWORD);
-
-        self::assertResponseRedirects('/login');
-        self::assertNull($this->reloadAccountPassword($browser, 'auth0|windowa6'));
-
-        $error = $browser->getRequest()->getSession()->get(SecurityRequestAttributes::AUTHENTICATION_ERROR);
-        self::assertInstanceOf(CustomUserMessageAuthenticationException::class, $error);
-        self::assertSame(LoginFormAuthenticator::ERROR_PASSWORD_LEAKED, $error->getMessageKey());
-    }
-
-    public function testTrickleOutageFailsClosedWithoutMarkingThePasswordWrong(): void
-    {
-        $browser = self::createClient();
-        $email = $this->seedAccount($browser, 'auth0|windowa7', 'windowa.seven');
-
-        $this->submitLogin($browser, $email, PredictableTrickleVerifier::AUTH0_DOWN_PASSWORD);
-
-        self::assertResponseRedirects('/login');
-        self::assertNull($this->reloadAccountPassword($browser, 'auth0|windowa7'));
-
-        $error = $browser->getRequest()->getSession()->get(SecurityRequestAttributes::AUTHENTICATION_ERROR);
-        self::assertInstanceOf(CustomUserMessageAuthenticationException::class, $error);
-        self::assertSame(LoginFormAuthenticator::ERROR_TEMPORARILY_UNAVAILABLE, $error->getMessageKey());
-    }
-
-    public function testAccountWithLocalHashNeverConsultsAuth0(): void
-    {
-        $browser = self::createClient();
-        $email = $this->seedAccount($browser, 'auth0|windowa8', 'windowa.eight', bcryptHashOf: self::PASSWORD);
-
-        $this->submitLogin($browser, $email, 'wrong-password');
-
-        self::assertResponseRedirects('/login');
-        self::assertSame([], PredictableTrickleVerifier::calls());
-    }
-
     public function testLoginPostWithoutOriginInfoFailsCsrf(): void
     {
         $browser = self::createClient();
@@ -316,8 +233,7 @@ final class WindowADualWiringTest extends WebTestCase
     }
 
     /**
-     * Returns the randomized email. No hash argument seeds an imported legacy
-     * account whose hash did not make it into the export - the trickle scenario.
+     * Returns the randomized email.
      */
     private function seedAccount(
         KernelBrowser $browser,

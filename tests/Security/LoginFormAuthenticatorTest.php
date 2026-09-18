@@ -17,7 +17,6 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Badge\CsrfTokenBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\PasswordUpgradeBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\RememberMeBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
-use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\CustomCredentials;
 use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\PasswordCredentials;
 
 /**
@@ -26,24 +25,6 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\PasswordC
  */
 final class LoginFormAuthenticatorTest extends KernelTestCase
 {
-    private null|string $originalTrickleFlag = null;
-
-    protected function setUp(): void
-    {
-        $flag = $_ENV['AUTH0_TRICKLE_LOGIN_ENABLED'] ?? null;
-        $this->originalTrickleFlag = is_string($flag) ? $flag : null;
-    }
-
-    protected function tearDown(): void
-    {
-        if ($this->originalTrickleFlag !== null) {
-            $_ENV['AUTH0_TRICKLE_LOGIN_ENABLED'] = $this->originalTrickleFlag;
-            $_SERVER['AUTH0_TRICKLE_LOGIN_ENABLED'] = $this->originalTrickleFlag;
-        }
-
-        parent::tearDown();
-    }
-
     public function testSupportsOnlyPostToLoginPath(): void
     {
         $authenticator = $this->authenticator();
@@ -61,7 +42,6 @@ final class LoginFormAuthenticatorTest extends KernelTestCase
         $passport = $authenticator->authenticate($this->loginRequest($account->email, 'whatever'));
 
         self::assertTrue($passport->hasBadge(PasswordCredentials::class));
-        self::assertFalse($passport->hasBadge(CustomCredentials::class));
         self::assertTrue($passport->hasBadge(CsrfTokenBadge::class));
         self::assertTrue($passport->hasBadge(RememberMeBadge::class));
         self::assertTrue($passport->hasBadge(PasswordUpgradeBadge::class));
@@ -80,41 +60,24 @@ final class LoginFormAuthenticatorTest extends KernelTestCase
         self::assertSame('auth0|authr2', $passport->getUser()->getUserIdentifier());
     }
 
-    public function testLegacyAccountWithoutLocalHashGetsTrickleCredentials(): void
+    /**
+     * Every account verifies against its local hash, full stop - an account without
+     * one (imported from Auth0 without a hash, or a social-only account) fails the
+     * local password check and is pointed at the sign-in link and reset doors. No
+     * third party is consulted any more (the Auth0 trickle fallback is gone).
+     */
+    public function testAccountWithoutALocalHashStillGetsPasswordCredentials(): void
     {
         $authenticator = $this->authenticator();
-        $account = $this->createAccount('auth0|authr3', 'authr.three', bcryptHash: null, legacyAuth0: true);
 
-        $passport = $authenticator->authenticate($this->loginRequest($account->email, 'whatever'));
+        foreach ([
+            $this->createAccount('auth0|authr3', 'authr.three', bcryptHash: null, legacyAuth0: true),
+            $this->createAccount('msp|authr4', 'authr.four', bcryptHash: null),
+        ] as $account) {
+            $passport = $authenticator->authenticate($this->loginRequest($account->email, 'whatever'));
 
-        self::assertTrue($passport->hasBadge(CustomCredentials::class));
-        self::assertFalse($passport->hasBadge(PasswordCredentials::class));
-    }
-
-    public function testNativeAccountWithoutHashNeverTrickles(): void
-    {
-        $authenticator = $this->authenticator();
-        $account = $this->createAccount('msp|authr4', 'authr.four', bcryptHash: null, legacyAuth0: false);
-
-        $passport = $authenticator->authenticate($this->loginRequest($account->email, 'whatever'));
-
-        // A native account with no password (future social-only accounts) must fail
-        // the local password check, never consult Auth0
-        self::assertTrue($passport->hasBadge(PasswordCredentials::class));
-    }
-
-    public function testTrickleFlagOffFallsBackToLocalPasswordCheck(): void
-    {
-        $_ENV['AUTH0_TRICKLE_LOGIN_ENABLED'] = '0';
-        $_SERVER['AUTH0_TRICKLE_LOGIN_ENABLED'] = '0';
-
-        $authenticator = $this->authenticator();
-        $account = $this->createAccount('auth0|authr5', 'authr.five', bcryptHash: null, legacyAuth0: true);
-
-        $passport = $authenticator->authenticate($this->loginRequest($account->email, 'whatever'));
-
-        self::assertTrue($passport->hasBadge(PasswordCredentials::class));
-        self::assertFalse($passport->hasBadge(CustomCredentials::class));
+            self::assertTrue($passport->hasBadge(PasswordCredentials::class));
+        }
     }
 
     public function testEmptyEmailOrPasswordFailsBeforeAnyLookup(): void

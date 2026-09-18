@@ -4,21 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Controllers\AuthenticationController;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 /**
- * The /login route through the Auth0 migration (issue #147). The URL never
- * changes - only what answers on it:
- *
- * - `native_login` OFF (today, and window A): hands over to the Auth0 bundle
- *   controller, which redirects to the hosted Universal Login exactly as before.
- * - `native_login` ON (Stage B): renders our own form. The POST it submits is
- *   handled by LoginFormAuthenticator before routing ever reaches this
- *   controller, so this action only ever renders the page.
+ * Renders the sign-in page. The POST it submits is handled by
+ * LoginFormAuthenticator before routing ever reaches this controller, so this
+ * action only ever renders the page.
  *
  * The page must not start a session: AuthenticationUtils only reads the session
  * when the visitor already has one, which keeps anonymous GETs session-free
@@ -26,18 +19,8 @@ use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
  */
 final class LoginController extends AbstractController
 {
-    public function __construct(
-        private readonly AuthenticationController $auth0AuthenticationController,
-        private readonly bool $nativeLoginEnabled,
-    ) {
-    }
-
-    public function __invoke(Request $request, AuthenticationUtils $authenticationUtils): Response
+    public function __invoke(AuthenticationUtils $authenticationUtils): Response
     {
-        if ($this->nativeLoginEnabled === false) {
-            return $this->auth0AuthenticationController->login($request);
-        }
-
         // Only a *fully* authenticated visitor is bounced away. A visitor holding
         // nothing but the 30-day remember-me cookie must be able to reach this
         // form, or any access_control/IsGranted rule that still asks for

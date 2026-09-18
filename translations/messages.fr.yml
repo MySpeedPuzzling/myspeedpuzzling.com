@@ -3009,8 +3009,6 @@ edition:
     "title": "Bienvenue sur MySpeedPuzzling !"
     "intro": "Votre compte est prêt et vous êtes connecté."
     "verification_sent": "Nous avons envoyé un lien de confirmation à %email%. Ouvrez-le pour confirmer que cette adresse est bien la vôtre."
-    "signed_out_title": "Si vous êtes déconnecté"
-    "signed_out_text": "La connexion passe encore par notre ancien fournisseur pendant quelques jours, et il ne connaît pas encore votre tout nouveau compte. Si vous êtes déconnecté avant le basculement, reconnectez-vous grâce à un lien de connexion par e-mail."
     "to_profile": "Aller à mon profil"
   "verify_email":
     "success":

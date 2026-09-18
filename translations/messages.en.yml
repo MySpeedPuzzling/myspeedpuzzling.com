@@ -3320,8 +3320,6 @@ auth:
         title: "Welcome to MySpeedPuzzling!"
         intro: "Your account is ready and you are signed in."
         verification_sent: "We sent a confirmation link to %email%. Open it to confirm the address is yours."
-        signed_out_title: "If you get signed out"
-        signed_out_text: "Signing in still runs through our old provider for a few more days, and it does not know your brand-new account yet. If you are signed out before the switch, get back in with a sign-in link by email."
         to_profile: "Go to my profile"
     verify_email:
         success:

@@ -11,7 +11,6 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -19,36 +18,16 @@ use Symfony\Component\Mime\Email;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /**
- * Native registration (Stage A of issue #147). Both flag states are covered
- * because the flag is flipped in production rather than in a deploy - a
- * rollback must land on a tested path.
+ * Registration (issue #147).
  *
  * Emails are randomized per test: the registration rate limiter's cache is not
  * rolled back between tests or runs (DAMA only wraps the database).
  */
 final class RegisterControllerTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
-    }
-
-    public function testFlagOffSendsVisitorsBackToTheAuth0Signup(): void
-    {
-        $browser = $this->createClientWithNativeRegistration(false);
-
-        $browser->request('GET', '/register');
-
-        self::assertResponseRedirects('/login');
-    }
-
     public function testRegistrationCreatesAccountAndPlayerAndSignsTheUserIn(): void
     {
-        $browser = $this->createClientWithNativeRegistration(true);
+        $browser = self::createClient();
         $email = $this->randomEmail('register.happy');
 
         $this->submitRegistration($browser, $email, 'a-properly-long-passphrase');
@@ -56,7 +35,7 @@ final class RegisterControllerTest extends WebTestCase
         self::assertResponseRedirects('/welcome');
 
         // The whole point of naming the authenticator in Security::login(): the `main`
-        // firewall carries three of them through window A, and an unnamed call throws
+        // firewall carries several of them, and an unnamed call throws
         $token = $browser->getContainer()->get(TokenStorageInterface::class)->getToken();
         self::assertNotNull($token);
         self::assertInstanceOf(UserAccount::class, $token->getUser());
@@ -74,8 +53,7 @@ final class RegisterControllerTest extends WebTestCase
         self::assertNotNull($player);
         self::assertSame($email, $player->email);
 
-        // The verification mail goes out. It no longer carries the window-A sign-in-link
-        // rescue: hybrid login (native first, Auth0 fallback) knows a fresh registrant.
+        // The verification mail goes out - and carries nothing but the verification link
         $messages = self::getMailerMessages();
         self::assertCount(1, $messages);
         self::assertInstanceOf(Email::class, $messages[0]);
@@ -85,26 +63,21 @@ final class RegisterControllerTest extends WebTestCase
         self::assertStringNotContainsString('/login-link', $body);
     }
 
-    public function testWelcomeScreenCarriesTheSignInLinkRescue(): void
+    public function testWelcomeScreenNamesTheAddressTheVerificationWentTo(): void
     {
-        // Window-A behavior: the rescue only shows while /login is still the Auth0
-        // redirect (it suppresses itself once native_login is ON), so pin the flag
-        $this->overrideFeatureFlagEnv('NATIVE_LOGIN_ENABLED', false);
-        $browser = $this->createClientWithNativeRegistration(true);
+        $browser = self::createClient();
         $email = $this->randomEmail('register.welcome');
 
         $this->submitRegistration($browser, $email, 'a-properly-long-passphrase');
         $crawler = $browser->followRedirect();
 
         self::assertResponseIsSuccessful();
-        // While /login is still the Auth0 redirect, this link is the only way back in
-        // for somebody who gets signed out (implementation-plan §2c)
-        self::assertGreaterThan(0, $crawler->filter('a[href^="/login-link"]')->count());
+        self::assertStringContainsString($email, $crawler->filter('main')->text());
     }
 
     public function testAddressAlreadyOnAUserAccountIsRefused(): void
     {
-        $browser = $this->createClientWithNativeRegistration(true);
+        $browser = self::createClient();
         $email = $this->randomEmail('register.taken');
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
@@ -121,14 +94,13 @@ final class RegisterControllerTest extends WebTestCase
     }
 
     /**
-     * The window-A collision (implementation-plan §2c): a legacy Auth0 user has a
-     * player row but no user_account yet. Letting them register a second account on
-     * the same address would make the Stage B import skip their Auth0 identity and
-     * strand their profile and every solving time on it.
+     * An address that already reaches a player must not get a second account, even
+     * when that player has no user_account row (implementation-plan §2c): the new
+     * account would sit next to the real profile and every solving time on it.
      */
     public function testAddressBelongingToALegacyPlayerWithoutAnAccountIsRefused(): void
     {
-        $browser = $this->createClientWithNativeRegistration(true);
+        $browser = self::createClient();
         $email = $this->randomEmail('register.legacy');
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
@@ -155,7 +127,7 @@ final class RegisterControllerTest extends WebTestCase
 
     public function testWeakPasswordIsRefusedBeforeAnythingIsCreated(): void
     {
-        $browser = $this->createClientWithNativeRegistration(true);
+        $browser = self::createClient();
         $email = $this->randomEmail('register.weak');
 
         $this->submitRegistration($browser, $email, 'short');
@@ -167,7 +139,7 @@ final class RegisterControllerTest extends WebTestCase
 
     public function testRegistrationPageStartsNoSessionAndStaysOutOfSharedCaches(): void
     {
-        $browser = $this->createClientWithNativeRegistration(true);
+        $browser = self::createClient();
 
         $browser->request('GET', '/register');
 
@@ -183,7 +155,7 @@ final class RegisterControllerTest extends WebTestCase
 
     public function testPageIsRenderedInTheBrowserLanguage(): void
     {
-        $browser = $this->createClientWithNativeRegistration(true);
+        $browser = self::createClient();
 
         $crawler = $browser->request('GET', '/register', server: ['HTTP_ACCEPT_LANGUAGE' => 'de-DE,de;q=0.9']);
 
@@ -205,14 +177,6 @@ final class RegisterControllerTest extends WebTestCase
             $form->getName() . '[email]' => $email,
             $form->getName() . '[plainPassword]' => $password,
         ]);
-    }
-
-    private function createClientWithNativeRegistration(bool $enabled): KernelBrowser
-    {
-        // The flag is a runtime env placeholder, so a kernel booted after this sees it
-        $this->overrideFeatureFlagEnv('NATIVE_REGISTRATION_ENABLED', $enabled);
-
-        return self::createClient();
     }
 
     private function randomEmail(string $prefix): string

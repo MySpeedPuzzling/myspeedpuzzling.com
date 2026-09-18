@@ -61,14 +61,6 @@ return static function (ContainerConfigurator $configurator): void {
     $parameters->set('auth0ClientSecret', '%env(trim:string:AUTH0_CLIENT_SECRET)%');
     $parameters->set('auth0DatabaseConnection', '%env(trim:string:AUTH0_DB_CONNECTION)%');
 
-    // Auth0 -> native auth migration flags (issue #147, docs/features/feature_flags.md).
-    // Deploy != flip: all three ship OFF and are flipped via env at Stage A / Stage B.
-    // nativeRegistrationEnabled gates the native registration page (RegisterController)
-    // and the links that point at it; nativeLoginEnabled gates the native login page
-    // (LoginController) and the native change-password card on profile settings.
-    $parameters->set('nativeRegistrationEnabled', '%env(bool:NATIVE_REGISTRATION_ENABLED)%');
-    $parameters->set('nativeLoginEnabled', '%env(bool:NATIVE_LOGIN_ENABLED)%');
-    $parameters->set('auth0TrickleLoginEnabled', '%env(bool:AUTH0_TRICKLE_LOGIN_ENABLED)%');
     // Transition-window escape hatch: the "old Auth0 sign-in" link on the native
     // login page (Auth0FallbackLoginController). Dies with the Auth0 stack in Phase 6.
     $parameters->set('auth0FallbackLoginEnabled', '%env(bool:AUTH0_FALLBACK_LOGIN_ENABLED)%');
@@ -129,10 +121,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$auth0ClientId', '%auth0ClientId%')
         ->bind('$auth0ClientSecret', '%auth0ClientSecret%')
         ->bind('$auth0DatabaseConnection', '%auth0DatabaseConnection%')
-        ->bind('$auth0TrickleLoginEnabled', '%auth0TrickleLoginEnabled%')
         ->bind('$auth0FallbackLoginEnabled', '%auth0FallbackLoginEnabled%')
-        ->bind('$nativeLoginEnabled', '%nativeLoginEnabled%')
-        ->bind('$nativeRegistrationEnabled', '%nativeRegistrationEnabled%')
         ->bind('$signInLinkLifetimeSeconds', '%signInLinkLifetimeSeconds%')
         ->bind('$signInLinkReuseGraceSeconds', '%signInLinkReuseGraceSeconds%')
         ->bind('$socialLoginAdminOnly', '%socialLoginAdminOnly%')
@@ -209,7 +198,6 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Security/OAuth2User.php',
             __DIR__ . '/../src/Security/PatUser.php',
             __DIR__ . '/../src/Security/ApiUser.php',
-            __DIR__ . '/../src/Security/TrickleVerificationResult.php',
             __DIR__ . '/../src/Security/SignInLinkPasswordPrompt.php',
             __DIR__ . '/../src/Security/SocialRegistrationRequired.php',
             // Installed by ScopedRememberMeListenerPass as the class of the
@@ -220,10 +208,6 @@ return static function (ContainerConfigurator $configurator): void {
             // each login event twice - clearing the cookie it had just issued.
             __DIR__ . '/../src/Security/MigrationWindowRememberMeListener.php',
         ]);
-    $services->alias(
-        \SpeedPuzzling\Web\Security\TricklePasswordVerifier::class,
-        \SpeedPuzzling\Web\Security\Auth0TrickleGateway::class,
-    );
 
     // The firewall's Auth0 authenticator (config/packages/security.php), wrapped so
     // its per-request failure on a native session cannot short-circuit the request

@@ -3005,8 +3005,6 @@ auth:
         title: "Vítejte na MySpeedPuzzling!"
         intro: "Váš účet je připravený a jste přihlášeni."
         verification_sent: "Na adresu %email% jsme poslali potvrzovací odkaz. Otevřete ho a potvrďte, že je adresa vaše."
-        signed_out_title: "Pokud budete odhlášeni"
-        signed_out_text: "Přihlašování ještě několik dní běží přes našeho starého poskytovatele a ten o vašem zbrusu novém účtu zatím neví. Pokud budete před přepnutím odhlášeni, vraťte se zpátky pomocí přihlašovacího odkazu e-mailem."
         to_profile: "Přejít na můj profil"
     verify_email:
         success:

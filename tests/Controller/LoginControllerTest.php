@@ -8,41 +8,17 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * The /login route across the Auth0 migration (issue #147). One URL, two
- * behaviours, chosen by the native_login flag: the Auth0 redirect until Stage B,
- * our own form afterwards. Both are covered here because the flag is flipped in
- * production, not in a deploy - a rollback must land on a tested path.
+ * The /login page (issue #147): our own form on one locale-free URL.
  */
 final class LoginControllerTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    protected function tearDown(): void
+    public function testRendersTheFormWithTheSignInLinkRescue(): void
     {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
-    }
-
-    public function testFlagOffKeepsSendingVisitorsToAuth0(): void
-    {
-        $browser = $this->createClientWithNativeLogin(false);
-
-        $browser->request('GET', '/login');
-
-        $location = (string) $browser->getResponse()->headers->get('Location');
-        self::assertResponseStatusCodeSame(302);
-        self::assertStringContainsString('auth0.com', $location);
-    }
-
-    public function testFlagOnRendersTheNativeFormWithTheSignInLinkRescue(): void
-    {
-        $browser = $this->createClientWithNativeLogin(true);
+        $browser = self::createClient();
 
         $crawler = $browser->request('GET', '/login');
 
@@ -65,7 +41,7 @@ final class LoginControllerTest extends WebTestCase
 
     public function testNativeLoginPageStartsNoSessionAndStaysOutOfSharedCaches(): void
     {
-        $browser = $this->createClientWithNativeLogin(true);
+        $browser = self::createClient();
 
         $browser->request('GET', '/login');
 
@@ -81,7 +57,7 @@ final class LoginControllerTest extends WebTestCase
 
     public function testPageIsRenderedInTheBrowserLanguage(): void
     {
-        $browser = $this->createClientWithNativeLogin(true);
+        $browser = self::createClient();
 
         // No locale in the path (bookmarks and the base.html.twig button point at
         // /login), so the language is negotiated - D17 requires all six locales
@@ -93,7 +69,7 @@ final class LoginControllerTest extends WebTestCase
 
     public function testFailedAttemptComesBackWithTheHelperAndThePrefilledAddress(): void
     {
-        $browser = $this->createClientWithNativeLogin(true);
+        $browser = self::createClient();
         $email = $this->seedAccount($browser);
 
         $browser->request('POST', '/login', [
@@ -114,14 +90,6 @@ final class LoginControllerTest extends WebTestCase
 
         // One click away from a link, with nothing to retype
         self::assertSame($email, $crawler->filter('form#sign-in-link-form input[name="email"]')->attr('value'));
-    }
-
-    private function createClientWithNativeLogin(bool $enabled): KernelBrowser
-    {
-        // The flag is a runtime env placeholder, so a kernel booted after this sees it
-        $this->overrideFeatureFlagEnv('NATIVE_LOGIN_ENABLED', $enabled);
-
-        return self::createClient();
     }
 
     private function seedAccount(KernelBrowser $browser): string

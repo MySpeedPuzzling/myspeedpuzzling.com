@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-use SpeedPuzzling\Web\Security\TricklePasswordVerifier;
 use SpeedPuzzling\Web\Tests\TestDouble\NullMercureHub;
-use SpeedPuzzling\Web\Tests\TestDouble\PredictableTrickleVerifier;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\Mercure\HubInterface;
 
@@ -33,10 +31,6 @@ return static function (ContainerConfigurator $configurator): void {
     // Mercure test double
     $services->set(NullMercureHub::class);
     $services->alias(HubInterface::class, NullMercureHub::class);
-
-    // Trickle login test double - tests must never call the real Auth0 tenant
-    $services->set(PredictableTrickleVerifier::class);
-    $services->alias(TricklePasswordVerifier::class, PredictableTrickleVerifier::class)->public();
 
     // Social login providers talk to a Guzzle MockHandler - tests must never
     // call Google/Apple/Facebook (the static handler survives kernel reboots)

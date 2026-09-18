@@ -3007,8 +3007,6 @@ fair_use_policy:
     "title": "¡Bienvenido a MySpeedPuzzling!"
     "intro": "Tu cuenta ya está lista y has iniciado sesión."
     "verification_sent": "Hemos enviado un enlace de confirmación a %email%. Ábrelo para confirmar que la dirección es tuya."
-    "signed_out_title": "Si se cierra tu sesión"
-    "signed_out_text": "El inicio de sesión sigue pasando por nuestro proveedor antiguo durante unos días más, y todavía no conoce tu cuenta recién creada. Si se cierra tu sesión antes del cambio, vuelve a entrar con un enlace de acceso por correo."
     "to_profile": "Ir a mi perfil"
   "verify_email":
     "success":

@@ -59,9 +59,8 @@ final readonly class UserAccountProvider implements UserProviderInterface, Passw
             return;
         }
 
-        // Phase 5 exit-metric counter: imported bcrypt hash replaced by argon2id
-        // on first successful login (trickle adoptions arrive here with password
-        // still null, so they are counted separately as trickle_used)
+        // Migration counter: imported Auth0 bcrypt hash replaced by argon2id on
+        // first successful login
         if ($user->password !== null && str_starts_with($user->password, '$2')) {
             $this->logger->info('Imported bcrypt hash re-hashed to argon2id.', [
                 'user_id' => $user->getUserIdentifier(),
@@ -74,7 +73,7 @@ final readonly class UserAccountProvider implements UserProviderInterface, Passw
         // Documented exception (D10) to the "flush only in the Messenger transaction
         // middleware" rule: this runs inside the security listener during login, where
         // no handler transaction exists. Without an immediate flush the bcrypt->argon2id
-        // rehash (and the trickle-adopted hash) would silently never persist.
+        // rehash would silently never persist.
         $this->entityManager->flush();
     }
 }

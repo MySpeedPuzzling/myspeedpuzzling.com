@@ -90,10 +90,8 @@
                        sign-in link prominently second, these last. #}
                     <p class="fs-sm mb-0">
                         <a href="{{ path('request_password_reset') }}">{{ 'auth.password_reset.link'|trans }}</a>
-                        {% if native_registration_enabled %}
-                            <span class="text-muted mx-1">·</span>
-                            <a href="{{ path('register') }}">{{ 'auth.register.title'|trans }}</a>
-                        {% endif %}
+                        <span class="text-muted mx-1">·</span>
+                        <a href="{{ path('register') }}">{{ 'auth.register.title'|trans }}</a>
                     </p>
 
                     {# Transition-window escape hatch (Phase 6 removes it): the old

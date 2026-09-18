@@ -47,9 +47,9 @@ final readonly class ChangeAccountPasswordHandler
             throw new UserAccountNotFound();
         }
 
-        // No local hash yet (a legacy account that has only ever been verified through
-        // the trickle branch): there is nothing to check the current password against,
-        // so this door stays shut - the sign-in link and the reset flow are the way in
+        // No local hash (a social-only account): there is nothing to check the current
+        // password against, so this door stays shut - the sign-in link and the reset
+        // flow are the way in
         if ($userAccount->password === null) {
             throw new CurrentPasswordDoesNotMatch();
         }

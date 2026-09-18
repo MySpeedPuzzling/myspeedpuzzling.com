@@ -10,7 +10,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\TestDouble\PredictableTrickleVerifier;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -37,11 +36,6 @@ final class RememberMeTest extends WebTestCase
     private const string COOKIE_NAME = 'REMEMBERME';
 
     private const int LIFETIME = 2592000;
-
-    protected function setUp(): void
-    {
-        PredictableTrickleVerifier::reset();
-    }
 
     public function testLoginIssuesARememberMeCookieWithoutAnyCheckbox(): void
     {

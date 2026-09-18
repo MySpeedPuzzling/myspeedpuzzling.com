@@ -3007,8 +3007,6 @@ auth:
         title: "Willkommen bei MySpeedPuzzling!"
         intro: "Ihr Konto ist bereit und Sie sind angemeldet."
         verification_sent: "Wir haben einen Bestätigungslink an %email% geschickt. Öffnen Sie ihn, um zu bestätigen, dass die Adresse Ihnen gehört."
-        signed_out_title: "Falls Sie abgemeldet werden"
-        signed_out_text: "Die Anmeldung läuft noch ein paar Tage über unseren alten Anbieter, und der kennt Ihr brandneues Konto noch nicht. Falls Sie vor der Umstellung abgemeldet werden, kommen Sie mit einem Anmeldelink per E-Mail wieder hinein."
         to_profile: "Zu meinem Profil"
     verify_email:
         success:

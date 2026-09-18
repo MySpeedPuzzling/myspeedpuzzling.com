@@ -17,22 +17,6 @@
                 </div>
             {% endif %}
 
-            {% if show_sign_in_link_rescue %}
-                {# Window A only: /login still redirects to Auth0, which has no identity
-                   for this brand-new native account. The sign-in link is the way back
-                   in until Stage B - so it is spelled out here and in the verification
-                   email, the two things a new registrant actually keeps. #}
-                <div class="card border-warning my-3">
-                    <div class="card-body">
-                        <h2 class="h6">{{ 'auth.welcome.signed_out_title'|trans }}</h2>
-                        <p class="fs-sm mb-2">{{ 'auth.welcome.signed_out_text'|trans }}</p>
-                        <a class="btn btn-sm btn-outline-primary" href="{{ path('sign_in_link_request', {'email': email}) }}">
-                            <i class="bi bi-envelope me-1"></i>{{ 'auth.sign_in_link.submit'|trans }}
-                        </a>
-                    </div>
-                </div>
-            {% endif %}
-
             <p>
                 <a class="btn btn-primary" href="{{ path('my_profile') }}">
                     {{ 'auth.welcome.to_profile'|trans }}

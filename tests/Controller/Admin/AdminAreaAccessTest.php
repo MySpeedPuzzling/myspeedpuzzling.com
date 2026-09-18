@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\TestDouble\PredictableTrickleVerifier;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -90,8 +89,6 @@ final class AdminAreaAccessTest extends WebTestCase
      */
     public function testAdminSignedBackInFromTheRememberMeCookieReachesTheAdminArea(): void
     {
-        PredictableTrickleVerifier::reset();
-
         $browser = self::createClient();
         $email = $this->givePasswordToAdmin($browser);
 

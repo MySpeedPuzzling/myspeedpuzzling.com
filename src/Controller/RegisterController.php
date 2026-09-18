@@ -27,11 +27,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Native registration (Stage A of issue #147). Until the `native_registration`
- * flag flips, signing up still happens on Auth0's hosted page, so this route
- * hands over to /login - which is the Auth0 redirect while the flag is off.
- *
- * The account and the player are created by one handler in one transaction; this
+ * Registration (issue #147). The account and the player are created by one handler in one transaction; this
  * controller only logs the new user in and asks for the verification email.
  */
 final class RegisterController extends AbstractController
@@ -43,7 +39,6 @@ final class RegisterController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly LoggerInterface $logger,
         private readonly RateLimiterFactoryInterface $registrationIpLimiter,
-        private readonly bool $nativeRegistrationEnabled,
     ) {
     }
 
@@ -55,10 +50,6 @@ final class RegisterController extends AbstractController
     )]
     public function __invoke(Request $request): Response
     {
-        if ($this->nativeRegistrationEnabled === false) {
-            return $this->redirectToRoute('login');
-        }
-
         if ($this->getUser() !== null) {
             return $this->redirectToRoute('my_profile');
         }
@@ -96,8 +87,8 @@ final class RegisterController extends AbstractController
                 if ($reason instanceof EmailAlreadyRegistered || $reason instanceof UniqueConstraintViolationException) {
                     // D8: the unique-email error is an accepted enumeration tradeoff.
                     // The copy points at signing in rather than only saying "taken" -
-                    // through window A the collision is usually the user's own older
-                    // Auth0 account, and a second account would strand it.
+                    // the collision is usually the user's own older account, and a
+                    // second one would leave their profile and times behind.
                     $form->get('email')->addError(
                         new FormError($this->translator->trans('auth.register.email_already_registered')),
                     );
@@ -125,9 +116,9 @@ final class RegisterController extends AbstractController
             // the visitor chose. Verification gates nothing (D7) - it is asked for by
             // email, never enforced here.
             //
-            // The authenticator must be named: through window A the `main` firewall
-            // carries LoginFormAuthenticator, the Auth0 authenticator and the login
-            // link, and Security::login() refuses to guess between them.
+            // The authenticator must be named: the `main` firewall carries several
+            // (the login form, the social ones, the login link, remember-me), and
+            // Security::login() refuses to guess between them.
             $this->security->login(
                 $this->userAccountProvider->loadUserByIdentifier($userId),
                 authenticatorName: LoginFormAuthenticator::class,

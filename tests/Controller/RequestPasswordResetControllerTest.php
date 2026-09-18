@@ -9,7 +9,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Mime\Email;
@@ -26,36 +25,9 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  */
 final class RequestPasswordResetControllerTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
-    }
-
-    /**
-     * Before Stage A the user_account table is empty, so the page would only ever
-     * promise a mail it will not send - and its answer is uniform by design, so the
-     * dead end would be silent. It stays closed until a native account can exist.
-     */
-    public function testTheWholeFlowIsClosedUntilNativeAuthIsLive(): void
-    {
-        $this->overrideFeatureFlagEnv('NATIVE_REGISTRATION_ENABLED', false);
-        $this->overrideFeatureFlagEnv('NATIVE_LOGIN_ENABLED', false);
-        $browser = self::createClient();
-
-        $browser->request('GET', '/password-reset');
-        self::assertResponseRedirects('/login');
-
-        $browser->request('GET', '/password-reset/' . str_repeat('a', 64));
-        self::assertResponseRedirects('/login');
-    }
-
     public function testKnownAddressGetsAResetLinkCarryingAUsableToken(): void
     {
-        $browser = $this->createClientWithNativeAuthLive();
+        $browser = self::createClient();
         $email = $this->seedAccount($browser);
 
         $this->requestReset($browser, $email);
@@ -81,7 +53,7 @@ final class RequestPasswordResetControllerTest extends WebTestCase
 
     public function testTheMailedLinkActuallyResetsThePasswordAndThenDies(): void
     {
-        $browser = $this->createClientWithNativeAuthLive();
+        $browser = self::createClient();
         $email = $this->seedAccount($browser);
 
         $this->requestReset($browser, $email);
@@ -115,7 +87,7 @@ final class RequestPasswordResetControllerTest extends WebTestCase
 
     public function testUnknownAddressLooksExactlyLikeAKnownOne(): void
     {
-        $browser = $this->createClientWithNativeAuthLive();
+        $browser = self::createClient();
         $known = $this->seedAccount($browser);
 
         $this->requestReset($browser, $known);
@@ -129,7 +101,7 @@ final class RequestPasswordResetControllerTest extends WebTestCase
 
     public function testUnknownAddressSendsNoMail(): void
     {
-        $browser = $this->createClientWithNativeAuthLive();
+        $browser = self::createClient();
 
         $this->requestReset($browser, sprintf('nobody+%s@example.com', bin2hex(random_bytes(4))));
 
@@ -144,7 +116,7 @@ final class RequestPasswordResetControllerTest extends WebTestCase
      */
     public function testThrottledRepeatLooksLikeSuccessAndSendsNothingExtra(): void
     {
-        $browser = $this->createClientWithNativeAuthLive();
+        $browser = self::createClient();
         $email = $this->seedAccount($browser);
 
         // Asserted before following the redirect: getMailerMessages() reads the
@@ -162,7 +134,7 @@ final class RequestPasswordResetControllerTest extends WebTestCase
 
     public function testTheFormPageStartsNoSessionAndStaysOutOfSharedCaches(): void
     {
-        $browser = $this->createClientWithNativeAuthLive();
+        $browser = self::createClient();
 
         $browser->request('GET', '/password-reset');
 
@@ -177,7 +149,7 @@ final class RequestPasswordResetControllerTest extends WebTestCase
 
     public function testAMangledLinkGetsTheFriendlyPageRatherThanA404(): void
     {
-        $browser = $this->createClientWithNativeAuthLive();
+        $browser = self::createClient();
 
         // A mail client wrapped the URL and cut the token in half
         $browser->request('GET', '/password-reset/' . str_repeat('a', 30));
@@ -188,19 +160,11 @@ final class RequestPasswordResetControllerTest extends WebTestCase
 
     public function testTheTokenPageDoesNotLeakTheTokenThroughTheReferer(): void
     {
-        $browser = $this->createClientWithNativeAuthLive();
+        $browser = self::createClient();
 
         $browser->request('GET', '/password-reset/' . str_repeat('a', 64));
 
         self::assertSame('no-referrer', $browser->getResponse()->headers->get('Referrer-Policy'));
-    }
-
-    private function createClientWithNativeAuthLive(): KernelBrowser
-    {
-        // Stage A onwards: native accounts can exist, so the reset flow is open
-        $this->overrideFeatureFlagEnv('NATIVE_REGISTRATION_ENABLED', true);
-
-        return self::createClient();
     }
 
     private function requestReset(KernelBrowser $browser, string $email): void

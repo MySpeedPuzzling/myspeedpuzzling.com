@@ -21,6 +21,11 @@ readonly final class GetTeamPlayers
      */
     public function byIds(array $solvingTimesIds): array
     {
+        // A player without duo/team times would otherwise run the query with "IN (NULL)"
+        if ($solvingTimesIds === []) {
+            return [];
+        }
+
         $query = <<<SQL
 SELECT
     puzzle_solving_time.id AS time_id,

@@ -6,11 +6,13 @@ namespace SpeedPuzzling\Web\Tests\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
@@ -212,5 +214,64 @@ final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
         self::assertNull($standalone->competitionSeriesName);
         self::assertNull($standalone->competitionSeriesShortcut);
         self::assertNull($standalone->competitionSeriesSlug);
+    }
+
+    /**
+     * Player profile and statistics read the solo, duo and team lists of one player in a row:
+     * the player is checked once, and empty duo/team lists skip the team-members lookup
+     * (it used to run as "WHERE id IN (NULL)").
+     */
+    public function testSoloDuoAndTeamListsOfOnePlayerCheckThePlayerOnce(): void
+    {
+        /** @var list<string> $playersWithoutDuoOrTeamTimes */
+        $playersWithoutDuoOrTeamTimes = $this->database->fetchFirstColumn(
+            "SELECT p.id FROM player p
+             WHERE EXISTS (SELECT 1 FROM puzzle_solving_time pst WHERE pst.player_id = p.id AND pst.puzzling_type = 'solo')
+               AND NOT EXISTS (
+                   SELECT 1 FROM puzzle_solving_time pst
+                   WHERE pst.puzzling_type != 'solo'
+                     AND (pst.player_id = p.id OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', p.id::text)))
+               )
+             ORDER BY p.id LIMIT 1",
+        );
+        self::assertNotEmpty($playersWithoutDuoOrTeamTimes, 'Fixtures need a solo-only player');
+        $playerId = $playersWithoutDuoOrTeamTimes[0];
+
+        /** @var DebugDataHolder $debugDataHolder */
+        $debugDataHolder = self::getContainer()->get('doctrine.debug_data_holder');
+        $debugDataHolder->reset();
+
+        self::assertNotEmpty($this->query->soloByPlayerId($playerId));
+        self::assertSame([], $this->query->duoByPlayerId($playerId));
+        self::assertSame([], $this->query->teamByPlayerId($playerId));
+
+        /** @var list<array{sql: string}> $executed */
+        $executed = $debugDataHolder->getData()['default'] ?? [];
+        $queries = array_column($executed, 'sql');
+
+        self::assertCount(1, array_filter($queries, static fn (string $sql): bool => str_starts_with($sql, 'SELECT 1 FROM player')));
+        self::assertCount(0, array_filter($queries, static fn (string $sql): bool => str_contains($sql, 'player_elem.ordinality')));
+        // existence check + solo + duo + team
+        self::assertCount(4, $queries);
+    }
+
+    public function testUnknownPlayerIsStillNotFoundAfterAnotherPlayerWasChecked(): void
+    {
+        $this->query->soloByPlayerId(PlayerFixture::PLAYER_REGULAR);
+
+        $this->expectException(PlayerNotFound::class);
+        $this->query->duoByPlayerId('018d0000-0000-0000-0000-999999999999');
+    }
+
+    public function testTeamMembersAreStillLoadedForDuoTimes(): void
+    {
+        $duo = $this->query->duoByPlayerId(PlayerFixture::PLAYER_REGULAR);
+
+        self::assertNotEmpty($duo);
+
+        foreach ($duo as $solvedPuzzle) {
+            self::assertNotNull($solvedPuzzle->players);
+            self::assertCount(2, $solvedPuzzle->players);
+        }
     }
 }

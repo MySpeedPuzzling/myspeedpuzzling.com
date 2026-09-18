@@ -13,14 +13,28 @@ use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Results\SolvedPuzzleOverview;
+use Symfony\Contracts\Service\ResetInterface;
 
-readonly final class GetPlayerSolvedPuzzles
+final class GetPlayerSolvedPuzzles implements ResetInterface
 {
+    /**
+     * Players already found to exist in this request: pages read the solo, duo and team
+     * lists of the same player one after another, each of which checks the player.
+     *
+     * @var array<string, true>
+     */
+    private array $existingPlayerIds = [];
+
     public function __construct(
-        private Connection $database,
-        private GetTeamPlayers $getTeamPlayers,
-        private ClockInterface $clock,
+        readonly private Connection $database,
+        readonly private GetTeamPlayers $getTeamPlayers,
+        readonly private ClockInterface $clock,
     ) {
+    }
+
+    public function reset(): void
+    {
+        $this->existingPlayerIds = [];
     }
 
     /**
@@ -873,6 +887,10 @@ SQL;
      */
     private function assertPlayerExists(string $playerId): void
     {
+        if (isset($this->existingPlayerIds[$playerId])) {
+            return;
+        }
+
         $exists = $this->database->executeQuery(
             'SELECT 1 FROM player WHERE id = :playerId',
             ['playerId' => $playerId],
@@ -881,5 +899,7 @@ SQL;
         if ($exists === false) {
             throw new PlayerNotFound();
         }
+
+        $this->existingPlayerIds[$playerId] = true;
     }
 }

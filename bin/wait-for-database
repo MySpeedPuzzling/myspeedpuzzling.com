@@ -1,0 +1,40 @@
+#!/usr/bin/env php
+<?php
+
+/*
+ * Blocks until DATABASE_URL answers a query, for at most the given seconds
+ * (default 60). Exit 0 = ready, 1 = gave up. See DatabaseReadiness.
+ *
+ * Usage: bin/wait-for-database [timeout-seconds]
+ */
+
+declare(strict_types=1);
+
+use SpeedPuzzling\Web\Exceptions\DatabaseNotReady;
+use SpeedPuzzling\Web\Services\Doctrine\DatabaseReadiness;
+use Symfony\Component\Clock\NativeClock;
+use Symfony\Component\Dotenv\Dotenv;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+// Same .env resolution as bin/console; real environment variables win
+(new Dotenv())->bootEnv(dirname(__DIR__) . '/.env');
+
+$timeoutSeconds = (float) ($argv[1] ?? 60);
+$databaseUrl = $_SERVER['DATABASE_URL'] ?? null;
+
+if (!is_string($databaseUrl) || $databaseUrl === '') {
+    fwrite(STDERR, "wait-for-database: DATABASE_URL is not set\n");
+    exit(1);
+}
+
+$startedAt = microtime(true);
+
+try {
+    $attempts = (new DatabaseReadiness(new NativeClock()))->waitFor($databaseUrl, $timeoutSeconds);
+} catch (DatabaseNotReady $exception) {
+    fwrite(STDERR, sprintf("wait-for-database: gave up after %.1fs - %s\n", microtime(true) - $startedAt, $exception->getMessage()));
+    exit(1);
+}
+
+echo sprintf("wait-for-database: database is ready after %.1fs (%d %s)\n", microtime(true) - $startedAt, $attempts, $attempts === 1 ? 'attempt' : 'attempts');

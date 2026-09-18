@@ -18,8 +18,13 @@ wait-for-it ${REDIS_URI:-"redis:6379"} --timeout=15
 
 ## Database setup
 
+# Wait until the database answers a query, not just until its port is open:
+# during crash recovery Postgres accepts TCP and refuses every login. After the
+# host's hard reset on 2026-09-03 that took 14 s, and both web containers
+# crash-looped through four failed migrations each (8 CRITICALs) in the meantime.
+# Bounded - a database that stays down still fails the container, after 60 s.
 if [[ "$ENVIRONMENT" == "dev" ]] || [[ "$SKIP_DATABASE_MIGRATIONS" != "true" ]]; then
-    wait-for-it ${DATABASE_HOST:-postgres}:${DATABASE_PORT:-5432} --timeout=15
+    php bin/wait-for-database 60
 fi
 
 if [[ "$SKIP_DATABASE_MIGRATIONS" != "true" ]]; then

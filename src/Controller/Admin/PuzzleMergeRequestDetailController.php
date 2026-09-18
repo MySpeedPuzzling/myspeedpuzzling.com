@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 
 use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleMergeRequests;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetManufacturers;
@@ -47,7 +48,7 @@ final class PuzzleMergeRequestDetailController extends AbstractController
             try {
                 $puzzle = $this->getPuzzleOverview->byId($puzzleId);
                 $puzzles[] = $puzzle;
-            } catch (\Throwable) {
+            } catch (PuzzleNotFound) {
                 // Puzzle might have been deleted, skip it
             }
         }

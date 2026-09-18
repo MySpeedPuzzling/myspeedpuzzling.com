@@ -68,6 +68,7 @@ SELECT
     fair_use_policy_accepted_at,
     referral_program_joined_at,
     referral_program_suspended,
+    moderator_since,
     (membership.ends_at IS NULL AND membership.billing_period_ends_at IS NOT NULL) AS has_active_stripe_subscription,
     GREATEST(
         COALESCE(membership.ends_at, membership.billing_period_ends_at, '1970-01-01'::timestamp),
@@ -137,6 +138,7 @@ SELECT
     fair_use_policy_accepted_at,
     referral_program_joined_at,
     referral_program_suspended,
+    moderator_since,
     (membership.ends_at IS NULL AND membership.billing_period_ends_at IS NOT NULL) AS has_active_stripe_subscription,
     GREATEST(
         COALESCE(membership.ends_at, membership.billing_period_ends_at, '1970-01-01'::timestamp),

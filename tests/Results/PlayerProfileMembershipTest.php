@@ -143,6 +143,7 @@ final class PlayerProfileMembershipTest extends TestCase
      *     fair_use_policy_accepted_at: null|string,
      *     referral_program_joined_at: null|string,
      *     referral_program_suspended: bool,
+     *     moderator_since: null|string,
      * }
      */
     private function createRow(
@@ -188,6 +189,7 @@ final class PlayerProfileMembershipTest extends TestCase
             'fair_use_policy_accepted_at' => null,
             'referral_program_joined_at' => null,
             'referral_program_suspended' => false,
+            'moderator_since' => null,
         ];
     }
 }

@@ -28,4 +28,8 @@ enum NotificationType: string
 
     // Conversation notifications
     case NewConversationRequest = 'NewConversationRequest';
+
+    // Community moderator role (no target entity - the notification is the whole message)
+    case ModeratorRoleGranted = 'ModeratorRoleGranted';
+    case ModeratorRoleRevoked = 'ModeratorRoleRevoked';
 }

@@ -104,6 +104,21 @@ competition_approved:
         <p>Great news! Your event <strong>%competitionName%</strong> has been approved and is now publicly visible on MySpeedPuzzling.</p>
         <p><a href="%eventUrl%">View your event page</a></p>
 
+moderator_role_granted:
+    subject: "You are now a MySpeedPuzzling community moderator"
+    title: "Welcome to the moderator team!"
+    content: |
+        <p>Hi %playerName%,</p>
+        <p>we have made you a <strong>community moderator</strong> on MySpeedPuzzling. Thank you for offering to help keep the puzzle catalogue tidy - it means a lot to us and to the whole community.</p>
+        <p>From now on you can review what other puzzlers propose:</p>
+        <ul>
+            <li><a href="%changeRequestsUrl%">Puzzle change requests</a> - corrections of names, brands, piece counts, codes and photos</li>
+            <li><a href="%mergeRequestsUrl%">Puzzle merge requests</a> - reports that two entries are the same puzzle</li>
+        </ul>
+        <p>You will find both under the key icon in the top bar once you are signed in.</p>
+        <p><strong>A word of care about merges:</strong> approving a merge deletes the duplicate entries and moves everybody's times and collections onto the one that stays. It cannot be undone, so when in doubt - different piece count, different artwork, a different edition - rather leave it or reject it. One puzzle may hold several EAN codes; that is fine.</p>
+        <p>If anything is unclear, write to us through the Feedback link at the top of the website.</p>
+
 competition_rejected:
     subject: "Your event submission was not approved"
     title: "Event not approved"

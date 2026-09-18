@@ -528,6 +528,77 @@ SELECT * FROM (
     LEFT JOIN puzzle conv_puzzle ON conv.puzzle_id = conv_puzzle.id
     WHERE notification.player_id = :playerId
         AND notification.target_conversation_id IS NOT NULL
+
+    UNION ALL
+
+    -- Community moderator role notifications (no target entity)
+    SELECT
+        notification.notified_at,
+        notification.read_at,
+        notification.type AS notification_type,
+        -- Puzzle solving fields (NULL)
+        NULL::uuid AS target_player_id,
+        NULL::varchar AS target_player_name,
+        NULL::varchar AS target_player_code,
+        NULL::varchar AS target_player_country,
+        NULL::varchar AS target_player_avatar,
+        NULL::uuid AS puzzle_id,
+        NULL::varchar AS puzzle_name,
+        NULL::varchar AS puzzle_alternative_name,
+        NULL::varchar AS manufacturer_name,
+        NULL::int AS pieces_count,
+        NULL::int AS time,
+        NULL::boolean AS first_attempt,
+        NULL::boolean AS unboxed,
+        NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
+        NULL::varchar AS team_id,
+        NULL::json AS players,
+        -- Lending fields (NULL)
+        NULL::uuid AS transfer_id,
+        NULL::varchar AS transfer_type,
+        NULL::uuid AS from_player_id,
+        NULL::varchar AS from_player_name,
+        NULL::varchar AS from_player_avatar,
+        NULL::uuid AS to_player_id,
+        NULL::varchar AS to_player_name,
+        NULL::varchar AS to_player_avatar,
+        NULL::uuid AS owner_player_id,
+        NULL::varchar AS owner_player_name,
+        NULL::uuid AS lending_puzzle_id,
+        NULL::varchar AS lending_puzzle_name,
+        NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
+        NULL::varchar AS lending_manufacturer_name,
+        NULL::int AS lending_pieces_count,
+        -- Puzzle report fields (NULL)
+        NULL::uuid AS change_request_id,
+        NULL::uuid AS change_request_puzzle_id,
+        NULL::varchar AS change_request_puzzle_name,
+        NULL::varchar AS change_request_puzzle_image,
+        NULL::varchar AS change_request_rejection_reason,
+        NULL::uuid AS merge_request_id,
+        NULL::uuid AS merge_request_puzzle_id,
+        NULL::varchar AS merge_request_puzzle_name,
+        NULL::varchar AS merge_request_puzzle_image,
+        NULL::varchar AS merge_request_rejection_reason,
+        -- Rating notification fields (NULL)
+        NULL::uuid AS sold_swapped_item_id,
+        NULL::varchar AS rating_puzzle_name,
+        NULL::varchar AS rating_puzzle_image,
+        NULL::varchar AS rating_other_player_name,
+        NULL::uuid AS rating_other_player_id,
+        -- Conversation request fields (NULL)
+        NULL::uuid AS conversation_id,
+        NULL::uuid AS conversation_initiator_id,
+        NULL::varchar AS conversation_initiator_name,
+        NULL::varchar AS conversation_initiator_avatar,
+        NULL::boolean AS conversation_is_marketplace,
+        NULL::varchar AS conversation_puzzle_name,
+        NULL::varchar AS conversation_puzzle_image
+    FROM notification
+    WHERE notification.player_id = :playerId
+        AND notification.type IN ('ModeratorRoleGranted', 'ModeratorRoleRevoked')
 ) AS combined_notifications
 ORDER BY notified_at DESC
 LIMIT :limit

@@ -218,6 +218,12 @@ readonly final class PlayerNotification
         return $this->soldSwappedItemId !== null;
     }
 
+    public function isModeratorRoleNotification(): bool
+    {
+        return $this->notificationType === NotificationType::ModeratorRoleGranted
+            || $this->notificationType === NotificationType::ModeratorRoleRevoked;
+    }
+
     public function isConversationRequestNotification(): bool
     {
         return $this->conversationId !== null;

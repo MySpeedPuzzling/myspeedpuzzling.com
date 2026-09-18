@@ -1131,6 +1131,9 @@ notifications:
     conversation_request:
         general: "%player% sent you a conversation request"
         marketplace: "%player% sent you a message about %puzzle%"
+    moderator_role:
+        granted: "You are now a community moderator - you can review puzzle change requests and duplicate reports. Thank you for helping!"
+        revoked: "Your community moderator role has ended. Thank you for your help!"
 
 badges:
     title: "Badges"
@@ -2058,6 +2061,25 @@ admin:
         validation_failed: "Survivor puzzle, name, and pieces count are required."
     competition_approvals:
         back_title: "Admin — approvals"
+    moderators:
+        title: "Community moderators"
+        intro: "Community moderators can review puzzle change requests and puzzle merge requests. They cannot reach any other part of the admin area, and only admins can appoint or remove them."
+        add_title: "Add moderators"
+        add_label: "Players"
+        add_help: "Search by name or player code. You can add several players at once."
+        add_submit: "Grant moderator role"
+        choose_player: "Choose at least one player."
+        granted: "Moderator role granted.|Moderator role granted to %count% players."
+        revoked: "Moderator role revoked."
+        revoke: "Revoke"
+        revoke_confirm: "Remove the moderator role from this player?"
+        empty: "There are no community moderators yet."
+        column_player: "Player"
+        column_since: "Moderator since"
+        column_change_requests: "Change requests reviewed"
+        column_merge_requests: "Merge requests reviewed"
+        column_last_review: "Last review"
+        never: "never"
 
 pending_proposals:
     badge: "Pending Proposal"

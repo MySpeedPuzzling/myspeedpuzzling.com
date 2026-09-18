@@ -44,6 +44,7 @@ final class AdminAreaAccessTest extends WebTestCase
      */
     public static function adminPages(): iterable
     {
+        yield 'moderators' => ['/admin/moderators'];
         yield 'moderation' => ['/admin/moderation'];
         yield 'referrals' => ['/admin/referrals'];
         yield 'competition approvals' => ['/admin/competition-approvals'];

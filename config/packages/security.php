@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Security\OAuth2User;
 use SpeedPuzzling\Web\Security\OAuth2UserProvider;
 use SpeedPuzzling\Web\Security\PatAuthenticator;
 use SpeedPuzzling\Web\Security\PatUser;
+use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use SpeedPuzzling\Web\Security\UserAccountProvider;
 use SpeedPuzzling\Web\Value\OAuth2Scope;
 use Symfony\Component\Security\Core\Authorization\Voter\AuthenticatedVoter;
@@ -224,6 +225,12 @@ return App::config([
             // signed back in from the 30-day cookie holds a RememberMeToken, which
             // is not "full fledged", so they were sent to /login - and, being
             // signed in already, straight on to my_profile from there.
+            // The one corner of /admin open to community moderators as well as admins.
+            // Must stay above ^/admin - the first matching rule wins.
+            [
+                'path' => '^/admin/puzzle-(change|merge)-requests',
+                'roles' => [PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS],
+            ],
             [
                 'path' => '^/admin',
                 'roles' => [AdminAccessVoter::ADMIN_ACCESS],

@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'admin.moderators.title'|trans }}{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-2">{{ 'admin.moderators.title'|trans }}</h1>
+    <p class="text-muted mb-4">{{ 'admin.moderators.intro'|trans }}</p>
+
+    <div class="card card-body shadow-sm mb-4">
+        <h2 class="h5">{{ 'admin.moderators.add_title'|trans }}</h2>
+
+        {{ form_start(form, {action: path('admin_moderators')}) }}
+            <div data-controller="player-search-autocomplete" data-player-search-autocomplete-url-value="{{ path('player_search_autocomplete') }}">
+                {{ form_row(form.players) }}
+            </div>
+
+            <button type="submit" class="btn btn-primary">{{ 'admin.moderators.add_submit'|trans }}</button>
+        {{ form_end(form) }}
+    </div>
+
+    {% if moderators is empty %}
+        <p class="text-muted">{{ 'admin.moderators.empty'|trans }}</p>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>{{ 'admin.moderators.column_player'|trans }}</th>
+                        <th>{{ 'admin.moderators.column_since'|trans }}</th>
+                        <th class="text-end">{{ 'admin.moderators.column_change_requests'|trans }}</th>
+                        <th class="text-end">{{ 'admin.moderators.column_merge_requests'|trans }}</th>
+                        <th>{{ 'admin.moderators.column_last_review'|trans }}</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for moderator in moderators %}
+                        <tr>
+                            <td>
+                                {% if moderator.playerCountry is not null %}
+                                    <span class="shadow-custom fi fi-{{ moderator.playerCountry.name }} me-1"></span>
+                                {% endif %}
+                                <a href="{{ path('player_profile', {playerId: moderator.playerId}) }}">{{ moderator.playerName ?? ('#' ~ moderator.playerCode) }}</a>
+                                <small class="text-muted">#{{ moderator.playerCode }}</small>
+                            </td>
+                            <td>{{ moderator.moderatorSince|date('d.m.Y') }}</td>
+                            <td class="text-end">{{ moderator.reviewedChangeRequests }}</td>
+                            <td class="text-end">{{ moderator.reviewedMergeRequests }}</td>
+                            <td>{{ moderator.lastReviewAt is not null ? moderator.lastReviewAt|date('d.m.Y H:i') : 'admin.moderators.never'|trans }}</td>
+                            <td class="text-end">
+                                <form method="post" action="{{ path('admin_revoke_moderator', {playerId: moderator.playerId}) }}" class="d-inline"
+                                      onsubmit="return confirm('{{ 'admin.moderators.revoke_confirm'|trans|e('js') }}')">
+                                    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Admin\\RevokeModeratorController::CSRF_TOKEN_ID')) }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">{{ 'admin.moderators.revoke'|trans }}</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

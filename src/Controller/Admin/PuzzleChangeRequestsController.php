@@ -6,7 +6,7 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 
 use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
-use SpeedPuzzling\Web\Security\AdminAccessVoter;
+use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,7 +25,7 @@ final class PuzzleChangeRequestsController extends AbstractController
         path: '/admin/puzzle-change-requests',
         name: 'admin_puzzle_change_requests',
     )]
-    #[IsGranted(AdminAccessVoter::ADMIN_ACCESS)]
+    #[IsGranted(PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS)]
     public function __invoke(
         #[CurrentUser] UserInterface $user,
         Request $request,

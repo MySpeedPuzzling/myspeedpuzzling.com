@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Admin;
 
 use SpeedPuzzling\Web\Message\RejectPuzzleChangeRequest;
-use SpeedPuzzling\Web\Security\AdminAccessVoter;
+use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,7 +29,7 @@ final class RejectPuzzleChangeRequestController extends AbstractController
         name: 'admin_reject_puzzle_change_request',
         methods: ['POST'],
     )]
-    #[IsGranted(AdminAccessVoter::ADMIN_ACCESS)]
+    #[IsGranted(PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS)]
     public function __invoke(
         Request $request,
         string $id,

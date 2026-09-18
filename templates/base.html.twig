@@ -484,7 +484,8 @@
             <div class="topbar topbar-light">
                 <div class="container">
                     <div class="topbar-text text-nowrap">
-                        {% if is_granted('ADMIN_ACCESS') %}
+                        {# Admins see everything; community moderators only the two puzzle review queues #}
+                        {% if is_granted('PUZZLE_MODERATION_ACCESS') %}
                             <div class="topbar-text dropdown disable-autohide me-2 me-sm-3">
                                 <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                                     <i class="ci-key"></i>
@@ -501,6 +502,7 @@
                                             Puzzle Merge Requests
                                         </a>
                                     </li>
+                                    {% if is_granted('ADMIN_ACCESS') %}
                                     <li>
                                         <a class="dropdown-item pb-1 {% if currentRoute == 'admin_vouchers' %}active{% endif %}" href="{{ path('admin_vouchers') }}">
                                             Vouchers
@@ -531,6 +533,12 @@
                                             OAuth2 Requests
                                         </a>
                                     </li>
+                                    <li>
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_moderators' %}active{% endif %}" href="{{ path('admin_moderators') }}">
+                                            Community Moderators
+                                        </a>
+                                    </li>
+                                    {% endif %}
                                 </ul>
                             </div>
                         {% endif %}

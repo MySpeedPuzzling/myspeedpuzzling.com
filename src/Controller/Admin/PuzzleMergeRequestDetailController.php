@@ -11,7 +11,7 @@ use SpeedPuzzling\Web\Query\GetPuzzleMergeRequests;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
-use SpeedPuzzling\Web\Security\AdminAccessVoter;
+use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -31,7 +31,7 @@ final class PuzzleMergeRequestDetailController extends AbstractController
         path: '/admin/puzzle-merge-requests/{id}',
         name: 'admin_puzzle_merge_request_detail',
     )]
-    #[IsGranted(AdminAccessVoter::ADMIN_ACCESS)]
+    #[IsGranted(PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS)]
     public function __invoke(
         #[CurrentUser] UserInterface $user,
         string $id,

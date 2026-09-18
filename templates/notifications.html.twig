@@ -151,6 +151,25 @@
                                         </a>
                                     {% endif %}
                                 </td>
+                            {% elseif notification.isModeratorRoleNotification %}
+                                {# Community moderator role granted / revoked #}
+                                {% set moderator_granted = notification.notificationType.value == 'ModeratorRoleGranted' %}
+                                <td class="text-center" style="width: 60px;">
+                                    <i class="bi {{ moderator_granted ? 'bi-shield-check text-success' : 'bi-shield-x text-muted' }} fs-3"></i>
+                                </td>
+
+                                <td class="align-middle fs-sm text-muted">
+                                    <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                                    {{ (moderator_granted ? 'notifications.moderator_role.granted' : 'notifications.moderator_role.revoked')|trans }}
+                                </td>
+
+                                <td class="" style="width: 80px;">
+                                    {% if moderator_granted and is_granted('PUZZLE_MODERATION_ACCESS') %}
+                                        <a href="{{ path('admin_puzzle_change_requests') }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-arrow-right"></i>
+                                        </a>
+                                    {% endif %}
+                                </td>
                             {% elseif notification.isLendingNotification %}
                                 {# Lending notification #}
                                 <td class="text-center" style="width: 60px;">

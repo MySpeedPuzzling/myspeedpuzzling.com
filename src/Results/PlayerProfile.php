@@ -52,6 +52,7 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     fair_use_policy_accepted_at: null|string,
  *     referral_program_joined_at: null|string,
  *     referral_program_suspended: bool,
+ *     moderator_since: null|string,
  *  }
  */
 readonly final class PlayerProfile
@@ -97,6 +98,7 @@ readonly final class PlayerProfile
         public bool $fairUsePolicyAccepted = false,
         public null|DateTimeImmutable $referralProgramJoinedAt = null,
         public bool $referralProgramSuspended = false,
+        public bool $isModerator = false,
     ) {
     }
 
@@ -190,6 +192,7 @@ readonly final class PlayerProfile
                 ? new DateTimeImmutable($row['referral_program_joined_at'])
                 : null,
             referralProgramSuspended: (bool) $row['referral_program_suspended'],
+            isModerator: $row['moderator_since'] !== null,
         );
     }
 

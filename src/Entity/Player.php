@@ -173,6 +173,15 @@ class Player
     #[Column(type: Types::BOOLEAN, options: ['default' => false])]
     public bool $referralProgramSuspended = false;
 
+    /**
+     * Community moderator: reviews puzzle change and merge requests without being
+     * an admin (PuzzleModerationVoter). Null = not a moderator; the date is when
+     * an admin granted the role (docs/features/community-moderators.md)
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $moderatorSince = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -437,6 +446,22 @@ class Player
     public function unsuspendFromReferralProgram(): void
     {
         $this->referralProgramSuspended = false;
+    }
+
+    public function grantModeratorRole(DateTimeImmutable $now): void
+    {
+        // Granting twice keeps the original date
+        $this->moderatorSince ??= $now;
+    }
+
+    public function revokeModeratorRole(): void
+    {
+        $this->moderatorSince = null;
+    }
+
+    public function isModerator(): bool
+    {
+        return $this->moderatorSince !== null;
     }
 
     public function isMessagingMuted(): bool

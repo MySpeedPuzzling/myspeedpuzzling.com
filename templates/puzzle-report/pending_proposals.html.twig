@@ -28,7 +28,7 @@
                                 {{ 'pending_proposals.reported_by'|trans }}: {{ proposal.reporterName }}
                             </small>
                         {% endif %}
-                        {% if is_granted('ADMIN_ACCESS') %}
+                        {% if is_granted('PUZZLE_MODERATION_ACCESS') %}
                             <div class="mt-2">
                                 {% if proposal.type == 'change_request' %}
                                     <a href="{{ path('admin_puzzle_change_request_detail', {id: proposal.id}) }}"

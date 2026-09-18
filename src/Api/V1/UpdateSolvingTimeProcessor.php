@@ -43,7 +43,7 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
         // Validate here so an invalid/unknown id surfaces as 404/403 instead of a wrapped 500 from the handler
         $solvingTime = $this->puzzleSolvingTimeRepository->get($timeId);
 
-        if ($solvingTime->player->id->equals($player->id) === false) {
+        if ($solvingTime->canBeModifiedBy($player) === false) {
             throw new CanNotModifyOtherPlayersTime();
         }
 

@@ -70,7 +70,7 @@ SELECT * FROM (
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
-        puzzle_solving_time.player_id AS target_player_id,
+        player.id AS target_player_id,
         player.name AS target_player_name,
         player.code AS target_player_code,
         player.country AS target_player_country,
@@ -142,7 +142,9 @@ SELECT * FROM (
     FROM notification
     LEFT JOIN puzzle_solving_time ON notification.target_solving_time_id = puzzle_solving_time.id
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
-    INNER JOIN player ON puzzle_solving_time.player_id = player.id
+    -- The "target player" is who the notification is about: the group member who edited the time
+    -- when there is an actor, otherwise whoever tracked it
+    INNER JOIN player ON player.id = COALESCE(notification.actor_player_id, puzzle_solving_time.player_id)
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality) ON true
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID

@@ -41,13 +41,37 @@ final class EditTimeControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(403);
     }
 
-    public function testGroupMemberWhoDidNotTrackTheTimeIsForbidden(): void
+    public function testGroupMemberWhoDidNotTrackTheTimeCanEditButNotDelete(): void
     {
-        // TIME_12 is a duo tracked by PLAYER_REGULAR - PLAYER_PRIVATE is the partner. The puzzle
-        // detail page must therefore not offer PLAYER_PRIVATE an edit button (PuzzleTimesEditButtonTest)
+        // TIME_12 is a duo tracked by PLAYER_REGULAR - PLAYER_PRIVATE is the partner
         $browser = self::createClient();
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+
+        $browser->request('GET', '/en/edit-time/' . PuzzleSolvingTimeFixture::TIME_12);
+
+        $this->assertResponseIsSuccessful();
+        // Deleting stays with whoever tracked the time
+        self::assertStringNotContainsString('/en/delete-time/', (string) $browser->getResponse()->getContent());
+    }
+
+    public function testTrackerIsStillOfferedDelete(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/edit-time/' . PuzzleSolvingTimeFixture::TIME_12);
+
+        $this->assertResponseIsSuccessful();
+        self::assertStringContainsString('/en/delete-time/', (string) $browser->getResponse()->getContent());
+    }
+
+    public function testPlayerOutsideTheGroupIsForbidden(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
 
         $browser->request('GET', '/en/edit-time/' . PuzzleSolvingTimeFixture::TIME_12);
 

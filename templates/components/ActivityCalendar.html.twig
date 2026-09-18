@@ -166,7 +166,7 @@
                                                 {% endif %}
                                             </div>
                                         </div>
-                                        {% if logged_user.profile is not null and solve.playerId is same as logged_user.profile.playerId %}
+                                        {% if logged_user.profile is not null and solve.isEditableBy(logged_user.profile.playerId) %}
                                             {% include '_edit_time_button.html.twig' with {timeId: solve.timeId, context: 'profile'} only %}
                                         {% endif %}
                                     </li>

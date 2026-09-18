@@ -83,6 +83,43 @@ final class UpdateSolvingTimeEndpointTest extends WebTestCase
         self::assertSame(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, $row['competition_round_id']);
     }
 
+    public function testGroupMemberCanUpdateTimeTrackedByTeammate(): void
+    {
+        // TIME_12 was tracked by PLAYER_REGULAR with PLAYER_PRIVATE in the group
+        $browser = self::createClient();
+
+        $token = PatTestHelper::createToken($browser, PlayerFixture::PLAYER_PRIVATE);
+        PatTestHelper::addBearerToken($browser, $token);
+
+        $browser->request(
+            'PUT',
+            '/api/v1/me/solving-times/' . PuzzleSolvingTimeFixture::TIME_12,
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: (string) json_encode([
+                'time' => '01:05:00',
+                'comment' => 'Fixed by the teammate',
+                'group_players' => ['#player2'],
+            ]),
+        );
+
+        $this->assertResponseIsSuccessful();
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+
+        /** @var array{player_id: string, seconds_to_solve: int, puzzlers_count: int}|false $row */
+        $row = $database->fetchAssociative(
+            'SELECT player_id, seconds_to_solve, puzzlers_count FROM puzzle_solving_time WHERE id = :id',
+            ['id' => PuzzleSolvingTimeFixture::TIME_12],
+        );
+
+        self::assertNotFalse($row);
+        // Still the tracker's row, still a duo
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $row['player_id']);
+        self::assertSame(3900, $row['seconds_to_solve']);
+        self::assertSame(2, $row['puzzlers_count']);
+    }
+
     public function testUpdateForeignTimeReturnsForbidden(): void
     {
         $browser = self::createClient();

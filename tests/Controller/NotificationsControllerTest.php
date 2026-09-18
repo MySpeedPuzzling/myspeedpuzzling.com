@@ -6,7 +6,12 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\Bundle\DoctrineBundle\DataCollector\DoctrineDataCollector;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Events\GroupSolvingTimeEdited;
+use SpeedPuzzling\Web\MessageHandler\NotifyWhenGroupSolvingTimeEdited;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -102,5 +107,28 @@ final class NotificationsControllerTest extends WebTestCase
         }
 
         return $count;
+    }
+
+    public function testGroupTimeEditIsShownWithTheEditorsName(): void
+    {
+        $browser = self::createClient();
+
+        // TIME_12: tracked by PLAYER_REGULAR, edited by the partner PLAYER_PRIVATE (Jane Smith)
+        /** @var NotifyWhenGroupSolvingTimeEdited $handler */
+        $handler = self::getContainer()->get(NotifyWhenGroupSolvingTimeEdited::class);
+        $handler(new GroupSolvingTimeEdited(
+            Uuid::fromString(PuzzleSolvingTimeFixture::TIME_12),
+            Uuid::fromString(PlayerFixture::PLAYER_PRIVATE),
+            [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE],
+        ));
+        self::getContainer()->get(EntityManagerInterface::class)->flush();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('GET', '/en/notifications');
+
+        $this->assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString('edited your shared result for', $content);
+        self::assertStringContainsString('Jane Smith', $content);
     }
 }

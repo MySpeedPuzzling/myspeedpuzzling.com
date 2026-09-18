@@ -146,8 +146,8 @@
                                             {{ include('_competition_badge.html.twig', {time: puzzle}) }}
                                         </span>
 
-                                        {# Display edit icon only to current user #}
-                                        {% if logged_user.profile is not null and logged_user.profile.playerId is same as puzzle.playerId %}
+                                        {# Edit icon for whoever tracked the time and for every group member #}
+                                        {% if logged_user.profile is not null and puzzle.isEditableBy(logged_user.profile.playerId) %}
                                             {{ include('_edit_time_button.html.twig', {
                                                 timeId: puzzle.timeId,
                                                 context: 'profile',

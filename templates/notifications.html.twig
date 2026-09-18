@@ -214,6 +214,47 @@
                                         </a>
                                     {% endif %}
                                 </td>
+                            {% elseif notification.isGroupSolvingTimeEditedNotification %}
+                                {# A pair/team time the player is part of was edited - the target player is the editor #}
+                                <td class="text-center" style="width: 60px;">
+                                    <a href="{{ path('player_profile', {'playerId': notification.targetPlayerId}) }}">
+                                        {% if notification.targetPlayerAvatar is not null %}
+                                            <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|thumbnail('puzzle_small') }}">
+                                        {% else %}
+                                            <span class="avatar-name rounded-circle">{{ notification.targetPlayerName|slice(0, 1)|upper }}</span>
+                                        {% endif %}
+                                    </a>
+                                </td>
+
+                                <td class="align-middle fs-sm text-muted">
+                                    <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+
+                                    <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: notification.targetPlayerId}) }}">
+                                        {{ notification.targetPlayerName }}
+                                    </a>
+                                    {{ 'notifications.group_time_edited'|trans }}
+                                    <a class="text-decoration-underline" href="{{ path('puzzle_detail', {'puzzleId': notification.puzzleId}) }}">{{ notification.manufacturerName }} {{ notification.puzzleName }} {{ 'pieces_count'|trans({ '%count%': notification.piecesCount })|raw }}</a>
+                                    {% if notification.time is not null %}
+                                        - {{ 'notifications.group_time_edited_now'|trans }} <span style="color: #000;">{{ notification.time|puzzlingTime }}</span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="" style="width: 80px;">
+                                    {% if notification.puzzleImage is not null%}
+                                        <a href="{{ path('puzzle_detail', {puzzleId: notification.puzzleId}) }}">
+                                            {{ lazy_puzzle_image(
+                                                notification.puzzleImage,
+                                                'puzzle_small',
+                                                'puzzle_img_alt'|trans({'%puzzle%': notification.manufacturerName ~ ' ' ~ notification.puzzleName}),
+                                                loop.index,
+                                                60,
+                                                'rounded-2',
+                                                null,
+                                                notification.puzzleImageRatio
+                                            ) }}
+                                        </a>
+                                    {% endif %}
+                                </td>
                             {% else %}
                                 {# Puzzle solving notification #}
                                 <td class="text-center" style="width: 60px;">

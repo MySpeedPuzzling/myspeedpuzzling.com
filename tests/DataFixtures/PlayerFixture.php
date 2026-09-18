@@ -19,6 +19,7 @@ final class PlayerFixture extends Fixture
     public const string PLAYER_REGULAR_NAME = 'John Doe';
 
     public const string PLAYER_PRIVATE = '018d0000-0000-0000-0000-000000000002';
+    public const string PLAYER_PRIVATE_USER_ID = 'auth0|private002';
     public const string PLAYER_ADMIN = '018d0000-0000-0000-0000-000000000003';
 
     public const string PLAYER_WITH_FAVORITES = '018d0000-0000-0000-0000-000000000004';
@@ -53,7 +54,7 @@ final class PlayerFixture extends Fixture
         $privatePlayer = $this->createPlayer(
             id: self::PLAYER_PRIVATE,
             code: 'player2',
-            userId: 'auth0|private002',
+            userId: self::PLAYER_PRIVATE_USER_ID,
             email: 'player2@speedpuzzling.cz',
             name: 'Jane Smith',
             country: 'us',

@@ -33,12 +33,18 @@ final class PuzzleTimesEditButtonTest extends WebTestCase
         self::assertStringContainsString(self::EDIT_TIME_12, $html);
     }
 
-    public function testGroupMemberWhoDidNotTrackTheTimeIsNotOfferedTheEditButton(): void
+    public function testGroupMemberWhoDidNotTrackTheTimeIsOfferedTheEditButtonToo(): void
     {
         $html = $this->renderDuoTimesAs(PlayerFixture::PLAYER_PRIVATE);
 
-        // The time is still theirs to see - just not to edit
         self::assertStringContainsString('My time:', $html);
+        self::assertStringContainsString(self::EDIT_TIME_12, $html);
+    }
+
+    public function testPlayerOutsideTheGroupIsNotOfferedTheEditButton(): void
+    {
+        $html = $this->renderDuoTimesAs(PlayerFixture::PLAYER_WITH_FAVORITES);
+
         self::assertStringNotContainsString(self::EDIT_TIME_12, $html);
     }
 

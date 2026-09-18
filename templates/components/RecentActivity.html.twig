@@ -20,7 +20,7 @@
                                     ) }}
                                 </a>
 
-                                {% if logged_user.profile is not null and item.playerId is same as logged_user.profile.playerId %}
+                                {% if logged_user.profile is not null and item.isEditableBy(logged_user.profile.playerId) %}
                                     <div class="dropdown position-absolute" style="left: -5px;top : -5px;">
                                         <button class="btn btn-outline-primary btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="ci-menu"></i>
@@ -44,11 +44,14 @@
                                                     <i class="ci-edit me-2"></i> {{ 'edit'|trans }}
                                                 </a>
                                             </li>
-                                            <li>
-                                                <a class="dropdown-item text-danger" href="{{ path('delete_time', {timeId: item.id}) }}">
-                                                    <i class="ci-trash me-2"></i> {{ 'delete'|trans }}
-                                                </a>
-                                            </li>
+                                            {# Group members may edit, but deleting stays with whoever tracked the time #}
+                                            {% if item.playerId is same as logged_user.profile.playerId %}
+                                                <li>
+                                                    <a class="dropdown-item text-danger" href="{{ path('delete_time', {timeId: item.id}) }}">
+                                                        <i class="ci-trash me-2"></i> {{ 'delete'|trans }}
+                                                    </a>
+                                                </li>
+                                            {% endif %}
                                         </ul>
                                     </div>
                                 {% endif %}

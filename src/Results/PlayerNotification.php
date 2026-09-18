@@ -203,6 +203,11 @@ readonly final class PlayerNotification
         return $this->targetPlayerId !== null;
     }
 
+    public function isGroupSolvingTimeEditedNotification(): bool
+    {
+        return $this->notificationType === NotificationType::GroupSolvingTimeEdited;
+    }
+
     public function isChangeRequestNotification(): bool
     {
         return $this->changeRequestId !== null;

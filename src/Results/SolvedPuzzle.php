@@ -137,4 +137,17 @@ readonly final class SolvedPuzzle
             rankingOptedOut: $row['ranking_opted_out'] ?? false,
         );
     }
+
+    /**
+     * Whoever tracked the time and every registered group member may edit it,
+     * mirroring PuzzleSolvingTime::canBeModifiedBy().
+     */
+    public function isEditableBy(null|string $playerId): bool
+    {
+        if ($playerId === null) {
+            return false;
+        }
+
+        return $playerId === $this->playerId || Puzzler::listContainsPlayer($this->players, $playerId);
+    }
 }

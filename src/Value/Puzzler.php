@@ -51,6 +51,20 @@ readonly final class Puzzler
     }
 
     /**
+     * @param null|array<self> $puzzlers
+     */
+    public static function listContainsPlayer(null|array $puzzlers, string $playerId): bool
+    {
+        foreach ($puzzlers ?? [] as $puzzler) {
+            if ($puzzler->playerId === $playerId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * @return array<self>
      */
     public static function createPuzzlersFromJson(string $json, null|string $excludePlayerId = null): array

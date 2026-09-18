@@ -81,6 +81,94 @@ final class EditPuzzleSolvingTimeHandlerTest extends KernelTestCase
         self::assertNull($seconds);
     }
 
+    public function testGroupMemberCanEditAndTrackerStaysFirst(): void
+    {
+        // TIME_12 was tracked by PLAYER_REGULAR with PLAYER_PRIVATE in the group (3600 seconds).
+        // PLAYER_PRIVATE edits it, submitting the co-puzzler list the way the form pre-fills it for
+        // them: everyone but the tracker.
+        $this->messageBus->dispatch(new EditPuzzleSolvingTime(
+            currentUserId: PlayerFixture::PLAYER_PRIVATE_USER_ID,
+            puzzleSolvingTimeId: PuzzleSolvingTimeFixture::TIME_12,
+            competitionId: null,
+            time: '01:10:00',
+            comment: 'Fixed by the teammate',
+            groupPlayers: ['#player2', 'Guest puzzler'],
+            finishedAt: null,
+            finishedPuzzlesPhoto: null,
+            firstAttempt: false,
+            unboxed: false,
+        ));
+
+        /** @var array{seconds_to_solve: int, comment: null|string, player_id: string, team: string}|false $row */
+        $row = $this->database->fetchAssociative(
+            'SELECT seconds_to_solve, comment, player_id, team FROM puzzle_solving_time WHERE id = :id',
+            ['id' => PuzzleSolvingTimeFixture::TIME_12],
+        );
+
+        self::assertNotFalse($row);
+        self::assertSame(4200, $row['seconds_to_solve']);
+        self::assertSame('Fixed by the teammate', $row['comment']);
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $row['player_id']);
+
+        /** @var array{puzzlers: list<array{player_id: null|string, player_name: null|string}>} $team */
+        $team = json_decode($row['team'], true, flags: JSON_THROW_ON_ERROR);
+
+        self::assertSame(
+            [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE, null],
+            array_column($team['puzzlers'], 'player_id'),
+        );
+        self::assertSame('Guest puzzler', $team['puzzlers'][2]['player_name']);
+    }
+
+    public function testGroupMemberCanNotRemoveTheTracker(): void
+    {
+        // Even a list that names nobody but the editor keeps the tracker in, as first puzzler
+        $this->messageBus->dispatch(new EditPuzzleSolvingTime(
+            currentUserId: PlayerFixture::PLAYER_PRIVATE_USER_ID,
+            puzzleSolvingTimeId: PuzzleSolvingTimeFixture::TIME_12,
+            competitionId: null,
+            time: '01:00:00',
+            comment: null,
+            groupPlayers: ['#player2'],
+            finishedAt: null,
+            finishedPuzzlesPhoto: null,
+            firstAttempt: false,
+            unboxed: false,
+        ));
+
+        /** @var string $teamJson */
+        $teamJson = $this->database->fetchOne(
+            'SELECT team FROM puzzle_solving_time WHERE id = :id',
+            ['id' => PuzzleSolvingTimeFixture::TIME_12],
+        );
+
+        /** @var array{puzzlers: list<array{player_id: null|string}>} $team */
+        $team = json_decode($teamJson, true, flags: JSON_THROW_ON_ERROR);
+
+        self::assertSame(
+            [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE],
+            array_column($team['puzzlers'], 'player_id'),
+        );
+    }
+
+    public function testPlayerOutsideTheGroupIsRejected(): void
+    {
+        $this->expectException(CanNotModifyOtherPlayersTime::class);
+
+        $this->messageBus->dispatch(new EditPuzzleSolvingTime(
+            currentUserId: PlayerFixture::PLAYER_WITH_FAVORITES_USER_ID,
+            puzzleSolvingTimeId: PuzzleSolvingTimeFixture::TIME_12,
+            competitionId: null,
+            time: '00:50:00',
+            comment: 'hijack attempt',
+            groupPlayers: ['#player2'],
+            finishedAt: null,
+            finishedPuzzlesPhoto: null,
+            firstAttempt: false,
+            unboxed: false,
+        ));
+    }
+
     public function testNonOwnerIsRejected(): void
     {
         // TIME_01 is PLAYER_REGULAR's; PLAYER_WITH_FAVORITES must not be able to modify it.

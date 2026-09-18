@@ -8,6 +8,9 @@ enum NotificationType: string
 {
     case SubscribedPlayerAddedTime = 'SubscribedPlayerAddedTime';
 
+    // A pair/team time the player is part of was edited by another group member
+    case GroupSolvingTimeEdited = 'GroupSolvingTimeEdited';
+
     // Lending notifications
     case PuzzleLentToYou = 'PuzzleLentToYou';
     case PuzzleBorrowedFromYou = 'PuzzleBorrowedFromYou';

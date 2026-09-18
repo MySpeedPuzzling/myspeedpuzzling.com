@@ -817,7 +817,8 @@ faq:
     question_edit_or_delete_time: How do I edit or delete an entered time?
     answer_edit_or_delete_time: |
         <p>In the <a href="%link%">My Profile</a> section, next to each entered time, you'll find a link to edit (the link looks like a pencil icon <span class="btn btn-sm btn-outline-dark px-2 py-1 border-0"><i class="ci-edit"></i></span>).</p>
-        <p class="mb-0">On the editing page, at the very bottom, there's a <a class="btn btn-sm btn-outline-danger mx-2">magic button</a> that once and for all deletes the record from the entire internet.</p>
+        <p>On the editing page, at the very bottom, there's a <a class="btn btn-sm btn-outline-danger mx-2">magic button</a> that once and for all deletes the record from the entire internet.</p>
+        <p class="mb-0 mt-3">Pair and team times can be edited by every registered puzzler in the group, not only by the one who entered it. Deleting stays with the puzzler who entered the time.</p>
 
     question_button_start_solving: What does the <a class="btn btn-accent btn-sm mx-2"><i class="ci-time"></i> Start Solving</a> button do?
     answer_button_start_solving: |
@@ -1111,6 +1112,8 @@ notifications:
     title: "Notifications"
     solved_puzzle_with_time: "in"
     solved_puzzle: "solved puzzle"
+    group_time_edited: "edited your shared result for"
+    group_time_edited_now: "the time is now"
     no_notifications: "You have no notifications so far. Subscribe to some players by adding them to favorites."
     mark_all_as_read: "Mark all as read"
     mark_as_read: "Mark as read"

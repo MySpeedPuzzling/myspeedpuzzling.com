@@ -17,6 +17,7 @@ use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Attribute\HasDeleteDomainEvent;
 use SpeedPuzzling\Web\Doctrine\PuzzlersGroupDoctrineType;
+use SpeedPuzzling\Web\Events\GroupSolvingTimeEdited;
 use SpeedPuzzling\Web\Events\PuzzleSolved;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
@@ -95,6 +96,53 @@ class PuzzleSolvingTime implements EntityWithEvents
      * The round is never chosen by hand - it follows from competition + puzzle + solo/duo/team
      * (see SolvingTimeRoundResolver), so callers set it after the time's other data is final.
      */
+    /**
+     * Whoever tracked the time, plus every registered member of its group. Puzzlers stored
+     * by name only have no account, so they can never match.
+     */
+    public function canBeModifiedBy(Player $player): bool
+    {
+        if ($this->player->id->equals($player->id)) {
+            return true;
+        }
+
+        foreach ($this->team->puzzlers ?? [] as $puzzler) {
+            if ($puzzler->playerId === $player->id->toString()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whoever tracked the time plus every registered puzzler of its group.
+     *
+     * @return list<string>
+     */
+    public function memberPlayerIds(): array
+    {
+        $ids = [$this->player->id->toString()];
+
+        foreach ($this->team->puzzlers ?? [] as $puzzler) {
+            if ($puzzler->playerId !== null) {
+                $ids[] = $puzzler->playerId;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * @param list<string> $memberPlayerIdsBeforeEdit
+     */
+    public function recordGroupEdit(Player $editedBy, array $memberPlayerIdsBeforeEdit): void
+    {
+        $this->recordThat(
+            new GroupSolvingTimeEdited($this->id, $editedBy->id, $memberPlayerIdsBeforeEdit),
+        );
+    }
+
     public function changeCompetitionRound(null|CompetitionRound $competitionRound): void
     {
         $this->competitionRound = $competitionRound;

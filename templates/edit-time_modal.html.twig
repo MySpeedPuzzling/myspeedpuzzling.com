@@ -6,17 +6,20 @@
         </div>
 
         <div class="modal-body">
-            <div class="mb-3">
-                <form action="{{ path('delete_time', {timeId: solved_puzzle.timeId}) }}"
-                      method="post"
-                      class="d-inline"
-                      data-turbo-confirm="{{ 'edit_time.delete_modal_confirm'|trans }}">
-                    <input type="hidden" name="context" value="{{ return_context }}">
-                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                        <i class="ci-trash"></i> {{ 'edit_time.delete_button'|trans }}
-                    </button>
-                </form>
-            </div>
+            {# Group members may edit, but deleting stays with whoever tracked the time #}
+            {% if solved_puzzle.playerId is same as logged_user.profile.playerId %}
+                <div class="mb-3">
+                    <form action="{{ path('delete_time', {timeId: solved_puzzle.timeId}) }}"
+                          method="post"
+                          class="d-inline"
+                          data-turbo-confirm="{{ 'edit_time.delete_modal_confirm'|trans }}">
+                        <input type="hidden" name="context" value="{{ return_context }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="ci-trash"></i> {{ 'edit_time.delete_button'|trans }}
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
 
             <div data-controller="puzzle-add-form" data-puzzle-add-form-mode-value="{{ initial_mode|default('speed_puzzling') }}">
                 <div class="mb-4">

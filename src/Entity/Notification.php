@@ -59,6 +59,12 @@ class Notification
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|Conversation $targetConversation = null,
+        // Who caused the notification, when that is not derivable from the target
+        // (a group time is edited by any of its members, not necessarily by who tracked it)
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|Player $actorPlayer = null,
     ) {
     }
 }

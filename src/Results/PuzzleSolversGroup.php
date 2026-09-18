@@ -93,11 +93,15 @@ readonly final class PuzzleSolversGroup
     }
 
     /**
-     * Group members other than the one who tracked the time must not be offered
-     * the edit button - EditTimeController answers them with 403.
+     * Whoever tracked the time and every registered group member may edit it,
+     * mirroring PuzzleSolvingTime::canBeModifiedBy().
      */
     public function isEditableBy(null|string $playerId): bool
     {
-        return $playerId !== null && $playerId === $this->addedByPlayerId;
+        if ($playerId === null) {
+            return false;
+        }
+
+        return $playerId === $this->addedByPlayerId || $this->containsPlayer($playerId);
     }
 }

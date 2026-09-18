@@ -51,11 +51,16 @@ readonly final class EditPuzzleSolvingTimeHandler
     {
         $solvingTime = $this->puzzleSolvingTimeRepository->get($message->puzzleSolvingTimeId);
         $currentPlayer = $this->playerRepository->getByUserIdCreateIfNotExists($message->currentUserId);
-        $group = $this->puzzlersGrouping->assembleGroup($currentPlayer, $message->groupPlayers);
 
-        if ($currentPlayer->id->equals($solvingTime->player->id) === false) {
+        // Checked against the group as stored, before the edit: a member removing themselves
+        // finishes this edit and only then loses access
+        if ($solvingTime->canBeModifiedBy($currentPlayer) === false) {
             throw new CanNotModifyOtherPlayersTime();
         }
+
+        // Always assembled around whoever tracked the time, never around the editor - the row stays
+        // theirs (first puzzler, not removable) no matter which group member edits it
+        $group = $this->puzzlersGrouping->assembleGroup($solvingTime->player, $message->groupPlayers);
 
         $competition = null;
 
@@ -99,7 +104,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         if ($message->finishedPuzzlesPhoto !== null) {
             $extension = $message->finishedPuzzlesPhoto->guessExtension();
             $timestamp = $this->clock->now()->getTimestamp();
-            $finishedPuzzlePhotoPath = "players/{$currentPlayer->id->toString()}/{$message->puzzleSolvingTimeId}-$timestamp.$extension";
+            $finishedPuzzlePhotoPath = "players/{$solvingTime->player->id->toString()}/{$message->puzzleSolvingTimeId}-$timestamp.$extension";
 
             $this->imageOptimizer->optimize($message->finishedPuzzlesPhoto->getPathname());
 
@@ -112,6 +117,8 @@ readonly final class EditPuzzleSolvingTimeHandler
             }
         }
 
+        $membersBeforeEdit = $solvingTime->memberPlayerIds();
+
         $solvingTime->modify(
             $seconds,
             $message->comment,
@@ -122,6 +129,11 @@ readonly final class EditPuzzleSolvingTimeHandler
             $message->unboxed,
             competition: $competition,
         );
+
+        // Several people can now change one result, so the others get told who did
+        if (count($membersBeforeEdit) > 1 || $solvingTime->team !== null) {
+            $solvingTime->recordGroupEdit($currentPlayer, $membersBeforeEdit);
+        }
 
         // After modify(): the round depends on the competition and on solo/duo/team, both final only now
         $solvingTime->changeCompetitionRound($this->roundResolver->resolve($solvingTime));

@@ -66,7 +66,7 @@ final class EditTimeController extends AbstractController
 
         $solvedPuzzle = $this->getPlayerSolvedPuzzles->byTimeId($timeId);
 
-        if ($solvedPuzzle->playerId !== $player->playerId) {
+        if ($solvedPuzzle->isEditableBy($player->playerId) === false) {
             throw $this->createAccessDeniedException();
         }
 
@@ -112,7 +112,7 @@ final class EditTimeController extends AbstractController
         }
 
         $editTimeForm = $this->createForm(EditPuzzleSolvingTimeFormType::class, $data, [
-            // Server-derived from the owner-checked row, never from the request: the picker must
+            // Server-derived from the access-checked row, never from the request: the picker must
             // keep offering the linked competition even when it is not publicly selectable
             'current_competition_id' => $solvedPuzzle->competitionId,
         ]);

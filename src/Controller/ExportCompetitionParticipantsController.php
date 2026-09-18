@@ -25,6 +25,10 @@ final class ExportCompetitionParticipantsController extends AbstractController
         path: [
             'cs' => '/export-ucastniku-udalosti/{competitionId}',
             'en' => '/en/export-event-participants/{competitionId}',
+            'es' => '/es/export-event-participants/{competitionId}',
+            'ja' => '/ja/export-event-participants/{competitionId}',
+            'fr' => '/fr/export-event-participants/{competitionId}',
+            'de' => '/de/export-event-participants/{competitionId}',
         ],
         name: 'export_competition_participants',
     )]

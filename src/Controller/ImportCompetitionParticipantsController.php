@@ -26,6 +26,10 @@ final class ImportCompetitionParticipantsController extends AbstractController
         path: [
             'cs' => '/import-ucastniku-udalosti/{competitionId}',
             'en' => '/en/import-event-participants/{competitionId}',
+            'es' => '/es/import-event-participants/{competitionId}',
+            'ja' => '/ja/import-event-participants/{competitionId}',
+            'fr' => '/fr/import-event-participants/{competitionId}',
+            'de' => '/de/import-event-participants/{competitionId}',
         ],
         name: 'import_competition_participants',
         methods: ['POST'],

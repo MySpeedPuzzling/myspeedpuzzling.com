@@ -22,6 +22,10 @@ final class DownloadCompetitionParticipantTemplateController extends AbstractCon
         path: [
             'cs' => '/sablona-ucastniku',
             'en' => '/en/participant-template',
+            'es' => '/es/participant-template',
+            'ja' => '/ja/participant-template',
+            'fr' => '/fr/participant-template',
+            'de' => '/de/participant-template',
         ],
         name: 'download_competition_participant_template',
     )]

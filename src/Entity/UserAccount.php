@@ -58,7 +58,11 @@ class UserAccount implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * Upsert step of the Auth0 import — idempotent, safe to re-run with fresher exports.
+     * Upsert step of the one-off Auth0 import (2026-07-30, issue #147; the command
+     * was removed with the Auth0 stack in Phase 6). Kept because it defines what an
+     * imported account looks like - legacy flag, original bcrypt hash, verified flag
+     * - and the test/dev login helpers reproduce exactly that state.
+     *
      * State the user has since set natively must never be regressed by a stale export:
      * a password that is no longer a bcrypt hash was re-hashed or replaced locally, and
      * an account with any native activity keeps its (possibly changed) email + verified flag.

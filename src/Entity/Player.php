@@ -228,17 +228,6 @@ class Player
         $this->email = $email;
     }
 
-    public function backfillFromAuth0Import(null|string $email, null|string $name): void
-    {
-        if ($this->email === null && $email !== null) {
-            $this->email = $email;
-        }
-
-        if ($this->name === null && $name !== null) {
-            $this->name = $name;
-        }
-    }
-
     /**
      * @throws CanNotFavoriteYourself
      * @throws PlayerIsAlreadyInFavorites

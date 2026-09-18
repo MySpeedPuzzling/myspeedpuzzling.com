@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\Message;
 use SpeedPuzzling\Web\Value\AuthAuditEventType;
 
 /**
- * Deliberately unrouted (sync, like ImportAuth0User): the insert must share the
+ * Deliberately unrouted (sync): the insert must share the
  * dispatching request's lifecycle so the doctrine_transaction middleware wraps it.
  * Never dispatch directly from auth paths - go through AuthAuditRecorder, which
  * guarantees a failed audit write can never break login.

@@ -13,9 +13,13 @@ use SpeedPuzzling\Web\Message\CreateAffiliatePayout;
 use SpeedPuzzling\Web\Repository\AffiliatePayoutRepository;
 use SpeedPuzzling\Web\Repository\ReferralRepository;
 use Stripe\StripeClient;
-use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
+/**
+ * The webhook and the checkout-success page dispatch this for the same invoice at once.
+ * CreateAffiliatePayout is SerializedByLock, so a second handler for the invoice only
+ * starts after the first one's payout is committed and the exists check below sees it.
+ */
 #[AsMessageHandler]
 readonly final class CreateAffiliatePayoutHandler
 {
@@ -27,25 +31,10 @@ readonly final class CreateAffiliatePayoutHandler
         private AffiliatePayoutRepository $affiliatePayoutRepository,
         private ClockInterface $clock,
         private LoggerInterface $logger,
-        private LockFactory $lockFactory,
     ) {
     }
 
     public function __invoke(CreateAffiliatePayout $message): void
-    {
-        // Serialize concurrent handlers for the same invoice so the idempotency
-        // check below is not racy (webhook + checkout success dispatch the same message).
-        $lock = $this->lockFactory->createLock('affiliate-payout-' . $message->stripeInvoiceId);
-        $lock->acquire(blocking: true);
-
-        try {
-            $this->createPayout($message);
-        } finally {
-            $lock->release();
-        }
-    }
-
-    private function createPayout(CreateAffiliatePayout $message): void
     {
         // Idempotency: check if payout already exists for this invoice
         if ($this->affiliatePayoutRepository->existsByStripeInvoiceId($message->stripeInvoiceId)) {

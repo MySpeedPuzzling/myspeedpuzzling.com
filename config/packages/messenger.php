@@ -23,6 +23,9 @@ return App::config([
                         // that Sentry discards). See the class docblock.
                         'SpeedPuzzling\Web\Services\MessengerMiddleware\UnwrapHttpExceptionMiddleware',
                         'SpeedPuzzling\Web\Services\MessengerMiddleware\ClearEntityManagerMiddleware',
+                        // Outside doctrine_transaction on purpose: the per-key lock of a
+                        // SerializedByLock message is released only after the commit.
+                        'SpeedPuzzling\Web\Services\MessengerMiddleware\LockUntilCommittedMiddleware',
                         'doctrine_transaction',
                     ],
                 ],

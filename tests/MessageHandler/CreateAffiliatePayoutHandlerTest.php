@@ -25,8 +25,6 @@ use Stripe\Service\SubscriptionService;
 use Stripe\StripeClient;
 use Stripe\Subscription;
 use Symfony\Component\Clock\MockClock;
-use Symfony\Component\Lock\LockFactory;
-use Symfony\Component\Lock\Store\InMemoryStore;
 
 final class CreateAffiliatePayoutHandlerTest extends TestCase
 {
@@ -230,11 +228,11 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
         $handler(new CreateAffiliatePayout(self::SUBSCRIPTION_ID, self::INVOICE_ID));
     }
 
-    public function testRaceIsSerializedByLockSoSecondDispatchExitsOnExistsCheck(): void
+    public function testSecondDispatchForSameInvoiceExitsOnExistsCheck(): void
     {
-        // Simulate two concurrent dispatches for the same invoice: the first acquires the
-        // lock, persists the payout; the second blocks on acquire(), and after the first
-        // releases, finds the row via existsByStripeInvoiceId and exits cleanly.
+        // Two dispatches for the same invoice, one after the other (concurrent ones are
+        // serialized by the message lock - see CreateAffiliatePayoutConcurrencyTest):
+        // the second one finds the committed row and exits cleanly.
         //
         // We verify the sequencing by flipping the exists() result between calls.
         $playerId = Uuid::uuid7();
@@ -306,7 +304,6 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             affiliatePayoutRepository: $payoutRepository,
             clock: new MockClock(),
             logger: new NullLogger(),
-            lockFactory: new LockFactory(new InMemoryStore()),
         );
     }
 

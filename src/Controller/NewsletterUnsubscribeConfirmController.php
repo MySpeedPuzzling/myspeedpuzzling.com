@@ -6,9 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\InvalidNewsletterToken;
 use SpeedPuzzling\Web\Message\UnsubscribeFromNewsletter;
-use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
 use SpeedPuzzling\Web\Services\NewsletterTokenSigner;
-use SpeedPuzzling\Web\Value\NewsletterAudience;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,7 +21,6 @@ final class NewsletterUnsubscribeConfirmController extends AbstractController
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly NewsletterTokenSigner $tokenSigner,
-        private readonly EmailPreferencesLinkGenerator $emailPreferencesLinkGenerator,
     ) {
     }
 
@@ -46,7 +43,7 @@ final class NewsletterUnsubscribeConfirmController extends AbstractController
         }
 
         try {
-            $claim = $this->tokenSigner->parseUnsubscribeToken($token);
+            $this->tokenSigner->parseUnsubscribeToken($token);
             $this->messageBus->dispatch(new UnsubscribeFromNewsletter($token));
         } catch (InvalidNewsletterToken) {
             return $this->renderInvalid();
@@ -58,14 +55,9 @@ final class NewsletterUnsubscribeConfirmController extends AbstractController
             throw $exception;
         }
 
-        $isPlayer = $claim->audience === NewsletterAudience::Player;
-
-        return $this->render('newsletter/unsubscribed.html.twig', [
-            'isPlayer' => $isPlayer,
-            'preferencesUrl' => $isPlayer
-                ? $this->emailPreferencesLinkGenerator->forPlayer($claim->id, $claim->email, $request->getLocale())
-                : null,
-        ]);
+        // Never render the result here: Turbo Drive discards a 200 answer to a form submission, so visitors
+        // were unsubscribed but saw nothing happen - and clicked the button again
+        return $this->redirectToRoute('newsletter_unsubscribed', ['token' => $token]);
     }
 
     private function renderInvalid(): Response

@@ -39,6 +39,7 @@ Every newsletter footer links `attribs.unsubscribe_url` → `/{locale}/newslette
 
 - Stateless HMAC token (`NewsletterTokenSigner`), bound to audience+id+e-mail, **no expiry** (old newsletters must keep working); dies automatically when the e-mail changes.
 - The landing page changes nothing on GET (scanner-safe) and offers exactly two options: **one-click unsubscribe** (POST) and — for players — **manage e-mail preferences** (standalone page, see below).
+- The unsubscribe POST (`…/{token}/confirm`) redirects to `…/{token}/done` (`NewsletterUnsubscribedController`, `no-store`) — it must never render the result itself, Turbo Drive discards a 200 answer to a form submission (visitors got unsubscribed, saw nothing and clicked again).
 - Listmonk additionally sends its own `List-Unsubscribe`/`List-Unsubscribe-Post` headers pointing at itself (Gmail/Yahoo one-click); those unsubscribes reach MySpeedPuzzling via the cron pull within 15 minutes.
 
 ## E-mail preferences page (players)

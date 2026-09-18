@@ -69,11 +69,12 @@ final class LoginFormAuthenticatorTest extends KernelTestCase
     public function testAccountWithoutALocalHashStillGetsPasswordCredentials(): void
     {
         $authenticator = $this->authenticator();
-
-        foreach ([
+        $accountsWithoutHash = [
             $this->createAccount('auth0|authr3', 'authr.three', bcryptHash: null, legacyAuth0: true),
             $this->createAccount('msp|authr4', 'authr.four', bcryptHash: null),
-        ] as $account) {
+        ];
+
+        foreach ($accountsWithoutHash as $account) {
             $passport = $authenticator->authenticate($this->loginRequest($account->email, 'whatever'));
 
             self::assertTrue($passport->hasBadge(PasswordCredentials::class));

@@ -9,8 +9,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
-use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Cookie;

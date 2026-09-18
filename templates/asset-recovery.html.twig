@@ -34,8 +34,13 @@
         function forget(promise) { return promise.then(function () {}, function () {}); }
 
         // Re-arm the automatic self-heal in base.html.twig, which stops itself
-        // after a capped number of attempts per session.
-        try { window.sessionStorage.removeItem('msp-asset-heal'); } catch (e) {}
+        // after a capped number of attempts per session - and stops reporting
+        // once it has said the page stays broken.
+        try {
+            window.sessionStorage.removeItem('msp-asset-heal');
+            window.sessionStorage.removeItem('msp-asset-refetch');
+            window.sessionStorage.removeItem('msp-asset-reported');
+        } catch (e) {}
 
         function unregisterWorkers() {
             if (!navigator.serviceWorker || !navigator.serviceWorker.getRegistrations) return Promise.resolve();

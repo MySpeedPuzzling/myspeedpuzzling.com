@@ -92,9 +92,10 @@ SQL;
         );
 
         $playerRatio = $this->getPlayerRatio($playerId, $transition);
-        $globalRatioForGap = $this->getGlobalRatio($piecesCount, $transition, $gapBucket);
+        $globalRatios = $this->getGlobalRatios($piecesCount, $transition, $gapBucket);
+        $globalRatioForGap = $globalRatios[$gapBucket] ?? null;
         // The "all" bucket is only needed to gap-correct a player ratio
-        $globalRatioAll = $playerRatio !== null ? $this->getGlobalRatio($piecesCount, $transition, 'all') : null;
+        $globalRatioAll = $playerRatio !== null ? ($globalRatios['all'] ?? null) : null;
 
         return $this->calculator->personal(
             $times,
@@ -113,15 +114,26 @@ SQL;
         return $ratio !== false ? (float) $ratio : null;
     }
 
-    private function getGlobalRatio(int $piecesCount, int $transition, string $gapBucket): null|float
+    /**
+     * The ratios of the gap bucket and of the "all" bucket in one query (one row per bucket).
+     *
+     * @return array<string, float> keyed by gap bucket
+     */
+    private function getGlobalRatios(int $piecesCount, int $transition, string $gapBucket): array
     {
-        /** @var float|string|false $ratio */
-        $ratio = $this->database->fetchOne(
-            'SELECT median_ratio FROM global_improvement_ratio WHERE pieces_count = :piecesCount AND from_attempt = :transition AND gap_bucket = :gapBucket',
-            ['piecesCount' => $piecesCount, 'transition' => $transition, 'gapBucket' => $gapBucket],
+        /** @var list<array{gap_bucket: string, median_ratio: float|string}> $rows */
+        $rows = $this->database->fetchAllAssociative(
+            'SELECT gap_bucket, median_ratio FROM global_improvement_ratio WHERE pieces_count = :piecesCount AND from_attempt = :transition AND gap_bucket IN (:gapBucket, :allBuckets)',
+            ['piecesCount' => $piecesCount, 'transition' => $transition, 'gapBucket' => $gapBucket, 'allBuckets' => 'all'],
         );
 
-        return $ratio !== false ? (float) $ratio : null;
+        $ratios = [];
+
+        foreach ($rows as $row) {
+            $ratios[$row['gap_bucket']] = (float) $row['median_ratio'];
+        }
+
+        return $ratios;
     }
 
     private function statisticalPrediction(string $playerId, string $puzzleId): null|TimePredictionResult

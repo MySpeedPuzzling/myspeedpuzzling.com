@@ -35,7 +35,7 @@ Status: **planned** (scope confirmed by Jan 2026-07-31). Follow-up to the Auth0 
 | `user_account_id` | uuid, nullable, FK → `user_account` | nullable: failed logins for unknown emails have no account. FK `ON DELETE CASCADE` (GDPR: delete account ⇒ audit trail goes too) |
 | `email` | string, nullable | lowercased attempted email — lets us see failures for an address before/without an account |
 | `event_type` | string | PHP backed enum `AuthAuditEventType` (see catalog) |
-| `authenticator` | string, nullable | short label: `form`, `login_link`, `social:google`, `social:apple`, `social:facebook`, `auth0_fallback` |
+| `authenticator` | string, nullable | short label: `form`, `login_link`, `social:google`, `social:apple`, `social:facebook`, `remembermeauthenticator`; historical rows also carry `auth0_fallback` / `migrationwindowauth0authenticator` (Auth0 sessions, until Phase 6 on 2026-09-18) |
 | `ip_address` | string, nullable | `Request::getClientIp()` |
 | `user_agent` | string, nullable | truncate to 500 chars |
 | `metadata` | jsonb, nullable | failure reason class, provider payload extras — never secrets, never passwords |
@@ -53,11 +53,11 @@ Indexes: `(user_account_id, occurred_at DESC)` (activity page query), `(occurred
 - `registration`
 - `email_change_requested`, `email_verified` (the account email-change flow exists — `ChangeAccountEmailHandler`, `VerifyEmailHandler` — and is security-relevant)
 - `oauth_login`, `oauth_registration`, `oauth_identity_linked`, `oauth_identity_unlinked` (Workstream B emits these; named after the settled `oauth_identity` table)
-- `auth0_fallback_login` (fallback controller redirect — dies with the flag in Phase 6)
+- `auth0_fallback_login` (fallback controller redirect — the controller and its flag were removed in Phase 6 on 2026-09-18; the enum case stays for the stored rows)
 
 ### Wiring — follow the `EmailAuditSubscriber` pattern
 
-New message `RecordAuthAuditEvent` + handler (sync — deliberately unrouted, like `ImportAuth0User`; the `doctrine_transaction` middleware wraps the insert). Every dispatch site wraps in try/catch + `$this->logger->error(..., ['exception' => $e])` — **audit failure must never break login**.
+New message `RecordAuthAuditEvent` + handler (sync — deliberately unrouted; the `doctrine_transaction` middleware wraps the insert). Every dispatch site wraps in try/catch + `$this->logger->error(..., ['exception' => $e])` — **audit failure must never break login**.
 
 Dispatch sites (**exact classes, verified 2026-07-31**):
 1. **Extend `AuthenticationAuditSubscriber`** — keep the Monolog lines and the `last_login_at` write, additionally dispatch `RecordAuthAuditEvent` from `onLoginSuccess` / `onLoginFailure` / `onLogout`. `sign_in_link_used` = success with `LoginLinkAuthenticator` (already distinguished there).

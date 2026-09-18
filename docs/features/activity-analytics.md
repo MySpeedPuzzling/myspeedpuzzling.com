@@ -17,7 +17,7 @@ Storage decision (Jan, 2026-07-31): **plain Postgres, same DB** — no time-seri
 
 ## Write path
 
-`PlayerActivitySubscriber` on **`kernel.terminate`** — response already flushed, so zero request latency and no interaction with response cache headers (PR #164 machinery). Only authenticated requests on the **`main` firewall** count (API PAT/OAuth2 traffic is a different population and already tracks `last_used_at`). Legacy Auth0 sessions count too — the handler resolves the player by `userId`, which works for both identity types.
+`PlayerActivitySubscriber` on **`kernel.terminate`** — response already flushed, so zero request latency and no interaction with response cache headers (PR #164 machinery). Only authenticated requests on the **`main` firewall** count (API PAT/OAuth2 traffic is a different population and already tracks `last_used_at`). Legacy Auth0 sessions counted too until Auth0 was removed (2026-09-18) — the handler resolves the player by `userId`, which works for both identity types.
 
 Cost per request is one cache read: a marker in the `player_activity_cache` Redis pool (`sha1(userId)-Ymd`, TTL 26 h) short-circuits everything after the first request of the day. Underneath, `RecordPlayerActivity` (sync, unrouted message) → handler → `INSERT … ON CONFLICT (player_id, day) DO NOTHING` — correct even when Redis lost the marker. The whole subscriber body is try/caught: activity tracking must never break or slow a request.
 

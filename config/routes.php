@@ -17,21 +17,18 @@ return static function (RoutingConfigurator $routingConfigurator): void {
         ->controller(['league.oauth2_server.controller.token', 'indexAction'])
         ->methods(['POST']);
 
-    // The path is load-bearing (bookmarks, the base.html.twig sign-in button, the
-    // Auth0 entry point): LoginController answers on it either with the native form
-    // or with the Auth0 redirect, depending on the native_login flag. POST /login is
-    // intercepted by LoginFormAuthenticator before routing, so both methods must
-    // stay allowed here - a GET-only route would 405 the login submit at routing time.
+    // The path is load-bearing (bookmarks, the base.html.twig sign-in button,
+    // LoginEntryPoint). POST /login is intercepted by LoginFormAuthenticator before
+    // routing, so both methods must stay allowed here - a GET-only route would 405
+    // the login submit at routing time.
     $routingConfigurator->add('login', '/login')
         ->controller(LoginController::class)
         ->defaults([NativeAuthPageSubscriber::ROUTE_DEFAULT => true]);
 
-    $routingConfigurator->add('callback', '/auth/callback')
-        ->controller('Auth0\Symfony\Controllers\AuthenticationController::callback');
-
+    // No controller: the main firewall's logout listener answers on this path
+    // before routing reaches a controller (config/packages/security.php). The
+    // path is the one the sign-out link has always pointed at - it used to be
+    // Auth0's logout controller, which bounced on to /app-logout.
     $routingConfigurator->add('logout', '/logout')
-        ->controller('Auth0\Symfony\Controllers\AuthenticationController::logout');
-
-    $routingConfigurator->add('app_logout', '/app-logout')
         ->methods(['GET']);
 };

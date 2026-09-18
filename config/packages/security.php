@@ -155,7 +155,7 @@ return App::config([
                 // password attempts only.
                 'entry_point' => LoginEntryPoint::class,
                 'logout' => [
-                    'path' => 'app_logout',
+                    'path' => 'logout',
                     'target' => '/',
                 ],
             ],

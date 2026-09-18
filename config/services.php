@@ -24,7 +24,6 @@ use SpeedPuzzling\Web\Services\Storage\UploadSpool;
 use SpeedPuzzling\Web\Services\Storage\UploadSpoolProcessor;
 use SpeedPuzzling\Web\Services\StripeWebhookHandler;
 use Stripe\StripeClient;
-use Symfony\Component\HttpClient\Psr18Client;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
 
@@ -55,11 +54,6 @@ return static function (ContainerConfigurator $configurator): void {
     // Empty token disables the outbound client and the inbound endpoint alike.
     $parameters->set('wjpfApiUrl', '%env(trim:string:WJPF_API_URL)%');
     $parameters->set('wjpfApiToken', '%env(trim:string:WJPF_API_TOKEN)%');
-
-    $parameters->set('auth0Domain', '%env(trim:string:AUTH0_DOMAIN)%');
-    $parameters->set('auth0ClientId', '%env(trim:string:AUTH0_CLIENT_ID)%');
-    $parameters->set('auth0ClientSecret', '%env(trim:string:AUTH0_CLIENT_SECRET)%');
-    $parameters->set('auth0DatabaseConnection', '%env(trim:string:AUTH0_DB_CONNECTION)%');
 
     // Lifetime of a magic sign-in link. Single source for the firewall's login_link
     // config (config/packages/security.php) and for the copy that tells the user how
@@ -113,10 +107,6 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$puzzlePuzzlePassword', '%puzzlePuzzlePassword%')
         ->bind('$entrypointsPath', '%kernel.project_dir%/public/build/entrypoints.json')
         ->bind('$bounceEmailDomain', '%bounceEmailDomain%')
-        ->bind('$auth0Domain', '%auth0Domain%')
-        ->bind('$auth0ClientId', '%auth0ClientId%')
-        ->bind('$auth0ClientSecret', '%auth0ClientSecret%')
-        ->bind('$auth0DatabaseConnection', '%auth0DatabaseConnection%')
         ->bind('$signInLinkLifetimeSeconds', '%signInLinkLifetimeSeconds%')
         ->bind('$signInLinkReuseGraceSeconds', '%signInLinkReuseGraceSeconds%')
         ->bind('$socialLoginAdminOnly', '%socialLoginAdminOnly%')
@@ -303,9 +293,6 @@ return static function (ContainerConfigurator $configurator): void {
         ->args([
             param('stripeWebhookSecret'),
         ]);
-
-    // PSR-18 HTTP Client for Auth0 SDK
-    $services->set('psr18.http_client', Psr18Client::class);
 
     // Dedicated Guzzle client for the league social-login providers: a named
     // service so tests can swap in a MockHandler-backed client and no real

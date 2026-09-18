@@ -175,14 +175,13 @@ final class RememberMeTest extends WebTestCase
         $this->submitLogin($browser, $email, self::PASSWORD);
         self::assertNotNull($browser->getCookieJar()->get(self::COOKIE_NAME));
 
-        // The sign-out link in base.html.twig points at /logout, which is Auth0's
-        // controller; with no Auth0 credentials it redirects on to /app-logout,
-        // the firewall's own logout. Follow the whole chain - that redirect is
-        // what makes LogoutEvent fire for a natively signed-in user.
-        $browser->followRedirects();
+        // The sign-out link in base.html.twig points at /logout, the firewall's
+        // own logout path
         $browser->request('GET', '/logout');
 
+        self::assertResponseRedirects('/');
         self::assertNull($browser->getCookieJar()->get(self::COOKIE_NAME));
+        self::assertNull($browser->getContainer()->get(TokenStorageInterface::class)->getToken());
     }
 
     public function testChangingThePasswordInvalidatesExistingCookies(): void

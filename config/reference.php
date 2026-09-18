@@ -1570,56 +1570,6 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     controller_paths?: list<scalar|Param|null>,
  *     controllers_json?: scalar|Param|null, // Default: "%kernel.project_dir%/assets/controllers.json"
  * }
- * @psalm-type Auth0Config = array{
- *     sdk?: array{
- *         strategy?: scalar|Param|null, // Default: "webapp"
- *         domain?: scalar|Param|null,
- *         custom_domain?: scalar|Param|null, // Default: null
- *         client_id?: scalar|Param|null,
- *         redirect_uri?: scalar|Param|null, // Default: null
- *         client_secret?: scalar|Param|null,
- *         audiences?: list<scalar|Param|null>,
- *         organizations?: list<scalar|Param|null>,
- *         scopes?: list<scalar|Param|null>,
- *         token_algorithm?: scalar|Param|null, // Default: "RS256"
- *         token_jwks_uri?: scalar|Param|null, // Default: null
- *         token_max_age?: scalar|Param|null, // Default: null
- *         token_leeway?: int|Param, // Default: 60
- *         token_cache?: scalar|Param|null, // Default: null
- *         token_cache_ttl?: int|Param, // Default: 60
- *         http_client?: scalar|Param|null, // Default: null
- *         http_max_retries?: int|Param, // Default: 3
- *         http_request_factory?: scalar|Param|null, // Default: null
- *         http_response_factory?: scalar|Param|null, // Default: null
- *         http_stream_factory?: scalar|Param|null, // Default: null
- *         http_telemetry?: bool|Param, // Default: true
- *         session_storage?: scalar|Param|null, // Default: null
- *         session_storage_id?: scalar|Param|null, // Default: "auth0_session"
- *         cookie_secret?: scalar|Param|null,
- *         cookie_domain?: scalar|Param|null, // Default: null
- *         cookie_expires?: int|Param, // Default: 0
- *         cookie_path?: scalar|Param|null, // Default: "/"
- *         cookie_same_site?: scalar|Param|null, // Default: "lax"
- *         cookie_secure?: bool|Param, // Default: false
- *         transient_storage?: scalar|Param|null, // Default: null
- *         transient_storage_id?: scalar|Param|null, // Default: "auth0_transient"
- *         management_token?: scalar|Param|null, // Default: null
- *         management_token_cache?: scalar|Param|null, // Default: null
- *         event_listener_provider?: scalar|Param|null, // Default: null
- *         backchannel_logout_cache?: scalar|Param|null, // Default: null
- *         backchannel_logout_expires?: int|Param, // Default: 2592000
- *     },
- *     authenticator?: array{
- *         user_provider?: scalar|Param|null, // Default: null
- *         routes?: array{
- *             callback?: scalar|Param|null, // Default: null
- *             success?: scalar|Param|null, // Default: null
- *             failure?: scalar|Param|null, // Default: null
- *             logout?: scalar|Param|null, // Default: null
- *             login?: scalar|Param|null, // Default: null
- *         },
- *     },
- * }
  * @psalm-type OneupFlysystemConfig = array{
  *     adapters?: array<string, array{ // Default: []
  *         local?: array{
@@ -2188,7 +2138,6 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     turbo?: TurboConfig,
  *     sentry?: SentryConfig,
  *     stimulus?: StimulusConfig,
- *     auth0?: Auth0Config,
  *     oneup_flysystem?: OneupFlysystemConfig,
  *     nelmio_cors?: NelmioCorsConfig,
  *     intervention_image?: InterventionImageConfig,
@@ -2215,7 +2164,6 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         turbo?: TurboConfig,
  *         sentry?: SentryConfig,
  *         stimulus?: StimulusConfig,
- *         auth0?: Auth0Config,
  *         oneup_flysystem?: OneupFlysystemConfig,
  *         nelmio_cors?: NelmioCorsConfig,
  *         intervention_image?: InterventionImageConfig,
@@ -2243,7 +2191,6 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         turbo?: TurboConfig,
  *         sentry?: SentryConfig,
  *         stimulus?: StimulusConfig,
- *         auth0?: Auth0Config,
  *         oneup_flysystem?: OneupFlysystemConfig,
  *         nelmio_cors?: NelmioCorsConfig,
  *         intervention_image?: InterventionImageConfig,

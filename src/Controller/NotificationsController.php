@@ -55,7 +55,9 @@ final class NotificationsController extends AbstractController
 
         return $this->render('notifications.html.twig', [
             'notifications' => $notifications,
-            'notifications_count' => $notificationsCount,
+            // Everything unread was just marked read (handled synchronously), so the layout's
+            // bell shows 0 - without counting the player's notifications a second time
+            'notifications_count' => 0,
         ]);
     }
 }

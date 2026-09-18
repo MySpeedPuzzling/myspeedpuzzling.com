@@ -733,7 +733,8 @@
                             </div>
                         {% endif %}
 
-                        {% set notifications_count = notifications_count|default(null) ?: logged_user.profile is not null ? get_notifications.countUnreadForPlayer(logged_user.profile.playerId) :0 %}
+                        {# The notifications page passes its count (0 - it has just marked everything read) #}
+                        {% set notifications_count = notifications_count is defined ? notifications_count : (logged_user.profile is not null ? get_notifications.countUnreadForPlayer(logged_user.profile.playerId) : 0) %}
 
                         <a class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-2 {% if app.request.pathInfo == path('notifications') %}active{% endif %}" rel="nofollow" href="{{ path('notifications') }}" data-turbo-prefetch="false" aria-label="{{ 'accessibility.notifications_count'|trans({'%count%': notifications_count}) }}">
                             <div class="navbar-tool-icon-box {{ notifications_count > 0 ? 'bg-secondary' }}">

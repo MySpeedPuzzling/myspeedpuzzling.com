@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CollectionItem;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Stopwatch;
 use SpeedPuzzling\Web\Entity\Tag;
 use SpeedPuzzling\Web\Entity\LentPuzzle;
+use SpeedPuzzling\Web\Entity\LentPuzzleTransfer;
 use SpeedPuzzling\Web\Entity\PuzzleMergeAudit;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
@@ -31,6 +34,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\MergeDecisionConfidence;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
+use SpeedPuzzling\Web\Value\TransferType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -682,5 +686,66 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
 
         $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
         self::assertSame('4005556147564, 4005555002017', $survivorPuzzle->ean);
+    }
+
+    /**
+     * Regression: a returned lend leaves its transfer history behind on the puzzle.
+     * Loading those transfers as entities (to list them in the audit trail) kept them
+     * pointing at the merged puzzle while the database moved on, so the flush after the
+     * puzzle was deleted found the deleted puzzle again and rolled the whole merge back.
+     */
+    public function testMergeMovesLendingHistoryOfAlreadyReturnedPuzzles(): void
+    {
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $owner = $this->entityManager->find(Player::class, PlayerFixture::PLAYER_REGULAR);
+        self::assertNotNull($owner);
+
+        $transferId = Uuid::uuid7();
+        $this->entityManager->persist(new LentPuzzleTransfer(
+            id: $transferId,
+            lentPuzzle: null,
+            fromPlayer: null,
+            fromPlayerName: 'Borrower',
+            toPlayer: $owner,
+            toPlayerName: null,
+            transferredAt: new DateTimeImmutable('-10 days'),
+            transferType: TransferType::Return,
+            puzzle: $duplicatePuzzle,
+            ownerPlayer: $owner,
+        ));
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        $mergeRequestId = $this->submitMergeRequest();
+
+        $this->messageBus->dispatch(
+            new ApprovePuzzleMergeRequest(
+                mergeRequestId: $mergeRequestId,
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+                mergedName: 'Survivor Name',
+                mergedEan: null,
+                mergedIdentificationNumber: null,
+                mergedPiecesCount: 500,
+                mergedManufacturerId: null,
+                selectedImagePuzzleId: null,
+            ),
+        );
+
+        $this->entityManager->clear();
+
+        self::assertSame(PuzzleReportStatus::Approved, $this->mergeRequestRepository->get($mergeRequestId)->status);
+
+        $movedTransfer = $this->entityManager->find(LentPuzzleTransfer::class, $transferId);
+        self::assertNotNull($movedTransfer);
+        self::assertNotNull($movedTransfer->puzzle);
+        self::assertSame(PuzzleFixture::PUZZLE_500_04, $movedTransfer->puzzle->id->toString());
+
+        $audit = $this->entityManager->getRepository(PuzzleMergeAudit::class)->findOneBy(['mergeRequestId' => $mergeRequestId]);
+        self::assertNotNull($audit);
+        $migrated = $audit->snapshotBefore['migrated'];
+        self::assertIsArray($migrated);
+        self::assertIsArray($migrated['lentPuzzleTransfers']);
+        self::assertContains($transferId->toString(), $migrated['lentPuzzleTransfers']);
     }
 }

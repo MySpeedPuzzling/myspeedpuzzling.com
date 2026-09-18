@@ -7,11 +7,11 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\CollectionItem;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Conversation;
 use SpeedPuzzling\Web\Entity\LentPuzzle;
-use SpeedPuzzling\Web\Entity\LentPuzzleTransfer;
 use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleMergeAudit;
@@ -358,9 +358,16 @@ readonly final class ApprovePuzzleMergeRequestHandler
             }
 
             // Record which transfers move before the bulk update rewrites them - afterwards
-            // they can no longer be told apart from the survivor's own transfers.
-            foreach ($this->entityManager->getRepository(LentPuzzleTransfer::class)->findBy(['puzzle' => $puzzleToMerge]) as $transfer) {
-                $inventory['lentPuzzleTransfers'][] = $transfer->id->toString();
+            // they can no longer be told apart from the survivor's own transfers. Only the
+            // ids are read: a loaded entity would keep pointing at the merged puzzle after
+            // the bulk update, and the flush following its deletion would then fail.
+            /** @var list<array{id: UuidInterface}> $transfers */
+            $transfers = $this->entityManager->createQuery(
+                'SELECT t.id FROM SpeedPuzzling\Web\Entity\LentPuzzleTransfer t WHERE t.puzzle = :merged'
+            )->execute(['merged' => $puzzleToMerge]);
+
+            foreach ($transfers as $transfer) {
+                $inventory['lentPuzzleTransfers'][] = $transfer['id']->toString();
             }
 
             // Migrate lent puzzle transfer references to survivor puzzle

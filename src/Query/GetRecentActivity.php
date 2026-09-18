@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Nette\Utils\Json;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -261,32 +263,46 @@ SQL;
     }
 
     /**
+     * Times of the player's favorite players, solo or as team members.
+     *
+     * The favorites are read first and passed in as values, one containment document per favorite:
+     * that way the planner sees who they are and picks the plan per viewer. Active favorites fill the
+     * limit within the newest few hundred times (walking tracked_at backwards), while for quiet ones
+     * the player_id and custom_pst_team_puzzlers_gin indexes fetch their few times directly - when
+     * the favorites came from a CTE, every viewer got the backwards walk, through the whole table for
+     * favorites without 20 recent times (~390 ms, and an EXISTS over jsonb_array_elements() that no
+     * index can answer).
+     *
      * @return array<RecentActivityItem>
      */
     public function ofPlayerFavorites(int $limit, string $playerId): array
     {
+        /** @var list<string> $favoritePlayerIds */
+        $favoritePlayerIds = $this->database
+            ->executeQuery(
+                'SELECT favorite_player_id::UUID FROM player CROSS JOIN LATERAL json_array_elements_text(favorite_players) AS favorite_player_id WHERE id = :playerId',
+                ['playerId' => $playerId],
+            )
+            ->fetchFirstColumn();
+
+        if ($favoritePlayerIds === []) {
+            return [];
+        }
+
+        $favoritePuzzlers = array_map(
+            static fn (string $favoritePlayerId): string => Json::encode([['player_id' => $favoritePlayerId]]),
+            $favoritePlayerIds,
+        );
+
         $query = <<<SQL
-WITH favorite_player_ids_array AS (
-    SELECT array_agg(fav_players.player_id::UUID) AS favorite_ids
-    FROM player
-    CROSS JOIN LATERAL json_array_elements_text(favorite_players) AS fav_players(player_id)
-    WHERE id = :playerId
-),
-filtered_puzzle_solving_time AS (
+WITH filtered_puzzle_solving_time AS (
     SELECT
         pst.id
     FROM
-        puzzle_solving_time pst, favorite_player_ids_array fpi
+        puzzle_solving_time pst
     WHERE
-        pst.player_id = ANY(fpi.favorite_ids)
-        OR (
-            pst.team IS NOT NULL
-            AND EXISTS (
-                SELECT 1
-                FROM jsonb_array_elements(pst.team::jsonb -> 'puzzlers') AS player_elem(player)
-                WHERE (player_elem.player ->> 'player_id')::UUID = ANY(fpi.favorite_ids)
-            )
-        )
+        pst.player_id IN (:favoritePlayerIds)
+        OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> ANY(ARRAY[:favoritePuzzlers]::jsonb[]))
     ORDER BY pst.tracked_at DESC
     LIMIT :limit
 )
@@ -353,7 +369,11 @@ SQL;
             ->executeQuery($query, [
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
                 'limit' => $limit,
-                'playerId' => $playerId,
+                'favoritePlayerIds' => $favoritePlayerIds,
+                'favoritePuzzlers' => $favoritePuzzlers,
+            ], [
+                'favoritePlayerIds' => ArrayParameterType::STRING,
+                'favoritePuzzlers' => ArrayParameterType::STRING,
             ])
             ->fetchAllAssociative();
 

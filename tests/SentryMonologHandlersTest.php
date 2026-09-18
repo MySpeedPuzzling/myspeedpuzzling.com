@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests;
 
 use ArrayObject;
 use DateTimeImmutable;
+use LogicException;
 use Monolog\Handler\AbstractHandler;
 use Monolog\Handler\HandlerInterface;
 use Monolog\Level;
@@ -18,8 +19,12 @@ use Sentry\State\Hub;
 use Sentry\Transport\Result;
 use Sentry\Transport\ResultStatus;
 use Sentry\Transport\TransportInterface;
+use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
+use SpeedPuzzling\Web\Services\Logging\UnwrapMessengerExceptionProcessor;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DependencyInjection\Loader\Configurator\AppReference;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 
 /**
  * Regression: on 2026-07-12 the deprecated Sentry\Monolog\Handler was swapped for
@@ -97,6 +102,29 @@ final class SentryMonologHandlersTest extends KernelTestCase
         $capturedExceptions = $this->theOnlySentEvent()->getExceptions();
         self::assertNotEmpty($capturedExceptions);
         self::assertSame(RuntimeException::class, $capturedExceptions[0]->getType());
+    }
+
+    public function testHandlerFailureReachesSentryAsTheExceptionTheHandlerThrew(): void
+    {
+        $cause = new LogicException('Membership already cancelled');
+        $wrapper = new HandlerFailedException(new Envelope(new UpdateMembershipSubscription('sub_test')), [$cause]);
+
+        $record = (new UnwrapMessengerExceptionProcessor())(new LogRecord(
+            datetime: new DateTimeImmutable(),
+            channel: 'request',
+            level: Level::Critical,
+            message: 'Uncaught PHP Exception ' . HandlerFailedException::class,
+            context: ['exception' => $wrapper],
+        ));
+
+        foreach ($this->productionSentryHandlers as $handler) {
+            $handler->handle($record);
+        }
+
+        // The cause alone - the wrapper is not even part of the chain
+        $capturedExceptions = $this->theOnlySentEvent()->getExceptions();
+        self::assertCount(1, $capturedExceptions);
+        self::assertSame(LogicException::class, $capturedExceptions[0]->getType());
     }
 
     public function testErrorLoggedWithExceptionReachesSentry(): void

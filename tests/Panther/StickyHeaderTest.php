@@ -70,7 +70,7 @@ final class StickyHeaderTest extends AbstractPantherTestCase
         // A sticky element only sticks inside its containing block, and `html, body
         // { height: 100% }` made that exactly one viewport - the header came unstuck
         // after roughly one screen of scrolling. body must be free to grow.
-        $client->request('GET', '/en/sign-in-is-moving');
+        $client->request('GET', '/en/guides/what-is-speed-puzzling');
 
         $longPage = $client->executeScript(<<<'JS'
             var header = document.querySelector('header');

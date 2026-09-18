@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * The public explainer for the Auth0 -> native sign-in migration (issue #147,
- * communication-plan §FAQ). Published ahead of every stage so the site-wide
- * notice has somewhere to point long before anything actually changes, and it
- * stays up through the cutover - dormant players return months later.
+ * The old "sign-in is moving" explainer URLs (Auth0 migration, issue #147). The
+ * page itself retired with the Auth0 stack in Phase 6; the announcement email,
+ * the newsletter and support replies still link here, so the six locale paths
+ * land on the sign-in page instead of a 404.
  */
 final class SignInChangesController extends AbstractController
 {
@@ -29,6 +30,6 @@ final class SignInChangesController extends AbstractController
     )]
     public function __invoke(): Response
     {
-        return $this->render('sign_in_changes.html.twig');
+        return $this->redirectToRoute('login', status: RedirectResponse::HTTP_MOVED_PERMANENTLY);
     }
 }

@@ -33,10 +33,24 @@ final class LoginControllerTest extends WebTestCase
         self::assertSame('/login-link', $crawler->filter('form#sign-in-link-form')->attr('action'));
         self::assertCount(0, $crawler->filter('form#sign-in-link-form input[name="password"]'));
 
-        // The sign-in migration notice lives here now, as a footnote under the card
-        // (it used to be a strip above the navbar on every page)
-        self::assertStringContainsString('Sign-in has moved to myspeedpuzzling.com', $crawler->filter('main')->text());
-        self::assertCount(1, $crawler->filter('main a[href="/en/sign-in-is-moving"]'));
+        // Nothing on the page points at the retired Auth0 stack any more
+        self::assertStringNotContainsStringIgnoringCase('auth0', (string) $browser->getResponse()->getContent());
+    }
+
+    /**
+     * The retired "sign-in is moving" explainer: emails and support replies still
+     * link to it, so every locale path lands on the sign-in page.
+     */
+    public function testRetiredExplainerPagesRedirectToTheSignInPage(): void
+    {
+        $browser = self::createClient();
+
+        foreach (['/en/sign-in-is-moving', '/prihlasovani-se-stehuje', '/de/anmeldung-zieht-um'] as $path) {
+            $browser->request('GET', $path);
+
+            self::assertResponseStatusCodeSame(301);
+            self::assertResponseRedirects('/login');
+        }
     }
 
     public function testNativeLoginPageStartsNoSessionAndStaysOutOfSharedCaches(): void
@@ -86,6 +100,7 @@ final class LoginControllerTest extends WebTestCase
         // UX funnel §4: the helper appears on failure, with the address still in place
         self::assertSame($email, $crawler->filter('form#login-form input[name="email"]')->attr('value'));
         self::assertStringContainsString('speedpuzzling', $crawler->filter('.alert-info')->text());
+        self::assertStringNotContainsStringIgnoringCase('auth0', $crawler->filter('main')->text());
         self::assertCount(1, $crawler->filter('.alert-info button[form="sign-in-link-form"]'));
 
         // One click away from a link, with nothing to retype

@@ -24,7 +24,9 @@ use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
                     . '(points = the rating the website displays, rank and total_players among the ranked players; null when the owner '
                     . 'opted out of rankings, an empty list when not ranked yet), "skill" the skill tier per piece count '
                     . '(enthusiast, apprentice, proficient, advanced, expert, master, legend; members only and null when opted out '
-                    . 'of rankings, an empty list when there is no tier yet), "badges" the badge tokens the owner earned.',
+                    . 'of rankings, an empty list when there is no tier yet), "badges" the badge tokens the owner earned. '
+                    . 'favorites_count and followers_count are the sizes of /me/favorites (players the owner follows) and '
+                    . '/me/followers (players who have the owner in their favorites).',
             ),
             security: "is_granted('ROLE_PAT') or is_granted('ROLE_OAUTH2_PROFILE:READ')",
             provider: CurrentUserResponseProvider::class,
@@ -58,6 +60,8 @@ final class CurrentUserResponse
         public null|array $rating,
         public null|array $skill,
         public array $badges,
+        public int $favoritesCount,
+        public int $followersCount,
     ) {
     }
 }

@@ -1,0 +1,39 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Api\V1;
+
+use ApiPlatform\Metadata\Operation;
+use ApiPlatform\State\ProviderInterface;
+use SpeedPuzzling\Web\Query\GetPlayerConnections;
+use SpeedPuzzling\Web\Security\ApiUser;
+use Symfony\Bundle\SecurityBundle\Security;
+
+/**
+ * GET /api/v1/me/followers - the players who have the token owner in their
+ * favorites. Nothing on the website lists them; private followers stay masked.
+ *
+ * @implements ProviderInterface<PlayerConnectionsResponse>
+ */
+final readonly class MyFollowersResponseProvider implements ProviderInterface
+{
+    public function __construct(
+        private Security $security,
+        private GetPlayerConnections $getPlayerConnections,
+    ) {
+    }
+
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): PlayerConnectionsResponse
+    {
+        $user = $this->security->getUser();
+        assert($user instanceof ApiUser);
+
+        $playerId = $user->getPlayer()->id->toString();
+
+        return PlayerConnectionsResponse::fromConnections(
+            $playerId,
+            $this->getPlayerConnections->followersOf($playerId),
+        );
+    }
+}

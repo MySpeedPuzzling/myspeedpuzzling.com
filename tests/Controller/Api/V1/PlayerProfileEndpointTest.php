@@ -409,8 +409,11 @@ final class PlayerProfileEndpointTest extends WebTestCase
         );
         $this->assertSame(['pieces_count', 'points', 'rank', 'total_players'], array_keys($schemas['PlayerRatingResponse']['properties']));
         $this->assertSame(['pieces_count', 'tier', 'percentile', 'confidence', 'qualifying_puzzles_count'], array_keys($schemas['PlayerSkillResponse']['properties']));
-        // the same three blocks on GET /me, appended after the PR 0 flags
-        $this->assertSame(['rating', 'skill', 'badges'], array_slice(array_keys($schemas['CurrentUser']['properties']), -3));
+        // the same three blocks on GET /me, appended after the PR 0 flags and followed by the connection counts
+        $this->assertSame(
+            ['rating', 'skill', 'badges', 'favorites_count', 'followers_count'],
+            array_slice(array_keys($schemas['CurrentUser']['properties']), -5),
+        );
     }
 
     private function endpoint(string $playerId): string

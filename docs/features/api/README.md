@@ -74,7 +74,9 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 
 | Method | Endpoint | Required |
 |--------|----------|----------|
-| GET | `/api/v1/me` | PAT or `profile:read` (the `email` field is populated only for PAT or tokens granted `email:read`, otherwise `null`). Also carries `has_active_membership`, `membership_ends_at` (ISO-8601, `null` without an active membership), the owner's opt-out flags `time_predictions_opted_out`, `ranking_opted_out`, `streak_opted_out`, and the profile insights `rating` (MSP Rating per piece count, `null` when opted out of rankings), `skill` (skill tiers, members only), `badges` - see Profile insights below |
+| GET | `/api/v1/me` | PAT or `profile:read` (the `email` field is populated only for PAT or tokens granted `email:read`, otherwise `null`). Also carries `has_active_membership`, `membership_ends_at` (ISO-8601, `null` without an active membership), the owner's opt-out flags `time_predictions_opted_out`, `ranking_opted_out`, `streak_opted_out`, and the profile insights `rating` (MSP Rating per piece count, `null` when opted out of rankings), `skill` (skill tiers, members only), `badges` - see Profile insights below - plus `favorites_count` and `followers_count` (the sizes of the two lists below) |
+| GET | `/api/v1/me/favorites` | PAT or `profile:read` - the players you follow - see Favorites and followers below |
+| GET | `/api/v1/me/followers` | PAT or `profile:read` - the players who have you in their favorites |
 | GET | `/api/v1/me/results?type=solo\|duo\|team` | PAT or `results:read`. Each result also carries the puzzle's `statistics` (public) and `difficulty` (members, else `null`) - see Insights on lists below |
 | GET | `/api/v1/me/puzzles/{puzzleId}/predicted-time` | PAT or `results:read` |
 | GET | `/api/v1/me/statistics` | PAT or `statistics:read` |
@@ -283,7 +285,28 @@ The three blocks the profile page shows, under the page's own gates (`templates/
 
 `GET /api/v1/players/{id}` is the `GET /me` shape without `email`, `membership_ends_at` and the opt-out flags: `id, name, code, avatar, country, city, bio, facebook, instagram, is_private, has_active_membership, rating, skill, badges`. Any OAuth2 token with `profile:read` (machine tokens included - it is public profile data); PAT is `/me/*` only, so 403. **Masked private profile** - the target is private and the token does not belong to that player (a machine token never does): `name, avatar, country, city, bio, facebook, instagram` are `null`, `is_private: true`, `id`, `code` and `has_active_membership` stay, `rating: null`, `skill: null`, `badges: []` - and no insight query runs. The website's "Secret puzzler #CODE" label is presentation; clients render it from `is_private` + `code`. The player behind the token asking for their own private profile gets the full response. Unknown or malformed id → 404.
 
-**Fixed query cost** (asserted in `PlayerProfileEndpointTest::testQueryBudgets`, `CurrentUserEndpointTest::testRequestQueryBudget*`): `/me` = authentication (OAuth2 3: access token, player, consent usage; PAT 1) + profile + rating + badges + skill (member) → 7 / 5; `/players/{id}` = authentication + target profile + owner profile (`ApiTokenOwner`, not for a machine token) + the same blocks → member viewer 8, non-member 7, `client_credentials` 4, masked private 5 (auth-code) / 2 (machine token).
+**Fixed query cost** (asserted in `PlayerProfileEndpointTest::testQueryBudgets`, `CurrentUserEndpointTest::testRequestQueryBudget*`): `/me` = authentication (OAuth2 3: access token, player, consent usage; PAT 1) + profile + rating + badges + skill (member) + the favorites/followers counts (one query) → 7 / 6 (measured 2026-09-18); `/players/{id}` = authentication + target profile + owner profile (`ApiTokenOwner`, not for a machine token) + the same blocks → member viewer 8, non-member 7, `client_credentials` 4, masked private 5 (auth-code) / 2 (machine token).
+
+### Favorites and followers (`GET /api/v1/me/favorites`, `GET /api/v1/me/followers`)
+
+The favorites link (`player.favorite_players`, a JSON array of player ids - no join table, so no "followed since") in both directions, **`/me` only**: `favorites` is the website's favorite-puzzlers page, `followers` is the reverse lookup the website only uses to notify followers of a new solve - the API is the first place a player can see who follows them. PAT or `profile:read`; a machine token has no "me" (403).
+
+```json
+{
+  "player_id": "018d…",
+  "count": 2,
+  "items": [
+    { "id": "018d…", "name": "Michael Johnson", "code": "player3", "avatar": null, "country": "de", "is_private": false, "is_mutual": true },
+    { "id": "018d…", "name": null, "code": "player2", "avatar": null, "country": null, "is_private": true, "is_mutual": false }
+  ]
+}
+```
+
+- `is_mutual`: on `favorites` the player follows you back, on `followers` you follow them back - so a "follow back" UI needs one call.
+- **Private players are counted and listed, but masked** (`name`, `avatar`, `country` `null`, `is_private: true`) in both lists, like `GET /players/{id}`. For followers this is the point: a private player's favorites list is hidden on the website, so naming them as your follower would leak an entry of it.
+- Order: by name (case-insensitive), players without a name then by code; private players last, by code - the order never hints at a masked name.
+- One query per list whatever its size (`GetPlayerConnections`, asserted by `PlayerConnectionsEndpointTest`). The reverse lookup is a sequential scan over `player` with a `jsonb @>` containment test - the same cost `NotifyWhenPuzzleSolved` pays on every solve. If it ever shows up, add `custom_player_favorite_players_gin` on `(favorite_players::jsonb)`; the queries already use `@>`.
+- Deliberately not there (follow-ups): `/players/{id}/favorites|followers` (followers of someone else are shown nowhere on the website), write endpoints (the `AddPlayerToFavorites` / `RemovePlayerFromFavorites` handlers exist; needs a write scope stripped from `client_credentials`), `followed_at` (needs a `player_favorite` table).
 
 ### POST `/api/v1/me/solving-times`
 
@@ -326,6 +349,7 @@ Response (`SolvingTimeResponse`, shared with `PUT …/solving-times/{timeId}`):
 - `/api/v1/me/*` always returns full data for the token owner
 - `/api/v1/players/{id}/*` returns empty/zeroed data for private profiles (not 403); `/api/v1/players/{id}` itself returns the masked shape (`is_private: true`, `id` + `code` + `has_active_membership`, everything else `null` / `[]`)
 - the puzzle-library lists also follow the owner's per-list visibility settings (zeroed, not 403), the library summary reports a hidden section as `count: 0` + its visibility
+- `/api/v1/me/favorites` and `/api/v1/me/followers` list private players masked (code only) - the one place `/me` data is not "full", because it is about *other* players
 - Hidden players are never returned in service-to-service queries
 
 ### Error Handling
@@ -479,6 +503,7 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `src/Api/V1/PuzzleListResponse.php` | `GET /api/v1/puzzles` resource: the single declaration of its query parameters (validation + OpenAPI) |
 | `src/Api/V1/PuzzleDetailResponse.php` | `GET /api/v1/puzzles/{puzzleId}` resource - the card of one puzzle, built only via `fromCard()` (provider `PuzzleDetailResponseProvider`) |
 | `src/Api/V1/LibraryResponse.php`, `WishlistResponse.php`, `UnsolvedPuzzlesResponse.php`, `LendBorrowResponse.php`, `SellSwapResponse.php` | The puzzle-library resources, each with its `/me/…` and `/players/{playerId}/…` operation (providers `My*ResponseProvider` / `Player*ResponseProvider`) |
+| `src/Api/V1/PlayerConnectionsResponse.php`, `PlayerConnectionResponse.php`, `src/Query/GetPlayerConnections.php` | `/me/favorites` + `/me/followers` (providers `MyFavoritesResponseProvider` / `MyFollowersResponseProvider`); `countsOf()` feeds `favorites_count` / `followers_count` on `/me` |
 | `src/Services/Api/PuzzleLibraryVisibility.php`, `PuzzleLibraryItemsFactory.php`, `PuzzleLibrarySummaryFactory.php` | The website's library visibility rule; the list items (one insights batch per list); the summary counts |
 | `src/Api/V1/PuzzleResponse.php` | The puzzle card (+ `PuzzleStatisticsResponse`, `PuzzleDifficultyResponse`, `TimePredictionResponse`, `PlayerSolvesResponse`) |
 | `src/Services/Api/ApiTokenOwner.php` | The single membership / scope gate behind every provider |

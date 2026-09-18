@@ -500,9 +500,9 @@ final class CurrentUserEndpointTest extends WebTestCase
     /**
      * The flags come from the PlayerProfile the provider already loads (no query
      * of their own); the insight blocks cost one query each - rating, badges, and
-     * skill for a member - on top of the authentication and the profile. Measured:
-     * OAuth2 = 3 (access token, player, consent usage) + profile + 3 = 7 for a
-     * member, PAT = 1 (token) + profile + 3 = 5. Only the request is counted
+     * skill for a member - and favorites_count + followers_count share one more, on
+     * top of the authentication and the profile. Measured 2026-09-18: 7 for a
+     * member's authorization-code token, 6 for a member's PAT. Only the request is counted
      * (QueryCountAssertions resets the Doctrine debug log right before it).
      */
     public function testRequestQueryBudgetViaOAuth2(): void
@@ -523,7 +523,7 @@ final class CurrentUserEndpointTest extends WebTestCase
         $browser->request('GET', '/api/v1/me');
 
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 6, 'non-member, authorization-code token (no skill query)');
+        $this->assertQueryCountAtMost($browser, 7, 'non-member, authorization-code token (no skill query)');
 
         $this->optOutOfRankings($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['profile:read']);
@@ -531,7 +531,7 @@ final class CurrentUserEndpointTest extends WebTestCase
         $browser->request('GET', '/api/v1/me');
 
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 5, 'member opted out of rankings (badges only)');
+        $this->assertQueryCountAtMost($browser, 6, 'member opted out of rankings (badges only)');
     }
 
     public function testRequestQueryBudgetViaPersonalAccessToken(): void
@@ -545,14 +545,14 @@ final class CurrentUserEndpointTest extends WebTestCase
         $browser->request('GET', '/api/v1/me');
 
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 5, 'member, personal access token');
+        $this->assertQueryCountAtMost($browser, 6, 'member, personal access token');
 
         PatTestHelper::addBearerToken($browser, PatTestHelper::createToken($browser, PlayerFixture::PLAYER_REGULAR));
         $this->startCountingQueries($browser);
         $browser->request('GET', '/api/v1/me');
 
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 4, 'non-member, personal access token (no skill query)');
+        $this->assertQueryCountAtMost($browser, 5, 'non-member, personal access token (no skill query)');
     }
 
     /**

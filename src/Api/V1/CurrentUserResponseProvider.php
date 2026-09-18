@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Api\V1;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Query\GetPlayerConnections;
 use SpeedPuzzling\Web\Services\Api\ApiTokenOwner;
 use SpeedPuzzling\Web\Services\Api\ProfileInsightsResponseFactory;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -25,6 +26,7 @@ final readonly class CurrentUserResponseProvider implements ProviderInterface
         private Security $security,
         private ApiTokenOwner $tokenOwner,
         private ProfileInsightsResponseFactory $profileInsights,
+        private GetPlayerConnections $getPlayerConnections,
     ) {
     }
 
@@ -43,6 +45,8 @@ final readonly class CurrentUserResponseProvider implements ProviderInterface
         // The profile page hides both blocks for a player who opted out of rankings;
         // the skill tiers are Puzzle Insights and members-only on top of that.
         $showsRanking = $profile->rankingOptedOut === false;
+
+        $connectionCounts = $this->getPlayerConnections->countsOf($profile->playerId);
 
         return new CurrentUserResponse(
             id: $profile->playerId,
@@ -67,6 +71,8 @@ final readonly class CurrentUserResponseProvider implements ProviderInterface
             rating: $showsRanking ? $this->profileInsights->rating($profile->playerId) : null,
             skill: $showsRanking && $this->tokenOwner->isMember() ? $this->profileInsights->skill($profile->playerId) : null,
             badges: $this->profileInsights->badges($profile->playerId),
+            favoritesCount: $connectionCounts->favorites,
+            followersCount: $connectionCounts->followers,
         );
     }
 }

@@ -202,6 +202,51 @@ final class PuzzleAddControllerTest extends WebTestCase
         self::assertSame($timesBefore, $this->countPlayerTimes($database));
     }
 
+    /**
+     * An empty co-puzzler row used to fall through to a 200 re-render of a valid form, which Turbo Drive
+     * discards - production logged visitors clicking save six times in a row with nothing happening.
+     */
+    public function testEmptyCoPuzzlerIsRejectedWithVisibleError(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $database = self::getContainer()->get(Connection::class);
+        $timesBefore = $this->countPlayerTimes($database);
+
+        $browser->request('POST', '/en/puzzle-add', [
+            'puzzle_add_form' => $this->validSpeedPuzzlingSubmission($browser, CompetitionSeriesFixture::EDITION_EJJ_68),
+            'group_players' => [''],
+        ], [], [
+            'HTTP_ACCEPT' => 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml',
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertSelectorTextContains('form[name="puzzle_add_form"]', 'One of the puzzlers is empty');
+        $this->assertSelectorExists('input[name="group_players[]"].is-invalid');
+        self::assertSame($timesBefore, $this->countPlayerTimes($database));
+    }
+
+    public function testEmptyCoPuzzlerDoesNotBlockAddingToCollection(): void
+    {
+        // Collection mode hides the co-puzzler section, but its inputs are still posted
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $submission = $this->validSpeedPuzzlingSubmission($browser, CompetitionSeriesFixture::EDITION_EJJ_68);
+        $submission['mode'] = 'collection';
+        $submission['puzzle'] = PuzzleFixture::PUZZLE_1000_05;
+
+        $browser->request('POST', '/en/puzzle-add', [
+            'puzzle_add_form' => $submission,
+            'group_players' => [''],
+        ]);
+
+        $this->assertResponseRedirects();
+    }
+
     public function testSubmitLinksTheTimeToASeriesEdition(): void
     {
         $browser = self::createClient();

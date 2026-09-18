@@ -188,7 +188,15 @@ final class PuzzleAddController extends AbstractController
         ]);
         $addTimeForm->handleRequest($request);
 
-        if ($isGroupPuzzlersValid === true && $addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
+        // The co-puzzler inputs live outside the Symfony form, so an empty one has to invalidate the form
+        // explicitly - that is what makes render() answer 422. As a skipped `if` it answered 200 with a
+        // valid form, which Turbo Drive discards: the visitor clicked save and nothing happened at all.
+        // Collection mode hides the co-puzzlers (their inputs are still posted) and never uses them.
+        if ($isGroupPuzzlersValid === false && $addTimeForm->isSubmitted() && $data->mode !== PuzzleAddMode::Collection) {
+            $addTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_player')));
+        }
+
+        if ($addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
             $userId = $user->getUserIdentifier();
             $mode = $data->mode;
 

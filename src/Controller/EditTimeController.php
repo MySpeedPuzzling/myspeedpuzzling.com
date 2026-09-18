@@ -118,7 +118,13 @@ final class EditTimeController extends AbstractController
         ]);
         $editTimeForm->handleRequest($request);
 
-        if ($isGroupPuzzlersValid === true && $editTimeForm->isSubmitted() && $editTimeForm->isValid()) {
+        // The co-puzzler inputs live outside the Symfony form, so an empty one has to invalidate the form
+        // explicitly - that is what makes render() answer 422 instead of a 200 Turbo Drive discards
+        if ($isGroupPuzzlersValid === false && $editTimeForm->isSubmitted()) {
+            $editTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_player')));
+        }
+
+        if ($editTimeForm->isSubmitted() && $editTimeForm->isValid()) {
             if ($data->mode === PuzzleAddMode::Relax && $request->request->has('no_remember_date')) {
                 $data->finishedAt = null;
             }

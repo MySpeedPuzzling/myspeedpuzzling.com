@@ -357,6 +357,7 @@ forms:
     max_characters: "Max 500 characters"
     required_field: "This field is required!"
     empty_group_error: "You cannot create a group with yourself only, that's not group assembling :-)"
+    empty_group_player: "One of the puzzlers is empty - fill in their name or code, or remove them."
     too_high_ppm: "Please check the time you entered, there is no way you can solve the puzzle that fast! :-) The time should be entered in HH:MM:SS format. The time you entered would be a new world record! :-)"
     ppm_warning_title: "Please verify your time"
     ppm_warning_too_fast: "Your pace seems very fast! Please double-check your time is entered correctly."

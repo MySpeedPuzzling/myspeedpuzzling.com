@@ -138,6 +138,34 @@ final class EditTimeControllerTest extends WebTestCase
     }
 
     /**
+     * An empty co-puzzler row used to fall through to a 200 re-render of a valid form, which Turbo Drive
+     * discards on the full-page edit form - the visitor saw nothing happen.
+     */
+    public function testEmptyCoPuzzlerIsRejectedWithVisibleError(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', self::EDIT_URL);
+        $this->assertResponseIsSuccessful();
+
+        $submission = $this->submission($crawler, CompetitionSeriesFixture::EDITION_OFFLINE_1);
+
+        $browser->request('POST', self::EDIT_URL, [
+            'edit_puzzle_solving_time_form' => $submission,
+            'group_players' => [''],
+        ], [], [
+            'HTTP_ACCEPT' => 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml',
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertSelectorTextContains('form[name="edit_puzzle_solving_time_form"]', 'One of the puzzlers is empty');
+        self::assertNull($this->linkedCompetitionId($database));
+    }
+
+    /**
      * @return array<string, string>
      */
     private function submission(Crawler $crawler, string $competitionId): array

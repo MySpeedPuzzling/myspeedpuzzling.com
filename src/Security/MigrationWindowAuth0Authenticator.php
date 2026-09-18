@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Security;
 
+use SpeedPuzzling\Web\Entity\UserAccount;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
 use Symfony\Component\Security\Http\Authenticator\AuthenticatorInterface;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 
@@ -28,6 +30,10 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
  * request. The signed-in user is bounced to /login, LoginController sees them
  * already signed in and forwards to my_profile - which is exactly what made the
  * whole /admin area unreachable for admins.
+ *
+ * Its success is contained too: a session that already holds a native
+ * UserAccount is never taken over by Auth0 credentials left in it (see
+ * authenticate()).
  *
  * A wrapper rather than a decorator: Auth0's AuthenticationController type-hints
  * the concrete final Authenticator class, so decorating 'auth0.authenticator'
@@ -50,6 +56,25 @@ final readonly class MigrationWindowAuth0Authenticator implements AuthenticatorI
 
     public function authenticate(Request $request): Passport
     {
+        // A session already signed in natively stays native. Auth0 SDK credentials
+        // outlive the sign-in that put them there: a /login/auth0 round trip leaves
+        // them in the session, a later sign-in link or password login in the same
+        // browser migrates the session with them, and the inner authenticator would
+        // then replace the fresh UserAccount token with an Auth0 user on the very
+        // next request - for good, since nothing ever removes the credentials. The
+        // visitor ends up signed in through the stack being retired, and every
+        // #[CurrentUser] UserAccount page answers them 403 (production: /set-password
+        // right after the sign-in link that was meant to move them off Auth0).
+        //
+        // Failing here is the same outcome as a native session without Auth0
+        // credentials: onAuthenticationFailure() below sees the token and lets the
+        // request continue on it. The token is only there because authenticators
+        // run after ContextListener has restored it - supports() runs too early to
+        // see it, so the check cannot move there.
+        if ($this->tokenStorage->getToken()?->getUser() instanceof UserAccount) {
+            throw new CustomUserMessageAuthenticationException('Already signed in natively, leftover Auth0 credentials ignored.');
+        }
+
         return $this->inner->authenticate($request);
     }
 

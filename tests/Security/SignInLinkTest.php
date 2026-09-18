@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Security;
 
+use Auth0\Symfony\Models\User as Auth0User;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -13,6 +14,8 @@ use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Security\SignInLinkPasswordPrompt;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\BrowserKit\Cookie;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
@@ -267,6 +270,50 @@ final class SignInLinkTest extends WebTestCase
         self::assertResponseRedirects('/en/my-profile');
     }
 
+    public function testLeftoverAuth0SessionDoesNotTakeTheLinkLoginOver(): void
+    {
+        // Production, 2026-08-19 and 2026-09-05: signed in through /login/auth0, the
+        // user opened a sign-in link in the same browser. The link signed them in
+        // natively - and on the very next request the Auth0 authenticator signed them
+        // back in from the SDK credentials still in the session, as an Auth0 user
+        // where /set-password needs a UserAccount: 403, and the prompt was lost.
+        $browser = self::createClient();
+        $browser->setServerParameter('HTTP_ORIGIN', 'http://localhost');
+        $email = $this->seedAccount($browser, 'auth0|signin11', 'signin.eleven', legacyAuth0: true);
+
+        $this->requestSignInLink($browser, $email);
+        $signInUrl = $this->lastSignInLinkUrl();
+
+        $this->plantLegacyAuth0Session($browser, 'auth0|signin11', $email);
+
+        $crawler = $browser->request('GET', $signInUrl);
+        self::assertResponseIsSuccessful();
+
+        // The precondition this test is about: the session really does sign in through Auth0
+        $token = $browser->getContainer()->get(TokenStorageInterface::class)->getToken();
+        self::assertNotNull($token);
+        self::assertInstanceOf(Auth0User::class, $token->getUser());
+
+        $browser->submit($crawler->filter('#sign-in-link-check-form')->form());
+        self::assertResponseRedirects('/set-password');
+
+        $browser->request('GET', '/set-password');
+        self::assertResponseIsSuccessful();
+
+        $token = $browser->getContainer()->get(TokenStorageInterface::class)->getToken();
+        self::assertNotNull($token);
+        self::assertInstanceOf(UserAccount::class, $token->getUser());
+        self::assertSame('auth0|signin11', $token->getUserIdentifier());
+
+        // ...and it stays native on the pages after it
+        $browser->request('GET', '/en/puzzle');
+        self::assertResponseIsSuccessful();
+        self::assertInstanceOf(
+            UserAccount::class,
+            $browser->getContainer()->get(TokenStorageInterface::class)->getToken()?->getUser(),
+        );
+    }
+
     public function testSkippingThePromptKeepsTheOldPassword(): void
     {
         $browser = self::createClient();
@@ -351,6 +398,34 @@ final class SignInLinkTest extends WebTestCase
         );
 
         return html_entity_decode($matches[1]);
+    }
+
+    /**
+     * What a completed /login/auth0 round trip leaves in the session: the Auth0
+     * SDK's credentials under the bundle's session store namespace. The session
+     * has no security token of its own yet - the Auth0 authenticator mints one
+     * from these credentials on every request.
+     */
+    private function plantLegacyAuth0Session(KernelBrowser $browser, string $userId, string $email): void
+    {
+        $session = $browser->getContainer()->get('session.factory')->createSession();
+        assert($session instanceof SessionInterface);
+
+        $session->set('auth0_session', [
+            'user' => [
+                'sub' => $userId,
+                'user_id' => $userId,
+                'email' => $email,
+                'email_verified' => true,
+            ],
+            'accessToken' => 'legacy-auth0-access-token',
+            'accessTokenExpiration' => time() + 3600,
+        ]);
+        $session->save();
+
+        // The host BrowserKit files the server's own session cookie under - a
+        // domain-less cookie would shadow the one the login migrates the session to
+        $browser->getCookieJar()->set(new Cookie($session->getName(), $session->getId(), domain: 'localhost'));
     }
 
     private function seedAccount(

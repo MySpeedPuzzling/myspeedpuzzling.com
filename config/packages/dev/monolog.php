@@ -37,12 +37,12 @@ return App::config([
             'sentry' => [
                 'type' => 'service',
                 'id' => LogToSentryIssueHandler::class,
-                'channels' => ['!sentry_sdk', '!messenger', '!php'],
+                'channels' => ['!sentry_sdk', '!messenger', '!php', '!object_storage'],
             ],
             'sentry_exceptions' => [
                 'type' => 'service',
                 'id' => ExceptionToSentryIssueHandler::class,
-                'channels' => ['!sentry_sdk', '!messenger', '!php'],
+                'channels' => ['!sentry_sdk', '!messenger', '!php', '!object_storage'],
             ],
             'sentry_breadcrumbs' => [
                 'type' => 'service',

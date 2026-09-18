@@ -117,7 +117,9 @@ final readonly class FailoverS3Adapter implements FilesystemAdapter
         } catch (\Throwable $exception) {
             $this->spool->spoolDelete($path, $this->describeError($exception));
 
-            $this->logger->error('Object storage delete failed - queued for automatic retry', [
+            // Warning, not error: the drain retries it, and alerts at error level
+            // itself once the backlog stops draining (UploadSpoolProcessor)
+            $this->logger->warning('Object storage delete failed - queued for automatic retry', [
                 'exception' => $exception,
                 'path' => $path,
             ]);
@@ -231,7 +233,10 @@ final readonly class FailoverS3Adapter implements FilesystemAdapter
 
         $this->collector->recordFailure($path);
 
-        $this->logger->error('Object storage write failed - file spooled for automatic retry', [
+        // Warning, not error: nothing is lost, the drain uploads it within minutes
+        // and alerts at error level itself once the backlog stops draining
+        // (UploadSpoolProcessor). A lost upload is the error above.
+        $this->logger->warning('Object storage write failed - file spooled for automatic retry', [
             'exception' => $exception,
             'path' => $path,
         ]);

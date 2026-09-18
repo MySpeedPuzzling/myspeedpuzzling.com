@@ -66,7 +66,7 @@ final class FailoverS3AdapterTest extends TestCase
         self::assertStringContainsString('Simulated object storage outage', $pending[0]->lastError);
 
         self::assertTrue($this->collector->hasFailures());
-        self::assertTrue($this->logger->hasRecord('error', 'file spooled for automatic retry'));
+        self::assertTrue($this->logger->hasRecord('warning', 'file spooled for automatic retry'));
     }
 
     public function testFailedWriteSpoolsStringPayload(): void
@@ -151,7 +151,7 @@ final class FailoverS3AdapterTest extends TestCase
         $pending = $this->spool->pendingOperations();
         self::assertCount(1, $pending);
         self::assertSame(SpooledOperationType::Delete, $pending[0]->op);
-        self::assertTrue($this->logger->hasRecord('error', 'queued for automatic retry'));
+        self::assertTrue($this->logger->hasRecord('warning', 'queued for automatic retry'));
     }
 
     public function testSuccessfulDeletePurgesPendingWrite(): void

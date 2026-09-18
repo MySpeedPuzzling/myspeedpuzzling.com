@@ -16,7 +16,11 @@ use Sentry\Monolog\LogToSentryIssueHandler;
 //   also honours `capture_soft_fails: false` - the retry warnings logged here would
 //   defeat that
 // - php: PHP errors and warnings are captured by the SDK's own error handler
-$sentryExcludedChannels = ['!sentry_sdk', '!messenger', '!php'];
+// - object_storage: AsyncAws logs every failed S3 request at error level, then throws.
+//   The caller reports what the failure means - a spooled upload, a missing result
+//   image, an uncaught exception - so the same problem would land twice, and a
+//   failure the caller handles by design would page as an error
+$sentryExcludedChannels = ['!sentry_sdk', '!messenger', '!php', '!object_storage'];
 
 return App::config([
     'monolog' => [

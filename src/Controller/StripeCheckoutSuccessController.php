@@ -65,7 +65,7 @@ final class StripeCheckoutSuccessController extends AbstractController
         } catch (HandlerFailedException $e) {
             $this->logger->error('Stripe membership update failed after retries', [
                 'subscription_id' => $subscriptionId,
-                'error' => $e->getMessage(),
+                'exception' => $e,
             ]);
 
             $this->addFlash('info', $this->translator->trans('flashes.membership_processing'));

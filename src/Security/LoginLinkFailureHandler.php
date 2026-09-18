@@ -17,8 +17,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * A sign-in link that is expired, already used, unknown or tampered with all end
  * here — with the same message, so a replayed link tells an attacker nothing.
  * The user lands back on the request form, one click away from a fresh link
- * (the default handler would send them to /login, which during the migration
- * window is still the Auth0 redirect and would swallow the explanation).
+ * (the default handler would send them to /login, where the explanation would
+ * be out of place next to a password form).
  */
 final readonly class LoginLinkFailureHandler implements AuthenticationFailureHandlerInterface
 {

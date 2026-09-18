@@ -12,7 +12,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\RememberMe\RememberMeHandlerInterface;
 use Symfony\Component\Security\Http\RememberMe\ResponseListener;
 
@@ -101,12 +100,8 @@ final readonly class SlidingLoginCookiesSubscriber implements EventSubscriberInt
 
         $user = $this->tokenStorage->getToken()?->getUser();
 
-        // Anonymous visitors have nothing to slide. Deliberately UserInterface and
-        // not UserAccount: the ~140 remaining legacy Auth0-era sessions carry the
-        // bundle's own user object, they have no remember-me cookie at all, and so
-        // the session cookie is the only thing keeping them signed in - they are
-        // the visitors who need it renewed most.
-        if (!$user instanceof UserInterface) {
+        // Anonymous visitors have nothing to slide
+        if (!$user instanceof UserAccount) {
             return;
         }
 
@@ -145,22 +140,18 @@ final readonly class SlidingLoginCookiesSubscriber implements EventSubscriberInt
             $this->sessionCookie($request, $session->getName(), $sessionId),
         );
 
-        // The remember-me cookie is renewed under three conditions:
+        // The remember-me cookie is renewed under two conditions:
         //
-        // 1. A native account, because the signature hasher reads the email and
-        //    password of a UserAccount and an Auth0 bundle user has neither.
-        // 2. The visitor already holds the cookie. A legacy Auth0-era session
-        //    never had one, and minting it here would silently extend a login the
-        //    migration deliberately leaves on the session alone.
-        // 3. Nothing has already ruled on the cookie in this request. A failed
+        // 1. The visitor already holds the cookie. Minting one here would silently
+        //    extend a login that was deliberately left on the session alone.
+        // 2. Nothing has already ruled on the cookie in this request. A failed
         //    sign-in, a logout and a deauthenticated token each park a deletion
         //    cookie in that attribute during kernel.request, and renewing over it
         //    would resurrect a login that was just revoked. A fresh cookie parked
         //    there (a real login, or remember-me being consumed) is already
         //    correct. This is the guard RememberMeAuthenticator::supports() uses.
         if (
-            $user instanceof UserAccount
-            && $request->cookies->has(self::REMEMBER_ME_COOKIE)
+            $request->cookies->has(self::REMEMBER_ME_COOKIE)
             && !$request->attributes->has(ResponseListener::COOKIE_ATTR_NAME)
         ) {
             $this->rememberMeHandler->createRememberMeCookie($user);

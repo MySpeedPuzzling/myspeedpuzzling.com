@@ -14,7 +14,6 @@ use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -37,20 +36,11 @@ final class ResendEmailVerificationController extends AbstractController
         name: 'resend_email_verification',
         methods: ['POST'],
     )]
-    public function __invoke(Request $request, #[CurrentUser] UserInterface $user): Response
+    public function __invoke(Request $request, #[CurrentUser] UserAccount $userAccount): Response
     {
         if (!$this->isCsrfTokenValid(self::CSRF_TOKEN_ID, (string) $request->request->get('_token'))) {
             throw $this->createAccessDeniedException();
         }
-
-        // Window A: a legacy Auth0 session has no user_account row to verify against.
-        // The button that posts here is only rendered for native accounts, so this is
-        // the belt to that template's braces.
-        if (!$user instanceof UserAccount) {
-            return $this->redirectToRoute('edit_profile');
-        }
-
-        $userAccount = $user;
 
         $rateLimit = $this->emailVerificationResendLimiter
             ->create($userAccount->userId)

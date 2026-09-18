@@ -17,7 +17,6 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -44,7 +43,7 @@ final class SocialConnectController extends AbstractController
         name: 'social_link_start',
         methods: ['GET'],
     )]
-    public function __invoke(#[CurrentUser] UserInterface $user, string $provider): Response
+    public function __invoke(#[CurrentUser] UserAccount $user, string $provider): Response
     {
         $oauthProvider = OauthProvider::tryFrom($provider);
 
@@ -55,11 +54,6 @@ final class SocialConnectController extends AbstractController
         // Admin-only stage: 404, not 403 - the feature must not reveal itself
         if ($this->socialLoginSettings->isAdminOnly() && $this->isGranted(AdminAccessVoter::ADMIN_ACCESS) === false) {
             throw new NotFoundHttpException();
-        }
-
-        // A legacy Auth0 session (window A) has no user_account to link to
-        if (!$user instanceof UserAccount) {
-            return $this->redirectToRoute('edit_profile');
         }
 
         $leagueProvider = $this->socialLoginProviders->create($oauthProvider);

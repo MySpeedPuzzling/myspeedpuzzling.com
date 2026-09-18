@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
-use Auth0\Symfony\Models\User;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -38,36 +37,26 @@ final class RetrieveLoggedUserProfile implements ResetInterface
         $user = $this->security->getUser();
         $this->populated = true;
 
-        if ($user instanceof User) {
-            $this->foundProfile = $this->findProfileRegisteringIfMissing(
-                $user->getUserIdentifier(),
-                $user->getEmail(),
-                $user->getName(),
-            );
-        } elseif ($user instanceof UserAccount) {
-            $this->foundProfile = $this->findProfileRegisteringIfMissing(
-                $user->getUserIdentifier(),
-                $user->email,
-                null,
-            );
+        if ($user instanceof UserAccount) {
+            $this->foundProfile = $this->findProfileRegisteringIfMissing($user);
         }
 
         return $this->foundProfile;
     }
 
-    private function findProfileRegisteringIfMissing(
-        string $userId,
-        null|string $email,
-        null|string $name,
-    ): null|PlayerProfile {
+    private function findProfileRegisteringIfMissing(UserAccount $userAccount): null|PlayerProfile
+    {
+        $userId = $userAccount->getUserIdentifier();
+
         try {
             return $this->getPlayerProfile->byUserId($userId);
         } catch (PlayerNotFound) {
-            // Auth0: user just came from registration -> has userId but no Player exists in db yet.
-            // Native accounts get their Player atomically in RegisterUserHandler, so for them
-            // this JIT registration is a safety net only.
+            // Safety net: registration (native and social) creates the account and
+            // its player atomically, but a handful of accounts imported from Auth0
+            // never had a player - their owners registered on Auth0 and never came
+            // back. Their first sign-in gets the player here.
             $this->messageBus->dispatch(
-                new RegisterUserToPlay($userId, $email, $name),
+                new RegisterUserToPlay($userId, $userAccount->email, null),
             );
 
             try {

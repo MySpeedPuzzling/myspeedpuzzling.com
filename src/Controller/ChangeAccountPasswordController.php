@@ -18,16 +18,13 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Native change-password (issue #147) - the successor to the #161 card, which
- * asked Auth0 to email a reset link. Reachable for any account that already
- * lives in user_account: native registrants during window A, everybody after the
- * Stage B import. Legacy Auth0 sessions keep the old card until then.
+ * Change password (issue #147) - the successor to the #161 card, which asked
+ * Auth0 to email a reset link.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ChangeAccountPasswordController extends AbstractController
@@ -51,13 +48,8 @@ final class ChangeAccountPasswordController extends AbstractController
         name: 'change_account_password',
         methods: ['GET', 'POST'],
     )]
-    public function __invoke(Request $request, #[CurrentUser] UserInterface $user): Response
+    public function __invoke(Request $request, #[CurrentUser] UserAccount $user): Response
     {
-        if (!$user instanceof UserAccount) {
-            // Window A: a legacy Auth0 session has no local password to change
-            return $this->redirectToRoute('edit_profile');
-        }
-
         $data = new ChangePasswordFormData();
         $form = $this->createForm(ChangePasswordFormType::class, $data);
         $form->handleRequest($request);

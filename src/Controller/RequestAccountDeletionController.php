@@ -17,7 +17,6 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -45,19 +44,11 @@ final class RequestAccountDeletionController extends AbstractController
         name: 'request_account_deletion',
         methods: ['POST'],
     )]
-    public function __invoke(Request $request, #[CurrentUser] UserInterface $user): Response
+    public function __invoke(Request $request, #[CurrentUser] UserAccount $userAccount): Response
     {
         if (!$this->isCsrfTokenValid(self::CSRF_TOKEN_ID, (string) $request->request->get('_token'))) {
             throw $this->createAccessDeniedException();
         }
-
-        // Window A: a legacy Auth0 session has no user_account row to bind the token
-        // to. Nothing to offer it here - the profile page is where it came from.
-        if (!$user instanceof UserAccount) {
-            return $this->redirectToRoute('edit_profile');
-        }
-
-        $userAccount = $user;
 
         $rateLimit = $this->accountDeletionRequestLimiter
             ->create($userAccount->userId)

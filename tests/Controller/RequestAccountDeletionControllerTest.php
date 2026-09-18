@@ -9,8 +9,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\UserAccount;
-use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Mime\Email;
@@ -105,21 +103,6 @@ final class RequestAccountDeletionControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('permanently delete my account', (string) $browser->getResponse()->getContent());
         self::assertNotNull($this->reload($browser, $userAccount), 'Opening the link deletes nothing either');
-    }
-
-    /**
-     * Window A: a legacy Auth0 session has no user_account row to bind a token to,
-     * so the endpoint has nothing to offer it - it must redirect, not blow up.
-     */
-    public function testALegacyAuth0SessionIsSentBackWithoutMail(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asAuth0Player($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $this->pressTheButton($browser);
-
-        self::assertResponseRedirects('/en/edit-profile');
-        self::assertCount(0, self::getMailerMessages());
     }
 
     /**

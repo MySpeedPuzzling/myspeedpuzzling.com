@@ -47,7 +47,7 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
             throw new CanNotModifyOtherPlayersTime();
         }
 
-        // The handler resolves the player by auth0 user id (and creates one when missing),
+        // The handler resolves the player by its user_id identity (and creates one when missing),
         // so passing the player uuid here would attribute the edit to a phantom player
         $userId = $player->userId;
 

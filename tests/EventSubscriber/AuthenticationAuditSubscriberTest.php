@@ -11,16 +11,17 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\EventSubscriber\AuthenticationAuditSubscriber;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
-use SpeedPuzzling\Web\Security\MigrationWindowAuth0Authenticator;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
+use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Http\Authenticator\AuthenticatorInterface;
 use Symfony\Component\Security\Http\Authenticator\LoginLinkAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
+use Symfony\Component\Security\Http\Authenticator\RememberMeAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
 use Symfony\Component\Security\Http\Event\LoginFailureEvent;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
@@ -122,35 +123,26 @@ final class AuthenticationAuditSubscriberTest extends KernelTestCase
     }
 
     /**
-     * The Auth0 authenticator succeeds on every request a legacy session makes,
-     * not once when somebody signs in. Auditing each one produced 30,339 of the
-     * 32,408 "login" rows in a 14-day production sample, from 140 users - which
-     * buries the real sign-ins on the recent-activity page that exists to make a
-     * stranger's login visible.
+     * A rejected remember-me cookie (expired, or the password changed since it was
+     * minted) is not a sign-in attempt, so it must not show up as a "failed login"
+     * on the recent-activity page - only the interactive authenticators are audited.
      */
-    public function testLegacyAuth0SessionIsAuditedOncePerSessionNotPerRequest(): void
+    public function testRejectedRememberMeCookieIsNotAuditedAsAFailedSignIn(): void
     {
-        $account = $this->createAccount('auth0|subscriber-refresh');
-        $authenticator = self::getContainer()->get(MigrationWindowAuth0Authenticator::class);
-        $session = $this->requestWithSession();
+        /** @var RememberMeAuthenticator $rememberMeAuthenticator */
+        $rememberMeAuthenticator = self::getContainer()->get('security.authenticator.remember_me.main');
 
-        foreach (range(1, 3) as $ignored) {
-            $this->subscriber->onLoginSuccess($this->loginSuccessEvent($account, $authenticator, 'main', $session));
-        }
+        $before = $this->countFailures();
 
-        self::assertSame(
-            1,
-            $this->countEventsFor($account),
-            'Three page views on one legacy session are one sign-in, not three',
-        );
+        $this->subscriber->onLoginFailure(new LoginFailureEvent(
+            new AuthenticationException('The cookie is invalid.'),
+            $rememberMeAuthenticator,
+            $this->request(),
+            null,
+            'main',
+        ));
 
-        // A different session is a different sign-in and must still be recorded -
-        // suppressing the refreshes must not suppress the real thing.
-        $this->subscriber->onLoginSuccess(
-            $this->loginSuccessEvent($account, $authenticator, 'main', $this->requestWithSession()),
-        );
-
-        self::assertSame(2, $this->countEventsFor($account));
+        self::assertSame($before, $this->countFailures());
     }
 
     private function formAuthenticator(): LoginFormAuthenticator
@@ -162,7 +154,6 @@ final class AuthenticationAuditSubscriberTest extends KernelTestCase
         UserAccount $account,
         AuthenticatorInterface $authenticator,
         string $firewallName,
-        null|Request $request = null,
     ): LoginSuccessEvent {
         $passport = new SelfValidatingPassport(new UserBadge($account->email, static fn(): UserAccount => $account));
         $token = new PostAuthenticationToken($account, $firewallName, $account->getRoles());
@@ -171,23 +162,10 @@ final class AuthenticationAuditSubscriberTest extends KernelTestCase
             $authenticator,
             $passport,
             $token,
-            $request ?? $this->request(),
+            $this->request(),
             null,
             $firewallName,
         );
-    }
-
-    /**
-     * One browser session. The window-era Auth0 authenticator re-authenticates
-     * from it on every request, so every page view reaches onLoginSuccess with
-     * the same session attached.
-     */
-    private function requestWithSession(): Request
-    {
-        $request = $this->request();
-        $request->setSession(new Session(new MockArraySessionStorage()));
-
-        return $request;
     }
 
     private function request(): Request
@@ -207,6 +185,16 @@ final class AuthenticationAuditSubscriberTest extends KernelTestCase
         $this->entityManager->flush();
 
         return $userAccount;
+    }
+
+    private function countFailures(): int
+    {
+        /** @var int|string $count */
+        $count = $this->connection->fetchOne(
+            "SELECT COUNT(*) FROM auth_audit_log WHERE event_type = 'login_failure'",
+        );
+
+        return (int) $count;
     }
 
     private function countEventsFor(UserAccount $account): int

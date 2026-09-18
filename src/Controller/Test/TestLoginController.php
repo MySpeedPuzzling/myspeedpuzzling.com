@@ -52,7 +52,8 @@ final class TestLoginController extends AbstractController
             );
 
             if (str_starts_with($userId, 'auth0|')) {
-                // Mirror the state the Stage B import leaves behind
+                // auth0|... fixture players stand for accounts imported from Auth0 -
+                // mirror the state the import left behind
                 $userAccount->applyAuth0Import($email, null, true, new DateTimeImmutable());
             }
 
@@ -60,8 +61,8 @@ final class TestLoginController extends AbstractController
             $this->entityManager->flush();
         }
 
-        // The firewall carries multiple authenticators (window A) - the target
-        // authenticator must be named explicitly or Security::login() throws
+        // The firewall carries multiple authenticators - the target authenticator
+        // must be named explicitly or Security::login() throws
         $this->security->login($userAccount, LoginFormAuthenticator::class, 'main');
 
         // The db/account details make cross-database session bugs diagnosable

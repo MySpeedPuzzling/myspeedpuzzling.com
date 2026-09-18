@@ -931,9 +931,6 @@ edit_profile:
     hide_time_predictions: "Hide time predictions"
     hide_time_predictions_help: "Your personal time predictions will be hidden on puzzle pages and time recaps. Turn them off if you just want to enjoy puzzling, without the pressure or disappointment of a predicted time — these are just our magic calculations, we don't want to stress you out!"
     change_password: "Password"
-    change_password_description: "We'll send you an email with a secure link to set a new password. The link expires after a while, so use it soon."
-    change_password_button: "Send password change email"
-    change_password_social_login: "You sign in through an external account (such as Google or Facebook), so there is no MySpeedPuzzling password to change. You can change your password with your login provider."
     change_password_native_description: "Set a new password with your current one. Your password manager will save it under myspeedpuzzling.com."
     change_password_native_button: "Change password"
     recent_activity_description: "Review recent sign-ins and security changes on your account, including where they came from."
@@ -974,7 +971,6 @@ edit_profile:
         intro: "Thinking about leaving? We're sorry to see you go — but we get it, that happens. We hope you enjoyed your time with MySpeedPuzzling, and that one day, when you feel like tracking your times again, you'll be back."
         export_hint: "Before you go, please export your data. Once the account is gone, your solving times cannot be recovered — but with an export you can bring them back with you if you ever return."
         how_it_works: "Deleting your account takes two steps, so it can never happen by accident: we e-mail a confirmation link to %email% (valid for one hour), and the page it opens asks for one final confirmation. After that, your account and all its data are deleted permanently — there is no way back."
-        how_it_works_generic: "Deleting your account takes two steps, so it can never happen by accident: we e-mail you a confirmation link (valid for one hour), and the page it opens asks for one final confirmation. After that, your account and all its data are deleted permanently — there is no way back."
         export_button: "Export my data first"
         request_button: "E-mail me the confirmation link"
         sent: "We've sent a confirmation link to %email%. It's valid for one hour — check your inbox (and the spam folder)."
@@ -1053,8 +1049,6 @@ flashes:
     competition_leave_success: "You have left the event."
     oauth2_request_fields_required: "Please fill in all required fields."
     oauth2_request_submitted: "Your application request has been submitted. You will be notified by email when it is reviewed."
-    password_change_email_sent: "We've sent you an email with a link to change your password. Please check your inbox."
-    password_change_not_available: "Password change is not available for your account - you sign in through an external provider."
     password_change_failed: "We're sorry, we could not send the password change email right now. We've been notified, please try again later."
 
 hub:

@@ -40,7 +40,7 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
         $user = $this->security->getUser();
         assert($user instanceof ApiUser);
 
-        // The handler resolves the player by auth0 user id (and creates one when missing),
+        // The handler resolves the player by its user_id identity (and creates one when missing),
         // so passing the player uuid here would attribute the time to a phantom player
         $userId = $user->getPlayer()->userId;
 

@@ -10,8 +10,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\UserAccount;
-use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -55,16 +53,6 @@ final class AccountRecentActivityControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('No account activity recorded yet', (string) $browser->getResponse()->getContent());
-    }
-
-    public function testLegacyAuth0SessionIsRedirectedToEditProfile(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asAuth0Player($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $browser->request('GET', '/en/account/recent-activity');
-
-        self::assertResponseRedirects('/en/edit-profile');
     }
 
     public function testAnonymousVisitorCannotAccessThePage(): void

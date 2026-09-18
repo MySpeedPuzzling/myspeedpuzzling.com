@@ -19,10 +19,6 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  * The two native credential-settings pages (issue #147), at the HTTP layer:
  * who may open them at all, and that the current-password gate is really in
  * front of them rather than only inside the handler.
- *
- * The window-A guard matters as much as the auth one: through the migration
- * window a session may hold an Auth0 user instead of a UserAccount, and these
- * pages have nothing to offer it - they must redirect, not blow up on the type.
  */
 final class ChangeAccountCredentialsControllerTest extends WebTestCase
 {
@@ -160,23 +156,6 @@ final class ChangeAccountCredentialsControllerTest extends WebTestCase
         self::assertNotNull($reloaded);
         self::assertSame($originalEmail, $reloaded->email);
         self::assertCount(0, self::getMailerMessages());
-    }
-
-    /**
-     * Window A: the session may hold an Auth0 bundle user, which has no
-     * user_account row behind it. These pages must show it the door rather than
-     * fail on the #[CurrentUser] type.
-     */
-    public function testLegacyAuth0SessionIsRedirectedInsteadOfCrashing(): void
-    {
-        $browser = self::createClient();
-        $browser->loginUser(new \Auth0\Symfony\Models\User(['sub' => 'auth0|legacy-credentials']), 'main');
-
-        $browser->request('GET', '/en/edit-profile/change-password');
-        self::assertResponseRedirects('/en/edit-profile');
-
-        $browser->request('GET', '/en/edit-profile/change-email');
-        self::assertResponseRedirects('/en/edit-profile');
     }
 
     private function seedSignedInAccount(KernelBrowser $browser): UserAccount

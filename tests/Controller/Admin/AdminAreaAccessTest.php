@@ -23,16 +23,15 @@ use Symfony\Component\HttpFoundation\Response;
  * so the area could be - and was - completely unreachable for actual admins
  * without a single test failing.
  *
- * What it caught: the Auth0 authenticator claims every request carrying a
- * session cookie and fails on every native (post-Stage-B) session, and on a page
- * whose access_control pattern was not PUBLIC_ACCESS its failure response - a
- * redirect to /login - short-circuited the request. /login then forwarded the
- * already-signed-in admin to my_profile. See MigrationWindowAuth0Authenticator.
+ * What it caught (2026-08-11): during the Auth0 migration window the Auth0
+ * authenticator failed on every native session, and on a page whose
+ * access_control pattern was not PUBLIC_ACCESS its failure response - a redirect
+ * to /login - short-circuited the request.
  *
- * Each of the three ways a visitor can arrive signed in is exercised, because
- * they fail differently: a native session token, a legacy Auth0 session token,
- * and a RememberMeToken restored from the always-on 30-day cookie (which is not
- * "full fledged", so any IS_AUTHENTICATED_FULLY rule rejects it).
+ * Both ways a visitor can arrive signed in are exercised, because they fail
+ * differently: a session token, and a RememberMeToken restored from the
+ * always-on 30-day cookie (which is not "full fledged", so any
+ * IS_AUTHENTICATED_FULLY rule rejects it).
  */
 final class AdminAreaAccessTest extends WebTestCase
 {
@@ -62,20 +61,6 @@ final class AdminAreaAccessTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
         $browser->request('GET', $path);
-
-        self::assertResponseIsSuccessful();
-    }
-
-    /**
-     * The legacy half of the migration window: a session holding an Auth0 bundle
-     * user rather than a native UserAccount must reach the area just the same.
-     */
-    public function testAdminOnALegacyAuth0SessionReachesTheAdminArea(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asAuth0Player($browser, PlayerFixture::PLAYER_ADMIN);
-
-        $browser->request('GET', '/admin/moderation');
 
         self::assertResponseIsSuccessful();
     }
@@ -140,7 +125,7 @@ final class AdminAreaAccessTest extends WebTestCase
     }
 
     /**
-     * The admin fixture is an Auth0-era identity with no password. Give it one so
+     * The admin fixture is an imported Auth0 identity with no password. Give it one so
      * it can go through the real login form, which is the only thing that mints a
      * remember-me cookie. The address is randomized per run: the login rate
      * limiter's cache is not rolled back between tests.

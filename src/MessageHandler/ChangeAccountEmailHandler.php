@@ -73,8 +73,7 @@ final readonly class ChangeAccountEmailHandler
         }
 
         // Same reasoning as registration: an address that already reaches a player -
-        // including a legacy Auth0 one with no user_account row yet - must not be
-        // claimed by a second account, or the Stage B import would strand it.
+        // even one with no user_account row - must not be claimed by a second account.
         // Asked as "any player but me" rather than "fetch one and compare": player.email
         // is not unique, so comparing a single arbitrary row would answer differently
         // from run to run when the address sits on a duplicate pair.

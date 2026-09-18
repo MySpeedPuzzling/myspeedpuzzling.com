@@ -21,7 +21,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
- * Native registration (Stage A of issue #147). Creates the account and the
+ * Registration (issue #147). Creates the account and the
  * player together - one transaction, one identity string - so a player row can
  * never exist without the credentials that reach it, or the other way round.
  */
@@ -52,11 +52,10 @@ final readonly class RegisterUserHandler
             throw new EmailAlreadyRegistered();
         }
 
-        // Player, not just user_account: through window A the user_account table holds
-        // native registrants only, so a returning user who forgot they had an account
-        // could otherwise register natively with their existing address. At Stage B the
-        // import would then skip their Auth0 identity (email taken by another user_id)
-        // and strand their real profile and every solving time on it.
+        // Player, not just user_account: a player can exist without a user_account row
+        // (two production players are Auth0 delete-and-re-register leftovers), and a
+        // returning user who forgot about their account must be pointed at signing in
+        // rather than get a second, empty account next to their real profile.
         if ($this->playerRepository->findByEmail($email) !== null) {
             throw new EmailAlreadyRegistered();
         }

@@ -71,8 +71,8 @@ final class UserAccountProviderTest extends KernelTestCase
 
     public function testRefreshUserRejectsForeignUserClasses(): void
     {
-        // The window-A chain provider relies on this exception to pass Auth0
-        // session users on to the Auth0 provider
+        // UnsupportedUserException, not a crash: ContextListener relies on it to try
+        // the next provider (and to drop a session token no provider supports)
         $this->expectException(UnsupportedUserException::class);
 
         $this->provider->refreshUser(new InMemoryUser('someone', null));

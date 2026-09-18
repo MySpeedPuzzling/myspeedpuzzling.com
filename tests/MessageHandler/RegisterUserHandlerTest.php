@@ -85,8 +85,8 @@ final class RegisterUserHandlerTest extends KernelTestCase
 
     public function testEmailOfLegacyPlayerWithoutAccountIsRejected(): void
     {
-        // Window A: an Auth0 user before the Stage B import has a player row but no
-        // user_account. Registering natively on their address would strand their profile.
+        // A player row without a user_account (production has two, Auth0-era leftovers).
+        // Registering on their address would put a second account next to their profile.
         $this->createPlayer('auth0|register3', 'reg-legacy-3', 'Legacy.Three@Example.com', locale: null);
 
         self::assertNull($this->userAccountRepository->findByEmail('legacy.three@example.com'));

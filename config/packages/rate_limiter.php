@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-// Native login brute-force protection, consumed inside LoginFormAuthenticator.
-// Deliberately NOT the firewall-level `login_throttling` feature: its listener
-// consumes a token on every LoginFailureEvent of the firewall, and during the
-// migration window the Auth0 authenticator fails on every anonymous request -
-// anonymous browsing would eat the per-IP budget and lock out real logins.
-// Revisit once the Auth0 authenticator leaves the firewall (Phase 6).
+// Login brute-force protection, consumed inside LoginFormAuthenticator.
+// Deliberately NOT the firewall-level `login_throttling` feature, whose listener
+// consumes a token on every LoginFailureEvent of the firewall (an expired sign-in
+// link or a rejected remember-me cookie included). Chosen while the Auth0
+// authenticator failed on every anonymous request, kept after it left
+// (2026-09-18): these limiters count password attempts and nothing else.
 return App::config([
     'framework' => [
         'rate_limiter' => [

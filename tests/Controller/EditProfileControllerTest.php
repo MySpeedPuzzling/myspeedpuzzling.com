@@ -15,48 +15,12 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * Profile settings across the sign-in migration (issue #147). This is the one
- * page real users meet that the 2c-II slice changed, so both sides of the
- * credential-card branch are pinned here:
- *
- * - a legacy Auth0 session must still get the #161 "send password change email"
- *   button, byte-for-byte the same offer as before the migration started;
- * - a native UserAccount session must get the native cards instead.
- *
- * The branch is on the class in the session, not on a feature flag, so this
- * behaviour is live from the day the slice merges - which is exactly why it is
- * tested rather than reasoned about.
+ * Profile settings: the credential cards (issue #147). The #161 Auth0
+ * "send password change email" button is gone with the Auth0 stack (Phase 6).
  */
 final class EditProfileControllerTest extends WebTestCase
 {
-    public function testLegacyAuth0SessionStillGetsTheAuth0PasswordCard(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asAuth0Player($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $crawler = $browser->request('GET', '/en/edit-profile');
-
-        self::assertResponseIsSuccessful();
-
-        // The #161 flow, untouched: a POST form to the Auth0 reset-email endpoint
-        self::assertCount(1, $crawler->filter('form[action="/en/change-password"]'));
-        self::assertStringContainsString(
-            'Send password change email',
-            $crawler->filter('form[action="/en/change-password"]')->text(),
-        );
-
-        // ... and none of the native cards, which have nothing to act on here
-        self::assertCount(0, $crawler->filter('a[href$="/edit-profile/change-password"]'));
-        self::assertCount(0, $crawler->filter('a[href$="/edit-profile/change-email"]'));
-        self::assertCount(0, $crawler->filter('a[href$="/account/recent-activity"]'));
-    }
-
-    /**
-     * The other side of the branch, reachable since 2d taught
-     * RetrieveLoggedUserProfile about UserAccount: a native session renders the
-     * page with the native credential cards and without the Auth0 form.
-     */
-    public function testNativeAccountGetsTheNativeCredentialCards(): void
+    public function testAccountGetsTheCredentialCards(): void
     {
         $browser = self::createClient();
         $userAccount = $this->seedNativeAccount($browser);
@@ -70,8 +34,24 @@ final class EditProfileControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('a[href$="/edit-profile/change-email"]'));
         self::assertCount(1, $crawler->filter('a[href$="/account/recent-activity"]'));
 
-        // ... and no #161 Auth0 reset-email form for a native account
-        self::assertCount(0, $crawler->filter('form[action="/en/change-password"]'));
+        // The danger zone names the address the deletion link goes to
+        self::assertStringContainsString($userAccount->email, $crawler->filter('#danger-zone')->text());
+    }
+
+    /**
+     * Fixture players carry auth0|... ids - accounts imported from Auth0. Their
+     * settings page must render just the same.
+     */
+    public function testImportedAuth0AccountGetsTheSameCards(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/edit-profile');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('a[href$="/edit-profile/change-email"]'));
+        self::assertCount(1, $crawler->filter('a[href$="/account/recent-activity"]'));
     }
 
     private function seedNativeAccount(KernelBrowser $browser): UserAccount

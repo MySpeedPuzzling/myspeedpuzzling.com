@@ -73,9 +73,9 @@ final readonly class RegisterWithOauthIdentityHandler
             throw new EmailAlreadyRegistered();
         }
 
-        // Same window-A guard as native registration: an Auth0 player without a
-        // user_account row yet must not get shadowed by a fresh social account
-        // on the same address (RegisterUserHandler has the full story)
+        // Same guard as native registration: a player without a user_account row
+        // must not get shadowed by a fresh social account on the same address
+        // (RegisterUserHandler has the full story)
         if ($this->playerRepository->findByEmail($email) !== null) {
             throw new EmailAlreadyRegistered();
         }

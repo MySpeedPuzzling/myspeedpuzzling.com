@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\EventSubscriber;
 
-use Auth0\Symfony\Models\Stateful\User as Auth0User;
-use Auth0\Symfony\Models\User as Auth0TestUser;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Bundle\OAuth2ServerBundle\Event\AuthorizationRequestResolveEvent;
 use League\Bundle\OAuth2ServerBundle\OAuth2Events;
@@ -45,12 +43,9 @@ final readonly class OAuth2AuthorizationSubscriber implements EventSubscriberInt
     public function onAuthorizationRequest(AuthorizationRequestResolveEvent $event): void
     {
         // User is guaranteed to be authenticated by the AuthorizationController's #[IsGranted] attribute.
-        // We get the user directly from the token storage to support both production Auth0 users
-        // and test users created via loginUser().
         $token = $this->tokenStorage->getToken();
         $user = $token?->getUser();
 
-        // Get player from the user (works with Auth0User, test User, and OAuth2User)
         $player = $user !== null ? $this->getPlayerFromUser($user) : null;
 
         if ($player === null) {
@@ -117,21 +112,9 @@ final readonly class OAuth2AuthorizationSubscriber implements EventSubscriberInt
 
     private function getPlayerFromUser(object $user): null|Player
     {
-        // Native account (window A onwards) — shares the user_id identity string with Player
+        // Shares the user_id identity string with Player
         if ($user instanceof UserAccount) {
             return $this->entityManager->getRepository(Player::class)->findOneBy(['userId' => $user->getUserIdentifier()]);
-        }
-
-        // Production Auth0 user (stateful)
-        if ($user instanceof Auth0User) {
-            $userId = $user->getUserIdentifier();
-            return $this->entityManager->getRepository(Player::class)->findOneBy(['userId' => $userId]);
-        }
-
-        // Test Auth0 user (from loginUser() in tests)
-        if ($user instanceof Auth0TestUser) {
-            $userId = $user->getUserIdentifier();
-            return $this->entityManager->getRepository(Player::class)->findOneBy(['userId' => $userId]);
         }
 
         if ($user instanceof OAuth2User) {

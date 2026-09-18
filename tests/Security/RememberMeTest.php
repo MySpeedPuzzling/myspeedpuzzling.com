@@ -20,10 +20,10 @@ use Symfony\Component\Security\Http\RememberMe\RememberMeDetails;
 /**
  * Always-on sliding 30-day remember-me on the main firewall (no checkbox).
  *
- * Several of these are regression guards for the interplay that kept
- * remember-me switched off until now: the window-era Auth0 authenticator fails
- * on every single request, and Symfony's stock RememberMeListener deletes the
- * cookie on every login failure. See MigrationWindowRememberMeListener.
+ * Several of these started as regression guards for the Auth0 migration window,
+ * when the Auth0 authenticator failed on every single request and Symfony's
+ * stock RememberMeListener deletes the cookie on every login failure. They stay:
+ * any authenticator that fails on plain page views would break them again.
  *
  * Seeded emails are randomized per run - the login rate limiter's cache is not
  * rolled back between tests or runs, so a reused address accumulates
@@ -79,10 +79,10 @@ final class RememberMeTest extends WebTestCase
     }
 
     /**
-     * The regression guard for the bug that blocked this feature: on every
-     * request after login the Auth0 authenticator fails (the session holds a
-     * native token, not Auth0 credentials), and core's listener would clear the
-     * cookie it had just issued - remember-me would never outlive one page view.
+     * The regression guard for the bug that once blocked this feature: an
+     * authenticator failing on every request after login (the migration-era
+     * Auth0 one did) makes core's listener clear the cookie it had just issued -
+     * remember-me would never outlive one page view.
      */
     public function testRememberMeCookieSurvivesLaterRequests(): void
     {
@@ -107,7 +107,7 @@ final class RememberMeTest extends WebTestCase
 
         self::assertNotNull(
             $browser->getCookieJar()->get(self::COOKIE_NAME),
-            'The Auth0 authenticator failing on a native session must not delete the remember-me cookie',
+            'A later page view must not delete the remember-me cookie',
         );
     }
 
@@ -143,9 +143,9 @@ final class RememberMeTest extends WebTestCase
         $browser->request('GET', '/en/puzzle');
         self::assertResponseIsSuccessful();
 
-        // #164: the Auth0 authenticator fails here too. A deletion cookie would
-        // both leak a Set-Cookie onto every anonymous page and make
-        // AnonymousCacheHeadersSubscriber bail out of shared caching.
+        // #164: a deletion cookie would both leak a Set-Cookie onto every
+        // anonymous page and make AnonymousCacheHeadersSubscriber bail out of
+        // shared caching.
         self::assertSame([], $browser->getResponse()->headers->getCookies());
 
         $cacheControl = (string) $browser->getResponse()->headers->get('Cache-Control');
@@ -161,8 +161,7 @@ final class RememberMeTest extends WebTestCase
         $this->submitLogin($browser, $email, self::PASSWORD);
         self::assertNotNull($browser->getCookieJar()->get(self::COOKIE_NAME));
 
-        // A real failed sign-in must still drop the cookie - only the Auth0
-        // authenticator's bookkeeping failures are exempt
+        // A real failed sign-in drops the cookie (core RememberMeListener)
         $this->submitLogin($browser, $email, 'wrong-password');
 
         self::assertNull($browser->getCookieJar()->get(self::COOKIE_NAME));
@@ -227,11 +226,11 @@ final class RememberMeTest extends WebTestCase
     }
 
     /**
-     * The remember-me handler is pinned to UserAccountProvider by
-     * RememberMeMigrationWindowPass. On the firewall's chain provider this case
-     * would fall through to the Auth0 provider, whose loadUserByIdentifier()
-     * json_decodes with JSON_THROW_ON_ERROR - an uncaught JsonException, i.e. a
-     * 500 on every page for up to 30 days.
+     * The remember-me handler loads through UserAccountProvider, which answers a
+     * missing account with UserNotFoundException - "invalid cookie, stay
+     * anonymous". During the migration window the firewall's chain provider fell
+     * through to the Auth0 provider here instead, whose JsonException was a 500
+     * on every page for up to 30 days.
      */
     public function testDeletedAccountWithAValidCookieDegradesToAnonymous(): void
     {
@@ -251,20 +250,6 @@ final class RememberMeTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertNull($browser->getContainer()->get(TokenStorageInterface::class)->getToken());
-    }
-
-    public function testLegacyAuth0SessionNeverGetsARememberMeCookie(): void
-    {
-        $browser = self::createClient();
-
-        TestingLogin::asAuth0Player($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $browser->request('GET', '/en/puzzle');
-        self::assertResponseIsSuccessful();
-
-        // The Auth0 authenticator issues no RememberMeBadge, so legacy sessions
-        // stay bound to their (shorter-lived) session cookie
-        self::assertNull($browser->getCookieJar()->get(self::COOKIE_NAME));
     }
 
     /**

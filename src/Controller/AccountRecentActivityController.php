@@ -9,7 +9,6 @@ use SpeedPuzzling\Web\Query\GetAuthAuditEvents;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -37,13 +36,8 @@ final class AccountRecentActivityController extends AbstractController
         name: 'account_recent_activity',
         methods: ['GET'],
     )]
-    public function __invoke(#[CurrentUser] UserInterface $user): Response
+    public function __invoke(#[CurrentUser] UserAccount $user): Response
     {
-        if (!$user instanceof UserAccount) {
-            // Window A: a legacy Auth0 session has no user_account row and thus no audit trail
-            return $this->redirectToRoute('edit_profile');
-        }
-
         return $this->render('account_recent_activity.html.twig', [
             'events' => $this->getAuthAuditEvents->recentForUserAccount($user->id->toString()),
         ]);

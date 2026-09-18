@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests;
 
-use Auth0\Symfony\Models\User;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
@@ -15,9 +14,9 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 readonly final class TestingLogin
 {
     /**
-     * Logs the player in with a native UserAccount session — the post-Stage-B
-     * default. The account row is created on first use because the next request's
-     * session refresh resolves the user from the database through the provider chain.
+     * Logs the player in with a UserAccount session. The account row is created on
+     * first use because the next request's session refresh resolves the user from
+     * the database through the user provider.
      */
     public static function asPlayer(KernelBrowser $browser, string $playerId, string $firewall = 'main'): void
     {
@@ -38,8 +37,8 @@ readonly final class TestingLogin
             );
 
             if (str_starts_with($player->userId, 'auth0|')) {
-                // Fixture players are pre-migration identities — mirror the state
-                // the Stage B import leaves behind (legacy flag + verified email)
+                // auth0|... fixture players stand for accounts imported from Auth0 -
+                // mirror the state the import left behind (legacy flag + verified email)
                 $userAccount->applyAuth0Import(
                     $userAccount->email,
                     null,
@@ -56,27 +55,5 @@ readonly final class TestingLogin
         }
 
         $browser->loginUser($userAccount, $firewall);
-    }
-
-    /**
-     * Logs the player in with a legacy Auth0 session — only for tests that
-     * exercise the window-A dual wiring. Dies with the Phase 6 decommission.
-     */
-    public static function asAuth0Player(KernelBrowser $browser, string $playerId, string $firewall = 'main'): void
-    {
-        $container = $browser->getContainer();
-
-        $repository = $container->get(PlayerRepository::class);
-        $player = $repository->get($playerId);
-
-        $auth0User = new User([
-            'user_id' => $player->userId,
-            'sub' => $player->userId,
-            'email' => $player->email,
-            'name' => $player->name,
-            'email_verified' => true,
-        ]);
-
-        $browser->loginUser($auth0User, $firewall);
     }
 }

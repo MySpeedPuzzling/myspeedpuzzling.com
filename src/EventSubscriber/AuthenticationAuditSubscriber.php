@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\EventSubscriber;
 
-use Auth0\Symfony\Security\Authenticator as Auth0Authenticator;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
-use SpeedPuzzling\Web\Security\MigrationWindowAuth0Authenticator;
-use Symfony\Component\HttpFoundation\Request;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
@@ -25,14 +22,13 @@ use Symfony\Component\Security\Http\Event\LogoutEvent;
 use Symfony\Component\Security\Http\SecurityRequestAttributes;
 
 /**
- * Audit trail for the native auth stack (issue #147, 2d): structured log lines
- * for login/logout on the main firewall, plus the user_account.last_login_at
- * write that drives the Phase 5 migration metrics ("has native activity" also
- * guards applyAuth0Import against stale re-imports regressing an account).
+ * Audit trail for sign-ins (issue #147, 2d): structured log lines for
+ * login/logout on the main firewall, plus the user_account.last_login_at write.
  *
- * Failures are logged only for the allowlisted native authenticators: during
- * window A the Auth0 authenticator fails on every anonymous request by design,
- * which would turn plain browsing into a warning flood.
+ * Failures are recorded only for the interactive sign-in authenticators (the
+ * password form, the sign-in link, the social callbacks) - those are the attempts
+ * the recent-activity page is about. A rejected remember-me cookie (expired,
+ * password changed since) is not somebody trying to get in.
  *
  * On top of the Monolog lines, every event lands in the auth_audit_log table
  * (RecordAuthAuditEvent) - the queryable per-user history behind the
@@ -42,9 +38,6 @@ use Symfony\Component\Security\Http\SecurityRequestAttributes;
 final readonly class AuthenticationAuditSubscriber implements EventSubscriberInterface
 {
     private const string MAIN_FIREWALL = 'main';
-
-    /** Marks a legacy Auth0 session whose sign-in has already been audited. */
-    private const string AUTH0_LOGIN_RECORDED_KEY = '_msp_auth0_login_recorded';
 
     public function __construct(
         private LoggerInterface $logger,
@@ -73,16 +66,11 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
         $authenticator = $event->getAuthenticator();
         $request = $event->getRequest();
 
-        if ($this->isAuth0SessionRefresh($authenticator, $request)) {
-            return;
-        }
-
         $signInLinkUsed = $authenticator instanceof LoginLinkAuthenticator;
 
         $this->logger->info('Login succeeded.', [
             'user_id' => $user->getUserIdentifier(),
             'authenticator' => $authenticator::class,
-            // Phase 5 exit-metric counter (grep/Sentry-aggregatable)
             'login_link_used' => $signInLinkUsed,
         ]);
 
@@ -173,55 +161,12 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
         ));
     }
 
-    /**
-     * The window-era Auth0 authenticator re-authenticates from the session on
-     * every single request, so LoginSuccessEvent fires on every page view of
-     * every legacy session rather than once when somebody signs in. In a 14-day
-     * production sample that was 30,339 of 32,408 "login" rows, produced by 140
-     * users - one every couple of minutes each.
-     *
-     * That buries the real sign-ins on /account/recent-activity, which exists so
-     * a user can spot a login that was not theirs, and writes an audit row (plus
-     * a last_login_at update) on every page view for those accounts.
-     *
-     * So record the first success of a session and treat the rest as what they
-     * are: refreshes, not logins. A genuine Auth0 sign-in still lands here,
-     * because it arrives on a session that has not been marked yet. Dies in
-     * Phase 6 with the authenticator it is about.
-     */
-    private function isAuth0SessionRefresh(AuthenticatorInterface $authenticator, Request $request): bool
-    {
-        if (
-            !$authenticator instanceof MigrationWindowAuth0Authenticator
-            && !$authenticator instanceof Auth0Authenticator
-        ) {
-            return false;
-        }
-
-        // An Auth0 login is a session by definition; without one there is nothing
-        // to mark and no way to tell a refresh from a sign-in, so stay quiet.
-        if (!$request->hasSession()) {
-            return true;
-        }
-
-        $session = $request->getSession();
-
-        if ($session->get(self::AUTH0_LOGIN_RECORDED_KEY) === true) {
-            return true;
-        }
-
-        $session->set(self::AUTH0_LOGIN_RECORDED_KEY, true);
-
-        return false;
-    }
-
     private static function authenticatorLabel(AuthenticatorInterface $authenticator): string
     {
         return match (true) {
             $authenticator instanceof LoginFormAuthenticator => 'form',
             $authenticator instanceof LoginLinkAuthenticator => 'login_link',
             $authenticator instanceof SocialLoginAuthenticator => $authenticator->provider()->authenticatorLabel(),
-            $authenticator instanceof \Auth0\Symfony\Security\Authenticator => 'auth0_fallback',
             default => strtolower(substr(strrchr($authenticator::class, '\\') ?: $authenticator::class, 1)),
         };
     }

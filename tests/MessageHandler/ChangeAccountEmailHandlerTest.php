@@ -101,7 +101,7 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
     public function testAddressOfLegacyPlayerWithoutAccountIsRejected(): void
     {
         $this->createUserAccountWithPassword('msp|chmail4', 'chmail.four@example.com', 'passphrase-4');
-        // Window A: an Auth0 identity not imported yet - player row, no user_account
+        // A player row without a user_account (an Auth0-era leftover)
         $this->createPlayer('auth0|chmail4-legacy', 'chmail4legacy', 'Chmail.Legacy@Example.com');
         $this->entityManager->flush();
 

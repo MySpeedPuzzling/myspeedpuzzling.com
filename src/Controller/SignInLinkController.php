@@ -18,10 +18,9 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * "Email me a sign-in link" (D6, issue #147). Live from Stage A: it is the
- * rescue both for users whose password manager filed the credential under the
- * Auth0 domain and for window-A native registrants who log out while /login
- * still points at Auth0.
+ * "Email me a sign-in link" (D6, issue #147): the rescue for everybody without
+ * a usable password - forgotten, or filed by their password manager under the
+ * old Auth0 sign-in domain.
  *
  * The answer is the same whether or not the address has an account - the page
  * never reveals who is registered (D8 enumeration tradeoff).

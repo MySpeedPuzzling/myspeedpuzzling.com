@@ -20,8 +20,6 @@ use Stripe\Service\SubscriptionService;
 use Stripe\StripeClient;
 use Stripe\Subscription;
 use Symfony\Component\Clock\MockClock;
-use Symfony\Component\Lock\LockFactory;
-use Symfony\Component\Lock\Store\InMemoryStore;
 
 final class UpdateMembershipSubscriptionHandlerTest extends TestCase
 {
@@ -72,7 +70,6 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             stripeClient: $stripeClient,
             membershipRepository: $membershipRepository,
             logger: new NullLogger(),
-            lockFactory: new LockFactory(new InMemoryStore()),
             playerRepository: $playerRepository,
             clock: new MockClock(),
         );
@@ -154,7 +151,6 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             stripeClient: $stripeClient,
             membershipRepository: $membershipRepository,
             logger: new NullLogger(),
-            lockFactory: new LockFactory(new InMemoryStore()),
             playerRepository: $playerRepository,
             clock: new MockClock(),
         );
@@ -242,7 +238,6 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             stripeClient: $stripeClient,
             membershipRepository: $membershipRepository,
             logger: new NullLogger(),
-            lockFactory: new LockFactory(new InMemoryStore()),
             playerRepository: $playerRepository,
             clock: new MockClock(),
         );
@@ -357,7 +352,6 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             stripeClient: $stripeClient,
             membershipRepository: $membershipRepository,
             logger: new NullLogger(),
-            lockFactory: new LockFactory(new InMemoryStore()),
             playerRepository: $this->createStub(PlayerRepository::class),
             clock: new MockClock(),
         );

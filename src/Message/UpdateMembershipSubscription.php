@@ -4,11 +4,22 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Message;
 
-readonly final class UpdateMembershipSubscription
+use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
+
+readonly final class UpdateMembershipSubscription implements SerializedByLock
 {
     public function __construct(
         public string $stripeSubscriptionId,
         public bool $isPaymentConfirmed = false,
     ) {
+    }
+
+    /**
+     * Shared with CancelMembershipSubscription and TerminateMembershipDueToDisputeHandler,
+     * so nothing else touches the subscription's membership at the same time.
+     */
+    public function lockKey(): string
+    {
+        return 'stripe-subscription-' . $this->stripeSubscriptionId;
     }
 }

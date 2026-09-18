@@ -10,9 +10,11 @@ use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
-use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
+/**
+ * Serialized per subscription by the message lock (CancelMembershipSubscription is SerializedByLock).
+ */
 #[AsMessageHandler]
 readonly final class CancelMembershipSubscriptionHandler
 {
@@ -20,16 +22,12 @@ readonly final class CancelMembershipSubscriptionHandler
         private MembershipRepository $membershipRepository,
         private PlayerRepository $playerRepository,
         private ClockInterface $clock,
-        private LockFactory $lockFactory,
         private LoggerInterface $logger,
     ) {
     }
 
     public function __invoke(CancelMembershipSubscription $message): void
     {
-        $lock = $this->lockFactory->createLock('stripe-subscription-' . $message->stripeSubscriptionId);
-        $lock->acquire(blocking: true);
-
         try {
             $membership = $this->membershipRepository->getByStripeSubscriptionId($message->stripeSubscriptionId);
         } catch (MembershipNotFound) {
@@ -37,7 +35,6 @@ readonly final class CancelMembershipSubscriptionHandler
                 'subscription_id' => $message->stripeSubscriptionId,
             ]);
 
-            $lock->release();
             return;
         }
 
@@ -49,7 +46,6 @@ readonly final class CancelMembershipSubscriptionHandler
                 'membership_id' => $membership->id->toString(),
             ]);
 
-            $lock->release();
             return;
         }
 
@@ -65,7 +61,5 @@ readonly final class CancelMembershipSubscriptionHandler
                 'subscription_id' => $message->stripeSubscriptionId,
             ]);
         }
-
-        $lock->release();
     }
 }

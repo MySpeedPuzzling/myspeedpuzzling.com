@@ -16,9 +16,13 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Stripe\Exception\ApiErrorException;
 use Stripe\StripeClient;
 use Stripe\Subscription;
-use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
+/**
+ * Serialized per subscription by the message lock (UpdateMembershipSubscription is
+ * SerializedByLock): a new subscription is announced by several webhooks and the
+ * checkout-success page at once.
+ */
 #[AsMessageHandler]
 readonly final class UpdateMembershipSubscriptionHandler
 {
@@ -26,7 +30,6 @@ readonly final class UpdateMembershipSubscriptionHandler
         private StripeClient $stripeClient,
         private MembershipRepository $membershipRepository,
         private LoggerInterface $logger,
-        private LockFactory $lockFactory,
         private PlayerRepository $playerRepository,
         private ClockInterface $clock,
     ) {
@@ -34,9 +37,6 @@ readonly final class UpdateMembershipSubscriptionHandler
 
     public function __invoke(UpdateMembershipSubscription $message): void
     {
-        $lock = $this->lockFactory->createLock('stripe-subscription-' . $message->stripeSubscriptionId);
-        $lock->acquire(blocking: true);
-
         $subscriptionId = $message->stripeSubscriptionId;
         $subscription = $this->retrieveSubscriptionWithRetry($subscriptionId);
 
@@ -48,7 +48,6 @@ readonly final class UpdateMembershipSubscriptionHandler
                 'pause_behavior' => $subscription->pause_collection->behavior ?? null,
                 'resumes_at' => $subscription->pause_collection->resumes_at ?? null,
             ]);
-            $lock->release();
 
             return;
         }
@@ -137,8 +136,6 @@ readonly final class UpdateMembershipSubscriptionHandler
                 $this->membershipRepository->save($membership);
             }
         }
-
-        $lock->release();
     }
 
     private function retrieveSubscriptionWithRetry(string $subscriptionId): \Stripe\Subscription

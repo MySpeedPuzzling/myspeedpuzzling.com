@@ -38,11 +38,15 @@ readonly final class GetSubscribedPlayers
             return [];
         }
 
+        // jsonb ?| = "has any of these strings as an array element", served by the GIN index
+        // custom_player_favorite_players_gin (Version20260918171659). One row per player by
+        // construction, so no DISTINCT. Written ??| because a lone ? is a PDO placeholder:
+        // DBAL leaves ?? alone and PDO sends it to PostgreSQL as a literal ?. The function
+        // form jsonb_exists_any() is equivalent but the planner never uses the index for it.
         $query = <<<SQL
-SELECT DISTINCT p.id
+SELECT p.id
 FROM player p
-JOIN LATERAL json_array_elements_text(p.favorite_players) as fav(uuid)
-ON fav.uuid IN (:playerIds)
+WHERE p.favorite_players::jsonb ??| ARRAY[:playerIds]::text[]
 SQL;
 
         /**

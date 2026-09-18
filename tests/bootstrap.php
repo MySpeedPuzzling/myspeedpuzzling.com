@@ -186,6 +186,9 @@ function createCustomIndexes(): void
     // Case-insensitive unique email for native auth (Version20260724073022)
     $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_user_account_email_lower ON user_account (lower(email))');
 
+    // Followers lookup on player favorites (Version20260918171659)
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_player_favorite_players_gin ON player USING GIN ((favorite_players::jsonb))');
+
 }
 
 /**

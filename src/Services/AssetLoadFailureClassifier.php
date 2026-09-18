@@ -83,6 +83,16 @@ final readonly class AssetLoadFailureClassifier
             return AssetLoadFailureVerdict::BlockedInBrowser;
         }
 
+        // Same conclusion when the refetch never got an answer at all, once a heal
+        // already ran: every heal reloaded the page from this very origin a moment
+        // ago, so the network is up - yet a fetch of a file this release serves
+        // fails outright, every time. The browser refuses the request itself (the
+        // Chrome/118 scraper, Sentry WEB-CC). Before any heal it may still be a
+        // flaky connection, so that case stays actionable.
+        if ($report->refetch === 'unreachable' && $report->retry && !$report->serviceWorkerControlled) {
+            return AssetLoadFailureVerdict::BlockedInBrowser;
+        }
+
         return AssetLoadFailureVerdict::HealFailed;
     }
 

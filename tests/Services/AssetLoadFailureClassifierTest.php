@@ -188,11 +188,29 @@ final class AssetLoadFailureClassifierTest extends TestCase
         self::assertTrue($verdict->isActionable());
     }
 
+    /**
+     * Sentry WEB-CC: the Chrome/118 scraper blocks fetch() as well. The heals
+     * reloaded its page from this origin, yet the file it serves never arrives.
+     */
+    public function testStillBrokenAfterAHealWithTheRefetchRefusedAndNoServiceWorkerIsBlockedInTheBrowser(): void
+    {
+        $verdict = $this->classifier->classify($this->report(self::SERVED, healing: false, refetch: 'unreachable', retry: true, controlled: false));
+
+        self::assertSame(AssetLoadFailureVerdict::BlockedInBrowser, $verdict);
+        self::assertFalse($verdict->isActionable());
+    }
+
     public function testStillBrokenWhenTheRefetchCouldNotVerifyIsActionable(): void
     {
+        // No heal ran yet - an unanswered refetch may be a flaky connection
         self::assertSame(
             AssetLoadFailureVerdict::HealFailed,
-            $this->classifier->classify($this->report(self::SERVED, healing: false, refetch: 'unreachable', retry: true, controlled: false)),
+            $this->classifier->classify($this->report(self::SERVED, healing: false, refetch: 'unreachable', retry: false, controlled: false)),
+        );
+        // Under the service worker the worker itself may be what fails the fetch
+        self::assertSame(
+            AssetLoadFailureVerdict::HealFailed,
+            $this->classifier->classify($this->report(self::SERVED, healing: false, refetch: 'unreachable', retry: true, controlled: true)),
         );
         self::assertSame(
             AssetLoadFailureVerdict::HealFailed,

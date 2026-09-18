@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Security;
 
-use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
-use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Query\GetCompetitionPermissions;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
@@ -20,7 +19,7 @@ final class CompetitionDeleteVoter extends Voter
 
     public function __construct(
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        private readonly CompetitionRepository $competitionRepository,
+        private readonly GetCompetitionPermissions $getCompetitionPermissions,
     ) {
     }
 
@@ -41,26 +40,7 @@ final class CompetitionDeleteVoter extends Voter
             return true;
         }
 
-        try {
-            $competition = $this->competitionRepository->get($subject);
-        } catch (CompetitionNotFound) {
-            return false;
-        }
-
-        $playerId = $profile->playerId;
-
-        if ($competition->addedByPlayer !== null && $competition->addedByPlayer->id->toString() === $playerId) {
-            return true;
-        }
-
-        if (
-            $competition->series !== null
-            && $competition->series->addedByPlayer !== null
-            && $competition->series->addedByPlayer->id->toString() === $playerId
-        ) {
-            return true;
-        }
-
-        return false;
+        // The competition's creator, or the creator of its series
+        return $this->getCompetitionPermissions->forPlayer($profile->playerId)->canDeleteCompetition($subject);
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Security;
 
-use SpeedPuzzling\Web\Query\IsCompetitionMaintainer;
+use SpeedPuzzling\Web\Query\GetCompetitionPermissions;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
@@ -19,7 +19,7 @@ final class CompetitionEditVoter extends Voter
 
     public function __construct(
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        private readonly IsCompetitionMaintainer $isCompetitionMaintainer,
+        private readonly GetCompetitionPermissions $getCompetitionPermissions,
     ) {
     }
 
@@ -40,6 +40,6 @@ final class CompetitionEditVoter extends Voter
             return true;
         }
 
-        return $this->isCompetitionMaintainer->check($subject, $profile->playerId);
+        return $this->getCompetitionPermissions->forPlayer($profile->playerId)->canEditCompetition($subject);
     }
 }

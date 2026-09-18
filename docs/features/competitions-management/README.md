@@ -305,7 +305,7 @@ All emails use the `transactional` mailer transport and follow the standard Inky
 10. **Series get their own listing section** — `CompetitionSeries` appear in a dedicated "Recurring" section; editions are excluded from Live/Upcoming/Past
 11. **Online and offline are mutually exclusive** — one competition cannot be both; users create separate events. Both types can be recurring.
 12. **Series editions don't need individual approval** — the series approval controls visibility for all editions
-13. **Series maintainers manage all editions** — `IsCompetitionMaintainer` checks series maintainers for edition-level operations
+13. **Series maintainers manage all editions** — `GetCompetitionPermissions` (behind `CompetitionEditVoter`) counts series owners and maintainers for edition-level operations. It loads everything the player may manage in one query per request, because the event listings ask the voters about every card they render
 14. **Each edition is a full Competition** — has its own participants, rounds, registration/results links
 15. **Editions never auto-create rounds** — the edition form creates only the Competition, rounds are always managed separately via the round management UI
 16. **Round category defaults to solo** — existing rounds get `solo` category via migration default

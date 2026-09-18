@@ -64,9 +64,17 @@ final class PlayerStatisticsController extends AbstractController
             return $this->redirectToRoute('player_profile', ['playerId' => $player->playerId]);
         }
 
-        $year = $request->query->getInt('year');
-        $month = $request->query->getInt('month');
-        $activeShowAll = $request->query->getBoolean('show-all');
+        $year = $this->intQueryParameter($request, 'year');
+        $month = $this->intQueryParameter($request, 'month');
+        $activeShowAll = $this->boolQueryParameter($request, 'show-all');
+
+        // Our own period dropdown only ever links numbers and "1". A value that does not parse is
+        // someone else's URL - in practice vulnerability scanners appending SQL/template injection
+        // payloads (?show-all=1' AND 1=1..., ?year=${7*7}). getInt()/getBoolean() answered those with
+        // a 400 logged as an uncaught error; send them to the canonical page like an out-of-range period.
+        if ($year === null || $month === null || $activeShowAll === null) {
+            return $this->redirectToRoute('player_statistics', ['playerId' => $playerId]);
+        }
 
         $months = [];
         $years = [];
@@ -120,6 +128,38 @@ final class PlayerStatisticsController extends AbstractController
             'date_from' => $dateFrom,
             'date_to' => $dateTo,
         ]);
+    }
+
+    /**
+     * 0 when the parameter is missing or empty, null when it is present but not an integer.
+     */
+    private function intQueryParameter(Request $request, string $key): null|int
+    {
+        $value = $request->query->all()[$key] ?? '';
+
+        if ($value === '') {
+            return 0;
+        }
+
+        if (!is_string($value)) {
+            return null;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE);
+    }
+
+    /**
+     * false when the parameter is missing, null when it is present but not a boolean.
+     */
+    private function boolQueryParameter(Request $request, string $key): null|bool
+    {
+        $value = $request->query->all()[$key] ?? '';
+
+        if (!is_string($value)) {
+            return null;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
     }
 
     /**

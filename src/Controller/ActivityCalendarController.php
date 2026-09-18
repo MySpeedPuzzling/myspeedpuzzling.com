@@ -46,8 +46,10 @@ final class ActivityCalendarController extends AbstractController
         $currentYear = (int) $now->format('Y');
         $currentMonth = (int) $now->format('m');
 
-        $year = $request->query->getInt('year');
-        $month = $request->query->getInt('month');
+        // Not getInt(): it answers a malformed value (?year=2025' - vulnerability scanners probe
+        // these) with a 400 logged as an uncaught error. Malformed falls back like out-of-range.
+        $year = $this->intQueryParameter($request, 'year') ?? $currentYear;
+        $month = $this->intQueryParameter($request, 'month') ?? $currentMonth;
 
         if ($year < 2015 || $year > $currentYear) {
             $year = $currentYear;
@@ -62,5 +64,16 @@ final class ActivityCalendarController extends AbstractController
             'year' => $year,
             'month' => $month,
         ]);
+    }
+
+    private function intQueryParameter(Request $request, string $key): null|int
+    {
+        $value = $request->query->all()[$key] ?? null;
+
+        if (!is_string($value)) {
+            return null;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE);
     }
 }

@@ -1,6 +1,6 @@
 # Round Results Pages — Plan
 
-**Status:** phase 1a implemented (2026-09-17) — round pages, derived round links, reconciler, slugs, per-round official results link. Phase 1b (entering unfinished results) not started.
+**Status:** phase 1a implemented (2026-09-17) — round pages, derived round links, reconciler, slugs, per-round official results link. Phase 1b (entering unfinished results) not started — **its refined plan is [unfinished-results-plan.md](unfinished-results-plan.md) (2026-09-18), which supersedes the "Unfinished results" and "How unfinished results appear elsewhere" sections below** (notably: counts are *not* protected by `seconds_to_solve` alone, and an unfinished result is proposed to not count as a solve).
 
 ## Goal
 

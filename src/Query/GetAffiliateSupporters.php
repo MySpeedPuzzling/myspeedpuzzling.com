@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 
 readonly final class GetAffiliateSupporters
 {
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -32,6 +34,8 @@ SQL;
         ]);
         $totalCount = (int) $totalResult;
 
+        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
+
         $publicQuery = <<<SQL
 SELECT
     p.id AS player_id,
@@ -42,6 +46,7 @@ FROM referral r
 JOIN player p ON p.id = r.subscriber_id
 WHERE r.affiliate_player_id = :playerId
     AND p.is_private = false
+    {$notHidden}
 ORDER BY r.created_at DESC
 SQL;
 

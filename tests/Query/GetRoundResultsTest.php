@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\TestingViewer;
 use SpeedPuzzling\Web\Value\RoundResultStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -92,6 +93,82 @@ final class GetRoundResultsTest extends KernelTestCase
         $this->database->executeStatement('UPDATE puzzle_solving_time SET suspicious = true WHERE id = :id', ['id' => PuzzleSolvingTimeFixture::TIME_11]);
 
         self::assertSame([PuzzleSolvingTimeFixture::TIME_09], $this->timeIds($this->results(viewerPlayerId: null)));
+    }
+
+    public function testBlockedPlayersResultIsHiddenFromTheBlockerOnly(): void
+    {
+        $this->block(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_ADMIN);
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+        self::assertSame(
+            [PuzzleSolvingTimeFixture::TIME_09],
+            $this->timeIds($this->results(viewerPlayerId: PlayerFixture::PLAYER_REGULAR)),
+        );
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertSame(
+            [PuzzleSolvingTimeFixture::TIME_11, PuzzleSolvingTimeFixture::TIME_09],
+            $this->timeIds($this->results(viewerPlayerId: PlayerFixture::PLAYER_WITH_FAVORITES)),
+        );
+
+        TestingViewer::signOut(self::getContainer());
+        self::assertSame(
+            [PuzzleSolvingTimeFixture::TIME_11, PuzzleSolvingTimeFixture::TIME_09],
+            $this->timeIds($this->results(viewerPlayerId: null)),
+        );
+    }
+
+    public function testGroupWithABlockedMemberIsHiddenUnlessTheViewerTookPart(): void
+    {
+        $this->block(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->makeGroupTime(PuzzleSolvingTimeFixture::TIME_11, [PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_WITH_STRIPE]);
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+        self::assertSame(
+            [PuzzleSolvingTimeFixture::TIME_09],
+            $this->timeIds($this->results(viewerPlayerId: PlayerFixture::PLAYER_REGULAR)),
+        );
+
+        TestingViewer::signOut(self::getContainer());
+        self::assertSame(
+            [PuzzleSolvingTimeFixture::TIME_11, PuzzleSolvingTimeFixture::TIME_09],
+            $this->timeIds($this->results(viewerPlayerId: null)),
+        );
+
+        $this->makeGroupTime(
+            PuzzleSolvingTimeFixture::TIME_11,
+            [PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_REGULAR],
+        );
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+        self::assertContains(
+            PuzzleSolvingTimeFixture::TIME_11,
+            $this->timeIds($this->results(viewerPlayerId: PlayerFixture::PLAYER_REGULAR)),
+        );
+    }
+
+    private function block(string $blockerId, string $blockedId): void
+    {
+        $this->database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
+        );
+    }
+
+    /**
+     * @param list<string> $playerIds
+     */
+    private function makeGroupTime(string $timeId, array $playerIds): void
+    {
+        $puzzlers = array_map(
+            static fn (string $playerId): array => ['player_id' => $playerId, 'player_name' => null],
+            $playerIds,
+        );
+
+        $this->database->executeStatement(
+            'UPDATE puzzle_solving_time SET team = :team WHERE id = :id',
+            ['team' => json_encode(['team_id' => null, 'puzzlers' => $puzzlers], JSON_THROW_ON_ERROR), 'id' => $timeId],
+        );
     }
 
     /**

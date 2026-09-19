@@ -33,7 +33,9 @@ final class ActivityCalendarControllerTest extends WebTestCase
     {
         $browser = self::createClient();
 
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        // Not PLAYER_REGULAR: they block PLAYER_PRIVATE (UserBlockFixture), who then does not exist for them
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
         $browser->request('GET', '/en/activity-calendar/' . PlayerFixture::PLAYER_PRIVATE);
 

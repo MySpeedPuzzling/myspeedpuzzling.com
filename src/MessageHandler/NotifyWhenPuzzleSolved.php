@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Events\PuzzleSolved;
 use SpeedPuzzling\Web\Query\GetSubscribedPlayers;
+use SpeedPuzzling\Web\Query\GetUserBlocks;
 use SpeedPuzzling\Web\Repository\NotificationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
@@ -20,6 +21,7 @@ readonly final class NotifyWhenPuzzleSolved
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         private PlayerRepository $playerRepository,
         private GetSubscribedPlayers $getSubscribedPlayers,
+        private GetUserBlocks $getUserBlocks,
         private NotificationRepository $notificationRepository,
         private ClockInterface $clock,
     ) {
@@ -54,6 +56,17 @@ readonly final class NotifyWhenPuzzleSolved
 
         // One subscriber gets one notification, however many of the team they follow
         $subscribedPlayerIds = $this->getSubscribedPlayers->ofPlayers($solvingPlayerIds);
+
+        if ($subscribedPlayerIds === []) {
+            return;
+        }
+
+        // Nothing is created about a player for someone who blocks them - the notification shows
+        // every member of the group, private or not
+        $subscribedPlayerIds = array_values(array_diff(
+            $subscribedPlayerIds,
+            $this->getUserBlocks->blockersOf($solvingTime->memberPlayerIds()),
+        ));
 
         if ($subscribedPlayerIds === []) {
             return;

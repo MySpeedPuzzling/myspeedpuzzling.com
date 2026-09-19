@@ -6,12 +6,14 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\FeatureRequestOverview;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\FeatureRequestStatus;
 
 readonly final class GetFeatureRequests
 {
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -36,7 +38,13 @@ readonly final class GetFeatureRequests
             $params['authorId'] = $authorId;
         }
 
-        $where = $whereClauses !== [] ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
+        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
+
+        if ($whereClauses === [] && $notHidden !== '') {
+            $whereClauses[] = '1 = 1';
+        }
+
+        $where = ($whereClauses !== [] ? 'WHERE ' . implode(' AND ', $whereClauses) : '') . $notHidden;
 
         $statusOrder = "CASE fr.status WHEN 'in_progress' THEN 1 WHEN 'open' THEN 2 WHEN 'declined' THEN 3 WHEN 'completed' THEN 4 ELSE 5 END";
 

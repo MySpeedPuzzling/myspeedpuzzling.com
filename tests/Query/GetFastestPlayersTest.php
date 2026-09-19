@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Query;
 
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetFastestPlayers;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestingViewer;
 use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -149,5 +151,36 @@ final class GetFastestPlayersTest extends KernelTestCase
         self::assertNull($standalone->competitionSeriesName);
         self::assertNull($standalone->competitionSeriesShortcut);
         self::assertNull($standalone->competitionSeriesSlug);
+    }
+
+    public function testBlockedPlayerIsLeftOutAndTheListClosesUp(): void
+    {
+        $everyone = array_map(static fn ($r) => $r->playerId, $this->query->perPiecesCount(500, 100, null));
+        self::assertContains(PlayerFixture::PLAYER_ADMIN, $everyone);
+        self::assertGreaterThan(2, count($everyone));
+
+        $this->block(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_ADMIN);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+
+        $visible = array_map(static fn ($r) => $r->playerId, $this->query->perPiecesCount(500, 100, null));
+        self::assertSame(
+            array_values(array_diff($everyone, [PlayerFixture::PLAYER_ADMIN])),
+            $visible,
+        );
+
+        // The limit applies after the filter: the next player moves up instead of leaving a hole
+        $topTwo = array_map(static fn ($r) => $r->playerId, $this->query->perPiecesCount(500, 2, null));
+        self::assertSame(array_slice($visible, 0, 2), $topTwo);
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertSame($everyone, array_map(static fn ($r) => $r->playerId, $this->query->perPiecesCount(500, 100, null)));
+    }
+
+    private function block(string $blockerId, string $blockedId): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
+        );
     }
 }

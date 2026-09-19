@@ -9,12 +9,14 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\SkillTier;
 
 readonly final class GetPuzzleSolvers
 {
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -27,6 +29,8 @@ readonly final class GetPuzzleSolvers
         if (Uuid::isValid($puzzleId) === false) {
             throw new PuzzleNotFound();
         }
+
+        $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
 
         $query = <<<SQL
 SELECT
@@ -60,6 +64,7 @@ WHERE puzzle_solving_time.puzzle_id = :puzzleId
     AND puzzle_solving_time.puzzling_type = 'solo'
     AND puzzle_solving_time.seconds_to_solve IS NOT NULL
     AND puzzle_solving_time.suspicious = false
+    {$notHidden}
 ORDER BY seconds_to_solve ASC
 SQL;
 
@@ -114,6 +119,8 @@ SQL;
             throw new PuzzleNotFound();
         }
 
+        $notHidden = $this->hiddenPlayers->sqlExcludeTeam('pst.team');
+
         $query = <<<SQL
 SELECT
     pst.id AS time_id,
@@ -156,6 +163,7 @@ WHERE
     AND pst.puzzling_type = 'duo'
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.suspicious = false
+    {$notHidden}
 GROUP BY
     pst.id, time, competition.id, cs.id
 ORDER BY time ASC
@@ -205,6 +213,8 @@ SQL;
             throw new PuzzleNotFound();
         }
 
+        $notHidden = $this->hiddenPlayers->sqlExcludeTeam('pst.team');
+
         $query = <<<SQL
 SELECT
     pst.id AS time_id,
@@ -247,6 +257,7 @@ WHERE
     AND pst.puzzling_type = 'team'
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.suspicious = false
+    {$notHidden}
 GROUP BY
     pst.id, time, competition.id, cs.id
 ORDER BY time ASC

@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Results\PlayerRanking;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use Symfony\Contracts\Service\ResetInterface;
 
 final class GetRanking implements ResetInterface
@@ -23,6 +24,7 @@ final class GetRanking implements ResetInterface
     public function __construct(
         private readonly Connection $database,
         private readonly ClockInterface $clock,
+        private readonly HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -39,6 +41,8 @@ final class GetRanking implements ResetInterface
         if (isset($this->allForPlayerCache[$playerId])) {
             return $this->allForPlayerCache[$playerId];
         }
+
+        $notHidden = $this->hiddenPlayers->sqlExclude('pl.id');
 
         $query = <<<SQL
 WITH PlayerPuzzles AS (
@@ -63,6 +67,7 @@ BestTimes AS (
         pst.puzzling_type = 'solo'
         AND pst.seconds_to_solve IS NOT NULL
         AND (pl.is_private = false OR pl.id = :playerId)
+        {$notHidden}
     GROUP BY
         pst.puzzle_id, pst.player_id
 ),
@@ -153,6 +158,8 @@ SQL;
             return $this->ofPuzzleForPlayerCache[$cacheKey];
         }
 
+        $notHidden = $this->hiddenPlayers->sqlExclude('pl.id');
+
         $query = <<<SQL
 WITH BestTimes AS (
     SELECT
@@ -166,6 +173,7 @@ WITH BestTimes AS (
         AND pst.puzzle_id = :puzzleId
         AND pst.seconds_to_solve IS NOT NULL
         AND (pl.is_private = false OR pl.id = :playerId)
+        {$notHidden}
     GROUP BY
         pst.puzzle_id, pst.player_id
 ),

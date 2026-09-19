@@ -207,14 +207,14 @@ final class PlayerResultsInsightsEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->path(PlayerFixture::PLAYER_WITH_STRIPE));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 8, 'non-member authorization-code token (statistics, profile)');
+        $this->assertQueryCountAtMost($browser, 9, 'non-member authorization-code token (statistics, profile)');
 
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['results:read']);
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->path(PlayerFixture::PLAYER_REGULAR));
         $this->assertResponseIsSuccessful();
         $this->assertSame(17, $this->decode($browser)['count']);
-        $this->assertQueryCountAtMost($browser, 9, 'member authorization-code token (statistics, profile, difficulty)');
+        $this->assertQueryCountAtMost($browser, 10, 'member authorization-code token (statistics, profile, difficulty)');
         $atSeventeen = $this->queryCount($browser);
 
         // the same member token on a shorter list: the same cost

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserBlock;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -19,6 +19,7 @@ readonly final class BlockUserHandler
     public function __construct(
         private PlayerRepository $playerRepository,
         private UserBlockRepository $userBlockRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -30,17 +31,24 @@ readonly final class BlockUserHandler
         $blocker = $this->playerRepository->get($message->blockerId);
         $blocked = $this->playerRepository->get($message->blockedId);
 
-        // Check if block already exists - idempotent
+        if ($blocker->id->equals($blocked->id)) {
+            return;
+        }
+
+        // Idempotent - and an admin-imposed block stays what it is (see docs/features/player-blocklist.md)
         $existingBlock = $this->userBlockRepository->findByBlockerAndBlocked($blocker, $blocked);
         if ($existingBlock !== null) {
             return;
         }
 
+        // Only the blocker's side: touching the blocked player's favourites would give the block away
+        $blocker->discardFavoritePlayerId($blocked->id->toString());
+
         $userBlock = new UserBlock(
             id: Uuid::uuid7(),
             blocker: $blocker,
             blocked: $blocked,
-            blockedAt: new DateTimeImmutable(),
+            blockedAt: $this->clock->now(),
         );
 
         $this->userBlockRepository->save($userBlock);

@@ -6,12 +6,17 @@ namespace SpeedPuzzling\Web\Tests\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Results\SolvedPuzzleOverview;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\TestingViewer;
+use SpeedPuzzling\Web\Value\Puzzler;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -273,5 +278,91 @@ final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
             self::assertNotNull($solvedPuzzle->players);
             self::assertCount(2, $solvedPuzzle->players);
         }
+    }
+
+    public function testGroupTimesWithAHiddenMemberAreDroppedForTheBlockerOnly(): void
+    {
+        // TIME_12 and TIME_41: PLAYER_REGULAR together with PLAYER_PRIVATE
+        $this->block(PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_PRIVATE);
+
+        self::assertContains(PuzzleSolvingTimeFixture::TIME_12, $this->groupTimeIdsOf(PlayerFixture::PLAYER_REGULAR));
+        self::assertContains(PuzzleFixture::PUZZLE_1000_03, $this->puzzleIdsOf(PlayerFixture::PLAYER_REGULAR));
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertContains(PuzzleSolvingTimeFixture::TIME_12, $this->groupTimeIdsOf(PlayerFixture::PLAYER_REGULAR));
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_ADMIN);
+        $filtered = $this->groupTimeIdsOf(PlayerFixture::PLAYER_REGULAR);
+        self::assertNotContains(PuzzleSolvingTimeFixture::TIME_12, $filtered);
+        self::assertNotContains(PuzzleSolvingTimeFixture::TIME_41, $filtered);
+        // PUZZLE_1000_03 was solved in that group only
+        self::assertNotContains(PuzzleFixture::PUZZLE_1000_03, $this->puzzleIdsOf(PlayerFixture::PLAYER_REGULAR));
+        self::assertContains(PuzzleFixture::PUZZLE_500_01, $this->puzzleIdsOf(PlayerFixture::PLAYER_REGULAR));
+        self::assertNull($this->query->byPuzzleIdAndPlayerId(PuzzleFixture::PUZZLE_1000_03, PlayerFixture::PLAYER_REGULAR));
+        self::assertNotEmpty($this->query->soloByPlayerId(PlayerFixture::PLAYER_REGULAR));
+
+        $this->expectException(PuzzleSolvingTimeNotFound::class);
+        $this->query->byTimeId(PuzzleSolvingTimeFixture::TIME_12);
+    }
+
+    public function testViewersOwnGroupTimesWithAHiddenMemberStay(): void
+    {
+        // UserBlockFixture: PLAYER_REGULAR blocks PLAYER_PRIVATE, the partner of TIME_12 and TIME_41
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+
+        $own = $this->groupTimeIdsOf(PlayerFixture::PLAYER_REGULAR);
+        self::assertContains(PuzzleSolvingTimeFixture::TIME_12, $own);
+        self::assertContains(PuzzleSolvingTimeFixture::TIME_41, $own);
+        self::assertNotNull($this->query->byPuzzleIdAndPlayerId(PuzzleFixture::PUZZLE_1000_03, PlayerFixture::PLAYER_REGULAR));
+
+        $detail = $this->query->byTimeId(PuzzleSolvingTimeFixture::TIME_12);
+        self::assertTrue(Puzzler::listContainsPlayer($detail->players, PlayerFixture::PLAYER_PRIVATE));
+
+        foreach ($this->query->duoByPlayerId(PlayerFixture::PLAYER_REGULAR) as $time) {
+            self::assertNotNull($time->players, 'Members of the own group time are still loaded');
+        }
+    }
+
+    public function testSoloTimeOfAHiddenPlayerIsNotFound(): void
+    {
+        // TIME_02 is a solo time of PLAYER_PRIVATE
+        self::assertSame(PlayerFixture::PLAYER_PRIVATE, $this->query->byTimeId(PuzzleSolvingTimeFixture::TIME_02)->playerId);
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+
+        self::assertSame([], $this->query->soloByPlayerId(PlayerFixture::PLAYER_PRIVATE));
+
+        $this->expectException(PuzzleSolvingTimeNotFound::class);
+        $this->query->byTimeId(PuzzleSolvingTimeFixture::TIME_02);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function puzzleIdsOf(string $playerId): array
+    {
+        return array_values(array_map(
+            static fn (SolvedPuzzleOverview $puzzle): string => $puzzle->puzzleId,
+            $this->query->allByPlayerId($playerId),
+        ));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function groupTimeIdsOf(string $playerId): array
+    {
+        return array_values(array_map(
+            static fn ($time): string => $time->timeId,
+            [...$this->query->duoByPlayerId($playerId), ...$this->query->teamByPlayerId($playerId)],
+        ));
+    }
+
+    private function block(string $blockerId, string $blockedId): void
+    {
+        $this->database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
+        );
     }
 }

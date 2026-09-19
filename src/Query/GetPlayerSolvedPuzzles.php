@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Results\SolvedPuzzleOverview;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use Symfony\Contracts\Service\ResetInterface;
 
 final class GetPlayerSolvedPuzzles implements ResetInterface
@@ -29,6 +30,7 @@ final class GetPlayerSolvedPuzzles implements ResetInterface
         readonly private Connection $database,
         readonly private GetTeamPlayers $getTeamPlayers,
         readonly private ClockInterface $clock,
+        readonly private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -76,6 +78,11 @@ SQL;
             throw new PuzzleSolvingTimeNotFound();
         }
 
+        // Solo: hidden with its player. Group: by its members alone, so that the viewer's own group
+        // time stays even when a hidden player tracked it
+        $notHidden = $this->hiddenPlayers->sqlExclude('(CASE WHEN puzzle_solving_time.team IS NULL THEN puzzle_solving_time.player_id END)')
+            . $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
+
         $query = <<<SQL
 SELECT
     puzzle_solving_time.id as time_id,
@@ -118,6 +125,7 @@ FROM puzzle_solving_time
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
 WHERE puzzle_solving_time.id = :timeId
+    {$notHidden}
 GROUP BY puzzle_solving_time.id, puzzle.id, player.id, manufacturer.id, competition.id
 SQL;
 
@@ -174,6 +182,8 @@ SQL;
 
         $this->assertPlayerExists($playerId);
 
+        $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
+
         $query = <<<SQL
 WITH solved_counts AS (
     SELECT
@@ -224,6 +234,7 @@ FROM puzzle_solving_time
 WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.puzzling_type = 'solo'
+    {$notHidden}
 SQL;
 
         if ($onlyFirstTries === true) {
@@ -312,6 +323,8 @@ SQL;
             throw new PlayerNotFound();
         }
 
+        $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
+
         $query = <<<SQL
 WITH solved_counts AS (
     SELECT
@@ -364,6 +377,7 @@ WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.puzzle_id = :puzzleId
     AND puzzle_solving_time.puzzling_type = 'solo'
+    {$notHidden}
 ORDER BY COALESCE(finished_at, puzzle_solving_time.tracked_at) ASC, puzzle_solving_time.tracked_at ASC
 SQL;
 
@@ -430,6 +444,8 @@ SQL;
 
         $this->assertPlayerExists($playerId);
 
+        $notHidden = $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
+
         $query = <<<SQL
 WITH filtered_pst_ids AS (
     SELECT id
@@ -437,6 +453,7 @@ WITH filtered_pst_ids AS (
     WHERE
         (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
         AND puzzling_type = 'duo'
+        {$notHidden}
 SQL;
 
         if ($dateFrom !== null || $dateTo !== null) {
@@ -577,6 +594,8 @@ SQL;
 
         $this->assertPlayerExists($playerId);
 
+        $notHidden = $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
+
         $query = <<<SQL
 WITH filtered_pst_ids AS (
     SELECT id
@@ -584,6 +603,7 @@ WITH filtered_pst_ids AS (
     WHERE
         (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
         AND puzzling_type = 'team'
+        {$notHidden}
 SQL;
 
         if ($dateFrom !== null || $dateTo !== null) {
@@ -746,6 +766,8 @@ SQL;
             throw new PlayerNotFound();
         }
 
+        $notHidden = $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
+
         $query = <<<SQL
 SELECT
     puzzle.id AS puzzle_id,
@@ -766,6 +788,7 @@ WHERE puzzle.id = :puzzleId
     puzzle_solving_time.player_id = :playerId
     OR (puzzle_solving_time.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
   )
+  {$notHidden}
 ORDER BY COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) DESC
 LIMIT 1
 SQL;
@@ -823,6 +846,8 @@ SQL;
             throw new PlayerNotFound();
         }
 
+        $notHidden = $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
+
         $query = <<<SQL
 SELECT DISTINCT ON (puzzle.name, puzzle.id)
     puzzle.id AS puzzle_id,
@@ -839,8 +864,8 @@ FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 WHERE
-    puzzle_solving_time.player_id = :playerId
-    OR (puzzle_solving_time.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
+    puzzle_solving_time.player_id = :playerId{$notHidden}
+    OR (puzzle_solving_time.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))){$notHidden}
 ORDER BY puzzle.name ASC, puzzle.id, COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) DESC
 SQL;
 

@@ -7,23 +7,28 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PlayerNotification;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 
 readonly final class GetNotifications
 {
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
     public function countUnreadForPlayer(string $playerId): int
     {
+        $notHidden = $this->unreadNotHidden();
+
         $query = <<<SQL
 SELECT
     COUNT(id)
 FROM notification
 WHERE player_id = :playerId
     AND read_at IS NULL
+    {$notHidden}
 SQL;
 
         $count = $this->database
@@ -38,11 +43,14 @@ SQL;
 
     public function getOldestUnreadNotifiedAtForPlayer(string $playerId): null|\DateTimeImmutable
     {
+        $notHidden = $this->unreadNotHidden();
+
         $query = <<<SQL
 SELECT MIN(notified_at)
 FROM notification
 WHERE player_id = :playerId
     AND read_at IS NULL
+    {$notHidden}
 SQL;
 
         $result = $this->database
@@ -63,6 +71,11 @@ SQL;
      */
     public function forPlayer(string $playerId, int $limit, int $offset = 0): array
     {
+        // Lending and rating notifications are left alone: bilateral history stays readable
+        $solvingTimeNotHidden = $this->hiddenPlayers->sqlExclude('player.id')
+            . $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
+        $initiatorNotHidden = $this->hiddenPlayers->sqlExclude('initiator.id');
+
         $query = <<<SQL
 SELECT * FROM (
     -- Puzzle solving notifications
@@ -150,6 +163,7 @@ SELECT * FROM (
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
     WHERE notification.player_id = :playerId
         AND notification.target_solving_time_id IS NOT NULL
+        {$solvingTimeNotHidden}
     GROUP BY notification.id, puzzle_solving_time.id, puzzle.id, manufacturer.id, player.id
 
     UNION ALL
@@ -530,6 +544,7 @@ SELECT * FROM (
     LEFT JOIN puzzle conv_puzzle ON conv.puzzle_id = conv_puzzle.id
     WHERE notification.player_id = :playerId
         AND notification.target_conversation_id IS NOT NULL
+        {$initiatorNotHidden}
 
     UNION ALL
 
@@ -619,5 +634,29 @@ SQL;
         return array_map(static function (array $row): PlayerNotification {
             return PlayerNotification::fromDatabaseRow($row);
         }, $data);
+    }
+
+    /**
+     * The same rule as the solving time and conversation branches of forPlayer(), for the queries
+     * that read the notification table alone - the badge must not count what the list leaves out.
+     */
+    private function unreadNotHidden(): string
+    {
+        if ($this->hiddenPlayers->ids() === []) {
+            return '';
+        }
+
+        $solvingTimeNotHidden = $this->hiddenPlayers->sqlExclude('COALESCE(notification.actor_player_id, pst.player_id)')
+            . $this->hiddenPlayers->sqlExcludeTeam('pst.team');
+        $initiatorNotHidden = $this->hiddenPlayers->sqlExclude('conv.initiator_id');
+
+        return <<<SQL
+ AND (notification.target_solving_time_id IS NULL OR EXISTS (
+        SELECT 1 FROM puzzle_solving_time pst WHERE pst.id = notification.target_solving_time_id{$solvingTimeNotHidden}
+    ))
+    AND (notification.target_conversation_id IS NULL OR EXISTS (
+        SELECT 1 FROM conversation conv WHERE conv.id = notification.target_conversation_id{$initiatorNotHidden}
+    ))
+SQL;
     }
 }

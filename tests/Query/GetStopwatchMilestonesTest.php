@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetStopwatchMilestones;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\TestingViewer;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetStopwatchMilestonesTest extends KernelTestCase
@@ -202,5 +205,55 @@ final class GetStopwatchMilestonesTest extends KernelTestCase
         // Gap filling should add 'other' type milestones when there are gaps > 2 min
         // Total should be >= named count (gap filling adds more)
         self::assertGreaterThanOrEqual($namedCount, $totalCount);
+    }
+
+    public function testBlockedPlayerIsNeverAMilestone(): void
+    {
+        // PLAYER_ADMIN holds the fastest time on PUZZLE_500_01 (1200 s)
+        $before = $this->query->forPuzzleAndPlayer(PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_REGULAR);
+        self::assertContains(1200, array_map(static fn ($m) => $m->timeSeconds, $before));
+        $timesBefore = $this->query->allSoloTimesForPuzzle(PuzzleFixture::PUZZLE_500_01);
+
+        $this->block(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_ADMIN);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+
+        $after = $this->query->forPuzzleAndPlayer(PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_REGULAR);
+        self::assertNotContains(1200, array_map(static fn ($m) => $m->timeSeconds, $after));
+
+        foreach ($after as $milestone) {
+            self::assertStringNotContainsString('Admin', $milestone->label);
+
+            // Own time is now the fastest one shown, and ranks close up
+            if ($milestone->type === 'self') {
+                self::assertSame(1, $milestone->rank);
+            }
+        }
+
+        self::assertSame(
+            array_values(array_diff($timesBefore, [1200])),
+            $this->query->allSoloTimesForPuzzle(PuzzleFixture::PUZZLE_500_01),
+        );
+    }
+
+    public function testBlockedFavoriteIsNotAMilestone(): void
+    {
+        // PLAYER_WITH_FAVORITES follows PLAYER_REGULAR (1750 s) and PLAYER_ADMIN (1200 s)
+        $this->block(PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_ADMIN);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $milestones = $this->query->forPuzzleAndPlayer(PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $favorites = array_values(array_filter($milestones, static fn ($m) => $m->type === 'favorite'));
+        self::assertCount(1, $favorites);
+        self::assertSame(1750, $favorites[0]->timeSeconds);
+        self::assertNotContains(1200, array_map(static fn ($m) => $m->timeSeconds, $milestones));
+    }
+
+    private function block(string $blockerId, string $blockedId): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
+        );
     }
 }

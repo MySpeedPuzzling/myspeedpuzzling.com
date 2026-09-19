@@ -7,12 +7,14 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\PlayerIdentification;
 use SpeedPuzzling\Web\Results\PlayersPerCountry;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\CountryCode;
 
 readonly final class GetPlayersPerCountry
 {
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -50,6 +52,8 @@ SQL;
      */
     public function byCountry(CountryCode $countryCode): array
     {
+        $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
+
         $query = <<<SQL
 SELECT
     id AS player_id,
@@ -58,6 +62,7 @@ SELECT
     country AS player_country
 FROM player
 WHERE player.country = :countryCode
+    {$notHidden}
 ORDER BY name
 SQL;
 

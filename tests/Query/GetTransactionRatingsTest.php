@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetTransactionRatings;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\SoldSwappedItemFixture;
+use SpeedPuzzling\Web\Tests\TestingViewer;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetTransactionRatingsTest extends KernelTestCase
@@ -94,5 +97,27 @@ final class GetTransactionRatingsTest extends KernelTestCase
         $pending = $this->getTransactionRatings->pendingRatings(PlayerFixture::PLAYER_REGULAR);
 
         self::assertNotEmpty($pending);
+    }
+
+    public function testReviewsByABlockedReviewerDisappearForTheBlockerOnly(): void
+    {
+        // PLAYER_REGULAR received a rating from PLAYER_ADMIN in fixture
+        $this->block(PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_ADMIN);
+
+        self::assertCount(1, $this->getTransactionRatings->forPlayer(PlayerFixture::PLAYER_REGULAR));
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertCount(1, $this->getTransactionRatings->forPlayer(PlayerFixture::PLAYER_REGULAR));
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertSame([], $this->getTransactionRatings->forPlayer(PlayerFixture::PLAYER_REGULAR));
+    }
+
+    private function block(string $blockerId, string $blockedId): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
+        );
     }
 }

@@ -16,7 +16,12 @@ use Doctrine\ORM\Mapping\UniqueConstraint;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\UserBlockSource;
 
+/**
+ * "The blocker must not see the blocked player" - one row, one direction. Site-wide
+ * (see docs/features/player-blocklist.md), not just messaging.
+ */
 #[Entity]
 #[UniqueConstraint(columns: ['blocker_id', 'blocked_id'])]
 #[Index(columns: ['blocker_id'])]
@@ -38,6 +43,12 @@ class UserBlock
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $blockedAt,
+        #[Immutable]
+        #[Column(type: Types::STRING, enumType: UserBlockSource::class, options: ['default' => UserBlockSource::Self->value])]
+        public UserBlockSource $source = UserBlockSource::Self,
+        #[Immutable]
+        #[Column(type: Types::TEXT, nullable: true)]
+        public null|string $note = null,
     ) {
     }
 }

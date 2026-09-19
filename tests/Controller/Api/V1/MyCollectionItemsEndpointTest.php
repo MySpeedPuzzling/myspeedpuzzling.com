@@ -295,25 +295,25 @@ final class MyCollectionItemsEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->path(CollectionFixture::COLLECTION_FAVORITES));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 6, 'non-member PAT (statistics, profile, solves)');
+        $this->assertQueryCountAtMost($browser, 7, 'non-member PAT (statistics, profile, solves)');
 
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_REGULAR, ['collections:read']);
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->path(CollectionFixture::COLLECTION_FAVORITES));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 7, 'non-member authorization-code token without results:read (statistics, profile)');
+        $this->assertQueryCountAtMost($browser, 8, 'non-member authorization-code token without results:read (statistics, profile)');
 
         $this->authenticatePat($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->path(CollectionFixture::COLLECTION_PUBLIC));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 11, 'member PAT (statistics, profile, difficulty, predictions, solves)');
+        $this->assertQueryCountAtMost($browser, 12, 'member PAT (statistics, profile, difficulty, predictions, solves)');
 
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['collections:read', 'results:read']);
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->path(CollectionFixture::COLLECTION_PUBLIC));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 13, 'member authorization-code token');
+        $this->assertQueryCountAtMost($browser, 14, 'member authorization-code token');
     }
 
     /**

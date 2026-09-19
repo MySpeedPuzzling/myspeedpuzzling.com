@@ -264,19 +264,19 @@ final class LendBorrowEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->myPath());
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 6, 'non-member PAT');
+        $this->assertQueryCountAtMost($browser, 7, 'non-member PAT');
 
         $this->authenticatePat($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->myPath());
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 11, 'member PAT');
+        $this->assertQueryCountAtMost($browser, 12, 'member PAT');
 
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['collections:read', 'results:read']);
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->myPath());
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 13, 'member authorization-code token');
+        $this->assertQueryCountAtMost($browser, 14, 'member authorization-code token');
 
         $this->setLendBorrowListVisibility($browser, PlayerFixture::PLAYER_WITH_STRIPE, CollectionVisibility::Public);
 
@@ -290,7 +290,7 @@ final class LendBorrowEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->playerPath(PlayerFixture::PLAYER_WITH_STRIPE));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 14, 'member authorization-code token on /players');
+        $this->assertQueryCountAtMost($browser, 15, 'member authorization-code token on /players');
     }
 
     /**

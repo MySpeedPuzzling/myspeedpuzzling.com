@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\TestingViewer;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetRankingTest extends KernelTestCase
@@ -90,5 +92,39 @@ final class GetRankingTest extends KernelTestCase
         $entry = $rankings[PuzzleFixture::PUZZLE_500_01];
         self::assertSame(2, $entry->rank);
         self::assertSame(5, $entry->totalPlayers);
+    }
+
+    public function testBlockedPlayerLeavesTheRankedPool(): void
+    {
+        // PUZZLE_500_01, public pool: PLAYER_ADMIN 1200, PLAYER_REGULAR 1750, PLAYER_WITH_STRIPE 2100, PLAYER_WITH_FAVORITES 3000
+        $this->block(PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_ADMIN);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $ranking = $this->query->ofPuzzleForPlayer(PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_REGULAR);
+        self::assertNotNull($ranking);
+        self::assertSame(1, $ranking->rank);
+        self::assertSame(3, $ranking->totalPlayers);
+
+        $all = $this->query->allForPlayer(PlayerFixture::PLAYER_REGULAR);
+        self::assertSame(1, $all[PuzzleFixture::PUZZLE_500_01]->rank);
+        self::assertSame(3, $all[PuzzleFixture::PUZZLE_500_01]->totalPlayers);
+
+        // Another viewer still gets the whole pool
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+        $this->query->reset();
+
+        $ranking = $this->query->ofPuzzleForPlayer(PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_REGULAR);
+        self::assertNotNull($ranking);
+        self::assertSame(2, $ranking->rank);
+        self::assertSame(4, $ranking->totalPlayers);
+        self::assertSame(2, $this->query->allForPlayer(PlayerFixture::PLAYER_REGULAR)[PuzzleFixture::PUZZLE_500_01]->rank);
+    }
+
+    private function block(string $blockerId, string $blockedId): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
+        );
     }
 }

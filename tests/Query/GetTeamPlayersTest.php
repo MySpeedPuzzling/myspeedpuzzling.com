@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Query;
 
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetTeamPlayers;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\TestingViewer;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -60,5 +64,28 @@ final class GetTeamPlayersTest extends KernelTestCase
             self::assertArrayHasKey($teamTime['id'], $members);
             self::assertSame($expectedIds, array_map(static fn ($puzzler): null|string => $puzzler->playerId, $members[$teamTime['id']]));
         }
+    }
+
+    public function testMembersOfATimeWithAHiddenPlayerAreNotHandedOutUnlessTheViewerTookPart(): void
+    {
+        // TIME_12: PLAYER_REGULAR together with PLAYER_PRIVATE
+        $this->block(PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_PRIVATE);
+
+        self::assertArrayHasKey(PuzzleSolvingTimeFixture::TIME_12, $this->query->byIds([PuzzleSolvingTimeFixture::TIME_12]));
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_ADMIN);
+        self::assertArrayNotHasKey(PuzzleSolvingTimeFixture::TIME_12, $this->query->byIds([PuzzleSolvingTimeFixture::TIME_12]));
+
+        // UserBlockFixture: PLAYER_REGULAR blocks the partner as well, but took part
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+        self::assertCount(2, $this->query->byIds([PuzzleSolvingTimeFixture::TIME_12])[PuzzleSolvingTimeFixture::TIME_12] ?? []);
+    }
+
+    private function block(string $blockerId, string $blockedId): void
+    {
+        $this->database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
+        );
     }
 }

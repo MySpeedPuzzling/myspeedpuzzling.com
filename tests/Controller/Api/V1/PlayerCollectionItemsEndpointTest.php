@@ -317,7 +317,7 @@ final class PlayerCollectionItemsEndpointTest extends WebTestCase
         $this->assertSame(0, $response['count']);
         $this->assertSame([], $response['items']);
         // authentication (3) + the profile lookup - nothing else
-        $this->assertQueryCountAtMost($browser, 4, 'private profile short-circuit');
+        $this->assertQueryCountAtMost($browser, 5, 'private profile short-circuit');
     }
 
     public function testEmbargoedImageIsNull(): void
@@ -358,7 +358,7 @@ final class PlayerCollectionItemsEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->path(PlayerFixture::PLAYER_WITH_STRIPE, CollectionFixture::COLLECTION_PUBLIC));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 9, 'non-member authorization-code token (collection visibility, statistics, profile, owner solves)');
+        $this->assertQueryCountAtMost($browser, 10, 'non-member authorization-code token (collection visibility, statistics, profile, owner solves)');
 
         $this->setPuzzleCollectionVisibility($browser, PlayerFixture::PLAYER_REGULAR, CollectionVisibility::Public);
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['collections:read', 'results:read']);
@@ -372,7 +372,7 @@ final class PlayerCollectionItemsEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->path(PlayerFixture::PLAYER_REGULAR, 'default'));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 5, 'private system collection of a stranger (no items, no batch)');
+        $this->assertQueryCountAtMost($browser, 6, 'private system collection of a stranger (no items, no batch)');
     }
 
     public function testQueryCountDoesNotGrowWithTheCollectionSize(): void

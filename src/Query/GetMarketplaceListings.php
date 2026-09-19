@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\MarketplaceListingItem;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 
@@ -15,6 +16,7 @@ readonly final class GetMarketplaceListings
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -103,6 +105,8 @@ LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
 JOIN player pl ON ssli.player_id = pl.id
 LEFT JOIN player rp ON ssli.reserved_for_player_id = rp.id
 WHERE ssli.published_on_marketplace = true';
+
+        $query .= $this->hiddenPlayers->sqlExclude('pl.id');
 
         $params = [];
 
@@ -301,6 +305,8 @@ LIMIT :limit OFFSET :offset';
 
     public function byItemId(string $itemId): MarketplaceListingItem
     {
+        $notHidden = $this->hiddenPlayers->sqlExclude('pl.id');
+
         $query = <<<SQL
 SELECT
     ssli.id AS item_id,
@@ -333,6 +339,7 @@ LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
 JOIN player pl ON ssli.player_id = pl.id
 LEFT JOIN player rp ON ssli.reserved_for_player_id = rp.id
 WHERE ssli.id = :itemId
+    {$notHidden}
 SQL;
 
         $row = $this->database
@@ -440,6 +447,8 @@ JOIN puzzle p ON ssli.puzzle_id = p.id
 LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
 JOIN player pl ON ssli.player_id = pl.id
 WHERE ssli.published_on_marketplace = true';
+
+        $query .= $this->hiddenPlayers->sqlExclude('pl.id');
 
         $params = [];
 

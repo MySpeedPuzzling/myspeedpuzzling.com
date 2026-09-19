@@ -6,12 +6,14 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\Puzzler;
 
 readonly final class GetTeamPlayers
 {
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -25,6 +27,8 @@ readonly final class GetTeamPlayers
         if ($solvingTimesIds === []) {
             return [];
         }
+
+        $notHidden = $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
 
         $query = <<<SQL
 SELECT
@@ -40,6 +44,7 @@ LEFT JOIN LATERAL
     WITH ORDINALITY AS player_elem(player, ordinality) ON true
 LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
 WHERE puzzle_solving_time.id IN (:ids)
+    {$notHidden}
 ORDER BY puzzle_solving_time.id, player_elem.ordinality;
 SQL;
 

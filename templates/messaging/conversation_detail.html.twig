@@ -34,8 +34,9 @@
                 {% endif %}
                 <li>
                     <form action="{{ path('block_user', {playerId: other_player.id}) }}" method="post">
-                        <button type="submit" class="dropdown-item text-danger" onclick="return confirm('{{ 'messaging.block_confirm'|trans }}')">
-                            <i class="bi bi-slash-circle me-1"></i> {{ 'messaging.block_user'|trans }}
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Messaging\\BlockUserController::CSRF_TOKEN_ID')) }}">
+                        <button type="submit" class="dropdown-item text-danger" onclick="return confirm('{{ 'blocklist.block_confirm'|trans|e('js') }}')">
+                            <i class="bi bi-slash-circle me-1"></i> {{ 'blocklist.block_player'|trans }}
                         </button>
                     </form>
                 </li>

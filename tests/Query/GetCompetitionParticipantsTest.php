@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Query;
 
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
+use SpeedPuzzling\Web\Results\ConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestingViewer;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetCompetitionParticipantsTest extends KernelTestCase
@@ -70,5 +73,34 @@ final class GetCompetitionParticipantsTest extends KernelTestCase
         // Connected to an imported row, not self-joined
         self::assertFalse($this->query->isPlayerSelfJoined($competitionId, PlayerFixture::PLAYER_REGULAR));
         self::assertFalse($this->query->isPlayerSelfJoined($competitionId, PlayerFixture::PLAYER_ADMIN));
+    }
+
+    public function testBlockedPlayerIsMissingFromConnectedParticipantsForTheBlockerOnly(): void
+    {
+        // UserBlockFixture: PLAYER_REGULAR blocks PLAYER_PRIVATE
+        self::assertContains(PlayerFixture::PLAYER_PRIVATE, $this->connectedPlayerIds());
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+        self::assertNotContains(PlayerFixture::PLAYER_PRIVATE, $this->connectedPlayerIds());
+        self::assertContains(PlayerFixture::PLAYER_REGULAR, $this->connectedPlayerIds());
+        self::assertNotContains(
+            PlayerFixture::PLAYER_PRIVATE,
+            $this->connectedPlayerIds([CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, CompetitionRoundFixture::ROUND_WJPC_FINAL]),
+        );
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertContains(PlayerFixture::PLAYER_PRIVATE, $this->connectedPlayerIds());
+    }
+
+    /**
+     * @param array<string> $roundsFilter
+     * @return list<string>
+     */
+    private function connectedPlayerIds(array $roundsFilter = []): array
+    {
+        return array_values(array_map(
+            static fn (ConnectedCompetitionParticipant $participant): string => $participant->playerId,
+            $this->query->getConnectedParticipants(CompetitionFixture::COMPETITION_WJPC_2024, $roundsFilter),
+        ));
     }
 }

@@ -6,11 +6,13 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\PlayerRatingEntry;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 
 readonly final class GetPlayerRatingRanking
 {
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -42,6 +44,8 @@ readonly final class GetPlayerRatingRanking
             $params['favoriteOfPlayerId'] = $favoriteOfPlayerId;
         }
 
+        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
+
         $query = <<<SQL
 SELECT * FROM (
     SELECT
@@ -59,6 +63,7 @@ SELECT * FROM (
     WHERE pe.pieces_count = :piecesCount
         AND p.is_private = false
         AND p.ranking_opted_out = false
+        {$notHidden}
 ) ranked
 WHERE 1=1{$filterClauses}
 ORDER BY ranked.elo_rating DESC
@@ -76,6 +81,8 @@ SQL;
 
     public function playerPosition(string $playerId, int $piecesCount): null|int
     {
+        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
+
         $query = <<<SQL
 SELECT rank FROM (
     SELECT
@@ -86,6 +93,7 @@ SELECT rank FROM (
     WHERE pe.pieces_count = :piecesCount
         AND (p.is_private = false OR p.id = :playerId)
         AND p.ranking_opted_out = false
+        {$notHidden}
 ) ranked
 WHERE ranked.player_id = :playerId
 SQL;
@@ -123,6 +131,8 @@ SQL;
             $params['favoriteOfPlayerId'] = $favoriteOfPlayerId;
         }
 
+        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
+
         /** @var int|string $count */
         $count = $this->database->executeQuery("
             SELECT COUNT(*)
@@ -131,6 +141,7 @@ SQL;
             WHERE pe.pieces_count = :piecesCount
                 AND p.is_private = false
                 AND p.ranking_opted_out = false
+                {$notHidden}
                 {$filterClauses}
         ", $params)->fetchOne();
 
@@ -142,6 +153,8 @@ SQL;
      */
     public function distinctCountries(int $piecesCount): array
     {
+        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
+
         /** @var list<string> $codes */
         $codes = $this->database->executeQuery("
             SELECT DISTINCT p.country
@@ -151,6 +164,7 @@ SQL;
                 AND p.is_private = false
                 AND p.ranking_opted_out = false
                 AND p.country IS NOT NULL
+                {$notHidden}
             ORDER BY p.country
         ", [
             'piecesCount' => $piecesCount,
@@ -166,12 +180,15 @@ SQL;
      */
     public function allForPlayer(string $playerId): array
     {
+        $rankNotHidden = $this->hiddenPlayers->sqlExclude('p2.id');
+        $totalNotHidden = $this->hiddenPlayers->sqlExclude('p3.id');
+
         $query = <<<SQL
 SELECT
     pe.pieces_count,
     pe.elo_rating,
-    (SELECT COUNT(*) FROM player_elo pe2 INNER JOIN player p2 ON p2.id = pe2.player_id WHERE pe2.pieces_count = pe.pieces_count AND (p2.is_private = false OR p2.id = :playerId) AND pe2.elo_rating >= pe.elo_rating) AS rank,
-    (SELECT COUNT(*) FROM player_elo pe3 INNER JOIN player p3 ON p3.id = pe3.player_id WHERE pe3.pieces_count = pe.pieces_count AND (p3.is_private = false OR p3.id = :playerId)) AS total
+    (SELECT COUNT(*) FROM player_elo pe2 INNER JOIN player p2 ON p2.id = pe2.player_id WHERE pe2.pieces_count = pe.pieces_count AND (p2.is_private = false OR p2.id = :playerId) AND pe2.elo_rating >= pe.elo_rating{$rankNotHidden}) AS rank,
+    (SELECT COUNT(*) FROM player_elo pe3 INNER JOIN player p3 ON p3.id = pe3.player_id WHERE pe3.pieces_count = pe.pieces_count AND (p3.is_private = false OR p3.id = :playerId){$totalNotHidden}) AS total
 FROM player_elo pe
 WHERE pe.player_id = :playerId
 ORDER BY pe.pieces_count ASC

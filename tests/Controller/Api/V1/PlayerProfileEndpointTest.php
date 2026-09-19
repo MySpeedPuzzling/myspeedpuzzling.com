@@ -369,7 +369,7 @@ final class PlayerProfileEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->endpoint(PlayerFixture::PLAYER_WITH_STRIPE));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 7, 'non-member viewer: no skill query');
+        $this->assertQueryCountAtMost($browser, 8, 'non-member viewer: no skill query');
 
         $this->authenticateClientCredentials($browser);
         $this->startCountingQueries($browser);
@@ -382,7 +382,7 @@ final class PlayerProfileEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->endpoint(PlayerFixture::PLAYER_WITH_STRIPE));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 6, 'target opted out of rankings: badges only');
+        $this->assertQueryCountAtMost($browser, 7, 'target opted out of rankings: badges only');
     }
 
     public function testOpenApiDocumentsTheEndpoint(): void

@@ -250,19 +250,19 @@ final class LibraryEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->myPath());
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 11, 'own library, PAT');
+        $this->assertQueryCountAtMost($browser, 12, 'own library, PAT');
 
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_REGULAR, ['collections:read']);
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->myPath());
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 13, 'own library, authorization-code token');
+        $this->assertQueryCountAtMost($browser, 14, 'own library, authorization-code token');
 
         // a stranger: the public system collection, the custom collections and the sell/swap count only
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->playerPath(PlayerFixture::PLAYER_WITH_STRIPE));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 8, 'another player, private sections skipped');
+        $this->assertQueryCountAtMost($browser, 9, 'another player, private sections skipped');
 
         $this->setWishListVisibility($browser, PlayerFixture::PLAYER_WITH_STRIPE, CollectionVisibility::Public);
         $this->setUnsolvedPuzzlesVisibility($browser, PlayerFixture::PLAYER_WITH_STRIPE, CollectionVisibility::Public);
@@ -272,7 +272,7 @@ final class LibraryEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->playerPath(PlayerFixture::PLAYER_WITH_STRIPE));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 14, 'another player, everything public, authorization-code token');
+        $this->assertQueryCountAtMost($browser, 15, 'another player, everything public, authorization-code token');
 
         $this->authenticateClientCredentials($browser, ['collections:read']);
         $this->startCountingQueries($browser);

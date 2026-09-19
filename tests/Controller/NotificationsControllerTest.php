@@ -113,6 +113,9 @@ final class NotificationsControllerTest extends WebTestCase
     {
         $browser = self::createClient();
 
+        // UserBlockFixture has PLAYER_REGULAR blocking the partner, who would then hear nothing of the edit
+        self::getContainer()->get(Connection::class)->executeStatement('DELETE FROM user_block');
+
         // TIME_12: tracked by PLAYER_REGULAR, edited by the partner PLAYER_PRIVATE (Jane Smith)
         /** @var NotifyWhenGroupSolvingTimeEdited $handler */
         $handler = self::getContainer()->get(NotifyWhenGroupSolvingTimeEdited::class);

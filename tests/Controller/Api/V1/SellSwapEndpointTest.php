@@ -287,19 +287,19 @@ final class SellSwapEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->myPath());
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 3, 'non-member PAT, empty list (no batch)');
+        $this->assertQueryCountAtMost($browser, 4, 'non-member PAT, empty list (no batch)');
 
         $this->authenticatePat($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->myPath());
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 10, 'member PAT');
+        $this->assertQueryCountAtMost($browser, 11, 'member PAT');
 
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['collections:read', 'results:read']);
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->myPath());
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 12, 'member authorization-code token');
+        $this->assertQueryCountAtMost($browser, 13, 'member authorization-code token');
 
         $this->authenticateClientCredentials($browser, ['collections:read', 'results:read']);
         $this->startCountingQueries($browser);
@@ -311,13 +311,13 @@ final class SellSwapEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->playerPath(PlayerFixture::PLAYER_WITH_STRIPE));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 8, 'non-member authorization-code token on /players');
+        $this->assertQueryCountAtMost($browser, 9, 'non-member authorization-code token on /players');
 
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_ADMIN, ['collections:read', 'results:read']);
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->playerPath(PlayerFixture::PLAYER_WITH_STRIPE));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 13, 'member authorization-code token on /players');
+        $this->assertQueryCountAtMost($browser, 14, 'member authorization-code token on /players');
     }
 
     /**

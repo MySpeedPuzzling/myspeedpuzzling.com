@@ -23,6 +23,7 @@ use SpeedPuzzling\Web\Message\EditPlayerCode;
 use SpeedPuzzling\Web\Message\EditPlayerVisibility;
 use SpeedPuzzling\Web\Message\EditProfile;
 use SpeedPuzzling\Web\Query\GetOauthIdentities;
+use SpeedPuzzling\Web\Query\GetUserBlocks;
 use SpeedPuzzling\Web\Query\GetOAuth2ClientRequests;
 use SpeedPuzzling\Web\Query\GetPlayerOAuth2Consents;
 use SpeedPuzzling\Web\Query\GetPlayerPersonalAccessTokens;
@@ -49,6 +50,7 @@ final class EditProfileController extends AbstractController
         readonly private GetPlayerPersonalAccessTokens $getPlayerPersonalAccessTokens,
         readonly private GetOAuth2ClientRequests $getOAuth2ClientRequests,
         readonly private GetOauthIdentities $getOauthIdentities,
+        readonly private GetUserBlocks $getUserBlocks,
     ) {
     }
 
@@ -208,6 +210,7 @@ final class EditProfileController extends AbstractController
             // change-password, and the connect/disconnect list needs the rows
             'account_has_password' => $user->password !== null,
             'connected_oauth_identities' => $this->getOauthIdentities->byUserId($user->userId),
+            'blocked_users' => $this->getUserBlocks->forPlayer($player->playerId),
         ]);
     }
 }

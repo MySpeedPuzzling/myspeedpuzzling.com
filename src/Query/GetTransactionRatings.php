@@ -11,12 +11,14 @@ use SpeedPuzzling\Web\Results\ConversationRatingInfo;
 use SpeedPuzzling\Web\Results\PendingTransactionRating;
 use SpeedPuzzling\Web\Results\PlayerRatingSummary;
 use SpeedPuzzling\Web\Results\TransactionRatingView;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 
 readonly final class GetTransactionRatings
 {
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -25,6 +27,8 @@ readonly final class GetTransactionRatings
      */
     public function forPlayer(string $playerId, int $limit = 20, int $offset = 0): array
     {
+        $notHidden = $this->hiddenPlayers->sqlExclude('reviewer.id');
+
         $query = <<<SQL
 SELECT
     tr.id AS rating_id,
@@ -47,6 +51,7 @@ JOIN player reviewer ON tr.reviewer_id = reviewer.id
 JOIN sold_swapped_item ssi ON tr.sold_swapped_item_id = ssi.id
 JOIN puzzle p ON ssi.puzzle_id = p.id
 WHERE tr.reviewed_player_id = :playerId
+    {$notHidden}
 ORDER BY tr.rated_at DESC
 LIMIT :limit
 OFFSET :offset

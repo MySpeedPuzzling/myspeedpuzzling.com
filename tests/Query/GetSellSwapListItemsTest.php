@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\TestingViewer;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetSellSwapListItemsTest extends KernelTestCase
@@ -111,5 +114,27 @@ final class GetSellSwapListItemsTest extends KernelTestCase
 
         // PUZZLE_500_02: swap-only listing without price
         self::assertSame([], $this->getSellSwapListItems->marketplaceOffersByPuzzleId(PuzzleFixture::PUZZLE_500_02));
+    }
+
+    public function testMarketplaceOffersOfABlockedSellerDisappearForTheBlockerOnly(): void
+    {
+        // PUZZLE_500_01: the one qualifying offer (SELLSWAP_01) is by PLAYER_WITH_STRIPE
+        $this->block(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        self::assertCount(1, $this->getSellSwapListItems->marketplaceOffersByPuzzleId(PuzzleFixture::PUZZLE_500_01));
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_ADMIN);
+        self::assertCount(1, $this->getSellSwapListItems->marketplaceOffersByPuzzleId(PuzzleFixture::PUZZLE_500_01));
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+        self::assertSame([], $this->getSellSwapListItems->marketplaceOffersByPuzzleId(PuzzleFixture::PUZZLE_500_01));
+    }
+
+    private function block(string $blockerId, string $blockedId): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
+        );
     }
 }

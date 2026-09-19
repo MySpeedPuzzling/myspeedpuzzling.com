@@ -9,6 +9,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\PlayerProfile;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 
 /**
  * @phpstan-import-type PlayerProfileRow from PlayerProfile
@@ -18,15 +19,20 @@ readonly final class GetPlayerProfile
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
     /**
+     * A player the viewer has blocked (or was blocked from seeing) does not exist for them: every
+     * profile page, sub-page and API resource resolves its subject here, so they all answer the
+     * same 404 a deleted player gets - see docs/features/player-blocklist.md.
+     *
      * @throws PlayerNotFound
      */
     public function byId(string $playerId): PlayerProfile
     {
-        if (Uuid::isValid($playerId) === false) {
+        if (Uuid::isValid($playerId) === false || $this->hiddenPlayers->isHidden($playerId)) {
             throw new PlayerNotFound();
         }
 
@@ -139,6 +145,7 @@ SELECT
     referral_program_joined_at,
     referral_program_suspended,
     moderator_since,
+    (SELECT json_agg(user_block.blocked_id) FROM user_block WHERE user_block.blocker_id = player.id) AS hidden_player_ids,
     (membership.ends_at IS NULL AND membership.billing_period_ends_at IS NOT NULL) AS has_active_stripe_subscription,
     GREATEST(
         COALESCE(membership.ends_at, membership.billing_period_ends_at, '1970-01-01'::timestamp),

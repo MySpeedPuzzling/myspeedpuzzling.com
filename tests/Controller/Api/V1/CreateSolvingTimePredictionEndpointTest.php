@@ -64,8 +64,11 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
     /** PLAYER_WITH_STRIPE, duo with a guest, PUZZLE_500_01 */
     private const int WRITE_PATH_MEMBER_GROUP_500_01 = 21;
 
-    /** ApiTokenOwner::profile(), memoised - once per request at most */
-    private const int OWNER_PROFILE_QUERIES = 1;
+    /**
+     * ApiTokenOwner::profile(), memoised - once per request at most - plus the token owner's
+     * blocklist, which GetPlayerProfile::byId() consults (HiddenPlayers, also once per request)
+     */
+    private const int OWNER_PROFILE_QUERIES = 2;
 
     /** GetPlayerPrediction::forPuzzle - personal: solves, pieces, player ratio, global ratio (+ the "all" bucket); statistical: solves + 1 */
     private const int PREDICTION_QUERIES_MAX = 5;

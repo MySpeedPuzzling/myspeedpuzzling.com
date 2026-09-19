@@ -86,6 +86,14 @@
                         <i class="me-1 ci-compare"></i> {{ 'profile.compare'|trans }}
                     </a>
                 {% endif %}
+
+                {% if logged_user.profile is not null %}
+                    <hr class="dropdown-divider">
+
+                    <button type="button" class="dropdown-item small text-muted" data-bs-toggle="modal" data-bs-target="#blockPlayerModal">
+                        <i class="me-1 bi bi-slash-circle"></i> {{ 'blocklist.block_player'|trans }}
+                    </button>
+                {% endif %}
             {% endif %}
 
             {% if logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
@@ -106,3 +114,27 @@
         </div>
     </div>
 </nav>
+
+{% if logged_user.profile is not null and logged_user.profile.playerId is not same as player.playerId %}
+    <div class="modal fade" id="blockPlayerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="{{ path('block_user', {playerId: player.playerId}) }}" method="post" data-turbo="false">
+                    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Messaging\\BlockUserController::CSRF_TOKEN_ID')) }}">
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{ 'blocklist.modal_title'|trans }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>{{ 'blocklist.modal_text'|trans }}</p>
+                        <p class="mb-0 text-muted small">{{ 'blocklist.modal_undo'|trans }}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'blocklist.cancel'|trans }}</button>
+                        <button type="submit" class="btn btn-danger">{{ 'blocklist.block_player'|trans }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endif %}

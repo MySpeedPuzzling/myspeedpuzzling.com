@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\UserBlockNotFound;
 use SpeedPuzzling\Web\Message\UnblockUser;
 use SpeedPuzzling\Web\Query\GetUserBlocks;
@@ -52,5 +54,33 @@ final class UnblockUserHandlerTest extends KernelTestCase
                 blockedId: PlayerFixture::PLAYER_REGULAR,
             ),
         );
+    }
+
+    public function testAdminImposedBlockCannotBeLiftedAndLooksLikeNoBlock(): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source, note) VALUES (:id, :blocker, :blocked, NOW(), 'admin', 'test')",
+            [
+                'id' => Uuid::uuid7()->toString(),
+                'blocker' => PlayerFixture::PLAYER_ADMIN,
+                'blocked' => PlayerFixture::PLAYER_REGULAR,
+            ],
+        );
+
+        try {
+            $this->messageBus->dispatch(
+                new UnblockUser(
+                    blockerId: PlayerFixture::PLAYER_ADMIN,
+                    blockedId: PlayerFixture::PLAYER_REGULAR,
+                ),
+            );
+            self::fail('An admin-imposed block must not be removable by the blocker.');
+        } catch (\Throwable $e) {
+            $previous = $e->getPrevious() ?? $e;
+            self::assertInstanceOf(UserBlockNotFound::class, $previous);
+        }
+
+        self::assertTrue($this->getUserBlocks->isBlocked(PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_REGULAR));
+        self::assertSame([], $this->getUserBlocks->forPlayer(PlayerFixture::PLAYER_ADMIN), 'The blocker is never shown an admin-imposed block.');
     }
 }

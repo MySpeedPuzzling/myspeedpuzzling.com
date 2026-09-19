@@ -187,7 +187,7 @@ final class MyResultsInsightsEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', self::ENDPOINT);
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 5, 'non-member PAT (statistics, profile)');
+        $this->assertQueryCountAtMost($browser, 6, 'non-member PAT (statistics, profile)');
 
         // the team list of PLAYER_REGULAR is empty: no batch query at all
         $this->startCountingQueries($browser);
@@ -200,7 +200,7 @@ final class MyResultsInsightsEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', self::ENDPOINT);
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 6, 'member PAT (statistics, profile, difficulty)');
+        $this->assertQueryCountAtMost($browser, 7, 'member PAT (statistics, profile, difficulty)');
         $memberAtEleven = $this->queryCount($browser);
 
         // another member with a different number of results: the same cost
@@ -217,7 +217,7 @@ final class MyResultsInsightsEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', self::ENDPOINT);
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 8, 'member authorization-code token');
+        $this->assertQueryCountAtMost($browser, 9, 'member authorization-code token');
     }
 
     private function authenticatePat(KernelBrowser $browser, string $playerId): void

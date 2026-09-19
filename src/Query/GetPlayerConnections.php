@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\PlayerConnection;
 use SpeedPuzzling\Web\Results\PlayerConnectionCounts;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 
 /**
  * Both directions of the favorites link (player.favorite_players, a JSON array
@@ -28,6 +29,7 @@ SQL;
 
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -38,6 +40,7 @@ SQL;
     public function favoritesOf(string $playerId): array
     {
         $orderBy = self::ORDER_BY;
+        $notHidden = $this->hiddenPlayers->sqlExclude('other.id');
 
         $query = <<<SQL
 SELECT
@@ -52,6 +55,7 @@ FROM player me
 CROSS JOIN LATERAL json_array_elements_text(me.favorite_players) AS favorite(player_id)
 JOIN player other ON other.id = favorite.player_id::uuid
 WHERE me.id = :playerId
+    {$notHidden}
 {$orderBy}
 SQL;
 
@@ -65,6 +69,7 @@ SQL;
     public function followersOf(string $playerId): array
     {
         $orderBy = self::ORDER_BY;
+        $notHidden = $this->hiddenPlayers->sqlExclude('other.id');
 
         $query = <<<SQL
 SELECT
@@ -78,6 +83,7 @@ SELECT
 FROM player me
 JOIN player other ON other.favorite_players::jsonb @> jsonb_build_array(:playerId::text)
 WHERE me.id = :playerId
+    {$notHidden}
 {$orderBy}
 SQL;
 
@@ -93,13 +99,22 @@ SQL;
             throw new PlayerNotFound();
         }
 
+        $notHidden = $this->hiddenPlayers->sqlExclude('other.id');
+        $favorites = 'json_array_length(me.favorite_players)';
+
+        if ($notHidden !== '') {
+            $favoriteNotHidden = $this->hiddenPlayers->sqlExclude('favorite.player_id::uuid');
+            $favorites = "(SELECT COUNT(*) FROM json_array_elements_text(me.favorite_players) AS favorite(player_id) WHERE true{$favoriteNotHidden})";
+        }
+
         $query = <<<SQL
 SELECT
-    json_array_length(me.favorite_players) AS favorites,
+    {$favorites} AS favorites,
     (
         SELECT COUNT(*)
         FROM player other
         WHERE other.favorite_players::jsonb @> jsonb_build_array(:playerId::text)
+            {$notHidden}
     ) AS followers
 FROM player me
 WHERE me.id = :playerId

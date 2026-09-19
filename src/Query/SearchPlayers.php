@@ -6,19 +6,26 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\PlayerIdentification;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 
 readonly final class SearchPlayers
 {
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
     /**
+     * Organiser and admin tooling passes includeHidden: blocking someone must not make them
+     * unassignable at an event the blocker runs.
+     *
      * @return list<PlayerIdentification>
      */
-    public function fulltext(string $search, null|int $limit = null): array
+    public function fulltext(string $search, null|int $limit = null, bool $includeHidden = false): array
     {
+        $notHidden = $includeHidden ? '' : $this->hiddenPlayers->sqlExclude('player.id');
+
         $query = <<<SQL
 SELECT
     id AS player_id,
@@ -48,8 +55,11 @@ SELECT
       END
     ) AS match_score
 FROM player
-WHERE LOWER(name) LIKE LOWER(:searchFullLikeQuery) OR LOWER(code) LIKE LOWER(:searchFullLikeQuery)
-   OR LOWER(unaccent(name)) LIKE LOWER(unaccent(:searchFullLikeQuery)) OR LOWER(unaccent(code)) LIKE LOWER(unaccent(:searchFullLikeQuery))
+WHERE (
+    LOWER(name) LIKE LOWER(:searchFullLikeQuery) OR LOWER(code) LIKE LOWER(:searchFullLikeQuery)
+    OR LOWER(unaccent(name)) LIKE LOWER(unaccent(:searchFullLikeQuery)) OR LOWER(unaccent(code)) LIKE LOWER(unaccent(:searchFullLikeQuery))
+)
+    {$notHidden}
 ORDER BY match_score DESC
 SQL;
 

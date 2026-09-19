@@ -6,11 +6,13 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\FeatureRequestCommentView;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 
 readonly final class GetFeatureRequestComments
 {
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -19,6 +21,8 @@ readonly final class GetFeatureRequestComments
      */
     public function forFeatureRequest(string $featureRequestId): array
     {
+        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
+
         $query = <<<SQL
 SELECT
     frc.id,
@@ -30,6 +34,7 @@ SELECT
 FROM feature_request_comment frc
 JOIN player p ON frc.author_id = p.id
 WHERE frc.feature_request_id = :featureRequestId
+    {$notHidden}
 ORDER BY frc.created_at DESC
 SQL;
 

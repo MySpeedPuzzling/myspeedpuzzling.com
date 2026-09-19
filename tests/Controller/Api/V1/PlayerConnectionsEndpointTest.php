@@ -190,6 +190,10 @@ final class PlayerConnectionsEndpointTest extends WebTestCase
     {
         $entityManager = $this->entityManager($browser);
 
+        // PLAYER_REGULAR blocks PLAYER_PRIVATE (UserBlockFixture) and would not be shown them at all;
+        // these tests are about masking - the blocklist side is covered by GetPlayerConnectionsTest
+        $entityManager->getConnection()->executeStatement('DELETE FROM user_block');
+
         $player = static function (string $playerId) use ($entityManager): Player {
             $player = $entityManager->find(Player::class, $playerId);
             assert($player !== null);

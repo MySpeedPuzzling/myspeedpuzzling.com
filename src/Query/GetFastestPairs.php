@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\SkillTier;
 
@@ -15,6 +16,7 @@ readonly final class GetFastestPairs
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -23,6 +25,8 @@ readonly final class GetFastestPairs
      */
     public function perPiecesCount(int $piecesCount, int $howManyPlayers, null|CountryCode $countryCode): array
     {
+        $notHidden = $this->hiddenPlayers->sqlExcludeTeam('pst.team');
+
         $query = <<<SQL
 WITH candidate_times AS (
     SELECT pst.id
@@ -32,6 +36,7 @@ WITH candidate_times AS (
         AND pst.puzzling_type = 'duo'
         AND pst.seconds_to_solve > 0
         AND pst.suspicious = false
+        {$notHidden}
     ORDER BY pst.seconds_to_solve ASC
     LIMIT 500
 ),

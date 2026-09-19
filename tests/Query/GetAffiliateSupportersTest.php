@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetAffiliateSupporters;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestingViewer;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetAffiliateSupportersTest extends KernelTestCase
@@ -51,5 +53,25 @@ final class GetAffiliateSupportersTest extends KernelTestCase
         self::assertSame(0, $result['total_count']);
         self::assertEmpty($result['public_supporters']);
         self::assertEmpty($result['payouts_by_currency']);
+    }
+
+    public function testBlockedSupporterIsLeftOut(): void
+    {
+        // The only supporter is PLAYER_PRIVATE, whom PLAYER_REGULAR blocks (UserBlockFixture)
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE player SET is_private = false WHERE id = :id',
+            ['id' => PlayerFixture::PLAYER_PRIVATE],
+        );
+
+        $result = $this->getAffiliateSupporters->byPlayerId(PlayerFixture::PLAYER_REGULAR);
+        self::assertSame([PlayerFixture::PLAYER_PRIVATE], array_column($result['public_supporters'], 'player_id'));
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+        $result = $this->getAffiliateSupporters->byPlayerId(PlayerFixture::PLAYER_REGULAR);
+        self::assertSame([], $result['public_supporters']);
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_ADMIN);
+        $result = $this->getAffiliateSupporters->byPlayerId(PlayerFixture::PLAYER_REGULAR);
+        self::assertSame([PlayerFixture::PLAYER_PRIVATE], array_column($result['public_supporters'], 'player_id'));
     }
 }

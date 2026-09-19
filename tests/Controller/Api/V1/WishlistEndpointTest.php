@@ -303,19 +303,19 @@ final class WishlistEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->myPath());
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 5, 'non-member PAT (items, statistics, profile, solves)');
+        $this->assertQueryCountAtMost($browser, 6, 'non-member PAT (items, statistics, profile, solves)');
 
         $this->authenticatePat($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->myPath());
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 10, 'member PAT (items, statistics, profile, difficulty, predictions, solves)');
+        $this->assertQueryCountAtMost($browser, 11, 'member PAT (items, statistics, profile, difficulty, predictions, solves)');
 
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['collections:read', 'results:read']);
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->myPath());
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 12, 'member authorization-code token');
+        $this->assertQueryCountAtMost($browser, 13, 'member authorization-code token');
 
         $this->setWishListVisibility($browser, PlayerFixture::PLAYER_WITH_STRIPE, CollectionVisibility::Public);
 
@@ -329,7 +329,7 @@ final class WishlistEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->playerPath(PlayerFixture::PLAYER_WITH_STRIPE));
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 13, 'member authorization-code token on /players (profile, items, statistics, own profile, difficulty, own predictions, owner solves)');
+        $this->assertQueryCountAtMost($browser, 14, 'member authorization-code token on /players (profile, items, statistics, own profile, difficulty, own predictions, owner solves)');
     }
 
     /**

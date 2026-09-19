@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Events\GroupSolvingTimeEdited;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
+use SpeedPuzzling\Web\Query\GetUserBlocks;
 use SpeedPuzzling\Web\Repository\NotificationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
@@ -23,6 +24,7 @@ readonly final class NotifyWhenGroupSolvingTimeEdited
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         private PlayerRepository $playerRepository,
         private NotificationRepository $notificationRepository,
+        private GetUserBlocks $getUserBlocks,
         private ClockInterface $clock,
     ) {
     }
@@ -40,8 +42,11 @@ readonly final class NotifyWhenGroupSolvingTimeEdited
         // Members before and after the edit: whoever the edit removed from the group should know as well
         $memberIds = array_unique([...$event->memberPlayerIdsBeforeEdit, ...$solvingTime->memberPlayerIds()]);
 
+        // Nothing is created about the editor for a member who blocks them
+        $blockerIds = $this->getUserBlocks->blockersOf([$editedBy->id->toString()]);
+
         foreach ($memberIds as $memberId) {
-            if ($memberId === $editedBy->id->toString()) {
+            if ($memberId === $editedBy->id->toString() || in_array($memberId, $blockerIds, true)) {
                 continue;
             }
 

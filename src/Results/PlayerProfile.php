@@ -22,6 +22,7 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     city: null|string,
  *     code: string,
  *     favorite_players: string,
+ *     hidden_player_ids?: null|string,
  *     avatar: null|string,
  *     bio: null|string,
  *     facebook: null|string,
@@ -99,6 +100,14 @@ readonly final class PlayerProfile
         public null|DateTimeImmutable $referralProgramJoinedAt = null,
         public bool $referralProgramSuspended = false,
         public bool $isModerator = false,
+        /**
+         * Players this one must not be shown (docs/features/player-blocklist.md), admin-imposed
+         * blocks included - for HiddenPlayers only, never for display. Filled for the signed-in
+         * player's own profile (GetPlayerProfile::byUserId()) and empty otherwise.
+         *
+         * @var list<string>
+         */
+        public array $hiddenPlayerIds = [],
     ) {
     }
 
@@ -112,6 +121,17 @@ readonly final class PlayerProfile
             $favoritePlayers = Json::decode($row['favorite_players'], true);
         } catch (JsonException) {
             $favoritePlayers = [];
+        }
+
+        $hiddenPlayerIds = [];
+
+        try {
+            $decoded = Json::decode($row['hidden_player_ids'] ?? '[]', true);
+
+            if (is_array($decoded)) {
+                $hiddenPlayerIds = array_values(array_filter($decoded, is_string(...)));
+            }
+        } catch (JsonException) {
         }
 
         $countryCode = CountryCode::fromCode($row['country']);
@@ -193,6 +213,7 @@ readonly final class PlayerProfile
                 : null,
             referralProgramSuspended: (bool) $row['referral_program_suspended'],
             isModerator: $row['moderator_since'] !== null,
+            hiddenPlayerIds: $hiddenPlayerIds,
         );
     }
 

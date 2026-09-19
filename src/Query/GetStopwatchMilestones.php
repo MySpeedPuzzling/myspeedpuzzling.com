@@ -6,11 +6,13 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\StopwatchMilestone;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 
 readonly final class GetStopwatchMilestones
 {
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -43,6 +45,7 @@ SQL;
         }
 
         // Get fastest solo time with player info
+        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
         $fastestQuery = <<<SQL
 SELECT
     pst.seconds_to_solve,
@@ -55,6 +58,7 @@ WHERE pst.puzzle_id = :puzzleId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.puzzlers_count = 1
     AND p.is_private = false
+    {$notHidden}
 ORDER BY pst.seconds_to_solve ASC
 LIMIT 1
 SQL;
@@ -112,6 +116,7 @@ SQL;
         }
 
         // Get favorite players' best solo times for this puzzle
+        $favoriteNotHidden = $this->hiddenPlayers->sqlExclude('fav.id');
         $favQuery = <<<SQL
 SELECT
     fav.name AS player_name,
@@ -126,6 +131,7 @@ WHERE player.id = :playerId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.puzzlers_count = 1
     AND fav.is_private = false
+    {$favoriteNotHidden}
 GROUP BY fav.id, fav.name, fav.code, fav.avatar
 ORDER BY seconds_to_solve ASC
 SQL;
@@ -192,6 +198,7 @@ SQL;
         }
 
         // Fetch best solo time per player for this puzzle (excluding current player)
+        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
         $query = <<<SQL
 SELECT
     p.id AS player_id,
@@ -206,6 +213,7 @@ WHERE pst.puzzle_id = :puzzleId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.puzzlers_count = 1
     AND p.is_private = false
+    {$notHidden}
 GROUP BY p.id, p.name, p.code, p.avatar
 ORDER BY seconds_to_solve ASC
 SQL;
@@ -321,6 +329,8 @@ SQL;
      */
     public function allSoloTimesForPuzzle(string $puzzleId): array
     {
+        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
+
         $query = <<<SQL
 SELECT MIN(pst.seconds_to_solve) AS seconds_to_solve
 FROM puzzle_solving_time pst
@@ -329,6 +339,7 @@ WHERE pst.puzzle_id = :puzzleId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.puzzlers_count = 1
     AND p.is_private = false
+    {$notHidden}
 GROUP BY pst.player_id
 ORDER BY seconds_to_solve ASC
 SQL;

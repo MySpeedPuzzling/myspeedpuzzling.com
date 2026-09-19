@@ -516,14 +516,14 @@ final class CurrentUserEndpointTest extends WebTestCase
         $browser->request('GET', '/api/v1/me');
 
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 7, 'member, authorization-code token');
+        $this->assertQueryCountAtMost($browser, 8, 'member, authorization-code token');
 
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_REGULAR, ['profile:read']);
         $this->startCountingQueries($browser);
         $browser->request('GET', '/api/v1/me');
 
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 7, 'non-member, authorization-code token (no skill query)');
+        $this->assertQueryCountAtMost($browser, 8, 'non-member, authorization-code token (no skill query)');
 
         $this->optOutOfRankings($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_STRIPE, ['profile:read']);
@@ -531,7 +531,7 @@ final class CurrentUserEndpointTest extends WebTestCase
         $browser->request('GET', '/api/v1/me');
 
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 6, 'member opted out of rankings (badges only)');
+        $this->assertQueryCountAtMost($browser, 7, 'member opted out of rankings (badges only)');
     }
 
     public function testRequestQueryBudgetViaPersonalAccessToken(): void
@@ -545,14 +545,14 @@ final class CurrentUserEndpointTest extends WebTestCase
         $browser->request('GET', '/api/v1/me');
 
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 6, 'member, personal access token');
+        $this->assertQueryCountAtMost($browser, 7, 'member, personal access token');
 
         PatTestHelper::addBearerToken($browser, PatTestHelper::createToken($browser, PlayerFixture::PLAYER_REGULAR));
         $this->startCountingQueries($browser);
         $browser->request('GET', '/api/v1/me');
 
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 5, 'non-member, personal access token (no skill query)');
+        $this->assertQueryCountAtMost($browser, 6, 'non-member, personal access token (no skill query)');
     }
 
     /**

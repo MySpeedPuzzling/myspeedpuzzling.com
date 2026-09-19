@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\ConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Results\NotConnectedCompetitionParticipant;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\CountryCode;
 
 readonly final class GetCompetitionParticipants
@@ -16,6 +17,7 @@ readonly final class GetCompetitionParticipants
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -59,6 +61,8 @@ SQL;
         if (count($roundsFilter) > 0) {
             $query1 .= ' AND competition_participant_round.round_id IN (:rounds)';
         }
+
+        $query1 .= $this->hiddenPlayers->sqlExclude('player.id');
 
         $queryParams = ['competitionId' => $competitionId];
         $paramTypes = [];

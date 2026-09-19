@@ -9,11 +9,13 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\MostFavoritePlayer;
 use SpeedPuzzling\Web\Results\PlayerIdentification;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 
 readonly final class GetFavoritePlayers
 {
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -27,6 +29,8 @@ readonly final class GetFavoritePlayers
             throw new PlayerNotFound();
         }
 
+        $notHidden = $this->hiddenPlayers->sqlExclude('fav.id');
+
         $query = <<<SQL
 SELECT
     fav.id AS player_id,
@@ -36,7 +40,7 @@ SELECT
 FROM player
 CROSS JOIN LATERAL json_array_elements_text(player.favorite_players::json) AS fav_player_id
 JOIN player fav ON fav.id = fav_player_id::uuid
-WHERE player.id = :playerId;
+WHERE player.id = :playerId{$notHidden};
 SQL;
 
         $data = $this->database
@@ -64,6 +68,8 @@ SQL;
      */
     public function mostFavorite(int $limit): array
     {
+        $notHidden = $this->hiddenPlayers->sqlExclude('fav_player.id');
+
         $query = <<<SQL
 SELECT 
     fav_player.id AS player_id, 
@@ -73,7 +79,7 @@ SELECT
     COUNT(fav_player.id) AS favorite_count
 FROM player
 CROSS JOIN LATERAL JSON_ARRAY_ELEMENTS_TEXT(player.favorite_players) AS fav_player_id
-JOIN player fav_player ON fav_player_id::uuid = fav_player.id
+JOIN player fav_player ON fav_player_id::uuid = fav_player.id{$notHidden}
 GROUP BY fav_player.id, fav_player.name, fav_player.code
 ORDER BY favorite_count DESC
 LIMIT :limit

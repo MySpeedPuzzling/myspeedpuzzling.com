@@ -11,6 +11,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\RecentActivityItem;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\SkillTier;
 
 readonly final class GetRecentActivity
@@ -18,6 +19,7 @@ readonly final class GetRecentActivity
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -30,6 +32,8 @@ readonly final class GetRecentActivity
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
         }
+
+        $notHidden = $this->notHidden('puzzle_solving_time');
 
         $query = <<<SQL
 SELECT
@@ -87,6 +91,7 @@ LEFT JOIN competition_series cs ON cs.id = competition.series_id
 LEFT JOIN player_skill ps ON ps.player_id = player.id
 WHERE
     (puzzle_solving_time.player_id = :playerId OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
+    {$notHidden}
 ORDER BY puzzle_solving_time.tracked_at DESC
 LIMIT :limit
 SQL;
@@ -150,6 +155,8 @@ SQL;
      */
     public function latest(int $limit): array
     {
+        $notHidden = $this->notHidden('puzzle_solving_time');
+
         $query = <<<SQL
 SELECT
     puzzle_solving_time.id as time_id,
@@ -205,6 +212,7 @@ LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
 LEFT JOIN competition_series cs ON cs.id = competition.series_id
 LEFT JOIN player_skill ps ON ps.player_id = player.id
 WHERE player.is_private = false
+    {$notHidden}
 ORDER BY puzzle_solving_time.tracked_at DESC
 LIMIT :limit
 SQL;
@@ -294,6 +302,8 @@ SQL;
             $favoritePlayerIds,
         );
 
+        $notHidden = $this->notHidden('pst');
+
         $query = <<<SQL
 WITH filtered_puzzle_solving_time AS (
     SELECT
@@ -301,8 +311,8 @@ WITH filtered_puzzle_solving_time AS (
     FROM
         puzzle_solving_time pst
     WHERE
-        pst.player_id IN (:favoritePlayerIds)
-        OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> ANY(ARRAY[:favoritePuzzlers]::jsonb[]))
+        pst.player_id IN (:favoritePlayerIds){$notHidden}
+        OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> ANY(ARRAY[:favoritePuzzlers]::jsonb[]){$notHidden})
     ORDER BY pst.tracked_at DESC
     LIMIT :limit
 )
@@ -421,5 +431,16 @@ SQL;
 
             return RecentActivityItem::fromDatabaseRow($row);
         }, $data);
+    }
+
+    /**
+     * A row is a solo time or a group time. Solo: hidden with its player. Group: by its members
+     * alone - the tracker is one of them, and excluding by tracker as well would take away the
+     * viewer's own group times that a hidden player happened to track.
+     */
+    private function notHidden(string $timeAlias): string
+    {
+        return $this->hiddenPlayers->sqlExclude("(CASE WHEN {$timeAlias}.team IS NULL THEN {$timeAlias}.player_id END)")
+            . $this->hiddenPlayers->sqlExcludeTeam("{$timeAlias}.team");
     }
 }

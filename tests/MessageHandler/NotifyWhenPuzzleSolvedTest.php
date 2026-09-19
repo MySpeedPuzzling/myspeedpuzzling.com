@@ -104,8 +104,9 @@ final class NotifyWhenPuzzleSolvedTest extends KernelTestCase
 
         self::assertCount(26, $this->notificationsOf($timeId));
         self::assertCount(1, $notificationInserts, 'All followers are notified by a single INSERT');
-        // 53 queries before the fan-out became one INSERT (one per follower + loading the follower entities)
-        self::assertLessThanOrEqual(27, count($queries), implode("\n", $queries));
+        // 53 queries before the fan-out became one INSERT (one per follower + loading the follower entities);
+        // one of the 28 asks who blocks the solver
+        self::assertLessThanOrEqual(28, count($queries), implode("\n", $queries));
     }
 
     public function testTeamMemberFollowedTwiceIsNotifiedOnceAndPrivateMembersNotifyNobody(): void
@@ -125,6 +126,35 @@ final class NotifyWhenPuzzleSolvedTest extends KernelTestCase
         self::assertEmpty(array_intersect($privateOnlyFollowers, $notifiedPlayers));
     }
 
+    public function testFollowerWhoBlocksTheSolverIsNotNotified(): void
+    {
+        $followers = $this->createFollowersOf([PlayerFixture::PLAYER_REGULAR], 3);
+        $this->block($followers[0], PlayerFixture::PLAYER_REGULAR);
+        // A block in the other direction changes nothing
+        $this->block(PlayerFixture::PLAYER_REGULAR, $followers[1]);
+
+        $timeId = $this->addTime(PlayerFixture::PLAYER_REGULAR_USER_ID, PuzzleFixture::PUZZLE_1500_01);
+
+        self::assertEqualsCanonicalizing(
+            [$followers[1], $followers[2], PlayerFixture::PLAYER_WITH_FAVORITES],
+            array_column($this->notificationsOf($timeId), 'player_id'),
+        );
+    }
+
+    public function testFollowerWhoBlocksAnyGroupMemberIsNotNotified(): void
+    {
+        $followers = $this->createFollowersOf([PlayerFixture::PLAYER_REGULAR], 2);
+        // The private partner notifies nobody, but would be shown in the notification
+        $this->block($followers[0], PlayerFixture::PLAYER_PRIVATE);
+
+        $timeId = $this->addTime(PlayerFixture::PLAYER_REGULAR_USER_ID, PuzzleFixture::PUZZLE_1500_01, ['#player2']);
+
+        self::assertEqualsCanonicalizing(
+            [$followers[1], PlayerFixture::PLAYER_WITH_FAVORITES],
+            array_column($this->notificationsOf($timeId), 'player_id'),
+        );
+    }
+
     public function testPrivateSoloPlayerNotifiesNobody(): void
     {
         $this->createFollowersOf([PlayerFixture::PLAYER_PRIVATE], 3);
@@ -141,6 +171,14 @@ final class NotifyWhenPuzzleSolvedTest extends KernelTestCase
         $timeId = $this->addTime(self::PLAYER_ADMIN_USER_ID, PuzzleFixture::PUZZLE_1500_01);
 
         self::assertSame([], $this->notificationsOf($timeId));
+    }
+
+    private function block(string $blockerId, string $blockedId): void
+    {
+        $this->database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
+        );
     }
 
     /**

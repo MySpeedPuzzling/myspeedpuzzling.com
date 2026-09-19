@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -16,6 +17,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class UnblockUserController extends AbstractController
 {
+    public const string CSRF_TOKEN_ID = 'unblock_player';
+
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -34,12 +37,16 @@ final class UnblockUserController extends AbstractController
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         assert($loggedPlayer !== null);
 
+        if ($this->isCsrfTokenValid(self::CSRF_TOKEN_ID, $request->request->getString('_token')) === false) {
+            throw new AccessDeniedHttpException();
+        }
+
         $this->messageBus->dispatch(new UnblockUser(
             blockerId: $loggedPlayer->playerId,
             blockedId: $playerId,
         ));
 
-        $this->addFlash('success', $this->translator->trans('messaging.user_unblocked'));
+        $this->addFlash('success', $this->translator->trans('blocklist.unblocked'));
 
         $referer = $request->headers->get('referer');
         if ($referer !== null && $referer !== '') {

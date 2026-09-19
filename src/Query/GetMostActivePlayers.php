@@ -6,16 +6,20 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\MostActivePlayer;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 
 readonly final class GetMostActivePlayers
 {
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
     public function mostActivePlayersQuery(): string
     {
+        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
+
         return <<<SQL
 SELECT
     p.id AS player_id,
@@ -42,7 +46,7 @@ FROM (
     WHERE
         pst.team IS NOT NULL
 ) as subquery
-JOIN player p ON subquery.player_id = p.id
+JOIN player p ON subquery.player_id = p.id{$notHidden}
 GROUP BY p.id, p.name, p.country
 ORDER BY solved_puzzles_count DESC
 LIMIT :limit
@@ -54,6 +58,8 @@ SQL;
      */
     public function mostActiveSoloPlayers(int $limit): array
     {
+        $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
+
         $query = <<<SQL
 SELECT
     player.id AS player_id,
@@ -68,6 +74,7 @@ FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
 WHERE puzzle_solving_time.puzzling_type = 'solo'
+    {$notHidden}
 GROUP BY player.id
 ORDER BY solved_puzzles_count DESC, total_pieces_count DESC, total_seconds DESC
 LIMIT :limit
@@ -107,6 +114,8 @@ SQL;
             ? sprintf('%04d-01-01', $year + 1)
             : sprintf('%04d-%02d-01', $year, $month + 1);
 
+        $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
+
         $query = <<<SQL
 SELECT
     player.id AS player_id,
@@ -123,6 +132,7 @@ INNER JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
 WHERE puzzle_solving_time.puzzling_type = 'solo'
     AND puzzle_solving_time.finished_at >= :startDate
     AND puzzle_solving_time.finished_at < :endDate
+    {$notHidden}
 GROUP BY player.id
 ORDER BY solved_puzzles_count DESC, total_pieces_count DESC, total_seconds DESC
 LIMIT :limit

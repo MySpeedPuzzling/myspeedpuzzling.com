@@ -8,11 +8,13 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\FeatureRequestNotFound;
 use SpeedPuzzling\Web\Results\FeatureRequestDetail;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 
 readonly final class GetFeatureRequestDetail
 {
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -24,6 +26,8 @@ readonly final class GetFeatureRequestDetail
         if (!Uuid::isValid($featureRequestId)) {
             throw new FeatureRequestNotFound();
         }
+
+        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
 
         $query = <<<SQL
 SELECT
@@ -42,6 +46,7 @@ SELECT
 FROM feature_request fr
 JOIN player p ON fr.author_id = p.id
 WHERE fr.id = :featureRequestId
+    {$notHidden}
 SQL;
 
         $row = $this->database->executeQuery($query, [

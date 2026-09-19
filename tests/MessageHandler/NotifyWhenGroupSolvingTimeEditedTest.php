@@ -34,6 +34,7 @@ final class NotifyWhenGroupSolvingTimeEditedTest extends KernelTestCase
     public function testEveryOtherMemberIsToldWhoEdited(): void
     {
         // TIME_12: tracked by PLAYER_REGULAR, PLAYER_PRIVATE is the partner and the one editing
+        $this->unblockEveryone();
         $this->handle(PlayerFixture::PLAYER_PRIVATE, [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE]);
 
         self::assertSame(1, $this->countFor(PlayerFixture::PLAYER_REGULAR));
@@ -66,10 +67,37 @@ final class NotifyWhenGroupSolvingTimeEditedTest extends KernelTestCase
         self::assertSame(0, $this->countFor(PlayerFixture::PLAYER_REGULAR));
     }
 
+    public function testMemberWhoBlocksTheEditorIsToldNothing(): void
+    {
+        // UserBlockFixture: PLAYER_REGULAR blocks PLAYER_PRIVATE, the one editing
+        $this->handle(PlayerFixture::PLAYER_PRIVATE, [
+            PlayerFixture::PLAYER_REGULAR,
+            PlayerFixture::PLAYER_PRIVATE,
+            PlayerFixture::PLAYER_WITH_FAVORITES,
+        ]);
+
+        self::assertSame(0, $this->countFor(PlayerFixture::PLAYER_REGULAR));
+        self::assertSame(1, $this->countFor(PlayerFixture::PLAYER_WITH_FAVORITES));
+    }
+
+    public function testBlockingAnotherMemberThanTheEditorChangesNothing(): void
+    {
+        // PLAYER_REGULAR blocks PLAYER_PRIVATE, but it is PLAYER_WITH_FAVORITES who edits
+        $this->handle(PlayerFixture::PLAYER_WITH_FAVORITES, [
+            PlayerFixture::PLAYER_REGULAR,
+            PlayerFixture::PLAYER_PRIVATE,
+            PlayerFixture::PLAYER_WITH_FAVORITES,
+        ]);
+
+        self::assertSame(1, $this->countFor(PlayerFixture::PLAYER_REGULAR));
+        self::assertSame(1, $this->countFor(PlayerFixture::PLAYER_PRIVATE));
+    }
+
     public function testRepeatedEditsDoNotPileUpWhileUnread(): void
     {
         $members = [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE];
 
+        $this->unblockEveryone();
         $this->handle(PlayerFixture::PLAYER_PRIVATE, $members);
         $this->handle(PlayerFixture::PLAYER_PRIVATE, $members);
 
@@ -101,6 +129,14 @@ final class NotifyWhenGroupSolvingTimeEditedTest extends KernelTestCase
 
         // The doctrine_transaction middleware does this outside of tests
         $this->entityManager->flush();
+    }
+
+    /**
+     * UserBlockFixture has PLAYER_REGULAR blocking PLAYER_PRIVATE, who then hears nothing of their edits
+     */
+    private function unblockEveryone(): void
+    {
+        $this->database->executeStatement('DELETE FROM user_block');
     }
 
     private function countFor(string $playerId): int

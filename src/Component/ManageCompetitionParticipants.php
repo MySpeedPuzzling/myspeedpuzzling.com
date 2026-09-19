@@ -144,7 +144,7 @@ final class ManageCompetitionParticipants
             return [];
         }
 
-        return $this->searchPlayers->fulltext($query, limit: 10);
+        return $this->searchPlayers->fulltext($query, limit: 10, includeHidden: true);
     }
 
     /**
@@ -158,7 +158,7 @@ final class ManageCompetitionParticipants
             return [];
         }
 
-        return $this->searchPlayers->fulltext($query, limit: 10);
+        return $this->searchPlayers->fulltext($query, limit: 10, includeHidden: true);
     }
 
     #[LiveAction]

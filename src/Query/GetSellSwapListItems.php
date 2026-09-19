@@ -10,6 +10,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzleMarketplaceOffer;
 use SpeedPuzzling\Web\Results\SellSwapListItemOverview;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 
@@ -18,6 +19,7 @@ readonly final class GetSellSwapListItems
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -260,6 +262,8 @@ SQL;
      */
     public function marketplaceOffersByPuzzleId(string $puzzleId): array
     {
+        $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
+
         $query = <<<SQL
 SELECT ssli.price, ssli.condition, player.sell_swap_list_settings->>'currency' AS currency
 FROM sell_swap_list_item ssli
@@ -269,6 +273,7 @@ AND ssli.published_on_marketplace = true
 AND ssli.reserved = false
 AND ssli.price > 0
 AND player.sell_swap_list_settings->>'currency' IN ('USD', 'EUR', 'GBP', 'CZK', 'PLN')
+{$notHidden}
 ORDER BY ssli.price
 SQL;
 

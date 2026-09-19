@@ -78,10 +78,12 @@ final class PlayerResultsEndpointTest extends WebTestCase
     {
         $browser = self::createClient();
 
+        // Not PLAYER_REGULAR: they block PLAYER_PRIVATE (UserBlockFixture), who then does not exist for them
+
         $token = OAuth2TestHelper::createAccessToken(
             $browser,
             OAuth2ClientFixture::CONFIDENTIAL_CLIENT_ID,
-            PlayerFixture::PLAYER_REGULAR,
+            PlayerFixture::PLAYER_ADMIN,
             ['results:read'],
         );
 
@@ -105,10 +107,12 @@ final class PlayerResultsEndpointTest extends WebTestCase
     {
         $browser = self::createClient();
 
+        // Not PLAYER_REGULAR: they block PLAYER_PRIVATE (UserBlockFixture), who then does not exist for them
+
         $token = OAuth2TestHelper::createAccessToken(
             $browser,
             OAuth2ClientFixture::CONFIDENTIAL_CLIENT_ID,
-            PlayerFixture::PLAYER_REGULAR,
+            PlayerFixture::PLAYER_ADMIN,
             ['results:read'],
         );
 

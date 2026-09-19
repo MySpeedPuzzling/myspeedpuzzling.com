@@ -7,11 +7,14 @@ namespace SpeedPuzzling\Web\Tests\Query;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Nette\Utils\Json;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetRecentActivity;
 use SpeedPuzzling\Web\Results\RecentActivityItem;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\TestingViewer;
+use SpeedPuzzling\Web\Value\Puzzler;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetRecentActivityTest extends KernelTestCase
@@ -162,5 +165,104 @@ SQL,
 
         self::assertTrue($timesOfTeamMemberSeen, 'Fixtures must contain a time listed only because a favorite was in its team');
         self::assertTrue($othersTeamTimeSkipped, 'Fixtures must contain a team time no favorite was part of');
+    }
+
+    public function testBlockerDoesNotSeeTheBlockedPlayerInLatest(): void
+    {
+        $this->block(PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_REGULAR);
+
+        self::assertTrue($this->showsPlayer($this->query->latest(500), PlayerFixture::PLAYER_REGULAR));
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertTrue($this->showsPlayer($this->query->latest(500), PlayerFixture::PLAYER_REGULAR));
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_ADMIN);
+        $latest = $this->query->latest(500);
+        self::assertNotEmpty($latest);
+        self::assertFalse($this->showsPlayer($latest, PlayerFixture::PLAYER_REGULAR));
+        self::assertFalse($this->showsPlayer($this->query->forPlayer(PlayerFixture::PLAYER_REGULAR, 500), PlayerFixture::PLAYER_REGULAR));
+    }
+
+    public function testGroupTimeWithAHiddenMemberIsDroppedFromTheSubjectsActivity(): void
+    {
+        // TIME_12 and TIME_41: tracked by PLAYER_REGULAR, PLAYER_PRIVATE is the partner
+        $this->block(PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_PRIVATE);
+
+        $ids = fn (): array => array_map(
+            static fn (RecentActivityItem $item): string => $item->id,
+            $this->query->forPlayer(PlayerFixture::PLAYER_REGULAR, 500),
+        );
+
+        self::assertContains(PuzzleSolvingTimeFixture::TIME_12, $ids());
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_ADMIN);
+        $filtered = $ids();
+        self::assertNotContains(PuzzleSolvingTimeFixture::TIME_12, $filtered);
+        self::assertNotContains(PuzzleSolvingTimeFixture::TIME_41, $filtered);
+        // The partner's solo times go nowhere
+        self::assertContains(PuzzleSolvingTimeFixture::TIME_01, $filtered);
+    }
+
+    public function testViewersOwnGroupTimeStaysEvenWhenAHiddenPlayerTrackedIt(): void
+    {
+        // The fixture block: PLAYER_REGULAR (who tracked TIME_12) hides the partner
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+        $ownIds = array_map(
+            static fn (RecentActivityItem $item): string => $item->id,
+            $this->query->forPlayer(PlayerFixture::PLAYER_REGULAR, 500),
+        );
+        self::assertContains(PuzzleSolvingTimeFixture::TIME_12, $ownIds);
+
+        // The other way round: the partner hides the player who tracked the time
+        $this->block(PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_REGULAR);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_PRIVATE);
+
+        $partnerItems = $this->query->forPlayer(PlayerFixture::PLAYER_PRIVATE, 500);
+        $partnerIds = array_map(static fn (RecentActivityItem $item): string => $item->id, $partnerItems);
+        self::assertContains(PuzzleSolvingTimeFixture::TIME_12, $partnerIds);
+        self::assertContains(PuzzleSolvingTimeFixture::TIME_41, $partnerIds);
+
+        foreach ($this->query->latest(500) as $item) {
+            if ($item->playerId === PlayerFixture::PLAYER_REGULAR) {
+                self::assertNotNull($item->players, 'A solo time of the hidden player is shown');
+                self::assertTrue(Puzzler::listContainsPlayer($item->players, PlayerFixture::PLAYER_PRIVATE));
+            }
+        }
+    }
+
+    public function testFavoritesFeedLeavesOutAHiddenFavorite(): void
+    {
+        // PLAYER_WITH_FAVORITES follows PLAYER_REGULAR and PLAYER_ADMIN
+        $unfiltered = $this->query->ofPlayerFavorites(500, PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertTrue($this->showsPlayer($unfiltered, PlayerFixture::PLAYER_REGULAR));
+
+        $this->block(PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_REGULAR);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $feed = $this->query->ofPlayerFavorites(500, PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertFalse($this->showsPlayer($feed, PlayerFixture::PLAYER_REGULAR));
+        self::assertTrue($this->showsPlayer($feed, PlayerFixture::PLAYER_ADMIN));
+    }
+
+    /**
+     * @param array<RecentActivityItem> $items
+     */
+    private function showsPlayer(array $items, string $playerId): bool
+    {
+        foreach ($items as $item) {
+            if ($item->playerId === $playerId || Puzzler::listContainsPlayer($item->players, $playerId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function block(string $blockerId, string $blockedId): void
+    {
+        $this->database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
+        );
     }
 }

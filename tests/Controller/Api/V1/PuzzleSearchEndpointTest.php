@@ -777,7 +777,7 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', self::ENDPOINT, ['limit' => 100]);
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 8, 'non-member authorization-code token, limit=100');
+        $this->assertQueryCountAtMost($browser, 9, 'non-member authorization-code token, limit=100');
 
         $this->authenticatePat($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $this->startCountingQueries($browser);
@@ -803,7 +803,7 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', self::ENDPOINT, ['limit' => 100]);
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 13, 'member authorization-code token, limit=100');
+        $this->assertQueryCountAtMost($browser, 14, 'member authorization-code token, limit=100');
 
         // the barcode path: same rules, no count query
         $this->startCountingQueries($browser);

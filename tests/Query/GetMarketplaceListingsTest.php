@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
 use SpeedPuzzling\Web\Query\GetMarketplaceListings;
+use SpeedPuzzling\Web\Results\MarketplaceListingItem;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\SellSwapListItemFixture;
+use SpeedPuzzling\Web\Tests\TestingViewer;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -337,5 +343,59 @@ final class GetMarketplaceListingsTest extends KernelTestCase
         $czCount = $this->query->count(shipsToCountry: 'cz');
 
         self::assertSame(count($czItems), $czCount);
+    }
+
+    public function testListingsOfABlockedSellerDisappearForTheBlockerAndTheCountFollows(): void
+    {
+        $this->block(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_ADMIN);
+
+        $everyone = $this->sellerIds();
+        $ofBlockedSeller = count(array_keys($everyone, PlayerFixture::PLAYER_ADMIN, true));
+        self::assertGreaterThan(0, $ofBlockedSeller);
+        self::assertSame(count($everyone), $this->query->count());
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+        $visible = $this->sellerIds();
+        self::assertNotContains(PlayerFixture::PLAYER_ADMIN, $visible);
+        self::assertCount(count($everyone) - $ofBlockedSeller, $visible);
+        self::assertSame(count($visible), $this->query->count());
+        self::assertSame([], $this->query->search(sellerId: PlayerFixture::PLAYER_ADMIN));
+        self::assertSame(0, $this->query->count(sellerId: PlayerFixture::PLAYER_ADMIN));
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertSame(count($everyone), $this->query->count());
+        self::assertCount(count($everyone), $this->sellerIds());
+    }
+
+    public function testListingOfABlockedSellerIsNotFoundForTheBlocker(): void
+    {
+        $this->block(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_ADMIN);
+
+        self::assertSame(PlayerFixture::PLAYER_ADMIN, $this->query->byItemId(SellSwapListItemFixture::SELLSWAP_08)->sellerId);
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+        self::assertSame(SellSwapListItemFixture::SELLSWAP_01, $this->query->byItemId(SellSwapListItemFixture::SELLSWAP_01)->itemId);
+
+        $this->expectException(SellSwapListItemNotFound::class);
+        $this->query->byItemId(SellSwapListItemFixture::SELLSWAP_08);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function sellerIds(): array
+    {
+        return array_values(array_map(
+            static fn (MarketplaceListingItem $item): string => $item->sellerId,
+            $this->query->search(limit: 1000),
+        ));
+    }
+
+    private function block(string $blockerId, string $blockedId): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
+        );
     }
 }

@@ -10,6 +10,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\RoundResult;
 use SpeedPuzzling\Web\Results\RoundResultPlayer;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\RoundResultStatus;
 use SpeedPuzzling\Web\Value\SkillTier;
@@ -26,11 +27,14 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *   pieces reported (by time).
  * - Private players are left out exactly like on the puzzle page: a solo result unless it is the viewer's
  *   own, a group only when every member is private and the viewer is not one of them.
+ * - Players the viewer blocked are left out too: their solo result, and any group they took part in unless
+ *   the viewer took part as well (docs/features/player-blocklist.md).
  */
 readonly final class GetRoundResults
 {
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -294,6 +298,10 @@ SQL,
      */
     private function isHiddenFrom(array $players, null|string $viewerPlayerId): bool
     {
+        if ($this->hasBlockedPlayer($players, $viewerPlayerId)) {
+            return true;
+        }
+
         foreach ($players as $player) {
             if ($player->isPrivate === false || ($viewerPlayerId !== null && $player->playerId === $viewerPlayerId)) {
                 return false;
@@ -301,6 +309,26 @@ SQL,
         }
 
         return true;
+    }
+
+    /**
+     * @param non-empty-list<RoundResultPlayer> $players
+     */
+    private function hasBlockedPlayer(array $players, null|string $viewerPlayerId): bool
+    {
+        $hasBlockedPlayer = false;
+
+        foreach ($players as $player) {
+            if ($viewerPlayerId !== null && $player->playerId === $viewerPlayerId) {
+                return false;
+            }
+
+            if ($this->hiddenPlayers->isHidden($player->playerId)) {
+                $hasBlockedPlayer = true;
+            }
+        }
+
+        return $hasBlockedPlayer;
     }
 
     private function skillTierName(null|int|string $tier): null|string

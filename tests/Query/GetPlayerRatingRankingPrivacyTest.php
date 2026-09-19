@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PlayerElo;
 use SpeedPuzzling\Web\Query\GetPlayerRatingRanking;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestingViewer;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetPlayerRatingRankingPrivacyTest extends KernelTestCase
@@ -150,5 +152,50 @@ final class GetPlayerRatingRankingPrivacyTest extends KernelTestCase
         }
 
         $this->em->flush();
+    }
+
+    public function testBlockedPlayerLeavesTheLadderAndPositionsCloseUp(): void
+    {
+        // Seeded: PLAYER_ADMIN 1500, PLAYER_REGULAR 1400, PLAYER_WITH_FAVORITES 1300, PLAYER_WITH_STRIPE 1200
+        $this->block(PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_ADMIN);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $entries = $this->query->ranking(self::PIECES_COUNT);
+        self::assertSame(
+            [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_WITH_STRIPE],
+            array_map(static fn ($entry) => $entry->playerId, $entries),
+        );
+        self::assertSame([1, 2, 3], array_map(static fn ($entry) => $entry->rank, $entries));
+        self::assertSame(3, $this->query->totalCount(self::PIECES_COUNT));
+        self::assertSame(0, $this->query->totalCount(self::PIECES_COUNT, searchTerm: 'Admin'));
+        self::assertSame(3, $this->query->playerPosition(PlayerFixture::PLAYER_WITH_STRIPE, self::PIECES_COUNT));
+        self::assertSame(
+            ['elo_rating' => 1200.0, 'rank' => 3, 'total' => 3],
+            $this->query->allForPlayer(PlayerFixture::PLAYER_WITH_STRIPE)[self::PIECES_COUNT],
+        );
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        self::assertSame(4, $this->query->totalCount(self::PIECES_COUNT));
+        self::assertSame(4, $this->query->playerPosition(PlayerFixture::PLAYER_WITH_STRIPE, self::PIECES_COUNT));
+        self::assertSame(PlayerFixture::PLAYER_ADMIN, $this->query->ranking(self::PIECES_COUNT)[0]->playerId);
+    }
+
+    public function testCountryFacetDropsACountryOnlyTheBlockedPlayerHolds(): void
+    {
+        self::assertContains('de', $this->query->distinctCountries(self::PIECES_COUNT));
+
+        $this->block(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_FAVORITES);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+
+        self::assertNotContains('de', $this->query->distinctCountries(self::PIECES_COUNT));
+    }
+
+    private function block(string $blockerId, string $blockedId): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
+        );
     }
 }

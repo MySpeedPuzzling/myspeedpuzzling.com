@@ -104,6 +104,21 @@ competition_approved:
         <p>Bonne nouvelle ! Votre événement <strong>%competitionName%</strong> a été approuvé et est maintenant visible publiquement sur MySpeedPuzzling.</p>
         <p><a href="%eventUrl%">Voir la page de l'événement</a></p>
 
+moderator_role_granted:
+    subject: "Vous êtes désormais modérateur de la communauté MySpeedPuzzling"
+    title: "Bienvenue dans l'équipe des modérateurs !"
+    content: |
+        <p>Bonjour %playerName%,</p>
+        <p>nous vous avons nommé <strong>modérateur de la communauté</strong> sur MySpeedPuzzling. Merci d'avoir proposé votre aide pour garder le catalogue de puzzles bien rangé - cela compte beaucoup pour nous et pour toute la communauté.</p>
+        <p>Désormais, vous pouvez examiner ce que proposent les autres puzzleurs :</p>
+        <ul>
+            <li><a href="%changeRequestsUrl%">Demandes de modification de puzzles</a> - corrections de noms, marques, nombres de pièces, codes et photos</li>
+            <li><a href="%mergeRequestsUrl%">Demandes de fusion de puzzles</a> - signalements indiquant que deux fiches correspondent au même puzzle</li>
+        </ul>
+        <p>Vous trouverez les deux sous l'icône de clé dans la barre supérieure une fois connecté.</p>
+        <p><strong>Un mot de prudence sur les fusions :</strong> approuver une fusion supprime les fiches en double et transfère les temps et les collections de tout le monde vers celle qui reste. C'est irréversible ; en cas de doute - nombre de pièces différent, illustration différente, édition différente - mieux vaut la laisser de côté ou la rejeter. Un même puzzle peut avoir plusieurs codes EAN ; c'est tout à fait normal.</p>
+        <p>Si quelque chose n'est pas clair, écrivez-nous via le lien « Envoyer un commentaire » en haut du site.</p>
+
 competition_rejected:
     subject: "Votre événement n'a pas été approuvé"
     title: "Événement non approuvé"

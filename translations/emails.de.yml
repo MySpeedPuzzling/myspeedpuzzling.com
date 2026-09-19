@@ -104,6 +104,21 @@ competition_approved:
         <p>Tolle Neuigkeiten! Ihre Veranstaltung <strong>%competitionName%</strong> wurde genehmigt und ist jetzt öffentlich auf MySpeedPuzzling sichtbar.</p>
         <p><a href="%eventUrl%">Veranstaltungsseite anzeigen</a></p>
 
+moderator_role_granted:
+    subject: "Du bist jetzt Community-Moderator bei MySpeedPuzzling"
+    title: "Willkommen im Moderatoren-Team!"
+    content: |
+        <p>Hallo %playerName%,</p>
+        <p>wir haben dich zum <strong>Community-Moderator</strong> auf MySpeedPuzzling gemacht. Danke, dass du angeboten hast, den Puzzle-Katalog in Ordnung zu halten - das bedeutet uns und der ganzen Community sehr viel.</p>
+        <p>Ab sofort kannst du prüfen, was andere Puzzler vorschlagen:</p>
+        <ul>
+            <li><a href="%changeRequestsUrl%">Puzzle-Änderungsanfragen</a> - Korrekturen von Namen, Marken, Teileanzahl, Codes und Fotos</li>
+            <li><a href="%mergeRequestsUrl%">Puzzle-Zusammenführungsanfragen</a> - Meldungen, dass zwei Einträge dasselbe Puzzle sind</li>
+        </ul>
+        <p>Beides findest du unter dem Schlüsselsymbol in der oberen Leiste, sobald du angemeldet bist.</p>
+        <p><strong>Ein Wort zur Vorsicht bei Zusammenführungen:</strong> Wenn du eine Zusammenführung genehmigst, werden die doppelten Einträge gelöscht und die Zeiten und Sammlungen aller auf den verbleibenden Eintrag übertragen. Das lässt sich nicht rückgängig machen. Im Zweifel - andere Teileanzahl, anderes Motiv, eine andere Ausgabe - lass die Anfrage also lieber liegen oder lehne sie ab. Ein Puzzle kann mehrere EAN-Codes haben; das ist in Ordnung.</p>
+        <p>Wenn etwas unklar ist, schreib uns über den Feedback-Link oben auf der Website.</p>
+
 competition_rejected:
     subject: "Ihre Veranstaltung wurde nicht genehmigt"
     title: "Veranstaltung nicht genehmigt"

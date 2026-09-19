@@ -78,6 +78,21 @@ competition_approved:
         <p>Skvělá zpráva! Vaše událost <strong>%competitionName%</strong> byla schválena a je nyní veřejně viditelná na MySpeedPuzzling.</p>
         <p><a href="%eventUrl%">Zobrazit stránku události</a></p>
 
+moderator_role_granted:
+    subject: "Nyní jste komunitní moderátor MySpeedPuzzling"
+    title: "Vítejte v týmu moderátorů!"
+    content: |
+        <p>Ahoj %playerName%,</p>
+        <p>udělali jsme z vás <strong>komunitního moderátora</strong> na MySpeedPuzzling. Děkujeme, že jste se nabídli pomáhat udržovat katalog puzzlí v pořádku - moc to znamená pro nás i pro celou komunitu.</p>
+        <p>Od teď můžete kontrolovat, co navrhují ostatní puzzleři:</p>
+        <ul>
+            <li><a href="%changeRequestsUrl%">Žádosti o změnu puzzlí</a> - opravy názvů, značek, počtu dílků, kódů a fotek</li>
+            <li><a href="%mergeRequestsUrl%">Žádosti o sloučení puzzlí</a> - hlášení, že dva záznamy jsou stejné puzzle</li>
+        </ul>
+        <p>Obojí najdete po přihlášení pod ikonou klíče v horní liště.</p>
+        <p><strong>Pozor na slučování:</strong> schválením sloučení se duplicitní záznamy smažou a časy i kolekce všech hráčů se přesunou na záznam, který zůstává. Nelze to vrátit zpět, takže v případě pochybností - jiný počet dílků, jiný obrázek, jiná edice - to raději nechte být nebo zamítněte. Jedno puzzle může mít několik EAN kódů; to je v pořádku.</p>
+        <p>Pokud by cokoli nebylo jasné, napište nám přes odkaz Zpětná vazba v horní části webu.</p>
+
 competition_rejected:
     subject: "Vaše událost nebyla schválena"
     title: "Událost nebyla schválena"

@@ -467,7 +467,7 @@
     <body class="lang-{{ app.request.locale }}"
           data-controller="pwa-lifecycle gallery file-drop-area datepicker global-search toast{% if ga_tracking is not empty %} analytics{% endif %}"
           {% if ga_tracking is not empty %}data-analytics-tracking-id-value="{{ ga_tracking }}"{% endif %}>
-        <a href="#main-content" class="visually-hidden-focusable">Skip to content</a>
+        <a href="#main-content" class="visually-hidden-focusable">{{ 'forms.skip_to_content'|trans }}</a>
         {% block header %}
         {% if is_web() %}
         <header class="sticky-top shadow-sm" data-controller="header-height">
@@ -835,7 +835,7 @@
                     <div class="container mt-3">
                         <div class="alert-dismissible mb-0 fade show alert alert-{{ label }}" role="alert">
                             {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ 'forms.close'|trans }}"></button>
                         </div>
                     </div>
                 {% endfor %}
@@ -1087,7 +1087,7 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">{{ 'global_modal.title'|trans }}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
                         </div>
                         <div class="modal-body">
                             <div class="fs-sm">{{ 'global_modal.text'|trans|raw }}</div>
@@ -1108,7 +1108,7 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">{{ 'membership.modal.title'|trans }}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
                     </div>
                     <div class="modal-body">
                         {{ 'membership.modal.text'|trans|raw }}

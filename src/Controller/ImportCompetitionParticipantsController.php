@@ -13,12 +13,14 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ImportCompetitionParticipantsController extends AbstractController
 {
     public function __construct(
         private readonly CompetitionParticipantImporter $importer,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -62,7 +64,7 @@ final class ImportCompetitionParticipantsController extends AbstractController
                 $this->addFlash('danger', $error);
             }
         } else {
-            $this->addFlash('danger', 'Invalid file upload.');
+            $this->addFlash('danger', $this->translator->trans('forms.invalid_file_upload'));
         }
 
         return $this->redirectToRoute('manage_competition_participants', [

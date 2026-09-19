@@ -333,6 +333,9 @@ forms:
     save: "Save"
     cancel: "Cancel"
     close: "Close"
+    toggle_dropdown: "Toggle dropdown"
+    skip_to_content: "Skip to content"
+    invalid_file_upload: "Invalid file upload."
     add: "Add"
     back: "Back"
     clear: "Clear"
@@ -3683,3 +3686,9 @@ blocklist:
     unblocked: "Player unblocked. You will see them again."
     block_confirm: "Block this player? You will stop seeing them anywhere on MySpeedPuzzling and they won't be able to message you. They are never told."
     back_to_messages: "Back to messages"
+
+average_time_chart:
+    per_month: "Per month"
+    per_week: "Per week"
+    heading_month: "%pieces% pieces average time per month"
+    heading_week: "%pieces% pieces average time per week"

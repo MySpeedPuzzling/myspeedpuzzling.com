@@ -123,7 +123,7 @@
                     <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Messaging\\BlockUserController::CSRF_TOKEN_ID')) }}">
                     <div class="modal-header">
                         <h5 class="modal-title">{{ 'blocklist.modal_title'|trans }}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
                     </div>
                     <div class="modal-body">
                         <p>{{ 'blocklist.modal_text'|trans }}</p>

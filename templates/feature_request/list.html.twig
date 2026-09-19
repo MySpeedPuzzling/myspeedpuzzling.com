@@ -47,7 +47,7 @@
                 {{ 'feature_requests.hint_banner'|trans }}
             </div>
             {% if logged_user.profile is not null %}
-                <button type="button" class="btn-close ms-2 flex-shrink-0" aria-label="Close" {{ stimulus_action('dismiss-hint', 'dismiss') }}></button>
+                <button type="button" class="btn-close ms-2 flex-shrink-0" aria-label="{{ 'forms.close'|trans }}" {{ stimulus_action('dismiss-hint', 'dismiss') }}></button>
             {% endif %}
         </div>
     {% endif %}

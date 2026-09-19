@@ -22,7 +22,7 @@
 >
     <div class="card-body py-3 position-relative">
         {% if dismissable|default(false) %}
-            <button type="button" class="btn-close position-absolute top-0 end-0 mt-2 me-2" aria-label="Close" {{ stimulus_action('dismiss-hint', 'dismiss') }}></button>
+            <button type="button" class="btn-close position-absolute top-0 end-0 mt-2 me-2" aria-label="{{ 'forms.close'|trans }}" {{ stimulus_action('dismiss-hint', 'dismiss') }}></button>
         {% endif %}
 
         <div class="d-flex align-items-start gap-3">

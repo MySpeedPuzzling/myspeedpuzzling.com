@@ -2,7 +2,7 @@
     <div class="d-md-flex mb-2 mt-1 w-100 justify-content-between">
         <h2 class="fs-6 d-flex align-items-center justify-content-center gap-1 mb-2">
             <svg class="stat-icon" width="18" height="18"><use href="/stat-icons-sprite.svg#stat-avg"/></svg>
-            {{ this.pieces }} pieces average time per {{ interval }}
+            {{ (interval == 'week' ? 'average_time_chart.heading_week' : 'average_time_chart.heading_month')|trans({'%pieces%': this.pieces}) }}
         </h2>
 
         <div class="d-flex flex-wrap flex-md-nowrap justify-content-center justify-content-md-end filters">
@@ -11,8 +11,8 @@
                 class="form-select d-inline-block me-2 mt-1"
                 style="max-width: 100px;"
             >
-                <option value="month">Per month</option>
-                <option value="week">Per week</option>
+                <option value="month">{{ 'average_time_chart.per_month'|trans }}</option>
+                <option value="week">{{ 'average_time_chart.per_week'|trans }}</option>
             </select>
 
             <div style="width: 65px;" class="me-2 mt-1">

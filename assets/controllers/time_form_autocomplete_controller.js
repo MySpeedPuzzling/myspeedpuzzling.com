@@ -25,6 +25,7 @@ export default class extends Controller {
         this._onPuzzleConnect = this._onPuzzleConnect.bind(this);
         this._handleBarcodeScanned = this._handleBarcodeScanned.bind(this);
         this._onFormSubmit = this._onFormSubmit.bind(this);
+        this._onFieldInvalid = this._onFieldInvalid.bind(this);
     }
 
     connect() {
@@ -42,6 +43,11 @@ export default class extends Controller {
         // Capture phase so this runs before Turbo, submit-prevention and ppm-validator:
         // a submit must never go out while the puzzle input is disabled or empty
         document.addEventListener('submit', this._onFormSubmit, true);
+
+        // `invalid` does not bubble, hence the capture phase. Brand and puzzle are `required` inputs hidden
+        // behind Tom Select: the browser refuses the submit before any submit listener runs and points its
+        // own "Fill out this field" bubble at an input nobody can see.
+        this.formElement?.addEventListener('invalid', this._onFieldInvalid, true);
     }
 
     disconnect() {
@@ -51,6 +57,7 @@ export default class extends Controller {
 
         document.removeEventListener('barcode-scanner:scanned', this._handleBarcodeScanned);
         document.removeEventListener('submit', this._onFormSubmit, true);
+        this.formElement?.removeEventListener('invalid', this._onFieldInvalid, true);
     }
 
     _onBrandConnect(event) {
@@ -358,16 +365,52 @@ export default class extends Controller {
         }
     }
 
+    /**
+     * Our own message under the field instead of the browser's bubble - for the first empty field only,
+     * like the browser would: the brand comes before the puzzle, which cannot be chosen without it.
+     */
+    _onFieldInvalid(event) {
+        const field = [this.brandTarget, this.puzzleTarget].find(target => (
+            event.target === target || event.target === target.tomselect?.control_input
+        ));
+
+        if (!field || !field.tomselect) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (this.element.querySelector('.js-puzzle-required-error')) {
+            return;
+        }
+
+        this._resetSubmitPrevention();
+        this._showRequiredError(field);
+        field.tomselect.focus();
+    }
+
     _showPuzzleRequiredError() {
+        this._showRequiredError(this.puzzleTarget);
+    }
+
+    _showRequiredError(field) {
         this._clearPuzzleRequiredError();
 
         const error = document.createElement('div');
         error.className = 'invalid-feedback d-block js-puzzle-required-error';
         error.textContent = this.puzzleRequiredMessageValue || 'This field is required!';
 
-        const anchor = this.puzzleTarget.tomselect.wrapper;
+        const anchor = field.tomselect.wrapper;
         anchor.insertAdjacentElement('afterend', error);
         anchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Gone as soon as the field gets a value
+        this._requiredErrorWatched ??= new WeakSet();
+
+        if (!this._requiredErrorWatched.has(field)) {
+            this._requiredErrorWatched.add(field);
+            field.tomselect.on('change', () => this._clearPuzzleRequiredError());
+        }
     }
 
     _clearPuzzleRequiredError() {

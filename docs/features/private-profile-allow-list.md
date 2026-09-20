@@ -31,14 +31,21 @@ sees "Hidden Puzzler" somewhere is a bug report; a stranger who sees a name is a
   (`sqlRevealedIdsOf()`), so an SQL-imposed admin block needs no clean-up. `BlockUserHandler` also
   removes the blocked player from the blocker's list. `AllowPrivateProfileViewerHandler`
   deliberately does *not* refuse a blocked pair: an error would give an admin block away.
-- **Global rankings stay closed to private players for everybody**, friends included (ladders, MSP
-  rating, fastest, most active "drop" queries, most-favourited, per-country, sitemap). Nobody is
-  ranked differently for different viewers. `PrivateProfileQueryCoverageTest` lists each with its reason.
+- **Nobody is ranked differently for different viewers.** Rankings that leave private players
+  *out* keep leaving them out for everybody, friends included (solo ladders, MSP rating, fastest
+  players, most-favourited, per-country, sitemap) - those queries keep the raw column. Boards that
+  list a private player *as a Hidden Puzzler* (fastest pairs/groups, most active) keep every row
+  and position for every viewer and only put her name on the row for an allowed friend (Jan's
+  call, 2026-09-20). `PrivateProfileQueryCoverageTest` lists each raw read with its reason.
 - **Notifications**: `NotifyWhenPuzzleSolved` tells followers of a private solver only if they are
   on the solver's list (`GetPrivateProfileViewers::followersAllowedBy()`). `GetNotifications`
   masks the solver in SQL for the *reader*, so taking somebody off the list re-masks the
   notifications they already have. The editor of a shared time stays named to the group, by design
   (group-time-editing.md).
+- **The profile page's `<head>` follows the player's own setting** (`PlayerProfile::$isPrivateProfile`,
+  the raw flag): title, description, `og:image`, robots and JSON-LD stay anonymous even for an
+  allowed friend, so nothing their browser shares or unfurls carries an identity. The API's
+  `is_private` field reports the same raw setting.
 - **Shared cache**: `PrivateProfileRevealedCacheSubscriber` forces `private, no-store` on any
   response rendered for a viewer who is on somebody's list.
 - **Share image** `/result-image/{timeId}` is public and cached in storage: it follows the player's
@@ -75,6 +82,8 @@ tooling, own data export.
 - `tests/Controller/PrivateProfileViewersControllerTest.php` - add -> visible -> remove -> hidden
   over HTTP, 422, CSRF, members gate, notification mask / re-mask.
 - Handler, notification fan-out and API (`PlayerProfileEndpointTest`) tests.
+- Reviewed by a second agent 2026-09-20; its findings (friend's page head, coverage regex) are fixed and
+  tested; pairs/groups/most-active naming her for friends was confirmed as wanted.
 - Mutation-checked 2026-09-20: reveal-to-everyone (22 failures), `reset()` no-op (1), blocks
   ignored (2).
 

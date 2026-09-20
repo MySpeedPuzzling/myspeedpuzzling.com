@@ -68,12 +68,15 @@ final class PrivateProfileCanaryTest extends WebTestCase
         yield 'recent activity' => ['/en/recent-activity'];
         // The search highlights the match inside the name, so the link to her profile is the tell
         yield 'puzzlers search by name' => ['/en/puzzlers?search=Jane', '/en/player-profile/' . self::OWNER];
+        // A board everybody sees her row on, as a Hidden Puzzler - same position for every viewer
+        yield 'ladder pairs 1000' => ['/en/ladder/pairs/1000-pieces'];
         yield 'puzzle library' => ['/en/puzzle-library/' . self::OWNER];
     }
 
     /**
-     * Global rankings leave private players out for everybody - nobody is ranked differently for
-     * different viewers, the friend included.
+     * Rankings that leave private players OUT leave them out for everybody, the friend included -
+     * nobody is ranked differently for different viewers. (Boards that list them as a Hidden Puzzler
+     * - pairs, groups, most active - keep every row and position and only name her for the friend.)
      */
     #[DataProvider('provideGlobalRankings')]
     public function testGlobalRankingsShowThePrivatePlayerToNobody(string $url): void
@@ -96,6 +99,7 @@ final class PrivateProfileCanaryTest extends WebTestCase
     {
         yield 'ladder' => ['/en/ladder'];
         yield 'ladder solo 500' => ['/en/ladder/solo/500-pieces'];
+        yield 'MSP rating' => ['/en/msp-rating'];
         yield 'players of a country' => ['/en/players-from-country/us'];
         yield 'puzzlers (most favourited)' => ['/en/puzzlers'];
     }
@@ -145,6 +149,29 @@ final class PrivateProfileCanaryTest extends WebTestCase
         self::assertStringNotContainsString(self::OWNER_NAME, $content);
         self::assertStringContainsString('Hidden Puzzler', $content);
         self::assertStringContainsString('#PLAYER2', $content);
+    }
+
+    /**
+     * The friend reads the name on the page; the head of that page follows the player's own
+     * setting, so nothing the friend's browser shares, unfurls or "reads later" carries an identity.
+     */
+    public function testFriendsProfilePageHeadStaysAnonymous(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::FRIEND);
+
+        $crawler = $browser->request('GET', '/en/player-profile/' . self::OWNER);
+        self::assertResponseIsSuccessful();
+
+        $head = $crawler->filter('head')->html();
+        self::assertStringNotContainsString(self::OWNER_NAME, $head);
+        self::assertStringNotContainsString('Jane', $head);
+        self::assertStringContainsString('noindex', $head);
+        self::assertCount(0, $crawler->filter('script[type="application/ld+json"]')->reduce(
+            static fn ($node): bool => str_contains($node->text(), 'ProfilePage'),
+        ));
+
+        self::assertStringContainsString(self::OWNER_NAME, $crawler->filter('body')->html());
     }
 
     public function testRemovingTheFriendHidesThePlayerAgain(): void

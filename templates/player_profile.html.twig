@@ -7,15 +7,23 @@
     : (player.playerName ?? ('#' ~ player.code|upper))
 %}
 
-{% block title %}{{ 'player_profile.meta.title'|trans({'%name%': player_display_name}) }}{% endblock %}
-{% block meta_description %}{{ 'player_profile.meta.description'|trans({'%name%': player_display_name}) }}{% endblock %}
+{# Head metadata follows the player's OWN setting, never the viewer: an allowed friend sees the
+   name on the page, but their browser must not emit an indexable / unfurlable identity #}
+{% set is_private_in_head = player.isPrivateProfile and not is_own_profile %}
+{% set player_head_name = is_private_in_head
+    ? ('secret_puzzler_name'|trans ~ ' #' ~ player.code|upper)
+    : player_display_name
+%}
+
+{% block title %}{{ 'player_profile.meta.title'|trans({'%name%': player_head_name}) }}{% endblock %}
+{% block meta_description %}{{ 'player_profile.meta.description'|trans({'%name%': player_head_name}) }}{% endblock %}
 {% block og_type %}profile{% endblock %}
-{% block og_image %}{% if player.avatar is not null and not is_masked_profile %}{{ absolute_url(player.avatar|thumbnail('puzzle_medium')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
-{% block robots %}{% if is_masked_profile %}<meta name="robots" content="noindex, nofollow">{% else %}{{ parent() }}{% endif %}{% endblock %}
+{% block og_image %}{% if player.avatar is not null and not is_private_in_head %}{{ absolute_url(player.avatar|thumbnail('puzzle_medium')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
+{% block robots %}{% if is_private_in_head %}<meta name="robots" content="noindex, nofollow">{% else %}{{ parent() }}{% endif %}{% endblock %}
 
 {% block json_ld %}
     {{ parent() }}
-    {% if not player.isPrivate %}
+    {% if not player.isPrivateProfile %}
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",

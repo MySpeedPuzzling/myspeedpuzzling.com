@@ -21,8 +21,8 @@ final class PrivateProfileQueryCoverageTest extends TestCase
     /** Files allowed to read the raw column, besides going through PrivateProfileAccess */
     private const array RAW_COLUMN = [
         'Query/GetAffiliateSupporters.php' => 'Public supporters list of somebody else\'s profile - stays public-only.',
-        'Query/GetFastestGroups.php' => self::GLOBAL_RANKING,
-        'Query/GetFastestPairs.php' => self::GLOBAL_RANKING,
+        'Query/GetFastestGroups.php' => 'HAVING keeps a group only if a member is public - the same rows and positions for every viewer; names on them go through the service.',
+        'Query/GetFastestPairs.php' => 'HAVING keeps a pair only if a member is public - the same rows and positions for every viewer; names on them go through the service.',
         'Query/GetFastestPlayers.php' => self::GLOBAL_RANKING,
         'Query/GetFavoritePlayers.php' => self::GLOBAL_RANKING,
         'Query/GetPlayerConnections.php' => 'Also reports the raw setting (is_private_profile) for the API\'s is_private field; masking uses the service.',
@@ -50,11 +50,17 @@ final class PrivateProfileQueryCoverageTest extends TestCase
                 continue;
             }
 
+            // API resources are DTOs whose OpenAPI descriptions talk about the is_private field in prose
+            if (str_contains($file->getPathname(), '/src/Api/')) {
+                continue;
+            }
+
             $source = (string) file_get_contents($file->getPathname());
 
-            // SQL only: `alias.is_private` or a bare column in a WHERE / SELECT list. PHPDoc array
-            // shapes ("is_private: bool") and JSON keys ("'is_private',") are what results carry.
-            if (preg_match('/(\w\.is_private\b|(?<!AS )(?<!\$)\bis_private\s*(=|,\s*$|\s*$))/m', $source) !== 1) {
+            // Any raw read of the column: `alias.is_private`, or a bare `is_private` that is not what
+            // results merely carry - a column alias ("AS is_private"), a JSON key ("'is_private',"),
+            // an array key / PHPDoc shape ("is_private:", "['is_private']") or a PHP variable.
+            if (preg_match('/(\\w\\.is_private\\b|(?<!AS )(?<![\\w$\'"\\[])\\bis_private\\b(?![\'":?\\]]))/', $source) !== 1) {
                 continue;
             }
 

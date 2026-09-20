@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Services;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Query\GetMostActivePlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingViewer;
@@ -58,6 +59,31 @@ final class PrivateProfileAccessTest extends KernelTestCase
             "(p.is_private = false OR p.id IN ('" . PlayerFixture::PLAYER_PRIVATE . "'::uuid))",
             $this->access->sqlIsPublic('p'),
         );
+    }
+
+    /**
+     * Boards that list a private player as a Hidden Puzzler keep her row and position for every
+     * viewer; only the allowed friend reads her name on it.
+     */
+    public function testMostActiveBoardNamesHerForTheAllowedViewerOnly(): void
+    {
+        $query = self::getContainer()->get(GetMostActivePlayers::class);
+        $herRow = static function () use ($query): array {
+            $board = $query->mostActiveSoloPlayers(100);
+            $position = array_search(PlayerFixture::PLAYER_PRIVATE, array_map(static fn ($player): string => $player->playerId, $board), true);
+            self::assertIsInt($position, 'The fixture private player has solo times - she must be on the board.');
+
+            return [$position, $board[$position]->isPrivate];
+        };
+
+        [$guestPosition, $maskedForGuest] = $herRow();
+        self::assertTrue($maskedForGuest);
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertSame([$guestPosition, true], $herRow());
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertSame([$guestPosition, false], $herRow());
     }
 
     public function testTheListIsOneDirectional(): void

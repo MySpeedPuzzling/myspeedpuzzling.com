@@ -3495,6 +3495,14 @@ private_profile_viewers:
     "deleted": "Eliminado."
     "prepared": "Guardado. Ahora lo tienes a un toque cuando añadas un tiempo."
     "nobody_picked": "Elige al menos una persona con la que armas puzzles."
+  "tab_guests": "Invitados"
+  "guests":
+    "intro": "Personas con las que armaste puzzles y que no tienen cuenta aquí. Sus nombres son tal como se escribieron al añadir el tiempo: corrige aquí una errata y los resultados repartidos entre dos formas de escribirlo se juntan."
+    "rename": "Corregir el nombre"
+    "rename_help": "Cambia el nombre en todos tus resultados con esta persona. Si existe otra forma de escribir el mismo nombre, las dos se convierten en una."
+    "flash":
+      "renamed": "Guardado."
+      "invalid_name": "Escribe un nombre. No puede empezar por #."
 
 "puzzling_team":
   "pair": "Pareja"

@@ -68,13 +68,24 @@ final class PairsAndTeamsController extends AbstractController
             }
         }
 
-        $show = $request->query->getString('show') === 'teams' ? 'teams' : 'pairs';
+        // Co-puzzlers without an account: the names are free text, so this is where a typo gets fixed
+        $guests = array_values(array_filter(
+            $suggestions->people,
+            static fn(PersonSuggestion $person): bool => $person->isGuest() && $person->timesCount > 0,
+        ));
+
+        $show = match ($request->query->getString('show')) {
+            'teams' => 'teams',
+            'guests' => 'guests',
+            default => 'pairs',
+        };
 
         return $this->render('pairs_and_teams/index.html.twig', [
             'show' => $show,
             'rows' => $show === 'teams' ? $teams : $pairs,
             'pairs_count' => count($pairs),
             'teams_count' => count($teams),
+            'guests' => $guests,
             'copuzzler_picker' => $this->coPuzzlerPicker->formState([]),
         ]);
     }

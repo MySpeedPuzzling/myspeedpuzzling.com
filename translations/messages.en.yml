@@ -3785,6 +3785,14 @@ pairs_and_teams:
         deleted: "Deleted."
         prepared: "Saved. It is now one tap away when you add a time."
         nobody_picked: "Pick at least one person you puzzle with."
+    tab_guests: "Guests"
+    guests:
+        intro: "People you puzzled with who have no account here. Their names are whatever was typed when the time was added - fix a typo here and results split between two spellings come together."
+        rename: "Fix the name"
+        rename_help: "Changes the name in all your results with this person. If another spelling of the same name exists, the two become one."
+        flash:
+            renamed: "Saved."
+            invalid_name: "Enter a name. It cannot start with #."
 
 puzzling_team:
     pair: "Pair"

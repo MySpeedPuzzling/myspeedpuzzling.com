@@ -18,8 +18,16 @@
     <li class="nav-item">
         <a class="nav-link {{ show == 'teams' ? 'active' }}" href="{{ path('pairs_and_teams', {show: 'teams'}) }}">{{ 'pairs_and_teams.tab_teams'|trans }} <span class="text-muted">({{ teams_count }})</span></a>
     </li>
+    {% if guests is not empty %}
+        <li class="nav-item">
+            <a class="nav-link {{ show == 'guests' ? 'active' }}" href="{{ path('pairs_and_teams', {show: 'guests'}) }}">{{ 'pairs_and_teams.tab_guests'|trans }} <span class="text-muted">({{ guests|length }})</span></a>
+        </li>
+    {% endif %}
 </ul>
 
+{% if show == 'guests' %}
+    {{ include('pairs_and_teams/_guests.html.twig', {guests: guests, csrf: csrf}) }}
+{% else %}
 {% set regulars = rows|filter(row => not row.oneOff) %}
 {% set one_offs = rows|filter(row => row.oneOff) %}
 
@@ -52,4 +60,5 @@
         <button type="submit" class="btn btn-primary">{{ 'pairs_and_teams.new_submit'|trans }}</button>
     </form>
 </div>
+{% endif %}
 {% endblock %}

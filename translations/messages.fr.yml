@@ -3497,6 +3497,14 @@ private_profile_viewers:
     "deleted": "Supprimé."
     "prepared": "Enregistré. Il est maintenant à portée de main lorsque vous ajoutez un temps."
     "nobody_picked": "Choisissez au moins une personne avec qui vous faites des puzzles."
+  "tab_guests": "Invités"
+  "guests":
+    "intro": "Les personnes avec qui vous avez fait des puzzles et qui n'ont pas de compte ici. Leurs noms sont tels qu'ils ont été saisis lors de l'ajout du temps - corrigez ici une faute de frappe et les résultats répartis entre deux orthographes se rejoignent."
+    "rename": "Corriger le nom"
+    "rename_help": "Modifie le nom dans tous vos résultats avec cette personne. Si une autre orthographe du même nom existe, les deux n'en font plus qu'une."
+    "flash":
+      "renamed": "Enregistré."
+      "invalid_name": "Saisissez un nom. Il ne peut pas commencer par #."
 
 "puzzling_team":
   "pair": "Duo"

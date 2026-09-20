@@ -1,0 +1,27 @@
+{# Co-puzzlers without an account. Their names are free text typed into the add-time form. #}
+<p class="fs-sm text-muted">{{ 'pairs_and_teams.guests.intro'|trans }}</p>
+
+<div class="mb-5" data-testid="guests">
+    {% for guest in guests %}
+        <div class="card card-body shadow-sm mb-2 pairs-and-teams-guest" data-guest-key="{{ guest.key }}">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="flex-grow-1" style="min-width: 0;">
+                    <div class="fw-semibold text-truncate" data-testid="guest-name"><i class="ci-user text-muted me-1"></i>{{ guest.label }}</div>
+                    <div class="fs-sm text-muted">{{ 'pairs_and_teams.times_together'|trans({'%count%': guest.timesCount}) }}{% if guest.lastTogetherAt is not null %} · {{ guest.lastTogetherAt|ago }}{% endif %}</div>
+                </div>
+            </div>
+
+            <details class="mt-2">
+                <summary class="fs-sm text-primary">{{ 'pairs_and_teams.guests.rename'|trans }}</summary>
+                <form action="{{ path('pairs_and_teams_rename_guest') }}" method="post" class="d-flex flex-wrap gap-2 mt-2">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <input type="hidden" name="guest" value="{{ guest.key }}">
+                    <label class="visually-hidden" for="guest-name-{{ loop.index }}">{{ 'pairs_and_teams.name_label'|trans }}</label>
+                    <input type="text" class="form-control form-control-sm" style="max-width: 320px;" id="guest-name-{{ loop.index }}" name="name" maxlength="100" required value="{{ guest.label }}">
+                    <button type="submit" class="btn btn-sm btn-primary">{{ 'forms.save'|trans }}</button>
+                </form>
+                <div class="form-text">{{ 'pairs_and_teams.guests.rename_help'|trans }}</div>
+            </details>
+        </div>
+    {% endfor %}
+</div>

@@ -3495,6 +3495,14 @@ private_profile_viewers:
     "deleted": "Gelöscht."
     "prepared": "Gespeichert. Es ist jetzt nur einen Tipp entfernt, wenn Sie eine Zeit hinzufügen."
     "nobody_picked": "Wählen Sie mindestens eine Person aus, mit der Sie puzzeln."
+  "tab_guests": "Gäste"
+  "guests":
+    "intro": "Personen, mit denen Sie gepuzzelt haben und die hier kein Konto haben. Ihre Namen sind so, wie sie beim Hinzufügen der Zeit eingetippt wurden - korrigieren Sie hier einen Tippfehler, und Ergebnisse, die auf zwei Schreibweisen verteilt sind, kommen zusammen."
+    "rename": "Namen korrigieren"
+    "rename_help": "Ändert den Namen in allen Ihren Ergebnissen mit dieser Person. Gibt es eine andere Schreibweise desselben Namens, werden beide zu einer."
+    "flash":
+      "renamed": "Gespeichert."
+      "invalid_name": "Geben Sie einen Namen ein. Er darf nicht mit # beginnen."
 
 "puzzling_team":
   "pair": "Paar"

@@ -3493,6 +3493,14 @@ private_profile_viewers:
     "deleted": "Smazáno."
     "prepared": "Uloženo. Při přidávání času ji teď máte na jedno klepnutí."
     "nobody_picked": "Vyberte alespoň jednoho člověka, se kterým skládáte."
+  "tab_guests": "Hosté"
+  "guests":
+    "intro": "Lidé, se kterými jste skládali a kteří tu nemají účet. Jejich jména jsou taková, jak byla napsána při přidání času - opravte tu překlep a výsledky rozdělené mezi dva zápisy se spojí."
+    "rename": "Opravit jméno"
+    "rename_help": "Změní jméno ve všech vašich výsledcích s tímto člověkem. Pokud existuje jiný zápis stejného jména, spojí se v jeden."
+    "flash":
+      "renamed": "Uloženo."
+      "invalid_name": "Zadejte jméno. Nesmí začínat znakem #."
 
 "puzzling_team":
   "pair": "Dvojice"

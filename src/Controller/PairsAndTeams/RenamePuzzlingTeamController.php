@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -26,6 +27,8 @@ final class RenamePuzzlingTeamController extends AbstractController
     #[Route(
         path: '/{_locale}/pairs-and-teams/{teamId}/rename',
         name: 'pairs_and_teams_rename',
+        // Keeps /pairs-and-teams/new and /pairs-and-teams/guests/... from being read as a team id
+        requirements: ['teamId' => Requirement::UUID],
         methods: ['POST'],
     )]
     #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]

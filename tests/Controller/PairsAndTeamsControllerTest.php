@@ -8,9 +8,11 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Events\PuzzlingTeamRenamed;
+use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\PreparePuzzlingTeam;
 use SpeedPuzzling\Web\MessageHandler\NotifyWhenPuzzlingTeamRenamed;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -225,6 +227,69 @@ final class PairsAndTeamsControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('input[name="group_players[]"]'));
+    }
+
+    public function testGuestsTabFixesATypoAndBringsTheResultsTogether(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        foreach (['Grandma', 'Grandma', 'Granma'] as $guest) {
+            $bus->dispatch(new AddPuzzleSolvingTime(
+                timeId: Uuid::uuid7(),
+                userId: PlayerFixture::PLAYER_WITH_STRIPE_USER_ID,
+                puzzleId: PuzzleFixture::PUZZLE_1500_01,
+                competitionId: null,
+                time: '05:00:00',
+                comment: null,
+                finishedPuzzlesPhoto: null,
+                groupPlayers: [$guest],
+                finishedAt: null,
+                firstAttempt: false,
+                unboxed: false,
+            ));
+        }
+
+        $crawler = $browser->request('GET', '/en/pairs-and-teams?show=guests');
+        $this->assertResponseIsSuccessful();
+        self::assertCount(2, $crawler->filter('.pairs-and-teams-guest'));
+
+        $form = $crawler->filter('.pairs-and-teams-guest[data-guest-key="g:granma"] form')->form(['name' => 'Grandma']);
+        $browser->submit($form);
+
+        $this->assertResponseRedirects('/en/pairs-and-teams?show=guests');
+        $crawler = $browser->followRedirect();
+
+        $guests = $crawler->filter('.pairs-and-teams-guest');
+        self::assertCount(1, $guests);
+        self::assertSame('Grandma', trim($guests->filter('[data-testid="guest-name"]')->text()));
+        self::assertStringContainsString('3× together', $guests->text());
+
+        // …and one pair instead of two
+        $crawler = $browser->request('GET', '/en/pairs-and-teams');
+        self::assertCount(1, $crawler->filter('.pairs-and-teams-card'));
+    }
+
+    public function testGuestCannotBeRenamedToSomethingThatReadsAsAPlayerCode(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $browser->request('POST', '/en/pairs-and-teams/guests/rename', ['_token' => $this->token($browser), 'guest' => 'g:grandma', 'name' => '#admin']);
+
+        $this->assertResponseRedirects('/en/pairs-and-teams?show=guests');
+        $browser->followRedirect();
+        $this->assertSelectorTextContains('body', 'It cannot start with #');
+    }
+
+    public function testPlayerWithoutGuestsHasNoGuestsTab(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+        $crawler = $browser->request('GET', '/en/pairs-and-teams');
+
+        self::assertCount(0, $crawler->filter('a[href$="show=guests"]'));
     }
 
     public function testNobodyPickedIsToldSoWithoutAnError(): void

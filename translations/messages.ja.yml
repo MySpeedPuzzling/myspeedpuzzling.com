@@ -3469,6 +3469,7 @@ private_profile_viewers:
   "not_used_yet": "一緒のタイムはまだありません"
   "one_offs": "一度だけ一緒に解いた相手：%count%"
   "add_time": "タイムを追加"
+  "results": "結果"
   "delete": "削除"
   "name_it": "名前を付ける"
   "rename": "名前を変更"

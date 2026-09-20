@@ -3770,6 +3770,7 @@ pairs_and_teams:
     not_used_yet: "No time together yet"
     one_offs: "%count% you puzzled with only once"
     add_time: "Add time"
+    results: "Results"
     delete: "Delete"
     name_it: "Name it"
     rename: "Rename"

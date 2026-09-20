@@ -65,6 +65,50 @@ final class PairsAndTeamsControllerTest extends WebTestCase
         $this->assertSelectorExists('.alert-info');
     }
 
+    public function testEveryPairLinksToItsPageAndThePageLeadsBack(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+
+        $crawler = $browser->request('GET', '/en/pairs-and-teams');
+        $card = $crawler->filter('.pairs-and-teams-card');
+
+        // Both the title and the "Results" button
+        $teamPath = '/en/teams/' . $this->fixturePairId();
+        self::assertStringStartsWith($teamPath . '?', (string) $card->filter('[data-testid="team-title"] a')->attr('href'));
+        self::assertStringStartsWith($teamPath . '?', (string) $card->filter('[data-testid="team-results"]')->attr('href'));
+
+        $crawler = $browser->click($card->filter('[data-testid="team-results"]')->link());
+
+        $this->assertResponseIsSuccessful();
+        self::assertCount(2, $crawler->filter('[data-testid="team-times"] tbody tr'));
+
+        // The back button of the team page returns to the list
+        $back = $crawler->selectLink('Back to Pairs & teams');
+        self::assertCount(1, $back);
+        self::assertSame('/en/pairs-and-teams', $back->attr('href'));
+    }
+
+    public function testTeamWithoutResultsHasNoResultsButton(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $browser->request('POST', '/en/pairs-and-teams/new', [
+            '_token' => $this->token($browser),
+            'group_players' => ['#ADMIN', 'Grandma'],
+        ]);
+        $crawler = $browser->followRedirect();
+
+        $card = $crawler->filter('.pairs-and-teams-card');
+        self::assertCount(1, $card);
+        self::assertCount(0, $card->filter('[data-testid="team-results"]'));
+        // The title still leads to the (empty) team page - whose back button returns to the Teams tab
+        $crawler = $browser->click($card->filter('[data-testid="team-title"] a')->link());
+        $this->assertResponseIsSuccessful();
+        self::assertSame('/en/pairs-and-teams?show=teams', $crawler->selectLink('Back to Pairs & teams')->attr('href'));
+    }
+
     public function testOneTimeGroupsAreFoldedAway(): void
     {
         $browser = self::createClient();

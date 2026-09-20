@@ -1,4 +1,4 @@
-<div data-controller="add-copuzzler image-editor"
+<div data-controller="{{ copuzzler_picker_enabled|default(false) ? '' : 'add-copuzzler ' }}image-editor"
      data-image-editor-title-value="{{ 'image_editor.title'|trans }}"
      data-image-editor-rotate-left-value="{{ 'image_editor.rotate_left'|trans }}"
      data-image-editor-rotate-right-value="{{ 'image_editor.rotate_right'|trans }}"
@@ -221,25 +221,29 @@
 
                 {# Group players section (Speed + Relax only) #}
                 <div data-puzzle-add-form-target="groupSection">
-                    {% set has_group_players = filled_group_players is defined and filled_group_players|length > 0 %}
-                    <div data-controller="toggle">
-                        <button type="button" class="btn btn-outline-primary w-100 mb-3 shadow {{ has_group_players ? 'hidden' }}" data-action="click->toggle#toggle click->add-copuzzler#addPuzzler" data-toggle-target-param="group">
-                            <i class="ci-add-user me-1"></i> {{ 'puzzle_add.group_puzzling'|trans }}
-                        </button>
+                    {% if copuzzler_picker_enabled|default(false) %}
+                        {{ include('_copuzzler_picker.html.twig') }}
+                    {% else %}
+                        {% set has_group_players = filled_group_players is defined and filled_group_players|length > 0 %}
+                        <div data-controller="toggle">
+                            <button type="button" class="btn btn-outline-primary w-100 mb-3 shadow {{ has_group_players ? 'hidden' }}" data-action="click->toggle#toggle click->add-copuzzler#addPuzzler" data-toggle-target-param="group">
+                                <i class="ci-add-user me-1"></i> {{ 'puzzle_add.group_puzzling'|trans }}
+                            </button>
 
-                        <div class="card card-body shadow mb-3 {{ not has_group_players ? 'hidden' }}" data-toggle-target="group">
-                            <div data-add-copuzzler-target="puzzlersGroup" data-ppm-validator-target="groupPlayers">
-                                {% for filled_group_player in filled_group_players %}
-                                    {{ include('_group_puzzler_input.html.twig', {
-                                        inputId: loop.index,
-                                        inputValue: filled_group_player,
-                                    }) }}
-                                {% endfor %}
+                            <div class="card card-body shadow mb-3 {{ not has_group_players ? 'hidden' }}" data-toggle-target="group">
+                                <div data-add-copuzzler-target="puzzlersGroup" data-ppm-validator-target="groupPlayers">
+                                    {% for filled_group_player in filled_group_players %}
+                                        {{ include('_group_puzzler_input.html.twig', {
+                                            inputId: loop.index,
+                                            inputValue: filled_group_player,
+                                        }) }}
+                                    {% endfor %}
+                                </div>
+
+                                <button id="add-puzzler" data-action="click->add-copuzzler#addPuzzler" data-add-copuzzler-target="addPuzzlerBtn" type="button" class="btn btn-sm btn-outline-primary"><i class="ci-add-user"></i> {{ 'puzzle_add.add_puzzler'|trans }}</button>
                             </div>
-
-                            <button id="add-puzzler" data-action="click->add-copuzzler#addPuzzler" data-add-copuzzler-target="addPuzzlerBtn" type="button" class="btn btn-sm btn-outline-primary"><i class="ci-add-user"></i> {{ 'puzzle_add.add_puzzler'|trans }}</button>
                         </div>
-                    </div>
+                    {% endif %}
                 </div>
 
                 {# Competition section (Speed Puzzling only) #}
@@ -418,7 +422,9 @@
         </div>
     {{ form_end(solving_time_form) }}
 
-    <div id="puzzler-input-template" data-add-copuzzler-target="puzzlerTemplate">
-        {{ include('_group_puzzler_input.html.twig') }}
-    </div>
+    {% if not copuzzler_picker_enabled|default(false) %}
+        <div id="puzzler-input-template" data-add-copuzzler-target="puzzlerTemplate">
+            {{ include('_group_puzzler_input.html.twig') }}
+        </div>
+    {% endif %}
 </div>

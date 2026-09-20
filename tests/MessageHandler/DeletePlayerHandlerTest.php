@@ -10,8 +10,10 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\DeletePlayer;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -131,6 +133,89 @@ final class DeletePlayerHandlerTest extends KernelTestCase
             $time->team->puzzlers,
         ));
         self::assertContains($privateName, $anonymizedNames);
+    }
+
+    public function testDeletedMemberStaysInThePairAsAGuest(): void
+    {
+        // TIME_12 + TIME_41 belong to the pair PLAYER_REGULAR + PLAYER_PRIVATE
+        $connection = $this->entityManager->getConnection();
+        $teamId = $connection->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => PuzzleSolvingTimeFixture::TIME_12]);
+        self::assertIsString($teamId);
+        $keyBefore = $connection->fetchOne('SELECT composition_key FROM puzzling_team WHERE id = :id', ['id' => $teamId]);
+
+        $private = $this->entityManager->find(Player::class, PlayerFixture::PLAYER_PRIVATE);
+        self::assertNotNull($private);
+        $privateName = $private->name ?? $private->code;
+
+        $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_PRIVATE));
+
+        // Same team, same times - one member is a guest now and the key says so
+        self::assertSame($teamId, $connection->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => PuzzleSolvingTimeFixture::TIME_12]));
+        self::assertSame($teamId, $connection->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => PuzzleSolvingTimeFixture::TIME_41]));
+        self::assertNotSame($keyBefore, $connection->fetchOne('SELECT composition_key FROM puzzling_team WHERE id = :id', ['id' => $teamId]));
+
+        $members = $connection->fetchAllAssociative(
+            'SELECT player_id, guest_name FROM puzzling_team_member WHERE team_id = :id ORDER BY position',
+            ['id' => $teamId],
+        );
+        self::assertSame([
+            ['player_id' => PlayerFixture::PLAYER_REGULAR, 'guest_name' => null],
+            ['player_id' => null, 'guest_name' => $privateName],
+        ], $members);
+
+        // A later time with that guest, typed by name, is the very same pair
+        $this->messageBus->dispatch(new AddPuzzleSolvingTime(
+            timeId: $newTimeId = Uuid::uuid7(),
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            puzzleId: PuzzleFixture::PUZZLE_1500_01,
+            competitionId: null,
+            time: '03:00:00',
+            comment: null,
+            finishedPuzzlesPhoto: null,
+            groupPlayers: [$privateName],
+            finishedAt: null,
+            firstAttempt: false,
+            unboxed: false,
+        ));
+        self::assertSame($teamId, $connection->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => $newTimeId->toString()]));
+    }
+
+    public function testDeletedMemberMergesIntoThePairThatAlreadyKnowsThemAsAGuest(): void
+    {
+        $connection = $this->entityManager->getConnection();
+        $private = $this->entityManager->find(Player::class, PlayerFixture::PLAYER_PRIVATE);
+        self::assertNotNull($private);
+        $privateName = $private->name ?? $private->code;
+
+        $accountPairId = $connection->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => PuzzleSolvingTimeFixture::TIME_12]);
+        self::assertIsString($accountPairId);
+        $connection->executeStatement("UPDATE puzzling_team SET name = 'Speedsters' WHERE id = :id", ['id' => $accountPairId]);
+
+        // PLAYER_REGULAR once entered the same person by name only - a second, unnamed pair
+        $this->messageBus->dispatch(new AddPuzzleSolvingTime(
+            timeId: $guestTimeId = Uuid::uuid7(),
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            puzzleId: PuzzleFixture::PUZZLE_1500_01,
+            competitionId: null,
+            time: '03:00:00',
+            comment: null,
+            finishedPuzzlesPhoto: null,
+            groupPlayers: [$privateName],
+            finishedAt: null,
+            firstAttempt: false,
+            unboxed: false,
+        ));
+        $guestPairId = $connection->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => $guestTimeId->toString()]);
+        self::assertIsString($guestPairId);
+        self::assertNotSame($accountPairId, $guestPairId);
+
+        $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_PRIVATE));
+
+        // One pair is left: the guest one, holding all the times and the name
+        self::assertSame($guestPairId, $connection->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => PuzzleSolvingTimeFixture::TIME_12]));
+        self::assertSame($guestPairId, $connection->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => PuzzleSolvingTimeFixture::TIME_41]));
+        self::assertFalse($connection->fetchOne('SELECT id FROM puzzling_team WHERE id = :id', ['id' => $accountPairId]));
+        self::assertSame('Speedsters', $connection->fetchOne('SELECT name FROM puzzling_team WHERE id = :id', ['id' => $guestPairId]));
     }
 
     public function testRemovesSolvingTimeWhenOwnerHasNoOtherTeamMemberWithPlayerId(): void

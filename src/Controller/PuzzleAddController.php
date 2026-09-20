@@ -24,6 +24,7 @@ use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
+use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
@@ -49,6 +50,7 @@ final class PuzzleAddController extends AbstractController
         readonly private GetStopwatch $getStopwatch,
         readonly private TranslatorInterface $translator,
         readonly private GetFavoritePlayers $getFavoritePlayers,
+        readonly private CoPuzzlerPicker $coPuzzlerPicker,
         readonly private LoggerInterface $logger,
         readonly private GetPlayerCollections $getPlayerCollections,
         readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
@@ -173,6 +175,14 @@ final class PuzzleAddController extends AbstractController
         /** @var array<string> $groupPlayers */
         $groupPlayers = $request->request->all('group_players');
 
+        // "Add time" of the Pairs & teams page: the form opens with that pair/team already chosen
+        if ($request->isMethod('GET') && $request->query->getString('team') !== '') {
+            $groupPlayers = $this->coPuzzlerPicker->groupPlayersOfTeam($request->query->getString('team'), $userProfile->playerId);
+        }
+
+        // Like the co-puzzlers, a plain field next to the Symfony form - see _copuzzler_picker.html.twig
+        $teamName = $request->request->getString('team_name');
+
         $isGroupPuzzlersValid = true;
         foreach ($groupPlayers as $groupPlayer) {
             if (trim($groupPlayer) === '') {
@@ -242,10 +252,10 @@ final class PuzzleAddController extends AbstractController
             try {
                 switch ($mode) {
                     case PuzzleAddMode::SpeedPuzzling:
-                        return $this->handleSpeedPuzzling($data, $userId, $groupPlayers, $activeStopwatch, $stopwatchId);
+                        return $this->handleSpeedPuzzling($data, $userId, $groupPlayers, $activeStopwatch, $stopwatchId, $teamName);
 
                     case PuzzleAddMode::Relax:
-                        return $this->handleRelax($data, $userId, $groupPlayers);
+                        return $this->handleRelax($data, $userId, $groupPlayers, $teamName);
 
                     case PuzzleAddMode::Collection:
                         return $this->handleCollection($data, $userProfile->playerId);
@@ -260,7 +270,11 @@ final class PuzzleAddController extends AbstractController
             'active_puzzle' => $activePuzzle,
             'solving_time_form' => $addTimeForm,
             'filled_group_players' => $groupPlayers,
-            'favorite_players' => $this->getFavoritePlayers->forPlayerId($userProfile->playerId),
+            // Only the old co-puzzler rows list favorites up front; the picker fetches its suggestions on demand
+            'favorite_players' => $this->coPuzzlerPicker->isEnabled() ? [] : $this->getFavoritePlayers->forPlayerId($userProfile->playerId),
+            'copuzzler_picker_enabled' => $this->coPuzzlerPicker->isEnabled(),
+            'copuzzler_picker' => $this->coPuzzlerPicker->formState($groupPlayers),
+            'filled_team_name' => $teamName,
             'hide_new_puzzle' => $data->puzzle === null || trim($data->puzzle) === '' || Uuid::isValid($data->puzzle) || $data->brand === null,
             'collections' => $collections,
             'initial_mode' => $initialMode,
@@ -278,6 +292,7 @@ final class PuzzleAddController extends AbstractController
         array $groupPlayers,
         mixed $activeStopwatch,
         null|string $stopwatchId,
+        string $teamName,
     ): Response {
         $timeId = Uuid::uuid7();
 
@@ -299,6 +314,7 @@ final class PuzzleAddController extends AbstractController
                 finishedAt: $data->finishedAt,
                 firstAttempt: $data->firstAttempt,
                 unboxed: $data->unboxed,
+                teamName: $teamName,
             ),
         );
 
@@ -322,6 +338,7 @@ final class PuzzleAddController extends AbstractController
         PuzzleAddFormData $data,
         string $userId,
         array $groupPlayers,
+        string $teamName,
     ): Response {
         $trackingId = Uuid::uuid7();
 
@@ -336,6 +353,7 @@ final class PuzzleAddController extends AbstractController
                 finishedPuzzlesPhoto: $data->finishedPuzzlesPhoto,
                 groupPlayers: $groupPlayers,
                 finishedAt: $data->finishedAt,
+                teamName: $teamName,
             ),
         );
 

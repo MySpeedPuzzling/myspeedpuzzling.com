@@ -37,6 +37,27 @@
                     </select>
                 </div>
 
+                {# Pair / team filter #}
+                {% if this.availableTeams is not empty %}
+                    <div class="mb-3">
+                        <select data-model="team" class="form-select form-select-sm">
+                            <option value="">{{ 'filters.all_pairs_and_teams'|trans }}</option>
+                            {% for available_team in this.availableTeams %}
+                                <option value="{{ available_team.teamId }}" {{ this.team == available_team.teamId ? 'selected' }}>
+                                    {%- if available_team.name is not null -%}
+                                        {{ available_team.name }}
+                                    {%- else -%}
+                                        {%- for puzzler in available_team.players -%}
+                                            {{- not loop.first ? ', ' -}}
+                                            {{- puzzler.isPrivate and (logged_user.profile is null or puzzler.playerId != logged_user.profile.playerId) ? 'secret_puzzler_name'|trans : (puzzler.playerName ?? ('#' ~ puzzler.playerCode)) -}}
+                                        {%- endfor -%}
+                                    {%- endif %} ({{ available_team.count }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+
                 {# Pieces count range filter #}
                 <div class="mb-3">
                     <select data-model="piecesCountRange" class="form-select form-select-sm">

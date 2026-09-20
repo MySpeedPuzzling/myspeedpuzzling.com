@@ -680,6 +680,11 @@
                                             <i class="bi bi-eye me-1"></i> {{ 'menu.favorite_puzzlers'|trans }}
                                         </a>
                                     </li>
+                                    <li>
+                                        <a class="dropdown-item {% if currentRoute == 'pairs_and_teams' %}active{% endif %}" href="{{ path('pairs_and_teams') }}">
+                                            <i class="bi bi-people me-1"></i> {{ 'menu.pairs_and_teams'|trans }}
+                                        </a>
+                                    </li>
 
                                     <li><hr class="dropdown-divider"></li>
 

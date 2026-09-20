@@ -1,0 +1,17 @@
+{# Members of a pair/team, each the way this viewer may see them #}
+{%- for member in members -%}
+    {%- if not loop.first %}, {% endif -%}
+    {%- if member.isPrivate and (logged_user.profile is null or member.playerId != logged_user.profile.playerId) -%}
+        <span class="text-muted">{{ 'secret_puzzler_name'|trans }}</span> <i class="bi bi-incognito text-muted"></i>
+    {%- elseif member.playerId is not null -%}
+        {#- `linked|default(true)` would turn an explicit false into true -#}
+        {%- if linked is not defined or linked -%}
+            <a href="{{ path('player_profile', {playerId: member.playerId}) }}">{{ member.playerName ?? ('#' ~ member.playerCode) }}</a>
+        {%- else -%}
+            {{ member.playerName ?? ('#' ~ member.playerCode) }}
+        {%- endif -%}
+        {%- if member.playerCountry is not null %} <small class="shadow-custom fi fi-{{ member.playerCountry.name }}"></small>{% endif -%}
+    {%- else -%}
+        {{ member.guestName }}
+    {%- endif -%}
+{%- endfor -%}

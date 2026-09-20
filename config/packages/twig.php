@@ -28,6 +28,8 @@ return App::config([
             'social_login_google_enabled' => '%socialLoginGoogleEnabled%',
             'social_login_facebook_enabled' => '%socialLoginFacebookEnabled%',
             'social_login_apple_enabled' => '%socialLoginAppleEnabled%',
+            // Pairs & teams picker rollout - see docs/features/feature_flags.md
+            'pairs_teams_picker_public' => '%pairsTeamsPickerPublic%',
         ],
         'paths' => [
             '%kernel.project_dir%/public/img' => 'images',

@@ -46,6 +46,8 @@ readonly final class SolvedPuzzle
         public null|string $competitionSeriesName = null,
         public null|string $competitionSeriesShortcut = null,
         public null|string $competitionSeriesSlug = null,
+        // Name of the pair/team ($teamId), when its members gave it one
+        public null|string $teamName = null,
     ) {
     }
 
@@ -69,6 +71,7 @@ readonly final class SolvedPuzzle
      *     finished_puzzle_photo: null|string,
      *     puzzle_identification_number: null|string,
      *     team_id?: null|string,
+     *     team_name?: null|string,
      *     players?: null|string|array<Puzzler>,
      *     solved_times?: int,
      *     finished_at: null|string,
@@ -135,6 +138,7 @@ readonly final class SolvedPuzzle
             suspicious: $row['suspicious'] ?? false,
             skillTierName: $row['skill_tier_name'] ?? null,
             rankingOptedOut: $row['ranking_opted_out'] ?? false,
+            teamName: $row['team_name'] ?? null,
         );
     }
 

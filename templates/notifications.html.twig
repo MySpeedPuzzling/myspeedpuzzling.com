@@ -170,6 +170,26 @@
                                         </a>
                                     {% endif %}
                                 </td>
+                            {% elseif notification.isPuzzlingTeamRenamedNotification %}
+                                {# A pair/team of the player was named or renamed by another member #}
+                                <td class="text-center" style="width: 60px;">
+                                    <i class="ci-user-group fs-3 text-primary"></i>
+                                </td>
+
+                                <td class="align-middle fs-sm text-muted">
+                                    <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                                    {% if notification.teamName is not null %}
+                                        {{ 'notifications.puzzling_team.renamed'|trans({'%player%': notification.targetPlayerName, '%name%': notification.teamName}) }}
+                                    {% else %}
+                                        {{ 'notifications.puzzling_team.name_removed'|trans({'%player%': notification.targetPlayerName}) }}
+                                    {% endif %}
+                                </td>
+
+                                <td class="" style="width: 80px;">
+                                    <a href="{{ path('pairs_and_teams') }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-arrow-right"></i>
+                                    </a>
+                                </td>
                             {% elseif notification.isLendingNotification %}
                                 {# Lending notification #}
                                 <td class="text-center" style="width: 60px;">

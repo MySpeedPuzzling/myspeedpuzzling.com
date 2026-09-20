@@ -83,6 +83,10 @@ class PuzzleSolvingTime implements EntityWithEvents
         // Total time of an unfinished result whose solver kept going after the limit - display only
         #[Column(nullable: true)]
         public null|int $finishedLaterSeconds = null,
+        // The pair/team this group is (PuzzlingTeamResolver) - always set together with $team, null for solo
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'RESTRICT')]
+        public null|PuzzlingTeam $puzzlingTeam = null,
     ) {
         $this->puzzlersCount = $this->calculatePuzzlersCount();
         $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
@@ -157,10 +161,12 @@ class PuzzleSolvingTime implements EntityWithEvents
         bool $firstAttempt,
         bool $unboxed,
         null|Competition $competition,
+        null|PuzzlingTeam $puzzlingTeam,
     ): void {
         $this->secondsToSolve = $seconds;
         $this->comment = $comment;
         $this->team = $puzzlersGroup;
+        $this->puzzlingTeam = $puzzlersGroup === null ? null : $puzzlingTeam;
         $this->finishedAt = $finishedAt;
         $this->finishedPuzzlePhoto = $finishedPuzzlePhoto;
         $this->firstAttempt = $firstAttempt;

@@ -42,6 +42,10 @@ final class PuzzleTimes
     #[LiveProp(writable: true)]
     public bool $onlyFavoritePlayers = false;
 
+    // Pair / team tabs only: the results the viewer took part in
+    #[LiveProp(writable: true)]
+    public bool $onlyMyTeams = false;
+
     #[LiveProp(writable: true)]
     public null|string $country = null;
 
@@ -218,6 +222,13 @@ final class PuzzleTimes
             } else {
                 $this->times = $soloPuzzleSolversGrouped;
             }
+        }
+
+        if ($this->onlyMyTeams === true && $loggedPlayerId !== null && $this->category !== 'solo') {
+            $this->times = array_filter(
+                $this->times,
+                static fn(array $grouped): bool => $grouped[0] instanceof PuzzleSolversGroup && $grouped[0]->containsPlayer($loggedPlayerId),
+            );
         }
 
         $myRank = null;

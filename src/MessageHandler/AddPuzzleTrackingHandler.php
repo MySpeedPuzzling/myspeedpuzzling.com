@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Entity\PuzzlingTeam;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Message\AddPuzzleTracking;
@@ -15,6 +16,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
+use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -28,6 +30,7 @@ readonly final class AddPuzzleTrackingHandler
         private PuzzlersGrouping $puzzlersGrouping,
         private ClockInterface $clock,
         private ImageOptimizer $imageOptimizer,
+        private PuzzlingTeamResolver $puzzlingTeamResolver,
     ) {
     }
 
@@ -74,7 +77,13 @@ readonly final class AddPuzzleTrackingHandler
             finishedPuzzlePhoto: $finishedPuzzlePhotoPath,
             firstAttempt: false,
             unboxed: false,
+            puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group),
         );
+
+        // Only when a name was typed: touching the team otherwise would load it for nothing
+        if (PuzzlingTeam::cleanName($message->teamName) !== null) {
+            $puzzlingTeam?->nameIfUnnamed($player, $message->teamName, $trackedAt);
+        }
 
         $this->entityManager->persist($solvingTime);
     }

@@ -85,6 +85,9 @@ return static function (ContainerConfigurator $configurator): void {
     // the __bb_trust cookie is simply not issued.
     $parameters->set('env(CHALLENGE_COOKIE_SECRET)', '');
 
+    // Pairs & teams picker rollout (docs/features/feature_flags.md): admins only until flipped to 1.
+    $parameters->set('pairsTeamsPickerPublic', '%env(bool:PAIRS_TEAMS_PICKER_PUBLIC)%');
+
     // Social login flags (auth hardening PR 2, docs/features/feature_flags.md).
     // One flag per provider so each flips independently as its console setup
     // completes; SOCIAL_LOGIN_ADMIN_ONLY keeps everything invisible to the
@@ -109,6 +112,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$bounceEmailDomain', '%bounceEmailDomain%')
         ->bind('$signInLinkLifetimeSeconds', '%signInLinkLifetimeSeconds%')
         ->bind('$signInLinkReuseGraceSeconds', '%signInLinkReuseGraceSeconds%')
+        ->bind('$pairsTeamsPickerPublic', '%pairsTeamsPickerPublic%')
         ->bind('$socialLoginAdminOnly', '%socialLoginAdminOnly%')
         ->bind('$socialLoginGoogleEnabled', '%socialLoginGoogleEnabled%')
         ->bind('$socialLoginFacebookEnabled', '%socialLoginFacebookEnabled%')

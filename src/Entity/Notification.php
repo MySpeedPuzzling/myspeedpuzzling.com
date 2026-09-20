@@ -65,6 +65,10 @@ class Notification
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|Player $actorPlayer = null,
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|PuzzlingTeam $targetPuzzlingTeam = null,
     ) {
     }
 }

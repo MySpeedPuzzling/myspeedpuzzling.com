@@ -1,0 +1,233 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Tests\Controller;
+
+use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Events\PuzzlingTeamRenamed;
+use SpeedPuzzling\Web\Message\PreparePuzzlingTeam;
+use SpeedPuzzling\Web\MessageHandler\NotifyWhenPuzzlingTeamRenamed;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
+use SpeedPuzzling\Web\Tests\TestingLogin;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Messenger\MessageBusInterface;
+
+final class PairsAndTeamsControllerTest extends WebTestCase
+{
+    use OverridesFeatureFlagEnv;
+
+    protected function tearDown(): void
+    {
+        $this->restoreFeatureFlagEnv();
+
+        parent::tearDown();
+    }
+
+    public function testAnonymousVisitorIsSentToSignIn(): void
+    {
+        $browser = self::createClient();
+        $browser->request('GET', '/en/pairs-and-teams');
+
+        $this->assertResponseRedirects();
+    }
+
+    public function testPageListsPairsAndTeamsOfThePlayer(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+
+        $crawler = $browser->request('GET', '/en/pairs-and-teams');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('h1', 'Pairs & teams');
+
+        // The fixture pair with PLAYER_REGULAR: two times, unnamed - titled by its member
+        $cards = $crawler->filter('[data-testid="regular-teams"] .pairs-and-teams-card');
+        self::assertCount(1, $cards);
+        self::assertSame(PlayerFixture::PLAYER_REGULAR_NAME, trim($cards->filter('[data-testid="team-title"]')->text()));
+        self::assertStringContainsString('2× together', $cards->text());
+        // Results exist: no delete button, ever
+        self::assertCount(0, $cards->filter('form[action$="/delete"]'));
+
+        // No Solo on the "new pair or team" picker
+        self::assertCount(0, $crawler->filter('form[name="prepare_team"] [data-mode="solo"]'));
+        self::assertCount(2, $crawler->filter('form[name="prepare_team"] [role="radio"]'));
+
+        $browser->request('GET', '/en/pairs-and-teams?show=teams');
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorExists('.alert-info');
+    }
+
+    public function testOneTimeGroupsAreFoldedAway(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+
+        // One of the pair's two times goes to a trio: both the trio and nothing else are one-offs now
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE puzzle_solving_time SET puzzling_team_id = NULL WHERE id = :id',
+            ['id' => PuzzleSolvingTimeFixture::TIME_41],
+        );
+
+        $crawler = $browser->request('GET', '/en/pairs-and-teams');
+
+        self::assertCount(0, $crawler->filter('[data-testid="regular-teams"] .pairs-and-teams-card'));
+        self::assertCount(1, $crawler->filter('[data-testid="one-off-teams"] .pairs-and-teams-card'));
+        self::assertStringContainsString('1 you puzzled with only once', $crawler->filter('[data-testid="one-off-teams"] summary')->text());
+    }
+
+    public function testRenamingRedirectsBackAndShowsTheName(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+        $crawler = $browser->request('GET', '/en/pairs-and-teams');
+
+        $form = $crawler->filter('form[action$="/rename"]')->form(['name' => 'Speedsters']);
+        $browser->submit($form);
+
+        // A full-page form post never answers 200 - Turbo Drive would drop it
+        $this->assertResponseRedirects('/en/pairs-and-teams?show=pairs');
+        $crawler = $browser->followRedirect();
+
+        self::assertSame('Speedsters', trim($crawler->filter('[data-testid="team-title"]')->text()));
+        self::assertStringContainsString(PlayerFixture::PLAYER_REGULAR_NAME, $crawler->filter('.pairs-and-teams-card')->text());
+    }
+
+    public function testRenamingNeedsAValidToken(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+
+        $browser->request('POST', '/en/pairs-and-teams/' . $this->fixturePairId() . '/rename', ['name' => 'Nope', '_token' => 'wrong']);
+
+        $this->assertResponseStatusCodeSame(403);
+    }
+
+    public function testOutsiderCanNeitherRenameNorDelete(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $token = $this->token($browser);
+
+        $browser->request('POST', '/en/pairs-and-teams/' . $this->fixturePairId() . '/rename', ['name' => 'Mine', '_token' => $token]);
+        $this->assertResponseStatusCodeSame(403);
+
+        $browser->request('POST', '/en/pairs-and-teams/' . $this->fixturePairId() . '/delete', ['_token' => $token]);
+        $this->assertResponseStatusCodeSame(403);
+    }
+
+    public function testTeamWithResultsCannotBeDeletedEvenByPostingDirectly(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+
+        $browser->request('POST', '/en/pairs-and-teams/' . $this->fixturePairId() . '/delete', ['_token' => $this->token($browser)]);
+
+        $this->assertResponseStatusCodeSame(409);
+    }
+
+    public function testPreparedTeamIsListedDeletableAndOneTapAwayInTheAddForm(): void
+    {
+        $this->overrideFeatureFlagEnv('PAIRS_TEAMS_PICKER_PUBLIC', true);
+
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $browser->request('POST', '/en/pairs-and-teams/new', [
+            '_token' => $this->token($browser),
+            'group_players' => ['#ADMIN', 'Grandma'],
+            'team_name' => 'Knitting circle',
+        ]);
+        $this->assertResponseRedirects('/en/pairs-and-teams?show=teams');
+        $crawler = $browser->followRedirect();
+
+        $card = $crawler->filter('.pairs-and-teams-card');
+        self::assertCount(1, $card);
+        self::assertSame('Knitting circle', trim($card->filter('[data-testid="team-title"]')->text()));
+        self::assertStringContainsString('No time together yet', $card->text());
+        self::assertCount(1, $card->filter('form[action$="/delete"]'));
+
+        // "Add time": the form opens with the team chosen
+        $crawler = $browser->click($card->selectLink('Add time')->link());
+        $this->assertResponseIsSuccessful();
+        self::assertSame(
+            ['#ADMIN', 'Grandma'],
+            $crawler->filter('input[name="group_players[]"]')->each(static fn(Crawler $input): null|string => $input->attr('value')),
+        );
+        self::assertSame('true', $crawler->filter('.copuzzler-switch [data-mode="team"]')->attr('aria-checked'));
+
+        $browser->request('GET', '/en/pairs-and-teams?show=teams');
+        $browser->submit($browser->getCrawler()->filter('form[action$="/delete"]')->form());
+        $this->assertResponseRedirects();
+        $crawler = $browser->followRedirect();
+        self::assertCount(0, $crawler->filter('.pairs-and-teams-card'));
+    }
+
+    public function testSomebodyElsesTeamIsNeverFilledIn(): void
+    {
+        $this->overrideFeatureFlagEnv('PAIRS_TEAMS_PICKER_PUBLIC', true);
+
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add?team=' . $this->fixturePairId());
+
+        $this->assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('input[name="group_players[]"]'));
+    }
+
+    public function testNobodyPickedIsToldSoWithoutAnError(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $browser->request('POST', '/en/pairs-and-teams/new', ['_token' => $this->token($browser), 'group_players' => []]);
+
+        $this->assertResponseRedirects();
+        $browser->followRedirect();
+        $this->assertSelectorTextContains('body', 'Pick at least one person');
+    }
+
+    public function testRenameNotificationIsListedWithWhoDidIt(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+
+        $container = self::getContainer();
+        $container->get(MessageBusInterface::class)->dispatch(new PreparePuzzlingTeam(PlayerFixture::PLAYER_REGULAR, ['#player2'], 'Speedsters'));
+        ($container->get(NotifyWhenPuzzlingTeamRenamed::class))(new PuzzlingTeamRenamed(Uuid::fromString($this->fixturePairId()), Uuid::fromString(PlayerFixture::PLAYER_REGULAR)));
+        $container->get(EntityManagerInterface::class)->flush();
+
+        $browser->request('GET', '/en/notifications');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('body', PlayerFixture::PLAYER_REGULAR_NAME . ' named your pair/team “Speedsters”.');
+    }
+
+    private function fixturePairId(): string
+    {
+        $teamId = self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id',
+            ['id' => PuzzleSolvingTimeFixture::TIME_12],
+        );
+        self::assertIsString($teamId);
+
+        return $teamId;
+    }
+
+    private function token(KernelBrowser $browser): string
+    {
+        $crawler = $browser->request('GET', '/en/pairs-and-teams');
+        $token = $crawler->filter('form[name="prepare_team"] input[name="_token"]')->attr('value');
+        self::assertNotNull($token);
+
+        return $token;
+    }
+}

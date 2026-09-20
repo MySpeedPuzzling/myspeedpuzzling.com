@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Results\PlayerRanking;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -44,6 +45,10 @@ final class PlayerSolvedPuzzles
 
     #[LiveProp(writable: true)]
     public null|string $piecesCountRange = null;
+
+    // Id of one pair/team: only what the player solved with exactly these people
+    #[LiveProp(writable: true)]
+    public null|string $team = null;
 
     #[LiveProp(writable: true)]
     public null|string $searchQuery = null;
@@ -197,6 +202,11 @@ final class PlayerSolvedPuzzles
 
             // Manufacturer filter
             if ($this->manufacturer !== null && $this->manufacturer !== '' && $puzzle->manufacturerName !== $this->manufacturer) {
+                return false;
+            }
+
+            // Pair/team filter - a solo result belongs to none
+            if ($this->team !== null && $this->team !== '' && $puzzle->teamId !== $this->team) {
                 return false;
             }
 
@@ -392,6 +402,39 @@ final class PlayerSolvedPuzzles
     }
 
     /**
+     * The pairs and teams the player has results with, most results first. The template names an
+     * unnamed one by its other members, each the way this viewer may see them.
+     *
+     * @return list<array{teamId: string, name: null|string, isPair: bool, players: array<Puzzler>, count: int}>
+     */
+    public function getAvailableTeams(): array
+    {
+        $teams = [];
+
+        foreach (array_merge($this->allDuoPuzzles, $this->allTeamPuzzles) as $puzzle) {
+            if ($puzzle->teamId === null) {
+                continue;
+            }
+
+            $teams[$puzzle->teamId] ??= [
+                'teamId' => $puzzle->teamId,
+                'name' => $puzzle->teamName,
+                'isPair' => count($puzzle->players ?? []) === 2,
+                'players' => array_filter(
+                    $puzzle->players ?? [],
+                    fn(Puzzler $puzzler): bool => $puzzler->playerId !== $this->playerId,
+                ),
+                'count' => 0,
+            ];
+            $teams[$puzzle->teamId]['count']++;
+        }
+
+        usort($teams, static fn(array $a, array $b): int => $b['count'] <=> $a['count']);
+
+        return array_slice($teams, 0, 30);
+    }
+
+    /**
      * @return list<array{value: string, label: string, min: int, max: int}>
      */
     public function getAvailablePiecesRanges(): array
@@ -430,6 +473,10 @@ final class PlayerSolvedPuzzles
         }
 
         if ($this->piecesCountRange !== null && $this->piecesCountRange !== '') {
+            $count++;
+        }
+
+        if ($this->team !== null && $this->team !== '') {
             $count++;
         }
 

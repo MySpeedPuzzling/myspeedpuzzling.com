@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 
@@ -73,6 +74,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
 
     public function __construct(
         private readonly ClockInterface $clock,
+        private readonly PuzzlingTeamResolver $puzzlingTeamResolver,
     ) {
     }
 
@@ -176,7 +178,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
             verified: true,
             firstAttempt: true,
             team: new PuzzlersGroup(
-                teamId: 'team-001',
+                teamId: null,
                 puzzlers: [
                     new Puzzler(
                         playerId: $player1->id->toString(),
@@ -291,7 +293,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
             verified: true,
             firstAttempt: true,
             team: new PuzzlersGroup(
-                teamId: 'team-002',
+                teamId: null,
                 puzzlers: [
                     new Puzzler(
                         playerId: $player1->id->toString(),
@@ -477,6 +479,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
             competitionRound: $competitionRound,
             competition: $competition,
             piecesPlaced: $piecesPlaced,
+            puzzlingTeam: $this->puzzlingTeamResolver->resolve($team),
         );
     }
 }

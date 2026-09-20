@@ -1,0 +1,124 @@
+{#
+    Solo / Pair / Team picker of the add/edit time form - docs/features/pairs-and-teams/README.md.
+
+    The hidden group_players[] inputs are the single source of truth: the Stimulus controller is their only
+    writer and rebuilds everything from them, so a 422 re-render or a restored page brings the group back.
+    Nothing in here may submit, re-render or navigate - every control is type="button", and the team name is
+    just one more field of the surrounding form.
+#}
+{% set picker_chips = copuzzler_picker.chips|default([]) %}
+{% set picker_tracker = copuzzler_picker.tracker|default(null) %}
+{# The "new pair / team" form of the Pairs & teams page has no solo: it starts on Pair, card open #}
+{% set picker_without_solo = copuzzler_picker_without_solo|default(false) %}
+{% set picker_mode = picker_chips|length == 0 ? (picker_without_solo ? 'pair' : 'solo') : (picker_chips|length == 1 ? 'pair' : 'team') %}
+
+<div class="copuzzler-picker mb-3"
+     data-controller="copuzzler-picker"
+     data-copuzzler-picker-suggestions-url-value="{{ path('my_co_puzzlers') }}"
+     data-copuzzler-picker-search-url-value="{{ path('player_search_autocomplete', {format: 'co-puzzler'}) }}"
+     data-copuzzler-picker-locale-value="{{ app.request.locale }}"
+     data-copuzzler-picker-max-value="15"
+     data-copuzzler-picker-default-mode-value="{{ picker_without_solo ? 'pair' : 'solo' }}"
+     data-copuzzler-picker-texts-value="{{ {
+         pickSomeone: 'copuzzler_picker.pick_someone'|trans,
+         pairWith: 'copuzzler_picker.pair_with'|trans,
+         teamNamed: 'copuzzler_picker.team_named'|trans,
+         teamOf: 'copuzzler_picker.team_of'|trans,
+         timesTogether: 'copuzzler_picker.times_together'|trans,
+         firstTime: 'copuzzler_picker.first_time'|trans,
+         you: 'copuzzler_picker.you'|trans,
+         trackedIt: 'copuzzler_picker.tracked_it'|trans,
+         guest: 'copuzzler_picker.guest'|trans,
+         addGuest: 'copuzzler_picker.add_guest'|trans,
+         remove: 'copuzzler_picker.remove'|trans,
+         whichOne: 'copuzzler_picker.which_one'|trans,
+         whoWith: 'copuzzler_picker.who_with'|trans,
+         yourTeams: 'copuzzler_picker.your_teams'|trans,
+         completeTeam: 'copuzzler_picker.complete_team'|trans,
+         people: 'copuzzler_picker.people'|trans,
+         showAll: 'copuzzler_picker.show_all'|trans,
+         showLess: 'copuzzler_picker.show_less'|trans,
+         full: 'copuzzler_picker.full'|trans,
+         undo: 'copuzzler_picker.undo'|trans,
+         searchPlaceholder: 'copuzzler_picker.search_placeholder'|trans,
+         searchFailed: 'copuzzler_picker.search_failed'|trans,
+         noResults: 'copuzzler_picker.no_results'|trans,
+         leavingTime: 'copuzzler_picker.leaving_time'|trans,
+     }|json_encode }}">
+
+    <div class="copuzzler-switch shadow" role="radiogroup" aria-label="{{ 'copuzzler_picker.switch_label'|trans }}">
+        {% for mode, heads in (picker_without_solo ? {pair: 2, team: 3} : {solo: 1, pair: 2, team: 3}) %}
+            <button type="button"
+                    class="copuzzler-switch__option"
+                    role="radio"
+                    aria-checked="{{ picker_mode == mode ? 'true' : 'false' }}"
+                    tabindex="{{ picker_mode == mode ? '0' : '-1' }}"
+                    data-mode="{{ mode }}"
+                    data-copuzzler-picker-target="modeButton"
+                    data-action="click->copuzzler-picker#switchMode keydown->copuzzler-picker#switchKeydown pointerenter->copuzzler-picker#prefetch touchstart->copuzzler-picker#prefetch:passive">
+                <span class="copuzzler-switch__icons" aria-hidden="true">
+                    {%- for i in 1..heads %}<i class="ci-user"></i>{% endfor -%}
+                </span>
+                <span class="copuzzler-switch__label">{{ ('copuzzler_picker.mode.' ~ mode)|trans }}</span>
+            </button>
+        {% endfor %}
+    </div>
+
+    <div class="form-text text-warning-emphasis mt-2" data-copuzzler-picker-target="notice" hidden></div>
+
+    <div class="card card-body shadow mt-2 copuzzler-card" data-copuzzler-picker-target="card" {{ picker_mode == 'solo' ? 'hidden' }}>
+        {# Collapsed: one quiet line, so the form stays short once the choice is made #}
+        <div class="copuzzler-summary" data-copuzzler-picker-target="summary" hidden>
+            <span class="copuzzler-summary__text" data-copuzzler-picker-target="summaryText"></span>
+            <button type="button" class="btn btn-link btn-sm p-0 ms-2 flex-shrink-0" data-action="copuzzler-picker#expand">{{ 'copuzzler_picker.change'|trans }}</button>
+        </div>
+
+        <div data-copuzzler-picker-target="body">
+            <div class="copuzzler-chips" data-copuzzler-picker-target="chips"></div>
+
+            <div class="copuzzler-identity" data-copuzzler-picker-target="identity" aria-live="polite"></div>
+            <div class="copuzzler-section" data-copuzzler-picker-target="teamsSection" hidden>
+                <div class="copuzzler-section__label" data-copuzzler-picker-target="teamsLabel"></div>
+                <div class="copuzzler-options" data-copuzzler-picker-target="teams"></div>
+            </div>
+
+            <div class="copuzzler-section" data-copuzzler-picker-target="peopleSection" hidden>
+                <div class="copuzzler-section__label" data-copuzzler-picker-target="peopleLabel"></div>
+                <div class="copuzzler-options" data-copuzzler-picker-target="people"></div>
+            </div>
+
+            <div class="copuzzler-search mt-3">
+                <label class="visually-hidden" for="copuzzler-search-input">{{ 'copuzzler_picker.search_placeholder'|trans }}</label>
+                <select id="copuzzler-search-input" data-copuzzler-picker-target="search" autocomplete="off"></select>
+                <div class="form-text">{{ 'copuzzler_picker.search_help'|trans }}</div>
+            </div>
+
+            <div class="copuzzler-name mt-3" data-copuzzler-picker-target="nameRow" hidden>
+                <button type="button" class="btn btn-link btn-sm p-0" data-copuzzler-picker-target="nameToggle" data-action="copuzzler-picker#showNameInput">
+                    <i class="ci-edit me-1"></i>{{ 'copuzzler_picker.name_it'|trans }}
+                </button>
+                <div data-copuzzler-picker-target="nameField" hidden>
+                    <label class="form-label" for="copuzzler-team-name">{{ 'copuzzler_picker.name_label'|trans }}</label>
+                    <input type="text" class="form-control" id="copuzzler-team-name" name="team_name" maxlength="50"
+                           value="{{ filled_team_name|default('') }}"
+                           autocomplete="off"
+                           data-copuzzler-picker-target="nameInput"
+                           data-action="keydown.enter->copuzzler-picker#swallowEnter input->copuzzler-picker#nameChanged">
+                    <div class="form-text">{{ 'copuzzler_picker.name_help'|trans }}</div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mt-3">
+                <button type="button" class="btn btn-sm btn-outline-primary" data-copuzzler-picker-target="doneButton" data-action="copuzzler-picker#collapse" hidden>{{ 'copuzzler_picker.done'|trans }}</button>
+            </div>
+        </div>
+    </div>
+
+    <div data-copuzzler-picker-target="inputs" data-ppm-validator-target="groupPlayers">
+        {% for chip in picker_chips %}
+            <input type="hidden" name="group_players[]" value="{{ chip.value }}">
+        {% endfor %}
+    </div>
+
+    <script type="application/json" data-copuzzler-picker-target="initial">{{ {chips: picker_chips, tracker: picker_tracker, viewerKey: copuzzler_picker.viewerKey|default(null)}|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
+</div>

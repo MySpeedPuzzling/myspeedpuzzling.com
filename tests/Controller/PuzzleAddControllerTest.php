@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -18,6 +19,15 @@ use Symfony\Component\DomCrawler\Crawler;
 
 final class PuzzleAddControllerTest extends WebTestCase
 {
+    use OverridesFeatureFlagEnv;
+
+    protected function tearDown(): void
+    {
+        $this->restoreFeatureFlagEnv();
+
+        parent::tearDown();
+    }
+
     public function testAnonymousUserIsRedirected(): void
     {
         $browser = self::createClient();
@@ -208,6 +218,10 @@ final class PuzzleAddControllerTest extends WebTestCase
      */
     public function testEmptyCoPuzzlerIsRejectedWithVisibleError(): void
     {
+        // The old co-puzzler rows - what PAIRS_TEAMS_PICKER_PUBLIC=0 falls back to. The picker cannot submit
+        // an empty co-puzzler at all; the server refuses one either way.
+        $this->overrideFeatureFlagEnv('PAIRS_TEAMS_PICKER_PUBLIC', false);
+
         $browser = self::createClient();
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);

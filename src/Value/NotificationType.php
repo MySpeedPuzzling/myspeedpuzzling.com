@@ -35,4 +35,7 @@ enum NotificationType: string
     // Community moderator role (no target entity - the notification is the whole message)
     case ModeratorRoleGranted = 'ModeratorRoleGranted';
     case ModeratorRoleRevoked = 'ModeratorRoleRevoked';
+
+    // A pair/team the player belongs to was named or renamed by another member
+    case PuzzlingTeamRenamed = 'PuzzlingTeamRenamed';
 }

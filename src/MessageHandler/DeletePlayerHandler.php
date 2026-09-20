@@ -39,6 +39,7 @@ use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
 use SpeedPuzzling\Web\Repository\NewsletterSubscriberRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
+use SpeedPuzzling\Web\Services\PuzzlingTeamMemberConversion;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use Stripe\Exception\ApiErrorException;
@@ -57,6 +58,7 @@ final class DeletePlayerHandler
         private readonly NewsletterSubscriberRepository $newsletterSubscriberRepository,
         private readonly MessageBusInterface $messageBus,
         private readonly UserAccountRepository $userAccountRepository,
+        private readonly PuzzlingTeamMemberConversion $puzzlingTeamMemberConversion,
     ) {
     }
 
@@ -72,6 +74,8 @@ final class DeletePlayerHandler
         $this->cancelStripeSubscription($playerId);
 
         $this->handlePuzzleSolvingTimes($player, $playerName);
+        // Same anonymisation for the pairs/teams the times belong to - the member row would block the delete otherwise
+        $this->puzzlingTeamMemberConversion->playerToGuest($playerId, $playerName);
         $this->scrubFavoritePlayers($playerId);
         $this->deletePlayerOwnedRows($playerId);
         $this->deleteUserBlocks($playerId);

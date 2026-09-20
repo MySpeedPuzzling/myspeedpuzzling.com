@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Entity\PuzzlingTeam;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
@@ -20,6 +21,7 @@ use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
+use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
@@ -38,6 +40,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         private MistypedYearNormalizer $mistypedYearNormalizer,
         private LoggerInterface $logger,
         private SolvingTimeRoundResolver $roundResolver,
+        private PuzzlingTeamResolver $puzzlingTeamResolver,
     ) {
     }
 
@@ -128,7 +131,13 @@ readonly final class EditPuzzleSolvingTimeHandler
             $message->firstAttempt,
             $message->unboxed,
             competition: $competition,
+            puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group),
         );
+
+        // Only when a name was typed: touching the team otherwise would load it for nothing
+        if (PuzzlingTeam::cleanName($message->teamName) !== null) {
+            $puzzlingTeam?->nameIfUnnamed($currentPlayer, $message->teamName, $this->clock->now());
+        }
 
         // Several people can now change one result, so the others get told who did
         if (count($membersBeforeEdit) > 1 || $solvingTime->team !== null) {

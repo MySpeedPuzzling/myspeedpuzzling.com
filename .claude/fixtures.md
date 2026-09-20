@@ -90,7 +90,7 @@ Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 - `PLAYER_WITH_FAVORITES` favorites: `PLAYER_REGULAR`, `PLAYER_ADMIN`
 
 ### Team Solving
-- `PLAYER_REGULAR` & `PLAYER_PRIVATE` solved PUZZLE_1000_01 together (team-001)
+- `PLAYER_REGULAR` & `PLAYER_PRIVATE` are a pair (`puzzling_team`, unnamed) with two times: TIME_12 (PUZZLE_1000_01) and TIME_41 (PUZZLE_1000_03), both tracked by PLAYER_REGULAR. Nobody else has pair/team history. Note PLAYER_REGULAR blocks PLAYER_PRIVATE (`UserBlockFixture`)
 
 ### Lending Relationships
 - `PLAYER_WITH_STRIPE` lends to: `PLAYER_REGULAR`, `PLAYER_WITH_FAVORITES`, "Jane Doe" (non-registered)
@@ -237,7 +237,7 @@ Seller settings: `PLAYER_WITH_STRIPE` has ISO currency **GBP** (listings eligibl
    - PLAYER_REGULAR, PLAYER_PRIVATE, PLAYER_ADMIN
 
 4. **Team solving** (TIME_12):
-   - Team ID: `team-001`
+   - Pair resolved by `PuzzlingTeamResolver` (the JSON snapshot's `team_id` is unused)
    - Players: PLAYER_REGULAR, PLAYER_PRIVATE
    - Puzzle: PUZZLE_1000_01
 

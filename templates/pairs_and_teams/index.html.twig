@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'pairs_and_teams.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{% include '_return_back_button.html.twig' with {fallbackUrl: path('my_profile'), fallbackTitle: 'menu.my_profile'|trans} %}
+
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\PairsAndTeams\\PairsAndTeamsController::CSRF_TOKEN_ID')) %}
+
+<h1 class="h3 mb-2"><i class="bi bi-people me-2"></i>{{ 'pairs_and_teams.title'|trans }}</h1>
+<p class="text-muted">{{ 'pairs_and_teams.intro'|trans }}</p>
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {{ show == 'pairs' ? 'active' }}" href="{{ path('pairs_and_teams') }}">{{ 'pairs_and_teams.tab_pairs'|trans }} <span class="text-muted">({{ pairs_count }})</span></a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {{ show == 'teams' ? 'active' }}" href="{{ path('pairs_and_teams', {show: 'teams'}) }}">{{ 'pairs_and_teams.tab_teams'|trans }} <span class="text-muted">({{ teams_count }})</span></a>
+    </li>
+</ul>
+
+{% set regulars = rows|filter(row => not row.oneOff) %}
+{% set one_offs = rows|filter(row => row.oneOff) %}
+
+{% if rows is empty %}
+    <div class="alert alert-info fs-sm">{{ (show == 'teams' ? 'pairs_and_teams.empty_teams' : 'pairs_and_teams.empty_pairs')|trans }}</div>
+{% endif %}
+
+<div class="pairs-and-teams-list mb-3" data-testid="regular-teams">
+    {% for row in regulars %}
+        {{ include('pairs_and_teams/_team_card.html.twig', {row: row, csrf: csrf, show: show}) }}
+    {% endfor %}
+</div>
+
+{% if one_offs is not empty %}
+    <details class="mb-4" data-testid="one-off-teams">
+        <summary class="text-muted fs-sm mb-2">{{ 'pairs_and_teams.one_offs'|trans({'%count%': one_offs|length}) }}</summary>
+        {% for row in one_offs %}
+            {{ include('pairs_and_teams/_team_card.html.twig', {row: row, csrf: csrf, show: show}) }}
+        {% endfor %}
+    </details>
+{% endif %}
+
+<div class="card card-body shadow-sm mb-5">
+    <h2 class="h5">{{ 'pairs_and_teams.new_title'|trans }}</h2>
+    <p class="fs-sm text-muted">{{ 'pairs_and_teams.new_help'|trans }}</p>
+
+    <form action="{{ path('pairs_and_teams_prepare') }}" method="post" name="prepare_team">
+        <input type="hidden" name="_token" value="{{ csrf }}">
+        {{ include('_copuzzler_picker.html.twig', {copuzzler_picker_without_solo: true}) }}
+        <button type="submit" class="btn btn-primary">{{ 'pairs_and_teams.new_submit'|trans }}</button>
+    </form>
+</div>
+{% endblock %}

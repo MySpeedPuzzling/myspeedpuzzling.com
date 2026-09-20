@@ -8,6 +8,17 @@ This file documents all active feature flags in the codebase — where they are,
 
 `NATIVE_REGISTRATION_ENABLED`, `NATIVE_LOGIN_ENABLED`, `AUTH0_TRICKLE_LOGIN_ENABLED`, `AUTH0_FALLBACK_LOGIN_ENABLED` and `SIGN_IN_CHANGES_NOTICE_ENABLED` were deleted with the Auth0 stack (`docs/features/auth-migration/implementation-plan.md` Phase 6). Native registration, login and password reset are unconditional; the trickle gateway, the `/login/auth0` fallback, the `/login` footnote and the "sign-in is moving" explainer page (its URLs now 301 to `/login`) are gone. A box `.env` that still sets any of them is harmless - nothing reads them.
 
+## Pairs & teams picker rollout (`PAIRS_TEAMS_PICKER_PUBLIC`)
+
+- **Feature:** the Solo / Pair / Team picker of the add/edit time form (`docs/features/pairs-and-teams/README.md`)
+- **Flag:** env var `PAIRS_TEAMS_PICKER_PUBLIC` → parameter `pairsTeamsPickerPublic` (`config/services.php`), read through `CoPuzzlerPicker::isEnabled()` and exposed as Twig global `pairs_teams_picker_public`. Twig global — keep it resolvable in `.env` (see the operational note at the top).
+- **Default:** **ON** since launch (2026-09-20, Jan's call: full rollout, fix forward). It is the kill switch now: `0` sends everybody but admins (`is_granted('ADMIN_ACCESS')`) back to the old co-puzzler rows. Only the *form UI* is gated: teams are resolved for every group time, the "Pairs & teams" page, team pages and filters are live for everyone.
+- **Gated files:**
+  - `src/Services/CoPuzzlerPicker.php` — `isEnabled()`, the single decision point
+  - `src/Controller/PuzzleAddController.php`, `src/Controller/EditTimeController.php` — pass `copuzzler_picker_enabled`; the old rows' favorites query only runs while the old UI renders
+  - `templates/_solving_time_form.html.twig` — picker vs. old rows (`_group_puzzler_input.html.twig` + `add_copuzzler_controller.js`)
+- **Remove when:** the picker has been live without trouble for a couple of weeks — then delete `templates/_group_puzzler_input.html.twig`, `assets/controllers/add_copuzzler_controller.js`, the `favorite_players` template variable of both controllers, `forms.choose_from_favorites` / `puzzle_add.teamplayer` / `puzzle_add.add_puzzler` / `puzzle_add.group_puzzling` / `puzzle_add.player_code_info` translations, and the flag itself
+
 ## Social Login — per-provider flags (`SOCIAL_LOGIN_GOOGLE_ENABLED`, `SOCIAL_LOGIN_FACEBOOK_ENABLED`, `SOCIAL_LOGIN_APPLE_ENABLED`)
 
 - **Feature:** Google/Apple/Facebook sign-in (auth hardening PR 2, `docs/features/auth-hardening/README.md`)

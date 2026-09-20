@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
+use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\EditTimeReturnContext;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
@@ -42,6 +43,7 @@ final class EditTimeController extends AbstractController
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private TranslatorInterface $translator,
         readonly private GetFavoritePlayers $getFavoritePlayers,
+        readonly private CoPuzzlerPicker $coPuzzlerPicker,
     ) {
     }
 
@@ -131,7 +133,7 @@ final class EditTimeController extends AbstractController
 
             try {
                 $this->messageBus->dispatch(
-                    EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data),
+                    EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data, $request->request->getString('team_name')),
                 );
 
                 $this->addFlash('success', $this->translator->trans('flashes.time_edited'));
@@ -171,7 +173,16 @@ final class EditTimeController extends AbstractController
             'selected_add_manufacturer' => false,
             'puzzles' => $puzzlesPerManufacturer,
             'active_stopwatch' => null,
-            'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),
+            // Only the old co-puzzler rows list favorites up front; the picker fetches its suggestions on demand
+            'favorite_players' => $this->coPuzzlerPicker->isEnabled() ? [] : $this->getFavoritePlayers->forPlayerId($player->playerId),
+            'copuzzler_picker_enabled' => $this->coPuzzlerPicker->isEnabled(),
+            // Somebody else's time: whoever tracked it stays in the group, shown as a chip that cannot be removed
+            'copuzzler_picker' => $this->coPuzzlerPicker->formState(
+                $groupPlayers,
+                $solvedPuzzle->playerId === $player->playerId ? null : $solvedPuzzle->playerId,
+                $player->playerId,
+            ),
+            'filled_team_name' => $request->request->getString('team_name'),
             'initial_mode' => $initialMode,
             'return_context' => $context->value,
             'return_url' => $this->resolveReturnUrl($context, $solvedPuzzle),

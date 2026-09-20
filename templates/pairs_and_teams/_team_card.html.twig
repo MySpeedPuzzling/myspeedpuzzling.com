@@ -1,0 +1,47 @@
+{% set team = row.team %}
+{% set member_names = row.members|map(member => member.label)|join(', ') %}
+
+<div class="card card-body shadow-sm mb-2 pairs-and-teams-card" data-team-id="{{ team.teamId }}">
+    <div class="d-flex flex-wrap align-items-start gap-2">
+        <div class="flex-grow-1" style="min-width: 0;">
+            <div class="fw-semibold text-truncate" data-testid="team-title">{{ team.name ?? member_names }}</div>
+            {% if team.name is not null %}
+                <div class="fs-sm text-muted text-truncate">{{ member_names }}</div>
+            {% endif %}
+            <div class="fs-sm text-muted">
+                {% if team.timesCount > 0 %}
+                    {{ 'pairs_and_teams.times_together'|trans({'%count%': team.timesCount}) }}
+                    {% if team.lastTogetherAt is not null %}· {{ team.lastTogetherAt|ago }}{% endif %}
+                {% else %}
+                    {{ 'pairs_and_teams.not_used_yet'|trans }}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-sm btn-outline-primary" href="{{ path('puzzle_add', {team: team.teamId}) }}">
+                <i class="ci-add me-1"></i>{{ 'pairs_and_teams.add_time'|trans }}
+            </a>
+
+            {% if team.timesCount == 0 %}
+                <form action="{{ path('pairs_and_teams_delete', {teamId: team.teamId}) }}" method="post">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <input type="hidden" name="show" value="{{ show }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">{{ 'pairs_and_teams.delete'|trans }}</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <details class="mt-2">
+        <summary class="fs-sm text-primary">{{ (team.name is null ? 'pairs_and_teams.name_it' : 'pairs_and_teams.rename')|trans }}</summary>
+        <form action="{{ path('pairs_and_teams_rename', {teamId: team.teamId}) }}" method="post" class="d-flex flex-wrap gap-2 mt-2">
+            <input type="hidden" name="_token" value="{{ csrf }}">
+            <input type="hidden" name="show" value="{{ show }}">
+            <label class="visually-hidden" for="team-name-{{ team.teamId }}">{{ 'pairs_and_teams.name_label'|trans }}</label>
+            <input type="text" class="form-control form-control-sm" style="max-width: 320px;" id="team-name-{{ team.teamId }}" name="name" maxlength="50" value="{{ team.name }}" placeholder="{{ 'pairs_and_teams.name_placeholder'|trans }}">
+            <button type="submit" class="btn btn-sm btn-primary">{{ 'forms.save'|trans }}</button>
+        </form>
+        <div class="form-text">{{ 'pairs_and_teams.name_help'|trans }}</div>
+    </details>
+</div>

@@ -1,0 +1,113 @@
+{% extends 'base.html.twig' %}
+
+{% set member_names = team.members|map(member => member.isPrivate ? 'secret_puzzler_name'|trans : (member.playerName ?? member.guestName ?? ('#' ~ member.playerCode)))|join(', ') %}
+{% set page_title = team.name ?? member_names %}
+
+{% block title %}{{ page_title }} – {{ (team.isPair ? 'puzzling_team.pair' : 'puzzling_team.team')|trans }}{% endblock %}
+{# Unnamed pairs/teams are thousands of near-identical pages - nothing for a search engine #}
+{% block robots %}{% if team.name is null %}<meta name="robots" content="noindex, follow">{% endif %}{% endblock %}
+
+{% block content %}
+{% include '_return_back_button.html.twig' with {fallbackUrl: path('homepage'), fallbackTitle: 'navigation.home'|trans} %}
+
+<div class="d-flex flex-wrap align-items-start gap-2 mb-1">
+    <h1 class="h3 mb-0 flex-grow-1">
+        <span class="users-icons me-1"><i class="ci-user"></i><i class="ci-user"></i>{% if not team.isPair %}<i class="ci-user"></i>{% endif %}</span>
+        {{ page_title }}
+    </h1>
+
+    {% if is_member %}
+        <a class="btn btn-sm btn-outline-primary" href="{{ path('pairs_and_teams', {show: team.isPair ? 'pairs' : 'teams'}) }}">
+            <i class="ci-edit me-1"></i>{{ (team.name is null ? 'pairs_and_teams.name_it' : 'pairs_and_teams.rename')|trans }}
+        </a>
+        <a class="btn btn-sm btn-primary" href="{{ path('puzzle_add', {team: team.teamId}) }}">
+            <i class="ci-add me-1"></i>{{ 'pairs_and_teams.add_time'|trans }}
+        </a>
+    {% endif %}
+</div>
+
+<p class="text-muted mb-4" data-testid="team-members">
+    {{ (team.isPair ? 'puzzling_team.pair' : 'puzzling_team.team_of')|trans({'%count%': team.size}) }}:
+    {{ include('pairs_and_teams/_members.html.twig', {members: team.members}) }}
+</p>
+
+<div class="card card-body shadow-sm mb-4" data-testid="team-stats">
+    <h2 class="h5">{{ 'puzzling_team.stats_title'|trans }}</h2>
+
+    {% if stats is not null %}
+        <div class="row g-3 fs-sm">
+            <div class="col-6 col-md-3"><div class="text-muted">{{ 'puzzling_team.stats_results'|trans }}</div><div class="fs-5 fw-semibold">{{ stats.timed + stats.relaxed }}</div></div>
+            <div class="col-6 col-md-3"><div class="text-muted">{{ 'puzzling_team.stats_puzzles'|trans }}</div><div class="fs-5 fw-semibold">{{ stats.puzzles }}</div></div>
+            <div class="col-6 col-md-3"><div class="text-muted">{{ 'puzzling_team.stats_pieces'|trans }}</div><div class="fs-5 fw-semibold">{{ stats.pieces|number_format(0, '.', ' ') }}</div></div>
+            <div class="col-6 col-md-3"><div class="text-muted">{{ 'puzzling_team.stats_since'|trans }}</div><div class="fs-5 fw-semibold">{{ stats.first ? stats.first|date('m/Y') : '–' }}</div></div>
+        </div>
+
+        {% if stats.best is not empty %}
+            <h3 class="h6 mt-4">{{ 'puzzling_team.stats_best'|trans }}</h3>
+            <ul class="list-unstyled fs-sm mb-0">
+                {% for pieces, best in stats.best %}
+                    <li>
+                        <span class="text-muted">{{ 'pieces_count'|trans({'%count%': pieces})|raw }}:</span>
+                        <strong>{{ best.time|puzzlingTime }}</strong>
+                        – <a href="{{ path('puzzle_detail', {puzzleId: best.puzzleId}) }}">{{ best.manufacturerName }} {{ best.puzzleName }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% else %}
+        <p class="fs-sm text-muted mb-2">{{ 'puzzling_team.stats_members_only'|trans }}</p>
+        {% if logged_user.profile is not null %}
+            <button type="button" class="btn btn-sm btn-outline-primary align-self-start" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                <i class="ci-locked me-1"></i>{{ 'collections.membership_required.unlock_link'|trans }}
+            </button>
+        {% else %}
+            <a class="btn btn-sm btn-outline-primary align-self-start" href="{{ path('membership') }}"><i class="ci-locked me-1"></i>{{ 'collections.membership_required.unlock_link'|trans }}</a>
+        {% endif %}
+    {% endif %}
+</div>
+
+<h2 class="h5">{{ 'puzzling_team.results_title'|trans }} <span class="text-muted">({{ times|length }})</span></h2>
+
+{% if times is empty %}
+    <p class="text-muted">{{ 'pairs_and_teams.not_used_yet'|trans }}</p>
+{% else %}
+    <div class="table-responsive mb-4">
+        <table class="table table-sm align-middle fs-sm" data-testid="team-times">
+            <tbody>
+                {% for time in times %}
+                    <tr>
+                        <td style="width: 60px;">
+                            {% if time.puzzleImage is not null %}
+                                <img class="rounded-2" style="max-width: 50px; max-height: 50px;" loading="lazy" alt="" src="{{ time.puzzleImage|thumbnail('puzzle_small') }}">
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ path('puzzle_detail', {puzzleId: time.puzzleId}) }}">{{ time.manufacturerName }} {{ time.puzzleName }}</a><br>
+                            <span class="text-muted">{{ 'pieces_count'|trans({'%count%': time.piecesCount})|raw }}</span>
+                        </td>
+                        <td class="text-end text-nowrap">
+                            {% if time.time is not null %}<strong>{{ time.time|puzzlingTime }}</strong>{% else %}<span class="text-muted">{{ 'puzzle_add.mode.relax'|trans }}</span>{% endif %}<br>
+                            <span class="text-muted">{{ time.solvedAt|date('d.m.Y') }}</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+
+{% if related_teams is not empty %}
+    <h2 class="h5">{{ 'puzzling_team.related_title'|trans }}</h2>
+    <p class="fs-sm text-muted">{{ 'puzzling_team.related_help'|trans }}</p>
+    <ul class="list-unstyled mb-5" data-testid="related-teams">
+        {% for related in related_teams %}
+            <li class="mb-1">
+                <a href="{{ path('puzzling_team_detail', {teamId: related.teamId}) }}">
+                    {%- if related.name is not null -%}{{ related.name }}{%- else -%}{{ include('pairs_and_teams/_members.html.twig', {members: related.members, linked: false}) }}{%- endif -%}
+                </a>
+                <span class="text-muted fs-sm">· {{ 'pairs_and_teams.times_together'|trans({'%count%': related.timesCount}) }}</span>
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}
+{% endblock %}

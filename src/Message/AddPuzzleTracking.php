@@ -19,6 +19,8 @@ readonly final class AddPuzzleTracking
         /** @var array<string> */
         public array $groupPlayers,
         public null|DateTimeImmutable $finishedAt,
+        // Names the pair/team of $groupPlayers when it has no name yet
+        public null|string $teamName = null,
     ) {
     }
 }

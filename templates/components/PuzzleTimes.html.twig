@@ -202,6 +202,20 @@
             {% endif %}
         </div>
 
+        {# Free for every signed-in player, unlike the members' filters next to it (pairs & teams, D7) #}
+        {% if logged_user.profile is not null and this.category != 'solo' and (this.times|length > 1 or this.onlyMyTeams) %}
+            <div class="form-check form-switch mb-0 me-3">
+                <input
+                    data-model="onlyMyTeams"
+                    type="checkbox"
+                    class="form-check-input"
+                    role="switch"
+                    id="only-my-teams"
+                    {{ this.onlyMyTeams ? 'checked' }}>
+                <label for="only-my-teams" class="form-check-label fs-sm">{{ (this.category == 'duo' ? 'only_my_pairs_filter' : 'only_my_teams_filter')|trans }}</label>
+            </div>
+        {% endif %}
+
         {% if this.activeFiltersCount > 0 or this.availableCountries|length > 1 or (this.category == 'solo' and this.times|length > 1) %}
             <div class="dropdown position-relative">
                 {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
@@ -361,6 +375,13 @@
                                         <span class="player-name-item">{{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}</span>
                                     {% endif %}
                                 {% endfor %}
+                                {% if aggregated_solver[0].teamId is not null %}
+                                    <br>
+                                    <a class="small text-muted" href="{{ path('puzzling_team_detail', {teamId: aggregated_solver[0].teamId}) }}" data-testid="team-link">
+                                        <i class="bi bi-people"></i>
+                                        {{ aggregated_solver[0].teamName ?? (this.category == 'duo' ? 'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans }}
+                                    </a>
+                                {% endif %}
                             {% else %}
                                 {% if aggregated_solver[0].isPrivate and (logged_user.profile is null or aggregated_solver[0].playerId != logged_user.profile.playerId) %}
                                     <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>

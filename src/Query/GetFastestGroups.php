@@ -62,7 +62,7 @@ player_data AS (
         manufacturer.name AS manufacturer_name,
         puzzle.identification_number AS puzzle_identification_number,
         pst.id AS time_id,
-        pst.team ->> 'team_id' AS team_id,
+        pst.puzzling_team_id::varchar AS team_id,
         pst.first_attempt,
         pst.unboxed,
         {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private,

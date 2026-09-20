@@ -24,6 +24,8 @@ readonly final class AddPuzzleSolvingTime
         public bool $firstAttempt,
         public bool $unboxed,
         public null|string $roundId = null,
+        // Names the pair/team of $groupPlayers when it has no name yet
+        public null|string $teamName = null,
     ) {
     }
 }

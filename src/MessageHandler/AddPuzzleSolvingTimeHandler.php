@@ -9,6 +9,7 @@ use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Entity\PuzzlingTeam;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
@@ -21,6 +22,7 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
+use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
@@ -41,6 +43,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private MistypedYearNormalizer $mistypedYearNormalizer,
         private LoggerInterface $logger,
         private SolvingTimeRoundResolver $roundResolver,
+        private PuzzlingTeamResolver $puzzlingTeamResolver,
     ) {
     }
 
@@ -125,7 +128,15 @@ readonly final class AddPuzzleSolvingTimeHandler
             $message->unboxed,
             competitionRound: $competitionRound,
             competition: $competition,
+            // Resolved last, once nothing above can refuse the time any more - the team is created outside
+            // the unit of work
+            puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group),
         );
+
+        // Only when a name was typed: touching the team otherwise would load it for nothing
+        if (PuzzlingTeam::cleanName($message->teamName) !== null) {
+            $puzzlingTeam?->nameIfUnnamed($player, $message->teamName, $trackedAt);
+        }
 
         $solvingTime->changeCompetitionRound($this->roundResolver->resolve($solvingTime));
 

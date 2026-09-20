@@ -61,8 +61,12 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
     /** PLAYER_REGULAR, solo, PUZZLE_500_02 (three earlier solves, a subscriber to notify) */
     private const int WRITE_PATH_NON_MEMBER_SOLO_500_02 = 35;
 
-    /** PLAYER_WITH_STRIPE, duo with a guest, PUZZLE_500_01 */
-    private const int WRITE_PATH_MEMBER_GROUP_500_01 = 21;
+    /**
+     * PLAYER_WITH_STRIPE, duo with a guest, PUZZLE_500_01. Two of these belong to pairs & teams: the pair is
+     * looked up and, being new, created (one statement for the team and its members) - a pair that already
+     * exists costs the lookup only.
+     */
+    private const int WRITE_PATH_MEMBER_GROUP_500_01 = 23;
 
     /**
      * ApiTokenOwner::profile(), memoised - once per request at most - plus the token owner's

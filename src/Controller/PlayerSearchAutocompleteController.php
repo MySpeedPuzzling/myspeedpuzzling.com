@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\SearchPlayers;
+use SpeedPuzzling\Web\Results\PlayerIdentification;
 use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -34,6 +35,20 @@ final class PlayerSearchAutocompleteController extends AbstractController
         }
 
         $players = $this->searchPlayers->fulltext($search, 15);
+
+        // The co-puzzler picker draws its own chips and submits player codes, so it wants the plain
+        // fields - in the shape of MyCoPuzzlersController's people - rather than ready-made HTML
+        if ($request->query->getString('format') === 'co-puzzler') {
+            return new JsonResponse(array_map(fn(PlayerIdentification $player): array => [
+                'key' => $player->playerId,
+                'value' => '#' . strtoupper($player->playerCode),
+                'label' => $player->playerName ?? '#' . strtoupper($player->playerCode),
+                'code' => strtoupper($player->playerCode),
+                'guest' => false,
+                'country' => $player->playerCountry?->name,
+                'avatar' => $player->playerAvatar !== null ? $this->imageThumbnail->thumbnailUrl($player->playerAvatar, 'puzzle_small') : null,
+            ], $players));
+        }
 
         $results = [];
         foreach ($players as $player) {

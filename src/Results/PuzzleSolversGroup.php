@@ -30,6 +30,8 @@ readonly final class PuzzleSolversGroup
         public null|string $competitionSeriesName = null,
         public null|string $competitionSeriesShortcut = null,
         public null|string $competitionSeriesSlug = null,
+        // Name of the pair/team ($teamId), when its members gave it one
+        public null|string $teamName = null,
     ) {
     }
 
@@ -53,6 +55,7 @@ readonly final class PuzzleSolversGroup
      *     competition_series_name: null|string,
      *     competition_series_shortcut: null|string,
      *     competition_series_slug: null|string,
+     *     team_name?: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -76,6 +79,7 @@ readonly final class PuzzleSolversGroup
             competitionSeriesName: $row['competition_series_name'],
             competitionSeriesShortcut: $row['competition_series_shortcut'],
             competitionSeriesSlug: $row['competition_series_slug'],
+            teamName: $row['team_name'] ?? null,
         );
     }
 

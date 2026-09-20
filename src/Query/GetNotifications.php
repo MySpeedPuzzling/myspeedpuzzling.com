@@ -80,6 +80,7 @@ SQL;
         $solvingTimeNotHidden = $this->hiddenPlayers->sqlExclude('player.id')
             . $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
         $initiatorNotHidden = $this->hiddenPlayers->sqlExclude('initiator.id');
+        $actorNotHidden = $this->hiddenPlayers->sqlExclude('actor.id');
 
         $query = <<<SQL
 SELECT * FROM (
@@ -104,7 +105,8 @@ SELECT * FROM (
         puzzle_solving_time.unboxed,
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
-        puzzle_solving_time.team ->> 'team_id' AS team_id,
+        puzzle_solving_time.puzzling_team_id::varchar AS team_id,
+        NULL::varchar AS team_name,
         CASE
             WHEN puzzle_solving_time.team IS NOT NULL THEN JSON_AGG(
                 JSON_BUILD_OBJECT(
@@ -197,6 +199,7 @@ SELECT * FROM (
         NULL::varchar AS puzzle_image,
         NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
+        NULL::varchar AS team_name,
         NULL::json AS players,
         -- Lending fields
         lpt.id AS transfer_id,
@@ -276,6 +279,7 @@ SELECT * FROM (
         NULL::varchar AS puzzle_image,
         NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
+        NULL::varchar AS team_name,
         NULL::json AS players,
         -- Lending fields (NULL)
         NULL::uuid AS transfer_id,
@@ -350,6 +354,7 @@ SELECT * FROM (
         NULL::varchar AS puzzle_image,
         NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
+        NULL::varchar AS team_name,
         NULL::json AS players,
         -- Lending fields (NULL)
         NULL::uuid AS transfer_id,
@@ -424,6 +429,7 @@ SELECT * FROM (
         NULL::varchar AS puzzle_image,
         NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
+        NULL::varchar AS team_name,
         NULL::json AS players,
         -- Lending fields (NULL)
         NULL::uuid AS transfer_id,
@@ -506,6 +512,7 @@ SELECT * FROM (
         NULL::varchar AS puzzle_image,
         NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
+        NULL::varchar AS team_name,
         NULL::json AS players,
         -- Lending fields (NULL)
         NULL::uuid AS transfer_id,
@@ -582,6 +589,7 @@ SELECT * FROM (
         NULL::varchar AS puzzle_image,
         NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
+        NULL::varchar AS team_name,
         NULL::json AS players,
         -- Lending fields (NULL)
         NULL::uuid AS transfer_id,
@@ -628,6 +636,82 @@ SELECT * FROM (
     FROM notification
     WHERE notification.player_id = :playerId
         AND notification.type IN ('ModeratorRoleGranted', 'ModeratorRoleRevoked')
+
+    UNION ALL
+
+    -- A pair/team was named or renamed: the target is the team, the player shown is whoever did it
+    SELECT
+        notification.notified_at,
+        notification.read_at,
+        notification.type AS notification_type,
+        -- Puzzle solving fields (NULL)
+        actor.id AS target_player_id,
+        actor.name AS target_player_name,
+        actor.code AS target_player_code,
+        actor.country AS target_player_country,
+        actor.avatar AS target_player_avatar,
+        false AS target_player_is_private,
+        NULL::uuid AS puzzle_id,
+        NULL::varchar AS puzzle_name,
+        NULL::varchar AS puzzle_alternative_name,
+        NULL::varchar AS manufacturer_name,
+        NULL::int AS pieces_count,
+        NULL::int AS time,
+        NULL::boolean AS first_attempt,
+        NULL::boolean AS unboxed,
+        NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
+        notification.target_puzzling_team_id::varchar AS team_id,
+        puzzling_team.name AS team_name,
+        NULL::json AS players,
+        -- Lending fields (NULL)
+        NULL::uuid AS transfer_id,
+        NULL::varchar AS transfer_type,
+        NULL::uuid AS from_player_id,
+        NULL::varchar AS from_player_name,
+        NULL::varchar AS from_player_avatar,
+        NULL::uuid AS to_player_id,
+        NULL::varchar AS to_player_name,
+        NULL::varchar AS to_player_avatar,
+        NULL::uuid AS owner_player_id,
+        NULL::varchar AS owner_player_name,
+        NULL::uuid AS lending_puzzle_id,
+        NULL::varchar AS lending_puzzle_name,
+        NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
+        NULL::varchar AS lending_manufacturer_name,
+        NULL::int AS lending_pieces_count,
+        -- Puzzle report fields (NULL)
+        NULL::uuid AS change_request_id,
+        NULL::uuid AS change_request_puzzle_id,
+        NULL::varchar AS change_request_puzzle_name,
+        NULL::varchar AS change_request_puzzle_image,
+        NULL::varchar AS change_request_rejection_reason,
+        NULL::uuid AS merge_request_id,
+        NULL::uuid AS merge_request_puzzle_id,
+        NULL::varchar AS merge_request_puzzle_name,
+        NULL::varchar AS merge_request_puzzle_image,
+        NULL::varchar AS merge_request_rejection_reason,
+        -- Rating notification fields (NULL)
+        NULL::uuid AS sold_swapped_item_id,
+        NULL::varchar AS rating_puzzle_name,
+        NULL::varchar AS rating_puzzle_image,
+        NULL::varchar AS rating_other_player_name,
+        NULL::uuid AS rating_other_player_id,
+        -- Conversation request fields (NULL)
+        NULL::uuid AS conversation_id,
+        NULL::uuid AS conversation_initiator_id,
+        NULL::varchar AS conversation_initiator_name,
+        NULL::varchar AS conversation_initiator_avatar,
+        NULL::boolean AS conversation_is_marketplace,
+        NULL::varchar AS conversation_puzzle_name,
+        NULL::varchar AS conversation_puzzle_image
+    FROM notification
+    INNER JOIN puzzling_team ON puzzling_team.id = notification.target_puzzling_team_id
+    INNER JOIN player actor ON actor.id = notification.actor_player_id
+    WHERE notification.player_id = :playerId
+        AND notification.target_puzzling_team_id IS NOT NULL
+        {$actorNotHidden}
 ) AS combined_notifications
 ORDER BY notified_at DESC
 LIMIT :limit

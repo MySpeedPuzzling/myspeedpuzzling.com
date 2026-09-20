@@ -23,13 +23,15 @@ readonly final class EditPuzzleSolvingTime
         public null|UploadedFile $finishedPuzzlesPhoto,
         public bool $firstAttempt,
         public bool $unboxed,
+        // Names the pair/team of $groupPlayers when it has no name yet
+        public null|string $teamName = null,
     ) {
     }
 
     /**
      * @param array<string> $groupPlayers
      */
-    public static function fromFormData(string $userId, string $timeId, array $groupPlayers, EditPuzzleSolvingTimeFormData $formData): self
+    public static function fromFormData(string $userId, string $timeId, array $groupPlayers, EditPuzzleSolvingTimeFormData $formData, null|string $teamName = null): self
     {
         return new self(
             currentUserId: $userId,
@@ -42,6 +44,7 @@ readonly final class EditPuzzleSolvingTime
             finishedPuzzlesPhoto: $formData->finishedPuzzlesPhoto,
             firstAttempt: $formData->firstAttempt,
             unboxed: $formData->unboxed,
+            teamName: $teamName,
         );
     }
 }

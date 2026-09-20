@@ -14,6 +14,7 @@ use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Entity\PuzzlingTeam;
 use SpeedPuzzling\Web\Value\NotificationType;
 
 readonly final class NotificationRepository
@@ -89,6 +90,26 @@ readonly final class NotificationRepository
             ->setParameter('solvingTime', $solvingTime->id)
             ->setParameter('editedBy', $editedBy->id)
             ->setParameter('type', NotificationType::GroupSolvingTimeEdited)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (int) $count > 0;
+    }
+
+    public function hasUnreadTeamRenamedNotification(Player $player, PuzzlingTeam $team, Player $renamedBy): bool
+    {
+        $count = $this->entityManager->createQueryBuilder()
+            ->select('COUNT(n.id)')
+            ->from(Notification::class, 'n')
+            ->where('n.player = :player')
+            ->andWhere('n.targetPuzzlingTeam = :team')
+            ->andWhere('n.actorPlayer = :renamedBy')
+            ->andWhere('n.type = :type')
+            ->andWhere('n.readAt IS NULL')
+            ->setParameter('player', $player->id)
+            ->setParameter('team', $team->id)
+            ->setParameter('renamedBy', $renamedBy->id)
+            ->setParameter('type', NotificationType::PuzzlingTeamRenamed)
             ->getQuery()
             ->getSingleScalarResult();
 

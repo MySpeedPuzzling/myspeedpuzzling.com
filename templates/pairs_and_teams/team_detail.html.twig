@@ -28,7 +28,8 @@
 
 <p class="text-muted mb-4" data-testid="team-members">
     {{ (team.isPair ? 'puzzling_team.pair' : 'puzzling_team.team_of')|trans({'%count%': team.size}) }}:
-    {{ include('pairs_and_teams/_members.html.twig', {members: team.members}) }}
+    {# Each name opens that player's profile with the results list narrowed to this pair/team #}
+    {{ include('pairs_and_teams/_members.html.twig', {members: team.members, profile_filter: {team: team.teamId, category: team.isPair ? 'duo' : 'group'}}) }}
 </p>
 
 <div class="card card-body shadow-sm mb-4" data-testid="team-stats">

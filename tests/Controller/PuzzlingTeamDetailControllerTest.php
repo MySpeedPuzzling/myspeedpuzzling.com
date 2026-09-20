@@ -125,6 +125,33 @@ final class PuzzlingTeamDetailControllerTest extends WebTestCase
         self::assertStringEndsWith('/en/teams/' . $this->fixturePairId(), (string) $crawler->filter('[data-testid="related-teams"] a')->attr('href'));
     }
 
+    public function testMemberNameOpensTheirProfileNarrowedToThisPair(): void
+    {
+        $browser = self::createClient();
+        $crawler = $browser->request('GET', '/en/teams/' . $this->fixturePairId());
+
+        $link = $crawler->filter('[data-testid="team-members"]')->selectLink(PlayerFixture::PLAYER_REGULAR_NAME);
+        self::assertCount(1, $link);
+        self::assertStringContainsString('team=' . $this->fixturePairId(), (string) $link->attr('href'));
+        self::assertStringContainsString('category=duo', (string) $link->attr('href'));
+
+        $crawler = $browser->click($link->link());
+        $this->assertResponseIsSuccessful();
+
+        // The pair is preselected in the profile's filter, and its results link back to the pair page
+        self::assertSame($this->fixturePairId(), $crawler->filter('select[data-model="team"] option[selected]')->attr('value'));
+        self::assertGreaterThan(0, $crawler->filter('[data-testid="team-link"][href$="/en/teams/' . $this->fixturePairId() . '"]')->count());
+    }
+
+    public function testNonsenseInTheProfileTeamFilterIsIgnored(): void
+    {
+        $browser = self::createClient();
+        $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR . '?team=%27%20OR%201=1');
+
+        $this->assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('select[data-model="team"] option[selected][value!=""]'));
+    }
+
     public function testUnknownTeamIsNotFound(): void
     {
         $browser = self::createClient();

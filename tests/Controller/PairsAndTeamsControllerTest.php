@@ -253,6 +253,8 @@ final class PairsAndTeamsControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextContains('body', PlayerFixture::PLAYER_REGULAR_NAME . ' named your pair/team “Speedsters”.');
+        // …and leads to the pair itself
+        $this->assertSelectorExists('a[href^="/en/teams/' . $this->fixturePairId() . '?"]');
     }
 
     private function fixturePairId(): string

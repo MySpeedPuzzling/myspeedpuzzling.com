@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Component;
 
 use DateTimeImmutable;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Results\PlayerRanking;
@@ -147,6 +148,11 @@ final class PlayerSolvedPuzzles
 
         if (in_array($this->category, ['solo', 'duo', 'group'], true) === false) {
             $this->category = 'solo';
+        }
+
+        // Comes from the URL (?team=) as well as from the filter select
+        if ($this->team !== null && Uuid::isValid($this->team) === false) {
+            $this->team = null;
         }
 
         if ($this->category !== 'solo') {

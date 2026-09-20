@@ -97,6 +97,13 @@
                                                         <small class="player-name-item">{{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}</small>
                                                     {% endif %}
                                                 {% endfor %}
+                                                {% if puzzle.teamId is not null %}
+                                                    <br>
+                                                    <a class="small text-muted" href="{{ path('puzzling_team_detail', {teamId: puzzle.teamId}) }}" data-testid="team-link">
+                                                        <i class="bi bi-people"></i>
+                                                        {{ puzzle.teamName ?? (puzzle.players|length == 2 ? 'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans }}
+                                                    </a>
+                                                {% endif %}
                                             </p>
                                         {% endif %}
                                     </td>

@@ -6,7 +6,7 @@
     {%- elseif member.playerId is not null -%}
         {#- `linked|default(true)` would turn an explicit false into true -#}
         {%- if linked is not defined or linked -%}
-            <a href="{{ path('player_profile', {playerId: member.playerId}) }}">{{ member.playerName ?? ('#' ~ member.playerCode) }}</a>
+            <a href="{{ path('player_profile', {playerId: member.playerId}|merge(profile_filter|default({}))) }}">{{ member.playerName ?? ('#' ~ member.playerCode) }}</a>
         {%- else -%}
             {{ member.playerName ?? ('#' ~ member.playerCode) }}
         {%- endif -%}

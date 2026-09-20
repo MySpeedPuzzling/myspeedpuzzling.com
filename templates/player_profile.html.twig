@@ -360,7 +360,13 @@
         <div>
             <h2 class="h4 mt-3">{{ 'profile.solved_puzzles'|trans }}</h2>
 
-            <twig:PlayerSolvedPuzzles playerId="{{ player.playerId }}" />
+            {# ?team=<id>&category=duo|group opens the list narrowed to one pair/team - what a team page links to #}
+            {% set team_filter = app.request.query.get('team') %}
+            <twig:PlayerSolvedPuzzles
+                playerId="{{ player.playerId }}"
+                team="{{ team_filter }}"
+                category="{{ team_filter ? (app.request.query.get('category') == 'group' ? 'group' : 'duo') : 'solo' }}"
+            />
         </div>
     {% endif %}
 {% endblock %}

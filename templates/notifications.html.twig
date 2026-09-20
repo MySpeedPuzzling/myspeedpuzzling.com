@@ -186,7 +186,7 @@
                                 </td>
 
                                 <td class="" style="width: 80px;">
-                                    <a href="{{ path('pairs_and_teams') }}" class="btn btn-sm btn-outline-primary">
+                                    <a href="{{ path('puzzling_team_detail', {teamId: notification.teamId, return: path('notifications'), return_title: 'notifications.title'|trans}) }}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-arrow-right"></i>
                                     </a>
                                 </td>

@@ -70,7 +70,7 @@
                 {% for favorite_player in favorite_players %}
                     <div class="pb-1">
                         <a href="{{ path('player_profile', {playerId: favorite_player.playerId}) }}">
-                            <i class="ci-star-filled text-warning"></i> {{ favorite_player.playerName }}
+                            <i class="ci-star-filled text-warning"></i> {{ favorite_player.playerName ?? 'secret_puzzler_name'|trans }}
                             <code class="text-muted">#{{ favorite_player.playerCode|upper }}</code>
                         </a>
                     </div>

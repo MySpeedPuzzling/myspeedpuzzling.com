@@ -18,7 +18,7 @@
                     {% for favorite_puzzler in favorite_players %}
                         <li>
                             <a href="{{ path('player_profile', {playerId: favorite_puzzler.playerId}) }}">
-                                {{ favorite_puzzler.playerName }} <code class="text-muted">#{{ favorite_puzzler.playerCode|upper }}</code>
+                                {{ favorite_puzzler.playerName ?? 'secret_puzzler_name'|trans }} <code class="text-muted">#{{ favorite_puzzler.playerCode|upper }}</code>
                             </a>
                             {% if favorite_puzzler.playerCountry is not null %}
                                 <small class="shadow-custom fi fi-{{ favorite_puzzler.playerCountry.name }}"></small>

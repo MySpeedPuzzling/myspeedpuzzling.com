@@ -12,7 +12,7 @@
         <select class="form-select group-favorite-player-select" data-action="change->add-copuzzler#selectChanged">
             <option value="">{{ 'forms.choose_from_favorites'|trans }}</option>
             {% for favorite_player in favorite_players %}
-                <option value="{{ favorite_player.playerCode }}">{{ favorite_player.playerName }}</option>
+                <option value="{{ favorite_player.playerCode }}">{{ favorite_player.playerName ?? ('#' ~ favorite_player.playerCode|upper) }}</option>
             {% endfor %}
         </select>
 

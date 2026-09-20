@@ -131,6 +131,22 @@ final class PrivateProfileCanaryTest extends WebTestCase
         self::assertStringNotContainsString('Jane', $content);
     }
 
+    public function testAFollowedPrivatePlayerIsListedByCodeNotAsABlankRow(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE player SET favorite_players = :favorites WHERE id = :id',
+            ['favorites' => json_encode([self::OWNER]), 'id' => PlayerFixture::PLAYER_WITH_STRIPE],
+        );
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $content = $this->get($browser, '/en/puzzlers');
+
+        self::assertStringNotContainsString(self::OWNER_NAME, $content);
+        self::assertStringContainsString('Hidden Puzzler', $content);
+        self::assertStringContainsString('#PLAYER2', $content);
+    }
+
     public function testRemovingTheFriendHidesThePlayerAgain(): void
     {
         $browser = self::createClient();

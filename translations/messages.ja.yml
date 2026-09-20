@@ -2969,6 +2969,8 @@ qr_code:
   "register":
     "title": "アカウントを作成"
     "intro": "タイムもコレクションも、MySpeedPuzzlingのすべてをひとつのアカウントで。"
+    "name": "お名前"
+    "name_hint": "任意です。タイムの横に表示されます。いつでも変更できます。"
     "email": "メールアドレス"
     "password": "パスワード"
     "password_hint": "%minimum%文字以上。"
@@ -2979,9 +2981,7 @@ qr_code:
     "failed": "アカウントを作成できませんでした。しばらくしてからもう一度お試しください。"
   "welcome":
     "title": "MySpeedPuzzlingへようこそ！"
-    "intro": "アカウントの準備が整い、サインインが完了しました。"
     "verification_sent": "%email%に確認リンクをお送りしました。リンクを開いて、このアドレスがあなたのものであることをご確認ください。"
-    "to_profile": "マイプロフィールへ"
   "verify_email":
     "success":
       "headline": "メールアドレスを確認しました"
@@ -3500,3 +3500,109 @@ private_profile_viewers:
   "team_page": "チームのページ"
   "related_title": "メンバーが多い・少ない組み合わせ"
   "related_help": "ペアやチームはメンバーの顔ぶれそのものです。同じメンバーに誰かが加わったり欠けたりすると、別のペア／チームになります。"
+
+"onboarding":
+  "find_later": "あとで読みたいですか？このガイドはいつでも各ページの一番下にあります。"
+  "welcome":
+    "title_named": "%name%さん、ようこそ！"
+    "question": "まず何をしますか？"
+    "log_puzzle": "完成したパズルを記録する"
+    "start_stopwatch": "ストップウォッチを開始する"
+    "finish_profile": "プロフィールを完成させる"
+    "finish_profile_hint": "名前・写真・国"
+    "guide_link": "使い方を見る"
+    "skip": "スキップして始める"
+  "finish_profile":
+    "title": "プロフィールを完成させましょう"
+    "intro": "ほかの人があなたを見つけやすくなり、国別ランキングにも表示されます。"
+    "more": "さらに追加：都市、自己紹介、SNS"
+    "later": "あとで"
+    "everything_else": "プライバシー、通知、その他の設定：アバターメニュー → <a href=\"%link%\">プロフィール編集</a>"
+  "checklist":
+    "title": "はじめに"
+    "progress": "%done% / %total%"
+    "dismiss": "非表示"
+    "guide_link": "使い方ガイド"
+    "step":
+      "create_account": "アカウントを作成する"
+      "log_puzzle": "最初のパズルを記録する"
+      "finish_profile": "プロフィールを完成させる"
+      "add_to_library": "持っているパズルを追加する"
+      "add_favorite": "お気に入りプレイヤーを追加する"
+    "all_set_title": "準備完了です！"
+    "all_set_text": "次はどこへ？"
+    "all_set_statistics": "自分の統計"
+    "all_set_ladder": "ほかの人と比べる"
+    "all_set_puzzles": "パズルを探す"
+  "guide":
+    "link": "はじめに"
+    "faq_link": "はじめての方へ：できることを見る"
+    "meta":
+      "title": "MySpeedPuzzlingのはじめかた"
+      "description": "MySpeedPuzzlingでできることを6つの短いステップで紹介：タイムの記録、プロフィール設定、統計、ほかの人との比較、パズル探し。"
+    "title": "はじめに"
+    "lead": "ここでできることを、2分で。"
+    "more": "もっと見る"
+    "to_hub": "ハブへ移動"
+    "register": "無料アカウントを作成"
+    "track":
+      "title": "パズルを記録する"
+      "text": "MySpeedPuzzlingの中心となる機能です。記録したパズルがあなたの履歴になります。"
+      "where": "各ページ上部の<strong>＋</strong>ボタン。"
+      "button_finished": "パズルを完成させた"
+      "button_stopwatch": "これから始める"
+      "more_relax": "タイムを計っていませんか？<strong>リラックス</strong>を選んでください。日付を覚えていなくても大丈夫です。"
+      "more_groups": "ほかの人と一緒に解きましたか？メンバーを追加すると、ペアまたはチームのタイムになります。"
+      "more_missing": "パズルがデータベースにありませんか？名前を入力して、タイムと一緒に追加できます。"
+      "more_edit": "間違えましたか？自分のタイムはいつでも編集・削除できます。"
+    "profile":
+      "title": "プロフィールを整える"
+      "text": "名前、写真、国を追加すると、ほかの人があなたを見つけやすくなり、国別ランキングにも表示されます。"
+      "where": "アバターメニュー → <strong>プロフィール編集</strong>"
+      "button": "プロフィールを完成させる"
+      "more_title": "ほかに何を変更できますか？"
+      "more_basics": "<strong>基本情報</strong>：名前、写真、国、都市、自己紹介、SNS。"
+      "more_privacy": "<strong>プライバシー</strong>：プロフィールやリストを見られる人。"
+      "more_notifications": "<strong>メール</strong>：通知、頻度、ニュースレター。"
+      "more_features": "<strong>機能</strong>：連続記録を隠す、ランキングに載らない、タイム予測をオフにする。"
+      "more_sign_in": "<strong>ログイン</strong>：メールアドレス、パスワード、連携アカウント。"
+      "more_data": "<strong>あなたのデータ</strong>：すべてエクスポート、またはアカウント削除。"
+    "library":
+      "title": "パズルライブラリを作る"
+      "text": "家にあるパズルを<strong>コレクション</strong>に追加しましょう。次に解くパズル選び、販売、交換、貸し借りなど、多くの機能がこれをもとに動きます。"
+      "where": "アバターメニュー → <strong>パズルライブラリ</strong>。または各パズルのページの<strong>マイコレクションに追加</strong>。"
+      "button_add": "持っているパズルを追加"
+      "button": "パズルを探す"
+      "more_database": "データベースには数千のパズルがあります。名前、ブランド、ピース数、バーコードで検索できます。"
+      "more_picker": "<strong>次はどのパズルを組む？</strong>は、あなたの棚から選びます。"
+      "more_marketplace": "<strong>Marketplace</strong>：持っているパズルを数クリックで販売・交換に出せます。"
+      "more_lists": "ライブラリにはほかに、未完成のパズル、<strong>ウィッシュリスト</strong>、貸し借りの記録もあります。"
+    "statistics":
+      "title": "上達を確認する"
+      "text": "記録したパズルはすべて統計に反映されます：合計、グラフ、アクティビティカレンダー、連続記録。"
+      "where": "アバターメニュー → <strong>統計</strong>"
+      "button": "自分の統計"
+    "compare":
+      "title": "ほかの人と比べる"
+      "text": "<strong>リーダーボード</strong>はピース数ごとに速いプレイヤーを順位づけします。各パズルのページには、あなたを含む全員のタイムが表示されます。"
+      "where": "メインメニュー → <strong>リーダーボード</strong>"
+      "button": "リーダーボードを開く"
+      "more_first_attempt": "<strong>初回</strong>とは、そのパズルでの最初のタイムです。2回目はたいてい速くなるため、ランキングは初回のみに絞れます。"
+      "more_rating": "<strong>MSP Rating</strong>は、異なるパズル間でプレイヤーを比較します。<a href=\"%link%\">計算方法</a>"
+    "favorites":
+      "title": "ほかのプレイヤーをフォローする"
+      "text": "友だちやトッププレイヤーを探して<strong>お気に入り</strong>に追加しましょう。新しいタイムがハブに表示されます。"
+      "where": "メインメニュー → <strong>プレイヤー</strong>。ほかの人は名前またはプレイヤーコード（#…）であなたを探せます。"
+      "button": "プレイヤーを探す"
+    "ready":
+      "title": "慣れてきたら"
+      "picker":
+        "text": "コレクションまたは全パズルからランダムに選びます。"
+      "events":
+        "text": "大会とその結果。"
+      "marketplace":
+        "text": "パズルの売買・交換。"
+      "membership":
+        "text": "基本機能は無料。メンバーは追加機能が使え、プロジェクトを支援できます。"
+      "faq":
+        "text": "よくある質問への回答。"

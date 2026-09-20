@@ -13,6 +13,7 @@ readonly final class RegisterUser
         #[SensitiveParameter]
         public string $plainPassword,
         public null|string $locale,
+        public null|string $name = null,
     ) {
     }
 }

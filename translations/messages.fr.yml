@@ -2982,6 +2982,8 @@ edition:
   "register":
     "title": "Créer un compte"
     "intro": "Un seul compte pour vos temps, vos collections et tout le reste sur MySpeedPuzzling."
+    "name": "Votre nom"
+    "name_hint": "Facultatif. Les autres le voient à côté de vos temps. Vous pouvez le modifier à tout moment."
     "email": "E-mail"
     "password": "Mot de passe"
     "password_hint": "Au moins %minimum% caractères."
@@ -2992,9 +2994,7 @@ edition:
     "failed": "Nous n'avons pas pu créer votre compte. Veuillez réessayer dans un instant."
   "welcome":
     "title": "Bienvenue sur MySpeedPuzzling !"
-    "intro": "Votre compte est prêt et vous êtes connecté."
     "verification_sent": "Nous avons envoyé un lien de confirmation à %email%. Ouvrez-le pour confirmer que cette adresse est bien la vôtre."
-    "to_profile": "Aller à mon profil"
   "verify_email":
     "success":
       "headline": "Adresse e-mail confirmée"
@@ -3513,3 +3513,109 @@ private_profile_viewers:
   "team_page": "Page de l'équipe"
   "related_title": "Avec quelqu'un en plus, ou en moins"
   "related_help": "Un duo ou une équipe, c'est le groupe exact de personnes - les mêmes personnes avec quelqu'un en plus ou en moins forment un autre groupe."
+
+"onboarding":
+  "find_later": "Vous préférez lire le guide plus tard ? Vous le trouverez toujours en bas de chaque page."
+  "welcome":
+    "title_named": "Bienvenue, %name% !"
+    "question": "Par quoi voulez-vous commencer ?"
+    "log_puzzle": "Enregistrer un puzzle que j'ai terminé"
+    "start_stopwatch": "Lancer le chronomètre"
+    "finish_profile": "Compléter mon profil"
+    "finish_profile_hint": "Nom · photo · pays"
+    "guide_link": "Montrez-moi comment ça marche"
+    "skip": "Passer et entrer"
+  "finish_profile":
+    "title": "Complétez votre profil"
+    "intro": "Pour que les autres vous reconnaissent et que vous apparaissiez dans le classement de votre pays."
+    "more": "Ajouter plus : ville, à propos de moi, réseaux sociaux"
+    "later": "Plus tard"
+    "everything_else": "Confidentialité, notifications et tout le reste : menu de l'avatar → <a href=\"%link%\">Modifier le profil</a>."
+  "checklist":
+    "title": "Premiers pas"
+    "progress": "%done% sur %total%"
+    "dismiss": "Masquer"
+    "guide_link": "Comment tout fonctionne"
+    "step":
+      "create_account": "Créer votre compte"
+      "log_puzzle": "Enregistrer votre premier puzzle"
+      "finish_profile": "Compléter votre profil"
+      "add_to_library": "Ajouter un puzzle que vous possédez"
+      "add_favorite": "Ajouter un puzzleur favori"
+    "all_set_title": "Tout est prêt !"
+    "all_set_text": "Et maintenant ?"
+    "all_set_statistics": "Mes statistiques"
+    "all_set_ladder": "Me comparer aux autres"
+    "all_set_puzzles": "Parcourir les puzzles"
+  "guide":
+    "link": "Premiers pas"
+    "faq_link": "Nouveau ici ? Découvrez ce que vous pouvez faire"
+    "meta":
+      "title": "Premiers pas sur MySpeedPuzzling"
+      "description": "Ce que vous pouvez faire sur MySpeedPuzzling, en six étapes courtes : enregistrez vos temps, complétez votre profil, suivez vos statistiques, comparez-vous aux autres et trouvez des puzzles."
+    "title": "Premiers pas"
+    "lead": "Ce que vous pouvez faire ici, en 2 minutes."
+    "more": "En savoir plus"
+    "to_hub": "Aller à mon Centre"
+    "register": "Créer un compte gratuit"
+    "track":
+      "title": "Enregistrez vos puzzles"
+      "text": "C'est à cela que sert MySpeedPuzzling. Chaque puzzle enregistré construit votre historique."
+      "where": "Le bouton <strong>+</strong> en haut de chaque page."
+      "button_finished": "J'ai terminé un puzzle"
+      "button_stopwatch": "Je vais en commencer un"
+      "more_relax": "Pas de temps mesuré ? Choisissez <strong>Relax</strong>. Inutile de vous souvenir de la date non plus."
+      "more_groups": "Résolu à plusieurs ? Ajoutez les autres, et cela compte comme un temps en duo ou en équipe."
+      "more_missing": "Le puzzle n'est pas dans la base ? Saisissez son nom et ajoutez-le avec votre temps."
+      "more_edit": "Une erreur ? Vous pouvez modifier ou supprimer chacun de vos temps."
+    "profile":
+      "title": "Personnalisez votre profil"
+      "text": "Ajoutez votre nom, une photo et votre pays, pour que les autres vous reconnaissent et que vous apparaissiez dans le classement de votre pays."
+      "where": "Menu de l'avatar → <strong>Modifier le profil</strong>."
+      "button": "Compléter mon profil"
+      "more_title": "Que puis-je modifier d'autre ?"
+      "more_basics": "<strong>À propos de vous</strong> : nom, photo, pays, ville, quelques mots, réseaux sociaux."
+      "more_privacy": "<strong>Confidentialité</strong> : qui peut voir votre profil et vos listes."
+      "more_notifications": "<strong>E-mails</strong> : notifications, fréquence, newsletter."
+      "more_features": "<strong>Fonctionnalités</strong> : masquer votre série, ne pas figurer dans les classements, désactiver les prédictions de temps."
+      "more_sign_in": "<strong>Connexion</strong> : e-mail, mot de passe, comptes connectés."
+      "more_data": "<strong>Vos données</strong> : tout exporter ou supprimer votre compte."
+    "library":
+      "title": "Constituez votre bibliothèque de puzzles"
+      "text": "Ajoutez les puzzles que vous avez chez vous à votre <strong>Collection</strong>. Beaucoup de choses s'appuient dessus : quoi faire ensuite, vendre, échanger et prêter."
+      "where": "Menu de l'avatar → <strong>Bibliothèque de puzzles</strong>. Ou <strong>Ajouter à ma collection</strong> sur la page de n'importe quel puzzle."
+      "button_add": "Ajouter un puzzle que je possède"
+      "button": "Parcourir les puzzles"
+      "more_database": "La base contient des milliers de puzzles. Cherchez par nom, marque, nombre de pièces ou code-barres."
+      "more_picker": "<strong>Quel puzzle faire ensuite ?</strong> choisit un puzzle sur votre propre étagère."
+      "more_marketplace": "<strong>Marketplace</strong> : proposez un de vos puzzles à la vente ou à l'échange en quelques clics."
+      "more_lists": "Aussi dans votre bibliothèque : les puzzles non faits, votre <strong>Liste de souhaits</strong> et ce que vous avez prêté ou emprunté."
+    "statistics":
+      "title": "Suivez vos progrès"
+      "text": "Chaque puzzle enregistré alimente vos statistiques : totaux, graphiques, calendrier d'activité et votre série."
+      "where": "Menu de l'avatar → <strong>Statistiques</strong>."
+      "button": "Mes statistiques"
+    "compare":
+      "title": "Comparez-vous aux autres"
+      "text": "Le <strong>Classement</strong> range les puzzleurs les plus rapides par nombre de pièces. La page de chaque puzzle affiche les temps de tout le monde, le vôtre compris."
+      "where": "Menu principal → <strong>Classement</strong>."
+      "button": "Ouvrir le classement"
+      "more_first_attempt": "<strong>Premier essai</strong> : votre premier temps sur un puzzle. La deuxième fois est souvent plus rapide, les classements peuvent donc n'afficher que les premiers essais."
+      "more_rating": "<strong>MSP Rating</strong> compare les puzzleurs entre des puzzles différents. <a href=\"%link%\">Comment il est calculé</a>."
+    "favorites":
+      "title": "Suivez d'autres puzzleurs"
+      "text": "Trouvez vos amis ou les meilleurs et ajoutez-les à vos <strong>Favoris</strong>. Leurs nouveaux temps apparaissent dans votre Centre."
+      "where": "Menu principal → <strong>Joueurs</strong>. Les autres vous trouvent par votre nom ou votre code joueur (#…)."
+      "button": "Trouver des joueurs"
+    "ready":
+      "title": "Quand vous en voudrez plus"
+      "picker":
+        "text": "Un choix au hasard dans votre collection ou parmi tous les puzzles."
+      "events":
+        "text": "Les compétitions et leurs résultats."
+      "marketplace":
+        "text": "Achetez, vendez et échangez des puzzles."
+      "membership":
+        "text": "L'essentiel est gratuit. Les membres ont des extras et soutiennent le projet."
+      "faq":
+        "text": "Les réponses aux questions courantes."

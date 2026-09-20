@@ -47,6 +47,12 @@
     <h1 class="visually-hidden">{{ player_display_name }}</h1>
     <twig:PlayerHeader player="{{ player }}" />
 
+    {% if getting_started is not null %}
+        <div class="mb-3">
+            {{ include('onboarding/_getting_started_card.html.twig', {progress: getting_started, folded: false}) }}
+        </div>
+    {% endif %}
+
     <div class="row mb-3">
         {% if player.activeMembership %}
             <p class="col-sm">

@@ -36,6 +36,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetConversations' => 'Filters on user_block itself (predates HiddenPlayers).',
         'GetExportableSolvingTimes' => self::OWN_DATA,
         'GetFeatureRequestVoters' => self::BACKGROUND,
+        'GetGettingStartedProgress' => self::OWN_DATA,
         'GetLendBorrowHistory' => self::BILATERAL,
         'GetLentPuzzleHistory' => self::BILATERAL,
         'GetLentPuzzleIds' => self::BILATERAL,

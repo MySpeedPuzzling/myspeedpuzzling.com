@@ -27,6 +27,14 @@
             {{ 'statistics.no_results'|trans|raw }}
         </div>
 
+        {# The owner's own empty statistics are a starting line, not a dead end #}
+        {% if logged_user.profile is not null and logged_user.profile.playerId == this.playerId %}
+            <div class="d-grid d-sm-block mb-3">
+                <a class="btn btn-primary" href="{{ path('puzzle_add') }}"><i class="ci-time me-1"></i>{{ 'onboarding.checklist.step.log_puzzle'|trans }}</a>
+                <a class="btn btn-link" href="{{ path('getting_started') }}#track">{{ 'onboarding.checklist.guide_link'|trans }}</a>
+            </div>
+        {% endif %}
+
         <div class="text-center">
             <img src="{{ asset('img/no-statistics.jpg') }}" alt="No statistics for this time period" class="img-fluid rounded-4 shadow mt-3" width="1024" height="1024">
         </div>

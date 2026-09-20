@@ -61,6 +61,7 @@ final readonly class RegisterUserHandler
         }
 
         $now = $this->clock->now();
+        $name = trim($message->name ?? '');
         // Provider-agnostic by design (README §Auth-method extensibility): the identity
         // string never encodes how the account signs in, so linking a social identity
         // later never touches the Player.userId seam.
@@ -83,7 +84,7 @@ final readonly class RegisterUserHandler
             $this->generateUniquePlayerCode->generate(),
             $userId,
             $email,
-            null,
+            $name !== '' ? $name : null,
             $now,
         );
 

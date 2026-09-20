@@ -1,0 +1,15 @@
+{# One step of the platform guide; embedded with `number`, `anchor`, `icon`, `key`, `done`.
+   The number sits on the title line, so the text and buttons get the full width of a phone. #}
+<section class="guide-step" id="{{ anchor }}">
+    <h2 class="guide-step-head h5">
+        <span class="guide-step-marker {% if done %}is-done{% endif %}" aria-hidden="true">
+            {% if done %}<i class="bi bi-check-lg"></i>{% else %}{{ number }}{% endif %}
+        </span>
+        <span><i class="{{ icon }} text-primary me-2" aria-hidden="true"></i>{{ ('onboarding.guide.' ~ key ~ '.title')|trans }}</span>
+    </h2>
+
+    <p class="mb-2">{{ ('onboarding.guide.' ~ key ~ '.text')|trans|raw }}</p>
+    {% block actions %}{% endblock %}
+    <p class="guide-step-where"><i class="bi bi-geo-alt me-1"></i>{{ ('onboarding.guide.' ~ key ~ '.where')|trans|raw }}</p>
+    {% block more %}{% endblock %}
+</section>

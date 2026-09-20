@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Validator\StrongPassword;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -23,11 +24,19 @@ final class RegistrationFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
+            ->add('name', TextType::class, [
+                'label' => 'auth.register.name',
+                'help' => 'auth.register.name_hint',
+                'required' => false,
+                'attr' => [
+                    'autocomplete' => 'nickname',
+                    'autofocus' => true,
+                ],
+            ])
             ->add('email', EmailType::class, [
                 'label' => 'auth.register.email',
                 'attr' => [
                     'autocomplete' => 'username',
-                    'autofocus' => true,
                 ],
             ])
             ->add('plainPassword', PasswordType::class, [

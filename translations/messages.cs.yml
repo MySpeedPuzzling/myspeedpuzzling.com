@@ -2978,6 +2978,8 @@ auth:
     register:
         title: "Vytvořit účet"
         intro: "Jeden účet pro vaše časy, sbírky a všechno ostatní na MySpeedPuzzling."
+        name: "Vaše jméno"
+        name_hint: "Nepovinné. Ostatní ho uvidí u vašich časů. Kdykoli ho můžete změnit."
         email: "E-mail"
         password: "Heslo"
         password_hint: "Alespoň %minimum% znaků."
@@ -2988,9 +2990,7 @@ auth:
         failed: "Váš účet se nepodařilo vytvořit. Zkuste to prosím za chvíli znovu."
     welcome:
         title: "Vítejte na MySpeedPuzzling!"
-        intro: "Váš účet je připravený a jste přihlášeni."
         verification_sent: "Na adresu %email% jsme poslali potvrzovací odkaz. Otevřete ho a potvrďte, že je adresa vaše."
-        to_profile: "Přejít na můj profil"
     verify_email:
         success:
             headline: "E-mailová adresa je potvrzená"
@@ -3509,3 +3509,109 @@ private_profile_viewers:
   "team_page": "Stránka týmu"
   "related_title": "S někým navíc, nebo bez někoho"
   "related_help": "Dvojice nebo tým je přesná skupina lidí - stejní lidé, ke kterým někdo přibyl nebo z nich někdo chybí, jsou už jiná skupina."
+
+onboarding:
+    find_later: "Chcete si průvodce přečíst později? Odkaz najdete vždy dole na každé stránce."
+    welcome:
+        title_named: "Vítejte, %name%!"
+        question: "Čím chcete začít?"
+        log_puzzle: "Zapsat puzzle, které jsem složil(a)"
+        start_stopwatch: "Spustit stopky"
+        finish_profile: "Dokončit můj profil"
+        finish_profile_hint: "Jméno · fotka · země"
+        guide_link: "Ukažte mi, jak to funguje"
+        skip: "Přeskočit, pusťte mě dál"
+    finish_profile:
+        title: "Dokončete svůj profil"
+        intro: "Aby vás ostatní poznali a objevili jste se v žebříčku své země."
+        more: "Přidat další: město, o mně, sociální sítě"
+        later: "Později"
+        everything_else: "Soukromí, oznámení a vše ostatní: menu u avataru → <a href=\"%link%\">Upravit profil</a>."
+    checklist:
+        title: "První kroky"
+        progress: "%done% ze %total%"
+        dismiss: "Skrýt"
+        guide_link: "Jak to celé funguje"
+        step:
+            create_account: "Vytvořit účet"
+            log_puzzle: "Zapsat první puzzle"
+            finish_profile: "Dokončit profil"
+            add_to_library: "Přidat puzzle, které mám"
+            add_favorite: "Přidat oblíbeného puzzlera"
+        all_set_title: "Máte hotovo!"
+        all_set_text: "Kam dál?"
+        all_set_statistics: "Moje statistiky"
+        all_set_ladder: "Jak si stojím"
+        all_set_puzzles: "Procházet puzzle"
+    guide:
+        link: "Jak začít"
+        faq_link: "Jste tu noví? Podívejte se, co tu můžete dělat"
+        meta:
+            title: "Jak začít s MySpeedPuzzling"
+            description: "Co můžete dělat na MySpeedPuzzling, v šesti krátkých krocích: zapisujte časy, nastavte si profil, sledujte statistiky, porovnejte se s ostatními a objevujte puzzle."
+        title: "Jak začít"
+        lead: "Co tu můžete dělat, za 2 minuty."
+        more: "Více"
+        to_hub: "Přejít na můj Hub"
+        register: "Vytvořit účet zdarma"
+        track:
+            title: "Zapisujte svá puzzle"
+            text: "K tomu MySpeedPuzzling slouží. Každé zapsané puzzle tvoří vaši historii."
+            where: "Tlačítko <strong>+</strong> nahoře na každé stránce."
+            button_finished: "Dokončil(a) jsem puzzle"
+            button_stopwatch: "Právě začínám skládat"
+            more_relax: "Neměřili jste čas? Zvolte <strong>Relax</strong>. Ani datum si nemusíte pamatovat."
+            more_groups: "Skládali jste s někým? Přidejte ho a čas se počítá jako čas dvojice nebo týmu."
+            more_missing: "Puzzle v databázi chybí? Napište jeho název a přidejte ho spolu se svým časem."
+            more_edit: "Spletli jste se? Každý svůj čas můžete upravit nebo smazat."
+        profile:
+            title: "Udělejte si to po svém"
+            text: "Přidejte jméno, fotku a zemi, aby vás ostatní poznali a objevili jste se v žebříčku své země."
+            where: "Menu u avataru → <strong>Upravit profil</strong>."
+            button: "Dokončit můj profil"
+            more_title: "Co dalšího mohu změnit?"
+            more_basics: "<strong>O vás</strong>: jméno, fotka, země, město, pár slov, sociální sítě."
+            more_privacy: "<strong>Soukromí</strong>: kdo vidí váš profil a vaše seznamy."
+            more_notifications: "<strong>E-maily</strong>: oznámení, jak často, newsletter."
+            more_features: "<strong>Funkce</strong>: skrýt sérii, nebýt v žebříčcích, vypnout předpovědi časů."
+            more_sign_in: "<strong>Přihlašování</strong>: e-mail, heslo, propojené účty."
+            more_data: "<strong>Vaše data</strong>: export všeho, nebo smazání účtu."
+        library:
+            title: "Vytvořte si knihovnu puzzle"
+            text: "Přidejte puzzle, která máte doma, do své <strong>Kolekce</strong>. Staví na ní spousta věcí: co skládat dál, prodej, výměna i půjčování."
+            where: "Menu u avataru → <strong>Puzzle knihovna</strong>. Nebo <strong>Přidat do mé kolekce</strong> na stránce kteréhokoli puzzle."
+            button_add: "Přidat puzzle, které mám"
+            button: "Procházet puzzle"
+            more_database: "V databázi jsou tisíce puzzle. Hledejte podle názvu, značky, počtu dílků nebo čárového kódu."
+            more_picker: "<strong>Co skládat dál?</strong> vybírá puzzle z vaší vlastní police."
+            more_marketplace: "<strong>Marketplace</strong>: puzzle, které máte, nabídnete k prodeji nebo výměně na pár kliknutí."
+            more_lists: "V knihovně najdete také nesložená puzzle, <strong>Seznam přání</strong> a to, co jste půjčili nebo si půjčili."
+        statistics:
+            title: "Sledujte svůj pokrok"
+            text: "Každé zapsané puzzle se propíše do statistik: součty, grafy, kalendář aktivity a vaše série."
+            where: "Menu u avataru → <strong>Statistiky</strong>."
+            button: "Moje statistiky"
+        compare:
+            title: "Porovnejte se s ostatními"
+            text: "<strong>Žebříček</strong> řadí nejrychlejší puzzlery podle počtu dílků. Na stránce každého puzzle jsou časy všech, včetně vašeho."
+            where: "Hlavní menu → <strong>Žebříček</strong>."
+            button: "Otevřít žebříček"
+            more_first_attempt: "<strong>První pokus</strong> je váš první čas na daném puzzle. Podruhé to jde obvykle rychleji, proto žebříčky umí ukázat jen první pokusy."
+            more_rating: "<strong>MSP Rating</strong> porovnává puzzlery napříč různými puzzle. <a href=\"%link%\">Jak se počítá</a>."
+        favorites:
+            title: "Sledujte další puzzlery"
+            text: "Najděte přátele nebo nejlepší skladače a přidejte si je do <strong>Oblíbených</strong>. Jejich nové časy uvidíte ve svém Hubu."
+            where: "Hlavní menu → <strong>Hráči</strong>. Ostatní vás najdou podle jména nebo kódu hráče (#…)."
+            button: "Najít hráče"
+        ready:
+            title: "Až budete chtít víc"
+            picker:
+                text: "Náhodný tip z vaší kolekce nebo ze všech puzzle."
+            events:
+                text: "Soutěže a jejich výsledky."
+            marketplace:
+                text: "Kupujte, prodávejte a vyměňujte puzzle."
+            membership:
+                text: "Základ je zdarma. Členové mají něco navíc a podporují projekt."
+            faq:
+                text: "Odpovědi na běžné otázky."

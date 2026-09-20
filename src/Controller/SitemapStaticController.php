@@ -41,6 +41,7 @@ final class SitemapStaticController extends AbstractController
         'msp_rating_ladder',
         'wjpc_hub',
         'puzzle_picker',
+        'getting_started',
     ];
 
     #[Route(path: '/sitemap-static.xml', name: 'sitemap_static')]

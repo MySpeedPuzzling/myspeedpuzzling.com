@@ -39,7 +39,7 @@ Allows logged-in users to permanently dismiss informational banners (hints) show
 | File | Purpose |
 |------|---------|
 | `assets/controllers/dismiss_hint_controller.js` | Stimulus controller — sends POST and removes element |
-| `src/Controller/Marketplace/DismissHintController.php` | Route handler (POST, returns 204) |
+| `src/Controller/DismissHintController.php` | Route handler (POST, returns 204) |
 | `src/Value/HintType.php` | Enum of all hint types |
 | `src/Entity/DismissedHint.php` | Entity (unique constraint on player + type) |
 | `src/Message/DismissHint.php` | Command message |
@@ -53,5 +53,7 @@ Allows logged-in users to permanently dismiss informational banners (hints) show
 | `marketplace_disclaimer` | Marketplace index | `alert-warning` |
 | `marketplace_settings_checklist` | Marketplace listing (Live Component) | Settings checklist card |
 | `feature_requests_intro` | Feature requests list | `alert-info` |
+| `guide_statistics_seen`, `guide_leaderboard_seen` | Not banners - "opened from the Getting started guide" flags written by the `mark-seen` Stimulus controller | - |
+| `getting_started_checklist` | Hub ("Getting started" card, newcomers only) | Checklist card - also dismissed by `HubController` itself once every step is done, see `getting-started-guide.md` |
 
 Note: `marketplace_settings_checklist` is only dismissable in the marketplace. The same settings checklist on the sell-swap list detail page (`sell-swap/detail.html.twig`) is always shown without a dismiss option.

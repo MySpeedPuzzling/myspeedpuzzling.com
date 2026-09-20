@@ -51,6 +51,10 @@
 
     {{ 'faq.intro_block'|trans|raw }}
 
+    <p>
+        <a class="btn btn-outline-primary btn-sm" href="{{ path('getting_started') }}"><i class="bi bi-signpost-2 me-1"></i>{{ 'onboarding.guide.faq_link'|trans }}</a>
+    </p>
+
     <div class="accordion accordion-faq my-3">
         {% for item in faq_items %}
             <div class="accordion-item my-2 shadow">

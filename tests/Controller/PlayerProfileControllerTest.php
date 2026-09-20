@@ -31,6 +31,29 @@ final class PlayerProfileControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
     }
 
+    public function testNewcomerSeesGettingStartedOnTheirOwnProfileOnly(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR);
+        self::assertCount(1, $crawler->filter('.getting-started'));
+        self::assertCount(5, $crawler->filter('.getting-started-step'));
+
+        $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertCount(0, $crawler->filter('.getting-started'));
+    }
+
+    public function testAnonymousVisitorSeesNoGettingStartedCard(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR);
+
+        self::assertCount(0, $crawler->filter('.getting-started'));
+    }
+
     public function testUnknownPlayerReturns404(): void
     {
         $browser = self::createClient();

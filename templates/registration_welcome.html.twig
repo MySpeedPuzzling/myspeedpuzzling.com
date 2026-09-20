@@ -3,29 +3,61 @@
 {% block title %}{{ 'auth.welcome.title'|trans }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
+{# The first screen after signing up (docs/features/getting-started-guide.md): one
+   question, a few big answers. Anything longer than this gets skipped, so the
+   explaining is left to the guide and to the "Getting started" card on the Hub. #}
 {% block content %}
-    <div class="row gy-3 pb-4">
-        <div class="col-lg-6 col-md-8">
-            <h1 class="h2">{{ 'auth.welcome.title'|trans }}</h1>
+    <div class="onboarding-welcome mx-auto pb-4">
+        <div class="text-center">
+            <img class="onboarding-welcome-puzzlie" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
 
-            <p>{{ 'auth.welcome.intro'|trans }}</p>
+            <h1 class="h3 mb-1">
+                {% if logged_user.profile is not null and logged_user.profile.playerName is not null %}
+                    {{ 'onboarding.welcome.title_named'|trans({'%name%': logged_user.profile.playerName}) }}
+                {% else %}
+                    {{ 'auth.welcome.title'|trans }}
+                {% endif %}
+            </h1>
 
-            {% if not email_verified %}
-                <div class="alert alert-info" role="alert">
-                    <i class="ci-mail me-2"></i>
-                    {{ 'auth.welcome.verification_sent'|trans({'%email%': email}) }}
-                </div>
-            {% endif %}
+            <p class="fs-lg mb-3">{{ 'onboarding.welcome.question'|trans }}</p>
+        </div>
 
-            <p>
-                <a class="btn btn-primary" href="{{ path('my_profile') }}">
-                    {{ 'auth.welcome.to_profile'|trans }}
-                </a>
+        <div class="d-grid gap-2">
+            <a class="btn btn-primary btn-lg onboarding-choice" href="{{ path('puzzle_add') }}">
+                <i class="ci-time"></i>
+                <span>{{ 'onboarding.welcome.log_puzzle'|trans }}</span>
+            </a>
+
+            <a class="btn btn-outline-primary btn-lg onboarding-choice" href="{{ path('stopwatch') }}">
+                <i class="bi bi-stopwatch"></i>
+                <span>{{ 'onboarding.welcome.start_stopwatch'|trans }}</span>
+            </a>
+
+            <a class="btn btn-outline-primary btn-lg onboarding-choice" href="{{ path('finish_profile') }}">
+                <i class="ci-user-circle"></i>
+                <span>
+                    {{ 'onboarding.welcome.finish_profile'|trans }}
+                    <small class="d-block fw-normal opacity-75">{{ 'onboarding.welcome.finish_profile_hint'|trans }}</small>
+                </span>
+            </a>
+        </div>
+
+        <div class="text-center mt-3">
+            <a class="d-inline-block py-2 fw-medium" href="{{ path('getting_started') }}">
+                {{ 'onboarding.welcome.guide_link'|trans }} <i class="bi bi-chevron-right fs-xs ms-1"></i>
+            </a>
+            <br>
+            <a class="d-inline-block py-2 text-muted" href="{{ path('hub') }}">{{ 'onboarding.welcome.skip'|trans }}</a>
+        </div>
+
+        {% if not email_verified %}
+            <p class="fs-sm text-muted mt-3 mb-2">
+                <i class="ci-mail me-1"></i>{{ 'auth.welcome.verification_sent'|trans({'%email%': email}) }}
             </p>
-        </div>
+        {% endif %}
 
-        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
-            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
-        </div>
+        <p class="fs-sm text-muted mb-0">
+            <i class="bi bi-bookmark me-1"></i>{{ 'onboarding.find_later'|trans }}
+        </p>
     </div>
 {% endblock %}

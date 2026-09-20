@@ -75,6 +75,40 @@ final class RegisterControllerTest extends WebTestCase
         self::assertStringContainsString($email, $crawler->filter('main')->text());
     }
 
+    public function testNameGivenAtRegistrationIsOnThePlayerAndGreetsThemOnTheWelcomeScreen(): void
+    {
+        $browser = self::createClient();
+
+        $this->submitRegistration($browser, $this->randomEmail('register.named'), 'a-properly-long-passphrase', 'Jane Puzzler');
+        $crawler = $browser->followRedirect();
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Welcome, Jane Puzzler!', $crawler->filter('h1')->text());
+
+        $token = $browser->getContainer()->get(TokenStorageInterface::class)->getToken();
+        self::assertNotNull($token);
+
+        $player = $browser->getContainer()->get(PlayerRepository::class)->findByUserId($token->getUserIdentifier());
+        self::assertNotNull($player);
+        self::assertSame('Jane Puzzler', $player->name);
+    }
+
+    public function testWelcomeScreenOffersTheFirstThingsToDo(): void
+    {
+        $browser = self::createClient();
+
+        $this->submitRegistration($browser, $this->randomEmail('register.choices'), 'a-properly-long-passphrase');
+        $crawler = $browser->followRedirect();
+
+        $links = $crawler->filter('main a')->each(static fn (Crawler $link): string => (string) $link->attr('href'));
+
+        self::assertContains('/en/puzzle-add', $links);
+        self::assertContains('/en/stopwatch', $links);
+        self::assertContains('/en/finish-profile', $links);
+        self::assertContains('/en/getting-started', $links);
+        self::assertContains('/en/hub', $links);
+    }
+
     public function testAddressAlreadyOnAUserAccountIsRefused(): void
     {
         $browser = self::createClient();
@@ -163,7 +197,7 @@ final class RegisterControllerTest extends WebTestCase
         self::assertSame('de', $crawler->filter('html')->attr('lang'));
     }
 
-    private function submitRegistration(KernelBrowser $browser, string $email, string $password): Crawler
+    private function submitRegistration(KernelBrowser $browser, string $email, string $password, string $name = ''): Crawler
     {
         // A fresh client IP per submit: registration is throttled per IP and the
         // limiter's cache is not rolled back between tests or runs (DAMA only wraps
@@ -174,6 +208,7 @@ final class RegisterControllerTest extends WebTestCase
         $form = $crawler->selectButton('Create account')->form();
 
         return $browser->submit($form, [
+            $form->getName() . '[name]' => $name,
             $form->getName() . '[email]' => $email,
             $form->getName() . '[plainPassword]' => $password,
         ]);

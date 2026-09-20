@@ -105,9 +105,27 @@ final class RegisterUserHandlerTest extends KernelTestCase
         self::assertNull($player->locale);
     }
 
-    private function register(string $email, string $plainPassword, null|string $locale): string
+    public function testRegistrationStoresTheTrimmedName(): void
     {
-        $envelope = $this->messageBus->dispatch(new RegisterUser($email, $plainPassword, $locale));
+        $userId = $this->register('register.five@example.com', 'a-strong-passphrase-5', 'en', '  Jane Puzzler ');
+
+        $player = $this->playerRepository->findByUserId($userId);
+        self::assertNotNull($player);
+        self::assertSame('Jane Puzzler', $player->name);
+    }
+
+    public function testRegistrationWithBlankNameLeavesPlayerNameNull(): void
+    {
+        $userId = $this->register('register.six@example.com', 'a-strong-passphrase-6', 'en', '   ');
+
+        $player = $this->playerRepository->findByUserId($userId);
+        self::assertNotNull($player);
+        self::assertNull($player->name);
+    }
+
+    private function register(string $email, string $plainPassword, null|string $locale, null|string $name = null): string
+    {
+        $envelope = $this->messageBus->dispatch(new RegisterUser($email, $plainPassword, $locale, $name));
 
         $handledStamp = $envelope->last(HandledStamp::class);
         self::assertNotNull($handledStamp);

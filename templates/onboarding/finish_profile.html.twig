@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'onboarding.finish_profile.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="onboarding-welcome mx-auto pb-4">
+        <h1 class="h3 mb-1">{{ 'onboarding.finish_profile.title'|trans }}</h1>
+        <p class="text-muted">{{ 'onboarding.finish_profile.intro'|trans }}</p>
+
+        {{ form_start(form, {'action': path('finish_profile')}) }}
+            {{ form_row(form.name) }}
+            {{ form_row(form.country) }}
+
+            {{ form_label(form.avatar) }}
+            {{ form_errors(form.avatar) }}
+            <div class="file-drop-area mb-3">
+                <div class="file-drop-icon">
+                    {% if player.avatar is not null %}
+                        <div class="file-drop-preview img-thumbnail rounded">
+                            <img class="rounded-2" style="max-width: 200px;max-height: 200px;" alt="Avatar" src="{{ player.avatar|thumbnail('puzzle_medium') }}">
+                        </div>
+                    {% endif %}
+                    <i class="ci-cloud-upload"></i>
+                </div>
+
+                <span class="file-drop-message">{{ 'forms.drop_file'|trans }}</span>
+                {{ form_widget(form.avatar, {'attr': {'class': 'file-drop-input'}}) }}
+                <button type="button" class="file-drop-btn btn btn-outline-primary btn-sm">{{ 'forms.choose_file'|trans }}</button>
+            </div>
+
+            <details class="mb-3">
+                <summary class="fw-medium py-2">{{ 'onboarding.finish_profile.more'|trans }}</summary>
+
+                <div class="pt-2">
+                    {{ form_row(form.city) }}
+                    {{ form_row(form.bio) }}
+                    {{ form_row(form.facebook) }}
+                    {{ form_row(form.instagram) }}
+                    {{ form_row(form.twitch) }}
+                    {{ form_row(form.email) }}
+                </div>
+            </details>
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-lg">{{ 'forms.save'|trans }}</button>
+                <a class="btn btn-link text-muted" href="{{ path('hub') }}">{{ 'onboarding.finish_profile.later'|trans }}</a>
+            </div>
+        {{ form_end(form) }}
+
+        <p class="fs-sm text-muted mt-3 mb-0">
+            <i class="bi bi-gear me-1"></i>{{ 'onboarding.finish_profile.everything_else'|trans({'%link%': path('edit_profile')})|raw }}
+        </p>
+    </div>
+{% endblock %}

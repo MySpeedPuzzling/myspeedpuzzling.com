@@ -1,0 +1,152 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'onboarding.guide.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'onboarding.guide.meta.description'|trans }}{% endblock %}
+
+{# The platform guide (docs/features/getting-started-guide.md). Rules that keep it readable:
+   a step is a title, one sentence, where to find it, and a button - the title and the
+   button must make sense on their own, because most visitors read nothing else. No
+   screenshots: they go stale and they are in one language. Anchors are linked from
+   the Hub card and from empty states, so they must not be renamed. #}
+
+{% block content %}
+    {% set signed_in = logged_user.profile is not null %}
+
+    <div class="guide-steps mx-auto pb-4">
+        <header class="mb-4">
+            <h1 class="h2 mb-1">{{ 'onboarding.guide.title'|trans }}</h1>
+            <p class="fs-lg text-muted mb-2">{{ 'onboarding.guide.lead'|trans }}</p>
+            <p class="fs-sm text-muted mb-0"><i class="bi bi-bookmark me-1"></i>{{ 'onboarding.find_later'|trans }}</p>
+        </header>
+
+        {# One column on a phone, two on a desktop - the numbers keep the reading order #}
+        <div class="guide-steps-grid">
+        {% embed 'onboarding/_guide_step.html.twig' with {number: 1, anchor: 'track', icon: 'ci-time', key: 'track', done: progress is not null and progress.hasLoggedPuzzle} %}
+            {% block actions %}
+            <div class="d-grid gap-2">
+                <a class="btn btn-primary" rel="nofollow" href="{{ path('puzzle_add') }}">{{ 'onboarding.guide.track.button_finished'|trans }}</a>
+                <a class="btn btn-outline-primary" rel="nofollow" href="{{ path('stopwatch') }}">{{ 'onboarding.guide.track.button_stopwatch'|trans }}</a>
+            </div>
+            {% endblock %}
+            {% block more %}
+            <details class="guide-step-more">
+                <summary>{{ 'onboarding.guide.more'|trans }}</summary>
+                <ul>
+                    <li>{{ 'onboarding.guide.track.more_relax'|trans|raw }}</li>
+                    <li>{{ 'onboarding.guide.track.more_groups'|trans|raw }}</li>
+                    <li>{{ 'onboarding.guide.track.more_missing'|trans|raw }}</li>
+                    <li>{{ 'onboarding.guide.track.more_edit'|trans|raw }}</li>
+                </ul>
+            </details>
+            {% endblock %}
+        {% endembed %}
+
+        {% embed 'onboarding/_guide_step.html.twig' with {number: 2, anchor: 'profile', icon: 'ci-user-circle', key: 'profile', done: progress is not null and progress.hasFinishedProfile} %}
+            {% block actions %}
+            <div class="d-grid gap-2">
+                <a class="btn btn-outline-primary" rel="nofollow" href="{{ path(signed_in ? 'finish_profile' : 'register') }}">{{ 'onboarding.guide.profile.button'|trans }}</a>
+            </div>
+            {% endblock %}
+            {% block more %}
+            <details class="guide-step-more">
+                <summary>{{ 'onboarding.guide.profile.more_title'|trans }}</summary>
+                <ul>
+                    <li>{{ 'onboarding.guide.profile.more_basics'|trans|raw }}</li>
+                    <li>{{ 'onboarding.guide.profile.more_privacy'|trans|raw }}</li>
+                    <li>{{ 'onboarding.guide.profile.more_notifications'|trans|raw }}</li>
+                    <li>{{ 'onboarding.guide.profile.more_features'|trans|raw }}</li>
+                    <li>{{ 'onboarding.guide.profile.more_sign_in'|trans|raw }}</li>
+                    <li>{{ 'onboarding.guide.profile.more_data'|trans|raw }}</li>
+                </ul>
+            </details>
+            {% endblock %}
+        {% endembed %}
+
+        {% embed 'onboarding/_guide_step.html.twig' with {number: 3, anchor: 'library', icon: 'bi bi-collection', key: 'library', done: progress is not null and progress.hasPuzzleInLibrary} %}
+            {% block actions %}
+            <div class="d-grid gap-2">
+                <a class="btn btn-outline-primary" rel="nofollow" href="{{ path('puzzle_add') }}?mode=collection">{{ 'onboarding.guide.library.button_add'|trans }}</a>
+                <a class="btn btn-outline-primary" href="{{ path('puzzles') }}">{{ 'onboarding.guide.library.button'|trans }}</a>
+            </div>
+            {% endblock %}
+            {% block more %}
+            <details class="guide-step-more">
+                <summary>{{ 'onboarding.guide.more'|trans }}</summary>
+                <ul>
+                    <li>{{ 'onboarding.guide.library.more_database'|trans|raw }}</li>
+                    <li>{{ 'onboarding.guide.library.more_picker'|trans|raw }}</li>
+                    <li>{{ 'onboarding.guide.library.more_marketplace'|trans|raw }}</li>
+                    <li>{{ 'onboarding.guide.library.more_lists'|trans|raw }}</li>
+                </ul>
+            </details>
+            {% endblock %}
+        {% endembed %}
+
+        {% embed 'onboarding/_guide_step.html.twig' with {number: 4, anchor: 'statistics', icon: 'bi bi-graph-up', key: 'statistics', done: progress is not null and progress.hasSeenStatistics} %}
+            {% block actions %}
+            <div class="d-grid gap-2">
+                <a class="btn btn-outline-primary" rel="nofollow" href="{{ signed_in ? path('player_statistics', {'playerId': logged_user.profile.playerId}) : path('register') }}"
+                   {% if signed_in %}{{ stimulus_controller('mark-seen', {url: path('dismiss_hint'), type: 'guide_statistics_seen'}) }} {{ stimulus_action('mark-seen', 'mark', 'click') }}{% endif %}>{{ 'onboarding.guide.statistics.button'|trans }}</a>
+            </div>
+            {% endblock %}
+        {% endembed %}
+
+        {% embed 'onboarding/_guide_step.html.twig' with {number: 5, anchor: 'compare', icon: 'bi bi-trophy', key: 'compare', done: progress is not null and progress.hasSeenLeaderboard} %}
+            {% block actions %}
+            <div class="d-grid gap-2">
+                <a class="btn btn-outline-primary" href="{{ path('ladder') }}"
+                   {% if signed_in %}{{ stimulus_controller('mark-seen', {url: path('dismiss_hint'), type: 'guide_leaderboard_seen'}) }} {{ stimulus_action('mark-seen', 'mark', 'click') }}{% endif %}>{{ 'onboarding.guide.compare.button'|trans }}</a>
+            </div>
+            {% endblock %}
+            {% block more %}
+            <details class="guide-step-more">
+                <summary>{{ 'onboarding.guide.more'|trans }}</summary>
+                <ul>
+                    <li>{{ 'onboarding.guide.compare.more_first_attempt'|trans|raw }}</li>
+                    <li>{{ 'onboarding.guide.compare.more_rating'|trans({'%link%': path('methodology')})|raw }}</li>
+                </ul>
+            </details>
+            {% endblock %}
+        {% endembed %}
+
+        {% embed 'onboarding/_guide_step.html.twig' with {number: 6, anchor: 'favorites', icon: 'bi bi-people', key: 'favorites', done: progress is not null and progress.hasFavoritePlayer} %}
+            {% block actions %}
+            <div class="d-grid gap-2">
+                <a class="btn btn-outline-primary" href="{{ path('players') }}">{{ 'onboarding.guide.favorites.button'|trans }}</a>
+            </div>
+            {% endblock %}
+        {% endembed %}
+
+        </div>
+
+        <section id="more" class="mt-4">
+            <h2 class="h5 mb-3">{{ 'onboarding.guide.ready.title'|trans }}</h2>
+
+            <div class="guide-tiles">
+                {% for tile in [
+                    {key: 'picker', title: 'puzzle_picker.title'|trans, icon: 'bi bi-shuffle', url: path('puzzle_picker')},
+                    {key: 'events', title: 'menu.events'|trans, icon: 'bi bi-calendar-event', url: path('events')},
+                    {key: 'marketplace', title: 'Marketplace', icon: 'bi bi-shop', url: path('marketplace')},
+                    {key: 'membership', title: 'menu.membership'|trans, icon: 'bi bi-star', url: path('membership')},
+                    {key: 'faq', title: 'menu.faq'|trans, icon: 'bi bi-patch-question', url: path('faq')},
+                ] %}
+                    <a class="guide-tile" href="{{ tile.url }}">
+                        <i class="{{ tile.icon }}" aria-hidden="true"></i>
+                        <span>
+                            <strong>{{ tile.title }}</strong>
+                            <small>{{ ('onboarding.guide.ready.' ~ tile.key ~ '.text')|trans }}</small>
+                        </span>
+                    </a>
+                {% endfor %}
+            </div>
+        </section>
+
+        <div class="d-grid mt-4">
+            {% if signed_in %}
+                <a class="btn btn-primary btn-lg" href="{{ path('hub') }}">{{ 'onboarding.guide.to_hub'|trans }}</a>
+            {% else %}
+                <a class="btn btn-primary btn-lg" rel="nofollow" href="{{ path('register') }}">{{ 'onboarding.guide.register'|trans }}</a>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

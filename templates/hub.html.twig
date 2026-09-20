@@ -15,6 +15,10 @@
         {% endif %}
     </h1>
 
+    {% if getting_started is not null %}
+        {{ include('onboarding/_getting_started_card.html.twig', {progress: getting_started, folded: getting_started_folded}) }}
+    {% endif %}
+
     <div class="row">
         <div class="col-lg-6 pt-lg-4">
             <ul class="nav nav-fill nav-tabs mt-0" role="tablist" data-controller="tabs">

@@ -683,6 +683,7 @@
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'pairs_and_teams' %}active{% endif %}" href="{{ path('pairs_and_teams') }}">
                                             <i class="bi bi-people me-1"></i> {{ 'menu.pairs_and_teams'|trans }}
+                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                                         </a>
                                     </li>
 
@@ -712,6 +713,12 @@
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'edit_profile' %}active{% endif %}" href="{{ path('edit_profile') }}">
                                             <i class="bi bi-pencil-square me-1"></i> {{ 'menu.edit_profile'|trans }}
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {% if currentRoute == 'getting_started' %}active{% endif %}" href="{{ path('getting_started') }}">
+                                            <i class="bi bi-signpost-2 me-1"></i> {{ 'onboarding.guide.link'|trans }}
+                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                                         </a>
                                     </li>
                                     <li>
@@ -871,6 +878,9 @@
                                     <a href="{{ path('puzzle_picker') }}" class="widget-list-link">{{ 'puzzle_picker.title'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                    <a rel="nofollow" href="{{ path('pairs_and_teams') }}" class="widget-list-link">{{ 'menu.pairs_and_teams'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a>
+                                </li>
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('marketplace') }}" class="widget-list-link">Marketplace</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
@@ -878,6 +888,9 @@
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('players') }}" class="widget-list-link">{{ 'menu.players'|trans }}</a>
+                                </li>
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                    <a href="{{ path('getting_started') }}" class="widget-list-link">{{ 'onboarding.guide.link'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('faq') }}" class="widget-list-link">{{ 'menu.faq'|trans }}</a>

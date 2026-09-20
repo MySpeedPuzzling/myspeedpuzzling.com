@@ -237,7 +237,8 @@ final class SocialLoginFlowTest extends WebTestCase
 
         $browser->request('POST', '/register/social', ['token' => $token]);
         self::assertResponseRedirects();
-        self::assertStringContainsString('my-profile', (string) $browser->getResponse()->headers->get('Location'));
+        // Same first screen as a native registration (docs/features/getting-started-guide.md)
+        self::assertStringContainsString('/welcome', (string) $browser->getResponse()->headers->get('Location'));
         $this->assertLoggedIn($browser);
 
         $connection = $browser->getContainer()->get(Connection::class);

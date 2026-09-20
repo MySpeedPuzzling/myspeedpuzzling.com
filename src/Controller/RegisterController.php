@@ -75,6 +75,7 @@ final class RegisterController extends AbstractController
                         email: $data->email,
                         plainPassword: $data->plainPassword,
                         locale: $request->getLocale(),
+                        name: $data->name,
                     ),
                 );
             } catch (HandlerFailedException $exception) {

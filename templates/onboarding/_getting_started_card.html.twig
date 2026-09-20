@@ -1,0 +1,70 @@
+{# "Getting started" on the Hub (docs/features/getting-started-guide.md). `progress` is a
+   GettingStartedProgress; every tick is read from what the player has really done.
+   <details> rather than JavaScript: folded from the second visit on, no layout shift. #}
+{% set steps = [
+    {key: 'create_account', done: true, url: null},
+    {key: 'log_puzzle', done: progress.hasLoggedPuzzle, url: path('puzzle_add')},
+    {key: 'finish_profile', done: progress.hasFinishedProfile, url: path('finish_profile')},
+    {key: 'add_to_library', done: progress.hasPuzzleInLibrary, url: path('puzzle_add') ~ '?mode=collection'},
+    {key: 'add_favorite', done: progress.hasFavoritePlayer, url: path('players')},
+] %}
+
+<div
+    class="getting-started card shadow-sm mt-3"
+    {{ stimulus_controller('dismiss-hint', {
+        url: path('dismiss_hint'),
+        type: 'getting_started_checklist',
+    }) }}
+>
+    {% if progress.complete %}
+        <div class="card-body">
+            <h2 class="h5 mb-1">{{ 'onboarding.checklist.all_set_title'|trans }}</h2>
+            <p class="fs-sm text-muted mb-3">{{ 'onboarding.checklist.all_set_text'|trans }}</p>
+
+            <div class="d-grid d-sm-flex gap-2">
+                <a class="btn btn-primary btn-sm" href="{{ path('player_statistics', {'playerId': logged_user.profile.playerId}) }}">{{ 'onboarding.checklist.all_set_statistics'|trans }}</a>
+                <a class="btn btn-outline-primary btn-sm" href="{{ path('ladder') }}">{{ 'onboarding.checklist.all_set_ladder'|trans }}</a>
+                <a class="btn btn-outline-primary btn-sm" href="{{ path('puzzles') }}">{{ 'onboarding.checklist.all_set_puzzles'|trans }}</a>
+            </div>
+        </div>
+    {% else %}
+        <details class="getting-started-details" {% if not folded %}open{% endif %}>
+            <summary class="getting-started-summary">
+                <span class="getting-started-title">{{ 'onboarding.checklist.title'|trans }}</span>
+                <span class="getting-started-count">{{ 'onboarding.checklist.progress'|trans({'%done%': progress.doneCount, '%total%': steps|length}) }}</span>
+                <i class="bi bi-chevron-down getting-started-caret" aria-hidden="true"></i>
+                <button type="button" class="btn-close getting-started-close" aria-label="{{ 'onboarding.checklist.dismiss'|trans }}" title="{{ 'onboarding.checklist.dismiss'|trans }}" {{ stimulus_action('dismiss-hint', 'dismiss') }}></button>
+
+                <span class="getting-started-bar" role="progressbar" aria-valuemin="0" aria-valuemax="{{ steps|length }}" aria-valuenow="{{ progress.doneCount }}">
+                    {% for step in steps %}
+                        <span class="getting-started-bar-segment {% if loop.index <= progress.doneCount %}is-done{% endif %}"></span>
+                    {% endfor %}
+                </span>
+            </summary>
+
+            <ul class="getting-started-steps">
+                {% for step in steps %}
+                    {% set label = ('onboarding.checklist.step.' ~ step.key)|trans %}
+                    <li>
+                        {% if step.done %}
+                            <span class="getting-started-step is-done">
+                                <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                                <span>{{ label }}</span>
+                            </span>
+                        {% else %}
+                            <a class="getting-started-step {% if step.key == progress.nextStep %}is-next{% endif %}" href="{{ step.url }}">
+                                <i class="bi bi-circle" aria-hidden="true"></i>
+                                <span>{{ label }}</span>
+                                <i class="bi bi-chevron-right fs-xs ms-auto" aria-hidden="true"></i>
+                            </a>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+
+            <div class="getting-started-footer">
+                <a href="{{ path('getting_started') }}">{{ 'onboarding.checklist.guide_link'|trans }} <i class="bi bi-chevron-right fs-xs ms-1"></i></a>
+            </div>
+        </details>
+    {% endif %}
+</div>

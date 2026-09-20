@@ -13,6 +13,7 @@
             <div class="card shadow my-3">
                 <div class="card-body">
                     {{ form_start(form, {'action': path('register')}) }}
+                        {{ form_row(form.name) }}
                         {{ form_row(form.email) }}
 
                         <div class="mb-3">

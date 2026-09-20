@@ -3269,6 +3269,8 @@ auth:
     register:
         title: "Create an account"
         intro: "One account for your times, collections and everything else on MySpeedPuzzling."
+        name: "Your name"
+        name_hint: "Optional. Others see it next to your times. You can change it any time."
         email: "Email"
         password: "Password"
         password_hint: "At least %minimum% characters."
@@ -3279,9 +3281,7 @@ auth:
         failed: "We could not create your account. Please try again in a moment."
     welcome:
         title: "Welcome to MySpeedPuzzling!"
-        intro: "Your account is ready and you are signed in."
         verification_sent: "We sent a confirmation link to %email%. Open it to confirm the address is yours."
-        to_profile: "Go to my profile"
     verify_email:
         success:
             headline: "Email address confirmed"
@@ -3801,3 +3801,109 @@ puzzling_team:
     team_page: "Team page"
     related_title: "With somebody more, or fewer"
     related_help: "A pair or team is the exact group of people - the same people with somebody added or missing are another one."
+
+onboarding:
+    find_later: "Want to read the guide later? You will always find it at the bottom of every page."
+    welcome:
+        title_named: "Welcome, %name%!"
+        question: "What would you like to do first?"
+        log_puzzle: "Log a puzzle I solved"
+        start_stopwatch: "Start the stopwatch"
+        finish_profile: "Finish my profile"
+        finish_profile_hint: "Name · photo · country"
+        guide_link: "Show me how it works"
+        skip: "Skip, take me in"
+    finish_profile:
+        title: "Finish your profile"
+        intro: "So others recognise you, and you appear in your country's rankings."
+        more: "Add more: city, about me, social links"
+        later: "Later"
+        everything_else: "Privacy, notifications and everything else: avatar menu → <a href=\"%link%\">Edit profile</a>."
+    checklist:
+        title: "Getting started"
+        progress: "%done% of %total%"
+        dismiss: "Hide"
+        guide_link: "How it all works"
+        step:
+            create_account: "Create your account"
+            log_puzzle: "Log your first puzzle"
+            finish_profile: "Finish your profile"
+            add_to_library: "Add a puzzle you own"
+            add_favorite: "Add a favorite puzzler"
+        all_set_title: "You are all set!"
+        all_set_text: "Where to next?"
+        all_set_statistics: "My statistics"
+        all_set_ladder: "See how I compare"
+        all_set_puzzles: "Browse puzzles"
+    guide:
+        link: "Getting started"
+        faq_link: "New here? See what you can do"
+        meta:
+            title: "Getting started with MySpeedPuzzling"
+            description: "What you can do on MySpeedPuzzling, in six short steps: log your puzzle times, set up your profile, follow your statistics, compare with others and find puzzles."
+        title: "Getting started"
+        lead: "What you can do here, in 2 minutes."
+        more: "More"
+        to_hub: "Go to my Hub"
+        register: "Create a free account"
+        track:
+            title: "Log your puzzles"
+            text: "This is what MySpeedPuzzling is for. Every puzzle you log builds your history."
+            where: "The <strong>+</strong> button at the top of every page."
+            button_finished: "I finished a puzzle"
+            button_stopwatch: "I am about to start one"
+            more_relax: "No time measured? Choose <strong>Relax</strong>. You do not need to remember the date either."
+            more_groups: "Solved it with others? Add them, and it counts as a pair or team time."
+            more_missing: "Puzzle not in our database? Type its name and add it together with your time."
+            more_edit: "Made a mistake? You can edit or delete any of your times."
+        profile:
+            title: "Make it yours"
+            text: "Add your name, photo and country, so others recognise you and you appear in your country's rankings."
+            where: "Avatar menu → <strong>Edit profile</strong>."
+            button: "Finish my profile"
+            more_title: "What else can I change?"
+            more_basics: "<strong>About you</strong>: name, photo, country, city, a few words, social links."
+            more_privacy: "<strong>Privacy</strong>: who can see your profile and your lists."
+            more_notifications: "<strong>E-mails</strong>: notifications, how often, newsletter."
+            more_features: "<strong>Features</strong>: hide your streak, stay out of rankings, turn off time predictions."
+            more_sign_in: "<strong>Signing in</strong>: e-mail, password, connected accounts."
+            more_data: "<strong>Your data</strong>: export everything, or delete your account."
+        library:
+            title: "Build your puzzle library"
+            text: "Add the puzzles you have at home to your <strong>Collection</strong>. A lot here builds on it: what to solve next, selling, swapping and lending."
+            where: "Avatar menu → <strong>Puzzle library</strong>. Or <strong>Add to my collection</strong> on any puzzle's page."
+            button_add: "Add a puzzle I own"
+            button: "Browse puzzles"
+            more_database: "Thousands of puzzles are in the database. Search by name, brand, piece count or barcode."
+            more_picker: "<strong>What should I solve next?</strong> picks a puzzle from your own shelf."
+            more_marketplace: "<strong>Marketplace</strong>: offer a puzzle you own for sale or swap in a few clicks."
+            more_lists: "Also in your library: unsolved puzzles, your <strong>Wishlist</strong>, and what you lent or borrowed."
+        statistics:
+            title: "Watch your progress"
+            text: "Every puzzle you log feeds your statistics: totals, charts, an activity calendar and your streak."
+            where: "Avatar menu → <strong>Statistics</strong>."
+            button: "My statistics"
+        compare:
+            title: "See how you compare"
+            text: "The <strong>Leaderboard</strong> ranks the fastest puzzlers by piece count. Every puzzle's page shows everyone's times, yours included."
+            where: "Main menu → <strong>Leaderboard</strong>."
+            button: "Open the Leaderboard"
+            more_first_attempt: "<strong>First attempt</strong> is your first time on a puzzle. Solving it again is usually faster, so rankings can show first attempts only."
+            more_rating: "<strong>MSP Rating</strong> compares puzzlers across different puzzles. <a href=\"%link%\">How it is calculated</a>."
+        favorites:
+            title: "Follow other puzzlers"
+            text: "Find friends or top solvers and add them to <strong>Favorites</strong>. Their new times show up in your Hub."
+            where: "Main menu → <strong>Players</strong>. Others find you by your name or your player code (#…)."
+            button: "Find players"
+        ready:
+            title: "When you are ready"
+            picker:
+                text: "A random pick from your shelf or from all puzzles."
+            events:
+                text: "Competitions and their results."
+            marketplace:
+                text: "Buy, sell and swap puzzles."
+            membership:
+                text: "The core is free. Members get extras and support the project."
+            faq:
+                text: "Answers to common questions."

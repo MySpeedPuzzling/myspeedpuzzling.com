@@ -2980,6 +2980,8 @@ auth:
     register:
         title: "Konto erstellen"
         intro: "Ein Konto für Ihre Zeiten, Sammlungen und alles andere auf MySpeedPuzzling."
+        name: "Ihr Name"
+        name_hint: "Freiwillig. Andere sehen ihn neben Ihren Zeiten. Sie können ihn jederzeit ändern."
         email: "E-Mail"
         password: "Passwort"
         password_hint: "Mindestens %minimum% Zeichen."
@@ -2990,9 +2992,7 @@ auth:
         failed: "Wir konnten Ihr Konto nicht erstellen. Bitte versuchen Sie es gleich noch einmal."
     welcome:
         title: "Willkommen bei MySpeedPuzzling!"
-        intro: "Ihr Konto ist bereit und Sie sind angemeldet."
         verification_sent: "Wir haben einen Bestätigungslink an %email% geschickt. Öffnen Sie ihn, um zu bestätigen, dass die Adresse Ihnen gehört."
-        to_profile: "Zu meinem Profil"
     verify_email:
         success:
             headline: "E-Mail-Adresse bestätigt"
@@ -3511,3 +3511,109 @@ private_profile_viewers:
   "team_page": "Team-Seite"
   "related_title": "Mit jemandem mehr oder weniger"
   "related_help": "Ein Paar oder Team ist die genaue Gruppe von Personen - dieselben Personen mit jemandem zusätzlich oder jemandem weniger sind ein anderes."
+
+onboarding:
+    find_later: "Möchten Sie die Anleitung später lesen? Sie finden sie immer ganz unten auf jeder Seite."
+    welcome:
+        title_named: "Willkommen, %name%!"
+        question: "Womit möchten Sie anfangen?"
+        log_puzzle: "Ein gelöstes Puzzle eintragen"
+        start_stopwatch: "Stoppuhr starten"
+        finish_profile: "Mein Profil vervollständigen"
+        finish_profile_hint: "Name · Foto · Land"
+        guide_link: "Zeigen Sie mir, wie es funktioniert"
+        skip: "Überspringen"
+    finish_profile:
+        title: "Vervollständigen Sie Ihr Profil"
+        intro: "Damit andere Sie erkennen und Sie in der Rangliste Ihres Landes erscheinen."
+        more: "Mehr hinzufügen: Stadt, über mich, soziale Netzwerke"
+        later: "Später"
+        everything_else: "Privatsphäre, Benachrichtigungen und alles andere: Avatar-Menü → <a href=\"%link%\">Profil bearbeiten</a>."
+    checklist:
+        title: "Erste Schritte"
+        progress: "%done% von %total%"
+        dismiss: "Ausblenden"
+        guide_link: "So funktioniert alles"
+        step:
+            create_account: "Konto erstellen"
+            log_puzzle: "Erstes Puzzle eintragen"
+            finish_profile: "Profil vervollständigen"
+            add_to_library: "Ein eigenes Puzzle hinzufügen"
+            add_favorite: "Einen Lieblings-Puzzler hinzufügen"
+        all_set_title: "Alles erledigt!"
+        all_set_text: "Wohin als Nächstes?"
+        all_set_statistics: "Meine Statistiken"
+        all_set_ladder: "Mein Vergleich mit anderen"
+        all_set_puzzles: "Puzzles durchstöbern"
+    guide:
+        link: "Erste Schritte"
+        faq_link: "Neu hier? Sehen Sie, was Sie tun können"
+        meta:
+            title: "Erste Schritte mit MySpeedPuzzling"
+            description: "Was Sie auf MySpeedPuzzling tun können, in sechs kurzen Schritten: Puzzle-Zeiten eintragen, Profil einrichten, Statistiken verfolgen, sich mit anderen vergleichen und Puzzles finden."
+        title: "Erste Schritte"
+        lead: "Was Sie hier tun können, in 2 Minuten."
+        more: "Mehr"
+        to_hub: "Zu meinem Hub"
+        register: "Kostenloses Konto erstellen"
+        track:
+            title: "Tragen Sie Ihre Puzzles ein"
+            text: "Dafür ist MySpeedPuzzling da. Jedes eingetragene Puzzle baut Ihre Historie auf."
+            where: "Die <strong>+</strong>-Schaltfläche oben auf jeder Seite."
+            button_finished: "Ich habe ein Puzzle beendet"
+            button_stopwatch: "Ich fange gleich eines an"
+            more_relax: "Keine Zeit gemessen? Wählen Sie <strong>Relax</strong>. Auch das Datum müssen Sie nicht mehr wissen."
+            more_groups: "Mit anderen gepuzzelt? Fügen Sie sie hinzu, dann zählt es als Paar- oder Teamzeit."
+            more_missing: "Puzzle nicht in der Datenbank? Geben Sie den Namen ein und fügen Sie es zusammen mit Ihrer Zeit hinzu."
+            more_edit: "Vertippt? Sie können jede Ihrer Zeiten bearbeiten oder löschen."
+        profile:
+            title: "Machen Sie es zu Ihrem"
+            text: "Fügen Sie Name, Foto und Land hinzu, damit andere Sie erkennen und Sie in der Rangliste Ihres Landes erscheinen."
+            where: "Avatar-Menü → <strong>Profil bearbeiten</strong>."
+            button: "Mein Profil vervollständigen"
+            more_title: "Was kann ich noch ändern?"
+            more_basics: "<strong>Über Sie</strong>: Name, Foto, Land, Stadt, ein paar Worte, soziale Netzwerke."
+            more_privacy: "<strong>Privatsphäre</strong>: wer Ihr Profil und Ihre Listen sehen kann."
+            more_notifications: "<strong>E-Mails</strong>: Benachrichtigungen, wie oft, Newsletter."
+            more_features: "<strong>Funktionen</strong>: Serie ausblenden, nicht in Ranglisten erscheinen, Zeitvorhersagen ausschalten."
+            more_sign_in: "<strong>Anmeldung</strong>: E-Mail, Passwort, verbundene Konten."
+            more_data: "<strong>Ihre Daten</strong>: alles exportieren oder das Konto löschen."
+        library:
+            title: "Bauen Sie Ihre Puzzlebibliothek auf"
+            text: "Fügen Sie die Puzzles, die Sie zu Hause haben, Ihrer <strong>Sammlung</strong> hinzu. Vieles baut darauf auf: was als Nächstes kommt, Verkaufen, Tauschen und Verleihen."
+            where: "Avatar-Menü → <strong>Puzzlebibliothek</strong>. Oder <strong>Zu meiner Sammlung hinzufügen</strong> auf der Seite jedes Puzzles."
+            button_add: "Ein Puzzle hinzufügen, das ich besitze"
+            button: "Puzzles durchstöbern"
+            more_database: "In der Datenbank sind Tausende Puzzles. Suchen Sie nach Name, Marke, Teilezahl oder Barcode."
+            more_picker: "<strong>Welches Puzzle als Nächstes?</strong> wählt ein Puzzle aus Ihrem eigenen Regal."
+            more_marketplace: "<strong>Marketplace</strong>: Bieten Sie ein eigenes Puzzle mit wenigen Klicks zum Verkauf oder Tausch an."
+            more_lists: "Ebenfalls in Ihrer Bibliothek: ungelöste Puzzles, Ihre <strong>Wunschliste</strong> und was Sie verliehen oder geliehen haben."
+        statistics:
+            title: "Verfolgen Sie Ihren Fortschritt"
+            text: "Jedes eingetragene Puzzle fließt in Ihre Statistiken ein: Summen, Diagramme, Aktivitätskalender und Ihre Serie."
+            where: "Avatar-Menü → <strong>Statistiken</strong>."
+            button: "Meine Statistiken"
+        compare:
+            title: "Vergleichen Sie sich mit anderen"
+            text: "Die <strong>Bestenliste</strong> ordnet die schnellsten Puzzler nach Teilezahl. Auf der Seite jedes Puzzles stehen die Zeiten aller, auch Ihre."
+            where: "Hauptmenü → <strong>Bestenliste</strong>."
+            button: "Bestenliste öffnen"
+            more_first_attempt: "<strong>Erster Versuch</strong> ist Ihre erste Zeit für ein Puzzle. Beim zweiten Mal geht es meist schneller, deshalb können Ranglisten nur erste Versuche zeigen."
+            more_rating: "<strong>MSP Rating</strong> vergleicht Puzzler über verschiedene Puzzles hinweg. <a href=\"%link%\">So wird es berechnet</a>."
+        favorites:
+            title: "Folgen Sie anderen Puzzlern"
+            text: "Finden Sie Freunde oder Top-Puzzler und fügen Sie sie zu den <strong>Favoriten</strong> hinzu. Ihre neuen Zeiten erscheinen in Ihrem Hub."
+            where: "Hauptmenü → <strong>Spieler</strong>. Andere finden Sie über Ihren Namen oder Ihren Spielercode (#…)."
+            button: "Spieler finden"
+        ready:
+            title: "Wenn Sie so weit sind"
+            picker:
+                text: "Ein Zufallstipp aus Ihrer Sammlung oder aus allen Puzzles."
+            events:
+                text: "Wettbewerbe und ihre Ergebnisse."
+            marketplace:
+                text: "Puzzles kaufen, verkaufen und tauschen."
+            membership:
+                text: "Der Kern ist kostenlos. Mitglieder bekommen Extras und unterstützen das Projekt."
+            faq:
+                text: "Antworten auf häufige Fragen."

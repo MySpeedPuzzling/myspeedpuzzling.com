@@ -166,7 +166,7 @@ final class SocialRegisterConfirmController extends AbstractController
 
         $this->addFlash('success', $this->translator->trans('auth.social.confirm.created'));
 
-        return $this->redirectToRoute('my_profile');
+        return $this->redirectToRoute('registration_welcome');
     }
 
     private static function tokenFrom(Request $request): null|string

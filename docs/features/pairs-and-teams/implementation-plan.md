@@ -7,10 +7,9 @@ Design, decisions and UX spec: [`README.md`](README.md). This file is the build 
 > carry a single `member_key`, the composition class is `Value\TeamComposition`, team creation is one CTE
 > statement, the rename form is a plain PRG form on the manage page (no modal), the puzzle-page and profile
 > filters work in PHP on rows already loaded (zero queries), and `GetCoPuzzlers` also feeds the manage page.
-> **Open:** translate the new
-> keys to the other 5 locales (`copuzzler_picker.*`, `pairs_and_teams.*`, `puzzling_team.*`,
-> `notifications.puzzling_team.*`, `only_my_*_filter`, `filters.all_pairs_and_teams`, `menu.pairs_and_teams`,
-> and "Duo" → "Pair" per locale) · phases 5–6 · the TODO list at the bottom.
+> **Shipped 2026-09-20 (d94965fa):** deployed, production backfilled (70,952 group times → 6,661 pairs + 4,978 teams in
+> 35 s, 0 left, 0 head-count mismatches), picker public, all 6 locales translated. **Open:** phases 5–6 and the TODO
+> list at the bottom.
 
 Six phases, each shippable on its own. Phase 1 is invisible and carries all the data risk; phases 2–4 are
 the visible feature; 5–6 are follow-ups. Every phase ends with the full gate: `phpstan`, `cs-fix`,

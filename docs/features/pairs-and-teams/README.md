@@ -1,6 +1,6 @@
 # Pairs & teams
 
-**Status: BUILT 2026-09-20** (phases 1–4 of [`implementation-plan.md`](implementation-plan.md)); the add-form picker is public; `PAIRS_TEAMS_PICKER_PUBLIC=0` is the kill switch back to the old rows (`docs/features/feature_flags.md`). After deploying: run `myspeedpuzzling:backfill-puzzling-teams` once on the box.
+**Status: LIVE since 2026-09-20** (phases 1–4 of [`implementation-plan.md`](implementation-plan.md), history backfilled on production, all 6 locales). The add-form picker is public; `PAIRS_TEAMS_PICKER_PUBLIC=0` is the kill switch back to the old rows (`docs/features/feature_flags.md`).
 
 Turns the people a time was solved with into a first-class thing: every pair / team result belongs to a
 `puzzling_team` row, the add-time form gets a fast picker built on it, players get a "Pairs & teams" page,

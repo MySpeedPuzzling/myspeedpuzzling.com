@@ -3456,6 +3456,7 @@ private_profile_viewers:
   "show_all": "Zobrazit vše (%count%)"
   "show_less": "Zobrazit méně"
   "full": "To je maximum 15 spolupuzzlerů."
+  "search_label": "Někdo jiný?"
   "search_placeholder": "Vyhledejte hráče nebo přidejte hosta…"
   "search_help": "Hledejte podle jména nebo kódu hráče. Někdo nemá účet? Napište jeho jméno a přidejte ho jako hosta."
   "search_failed": "Vyhledávání teď není dostupné - stále můžete přidat hosta nebo napsat kód hráče začínající na #."

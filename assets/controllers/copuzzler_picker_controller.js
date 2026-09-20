@@ -585,6 +585,8 @@ export default class extends Controller {
             .filter(team => selectedKeys.every(key => team.members.includes(key)))
             .filter(team => team.members.length > selectedKeys.length);
 
+        candidates.sort((a, b) => this.byRecentThenCount(a, b, team => team.count));
+
         const regulars = candidates.filter(team => team.count >= 2 || team.name);
         const shown = this.showAllTeams ? candidates : regulars.slice(0, 4);
 
@@ -652,12 +654,17 @@ export default class extends Controller {
 
             return this.recentlyRemoved.includes(person.key) ? 2 : 1;
         };
-        const score = person => (pairMode ? (person.pairScore || 0) * 1000 + (person.score || 0) : (person.score || 0));
+        const count = person => (pairMode ? (person.pairCount || 0) : (person.count || 0));
 
         const candidates = Array.from(this.known.values())
             .filter(person => !this.isSelected(person.key))
             .filter(person => this.tracker === null || person.key !== this.tracker.key)
-            .sort((a, b) => rank(b) - rank(a) || score(b) - score(a) || a.label.localeCompare(b.label));
+            .sort((a, b) => rank(b) - rank(a) || this.byRecentThenCount(a, b, count) || a.label.localeCompare(b.label));
+
+        // Favorites the player never puzzled with are a convenience, not a list to scroll through: they only
+        // fill the row up, the rest stays behind "Show all" (and in the search)
+        const familiar = candidates.filter(person => (person.count || 0) > 0 || rank(person) > 1);
+        const visibleCount = Math.max(Math.min(familiar.length, 8), Math.min(candidates.length, 5));
 
         if (candidates.length === 0) {
             this.peopleSectionTarget.hidden = true;
@@ -665,7 +672,7 @@ export default class extends Controller {
             return;
         }
 
-        const shown = this.showAllPeople ? candidates : candidates.slice(0, 8);
+        const shown = this.showAllPeople ? candidates : candidates.slice(0, visibleCount);
         const full = this.mode === 'team' && this.selection.length >= this.maxValue;
 
         this.peopleSectionTarget.hidden = false;
@@ -699,11 +706,49 @@ export default class extends Controller {
             return button;
         });
 
-        if (candidates.length > 8) {
+        if (candidates.length > visibleCount) {
             options.push(this.toggleElement('toggleAllPeople', this.showAllPeople ? texts.showLess : texts.showAll.replace('%count%', String(candidates.length))));
         }
 
         this.peopleTarget.replaceChildren(...options);
+    }
+
+    /**
+     * Whoever the player puzzled with in the last two days comes first, latest first - that is most
+     * likely who they are with right now. Everybody else by how often, then by the recency-weighted score.
+     */
+    byRecentThenCount(a, b, count) {
+        const recent = item => {
+            const days = this.daysSince(item.last);
+
+            return days !== null && days <= 2 ? days : null;
+        };
+        const recentA = recent(a);
+        const recentB = recent(b);
+
+        if (recentA !== null || recentB !== null) {
+            if (recentA === null) {
+                return 1;
+            }
+
+            if (recentB === null) {
+                return -1;
+            }
+
+            if (recentA !== recentB) {
+                return recentA - recentB;
+            }
+        }
+
+        return count(b) - count(a) || (b.score || 0) - (a.score || 0);
+    }
+
+    daysSince(date) {
+        if (!date) {
+            return null;
+        }
+
+        return Math.max(0, Math.round((Date.now() - new Date(`${date}T00:00:00`).getTime()) / 86400000));
     }
 
     toggleElement(action, text) {
@@ -738,7 +783,7 @@ export default class extends Controller {
             return null;
         }
 
-        const days = Math.round((Date.now() - new Date(`${date}T00:00:00`).getTime()) / 86400000);
+        const days = this.daysSince(date);
 
         try {
             const format = new Intl.RelativeTimeFormat(this.localeValue || 'en', { numeric: 'auto' });

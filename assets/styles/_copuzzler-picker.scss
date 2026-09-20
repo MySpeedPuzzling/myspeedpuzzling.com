@@ -4,7 +4,8 @@
   display: flex;
   // One line down to 320px: three equal segments, icon over label
   width: 100%;
-  border: 1px solid $border-color;
+  // Primary outline, like the "Puzzling in pair/group" button this switch replaced
+  border: 1px solid $primary;
   border-radius: $border-radius;
   background: $white;
   overflow: hidden;
@@ -15,7 +16,7 @@
     min-height: 56px;
     padding: .4rem .25rem;
     border: 0;
-    border-right: 1px solid $border-color;
+    border-right: 1px solid rgba($primary, .35);
     background: transparent;
     color: $gray-700;
     display: flex;
@@ -215,5 +216,53 @@
       height: 100%;
       background-size: cover;
     }
+  }
+}
+
+// The search is a text field, not a select: say so. Magnifier instead of the select caret, a border that
+// reads as "type here", a clear focus state.
+.copuzzler-search {
+  .ts-wrapper {
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .ts-wrapper .ts-control,
+  .ts-wrapper.single .ts-control {
+    min-height: 48px;
+    padding: .6rem .9rem .6rem 2.7rem;
+    // White like every other input of the form - a grey field reads as disabled
+    border: 1px solid $gray-400 !important;
+    border-radius: $border-radius;
+    background-color: $white;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c727f' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: .85rem center;
+    background-size: 1.15rem;
+    cursor: text;
+    transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+  }
+
+  .ts-wrapper.single .ts-control::after {
+    display: none;
+  }
+
+  .ts-wrapper .ts-control > input {
+    min-width: 12rem;
+    font-size: 1rem; // 16px: no zoom-in on iOS when the field gets focus
+    cursor: text;
+
+    &::placeholder {
+      color: $gray-600;
+      opacity: 1;
+    }
+  }
+
+  .ts-wrapper.focus .ts-control {
+    border-color: $primary !important;
+    background-color: $white;
+    box-shadow: 0 0 0 .2rem rgba($primary, .15);
   }
 }

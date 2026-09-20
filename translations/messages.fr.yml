@@ -3460,6 +3460,7 @@ private_profile_viewers:
   "show_all": "Tout afficher (%count%)"
   "show_less": "Afficher moins"
   "full": "C'est le maximum de 15 co-puzzleurs."
+  "search_label": "Quelqu'un d'autre ?"
   "search_placeholder": "Rechercher un joueur ou ajouter un invité…"
   "search_help": "Recherchez par nom ou code joueur. Une personne sans compte ? Saisissez son nom et ajoutez-la comme invité."
   "search_failed": "La recherche est indisponible pour le moment - vous pouvez tout de même ajouter un invité ou saisir un code joueur commençant par #."

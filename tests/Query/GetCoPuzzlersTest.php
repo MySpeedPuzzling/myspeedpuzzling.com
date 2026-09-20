@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetCoPuzzlers;
 use SpeedPuzzling\Web\Results\PersonSuggestion;
+use SpeedPuzzling\Web\Results\TeamSuggestion;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -59,11 +60,33 @@ final class GetCoPuzzlersTest extends KernelTestCase
         self::assertLessThan(
             array_search('Old Friend', $labels, true),
             array_search($this->adminLabel($people), $labels, true),
-            'One time yesterday weighs more than three times three years ago',
+            'Whoever you puzzled with in the last two days comes first, however often you puzzled with others',
         );
         self::assertSame(3, $people['Old Friend']->timesCount);
         self::assertTrue($people['Old Friend']->isGuest());
         self::assertSame('Old Friend', $people['Old Friend']->value);
+    }
+
+    public function testOutsideTheLastTwoDaysItIsTheCountThatDecides(): void
+    {
+        $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Old Friend'], $this->now->modify('-3 years'));
+        $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Old Friend'], $this->now->modify('-3 years'));
+        $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Old Friend'], $this->now->modify('-3 years'));
+        $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Last Week'], $this->now->modify('-7 days'));
+        $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Today', 'Somebody'], $this->now);
+        $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Yesterday'], $this->now->modify('-1 day'));
+
+        $suggestions = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $labels = array_values(array_filter(
+            array_map(static fn(PersonSuggestion $person): string => $person->label, $suggestions->people),
+            static fn(string $label): bool => in_array($label, ['Old Friend', 'Last Week', 'Today', 'Yesterday'], true),
+        ));
+        self::assertSame(['Today', 'Yesterday', 'Old Friend', 'Last Week'], $labels);
+
+        // Teams follow the same rule
+        $teamFirstMembers = array_map(static fn(TeamSuggestion $team): string => $team->memberKeys[0], $suggestions->teams);
+        self::assertSame(['g:today', 'g:yesterday', 'g:old friend', 'g:last week'], $teamFirstMembers);
     }
 
     public function testCountsSplitPairFromTeamAndIncludeTimesTrackedByOthers(): void

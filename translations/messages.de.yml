@@ -3458,6 +3458,7 @@ private_profile_viewers:
   "show_all": "Alle anzeigen (%count%)"
   "show_less": "Weniger anzeigen"
   "full": "Das ist das Maximum von 15 Mitspielern."
+  "search_label": "Jemand anderes?"
   "search_placeholder": "Spieler suchen oder Gast hinzufügen…"
   "search_help": "Suchen Sie nach Name oder Spielercode. Jemand ohne Konto? Geben Sie den Namen ein und fügen Sie die Person als Gast hinzu."
   "search_failed": "Die Suche ist gerade nicht verfügbar - Sie können trotzdem einen Gast hinzufügen oder einen Spielercode eingeben, der mit # beginnt."

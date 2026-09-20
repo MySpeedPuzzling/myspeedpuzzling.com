@@ -3748,6 +3748,7 @@ copuzzler_picker:
     show_all: "Show all (%count%)"
     show_less: "Show less"
     full: "That is the maximum of 15 co-puzzlers."
+    search_label: "Somebody else?"
     search_placeholder: "Search a player or add a guest…"
     search_help: "Search by name or player code. Someone without an account? Type their name and add them as a guest."
     search_failed: "Search is unavailable right now - you can still add a guest or type a player code starting with #."

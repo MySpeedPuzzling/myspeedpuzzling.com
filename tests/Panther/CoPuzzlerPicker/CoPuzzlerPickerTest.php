@@ -176,6 +176,22 @@ final class CoPuzzlerPickerTest extends CoPuzzlerPickerTestCase
         self::assertStringContainsString('2×', self::text($client, '.copuzzler-identity'));
     }
 
+    public function testWhoeverYouPuzzledWithLatelyComesFirstThenTheMostFrequent(): void
+    {
+        $client = self::openAddForm();
+        self::seedTeam(null, [self::ADMIN, self::JOHN], times: 6, daysAgo: 20);
+        self::seedTeam(null, [self::ADMIN, self::MICHAEL], times: 3, daysAgo: 90);
+        self::seedTeam(null, [self::ADMIN, 'Grandma'], times: 1, daysAgo: 1);
+        self::seedTeam(null, [self::ADMIN, self::SARAH], times: 2, daysAgo: 0);
+
+        self::switchTo($client, 'pair');
+        self::waitForSuggestions($client);
+
+        // Today, yesterday - and only then by how often
+        self::assertSame([self::SARAH, 'g:grandma', self::JOHN, self::MICHAEL], array_slice(self::offeredPeople($client), 0, 4));
+
+    }
+
     public function testNoMorePeopleThanTheMaximum(): void
     {
         $client = self::openAddForm();

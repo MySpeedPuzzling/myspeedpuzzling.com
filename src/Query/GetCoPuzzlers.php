@@ -23,6 +23,12 @@ readonly final class GetCoPuzzlers
      */
     private const int SCORE_HALF_LIFE_DAYS = 60;
 
+    /**
+     * Whoever the player puzzled with this recently comes first, latest first - most likely the people
+     * they are with right now. Everybody else is ordered by how often, the score only breaks ties.
+     */
+    private const int RECENT_DAYS = 2;
+
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
@@ -44,6 +50,7 @@ readonly final class GetCoPuzzlers
         // A private co-puzzler is listed by the player code the viewer once entered, nothing more
         $isPrivate = $this->privateProfileAccess->sqlIsPrivate('player');
         $halfLife = self::SCORE_HALF_LIFE_DAYS;
+        $recentSince = $this->clock->now()->modify('-' . self::RECENT_DAYS . ' days')->format('Y-m-d H:i:s');
 
         $query = <<<SQL
 SELECT
@@ -75,7 +82,12 @@ LEFT JOIN player ON player.id = member.player_id
 WHERE me.player_id = :playerId
     AND (stats.times_count > 0 OR team.name IS NOT NULL OR team.prepared_by_id IS NOT NULL)
     {$noHiddenMember}
-ORDER BY stats.score DESC, team.id, member.position
+ORDER BY
+    CASE WHEN stats.last_together_at >= CAST(:recentSince AS TIMESTAMP) THEN stats.last_together_at END DESC NULLS LAST,
+    stats.times_count DESC,
+    stats.score DESC,
+    team.id,
+    member.position
 SQL;
 
         /**
@@ -98,6 +110,7 @@ SQL;
         $rows = $this->database->fetchAllAssociative($query, [
             'playerId' => $playerId,
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            'recentSince' => $recentSince,
         ]);
 
         /** @var array<string, array{name: null|string, size: int, count: int, last: null|string, score: float, members: list<string>}> $teams */
@@ -165,7 +178,13 @@ SQL;
             ];
         }
 
-        uasort($people, static fn(array $a, array $b): int => [$b['score'], $b['count']] <=> [$a['score'], $a['count']]);
+        // Same rule as the teams above
+        $recent = static function (array $person) use ($recentSince): string {
+            $last = $person['last'] ?? null;
+
+            return is_string($last) && $last >= $recentSince ? $last : '';
+        };
+        uasort($people, static fn(array $a, array $b): int => [$recent($b), $b['count'], $b['score']] <=> [$recent($a), $a['count'], $a['score']]);
 
         $teamSuggestions = [];
 

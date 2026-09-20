@@ -18,6 +18,8 @@ readonly final class PlayerConnection
         public null|string $playerAvatar,
         public bool $isPrivate,
         public bool $isMutual,
+        // The player's own setting, whoever is looking - $isPrivate is "hidden from this viewer"
+        public bool $isPrivateProfile,
     ) {
     }
 
@@ -30,6 +32,7 @@ readonly final class PlayerConnection
      *     player_avatar: null|string,
      *     is_private: bool,
      *     is_mutual: bool,
+ *     is_private_profile: bool,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -42,6 +45,7 @@ readonly final class PlayerConnection
             playerAvatar: $row['player_avatar'],
             isPrivate: $row['is_private'],
             isMutual: $row['is_mutual'],
+            isPrivateProfile: $row['is_private_profile'],
         );
     }
 }

@@ -45,6 +45,7 @@ SELECT
     other.country AS player_country,
     other.avatar AS player_avatar,
     {$this->privateProfileAccess->sqlIsPrivate('other')} AS is_private,
+    other.is_private AS is_private_profile,
     other.favorite_players::jsonb @> jsonb_build_array(:playerId::text) AS is_mutual
 FROM player me
 CROSS JOIN LATERAL json_array_elements_text(me.favorite_players) AS favorite(player_id)
@@ -74,6 +75,7 @@ SELECT
     other.country AS player_country,
     other.avatar AS player_avatar,
     {$this->privateProfileAccess->sqlIsPrivate('other')} AS is_private,
+    other.is_private AS is_private_profile,
     me.favorite_players::jsonb @> jsonb_build_array(other.id::text) AS is_mutual
 FROM player me
 JOIN player other ON other.favorite_players::jsonb @> jsonb_build_array(:playerId::text)
@@ -157,6 +159,7 @@ SQL;
              *     player_country: null|string,
              *     player_avatar: null|string,
              *     is_private: bool,
+             *     is_private_profile: bool,
              *     is_mutual: bool,
              * } $row
              */

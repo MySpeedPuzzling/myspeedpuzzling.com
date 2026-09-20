@@ -409,7 +409,7 @@
   "player_code_help": "Un código de jugador único - al menos 3 caracteres, hasta 8 caracteres. Solo puede contener letras y números, sin caracteres especiales o espacios."
   "global_search_placeholder": "Buscar puzzle o jugador..."
   "private_profile": "Perfil privado"
-  "private_profile_help": "Tu nombre no se mostrará en ningún lugar y los tiempos se presentarán anónimamente."
+  "private_profile_help": "Tus tiempos se muestran de forma anónima, como Puzzlero Oculto: tu nombre nunca se relaciona con tus resultados. Tu nombre sigue apareciendo donde actúas en persona: anuncios del mercado, valoraciones, mensajes, préstamos y solicitudes de funciones. Puedes elegir jugadores que podrán ver tu nombre junto con tus resultados."
 "puzzlers_comparison":
   "meta":
     "title": "Comparación de Puzzleros"
@@ -3403,3 +3403,23 @@ average_time_chart:
     per_week: "Por semana"
     heading_month: "Tiempo medio de %pieces% piezas por mes"
     heading_week: "Tiempo medio de %pieces% piezas por semana"
+
+private_profile_viewers:
+    title: "Quién puede ver mi perfil"
+    intro: "Tu perfil es privado, así que todos te ven como Puzzlero Oculto. Los jugadores que añadas aquí te verán como si tu perfil fuera público: tu nombre, tu perfil y tus resultados en los puzzles, en la actividad reciente y en sus notificaciones. Nadie más, y puedes quitar a cualquiera cuando quieras. Las clasificaciones globales y la clasificación MSP Rating siguen cerradas a los perfiles privados para todos."
+    profile_is_public: "Tu perfil es público ahora mismo, así que esta lista no tiene efecto. Se conserva por si vuelves a un perfil privado."
+    back_to_settings: "Ajustes del perfil"
+    add_title: "Permitir que alguien me vea"
+    add_label: "Jugadores"
+    add_help: "Busca por nombre o código de jugador."
+    add_submit: "Añadir"
+    choose_player: "Elige al menos un jugador."
+    suggestions: "Jugadores que sigues:"
+    list_title: "Personas que pueden verme (%count%)"
+    empty: "Nadie todavía: estás oculto para todos."
+    remove: "Quitar"
+    added: "Hecho. Ahora ven tu perfil y tus resultados."
+    removed: "Quitado. Vuelven a verte como Puzzlero Oculto."
+    limit_reached: "Puedes permitir que como máximo %limit% jugadores vean tu perfil privado."
+    manage: "Elegir quién puede verme"
+    manage_help: "Deja que amigos seleccionados vean tu nombre, perfil y resultados mientras sigues oculto para los demás."

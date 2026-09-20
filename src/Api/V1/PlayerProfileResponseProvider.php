@@ -59,7 +59,7 @@ final readonly class PlayerProfileResponseProvider implements ProviderInterface
             bio: $profile->bio,
             facebook: $profile->facebook,
             instagram: $profile->instagram,
-            isPrivate: $profile->isPrivate,
+            isPrivate: $profile->isPrivateProfile,
             hasActiveMembership: $profile->activeMembership,
             rating: $showsRanking ? $this->profileInsights->rating($profile->playerId) : null,
             skill: $showsRanking && $this->tokenOwner->isMember() ? $this->profileInsights->skill($profile->playerId) : null,

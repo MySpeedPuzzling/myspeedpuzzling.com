@@ -35,6 +35,7 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     membership_ends_at: null|string,
  *     is_admin: bool,
  *     is_private: bool,
+ *     is_private_profile?: bool,
  *     revealed_private_player_ids?: null|string,
  *     puzzle_collection_visibility: string,
  *     unsolved_puzzles_visibility: string,
@@ -109,6 +110,11 @@ readonly final class PlayerProfile
          * @var list<string>
          */
         public array $hiddenPlayerIds = [],
+        /**
+         * The player's own setting, whoever is looking. `$isPrivate` answers "hidden from this
+         * viewer" and is what nearly everything wants; this is for reporting the setting itself.
+         */
+        public bool $isPrivateProfile = false,
         /**
          * The viewer's own profile only: private players whose allow list names this player
          * (docs/features/private-profile-allow-list.md). Read through PrivateProfileAccess, never directly.
@@ -232,6 +238,7 @@ readonly final class PlayerProfile
             referralProgramSuspended: (bool) $row['referral_program_suspended'],
             isModerator: $row['moderator_since'] !== null,
             hiddenPlayerIds: $hiddenPlayerIds,
+            isPrivateProfile: $row['is_private_profile'] ?? $row['is_private'],
             revealedPrivatePlayerIds: $revealedPrivatePlayerIds,
         );
     }

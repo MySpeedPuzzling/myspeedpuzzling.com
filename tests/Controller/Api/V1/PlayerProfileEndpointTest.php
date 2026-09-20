@@ -258,6 +258,8 @@ final class PlayerProfileEndpointTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $this->assertSame('Jane Smith', $this->decodeRaw($browser)['name']);
+        // The flag reports her setting, not what this token happens to be shown
+        $this->assertTrue($this->decodeRaw($browser)['is_private']);
 
         self::ensureKernelShutdown();
         $browser = self::createClient();

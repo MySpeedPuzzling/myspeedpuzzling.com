@@ -410,7 +410,7 @@
   "player_code_help": "Un code joueur unique - au moins 3 caractères, jusqu'à 8 caractères. Il ne peut contenir que des lettres et des chiffres, pas de caractères spéciaux ou d'espaces."
   "global_search_placeholder": "Rechercher puzzle ou joueur..."
   "private_profile": "Profil privé"
-  "private_profile_help": "Votre nom ne sera affiché nulle part et les temps seront présentés anonymement."
+  "private_profile_help": "Vos temps sont affichés anonymement, en tant que Puzzleur masqué : votre nom n'est jamais associé à vos résultats. Votre nom apparaît toujours là où vous agissez en personne : annonces du marché, évaluations, messages, prêts et demandes de fonctionnalités. Vous pouvez choisir des joueurs autorisés à voir votre nom avec vos résultats."
 "puzzlers_comparison":
   "meta":
     "title": "Comparaison de puzzleurs"
@@ -3405,3 +3405,23 @@ average_time_chart:
     per_week: "Par semaine"
     heading_month: "Temps moyen pour %pieces% pièces par mois"
     heading_week: "Temps moyen pour %pieces% pièces par semaine"
+
+private_profile_viewers:
+    title: "Qui peut voir mon profil"
+    intro: "Votre profil est privé, tout le monde vous voit donc comme un Puzzleur masqué. Les joueurs que vous ajoutez ici vous voient comme si votre profil était public : votre nom, votre profil et vos résultats sur les puzzles, dans l'activité récente et dans leurs notifications. Personne d'autre, et vous pouvez retirer n'importe qui à tout moment. Les classements globaux et le classement MSP Rating restent fermés aux profils privés pour tout le monde."
+    profile_is_public: "Votre profil est actuellement public, cette liste n'a donc aucun effet. Elle est conservée pour le jour où vous repasserez en profil privé."
+    back_to_settings: "Paramètres du profil"
+    add_title: "Permettre à quelqu'un de me voir"
+    add_label: "Joueurs"
+    add_help: "Recherchez par nom ou par code joueur."
+    add_submit: "Ajouter"
+    choose_player: "Choisissez au moins un joueur."
+    suggestions: "Joueurs que vous suivez :"
+    list_title: "Personnes qui peuvent me voir (%count%)"
+    empty: "Personne pour l'instant - vous êtes masqué pour tout le monde."
+    remove: "Retirer"
+    added: "C'est fait. Ils voient maintenant votre profil et vos résultats."
+    removed: "Retiré. Ils vous voient à nouveau comme un Puzzleur masqué."
+    limit_reached: "Vous pouvez permettre à %limit% joueurs au maximum de voir votre profil privé."
+    manage: "Choisir qui peut me voir"
+    manage_help: "Laissez des amis choisis voir votre nom, votre profil et vos résultats tout en restant masqué pour les autres."

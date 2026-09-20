@@ -60,6 +60,7 @@ SELECT
     locale,
     is_admin,
     {$isPrivate} AS is_private,
+    player.is_private AS is_private_profile,
     puzzle_collection_visibility,
     unsolved_puzzles_visibility,
     wish_list_visibility,

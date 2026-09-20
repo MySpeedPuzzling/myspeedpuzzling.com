@@ -31,7 +31,7 @@ final class PlayerConnectionResponse
             code: $connection->playerCode,
             avatar: $connection->isPrivate ? null : $connection->playerAvatar,
             country: $connection->isPrivate ? null : $connection->playerCountry,
-            isPrivate: $connection->isPrivate,
+            isPrivate: $connection->isPrivateProfile,
             isMutual: $connection->isMutual,
         );
     }

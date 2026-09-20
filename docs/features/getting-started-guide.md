@@ -92,9 +92,5 @@ GROUP BY 1 ORDER BY 1;
 
 ## Not built yet
 
-- **First-time celebration**: after saving the very first time, a small "Nice!" moment with
-  links to statistics / ladder / finish profile - the best place to introduce those features.
-- Empty states on the profile page, collections and wishlist.
-- A welcome e-mail with the same first steps (today only the verification mail goes out).
-- "Edit profile": move the basic form to the top, fold the developer cards (tokens, applications).
-- `membership.full_description` is out of date (no Insights, "coming soon" items that shipped).
+Tracked in [`docs/TODO.md`](../TODO.md) (mirrored in issue #212) - celebration after the first time, more empty states,
+welcome e-mail, Edit profile reorder, membership benefits text.

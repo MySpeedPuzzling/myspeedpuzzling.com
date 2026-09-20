@@ -189,7 +189,6 @@ final class CoPuzzlerPickerTest extends CoPuzzlerPickerTestCase
 
         // Today, yesterday - and only then by how often
         self::assertSame([self::SARAH, 'g:grandma', self::JOHN, self::MICHAEL], array_slice(self::offeredPeople($client), 0, 4));
-
     }
 
     public function testNoMorePeopleThanTheMaximum(): void

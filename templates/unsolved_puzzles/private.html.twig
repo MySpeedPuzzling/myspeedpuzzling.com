@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'unsolved_puzzles.private'|trans }} - {{ player.playerName }}{% endblock %}
+{% block title %}{{ 'unsolved_puzzles.private'|trans }} - {{ profile_name(player) }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
 
 {% block content %}
@@ -10,7 +10,7 @@
         </div>
 
         <h2 class="h4 mb-3">{{ 'unsolved_puzzles.private'|trans }}</h2>
-        <p class="text-muted mb-4">{{ 'unsolved_puzzles.private_message'|trans({'%collection%': collectionName, '%player%': player.playerName}) }}</p>
+        <p class="text-muted mb-4">{{ 'unsolved_puzzles.private_message'|trans({'%collection%': collectionName, '%player%': profile_name(player)}) }}</p>
 
         <div class="d-flex justify-content-center gap-3">
             <a href="{{ path('puzzle_library', {playerId: player.playerId}) }}" class="btn btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">

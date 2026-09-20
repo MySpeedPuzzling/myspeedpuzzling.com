@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\RoundResult;
 use SpeedPuzzling\Web\Results\RoundResultPlayer;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\RoundResultStatus;
 use SpeedPuzzling\Web\Value\SkillTier;
@@ -34,6 +35,7 @@ readonly final class GetRoundResults
 {
     public function __construct(
         private Connection $database,
+        private PrivateProfileAccess $privateProfileAccess,
         private HiddenPlayers $hiddenPlayers,
     ) {
     }
@@ -59,7 +61,7 @@ SELECT
     owner.name AS owner_name,
     owner.code AS owner_code,
     owner.country AS owner_country,
-    owner.is_private AS owner_is_private,
+    {$this->privateProfileAccess->sqlIsPrivate('owner')} AS owner_is_private,
     owner.ranking_opted_out AS owner_ranking_opted_out,
     ps.skill_tier AS owner_skill_tier
 FROM puzzle_solving_time pst
@@ -188,7 +190,7 @@ SQL,
 
         $memberRows = $this->database->executeQuery(
             <<<SQL
-SELECT player.id, player.name, player.code, player.country, player.is_private, player.ranking_opted_out, ps.pieces_count, ps.skill_tier
+SELECT player.id, player.name, player.code, player.country, {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private, player.ranking_opted_out, ps.pieces_count, ps.skill_tier
 FROM player
 LEFT JOIN player_skill ps ON ps.player_id = player.id
 WHERE player.id IN (:ids)

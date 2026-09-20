@@ -7,6 +7,6 @@
         <p class="text-muted">{{ 'lend_borrow.borrowed.empty.message'|trans }}</p>
     {% else %}
         <h4 class="text-muted">{{ 'lend_borrow.borrowed.empty.title_other'|trans }}</h4>
-        <p class="text-muted">{{ 'lend_borrow.borrowed.empty.message_other'|trans({'%name%': player.playerName}) }}</p>
+        <p class="text-muted">{{ 'lend_borrow.borrowed.empty.message_other'|trans({'%name%': profile_name(player)}) }}</p>
     {% endif %}
 </div>

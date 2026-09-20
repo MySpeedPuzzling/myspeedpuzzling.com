@@ -12,12 +12,14 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\RecentActivityItem;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\SkillTier;
 
 readonly final class GetRecentActivity
 {
     public function __construct(
         private Connection $database,
+        private PrivateProfileAccess $privateProfileAccess,
         private ClockInterface $clock,
         private HiddenPlayers $hiddenPlayers,
     ) {
@@ -58,7 +60,7 @@ SELECT
     puzzle_solving_time.team ->> 'team_id' AS team_id,
     first_attempt,
     puzzle_solving_time.unboxed,
-    is_private,
+    {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
@@ -74,7 +76,7 @@ SELECT
             'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
-            'is_private', p.is_private,
+            'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_m.skill_tier,
             'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
         ) ORDER BY elem.ordinality)
@@ -180,7 +182,7 @@ SELECT
     puzzle_solving_time.team ->> 'team_id' AS team_id,
     first_attempt,
     puzzle_solving_time.unboxed,
-    is_private,
+    {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
@@ -196,7 +198,7 @@ SELECT
             'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
-            'is_private', p.is_private,
+            'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_m.skill_tier,
             'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
         ) ORDER BY elem.ordinality)
@@ -211,7 +213,7 @@ INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
 LEFT JOIN competition_series cs ON cs.id = competition.series_id
 LEFT JOIN player_skill ps ON ps.player_id = player.id
-WHERE player.is_private = false
+WHERE {$this->privateProfileAccess->sqlIsPublic('player')}
     {$notHidden}
 ORDER BY puzzle_solving_time.tracked_at DESC
 LIMIT :limit
@@ -338,7 +340,7 @@ SELECT
     pst.team ->> 'team_id' AS team_id,
     first_attempt,
     pst.unboxed,
-    is_private,
+    {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
@@ -354,7 +356,7 @@ SELECT
             'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
-            'is_private', p.is_private,
+            'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_m.skill_tier,
             'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
         ) ORDER BY elem.ordinality)
@@ -371,7 +373,7 @@ INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
 LEFT JOIN competition_series cs ON cs.id = competition.series_id
 LEFT JOIN player_skill ps ON ps.player_id = player.id
-WHERE is_private = false
+WHERE {$this->privateProfileAccess->sqlIsPublic('player')}
 ORDER BY pst.tracked_at DESC
 SQL;
 

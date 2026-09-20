@@ -8,11 +8,13 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PlayerNotification;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 
 readonly final class GetNotifications
 {
     public function __construct(
         private Connection $database,
+        private PrivateProfileAccess $privateProfileAccess,
         private ClockInterface $clock,
         private HiddenPlayers $hiddenPlayers,
     ) {
@@ -72,6 +74,9 @@ SQL;
     public function forPlayer(string $playerId, int $limit, int $offset = 0): array
     {
         // Lending and rating notifications are left alone: bilateral history stays readable
+        // A private solver stays masked for a reader who is not on their allow list. The editor of a
+        // shared time is named to the group on purpose (docs/features/group-time-editing.md)
+        $targetIsPrivate = "(notification.actor_player_id IS NULL AND {$this->privateProfileAccess->sqlIsPrivate('player')})";
         $solvingTimeNotHidden = $this->hiddenPlayers->sqlExclude('player.id')
             . $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
         $initiatorNotHidden = $this->hiddenPlayers->sqlExclude('initiator.id');
@@ -84,10 +89,11 @@ SELECT * FROM (
         notification.read_at,
         notification.type AS notification_type,
         player.id AS target_player_id,
-        player.name AS target_player_name,
+        CASE WHEN {$targetIsPrivate} THEN NULL ELSE player.name END AS target_player_name,
         player.code AS target_player_code,
-        player.country AS target_player_country,
-        player.avatar AS target_player_avatar,
+        CASE WHEN {$targetIsPrivate} THEN NULL ELSE player.country END AS target_player_country,
+        CASE WHEN {$targetIsPrivate} THEN NULL ELSE player.avatar END AS target_player_avatar,
+        {$targetIsPrivate} AS target_player_is_private,
         puzzle.id AS puzzle_id,
         puzzle.name AS puzzle_name,
         puzzle.alternative_name AS puzzle_alternative_name,
@@ -106,7 +112,7 @@ SELECT * FROM (
                     'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
                     'player_code', p.code,
                     'player_country', p.country,
-                    'is_private', p.is_private
+                    'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')}
                 ) ORDER BY player_elem.ordinality
             )
         END AS players,
@@ -179,6 +185,7 @@ SELECT * FROM (
         NULL::varchar AS target_player_code,
         NULL::varchar AS target_player_country,
         NULL::varchar AS target_player_avatar,
+        NULL::boolean AS target_player_is_private,
         NULL::uuid AS puzzle_id,
         NULL::varchar AS puzzle_name,
         NULL::varchar AS puzzle_alternative_name,
@@ -257,6 +264,7 @@ SELECT * FROM (
         NULL::varchar AS target_player_code,
         NULL::varchar AS target_player_country,
         NULL::varchar AS target_player_avatar,
+        NULL::boolean AS target_player_is_private,
         NULL::uuid AS puzzle_id,
         NULL::varchar AS puzzle_name,
         NULL::varchar AS puzzle_alternative_name,
@@ -330,6 +338,7 @@ SELECT * FROM (
         NULL::varchar AS target_player_code,
         NULL::varchar AS target_player_country,
         NULL::varchar AS target_player_avatar,
+        NULL::boolean AS target_player_is_private,
         NULL::uuid AS puzzle_id,
         NULL::varchar AS puzzle_name,
         NULL::varchar AS puzzle_alternative_name,
@@ -403,6 +412,7 @@ SELECT * FROM (
         NULL::varchar AS target_player_code,
         NULL::varchar AS target_player_country,
         NULL::varchar AS target_player_avatar,
+        NULL::boolean AS target_player_is_private,
         NULL::uuid AS puzzle_id,
         NULL::varchar AS puzzle_name,
         NULL::varchar AS puzzle_alternative_name,
@@ -484,6 +494,7 @@ SELECT * FROM (
         NULL::varchar AS target_player_code,
         NULL::varchar AS target_player_country,
         NULL::varchar AS target_player_avatar,
+        NULL::boolean AS target_player_is_private,
         NULL::uuid AS puzzle_id,
         NULL::varchar AS puzzle_name,
         NULL::varchar AS puzzle_alternative_name,
@@ -559,6 +570,7 @@ SELECT * FROM (
         NULL::varchar AS target_player_code,
         NULL::varchar AS target_player_country,
         NULL::varchar AS target_player_avatar,
+        NULL::boolean AS target_player_is_private,
         NULL::uuid AS puzzle_id,
         NULL::varchar AS puzzle_name,
         NULL::varchar AS puzzle_alternative_name,

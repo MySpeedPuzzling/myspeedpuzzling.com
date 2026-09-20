@@ -62,6 +62,7 @@ SELECT
     country AS player_country
 FROM player
 WHERE player.country = :countryCode
+    AND player.is_private = false
     {$notHidden}
 ORDER BY name
 SQL;

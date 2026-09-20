@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Events\PuzzleSolved;
+use SpeedPuzzling\Web\Query\GetPrivateProfileViewers;
 use SpeedPuzzling\Web\Query\GetSubscribedPlayers;
 use SpeedPuzzling\Web\Query\GetUserBlocks;
 use SpeedPuzzling\Web\Repository\NotificationRepository;
@@ -21,6 +22,7 @@ readonly final class NotifyWhenPuzzleSolved
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         private PlayerRepository $playerRepository,
         private GetSubscribedPlayers $getSubscribedPlayers,
+        private GetPrivateProfileViewers $getPrivateProfileViewers,
         private GetUserBlocks $getUserBlocks,
         private NotificationRepository $notificationRepository,
         private ClockInterface $clock,
@@ -31,31 +33,27 @@ readonly final class NotifyWhenPuzzleSolved
     {
         $solvingTime = $this->puzzleSolvingTimeRepository->get($event->puzzleSolvingTimeId->toString());
 
-        // Players whose followers get notified - private profiles notify nobody
-        $solvingPlayerIds = [];
+        // Followers of a public player get notified; of a private player only those the player
+        // put on their allow list (docs/features/private-profile-allow-list.md)
+        $publicPlayerIds = [];
+        $subscribedPlayerIds = [];
 
-        if ($solvingTime->team === null) {
-            if ($solvingTime->player->isPrivate === false) {
-                $solvingPlayerIds[] = $solvingTime->player->id->toString();
+        foreach ($solvingTime->memberPlayerIds() as $memberPlayerId) {
+            if ($this->playerRepository->get($memberPlayerId)->isPrivate === false) {
+                $publicPlayerIds[] = $memberPlayerId;
+
+                continue;
             }
-        } else {
-            foreach ($solvingTime->team->puzzlers as $puzzler) {
-                if ($puzzler->playerId === null) {
-                    continue;
-                }
 
-                if ($this->playerRepository->get($puzzler->playerId)->isPrivate === false) {
-                    $solvingPlayerIds[] = $puzzler->playerId;
-                }
-            }
-        }
-
-        if ($solvingPlayerIds === []) {
-            return;
+            $subscribedPlayerIds = [...$subscribedPlayerIds, ...$this->getPrivateProfileViewers->followersAllowedBy($memberPlayerId)];
         }
 
         // One subscriber gets one notification, however many of the team they follow
-        $subscribedPlayerIds = $this->getSubscribedPlayers->ofPlayers($solvingPlayerIds);
+        if ($publicPlayerIds !== []) {
+            $subscribedPlayerIds = [...$subscribedPlayerIds, ...$this->getSubscribedPlayers->ofPlayers($publicPlayerIds)];
+        }
+
+        $subscribedPlayerIds = array_values(array_unique($subscribedPlayerIds));
 
         if ($subscribedPlayerIds === []) {
             return;

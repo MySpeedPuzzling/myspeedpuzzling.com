@@ -51,6 +51,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetPlayersForWjpfSync' => self::BACKGROUND,
         'GetPlayerStatistics' => self::OWN_DATA,
         'GetPlayersWithUnreadMessages' => 'Filters on user_block itself (predates HiddenPlayers).',
+        'GetPrivateProfileViewers' => 'The owner\'s own allow list and its notification fan-out - the owner named every player on it.',
         'GetPuzzleChangeRequests' => self::ADMIN,
         'GetPuzzleMergeRequests' => self::ADMIN,
         'GetPuzzleMergeReviewQueue' => self::ADMIN,

@@ -7,11 +7,13 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\MostActivePlayer;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 
 readonly final class GetMostActivePlayers
 {
     public function __construct(
         private Connection $database,
+        private PrivateProfileAccess $privateProfileAccess,
         private HiddenPlayers $hiddenPlayers,
     ) {
     }
@@ -26,7 +28,7 @@ SELECT
     p.name AS player_name,
     p.country AS player_country,
     p.code AS player_code,
-    is_private,
+    {$this->privateProfileAccess->sqlIsPrivate('p')} AS is_private,
     COUNT(DISTINCT (subquery.puzzle_id, subquery.player_id)) as solved_puzzles_count
 FROM (
     SELECT
@@ -69,7 +71,7 @@ SELECT
     COUNT(puzzle_solving_time.id) as solved_puzzles_count,
     SUM(puzzle.pieces_count) as total_pieces_count,
     SUM(puzzle_solving_time.seconds_to_solve) as total_seconds,
-    is_private
+    {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private
 FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
@@ -125,7 +127,7 @@ SELECT
     COUNT(puzzle_solving_time.id) as solved_puzzles_count,
     SUM(puzzle.pieces_count) as total_pieces_count,
     SUM(puzzle_solving_time.seconds_to_solve) as total_seconds,
-    is_private
+    {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private
 FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id

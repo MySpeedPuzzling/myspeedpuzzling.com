@@ -7,12 +7,14 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\Puzzler;
 
 readonly final class GetTeamPlayers
 {
     public function __construct(
         private Connection $database,
+        private PrivateProfileAccess $privateProfileAccess,
         private HiddenPlayers $hiddenPlayers,
     ) {
     }
@@ -37,7 +39,7 @@ SELECT
     COALESCE(p.name, player_elem.player ->> 'player_name') AS player_name,
     p.country AS player_country,
     p.code AS player_code,
-    p.is_private AS is_private
+    {$this->privateProfileAccess->sqlIsPrivate('p')} AS is_private
 FROM puzzle_solving_time
 LEFT JOIN LATERAL
     json_array_elements(puzzle_solving_time.team -> 'puzzlers')

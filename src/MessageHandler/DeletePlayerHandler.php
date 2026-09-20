@@ -30,6 +30,7 @@ use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Entity\SoldSwappedItem;
 use SpeedPuzzling\Web\Entity\Stopwatch;
 use SpeedPuzzling\Web\Entity\TransactionRating;
+use SpeedPuzzling\Web\Entity\PrivateProfileViewer;
 use SpeedPuzzling\Web\Entity\UserBlock;
 use SpeedPuzzling\Web\Entity\WishListItem;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -74,6 +75,7 @@ final class DeletePlayerHandler
         $this->scrubFavoritePlayers($playerId);
         $this->deletePlayerOwnedRows($playerId);
         $this->deleteUserBlocks($playerId);
+        $this->deletePrivateProfileViewers($playerId);
         $this->anonymizeConversations($player, $playerName);
         $this->anonymizeChatMessages($player, $playerName);
         $this->anonymizeFeatureRequests($player, $playerName);
@@ -253,6 +255,13 @@ final class DeletePlayerHandler
     {
         $this->entityManager->createQuery(
             'DELETE FROM ' . UserBlock::class . ' ub WHERE ub.blocker = :p OR ub.blocked = :p',
+        )->setParameter('p', $playerId)->execute();
+    }
+
+    private function deletePrivateProfileViewers(string $playerId): void
+    {
+        $this->entityManager->createQuery(
+            'DELETE FROM ' . PrivateProfileViewer::class . ' ppv WHERE ppv.owner = :p OR ppv.viewer = :p',
         )->setParameter('p', $playerId)->execute();
     }
 

@@ -164,6 +164,34 @@ final class NotifyWhenPuzzleSolvedTest extends KernelTestCase
         self::assertSame([], $this->notificationsOf($timeId));
     }
 
+    /**
+     * docs/features/private-profile-allow-list.md: following a private player is anybody's choice,
+     * hearing about them is the private player's - only followers on their allow list are told.
+     */
+    public function testPrivateSoloPlayerNotifiesOnlyFollowersOnTheirAllowList(): void
+    {
+        [$allowedFollower, $follower] = $this->createFollowersOf([PlayerFixture::PLAYER_PRIVATE], 2);
+        [$allowedButNotFollowing] = $this->createFollowersOf([PlayerFixture::PLAYER_ADMIN], 1);
+        $this->allow(PlayerFixture::PLAYER_PRIVATE, $allowedFollower);
+        $this->allow(PlayerFixture::PLAYER_PRIVATE, $allowedButNotFollowing);
+
+        $timeId = $this->addTime(self::PLAYER_PRIVATE_USER_ID, PuzzleFixture::PUZZLE_1500_01);
+
+        self::assertSame([$allowedFollower], array_column($this->notificationsOf($timeId), 'player_id'));
+        self::assertNotContains($follower, array_column($this->notificationsOf($timeId), 'player_id'));
+    }
+
+    public function testAllowedFollowerThePrivatePlayerBlockedIsNotNotified(): void
+    {
+        [$allowedFollower] = $this->createFollowersOf([PlayerFixture::PLAYER_PRIVATE], 1);
+        $this->allow(PlayerFixture::PLAYER_PRIVATE, $allowedFollower);
+        $this->block(PlayerFixture::PLAYER_PRIVATE, $allowedFollower);
+
+        $timeId = $this->addTime(self::PLAYER_PRIVATE_USER_ID, PuzzleFixture::PUZZLE_1500_01);
+
+        self::assertSame([], $this->notificationsOf($timeId));
+    }
+
     public function testPlayerWithoutFollowersNotifiesNobody(): void
     {
         $this->database->executeStatement("UPDATE player SET favorite_players = '[]'");
@@ -171,6 +199,14 @@ final class NotifyWhenPuzzleSolvedTest extends KernelTestCase
         $timeId = $this->addTime(self::PLAYER_ADMIN_USER_ID, PuzzleFixture::PUZZLE_1500_01);
 
         self::assertSame([], $this->notificationsOf($timeId));
+    }
+
+    private function allow(string $ownerId, string $viewerId): void
+    {
+        $this->database->executeStatement(
+            'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (:id, :owner, :viewer, NOW())',
+            ['id' => Uuid::uuid7()->toString(), 'owner' => $ownerId, 'viewer' => $viewerId],
+        );
     }
 
     private function block(string $blockerId, string $blockedId): void

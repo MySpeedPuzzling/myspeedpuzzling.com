@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Entity\UserBlock;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\BlockUser;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\PrivateProfileViewerRepository;
 use SpeedPuzzling\Web\Repository\UserBlockRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -19,6 +20,7 @@ readonly final class BlockUserHandler
     public function __construct(
         private PlayerRepository $playerRepository,
         private UserBlockRepository $userBlockRepository,
+        private PrivateProfileViewerRepository $privateProfileViewerRepository,
         private ClockInterface $clock,
     ) {
     }
@@ -43,6 +45,12 @@ readonly final class BlockUserHandler
 
         // Only the blocker's side: touching the blocked player's favourites would give the block away
         $blocker->discardFavoritePlayerId($blocked->id->toString());
+
+        // Whoever I block no longer belongs on my private profile's allow list
+        $allowed = $this->privateProfileViewerRepository->findByOwnerAndViewer($blocker, $blocked);
+        if ($allowed !== null) {
+            $this->privateProfileViewerRepository->remove($allowed);
+        }
 
         $userBlock = new UserBlock(
             id: Uuid::uuid7(),

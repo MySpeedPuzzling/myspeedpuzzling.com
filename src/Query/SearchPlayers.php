@@ -7,12 +7,14 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\PlayerIdentification;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 
 readonly final class SearchPlayers
 {
     public function __construct(
         private Connection $database,
         private HiddenPlayers $hiddenPlayers,
+        private PrivateProfileAccess $privateProfileAccess,
     ) {
     }
 
@@ -26,13 +28,18 @@ readonly final class SearchPlayers
     {
         $notHidden = $includeHidden ? '' : $this->hiddenPlayers->sqlExclude('player.id');
 
+        // A private player is found by their exact player code only - the handle they hand out
+        // themselves, e.g. to be added to a pair/team time - and then without name, avatar or
+        // country. Players on their allow list find them like anybody else.
+        $isPrivate = $this->privateProfileAccess->sqlIsPrivate('player');
+
         $query = <<<SQL
 SELECT
     id AS player_id,
-    name AS player_name,
-    country AS player_country,
+    CASE WHEN {$isPrivate} THEN NULL ELSE name END AS player_name,
+    CASE WHEN {$isPrivate} THEN NULL ELSE country END AS player_country,
     code AS player_code,
-    avatar AS player_avatar,
+    CASE WHEN {$isPrivate} THEN NULL ELSE avatar END AS player_avatar,
     (
       CASE
         WHEN LOWER(code) = LOWER(:searchQuery) THEN 6 -- Exact match on code with diacritics
@@ -59,6 +66,7 @@ WHERE (
     LOWER(name) LIKE LOWER(:searchFullLikeQuery) OR LOWER(code) LIKE LOWER(:searchFullLikeQuery)
     OR LOWER(unaccent(name)) LIKE LOWER(unaccent(:searchFullLikeQuery)) OR LOWER(unaccent(code)) LIKE LOWER(unaccent(:searchFullLikeQuery))
 )
+    AND ({$isPrivate} = false OR LOWER(code) = LOWER(:searchQuery))
     {$notHidden}
 ORDER BY match_score DESC
 SQL;

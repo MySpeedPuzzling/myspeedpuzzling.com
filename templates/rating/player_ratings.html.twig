@@ -1,11 +1,11 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ player.playerName ?? ('#' ~ player.code) }} - {{ 'rating.title'|trans }}{% endblock %}
+{% block title %}{{ profile_name(player) }} - {{ 'rating.title'|trans }}{% endblock %}
 
 {% block content %}
     <div class="mb-4">
         <h1 class="h3">
-            {{ 'rating.title_for_player'|trans({'%name%': player.playerName ?? ('#' ~ player.code)}) }}
+            {{ 'rating.title_for_player'|trans({'%name%': profile_name(player)}) }}
         </h1>
 
         {% if summary is not null %}

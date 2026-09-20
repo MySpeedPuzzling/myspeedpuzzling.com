@@ -7,11 +7,13 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\StopwatchMilestone;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 
 readonly final class GetStopwatchMilestones
 {
     public function __construct(
         private Connection $database,
+        private PrivateProfileAccess $privateProfileAccess,
         private HiddenPlayers $hiddenPlayers,
     ) {
     }
@@ -130,7 +132,7 @@ JOIN puzzle_solving_time pst ON pst.player_id = fav.id AND pst.puzzle_id = :puzz
 WHERE player.id = :playerId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.puzzlers_count = 1
-    AND fav.is_private = false
+    AND {$this->privateProfileAccess->sqlIsPublic('fav')}
     {$favoriteNotHidden}
 GROUP BY fav.id, fav.name, fav.code, fav.avatar
 ORDER BY seconds_to_solve ASC

@@ -9,11 +9,13 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleTrackingNotFound;
 use SpeedPuzzling\Web\Results\TrackedPuzzleDetail;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 
 readonly final class GetPuzzleTracking
 {
     public function __construct(
         private Connection $database,
+        private PrivateProfileAccess $privateProfileAccess,
         private ClockInterface $clock,
     ) {
     }
@@ -52,7 +54,7 @@ SELECT
                     'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
                     'player_code', p.code,
                     'player_country', p.country,
-                    'is_private', p.is_private
+                    'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')}
                 ) ORDER BY player_elem.ordinality
             )
         ELSE NULL

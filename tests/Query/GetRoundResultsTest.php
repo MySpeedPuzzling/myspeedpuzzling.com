@@ -105,10 +105,10 @@ final class GetRoundResultsTest extends KernelTestCase
             $this->timeIds($this->results(viewerPlayerId: PlayerFixture::PLAYER_REGULAR)),
         );
 
-        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
         self::assertSame(
             [PuzzleSolvingTimeFixture::TIME_11, PuzzleSolvingTimeFixture::TIME_09],
-            $this->timeIds($this->results(viewerPlayerId: PlayerFixture::PLAYER_WITH_FAVORITES)),
+            $this->timeIds($this->results(viewerPlayerId: PlayerFixture::PLAYER_WITH_STRIPE)),
         );
 
         TestingViewer::signOut(self::getContainer());

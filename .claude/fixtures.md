@@ -252,6 +252,7 @@ Seller settings: `PLAYER_WITH_STRIPE` has ISO currency **GBP** (listings eligibl
 | Active membership | PLAYER_WITH_STRIPE, PLAYER_ADMIN |
 | Admin privileges | PLAYER_ADMIN |
 | Private profile | PLAYER_PRIVATE |
+| On a private profile's allow list (`PrivateProfileViewerFixture`) | PLAYER_WITH_FAVORITES (allowed by PLAYER_PRIVATE; nobody else is) |
 | Stripe customer | PLAYER_WITH_STRIPE |
 | Owns lent puzzles | PLAYER_WITH_STRIPE, PLAYER_REGULAR |
 | Holds borrowed puzzle | PLAYER_REGULAR, PLAYER_WITH_FAVORITES, PLAYER_WITH_STRIPE |

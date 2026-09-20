@@ -10,12 +10,14 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\ConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Results\NotConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\CountryCode;
 
 readonly final class GetCompetitionParticipants
 {
     public function __construct(
         private Connection $database,
+        private PrivateProfileAccess $privateProfileAccess,
         private ClockInterface $clock,
         private HiddenPlayers $hiddenPlayers,
     ) {
@@ -35,7 +37,7 @@ SELECT DISTINCT
     player.name AS player_name,
     player.code AS player_code,
     player.country AS player_country,
-    player.is_private AS is_private
+    {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private
 FROM
     competition_participant
 INNER JOIN

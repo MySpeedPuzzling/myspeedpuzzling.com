@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 
 /**
  * @phpstan-import-type PlayerProfileRow from PlayerProfile
@@ -20,6 +21,7 @@ readonly final class GetPlayerProfile
         private Connection $database,
         private ClockInterface $clock,
         private HiddenPlayers $hiddenPlayers,
+        private PrivateProfileAccess $privateProfileAccess,
     ) {
     }
 
@@ -35,6 +37,8 @@ readonly final class GetPlayerProfile
         if (Uuid::isValid($playerId) === false || $this->hiddenPlayers->isHidden($playerId)) {
             throw new PlayerNotFound();
         }
+
+        $isPrivate = $this->privateProfileAccess->sqlIsPrivate('player');
 
         $query = <<<SQL
 SELECT
@@ -55,7 +59,7 @@ SELECT
     modal_displayed,
     locale,
     is_admin,
-    is_private,
+    {$isPrivate} AS is_private,
     puzzle_collection_visibility,
     unsolved_puzzles_visibility,
     wish_list_visibility,
@@ -106,6 +110,8 @@ SQL;
      */
     public function byUserId(string $userId): PlayerProfile
     {
+        $revealedIds = PrivateProfileAccess::sqlRevealedIdsOf('player');
+
         $query = <<<SQL
 SELECT
     player.id AS player_id,
@@ -126,6 +132,7 @@ SELECT
     locale,
     is_admin,
     is_private,
+    {$revealedIds} AS revealed_private_player_ids,
     puzzle_collection_visibility,
     unsolved_puzzles_visibility,
     wish_list_visibility,

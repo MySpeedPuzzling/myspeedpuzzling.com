@@ -258,19 +258,26 @@
                             {% else %}
                                 {# Puzzle solving notification #}
                                 <td class="text-center" style="width: 60px;">
-                                    <a href="{{ path('player_profile', {'playerId': notification.targetPlayerId}) }}">
-                                        {% if notification.targetPlayerAvatar is not null %}
-                                            <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|thumbnail('puzzle_small') }}">
-                                        {% else %}
-                                            <span class="avatar-name rounded-circle">{{ notification.targetPlayerName|slice(0, 1)|upper }}</span>
-                                        {% endif %}
-                                    </a>
+                                    {% if notification.targetPlayerIsPrivate %}
+                                        <span class="avatar-name rounded-circle"><i class="bi bi-incognito"></i></span>
+                                    {% else %}
+                                        <a href="{{ path('player_profile', {'playerId': notification.targetPlayerId}) }}">
+                                            {% if notification.targetPlayerAvatar is not null %}
+                                                <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|thumbnail('puzzle_small') }}">
+                                            {% else %}
+                                                <span class="avatar-name rounded-circle">{{ notification.targetPlayerName|slice(0, 1)|upper }}</span>
+                                            {% endif %}
+                                        </a>
+                                    {% endif %}
                                 </td>
 
                                 <td class="align-middle fs-sm text-muted">
                                     <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
 
-                                    {% if notification.players is null %}
+                                    {% if notification.players is null and notification.targetPlayerIsPrivate %}
+                                        <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+                                        <i class="bi bi-incognito text-muted"></i>
+                                    {% elseif notification.players is null %}
                                         <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: notification.targetPlayerId}) }}">
                                             {{ notification.targetPlayerName }}
                                         </a>

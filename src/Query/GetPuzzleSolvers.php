@@ -10,12 +10,14 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\SkillTier;
 
 readonly final class GetPuzzleSolvers
 {
     public function __construct(
         private Connection $database,
+        private PrivateProfileAccess $privateProfileAccess,
         private HiddenPlayers $hiddenPlayers,
     ) {
     }
@@ -45,7 +47,7 @@ SELECT
     puzzle_solving_time.tracked_at,
     first_attempt,
     unboxed,
-    is_private,
+    {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
@@ -146,7 +148,7 @@ SELECT
             'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
-            'is_private', p.is_private,
+            'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_member.skill_tier,
             'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
         ) ORDER BY player_elem.ordinality
@@ -240,7 +242,7 @@ SELECT
             'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
-            'is_private', p.is_private,
+            'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_member.skill_tier,
             'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
         ) ORDER BY player_elem.ordinality

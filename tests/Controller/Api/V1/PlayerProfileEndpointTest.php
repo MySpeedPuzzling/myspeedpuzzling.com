@@ -245,6 +245,31 @@ final class PlayerProfileEndpointTest extends WebTestCase
     }
 
     /**
+     * docs/features/private-profile-allow-list.md - PrivateProfileViewerFixture: the private
+     * player allows PLAYER_WITH_FAVORITES. A user token of theirs reads the profile like a public
+     * one; a machine token has no viewer and never does.
+     */
+    public function testPrivateProfileIsOpenToATokenOfAnAllowedPlayerOnly(): void
+    {
+        $browser = self::createClient();
+        $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_WITH_FAVORITES, ['profile:read']);
+
+        $browser->request('GET', $this->endpoint(PlayerFixture::PLAYER_PRIVATE));
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSame('Jane Smith', $this->decodeRaw($browser)['name']);
+
+        self::ensureKernelShutdown();
+        $browser = self::createClient();
+        $this->authenticateClientCredentials($browser);
+
+        $browser->request('GET', $this->endpoint(PlayerFixture::PLAYER_PRIVATE));
+
+        $this->assertResponseIsSuccessful();
+        $this->assertNull($this->decodeRaw($browser)['name']);
+    }
+
+    /**
      * A private profile seen by anyone else - a member, a machine token - is the
      * website's "Secret puzzler #CODE": id, code and the membership badge stay,
      * every other field is null, the insight blocks are null / empty, and no

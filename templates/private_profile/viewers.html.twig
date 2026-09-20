@@ -1,0 +1,81 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'private_profile_viewers.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{% include '_return_back_button.html.twig' with {fallbackUrl: path('edit_profile'), fallbackTitle: 'private_profile_viewers.back_to_settings'|trans} %}
+
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\PrivateProfile\\PrivateProfileViewersController::CSRF_TOKEN_ID')) %}
+
+<h1 class="h3 mb-2"><i class="bi bi-incognito me-2"></i>{{ 'private_profile_viewers.title'|trans }}</h1>
+<p class="text-muted">{{ 'private_profile_viewers.intro'|trans }}</p>
+
+{% if not owner.isPrivate %}
+    <div class="alert alert-info fs-sm">
+        <i class="bi bi-info-circle me-1"></i>
+        {{ 'private_profile_viewers.profile_is_public'|trans }}
+        <a href="{{ path('edit_profile') }}">{{ 'private_profile_viewers.back_to_settings'|trans }}</a>
+    </div>
+{% endif %}
+
+<div class="card card-body shadow-sm mb-4">
+    <h2 class="h5">{{ 'private_profile_viewers.add_title'|trans }}</h2>
+
+    {{ form_start(form, {action: path('private_profile_viewers')}) }}
+        <div data-controller="player-search-autocomplete" data-player-search-autocomplete-url-value="{{ path('player_search_autocomplete') }}">
+            {{ form_row(form.players) }}
+        </div>
+
+        <button type="submit" class="btn btn-primary">{{ 'private_profile_viewers.add_submit'|trans }}</button>
+    {{ form_end(form) }}
+
+    {% if suggestions is not empty %}
+        <hr>
+        <p class="fs-sm text-muted mb-2">{{ 'private_profile_viewers.suggestions'|trans }}</p>
+        <div class="d-flex flex-wrap gap-2">
+            {% for suggestion in suggestions %}
+                <form action="{{ path('private_profile_viewer_allow', {playerId: suggestion.playerId}) }}" method="post">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus-lg"></i>
+                        {{ suggestion.playerName ?? ('#' ~ suggestion.playerCode|upper) }}
+                    </button>
+                </form>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+<h2 class="h5">{{ 'private_profile_viewers.list_title'|trans({'%count%': viewers|length}) }}</h2>
+
+{% if viewers is empty %}
+    <div class="text-center py-4 text-muted">
+        <i class="bi bi-eye-slash fs-1 d-block mb-3"></i>
+        <p>{{ 'private_profile_viewers.empty'|trans }}</p>
+    </div>
+{% else %}
+    <div class="list-group">
+        {% for viewer in viewers %}
+            <div class="list-group-item d-flex align-items-center justify-content-between py-3 gap-2">
+                <div class="d-flex align-items-center min-width-0">
+                    <div class="me-2 me-sm-3 flex-shrink-0">
+                        {{ include('messaging/_avatar.html.twig', {avatar: viewer.playerAvatar, size: 48}) }}
+                    </div>
+                    <div class="min-width-0">
+                        <a class="fw-bold" href="{{ path('player_profile', {playerId: viewer.playerId}) }}">{{ viewer.playerName ?? ('#' ~ viewer.playerCode|upper) }}</a>
+                        <code class="ms-1">#{{ viewer.playerCode|upper }}</code>
+                        {% if viewer.playerCountry is not null %}
+                            <span class="fi fi-{{ viewer.playerCountry.name }} shadow-custom ms-1" style="font-size: 0.75rem;"></span>
+                        {% endif %}
+                    </div>
+                </div>
+                <form action="{{ path('private_profile_viewer_revoke', {playerId: viewer.playerId}) }}" method="post" class="flex-shrink-0">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">{{ 'private_profile_viewers.remove'|trans }}</button>
+                </form>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}

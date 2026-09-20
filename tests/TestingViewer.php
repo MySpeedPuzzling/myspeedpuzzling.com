@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -48,6 +49,7 @@ readonly final class TestingViewer
         );
         $container->get(RetrieveLoggedUserProfile::class)->reset();
         $container->get(HiddenPlayers::class)->reset();
+        $container->get(PrivateProfileAccess::class)->reset();
     }
 
     public static function signOut(ContainerInterface $container): void
@@ -56,5 +58,6 @@ readonly final class TestingViewer
         $container->get(TokenStorageInterface::class)->setToken(null);
         $container->get(RetrieveLoggedUserProfile::class)->reset();
         $container->get(HiddenPlayers::class)->reset();
+        $container->get(PrivateProfileAccess::class)->reset();
     }
 }

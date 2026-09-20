@@ -76,6 +76,8 @@ readonly final class PlayerNotification
         public null|bool $conversationIsMarketplace = null,
         public null|string $conversationPuzzleName = null,
         public null|string $conversationPuzzleImage = null,
+        // The target player is a private profile the reader is not allowed to see
+        public bool $targetPlayerIsPrivate = false,
     ) {
     }
 
@@ -190,6 +192,7 @@ readonly final class PlayerNotification
             conversationIsMarketplace: isset($row['conversation_is_marketplace']) ? (bool) $row['conversation_is_marketplace'] : null,
             conversationPuzzleName: is_string($row['conversation_puzzle_name'] ?? null) ? $row['conversation_puzzle_name'] : null,
             conversationPuzzleImage: is_string($row['conversation_puzzle_image'] ?? null) ? $row['conversation_puzzle_image'] : null,
+            targetPlayerIsPrivate: ($row['target_player_is_private'] ?? false) === true,
         );
     }
 

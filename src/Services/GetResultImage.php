@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetRanking;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Value\SolvingTime;
 
 readonly final class GetResultImage
@@ -26,6 +27,7 @@ readonly final class GetResultImage
         private GetRanking $getRanking,
         private Filesystem $filesystem,
         private ClockInterface $clock,
+        private PlayerRepository $playerRepository,
     ) {
     }
 
@@ -39,7 +41,13 @@ readonly final class GetResultImage
         $solvingTime = $this->getPlayerSolvedPuzzles->byTimeId($timeId);
         $player = $this->getPlayerProfile->byId($solvingTime->playerId);
         $noOlderThan = $this->clock->now()->modify('-1 month');
-        $path = "players/$player->playerId/results/$timeId.png";
+        // A public, unauthenticated image that is cached in storage: it follows the player's own
+        // setting, never who is looking - allow-listed friends get the nameless one as well. The
+        // separate path keeps a copy rendered while the profile was public from being served.
+        $isPrivateProfile = $this->playerRepository->get($solvingTime->playerId)->isPrivate;
+        $path = $isPrivateProfile
+            ? "players/$player->playerId/results/$timeId-hidden.png"
+            : "players/$player->playerId/results/$timeId.png";
 
         if (
             $this->filesystem->fileExists($path)
@@ -138,7 +146,7 @@ readonly final class GetResultImage
                 $font->size($fontSizeSmall);
                 $font->align('center', 'top');
             })
-            ->text($player->playerName ?? '', $size / 2, 400 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeSmall) {
+            ->text($isPrivateProfile ? '' : ($player->playerName ?? ''), $size / 2, 400 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeSmall) {
                 $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Regular.ttf');
                 $font->color('#ffffff');
                 $font->stroke('#000000', 1);

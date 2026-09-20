@@ -35,6 +35,7 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     membership_ends_at: null|string,
  *     is_admin: bool,
  *     is_private: bool,
+ *     revealed_private_player_ids?: null|string,
  *     puzzle_collection_visibility: string,
  *     unsolved_puzzles_visibility: string,
  *     wish_list_visibility: string,
@@ -108,6 +109,13 @@ readonly final class PlayerProfile
          * @var list<string>
          */
         public array $hiddenPlayerIds = [],
+        /**
+         * The viewer's own profile only: private players whose allow list names this player
+         * (docs/features/private-profile-allow-list.md). Read through PrivateProfileAccess, never directly.
+         *
+         * @var list<string>
+         */
+        public array $revealedPrivatePlayerIds = [],
     ) {
     }
 
@@ -121,6 +129,16 @@ readonly final class PlayerProfile
             $favoritePlayers = Json::decode($row['favorite_players'], true);
         } catch (JsonException) {
             $favoritePlayers = [];
+        }
+
+        $revealedPrivatePlayerIds = [];
+
+        if (is_string($row['revealed_private_player_ids'] ?? null)) {
+            $decodedRevealed = Json::decode($row['revealed_private_player_ids'], true);
+
+            if (is_array($decodedRevealed)) {
+                $revealedPrivatePlayerIds = array_values(array_filter($decodedRevealed, is_string(...)));
+            }
         }
 
         $hiddenPlayerIds = [];
@@ -214,6 +232,7 @@ readonly final class PlayerProfile
             referralProgramSuspended: (bool) $row['referral_program_suspended'],
             isModerator: $row['moderator_since'] !== null,
             hiddenPlayerIds: $hiddenPlayerIds,
+            revealedPrivatePlayerIds: $revealedPrivatePlayerIds,
         );
     }
 

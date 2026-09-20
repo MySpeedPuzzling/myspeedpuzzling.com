@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\SkillTier;
 
@@ -15,6 +16,7 @@ readonly final class GetFastestGroups
 {
     public function __construct(
         private Connection $database,
+        private PrivateProfileAccess $privateProfileAccess,
         private ClockInterface $clock,
         private HiddenPlayers $hiddenPlayers,
     ) {
@@ -63,7 +65,7 @@ player_data AS (
         pst.team ->> 'team_id' AS team_id,
         pst.first_attempt,
         pst.unboxed,
-        player.is_private,
+        {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private,
         competition.id AS competition_id,
         competition.shortcut AS competition_shortcut,
         competition.slug AS competition_slug,
@@ -79,7 +81,7 @@ player_data AS (
                 'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
                 'player_code', p.code,
                 'player_country', p.country,
-                'is_private', p.is_private,
+                'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
                 'skill_tier', ps_member.skill_tier,
                 'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
             ) ORDER BY player_elem.ordinality

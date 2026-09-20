@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\PlayerConnection;
 use SpeedPuzzling\Web\Results\PlayerConnectionCounts;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 
 /**
  * Both directions of the favorites link (player.favorite_players, a JSON array
@@ -20,15 +21,9 @@ use SpeedPuzzling\Web\Services\HiddenPlayers;
  */
 readonly final class GetPlayerConnections
 {
-    private const string ORDER_BY = <<<SQL
-ORDER BY
-    other.is_private,
-    CASE WHEN other.is_private THEN NULL ELSE LOWER(other.name) END NULLS LAST,
-    other.code
-SQL;
-
     public function __construct(
         private Connection $database,
+        private PrivateProfileAccess $privateProfileAccess,
         private HiddenPlayers $hiddenPlayers,
     ) {
     }
@@ -39,7 +34,7 @@ SQL;
      */
     public function favoritesOf(string $playerId): array
     {
-        $orderBy = self::ORDER_BY;
+        $orderBy = $this->orderBy();
         $notHidden = $this->hiddenPlayers->sqlExclude('other.id');
 
         $query = <<<SQL
@@ -49,7 +44,7 @@ SELECT
     other.name AS player_name,
     other.country AS player_country,
     other.avatar AS player_avatar,
-    other.is_private,
+    {$this->privateProfileAccess->sqlIsPrivate('other')} AS is_private,
     other.favorite_players::jsonb @> jsonb_build_array(:playerId::text) AS is_mutual
 FROM player me
 CROSS JOIN LATERAL json_array_elements_text(me.favorite_players) AS favorite(player_id)
@@ -68,7 +63,7 @@ SQL;
      */
     public function followersOf(string $playerId): array
     {
-        $orderBy = self::ORDER_BY;
+        $orderBy = $this->orderBy();
         $notHidden = $this->hiddenPlayers->sqlExclude('other.id');
 
         $query = <<<SQL
@@ -78,7 +73,7 @@ SELECT
     other.name AS player_name,
     other.country AS player_country,
     other.avatar AS player_avatar,
-    other.is_private,
+    {$this->privateProfileAccess->sqlIsPrivate('other')} AS is_private,
     me.favorite_players::jsonb @> jsonb_build_array(other.id::text) AS is_mutual
 FROM player me
 JOIN player other ON other.favorite_players::jsonb @> jsonb_build_array(:playerId::text)
@@ -168,5 +163,17 @@ SQL;
 
             return PlayerConnection::fromDatabaseRow($row);
         }, $data);
+    }
+
+    private function orderBy(): string
+    {
+        $isPrivate = $this->privateProfileAccess->sqlIsPrivate('other');
+
+        return <<<SQL
+ORDER BY
+    {$isPrivate},
+    CASE WHEN {$isPrivate} THEN NULL ELSE LOWER(other.name) END NULLS LAST,
+    other.code
+SQL;
     }
 }

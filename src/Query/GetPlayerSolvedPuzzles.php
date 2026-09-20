@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Results\SolvedPuzzleOverview;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use Symfony\Contracts\Service\ResetInterface;
 
 final class GetPlayerSolvedPuzzles implements ResetInterface
@@ -28,6 +29,7 @@ final class GetPlayerSolvedPuzzles implements ResetInterface
 
     public function __construct(
         readonly private Connection $database,
+        private PrivateProfileAccess $privateProfileAccess,
         readonly private GetTeamPlayers $getTeamPlayers,
         readonly private ClockInterface $clock,
         readonly private HiddenPlayers $hiddenPlayers,
@@ -112,7 +114,7 @@ SELECT
                     'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
                     'player_code', p.code,
                     'player_country', p.country,
-                    'is_private', p.is_private
+                    'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')}
                 ) ORDER BY player_elem.ordinality
             )
         ELSE NULL

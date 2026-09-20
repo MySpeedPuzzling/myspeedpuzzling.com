@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services;
 
 use Closure;
-use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Security\ApiUser;
@@ -37,7 +36,7 @@ final class HiddenPlayers implements ResetInterface
     private array $ids = [];
 
     public function __construct(
-        readonly private Connection $database,
+        readonly private ApiViewerRelations $apiViewerRelations,
         readonly private Security $security,
         readonly private RequestStack $requestStack,
         /**
@@ -135,12 +134,12 @@ final class HiddenPlayers implements ResetInterface
         $user = $this->security->getUser();
 
         if ($user instanceof ApiUser) {
-            $rows = $this->database
-                ->executeQuery(
-                    'SELECT blocker_id AS viewer_id, blocked_id FROM user_block WHERE blocker_id = :playerId',
-                    ['playerId' => $user->getPlayer()->id->toString()],
-                )
-                ->fetchAllAssociative();
+            // One query shared with the private-profile allow list (ApiViewerRelations)
+            $apiViewerId = $user->getPlayer()->id->toString();
+            $rows = array_map(
+                static fn (string $blockedId): array => ['viewer_id' => $apiViewerId, 'blocked_id' => $blockedId],
+                $this->apiViewerRelations->blockedIds(),
+            );
         } elseif ($user instanceof UserAccount) {
             $profile = ($this->retrieveLoggedUserProfile)()->getProfile();
             $rows = array_map(
@@ -156,11 +155,7 @@ final class HiddenPlayers implements ResetInterface
             $blockedId = $row['blocked_id'];
 
             // The ids are inlined into SQL by the fragments above, so nothing but a uuid gets through
-            if (is_string($viewerId) === false || is_string($blockedId) === false) {
-                continue;
-            }
-
-            if (Uuid::isValid($viewerId) === false || Uuid::isValid($blockedId) === false) {
+            if ($viewerId === null || Uuid::isValid($viewerId) === false || Uuid::isValid($blockedId) === false) {
                 continue;
             }
 

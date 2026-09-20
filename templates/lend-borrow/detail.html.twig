@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'lend_borrow.title'|trans }}{% if not isOwnProfile %} - {{ player.playerName }}{% endif %}{% endblock %}
+{% block title %}{{ 'lend_borrow.title'|trans }}{% if not isOwnProfile %} - {{ profile_name(player) }}{% endif %}{% endblock %}
 
 {% block content %}
 <div data-controller="collection-items">

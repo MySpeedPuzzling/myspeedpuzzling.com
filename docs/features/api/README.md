@@ -77,7 +77,7 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 | GET | `/api/v1/me` | PAT or `profile:read` (the `email` field is populated only for PAT or tokens granted `email:read`, otherwise `null`). Also carries `has_active_membership`, `membership_ends_at` (ISO-8601, `null` without an active membership), the owner's opt-out flags `time_predictions_opted_out`, `ranking_opted_out`, `streak_opted_out`, and the profile insights `rating` (MSP Rating per piece count, `null` when opted out of rankings), `skill` (skill tiers, members only), `badges` - see Profile insights below - plus `favorites_count` and `followers_count` (the sizes of the two lists below) |
 | GET | `/api/v1/me/favorites` | PAT or `profile:read` - the players you follow - see Favorites and followers below |
 | GET | `/api/v1/me/followers` | PAT or `profile:read` - the players who have you in their favorites |
-| GET | `/api/v1/me/results?type=solo\|duo\|team` | PAT or `results:read`. Each result also carries the puzzle's `statistics` (public) and `difficulty` (members, else `null`) - see Insights on lists below |
+| GET | `/api/v1/me/results?type=solo\|duo\|team` | PAT or `results:read`. Each result also carries the puzzle's `statistics` (public) and `difficulty` (members, else `null`) - see Insights on lists below - and, for a duo/team result, `team_id` + `team_name` (the pair/team it belongs to: same people = same `team_id`; the name is optional; both `null` for solo). Added 2026-09-21, purely additive |
 | GET | `/api/v1/me/puzzles/{puzzleId}/predicted-time` | PAT or `results:read` |
 | GET | `/api/v1/me/statistics` | PAT or `statistics:read` |
 | POST | `/api/v1/me/solving-times` | PAT or `solving-times:write`. The response carries the parsed `time_seconds` and `prediction` - the time prediction that applied *before* this solve (solo times, token owner a member who has not opted out, PAT or `results:read`; else `null`) - see the POST section below |
@@ -100,7 +100,7 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 | Method | Endpoint | Scope |
 |--------|----------|-------|
 | GET | `/api/v1/players/{id}` | `profile:read` (client_credentials allowed) - public profile + `rating` / `skill` / `badges`; a private profile is masked, see Profile insights |
-| GET | `/api/v1/players/{id}/results?type=solo\|duo\|team` | `results:read`. Each result also carries the puzzle's `statistics` (public) and `difficulty` (**token owner** member, else `null`) |
+| GET | `/api/v1/players/{id}/results?type=solo\|duo\|team` | `results:read`. Each result also carries the puzzle's `statistics` (public) and `difficulty` (**token owner** member, else `null`), plus `team_id` + `team_name` as on `/me/results` |
 | GET | `/api/v1/players/{id}/statistics` | `statistics:read` |
 | GET | `/api/v1/players/{id}/collections` | `collections:read` (public only) |
 | GET | `/api/v1/players/{id}/collections/{cid}/items` | `collections:read`. Visibility as on the website: a private profile, a private custom collection and a private system collection (`default` - the player's puzzle-collection setting) are zeroed for everyone but the player behind the token. Each item also carries `statistics` (public), `difficulty` (**token owner** member), `solves` (the **collection owner's** history, only with `results:read` on the token) and `prediction` (the **token owner's own** forecast - what the website shows a visitor next to each item of somebody else's collection; member + not opted out + `results:read`) |

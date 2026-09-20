@@ -72,7 +72,8 @@ final class MyResultsInsightsEndpointTest extends WebTestCase
         $this->assertCount(17, $rawResults);
 
         foreach ($rawResults as $rawResult) {
-            $this->assertSame([...self::ORIGINAL_RESULT_KEYS, 'statistics', 'difficulty'], $this->keys($rawResult));
+            // The original keys, then what was added since - always at the end, never renamed
+            $this->assertSame([...self::ORIGINAL_RESULT_KEYS, 'statistics', 'difficulty', 'team_id', 'team_name'], $this->keys($rawResult));
             $this->assertIsArray($rawResult);
             $rawStatistics = $rawResult['statistics'];
             $this->assertIsArray($rawStatistics);

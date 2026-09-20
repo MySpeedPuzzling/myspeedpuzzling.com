@@ -69,6 +69,8 @@ final readonly class MyResultsResponseProvider implements ProviderInterface
                     comment: $puzzle->comment,
                     statistics: $insights->statistics($puzzle->puzzleId),
                     difficulty: $insights->difficulty($puzzle->puzzleId),
+                    teamId: $puzzle->teamId,
+                    teamName: $puzzle->teamName,
                 ),
                 $results,
             ),

@@ -28,7 +28,10 @@ if [[ "$ENVIRONMENT" == "dev" ]] || [[ "$SKIP_DATABASE_MIGRATIONS" != "true" ]];
 fi
 
 if [[ "$SKIP_DATABASE_MIGRATIONS" != "true" ]]; then
-    time bin/console doctrine:migrations:migrate -vv --allow-no-migration --all-or-nothing --no-interaction
+    # Under a database-wide advisory lock: a blue-green rollout boots two web containers in the same
+    # second, and both used to start the very same migration (2026-09-20: the loser logged a CRITICAL
+    # "duplicate key ... pg_type_typname_nsp_index"). The second one now waits, then finds nothing to do.
+    time php bin/migrate-database 300
 else
     echo "== Skipping database migrations =="
 fi

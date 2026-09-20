@@ -1,0 +1,47 @@
+#!/usr/bin/env php
+<?php
+
+/*
+ * Runs the boot migrations while holding a database-wide advisory lock, so two containers starting
+ * at once (blue-green rollout) take turns instead of racing. See MigrationLock.
+ *
+ * Usage: bin/migrate-database [lock-timeout-seconds]   (default 300)
+ * Exit code: that of doctrine:migrations:migrate.
+ */
+
+declare(strict_types=1);
+
+use SpeedPuzzling\Web\Services\Doctrine\MigrationLock;
+use Symfony\Component\Dotenv\Dotenv;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+// Same .env resolution as bin/console; real environment variables win
+(new Dotenv())->bootEnv(dirname(__DIR__) . '/.env');
+
+$timeoutSeconds = (float) ($argv[1] ?? 300);
+$databaseUrl = $_SERVER['DATABASE_URL'] ?? null;
+
+if (!is_string($databaseUrl) || $databaseUrl === '') {
+    fwrite(STDERR, "migrate-database: DATABASE_URL is not set\n");
+    exit(1);
+}
+
+$startedAt = microtime(true);
+
+$exitCode = (new MigrationLock())->runExclusively($databaseUrl, $timeoutSeconds, static function (bool $locked) use ($startedAt): int {
+    echo sprintf(
+        "migrate-database: %s after %.1fs\n",
+        $locked ? 'got the migration lock' : 'could NOT get the migration lock - migrating unguarded',
+        microtime(true) - $startedAt,
+    );
+
+    $command = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/console')
+        . ' doctrine:migrations:migrate -vv --allow-no-migration --all-or-nothing --no-interaction';
+
+    passthru($command, $code);
+
+    return $code;
+});
+
+exit($exitCode);

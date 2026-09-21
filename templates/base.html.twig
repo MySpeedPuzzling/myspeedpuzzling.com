@@ -1124,7 +1124,7 @@
                     <div class="modal-body">
                         {{ 'membership.modal.text'|trans|raw }}
 
-                        {% if logged_user.profile and free_trial_enabled and is_web() and logged_user.profile.freeTrialAvailable %}
+                        {% if logged_user.profile and is_web() and logged_user.profile.canStartFreeTrial %}
                             {# Never had a membership: the locked feature they just clicked is one click away (docs/features/free-trial/README.md) #}
                             <p class="fw-medium">{{ 'free_trial.modal.text'|trans({'%days%': constant('SpeedPuzzling\\Web\\Value\\FreeTrial::DAYS')}) }}</p>
 
@@ -1137,6 +1137,10 @@
 
                             <a href="{{ path('membership') }}" class="btn btn-outline-primary btn-sm me-2 mb-2">{{ 'free_trial.modal.secondary'|trans }}</a>
                         {% elseif logged_user.profile %}
+                            {% if is_web() and logged_user.profile.freeTrialAvailable %}
+                                <p class="small text-muted">{{ include('membership/_free_trial_unlock_sentence.html.twig', {profile: logged_user.profile}) }}</p>
+                            {% endif %}
+
                             <a href="{{ path('membership') }}" class="btn btn-primary d-inline-block me-2 btn-shadow" type="submit"><i class="bi-person-circle"></i> {{ 'membership.modal.cta'|trans }}</a>
                         {% else %}
                             <a href="{{ path('login') }}" class="btn btn-primary d-inline-block me-2 btn-shadow" type="submit"><i class="bi-person"></i> {{ 'menu.sign_in'|trans }}</a>

@@ -13,34 +13,26 @@ use SpeedPuzzling\Web\Query\GetFreeTrialsEndingSoon;
 use SpeedPuzzling\Web\Query\GetFreeTrialStatistics;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
+use SpeedPuzzling\Web\Tests\FreeTrialConditions;
 use SpeedPuzzling\Web\Value\FreeTrialSource;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class GetFreeTrialsEndingSoonTest extends KernelTestCase
 {
-    use OverridesFeatureFlagEnv;
+    use FreeTrialConditions;
 
     private DateTimeImmutable $now;
 
     protected function setUp(): void
     {
-        $this->overrideFeatureFlagEnv('FREE_TRIAL_ENABLED', true);
-
         $container = self::getContainer();
+        $this->registeredDaysAgo($container->get(Connection::class), PlayerFixture::PLAYER_REGULAR, 30);
         $this->now = $container->get(ClockInterface::class)->now();
 
         $container->get(MessageBusInterface::class)->dispatch(
             new StartFreeTrial(PlayerFixture::PLAYER_REGULAR, FreeTrialSource::MembershipPage),
         );
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
     }
 
     public function testTrialIsRemindedOnlyInItsLastThreeDays(): void

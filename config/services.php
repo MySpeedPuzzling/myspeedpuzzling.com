@@ -88,10 +88,6 @@ return static function (ContainerConfigurator $configurator): void {
     // Pairs & teams picker rollout (docs/features/feature_flags.md): admins only until flipped to 1.
     $parameters->set('pairsTeamsPickerPublic', '%env(bool:PAIRS_TEAMS_PICKER_PUBLIC)%');
 
-    // Free trial of membership (docs/features/free-trial/README.md) - the kill switch for every offer
-    // and for starting a trial; a running trial is a plain grant and is not affected.
-    $parameters->set('freeTrialEnabled', '%env(bool:FREE_TRIAL_ENABLED)%');
-
     // Social login flags (auth hardening PR 2, docs/features/feature_flags.md).
     // One flag per provider so each flips independently as its console setup
     // completes; SOCIAL_LOGIN_ADMIN_ONLY keeps everything invisible to the
@@ -117,7 +113,6 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$signInLinkLifetimeSeconds', '%signInLinkLifetimeSeconds%')
         ->bind('$signInLinkReuseGraceSeconds', '%signInLinkReuseGraceSeconds%')
         ->bind('$pairsTeamsPickerPublic', '%pairsTeamsPickerPublic%')
-        ->bind('$freeTrialEnabled', '%freeTrialEnabled%')
         ->bind('$socialLoginAdminOnly', '%socialLoginAdminOnly%')
         ->bind('$socialLoginGoogleEnabled', '%socialLoginGoogleEnabled%')
         ->bind('$socialLoginFacebookEnabled', '%socialLoginFacebookEnabled%')

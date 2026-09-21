@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Value\FreeTrial;
 
 /**
  * @phpstan-import-type PlayerProfileRow from PlayerProfile
@@ -111,6 +112,8 @@ SQL;
     public function byUserId(string $userId): PlayerProfile
     {
         $revealedIds = PrivateProfileAccess::sqlRevealedIdsOf('player');
+        // Counted only for players the trial is still open to, and never past the number that matters
+        $freeTrialMinimum = FreeTrial::MINIMUM_LOGGED_PUZZLES;
 
         $query = <<<SQL
 SELECT
@@ -155,6 +158,11 @@ SELECT
     player.registered_at,
     (membership.id IS NOT NULL) AS has_membership_row,
     membership.trial_ends_at AS free_trial_ends_at,
+    CASE WHEN membership.id IS NULL THEN (
+        SELECT COUNT(*) FROM (
+            SELECT 1 FROM puzzle_solving_time WHERE puzzle_solving_time.player_id = player.id LIMIT {$freeTrialMinimum}
+        ) AS logged_puzzles
+    ) END AS free_trial_logged_puzzles,
     (SELECT json_object_agg(impression.modal, impression.displayed_at) FROM player_modal_impression impression WHERE impression.player_id = player.id) AS modal_impressions,
     (membership.ends_at IS NULL AND membership.billing_period_ends_at IS NOT NULL) AS has_active_stripe_subscription,
     GREATEST(

@@ -125,7 +125,7 @@
                                 </p>
                             {% endif %}
 
-                            {% if free_trial_enabled and is_web() and logged_user.profile.freeTrialAvailable %}
+                            {% if is_web() and logged_user.profile.freeTrialAvailable %}
                                 {{ include('membership/_free_trial_offer.html.twig', {
                                     days: constant('SpeedPuzzling\\Web\\Value\\FreeTrial::DAYS'),
                                 }) }}

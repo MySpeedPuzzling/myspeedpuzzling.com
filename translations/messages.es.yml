@@ -1676,8 +1676,6 @@
   "free_trial":
     "title": "Prueba gratuita y ventanas de anuncio"
     "intro": "A cuántos jugadores se les mostró cada ventana de anuncio y qué fue de las pruebas gratuitas."
-    "flag_on": "FREE_TRIAL_ENABLED está activado"
-    "flag_off": "FREE_TRIAL_ENABLED está desactivado"
     "modals_title": "Ventanas de anuncio"
     "modals_intro": "Cada jugador recibe una ventana como máximo una vez - por eso «mostrada» es un número de jugadores. «Realmente abierta» es lo que informaron los navegadores; siempre es algo menor (pestañas cerradas, peticiones bloqueadas)."
     "modals_empty": "Todavía no se ha mostrado ninguna ventana."
@@ -3681,8 +3679,13 @@ free_trial:
         title: "Prueba la membresía gratis durante %days% días"
         reassurance: "Sin tarjeta. Nada que cancelar. Termina sola."
         button: "Empezar mi prueba gratuita"
-        tip: "Consejo: la membresía muestra más cuando ya tienes algunos tiempos registrados. La prueba te espera - empiézala cuando quieras. Una prueba por jugador."
         or_subscribe: "o suscríbete directamente"
+        one_per_player: "Una prueba por jugador."
+        condition_age: "Cuenta con al menos %age_days% días"
+        condition_age_from: "a partir del %date%"
+        condition_puzzles: "%required% puzzles registrados"
+        progress: "%logged% de %required% hasta ahora"
+        add_time: "Añadir un puzzle resuelto"
     modal:
         text: "Puedes probar todo lo que tienen los miembros - gratis durante %days% días. Sin tarjeta, nada que cancelar."
         button: "Probar gratis %days% días"
@@ -3696,6 +3699,10 @@ free_trial:
     flash:
         started: "Tu prueba gratuita está en marcha - todo desbloqueado durante %days% días. ¡Disfrútala!"
     not_available: "La prueba gratuita es para jugadores que todavía no han tenido una membresía."
+    unlock:
+        age_and_puzzles: "Podrás probar la membresía gratis durante %trial_days% días cuando tu cuenta tenga %age_days% días (a partir del %date%) y hayas registrado %required% puzzles (llevas %logged%)."
+        age: "Podrás probar la membresía gratis durante %trial_days% días cuando tu cuenta tenga %age_days% días - a partir del %date%."
+        puzzles: "Podrás probar la membresía gratis durante %trial_days% días cuando hayas registrado %required% puzzles - llevas %logged%."
     status:
         active: "Tu prueba gratuita está en marcha"
         days_left: "{1}Queda 1 día|]1,Inf[Quedan %count% días"

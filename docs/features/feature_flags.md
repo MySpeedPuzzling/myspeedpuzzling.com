@@ -4,22 +4,13 @@ This file documents all active feature flags in the codebase — where they are,
 
 > **Operational note on flags exposed as Twig globals.** A flag registered in `config/packages/twig.php` is resolved on **nearly every page render**, not only where it is used - an unresolvable env var there breaks every page, not one. The image always carries the defaults from the committed `.env` (`.dockerignore` excludes only `.env.*`; production resolves them from `/app/.env` unless the box overrides them). Keep every such flag defined in `.env`.
 
+## Retired: `FREE_TRIAL_ENABLED` (removed 2026-09-21)
+
+The free trial (`docs/features/free-trial/README.md`) shipped dark behind it for a few hours and was then rolled out to everyone - Jan's call. Nothing reads it; a box `.env` that still sets it is harmless. There is no kill switch: pausing the offer means a code change (`PlayerProfile::canStartFreeTrial()` is the one door).
+
 ## Retired: Auth0 migration flags (removed 2026-09-18, Phase 6)
 
 `NATIVE_REGISTRATION_ENABLED`, `NATIVE_LOGIN_ENABLED`, `AUTH0_TRICKLE_LOGIN_ENABLED`, `AUTH0_FALLBACK_LOGIN_ENABLED` and `SIGN_IN_CHANGES_NOTICE_ENABLED` were deleted with the Auth0 stack (`docs/features/auth-migration/implementation-plan.md` Phase 6). Native registration, login and password reset are unconditional; the trickle gateway, the `/login/auth0` fallback, the `/login` footnote and the "sign-in is moving" explainer page (its URLs now 301 to `/login`) are gone. A box `.env` that still sets any of them is harmless - nothing reads them.
-
-## Free trial of membership (`FREE_TRIAL_ENABLED`)
-
-- **Feature:** 10 days of membership, once per player, no Stripe (`docs/features/free-trial/README.md`) and its one-time offer modal (`docs/features/announcement-modals.md`)
-- **Flag:** env var `FREE_TRIAL_ENABLED` → parameter `freeTrialEnabled` (`config/services.php`), read through `FreeTrialSettings::isEnabled()` and exposed as Twig global `free_trial_enabled`. Twig global — keep it resolvable in `.env` (see the operational note at the top).
-- **Default:** **OFF** - ships dark. Switching it on shows the offer modal to every player without a membership who registered more than 24 h ago, once each, on their next visit - do not flip it on a newsletter day (each started trial sends an e-mail).
-- **Gated files:**
-  - `src/Services/FreeTrialSettings.php` — the single decision point
-  - `src/MessageHandler/StartFreeTrialHandler.php` — refuses to start a trial (`FreeTrialNotAvailable`); `src/Controller/StartFreeTrialController.php` — 404
-  - `src/Services/AnnouncementModals/FreeTrialOfferRule.php` — no offer modal
-  - `templates/membership.html.twig` (offer card), `templates/base.html.twig` (`#membersExclusiveModal` trial button)
-  - **Not gated on purpose:** a running trial (a plain `granted_until` grant), its status on the membership page, the topbar badge, the ending reminder, `/admin/free-trial`
-- **Remove when:** never - it is the kill switch and the way to pause the offer
 
 ## Pairs & teams picker rollout (`PAIRS_TEAMS_PICKER_PUBLIC`)
 

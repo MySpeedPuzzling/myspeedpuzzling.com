@@ -4,12 +4,53 @@
 
     <p class="mb-3">{{ 'free_trial.offer.reassurance'|trans }}</p>
 
-    {{ include('membership/_free_trial_start_form.html.twig', {
-        source: 'membership_page',
-        label: 'free_trial.offer.button'|trans,
-    }) }}
+    {% if logged_user.profile.canStartFreeTrial %}
+        {{ include('membership/_free_trial_start_form.html.twig', {
+            source: 'membership_page',
+            label: 'free_trial.offer.button'|trans,
+        }) }}
 
-    <p class="text-muted small mt-3 mb-0">{{ 'free_trial.offer.tip'|trans }}</p>
+        <p class="text-muted small mt-3 mb-0">{{ 'free_trial.offer.one_per_player'|trans }}</p>
+    {% else %}
+        {# Not open yet: the account must be a few days old and have a few puzzles logged - keeps throwaway
+           accounts out, and membership has nothing to show without the player's own times. Only what is
+           still missing is spelled out; a condition already met is just ticked. #}
+        {% set profile = logged_user.profile %}
+        {% set required = constant('SpeedPuzzling\\Web\\Value\\FreeTrial::MINIMUM_LOGGED_PUZZLES') %}
+        {% set age_days = constant('SpeedPuzzling\\Web\\Value\\FreeTrial::MINIMUM_ACCOUNT_AGE_DAYS') %}
+        {% set logged = profile.freeTrialLoggedPuzzles %}
+
+        <p class="fw-medium mb-3">{{ include('membership/_free_trial_unlock_sentence.html.twig', {profile: profile}) }}</p>
+
+        <ul class="list-unstyled d-inline-block text-start small mb-3 free-trial-conditions">
+            <li class="mb-1" data-condition="age" data-met="{{ profile.freeTrialOldEnoughAt ? 'no' : 'yes' }}">
+                {% if profile.freeTrialOldEnoughAt %}
+                    <i class="bi bi-circle text-muted me-2"></i>{{ 'free_trial.offer.condition_age'|trans({'%age_days%': age_days}) }}
+                    <span class="text-muted">&ndash; {{ 'free_trial.offer.condition_age_from'|trans({'%date%': profile.freeTrialOldEnoughAt|format_date('long')}) }}</span>
+                {% else %}
+                    <i class="bi bi-check-circle-fill text-success me-2"></i>{{ 'free_trial.offer.condition_age'|trans({'%age_days%': age_days}) }}
+                {% endif %}
+            </li>
+            <li data-condition="puzzles" data-met="{{ profile.freeTrialLoggedPuzzlesMissing > 0 ? 'no' : 'yes' }}">
+                {% if profile.freeTrialLoggedPuzzlesMissing > 0 %}
+                    <i class="bi bi-circle text-muted me-2"></i>{{ 'free_trial.offer.condition_puzzles'|trans({'%required%': required}) }}
+                    <span class="text-muted">&ndash; {{ 'free_trial.offer.progress'|trans({'%logged%': logged, '%required%': required}) }}</span>
+                {% else %}
+                    <i class="bi bi-check-circle-fill text-success me-2"></i>{{ 'free_trial.offer.condition_puzzles'|trans({'%required%': required}) }}
+                {% endif %}
+            </li>
+        </ul>
+
+        {% if profile.freeTrialLoggedPuzzlesMissing > 0 %}
+            <div>
+                <a href="{{ path('puzzle_add') }}" rel="nofollow" class="btn btn-primary btn-shadow">
+                    <i class="ci-add me-1"></i> {{ 'free_trial.offer.add_time'|trans }}
+                </a>
+            </div>
+        {% endif %}
+
+        <p class="text-muted small mt-3 mb-0">{{ 'free_trial.offer.one_per_player'|trans }}</p>
+    {% endif %}
 </div>
 
 <p class="text-center text-muted small text-uppercase mb-2">{{ 'free_trial.offer.or_subscribe'|trans }}</p>

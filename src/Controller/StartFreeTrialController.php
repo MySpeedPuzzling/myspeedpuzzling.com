@@ -7,8 +7,8 @@ namespace SpeedPuzzling\Web\Controller;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\FreeTrialNotAvailable;
+use SpeedPuzzling\Web\Exceptions\FreeTrialNotUnlockedYet;
 use SpeedPuzzling\Web\Message\StartFreeTrial;
-use SpeedPuzzling\Web\Services\FreeTrialSettings;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\FreeTrial;
 use SpeedPuzzling\Web\Value\FreeTrialSource;
@@ -33,7 +33,6 @@ final class StartFreeTrialController extends AbstractController
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private MessageBusInterface $messageBus,
-        readonly private FreeTrialSettings $freeTrialSettings,
         readonly private TranslatorInterface $translator,
         readonly private LoggerInterface $logger,
     ) {
@@ -54,10 +53,6 @@ final class StartFreeTrialController extends AbstractController
     #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(Request $request): Response
     {
-        if ($this->freeTrialSettings->isEnabled() === false) {
-            throw $this->createNotFoundException();
-        }
-
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 
         if ($profile === null) {
@@ -73,8 +68,14 @@ final class StartFreeTrialController extends AbstractController
         try {
             $this->messageBus->dispatch(new StartFreeTrial($profile->playerId, $source));
         } catch (HandlerFailedException $e) {
-            // Only "this player cannot have a trial" is an answer - anything else is a failure and must look like one
-            if ($this->isNotAvailable($e) === false) {
+            // Too young an account or too few puzzles logged - the membership page spells out what is missing
+            if ($this->isCausedBy($e, FreeTrialNotUnlockedYet::class)) {
+                return $this->redirectToRoute('membership');
+            }
+
+            // Only "this player cannot have a trial" is an answer - anything else is a failure and must look like one.
+            // The unique index on membership.player_id is what stops two requests racing each other.
+            if ($this->isCausedBy($e, FreeTrialNotAvailable::class, UniqueConstraintViolationException::class) === false) {
                 throw $e;
             }
 
@@ -104,12 +105,16 @@ final class StartFreeTrialController extends AbstractController
         return $this->redirectToRoute('free_trial_started');
     }
 
-    private function isNotAvailable(HandlerFailedException $exception): bool
+    /**
+     * @param class-string<\Throwable> ...$causes
+     */
+    private function isCausedBy(HandlerFailedException $exception, string ...$causes): bool
     {
         foreach ($exception->getWrappedExceptions(recursive: true) as $wrapped) {
-            // The unique index on membership.player_id is what stops two requests racing each other
-            if ($wrapped instanceof FreeTrialNotAvailable || $wrapped instanceof UniqueConstraintViolationException) {
-                return true;
+            foreach ($causes as $cause) {
+                if ($wrapped instanceof $cause) {
+                    return true;
+                }
             }
         }
 

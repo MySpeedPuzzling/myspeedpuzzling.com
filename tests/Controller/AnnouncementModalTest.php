@@ -6,7 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
+use SpeedPuzzling\Web\Tests\FreeTrialConditions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -17,26 +17,14 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class AnnouncementModalTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
+    use FreeTrialConditions;
 
     private const string MODAL = '#announcement-modal';
     private const string ORDINARY_PAGE = '/en/faq';
 
-    protected function setUp(): void
-    {
-        $this->overrideFeatureFlagEnv('FREE_TRIAL_ENABLED', true);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
-    }
-
     public function testEstablishedPlayerWithoutMembershipSeesItExactlyOnce(): void
     {
-        $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredHoursAgo: 25);
+        $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredDaysAgo: 7, andHours: 1);
 
         $crawler = $browser->request('GET', self::ORDINARY_PAGE);
         $this->assertResponseIsSuccessful();
@@ -53,9 +41,9 @@ final class AnnouncementModalTest extends WebTestCase
         self::assertSame(1, $this->impressions($browser, PlayerFixture::PLAYER_REGULAR));
     }
 
-    public function testFreshlyRegisteredPlayerIsLeftAlone(): void
+    public function testPlayerInTheirFirstWeekIsLeftAlone(): void
     {
-        $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredHoursAgo: 23);
+        $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredDaysAgo: 6, andHours: 23);
 
         $crawler = $browser->request('GET', self::ORDINARY_PAGE);
 
@@ -63,9 +51,29 @@ final class AnnouncementModalTest extends WebTestCase
         self::assertSame(0, $this->impressions($browser, PlayerFixture::PLAYER_REGULAR), 'Nothing is used up - the modal comes later');
     }
 
+    public function testItWaitsUnusedUntilThePlayerCanReallyStartTheTrial(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredDaysAgo: 40);
+        $database = $browser->getContainer()->get(Connection::class);
+        $this->keepLoggedPuzzles($database, PlayerFixture::PLAYER_REGULAR, 4);
+
+        $crawler = $browser->request('GET', self::ORDINARY_PAGE);
+        self::assertCount(0, $crawler->filter(self::MODAL), 'Its one button would not work yet');
+        self::assertSame(0, $this->impressions($browser, PlayerFixture::PLAYER_REGULAR));
+
+        // The fifth puzzle
+        $database->executeStatement(
+            'UPDATE puzzle_solving_time SET player_id = :id WHERE id = (SELECT id FROM puzzle_solving_time WHERE player_id = :other LIMIT 1)',
+            ['id' => PlayerFixture::PLAYER_REGULAR, 'other' => PlayerFixture::PLAYER_ADMIN],
+        );
+
+        $crawler = $browser->request('GET', self::ORDINARY_PAGE);
+        self::assertCount(1, $crawler->filter(self::MODAL));
+    }
+
     public function testMembersNeverSeeIt(): void
     {
-        $browser = $this->signedIn(PlayerFixture::PLAYER_WITH_STRIPE, registeredHoursAgo: 1000);
+        $browser = $this->signedIn(PlayerFixture::PLAYER_WITH_STRIPE, registeredDaysAgo: 40);
 
         $crawler = $browser->request('GET', self::ORDINARY_PAGE);
 
@@ -75,7 +83,7 @@ final class AnnouncementModalTest extends WebTestCase
 
     public function testPagesInTheMiddleOfSomethingAreNotInterruptedAndDoNotUseTheModalUp(): void
     {
-        $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredHoursAgo: 1000);
+        $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredDaysAgo: 40);
 
         foreach (['/en/membership', '/en/edit-profile', self::ORDINARY_PAGE . '?return=/en/ladder'] as $quietPage) {
             $crawler = $browser->request('GET', $quietPage);
@@ -91,7 +99,7 @@ final class AnnouncementModalTest extends WebTestCase
 
     public function testNativeAppsAndTurboFramesGetNothing(): void
     {
-        $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredHoursAgo: 1000);
+        $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredDaysAgo: 40);
 
         $crawler = $browser->request('GET', self::ORDINARY_PAGE, server: ['HTTP_USER_AGENT' => 'MySpeedPuzzling iOS']);
         self::assertCount(0, $crawler->filter(self::MODAL));
@@ -99,17 +107,6 @@ final class AnnouncementModalTest extends WebTestCase
         $crawler = $browser->request('GET', self::ORDINARY_PAGE, server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
         self::assertCount(0, $crawler->filter(self::MODAL));
 
-        self::assertSame(0, $this->impressions($browser, PlayerFixture::PLAYER_REGULAR));
-    }
-
-    public function testSwitchedOffMeansNoModal(): void
-    {
-        $this->overrideFeatureFlagEnv('FREE_TRIAL_ENABLED', false);
-        $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredHoursAgo: 1000);
-
-        $crawler = $browser->request('GET', self::ORDINARY_PAGE);
-
-        self::assertCount(0, $crawler->filter(self::MODAL));
         self::assertSame(0, $this->impressions($browser, PlayerFixture::PLAYER_REGULAR));
     }
 
@@ -125,7 +122,7 @@ final class AnnouncementModalTest extends WebTestCase
 
     public function testBrowserReportConfirmsAnImpressionButNeverCreatesOne(): void
     {
-        $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredHoursAgo: 1000);
+        $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredDaysAgo: 40);
 
         // Nothing was displayed yet - a report out of the blue changes nothing
         $browser->request('POST', '/-/announcement-modal-seen', ['modal' => 'free_trial_offer']);
@@ -143,15 +140,12 @@ final class AnnouncementModalTest extends WebTestCase
         $this->assertResponseStatusCodeSame(400);
     }
 
-    private function signedIn(string $playerId, int $registeredHoursAgo): KernelBrowser
+    private function signedIn(string $playerId, int $registeredDaysAgo, int $andHours = 0): KernelBrowser
     {
         $browser = self::createClient();
 
         // Fixture players are all registered "now" - which is exactly whom the modal must leave alone
-        $browser->getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE player SET registered_at = NOW() - make_interval(hours => :hours) WHERE id = :id",
-            ['hours' => $registeredHoursAgo, 'id' => $playerId],
-        );
+        $this->registeredDaysAgo($browser->getContainer()->get(Connection::class), $playerId, $registeredDaysAgo, $andHours);
 
         TestingLogin::asPlayer($browser, $playerId);
 

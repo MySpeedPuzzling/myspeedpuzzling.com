@@ -1676,8 +1676,6 @@
   "free_trial":
     "title": "Kostenloser Test und Ankündigungsfenster"
     "intro": "Wie vielen Spielern welches Ankündigungsfenster gezeigt wurde und was aus den kostenlosen Tests geworden ist."
-    "flag_on": "FREE_TRIAL_ENABLED ist an"
-    "flag_off": "FREE_TRIAL_ENABLED ist aus"
     "modals_title": "Ankündigungsfenster"
     "modals_intro": "Jeder Spieler bekommt ein Fenster höchstens einmal - „Angezeigt“ ist also eine Anzahl von Spielern. „Wirklich geöffnet“ ist, was die Browser zurückgemeldet haben; es liegt immer etwas niedriger (geschlossene Tabs, blockierte Anfragen)."
     "modals_empty": "Es wurde noch kein Fenster angezeigt."
@@ -3588,7 +3586,7 @@ onboarding:
         everything_else: "Privatsphäre, Benachrichtigungen und alles andere: Avatar-Menü → <a href=\"%link%\">Profil bearbeiten</a>."
     checklist:
         title: "Erste Schritte"
-        progress: "%done% von %total%"
+        progress: "bisher %logged% von %required%"
         dismiss: "Ausblenden"
         guide_link: "So funktioniert alles"
         step:
@@ -3681,8 +3679,13 @@ free_trial:
         title: "Teste die Mitgliedschaft %days% Tage kostenlos"
         reassurance: "Keine Karte. Nichts zu kündigen. Endet von selbst."
         button: "Kostenlosen Test starten"
-        tip: "Tipp: Die Mitgliedschaft zeigt am meisten, sobald du ein paar Zeiten eingetragen hast. Der Test wartet auf dich - starte ihn, wann immer du möchtest. Ein Test pro Spieler."
         or_subscribe: "oder gleich abonnieren"
+        one_per_player: "Ein Test pro Spieler."
+        condition_age: "Konto mindestens %age_days% Tage alt"
+        condition_age_from: "ab dem %date%"
+        condition_puzzles: "%required% Puzzles eingetragen"
+        progress: "bisher %logged% von %required%"
+        add_time: "Gelöstes Puzzle hinzufügen"
     modal:
         text: "Du kannst alles ausprobieren, was Mitglieder haben - %days% Tage kostenlos. Keine Karte, nichts zu kündigen."
         button: "%days% Tage kostenlos testen"
@@ -3696,6 +3699,10 @@ free_trial:
     flash:
         started: "Dein kostenloser Test läuft - %days% Tage lang ist alles freigeschaltet. Viel Spaß!"
     not_available: "Der kostenlose Test ist für Spieler, die noch nie eine Mitgliedschaft hatten."
+    unlock:
+        age_and_puzzles: "Du kannst die Mitgliedschaft %trial_days% Tage kostenlos testen, sobald dein Konto %age_days% Tage alt ist (ab dem %date%) und du %required% Puzzles eingetragen hast (bisher %logged%)."
+        age: "Du kannst die Mitgliedschaft %trial_days% Tage kostenlos testen, sobald dein Konto %age_days% Tage alt ist - ab dem %date%."
+        puzzles: "Du kannst die Mitgliedschaft %trial_days% Tage kostenlos testen, sobald du %required% Puzzles eingetragen hast - bisher %logged%."
     status:
         active: "Dein kostenloser Test läuft"
         days_left: "{1}Noch 1 Tag|]1,Inf[Noch %count% Tage"

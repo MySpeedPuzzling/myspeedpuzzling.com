@@ -6,8 +6,9 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
+use SpeedPuzzling\Web\Tests\FreeTrialConditions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\FreeTrialSource;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -15,26 +16,13 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class StartFreeTrialControllerTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
+    use FreeTrialConditions;
 
     private const string ENDPOINT = '/en/membership/start-free-trial';
 
-    protected function setUp(): void
-    {
-        $this->overrideFeatureFlagEnv('FREE_TRIAL_ENABLED', true);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
-    }
-
     public function testMembershipPageOffersTheTrialAndStartingItLandsOnTheWelcomePage(): void
     {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser = $this->establishedPlayer();
 
         $crawler = $browser->request('GET', '/en/membership');
         $this->assertResponseIsSuccessful();
@@ -61,11 +49,10 @@ final class StartFreeTrialControllerTest extends WebTestCase
 
     public function testFromAModalThePlayerComesBackToThePageTheyWereOn(): void
     {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser = $this->establishedPlayer();
 
         $crawler = $browser->request('GET', '/en/ladder');
-        self::assertCount(1, $crawler->filter('#membersExclusiveModal input[name="source"][value="members_modal"]'), 'The members modal offers the trial - to a player registered a moment ago as well');
+        self::assertCount(1, $crawler->filter('#membersExclusiveModal input[name="source"][value="members_modal"]'), 'The members modal offers the trial to whoever can start it');
 
         $this->start($browser, ['source' => 'members_modal', 'return' => '/en/ladder?x=1']);
         $this->assertResponseRedirects('/en/ladder?x=1');
@@ -76,8 +63,7 @@ final class StartFreeTrialControllerTest extends WebTestCase
 
     public function testReturnUrlIsNeverTrustedToLeaveTheSite(): void
     {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser = $this->establishedPlayer();
 
         $this->start($browser, ['source' => 'offer_modal', 'return' => '//evil.example/path']);
 
@@ -102,8 +88,7 @@ final class StartFreeTrialControllerTest extends WebTestCase
 
     public function testSecondClickDoesNotStartASecondTrial(): void
     {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser = $this->establishedPlayer();
 
         $this->start($browser, ['source' => 'membership_page']);
         $first = $browser->getContainer()->get(MembershipRepository::class)->getByPlayerId(PlayerFixture::PLAYER_REGULAR);
@@ -118,28 +103,11 @@ final class StartFreeTrialControllerTest extends WebTestCase
 
     public function testForgedRequestStartsNothing(): void
     {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser = $this->establishedPlayer();
 
         $browser->request('POST', self::ENDPOINT, ['_token' => 'csrf-token', 'source' => 'membership_page'], server: ['HTTP_ORIGIN' => 'https://evil.example']);
 
         $this->assertResponseRedirects('/en/membership');
-        $this->assertNoMembership($browser, PlayerFixture::PLAYER_REGULAR);
-    }
-
-    public function testSwitchedOffThereIsNoOfferAndNoWayToStart(): void
-    {
-        $this->overrideFeatureFlagEnv('FREE_TRIAL_ENABLED', false);
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $crawler = $browser->request('GET', '/en/membership');
-        $this->assertResponseIsSuccessful();
-        self::assertCount(0, $crawler->filter('.free-trial-offer'));
-        self::assertCount(0, $crawler->filter('#membersExclusiveModal input[name="source"]'));
-
-        $this->start($browser, ['source' => 'membership_page']);
-        $this->assertResponseStatusCodeSame(404);
         $this->assertNoMembership($browser, PlayerFixture::PLAYER_REGULAR);
     }
 
@@ -161,6 +129,73 @@ final class StartFreeTrialControllerTest extends WebTestCase
         $browser->request('GET', '/en/membership/free-trial');
 
         $this->assertResponseRedirects('/en/membership');
+    }
+
+    public function testPlayerInTheirFirstWeekIsToldFromWhenAndNothingElse(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/membership');
+        $this->assertResponseIsSuccessful();
+
+        $card = $crawler->filter('.free-trial-offer');
+        self::assertCount(1, $card);
+        self::assertCount(0, $card->filter('form'), 'Nothing to click yet');
+        self::assertStringContainsString('once your account is 7 days old', $card->text());
+        self::assertStringNotContainsString('once you have logged', $card->text(), 'The puzzles are there - not a word about them');
+        self::assertSame('no', $card->filter('[data-condition="age"]')->attr('data-met'));
+        self::assertSame('yes', $card->filter('[data-condition="puzzles"]')->attr('data-met'));
+        self::assertCount(0, $card->filter('a[href*="add"]'), 'No "add a puzzle" button when puzzles are not what is missing');
+
+        // The members modal says the same instead of offering a button that would not work
+        self::assertCount(0, $crawler->filter('#membersExclusiveModal form'));
+        self::assertStringContainsString('once your account is 7 days old', $crawler->filter('#membersExclusiveModal')->text());
+
+        $this->start($browser, ['source' => 'membership_page']);
+        $this->assertResponseRedirects('/en/membership');
+        $this->assertNoMembership($browser, PlayerFixture::PLAYER_REGULAR);
+    }
+
+    public function testPlayerWithTooFewPuzzlesIsToldHowManyAndNothingElse(): void
+    {
+        $browser = $this->establishedPlayer();
+        $this->keepLoggedPuzzles($browser->getContainer()->get(Connection::class), PlayerFixture::PLAYER_REGULAR, 2);
+
+        $crawler = $browser->request('GET', '/en/membership');
+        $card = $crawler->filter('.free-trial-offer');
+
+        self::assertCount(0, $card->filter('form'));
+        self::assertStringContainsString('once you have logged 5 puzzles - 2 so far', $card->text());
+        self::assertStringNotContainsString('days old (from', $card->text());
+        self::assertSame('yes', $card->filter('[data-condition="age"]')->attr('data-met'));
+        self::assertSame('no', $card->filter('[data-condition="puzzles"]')->attr('data-met'));
+        self::assertGreaterThan(0, $card->filter('a.btn')->count(), 'The way to the missing puzzles');
+
+        $this->start($browser, ['source' => 'membership_page']);
+        $this->assertResponseRedirects('/en/membership');
+        $this->assertNoMembership($browser, PlayerFixture::PLAYER_REGULAR);
+    }
+
+    public function testBrandNewPlayerIsToldBoth(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $this->keepLoggedPuzzles($browser->getContainer()->get(Connection::class), PlayerFixture::PLAYER_REGULAR, 0);
+
+        $text = $browser->request('GET', '/en/membership')->filter('.free-trial-offer')->text();
+
+        self::assertStringContainsString('once your account is 7 days old', $text);
+        self::assertStringContainsString('and you have logged 5 puzzles (0 so far)', $text);
+    }
+
+    private function establishedPlayer(): KernelBrowser
+    {
+        $browser = self::createClient();
+        $this->registeredDaysAgo($browser->getContainer()->get(Connection::class), PlayerFixture::PLAYER_REGULAR, 8);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        return $browser;
     }
 
     /**

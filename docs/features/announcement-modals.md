@@ -66,7 +66,7 @@ on `shown.bs.modal`). It can only confirm a claimed impression and decides nothi
 4. Texts in all six locales.
 5. Tests: the rule, and a case in `tests/Controller/AnnouncementModalTest.php`.
 
-Panther note: fixture players are registered "now", so age-gated modals never open in browser tests. A
+Panther note: fixture players are registered "now", so the free trial offer (account 7 days old) never opens in browser tests. A
 modal without an age gate would - and would intercept clicks; give such a rule a way to stay out of tests.
 
 ## Leftover

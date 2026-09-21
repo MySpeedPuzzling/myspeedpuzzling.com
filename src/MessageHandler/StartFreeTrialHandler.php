@@ -8,12 +8,14 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Membership;
 use SpeedPuzzling\Web\Exceptions\FreeTrialNotAvailable;
+use SpeedPuzzling\Web\Exceptions\FreeTrialNotUnlockedYet;
 use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\StartFreeTrial;
+use SpeedPuzzling\Web\Query\CountLoggedPuzzles;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
-use SpeedPuzzling\Web\Services\FreeTrialSettings;
+use SpeedPuzzling\Web\Value\FreeTrial;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -22,21 +24,18 @@ readonly final class StartFreeTrialHandler
     public function __construct(
         private PlayerRepository $playerRepository,
         private MembershipRepository $membershipRepository,
-        private FreeTrialSettings $freeTrialSettings,
+        private CountLoggedPuzzles $countLoggedPuzzles,
         private ClockInterface $clock,
     ) {
     }
 
     /**
      * @throws FreeTrialNotAvailable
+     * @throws FreeTrialNotUnlockedYet
      * @throws PlayerNotFound
      */
     public function __invoke(StartFreeTrial $message): void
     {
-        if ($this->freeTrialSettings->isEnabled() === false) {
-            throw new FreeTrialNotAvailable();
-        }
-
         $player = $this->playerRepository->get($message->playerId);
 
         // A membership row is only ever created by a subscription, a voucher, an admin grant or a
@@ -47,6 +46,15 @@ readonly final class StartFreeTrialHandler
 
             throw new FreeTrialNotAvailable();
         } catch (MembershipNotFound) {
+            // Both keep accounts made only to collect trials out: they are new and have logged nothing
+            if (FreeTrial::unlocksAt($player->registeredAt) > $this->clock->now()) {
+                throw new FreeTrialNotUnlockedYet();
+            }
+
+            if ($this->countLoggedPuzzles->ofPlayer($message->playerId, FreeTrial::MINIMUM_LOGGED_PUZZLES) < FreeTrial::MINIMUM_LOGGED_PUZZLES) {
+                throw new FreeTrialNotUnlockedYet();
+            }
+
             $this->membershipRepository->save(
                 Membership::startFreeTrial(Uuid::uuid7(), $player, $this->clock->now(), $message->source),
             );

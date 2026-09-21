@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetFreeTrialStatistics;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
-use SpeedPuzzling\Web\Services\FreeTrialSettings;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -18,7 +17,6 @@ final class FreeTrialStatisticsController extends AbstractController
 {
     public function __construct(
         private readonly GetFreeTrialStatistics $getFreeTrialStatistics,
-        private readonly FreeTrialSettings $freeTrialSettings,
         private readonly ClockInterface $clock,
     ) {
     }
@@ -29,7 +27,6 @@ final class FreeTrialStatisticsController extends AbstractController
         $now = $this->clock->now();
 
         return $this->render('admin/free_trial.html.twig', [
-            'enabled' => $this->freeTrialSettings->isEnabled(),
             'modals' => $this->getFreeTrialStatistics->modalImpressions($now),
             'funnel' => $this->getFreeTrialStatistics->funnel($now),
         ]);

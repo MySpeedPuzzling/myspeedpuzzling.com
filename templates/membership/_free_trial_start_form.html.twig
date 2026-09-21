@@ -1,0 +1,14 @@
+{# The one way to start the free trial (docs/features/free-trial/README.md).
+   Parameters: source (FreeTrialSource value), label, return (optional - the page to come back to),
+   button_class (optional). The action is explicit on purpose: this form also lives inside modals. #}
+<form method="post" action="{{ path('start_free_trial') }}" class="d-inline-block {{ form_class|default('') }}" data-turbo-frame="_top">
+    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\StartFreeTrialController::CSRF_TOKEN_ID')) }}">
+    <input type="hidden" name="source" value="{{ source }}">
+    {% if return|default(null) %}
+        <input type="hidden" name="return" value="{{ return }}">
+    {% endif %}
+
+    <button type="submit" class="{{ button_class|default('btn btn-primary btn-shadow') }}">
+        <i class="ci-gift me-1"></i> {{ label }}
+    </button>
+</form>

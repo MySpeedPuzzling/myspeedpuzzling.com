@@ -821,12 +821,6 @@
   "comparison": "比較"
   "statistics": "統計"
   "head_to_head": "対戦成績"
-"global_modal":
-  "title": "ランキングシステムが登場！"
-  "text": "<p>ランキングと競争に関する大型アップデートをお届けします：</p>\n<ul class=\"ms-0\" style=\"list-style-type: disc;\"><li class=\"mt-2\"><strong>パズル難易度</strong> — 実際の解答データに基づく難易度評価</li><li class=\"mt-2\"><strong>統計と予測</strong> — パーソナライズされたタイム予測を含む詳細な指標</li><li class=\"mt-2\"><strong>パズラーティア</strong> — ビギナーからレジェンドまで、あなたの実力を確認</li><li class=\"mt-2\"><strong>MSP Ratingランキング</strong> — チェスのRatingに着想を得た競技ランキング。現在、<strong>Wiktorが初代MSP King</strong>です。おめでとうございます！</li></ul>\n<p>計算式、ティア、Rating計算は、データが増えるにつれて<strong>調整される可能性があります</strong>。ランキングに参加したくない場合は、プロフィール設定から<strong>いつでもオプトアウト</strong>できます。</p>\n"
-  "button_methodology": "仕組みを見る"
-  "button_ladder": "ランキングを見る"
-  "button_dismiss": "了解！"
 "puzzlers_comparison":
   "meta":
     "title": "パズラー比較"
@@ -1668,6 +1662,30 @@
   "rotate_right": "右に回転"
   "apply": "適用"
 "admin":
+  "free_trial":
+    "title": "無料トライアルとお知らせモーダル"
+    "intro": "各お知らせモーダルが何人のプレイヤーに表示されたか、無料トライアルがその後どうなったか。"
+    "flag_on": "FREE_TRIAL_ENABLED はオン"
+    "flag_off": "FREE_TRIAL_ENABLED はオフ"
+    "modals_title": "お知らせモーダル"
+    "modals_intro": "各プレイヤーにモーダルが表示されるのは一度きりです。したがって「表示」はプレイヤー数です。「実際に開いた」はブラウザからの報告で、常に少し低くなります（タブを閉じた、リクエストがブロックされた等）。"
+    "modals_empty": "まだモーダルは表示されていません。"
+    "modal": "モーダル"
+    "displayed": "表示"
+    "seen": "実際に開いた"
+    "last_24_hours": "過去24時間"
+    "last_7_days": "過去7日間"
+    "first_displayed": "最初"
+    "last_displayed": "最新"
+    "funnel_title": "無料トライアル"
+    "eligible_players": "まだ開始できるプレイヤー"
+    "started": "開始"
+    "running": "実施中"
+    "ended": "終了"
+    "subscribed_during_trial": "トライアル中に登録"
+    "subscribed_total": "登録（時期を問わず）"
+    "conversion": "開始されたトライアルの%percent% %が登録につながりました。"
+    "source": "開始元"
   "puzzle_change_request":
     "approved": "変更リクエストが承認され、パズルが更新されました。"
     "rejected": "変更リクエストが却下されました。"
@@ -3639,3 +3657,59 @@ private_profile_viewers:
         "text": "基本機能は無料。メンバーは追加機能が使え、プロジェクトを支援できます。"
       "faq":
         "text": "よくある質問への回答。"
+
+free_trial:
+    topbar_badge: "お試し中"
+    offer:
+        title: "メンバーシップを%days%日間無料でお試し"
+        reassurance: "カード不要。解約手続きも不要。自動的に終了します。"
+        button: "無料トライアルを始める"
+        tip: "ヒント：メンバーシップは、タイムをいくつか記録してからのほうが真価を発揮します。トライアルに期限はありません - お好きなときに始めてください。お一人様一回限りです。"
+        or_subscribe: "または今すぐ登録"
+    modal:
+        text: "メンバー向けのすべての機能を%days%日間無料でお試しいただけます。カード不要、解約手続きも不要です。"
+        button: "%days%日間無料で試す"
+        secondary: "メンバーシップの詳細を見る"
+    offer_modal:
+        title: "メンバーシップを%days%日間無料でお試し"
+        text: "メンバーシップであなたのパズルがもっと楽しくなります：パズルの傾向分析、タイム予測、詳しい統計とグラフ、より多くのフィルター、自分だけのコレクション。"
+        what_do_i_get: "何ができるようになりますか？"
+        later: "あとで"
+        find_it_later: "メンバーシップページからいつでも始められます。"
+    flash:
+        started: "無料トライアルが始まりました - %days%日間、すべての機能をご利用いただけます。お楽しみください！"
+    not_available: "無料トライアルは、これまでメンバーシップをご利用になったことのない方が対象です。"
+    status:
+        active: "無料トライアル中です"
+        days_left: "残り%count%日"
+        until: "終了日："
+        ends_by_itself: "自動的に終了し、料金は一切かかりません。"
+        liking_it: "気に入りましたか？メンバーになりましょう"
+        keep_days: "今登録しても、トライアルの残り日数はそのままです - 初回のお支払いは%date%になります。"
+        ended: "無料トライアルは終了しました。お楽しみいただけたなら幸いです！"
+    started:
+        meta_title: "無料トライアルが始まりました"
+        title: "無料トライアルが始まりました！"
+        lead: "%date%まで、メンバー向けのすべての機能をご利用いただけます。"
+        no_strings: "カード不要、解約手続きも不要 - 自動的に終了します。気に入ったら、いつでもメンバーになれます。トライアルの残り日数もそのまま引き継がれます。"
+        where_to_look: "まずはここから"
+        membership_link: "メンバーシップの詳細とトライアルの状況"
+    features:
+        insights:
+            title: "プロフィールのインサイト"
+            text: "あなたのスキルレベル、パズルの難易度、そして各パズルにかかる予測タイム。"
+        statistics:
+            title: "詳しい統計とグラフ"
+            text: "タイムの推移を月別、ピース数別、ブランド別に。"
+        picker:
+            title: "次は何を組む？"
+            text: "メンバー専用フィルター：難易度、あなたの予測タイム、使える時間。"
+        collections:
+            title: "自分だけのコレクション"
+            text: "パズルを自由に整理し、タイムと予測も一緒に確認できます。"
+        ladder:
+            title: "ランキングをもっと活用"
+            text: "国別、初回挑戦のみで絞り込めます。"
+        player_code:
+            title: "自分だけのプレイヤーコード"
+            text: "友だちが覚えやすいコードをプロフィール設定で選べます。"

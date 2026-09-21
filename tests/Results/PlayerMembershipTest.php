@@ -120,4 +120,88 @@ final class PlayerMembershipTest extends TestCase
         self::assertEquals(new DateTimeImmutable('2026-06-01'), $membership->activeUntil($now));
         self::assertNull($membership->activeUntil(new DateTimeImmutable('2026-07-01')));
     }
+
+    public function testRunningFreeTrial(): void
+    {
+        $now = new DateTimeImmutable('2026-09-20 10:00:00');
+        $membership = new PlayerMembership(
+            stripeSubscriptionId: null,
+            endsAt: null,
+            billingPeriodEndsAt: null,
+            grantedUntil: new DateTimeImmutable('2026-09-30 10:00:00'),
+            trialEndsAt: new DateTimeImmutable('2026-09-30 10:00:00'),
+        );
+
+        self::assertTrue($membership->isActive($now));
+        self::assertTrue($membership->isInFreeTrial($now));
+        self::assertSame(10, $membership->freeTrialDaysLeft($now));
+        self::assertSame(1, $membership->freeTrialDaysLeft(new DateTimeImmutable('2026-09-30 09:00:00')), 'The last hours still count as a day left');
+        self::assertTrue($membership->keepsFreeTrialDaysOnSubscribe($now));
+        self::assertFalse($membership->isEndedFreeTrialOnly($now));
+    }
+
+    public function testLastDayOfFreeTrialHasNothingToCarryIntoASubscription(): void
+    {
+        // Checkout turns whole remaining days into a Stripe trial - under a day means payment right away
+        $now = new DateTimeImmutable('2026-09-29 18:00:00');
+        $membership = new PlayerMembership(
+            stripeSubscriptionId: null,
+            endsAt: null,
+            billingPeriodEndsAt: null,
+            grantedUntil: new DateTimeImmutable('2026-09-30 10:00:00'),
+            trialEndsAt: new DateTimeImmutable('2026-09-30 10:00:00'),
+        );
+
+        self::assertTrue($membership->isInFreeTrial($now));
+        self::assertFalse($membership->keepsFreeTrialDaysOnSubscribe($now));
+    }
+
+    public function testEndedFreeTrial(): void
+    {
+        $now = new DateTimeImmutable('2026-10-05');
+        $membership = new PlayerMembership(
+            stripeSubscriptionId: null,
+            endsAt: null,
+            billingPeriodEndsAt: null,
+            grantedUntil: new DateTimeImmutable('2026-09-30 10:00:00'),
+            trialEndsAt: new DateTimeImmutable('2026-09-30 10:00:00'),
+        );
+
+        self::assertFalse($membership->isActive($now));
+        self::assertFalse($membership->isInFreeTrial($now));
+        self::assertSame(0, $membership->freeTrialDaysLeft($now));
+        self::assertTrue($membership->isEndedFreeTrialOnly($now));
+    }
+
+    public function testSubscribingDuringTheTrialMakesThePlayerASubscriber(): void
+    {
+        $now = new DateTimeImmutable('2026-09-24');
+        $membership = new PlayerMembership(
+            stripeSubscriptionId: 'sub_1abc',
+            endsAt: null,
+            billingPeriodEndsAt: new DateTimeImmutable('2026-09-30 10:00:00'),
+            grantedUntil: new DateTimeImmutable('2026-09-30 10:00:00'),
+            trialEndsAt: new DateTimeImmutable('2026-09-30 10:00:00'),
+        );
+
+        self::assertTrue($membership->isActive($now));
+        self::assertFalse($membership->isInFreeTrial($now));
+        self::assertFalse($membership->isEndedFreeTrialOnly(new DateTimeImmutable('2026-12-01')));
+    }
+
+    public function testVoucherClaimedDuringTheTrialOutlivesIt(): void
+    {
+        $afterTrial = new DateTimeImmutable('2026-10-05');
+        $membership = new PlayerMembership(
+            stripeSubscriptionId: null,
+            endsAt: null,
+            billingPeriodEndsAt: null,
+            grantedUntil: new DateTimeImmutable('2026-12-30 10:00:00'),
+            trialEndsAt: new DateTimeImmutable('2026-09-30 10:00:00'),
+        );
+
+        self::assertTrue($membership->isActive($afterTrial));
+        self::assertFalse($membership->isInFreeTrial($afterTrial));
+        self::assertFalse($membership->isEndedFreeTrialOnly($afterTrial));
+    }
 }

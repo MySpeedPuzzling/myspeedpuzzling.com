@@ -1,0 +1,88 @@
+{# The plan buttons of the membership page - web (Stripe), iOS and Android. Shown to players without a
+   membership and, so that a convinced player has somewhere to click, during the free trial too. #}
+{% if discountedMonthlyPrice is not null %}
+    <div class="alert alert-success mb-3">
+        <i class="ci-check-circle me-2"></i>
+        <strong>{{ 'membership.discount_ready'|trans({'%discount%': player.claimedDiscountVoucher.percentageDiscount}) }}</strong>
+        <br><small>{{ 'membership.discount_ready_info'|trans }}</small>
+    </div>
+{% endif %}
+
+{% if is_web() %}
+    <div class="d-flex mt-2 text-center justify-content-center">
+        <p class="my-1 mx-1">
+            <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership') }}">
+                <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
+                {% if discountedMonthlyPrice is not null %}
+                    <br><s class="text-muted small">{{ 'membership.price_per_month'|trans({'%price%': monthlyPrice}) }}</s>
+                    <br><strong>{{ 'membership.price_per_month'|trans({'%price%': discountedMonthlyPrice}) }}</strong>
+                {% else %}
+                    <br>{{ 'membership.price_per_month'|trans({'%price%': monthlyPrice}) }}
+                {% endif %}
+            </a>
+        </p>
+
+        <p class="my-1 mx-1">
+            <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership', {'period': 'yearly'}) }}">
+                <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for_yearly'|trans }}</small>
+                {% if discountedYearlyPrice is not null %}
+                    <br><s class="text-muted small">{{ 'membership.price_per_year'|trans({'%price%': yearlyPrice}) }}</s>
+                    <br><strong>{{ 'membership.price_per_year'|trans({'%price%': discountedYearlyPrice}) }}</strong>
+                {% else %}
+                    <br>{{ 'membership.price_per_year'|trans({'%price%': yearlyPrice}) }}
+                {% endif %}
+            </a>
+        </p>
+    </div>
+
+    <p class="text-center mb-0">
+        <small class="text-muted">{{ 'membership.redirect_to_stripe'|trans }}</small>
+    </p>
+{% elseif is_ios() %}
+    <div class="d-flex mt-2 text-center justify-content-center" data-controller="native-billing" data-native-billing-platform-value="ios">
+        <p class="my-1 mx-1">
+            <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="com.myspeedpuzzling.premium.monthly">
+                <small><i class="bi bi-apple me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
+                <br>{{ 'membership.price_per_month'|trans({'%price%': monthlyPrice}) }}
+            </button>
+        </p>
+
+        <p class="my-1 mx-1">
+            <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="com.myspeedpuzzling.premium.yearly">
+                <small><i class="bi bi-apple me-1"></i> {{ 'membership.subscribe_for_yearly'|trans }}</small>
+                <br>{{ 'membership.price_per_year'|trans({'%price%': yearlyPrice}) }}
+            </button>
+        </p>
+    </div>
+
+    <p class="text-center mb-0">
+        <small class="text-muted">{{ 'membership.purchase_via_app_store'|trans }}</small>
+    </p>
+{% elseif is_android() %}
+    <div class="d-flex mt-2 text-center justify-content-center" data-controller="native-billing" data-native-billing-platform-value="android">
+        <p class="my-1 mx-1">
+            <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="premium_monthly">
+                <small><i class="bi bi-google-play me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
+                <br>{{ 'membership.price_per_month'|trans({'%price%': monthlyPrice}) }}
+            </button>
+        </p>
+
+        <p class="my-1 mx-1">
+            <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="premium_yearly">
+                <small><i class="bi bi-google-play me-1"></i> {{ 'membership.subscribe_for_yearly'|trans }}</small>
+                <br>{{ 'membership.price_per_year'|trans({'%price%': yearlyPrice}) }}
+            </button>
+        </p>
+    </div>
+
+    <p class="text-center mb-0">
+        <small class="text-muted">{{ 'membership.purchase_via_play_store'|trans }}</small>
+    </p>
+{% endif %}
+
+<hr class="my-3">
+<p class="text-center mb-0">
+    <a href="{{ path('claim_voucher') }}" class="text-decoration-none">
+        <i class="ci-gift me-1"></i> {{ 'membership.have_voucher_code'|trans }}
+    </a>
+</p>

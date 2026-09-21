@@ -996,12 +996,6 @@
   "title": "%competitionName% Konto-Verbindung"
   "back_to_competition": "Zurück zum Wettbewerb"
   "description": "Verbinden Sie Ihr Wettbewerbs-Konto mit dem MySpeedPuzzling-Profil und finden Sie heraus, wie Sie gegen andere Teilnehmer stehen. Um Statistiken relevant zu machen, nehmen wir nur 500-teilige Puzzles der letzten 3 Monate in die Statistiken. Wenn Sie das gleiche Puzzle mehrmals gelöst haben, nehmen wir nur das schnellste!"
-"global_modal":
-  "title": "Ranglistenpuzzeln ist da!"
-  "text": "<p>Wir freuen uns, ein großes Update vorzustellen — alles rund um Ranking und Wettbewerb:</p>\n<ul class=\"ms-0\" style=\"list-style-type: disc;\"><li class=\"mt-2\"><strong>Puzzle-Schwierigkeit</strong> — berechnete Bewertungen basierend auf echten Lösungsdaten</li><li class=\"mt-2\"><strong>Einblicke & Vorhersagen</strong> — detaillierte Metriken mit personalisierten Zeitvorhersagen</li><li class=\"mt-2\"><strong>Puzzler-Stufen</strong> — von Anfänger bis Legendär, finden Sie heraus, wo Sie stehen</li><li class=\"mt-2\"><strong>MSP Rating Rangliste</strong> — kompetitives Ranking inspiriert vom Schach-Rating. Derzeit ist <strong>Wiktor unser erster MSP King</strong>. Herzlichen Glückwunsch!</li></ul>\n<p>Die Formeln, Stufen und Rating-Berechnungen <strong>können angepasst werden</strong>, wenn wir mehr Daten sammeln. Sie möchten nicht gerankt werden? Sie können sich <strong>jederzeit abmelden</strong> in Ihren Profileinstellungen.</p>\n"
-  "button_methodology": "So funktioniert's"
-  "button_ladder": "Rangliste ansehen"
-  "button_dismiss": "Verstanden!"
 "added_time_recap":
   "title": "Großartige Zeit, machen Sie weiter so!"
   "add_time": "Neue Zeit hinzufügen"
@@ -1679,6 +1673,30 @@
   "rotate_right": "Nach rechts drehen"
   "apply": "Anwenden"
 "admin":
+  "free_trial":
+    "title": "Kostenloser Test und Ankündigungsfenster"
+    "intro": "Wie vielen Spielern welches Ankündigungsfenster gezeigt wurde und was aus den kostenlosen Tests geworden ist."
+    "flag_on": "FREE_TRIAL_ENABLED ist an"
+    "flag_off": "FREE_TRIAL_ENABLED ist aus"
+    "modals_title": "Ankündigungsfenster"
+    "modals_intro": "Jeder Spieler bekommt ein Fenster höchstens einmal - „Angezeigt“ ist also eine Anzahl von Spielern. „Wirklich geöffnet“ ist, was die Browser zurückgemeldet haben; es liegt immer etwas niedriger (geschlossene Tabs, blockierte Anfragen)."
+    "modals_empty": "Es wurde noch kein Fenster angezeigt."
+    "modal": "Fenster"
+    "displayed": "Angezeigt"
+    "seen": "Wirklich geöffnet"
+    "last_24_hours": "Letzte 24 Std."
+    "last_7_days": "Letzte 7 Tage"
+    "first_displayed": "Zuerst"
+    "last_displayed": "Zuletzt"
+    "funnel_title": "Kostenlose Tests"
+    "eligible_players": "Spieler, die noch einen starten können"
+    "started": "Gestartet"
+    "running": "Laufen gerade"
+    "ended": "Beendet"
+    "subscribed_during_trial": "Während des Tests abonniert"
+    "subscribed_total": "Abonniert (jederzeit)"
+    "conversion": "%percent% % der gestarteten Tests wurden zu einem Abonnement."
+    "source": "Gestartet von"
   "competition_approvals":
     "back_title": "Admin — Genehmigungen"
   "puzzle_change_request":
@@ -3650,3 +3668,59 @@ onboarding:
                 text: "Der Kern ist kostenlos. Mitglieder bekommen Extras und unterstützen das Projekt."
             faq:
                 text: "Antworten auf häufige Fragen."
+
+free_trial:
+    topbar_badge: "Test"
+    offer:
+        title: "Teste die Mitgliedschaft %days% Tage kostenlos"
+        reassurance: "Keine Karte. Nichts zu kündigen. Endet von selbst."
+        button: "Kostenlosen Test starten"
+        tip: "Tipp: Die Mitgliedschaft zeigt am meisten, sobald du ein paar Zeiten eingetragen hast. Der Test wartet auf dich - starte ihn, wann immer du möchtest. Ein Test pro Spieler."
+        or_subscribe: "oder gleich abonnieren"
+    modal:
+        text: "Du kannst alles ausprobieren, was Mitglieder haben - %days% Tage kostenlos. Keine Karte, nichts zu kündigen."
+        button: "%days% Tage kostenlos testen"
+        secondary: "Mitgliedschaft ansehen"
+    offer_modal:
+        title: "Teste die Mitgliedschaft %days% Tage kostenlos"
+        text: "Sieh dir an, was die Mitgliedschaft deinem Puzzeln bringt: Einblicke in dein Puzzeln, Zeitprognosen, detaillierte Statistiken und Diagramme, mehr Filter und eigene Sammlungen."
+        what_do_i_get: "Was bekomme ich?"
+        later: "Vielleicht später"
+        find_it_later: "Du kannst ihn jederzeit auf der Seite Mitgliedschaft starten."
+    flash:
+        started: "Dein kostenloser Test läuft - %days% Tage lang ist alles freigeschaltet. Viel Spaß!"
+    not_available: "Der kostenlose Test ist für Spieler, die noch nie eine Mitgliedschaft hatten."
+    status:
+        active: "Dein kostenloser Test läuft"
+        days_left: "{1}Noch 1 Tag|]1,Inf[Noch %count% Tage"
+        until: "bis"
+        ends_by_itself: "Er endet von selbst - dir wird nichts berechnet."
+        liking_it: "Gefällt es dir? Werde Mitglied"
+        keep_days: "Abonniere jetzt und behalte den Rest deines Tests - deine erste Zahlung wäre am %date%."
+        ended: "Dein kostenloser Test ist beendet. Wir hoffen, er hat dir gefallen!"
+    started:
+        meta_title: "Dein kostenloser Test hat begonnen"
+        title: "Dein kostenloser Test läuft!"
+        lead: "Bis zum %date% ist alles für dich freigeschaltet, was Mitglieder haben."
+        no_strings: "Keine Karte, nichts zu kündigen - er endet von selbst. Wenn es dir gefällt, kannst du jederzeit Mitglied werden und den Rest deines Tests behalten."
+        where_to_look: "Wo du zuerst hinschauen solltest"
+        membership_link: "Mitgliedschaft und Stand deines Tests"
+    features:
+        insights:
+            title: "Einblicke in deinem Profil"
+            text: "Deine Leistungsstufe, die Schwierigkeit von Puzzles und wie lange du für ein Puzzle brauchen solltest."
+        statistics:
+            title: "Detaillierte Statistiken und Diagramme"
+            text: "Wie sich deine Zeiten entwickeln - nach Monat, Teilezahl und Marke."
+        picker:
+            title: "Was puzzle ich als Nächstes?"
+            text: "Filter für Mitglieder: Schwierigkeit, deine prognostizierte Zeit, ein Zeitbudget."
+        collections:
+            title: "Eigene Sammlungen"
+            text: "Ordne deine Puzzles auf deine Art und sieh darin deine Zeiten und Prognosen."
+        ladder:
+            title: "Mehr aus der Rangliste"
+            text: "Filtere nach Land und nur nach ersten Versuchen."
+        player_code:
+            title: "Dein eigener Spielercode"
+            text: "Wähle einen Code, den sich Freunde merken können - in den Profileinstellungen."

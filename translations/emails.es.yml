@@ -216,3 +216,24 @@ newsletter_confirmation:
         <p>Confírmalo abajo y te contaremos las novedades de la plataforma: nuevas funciones, mejoras y noticias de la comunidad. Sin marketing ni promociones — solo novedades, como mucho una vez al mes.</p>
     button: "Confirmar mi suscripción"
     expires: "El enlace es válido durante %hours% horas. Si no lo has solicitado, ignora este correo sin problema y no te enviaremos nada."
+
+free_trial_started:
+    subject: "Tu prueba gratuita de la membresía de MySpeedPuzzling ha empezado"
+    title: "¡Tu prueba gratuita está en marcha!"
+    content: |
+        <p>Todo lo que tienen los miembros está desbloqueado para ti hasta el <b>%trialEndsAt%</b>. Sin tarjeta, nada que cancelar - termina sola.</p>
+        <p>Por dónde empezar:</p>
+        <ul>
+            <li><a href="%profileUrl%">Análisis en tu perfil</a> - tu nivel, la dificultad de los puzzles y predicciones de tiempo</li>
+            <li><a href="%statisticsUrl%">Estadísticas y gráficos detallados</a> - cómo evolucionan tus tiempos</li>
+            <li><a href="%pickerUrl%">¿Qué monto ahora?</a> - con filtros para miembros</li>
+            <li><a href="%collectionsUrl%">Tus propias colecciones</a> - con tus tiempos y predicciones</li>
+        </ul>
+        <p>Si te gusta, puedes hacerte miembro cuando quieras en la <a href="%membershipUrl%">página de membresía</a> - el resto de tu prueba sigue siendo tuyo.</p>
+free_trial_ending:
+    subject: "Tu prueba gratuita de la membresía de MySpeedPuzzling termina pronto"
+    title: "Tu prueba gratuita termina el %trialEndsAt%"
+    content: |
+        <p>Tu prueba gratuita de la membresía termina el <b>%trialEndsAt%</b>. No tienes que hacer nada - termina sola y no se te cobrará nada.</p>
+        <p>Si te ha resultado útil, puedes hacerte miembro en la <a href="%membershipUrl%">página de membresía</a>. Suscríbete antes de que termine la prueba y conservarás los días restantes - tu primer pago llegará después de ellos.</p>
+        <p>Decidas lo que decidas - gracias por probarla, ¡y felices puzzles!</p>

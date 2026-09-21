@@ -538,6 +538,11 @@
                                             Community Moderators
                                         </a>
                                     </li>
+                                    <li>
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_free_trial' %}active{% endif %}" href="{{ path('admin_free_trial') }}">
+                                            Free trial &amp; modals
+                                        </a>
+                                    </li>
                                     {% endif %}
                                 </ul>
                             </div>
@@ -549,6 +554,9 @@
 
                         <a class="ms-2 ms-sm-3 topbar-link" href="{{ path('membership') }}">
                             <i class="ci-user-circle"></i> {{ 'menu.membership'|trans }}
+                            {% if logged_user.profile is not null and logged_user.profile.freeTrialEndsAt is not null %}
+                                <span class="badge bg-success ms-1">{{ 'free_trial.topbar_badge'|trans }}</span>
+                            {% endif %}
                         </a>
 
                         <a class="ms-2 ms-sm-3 topbar-link d-none d-md-inline" href="{{ path('feature_requests') }}">
@@ -1099,26 +1107,11 @@
         {% endif %}
         {% endblock %}
 
-        {% if logged_user.profile and not logged_user.profile.modalDisplayed and false %}
-            <div class="modal fade in" tabindex="-1" role="dialog" id="global-modal" data-controller="autoshow-modal">
-                <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">{{ 'global_modal.title'|trans }}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="fs-sm">{{ 'global_modal.text'|trans|raw }}</div>
-
-                            <div class="d-flex flex-wrap gap-2 mt-3">
-                                <a href="{{ path('methodology') }}" class="btn btn-sm btn-primary btn-shadow"><i class="bi bi-book me-1"></i>{{ 'global_modal.button_methodology'|trans }}</a>
-                                <a href="{{ path('msp_rating_ladder') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-trophy me-1"></i>{{ 'global_modal.button_ladder'|trans }}</a>
-                                <button type="button" class="btn btn-secondary btn-sm ms-auto" data-bs-dismiss="modal">{{ 'global_modal.button_dismiss'|trans }}</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        {# Announcement modals (docs/features/announcement-modals.md): at most one, once per player ever.
+           Calling announcement_modal() claims it for this page view - keep this the only call. #}
+        {% set announcement = announcement_modal() %}
+        {% if announcement %}
+            {{ include(announcement.template()) }}
         {% endif %}
 
         <div class="modal fade" tabindex="-1" role="dialog" id="membersExclusiveModal">
@@ -1131,7 +1124,19 @@
                     <div class="modal-body">
                         {{ 'membership.modal.text'|trans|raw }}
 
-                        {% if logged_user.profile %}
+                        {% if logged_user.profile and free_trial_enabled and is_web() and logged_user.profile.freeTrialAvailable %}
+                            {# Never had a membership: the locked feature they just clicked is one click away (docs/features/free-trial/README.md) #}
+                            <p class="fw-medium">{{ 'free_trial.modal.text'|trans({'%days%': constant('SpeedPuzzling\\Web\\Value\\FreeTrial::DAYS')}) }}</p>
+
+                            {{ include('membership/_free_trial_start_form.html.twig', {
+                                source: 'members_modal',
+                                label: 'free_trial.modal.button'|trans({'%days%': constant('SpeedPuzzling\\Web\\Value\\FreeTrial::DAYS')}),
+                                return: app.request.requestUri,
+                                form_class: 'me-2 mb-2',
+                            }) }}
+
+                            <a href="{{ path('membership') }}" class="btn btn-outline-primary btn-sm me-2 mb-2">{{ 'free_trial.modal.secondary'|trans }}</a>
+                        {% elseif logged_user.profile %}
                             <a href="{{ path('membership') }}" class="btn btn-primary d-inline-block me-2 btn-shadow" type="submit"><i class="bi-person-circle"></i> {{ 'membership.modal.cta'|trans }}</a>
                         {% else %}
                             <a href="{{ path('login') }}" class="btn btn-primary d-inline-block me-2 btn-shadow" type="submit"><i class="bi-person"></i> {{ 'menu.sign_in'|trans }}</a>

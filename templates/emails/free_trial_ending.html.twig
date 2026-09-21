@@ -1,0 +1,27 @@
+{% trans_default_domain 'emails' %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig') }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'free_trial_ending.title'|trans({'%trialEndsAt%': trialEndsAt}) }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    {{ 'free_trial_ending.content'|trans({
+                        '%trialEndsAt%': trialEndsAt,
+                        '%membershipUrl%': url('membership'),
+                    })|raw }}
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

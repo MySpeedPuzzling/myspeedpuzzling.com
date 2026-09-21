@@ -216,3 +216,24 @@ newsletter_confirmation:
         <p>Bestätige das unten und wir sagen dir, was es auf der Plattform Neues gibt — neue Funktionen, Verbesserungen und Neuigkeiten aus der Community. Kein Marketing, keine Werbung — nur Neuigkeiten, höchstens einmal im Monat.</p>
     button: "Mein Abo bestätigen"
     expires: "Der Link ist %hours% Stunden gültig. Wenn du das nicht angefordert hast, ignoriere diese E-Mail einfach — dann wird nichts verschickt."
+
+free_trial_started:
+    subject: "Dein kostenloser Test der MySpeedPuzzling-Mitgliedschaft hat begonnen"
+    title: "Dein kostenloser Test läuft!"
+    content: |
+        <p>Bis zum <b>%trialEndsAt%</b> ist alles für dich freigeschaltet, was Mitglieder haben. Keine Karte, nichts zu kündigen - er endet von selbst.</p>
+        <p>Wo du zuerst hinschauen solltest:</p>
+        <ul>
+            <li><a href="%profileUrl%">Einblicke in deinem Profil</a> - deine Leistungsstufe, Puzzle-Schwierigkeit und Zeitprognosen</li>
+            <li><a href="%statisticsUrl%">Detaillierte Statistiken und Diagramme</a> - wie sich deine Zeiten entwickeln</li>
+            <li><a href="%pickerUrl%">Was puzzle ich als Nächstes?</a> - mit Filtern für Mitglieder</li>
+            <li><a href="%collectionsUrl%">Eigene Sammlungen</a> - mit deinen Zeiten und Prognosen</li>
+        </ul>
+        <p>Wenn es dir gefällt, kannst du jederzeit auf der <a href="%membershipUrl%">Mitgliedschaftsseite</a> Mitglied werden - der Rest deines Tests bleibt dir erhalten.</p>
+free_trial_ending:
+    subject: "Dein kostenloser Test der MySpeedPuzzling-Mitgliedschaft endet bald"
+    title: "Dein kostenloser Test endet am %trialEndsAt%"
+    content: |
+        <p>Dein kostenloser Test der Mitgliedschaft endet am <b>%trialEndsAt%</b>. Du musst nichts tun - er endet von selbst und dir wird nichts berechnet.</p>
+        <p>Wenn er sich als nützlich erwiesen hat, kannst du auf der <a href="%membershipUrl%">Mitgliedschaftsseite</a> Mitglied werden. Abonniere vor dem Ende des Tests und die verbleibenden Tage bleiben dir erhalten - deine erste Zahlung kommt erst danach.</p>
+        <p>Wie auch immer du dich entscheidest - danke fürs Ausprobieren und viel Spaß beim Puzzeln!</p>

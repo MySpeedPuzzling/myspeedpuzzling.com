@@ -1,0 +1,25 @@
+{# Membership page while the free trial runs. Parameters: membership (PlayerMembership), now #}
+{% set days_left = membership.freeTrialDaysLeft(now) %}
+
+<p class="text-success fs-5 mb-2">
+    <i class="ci-check-circle me-2"></i> {{ 'free_trial.status.active'|trans }}
+</p>
+
+<p>
+    {{ 'free_trial.status.days_left'|trans({'%count%': days_left}) }}
+    &ndash; {{ 'free_trial.status.until'|trans }} <strong>{{ membership.trialEndsAt|format_date('long') }}</strong>.
+    {{ 'free_trial.status.ends_by_itself'|trans }}
+</p>
+
+{# A voucher claimed during the trial starts counting when the trial ends #}
+{% if voucher_free_periods|default([]) is not empty %}
+    {{ include('membership/_voucher_free_periods.html.twig', {membership: membership, periods: voucher_free_periods, now: now, last: true}) }}
+{% endif %}
+
+<hr class="my-3">
+
+<h4>{{ 'free_trial.status.liking_it'|trans }}</h4>
+
+{% if is_web() and membership.keepsFreeTrialDaysOnSubscribe(now) %}
+    <p class="mb-1">{{ 'free_trial.status.keep_days'|trans({'%date%': membership.trialEndsAt|format_date('long')}) }}</p>
+{% endif %}

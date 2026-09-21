@@ -52,6 +52,13 @@ class ActivityDailySummary
         #[Immutable]
         #[Column(type: Types::DATETIMETZ_IMMUTABLE)]
         public DateTimeImmutable $computedAt,
+        /**
+         * Players on the free trial of membership (docs/features/free-trial/README.md) - counted apart,
+         * never in `activeMembers`: they have the features, they are not members yet.
+         */
+        #[Immutable]
+        #[Column(type: Types::INTEGER, options: ['default' => 0])]
+        public int $activeTrials = 0,
     ) {
     }
 }

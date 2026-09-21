@@ -216,3 +216,24 @@ newsletter_confirmation:
         <p>Confirmez ci-dessous et nous vous tiendrons au courant des nouveautés de la plateforme — nouvelles fonctionnalités, améliorations et actualités de la communauté. Pas de marketing, pas de promotions — uniquement les nouveautés, pas plus d'une fois par mois.</p>
     button: "Confirmer mon abonnement"
     expires: "Le lien est valable %hours% heures. Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet e-mail et rien ne vous sera envoyé."
+
+free_trial_started:
+    subject: "Votre essai gratuit de l'adhésion MySpeedPuzzling a commencé"
+    title: "Votre essai gratuit a commencé !"
+    content: |
+        <p>Tout ce qu'ont les membres est débloqué pour vous jusqu'au <b>%trialEndsAt%</b>. Sans carte, rien à résilier - il se termine tout seul.</p>
+        <p>Par où commencer :</p>
+        <ul>
+            <li><a href="%profileUrl%">Analyses sur votre profil</a> - votre niveau, la difficulté des puzzles et les prévisions de temps</li>
+            <li><a href="%statisticsUrl%">Statistiques et graphiques détaillés</a> - l'évolution de vos temps</li>
+            <li><a href="%pickerUrl%">Que faire comme prochain puzzle ?</a> - avec les filtres réservés aux membres</li>
+            <li><a href="%collectionsUrl%">Vos propres collections</a> - avec vos temps et prévisions</li>
+        </ul>
+        <p>Si cela vous plaît, vous pouvez devenir membre à tout moment sur la <a href="%membershipUrl%">page d'adhésion</a> - le reste de votre essai vous reste acquis.</p>
+free_trial_ending:
+    subject: "Votre essai gratuit de l'adhésion MySpeedPuzzling se termine bientôt"
+    title: "Votre essai gratuit se termine le %trialEndsAt%"
+    content: |
+        <p>Votre essai gratuit de l'adhésion se termine le <b>%trialEndsAt%</b>. Vous n'avez rien à faire - il se termine tout seul et rien ne vous sera facturé.</p>
+        <p>S'il vous a été utile, vous pouvez devenir membre sur la <a href="%membershipUrl%">page d'adhésion</a>. Abonnez-vous avant la fin de l'essai et les jours restants vous restent acquis - votre premier paiement n'interviendra qu'après.</p>
+        <p>Quelle que soit votre décision - merci d'avoir essayé, et bons puzzles !</p>

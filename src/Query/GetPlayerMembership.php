@@ -32,6 +32,7 @@ SELECT
     membership.ends_at,
     membership.billing_period_ends_at,
     membership.granted_until,
+    membership.trial_ends_at,
     discount_voucher.percentage_discount AS discount_percent,
     discount_voucher.code AS discount_voucher_code
 FROM membership
@@ -48,6 +49,7 @@ SQL;
          *     ends_at: null|string,
          *     billing_period_ends_at: null|string,
          *     granted_until: null|string,
+         *     trial_ends_at: null|string,
          *     discount_percent: null|int,
          *     discount_voucher_code: null|string,
          * } $row

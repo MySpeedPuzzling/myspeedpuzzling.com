@@ -1,0 +1,46 @@
+{# Announcement modal "free_trial_offer" (docs/features/announcement-modals.md). Stays in the code for good -
+   FreeTrialOfferRule decides who gets it and ResolveAnnouncementModal that nobody gets it twice. #}
+{% set trial_days = constant('SpeedPuzzling\\Web\\Value\\FreeTrial::DAYS') %}
+
+<div
+    class="modal fade"
+    tabindex="-1"
+    role="dialog"
+    id="announcement-modal"
+    aria-labelledby="announcement-modal-title"
+    data-controller="autoshow-modal"
+    data-autoshow-modal-seen-url-value="{{ path('announcement_modal_seen') }}"
+    data-autoshow-modal-name-value="{{ announcement.value }}"
+>
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+            </div>
+
+            <div class="modal-body text-center pt-0 px-4 pb-4">
+                <img src="{{ asset('img/puzzlie-1.png') }}" alt="" width="110" height="104" class="mb-3" loading="lazy">
+
+                <h5 class="modal-title h4 mb-2" id="announcement-modal-title">{{ 'free_trial.offer_modal.title'|trans({'%days%': trial_days}) }}</h5>
+
+                <p class="mb-2">{{ 'free_trial.offer_modal.text'|trans }}</p>
+
+                <p class="fw-medium mb-4">{{ 'free_trial.offer.reassurance'|trans }}</p>
+
+                <div class="d-flex flex-column align-items-center gap-2">
+                    {{ include('membership/_free_trial_start_form.html.twig', {
+                        source: 'offer_modal',
+                        label: 'free_trial.offer.button'|trans,
+                        return: app.request.requestUri,
+                    }) }}
+
+                    <a href="{{ path('membership') }}" class="btn btn-link btn-sm">{{ 'free_trial.offer_modal.what_do_i_get'|trans }}</a>
+
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ 'free_trial.offer_modal.later'|trans }}</button>
+                </div>
+
+                <p class="text-muted small mt-3 mb-0">{{ 'free_trial.offer_modal.find_it_later'|trans }}</p>
+            </div>
+        </div>
+    </div>
+</div>

@@ -216,3 +216,25 @@ newsletter_confirmation:
         <p>Confirm below and we'll let you know what's new on the platform — new features, improvements and community news. No marketing, no promotions — just what's new, at most once a month.</p>
     button: "Confirm my subscription"
     expires: "The link is valid for %hours% hours. If you didn't request this, simply ignore this e-mail and nothing will be sent."
+
+free_trial_started:
+    subject: "Your free trial of MySpeedPuzzling membership has started"
+    title: "Your free trial is on!"
+    content: |
+        <p>Everything members have is unlocked for you until <b>%trialEndsAt%</b>. No card, nothing to cancel - it ends by itself.</p>
+        <p>Where to look first:</p>
+        <ul>
+            <li><a href="%profileUrl%">Insights on your profile</a> - your skill tier, puzzle difficulty and time predictions</li>
+            <li><a href="%statisticsUrl%">Detailed statistics and charts</a> - how your times develop</li>
+            <li><a href="%pickerUrl%">What should I solve next?</a> - with member filters</li>
+            <li><a href="%collectionsUrl%">Your own collections</a> - with your times and predictions</li>
+        </ul>
+        <p>If you like it, you can become a member any time on the <a href="%membershipUrl%">membership page</a> - the rest of your trial stays yours.</p>
+
+free_trial_ending:
+    subject: "Your free trial of MySpeedPuzzling membership ends soon"
+    title: "Your free trial ends on %trialEndsAt%"
+    content: |
+        <p>Your free trial of membership ends on <b>%trialEndsAt%</b>. You do not have to do anything - it ends by itself and you will not be charged.</p>
+        <p>If it turned out useful, you can become a member on the <a href="%membershipUrl%">membership page</a>. Subscribe before the trial ends and the remaining days stay yours - your first payment comes only after them.</p>
+        <p>Whatever you decide - thank you for giving it a try, and happy puzzling!</p>

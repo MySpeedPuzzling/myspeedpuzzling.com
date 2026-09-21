@@ -1,0 +1,15 @@
+{# Offer card of the membership page - only for players who never had a membership (docs/features/free-trial/README.md) #}
+<div class="free-trial-offer rounded-3 border border-primary bg-faded-primary p-3 mb-4 text-center">
+    <h4 class="mb-1">{{ 'free_trial.offer.title'|trans({'%days%': days}) }}</h4>
+
+    <p class="mb-3">{{ 'free_trial.offer.reassurance'|trans }}</p>
+
+    {{ include('membership/_free_trial_start_form.html.twig', {
+        source: 'membership_page',
+        label: 'free_trial.offer.button'|trans,
+    }) }}
+
+    <p class="text-muted small mt-3 mb-0">{{ 'free_trial.offer.tip'|trans }}</p>
+</div>
+
+<p class="text-center text-muted small text-uppercase mb-2">{{ 'free_trial.offer.or_subscribe'|trans }}</p>

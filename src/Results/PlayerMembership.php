@@ -17,7 +17,48 @@ readonly final class PlayerMembership
         /** Percentage discount from a voucher, currently on the Stripe subscription */
         public null|int $discountPercent = null,
         public null|string $discountVoucherCode = null,
+        /** End of the free trial (docs/features/free-trial/README.md) - kept after it ran out */
+        public null|DateTimeImmutable $trialEndsAt = null,
     ) {
+    }
+
+    /**
+     * The free trial is what the membership runs on right now. A player who subscribes during the trial
+     * is a subscriber from then on - the remaining days become a Stripe trial of that subscription.
+     */
+    public function isInFreeTrial(DateTimeImmutable $now): bool
+    {
+        return $this->trialEndsAt !== null
+            && $this->trialEndsAt > $now
+            && $this->billingPeriodEndsAt === null;
+    }
+
+    public function freeTrialDaysLeft(DateTimeImmutable $now): int
+    {
+        if ($this->trialEndsAt === null || $this->trialEndsAt <= $now) {
+            return 0;
+        }
+
+        return (int) ceil(($this->trialEndsAt->getTimestamp() - $now->getTimestamp()) / 86400);
+    }
+
+    /**
+     * Checkout turns whole remaining days into a Stripe trial (MembershipManagement) - with less than
+     * a day left there is nothing to carry over and the first payment is taken right away.
+     */
+    public function keepsFreeTrialDaysOnSubscribe(DateTimeImmutable $now): bool
+    {
+        return $this->grantedUntil !== null && $now->diff($this->grantedUntil)->days > 0 && $this->grantedUntil > $now;
+    }
+
+    /**
+     * Tried membership for free, never anything else, and it is over.
+     */
+    public function isEndedFreeTrialOnly(DateTimeImmutable $now): bool
+    {
+        return $this->trialEndsAt !== null
+            && $this->stripeSubscriptionId === null
+            && $this->isActive($now) === false;
     }
 
     public function isActive(DateTimeImmutable $now): bool
@@ -65,6 +106,7 @@ readonly final class PlayerMembership
      *     ends_at: null|string,
      *     billing_period_ends_at: null|string,
      *     granted_until: null|string,
+     *     trial_ends_at?: null|string,
      *     discount_percent: null|int,
      *     discount_voucher_code: null|string,
      * } $row
@@ -89,6 +131,12 @@ readonly final class PlayerMembership
             assert($grantedUntil instanceof DateTimeImmutable);
         }
 
+        $trialEndsAt = null;
+        if (($row['trial_ends_at'] ?? null) !== null) {
+            $trialEndsAt = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $row['trial_ends_at']);
+            assert($trialEndsAt instanceof DateTimeImmutable);
+        }
+
         return new self(
             stripeSubscriptionId: $row['stripe_subscription_id'],
             endsAt: $endsAt,
@@ -96,6 +144,7 @@ readonly final class PlayerMembership
             grantedUntil: $grantedUntil,
             discountPercent: $row['discount_percent'],
             discountVoucherCode: $row['discount_voucher_code'],
+            trialEndsAt: $trialEndsAt,
         );
     }
 }

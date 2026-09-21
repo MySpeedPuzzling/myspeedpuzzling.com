@@ -17,6 +17,8 @@ use SpeedPuzzling\Web\Events\MembershipSubscriptionCancelled;
 use SpeedPuzzling\Web\Events\MembershipStarted;
 use SpeedPuzzling\Web\Events\MembershipSubscriptionRenewed;
 use SpeedPuzzling\Web\Events\MembershipTrialEnded;
+use SpeedPuzzling\Web\Value\FreeTrial;
+use SpeedPuzzling\Web\Value\FreeTrialSource;
 use SpeedPuzzling\Web\Value\LifetimeMembership;
 use SpeedPuzzling\Web\Value\Platform;
 use Stripe\Subscription;
@@ -32,6 +34,28 @@ class Membership implements EntityWithEvents
      */
     #[Column(nullable: true)]
     public null|string $stripeDiscountCouponId = null;
+
+    /**
+     * The free trial (docs/features/free-trial/README.md): set once, by startFreeTrial(), and never
+     * cleared - together with the membership row itself they are why a trial cannot be had twice.
+     * `grantedUntil` may later move past `trialEndsAt` (a voucher claimed during the trial), so the
+     * trial keeps its own end.
+     */
+    #[Column(nullable: true)]
+    public null|DateTimeImmutable $trialStartedAt = null;
+
+    #[Column(nullable: true)]
+    public null|DateTimeImmutable $trialEndsAt = null;
+
+    #[Column(length: 32, nullable: true, enumType: FreeTrialSource::class)]
+    public null|FreeTrialSource $trialSource = null;
+
+    #[Column(nullable: true)]
+    public null|DateTimeImmutable $trialEndingReminderSentAt = null;
+
+    /** The first subscription of a player who had the trial - during it or any time later. Funnel only. */
+    #[Column(nullable: true)]
+    public null|DateTimeImmutable $trialConvertedAt = null;
 
     public function __construct(
         #[Id]
@@ -58,6 +82,27 @@ class Membership implements EntityWithEvents
         public null|DateTimeImmutable $renewedBillingPeriodEnd = null,
     ) {
         $this->recordThat(new MembershipStarted($this->id));
+    }
+
+    public static function startFreeTrial(
+        UuidInterface $id,
+        Player $player,
+        DateTimeImmutable $now,
+        FreeTrialSource $source,
+    ): self {
+        $trialEndsAt = FreeTrial::endsAt($now);
+
+        $membership = new self($id, $player, $now, grantedUntil: $trialEndsAt);
+        $membership->trialStartedAt = $now;
+        $membership->trialEndsAt = $trialEndsAt;
+        $membership->trialSource = $source;
+
+        return $membership;
+    }
+
+    public function isFreeTrial(): bool
+    {
+        return $this->trialEndsAt !== null;
     }
 
     public function isManagedByAppStore(): bool
@@ -118,6 +163,10 @@ class Membership implements EntityWithEvents
 
         // TODO: Split active vs trial
         if ($status === Subscription::STATUS_ACTIVE || $status === Subscription::STATUS_TRIALING) {
+            if ($this->trialEndsAt !== null && $this->trialConvertedAt === null) {
+                $this->trialConvertedAt = $now;
+            }
+
             $this->stripeSubscriptionId = $stripeSubscriptionId;
             $this->endsAt = null;
 

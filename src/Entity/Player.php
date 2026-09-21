@@ -65,6 +65,12 @@ class Player
     #[Column(type: Types::TEXT, nullable: true)]
     public null|string $bio = null;
 
+    /**
+     * @deprecated Dead since announcement modals moved to player_modal_impression
+     * (docs/features/announcement-modals.md). Nothing reads or writes it; the column stays mapped for one
+     * release only, because the blue-green deploy keeps the previous build - which still selects it -
+     * serving while this one migrates. Drop the property and the column in the next release.
+     */
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::BOOLEAN, options: ['default' => '0'])]
     public bool $modalDisplayed = false;
@@ -282,11 +288,6 @@ class Player
         $this->favoritePlayers = array_values($this->favoritePlayers);
 
         return true;
-    }
-
-    public function markModalAsDisplayed(): void
-    {
-        $this->modalDisplayed = true;
     }
 
     public function updateStripeCustomerId(string $stripeCustomerId): void

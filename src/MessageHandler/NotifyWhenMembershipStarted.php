@@ -36,6 +36,29 @@ readonly final class NotifyWhenMembershipStarted
 
         $playerLocale = $player->locale;
 
+        if ($membership->isFreeTrial() && $membership->billingPeriodEndsAt === null) {
+            $subject = $this->translator->trans(
+                'free_trial_started.subject',
+                domain: 'emails',
+                locale: $playerLocale,
+            );
+
+            $email = (new TemplatedEmail())
+                ->to($player->email)
+                ->locale($player->locale)
+                ->subject($subject)
+                ->htmlTemplate('emails/free_trial_started.html.twig')
+                ->context([
+                    'trialEndsAt' => $membership->trialEndsAt?->format('d.m.Y'),
+                    'playerId' => $player->id->toString(),
+                ]);
+            $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
+
+            $this->mailer->send($email);
+
+            return;
+        }
+
         if ($membership->billingPeriodEndsAt === null) {
             $subject = $this->translator->trans(
                 'membership_granted.subject',
@@ -49,7 +72,11 @@ readonly final class NotifyWhenMembershipStarted
                 ->subject($subject)
                 ->htmlTemplate('emails/membership_granted.html.twig')
                 ->context([
-                    'membershipExpiresAt' => $membership->endsAt?->format('d.m.Y'),
+                    // A granted membership runs until `grantedUntil` - `endsAt` belongs to subscriptions and
+                    // was always empty here. A lifetime grant has no date worth printing.
+                    'membershipExpiresAt' => $membership->hasLifetimeGrant()
+                        ? null
+                        : $membership->grantedUntil?->format('d.m.Y'),
                 ]);
             $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 

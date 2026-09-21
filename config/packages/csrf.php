@@ -36,6 +36,10 @@ return App::config([
                 // "Delete my account" last-chance page is reached from an e-mail link,
                 // possibly anonymous, and must stay session-free (#164)
                 'confirm_account_deletion',
+                // The "start my free trial" form sits in the layout of every page an eligible
+                // player opens (members modal, offer modal) - a session-backed token would
+                // start a session on each of them (#164)
+                'start_free_trial',
             ],
         ],
     ],

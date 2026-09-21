@@ -1,0 +1,22 @@
+{# What a membership unlocks, as places to go - shown right after the free trial starts. Parameter: player_id #}
+{% set features = [
+    {key: 'insights', icon: 'bi bi-graph-up-arrow', url: path('my_profile')},
+    {key: 'statistics', icon: 'bi bi-bar-chart', url: path('player_statistics', {playerId: player_id})},
+    {key: 'picker', icon: 'bi bi-shuffle', url: path('puzzle_picker')},
+    {key: 'collections', icon: 'bi bi-collection', url: path('puzzle_library', {playerId: player_id})},
+    {key: 'ladder', icon: 'bi bi-trophy', url: path('ladder')},
+    {key: 'player_code', icon: 'bi bi-person-badge', url: path('edit_profile')},
+] %}
+
+<div class="row g-3">
+    {% for feature in features %}
+        <div class="col-sm-6">
+            <a href="{{ feature.url }}" class="card h-100 text-decoration-none shadow-sm">
+                <div class="card-body">
+                    <h3 class="h6 mb-1"><i class="{{ feature.icon }} text-primary me-2"></i>{{ ('free_trial.features.' ~ feature.key ~ '.title')|trans }}</h3>
+                    <p class="fs-sm text-muted mb-0">{{ ('free_trial.features.' ~ feature.key ~ '.text')|trans }}</p>
+                </div>
+            </a>
+        </div>
+    {% endfor %}
+</div>

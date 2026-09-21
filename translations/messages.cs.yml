@@ -1016,12 +1016,6 @@
   "title": "%competitionName% - propojení účtu"
   "back_to_competition": "Zpět na soutěž"
   "description": "Propojte váš soutěžní účet s MySpeedPuzzling profilem a porovnejte, jak si stojíte proti ostatním účastníkům. Aby byly statistiky co nejvíce relevantí, do statistik počítáme pouze 500-dílkové puzzle složené za poslední 3 měsíce. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem!"
-"global_modal":
-  "title": "Soutěžní puzzlování je tady!"
-  "text": "<p>S nadšením představujeme velkou aktualizaci — vše o hodnocení a soutěživosti:</p>\n<ul class=\"ms-0\" style=\"list-style-type: disc;\"><li class=\"mt-2\"><strong>Obtížnost puzzlí</strong> — vypočítané hodnocení na základě reálných dat</li><li class=\"mt-2\"><strong>Statistiky a predikce</strong> — detailní metriky s personalizovanými odhady časů</li><li class=\"mt-2\"><strong>Úrovně puzzlerů</strong> — od Začátečníka po Legendárního, zjistěte, kde stojíte</li><li class=\"mt-2\"><strong>MSP Rating žebříček</strong> — soutěžní hodnocení inspirované šachovým Rating. Aktuálně je <strong>Wiktor náš první MSP King</strong>. Gratulujeme!</li></ul>\n<p>Vzorce, úrovně a výpočty Rating <strong>mohou být upraveny</strong> na základě dalších dat. Nechcete být hodnoceni? Můžete se <strong>kdykoli odhlásit</strong> v nastavení profilu.</p>\n"
-  "button_methodology": "Jak to funguje"
-  "button_ladder": "Zobrazit žebříček"
-  "button_dismiss": "Rozumím!"
 "added_time_recap":
   "meta":
     "title": "Čas přidán"
@@ -1677,6 +1671,30 @@
   "rotate_right": "Otočit doprava"
   "apply": "Použít"
 "admin":
+  "free_trial":
+    "title": "Zkušební období a oznamovací okna"
+    "intro": "Kolika hráčům se zobrazilo které oznamovací okno a co se stalo se zkušebními obdobími."
+    "flag_on": "FREE_TRIAL_ENABLED je zapnuto"
+    "flag_off": "FREE_TRIAL_ENABLED je vypnuto"
+    "modals_title": "Oznamovací okna"
+    "modals_intro": "Každý hráč dostane okno nejvýše jednou, navždy - „zobrazeno“ je tedy počet hráčů. „Skutečně otevřeno“ je to, co nahlásily prohlížeče; bývá o něco nižší (zavřené panely, blokované požadavky)."
+    "modals_empty": "Zatím se nezobrazilo žádné okno."
+    "modal": "Okno"
+    "displayed": "Zobrazeno"
+    "seen": "Skutečně otevřeno"
+    "last_24_hours": "Posledních 24 h"
+    "last_7_days": "Posledních 7 dní"
+    "first_displayed": "Poprvé"
+    "last_displayed": "Naposledy"
+    "funnel_title": "Zkušební období"
+    "eligible_players": "Hráči, kteří ho ještě mohou spustit"
+    "started": "Spuštěno"
+    "running": "Právě běží"
+    "ended": "Skončilo"
+    "subscribed_during_trial": "Předplatili během zkoušky"
+    "subscribed_total": "Předplatili (kdykoli)"
+    "conversion": "%percent% % spuštěných zkušebních období skončilo předplatným."
+    "source": "Spuštěno z"
   "competition_approvals":
     "back_title": "Admin — schvalování"
   "puzzle_change_request":
@@ -3648,3 +3666,59 @@ onboarding:
                 text: "Základ je zdarma. Členové mají něco navíc a podporují projekt."
             faq:
                 text: "Odpovědi na běžné otázky."
+
+free_trial:
+    topbar_badge: "Zkouška"
+    offer:
+        title: "Vyzkoušej členství na %days% dní zdarma"
+        reassurance: "Bez karty. Nic se neruší. Skončí samo."
+        button: "Spustit zkušební období"
+        tip: "Tip: členství ukáže nejvíc, až budeš mít zapsaných pár časů. Zkušební období na tebe počká - spusť ho, kdykoli budeš chtít. Každý hráč ho má jednou."
+        or_subscribe: "nebo si členství rovnou předplať"
+    modal:
+        text: "Všechno, co mají členové, si můžeš vyzkoušet - na %days% dní zdarma. Bez karty, nic se neruší."
+        button: "Vyzkoušet na %days% dní zdarma"
+        secondary: "Možnosti členství"
+    offer_modal:
+        title: "Vyzkoušej členství na %days% dní zdarma"
+        text: "Podívej se, co členství přidá k tvému skládání: přehledy o tom, jak skládáš, předpovědi časů, podrobné statistiky a grafy, více filtrů a vlastní kolekce."
+        what_do_i_get: "Co získám?"
+        later: "Možná později"
+        find_it_later: "Spustit ho můžeš kdykoli na stránce Členství."
+    flash:
+        started: "Zkušební období běží - na %days% dní máš odemčeno úplně všechno. Užij si to!"
+    not_available: "Zkušební období je pro hráče, kteří členství ještě nikdy neměli."
+    status:
+        active: "Běží ti zkušební období"
+        days_left: "{1}Zbývá 1 den|[2,4]Zbývají %count% dny|[5,Inf[Zbývá %count% dní"
+        until: "do"
+        ends_by_itself: "Skončí samo - nic ti nestrhneme."
+        liking_it: "Líbí se ti to? Staň se členem"
+        keep_days: "Předplať si členství už teď a zbytek zkušebního období ti zůstane - první platba by proběhla %date%."
+        ended: "Tvoje zkušební období skončilo. Doufáme, že se ti líbilo!"
+    started:
+        meta_title: "Zkušební období začalo"
+        title: "Zkušební období běží!"
+        lead: "Do %date% máš odemčeno všechno, co mají členové."
+        no_strings: "Bez karty, nic se neruší - skončí samo. Když se ti členství zalíbí, můžeš se kdykoli stát členem a zbytek zkušebního období ti zůstane."
+        where_to_look: "Kam se podívat nejdřív"
+        membership_link: "Možnosti členství a stav zkušebního období"
+    features:
+        insights:
+            title: "Přehledy na tvém profilu"
+            text: "Tvoje výkonnostní úroveň, obtížnost puzzle a jak dlouho by ti které puzzle mělo trvat."
+        statistics:
+            title: "Podrobné statistiky a grafy"
+            text: "Jak se tvoje časy vyvíjejí - po měsících, podle počtu dílků, podle značky."
+        picker:
+            title: "Co mám skládat příště?"
+            text: "Filtry pro členy: obtížnost, tvůj předpokládaný čas, kolik máš času."
+        collections:
+            title: "Vlastní kolekce"
+            text: "Uspořádej si puzzle po svém a měj u nich své časy i předpovědi."
+        ladder:
+            title: "Více z žebříčku"
+            text: "Filtruj podle země a jen podle prvních pokusů."
+        player_code:
+            title: "Vlastní kód hráče"
+            text: "Vyber si kód, který si kamarádi zapamatují - v nastavení profilu."

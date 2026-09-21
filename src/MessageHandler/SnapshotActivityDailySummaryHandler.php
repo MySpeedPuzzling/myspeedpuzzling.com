@@ -40,19 +40,25 @@ readonly final class SnapshotActivityDailySummaryHandler
 
         $connection = $this->entityManager->getConnection();
 
-        /** @var array<array{locale: string, active_players: int|string, active_members: int|string}> $activityRows */
+        /** @var array<array{locale: string, active_players: int|string, active_members: int|string, active_trials: int|string}> $activityRows */
         $activityRows = $connection->executeQuery(
             <<<SQL
 SELECT
     COALESCE(p.locale, 'unknown') AS locale,
     COUNT(*) AS active_players,
     COUNT(*) FILTER (WHERE
-        (m.ends_at IS NULL AND m.billing_period_ends_at IS NOT NULL)
-        OR GREATEST(
-            COALESCE(m.ends_at, m.billing_period_ends_at, '1970-01-01'::timestamp),
-            COALESCE(m.granted_until, '1970-01-01'::timestamp)
-        ) > :now
-    ) AS active_members
+        (
+            (m.ends_at IS NULL AND m.billing_period_ends_at IS NOT NULL)
+            OR GREATEST(
+                COALESCE(m.ends_at, m.billing_period_ends_at, '1970-01-01'::timestamp),
+                COALESCE(m.granted_until, '1970-01-01'::timestamp)
+            ) > :now
+        )
+        AND NOT (m.trial_ends_at IS NOT NULL AND m.trial_ends_at > :now AND m.billing_period_ends_at IS NULL)
+    ) AS active_members,
+    COUNT(*) FILTER (WHERE
+        m.trial_ends_at IS NOT NULL AND m.trial_ends_at > :now AND m.billing_period_ends_at IS NULL
+    ) AS active_trials
 FROM player_activity_day a
 JOIN player p ON p.id = a.player_id
 LEFT JOIN membership m ON m.player_id = p.id
@@ -76,13 +82,14 @@ SQL,
             ],
         )->fetchAllAssociative();
 
-        /** @var array<string, array{active_players: int, active_members: int, new_registrations: int}> $byLocale */
+        /** @var array<string, array{active_players: int, active_members: int, active_trials: int, new_registrations: int}> $byLocale */
         $byLocale = [];
 
         foreach ($activityRows as $row) {
             $byLocale[$row['locale']] = [
                 'active_players' => (int) $row['active_players'],
                 'active_members' => (int) $row['active_members'],
+                'active_trials' => (int) $row['active_trials'],
                 'new_registrations' => 0,
             ];
         }
@@ -91,6 +98,7 @@ SQL,
             $byLocale[$row['locale']] ??= [
                 'active_players' => 0,
                 'active_members' => 0,
+                'active_trials' => 0,
                 'new_registrations' => 0,
             ];
             $byLocale[$row['locale']]['new_registrations'] = (int) $row['new_registrations'];
@@ -104,14 +112,15 @@ SQL,
 
         foreach ($byLocale as $locale => $counts) {
             $connection->executeStatement(
-                'INSERT INTO activity_daily_summary (id, day, locale, active_players, active_members, new_registrations, computed_at)
-                 VALUES (:id, :day, :locale, :activePlayers, :activeMembers, :newRegistrations, :computedAt)',
+                'INSERT INTO activity_daily_summary (id, day, locale, active_players, active_members, active_trials, new_registrations, computed_at)
+                 VALUES (:id, :day, :locale, :activePlayers, :activeMembers, :activeTrials, :newRegistrations, :computedAt)',
                 [
                     'id' => Uuid::uuid7()->toString(),
                     'day' => $day,
                     'locale' => $locale,
                     'activePlayers' => $counts['active_players'],
                     'activeMembers' => $counts['active_members'],
+                    'activeTrials' => $counts['active_trials'],
                     'newRegistrations' => $counts['new_registrations'],
                     'computedAt' => $now->format('Y-m-d H:i:sP'),
                 ],

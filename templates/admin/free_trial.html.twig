@@ -1,0 +1,101 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'admin.free_trial.title'|trans }}{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-2">{{ 'admin.free_trial.title'|trans }}</h1>
+    <p class="text-muted mb-4">
+        {{ 'admin.free_trial.intro'|trans }}
+        {% if enabled %}
+            <span class="badge bg-success ms-1">{{ 'admin.free_trial.flag_on'|trans }}</span>
+        {% else %}
+            <span class="badge bg-secondary ms-1">{{ 'admin.free_trial.flag_off'|trans }}</span>
+        {% endif %}
+    </p>
+
+    <h2 class="h5">{{ 'admin.free_trial.modals_title'|trans }}</h2>
+    <p class="text-muted fs-sm">{{ 'admin.free_trial.modals_intro'|trans }}</p>
+
+    {% if modals is empty %}
+        <p class="text-muted">{{ 'admin.free_trial.modals_empty'|trans }}</p>
+    {% else %}
+        <div class="table-responsive mb-4">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>{{ 'admin.free_trial.modal'|trans }}</th>
+                        <th class="text-end">{{ 'admin.free_trial.displayed'|trans }}</th>
+                        <th class="text-end">{{ 'admin.free_trial.seen'|trans }}</th>
+                        <th class="text-end">{{ 'admin.free_trial.last_24_hours'|trans }}</th>
+                        <th class="text-end">{{ 'admin.free_trial.last_7_days'|trans }}</th>
+                        <th>{{ 'admin.free_trial.first_displayed'|trans }}</th>
+                        <th>{{ 'admin.free_trial.last_displayed'|trans }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for modal in modals %}
+                        <tr>
+                            <td><code>{{ modal.modal }}</code></td>
+                            <td class="text-end fw-medium">{{ modal.displayed|number_format(0, '.', ' ') }}</td>
+                            <td class="text-end">
+                                {{ modal.seen|number_format(0, '.', ' ') }}
+                                {% if modal.seenPercent is not null %}<small class="text-muted">({{ modal.seenPercent }} %)</small>{% endif %}
+                            </td>
+                            <td class="text-end">{{ modal.displayedLast24Hours|number_format(0, '.', ' ') }}</td>
+                            <td class="text-end">{{ modal.displayedLast7Days|number_format(0, '.', ' ') }}</td>
+                            <td>{{ modal.firstDisplayedAt ? modal.firstDisplayedAt|date('d.m.Y H:i') : '-' }}</td>
+                            <td>{{ modal.lastDisplayedAt ? modal.lastDisplayedAt|date('d.m.Y H:i') : '-' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    <h2 class="h5">{{ 'admin.free_trial.funnel_title'|trans }}</h2>
+
+    <div class="row g-3 mb-4">
+        {% for label, value in {
+            'admin.free_trial.eligible_players': funnel.eligiblePlayers,
+            'admin.free_trial.started': funnel.started,
+            'admin.free_trial.running': funnel.running,
+            'admin.free_trial.ended': funnel.ended,
+            'admin.free_trial.subscribed_during_trial': funnel.subscribedDuringTrial,
+            'admin.free_trial.subscribed_total': funnel.subscribedTotal,
+        } %}
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="card card-body shadow-sm h-100 text-center">
+                    <div class="h3 mb-1">{{ value|number_format(0, '.', ' ') }}</div>
+                    <div class="fs-sm text-muted">{{ label|trans }}</div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if funnel.conversionPercent is not null %}
+        <p>{{ 'admin.free_trial.conversion'|trans({'%percent%': funnel.conversionPercent}) }}</p>
+    {% endif %}
+
+    {% if funnel.startedBySource is not empty %}
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>{{ 'admin.free_trial.source'|trans }}</th>
+                        <th class="text-end">{{ 'admin.free_trial.started'|trans }}</th>
+                        <th class="text-end">{{ 'admin.free_trial.subscribed_total'|trans }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for source, started in funnel.startedBySource %}
+                        <tr>
+                            <td><code>{{ source }}</code></td>
+                            <td class="text-end">{{ started|number_format(0, '.', ' ') }}</td>
+                            <td class="text-end">{{ funnel.subscribedBySource[source]|default(0)|number_format(0, '.', ' ') }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

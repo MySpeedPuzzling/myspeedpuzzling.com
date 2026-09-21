@@ -216,3 +216,24 @@ newsletter_confirmation:
         <p>Potvrďte odběr tlačítkem níže a budeme vám dávat vědět, co je na platformě nového — nové funkce, vylepšení a novinky z komunity. Žádný marketing, žádná reklama — jen novinky, maximálně jednou měsíčně.</p>
     button: "Potvrdit odběr"
     expires: "Odkaz platí %hours% hodin. Pokud jste o odběr nežádali, tento e-mail klidně ignorujte a nic vám chodit nebude."
+
+free_trial_started:
+    subject: "Tvoje zkušební období členství na MySpeedPuzzling začalo"
+    title: "Zkušební období běží!"
+    content: |
+        <p>Do <b>%trialEndsAt%</b> máš odemčeno všechno, co mají členové. Bez karty, nic se neruší - skončí samo.</p>
+        <p>Kam se podívat nejdřív:</p>
+        <ul>
+            <li><a href="%profileUrl%">Přehledy na tvém profilu</a> - tvoje výkonnostní úroveň, obtížnost puzzle a předpovědi časů</li>
+            <li><a href="%statisticsUrl%">Podrobné statistiky a grafy</a> - jak se tvoje časy vyvíjejí</li>
+            <li><a href="%pickerUrl%">Co mám skládat příště?</a> - s filtry pro členy</li>
+            <li><a href="%collectionsUrl%">Vlastní kolekce</a> - s tvými časy a předpověďmi</li>
+        </ul>
+        <p>Když se ti členství zalíbí, můžeš se kdykoli stát členem na <a href="%membershipUrl%">stránce členství</a> - zbytek zkušebního období ti zůstane.</p>
+free_trial_ending:
+    subject: "Tvoje zkušební období členství na MySpeedPuzzling brzy končí"
+    title: "Zkušební období končí %trialEndsAt%"
+    content: |
+        <p>Tvoje zkušební období členství končí <b>%trialEndsAt%</b>. Nemusíš nic dělat - skončí samo a nic ti nestrhneme.</p>
+        <p>Pokud se ti osvědčilo, můžeš se stát členem na <a href="%membershipUrl%">stránce členství</a>. Když si členství předplatíš před koncem zkušebního období, zbývající dny ti zůstanou - první platba přijde až po nich.</p>
+        <p>Ať se rozhodneš jakkoli - díky, že jsi to vyzkoušel/a, a ať se ti dobře skládá!</p>

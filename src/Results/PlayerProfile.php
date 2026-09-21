@@ -29,7 +29,6 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     instagram: null|string,
  *     twitch: null|string,
  *     stripe_customer_id: null|string,
- *     modal_displayed: bool,
  *     locale: null|string,
  *     has_active_stripe_subscription: bool,
  *     membership_ends_at: null|string,
@@ -56,6 +55,10 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     referral_program_joined_at: null|string,
  *     referral_program_suspended: bool,
  *     moderator_since: null|string,
+ *     registered_at?: null|string,
+ *     has_membership_row?: bool,
+ *     free_trial_ends_at?: null|string,
+ *     modal_impressions?: null|string,
  *  }
  */
 readonly final class PlayerProfile
@@ -75,7 +78,6 @@ readonly final class PlayerProfile
         public null|string $facebook,
         public null|string $instagram,
         public null|string $twitch,
-        public bool $modalDisplayed,
         public null|string $stripeCustomerId,
         public null|string $locale,
         public null|DateTimeImmutable $membershipEndsAt,
@@ -122,6 +124,26 @@ readonly final class PlayerProfile
          * @var list<string>
          */
         public array $revealedPrivatePlayerIds = [],
+        /**
+         * The four below are filled for the signed-in player's own profile only (GetPlayerProfile::byUserId()).
+         */
+        public null|DateTimeImmutable $registeredAt = null,
+        /**
+         * No membership row at all - never subscribed, never claimed a voucher, never was granted one, never
+         * had a trial. The one eligibility rule of the free trial (docs/features/free-trial/README.md).
+         */
+        public bool $freeTrialAvailable = false,
+        /**
+         * Set while the free trial is what the membership runs on - not once the player subscribed.
+         */
+        public null|DateTimeImmutable $freeTrialEndsAt = null,
+        /**
+         * Announcement modals this player was already shown, by AnnouncementModal value
+         * (docs/features/announcement-modals.md). Read through ResolveAnnouncementModal.
+         *
+         * @var array<string, DateTimeImmutable>
+         */
+        public array $modalImpressions = [],
     ) {
     }
 
@@ -158,6 +180,21 @@ readonly final class PlayerProfile
         } catch (JsonException) {
         }
 
+        $modalImpressions = [];
+
+        try {
+            $decodedImpressions = Json::decode($row['modal_impressions'] ?? '{}', true);
+
+            if (is_array($decodedImpressions)) {
+                foreach ($decodedImpressions as $modal => $displayedAt) {
+                    if (is_string($modal) && is_string($displayedAt)) {
+                        $modalImpressions[$modal] = new DateTimeImmutable($displayedAt);
+                    }
+                }
+            }
+        } catch (JsonException) {
+        }
+
         $countryCode = CountryCode::fromCode($row['country']);
 
         $membershipEndsAt = null;
@@ -172,6 +209,17 @@ readonly final class PlayerProfile
 
             if ($membershipEndsAt > $now) {
                 $hasMembership = true;
+            }
+        }
+
+        // Once the player subscribes, the rest of the trial becomes a Stripe trial of that subscription
+        $freeTrialEndsAt = null;
+
+        if (isset($row['free_trial_ends_at']) && $row['has_active_stripe_subscription'] === false) {
+            $trialEndsAt = new DateTimeImmutable($row['free_trial_ends_at']);
+
+            if ($trialEndsAt > $now) {
+                $freeTrialEndsAt = $trialEndsAt;
             }
         }
 
@@ -208,7 +256,6 @@ readonly final class PlayerProfile
             facebook: $row['facebook'],
             instagram: $row['instagram'],
             twitch: $row['twitch'],
-            modalDisplayed: $row['modal_displayed'],
             stripeCustomerId: $row['stripe_customer_id'],
             locale: $row['locale'],
             membershipEndsAt: $membershipEndsAt,
@@ -240,6 +287,10 @@ readonly final class PlayerProfile
             hiddenPlayerIds: $hiddenPlayerIds,
             isPrivateProfile: $row['is_private_profile'] ?? $row['is_private'],
             revealedPrivatePlayerIds: $revealedPrivatePlayerIds,
+            registeredAt: isset($row['registered_at']) ? new DateTimeImmutable($row['registered_at']) : null,
+            freeTrialAvailable: ($row['has_membership_row'] ?? true) === false,
+            freeTrialEndsAt: $freeTrialEndsAt,
+            modalImpressions: $modalImpressions,
         );
     }
 

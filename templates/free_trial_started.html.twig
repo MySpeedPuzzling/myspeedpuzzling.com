@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'free_trial.started.meta_title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="pb-4">
+        <div class="row gy-3 pb-3">
+            <div class="col-lg-7 col-md-8">
+                <h1 class="h2">{{ 'free_trial.started.title'|trans }}</h1>
+
+                <p class="fs-lg">
+                    {{ 'free_trial.started.lead'|trans({'%date%': membership.trialEndsAt|format_date('long')}) }}
+                </p>
+
+                <p class="text-muted">{{ 'free_trial.started.no_strings'|trans }}</p>
+
+                <h2 class="h4 mt-4 mb-3">{{ 'free_trial.started.where_to_look'|trans }}</h2>
+
+                {{ include('membership/_free_trial_feature_cards.html.twig', {player_id: player.playerId}) }}
+
+                <p class="mt-4 mb-0">
+                    <a href="{{ path('membership') }}">{{ 'free_trial.started.membership_link'|trans }}</a>
+                </p>
+            </div>
+
+            <div class="col-lg-4 offset-lg-1 col-md-4 text-center d-none d-md-block">
+                <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1017,12 +1017,6 @@
   "title": "Conexión de cuenta %competitionName%"
   "back_to_competition": "Volver a la competencia"
   "description": "Conecta tu cuenta de competencia con el perfil de MySpeedPuzzling y descubre cómo te encuentras contra otros participantes. Para hacer las estadísticas relevantes, solo tomamos rompecabezas de 500 piezas de los últimos 3 meses en las estadísticas. ¡Si has resuelto el mismo rompecabezas múltiples veces, tomamos solo el más rápido!"
-"global_modal":
-  "title": "¡El ranking competitivo ha llegado!"
-  "text": "<p>Estamos emocionados de presentar una gran actualización — todo sobre ranking y competitividad:</p>\n<ul class=\"ms-0\" style=\"list-style-type: disc;\"><li class=\"mt-2\"><strong>Dificultad del puzzle</strong> — calificaciones calculadas basadas en datos reales</li><li class=\"mt-2\"><strong>Estadísticas y predicciones</strong> — métricas detalladas con predicciones de tiempo personalizadas</li><li class=\"mt-2\"><strong>Niveles de puzzleros</strong> — de Principiante a Legendario, descubre dónde te encuentras</li><li class=\"mt-2\"><strong>Escalera MSP Rating</strong> — ranking competitivo inspirado en el Rating de ajedrez. Actualmente, <strong>Wiktor es nuestro primer MSP King</strong>. ¡Felicidades!</li></ul>\n<p>Las fórmulas, niveles y cálculos Rating <strong>pueden ajustarse</strong> a medida que recopilemos más datos. ¿No quieres ser clasificado? Puedes <strong>desactivarlo en cualquier momento</strong> en la configuración de tu perfil.</p>\n"
-  "button_methodology": "Cómo funciona"
-  "button_ladder": "Ver la escalera"
-  "button_dismiss": "¡Entendido!"
 "added_time_recap":
   "title": "¡Excelente tiempo, sigue así!"
   "add_time": "Añadir nuevo tiempo"
@@ -1679,6 +1673,30 @@
   "rotate_right": "Girar a la derecha"
   "apply": "Aplicar"
 "admin":
+  "free_trial":
+    "title": "Prueba gratuita y ventanas de anuncio"
+    "intro": "A cuántos jugadores se les mostró cada ventana de anuncio y qué fue de las pruebas gratuitas."
+    "flag_on": "FREE_TRIAL_ENABLED está activado"
+    "flag_off": "FREE_TRIAL_ENABLED está desactivado"
+    "modals_title": "Ventanas de anuncio"
+    "modals_intro": "Cada jugador recibe una ventana como máximo una vez - por eso «mostrada» es un número de jugadores. «Realmente abierta» es lo que informaron los navegadores; siempre es algo menor (pestañas cerradas, peticiones bloqueadas)."
+    "modals_empty": "Todavía no se ha mostrado ninguna ventana."
+    "modal": "Ventana"
+    "displayed": "Mostrada"
+    "seen": "Realmente abierta"
+    "last_24_hours": "Últimas 24 h"
+    "last_7_days": "Últimos 7 días"
+    "first_displayed": "Primera"
+    "last_displayed": "Última"
+    "funnel_title": "Pruebas gratuitas"
+    "eligible_players": "Jugadores que aún pueden empezar una"
+    "started": "Empezadas"
+    "running": "En marcha"
+    "ended": "Terminadas"
+    "subscribed_during_trial": "Suscritos durante la prueba"
+    "subscribed_total": "Suscritos (en cualquier momento)"
+    "conversion": "El %percent% % de las pruebas empezadas acabó en suscripción."
+    "source": "Empezada desde"
   "competition_approvals":
     "back_title": "Admin — aprobaciones"
   "puzzle_change_request":
@@ -3650,3 +3668,59 @@ private_profile_viewers:
         "text": "Lo esencial es gratis. Los miembros tienen extras y apoyan el proyecto."
       "faq":
         "text": "Respuestas a las preguntas habituales."
+
+free_trial:
+    topbar_badge: "Prueba"
+    offer:
+        title: "Prueba la membresía gratis durante %days% días"
+        reassurance: "Sin tarjeta. Nada que cancelar. Termina sola."
+        button: "Empezar mi prueba gratuita"
+        tip: "Consejo: la membresía muestra más cuando ya tienes algunos tiempos registrados. La prueba te espera - empiézala cuando quieras. Una prueba por jugador."
+        or_subscribe: "o suscríbete directamente"
+    modal:
+        text: "Puedes probar todo lo que tienen los miembros - gratis durante %days% días. Sin tarjeta, nada que cancelar."
+        button: "Probar gratis %days% días"
+        secondary: "Ver opciones de membresía"
+    offer_modal:
+        title: "Prueba la membresía gratis durante %days% días"
+        text: "Descubre lo que la membresía añade a tus puzzles: análisis de cómo montas, predicciones de tiempo, estadísticas y gráficos detallados, más filtros y tus propias colecciones."
+        what_do_i_get: "¿Qué obtengo?"
+        later: "Quizá más tarde"
+        find_it_later: "Puedes empezarla cuando quieras desde la página Membresía."
+    flash:
+        started: "Tu prueba gratuita está en marcha - todo desbloqueado durante %days% días. ¡Disfrútala!"
+    not_available: "La prueba gratuita es para jugadores que todavía no han tenido una membresía."
+    status:
+        active: "Tu prueba gratuita está en marcha"
+        days_left: "{1}Queda 1 día|]1,Inf[Quedan %count% días"
+        until: "hasta el"
+        ends_by_itself: "Termina sola - no se te cobrará nada."
+        liking_it: "¿Te gusta? Hazte miembro"
+        keep_days: "Suscríbete ahora y conserva el resto de tu prueba - tu primer pago sería el %date%."
+        ended: "Tu prueba gratuita ha terminado. ¡Esperamos que la hayas disfrutado!"
+    started:
+        meta_title: "Tu prueba gratuita ha empezado"
+        title: "¡Tu prueba gratuita está en marcha!"
+        lead: "Todo lo que tienen los miembros está desbloqueado para ti hasta el %date%."
+        no_strings: "Sin tarjeta, nada que cancelar - termina sola. Si te gusta, puedes hacerte miembro cuando quieras y conservar el resto de tu prueba."
+        where_to_look: "Por dónde empezar"
+        membership_link: "Opciones de membresía y estado de tu prueba"
+    features:
+        insights:
+            title: "Análisis en tu perfil"
+            text: "Tu nivel, la dificultad de los puzzles y cuánto debería llevarte cada uno."
+        statistics:
+            title: "Estadísticas y gráficos detallados"
+            text: "Cómo evolucionan tus tiempos - por mes, por número de piezas, por marca."
+        picker:
+            title: "¿Qué monto ahora?"
+            text: "Filtros para miembros: dificultad, tu tiempo previsto, el tiempo del que dispones."
+        collections:
+            title: "Tus propias colecciones"
+            text: "Organiza tus puzzles a tu manera y ve en ellas tus tiempos y predicciones."
+        ladder:
+            title: "Más de la clasificación"
+            text: "Filtra por país y solo por primeros intentos."
+        player_code:
+            title: "Tu propio código de jugador"
+            text: "Elige un código que tus amigos recuerden - en los ajustes del perfil."

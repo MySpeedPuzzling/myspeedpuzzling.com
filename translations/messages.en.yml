@@ -1191,23 +1191,6 @@ competition_connection:
     back_to_competition: "Back to the competition"
     description: "Connect your competition account with MySpeedPuzzling profile and find out how you stand against other participants. To make statistics relevant, we only take 500-piece puzzles from last 3 months into the statistics. If you have solved the same puzzle multiple times, we take only the fastest!"
 
-global_modal:
-    title: "Ranked Puzzling Has Arrived!"
-    text: |
-        <p>We're excited to introduce a major update — all about ranking and competitiveness:</p>
-
-        <ul class="ms-0" style="list-style-type: disc;">
-            <li class="mt-2"><strong>Puzzle Difficulty</strong> — calculated ratings based on real solving data</li>
-            <li class="mt-2"><strong>Insights & Predictions</strong> — detailed metrics with personalized time predictions</li>
-            <li class="mt-2"><strong>Puzzler Tiers</strong> — from Beginner to Legendary, see where you stand</li>
-            <li class="mt-2"><strong>MSP Rating Ranked Ladder</strong> — competitive ranking inspired by chess Rating. Currently, <strong>Wiktor is our first MSP King</strong>. Congratulations!</li>
-        </ul>
-
-        <p>The formulas, tiers, and Rating calculations <strong>may be adjusted</strong> as we gather more data. Don't want to be ranked? You can <strong>opt out anytime</strong> in your profile settings.</p>
-    button_methodology: "How It Works"
-    button_ladder: "See the Ladder"
-    button_dismiss: "Got It!"
-
 added_time_recap:
     title: "Great time, keep it up!"
     add_time: "Add new time"
@@ -2066,6 +2049,30 @@ puzzle_report:
         no_valid_duplicates: "You cannot report a puzzle as a duplicate of itself. Please select a different puzzle."
 
 admin:
+    free_trial:
+        title: "Free trial & announcement modals"
+        intro: "How many players were shown each announcement modal, and what became of the free trials."
+        flag_on: "FREE_TRIAL_ENABLED is on"
+        flag_off: "FREE_TRIAL_ENABLED is off"
+        modals_title: "Announcement modals"
+        modals_intro: "Every player gets a modal at most once, ever - so \"displayed\" is a number of players. \"Really opened\" is what browsers reported back; it is always a bit lower (closed tabs, blocked requests)."
+        modals_empty: "No modal has been displayed yet."
+        modal: "Modal"
+        displayed: "Displayed"
+        seen: "Really opened"
+        last_24_hours: "Last 24 h"
+        last_7_days: "Last 7 days"
+        first_displayed: "First"
+        last_displayed: "Last"
+        funnel_title: "Free trials"
+        eligible_players: "Players who can still start one"
+        started: "Started"
+        running: "Running now"
+        ended: "Ended"
+        subscribed_during_trial: "Subscribed during the trial"
+        subscribed_total: "Subscribed (any time)"
+        conversion: "%percent% % of started trials turned into a subscription."
+        source: "Started from"
     puzzle_change_request:
         approved: "Change request has been approved and puzzle updated."
         rejected: "Change request has been rejected."
@@ -3940,3 +3947,59 @@ onboarding:
                 text: "The core is free. Members get extras and support the project."
             faq:
                 text: "Answers to common questions."
+
+free_trial:
+    topbar_badge: "Trial"
+    offer:
+        title: "Try membership free for %days% days"
+        reassurance: "No card. Nothing to cancel. It ends by itself."
+        button: "Start my free trial"
+        tip: "Tip: membership shows the most once you have a few times logged. The trial waits for you - start it whenever you like. One trial per player."
+        or_subscribe: "or subscribe right away"
+    modal:
+        text: "You can try everything members have - free for %days% days. No card, nothing to cancel."
+        button: "Try it free for %days% days"
+        secondary: "See membership options"
+    offer_modal:
+        title: "Try membership free for %days% days"
+        text: "See what membership adds to your puzzling: insights into your solving, time predictions, detailed statistics and charts, more filters and your own collections."
+        what_do_i_get: "What do I get?"
+        later: "Maybe later"
+        find_it_later: "You can start it any time from the Membership page."
+    flash:
+        started: "Your free trial is on - everything is unlocked for %days% days. Enjoy!"
+    not_available: "The free trial is for players who have not had a membership yet."
+    status:
+        active: "Your free trial is running"
+        days_left: "{1}1 day left|]1,Inf[%count% days left"
+        until: "until"
+        ends_by_itself: "It ends by itself - you will not be charged anything."
+        liking_it: "Liking it? Become a member"
+        keep_days: "Subscribe now and keep the rest of your trial - your first payment would be on %date%."
+        ended: "Your free trial has ended. We hope you enjoyed it!"
+    started:
+        meta_title: "Your free trial has started"
+        title: "Your free trial is on!"
+        lead: "Everything members have is unlocked for you until %date%."
+        no_strings: "No card, nothing to cancel - it ends by itself. If you like it, you can become a member any time and keep the rest of your trial."
+        where_to_look: "Where to look first"
+        membership_link: "Membership options and the state of your trial"
+    features:
+        insights:
+            title: "Insights on your profile"
+            text: "Your skill tier, puzzle difficulty and how long a puzzle should take you."
+        statistics:
+            title: "Detailed statistics and charts"
+            text: "How your times develop - by month, by piece count, by brand."
+        picker:
+            title: "What should I solve next?"
+            text: "Member filters: difficulty, your predicted time, a time budget."
+        collections:
+            title: "Your own collections"
+            text: "Organise your puzzles your way and see your times and predictions in them."
+        ladder:
+            title: "More from the ladder"
+            text: "Filter by country and by first attempts only."
+        player_code:
+            title: "Your own player code"
+            text: "Pick a code friends can remember - in your profile settings."

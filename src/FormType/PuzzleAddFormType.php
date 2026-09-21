@@ -108,6 +108,7 @@ final class PuzzleAddFormType extends AbstractType
                 'maxItems' => 1,
                 'closeAfterSelect' => true,
                 'createOnBlur' => true,
+                'searchField' => ['search'],
             ],
             'attr' => [
                 'data-choose-brand-placeholder' => $this->translator->trans('forms.puzzle_choose_brand_placeholder'),

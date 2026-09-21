@@ -67,6 +67,7 @@ final class ReportDuplicatePuzzleFormType extends AbstractType
                     'persist' => false,
                     'maxItems' => 1,
                     'closeAfterSelect' => true,
+                    'searchField' => ['search'],
                 ],
                 'attr' => [
                     'data-report-duplicate-form-target' => 'puzzle',

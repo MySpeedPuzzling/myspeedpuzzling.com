@@ -132,6 +132,10 @@
     background: rgba(254, 64, 66, 0.2);
     border-radius: 1px;
 }
+// Labels that are not part of what was searched (the word "pieces") - Tom Select highlights every text node
+.ts-dropdown [data-selectable] .no-highlight .highlight {
+    background: none;
+}
 .ts-dropdown .option,
 .ts-dropdown .optgroup-header,
 .ts-dropdown .no-results,

@@ -68,14 +68,25 @@ HTML;
             <span class="h6">{$puzzleName}</span>
             <small class="text-muted">{$puzzle->puzzleIdentificationNumber}</small>
         </div>
-        <div class="description"><small>{$puzzle->piecesCount} pieces</small>{$eanHtml}</div>
+        <div class="description"><small>{$puzzle->piecesCount} <span class="no-highlight">pieces</span></small>{$eanHtml}</div>
     </div>
 </div>
 HTML;
 
+            // Tom Select searches this, never `text`: that one is markup, so typing "pieces" (or "div")
+            // matched every puzzle. Only what identifies the puzzle belongs here - no labels, no locale.
+            $search = implode(' ', array_filter([
+                $puzzle->puzzleName,
+                $puzzle->puzzleAlternativeName,
+                $puzzle->puzzleIdentificationNumber,
+                $puzzle->puzzleEan,
+                (string) $puzzle->piecesCount,
+            ], static fn (null|string $value): bool => $value !== null && $value !== ''));
+
             $results[] = [
                 'value' => $puzzle->puzzleId,
                 'text' => $html,
+                'search' => $search,
                 'piecesCount' => $puzzle->piecesCount,
             ];
         }

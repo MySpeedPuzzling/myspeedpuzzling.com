@@ -3795,6 +3795,8 @@ pairs_and_teams:
         deleted: "Deleted."
         prepared: "Saved. It is now one tap away when you add a time."
         nobody_picked: "Pick at least one person you puzzle with."
+        archived: "Archived. It no longer shows among your shortcuts."
+        unarchived: "It is back among your shortcuts."
     tab_guests: "Guests"
     guests:
         intro: "People you puzzled with who have no account here. Their names are whatever was typed when the time was added - fix a typo here and results split between two spellings come together."
@@ -3824,6 +3826,10 @@ pairs_and_teams:
         flash:
             accepted: "Done - the results are part of your history now."
             declined: "Declined. Nothing has changed."
+    archive: "Archive"
+    unarchive: "Bring back"
+    archived: "Archived (%count%)"
+    archived_help: "Kept out of your shortcuts when you add a time. Only for you - results, the team page and the other members are not affected, and puzzling with the same people again brings it back on its own."
 
 puzzling_team:
     pair: "Pair"

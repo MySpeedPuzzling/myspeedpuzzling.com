@@ -18,6 +18,8 @@ readonly final class TeamSuggestion
         public float $score,
         /** @var list<string> Member keys of everybody but the viewer - see PersonSuggestion::$key */
         public array $memberKeys,
+        // The viewer keeps it out of their shortcuts (PuzzlingTeamArchive)
+        public bool $archived = false,
     ) {
     }
 }

@@ -60,6 +60,7 @@ SELECT
     stats.times_count,
     stats.last_together_at,
     stats.score,
+    (archive.id IS NOT NULL) AS archived,
     member.member_key,
     member.player_id,
     member.guest_name,
@@ -78,6 +79,7 @@ INNER JOIN LATERAL (
     WHERE puzzling_team_id = team.id
 ) stats ON TRUE
 INNER JOIN puzzling_team_member member ON member.team_id = team.id AND member.id <> me.id
+LEFT JOIN puzzling_team_archive archive ON archive.team_id = team.id AND archive.player_id = me.player_id
 LEFT JOIN player ON player.id = member.player_id
 WHERE me.player_id = :playerId
     AND (stats.times_count > 0 OR team.name IS NOT NULL OR team.prepared_by_id IS NOT NULL)
@@ -98,6 +100,7 @@ SQL;
          *     times_count: int,
          *     last_together_at: null|string,
          *     score: float|string,
+         *     archived: bool,
          *     member_key: string,
          *     player_id: null|string,
          *     guest_name: null|string,
@@ -113,7 +116,7 @@ SQL;
             'recentSince' => $recentSince,
         ]);
 
-        /** @var array<string, array{name: null|string, size: int, count: int, last: null|string, score: float, members: list<string>}> $teams */
+        /** @var array<string, array{name: null|string, size: int, count: int, last: null|string, score: float, archived: bool, members: list<string>}> $teams */
         $teams = [];
         /** @var array<string, array{value: string, label: string, playerId: null|string, code: null|string, country: null|string, avatar: null|string, count: int, pairCount: int, last: null|string, score: float, pairScore: float}> $people */
         $people = [];
@@ -129,6 +132,7 @@ SQL;
                 'count' => $row['times_count'],
                 'last' => $row['last_together_at'],
                 'score' => $score,
+                'archived' => $row['archived'],
                 'members' => [],
             ];
             $teams[$teamId]['members'][] = $key;
@@ -197,6 +201,7 @@ SQL;
                 lastTogetherAt: $team['last'] !== null ? new DateTimeImmutable($team['last']) : null,
                 score: $team['score'],
                 memberKeys: $team['members'],
+                archived: $team['archived'],
             );
         }
 

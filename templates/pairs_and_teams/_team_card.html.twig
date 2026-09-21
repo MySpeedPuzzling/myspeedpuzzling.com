@@ -34,6 +34,18 @@
                 <i class="ci-add me-1"></i>{{ 'pairs_and_teams.add_time'|trans }}
             </a>
 
+            {% if team.timesCount > 0 %}
+                {# Cannot be deleted (it has results) - but this member can keep it out of their shortcuts #}
+                <form action="{{ path('pairs_and_teams_archive', {teamId: team.teamId}) }}" method="post">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <input type="hidden" name="show" value="{{ show }}">
+                    <input type="hidden" name="archive" value="{{ row.archived ? '0' : '1' }}">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary" data-testid="team-archive">
+                        <i class="bi {{ row.archived ? 'bi-arrow-counterclockwise' : 'bi-archive' }} me-1"></i>{{ (row.archived ? 'pairs_and_teams.unarchive' : 'pairs_and_teams.archive')|trans }}
+                    </button>
+                </form>
+            {% endif %}
+
             {% if team.timesCount == 0 %}
                 <form action="{{ path('pairs_and_teams_delete', {teamId: team.teamId}) }}" method="post">
                     <input type="hidden" name="_token" value="{{ csrf }}">

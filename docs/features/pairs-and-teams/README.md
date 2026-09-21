@@ -32,7 +32,8 @@ that everything per-player is computed live off an index (no counters, no materi
 | D8 | The add form uses a **Solo · Pair · Team switch**, Solo pre-selected, one line at 320 px. It is a shortcut, never a constraint, and **always switchable** — a mis-tap must be recoverable with one tap and lose nothing. |
 | D9 | Choosing co-puzzlers **must never disturb the add form**: no submit, no re-render, no navigation, no lost field values. |
 | D10 | Performance is a requirement: a solo add-form render costs **zero** additional queries; existing pages do not get slower. |
-| — | **Archive** ("hide this pair/team from my shortcuts") is out of scope — tracked in the plan's TODO list. |
+| D11 | **Archive** (added 2026-09-21): one member keeps a pair/team out of *their own* shortcuts (picker + top of the manage page; for a pair the person too). Nothing else changes - results, team page, name, other members - and puzzling with the same people again brings it back on its own, inside the resolver's lookup (no extra query). It is the answer to "how do I delete this team" for a team that has results. |
+| D12 | **Guests** (added 2026-09-21): a guest's name can be fixed (typo teams merge), and a guest can become a registered player - **only with that player's consent** (`GuestLinkRequest`: asked → notification → page → accept/decline). Results never land in somebody's history without their yes; a player who blocks the asker is never asked, and the asker cannot tell. |
 
 ### Why exact-set and not rosters (D1)
 
@@ -154,6 +155,27 @@ the card opens instantly with skeleton chips. Edit form, 422 re-render and `?tea
   members-only. Every group row on the site links here.
 - **Filters**: profile solved-puzzles lists get a "with…" select (`?team=<id>`); puzzle detail pair / team tabs
   get a "My pairs / teams only" switch.
+
+## Guests, archive, cleanup (2026-09-21)
+
+- **`PuzzlingTeamMemberConversion`** is the one place that changes who a member *is*: `playerToGuest()` (account
+  deletion), `renameGuest()`, `guestToPlayer()`. Each rewrites the member row, recomputes the composition key,
+  **merges into the team that already has that key** (times move, the survivor inherits a name it lacks) and -
+  for the two guest operations - rewrites the group snapshot of every affected result, so pages and the team
+  agree. Scope is always "the pairs/teams the acting player is a member of": nobody edits another player's guests.
+  One person is never in a team twice: a rename/link that would collapse two members of one team is skipped for
+  that team.
+- **Guests tab** (`/pairs-and-teams?show=guests`): rename, and "They have an account now" (player code) →
+  `RequestGuestLink` → `GuestLinkRequested` notification → `/pairs-and-teams/guest-link/{id}` (GET only shows:
+  who asks + the results it is about) → `AnswerGuestLink`. Asking again replaces the open question; only the
+  asked player can open or answer it, once.
+- **Archive**: `puzzling_team_archive (team, player)`; `GetCoPuzzlers` flags `archived` per viewer,
+  `MyCoPuzzlersController` drops archived teams (and an archived pair's person) from the picker payload, the
+  manage page folds them under "Archived". `PuzzlingTeamResolver::resolve(..., usedByPlayerId:)` deletes the
+  archive row inside the lookup statement.
+- **Cleanup**: `myspeedpuzzling:cleanup-empty-puzzling-teams` removes teams with no result, no name, no preparer,
+  older than a day. Manual; nothing depends on it.
+- **API**: result rows carry `team_id` + `team_name` (nullable, read-only, appended). Nothing renamed.
 
 ## Rules that touch existing features
 

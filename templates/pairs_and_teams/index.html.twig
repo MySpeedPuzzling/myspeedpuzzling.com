@@ -28,8 +28,9 @@
 {% if show == 'guests' %}
     {{ include('pairs_and_teams/_guests.html.twig', {guests: guests, csrf: csrf}) }}
 {% else %}
-{% set regulars = rows|filter(row => not row.oneOff) %}
-{% set one_offs = rows|filter(row => row.oneOff) %}
+{% set regulars = rows|filter(row => not row.oneOff and not row.archived) %}
+{% set one_offs = rows|filter(row => row.oneOff and not row.archived) %}
+{% set archived = rows|filter(row => row.archived) %}
 
 {% if rows is empty %}
     <div class="alert alert-info fs-sm">{{ (show == 'teams' ? 'pairs_and_teams.empty_teams' : 'pairs_and_teams.empty_pairs')|trans }}</div>
@@ -45,6 +46,16 @@
     <details class="mb-4" data-testid="one-off-teams">
         <summary class="text-muted fs-sm mb-2">{{ 'pairs_and_teams.one_offs'|trans({'%count%': one_offs|length}) }}</summary>
         {% for row in one_offs %}
+            {{ include('pairs_and_teams/_team_card.html.twig', {row: row, csrf: csrf, show: show}) }}
+        {% endfor %}
+    </details>
+{% endif %}
+
+{% if archived is not empty %}
+    <details class="mb-4" data-testid="archived-teams">
+        <summary class="text-muted fs-sm mb-2">{{ 'pairs_and_teams.archived'|trans({'%count%': archived|length}) }}</summary>
+        <p class="fs-sm text-muted">{{ 'pairs_and_teams.archived_help'|trans }}</p>
+        {% for row in archived %}
             {{ include('pairs_and_teams/_team_card.html.twig', {row: row, csrf: csrf, show: show}) }}
         {% endfor %}
     </details>

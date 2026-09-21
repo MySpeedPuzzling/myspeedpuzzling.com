@@ -26,7 +26,11 @@ readonly final class PuzzlingTeamResolver
     ) {
     }
 
-    public function resolve(null|PuzzlersGroup $group, null|string $preparedByPlayerId = null): null|PuzzlingTeam
+    /**
+     * @param null|string $usedByPlayerId Whoever is adding/editing the time: using a pair/team again takes it
+     *                                    out of their archive (PuzzlingTeamArchive) - within the lookup, at no extra query
+     */
+    public function resolve(null|PuzzlersGroup $group, null|string $preparedByPlayerId = null, null|string $usedByPlayerId = null): null|PuzzlingTeam
     {
         if ($group === null) {
             return null;
@@ -35,10 +39,24 @@ readonly final class PuzzlingTeamResolver
         $composition = TeamComposition::fromGroup($group);
         $connection = $this->entityManager->getConnection();
 
-        $teamId = $connection->fetchOne(
-            'SELECT id FROM puzzling_team WHERE composition_key = :key',
-            ['key' => $composition->key],
-        );
+        if ($usedByPlayerId === null) {
+            $teamId = $connection->fetchOne(
+                'SELECT id FROM puzzling_team WHERE composition_key = :key',
+                ['key' => $composition->key],
+            );
+        } else {
+            $teamId = $connection->fetchOne(
+                <<<SQL
+WITH unarchived AS (
+    DELETE FROM puzzling_team_archive archive
+    USING puzzling_team team
+    WHERE team.composition_key = :key AND archive.team_id = team.id AND archive.player_id = :playerId
+)
+SELECT id FROM puzzling_team WHERE composition_key = :key
+SQL,
+                ['key' => $composition->key, 'playerId' => $usedByPlayerId],
+            );
+        }
 
         if (is_string($teamId) === false) {
             $teamId = $this->create($composition, $preparedByPlayerId);

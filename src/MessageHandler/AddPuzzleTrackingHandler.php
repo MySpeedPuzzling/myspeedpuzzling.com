@@ -77,7 +77,7 @@ readonly final class AddPuzzleTrackingHandler
             finishedPuzzlePhoto: $finishedPuzzlePhotoPath,
             firstAttempt: false,
             unboxed: false,
-            puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group),
+            puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group, usedByPlayerId: $player->id->toString()),
         );
 
         // Only when a name was typed: touching the team otherwise would load it for nothing

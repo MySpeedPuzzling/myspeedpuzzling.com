@@ -3518,6 +3518,8 @@ private_profile_viewers:
     "deleted": "Supprimé."
     "prepared": "Enregistré. Il est maintenant à portée de main lorsque vous ajoutez un temps."
     "nobody_picked": "Choisissez au moins une personne avec qui vous faites des puzzles."
+    "archived": "Archivé. Il n'apparaît plus parmi vos raccourcis."
+    "unarchived": "Il est de retour parmi vos raccourcis."
   "tab_guests": "Invités"
   "guests":
     "intro": "Les personnes avec qui vous avez fait des puzzles et qui n'ont pas de compte ici. Leurs noms sont tels qu'ils ont été saisis lors de l'ajout du temps - corrigez ici une faute de frappe et les résultats répartis entre deux orthographes se rejoignent."
@@ -3547,6 +3549,10 @@ private_profile_viewers:
     "flash":
       "accepted": "C'est fait - les résultats font maintenant partie de votre historique."
       "declined": "Refusé. Rien n'a changé."
+  "archive": "Archiver"
+  "unarchive": "Rétablir"
+  "archived": "Archivés (%count%)"
+  "archived_help": "N'apparaît plus parmi vos raccourcis lorsque vous ajoutez un temps. Uniquement pour vous - les résultats, la page de l'équipe et les autres membres ne sont pas concernés, et refaire un puzzle avec les mêmes personnes le rétablit automatiquement."
 
 "puzzling_team":
   "pair": "Duo"

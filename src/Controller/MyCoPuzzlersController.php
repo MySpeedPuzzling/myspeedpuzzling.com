@@ -43,6 +43,19 @@ final class MyCoPuzzlersController extends AbstractController
 
         $suggestions = $this->getCoPuzzlers->forPlayer($player->playerId);
 
+        // What the player archived stays out of their shortcuts: the pair/team itself, and - for a pair - the
+        // person too, since hiding them is the point. Both remain one search away.
+        $teams = array_values(array_filter($suggestions->teams, static fn(TeamSuggestion $team): bool => $team->archived === false));
+        $archivedPartners = [];
+
+        foreach ($suggestions->teams as $team) {
+            if ($team->archived && $team->size === 2) {
+                $archivedPartners[$team->memberKeys[0] ?? ''] = true;
+            }
+        }
+
+        $people = array_values(array_filter($suggestions->people, static fn(PersonSuggestion $person): bool => isset($archivedPartners[$person->key]) === false));
+
         return $this->privateJson([
             'teams' => array_map(static fn(TeamSuggestion $team): array => [
                 'id' => $team->teamId,
@@ -52,7 +65,7 @@ final class MyCoPuzzlersController extends AbstractController
                 'last' => $team->lastTogetherAt?->format('Y-m-d'),
                 'score' => round($team->score, 4),
                 'members' => $team->memberKeys,
-            ], $suggestions->teams),
+            ], $teams),
             'people' => array_map(fn(PersonSuggestion $person): array => [
                 'key' => $person->key,
                 'value' => $person->value,
@@ -67,7 +80,7 @@ final class MyCoPuzzlersController extends AbstractController
                 'score' => round($person->score, 4),
                 'pairScore' => round($person->pairScore, 4),
                 'favorite' => $person->isFavorite,
-            ], $suggestions->people),
+            ], $people),
         ]);
     }
 

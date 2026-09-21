@@ -292,6 +292,45 @@ final class PairsAndTeamsControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('a[href$="show=guests"]'));
     }
 
+    public function testArchivedPairLeavesTheShortcutsAndComesBackOnRequest(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+
+        $crawler = $browser->request('GET', '/en/pairs-and-teams');
+        $browser->submit($crawler->filter('[data-testid="regular-teams"] [data-testid="team-archive"]')->form());
+
+        $this->assertResponseRedirects('/en/pairs-and-teams?show=pairs');
+        $crawler = $browser->followRedirect();
+
+        // Off the list, into the folded "Archived" section - with its results and its page intact
+        self::assertCount(0, $crawler->filter('[data-testid="regular-teams"] .pairs-and-teams-card'));
+        $archived = $crawler->filter('[data-testid="archived-teams"] .pairs-and-teams-card');
+        self::assertCount(1, $archived);
+        self::assertStringContainsString('2× together', $archived->text());
+        self::assertCount(1, $archived->filter('[data-testid="team-results"]'));
+
+        // The add-time picker offers neither the pair nor - it being a pair - the person
+        $browser->request('GET', '/en/my-co-puzzlers.json');
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString($this->fixturePairId(), $content);
+        self::assertStringNotContainsString(PlayerFixture::PLAYER_REGULAR, $content);
+
+        $browser->request('GET', '/en/teams/' . $this->fixturePairId());
+        $this->assertResponseIsSuccessful();
+
+        // "Bring back"
+        $crawler = $browser->request('GET', '/en/pairs-and-teams');
+        $browser->submit($crawler->filter('[data-testid="archived-teams"] [data-testid="team-archive"]')->form());
+        $crawler = $browser->followRedirect();
+
+        self::assertCount(1, $crawler->filter('[data-testid="regular-teams"] .pairs-and-teams-card'));
+        self::assertCount(0, $crawler->filter('[data-testid="archived-teams"]'));
+
+        $browser->request('GET', '/en/my-co-puzzlers.json');
+        self::assertStringContainsString($this->fixturePairId(), (string) $browser->getResponse()->getContent());
+    }
+
     public function testNobodyPickedIsToldSoWithoutAnError(): void
     {
         $browser = self::createClient();

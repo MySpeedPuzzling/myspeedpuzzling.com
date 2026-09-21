@@ -3516,6 +3516,8 @@ private_profile_viewers:
     "deleted": "Gelöscht."
     "prepared": "Gespeichert. Es ist jetzt nur einen Tipp entfernt, wenn Sie eine Zeit hinzufügen."
     "nobody_picked": "Wählen Sie mindestens eine Person aus, mit der Sie puzzeln."
+    "archived": "Archiviert. Es erscheint nicht mehr unter Ihren Schnellauswahlen."
+    "unarchived": "Es ist wieder unter Ihren Schnellauswahlen."
   "tab_guests": "Gäste"
   "guests":
     "intro": "Personen, mit denen Sie gepuzzelt haben und die hier kein Konto haben. Ihre Namen sind so, wie sie beim Hinzufügen der Zeit eingetippt wurden - korrigieren Sie hier einen Tippfehler, und Ergebnisse, die auf zwei Schreibweisen verteilt sind, kommen zusammen."
@@ -3545,6 +3547,10 @@ private_profile_viewers:
     "flash":
       "accepted": "Erledigt - die Ergebnisse sind jetzt Teil Ihres Verlaufs."
       "declined": "Abgelehnt. Es hat sich nichts geändert."
+  "archive": "Archivieren"
+  "unarchive": "Zurückholen"
+  "archived": "Archiviert (%count%)"
+  "archived_help": "Erscheint nicht mehr unter Ihren Schnellauswahlen, wenn Sie eine Zeit hinzufügen. Gilt nur für Sie - Ergebnisse, die Teamseite und die anderen Mitglieder sind nicht betroffen, und wenn Sie wieder mit denselben Personen puzzeln, kommt es von selbst zurück."
 
 "puzzling_team":
   "pair": "Paar"

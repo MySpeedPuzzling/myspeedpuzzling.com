@@ -3514,6 +3514,8 @@ private_profile_viewers:
     "deleted": "Smazáno."
     "prepared": "Uloženo. Při přidávání času ji teď máte na jedno klepnutí."
     "nobody_picked": "Vyberte alespoň jednoho člověka, se kterým skládáte."
+    "archived": "Archivováno. Mezi vašimi zkratkami se už nezobrazuje."
+    "unarchived": "Je zpět mezi vašimi zkratkami."
   "tab_guests": "Hosté"
   "guests":
     "intro": "Lidé, se kterými jste skládali a kteří tu nemají účet. Jejich jména jsou taková, jak byla napsána při přidání času - opravte tu překlep a výsledky rozdělené mezi dva zápisy se spojí."
@@ -3543,6 +3545,10 @@ private_profile_viewers:
     "flash":
       "accepted": "Hotovo - výsledky jsou teď součástí vaší historie."
       "declined": "Odmítnuto. Nic se nezměnilo."
+  "archive": "Archivovat"
+  "unarchive": "Vrátit zpět"
+  "archived": "Archivováno (%count%)"
+  "archived_help": "Nezobrazuje se mezi zkratkami při přidávání času. Platí jen pro vás - výsledky, stránka týmu ani ostatní členové tím nejsou dotčeni, a když budete se stejnými lidmi skládat znovu, vrátí se samo."
 
 "puzzling_team":
   "pair": "Dvojice"

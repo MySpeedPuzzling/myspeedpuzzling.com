@@ -131,7 +131,7 @@ readonly final class EditPuzzleSolvingTimeHandler
             $message->firstAttempt,
             $message->unboxed,
             competition: $competition,
-            puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group),
+            puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group, usedByPlayerId: $currentPlayer->id->toString()),
         );
 
         // Only when a name was typed: touching the team otherwise would load it for nothing

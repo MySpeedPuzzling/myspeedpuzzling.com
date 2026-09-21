@@ -3516,6 +3516,8 @@ private_profile_viewers:
     "deleted": "Eliminado."
     "prepared": "Guardado. Ahora lo tienes a un toque cuando añadas un tiempo."
     "nobody_picked": "Elige al menos una persona con la que armas puzzles."
+    "archived": "Archivado. Ya no aparece entre tus atajos."
+    "unarchived": "Vuelve a estar entre tus atajos."
   "tab_guests": "Invitados"
   "guests":
     "intro": "Personas con las que armaste puzzles y que no tienen cuenta aquí. Sus nombres son tal como se escribieron al añadir el tiempo: corrige aquí una errata y los resultados repartidos entre dos formas de escribirlo se juntan."
@@ -3545,6 +3547,10 @@ private_profile_viewers:
     "flash":
       "accepted": "Listo: los resultados ya forman parte de tu historial."
       "declined": "Rechazado. No ha cambiado nada."
+  "archive": "Archivar"
+  "unarchive": "Recuperar"
+  "archived": "Archivados (%count%)"
+  "archived_help": "No aparece entre tus atajos al añadir un tiempo. Solo para ti: los resultados, la página del equipo y los demás miembros no se ven afectados, y si vuelves a armar un puzzle con las mismas personas, regresa por sí solo."
 
 "puzzling_team":
   "pair": "Pareja"

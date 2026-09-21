@@ -130,7 +130,7 @@ readonly final class AddPuzzleSolvingTimeHandler
             competition: $competition,
             // Resolved last, once nothing above can refuse the time any more - the team is created outside
             // the unit of work
-            puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group),
+            puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group, usedByPlayerId: $player->id->toString()),
         );
 
         // Only when a name was typed: touching the team otherwise would load it for nothing

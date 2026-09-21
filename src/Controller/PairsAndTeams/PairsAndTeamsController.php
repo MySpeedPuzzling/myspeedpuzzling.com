@@ -61,6 +61,7 @@ final class PairsAndTeamsController extends AbstractController
                 ))),
                 // Puzzled together exactly once and never named: most of any long list, so kept out of the way
                 'oneOff' => $team->timesCount === 1 && $team->name === null,
+                'archived' => $team->archived,
             ];
 
             if ($team->size === 2) {

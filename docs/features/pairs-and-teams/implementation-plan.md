@@ -8,8 +8,13 @@ Design, decisions and UX spec: [`README.md`](README.md). This file is the build 
 > statement, the rename form is a plain PRG form on the manage page (no modal), the puzzle-page and profile
 > filters work in PHP on rows already loaded (zero queries), and `GetCoPuzzlers` also feeds the manage page.
 > **Shipped 2026-09-20 (d94965fa):** deployed, production backfilled (70,952 group times → 6,661 pairs + 4,978 teams in
-> 35 s, 0 left, 0 head-count mismatches), picker public, all 6 locales translated. **Open:** phases 5–6 and the TODO
-> list at the bottom.
+> 35 s, 0 left, 0 head-count mismatches), picker public, all 6 locales translated.
+> **Follow-ups shipped 2026-09-21:** team links everywhere (Pairs & teams cards, profile results, rename
+> notification) + shareable `?team=` profile filter · API `team_id` / `team_name` on result rows (additive only -
+> Jan: no renames, `solo`/`duo`/`team` stay; no `/me/teams`, no `team_name` input) · guest tools (rename, link to an
+> account with the other player's consent) · archive · empty-team cleanup command · boot-migration advisory lock.
+> **Open:** remove `PAIRS_TEAMS_PICKER_PUBLIC` + the old co-puzzler rows after a couple of quiet weeks · "combined
+> view" and the GIN → `puzzling_team_id` profile speed-up (TODO list at the bottom).
 
 Six phases, each shippable on its own. Phase 1 is invisible and carries all the data risk; phases 2–4 are
 the visible feature; 5–6 are follow-ups. Every phase ends with the full gate: `phpstan`, `cs-fix`,
@@ -238,14 +243,14 @@ remove the flag + old controller/partial.
 
 ## TODO / parked
 
-- [ ] **Archive** — per-member "hide this pair/team from my shortcuts" (`puzzling_team_archive`: team, player,
+- [x] **Archive** (shipped 2026-09-21) — per-member "hide this pair/team from my shortcuts" (`puzzling_team_archive`: team, player,
       archived_at). Hides from picker + top of the manage page for that member only; never touches results,
       other members, visibility; archiving a pair also drops the person from *People* suggestions (still
       searchable); **auto-unarchive when the same set is used again**. One `NOT EXISTS` in `GetCoPuzzlers` /
       `GetMyPuzzlingTeams`. Parked 2026-09-20: score decay already sinks stale teams; revisit if people ask
       "how do I delete this team".
-- [ ] Sweep of empty unnamed, unprepared teams (left behind by edits) — manual command, only if the table
-      shows real clutter.
+- [x] Sweep of empty unnamed, unprepared teams (left behind by edits) — `myspeedpuzzling:cleanup-empty-puzzling-teams`,
+      manual, no cron: run it if the table ever shows real clutter.
 - [ ] "Combined view" on the team page (include times with fewer of us) — read-only aggregation over subsets.
 - [ ] Move profile membership tests from the GIN containment (`team @> …`) to `team_id IN (my teams)` — a
       speed-up of existing pages, measure first.

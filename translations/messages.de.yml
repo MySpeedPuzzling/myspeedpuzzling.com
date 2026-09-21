@@ -958,6 +958,9 @@
   "puzzling_team":
     "renamed": "%player% hat dein Paar/Team „%name%“ genannt."
     "name_removed": "%player% hat den Namen deines Paars/Teams entfernt."
+  "guest_link":
+    "requested": "%player% sagt, du bist „%guest%“ in Ergebnissen, die ihr zusammen gepuzzelt habt. Bist du das?"
+    "accepted": "%player% hat bestätigt, „%guest%“ zu sein. Eure gemeinsamen Ergebnisse sind jetzt auch in deren Verlauf."
 "badges":
   "title": "Abzeichen"
   "my_title": "Meine Abzeichen"
@@ -3503,6 +3506,27 @@ private_profile_viewers:
     "flash":
       "renamed": "Gespeichert."
       "invalid_name": "Geben Sie einen Namen ein. Er darf nicht mit # beginnen."
+      "link_sent": "Gesendet. Es ändert sich nichts, bis die Person bestätigt."
+      "link_unknown_code": "Kein Spieler hat diesen Code."
+      "link_not_possible": "Das ist nicht möglich - wählen Sie einen Ihrer Gäste und den Spielercode einer anderen Person."
+    "link": "Hat jetzt ein Konto"
+    "link_code_label": "Spielercode"
+    "link_submit": "Anfragen"
+    "link_help": "Geben Sie den Spielercode ein (beginnt mit #). Die Person wird um Bestätigung gebeten - sobald sie bestätigt, erscheinen Ihre gemeinsamen Ergebnisse auch in ihrem Verlauf, und der Gast wird überall, wo Sie zusammen gepuzzelt haben, zu diesem Spieler."
+    "link_pending": "Warten auf die Bestätigung von %code%."
+  "guest_link":
+    "title": "Sind Sie das?"
+    "question": "%player% sagt, Sie seien „%guest%“ - ein Gast ohne Konto in den Ergebnissen, die Sie zusammen gepuzzelt haben."
+    "see_profile": "Profil ansehen"
+    "explain": "Wenn Sie bestätigen, werden diese %count% Ergebnisse Teil Ihres eigenen Verlaufs, und aus „dem Gast“ werden darin Sie. Wenn Sie es nicht sind, lehnen Sie ab - nichts ändert sich und niemand erfährt davon."
+    "accept": "Ja, das bin ich"
+    "decline": "Nein, das bin ich nicht"
+    "already_accepted": "Sie haben dies bestätigt. Die Ergebnisse sind Teil Ihres Verlaufs."
+    "already_declined": "Sie haben dies abgelehnt."
+    "results_title": "Die Ergebnisse, um die es geht"
+    "flash":
+      "accepted": "Erledigt - die Ergebnisse sind jetzt Teil Ihres Verlaufs."
+      "declined": "Abgelehnt. Es hat sich nichts geändert."
 
 "puzzling_team":
   "pair": "Paar"

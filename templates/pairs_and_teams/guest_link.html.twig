@@ -1,0 +1,60 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'pairs_and_teams.guest_link.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{% include '_return_back_button.html.twig' with {fallbackUrl: path('notifications'), fallbackTitle: 'notifications.title'|trans} %}
+
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\PairsAndTeams\\PairsAndTeamsController::CSRF_TOKEN_ID')) %}
+
+<h1 class="h3 mb-2"><i class="bi bi-person-check me-2"></i>{{ 'pairs_and_teams.guest_link.title'|trans }}</h1>
+
+<p class="lead fs-6">
+    {{ 'pairs_and_teams.guest_link.question'|trans({'%player%': link_request.requesterLabel, '%guest%': link_request.guestName}) }}
+    <a href="{{ path('player_profile', {playerId: link_request.requesterId}) }}">{{ 'pairs_and_teams.guest_link.see_profile'|trans }}</a>
+</p>
+
+{% if link_request.pending %}
+    <div class="alert alert-info fs-sm">{{ 'pairs_and_teams.guest_link.explain'|trans({'%count%': link_request.results|length}) }}</div>
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <form action="{{ path('pairs_and_teams_guest_link_answer', {requestId: link_request.requestId}) }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf }}">
+            <input type="hidden" name="answer" value="accept">
+            <button type="submit" class="btn btn-primary"><i class="ci-check me-1"></i>{{ 'pairs_and_teams.guest_link.accept'|trans }}</button>
+        </form>
+        <form action="{{ path('pairs_and_teams_guest_link_answer', {requestId: link_request.requestId}) }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf }}">
+            <input type="hidden" name="answer" value="decline">
+            <button type="submit" class="btn btn-outline-secondary">{{ 'pairs_and_teams.guest_link.decline'|trans }}</button>
+        </form>
+    </div>
+{% else %}
+    <div class="alert alert-secondary fs-sm" data-testid="guest-link-answered">
+        {{ (link_request.accepted ? 'pairs_and_teams.guest_link.already_accepted' : 'pairs_and_teams.guest_link.already_declined')|trans }}
+    </div>
+{% endif %}
+
+{% if link_request.results is not empty %}
+    <h2 class="h5">{{ 'pairs_and_teams.guest_link.results_title'|trans }} <span class="text-muted">({{ link_request.results|length }})</span></h2>
+    <div class="table-responsive mb-5">
+        <table class="table table-sm align-middle fs-sm" data-testid="guest-link-results">
+            <tbody>
+                {% for time in link_request.results %}
+                    <tr>
+                        <td>
+                            <a href="{{ path('puzzle_detail', {puzzleId: time.puzzleId}) }}">{{ time.manufacturerName }} {{ time.puzzleName }}</a><br>
+                            <span class="text-muted">{{ 'pieces_count'|trans({'%count%': time.piecesCount})|raw }}</span>
+                        </td>
+                        <td class="text-end text-nowrap">
+                            {% if time.time is not null %}<strong>{{ time.time|puzzlingTime }}</strong>{% else %}<span class="text-muted">{{ 'puzzle_add.mode.relax'|trans }}</span>{% endif %}<br>
+                            <span class="text-muted">{{ time.solvedAt|date('d.m.Y') }}</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+{% endblock %}

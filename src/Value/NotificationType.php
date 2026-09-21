@@ -38,4 +38,8 @@ enum NotificationType: string
 
     // A pair/team the player belongs to was named or renamed by another member
     case PuzzlingTeamRenamed = 'PuzzlingTeamRenamed';
+
+    // "This guest of mine is you" - asked, and agreed to (GuestLinkRequest)
+    case GuestLinkRequested = 'GuestLinkRequested';
+    case GuestLinkAccepted = 'GuestLinkAccepted';
 }

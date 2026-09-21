@@ -978,6 +978,9 @@
   "puzzling_team":
     "renamed": "%player% pojmenoval(a) vaši dvojici/tým „%name%“."
     "name_removed": "%player% odstranil(a) název vaší dvojice/týmu."
+  "guest_link":
+    "requested": "%player% říká, že jste „%guest%“ ve výsledcích, které jste skládali spolu. Jste to vy?"
+    "accepted": "%player% potvrdil(a), že je „%guest%“. Vaše společné výsledky jsou teď i v jeho/její historii."
 "badges":
   "title": "Odznaky"
   "my_title": "Mé odznaky"
@@ -3501,6 +3504,27 @@ private_profile_viewers:
     "flash":
       "renamed": "Uloženo."
       "invalid_name": "Zadejte jméno. Nesmí začínat znakem #."
+      "link_sent": "Odesláno. Dokud hráč nepotvrdí, nic se nezmění."
+      "link_unknown_code": "Žádný hráč tento kód nemá."
+      "link_not_possible": "To nejde - vyberte některého ze svých hostů a kód jiného hráče."
+    "link": "Už má účet"
+    "link_code_label": "Kód hráče"
+    "link_submit": "Zeptat se"
+    "link_help": "Zadejte kód hráče (začíná znakem #). Hráč bude požádán o potvrzení - jakmile potvrdí, vaše společné výsledky se objeví i v jeho historii a host se všude, kde jste skládali spolu, stane tímto hráčem."
+    "link_pending": "Čeká se na potvrzení od %code%."
+  "guest_link":
+    "title": "Jste to vy?"
+    "question": "%player% říká, že jste „%guest%“ - host bez účtu ve výsledcích, které jste skládali spolu."
+    "see_profile": "Zobrazit profil"
+    "explain": "Pokud potvrdíte, těchto %count% výsledků se stane součástí vaší historie a „host“ se v nich změní na vás. Pokud to nejste vy, odmítněte - nic se nezmění a nikdo se to nedozví."
+    "accept": "Ano, jsem to já"
+    "decline": "Ne, nejsem to já"
+    "already_accepted": "Toto jste potvrdili. Výsledky jsou součástí vaší historie."
+    "already_declined": "Toto jste odmítli."
+    "results_title": "Výsledky, o které jde"
+    "flash":
+      "accepted": "Hotovo - výsledky jsou teď součástí vaší historie."
+      "declined": "Odmítnuto. Nic se nezměnilo."
 
 "puzzling_team":
   "pair": "Dvojice"

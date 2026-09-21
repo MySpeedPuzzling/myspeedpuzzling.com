@@ -980,6 +980,9 @@
   "puzzling_team":
     "renamed": "%player% a nommé votre duo/équipe « %name% »."
     "name_removed": "%player% a supprimé le nom de votre duo/équipe."
+  "guest_link":
+    "requested": "%player% dit que vous êtes « %guest% » dans des résultats réalisés ensemble. Est-ce vous ?"
+    "accepted": "%player% a confirmé être « %guest% ». Vos résultats communs sont maintenant dans son historique."
 "badges":
   "title": "Badges"
   "my_title": "Mes badges"
@@ -3505,6 +3508,27 @@ private_profile_viewers:
     "flash":
       "renamed": "Enregistré."
       "invalid_name": "Saisissez un nom. Il ne peut pas commencer par #."
+      "link_sent": "Envoyé. Rien ne change tant que la personne n'a pas confirmé."
+      "link_unknown_code": "Aucun joueur n'a ce code."
+      "link_not_possible": "Ce n'est pas possible - choisissez l'un de vos invités et le code d'un autre joueur."
+    "link": "A maintenant un compte"
+    "link_code_label": "Son code joueur"
+    "link_submit": "Lui demander"
+    "link_help": "Saisissez son code joueur (il commence par #). La personne devra confirmer - dès qu'elle le fait, vos résultats communs apparaissent aussi dans son historique, et l'invité devient ce joueur partout où vous avez fait des puzzles ensemble."
+    "link_pending": "En attente de la confirmation de %code%."
+  "guest_link":
+    "title": "Est-ce vous ?"
+    "question": "%player% dit que vous êtes « %guest% » - un invité sans compte dans les résultats que vous avez réalisés ensemble."
+    "see_profile": "Voir son profil"
+    "explain": "Si vous confirmez, ces %count% résultats font partie de votre historique et « l'invité » devient vous. Si ce n'est pas vous, refusez - rien ne change et personne n'en est informé."
+    "accept": "Oui, c'est moi"
+    "decline": "Non, ce n'est pas moi"
+    "already_accepted": "Vous avez confirmé. Les résultats font partie de votre historique."
+    "already_declined": "Vous avez refusé."
+    "results_title": "Les résultats concernés"
+    "flash":
+      "accepted": "C'est fait - les résultats font maintenant partie de votre historique."
+      "declined": "Refusé. Rien n'a changé."
 
 "puzzling_team":
   "pair": "Duo"

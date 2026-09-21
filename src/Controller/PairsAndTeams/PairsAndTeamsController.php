@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\PairsAndTeams;
 
 use SpeedPuzzling\Web\Query\GetCoPuzzlers;
+use SpeedPuzzling\Web\Query\GetGuestLinkRequests;
 use SpeedPuzzling\Web\Results\PersonSuggestion;
 use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -26,6 +27,7 @@ final class PairsAndTeamsController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetCoPuzzlers $getCoPuzzlers,
         readonly private CoPuzzlerPicker $coPuzzlerPicker,
+        readonly private GetGuestLinkRequests $getGuestLinkRequests,
     ) {
     }
 
@@ -86,6 +88,8 @@ final class PairsAndTeamsController extends AbstractController
             'pairs_count' => count($pairs),
             'teams_count' => count($teams),
             'guests' => $guests,
+            // Guests the player already asked somebody about: guest key => the asked player's code
+            'pending_guest_links' => $show === 'guests' ? $this->getGuestLinkRequests->pendingOf($player->playerId) : [],
             'copuzzler_picker' => $this->coPuzzlerPicker->formState([]),
         ]);
     }

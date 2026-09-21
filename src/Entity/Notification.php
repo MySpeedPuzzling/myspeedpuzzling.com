@@ -69,6 +69,10 @@ class Notification
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|PuzzlingTeam $targetPuzzlingTeam = null,
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|GuestLinkRequest $targetGuestLinkRequest = null,
     ) {
     }
 }

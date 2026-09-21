@@ -460,6 +460,9 @@
   "puzzling_team":
     "renamed": "%player%さんがあなたのペア／チームに「%name%」という名前を付けました。"
     "name_removed": "%player%さんがあなたのペア／チームの名前を削除しました。"
+  "guest_link":
+    "requested": "%player% さんが、一緒に解いた結果の「%guest%」はあなただと言っています。あなたですか？"
+    "accepted": "%player% さんが「%guest%」であることを承認しました。一緒に解いた結果が相手の履歴にも加わりました。"
 "claim_voucher":
   "title": "バウチャーを利用する"
   "intro": "バウチャーコードを入力して、メンバーシップの特典を受け取りましょう。"
@@ -3492,6 +3495,27 @@ private_profile_viewers:
     "flash":
       "renamed": "保存しました。"
       "invalid_name": "名前を入力してください。# で始めることはできません。"
+      "link_sent": "送信しました。相手が承認するまで何も変わりません。"
+      "link_unknown_code": "そのコードのプレイヤーはいません。"
+      "link_not_possible": "できません。自分のゲストと、別のプレイヤーのコードを指定してください。"
+    "link": "アカウントを作成済み"
+    "link_code_label": "プレイヤーコード"
+    "link_submit": "確認を依頼"
+    "link_help": "相手のプレイヤーコード（# で始まります）を入力してください。相手に確認の依頼が届き、承認されると、一緒に解いた結果が相手の履歴にも表示され、ゲストはそのプレイヤーに置き換わります。"
+    "link_pending": "%code% の確認を待っています。"
+  "guest_link":
+    "title": "これはあなたですか？"
+    "question": "%player% さんが、一緒に解いた結果に登場するアカウントのないゲスト「%guest%」はあなただと言っています。"
+    "see_profile": "プロフィールを見る"
+    "explain": "承認すると、この %count% 件の結果があなたの履歴に加わり、「ゲスト」があなたに置き換わります。あなたでない場合は拒否してください。何も変わらず、誰にも通知されません。"
+    "accept": "はい、私です"
+    "decline": "いいえ、違います"
+    "already_accepted": "承認済みです。結果はあなたの履歴に含まれています。"
+    "already_declined": "拒否済みです。"
+    "results_title": "対象の結果"
+    "flash":
+      "accepted": "完了しました。結果があなたの履歴に加わりました。"
+      "declined": "拒否しました。何も変わっていません。"
 
 "puzzling_team":
   "pair": "ペア"

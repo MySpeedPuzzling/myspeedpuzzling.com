@@ -1147,6 +1147,9 @@ notifications:
     puzzling_team:
         renamed: "%player% named your pair/team “%name%”."
         name_removed: "%player% removed the name of your pair/team."
+    guest_link:
+        requested: "%player% says you are “%guest%” in results you solved together. Is that you?"
+        accepted: "%player% confirmed they are “%guest%”. Your results together are in their history now."
 
 badges:
     title: "Badges"
@@ -3793,6 +3796,27 @@ pairs_and_teams:
         flash:
             renamed: "Saved."
             invalid_name: "Enter a name. It cannot start with #."
+            link_sent: "Sent. Nothing changes until they confirm."
+            link_unknown_code: "No player has that code."
+            link_not_possible: "That is not possible - pick one of your guests and somebody else's player code."
+        link: "They have an account now"
+        link_code_label: "Their player code"
+        link_submit: "Ask them"
+        link_help: "Enter their player code (starts with #). They are asked to confirm - once they do, your results together appear in their history too, and the guest becomes the player everywhere you puzzled together."
+        link_pending: "Waiting for %code% to confirm."
+    guest_link:
+        title: "Is this you?"
+        question: "%player% says you are “%guest%” - a guest without an account in the results you solved together."
+        see_profile: "See their profile"
+        explain: "If you confirm, these %count% results become part of your own history and “the guest” becomes you in them. If it is not you, decline - nothing changes and nobody is told."
+        accept: "Yes, that is me"
+        decline: "No, that is not me"
+        already_accepted: "You confirmed this. The results are part of your history."
+        already_declined: "You declined this."
+        results_title: "The results it is about"
+        flash:
+            accepted: "Done - the results are part of your history now."
+            declined: "Declined. Nothing has changed."
 
 puzzling_team:
     pair: "Pair"

@@ -979,6 +979,9 @@
   "puzzling_team":
     "renamed": "%player% puso a tu pareja/equipo el nombre «%name%»."
     "name_removed": "%player% quitó el nombre de tu pareja/equipo."
+  "guest_link":
+    "requested": "%player% dice que eres «%guest%» en resultados que armasteis juntos. ¿Eres tú?"
+    "accepted": "%player% confirmó que es «%guest%». Vuestros resultados juntos ya están en su historial."
 "badges":
   "title": "Insignias"
   "my_title": "Mis insignias"
@@ -3503,6 +3506,27 @@ private_profile_viewers:
     "flash":
       "renamed": "Guardado."
       "invalid_name": "Escribe un nombre. No puede empezar por #."
+      "link_sent": "Enviado. Nada cambia hasta que lo confirme."
+      "link_unknown_code": "Ningún jugador tiene ese código."
+      "link_not_possible": "No es posible: elige a uno de tus invitados y el código de otro jugador."
+    "link": "Ahora tiene cuenta"
+    "link_code_label": "Su código de jugador"
+    "link_submit": "Preguntarle"
+    "link_help": "Escribe su código de jugador (empieza por #). Se le pedirá que lo confirme: cuando lo haga, vuestros resultados juntos aparecerán también en su historial y el invitado pasará a ser ese jugador en todos los puzzles que armasteis juntos."
+    "link_pending": "Esperando a que %code% lo confirme."
+  "guest_link":
+    "title": "¿Eres tú?"
+    "question": "%player% dice que eres «%guest%», un invitado sin cuenta en los resultados que armasteis juntos."
+    "see_profile": "Ver su perfil"
+    "explain": "Si lo confirmas, estos %count% resultados pasan a formar parte de tu historial y «el invitado» pasas a ser tú. Si no eres tú, recházalo: nada cambia y nadie se entera."
+    "accept": "Sí, soy yo"
+    "decline": "No, no soy yo"
+    "already_accepted": "Ya lo confirmaste. Los resultados forman parte de tu historial."
+    "already_declined": "Lo rechazaste."
+    "results_title": "Los resultados de los que se trata"
+    "flash":
+      "accepted": "Listo: los resultados ya forman parte de tu historial."
+      "declined": "Rechazado. No ha cambiado nada."
 
 "puzzling_team":
   "pair": "Pareja"

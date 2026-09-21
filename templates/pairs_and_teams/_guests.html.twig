@@ -22,6 +22,24 @@
                 </form>
                 <div class="form-text">{{ 'pairs_and_teams.guests.rename_help'|trans }}</div>
             </details>
+
+            {% if pending_guest_links[guest.key] is defined %}
+                <div class="fs-sm text-muted mt-2" data-testid="guest-link-pending">
+                    <i class="bi bi-hourglass-split me-1"></i>{{ 'pairs_and_teams.guests.link_pending'|trans({'%code%': '#' ~ pending_guest_links[guest.key]}) }}
+                </div>
+            {% endif %}
+
+            <details class="mt-2">
+                <summary class="fs-sm text-primary">{{ 'pairs_and_teams.guests.link'|trans }}</summary>
+                <form action="{{ path('pairs_and_teams_link_guest') }}" method="post" class="d-flex flex-wrap gap-2 mt-2">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <input type="hidden" name="guest" value="{{ guest.key }}">
+                    <label class="visually-hidden" for="guest-code-{{ loop.index }}">{{ 'pairs_and_teams.guests.link_code_label'|trans }}</label>
+                    <input type="text" class="form-control form-control-sm" style="max-width: 320px;" id="guest-code-{{ loop.index }}" name="code" maxlength="50" required placeholder="#CODE" autocapitalize="off" autocomplete="off">
+                    <button type="submit" class="btn btn-sm btn-primary">{{ 'pairs_and_teams.guests.link_submit'|trans }}</button>
+                </form>
+                <div class="form-text">{{ 'pairs_and_teams.guests.link_help'|trans }}</div>
+            </details>
         </div>
     {% endfor %}
 </div>

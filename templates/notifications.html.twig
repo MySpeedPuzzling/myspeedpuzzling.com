@@ -170,6 +170,23 @@
                                         </a>
                                     {% endif %}
                                 </td>
+                            {% elseif notification.isGuestLinkNotification %}
+                                {# "This guest of mine is you" - asked, or agreed to #}
+                                {% set guest_link_asked = notification.notificationType.value == 'GuestLinkRequested' %}
+                                <td class="text-center" style="width: 60px;">
+                                    <i class="bi {{ guest_link_asked ? 'bi-person-plus' : 'bi-person-check text-success' }} fs-3 {{ guest_link_asked ? 'text-primary' }}"></i>
+                                </td>
+
+                                <td class="align-middle fs-sm text-muted">
+                                    <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                                    {{ (guest_link_asked ? 'notifications.guest_link.requested' : 'notifications.guest_link.accepted')|trans({'%player%': notification.targetPlayerName, '%guest%': notification.guestLinkGuestName}) }}
+                                </td>
+
+                                <td class="" style="width: 80px;">
+                                    <a href="{{ guest_link_asked ? path('pairs_and_teams_guest_link', {requestId: notification.guestLinkRequestId}) : path('pairs_and_teams') }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-arrow-right"></i>
+                                    </a>
+                                </td>
                             {% elseif notification.isPuzzlingTeamRenamedNotification %}
                                 {# A pair/team of the player was named or renamed by another member #}
                                 <td class="text-center" style="width: 60px;">

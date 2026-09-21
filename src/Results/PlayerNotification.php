@@ -80,6 +80,9 @@ readonly final class PlayerNotification
         public bool $targetPlayerIsPrivate = false,
         // Current name of the pair/team a PuzzlingTeamRenamed notification is about - null when the name was taken away
         public null|string $teamName = null,
+        // GuestLinkRequested / GuestLinkAccepted: the question and the guest it is about
+        public null|string $guestLinkRequestId = null,
+        public null|string $guestLinkGuestName = null,
     ) {
     }
 
@@ -196,6 +199,8 @@ readonly final class PlayerNotification
             conversationPuzzleImage: is_string($row['conversation_puzzle_image'] ?? null) ? $row['conversation_puzzle_image'] : null,
             targetPlayerIsPrivate: ($row['target_player_is_private'] ?? false) === true,
             teamName: is_string($row['team_name'] ?? null) ? $row['team_name'] : null,
+            guestLinkRequestId: is_string($row['guest_link_request_id'] ?? null) ? $row['guest_link_request_id'] : null,
+            guestLinkGuestName: is_string($row['guest_link_guest_name'] ?? null) ? $row['guest_link_guest_name'] : null,
         );
     }
 
@@ -233,6 +238,12 @@ readonly final class PlayerNotification
     {
         return $this->notificationType === NotificationType::ModeratorRoleGranted
             || $this->notificationType === NotificationType::ModeratorRoleRevoked;
+    }
+
+    public function isGuestLinkNotification(): bool
+    {
+        return $this->notificationType === NotificationType::GuestLinkRequested
+            || $this->notificationType === NotificationType::GuestLinkAccepted;
     }
 
     public function isPuzzlingTeamRenamedNotification(): bool

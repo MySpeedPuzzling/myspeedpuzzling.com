@@ -41,6 +41,7 @@
                                     {% endif %}
                                     <div class="flex-grow-1 min-width-0">
                                         <a href="{{ path('puzzle_detail', {puzzleId: puzzle.id}) }}"
+                                           data-turbo-frame="_top"
                                            class="text-decoration-none fw-medium d-block text-truncate">
                                             {{ puzzle.name }}
                                         </a>
@@ -59,11 +60,13 @@
                         <div class="mt-2">
                             {% if proposal.type == 'change_request' %}
                                 <a href="{{ path('admin_puzzle_change_request_detail', {id: proposal.id}) }}"
+                                   data-turbo-frame="_top"
                                    class="btn btn-sm btn-outline-primary">
                                     {{ 'pending_proposals.go_to_admin'|trans }}
                                 </a>
                             {% else %}
                                 <a href="{{ path('admin_puzzle_merge_request_detail', {id: proposal.id}) }}"
+                                   data-turbo-frame="_top"
                                    class="btn btn-sm btn-outline-primary">
                                     {{ 'pending_proposals.go_to_admin'|trans }}
                                 </a>

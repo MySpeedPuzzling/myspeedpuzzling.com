@@ -11,8 +11,8 @@ use SpeedPuzzling\Web\Value\LendBorrowParticipant;
 
 /**
  * The person on the other side of a lend: `#code` of a registered player, or
- * any other text as the name of somebody without an account (same convention
- * as the lend / borrow forms).
+ * any other text as the name of somebody without an account. The one place for
+ * that convention - the lend / borrow / pass forms and the multiscan tray share it.
  */
 readonly final class LendBorrowParticipantParser
 {
@@ -36,9 +36,9 @@ readonly final class LendBorrowParticipantParser
                 throw new CannotLendToSelf();
             }
 
-            return new LendBorrowParticipant($player->id->toString(), null);
+            return new LendBorrowParticipant($player->id->toString(), null, $player->name ?? $player->code);
         }
 
-        return new LendBorrowParticipant(null, $cleaned);
+        return new LendBorrowParticipant(null, $cleaned, $cleaned);
     }
 }

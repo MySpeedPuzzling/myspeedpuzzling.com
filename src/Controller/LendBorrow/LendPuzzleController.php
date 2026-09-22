@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\LendBorrow;
 
+use SpeedPuzzling\Web\Exceptions\CannotLendToSelf;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\FormData\LendPuzzleFormData;
 use SpeedPuzzling\Web\FormType\LendPuzzleFormType;
@@ -14,7 +15,7 @@ use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
-use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\LendBorrowParticipantParser;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -34,7 +35,7 @@ final class LendPuzzleController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
-        readonly private PlayerRepository $playerRepository,
+        readonly private LendBorrowParticipantParser $participantParser,
         readonly private GetCollectionItems $getCollectionItems,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
@@ -82,37 +83,21 @@ final class LendPuzzleController extends AbstractController
 
             assert($formData->borrowerCode !== null);
 
-            // Parse input - if starts with # try to find registered player, otherwise use as plain text
-            $input = $formData->borrowerCode;
-            $isRegisteredPlayer = str_starts_with($input, '#');
-            $cleanedInput = trim($input, "# \t\n\r\0");
+            try {
+                $borrower = $this->participantParser->parse($formData->borrowerCode, $loggedPlayer->playerId);
+            } catch (CannotLendToSelf) {
+                $this->addFlash('danger', $this->translator->trans('lend_borrow.flash.cannot_lend_to_self'));
 
-            $borrowerPlayerId = null;
-            $borrowerName = null;
-            $borrowerDisplayName = null;
+                return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+            } catch (PlayerNotFound) {
+                $this->addFlash('danger', $this->translator->trans('lend_borrow.flash.player_not_found'));
 
-            if ($isRegisteredPlayer) {
-                try {
-                    $borrower = $this->playerRepository->getByCode($cleanedInput);
-                    $borrowerPlayerId = $borrower->id->toString();
-                    $borrowerDisplayName = $borrower->name ?? $cleanedInput;
-
-                    // Cannot lend to yourself
-                    if ($borrowerPlayerId === $loggedPlayer->playerId) {
-                        $this->addFlash('danger', $this->translator->trans('lend_borrow.flash.cannot_lend_to_self'));
-
-                        return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
-                    }
-                } catch (PlayerNotFound) {
-                    $this->addFlash('danger', $this->translator->trans('lend_borrow.flash.player_not_found'));
-
-                    return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
-                }
-            } else {
-                // Use plain text name for non-registered person
-                $borrowerName = $cleanedInput;
-                $borrowerDisplayName = $cleanedInput;
+                return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
             }
+
+            $borrowerPlayerId = $borrower->playerId;
+            $borrowerName = $borrower->playerName;
+            $borrowerDisplayName = $borrower->displayName;
 
             $this->messageBus->dispatch(new LendPuzzleToPlayer(
                 ownerPlayerId: $loggedPlayer->playerId,

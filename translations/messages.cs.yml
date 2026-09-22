@@ -3767,6 +3767,7 @@ multiscan:
         in_library: "V tvé knihovně"
         on_wishlist: "Na tvém seznamu přání"
         lent: "Půjčeno %name%"
+        lent_unnamed: "Půjčeno"
         borrowed: "Vypůjčeno od %name%"
         not_in_library: "Není v tvé knihovně"
     reason:
@@ -3774,6 +3775,7 @@ multiscan:
         already_in_library: "už je v tvé knihovně"
         already_on_wishlist: "už je na tvém seznamu přání"
         already_lent: "už je půjčeno %name%"
+        already_lent_unnamed: "už je půjčené"
         already_borrowed: "už je vypůjčeno od %name%"
         not_lent: "není půjčené ani vypůjčené"
         empty: "není co použít"

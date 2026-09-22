@@ -26,7 +26,7 @@ export default class extends Controller {
         this.queue = [];
         this.draining = false;
         this.inflight = null;
-        this.lastNoticeKey = null;
+        this.lastNoticeSeq = null;
 
         this._boundScanned = (event) => this.onScanned(event);
         this._boundVisibility = () => this.onVisibilityChange();
@@ -149,16 +149,16 @@ export default class extends Controller {
         }
 
         if (notice === '') {
-            this.lastNoticeKey = null;
             return;
         }
 
-        // A model update re-renders with the same notice attributes - react to each notice once
-        const key = `${notice}:${ean}:${name}:${Date.now() >> 12}`;
-        if (key === this.lastNoticeKey) {
+        // Model updates re-render with the last notice still set: the server bumps a sequence
+        // number for every new notice, so each one is reacted to exactly once
+        const seq = tray.getAttribute('data-multiscan-notice-seq') || '';
+        if (seq === this.lastNoticeSeq) {
             return;
         }
-        this.lastNoticeKey = key;
+        this.lastNoticeSeq = seq;
 
         switch (notice) {
             case 'found':

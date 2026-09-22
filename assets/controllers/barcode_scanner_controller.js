@@ -328,17 +328,22 @@ export default class extends Controller {
 
     // --- Continuous mode helpers (multiscan) ---
 
+    /**
+     * @returns {boolean} whether the code was handed over (false = inside the cooldown, dropped)
+     */
     _acceptContinuous(code, now) {
         const last = this.acceptedAt.get(code) || 0;
 
         if (now - last < this.cooldownMsValue) {
-            return;
+            return false;
         }
 
         this.acceptedAt.set(code, now);
         this.inputTarget.value = code;
         this.feedback('read');
         this._emitScanned(code);
+
+        return true;
     }
 
     _emitScanned(code) {
@@ -609,9 +614,14 @@ export default class extends Controller {
         this.toggleButtonTarget.classList.remove('active');
 
         if (this.continuousValue) {
-            // Single-shot native scanner: hand the code over and re-open it when the host resumes
-            this.nativeAwaitingResume = true;
-            this._acceptContinuous(code, Date.now());
+            // Single-shot native scanner: hand the code over and re-open it when the host resumes.
+            // A re-scan inside the cooldown never reaches the host, so re-open right away.
+            if (this._acceptContinuous(code, Date.now())) {
+                this.nativeAwaitingResume = true;
+            } else {
+                this.feedback('duplicate');
+                this.openNativeScanner();
+            }
             return;
         }
 

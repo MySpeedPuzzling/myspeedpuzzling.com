@@ -3758,6 +3758,7 @@ multiscan:
         in_library: "ライブラリにあり"
         on_wishlist: "ウィッシュリストにあり"
         lent: "%name%に貸出中"
+        lent_unnamed: "貸出中"
         borrowed: "%name%から借用中"
         not_in_library: "ライブラリにありません"
     reason:
@@ -3765,6 +3766,7 @@ multiscan:
         already_in_library: "すでにライブラリにあります"
         already_on_wishlist: "すでにウィッシュリストにあります"
         already_lent: "すでに%name%に貸出中です"
+        already_lent_unnamed: "すでに貸出中です"
         already_borrowed: "すでに%name%から借用中です"
         not_lent: "貸出中でも借用中でもありません"
         empty: "適用できるものがありません"

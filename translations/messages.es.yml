@@ -3769,6 +3769,7 @@ multiscan:
         in_library: "En tu biblioteca"
         on_wishlist: "En tu lista de deseos"
         lent: "Prestado a %name%"
+        lent_unnamed: "Prestado"
         borrowed: "Tomado prestado de %name%"
         not_in_library: "No está en tu biblioteca"
     reason:
@@ -3776,6 +3777,7 @@ multiscan:
         already_in_library: "ya está en tu biblioteca"
         already_on_wishlist: "ya está en tu lista de deseos"
         already_lent: "ya está prestado a %name%"
+        already_lent_unnamed: "ya está prestado"
         already_borrowed: "ya está tomado prestado de %name%"
         not_lent: "no está prestado ni tomado prestado"
         empty: "nada que aplicar"

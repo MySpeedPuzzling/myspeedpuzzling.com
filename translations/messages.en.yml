@@ -4048,6 +4048,7 @@ multiscan:
         in_library: "In your library"
         on_wishlist: "On your wishlist"
         lent: "Lent to %name%"
+        lent_unnamed: "Lent out"
         borrowed: "Borrowed from %name%"
         not_in_library: "Not in your library"
     reason:
@@ -4055,6 +4056,7 @@ multiscan:
         already_in_library: "already in your library"
         already_on_wishlist: "already on your wishlist"
         already_lent: "already lent to %name%"
+        already_lent_unnamed: "already lent out"
         already_borrowed: "already borrowed from %name%"
         not_lent: "not lent or borrowed"
         empty: "nothing to apply"

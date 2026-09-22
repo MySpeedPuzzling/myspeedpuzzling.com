@@ -48,10 +48,12 @@ readonly final class ReturnLentPuzzleHandler
             throw new LentPuzzleNotFound();
         }
 
-        // Record the return transfer
+        // Record the return transfer. The lent_puzzle row is deleted below and the FK is
+        // SET NULL, so the reference is null from the start: a transfer that still pointed
+        // at the removed entity would break the next flush in the same request (batch returns).
         $transfer = new LentPuzzleTransfer(
             Uuid::uuid7(),
-            $lentPuzzle,
+            null,
             $lentPuzzle->currentHolderPlayer,
             $lentPuzzle->currentHolderName,
             $lentPuzzle->ownerPlayer,

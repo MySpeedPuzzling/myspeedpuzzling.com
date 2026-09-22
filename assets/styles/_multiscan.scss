@@ -85,7 +85,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 1030;
+    z-index: 9; // below the sticky header (10) and the global search overlay (20)
     border-radius: 12px 12px 0 0;
     padding-bottom: env(safe-area-inset-bottom);
 

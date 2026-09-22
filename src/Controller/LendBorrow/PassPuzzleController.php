@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\LendBorrow;
 
 use SpeedPuzzling\Web\Exceptions\LentPuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\CannotLendToSelf;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\FormData\PassLentPuzzleFormData;
 use SpeedPuzzling\Web\FormType\PassLentPuzzleFormType;
@@ -16,7 +17,7 @@ use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\LentPuzzleRepository;
-use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\LendBorrowParticipantParser;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -35,7 +36,7 @@ final class PassPuzzleController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private LentPuzzleRepository $lentPuzzleRepository,
-        readonly private PlayerRepository $playerRepository,
+        readonly private LendBorrowParticipantParser $participantParser,
         readonly private GetLentPuzzles $getLentPuzzles,
         readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
         readonly private GetCollectionItems $getCollectionItems,
@@ -83,34 +84,20 @@ final class PassPuzzleController extends AbstractController
 
             assert($formData->newHolderCode !== null);
 
-            // Parse input - if starts with # try to find registered player, otherwise use as plain text
-            $input = $formData->newHolderCode;
-            $isRegisteredPlayer = str_starts_with($input, '#');
-            $cleanedInput = trim($input, "# \t\n\r\0");
+            try {
+                $newHolder = $this->participantParser->parse($formData->newHolderCode, $loggedPlayer->playerId);
+            } catch (CannotLendToSelf) {
+                $this->addFlash('danger', $this->translator->trans('lend_borrow.flash.cannot_pass_to_self'));
 
-            $newHolderPlayerId = null;
-            $newHolderName = null;
+                return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+            } catch (PlayerNotFound) {
+                $this->addFlash('danger', $this->translator->trans('lend_borrow.flash.player_not_found'));
 
-            if ($isRegisteredPlayer) {
-                try {
-                    $newHolder = $this->playerRepository->getByCode($cleanedInput);
-                    $newHolderPlayerId = $newHolder->id->toString();
-
-                    // Cannot pass to yourself
-                    if ($newHolderPlayerId === $loggedPlayer->playerId) {
-                        $this->addFlash('danger', $this->translator->trans('lend_borrow.flash.cannot_pass_to_self'));
-
-                        return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
-                    }
-                } catch (PlayerNotFound) {
-                    $this->addFlash('danger', $this->translator->trans('lend_borrow.flash.player_not_found'));
-
-                    return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
-                }
-            } else {
-                // Use plain text name for non-registered person
-                $newHolderName = $cleanedInput;
+                return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
             }
+
+            $newHolderPlayerId = $newHolder->playerId;
+            $newHolderName = $newHolder->playerName;
 
             // Determine if this is pass-to-owner (which behaves as return)
             $wasPassedToOwner = false;
@@ -118,13 +105,8 @@ final class PassPuzzleController extends AbstractController
                 $wasPassedToOwner = $lentPuzzle->ownerPlayer->id->toString() === $newHolderPlayerId;
             }
 
-            // Get display name for the new holder (for UPDATE stream)
-            $newHolderDisplayName = $newHolderName; // Plain text name
-            if ($newHolderPlayerId !== null && !$wasPassedToOwner) {
-                // Registered player - get their display name
-                $newHolderPlayer = $this->playerRepository->get($newHolderPlayerId);
-                $newHolderDisplayName = $newHolderPlayer->name ?? $newHolderPlayer->code;
-            }
+            // Display name for the UPDATE stream
+            $newHolderDisplayName = $newHolder->displayName;
 
             try {
                 $this->messageBus->dispatch(new PassLentPuzzle(

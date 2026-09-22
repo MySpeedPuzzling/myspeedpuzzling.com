@@ -7,6 +7,7 @@
 {% set returnFace = this.returnFace %}
 <div {{ attributes.defaults({class: 'multiscan-tray'}) }}
      data-multiscan-notice="{{ this.notice ? this.notice.type : '' }}"
+     data-multiscan-notice-seq="{{ this.noticeSeq }}"
      data-multiscan-notice-ean="{{ this.notice ? this.notice.ean : '' }}"
      data-multiscan-notice-name="{{ this.notice ? (this.notice.name ?? '') : '' }}"
      data-multiscan-sheet-open="{{ this.resolvingEan ? '1' : '0' }}"
@@ -57,7 +58,7 @@
         <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
             <span class="fw-medium">
                 <i class="bi-basket me-1"></i>{{ 'multiscan.tray.title'|trans }}
-                <span class="badge rounded-pill text-bg-primary ms-1" data-multiscan-target="count">{{ actionable|length }}</span>
+                <span class="badge rounded-pill text-bg-primary ms-1">{{ actionable|length }}</span>
             </span>
             {% if rows|length > 0 %}
                 <button type="button" class="btn btn-link btn-sm text-muted p-0" data-action="live#action" data-live-action-param="clear">

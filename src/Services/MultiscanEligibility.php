@@ -34,10 +34,10 @@ readonly final class MultiscanEligibility
         $lentIds = [];
 
         foreach (array_values(array_unique($puzzleIds)) as $puzzleId) {
+            // A lent_puzzle row IS an open lend (a return deletes the row); the holder may have no name
             $lentTo = $statuses->lentToNames[$puzzleId] ?? null;
             $borrowedFrom = $statuses->borrowedFromNames[$puzzleId] ?? null;
-            // A lent_puzzle row without a holder is a returned puzzle that kept its row
-            $isLent = $lentTo !== null && isset($statuses->lentPuzzleIds[$puzzleId]);
+            $isLent = isset($statuses->lentPuzzleIds[$puzzleId]);
             $isBorrowed = isset($statuses->borrowedPuzzleIds[$puzzleId]);
 
             $reason = match ($action) {
@@ -54,7 +54,7 @@ readonly final class MultiscanEligibility
                 MultiscanAction::Return => ($isLent || $isBorrowed) ? null : 'not_lent',
             };
 
-            if ($isLent) {
+            if ($isLent && $lentTo !== null) {
                 $names[$puzzleId] = $lentTo;
             } elseif ($isBorrowed && $borrowedFrom !== null) {
                 $names[$puzzleId] = $borrowedFrom;

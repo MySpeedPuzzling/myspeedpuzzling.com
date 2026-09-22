@@ -16,7 +16,7 @@ final class MultiscanEligibilityTest extends TestCase
     private const string LENT = 'p-lent';
     private const string BORROWED = 'p-borrowed';
     private const string WISHED = 'p-wished';
-    private const string RETURNED_ROW = 'p-returned-row';
+    private const string UNNAMED_HOLDER = 'p-unnamed-holder';
     private const string FRESH = 'p-fresh';
 
     private function statuses(): UserPuzzleStatuses
@@ -27,9 +27,9 @@ final class MultiscanEligibilityTest extends TestCase
             unsolved: [],
             collection: [self::OWNED, self::LENT],
             borrowed: [self::BORROWED],
-            lent: [self::LENT, self::RETURNED_ROW],
+            lent: [self::LENT, self::UNNAMED_HOLDER],
             sellSwap: [],
-            lentPuzzleIds: [self::LENT => 'lent-1', self::RETURNED_ROW => 'lent-2'],
+            lentPuzzleIds: [self::LENT => 'lent-1', self::UNNAMED_HOLDER => 'lent-2'],
             borrowedPuzzleIds: [self::BORROWED => 'lent-3'],
             puzzleCollections: [
                 self::OWNED => [Collection::SYSTEM_ID => '__system_collection__', 'col-1' => 'Favourites'],
@@ -60,13 +60,15 @@ final class MultiscanEligibilityTest extends TestCase
         self::assertSame('already_on_wishlist', $report->reasonFor(self::WISHED));
     }
 
-    public function testLendSkipsOpenLendsButNotReturnedRows(): void
+    public function testLendSkipsEveryOpenLendEvenWithoutAHolderName(): void
     {
-        $report = (new MultiscanEligibility())->check(MultiscanAction::Lend, [self::LENT, self::RETURNED_ROW, self::FRESH], $this->statuses());
+        $report = (new MultiscanEligibility())->check(MultiscanAction::Lend, [self::LENT, self::UNNAMED_HOLDER, self::FRESH], $this->statuses());
 
-        self::assertSame([self::RETURNED_ROW, self::FRESH], $report->eligible);
+        self::assertSame([self::FRESH], $report->eligible);
         self::assertSame('already_lent', $report->reasonFor(self::LENT));
+        self::assertSame('already_lent', $report->reasonFor(self::UNNAMED_HOLDER));
         self::assertSame('Anna', $report->counterpartyNames[self::LENT]);
+        self::assertArrayNotHasKey(self::UNNAMED_HOLDER, $report->counterpartyNames);
     }
 
     public function testBorrowSkipsWhatIsAlreadyBorrowed(): void
@@ -80,11 +82,10 @@ final class MultiscanEligibilityTest extends TestCase
 
     public function testReturnCoversOwnedAndHeldLendsAndMapsToLentPuzzleIds(): void
     {
-        $report = (new MultiscanEligibility())->check(MultiscanAction::Return, [self::LENT, self::BORROWED, self::FRESH, self::RETURNED_ROW], $this->statuses());
+        $report = (new MultiscanEligibility())->check(MultiscanAction::Return, [self::LENT, self::BORROWED, self::FRESH, self::UNNAMED_HOLDER], $this->statuses());
 
-        self::assertSame([self::LENT, self::BORROWED], $report->eligible);
-        self::assertSame(['lent-1', 'lent-3'], array_values($report->lentPuzzleIds));
+        self::assertSame([self::LENT, self::BORROWED, self::UNNAMED_HOLDER], $report->eligible);
+        self::assertSame(['lent-1', 'lent-3', 'lent-2'], array_values($report->lentPuzzleIds));
         self::assertSame('not_lent', $report->reasonFor(self::FRESH));
-        self::assertSame('not_lent', $report->reasonFor(self::RETURNED_ROW), 'a lent_puzzle row without a holder is not an open lend');
     }
 }

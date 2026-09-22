@@ -61,7 +61,7 @@ final class MultiscanTray
 {
     use DefaultActionTrait;
 
-    public const int MAX_ROWS = 100;
+    public const int MAX_ROWS = 50;
     private const int SEARCH_LIMIT = 8;
 
     /**

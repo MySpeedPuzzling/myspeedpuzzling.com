@@ -155,6 +155,17 @@ lent/borrowed by registered and free-text people.
 `multiscan.*` keys (title, meta, instructions, chips, reasons, actions, recap, errors, toasts,
 teaser) in **all six locales** (121 keys each).
 
+### Measured cost (2026-09-22)
+- Read side on production data: EAN lookup ~1 ms (trigram index), exact-code write guard ~1 ms,
+  hydration of 20 rows 0.2 ms, statuses of the heaviest library (1,722 items) ~7 ms, brand list for
+  quick-add 15 ms (only while the quick-add form is open). One scan = 6 queries regardless of tray size
+  (guarded by `testScanAndApplyStayWithinAQueryBudgetWhateverTheTraySize`).
+- Write side, 20-puzzle batches on the local stack (PHP included): lend 200–330 ms (10–16 queries per
+  puzzle, the notification event is the bulk), return 70–100 ms, borrow ~230 ms, add to library
+  ~200 ms (7 queries per puzzle), wishlist ~20 ms. Cost is linear in the batch, so the tray is capped
+  at `MultiscanTray::MAX_ROWS = 50` (worst case well under 2 s); a pile larger than that is applied
+  in two rounds.
+
 ### Gotchas met while building
 - **Batch return needs a flush + clear per puzzle.** A return inserts a `lent_puzzle_transfer` that
   points at the `lent_puzzle` row it deletes; the `LendingTransferCompleted` event dispatched inside

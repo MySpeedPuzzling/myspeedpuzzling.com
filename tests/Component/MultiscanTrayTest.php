@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 
@@ -24,6 +25,7 @@ use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 final class MultiscanTrayTest extends WebTestCase
 {
     use InteractsWithLiveComponents;
+    use QueryCountAssertions;
 
     /**
      * @param array<string, mixed> $data
@@ -313,6 +315,41 @@ final class MultiscanTrayTest extends WebTestCase
         assert($component instanceof MultiscanTray);
 
         return $component->rows;
+    }
+
+    /**
+     * A scan is one round trip per box: the cost must not grow with the tray.
+     * Measured: 6 queries (user, lookup, statuses, hydration, collections, session); budget leaves a little slack.
+     */
+    public function testScanAndApplyStayWithinAQueryBudgetWhateverTheTraySize(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+        // The helper's first call also performs the mount request; the profiler counts one request only
+        $tray->render();
+
+        $this->startCountingQueries($client);
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_6000]);
+        $first = $this->queryCount($client);
+
+        foreach ([PuzzleFixture::EAN_PUZZLE_300, PuzzleFixture::EAN_PUZZLE_2000, PuzzleFixture::EAN_PUZZLE_1500_02, PuzzleFixture::EAN_PUZZLE_1500_01] as $ean) {
+            $tray->call('scan', ['ean' => $ean]);
+        }
+
+        $this->startCountingQueries($client);
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_500_03]);
+        $sixth = $this->queryCount($client);
+
+        self::assertLessThanOrEqual(8, $first, 'a scan into an empty tray costs too many queries: ' . $first);
+        self::assertSame($first, $sixth, 'a scan must cost the same with 6 rows as with 1 (no per-row queries)');
+
+        $tray->set('action', 'add_to_wishlist');
+        $this->startCountingQueries($client);
+        $tray->call('apply');
+        $apply = $this->queryCount($client);
+
+        // 2 eligible rows (6000, 500_03): one query per written row is the price of reusing the single handlers
+        self::assertLessThanOrEqual(30, $apply, 'apply costs too many queries: ' . $apply);
     }
 
     private static function playerCode(string $playerId): string

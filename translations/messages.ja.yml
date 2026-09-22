@@ -3738,6 +3738,8 @@ multiscan:
         returned_title: "戻ってきた箱をスキャンして、まとめて返却済みにする"
         collection: "コレクションにスキャン"
         collection_title: "箱をスキャンしてこのコレクションに直接追加"
+        wishlist: "ウィッシュリストへスキャン"
+        wishlist_title: "箱をスキャンしてそのままウィッシュリストへ"
     teaser:
         title: "パズルの山を一度にスキャン"
         text: "Multiscanはカメラを起動したままにします。箱を次々にかざして、最後に1つの操作をまとめて適用できます。"

@@ -3747,6 +3747,8 @@ multiscan:
         returned_title: "Naskenuj krabice, které se ti vrátily, a označ je všechny jako vrácené"
         collection: "Naskenovat do kolekce"
         collection_title: "Naskenuj krabice rovnou do této kolekce"
+        wishlist: "Skenovat do seznamu přání"
+        wishlist_title: "Naskenuj krabice rovnou na svůj seznam přání"
     teaser:
         title: "Naskenuj hromadu puzzlí najednou"
         text: "Multiscan nechá kameru běžet: namiř ji na jednu krabici za druhou a pak na všechny použij jednu akci."

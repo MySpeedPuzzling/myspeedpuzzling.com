@@ -7,10 +7,15 @@
     min-height: 160px;
 
     video {
-        max-height: 42vh;
+        // Phones: the camera must leave the newest tray row on screen
+        max-height: 26vh;
         object-fit: cover;
         position: relative;
         z-index: 20;
+
+        @media (min-width: 768px) {
+            max-height: 42vh;
+        }
     }
 
     canvas {
@@ -56,6 +61,16 @@
     &.is-loading .multiscan-action-bar {
         opacity: 0.7;
     }
+}
+
+.multiscan-row.is-added {
+    animation: multiscan-row-added 1.6s ease-out;
+}
+
+@keyframes multiscan-row-added {
+    0% { background: rgba(40, 167, 69, 0.35); box-shadow: inset 4px 0 0 #28a745; }
+    70% { background: rgba(40, 167, 69, 0.12); box-shadow: inset 4px 0 0 #28a745; }
+    100% { background: transparent; box-shadow: none; }
 }
 
 .multiscan-row.is-pulse {
@@ -218,4 +233,15 @@
     margin-bottom: 4px;
     max-height: 45vh;
     overflow-y: auto;
+}
+
+// Entry buttons on the library pages: the "New" badge sits over the top-right corner
+.multiscan-entry {
+    margin-right: 10px;
+
+    .multiscan-entry-badge {
+        font-size: 0.6rem;
+        padding: 0.25em 0.5em;
+        pointer-events: none;
+    }
 }

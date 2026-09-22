@@ -449,11 +449,8 @@ final class MultiscanTray
             'names' => $names,
         ];
 
-        // Rows the batch touched leave the tray; unresolved and skipped ones stay
-        $this->rows = array_values(array_filter(
-            $this->rows,
-            static fn (array $row): bool => $row['puzzleId'] === null || !in_array($row['puzzleId'], $report->eligible, true),
-        ));
+        // The pile stays: "add to library, then lend them" is the everyday sequence, so every
+        // row keeps its place and only its chip changes; "Clear all" empties the tray.
         $this->notes = '';
         $this->getUserPuzzleStatuses->reset();
         $this->hydratedRows = null;

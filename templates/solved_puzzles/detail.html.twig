@@ -39,6 +39,9 @@
                 {{ include('_share_button.html.twig', {share_url: url('solved_puzzles_detail', {playerId: player.playerId})}) }}
             {% endif %}
             {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
+                {{ include('multiscan/_entry_button.html.twig', {params: {}, label: 'multiscan.entry.library', title: 'multiscan.entry.library_title'}) }}
+            {% endif %}
+            {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
                 <a href="{{ path('edit_solved_puzzles', {playerId: player.playerId, 'return': path('solved_puzzles_detail', {playerId: player.playerId}), 'return_title': collection.name}) }}" data-turbo="true" data-turbo-frame="modal-frame" class="btn btn-sm btn-outline-primary">
                     <i class="ci-edit me-1"></i> {{ 'edit'|trans }}
                 </a>

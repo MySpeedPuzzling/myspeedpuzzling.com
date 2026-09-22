@@ -52,11 +52,7 @@
                 <a href="{{ path('puzzle_picker', logged_user.profile.activeMembership ? {collections: [collection.collectionId ?? system_collection_id]} : {source: 'mine'}) }}" class="btn btn-sm btn-outline-primary puzzle-picker-collection-link" rel="nofollow" title="{{ 'puzzle_picker.pick_from_collection'|trans }}">
                     <i class="bi bi-shuffle me-1"></i> {{ 'puzzle_picker.pick_from_collection'|trans }}
                 </a>
-                {% if logged_user.profile.activeMembership %}
-                    <a href="{{ path('multiscan', {action: 'add_to_library', collection: collection.collectionId ?? system_collection_id}) }}" class="btn btn-sm btn-outline-primary" title="{{ 'multiscan.entry.collection_title'|trans }}">
-                        <i class="bi-upc-scan me-1"></i> {{ 'multiscan.entry.collection'|trans }}
-                    </a>
-                {% endif %}
+                {{ include('multiscan/_entry_button.html.twig', {params: {action: 'add_to_library', collection: collection.collectionId ?? system_collection_id}, label: 'multiscan.entry.collection', title: 'multiscan.entry.collection_title'}) }}
                 {% if collection.collectionId %}
                     <a href="{{ path('puzzle_add') }}?mode=collection&collection={{ collection.collectionId }}" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-puzzle me-1"></i> {{ 'collections.add_puzzle_here.button'|trans }}

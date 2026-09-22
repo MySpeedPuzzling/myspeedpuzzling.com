@@ -76,7 +76,8 @@
             </div>
         {% else %}
             <div class="list-group list-group-flush multiscan-rows">
-                {% for row in actionable %}
+                {# newest scan first: on a phone it must be the row right under the camera #}
+                {% for row in actionable|reverse %}
                     <div class="list-group-item px-3 py-2 multiscan-row {% if not row.eligible and row.isResolved %}multiscan-row-skipped{% endif %}"
                          id="multiscan-row-{{ row.ean }}"
                          data-multiscan-row-state="{{ row.state }}">
@@ -135,7 +136,7 @@
                     <i class="bi-question-diamond me-1"></i>{{ 'multiscan.tray.unresolved'|trans({'%count%': unresolved|length}) }}
                 </div>
                 <div class="list-group list-group-flush">
-                    {% for row in unresolved %}
+                    {% for row in unresolved|reverse %}
                         <div class="list-group-item px-3 py-2 d-flex align-items-center gap-2" id="multiscan-row-{{ row.ean }}" data-multiscan-row-state="unknown">
                             <span class="multiscan-unknown-thumb rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"><i class="bi-question-lg"></i></span>
                             <div class="flex-grow-1 min-w-0">

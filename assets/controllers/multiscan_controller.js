@@ -262,6 +262,7 @@ export default class extends Controller {
             case 'linked':
             case 'created':
                 this.scannerFeedback('found');
+                this.highlightRow(ean);
                 break;
             case 'duplicate':
                 this.scannerFeedback('duplicate');
@@ -283,6 +284,26 @@ export default class extends Controller {
                 break;
             default:
                 break;
+        }
+    }
+
+    /**
+     * The freshly added row is the success signal: green sweep, and on screen even on a phone
+     */
+    highlightRow(ean) {
+        const row = document.getElementById('multiscan-row-' + ean);
+        if (!row) {
+            return;
+        }
+
+        row.classList.remove('is-added');
+        void row.offsetWidth;
+        row.classList.add('is-added');
+        window.setTimeout(() => row.classList.remove('is-added'), 1700);
+
+        const rect = row.getBoundingClientRect();
+        if (rect.top < 0 || rect.bottom > window.innerHeight - 120) {
+            row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
     }
 

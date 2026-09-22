@@ -3751,6 +3751,8 @@ multiscan:
         returned_title: "Scannez les boîtes revenues et marquez-les toutes comme retournées"
         collection: "Scanner dans la collection"
         collection_title: "Scannez des boîtes directement dans cette collection"
+        wishlist: "Scanner vers la liste de souhaits"
+        wishlist_title: "Scannez des boîtes directement dans votre liste de souhaits"
     teaser:
         title: "Scannez une pile de puzzles en une fois"
         text: "Multiscan garde la caméra active : visez les boîtes l'une après l'autre, puis appliquez une seule action à toutes."

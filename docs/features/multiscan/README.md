@@ -63,8 +63,10 @@ would commit immediately, and lending sends a notification that cannot be unsent
   any player, and takes a plain name; the collection picker lists yours and creates a typed one. Apply is **all-or-nothing** in one
   transaction. Eligibility was checked while scanning, so an apply-time failure is rare and gets a
   plain error.
-- **After apply**: tray keeps only unresolved rows, a recap card says "6 puzzles lent to Anna" with
-  the list, camera keeps running. No navigation, no reload.
+- **After apply**: every row stays in the pile with its chip refreshed ("In your library", "Lent to
+  Anna") - the everyday sequence is *add to library, then lend them* - a recap card says "6 puzzles
+  lent to Anna" with the list, camera keeps running. "Clear all" empties the pile. No navigation,
+  no reload.
 - **Contextual entry points** preselect the action but still go through the tray: library header
   ("Multiscan"), lend/borrow page ("Scan returned puzzles"), collection page ("Scan puzzles into this
   collection").

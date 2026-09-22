@@ -38,6 +38,9 @@
 
         <div class="d-flex align-items-center gap-2 flex-shrink-0">
             {% if isOwnProfile %}
+                {{ include('multiscan/_entry_button.html.twig', {params: {}, label: 'multiscan.entry.library', title: 'multiscan.entry.library_title'}) }}
+            {% endif %}
+            {% if isOwnProfile %}
                 {{ include('_share_button.html.twig', {share_url: url('sell_swap_list_detail', {playerId: player.playerId})}) }}
                 <a href="{{ path('sold_swapped_history', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-secondary">
                     <i class="bi-clock-history me-1"></i> {{ 'sell_swap_list.history.button'|trans }}

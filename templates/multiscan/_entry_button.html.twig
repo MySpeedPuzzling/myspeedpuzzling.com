@@ -1,0 +1,10 @@
+{# Entry point to Scanning (multiscan) with the "New" badge over its corner.
+   params: route params (action / collection preset), label + title: translation keys.
+   Non-members get the same link (the page shows a teaser) with a lock icon. #}
+{% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
+<a href="{{ path('multiscan', params|default({})) }}"
+   class="btn btn-sm btn-outline-primary position-relative multiscan-entry {{ extra_class|default('') }}"
+   title="{{ title|trans }}">
+    <i class="{{ is_member ? 'bi-upc-scan' : 'ci-locked' }} me-1"></i>{{ label|trans }}
+    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary multiscan-entry-badge">{{ 'new_badge'|trans }}</span>
+</a>

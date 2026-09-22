@@ -3749,6 +3749,8 @@ multiscan:
         returned_title: "Escanea las cajas que te han devuelto y márcalas todas como devueltas"
         collection: "Escanear a la colección"
         collection_title: "Escanea cajas directamente a esta colección"
+        wishlist: "Escanear a la lista de deseos"
+        wishlist_title: "Escanea cajas directamente a tu lista de deseos"
     teaser:
         title: "Escanea un montón de puzzles de una vez"
         text: "Multiscan mantiene la cámara encendida: apunta a una caja tras otra y luego aplica una sola acción a todas."

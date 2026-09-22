@@ -232,11 +232,11 @@ final class MultiscanTrayTest extends WebTestCase
         self::assertStringContainsString('Puzzle 18', $html);
         self::assertStringContainsString('Puzzle 11', $html);
 
-        // Lent rows left, the skipped and the unknown one stayed
+        // The pile stays for the next action; the lent rows now say so
         $rows = self::rows($tray);
-        self::assertCount(2, $rows);
-        self::assertSame(PuzzleFixture::PUZZLE_2000, $rows[0]['puzzleId']);
-        self::assertSame('unknown', $rows[1]['state']);
+        self::assertCount(4, $rows);
+        self::assertStringContainsString('Lent to ' . PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $html);
+        self::assertStringContainsString('Lend 0', $html, 'nothing left to lend');
 
         /** @var Connection $database */
         $database = self::getContainer()->get(Connection::class);
@@ -264,8 +264,8 @@ final class MultiscanTrayTest extends WebTestCase
         $html = $tray->render()->toString();
 
         self::assertStringContainsString('2 lends closed', $html);
-        self::assertCount(1, self::rows($tray));
-        self::assertSame(PuzzleFixture::PUZZLE_6000, self::rows($tray)[0]['puzzleId']);
+        self::assertCount(3, self::rows($tray), 'rows stay in the pile after an action');
+        self::assertStringContainsString('Mark 0 returned', $html, 'nothing left to close');
     }
 
     public function testAddToACollectionFromTheEntryPoint(): void

@@ -3749,6 +3749,8 @@ multiscan:
         returned_title: "Scanne die zurückgekommenen Schachteln und markiere sie alle als zurückgegeben"
         collection: "In Sammlung scannen"
         collection_title: "Schachteln direkt in diese Sammlung scannen"
+        wishlist: "In die Wunschliste scannen"
+        wishlist_title: "Schachteln direkt auf deine Wunschliste scannen"
     teaser:
         title: "Einen ganzen Stapel Puzzles auf einmal scannen"
         text: "Multiscan lässt die Kamera laufen: Halte sie auf eine Schachtel nach der anderen und wende dann eine Aktion auf alle an."

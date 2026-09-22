@@ -4028,6 +4028,8 @@ multiscan:
         returned_title: "Scan the boxes that came back and mark them all returned"
         collection: "Scan into collection"
         collection_title: "Scan boxes straight into this collection"
+        wishlist: "Scan into wishlist"
+        wishlist_title: "Scan boxes straight onto your wishlist"
     teaser:
         title: "Scan a pile of puzzles in one go"
         text: "Multiscan keeps the camera running: point it at box after box, then apply one action to all of them."

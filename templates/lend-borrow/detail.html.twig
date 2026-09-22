@@ -34,10 +34,8 @@
             {% if isOwnProfile and visibility.value == 'public' %}
                 {{ include('_share_button.html.twig', {share_url: url('lend_borrow_list_detail', {playerId: player.playerId})}) }}
             {% endif %}
-            {% if isOwnProfile and hasMembership %}
-                <a href="{{ path('multiscan', {action: 'return'}) }}" class="btn btn-sm btn-outline-primary" title="{{ 'multiscan.entry.returned_title'|trans }}">
-                    <i class="bi-upc-scan me-1"></i> {{ 'multiscan.entry.returned'|trans }}
-                </a>
+            {% if isOwnProfile %}
+                {{ include('multiscan/_entry_button.html.twig', {params: {action: 'return'}, label: 'multiscan.entry.returned', title: 'multiscan.entry.returned_title'}) }}
             {% endif %}
             {% if isOwnProfile %}
                 <a href="{{ path('lend_borrow_history', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-secondary">

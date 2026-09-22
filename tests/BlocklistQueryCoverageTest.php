@@ -39,6 +39,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetFreeTrialsEndingSoon' => self::BACKGROUND,
         'GetFreeTrialStatistics' => self::ADMIN,
         'GetGettingStartedProgress' => self::OWN_DATA,
+        'GetLendBorrowCounterparties' => self::BILATERAL,
         'GetLendBorrowHistory' => self::BILATERAL,
         'GetLentPuzzleHistory' => self::BILATERAL,
         'GetLentPuzzleIds' => self::BILATERAL,

@@ -169,6 +169,31 @@ teaser) in **all six locales** (121 keys each).
   1 s); a pile larger than that is applied in two rounds. The aggregated-notification follow-up is
   also the main speed-up for lend/borrow.
 
+### UX round (2026-09-22, after Jan's first look on a phone)
+- Page is titled **Scanning** (the feature keeps "Multiscan" as its name in code and docs); no
+  subtitle - the camera is the hero. Footer link with the *New* badge.
+- Scanner card is one compact block: viewfinder with three floating round buttons in its corner
+  (type a code, sound, camera); a slim "camera is off - tap to start" bar when the camera is not
+  running so the card never collapses; the typed / hardware-scanner input is hidden behind the
+  keyboard button (a camera read lands in the tray by itself).
+- **Duplicates never cost a request**: the tray exposes its codes (`data-multiscan-eans`), the bridge
+  normalises like `Value\Ean` and, on a repeat, pulses the existing row + a short friendly note.
+- Action switch wraps (`flex-wrap`) - never a horizontal scroll - with the library's icons
+  (collection / heart / box-arrows).
+- **Smart pickers** (`multiscan_picker_controller.js`, Tom Select inside `data-live-ignore` so
+  re-renders keep it): the person picker pre-lists the people the player lends to / borrows from
+  (`GetLendBorrowCounterparties`, most often first, role of the current action first) and then
+  favourites, searches players remotely (`player_search_autocomplete?format=co-puzzler`, avatars +
+  codes) and takes any typed text as a name without an account; the collection picker lists own
+  collections and creates a typed one on apply (`CreateCollection`, private, `CollectionAlreadyExists`
+  reused). Both are wrapped in a container whose `d-none` follows the action - the ignored subtree
+  itself is never morphed.
+- Dropdowns of the bottom-pinned bar open upwards on phones; the bar sits below the sticky header
+  and the global search overlay (z-index 9).
+- Stall guard: a fetch that never settles (connection dropped mid-scan) leaves the Live Component
+  with a request pending forever; after 12 s the bridge empties its queue and asks for a reload.
+- Recap sentences are pluralised in all six locales.
+
 ### Gotchas met while building
 - **Batch return needs a flush + clear per puzzle.** A return inserts a `lent_puzzle_transfer` that
   points at the `lent_puzzle` row it deletes; the `LendingTransferCompleted` event dispatched inside

@@ -3740,11 +3740,11 @@ free_trial:
 
 multiscan:
     meta:
-        title: "Multiscan - escanea un montón de puzzles"
-    title: "Multiscan"
-    subtitle: "Escanea un montón de cajas y luego préstalas, devuélvelas, añádelas o ponlas en tu lista de deseos, todas de una vez."
+        title: "Escanear puzzles"
+    title: "Escaneo"
     entry:
-        library: "Multiscan"
+        library: "Escaneo"
+        library_title: "Escanea una pila de cajas y préstalas, devuélvelas, añádelas o ponlas en la lista de deseos de una vez"
         returned: "Escanear devueltos"
         returned_title: "Escanea las cajas que te han devuelto y márcalas todas como devueltas"
         collection: "Escanear a la colección"
@@ -3756,9 +3756,11 @@ multiscan:
         point_actions: "Presta a un amigo, marca como devuelto, añade a tu biblioteca o a tu lista de deseos - todo el montón a la vez"
         point_fix: "¿Código de barras desconocido? Vincúlalo al puzzle correcto o añade el puzzle en el momento"
     scanner:
-        camera: "Cámara"
+        camera: "Cámara sí / no"
         type_placeholder: "Escribe o escanea un EAN y pulsa Enter"
         sound: "Pitido al escanear"
+        type_toggle: "Escribir un código"
+        idle: "Cámara apagada: toca para escanear"
     tray:
         title: "Escaneados"
         clear: "Vaciar todo"
@@ -3809,15 +3811,20 @@ multiscan:
         collection: "Colección"
         person_lend: "Prestar a"
         person_borrow: "Tomado prestado de"
-        person_placeholder: "#código-de-jugador o un nombre"
-        person_help: "Escribe el #código de un jugador registrado (recibirá una notificación) o cualquier nombre para alguien sin cuenta."
+        person_placeholder: "Busca un jugador o escribe un nombre"
+        person_create: "Usar «%input%» como nombre"
+        person_no_results: "Ningún jugador encontrado: escribe un nombre para alguien sin cuenta"
+        people_recent: "Personas a las que prestas y de las que tomas prestado"
+        people_favorites: "Favoritos"
+        collection_create: "Crear la colección «%input%»"
+        no_results: "Nada encontrado"
         notes: "Nota (opcional)"
     recap:
-        add_to_library: "%count% puzzles añadidos a tu biblioteca."
-        add_to_wishlist: "%count% puzzles añadidos a tu lista de deseos."
-        lend: "%count% puzzles prestados a %name%."
-        borrow: "%count% puzzles registrados como tomados prestados de %name%."
-        return: "%count% préstamos cerrados."
+        add_to_library: "{1}Un puzzle añadido a tu biblioteca.|]1,Inf[%count% puzzles añadidos a tu biblioteca."
+        add_to_wishlist: "{1}Un puzzle añadido a tu lista de deseos.|]1,Inf[%count% puzzles añadidos a tu lista de deseos."
+        lend: "{1}Un puzzle prestado a %name%.|]1,Inf[%count% puzzles prestados a %name%."
+        borrow: "{1}Un puzzle registrado como prestado por %name%.|]1,Inf[%count% puzzles registrados como prestados por %name%."
+        return: "{1}Un préstamo cerrado.|]1,Inf[%count% préstamos cerrados."
     error:
         nothing_to_apply: "Nada que aplicar - ninguno de los puzzles escaneados encaja con esta acción."
         person_required: "Dinos a quién: un #código de jugador o un nombre."
@@ -3827,12 +3834,13 @@ multiscan:
         rejected: "El lote no se aplicó: un puzzle %reason%. No se cambió nada - quítalo e inténtalo de nuevo."
         failed: "Algo salió mal y no se cambió nada. Inténtalo de nuevo."
     toast:
-        duplicate: "Ya escaneado: %name%"
+        duplicate: "Ya está en la pila: %name%"
         invalid: "%ean% no es un código de barras válido - prueba con el otro código de la caja."
         full: "La bandeja está llena (%max% puzzles). Aplica una acción primero."
         check_failed: "No se pudo comprobar ese código de barras - se conserva y se volverá a intentar."
         rechecked: "%count% códigos de barras desconocidos identificados."
         forbidden: "Multiscan es una función exclusiva para miembros."
+        connection_lost: "Conexión perdida: recarga la página y escanea de nuevo."
     resolve:
         title: "Puzzle no encontrado"
         brand_detected: "parece un código de %brand%"

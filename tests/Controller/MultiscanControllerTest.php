@@ -60,9 +60,10 @@ final class MultiscanControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/multiscan?action=add_to_library&collection=' . CollectionFixture::COLLECTION_STRIPE_TREFL);
         self::assertCount(1, $crawler->filter('#multiscan-collection option[selected][value="' . CollectionFixture::COLLECTION_STRIPE_TREFL . '"]'));
 
-        // Somebody else's collection is ignored, garbage too
+        // Somebody else's collection is ignored (the system collection stays selected), garbage too
         $crawler = $browser->request('GET', '/en/multiscan?action=add_to_library&collection=' . CollectionFixture::COLLECTION_PRIVATE);
-        self::assertCount(0, $crawler->filter('#multiscan-collection option[selected]'));
+        self::assertCount(0, $crawler->filter('#multiscan-collection option[selected][value="' . CollectionFixture::COLLECTION_PRIVATE . '"]'));
+        self::assertCount(1, $crawler->filter('#multiscan-collection option[selected][value="__system_collection__"]'));
         $browser->request('GET', '/en/multiscan?action=nonsense&collection=%00');
         self::assertResponseIsSuccessful();
     }

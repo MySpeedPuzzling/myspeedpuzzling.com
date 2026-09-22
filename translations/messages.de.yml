@@ -3740,11 +3740,11 @@ free_trial:
 
 multiscan:
     meta:
-        title: "Multiscan - einen ganzen Stapel Puzzles scannen"
-    title: "Multiscan"
-    subtitle: "Scanne einen ganzen Stapel Schachteln und verleihe, gib zurück, füge hinzu oder wünsche dir alle auf einmal."
+        title: "Puzzles scannen"
+    title: "Scannen"
     entry:
-        library: "Multiscan"
+        library: "Scannen"
+        library_title: "Einen Stapel Schachteln scannen und alle auf einmal verleihen, zurückgeben, hinzufügen oder auf die Wunschliste setzen"
         returned: "Zurückgegebene scannen"
         returned_title: "Scanne die zurückgekommenen Schachteln und markiere sie alle als zurückgegeben"
         collection: "In Sammlung scannen"
@@ -3756,9 +3756,11 @@ multiscan:
         point_actions: "An Freunde verleihen, als zurückgegeben markieren, in deine Bibliothek oder auf die Wunschliste setzen - den ganzen Stapel auf einmal"
         point_fix: "Unbekannter Barcode? Verknüpfe ihn mit dem richtigen Puzzle oder lege das Puzzle direkt an"
     scanner:
-        camera: "Kamera"
+        camera: "Kamera an / aus"
         type_placeholder: "EAN eintippen oder scannen und Enter drücken"
         sound: "Piepton beim Scannen"
+        type_toggle: "Code eintippen"
+        idle: "Kamera ist aus – tippen, um zu scannen"
     tray:
         title: "Gescannt"
         clear: "Alle entfernen"
@@ -3809,15 +3811,20 @@ multiscan:
         collection: "Sammlung"
         person_lend: "Verleihen an"
         person_borrow: "Ausgeliehen von"
-        person_placeholder: "#spielercode oder ein Name"
-        person_help: "Gib den #Code eines registrierten Spielers ein (er bekommt eine Benachrichtigung) oder einen beliebigen Namen für jemanden ohne Konto."
+        person_placeholder: "Spieler suchen oder Namen eingeben"
+        person_create: "„%input%“ als Namen verwenden"
+        person_no_results: "Kein Spieler gefunden – gib einen Namen für jemanden ohne Konto ein"
+        people_recent: "Leute, denen du leihst und von denen du leihst"
+        people_favorites: "Favoriten"
+        collection_create: "Sammlung „%input%“ anlegen"
+        no_results: "Nichts gefunden"
         notes: "Notiz (optional)"
     recap:
-        add_to_library: "%count% Puzzles zu deiner Bibliothek hinzugefügt."
-        add_to_wishlist: "%count% Puzzles auf deine Wunschliste gesetzt."
-        lend: "%count% Puzzles an %name% verliehen."
-        borrow: "%count% Puzzles als von %name% ausgeliehen eingetragen."
-        return: "%count% Leihen abgeschlossen."
+        add_to_library: "{1}Ein Puzzle zur Bibliothek hinzugefügt.|]1,Inf[%count% Puzzles zur Bibliothek hinzugefügt."
+        add_to_wishlist: "{1}Ein Puzzle zur Wunschliste hinzugefügt.|]1,Inf[%count% Puzzles zur Wunschliste hinzugefügt."
+        lend: "{1}Ein Puzzle an %name% verliehen.|]1,Inf[%count% Puzzles an %name% verliehen."
+        borrow: "{1}Ein Puzzle als von %name% ausgeliehen erfasst.|]1,Inf[%count% Puzzles als von %name% ausgeliehen erfasst."
+        return: "{1}Eine Ausleihe abgeschlossen.|]1,Inf[%count% Ausleihen abgeschlossen."
     error:
         nothing_to_apply: "Nichts anzuwenden - keines der gescannten Puzzles passt zu dieser Aktion."
         person_required: "Sag uns, wer: ein #Spielercode oder ein Name."
@@ -3827,12 +3834,13 @@ multiscan:
         rejected: "Der Stapel wurde nicht angewendet: ein Puzzle ist %reason%. Nichts wurde geändert - entferne es und versuche es erneut."
         failed: "Etwas ist schiefgelaufen, nichts wurde geändert. Bitte versuche es erneut."
     toast:
-        duplicate: "Schon gescannt: %name%"
+        duplicate: "Schon im Stapel: %name%"
         invalid: "%ean% ist kein gültiger Barcode - probiere den anderen Code auf der Schachtel."
         full: "Die Ablage ist voll (%max% Puzzles). Wende zuerst eine Aktion an."
         check_failed: "Der Barcode konnte nicht geprüft werden - er bleibt in der Liste und wird erneut versucht."
         rechecked: "%count% unbekannte Barcodes zugeordnet."
         forbidden: "Multiscan ist nur für Mitglieder verfügbar."
+        connection_lost: "Verbindung verloren – lade die Seite neu und scanne erneut."
     resolve:
         title: "Puzzle nicht gefunden"
         brand_detected: "sieht nach einem Code von %brand% aus"

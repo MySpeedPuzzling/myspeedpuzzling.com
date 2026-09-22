@@ -11,7 +11,7 @@ import { getComponent } from '@symfony/ux-live-component';
  *  - unknown rows are rechecked when the tab comes back (the full add form opens in a new tab)
  */
 export default class extends Controller {
-    static targets = ['tray', 'scanner', 'eanInput'];
+    static targets = ['tray', 'scanner', 'eanInput', 'typedRow', 'typedToggle'];
 
     static values = {
         checkFailedMessage: String,
@@ -20,7 +20,10 @@ export default class extends Controller {
         fullMessage: String,
         recheckedMessage: String,
         forbiddenMessage: String,
+        connectionLostMessage: String,
     };
+
+    static STALL_MS = 12000;
 
     async initialize() {
         this.queue = [];
@@ -56,6 +59,78 @@ export default class extends Controller {
         this.enqueue(String(code));
     }
 
+    toggleTyped(event) {
+        if (event) {
+            event.preventDefault();
+        }
+
+        if (!this.hasTypedRowTarget) {
+            return;
+        }
+
+        const show = this.typedRowTarget.classList.contains('d-none');
+        this.typedRowTarget.classList.toggle('d-none', !show);
+
+        if (this.hasTypedToggleTarget) {
+            this.typedToggleTarget.classList.toggle('active', show);
+            this.typedToggleTarget.setAttribute('aria-expanded', show ? 'true' : 'false');
+        }
+
+        if (show && this.hasEanInputTarget) {
+            this.eanInputTarget.focus();
+        }
+    }
+
+    /**
+     * Storage form of a code (leading zeros dropped, UPC-A / zero-indicator GTIN-14 folded into
+     * EAN-13), mirroring Value\Ean::normalized() - enough to recognise a code already in the tray
+     * without a round trip. Anything odd still goes to the server, which validates properly.
+     */
+    normalize(ean) {
+        let digits = String(ean).replace(/\D+/g, '');
+        if (digits.length === 12) {
+            digits = '0' + digits;
+        } else if (digits.length === 14 && digits.startsWith('0')) {
+            digits = digits.substring(1);
+        }
+
+        return digits.replace(/^0+/, '');
+    }
+
+    /**
+     * Codes currently in the tray, read from the last render (no request needed to know them)
+     */
+    trayCodes() {
+        const raw = this.trayTarget.getAttribute('data-multiscan-eans') || '';
+
+        return new Map(raw.split(' ').filter(Boolean).map((ean) => [this.normalize(ean), ean]));
+    }
+
+    alreadyInTray(ean) {
+        const rowEan = this.trayCodes().get(this.normalize(ean));
+
+        if (rowEan === undefined) {
+            return false;
+        }
+
+        // Friendly, not an error: the row it already has pulses, a short buzz and note
+        const row = document.getElementById('multiscan-row-' + rowEan);
+        if (row) {
+            row.classList.remove('is-pulse');
+            void row.offsetWidth;
+            row.classList.add('is-pulse');
+            window.setTimeout(() => row.classList.remove('is-pulse'), 1200);
+            const name = row.querySelector('.fw-medium');
+            this.toast(this.duplicateMessageValue.replace('%name%', name ? name.textContent.trim() : ean), 'info', 1800);
+        } else {
+            this.toast(this.duplicateMessageValue.replace('%name%', ean), 'info', 1800);
+        }
+
+        this.scannerFeedback('duplicate');
+
+        return true;
+    }
+
     submitTyped(event) {
         if (event) {
             event.preventDefault();
@@ -75,7 +150,17 @@ export default class extends Controller {
     }
 
     enqueue(ean) {
-        // One request per code, in order; the tray dedupes, so re-queuing the same code is harmless
+        // A code already in the tray, or already waiting in the queue, never costs a request
+        if (this.alreadyInTray(ean)) {
+            return;
+        }
+
+        const normalized = this.normalize(ean);
+        if (this.queue.some((job) => this.normalize(job.ean) === normalized) || (this.inflight && this.normalize(this.inflight.ean) === normalized)) {
+            this.scannerFeedback('duplicate');
+            return;
+        }
+
         this.queue.push({ ean, attempts: 0 });
         this.drain();
     }
@@ -94,9 +179,20 @@ export default class extends Controller {
                 const component = this.component || await getComponent(this.trayTarget);
 
                 try {
-                    await component.action('scan', { ean: job.ean });
+                    // A failed fetch (connection dropped) leaves the Live Component with a request
+                    // pending forever and every later action silently queued behind it. Do not hang
+                    // the queue on it: tell the person to reload instead of scanning into the void.
+                    await Promise.race([
+                        component.action('scan', { ean: job.ean }),
+                        new Promise((_, reject) => window.setTimeout(() => reject(new Error('stall')), this.constructor.STALL_MS)),
+                    ]);
                 } catch (error) {
-                    // Handled in onResponseError (retry); the promise rejecting must not stop the queue
+                    if (error && error.message === 'stall') {
+                        this.queue = [];
+                        this.toast(this.connectionLostMessageValue, 'error', 8000);
+                        this.scannerFeedback('error');
+                    }
+                    // HTTP errors are handled in onResponseError (retry); a rejection must not stop the queue
                 }
 
                 this.inflight = null;

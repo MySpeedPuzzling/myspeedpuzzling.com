@@ -277,7 +277,7 @@ final class MultiscanTrayTest extends WebTestCase
         $tray->call('apply');
         $html = $tray->render()->toString();
 
-        self::assertStringContainsString('1 puzzles added to your library', $html);
+        self::assertStringContainsString('One puzzle added to your library', $html);
 
         /** @var Connection $database */
         $database = self::getContainer()->get(Connection::class);
@@ -315,6 +315,49 @@ final class MultiscanTrayTest extends WebTestCase
         assert($component instanceof MultiscanTray);
 
         return $component->rows;
+    }
+
+    public function testPersonPickerSuggestsThePeopleLentToAndBorrowedFromThenFavourites(): void
+    {
+        $client = self::createClient();
+        // PLAYER_WITH_STRIPE lent to John Doe (PLAYER_REGULAR), "Jane Doe", PLAYER_WITH_FAVORITES; borrowed from John Doe
+        $tray = $this->tray($client, data: ['presetAction' => 'lend']);
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('People you lend to and borrow from', $html);
+        self::assertStringContainsString('<option value="Jane Doe"', $html, 'a name without an account is offered as plain text');
+        self::assertStringContainsString('<option value="#player1"', $html, 'a registered borrower is offered by code');
+        self::assertStringContainsString('data-controller="multiscan-picker"', $html);
+        self::assertStringContainsString('data-multiscan-picker-mode-value="person"', $html);
+        self::assertStringContainsString('/en/player-search-autocomplete/?format=co-puzzler', $html);
+
+        $regularPosition = strpos($html, '<option value="#player1"');
+        $janePosition = strpos($html, '<option value="Jane Doe"');
+        self::assertNotFalse($regularPosition);
+        self::assertNotFalse($janePosition);
+    }
+
+    public function testApplyCreatesACollectionTypedIntoThePicker(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_6000]);
+        $tray->set('collectionId', 'Scanned pile');
+        $tray->call('apply');
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('One puzzle added to your library', $html);
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        $collectionId = $database->fetchOne('SELECT id FROM collection WHERE player_id = :p AND name = :n', ['p' => PlayerFixture::PLAYER_WITH_STRIPE, 'n' => 'Scanned pile']);
+        self::assertIsString($collectionId);
+        self::assertSame('1', $database->fetchOne('SELECT count(*)::text FROM collection_item WHERE collection_id = :c AND puzzle_id = :z', ['c' => $collectionId, 'z' => PuzzleFixture::PUZZLE_6000]));
+
+        $component = $tray->component();
+        assert($component instanceof MultiscanTray);
+        self::assertSame($collectionId, $component->collectionId, 'the picker now holds the created collection');
     }
 
     /**

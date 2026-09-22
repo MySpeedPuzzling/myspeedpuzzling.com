@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Component;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Exceptions\CannotLendToSelf;
+use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
 use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Exceptions\EanAlreadyAssigned;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
@@ -16,10 +17,13 @@ use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzlesToCollection;
 use SpeedPuzzling\Web\Message\AddPuzzlesToWishList;
 use SpeedPuzzling\Web\Message\BorrowPuzzlesFromPlayer;
+use SpeedPuzzling\Web\Message\CreateCollection;
 use SpeedPuzzling\Web\Message\LendPuzzlesToPlayer;
 use SpeedPuzzling\Web\Message\LinkEanToPuzzle;
 use SpeedPuzzling\Web\Message\ReturnLentPuzzles;
 use SpeedPuzzling\Web\Query\FindPuzzlesByExactEan;
+use SpeedPuzzling\Web\Query\GetFavoritePlayers;
+use SpeedPuzzling\Web\Query\GetLendBorrowCounterparties;
 use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Query\GetMultiscanCandidates;
 use SpeedPuzzling\Web\Query\GetPlayerCollections;
@@ -27,15 +31,18 @@ use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Results\CollectionOverview;
+use SpeedPuzzling\Web\Results\LendBorrowCounterparty;
 use SpeedPuzzling\Web\Results\ManufacturerOverview;
 use SpeedPuzzling\Web\Results\MultiscanEligibilityReport;
 use SpeedPuzzling\Web\Results\MultiscanRow;
+use SpeedPuzzling\Web\Results\PlayerIdentification;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\UserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\LendBorrowParticipantParser;
 use SpeedPuzzling\Web\Services\MultiscanEligibility;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\Ean;
 use SpeedPuzzling\Web\Value\MultiscanAction;
 use SpeedPuzzling\Web\Value\PiecesRange;
@@ -157,6 +164,8 @@ final class MultiscanTray
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetPlayerCollections $getPlayerCollections,
         readonly private GetManufacturers $getManufacturers,
+        readonly private GetLendBorrowCounterparties $getLendBorrowCounterparties,
+        readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private SearchPuzzle $searchPuzzle,
         readonly private FindPuzzlesByExactEan $findPuzzlesByExactEan,
         readonly private MultiscanEligibility $eligibility,
@@ -373,16 +382,27 @@ final class MultiscanTray
             return;
         }
 
-        $collectionId = $this->collectionId === Collection::SYSTEM_ID ? null : $this->collectionId;
+        $collectionId = $this->collectionId === Collection::SYSTEM_ID ? null : trim($this->collectionId);
 
-        if ($action === MultiscanAction::AddToLibrary && $collectionId !== null && !$this->collectionBelongsToPlayer($collectionId)) {
-            $this->error = 'multiscan.error.collection_not_found';
-            return;
+        if ($collectionId === '') {
+            $collectionId = null;
         }
 
         $personName = null;
 
         try {
+            if ($action === MultiscanAction::AddToLibrary && $collectionId !== null && !$this->collectionBelongsToPlayer($collectionId)) {
+                if (Uuid::isValid($collectionId)) {
+                    $this->error = 'multiscan.error.collection_not_found';
+                    return;
+                }
+
+                // Not an id: a name typed into the picker - create the collection like the add form does
+                $collectionId = $this->createCollection($profile->playerId, mb_substr($collectionId, 0, 100));
+                $this->collectionId = $collectionId;
+                $this->collections = null;
+            }
+
             $participant = null;
 
             if ($action->needsPerson()) {
@@ -792,6 +812,73 @@ final class MultiscanTray
     }
 
     // ------------------------------------------------------------------ internals
+
+    /**
+     * @throws HandlerFailedException
+     */
+    private function createCollection(string $playerId, string $name): string
+    {
+        $newId = Uuid::uuid7()->toString();
+
+        try {
+            $this->messageBus->dispatch(new CreateCollection(
+                collectionId: $newId,
+                playerId: $playerId,
+                name: $name,
+                description: null,
+                visibility: CollectionVisibility::Private,
+            ));
+        } catch (HandlerFailedException $e) {
+            $previous = $e->getPrevious();
+
+            if ($previous instanceof CollectionAlreadyExists) {
+                return $previous->collectionId;
+            }
+
+            throw $e;
+        }
+
+        return $newId;
+    }
+
+    /**
+     * People for the person picker, the most useful first: those I lent to (Lend) or borrowed
+     * from (Borrow) most often, then the other direction, then favourites not already listed.
+     *
+     * @return array{recent: list<LendBorrowCounterparty>, favorites: list<PlayerIdentification>}
+     */
+    public function personSuggestions(): array
+    {
+        $profile = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($profile === null) {
+            return ['recent' => [], 'favorites' => []];
+        }
+
+        $preferredRole = $this->currentAction() === MultiscanAction::Borrow ? 'borrow' : 'lend';
+        $all = $this->getLendBorrowCounterparties->byPlayerId($profile->playerId);
+        $recent = [];
+        $seen = [];
+
+        foreach ([$preferredRole, $preferredRole === 'lend' ? 'borrow' : 'lend'] as $role) {
+            foreach ($all as $counterparty) {
+                if ($counterparty->role === $role && !isset($seen[$counterparty->value])) {
+                    $seen[$counterparty->value] = true;
+                    $recent[] = $counterparty;
+                }
+            }
+        }
+
+        $favorites = [];
+
+        foreach ($this->getFavoritePlayers->forPlayerId($profile->playerId) as $favorite) {
+            if (!isset($seen['#' . $favorite->playerCode])) {
+                $favorites[] = $favorite;
+            }
+        }
+
+        return ['recent' => $recent, 'favorites' => $favorites];
+    }
 
     /**
      * Quick-add brand: a typed name that matches a known brand (case-insensitive) is that brand,

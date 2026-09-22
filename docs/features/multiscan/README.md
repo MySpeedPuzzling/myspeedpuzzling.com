@@ -43,20 +43,24 @@ moderation queue.
 "choose the action first, every scan applies instantly": a mis-scan (boxes carry a second barcode)
 would commit immediately, and lending sends a notification that cannot be unsent.
 
-- One page (`/en/multiscan`), camera running **continuously**; a text input beside it accepts a
-  typed or hardware-scanner EAN (Enter).
+- One page (`/en/multiscan`, titled *Scanning*), camera running **continuously**; a typed /
+  hardware-scanner EAN input is one tap away behind the keyboard button.
 - Each scan = one server round trip that resolves the EAN *and* the player's status for it, and
   renders a tray row: cover, name, pieces, brand, status chip (*in library*, *lent to Anna*,
   *borrowed from Petr*, *not in your library*, *2 matches*, *unknown puzzle*).
 - Feedback per scan: green flash on the viewfinder, short vibration, short beep, count badge.
   Duplicate = double buzz + low beep + "Already scanned" mini-toast; unknown = long buzz + two-tone.
-- **Duplicates never enter the tray**: same normalised EAN, or a different EAN resolving to a puzzle
-  already in the tray. The scanner also ignores a code for ~2.5 s after accepting it.
+- **Duplicates never enter the tray** and never cost a request: the browser knows the codes in the
+  tray and answers a repeat with a pulse on the existing row and a short note; the server also
+  refuses a different EAN resolving to a puzzle already there. The scanner ignores a code for
+  ~2.5 s after accepting it.
 - **Ambiguous EAN**: if exactly one candidate is already in the player's library / lent / borrowed
   lists, it is picked silently. Otherwise the row shows a chooser (image + pieces) and is excluded
   from actions until chosen.
-- **Action bar** pinned to the bottom: every action shows how many rows it applies to, greys out at
-  zero; ineligible rows say why (*already lent*, *not yours*). Apply is **all-or-nothing** in one
+- **Action bar** pinned to the bottom (wrapping, never scrolling): every action shows how many rows
+  it applies to, greys out at zero; ineligible rows say why (*already lent*, *not yours*). The
+  person picker suggests the people you lend to / borrow from first, then favourites, searches
+  any player, and takes a plain name; the collection picker lists yours and creates a typed one. Apply is **all-or-nothing** in one
   transaction. Eligibility was checked while scanning, so an apply-time failure is rare and gets a
   plain error.
 - **After apply**: tray keeps only unresolved rows, a recap card says "6 puzzles lent to Anna" with

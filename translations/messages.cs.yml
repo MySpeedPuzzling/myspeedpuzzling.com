@@ -3738,11 +3738,11 @@ free_trial:
 
 multiscan:
     meta:
-        title: "Multiscan - naskenuj hromadu puzzlí"
-    title: "Multiscan"
-    subtitle: "Naskenuj celou hromadu krabic a pak je všechny najednou půjč, vrať, přidej do knihovny nebo na seznam přání."
+        title: "Skenování puzzlí"
+    title: "Skenování"
     entry:
-        library: "Multiscan"
+        library: "Skenování"
+        library_title: "Naskenuj hromadu krabic a všechny najednou půjč, vrať, přidej nebo dej na seznam přání"
         returned: "Naskenovat vrácené"
         returned_title: "Naskenuj krabice, které se ti vrátily, a označ je všechny jako vrácené"
         collection: "Naskenovat do kolekce"
@@ -3754,9 +3754,11 @@ multiscan:
         point_actions: "Půjč kamarádovi, označ jako vrácené, přidej do knihovny nebo na seznam přání - celou hromadu naráz"
         point_fix: "Neznámý čárový kód? Propoj ho se správným puzzle, nebo puzzle rovnou přidej"
     scanner:
-        camera: "Kamera"
+        camera: "Kamera zap / vyp"
         type_placeholder: "Napiš nebo naskenuj EAN a stiskni Enter"
         sound: "Pípnout při naskenování"
+        type_toggle: "Zadat kód ručně"
+        idle: "Kamera je vypnutá – klepni pro skenování"
     tray:
         title: "Naskenováno"
         clear: "Vymazat vše"
@@ -3807,15 +3809,20 @@ multiscan:
         collection: "Kolekce"
         person_lend: "Komu půjčit"
         person_borrow: "Vypůjčeno od"
-        person_placeholder: "#kód-hráče nebo jméno"
-        person_help: "Napiš #kód registrovaného hráče (dostane oznámení), nebo libovolné jméno pro někoho bez účtu."
+        person_placeholder: "Hledej hráče nebo napiš jméno"
+        person_create: "Použít „%input%“ jako jméno"
+        person_no_results: "Žádný hráč nenalezen – napiš jméno někoho bez účtu"
+        people_recent: "Lidé, kterým půjčuješ a od kterých si půjčuješ"
+        people_favorites: "Oblíbení"
+        collection_create: "Vytvořit kolekci „%input%“"
+        no_results: "Nic nenalezeno"
         notes: "Poznámka (nepovinné)"
     recap:
-        add_to_library: "%count% puzzlí přidáno do tvé knihovny."
-        add_to_wishlist: "%count% puzzlí přidáno na tvůj seznam přání."
-        lend: "%count% puzzlí půjčeno %name%."
-        borrow: "%count% puzzlí zapsáno jako vypůjčené od %name%."
-        return: "Uzavřeno půjček: %count%."
+        add_to_library: "{1}Jedno puzzle přidáno do knihovny.|{2,3,4}%count% puzzle přidána do knihovny.|]4,Inf[%count% puzzlí přidáno do knihovny."
+        add_to_wishlist: "{1}Jedno puzzle přidáno na seznam přání.|{2,3,4}%count% puzzle přidána na seznam přání.|]4,Inf[%count% puzzlí přidáno na seznam přání."
+        lend: "{1}Jedno puzzle půjčeno – %name%.|{2,3,4}%count% puzzle půjčena – %name%.|]4,Inf[%count% puzzlí půjčeno – %name%."
+        borrow: "{1}Jedno puzzle zapsáno jako vypůjčené od %name%.|{2,3,4}%count% puzzle zapsána jako vypůjčená od %name%.|]4,Inf[%count% puzzlí zapsáno jako vypůjčených od %name%."
+        return: "{1}Jedna výpůjčka uzavřena.|{2,3,4}%count% výpůjčky uzavřeny.|]4,Inf[%count% výpůjček uzavřeno."
     error:
         nothing_to_apply: "Není co použít - na žádné z naskenovaných puzzlí tahle akce nesedí."
         person_required: "Napiš komu: #kód hráče nebo jméno."
@@ -3825,12 +3832,13 @@ multiscan:
         rejected: "Dávka se nepoužila: jedno puzzle %reason%. Nic se nezměnilo - odeber ho a zkus to znovu."
         failed: "Něco se pokazilo a nic se nezměnilo. Zkus to prosím znovu."
     toast:
-        duplicate: "Už naskenováno: %name%"
+        duplicate: "Již naskenováno: %name%"
         invalid: "%ean% není platný čárový kód - zkus ten druhý kód na krabici."
         full: "Zásobník je plný (%max% puzzlí). Nejdřív použij nějakou akci."
         check_failed: "Čárový kód se nepodařilo ověřit - zůstává v seznamu a zkusíme to znovu."
         rechecked: "Rozpoznáno %count% neznámých čárových kódů."
         forbidden: "Multiscan je funkce jen pro členy."
+        connection_lost: "Spojení se ztratilo – obnov stránku a skenuj znovu."
     resolve:
         title: "Puzzle nenalezeno"
         brand_detected: "vypadá jako kód značky %brand%"

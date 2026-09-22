@@ -58,6 +58,15 @@
     }
 }
 
+.multiscan-row.is-pulse {
+    animation: multiscan-row-pulse 1.2s ease-out;
+}
+
+@keyframes multiscan-row-pulse {
+    0% { background: rgba(255, 193, 7, 0.35); }
+    100% { background: transparent; }
+}
+
 .multiscan-row-skipped {
     background: rgba(255, 193, 7, 0.06);
 }
@@ -150,4 +159,63 @@
 .multiscan-teaser-viewfinder {
     height: 180px;
     background: repeating-linear-gradient(45deg, #f1f3f5, #f1f3f5 10px, #e9ecef 10px, #e9ecef 20px);
+}
+
+// Compact scanner card: floating controls over the camera (or the corner of the input row)
+.multiscan-scanner-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 40;
+    display: flex;
+    gap: 6px;
+
+    .btn {
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.92;
+
+        &.active { color: var(--bs-primary); }
+    }
+}
+
+.multiscan-scanner-idle {
+    display: none;
+    min-height: 50px;
+    padding-right: 130px; // room for the three floating buttons
+    cursor: pointer;
+}
+
+.multiscan-scanner .multiscan-viewfinder.d-none ~ .multiscan-scanner-idle {
+    display: flex;
+}
+
+.multiscan-action-bar .ts-wrapper .ts-control {
+    min-height: 31px;
+    padding: 3px 8px;
+    font-size: 0.875rem;
+}
+
+.multiscan-action-bar .ts-dropdown {
+    font-size: 0.875rem;
+
+    .optgroup-header {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: #6c757d;
+    }
+}
+
+// The bar is pinned to the bottom of the phone screen: dropdowns must open upwards
+.multiscan-action-bar .ts-wrapper .ts-dropdown {
+    top: auto;
+    bottom: 100%;
+    margin-bottom: 4px;
+    max-height: 45vh;
+    overflow-y: auto;
 }

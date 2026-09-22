@@ -12,6 +12,7 @@
      data-multiscan-notice-name="{{ this.notice ? (this.notice.name ?? '') : '' }}"
      data-multiscan-sheet-open="{{ this.resolvingEan ? '1' : '0' }}"
      data-multiscan-unknown-count="{{ unresolved|length }}"
+     data-multiscan-eans="{{ this.rows|map(r => r.ean)|join(' ') }}"
      data-loading="addClass(is-loading)">
 
     {% if this.error %}
@@ -57,7 +58,7 @@
     <div class="card shadow-sm mb-3">
         <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
             <span class="fw-medium">
-                <i class="bi-basket me-1"></i>{{ 'multiscan.tray.title'|trans }}
+                <i class="bi-puzzle me-1"></i>{{ 'multiscan.tray.title'|trans }}
                 <span class="badge rounded-pill text-bg-primary ms-1">{{ actionable|length }}</span>
             </span>
             {% if rows|length > 0 %}
@@ -153,13 +154,16 @@
     </div>
 
     {# ---- action bar: always visible, pinned to the bottom on phones ---- #}
+    {% set suggestions = action.needsPerson ? this.personSuggestions : null %}
     <div class="multiscan-action-bar card shadow-lg">
         <div class="card-body p-2">
-            <div class="multiscan-action-switch d-flex gap-1 overflow-auto pb-1" role="radiogroup" aria-label="{{ 'multiscan.action.label'|trans }}">
+            <div class="multiscan-action-switch d-flex flex-wrap gap-1" role="radiogroup" aria-label="{{ 'multiscan.action.label'|trans }}">
                 {% for candidateAction in this.actions %}
                     {% set slug = candidateAction.value %}
                     <input type="radio" class="btn-check" name="multiscan-action" id="multiscan-action-{{ slug }}" value="{{ slug }}" data-model="action" autocomplete="off" {% if action.value == slug %}checked{% endif %}>
-                    <label class="btn btn-sm {% if action.value == slug %}btn-primary{% else %}btn-outline-secondary{% endif %} text-nowrap" for="multiscan-action-{{ slug }}">
+                    {% set actionIcons = {add_to_library: 'bi-collection', add_to_wishlist: 'bi-heart', lend: 'bi-box-arrow-up-right', borrow: 'bi-box-arrow-in-down-left', return: 'bi-box-arrow-in-left'} %}
+                    <label class="btn btn-sm {% if action.value == slug %}btn-primary{% else %}btn-outline-secondary{% endif %} text-nowrap px-2" for="multiscan-action-{{ slug }}">
+                        <i class="{{ actionIcons[slug] }} me-1"></i>
                         {% if slug == 'return' %}
                             {{ ('multiscan.action.return_' ~ returnFace)|trans }}
                         {% else %}
@@ -171,29 +175,69 @@
             </div>
 
             <div class="d-flex flex-wrap gap-2 align-items-end mt-2">
-                {% if action.value == 'add_to_library' %}
-                    <div class="flex-grow-1" style="min-width: 160px;">
-                        <label class="form-label small mb-1" for="multiscan-collection">{{ 'multiscan.field.collection'|trans }}</label>
-                        <select id="multiscan-collection" class="form-select form-select-sm" data-model="collectionId">
-                            <option value="{{ constant('SpeedPuzzling\\Web\\Entity\\Collection::SYSTEM_ID') }}">{{ 'collections.system_name'|trans }}</option>
+                {# Collection picker: rendered once and kept by data-live-ignore (Tom Select must survive re-renders);
+                   only its visibility follows the action #}
+                <div class="flex-grow-1 {% if action.value != 'add_to_library' %}d-none{% endif %}" style="min-width: 180px;">
+                    <label class="form-label small mb-1" for="multiscan-collection">{{ 'multiscan.field.collection'|trans }}</label>
+                    <div data-live-ignore>
+                        <select id="multiscan-collection"
+                                class="form-select form-select-sm"
+                                data-model="on(change)|collectionId"
+                                data-controller="multiscan-picker"
+                                data-multiscan-picker-mode-value="collection"
+                                data-multiscan-picker-create-label-value="{{ 'multiscan.field.collection_create'|trans }}"
+                                data-multiscan-picker-no-results-label-value="{{ 'multiscan.field.no_results'|trans }}">
+                            <option value="{{ constant('SpeedPuzzling\\Web\\Entity\\Collection::SYSTEM_ID') }}" {% if this.collectionId == constant('SpeedPuzzling\\Web\\Entity\\Collection::SYSTEM_ID') %}selected{% endif %}>{{ 'collections.system_name'|trans }}</option>
                             {% for collection in this.collectionOptions %}
                                 <option value="{{ collection.collectionId }}" {% if this.collectionId == collection.collectionId %}selected{% endif %}>{{ collection.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                {% elseif action.needsPerson %}
-                    <div class="flex-grow-1" style="min-width: 160px;">
-                        <label class="form-label small mb-1" for="multiscan-person">{{ ('multiscan.field.person_' ~ action.value)|trans }}</label>
-                        <input type="text" id="multiscan-person" class="form-control form-control-sm" data-model="on(change)|person" value="{{ this.person }}" placeholder="{{ 'multiscan.field.person_placeholder'|trans }}" autocomplete="off">
+                </div>
+
+                <div class="flex-grow-1 {% if not action.needsPerson %}d-none{% endif %}" style="min-width: 180px;">
+                    <label class="form-label small mb-1" for="multiscan-person">{{ ('multiscan.field.person_' ~ (action.value == 'borrow' ? 'borrow' : 'lend'))|trans }}</label>
+                    <div data-live-ignore>
+                        <select id="multiscan-person"
+                                class="form-select form-select-sm"
+                                data-model="on(change)|person"
+                                data-controller="multiscan-picker"
+                                data-multiscan-picker-mode-value="person"
+                                data-multiscan-picker-search-url-value="{{ path('player_search_autocomplete', {format: 'co-puzzler'}) }}"
+                                data-multiscan-picker-create-label-value="{{ 'multiscan.field.person_create'|trans }}"
+                                data-multiscan-picker-no-results-label-value="{{ 'multiscan.field.person_no_results'|trans }}">
+                            <option value="">{{ 'multiscan.field.person_placeholder'|trans }}</option>
+                            {% if this.person %}
+                                <option value="{{ this.person }}" selected>{{ this.person }}</option>
+                            {% endif %}
+                            {% if suggestions %}
+                                {% if suggestions.recent|length > 0 %}
+                                    <optgroup label="{{ 'multiscan.field.people_recent'|trans }}">
+                                        {% for person in suggestions.recent %}
+                                            {% if person.value != this.person %}
+                                                <option value="{{ person.value }}" data-data="{{ {code: person.code, avatar: person.avatar ? person.avatar|thumbnail('puzzle_small') : null}|json_encode }}">{{ person.label }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </optgroup>
+                                {% endif %}
+                                {% if suggestions.favorites|length > 0 %}
+                                    <optgroup label="{{ 'multiscan.field.people_favorites'|trans }}">
+                                        {% for favorite in suggestions.favorites %}
+                                            <option value="#{{ favorite.playerCode }}" data-data="{{ {code: favorite.playerCode, avatar: favorite.playerAvatar ? favorite.playerAvatar|thumbnail('puzzle_small') : null}|json_encode }}">{{ favorite.playerName ?? favorite.playerCode }}</option>
+                                        {% endfor %}
+                                    </optgroup>
+                                {% endif %}
+                            {% endif %}
+                        </select>
                     </div>
-                    <div class="flex-grow-1" style="min-width: 140px;">
-                        <label class="form-label small mb-1" for="multiscan-notes">{{ 'multiscan.field.notes'|trans }}</label>
-                        <input type="text" id="multiscan-notes" class="form-control form-control-sm" data-model="on(change)|notes" value="{{ this.notes }}" maxlength="500" autocomplete="off">
-                    </div>
-                {% endif %}
+                </div>
+                <div class="flex-grow-1 {% if not action.needsPerson %}d-none{% endif %}" style="min-width: 140px;">
+                    <label class="form-label small mb-1" for="multiscan-notes">{{ 'multiscan.field.notes'|trans }}</label>
+                    <input type="text" id="multiscan-notes" class="form-control form-control-sm" data-model="on(change)|notes" value="{{ this.notes }}" maxlength="500" autocomplete="off">
+                </div>
 
                 <button type="button"
-                        class="btn btn-primary btn-sm flex-shrink-0 {% if action.needsPerson or action.value == 'add_to_library' %}{% else %}ms-auto{% endif %}"
+                        class="btn btn-primary btn-sm flex-shrink-0 {% if not action.needsPerson and action.value != 'add_to_library' %}ms-auto{% endif %}"
                         data-action="live#action"
                         data-live-action-param="apply"
                         data-loading="addAttribute(disabled)"
@@ -206,9 +250,6 @@
                     {% endif %}
                 </button>
             </div>
-            {% if action.needsPerson %}
-                <div class="form-text small mt-1">{{ 'multiscan.field.person_help'|trans }}</div>
-            {% endif %}
         </div>
     </div>
 

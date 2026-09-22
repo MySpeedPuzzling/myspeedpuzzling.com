@@ -4019,11 +4019,11 @@ free_trial:
 
 multiscan:
     meta:
-        title: "Multiscan - scan a pile of puzzles"
-    title: "Multiscan"
-    subtitle: "Scan a whole pile of boxes, then lend, return, add or wishlist them all in one go."
+        title: "Scanning puzzles"
+    title: "Scanning"
     entry:
-        library: "Multiscan"
+        library: "Scanning"
+        library_title: "Scan a pile of boxes and lend, return, add or wishlist them all at once"
         returned: "Scan returned"
         returned_title: "Scan the boxes that came back and mark them all returned"
         collection: "Scan into collection"
@@ -4035,9 +4035,11 @@ multiscan:
         point_actions: "Lend to a friend, mark returned, add to your library or wishlist - the whole pile at once"
         point_fix: "Unknown barcode? Link it to the right puzzle or add the puzzle on the spot"
     scanner:
-        camera: "Camera"
+        camera: "Camera on / off"
         type_placeholder: "Type or scan an EAN and press Enter"
         sound: "Beep on scan"
+        type_toggle: "Type a code"
+        idle: "Camera is off - tap to start scanning"
     tray:
         title: "Scanned"
         clear: "Clear all"
@@ -4088,15 +4090,20 @@ multiscan:
         collection: "Collection"
         person_lend: "Lend to"
         person_borrow: "Borrowed from"
-        person_placeholder: "#player-code or a name"
-        person_help: "Type #code of a registered player (they get a notification), or any name for somebody without an account."
+        person_placeholder: "Search a player or type a name"
+        person_create: "Use \"%input%\" as a name"
+        person_no_results: "No player found - type a name for somebody without an account"
+        people_recent: "People you lend to and borrow from"
+        people_favorites: "Favourites"
+        collection_create: "Create collection \"%input%\""
+        no_results: "Nothing found"
         notes: "Note (optional)"
     recap:
-        add_to_library: "%count% puzzles added to your library."
-        add_to_wishlist: "%count% puzzles added to your wishlist."
-        lend: "%count% puzzles lent to %name%."
-        borrow: "%count% puzzles recorded as borrowed from %name%."
-        return: "%count% lends closed."
+        add_to_library: "{1}One puzzle added to your library.|]1,Inf[%count% puzzles added to your library."
+        add_to_wishlist: "{1}One puzzle added to your wishlist.|]1,Inf[%count% puzzles added to your wishlist."
+        lend: "{1}One puzzle lent to %name%.|]1,Inf[%count% puzzles lent to %name%."
+        borrow: "{1}One puzzle recorded as borrowed from %name%.|]1,Inf[%count% puzzles recorded as borrowed from %name%."
+        return: "{1}One lend closed.|]1,Inf[%count% lends closed."
     error:
         nothing_to_apply: "Nothing to apply - none of the scanned puzzles fits this action."
         person_required: "Tell us who: a #player-code or a name."
@@ -4112,6 +4119,7 @@ multiscan:
         check_failed: "Could not check that barcode - it is kept and will be retried."
         rechecked: "%count% unknown barcodes resolved."
         forbidden: "Multiscan is a members-only feature."
+        connection_lost: "Connection lost - reload the page and scan again."
     resolve:
         title: "Puzzle not found"
         brand_detected: "looks like a %brand% code"

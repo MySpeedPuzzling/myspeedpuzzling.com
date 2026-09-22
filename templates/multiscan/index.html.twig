@@ -1,0 +1,54 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'multiscan.meta.title'|trans }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {% include '_return_back_button.html.twig' with {fallbackUrl: path('puzzle_library', {playerId: logged_user.profile.playerId}), fallbackTitle: 'menu.puzzle_library'|trans} %}
+
+    <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+        <div>
+            <h1 class="h3 mb-1"><i class="bi-upc-scan me-2"></i>{{ 'multiscan.title'|trans }}</h1>
+            <p class="text-muted small mb-0">{{ 'multiscan.subtitle'|trans }}</p>
+        </div>
+    </div>
+
+    {% if is_member %}
+        <div class="multiscan"
+             data-controller="multiscan"
+             data-multiscan-check-failed-message-value="{{ 'multiscan.toast.check_failed'|trans }}"
+             data-multiscan-duplicate-message-value="{{ 'multiscan.toast.duplicate'|trans }}"
+             data-multiscan-invalid-message-value="{{ 'multiscan.toast.invalid'|trans }}"
+             data-multiscan-full-message-value="{{ 'multiscan.toast.full'|trans({'%max%': constant('SpeedPuzzling\\Web\\Component\\MultiscanTray::MAX_ROWS')}) }}"
+             data-multiscan-rechecked-message-value="{{ 'multiscan.toast.rechecked'|trans }}"
+             data-multiscan-forbidden-message-value="{{ 'multiscan.toast.forbidden'|trans }}"
+        >
+            {{ include('multiscan/_scanner.html.twig') }}
+
+            <twig:MultiscanTray
+                :presetAction="preset_action"
+                :presetCollectionId="preset_collection_id"
+                data-multiscan-target="tray"
+            />
+        </div>
+    {% else %}
+        <div class="card shadow-sm multiscan-teaser">
+            <div class="card-body">
+                <div class="multiscan-teaser-viewfinder rounded-3 d-flex align-items-center justify-content-center mb-3">
+                    <i class="ci-locked fs-1 text-muted"></i>
+                </div>
+                <h2 class="h5">{{ 'multiscan.teaser.title'|trans }}</h2>
+                <p class="mb-2">{{ 'multiscan.teaser.text'|trans }}</p>
+                <ul class="small text-muted mb-3">
+                    <li>{{ 'multiscan.teaser.point_scan'|trans }}</li>
+                    <li>{{ 'multiscan.teaser.point_actions'|trans }}</li>
+                    <li>{{ 'multiscan.teaser.point_fix'|trans }}</li>
+                </ul>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                    <i class="ci-locked me-1"></i>{{ 'membership.members_exclusive_short'|trans }}
+                </button>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

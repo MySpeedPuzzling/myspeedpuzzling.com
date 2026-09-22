@@ -1,0 +1,322 @@
+{% set rows = this.trayRows %}
+{% set actionable = this.actionableRows %}
+{% set unresolved = this.unresolvedRows %}
+{% set counts = this.actionCounts %}
+{% set action = this.currentAction %}
+{% set eligibleCount = this.eligibleCount %}
+{% set returnFace = this.returnFace %}
+<div {{ attributes.defaults({class: 'multiscan-tray'}) }}
+     data-multiscan-notice="{{ this.notice ? this.notice.type : '' }}"
+     data-multiscan-notice-ean="{{ this.notice ? this.notice.ean : '' }}"
+     data-multiscan-notice-name="{{ this.notice ? (this.notice.name ?? '') : '' }}"
+     data-multiscan-sheet-open="{{ this.resolvingEan ? '1' : '0' }}"
+     data-multiscan-unknown-count="{{ unresolved|length }}"
+     data-loading="addClass(is-loading)">
+
+    {% if this.error %}
+        <div class="alert alert-danger d-flex align-items-start gap-2 py-2 mb-3" role="alert">
+            <i class="bi-exclamation-triangle-fill mt-1"></i>
+            <div class="flex-grow-1 small">
+                {% if this.error == 'multiscan.error.rejected' %}
+                    {{ 'multiscan.error.rejected'|trans({'%reason%': ('multiscan.reason.' ~ this.errorParams['%reason%'])|trans}) }}
+                {% else %}
+                    {{ this.error|trans(this.errorParams) }}
+                {% endif %}
+            </div>
+            <button type="button" class="btn-close btn-sm" data-action="live#action" data-live-action-param="dismissError" aria-label="{{ 'forms.close'|trans }}"></button>
+        </div>
+    {% endif %}
+
+    {% if this.recap %}
+        {% set recapPuzzles = this.recapPuzzles %}
+        <div class="alert alert-success py-2 mb-3 multiscan-recap" role="status">
+            <div class="d-flex align-items-start gap-2">
+                <i class="bi-check-circle-fill mt-1"></i>
+                <div class="flex-grow-1">
+                    <div class="fw-medium">
+                        {{ ('multiscan.recap.' ~ this.recap.action)|trans({'%count%': this.recap.puzzleIds|length, '%name%': this.recap.person ?? ''}) }}
+                    </div>
+                    <ul class="small mb-0 mt-1 ps-3">
+                        {% for puzzle in recapPuzzles %}
+                            <li>
+                                <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="text-reset">{{ puzzle.puzzleName }}</a>
+                                <span class="text-muted">· {{ puzzle.manufacturerName }} · {{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }}</span>
+                                {% if this.recap.names[puzzle.puzzleId] is defined %}
+                                    <span class="text-muted">· {{ this.recap.names[puzzle.puzzleId] }}</span>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <button type="button" class="btn-close btn-sm" data-action="live#action" data-live-action-param="dismissRecap" aria-label="{{ 'forms.close'|trans }}"></button>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
+            <span class="fw-medium">
+                <i class="bi-basket me-1"></i>{{ 'multiscan.tray.title'|trans }}
+                <span class="badge rounded-pill text-bg-primary ms-1" data-multiscan-target="count">{{ actionable|length }}</span>
+            </span>
+            {% if rows|length > 0 %}
+                <button type="button" class="btn btn-link btn-sm text-muted p-0" data-action="live#action" data-live-action-param="clear">
+                    {{ 'multiscan.tray.clear'|trans }}
+                </button>
+            {% endif %}
+        </div>
+
+        {% if rows|length == 0 %}
+            <div class="card-body text-center text-muted py-4">
+                <i class="bi-upc-scan fs-1 d-block mb-2"></i>
+                <p class="mb-1">{{ 'multiscan.tray.empty'|trans }}</p>
+                <p class="small mb-0">{{ 'multiscan.tray.empty_hint'|trans }}</p>
+            </div>
+        {% else %}
+            <div class="list-group list-group-flush multiscan-rows">
+                {% for row in actionable %}
+                    <div class="list-group-item px-3 py-2 multiscan-row {% if not row.eligible and row.isResolved %}multiscan-row-skipped{% endif %}"
+                         id="multiscan-row-{{ row.ean }}"
+                         data-multiscan-row-state="{{ row.state }}">
+                        {% if row.isResolved %}
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="{{ path('puzzle_detail', {puzzleId: row.puzzle.puzzleId}) }}" class="flex-shrink-0" target="_blank" rel="noopener">
+                                    {{ lazy_puzzle_image(row.puzzle.puzzleImage, 'puzzle_small', row.puzzle.puzzleName, 999, 48, 'rounded-2', 48, row.puzzle.puzzleImageRatio) }}
+                                </a>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="fw-medium text-truncate">{{ row.puzzle.puzzleName }}</div>
+                                    <div class="small text-muted text-truncate">
+                                        {{ row.puzzle.manufacturerName }} · {{ 'pieces_count'|trans({'%count%': row.puzzle.piecesCount})|raw }}
+                                    </div>
+                                    <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+                                        {% if row.chip %}
+                                            <span class="badge rounded-pill multiscan-chip multiscan-chip-{{ row.chip }}">{{ ('multiscan.chip.' ~ row.chip)|trans(row.chipParams) }}</span>
+                                        {% endif %}
+                                        {% if row.reason %}
+                                            <span class="small text-warning-emphasis"><i class="bi-skip-forward me-1"></i>{{ ('multiscan.reason.' ~ row.reason)|trans(row.reasonParams) }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-link text-muted px-1" data-action="live#action" data-live-action-param="reopen" data-live-ean-param="{{ row.ean }}" title="{{ 'multiscan.row.change'|trans }}" aria-label="{{ 'multiscan.row.change'|trans }}">
+                                    <i class="bi-arrow-repeat"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-link text-muted px-1" data-action="live#action" data-live-action-param="remove" data-live-ean-param="{{ row.ean }}" title="{{ 'multiscan.row.remove'|trans }}" aria-label="{{ 'multiscan.row.remove'|trans }}">
+                                    <i class="bi-x-lg"></i>
+                                </button>
+                            </div>
+                        {% else %}
+                            {# ambiguous: the code means several puzzles - pick by eye #}
+                            <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                                <span class="small fw-medium"><i class="bi-question-circle me-1 text-info"></i>{{ 'multiscan.row.ambiguous'|trans({'%count%': row.candidates|length, '%ean%': row.ean}) }}</span>
+                                <button type="button" class="btn btn-sm btn-link text-muted px-1" data-action="live#action" data-live-action-param="remove" data-live-ean-param="{{ row.ean }}" aria-label="{{ 'multiscan.row.remove'|trans }}"><i class="bi-x-lg"></i></button>
+                            </div>
+                            <div class="d-flex flex-column gap-1">
+                                {% for candidate in row.candidates %}
+                                    <button type="button" class="btn btn-outline-secondary btn-sm text-start d-flex align-items-center gap-2 py-1"
+                                            data-action="live#action" data-live-action-param="choose" data-live-ean-param="{{ row.ean }}" data-live-puzzle-id-param="{{ candidate.puzzleId }}">
+                                        {{ lazy_puzzle_image(candidate.puzzleImage, 'puzzle_small', candidate.puzzleName, 999, 36, 'rounded-1', 36, candidate.puzzleImageRatio) }}
+                                        <span class="flex-grow-1 min-w-0">
+                                            <span class="d-block text-truncate">{{ candidate.puzzleName }}</span>
+                                            <span class="d-block small text-muted">{{ candidate.manufacturerName }} · {{ 'pieces_count'|trans({'%count%': candidate.piecesCount})|raw }}</span>
+                                        </span>
+                                        <i class="bi-check2"></i>
+                                    </button>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            {% if unresolved|length > 0 %}
+                <div class="card-header border-top py-2 px-3 small fw-medium text-muted">
+                    <i class="bi-question-diamond me-1"></i>{{ 'multiscan.tray.unresolved'|trans({'%count%': unresolved|length}) }}
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for row in unresolved %}
+                        <div class="list-group-item px-3 py-2 d-flex align-items-center gap-2" id="multiscan-row-{{ row.ean }}" data-multiscan-row-state="unknown">
+                            <span class="multiscan-unknown-thumb rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"><i class="bi-question-lg"></i></span>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-medium small">{{ 'multiscan.row.unknown'|trans }}</div>
+                                <div class="small text-muted font-monospace">{{ row.ean }}</div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-action="live#action" data-live-action-param="reopen" data-live-ean-param="{{ row.ean }}">
+                                {{ 'multiscan.row.resolve'|trans }}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-link text-muted px-1" data-action="live#action" data-live-action-param="remove" data-live-ean-param="{{ row.ean }}" aria-label="{{ 'multiscan.row.remove'|trans }}"><i class="bi-x-lg"></i></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    {# ---- action bar: always visible, pinned to the bottom on phones ---- #}
+    <div class="multiscan-action-bar card shadow-lg">
+        <div class="card-body p-2">
+            <div class="multiscan-action-switch d-flex gap-1 overflow-auto pb-1" role="radiogroup" aria-label="{{ 'multiscan.action.label'|trans }}">
+                {% for candidateAction in this.actions %}
+                    {% set slug = candidateAction.value %}
+                    <input type="radio" class="btn-check" name="multiscan-action" id="multiscan-action-{{ slug }}" value="{{ slug }}" data-model="action" autocomplete="off" {% if action.value == slug %}checked{% endif %}>
+                    <label class="btn btn-sm {% if action.value == slug %}btn-primary{% else %}btn-outline-secondary{% endif %} text-nowrap" for="multiscan-action-{{ slug }}">
+                        {% if slug == 'return' %}
+                            {{ ('multiscan.action.return_' ~ returnFace)|trans }}
+                        {% else %}
+                            {{ ('multiscan.action.' ~ slug)|trans }}
+                        {% endif %}
+                        <span class="badge rounded-pill {% if action.value == slug %}text-bg-light{% else %}text-bg-secondary{% endif %} ms-1">{{ counts[slug] }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 align-items-end mt-2">
+                {% if action.value == 'add_to_library' %}
+                    <div class="flex-grow-1" style="min-width: 160px;">
+                        <label class="form-label small mb-1" for="multiscan-collection">{{ 'multiscan.field.collection'|trans }}</label>
+                        <select id="multiscan-collection" class="form-select form-select-sm" data-model="collectionId">
+                            <option value="{{ constant('SpeedPuzzling\\Web\\Entity\\Collection::SYSTEM_ID') }}">{{ 'collections.system_name'|trans }}</option>
+                            {% for collection in this.collectionOptions %}
+                                <option value="{{ collection.collectionId }}" {% if this.collectionId == collection.collectionId %}selected{% endif %}>{{ collection.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% elseif action.needsPerson %}
+                    <div class="flex-grow-1" style="min-width: 160px;">
+                        <label class="form-label small mb-1" for="multiscan-person">{{ ('multiscan.field.person_' ~ action.value)|trans }}</label>
+                        <input type="text" id="multiscan-person" class="form-control form-control-sm" data-model="on(change)|person" value="{{ this.person }}" placeholder="{{ 'multiscan.field.person_placeholder'|trans }}" autocomplete="off">
+                    </div>
+                    <div class="flex-grow-1" style="min-width: 140px;">
+                        <label class="form-label small mb-1" for="multiscan-notes">{{ 'multiscan.field.notes'|trans }}</label>
+                        <input type="text" id="multiscan-notes" class="form-control form-control-sm" data-model="on(change)|notes" value="{{ this.notes }}" maxlength="500" autocomplete="off">
+                    </div>
+                {% endif %}
+
+                <button type="button"
+                        class="btn btn-primary btn-sm flex-shrink-0 {% if action.needsPerson or action.value == 'add_to_library' %}{% else %}ms-auto{% endif %}"
+                        data-action="live#action"
+                        data-live-action-param="apply"
+                        data-loading="addAttribute(disabled)"
+                        {% if eligibleCount == 0 %}disabled{% endif %}>
+                    <i class="bi-check2-all me-1"></i>
+                    {% if action.value == 'return' %}
+                        {{ ('multiscan.apply.return_' ~ returnFace)|trans({'%count%': eligibleCount}) }}
+                    {% else %}
+                        {{ ('multiscan.apply.' ~ action.value)|trans({'%count%': eligibleCount}) }}
+                    {% endif %}
+                </button>
+            </div>
+            {% if action.needsPerson %}
+                <div class="form-text small mt-1">{{ 'multiscan.field.person_help'|trans }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ---- "not found" resolve sheet ---- #}
+    {% if this.resolvingEan %}
+        {% set results = this.resolveResults %}
+        <div class="multiscan-sheet-backdrop" data-action="click->live#action" data-live-action-param="closeResolve"></div>
+        <div class="multiscan-sheet card shadow-lg" role="dialog" aria-modal="true" aria-labelledby="multiscan-sheet-title">
+            <div class="card-header d-flex align-items-start justify-content-between gap-2 py-2 px-3">
+                <div>
+                    <div class="fw-medium" id="multiscan-sheet-title"><i class="bi-question-diamond me-1 text-warning"></i>{{ 'multiscan.resolve.title'|trans }}</div>
+                    <div class="small text-muted">
+                        <span class="font-monospace">{{ this.resolvingEan }}</span>
+                        {% if this.resolveBrandName %}
+                            · {{ 'multiscan.resolve.brand_detected'|trans({'%brand%': this.resolveBrandName}) }}
+                        {% endif %}
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-action="live#action" data-live-action-param="closeResolve" aria-label="{{ 'forms.close'|trans }}"></button>
+            </div>
+            <div class="card-body px-3 py-2 multiscan-sheet-body">
+                {% if this.likelyWrongBarcode %}
+                    <div class="alert alert-warning small py-2 mb-2"><i class="bi-lightbulb me-1"></i>{{ 'multiscan.resolve.wrong_barcode_hint'|trans }}</div>
+                {% endif %}
+
+                <p class="small mb-2">{{ 'multiscan.resolve.intro'|trans }}</p>
+
+                {% if this.resolveError %}
+                    <div class="alert alert-danger small py-2 mb-2">{{ this.resolveError|trans }}</div>
+                {% endif %}
+
+                {% if not this.quickAddOpen %}
+                    <label class="form-label small mb-1" for="multiscan-resolve-query">{{ 'multiscan.resolve.search_label'|trans }}</label>
+                    <input type="search" id="multiscan-resolve-query" class="form-control form-control-sm mb-2" data-model="debounce(300)|resolveQuery" value="{{ this.resolveQuery }}" placeholder="{{ 'multiscan.resolve.search_placeholder'|trans }}" autocomplete="off" autofocus>
+
+                    {% if results|length > 0 %}
+                        <div class="d-flex flex-column gap-1 mb-2">
+                            {% for candidate in results %}
+                                <button type="button" class="btn btn-outline-secondary btn-sm text-start d-flex align-items-center gap-2 py-1"
+                                        data-action="live#action" data-live-action-param="link" data-live-puzzle-id-param="{{ candidate.puzzleId }}">
+                                    {{ lazy_puzzle_image(candidate.puzzleImage, 'puzzle_small', candidate.puzzleName, 999, 40, 'rounded-1', 40, candidate.puzzleImageRatio) }}
+                                    <span class="flex-grow-1 min-w-0">
+                                        <span class="d-block text-truncate">{{ candidate.puzzleName }}</span>
+                                        <span class="d-block small text-muted">{{ candidate.manufacturerName }} · {{ 'pieces_count'|trans({'%count%': candidate.piecesCount})|raw }}{% if candidate.puzzleEan %} · <span class="font-monospace">{{ candidate.puzzleEan }}</span>{% endif %}</span>
+                                    </span>
+                                    <span class="small text-primary text-nowrap"><i class="bi-link-45deg"></i> {{ 'multiscan.resolve.link'|trans }}</span>
+                                </button>
+                            {% endfor %}
+                        </div>
+                        <p class="small text-muted mb-2">{{ 'multiscan.resolve.link_help'|trans }}</p>
+                    {% elseif this.resolveQuery|trim|length >= 2 %}
+                        <p class="small text-muted mb-2">{{ 'multiscan.resolve.no_results'|trans }}</p>
+                    {% endif %}
+
+                    <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-2" data-action="live#action" data-live-action-param="toggleQuickAdd">
+                        <i class="bi-plus-circle me-1"></i>{{ 'multiscan.resolve.add_new'|trans }}
+                    </button>
+                {% else %}
+                    <div class="multiscan-quick-add">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="fw-medium small">{{ 'multiscan.resolve.add_new'|trans }}</span>
+                            <button type="button" class="btn btn-link btn-sm p-0" data-action="live#action" data-live-action-param="toggleQuickAdd">{{ 'multiscan.resolve.back_to_search'|trans }}</button>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small mb-1" for="multiscan-new-name">{{ 'multiscan.resolve.field.name'|trans }}</label>
+                            <input type="text" id="multiscan-new-name" class="form-control form-control-sm" data-model="on(change)|newName" value="{{ this.newName }}" maxlength="255" autocomplete="off">
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-5">
+                                <label class="form-label small mb-1" for="multiscan-new-pieces">{{ 'multiscan.resolve.field.pieces'|trans }}</label>
+                                <input type="number" id="multiscan-new-pieces" class="form-control form-control-sm" data-model="on(change)|newPiecesCount" value="{{ this.newPiecesCount }}" inputmode="numeric" min="2" max="100000">
+                            </div>
+                            <div class="col-7">
+                                <label class="form-label small mb-1" for="multiscan-new-brand">{{ 'multiscan.resolve.field.brand'|trans }}</label>
+                                <select id="multiscan-new-brand" class="form-select form-select-sm" data-model="newBrand">
+                                    <option value="">{{ 'multiscan.resolve.field.brand_pick'|trans }}</option>
+                                    {% for brand in this.brandOptions %}
+                                        <option value="{{ brand.manufacturerId }}" {% if this.newBrand == brand.manufacturerId %}selected{% endif %}>{{ brand.manufacturerName }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm" data-model="on(change)|newBrandName" value="{{ this.newBrandName }}" placeholder="{{ 'multiscan.resolve.field.brand_other'|trans }}" maxlength="100" autocomplete="off">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small mb-1" for="multiscan-new-photo">{{ 'multiscan.resolve.field.photo'|trans }}</label>
+                            <input type="file" id="multiscan-new-photo" name="photo" class="form-control form-control-sm" accept="image/*" capture="environment" data-live-ignore>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <button type="button" class="btn btn-primary btn-sm" data-action="live#action" data-live-action-param="files(photo)|createPuzzle" data-loading="addAttribute(disabled)">
+                                <i class="bi-plus-lg me-1"></i>{{ 'multiscan.resolve.create'|trans }}
+                            </button>
+                            <a href="{{ path('puzzle_add', {mode: 'collection', ean: this.resolvingEan}) }}" target="_blank" rel="noopener" class="btn btn-link btn-sm">
+                                {{ 'multiscan.resolve.full_form'|trans }} <i class="bi-box-arrow-up-right"></i>
+                            </a>
+                        </div>
+                        <p class="small text-muted mt-2 mb-0">{{ 'multiscan.resolve.create_help'|trans }}</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-footer d-flex justify-content-between gap-2 py-2 px-3">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-action="live#action" data-live-action-param="closeResolve">
+                    <i class="bi-skip-forward me-1"></i>{{ 'multiscan.resolve.skip'|trans }}
+                </button>
+                <button type="button" class="btn btn-link btn-sm text-danger" data-action="live#action" data-live-action-param="remove" data-live-ean-param="{{ this.resolvingEan }}">
+                    {{ 'multiscan.row.remove'|trans }}
+                </button>
+            </div>
+        </div>
+    {% endif %}
+</div>

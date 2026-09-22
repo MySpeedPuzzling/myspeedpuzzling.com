@@ -4,6 +4,17 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Multiscan
+
+Shipped 2026-09-22. Design and plan: [`features/multiscan/README.md`](features/multiscan/README.md).
+
+- [ ] Aggregated lending notification ("Anna lent you 6 puzzles") instead of one per puzzle
+- [ ] Tray persistence across a reload (`sessionStorage` mirror + `restore()` action)
+- [ ] Native apps: a multi-mode scanner in the iOS/Android shells (today the single-shot native scanner is re-opened per code)
+- [ ] More actions: mark solved without a time (shared date), list for swap/free, remove from library
+- [ ] "Undo last batch" for lend/return
+- [ ] Watch the numbers after a few weeks: not-found rate, links created (`puzzle_change_request` rows with `proposed_ean` only), quick-adds
+
 ## Getting started / newcomer onboarding
 
 Shipped 2026-09-20 (`1f59d530`). Design, research and rules: [`features/getting-started-guide.md`](features/getting-started-guide.md).

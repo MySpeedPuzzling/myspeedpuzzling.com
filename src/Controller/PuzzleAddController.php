@@ -121,6 +121,13 @@ final class PuzzleAddController extends AbstractController
             $data->puzzle = $activePuzzle->puzzleId;
         }
 
+        // Multiscan's "open the full form" link carries the scanned code (docs/features/multiscan/README.md §6)
+        $queryEan = $request->query->getString('ean');
+
+        if ($queryEan !== '' && $data->puzzleEan === null && preg_match('/^\\d{8,14}$/', $queryEan) === 1) {
+            $data->puzzleEan = $queryEan;
+        }
+
         // Handle query parameters for mode and collection pre-selection
         $initialMode = 'speed_puzzling';
         $queryMode = $request->query->getString('mode');

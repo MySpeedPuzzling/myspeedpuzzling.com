@@ -1,0 +1,328 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Tests\Component;
+
+use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Component\MultiscanTray;
+use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\TestingLogin;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
+use Symfony\UX\LiveComponent\Test\TestLiveComponent;
+
+/**
+ * docs/features/multiscan/README.md - the tray as the member sees it: PLAYER_WITH_STRIPE owns
+ * PUZZLE_300 (library), lends PUZZLE_2000 to PLAYER_REGULAR and PUZZLE_1500_01 to "Jane Doe",
+ * borrows PUZZLE_1500_02; PUZZLE_6000 is nobody's; PUZZLE_4000/5000 share one code; PUZZLE_9000 has none.
+ */
+final class MultiscanTrayTest extends WebTestCase
+{
+    use InteractsWithLiveComponents;
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function tray(KernelBrowser $client, string $playerId = PlayerFixture::PLAYER_WITH_STRIPE, array $data = []): TestLiveComponent
+    {
+        TestingLogin::asPlayer($client, $playerId);
+        $component = $this->createLiveComponent('MultiscanTray', $data, $client);
+        $component->setRouteLocale('en');
+
+        return $component;
+    }
+
+    public function testScanResolvesAPuzzleWithItsStatusChip(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_300]);
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('Puzzle 11', $html);
+        self::assertStringContainsString('In your library', $html);
+        self::assertStringContainsString('data-multiscan-notice="found"', $html);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_2000]);
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('Lent to ' . PlayerFixture::PLAYER_REGULAR_NAME, $html);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_6000]);
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('Not in your library', $html);
+        self::assertCount(3, self::rows($tray));
+    }
+
+    public function testDuplicatesNeverEnterTheTray(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_6000]);
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_6000]);
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('data-multiscan-notice="duplicate"', $html);
+        self::assertStringContainsString('data-multiscan-notice-name="Puzzle 18"', $html);
+        self::assertCount(1, self::rows($tray));
+
+        // Same code with a leading zero (UPC-style read) is the same puzzle
+        $tray->call('scan', ['ean' => '0' . PuzzleFixture::EAN_PUZZLE_6000]);
+        self::assertStringContainsString('data-multiscan-notice="duplicate"', $tray->render()->toString());
+        self::assertSame([PuzzleFixture::EAN_PUZZLE_6000], array_column(self::rows($tray), 'ean'));
+    }
+
+    public function testInvalidCodeIsReportedNotAdded(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        $tray->call('scan', ['ean' => '4005556123456']);
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('data-multiscan-notice="invalid"', $html);
+        self::assertCount(0, self::rows($tray));
+    }
+
+    public function testAmbiguousCodeAsksUnlessOneCandidateIsAlreadyMine(): void
+    {
+        $client = self::createClient();
+        // PLAYER_ADMIN owns neither PUZZLE_4000 nor PUZZLE_5000
+        $tray = $this->tray($client, PlayerFixture::PLAYER_ADMIN);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_SHARED_4000_5000]);
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('data-multiscan-notice="ambiguous"', $html);
+        self::assertStringContainsString('2 puzzles share the code', $html);
+        self::assertSame('ambiguous', self::rows($tray)[0]['state']);
+        self::assertStringContainsString('Add 0 to library', $html, 'an unresolved row never counts');
+
+        $tray->call('choose', ['ean' => PuzzleFixture::EAN_SHARED_4000_5000, 'puzzleId' => PuzzleFixture::PUZZLE_5000]);
+        $html = $tray->render()->toString();
+        self::assertSame(PuzzleFixture::PUZZLE_5000, self::rows($tray)[0]['puzzleId']);
+        self::assertStringContainsString('Add 1 to library', $html);
+    }
+
+    public function testAmbiguousCodeAutoPicksTheCandidateInMyLibrary(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement(
+            'INSERT INTO collection_item (id, collection_id, player_id, puzzle_id, comment, added_at) VALUES (gen_random_uuid(), NULL, :player, :puzzle, NULL, NOW())',
+            ['player' => PlayerFixture::PLAYER_WITH_STRIPE, 'puzzle' => PuzzleFixture::PUZZLE_4000],
+        );
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_SHARED_4000_5000]);
+
+        self::assertSame('resolved', self::rows($tray)[0]['state']);
+        self::assertSame(PuzzleFixture::PUZZLE_4000, self::rows($tray)[0]['puzzleId']);
+    }
+
+    public function testUnknownCodeOpensTheResolveSheetWithTheBrandDetected(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_UNKNOWN]);
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('data-multiscan-notice="unknown"', $html);
+        self::assertStringContainsString('data-multiscan-sheet-open="1"', $html);
+        self::assertStringContainsString('looks like a Ravensburger code', $html);
+        self::assertStringContainsString('Puzzle not found', $html);
+        self::assertSame('unknown', self::rows($tray)[0]['state']);
+
+        // Skip keeps the row in the unresolved section, the camera resumes
+        $tray->call('closeResolve');
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('data-multiscan-sheet-open="0"', $html);
+        self::assertStringContainsString('Not resolved yet (1)', $html);
+        self::assertStringContainsString('data-multiscan-unknown-count="1"', $html);
+    }
+
+    public function testCatalogueSearchLinksTheCodeAndResolvesTheRow(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_UNKNOWN]);
+        $tray->set('resolveQuery', 'Puzzle 19');
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('data-live-puzzle-id-param="' . PuzzleFixture::PUZZLE_9000 . '"', $html);
+
+        $tray->call('link', ['puzzleId' => PuzzleFixture::PUZZLE_9000]);
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('data-multiscan-notice="linked"', $html);
+        self::assertSame(PuzzleFixture::PUZZLE_9000, self::rows($tray)[0]['puzzleId']);
+        self::assertStringContainsString('data-multiscan-sheet-open="0"', $html);
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        self::assertSame(PuzzleFixture::EAN_UNKNOWN, $database->fetchOne('SELECT ean FROM puzzle WHERE id = :id', ['id' => PuzzleFixture::PUZZLE_9000]));
+    }
+
+    public function testQuickAddCreatesThePuzzleAndResolvesTheRow(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_UNKNOWN]);
+        $tray->call('toggleQuickAdd');
+        $tray->call('createPuzzle');
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('Name, pieces and brand are needed.', $html);
+
+        $tray->set('newName', 'Scanned box');
+        $tray->set('newPiecesCount', '1000');
+        $tray->call('createPuzzle');
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('data-multiscan-notice="created"', $html);
+        self::assertSame('resolved', self::rows($tray)[0]['state']);
+        self::assertStringContainsString('Scanned box', $html);
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        $row = $database->fetchAssociative('SELECT name, approved, ean, manufacturer_id FROM puzzle WHERE id = :id', ['id' => self::rows($tray)[0]['puzzleId']]);
+        self::assertIsArray($row);
+        self::assertSame('Scanned box', $row['name']);
+        self::assertFalse($row['approved']);
+        self::assertSame(PuzzleFixture::EAN_UNKNOWN, $row['ean']);
+        self::assertSame('018d0002-0000-0000-0000-000000000001', $row['manufacturer_id'], 'brand prefilled from the EAN prefix');
+    }
+
+    public function testApplyLendsEligibleRowsKeepsTheRestAndShowsARecap(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_6000]);
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_300]);
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_2000]); // already lent → skipped
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_UNKNOWN]);
+        $tray->call('closeResolve');
+
+        $tray->set('action', 'lend');
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('already lent to ' . PlayerFixture::PLAYER_REGULAR_NAME, $html);
+        self::assertStringContainsString('Lend 2', $html);
+
+        $tray->call('apply');
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('Tell us who', $html);
+
+        $tray->set('person', '#' . self::playerCode(PlayerFixture::PLAYER_WITH_FAVORITES));
+        $tray->call('apply');
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('2 puzzles lent to ' . PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $html);
+        self::assertStringContainsString('Puzzle 18', $html);
+        self::assertStringContainsString('Puzzle 11', $html);
+
+        // Lent rows left, the skipped and the unknown one stayed
+        $rows = self::rows($tray);
+        self::assertCount(2, $rows);
+        self::assertSame(PuzzleFixture::PUZZLE_2000, $rows[0]['puzzleId']);
+        self::assertSame('unknown', $rows[1]['state']);
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        $holders = $database->fetchFirstColumn(
+            'SELECT current_holder_player_id FROM lent_puzzle WHERE owner_player_id = :owner AND puzzle_id IN (:a, :b)',
+            ['owner' => PlayerFixture::PLAYER_WITH_STRIPE, 'a' => PuzzleFixture::PUZZLE_6000, 'b' => PuzzleFixture::PUZZLE_300],
+        );
+        self::assertSame([PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_WITH_FAVORITES], $holders);
+    }
+
+    public function testReturnClosesOwnedAndHeldLendsAndNamesThePeople(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client, data: ['presetAction' => 'return']);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_2000]);   // lent to John
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_1500_02]); // borrowed from John
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_6000]);    // not lent → skipped
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('not lent or borrowed', $html);
+        self::assertStringContainsString('Close 2 lends', $html);
+
+        $tray->call('apply');
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('2 lends closed', $html);
+        self::assertCount(1, self::rows($tray));
+        self::assertSame(PuzzleFixture::PUZZLE_6000, self::rows($tray)[0]['puzzleId']);
+    }
+
+    public function testAddToACollectionFromTheEntryPoint(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client, data: ['presetAction' => 'add_to_library', 'presetCollectionId' => CollectionFixture::COLLECTION_STRIPE_TREFL]);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_6000]);
+        $tray->call('apply');
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('1 puzzles added to your library', $html);
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        self::assertSame('1', $database->fetchOne(
+            'SELECT count(*)::text FROM collection_item WHERE player_id = :p AND puzzle_id = :z AND collection_id = :c',
+            ['p' => PlayerFixture::PLAYER_WITH_STRIPE, 'z' => PuzzleFixture::PUZZLE_6000, 'c' => CollectionFixture::COLLECTION_STRIPE_TREFL],
+        ));
+    }
+
+    public function testForeignCollectionPresetIsIgnored(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client, data: ['presetAction' => 'add_to_library', 'presetCollectionId' => CollectionFixture::COLLECTION_PRIVATE]);
+
+        $component = $tray->component();
+        assert($component instanceof MultiscanTray);
+        self::assertSame('__system_collection__', $component->collectionId);
+    }
+
+    public function testNonMemberCannotScan(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client, PlayerFixture::PLAYER_REGULAR);
+
+        $this->expectException(AccessDeniedHttpException::class);
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_6000]);
+    }
+
+    /**
+     * @return list<array{ean: string, puzzleId: null|string, state: string, candidateIds: list<string>}>
+     */
+    private static function rows(TestLiveComponent $tray): array
+    {
+        $component = $tray->component();
+        assert($component instanceof MultiscanTray);
+
+        return $component->rows;
+    }
+
+    private static function playerCode(string $playerId): string
+    {
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+
+        $code = $database->fetchOne('SELECT code FROM player WHERE id = :id', ['id' => $playerId]);
+        assert(is_string($code));
+
+        return $code;
+    }
+}

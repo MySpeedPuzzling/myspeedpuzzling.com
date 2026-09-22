@@ -37,6 +37,17 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
     public const string PUZZLE_UNAPPROVED = '018d0003-0000-0000-0000-000000000020';
     public const string PUZZLE_HIDDEN_IMAGE = '018d0003-0000-0000-0000-000000000021';
 
+    // Valid GS1 codes for the multiscan tests (the two codes on PUZZLE_500_02 / PUZZLE_1000_03 have a wrong check digit)
+    public const string EAN_PUZZLE_300 = '4005556202027';
+    public const string EAN_PUZZLE_500_03 = '4005556777778';
+    public const string EAN_PUZZLE_1500_01 = '4005556404049';
+    public const string EAN_PUZZLE_1500_02 = '5900511101010';
+    public const string EAN_PUZZLE_2000 = '4005556123452';
+    public const string EAN_PUZZLE_3000 = '5900511303032';
+    public const string EAN_SHARED_4000_5000 = '4005556999996';
+    public const string EAN_PUZZLE_6000 = '5900511505054';
+    public const string EAN_UNKNOWN = '4005556555550';
+
     public function __construct(
         private readonly ClockInterface $clock,
     ) {
@@ -85,6 +96,7 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
             addedByUser: $adminPlayer,
             approved: true,
             isAvailable: true,
+            ean: self::EAN_PUZZLE_500_03,
         );
         $manager->persist($puzzle);
         $this->addReference(self::PUZZLE_500_03, $puzzle);
@@ -177,16 +189,18 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
         $this->addReference(self::PUZZLE_1000_05, $puzzle);
 
         // Various piece counts
+        // EANs below carry a valid GS1 check digit (multiscan validates codes); PUZZLE_4000 and
+        // PUZZLE_5000 deliberately share one (ambiguous scan), PUZZLE_9000 has none (linking tests)
         $variousPuzzles = [
-            ['id' => self::PUZZLE_300, 'name' => 'Puzzle 11', 'pieces' => 300, 'manufacturer' => $ravensburger],
-            ['id' => self::PUZZLE_1500_01, 'name' => 'Puzzle 12', 'pieces' => 1500, 'manufacturer' => $ravensburger],
-            ['id' => self::PUZZLE_1500_02, 'name' => 'Puzzle 13', 'pieces' => 1500, 'manufacturer' => $trefl],
-            ['id' => self::PUZZLE_2000, 'name' => 'Puzzle 14', 'pieces' => 2000, 'manufacturer' => $ravensburger],
-            ['id' => self::PUZZLE_3000, 'name' => 'Puzzle 15', 'pieces' => 3000, 'manufacturer' => $trefl],
-            ['id' => self::PUZZLE_4000, 'name' => 'Puzzle 16', 'pieces' => 4000, 'manufacturer' => $ravensburger],
-            ['id' => self::PUZZLE_5000, 'name' => 'Puzzle 17', 'pieces' => 5000, 'manufacturer' => $ravensburger],
-            ['id' => self::PUZZLE_6000, 'name' => 'Puzzle 18', 'pieces' => 6000, 'manufacturer' => $trefl],
-            ['id' => self::PUZZLE_9000, 'name' => 'Puzzle 19', 'pieces' => 9000, 'manufacturer' => $ravensburger],
+            ['id' => self::PUZZLE_300, 'name' => 'Puzzle 11', 'pieces' => 300, 'manufacturer' => $ravensburger, 'ean' => self::EAN_PUZZLE_300],
+            ['id' => self::PUZZLE_1500_01, 'name' => 'Puzzle 12', 'pieces' => 1500, 'manufacturer' => $ravensburger, 'ean' => self::EAN_PUZZLE_1500_01],
+            ['id' => self::PUZZLE_1500_02, 'name' => 'Puzzle 13', 'pieces' => 1500, 'manufacturer' => $trefl, 'ean' => self::EAN_PUZZLE_1500_02],
+            ['id' => self::PUZZLE_2000, 'name' => 'Puzzle 14', 'pieces' => 2000, 'manufacturer' => $ravensburger, 'ean' => self::EAN_PUZZLE_2000],
+            ['id' => self::PUZZLE_3000, 'name' => 'Puzzle 15', 'pieces' => 3000, 'manufacturer' => $trefl, 'ean' => self::EAN_PUZZLE_3000],
+            ['id' => self::PUZZLE_4000, 'name' => 'Puzzle 16', 'pieces' => 4000, 'manufacturer' => $ravensburger, 'ean' => self::EAN_SHARED_4000_5000],
+            ['id' => self::PUZZLE_5000, 'name' => 'Puzzle 17', 'pieces' => 5000, 'manufacturer' => $ravensburger, 'ean' => self::EAN_SHARED_4000_5000],
+            ['id' => self::PUZZLE_6000, 'name' => 'Puzzle 18', 'pieces' => 6000, 'manufacturer' => $trefl, 'ean' => self::EAN_PUZZLE_6000],
+            ['id' => self::PUZZLE_9000, 'name' => 'Puzzle 19', 'pieces' => 9000, 'manufacturer' => $ravensburger, 'ean' => null],
         ];
 
         foreach ($variousPuzzles as $data) {
@@ -198,6 +212,7 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
                 addedByUser: $adminPlayer,
                 approved: true,
                 isAvailable: true,
+                ean: $data['ean'],
             );
             $manager->persist($puzzle);
             $this->addReference($data['id'], $puzzle);

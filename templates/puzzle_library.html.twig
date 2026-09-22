@@ -16,6 +16,15 @@
                     <i class="bi bi-puzzle me-1"></i>{{ 'collections.add_puzzle_form.button'|trans }}
                 </a>
                 {% if logged_user.profile.activeMembership %}
+                    <a href="{{ path('multiscan') }}" class="btn btn-sm btn-outline-primary" title="{{ 'multiscan.subtitle'|trans }}">
+                        <i class="bi-upc-scan me-1"></i>{{ 'multiscan.entry.library'|trans }}
+                    </a>
+                {% else %}
+                    <a href="{{ path('multiscan') }}" class="btn btn-sm btn-outline-primary" title="{{ 'multiscan.subtitle'|trans }}">
+                        <i class="ci-locked me-1"></i>{{ 'multiscan.entry.library'|trans }}
+                    </a>
+                {% endif %}
+                {% if logged_user.profile.activeMembership %}
                     <a href="{{ path('create_collection') }}" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus-lg me-1"></i>{{ 'collections.create.button'|trans }}
                     </a>

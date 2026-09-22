@@ -1,0 +1,59 @@
+{# The camera lives outside the Live Component so tray re-renders never touch the <video>.
+   Continuous mode: the scanner keeps running after a read and ignores a code for a short
+   cooldown; the tray decides what the read means (docs/features/multiscan/README.md §7). #}
+<div class="card shadow-sm mb-3 multiscan-scanner"
+     data-controller="barcode-scanner"
+     data-barcode-scanner-continuous-value="true"
+     data-barcode-scanner-autostart-value="true"
+     data-multiscan-target="scanner">
+
+    <div data-barcode-scanner-target="wrapper" class="multiscan-viewfinder position-relative d-none">
+        <div class="spinner spinner-border text-primary" role="status">
+            <span class="visually-hidden">{{ 'loading'|trans }}</span>
+        </div>
+        <video class="w-100 d-block" data-barcode-scanner-target="video" muted autoplay playsinline></video>
+        <canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none;"></canvas>
+        <div class="multiscan-flash" data-barcode-scanner-target="flash" aria-hidden="true"></div>
+
+        <div data-barcode-scanner-target="zoomContainer" class="d-none position-absolute bottom-0 start-50 translate-middle-x mb-2 bg-white rounded-pill px-3 py-1 shadow-sm">
+            <span data-barcode-scanner-target="zoomValue" class="me-2 small">Zoom 1x</span>
+            <button type="button" data-action="click->barcode-scanner#zoomOut" data-barcode-scanner-target="zoomOut" class="btn btn-sm btn-outline-secondary rounded-circle p-1 me-1" aria-label="-"><i class="bi-dash"></i></button>
+            <button type="button" data-action="click->barcode-scanner#zoomIn" data-barcode-scanner-target="zoomIn" class="btn btn-sm btn-outline-secondary rounded-circle p-1" aria-label="+"><i class="bi-plus"></i></button>
+        </div>
+    </div>
+
+    <div class="card-body py-2 px-2 d-flex flex-wrap gap-2 align-items-center">
+        <button type="button"
+                class="btn btn-sm btn-outline-primary"
+                data-barcode-scanner-target="toggleButton"
+                data-action="click->barcode-scanner#toggle"
+                title="{{ 'multiscan.scanner.camera'|trans }}">
+            <i class="bi-camera-video me-1"></i>{{ 'multiscan.scanner.camera'|trans }}
+        </button>
+
+        <div class="input-group input-group-sm flex-grow-1" style="min-width: 200px;">
+            <input type="text"
+                   class="form-control"
+                   inputmode="numeric"
+                   autocomplete="off"
+                   placeholder="{{ 'multiscan.scanner.type_placeholder'|trans }}"
+                   aria-label="{{ 'multiscan.scanner.type_placeholder'|trans }}"
+                   data-multiscan-target="eanInput"
+                   data-action="keydown.enter->multiscan#submitTyped">
+            <button type="button" class="btn btn-outline-secondary" data-action="click->multiscan#submitTyped">
+                <i class="bi-plus-lg"></i>
+            </button>
+        </div>
+
+        <button type="button"
+                class="btn btn-sm btn-outline-secondary"
+                data-barcode-scanner-target="soundButton"
+                data-action="click->barcode-scanner#toggleSound"
+                title="{{ 'multiscan.scanner.sound'|trans }}"
+                aria-label="{{ 'multiscan.scanner.sound'|trans }}">
+            <i class="bi-volume-up"></i>
+        </button>
+    </div>
+
+    <input type="hidden" data-barcode-scanner-target="input">
+</div>

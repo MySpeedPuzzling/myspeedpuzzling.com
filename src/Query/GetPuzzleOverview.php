@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
@@ -174,6 +175,95 @@ SQL;
         }
 
         return PuzzleOverview::fromDatabaseRow($row);
+    }
+
+    /**
+     * Every listed puzzle in one statement, keyed by id; ids the catalogue does
+     * not know are simply absent. Same shape and image masking as byId().
+     *
+     * @param list<string> $puzzleIds
+     * @return array<string, PuzzleOverview>
+     */
+    public function byIds(array $puzzleIds): array
+    {
+        $puzzleIds = array_values(array_unique(array_filter($puzzleIds, Uuid::isValid(...))));
+
+        if ($puzzleIds === []) {
+            return [];
+        }
+
+        $query = <<<SQL
+SELECT
+    puzzle.id AS puzzle_id,
+    puzzle.name AS puzzle_name,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
+    puzzle.hide_image_until,
+    puzzle.hide_until,
+    puzzle.alternative_name AS puzzle_alternative_name,
+    puzzle.pieces_count,
+    puzzle.is_available,
+    puzzle.approved AS puzzle_approved,
+    manufacturer.id AS manufacturer_id,
+    manufacturer.name AS manufacturer_name,
+    manufacturer.slug AS manufacturer_slug,
+    ean AS puzzle_ean,
+    puzzle.identification_number AS puzzle_identification_number,
+    COALESCE(puzzle_statistics.solved_times_count, 0) AS solved_times,
+    puzzle_statistics.average_time_solo,
+    puzzle_statistics.fastest_time_solo,
+    puzzle_statistics.average_time_duo,
+    puzzle_statistics.fastest_time_duo,
+    puzzle_statistics.average_time_team,
+    puzzle_statistics.fastest_time_team
+FROM puzzle
+LEFT JOIN puzzle_statistics ON puzzle_statistics.puzzle_id = puzzle.id
+INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
+WHERE puzzle.id IN (:puzzleIds)
+SQL;
+
+        $rows = $this->database
+            ->executeQuery($query, [
+                'puzzleIds' => $puzzleIds,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            ], [
+                'puzzleIds' => ArrayParameterType::STRING,
+            ])
+            ->fetchAllAssociative();
+
+        $result = [];
+
+        foreach ($rows as $row) {
+            /**
+             * @var array{
+             *     puzzle_id: string,
+             *     puzzle_name: string,
+             *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
+             *     puzzle_alternative_name: null|string,
+             *     puzzle_approved: bool,
+             *     manufacturer_id: string,
+             *     manufacturer_name: string,
+             *     manufacturer_slug: null|string,
+             *     pieces_count: int,
+             *     average_time_solo: null|string,
+             *     fastest_time_solo: null|int,
+             *     average_time_duo: null|string,
+             *     fastest_time_duo: null|int,
+             *     average_time_team: null|string,
+             *     fastest_time_team: null|int,
+             *     solved_times: int,
+             *     is_available: bool,
+             *     puzzle_ean: null|string,
+             *     puzzle_identification_number: null|string,
+             *     hide_image_until: null|string,
+             *     hide_until: null|string,
+             * } $row
+             */
+            $result[$row['puzzle_id']] = PuzzleOverview::fromDatabaseRow($row);
+        }
+
+        return $result;
     }
 
     /**

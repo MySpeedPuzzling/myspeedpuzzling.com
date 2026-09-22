@@ -6,8 +6,10 @@ namespace SpeedPuzzling\Web\Repository;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleChangeRequest;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
+use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
 readonly final class PuzzleChangeRequestRepository
 {
@@ -28,5 +30,24 @@ readonly final class PuzzleChangeRequestRepository
         $request = $this->entityManager->find(PuzzleChangeRequest::class, $changeRequestId);
 
         return $request ?? throw new PuzzleChangeRequestNotFound();
+    }
+
+    public function save(PuzzleChangeRequest $changeRequest): void
+    {
+        $this->entityManager->persist($changeRequest);
+    }
+
+    /**
+     * A still-open proposal of exactly this code list for the puzzle (multiscan
+     * linking is idempotent: a retry must not queue a second request).
+     */
+    public function findPendingEanProposal(Puzzle $puzzle, string $proposedEan): null|PuzzleChangeRequest
+    {
+        return $this->entityManager->getRepository(PuzzleChangeRequest::class)
+            ->findOneBy([
+                'puzzle' => $puzzle,
+                'proposedEan' => $proposedEan,
+                'status' => PuzzleReportStatus::Pending,
+            ]);
     }
 }

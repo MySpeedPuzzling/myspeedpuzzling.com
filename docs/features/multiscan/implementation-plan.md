@@ -162,9 +162,12 @@ teaser) in **all six locales** (121 keys each).
   (guarded by `testScanAndApplyStayWithinAQueryBudgetWhateverTheTraySize`).
 - Write side, 20-puzzle batches on the local stack (PHP included): lend 200–330 ms (10–16 queries per
   puzzle, the notification event is the bulk), return 70–100 ms, borrow ~230 ms, add to library
-  ~200 ms (7 queries per puzzle), wishlist ~20 ms. Cost is linear in the batch, so the tray is capped
-  at `MultiscanTray::MAX_ROWS = 50` (worst case well under 2 s); a pile larger than that is applied
-  in two rounds.
+  ~200 ms (7 queries per puzzle), wishlist ~20 ms. At 50 puzzles: lend to a registered player 0.9 s
+  (799 queries, SQL only 93 ms - the rest is PHP in the per-puzzle notification handler), borrow
+  0.9 s, lend to a name 0.34 s, return 0.15–0.2 s, add to library 0.3 s, wishlist 0.02 s. Cost is
+  linear in the batch, so the tray is capped at `MultiscanTray::MAX_ROWS = 50` (worst case under
+  1 s); a pile larger than that is applied in two rounds. The aggregated-notification follow-up is
+  also the main speed-up for lend/borrow.
 
 ### Gotchas met while building
 - **Batch return needs a flush + clear per puzzle.** A return inserts a `lent_puzzle_transfer` that

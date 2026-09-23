@@ -4,22 +4,6 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
-## Release 2: drop `player.email` (after the 2026-09-23 e-mail single-source-of-truth release)
-
-Release 1 (`user_account.email` is the single source of truth, the Edit profile `email` field is gone, every reader
-joins `user_account`) kept the `player.email` column and `Player::$email` so the previous container keeps working during
-the blue-green rollout. Once release 1 is the only container running:
-
-- [ ] Remove `Player::$email`, `Player::changeEmail()` and every mirror write marked `release-2` (`grep -rn release-2 src`:
-      `RegisterUserHandler`, `RegisterWithOauthIdentityHandler`, `RegisterUserToPlayHandler`, `ChangeAccountEmailHandler`);
-      `RegisterUserToPlay` then no longer needs its `email` argument
-- [ ] Generate the migration with `doctrine:migrations:diff` (never by hand; generate against a scratch DB built from the
-      committed migrations - see the local-drift memory note), review that it only drops `player.email`
-- [ ] Update `.claude/fixtures.md` (the e-mail column of the players table is the `user_account` one) and
-      `tests/DataFixtures/UserAccountFixture.php` (reads the mirror column today), `TestingLogin`/`TestingViewer`/
-      `TestLoginController` fallbacks, the `ChangeAccountEmailHandlerTest` assertion on `$player->email`
-- [ ] Drop the release-1 note in `docs/features/auth-hardening/README.md` §"Account e-mail"
-
 ## Image storage (bucket audit 2026-09-22)
 
 Full scan of the bucket against every DB image column; fixes shipped in lily.srv (imgproxy source limit 30 → 60 MP,

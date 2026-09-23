@@ -24,9 +24,9 @@ production accounts had drifted apart - people "changed their e-mail" there and 
 change the profile form has no e-mail field; the only way to change the address is the verified flow
 (`ChangeAccountEmailHandler`: current password + confirmation link to the new inbox). Every reader joins `user_account`
 (`LEFT JOIN user_account ON user_account.user_id = player.user_id` in `src/Query`, `Services\PlayerAccountEmail` for
-ORM-side handlers); a player without an account row has no e-mail. `player.email` is still written as a mirror by
-registration and the change-e-mail flow (comments marked `release-2`) so the previous container keeps working during the
-blue-green rollout, and is dropped in release 2 - see `docs/TODO.md`.
+ORM-side handlers); a player without an account row has no e-mail. Release 1 kept `player.email` as a write-only mirror
+so the previous container kept working during the blue-green rollout; release 2 unmapped it (`a4f9bb31`) and then
+dropped the column for good (`Version20260923182210`, `ALTER TABLE player DROP email`).
 
 ## What already exists (do NOT rebuild)
 

@@ -827,9 +827,15 @@ faq:
         <p>On the editing page, at the very bottom, there's a <a class="btn btn-sm btn-outline-danger mx-2">magic button</a> that once and for all deletes the record from the entire internet.</p>
         <p class="mb-0 mt-3">Pair and team times can be edited by every registered puzzler in the group, not only by the one who entered it. Deleting stays with the puzzler who entered the time.</p>
 
+    question_physical_puzzles: Do I solve puzzles online on the website?
+    answer_physical_puzzles: |
+        <p>No, MySpeedPuzzling is not an online puzzle game. You solve your own, real puzzles at home (or anywhere else) and use the site to record how long it took you.</p>
+        <p>You can time yourself with our stopwatch right on the website, or with your own timer and then enter the time by hand - even afterwards, for puzzles you solved in the past.</p>
+        <p class="mb-0">The stopwatch and logging times are free, you only need to be signed in. No membership is needed - it only unlocks extras such as detailed statistics.</p>
+
     question_button_start_solving: What does the <a class="btn btn-accent btn-sm mx-2"><i class="ci-time"></i> Start Solving</a> button do?
     answer_button_start_solving: |
-        <p class="mb-0">Opens the stopwatch with selected puzzles - you can start assembling and timing right away.</p>
+        <p class="mb-0">Opens the stopwatch for the selected puzzles. Start it when you begin solving your real puzzle at home, and save the time to your profile once you finish. The puzzle itself is not solved on the website.</p>
 
     question_button_add_my_time: What does the <a class="btn btn-accent btn-sm mx-2"><i class="ci-add"></i> Add My Time</a> button do?
     answer_button_add_my_time: |

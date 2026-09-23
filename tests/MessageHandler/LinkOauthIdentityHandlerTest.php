@@ -193,7 +193,7 @@ final class LinkOauthIdentityHandlerTest extends KernelTestCase
 
     private function createPlayer(string $userId, string $code, bool $isAdmin): void
     {
-        $player = new Player(Uuid::uuid7(), $code, $userId, null, null, new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), $code, $userId, null, new DateTimeImmutable());
         $player->isAdmin = $isAdmin;
 
         $this->entityManager->persist($player);

@@ -89,12 +89,12 @@ final class GetPlayersForWjpfSyncTest extends KernelTestCase
         self::assertCount(2, $this->getPlayersForWjpfSync->all(limit: 2));
     }
 
-    /** user_account.email is the single source of truth - the mirror column player.email is never read. */
-    public function testTheAccountEmailIsUsedEvenWhenTheMirrorColumnDrifted(): void
+    /** user_account.email is the single source of truth - the player row itself carries no address. */
+    public function testTheAccountEmailIsUsed(): void
     {
         $userId = 'msp|' . bin2hex(random_bytes(4));
         $accountEmail = sprintf('account+%s@example.com', bin2hex(random_bytes(4)));
-        $player = new Player(Uuid::uuid7(), 'WJ' . bin2hex(random_bytes(3)), $userId, 'drifted@example.com', 'Drifted', new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'WJ' . bin2hex(random_bytes(3)), $userId, 'Drifted', new DateTimeImmutable());
 
         $this->entityManager->persist($player);
         $this->entityManager->persist(new UserAccount(Uuid::uuid7(), $userId, strtoupper($accountEmail), new DateTimeImmutable()));
@@ -112,7 +112,7 @@ final class GetPlayersForWjpfSyncTest extends KernelTestCase
     /** A player without an account row has no e-mail, whatever the mirror column says. */
     public function testAPlayerWithoutAnAccountIsNotACandidate(): void
     {
-        $player = new Player(Uuid::uuid7(), 'WJ' . bin2hex(random_bytes(3)), 'auth0|' . bin2hex(random_bytes(4)), 'orphan@example.com', 'Orphan', new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'WJ' . bin2hex(random_bytes(3)), 'auth0|' . bin2hex(random_bytes(4)), 'Orphan', new DateTimeImmutable());
 
         $this->entityManager->persist($player);
         $this->entityManager->flush();

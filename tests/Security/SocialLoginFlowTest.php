@@ -259,7 +259,7 @@ final class SocialLoginFlowTest extends WebTestCase
         self::assertSame($accountRow['id'], $identityAccount);
 
         $playerName = $connection->fetchOne(
-            'SELECT name FROM player WHERE email = :email',
+            'SELECT player.name FROM player JOIN user_account ON user_account.user_id = player.user_id WHERE user_account.email = :email',
             ['email' => $email],
         );
         self::assertSame('Rule Four', $playerName);
@@ -492,7 +492,10 @@ final class SocialLoginFlowTest extends WebTestCase
 
         $connection = $browser->getContainer()->get(Connection::class);
 
-        $playerName = $connection->fetchOne('SELECT name FROM player WHERE email = :email', ['email' => $email]);
+        $playerName = $connection->fetchOne(
+            'SELECT player.name FROM player JOIN user_account ON user_account.user_id = player.user_id WHERE user_account.email = :email',
+            ['email' => $email],
+        );
         self::assertSame('Jane Appleseed', $playerName, 'The first-authorization name must be captured - it never comes again');
 
         /** @var false|array{provider: string, email_at_link: string} $identityRow */
@@ -641,7 +644,7 @@ final class SocialLoginFlowTest extends WebTestCase
             $userAccount->changePassword($password);
         }
 
-        $player = new Player(Uuid::uuid7(), 'SL' . bin2hex(random_bytes(3)), $userId, $email, null, new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'SL' . bin2hex(random_bytes(3)), $userId, null, new DateTimeImmutable());
         $player->isAdmin = $isAdmin;
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);

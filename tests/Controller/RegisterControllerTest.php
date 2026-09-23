@@ -51,7 +51,6 @@ final class RegisterControllerTest extends WebTestCase
 
         $player = $browser->getContainer()->get(PlayerRepository::class)->findByUserId($userId);
         self::assertNotNull($player);
-        self::assertSame($email, $player->email);
 
         // The verification mail goes out - and carries nothing but the verification link
         $messages = self::getMailerMessages();
@@ -129,10 +128,10 @@ final class RegisterControllerTest extends WebTestCase
 
     /**
      * user_account.email is the single source of truth: a player row without an account
-     * (an Auth0-era leftover) has no e-mail, so the address on its rollout mirror column
-     * reserves nothing - only another ACCOUNT can hold an address.
+     * (an Auth0-era leftover) has no e-mail at all, so it reserves no address - only
+     * another ACCOUNT can hold one.
      */
-    public function testMirrorColumnOfALegacyPlayerWithoutAnAccountReservesNothing(): void
+    public function testALegacyPlayerWithoutAnAccountReservesNoAddress(): void
     {
         $browser = self::createClient();
         $email = $this->randomEmail('register.legacy');
@@ -142,7 +141,6 @@ final class RegisterControllerTest extends WebTestCase
             Uuid::uuid7(),
             'RGST' . bin2hex(random_bytes(2)),
             'auth0|' . bin2hex(random_bytes(4)),
-            strtoupper($email),
             null,
             new DateTimeImmutable(),
         );

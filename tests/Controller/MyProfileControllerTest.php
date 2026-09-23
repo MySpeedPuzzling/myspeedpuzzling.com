@@ -53,7 +53,6 @@ final class MyProfileControllerTest extends WebTestCase
 
         $player = $browser->getContainer()->get(PlayerRepository::class)->findByUserId($userId);
         self::assertNotNull($player);
-        self::assertSame($email, $player->email);
         $this->assertResponseRedirects('/en/player-profile/' . $player->id->toString());
     }
 }

@@ -140,7 +140,6 @@ final class AdminAreaAccessTest extends WebTestCase
         assert($player->userId !== null);
 
         $email = sprintf('admin.area+%s@example.com', bin2hex(random_bytes(4)));
-        $player->email = $email;
 
         $account = $container->get(UserAccountRepository::class)->findByUserId($player->userId);
 

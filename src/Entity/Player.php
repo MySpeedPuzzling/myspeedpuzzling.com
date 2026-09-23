@@ -199,16 +199,6 @@ class Player
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(unique: true, nullable: true)]
         public null|string $userId,
-        /**
-         * Mirror of user_account.email, kept only so the previous release keeps working
-         * during the blue-green rollout. Nothing reads it - readers go through
-         * Services\PlayerAccountEmail or join user_account in SQL.
-         *
-         * release-2: drop with player.email
-         */
-        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
-        #[Column(nullable: true)]
-        public null|string $email,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(nullable: true)]
         public null|string $name,
@@ -236,18 +226,6 @@ class Player
         $this->facebook = $facebook;
         $this->instagram = $instagram;
         $this->twitch = $twitch;
-    }
-
-    /**
-     * Keeps the mirror column in step with user_account.email when the account owner
-     * changes it, so the previous release still addresses mail correctly while both
-     * containers run. Only ChangeAccountEmailHandler calls this.
-     *
-     * release-2: drop with player.email
-     */
-    public function changeEmail(string $email): void
-    {
-        $this->email = $email;
     }
 
     /**

@@ -67,7 +67,7 @@ final class GrantModeratorRoleHandlerTest extends KernelTestCase
         self::assertQueuedEmailCount(1);
         $email = self::getMailerMessage();
         self::assertNotNull($email);
-        self::assertEmailAddressContains($email, 'To', (string) $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR)->email);
+        self::assertEmailAddressContains($email, 'To', PlayerFixture::PLAYER_REGULAR_EMAIL);
         self::assertEmailHtmlBodyContains($email, '/admin/puzzle-change-requests');
         self::assertEmailHtmlBodyContains($email, '/admin/puzzle-merge-requests');
     }

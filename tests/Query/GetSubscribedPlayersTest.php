@@ -186,7 +186,6 @@ SQL,
                 id: $id,
                 code: 'sub' . substr(str_replace('-', '', $id->toString()), -12),
                 userId: null,
-                email: null,
                 name: 'Subscriber test ' . $i,
                 registeredAt: new DateTimeImmutable(),
             ));

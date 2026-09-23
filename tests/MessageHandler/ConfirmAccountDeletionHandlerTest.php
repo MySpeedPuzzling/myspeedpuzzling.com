@@ -176,7 +176,7 @@ final class ConfirmAccountDeletionHandlerTest extends KernelTestCase
     private function seedAccountWithPlayer(): array
     {
         $userAccount = $this->seedAccount();
-        $player = new Player(Uuid::uuid7(), 'CDL' . bin2hex(random_bytes(2)), $userAccount->userId, $userAccount->email, 'Leaving Soon', new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'CDL' . bin2hex(random_bytes(2)), $userAccount->userId, 'Leaving Soon', new DateTimeImmutable());
 
         $this->entityManager->persist($player);
         $this->entityManager->flush();

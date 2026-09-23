@@ -85,11 +85,6 @@ final class EditProfileControllerTest extends WebTestCase
         $reloadedAccount = $entityManager->getRepository(UserAccount::class)->findOneBy(['userId' => $userAccount->userId]);
         self::assertNotNull($reloadedAccount);
         self::assertSame($originalEmail, $reloadedAccount->email);
-
-        $player = $entityManager->getRepository(Player::class)->findOneBy(['userId' => $userAccount->userId]);
-        self::assertNotNull($player);
-        // The rollout mirror column follows the account, never the form (release-2: drop with player.email)
-        self::assertSame($originalEmail, $player->email);
     }
 
     private function seedNativeAccount(KernelBrowser $browser): UserAccount
@@ -103,7 +98,7 @@ final class EditProfileControllerTest extends WebTestCase
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($userAccount);
         $entityManager->persist(
-            new Player(Uuid::uuid7(), 'EDPR' . bin2hex(random_bytes(2)), $userId, $email, null, new DateTimeImmutable()),
+            new Player(Uuid::uuid7(), 'EDPR' . bin2hex(random_bytes(2)), $userId, null, new DateTimeImmutable()),
         );
         $entityManager->flush();
 

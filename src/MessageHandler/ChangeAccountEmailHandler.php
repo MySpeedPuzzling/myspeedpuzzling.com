@@ -10,7 +10,6 @@ use SpeedPuzzling\Web\Exceptions\EmailAlreadyRegistered;
 use SpeedPuzzling\Web\Exceptions\UserAccountNotFound;
 use SpeedPuzzling\Web\Message\ChangeAccountEmail;
 use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
-use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\ResetPasswordRequestRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Services\AuthAuditRecorder;
@@ -34,7 +33,6 @@ final readonly class ChangeAccountEmailHandler
 {
     public function __construct(
         private UserAccountRepository $userAccountRepository,
-        private PlayerRepository $playerRepository,
         private ResetPasswordRequestRepository $resetPasswordRequestRepository,
         private UserPasswordHasherInterface $passwordHasher,
         private AuthAuditRecorder $authAuditRecorder,
@@ -87,14 +85,5 @@ final readonly class ChangeAccountEmailHandler
         // and reset tokens are bound to the account rather than to the address - so
         // without this, whoever holds the old inbox keeps an hour-long way back in.
         $this->resetPasswordRequestRepository->removeAllForUserAccount($userAccount);
-
-        // release-2: drop with player.email - the mirror column only keeps the previous
-        // release addressing mail correctly while both containers run; nothing in this
-        // release reads it (user_account.email is the single source of truth)
-        $player = $this->playerRepository->findByUserId($userAccount->userId);
-
-        if ($player !== null) {
-            $player->changeEmail($newEmail);
-        }
     }
 }

@@ -315,7 +315,7 @@ final class ConfirmAccountDeletionControllerTest extends WebTestCase
 
         $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
         $userAccount->changePassword(password_hash('a-properly-long-passphrase', PASSWORD_ARGON2ID));
-        $player = new Player(Uuid::uuid7(), 'CP' . bin2hex(random_bytes(2)), $userId, $email, 'Leaving Soon', new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'CP' . bin2hex(random_bytes(2)), $userId, 'Leaving Soon', new DateTimeImmutable());
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($userAccount);

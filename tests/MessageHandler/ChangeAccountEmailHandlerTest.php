@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\CurrentPasswordDoesNotMatch;
 use SpeedPuzzling\Web\Exceptions\EmailAlreadyRegistered;
 use SpeedPuzzling\Web\Message\ChangeAccountEmail;
-use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -23,7 +22,6 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
 {
     private MessageBusInterface $messageBus;
     private UserAccountRepository $userAccountRepository;
-    private PlayerRepository $playerRepository;
     private UserPasswordHasherInterface $passwordHasher;
     private EntityManagerInterface $entityManager;
 
@@ -33,7 +31,6 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
         $container = self::getContainer();
         $this->messageBus = $container->get(MessageBusInterface::class);
         $this->userAccountRepository = $container->get(UserAccountRepository::class);
-        $this->playerRepository = $container->get(PlayerRepository::class);
         $this->passwordHasher = $container->get(UserPasswordHasherInterface::class);
         $this->entityManager = $container->get(EntityManagerInterface::class);
     }
@@ -42,7 +39,7 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
     {
         $userAccount = $this->createUserAccountWithPassword('msp|chmail1', 'chmail.one@example.com', 'passphrase-1');
         $userAccount->markEmailVerified(new DateTimeImmutable());
-        $this->createPlayer('msp|chmail1', 'chmail1', 'chmail.one@example.com');
+        $this->createPlayer('msp|chmail1', 'chmail1');
         $this->entityManager->flush();
 
         $this->messageBus->dispatch(
@@ -54,18 +51,13 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
         self::assertSame('chmail.one.new@example.com', $userAccount->email);
         // The new address is unproven until its own link is clicked
         self::assertNull($userAccount->emailVerifiedAt);
-
-        // The mirror column stays in step for the blue-green rollout (release-2: drop with player.email)
-        $player = $this->playerRepository->findByUserId('msp|chmail1');
-        self::assertNotNull($player);
-        self::assertSame('chmail.one.new@example.com', $player->email);
     }
 
     public function testWrongCurrentPasswordChangesNothing(): void
     {
         $userAccount = $this->createUserAccountWithPassword('msp|chmail2', 'chmail.two@example.com', 'passphrase-2');
         $userAccount->markEmailVerified(new DateTimeImmutable());
-        $this->createPlayer('msp|chmail2', 'chmail2', 'chmail.two@example.com');
+        $this->createPlayer('msp|chmail2', 'chmail2');
         $this->entityManager->flush();
 
         $this->expectHandlerException(
@@ -77,10 +69,6 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
         self::assertNotNull($userAccount);
         self::assertSame('chmail.two@example.com', $userAccount->email);
         self::assertNotNull($userAccount->emailVerifiedAt);
-
-        $player = $this->playerRepository->findByUserId('msp|chmail2');
-        self::assertNotNull($player);
-        self::assertSame('chmail.two@example.com', $player->email);
     }
 
     public function testAddressAlreadyOnAnotherAccountIsRejected(): void
@@ -100,14 +88,14 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
 
     /**
      * user_account.email is the single source of truth: a player row without an account
-     * (an Auth0-era leftover) has no address, so whatever its mirror column says reserves
-     * nothing - only another ACCOUNT can hold the address.
+     * (an Auth0-era leftover) has no address at all, so it reserves nothing - only
+     * another ACCOUNT can hold the address.
      */
-    public function testMirrorColumnOfALegacyPlayerWithoutAccountReservesNothing(): void
+    public function testALegacyPlayerWithoutAccountReservesNoAddress(): void
     {
         $this->createUserAccountWithPassword('msp|chmail4', 'chmail.four@example.com', 'passphrase-4');
-        $this->createPlayer('msp|chmail4', 'chmail4', 'chmail.four@example.com');
-        $this->createPlayer('auth0|chmail4-legacy', 'chmail4legacy', 'Chmail.Legacy@Example.com');
+        $this->createPlayer('msp|chmail4', 'chmail4');
+        $this->createPlayer('auth0|chmail4-legacy', 'chmail4legacy');
         $this->entityManager->flush();
 
         self::assertNull($this->userAccountRepository->findByEmail('chmail.legacy@example.com'));
@@ -119,10 +107,6 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
         $userAccount = $this->userAccountRepository->findByUserId('msp|chmail4');
         self::assertNotNull($userAccount);
         self::assertSame('chmail.legacy@example.com', $userAccount->email);
-
-        $player = $this->playerRepository->findByUserId('msp|chmail4');
-        self::assertNotNull($player);
-        self::assertSame('chmail.legacy@example.com', $player->email);
     }
 
     public function testChangingToTheSameAddressInDifferentCaseIsANoOp(): void
@@ -177,13 +161,12 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
         return $userAccount;
     }
 
-    private function createPlayer(string $userId, string $code, null|string $email): Player
+    private function createPlayer(string $userId, string $code): Player
     {
         $player = new Player(
             Uuid::uuid7(),
             $code,
             $userId,
-            $email,
             null,
             new DateTimeImmutable(),
         );

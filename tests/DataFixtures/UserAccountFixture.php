@@ -13,10 +13,10 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\UserAccount;
 
 /**
- * One user_account row per fixture player, carrying the same address as the player's
- * mirror column: `user_account.email` is the single source of truth for where a player is
- * reached, so a fixture player without one would have no e-mail at all. Mirrors what the
- * test login helpers used to create on demand (an Auth0 import: legacy flag + verified).
+ * One user_account row per fixture player: `user_account.email` is the single source of
+ * truth for where a player is reached (the player table has no e-mail column), so a
+ * fixture player without one would have no e-mail at all. Mirrors what the test login
+ * helpers used to create on demand (an Auth0 import: legacy flag + verified).
  */
 final class UserAccountFixture extends Fixture implements DependentFixtureInterface
 {
@@ -27,27 +27,27 @@ final class UserAccountFixture extends Fixture implements DependentFixtureInterf
 
     public function load(ObjectManager $manager): void
     {
-        $playerIds = [
-            PlayerFixture::PLAYER_REGULAR,
-            PlayerFixture::PLAYER_PRIVATE,
-            PlayerFixture::PLAYER_ADMIN,
-            PlayerFixture::PLAYER_WITH_FAVORITES,
-            PlayerFixture::PLAYER_WITH_STRIPE,
+        $emails = [
+            PlayerFixture::PLAYER_REGULAR => PlayerFixture::PLAYER_REGULAR_EMAIL,
+            PlayerFixture::PLAYER_PRIVATE => PlayerFixture::PLAYER_PRIVATE_EMAIL,
+            PlayerFixture::PLAYER_ADMIN => PlayerFixture::PLAYER_ADMIN_EMAIL,
+            PlayerFixture::PLAYER_WITH_FAVORITES => PlayerFixture::PLAYER_WITH_FAVORITES_EMAIL,
+            PlayerFixture::PLAYER_WITH_STRIPE => PlayerFixture::PLAYER_WITH_STRIPE_EMAIL,
         ];
 
-        foreach ($playerIds as $playerId) {
+        foreach ($emails as $playerId => $email) {
             $player = $this->getReference($playerId, Player::class);
-            assert($player->userId !== null && $player->email !== null);
+            assert($player->userId !== null);
 
             $userAccount = new UserAccount(
                 Uuid::uuid7(),
                 $player->userId,
-                $player->email,
+                $email,
                 $this->clock->now(),
             );
 
             // auth0|... fixture players stand for accounts imported from Auth0
-            $userAccount->applyAuth0Import($player->email, null, true, $this->clock->now());
+            $userAccount->applyAuth0Import($email, null, true, $this->clock->now());
 
             $manager->persist($userAccount);
         }

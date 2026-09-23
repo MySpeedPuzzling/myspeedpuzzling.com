@@ -34,7 +34,7 @@ readonly final class TestingViewer
             $userAccount = new UserAccount(
                 Uuid::uuid7(),
                 $player->userId,
-                $player->email ?? $player->code . '@test.local',
+                $player->code . '@test.local',
                 new DateTimeImmutable(),
             );
 

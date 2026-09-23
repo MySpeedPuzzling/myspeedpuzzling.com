@@ -170,7 +170,7 @@ final class ChangeAccountCredentialsControllerTest extends WebTestCase
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($userAccount);
         $entityManager->persist(
-            new Player(Uuid::uuid7(), 'CRED' . bin2hex(random_bytes(2)), $userId, $email, null, new DateTimeImmutable()),
+            new Player(Uuid::uuid7(), 'CRED' . bin2hex(random_bytes(2)), $userId, null, new DateTimeImmutable()),
         );
         $entityManager->flush();
 

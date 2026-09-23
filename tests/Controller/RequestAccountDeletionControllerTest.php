@@ -134,7 +134,7 @@ final class RequestAccountDeletionControllerTest extends WebTestCase
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($userAccount);
         $entityManager->persist(
-            new Player(Uuid::uuid7(), 'DZ' . bin2hex(random_bytes(2)), $userId, $email, 'Leaving Soon', new DateTimeImmutable()),
+            new Player(Uuid::uuid7(), 'DZ' . bin2hex(random_bytes(2)), $userId, 'Leaving Soon', new DateTimeImmutable()),
         );
         $entityManager->flush();
 

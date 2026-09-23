@@ -61,7 +61,7 @@ final class PlayerActivitySubscriberTest extends WebTestCase
         $userId = 'msp|' . bin2hex(random_bytes(8));
 
         $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
-        $player = new Player(Uuid::uuid7(), 'PASU' . bin2hex(random_bytes(2)), $userId, $email, null, new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'PASU' . bin2hex(random_bytes(2)), $userId, null, new DateTimeImmutable());
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($userAccount);

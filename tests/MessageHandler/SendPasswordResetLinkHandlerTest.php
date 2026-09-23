@@ -79,7 +79,7 @@ final class SendPasswordResetLinkHandlerTest extends KernelTestCase
     public function testPlayerLocaleWinsOverFallbackLocale(): void
     {
         $this->createUserAccount('msp|sendreset2', 'send.reset.two@example.com');
-        $this->createPlayer('msp|sendreset2', 'sendreset2', 'send.reset.two@example.com', locale: 'de');
+        $this->createPlayer('msp|sendreset2', 'sendreset2', locale: 'de');
 
         ($this->handler)(new SendPasswordResetLink(
             'send.reset.two@example.com',
@@ -119,13 +119,12 @@ final class SendPasswordResetLinkHandlerTest extends KernelTestCase
         return $userAccount;
     }
 
-    private function createPlayer(string $userId, string $code, null|string $email, null|string $locale): Player
+    private function createPlayer(string $userId, string $code, null|string $locale): Player
     {
         $player = new Player(
             Uuid::uuid7(),
             $code,
             $userId,
-            $email,
             null,
             new DateTimeImmutable(),
         );

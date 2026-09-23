@@ -231,7 +231,6 @@ final class NotifyWhenPuzzleSolvedTest extends KernelTestCase
                 id: $id,
                 code: 'follower' . substr(str_replace('-', '', $id->toString()), -12),
                 userId: null,
-                email: null,
                 name: 'Follower ' . $i,
                 registeredAt: new DateTimeImmutable(),
             ));

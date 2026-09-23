@@ -75,7 +75,6 @@ final readonly class RegisterUserHandler
             Uuid::uuid7(),
             $this->generateUniquePlayerCode->generate(),
             $userId,
-            $email, // release-2: drop with player.email (mirror of user_account.email for the blue-green rollout)
             $name !== '' ? $name : null,
             $now,
         );

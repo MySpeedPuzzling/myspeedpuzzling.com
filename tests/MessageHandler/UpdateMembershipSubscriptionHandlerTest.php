@@ -86,7 +86,6 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             id: $playerId,
             code: 'testplayer',
             userId: 'auth0|test',
-            email: 'test@example.com',
             name: 'Test Player',
             registeredAt: new DateTimeImmutable(),
         );
@@ -173,7 +172,6 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             id: $playerId,
             code: 'testplayer',
             userId: 'auth0|test',
-            email: 'test@example.com',
             name: 'Test Player',
             registeredAt: new DateTimeImmutable(),
         );
@@ -288,7 +286,6 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             id: Uuid::uuid7(),
             code: 'discounted',
             userId: 'auth0|discounted',
-            email: 'discounted@example.com',
             name: 'Discounted Player',
             registeredAt: new DateTimeImmutable(),
         );

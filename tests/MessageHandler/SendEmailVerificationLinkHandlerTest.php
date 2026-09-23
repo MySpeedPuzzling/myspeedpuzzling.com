@@ -99,7 +99,7 @@ final class SendEmailVerificationLinkHandlerTest extends KernelTestCase
     public function testPlayerLocaleWinsOverFallbackLocale(): void
     {
         $this->createUserAccount('msp|sendverify3', 'send.verify.three@example.com');
-        $this->createPlayer('msp|sendverify3', 'sendverify3', 'send.verify.three@example.com', locale: 'de');
+        $this->createPlayer('msp|sendverify3', 'sendverify3', locale: 'de');
 
         ($this->handler)(new SendEmailVerificationLink('msp|sendverify3', 'en'));
 
@@ -110,7 +110,7 @@ final class SendEmailVerificationLinkHandlerTest extends KernelTestCase
     public function testFallbackLocaleUsedWhenPlayerHasNoLocale(): void
     {
         $this->createUserAccount('msp|sendverify4', 'send.verify.four@example.com');
-        $this->createPlayer('msp|sendverify4', 'sendverify4', 'send.verify.four@example.com', locale: null);
+        $this->createPlayer('msp|sendverify4', 'sendverify4', locale: null);
 
         ($this->handler)(new SendEmailVerificationLink('msp|sendverify4', 'cs'));
 
@@ -162,13 +162,12 @@ final class SendEmailVerificationLinkHandlerTest extends KernelTestCase
         return $userAccount;
     }
 
-    private function createPlayer(string $userId, string $code, null|string $email, null|string $locale): Player
+    private function createPlayer(string $userId, string $code, null|string $locale): Player
     {
         $player = new Player(
             Uuid::uuid7(),
             $code,
             $userId,
-            $email,
             null,
             new DateTimeImmutable(),
         );

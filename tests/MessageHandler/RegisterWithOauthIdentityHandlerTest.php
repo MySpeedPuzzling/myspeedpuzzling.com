@@ -78,7 +78,6 @@ final class RegisterWithOauthIdentityHandlerTest extends KernelTestCase
 
         $player = $this->playerRepository->findByUserId($userId);
         self::assertNotNull($player);
-        self::assertSame('social.one@example.com', $player->email);
         self::assertSame('Social One', $player->name);
         self::assertSame('cs', $player->locale);
 

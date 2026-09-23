@@ -202,7 +202,6 @@ final class TerminateMembershipDueToDisputeHandlerTest extends TestCase
             id: Uuid::uuid7(),
             code: 'testplayer',
             userId: 'auth0|test',
-            email: 'test@example.com',
             name: 'Test Player',
             registeredAt: new DateTimeImmutable(),
         );

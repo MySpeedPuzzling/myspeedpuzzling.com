@@ -60,7 +60,6 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             id: $playerId,
             code: 'affiliate1',
             userId: 'auth0|affiliate',
-            email: 'affiliate@example.com',
             name: 'Affiliate',
             registeredAt: new DateTimeImmutable('-100 days'),
         );
@@ -70,7 +69,6 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             id: Uuid::uuid7(),
             code: 'subscriber1',
             userId: 'auth0|subscriber',
-            email: 'subscriber@example.com',
             name: 'Subscriber',
             registeredAt: new DateTimeImmutable('-30 days'),
         );
@@ -141,7 +139,6 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             id: Uuid::uuid7(),
             code: 'affiliate2',
             userId: 'auth0|affiliate2',
-            email: 'affiliate2@example.com',
             name: 'Affiliate Two',
             registeredAt: new DateTimeImmutable('-100 days'),
         );
@@ -151,7 +148,6 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             id: $playerId,
             code: 'subscriber2',
             userId: 'auth0|subscriber2',
-            email: 'subscriber2@example.com',
             name: 'Subscriber Two',
             registeredAt: new DateTimeImmutable('-30 days'),
         );
@@ -188,7 +184,6 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             id: Uuid::uuid7(),
             code: 'affiliate3',
             userId: 'auth0|affiliate3',
-            email: 'affiliate3@example.com',
             name: 'Affiliate Three',
             registeredAt: new DateTimeImmutable('-100 days'),
         );
@@ -198,7 +193,6 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             id: $playerId,
             code: 'subscriber3',
             userId: 'auth0|subscriber3',
-            email: 'subscriber3@example.com',
             name: 'Subscriber Three',
             registeredAt: new DateTimeImmutable('-30 days'),
         );
@@ -240,7 +234,6 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             id: Uuid::uuid7(),
             code: 'affiliate4',
             userId: 'auth0|affiliate4',
-            email: 'affiliate4@example.com',
             name: 'Affiliate Four',
             registeredAt: new DateTimeImmutable('-100 days'),
         );
@@ -250,7 +243,6 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             id: $playerId,
             code: 'subscriber4',
             userId: 'auth0|subscriber4',
-            email: 'subscriber4@example.com',
             name: 'Subscriber Four',
             registeredAt: new DateTimeImmutable('-30 days'),
         );

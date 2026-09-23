@@ -58,7 +58,6 @@ final class RegisterUserHandlerTest extends KernelTestCase
         $player = $this->playerRepository->findByUserId($userId);
         self::assertNotNull($player);
         self::assertSame($userId, $player->userId);
-        self::assertSame('register.one@example.com', $player->email);
         self::assertNotSame('', $player->code);
         self::assertSame('cs', $player->locale);
 
@@ -88,7 +87,7 @@ final class RegisterUserHandlerTest extends KernelTestCase
         // A player row without a user_account (production has two, Auth0-era leftovers) has
         // no e-mail: user_account.email is the single source of truth, so the address on its
         // mirror column is free to register - only another ACCOUNT can hold an address.
-        $this->createPlayer('auth0|register3', 'reg-legacy-3', 'Legacy.Three@Example.com', locale: null);
+        $this->createPlayer('auth0|register3', 'reg-legacy-3', locale: null);
 
         self::assertNull($this->userAccountRepository->findByEmail('legacy.three@example.com'));
 
@@ -158,13 +157,12 @@ final class RegisterUserHandlerTest extends KernelTestCase
         return $userAccount;
     }
 
-    private function createPlayer(string $userId, string $code, null|string $email, null|string $locale): Player
+    private function createPlayer(string $userId, string $code, null|string $locale): Player
     {
         $player = new Player(
             Uuid::uuid7(),
             $code,
             $userId,
-            $email,
             null,
             new DateTimeImmutable(),
         );

@@ -10,8 +10,8 @@ use SpeedPuzzling\Web\Repository\UserAccountRepository;
 /**
  * The one place ORM-side code asks "where do I reach this player": `user_account.email`
  * is the single source of truth for a player's address (the sign-in address, where
- * sign-in links and password resets go). `player.email` is a mirror kept only for the
- * blue-green rollout and is dropped in release 2 - nothing may read it.
+ * sign-in links and password resets go). The Auth0-era `player.email` copy was dropped
+ * (release 2 of the single-source-of-truth change), so this is the only address there is.
  *
  * A player without an account row (a couple of Auth0-era leftovers) has no e-mail.
  * Raw SQL in src/Query joins user_account the same way instead of calling this.

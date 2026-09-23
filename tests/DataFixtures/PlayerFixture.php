@@ -20,7 +20,9 @@ final class PlayerFixture extends Fixture
 
     public const string PLAYER_PRIVATE = '018d0000-0000-0000-0000-000000000002';
     public const string PLAYER_PRIVATE_USER_ID = 'auth0|private002';
+    public const string PLAYER_PRIVATE_EMAIL = 'player2@speedpuzzling.cz';
     public const string PLAYER_ADMIN = '018d0000-0000-0000-0000-000000000003';
+    public const string PLAYER_ADMIN_EMAIL = 'admin@speedpuzzling.cz';
 
     public const string PLAYER_WITH_FAVORITES = '018d0000-0000-0000-0000-000000000004';
     public const string PLAYER_WITH_FAVORITES_USER_ID = 'auth0|fav004';
@@ -43,7 +45,6 @@ final class PlayerFixture extends Fixture
             id: self::PLAYER_REGULAR,
             code: 'player1',
             userId: self::PLAYER_REGULAR_USER_ID,
-            email: self::PLAYER_REGULAR_EMAIL,
             name: self::PLAYER_REGULAR_NAME,
             country: 'cz',
             city: 'Prague',
@@ -55,7 +56,6 @@ final class PlayerFixture extends Fixture
             id: self::PLAYER_PRIVATE,
             code: 'player2',
             userId: self::PLAYER_PRIVATE_USER_ID,
-            email: 'player2@speedpuzzling.cz',
             name: 'Jane Smith',
             country: 'us',
             city: 'New York',
@@ -68,7 +68,6 @@ final class PlayerFixture extends Fixture
             id: self::PLAYER_ADMIN,
             code: 'admin',
             userId: 'auth0|admin003',
-            email: 'admin@speedpuzzling.cz',
             name: 'Admin User',
             country: 'cz',
             city: 'Brno',
@@ -81,7 +80,6 @@ final class PlayerFixture extends Fixture
             id: self::PLAYER_WITH_FAVORITES,
             code: 'player3',
             userId: 'auth0|fav004',
-            email: 'player3@speedpuzzling.cz',
             name: 'Michael Johnson',
             country: 'de',
             city: 'Berlin',
@@ -95,7 +93,6 @@ final class PlayerFixture extends Fixture
             id: self::PLAYER_WITH_STRIPE,
             code: 'player4',
             userId: self::PLAYER_WITH_STRIPE_USER_ID,
-            email: self::PLAYER_WITH_STRIPE_EMAIL,
             name: self::PLAYER_WITH_STRIPE_NAME,
             country: 'gb',
             city: 'London',
@@ -112,7 +109,6 @@ final class PlayerFixture extends Fixture
         string $id,
         string $code,
         string $userId,
-        string $email,
         string $name,
         null|string $country = null,
         null|string $city = null,
@@ -125,7 +121,6 @@ final class PlayerFixture extends Fixture
             id: Uuid::fromString($id),
             code: $code,
             userId: $userId,
-            email: $email,
             name: $name,
             registeredAt: $this->clock->now(),
         );

@@ -84,7 +84,7 @@ final class GetAccountDeletionSummaryTest extends KernelTestCase
     private function seedPlayer(): Player
     {
         $userId = 'msp|' . bin2hex(random_bytes(4));
-        $player = new Player(Uuid::uuid7(), 'SUM' . bin2hex(random_bytes(2)), $userId, $userId . '@example.com', 'Summary Tester', new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'SUM' . bin2hex(random_bytes(2)), $userId, 'Summary Tester', new DateTimeImmutable());
 
         $this->entityManager->persist($player);
         $this->entityManager->flush();

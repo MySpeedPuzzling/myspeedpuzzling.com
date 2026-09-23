@@ -61,7 +61,6 @@ readonly class PlayerRepository
                 $this->generateUniquePlayerCode->generate(),
                 $userId,
                 null,
-                null,
                 new \DateTimeImmutable(),
             );
 

@@ -107,7 +107,6 @@ final class TableSpotTest extends TestCase
             id: Uuid::uuid7(),
             code: 'test',
             userId: 'auth0|test',
-            email: 'test@test.com',
             name: 'Test Player',
             registeredAt: new DateTimeImmutable(),
         );

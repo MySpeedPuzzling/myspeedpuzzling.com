@@ -71,7 +71,7 @@ final class SendAccountDeletionLinkHandlerTest extends KernelTestCase
         $email = sprintf('delete.link+%s@example.com', bin2hex(random_bytes(4)));
 
         $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
-        $player = new Player(Uuid::uuid7(), 'DEL' . bin2hex(random_bytes(2)), $userId, $email, 'Leaving Soon', new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'DEL' . bin2hex(random_bytes(2)), $userId, 'Leaving Soon', new DateTimeImmutable());
 
         if ($locale !== null) {
             $player->changeLocale($locale);

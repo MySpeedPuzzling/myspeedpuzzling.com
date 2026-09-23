@@ -56,7 +56,7 @@ final class RetrieveLoggedUserProfile implements ResetInterface
             // never had a player - their owners registered on Auth0 and never came
             // back. Their first sign-in gets the player here.
             $this->messageBus->dispatch(
-                new RegisterUserToPlay($userId, $userAccount->email, null),
+                new RegisterUserToPlay($userId, null),
             );
 
             try {

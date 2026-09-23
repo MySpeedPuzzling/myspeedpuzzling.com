@@ -26,18 +26,11 @@ readonly final class RegisterUserToPlayHandler
      */
     public function __invoke(RegisterUserToPlay $message): void
     {
-        $name = $message->name;
-        // Obviously, name is either email or not filled
-        if ($message->name === $message->email) {
-            $name = null;
-        }
-
         $player = new Player(
             Uuid::uuid7(),
             $this->generateUniquePlayerCode->generate(),
             $message->userId,
-            $message->email, // release-2: drop with player.email (mirror of user_account.email for the blue-green rollout)
-            $name,
+            $message->name,
             new \DateTimeImmutable(),
         );
 

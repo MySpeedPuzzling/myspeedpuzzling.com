@@ -216,7 +216,6 @@ final class VoucherTest extends TestCase
             id: Uuid::uuid7(),
             code: 'testuser',
             userId: 'auth0|test123',
-            email: 'test@example.com',
             name: 'Test User',
             registeredAt: new DateTimeImmutable(),
         );

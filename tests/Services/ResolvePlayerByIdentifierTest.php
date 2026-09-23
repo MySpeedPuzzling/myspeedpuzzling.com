@@ -18,7 +18,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  * The ops-side lookup behind `myspeedpuzzling:player:delete`: whatever the
  * operator has at hand - UUID, player code, e-mail - must land on the right
  * player. An e-mail means the ACCOUNT e-mail (user_account.email, the single
- * source of truth); the mirror column player.email is never consulted.
+ * source of truth) - the player row itself carries no address.
  */
 final class ResolvePlayerByIdentifierTest extends KernelTestCase
 {
@@ -62,8 +62,8 @@ final class ResolvePlayerByIdentifierTest extends KernelTestCase
         $loginEmail = sprintf('login+%s@example.com', bin2hex(random_bytes(4)));
         $userId = 'msp|' . bin2hex(random_bytes(4));
 
-        $owner = new Player(Uuid::uuid7(), 'OWN' . bin2hex(random_bytes(2)), $userId, 'contact@example.com', 'Owner', new DateTimeImmutable());
-        $impostor = new Player(Uuid::uuid7(), 'IMP' . bin2hex(random_bytes(2)), 'msp|' . bin2hex(random_bytes(4)), $loginEmail, 'Impostor', new DateTimeImmutable());
+        $owner = new Player(Uuid::uuid7(), 'OWN' . bin2hex(random_bytes(2)), $userId, 'Owner', new DateTimeImmutable());
+        $impostor = new Player(Uuid::uuid7(), 'IMP' . bin2hex(random_bytes(2)), 'msp|' . bin2hex(random_bytes(4)), 'Impostor', new DateTimeImmutable());
 
         $this->entityManager->persist($owner);
         $this->entityManager->persist($impostor);
@@ -76,7 +76,7 @@ final class ResolvePlayerByIdentifierTest extends KernelTestCase
     public function testAPlayerWithoutAnAccountHasNoEmailToBeFoundBy(): void
     {
         $email = sprintf('orphan+%s@example.com', bin2hex(random_bytes(4)));
-        $orphan = new Player(Uuid::uuid7(), 'ORP' . bin2hex(random_bytes(2)), 'auth0|' . bin2hex(random_bytes(4)), $email, 'Orphan', new DateTimeImmutable());
+        $orphan = new Player(Uuid::uuid7(), 'ORP' . bin2hex(random_bytes(2)), 'auth0|' . bin2hex(random_bytes(4)), 'Orphan', new DateTimeImmutable());
 
         $this->entityManager->persist($orphan);
         $this->entityManager->flush();

@@ -100,7 +100,6 @@ final class SnapshotActivityDailySummaryHandlerTest extends KernelTestCase
             Uuid::uuid7(),
             'ADSN' . bin2hex(random_bytes(2)),
             'msp|' . bin2hex(random_bytes(8)),
-            sprintf('snapshot+%s@example.com', bin2hex(random_bytes(4))),
             null,
             $registeredAt,
         );

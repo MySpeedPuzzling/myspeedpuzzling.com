@@ -17,7 +17,6 @@ final class AffiliateTest extends TestCase
             id: Uuid::uuid7(),
             code: 'test1',
             userId: null,
-            email: null,
             name: null,
             registeredAt: new DateTimeImmutable(),
         );
@@ -32,7 +31,6 @@ final class AffiliateTest extends TestCase
             id: Uuid::uuid7(),
             code: 'test1',
             userId: null,
-            email: null,
             name: null,
             registeredAt: new DateTimeImmutable(),
         );
@@ -51,7 +49,6 @@ final class AffiliateTest extends TestCase
             id: Uuid::uuid7(),
             code: 'test1',
             userId: null,
-            email: null,
             name: null,
             registeredAt: new DateTimeImmutable(),
         );
@@ -70,7 +67,6 @@ final class AffiliateTest extends TestCase
             id: Uuid::uuid7(),
             code: 'test1',
             userId: null,
-            email: null,
             name: null,
             registeredAt: new DateTimeImmutable(),
         );

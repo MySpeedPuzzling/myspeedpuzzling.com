@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Message\UnsubscribeFromNewsletter;
 use SpeedPuzzling\Web\Repository\NewsletterSubscriberRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\NewsletterTokenSigner;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Value\NewsletterAudience;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -26,6 +27,7 @@ readonly final class UnsubscribeFromNewsletterHandler
         private NewsletterSubscriberRepository $newsletterSubscriberRepository,
         private ClockInterface $clock,
         private MessageBusInterface $messageBus,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -43,7 +45,9 @@ readonly final class UnsubscribeFromNewsletterHandler
                 throw new InvalidNewsletterToken();
             }
 
-            if ($player->email === null || mb_strtolower(trim($player->email)) !== $claim->email) {
+            $playerEmail = $this->playerAccountEmail->ofPlayer($player);
+
+            if ($playerEmail === null || mb_strtolower(trim($playerEmail)) !== $claim->email) {
                 throw new InvalidNewsletterToken();
             }
 

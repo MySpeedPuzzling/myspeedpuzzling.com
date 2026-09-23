@@ -55,7 +55,7 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
         // The new address is unproven until its own link is clicked
         self::assertNull($userAccount->emailVerifiedAt);
 
-        // The player's copy is what notification mail is addressed from - it must not drift
+        // The mirror column stays in step for the blue-green rollout (release-2: drop with player.email)
         $player = $this->playerRepository->findByUserId('msp|chmail1');
         self::assertNotNull($player);
         self::assertSame('chmail.one.new@example.com', $player->email);
@@ -98,47 +98,31 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
         self::assertSame('chmail.three@example.com', $userAccount->email);
     }
 
-    public function testAddressOfLegacyPlayerWithoutAccountIsRejected(): void
+    /**
+     * user_account.email is the single source of truth: a player row without an account
+     * (an Auth0-era leftover) has no address, so whatever its mirror column says reserves
+     * nothing - only another ACCOUNT can hold the address.
+     */
+    public function testMirrorColumnOfALegacyPlayerWithoutAccountReservesNothing(): void
     {
         $this->createUserAccountWithPassword('msp|chmail4', 'chmail.four@example.com', 'passphrase-4');
-        // A player row without a user_account (an Auth0-era leftover)
+        $this->createPlayer('msp|chmail4', 'chmail4', 'chmail.four@example.com');
         $this->createPlayer('auth0|chmail4-legacy', 'chmail4legacy', 'Chmail.Legacy@Example.com');
         $this->entityManager->flush();
 
         self::assertNull($this->userAccountRepository->findByEmail('chmail.legacy@example.com'));
 
-        $this->expectHandlerException(
+        $this->messageBus->dispatch(
             new ChangeAccountEmail('msp|chmail4', 'chmail.legacy@example.com', 'passphrase-4'),
-            EmailAlreadyRegistered::class,
         );
 
         $userAccount = $this->userAccountRepository->findByUserId('msp|chmail4');
         self::assertNotNull($userAccount);
-        self::assertSame('chmail.four@example.com', $userAccount->email);
-    }
+        self::assertSame('chmail.legacy@example.com', $userAccount->email);
 
-    /**
-     * player.email is not unique - production carries 7 known duplicate pairs. When
-     * the address the caller is moving to sits on BOTH a stale row and their own, the
-     * answer must not depend on which row the database happens to return first.
-     */
-    public function testAddressSharedWithAStaleDuplicateOfTheCallerIsStillRefused(): void
-    {
-        $this->createUserAccountWithPassword('msp|chmail6', 'chmail.six@example.com', 'passphrase-6');
-        // The caller's own player row already carries the target address...
-        $this->createPlayer('msp|chmail6', 'chmail6', 'chmail.shared@example.com');
-        // ...and so does a stale row left behind by a deleted-and-re-registered account
-        $this->createPlayer('auth0|chmail6-stale', 'chmail6stale', 'Chmail.Shared@Example.com');
-        $this->entityManager->flush();
-
-        $this->expectHandlerException(
-            new ChangeAccountEmail('msp|chmail6', 'chmail.shared@example.com', 'passphrase-6'),
-            EmailAlreadyRegistered::class,
-        );
-
-        $userAccount = $this->userAccountRepository->findByUserId('msp|chmail6');
-        self::assertNotNull($userAccount);
-        self::assertSame('chmail.six@example.com', $userAccount->email);
+        $player = $this->playerRepository->findByUserId('msp|chmail4');
+        self::assertNotNull($player);
+        self::assertSame('chmail.legacy@example.com', $player->email);
     }
 
     public function testChangingToTheSameAddressInDifferentCaseIsANoOp(): void

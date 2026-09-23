@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\SyncWjpfIdentity;
 use SpeedPuzzling\Web\MessageHandler\SyncWjpfIdentityHandler;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\WjpfIdentityRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\Wjpf\WjpfClient;
 use SpeedPuzzling\Web\Services\Wjpf\WjpfIdentityRecorder;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -134,6 +135,7 @@ final class SyncWjpfIdentityHandlerTest extends KernelTestCase
             $client,
             $container->get(WjpfIdentityRecorder::class),
             new NullLogger(),
+            $container->get(PlayerAccountEmail::class),
         );
 
         $handler(new SyncWjpfIdentity(PlayerFixture::PLAYER_REGULAR, $claim));

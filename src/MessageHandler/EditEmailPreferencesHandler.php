@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\EditEmailPreferences;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -23,6 +24,7 @@ readonly final class EditEmailPreferencesHandler
     public function __construct(
         private PlayerRepository $playerRepository,
         private MessageBusInterface $messageBus,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -39,8 +41,10 @@ readonly final class EditEmailPreferencesHandler
         $player->changeEmailNotificationFrequency($message->emailNotificationFrequency);
         $player->changeNewsletterEnabled($message->newsletterEnabled);
 
-        if ($newsletterChanged && $player->email !== null) {
-            $this->messageBus->dispatch(new PushNewsletterSubscriberToListmonk($player->email));
+        $playerEmail = $newsletterChanged ? $this->playerAccountEmail->ofPlayer($player) : null;
+
+        if ($playerEmail !== null) {
+            $this->messageBus->dispatch(new PushNewsletterSubscriberToListmonk($playerEmail));
         }
     }
 }

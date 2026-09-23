@@ -132,7 +132,6 @@ final class PlayerFixture extends Fixture
 
         $player->changeProfile(
             name: $name,
-            email: $email,
             city: $city,
             country: $country,
             avatar: null,

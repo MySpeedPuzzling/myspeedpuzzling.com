@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use SpeedPuzzling\Web\Events\MembershipSubscriptionCancelled;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -18,6 +19,7 @@ readonly final class NotifyWhenMembershipSubscriptionCancelled
         private MembershipRepository $membershipRepository,
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -25,8 +27,9 @@ readonly final class NotifyWhenMembershipSubscriptionCancelled
     {
         $membership = $this->membershipRepository->get($event->membershipId->toString());
         $player = $membership->player;
+        $playerEmail = $this->playerAccountEmail->ofPlayer($player);
 
-        if ($player->email === null) {
+        if ($playerEmail === null) {
             return;
         }
 
@@ -43,7 +46,7 @@ readonly final class NotifyWhenMembershipSubscriptionCancelled
         );
 
         $email = (new TemplatedEmail())
-            ->to($player->email)
+            ->to($playerEmail)
             ->locale($player->locale)
             ->subject($subject)
             ->htmlTemplate('emails/membership_cancelled.html.twig')

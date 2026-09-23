@@ -17,7 +17,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 /**
  * The ops-side lookup behind `myspeedpuzzling:player:delete`: whatever the
  * operator has at hand - UUID, player code, e-mail - must land on the right
- * player, and the login e-mail must win over the free-text profile e-mail.
+ * player. An e-mail means the ACCOUNT e-mail (user_account.email, the single
+ * source of truth); the mirror column player.email is never consulted.
  */
 final class ResolvePlayerByIdentifierTest extends KernelTestCase
 {
@@ -47,17 +48,17 @@ final class ResolvePlayerByIdentifierTest extends KernelTestCase
         self::assertSame(PlayerFixture::PLAYER_REGULAR, $this->resolver->resolve('#' . strtoupper($regular->code))->id->toString());
     }
 
-    public function testResolvesByProfileEmailWhenThereIsNoUserAccount(): void
+    public function testResolvesByAccountEmail(): void
     {
         $player = $this->resolver->resolve(PlayerFixture::PLAYER_REGULAR_EMAIL);
 
         self::assertSame(PlayerFixture::PLAYER_REGULAR, $player->id->toString());
     }
 
-    public function testTheLoginEmailWinsOverAProfileEmailPointingElsewhere(): void
+    public function testOnlyTheAccountEmailCounts(): void
     {
-        // Login e-mail X belongs to account A; a different player B has typed X into
-        // their profile contact field. "X" must mean A.
+        // Account e-mail X belongs to account A; a different player B still carries X in
+        // the mirror column (a drifted Auth0-era row). "X" must mean A.
         $loginEmail = sprintf('login+%s@example.com', bin2hex(random_bytes(4)));
         $userId = 'msp|' . bin2hex(random_bytes(4));
 
@@ -70,6 +71,19 @@ final class ResolvePlayerByIdentifierTest extends KernelTestCase
         $this->entityManager->flush();
 
         self::assertSame($owner->id->toString(), $this->resolver->resolve(strtoupper($loginEmail))->id->toString());
+    }
+
+    public function testAPlayerWithoutAnAccountHasNoEmailToBeFoundBy(): void
+    {
+        $email = sprintf('orphan+%s@example.com', bin2hex(random_bytes(4)));
+        $orphan = new Player(Uuid::uuid7(), 'ORP' . bin2hex(random_bytes(2)), 'auth0|' . bin2hex(random_bytes(4)), $email, 'Orphan', new DateTimeImmutable());
+
+        $this->entityManager->persist($orphan);
+        $this->entityManager->flush();
+
+        $this->expectException(PlayerNotFound::class);
+
+        $this->resolver->resolve($email);
     }
 
     public function testThrowsForAnUnknownIdentifier(): void

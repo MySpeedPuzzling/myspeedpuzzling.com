@@ -12,7 +12,6 @@ readonly final class EditProfile
     public function __construct(
         public string $playerId,
         public null|string $name,
-        public null|string $email,
         public null|string $country,
         public null|string $city,
         public null|UploadedFile $avatar,
@@ -28,7 +27,6 @@ readonly final class EditProfile
         return new self(
             playerId: $playerId,
             name: $formData->name,
-            email: $formData->email,
             country: $formData->country,
             city: $formData->city,
             avatar: $formData->avatar,

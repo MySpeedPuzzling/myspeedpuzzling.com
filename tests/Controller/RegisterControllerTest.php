@@ -128,35 +128,37 @@ final class RegisterControllerTest extends WebTestCase
     }
 
     /**
-     * An address that already reaches a player must not get a second account, even
-     * when that player has no user_account row (implementation-plan §2c): the new
-     * account would sit next to the real profile and every solving time on it.
+     * user_account.email is the single source of truth: a player row without an account
+     * (an Auth0-era leftover) has no e-mail, so the address on its rollout mirror column
+     * reserves nothing - only another ACCOUNT can hold an address.
      */
-    public function testAddressBelongingToALegacyPlayerWithoutAnAccountIsRefused(): void
+    public function testMirrorColumnOfALegacyPlayerWithoutAnAccountReservesNothing(): void
     {
         $browser = self::createClient();
         $email = $this->randomEmail('register.legacy');
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
-        $entityManager->persist(
-            new Player(
-                Uuid::uuid7(),
-                'RGST' . bin2hex(random_bytes(2)),
-                'auth0|' . bin2hex(random_bytes(4)),
-                // Stored with different casing than the visitor types it
-                strtoupper($email),
-                null,
-                new DateTimeImmutable(),
-            ),
+        $legacyPlayer = new Player(
+            Uuid::uuid7(),
+            'RGST' . bin2hex(random_bytes(2)),
+            'auth0|' . bin2hex(random_bytes(4)),
+            strtoupper($email),
+            null,
+            new DateTimeImmutable(),
         );
+        $entityManager->persist($legacyPlayer);
         $entityManager->flush();
 
-        $crawler = $this->submitRegistration($browser, $email, 'a-properly-long-passphrase');
+        $this->submitRegistration($browser, $email, 'a-properly-long-passphrase');
 
-        // 422, not 200: Turbo Drive discards a 200 answer to a form submission and the error with it
-        self::assertResponseStatusCodeSame(422);
-        self::assertStringContainsString('already has an account', $crawler->filter('form')->text());
-        self::assertNull($browser->getContainer()->get(TokenStorageInterface::class)->getToken());
+        self::assertResponseRedirects();
+
+        $userAccount = $browser->getContainer()->get(UserAccountRepository::class)->findByEmail($email);
+        self::assertNotNull($userAccount);
+
+        $player = $browser->getContainer()->get(PlayerRepository::class)->findByUserId($userAccount->userId);
+        self::assertNotNull($player);
+        self::assertNotSame($legacyPlayer->id->toString(), $player->id->toString());
     }
 
     public function testWeakPasswordIsRefusedBeforeAnythingIsCreated(): void

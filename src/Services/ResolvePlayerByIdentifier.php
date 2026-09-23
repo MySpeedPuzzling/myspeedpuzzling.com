@@ -35,19 +35,15 @@ readonly final class ResolvePlayerByIdentifier
         }
 
         if (str_contains($identifier, '@')) {
-            // The login e-mail is the authoritative one; the profile e-mail (player.email)
-            // is a free-text contact field the user may have pointed anywhere
+            // user_account.email is the single source of truth; a player without an
+            // account row has no address and cannot be found this way
             $userAccount = $this->userAccountRepository->findByEmail($identifier);
 
-            if ($userAccount !== null) {
-                $player = $this->playerRepository->findByUserId($userAccount->userId);
-
-                if ($player !== null) {
-                    return $player;
-                }
+            if ($userAccount === null) {
+                throw new PlayerNotFound();
             }
 
-            $player = $this->playerRepository->findByEmail($identifier);
+            $player = $this->playerRepository->findByUserId($userAccount->userId);
 
             if ($player === null) {
                 throw new PlayerNotFound();

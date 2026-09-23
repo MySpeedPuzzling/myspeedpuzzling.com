@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\RejectOAuth2ClientRequest;
 use SpeedPuzzling\Web\Repository\OAuth2ClientRequestRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -21,6 +22,7 @@ final readonly class RejectOAuth2ClientRequestHandler
         private OAuth2ClientRequestRepository $requestRepository,
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -33,7 +35,7 @@ final readonly class RejectOAuth2ClientRequestHandler
         $request->reject($admin, $message->reason);
         $this->entityManager->flush();
 
-        $playerEmail = $request->player->email;
+        $playerEmail = $this->playerAccountEmail->ofPlayer($request->player);
 
         if ($playerEmail !== null) {
             $playerLocale = $request->player->locale ?? 'en';

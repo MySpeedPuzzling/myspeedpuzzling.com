@@ -49,10 +49,13 @@ readonly final class GetNewsletterRecipients
      */
     private function fetch(null|string $email): array
     {
+        // The address is the account's (user_account.email is the single source of truth);
+        // a player without an account row has no address and is not a recipient
         $playersQuery = <<<SQL
-SELECT id, LOWER(TRIM(email)) AS email, name, locale, newsletter_enabled
+SELECT player.id, LOWER(TRIM(user_account.email)) AS email, player.name, player.locale, player.newsletter_enabled
 FROM player
-WHERE email IS NOT NULL AND TRIM(email) != ''
+INNER JOIN user_account ON user_account.user_id = player.user_id
+WHERE TRIM(user_account.email) != ''
 SQL;
 
         $guestsQuery = <<<SQL
@@ -64,7 +67,7 @@ SQL;
         $parameters = ['pendingStatus' => NewsletterSubscriberStatus::Pending->value];
 
         if ($email !== null) {
-            $playersQuery .= ' AND LOWER(TRIM(email)) = :email';
+            $playersQuery .= ' AND LOWER(TRIM(user_account.email)) = :email';
             $guestsQuery .= ' AND email = :email';
             $parameters['email'] = $email;
         }
@@ -86,7 +89,7 @@ SQL;
 
             $existing = $recipients[$recipient->email] ?? null;
 
-            // Duplicate player e-mails: prefer the subscribed one
+            // user_account.email is unique, so this only guards against case/whitespace twins
             if ($existing === null || ($existing->subscribed === false && $recipient->subscribed === true)) {
                 $recipients[$recipient->email] = $recipient;
             }

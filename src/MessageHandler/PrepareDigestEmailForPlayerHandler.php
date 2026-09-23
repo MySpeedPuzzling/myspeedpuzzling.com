@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Query\GetPlayersWithUnreadMessages;
 use SpeedPuzzling\Web\Repository\DigestEmailLogRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -33,6 +34,7 @@ readonly final class PrepareDigestEmailForPlayerHandler
         private Connection $connection,
         private LoggerInterface $logger,
         private EmailPreferencesLinkGenerator $emailPreferencesLinkGenerator,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -40,7 +42,9 @@ readonly final class PrepareDigestEmailForPlayerHandler
     {
         $player = $this->playerRepository->get($message->playerId);
 
-        if ($player->email === null || !$player->emailNotificationsEnabled) {
+        $playerEmail = $this->playerAccountEmail->ofPlayer($player);
+
+        if ($playerEmail === null || !$player->emailNotificationsEnabled) {
             return;
         }
 
@@ -74,7 +78,7 @@ readonly final class PrepareDigestEmailForPlayerHandler
 
         $email = (new TemplatedEmail())
             ->from(new Address('notify@notify.myspeedpuzzling.com', 'MySpeedPuzzling'))
-            ->to($player->email)
+            ->to($playerEmail)
             ->locale($player->locale ?? 'en')
             ->subject($subject)
             ->htmlTemplate('emails/unread_digest.html.twig')
@@ -85,7 +89,7 @@ readonly final class PrepareDigestEmailForPlayerHandler
                 'locale' => $player->locale ?? 'en',
                 'settingsUrl' => $this->emailPreferencesLinkGenerator->forPlayer(
                     $message->playerId,
-                    $player->email,
+                    $playerEmail,
                     $player->locale,
                 ),
             ]);

@@ -8,7 +8,6 @@ use SpeedPuzzling\Web\FormData\EditProfileFormData;
 use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -36,12 +35,6 @@ final class EditProfileFormType extends AbstractType
             'label' => 'my_profile.name',
             'required' => false,
             'help' => 'forms.name_help',
-        ]);
-
-        $builder->add('email', EmailType::class, [
-            'label' => 'email',
-            'required' => false,
-            'help' => 'forms.email_help',
         ]);
 
         $builder->add('city', TextType::class, [

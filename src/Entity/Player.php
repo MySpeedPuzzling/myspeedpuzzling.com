@@ -199,6 +199,13 @@ class Player
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(unique: true, nullable: true)]
         public null|string $userId,
+        /**
+         * Mirror of user_account.email, kept only so the previous release keeps working
+         * during the blue-green rollout. Nothing reads it - readers go through
+         * Services\PlayerAccountEmail or join user_account in SQL.
+         *
+         * release-2: drop with player.email
+         */
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(nullable: true)]
         public null|string $email,
@@ -213,7 +220,6 @@ class Player
 
     public function changeProfile(
         null|string $name,
-        null|string $email,
         null|string $city,
         null|string $country,
         null|string $avatar,
@@ -223,7 +229,6 @@ class Player
         null|string $twitch,
     ): void {
         $this->name = $name;
-        $this->email = $email;
         $this->city = $city;
         $this->country = $country;
         $this->avatar = $avatar;
@@ -234,9 +239,11 @@ class Player
     }
 
     /**
-     * Keeps the player's copy of the address in step with user_account.email when
-     * the account owner changes it (issue #147). Notification mail is addressed
-     * from here, so the two drifting apart would send it to the old inbox.
+     * Keeps the mirror column in step with user_account.email when the account owner
+     * changes it, so the previous release still addresses mail correctly while both
+     * containers run. Only ChangeAccountEmailHandler calls this.
+     *
+     * release-2: drop with player.email
      */
     public function changeEmail(string $email): void
     {

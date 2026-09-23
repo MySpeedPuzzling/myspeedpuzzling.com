@@ -15,6 +15,19 @@ Status: **planned** (scope confirmed by Jan 2026-07-31). Follow-up to the Auth0 
 | 2FA (TOTP), GeoIP enrichment, HIBP warn-at-login | Not now |
 | Storage | **Postgres**, same DB. At ~10k users we expect 1–2k auth events/day — a few MB/year. A plain indexed table + retention prune beats any separate store (ClickHouse/Loki = ops burden for zero benefit at this scale), stays joinable to `user_account`, and rides the existing backup pipeline. |
 
+## Account e-mail is the single source of truth (2026-09-23)
+
+`user_account.email` is the one address a player has: it is what they sign in with, where sign-in links, password resets
+and every notification, digest, newsletter sync and WJPF lookup go, and what admin screens and the API (`/api/v1/me`)
+show. The Auth0-era `player.email` column was a second, freely editable copy (the Edit profile form wrote it) and 46
+production accounts had drifted apart - people "changed their e-mail" there and the login never followed. Since this
+change the profile form has no e-mail field; the only way to change the address is the verified flow
+(`ChangeAccountEmailHandler`: current password + confirmation link to the new inbox). Every reader joins `user_account`
+(`LEFT JOIN user_account ON user_account.user_id = player.user_id` in `src/Query`, `Services\PlayerAccountEmail` for
+ORM-side handlers); a player without an account row has no e-mail. `player.email` is still written as a mirror by
+registration and the change-e-mail flow (comments marked `release-2`) so the previous container keeps working during the
+blue-green rollout, and is dropped in release 2 - see `docs/TODO.md`.
+
 ## What already exists (do NOT rebuild)
 
 - **Rate limiting** (`config/packages/rate_limiter.php`): login 5/min per email+IP + 100/min per IP (in `LoginFormAuthenticator`, deliberately NOT firewall-level `login_throttling` — see comments there), sign-in-link and password-reset requests 3/15min + 20/h, registration limits. This already covers brute force.

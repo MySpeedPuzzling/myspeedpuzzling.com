@@ -8,6 +8,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Message\SendFreeTrialEndingReminder;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -21,6 +22,7 @@ readonly final class SendFreeTrialEndingReminderHandler
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
         private ClockInterface $clock,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -34,6 +36,7 @@ readonly final class SendFreeTrialEndingReminderHandler
     {
         $membership = $this->membershipRepository->get($message->membershipId);
         $player = $membership->player;
+        $playerEmail = $this->playerAccountEmail->ofPlayer($player);
         $now = $this->clock->now();
 
         // Asked for by a query a moment ago - the player may have subscribed or the trial ended since
@@ -42,7 +45,7 @@ readonly final class SendFreeTrialEndingReminderHandler
             || $membership->trialEndsAt <= $now
             || $membership->trialEndingReminderSentAt !== null
             || $membership->stripeSubscriptionId !== null
-            || $player->email === null
+            || $playerEmail === null
         ) {
             return;
         }
@@ -50,7 +53,7 @@ readonly final class SendFreeTrialEndingReminderHandler
         $membership->trialEndingReminderSentAt = $now;
 
         $email = (new TemplatedEmail())
-            ->to($player->email)
+            ->to($playerEmail)
             ->locale($player->locale)
             ->subject($this->translator->trans('free_trial_ending.subject', domain: 'emails', locale: $player->locale))
             ->htmlTemplate('emails/free_trial_ending.html.twig')

@@ -36,7 +36,7 @@ readonly final class RegisterUserToPlayHandler
             Uuid::uuid7(),
             $this->generateUniquePlayerCode->generate(),
             $message->userId,
-            $message->email,
+            $message->email, // release-2: drop with player.email (mirror of user_account.email for the blue-green rollout)
             $name,
             new \DateTimeImmutable(),
         );

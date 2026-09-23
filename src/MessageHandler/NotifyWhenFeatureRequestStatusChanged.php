@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use SpeedPuzzling\Web\Events\FeatureRequestStatusChanged;
 use SpeedPuzzling\Web\Query\GetFeatureRequestVoters;
 use SpeedPuzzling\Web\Repository\FeatureRequestRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Value\FeatureRequestStatus;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
@@ -21,6 +22,7 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
         private GetFeatureRequestVoters $getFeatureRequestVoters,
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -49,9 +51,11 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
         $featureRequest = $this->featureRequestRepository->get($event->featureRequestId->toString());
         $author = $featureRequest->author;
 
-        if ($author !== null && $author->email !== null) {
+        $authorEmail = $author === null ? null : $this->playerAccountEmail->ofPlayer($author);
+
+        if ($authorEmail !== null) {
             $this->sendEmail(
-                toEmail: $author->email,
+                toEmail: $authorEmail,
                 locale: $author->locale ?? 'en',
                 template: $templates['author'],
                 subjectKey: $templates['authorSubjectKey'],

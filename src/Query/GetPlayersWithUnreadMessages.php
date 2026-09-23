@@ -40,16 +40,16 @@ SQL;
         $query = <<<SQL
 SELECT
     p.id as player_id,
-    p.email as player_email,
+    ua.email as player_email,
     p.name as player_name,
     p.locale as player_locale,
     MIN(cm.sent_at) as oldest_unread_at,
     COUNT(cm.id) as unread_count
 FROM player p
+JOIN user_account ua ON ua.user_id = p.user_id
 JOIN conversation c ON (c.initiator_id = p.id OR c.recipient_id = p.id)
 JOIN chat_message cm ON cm.conversation_id = c.id
-WHERE p.email IS NOT NULL
-  AND p.email_notifications_enabled = true
+WHERE p.email_notifications_enabled = true
   AND c.status = 'accepted'
   AND cm.sender_id != p.id
   AND cm.read_at IS NULL
@@ -64,7 +64,7 @@ WHERE p.email IS NOT NULL
       WHERE del.player_id = p.id
       AND del.sent_at > :now::timestamp - {$frequencyInterval}
   )
-GROUP BY p.id, p.email, p.name, p.locale
+GROUP BY p.id, ua.email, p.name, p.locale
 HAVING MIN(cm.sent_at) > COALESCE(
     (SELECT MAX(del.oldest_unread_message_at)
      FROM digest_email_log del
@@ -112,15 +112,15 @@ SQL;
         $query = <<<SQL
 SELECT
     p.id as player_id,
-    p.email as player_email,
+    ua.email as player_email,
     p.name as player_name,
     p.locale as player_locale,
     MIN(c.created_at) as oldest_pending_at,
     COUNT(c.id) as pending_count
 FROM player p
+JOIN user_account ua ON ua.user_id = p.user_id
 JOIN conversation c ON c.recipient_id = p.id
-WHERE p.email IS NOT NULL
-  AND p.email_notifications_enabled = true
+WHERE p.email_notifications_enabled = true
   AND c.status = 'pending'
   AND c.created_at < :now::timestamp - {$frequencyInterval}
   AND NOT EXISTS (
@@ -133,7 +133,7 @@ WHERE p.email IS NOT NULL
       WHERE del.player_id = p.id
       AND del.sent_at > :now::timestamp - {$frequencyInterval}
   )
-GROUP BY p.id, p.email, p.name, p.locale
+GROUP BY p.id, ua.email, p.name, p.locale
 HAVING MIN(c.created_at) > COALESCE(
     (SELECT MAX(del.oldest_pending_request_at)
      FROM digest_email_log del

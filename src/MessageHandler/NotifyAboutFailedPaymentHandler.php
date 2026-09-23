@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Message\NotifyAboutFailedPayment;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -19,6 +20,7 @@ readonly final class NotifyAboutFailedPaymentHandler
         private MembershipRepository $membershipRepository,
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -27,8 +29,9 @@ readonly final class NotifyAboutFailedPaymentHandler
         try {
             $membership = $this->membershipRepository->getByStripeSubscriptionId($message->stripeSubscriptionId);
             $player = $membership->player;
+            $playerEmail = $this->playerAccountEmail->ofPlayer($player);
 
-            if ($player->email === null) {
+            if ($playerEmail === null) {
                 return;
             }
 
@@ -40,7 +43,7 @@ readonly final class NotifyAboutFailedPaymentHandler
             );
 
             $email = (new TemplatedEmail())
-                ->to($player->email)
+                ->to($playerEmail)
                 ->locale($player->locale)
                 ->subject($subject)
                 ->htmlTemplate('emails/subscription_payment_failed.html.twig')

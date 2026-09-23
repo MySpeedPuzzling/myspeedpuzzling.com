@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Tests\Query;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Entity\WjpfIdentity;
 use SpeedPuzzling\Web\Query\GetPlayersForWjpfSync;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -87,6 +89,37 @@ final class GetPlayersForWjpfSyncTest extends KernelTestCase
         self::assertCount(2, $this->getPlayersForWjpfSync->all(limit: 2));
     }
 
+    /** user_account.email is the single source of truth - the mirror column player.email is never read. */
+    public function testTheAccountEmailIsUsedEvenWhenTheMirrorColumnDrifted(): void
+    {
+        $userId = 'msp|' . bin2hex(random_bytes(4));
+        $accountEmail = sprintf('account+%s@example.com', bin2hex(random_bytes(4)));
+        $player = new Player(Uuid::uuid7(), 'WJ' . bin2hex(random_bytes(3)), $userId, 'drifted@example.com', 'Drifted', new DateTimeImmutable());
+
+        $this->entityManager->persist($player);
+        $this->entityManager->persist(new UserAccount(Uuid::uuid7(), $userId, strtoupper($accountEmail), new DateTimeImmutable()));
+        $this->entityManager->flush();
+
+        $candidates = array_filter(
+            $this->getPlayersForWjpfSync->all(),
+            static fn (WjpfSyncCandidate $candidate): bool => $candidate->playerId === $player->id->toString(),
+        );
+
+        self::assertCount(1, $candidates);
+        self::assertSame($accountEmail, array_values($candidates)[0]->email);
+    }
+
+    /** A player without an account row has no e-mail, whatever the mirror column says. */
+    public function testAPlayerWithoutAnAccountIsNotACandidate(): void
+    {
+        $player = new Player(Uuid::uuid7(), 'WJ' . bin2hex(random_bytes(3)), 'auth0|' . bin2hex(random_bytes(4)), 'orphan@example.com', 'Orphan', new DateTimeImmutable());
+
+        $this->entityManager->persist($player);
+        $this->entityManager->flush();
+
+        self::assertNotContains($player->id->toString(), $this->playerIds());
+    }
+
     /**
      * Builds a mapping row for PLAYER_REGULAR. A non-null $wjpfId means "we already hold their
      * id"; combining it with NotFound reproduces a match that later stopped resolving.
@@ -94,7 +127,7 @@ final class GetPlayersForWjpfSyncTest extends KernelTestCase
     private function givenIdentity(WjpfPairingStatus $status, null|string $wjpfId): void
     {
         $player = $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR);
-        $email = (string) $player->email;
+        $email = PlayerFixture::PLAYER_REGULAR_EMAIL;
         $now = new DateTimeImmutable();
 
         $identity = new WjpfIdentity(

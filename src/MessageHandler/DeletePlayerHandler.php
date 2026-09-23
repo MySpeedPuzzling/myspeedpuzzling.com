@@ -39,6 +39,7 @@ use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
 use SpeedPuzzling\Web\Repository\NewsletterSubscriberRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\PuzzlingTeamMemberConversion;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
@@ -59,6 +60,7 @@ final class DeletePlayerHandler
         private readonly MessageBusInterface $messageBus,
         private readonly UserAccountRepository $userAccountRepository,
         private readonly PuzzlingTeamMemberConversion $puzzlingTeamMemberConversion,
+        private readonly PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -90,8 +92,10 @@ final class DeletePlayerHandler
         $this->anonymizeTransactionRatings($player, $playerName);
         $this->anonymizeCompetitionSeries($playerId);
         $this->anonymizeBulkSimpleFks($playerId);
-        $this->hashEmailAuditLog($player);
-        $this->cleanupNewsletter($player);
+        // The address lives on the account row, which goes below - read it while it is still there
+        $email = $this->playerAccountEmail->ofPlayer($player);
+        $this->hashEmailAuditLog($email);
+        $this->cleanupNewsletter($email);
 
         $membership = $this->entityManager->getRepository(Membership::class)->findOneBy(['player' => $player]);
 
@@ -405,17 +409,17 @@ final class DeletePlayerHandler
     }
 
     /**
-     * The player row (and with it the e-mail) is gone after this transaction,
+     * The account row (and with it the e-mail) is gone after this transaction,
      * so the Listmonk removal must be queued now, carrying the address. A guest
      * newsletter subscription under the same address is wiped too.
      */
-    private function cleanupNewsletter(Player $player): void
+    private function cleanupNewsletter(null|string $accountEmail): void
     {
-        if ($player->email === null) {
+        if ($accountEmail === null) {
             return;
         }
 
-        $email = mb_strtolower(trim($player->email));
+        $email = mb_strtolower(trim($accountEmail));
 
         $guestSubscriber = $this->newsletterSubscriberRepository->findByEmail($email);
 
@@ -445,17 +449,17 @@ final class DeletePlayerHandler
         }
     }
 
-    private function hashEmailAuditLog(Player $player): void
+    private function hashEmailAuditLog(null|string $email): void
     {
-        if ($player->email === null) {
+        if ($email === null) {
             return;
         }
 
-        $hash = hash('sha256', strtolower($player->email));
+        $hash = hash('sha256', strtolower($email));
 
         $this->entityManager->getConnection()->executeStatement(
             'UPDATE email_audit_log SET recipient_email = :hash WHERE LOWER(recipient_email) = :email',
-            ['hash' => $hash, 'email' => strtolower($player->email)],
+            ['hash' => $hash, 'email' => strtolower($email)],
         );
     }
 }

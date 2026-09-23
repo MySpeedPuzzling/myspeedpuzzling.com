@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Events\MembershipSubscriptionCancelled;
 use SpeedPuzzling\Web\MessageHandler\NotifyWhenMembershipSubscriptionCancelled;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -44,10 +45,15 @@ final class NotifyWhenMembershipSubscriptionCancelledTest extends TestCase
         $membershipRepository = $this->createStub(MembershipRepository::class);
         $membershipRepository->method('get')->willReturn($membership);
 
+        // The address comes from the account, never from the player row
+        $playerAccountEmail = $this->createStub(PlayerAccountEmail::class);
+        $playerAccountEmail->method('ofPlayer')->willReturn('test@example.com');
+
         return new NotifyWhenMembershipSubscriptionCancelled(
             membershipRepository: $membershipRepository,
             mailer: $mailer,
             translator: $this->createStub(TranslatorInterface::class),
+            playerAccountEmail: $playerAccountEmail,
         );
     }
 
@@ -57,7 +63,7 @@ final class NotifyWhenMembershipSubscriptionCancelledTest extends TestCase
             id: Uuid::uuid7(),
             code: 'testplayer',
             userId: 'auth0|test',
-            email: 'test@example.com',
+            email: null,
             name: 'Test Player',
             registeredAt: new DateTimeImmutable(),
         );

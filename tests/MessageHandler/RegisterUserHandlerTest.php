@@ -83,17 +83,19 @@ final class RegisterUserHandlerTest extends KernelTestCase
         self::assertSame(1, $this->countAccountsWithEmail('register.two@example.com'));
     }
 
-    public function testEmailOfLegacyPlayerWithoutAccountIsRejected(): void
+    public function testMirrorColumnOfALegacyPlayerWithoutAccountReservesNothing(): void
     {
-        // A player row without a user_account (production has two, Auth0-era leftovers).
-        // Registering on their address would put a second account next to their profile.
+        // A player row without a user_account (production has two, Auth0-era leftovers) has
+        // no e-mail: user_account.email is the single source of truth, so the address on its
+        // mirror column is free to register - only another ACCOUNT can hold an address.
         $this->createPlayer('auth0|register3', 'reg-legacy-3', 'Legacy.Three@Example.com', locale: null);
 
         self::assertNull($this->userAccountRepository->findByEmail('legacy.three@example.com'));
 
-        $this->expectRegistrationRejected('legacy.three@example.com');
+        $userId = $this->register('legacy.three@example.com', 'a-strong-passphrase-3', null);
 
-        self::assertSame(0, $this->countAccountsWithEmail('legacy.three@example.com'));
+        self::assertSame(1, $this->countAccountsWithEmail('legacy.three@example.com'));
+        self::assertNotNull($this->playerRepository->findByUserId($userId));
     }
 
     public function testRegistrationWithoutLocaleLeavesPlayerLocaleNull(): void

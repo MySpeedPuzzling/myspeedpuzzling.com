@@ -73,13 +73,6 @@ final readonly class RegisterWithOauthIdentityHandler
             throw new EmailAlreadyRegistered();
         }
 
-        // Same guard as native registration: a player without a user_account row
-        // must not get shadowed by a fresh social account on the same address
-        // (RegisterUserHandler has the full story)
-        if ($this->playerRepository->findByEmail($email) !== null) {
-            throw new EmailAlreadyRegistered();
-        }
-
         $now = $this->clock->now();
         $userId = 'msp|' . Uuid::uuid7()->toString();
 
@@ -100,7 +93,7 @@ final readonly class RegisterWithOauthIdentityHandler
             Uuid::uuid7(),
             $this->generateUniquePlayerCode->generate(),
             $userId,
-            $email,
+            $email, // release-2: drop with player.email (mirror of user_account.email for the blue-green rollout)
             $message->name,
             $now,
         );

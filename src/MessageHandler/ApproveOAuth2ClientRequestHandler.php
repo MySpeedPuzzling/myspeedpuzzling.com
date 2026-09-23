@@ -13,6 +13,7 @@ use League\Bundle\OAuth2ServerBundle\ValueObject\Scope;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\ApproveOAuth2ClientRequest;
 use SpeedPuzzling\Web\Repository\OAuth2ClientRequestRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Value\OAuth2ApplicationType;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
@@ -30,6 +31,7 @@ final readonly class ApproveOAuth2ClientRequestHandler
         private MailerInterface $mailer,
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -80,7 +82,7 @@ final readonly class ApproveOAuth2ClientRequestHandler
             'claimToken' => $claimToken,
         ], UrlGeneratorInterface::ABSOLUTE_URL);
 
-        $playerEmail = $request->player->email;
+        $playerEmail = $this->playerAccountEmail->ofPlayer($request->player);
 
         if ($playerEmail !== null) {
             $playerLocale = $request->player->locale ?? 'en';

@@ -8,6 +8,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\RejectCompetitionSeries;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -22,6 +23,7 @@ readonly final class RejectCompetitionSeriesHandler
         private ClockInterface $clock,
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -34,7 +36,9 @@ readonly final class RejectCompetitionSeriesHandler
 
         $creator = $series->addedByPlayer;
 
-        if ($creator?->email !== null) {
+        $creatorEmail = $creator === null ? null : $this->playerAccountEmail->ofPlayer($creator);
+
+        if ($creatorEmail !== null) {
             $playerLocale = $creator->locale ?? 'en';
 
             $subject = $this->translator->trans(
@@ -44,7 +48,7 @@ readonly final class RejectCompetitionSeriesHandler
             );
 
             $email = (new TemplatedEmail())
-                ->to($creator->email)
+                ->to($creatorEmail)
                 ->locale($playerLocale)
                 ->subject($subject)
                 ->htmlTemplate('emails/competition_rejected.html.twig')

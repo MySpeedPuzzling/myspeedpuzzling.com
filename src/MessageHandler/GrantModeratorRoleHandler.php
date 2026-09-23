@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\GrantModeratorRole;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Value\NotificationType;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
@@ -28,6 +29,7 @@ readonly final class GrantModeratorRoleHandler
         private MailerInterface $mailer,
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -55,14 +57,16 @@ readonly final class GrantModeratorRoleHandler
 
     private function sendWelcomeEmail(Player $player): void
     {
-        if ($player->email === null) {
+        $playerEmail = $this->playerAccountEmail->ofPlayer($player);
+
+        if ($playerEmail === null) {
             return;
         }
 
         $locale = $player->locale ?? 'en';
 
         $email = (new TemplatedEmail())
-            ->to($player->email)
+            ->to($playerEmail)
             ->locale($locale)
             ->subject($this->translator->trans('moderator_role_granted.subject', domain: 'emails', locale: $locale))
             ->htmlTemplate('emails/moderator_role_granted.html.twig')

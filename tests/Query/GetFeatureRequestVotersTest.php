@@ -52,11 +52,13 @@ final class GetFeatureRequestVotersTest extends KernelTestCase
         self::assertCount(1, $voters);
     }
 
-    public function testSkipsVotersWithNullEmail(): void
+    public function testSkipsVotersWithoutAnAccountEmail(): void
     {
+        // user_account.email is the single source of truth: no account row = no e-mail,
+        // whatever the rollout mirror column on the player says
         $this->connection->executeStatement(
-            'UPDATE player SET email = NULL WHERE id = :id',
-            ['id' => PlayerFixture::PLAYER_REGULAR],
+            'DELETE FROM user_account WHERE user_id = :userId',
+            ['userId' => PlayerFixture::PLAYER_REGULAR_USER_ID],
         );
 
         $voters = $this->query->excludingPlayer(

@@ -10,7 +10,6 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 final class EditProfileFormData
 {
     public null|string $name = null;
-    public null|string $email = null;
     public null|string $country = null;
     public null|string $city = null;
     public null|UploadedFile $avatar = null;
@@ -23,7 +22,6 @@ final class EditProfileFormData
     {
         $data = new self();
         $data->name = $playerProfile->playerName;
-        $data->email = $playerProfile->email;
         $data->city = $playerProfile->city;
         $data->country = $playerProfile->country;
         $data->bio = $playerProfile->bio;

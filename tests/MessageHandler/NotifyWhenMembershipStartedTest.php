@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Events\MembershipStarted;
 use SpeedPuzzling\Web\MessageHandler\NotifyWhenMembershipStarted;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Value\FreeTrialSource;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
@@ -58,7 +59,11 @@ final class NotifyWhenMembershipStartedTest extends TestCase
         $membershipRepository = $this->createStub(MembershipRepository::class);
         $membershipRepository->method('get')->willReturn($membership);
 
-        $handler = new NotifyWhenMembershipStarted($membershipRepository, $mailer, $this->createStub(TranslatorInterface::class));
+        // The address comes from the account, never from the player row
+        $playerAccountEmail = $this->createStub(PlayerAccountEmail::class);
+        $playerAccountEmail->method('ofPlayer')->willReturn('test@example.com');
+
+        $handler = new NotifyWhenMembershipStarted($membershipRepository, $mailer, $this->createStub(TranslatorInterface::class), $playerAccountEmail);
         $handler(new MembershipStarted($membership->id));
 
         self::assertInstanceOf(TemplatedEmail::class, $sent);
@@ -72,7 +77,7 @@ final class NotifyWhenMembershipStartedTest extends TestCase
             id: Uuid::uuid7(),
             code: 'testplayer',
             userId: 'auth0|test',
-            email: 'test@example.com',
+            email: null,
             name: 'Test Player',
             registeredAt: new DateTimeImmutable(),
         );

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\CreatePlayerStripeCustomer;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Stripe\StripeClient;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -16,6 +17,7 @@ readonly final class CreatePlayerStripeCustomerHandler
     public function __construct(
         private PlayerRepository $playerRepository,
         private StripeClient $stripeClient,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -38,8 +40,10 @@ readonly final class CreatePlayerStripeCustomerHandler
             'metadata' => $metadata,
         ];
 
-        if ($player->email !== null) {
-            $params['email'] = $player->email;
+        $playerEmail = $this->playerAccountEmail->ofPlayer($player);
+
+        if ($playerEmail !== null) {
+            $params['email'] = $playerEmail;
         }
 
         $customer = $this->stripeClient->customers->create($params);

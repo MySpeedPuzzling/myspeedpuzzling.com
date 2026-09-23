@@ -29,12 +29,12 @@ readonly final class GetFreeTrialsEndingSoon
 SELECT membership.id
 FROM membership
 INNER JOIN player ON player.id = membership.player_id
+INNER JOIN user_account ON user_account.user_id = player.user_id
 WHERE membership.trial_ends_at > :now
     AND membership.trial_ends_at <= :remindBefore
     AND membership.trial_ending_reminder_sent_at IS NULL
     AND membership.stripe_subscription_id IS NULL
     AND membership.granted_until <= membership.trial_ends_at
-    AND player.email IS NOT NULL
 ORDER BY membership.trial_ends_at
 SQL;
 

@@ -72,15 +72,6 @@ final readonly class ChangeAccountEmailHandler
             throw new EmailAlreadyRegistered();
         }
 
-        // Same reasoning as registration: an address that already reaches a player -
-        // even one with no user_account row - must not be claimed by a second account.
-        // Asked as "any player but me" rather than "fetch one and compare": player.email
-        // is not unique, so comparing a single arbitrary row would answer differently
-        // from run to run when the address sits on a duplicate pair.
-        if ($this->playerRepository->emailBelongsToAnotherPlayer($newEmail, $userAccount->userId)) {
-            throw new EmailAlreadyRegistered();
-        }
-
         $previousEmail = $userAccount->email;
         $userAccount->changeEmail($newEmail);
 
@@ -97,8 +88,9 @@ final readonly class ChangeAccountEmailHandler
         // without this, whoever holds the old inbox keeps an hour-long way back in.
         $this->resetPasswordRequestRepository->removeAllForUserAccount($userAccount);
 
-        // The player row carries its own copy - it is what notification emails are sent
-        // to - so the two must not drift apart
+        // release-2: drop with player.email - the mirror column only keeps the previous
+        // release addressing mail correctly while both containers run; nothing in this
+        // release reads it (user_account.email is the single source of truth)
         $player = $this->playerRepository->findByUserId($userAccount->userId);
 
         if ($player !== null) {

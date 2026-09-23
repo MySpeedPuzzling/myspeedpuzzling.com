@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
 use SpeedPuzzling\Web\Repository\NewsletterSubscriberRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\NewsletterTokenSigner;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Value\NewsletterAudience;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -27,6 +28,7 @@ readonly final class ConfirmNewsletterSubscriptionHandler
         private NewsletterSubscriberRepository $newsletterSubscriberRepository,
         private ClockInterface $clock,
         private MessageBusInterface $messageBus,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -46,7 +48,9 @@ readonly final class ConfirmNewsletterSubscriptionHandler
             }
 
             // The link dies the moment the account e-mail changes
-            if ($player->email === null || mb_strtolower(trim($player->email)) !== $claim->email) {
+            $playerEmail = $this->playerAccountEmail->ofPlayer($player);
+
+            if ($playerEmail === null || mb_strtolower(trim($playerEmail)) !== $claim->email) {
                 throw new InvalidNewsletterToken();
             }
 

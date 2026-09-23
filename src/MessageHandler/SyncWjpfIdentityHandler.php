@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\WjpfRequestFailed;
 use SpeedPuzzling\Web\Message\SyncWjpfIdentity;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\Wjpf\WjpfClient;
 use SpeedPuzzling\Web\Services\Wjpf\WjpfIdentityRecorder;
 use SpeedPuzzling\Web\Value\WjpfPairingStatus;
@@ -22,6 +23,7 @@ readonly final class SyncWjpfIdentityHandler
         private WjpfClient $wjpfClient,
         private WjpfIdentityRecorder $wjpfIdentityRecorder,
         private LoggerInterface $logger,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -42,7 +44,7 @@ readonly final class SyncWjpfIdentityHandler
         }
 
         $player = $this->playerRepository->get($message->playerId);
-        $email = $player->email === null ? '' : trim($player->email);
+        $email = trim($this->playerAccountEmail->ofPlayer($player) ?? '');
 
         if ($email === '') {
             return null;

@@ -45,8 +45,8 @@ readonly final class GetPlayerProfile
 SELECT
     player.id AS player_id,
     name AS player_name,
-    user_id,
-    email,
+    player.user_id,
+    user_account.email,
     country,
     city,
     code,
@@ -86,6 +86,7 @@ SELECT
         COALESCE(membership.granted_until, '1970-01-01'::timestamp)
     ) AS membership_ends_at
 FROM player
+LEFT JOIN user_account ON user_account.user_id = player.user_id
 LEFT JOIN membership ON membership.player_id = player.id
 WHERE player.id = :playerId
 SQL;
@@ -119,8 +120,8 @@ SQL;
 SELECT
     player.id AS player_id,
     name AS player_name,
-    user_id,
-    email,
+    player.user_id,
+    user_account.email,
     country,
     city,
     code,
@@ -170,6 +171,7 @@ SELECT
         COALESCE(membership.granted_until, '1970-01-01'::timestamp)
     ) AS membership_ends_at
 FROM player
+LEFT JOIN user_account ON user_account.user_id = player.user_id
 LEFT JOIN membership ON membership.player_id = player.id
 WHERE player.user_id = :userId
 SQL;

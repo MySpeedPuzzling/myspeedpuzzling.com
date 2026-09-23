@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use SpeedPuzzling\Web\Events\MembershipStarted;
 use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -19,6 +20,7 @@ readonly final class NotifyWhenMembershipStarted
         private MembershipRepository $membershipRepository,
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -29,8 +31,9 @@ readonly final class NotifyWhenMembershipStarted
     {
         $membership = $this->membershipRepository->get($message->membershipId->toString());
         $player = $membership->player;
+        $playerEmail = $this->playerAccountEmail->ofPlayer($player);
 
-        if ($player->email === null) {
+        if ($playerEmail === null) {
             return;
         }
 
@@ -44,7 +47,7 @@ readonly final class NotifyWhenMembershipStarted
             );
 
             $email = (new TemplatedEmail())
-                ->to($player->email)
+                ->to($playerEmail)
                 ->locale($player->locale)
                 ->subject($subject)
                 ->htmlTemplate('emails/free_trial_started.html.twig')
@@ -67,7 +70,7 @@ readonly final class NotifyWhenMembershipStarted
             );
 
             $email = (new TemplatedEmail())
-                ->to($player->email)
+                ->to($playerEmail)
                 ->locale($player->locale)
                 ->subject($subject)
                 ->htmlTemplate('emails/membership_granted.html.twig')
@@ -91,7 +94,7 @@ readonly final class NotifyWhenMembershipStarted
             );
 
             $email = (new TemplatedEmail())
-                ->to($player->email)
+                ->to($playerEmail)
                 ->locale($player->locale)
                 ->subject($subject)
                 ->htmlTemplate('emails/membership_subscribed.html.twig')

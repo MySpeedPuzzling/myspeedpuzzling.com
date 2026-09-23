@@ -52,14 +52,6 @@ final readonly class RegisterUserHandler
             throw new EmailAlreadyRegistered();
         }
 
-        // Player, not just user_account: a player can exist without a user_account row
-        // (two production players are Auth0 delete-and-re-register leftovers), and a
-        // returning user who forgot about their account must be pointed at signing in
-        // rather than get a second, empty account next to their real profile.
-        if ($this->playerRepository->findByEmail($email) !== null) {
-            throw new EmailAlreadyRegistered();
-        }
-
         $now = $this->clock->now();
         $name = trim($message->name ?? '');
         // Provider-agnostic by design (README §Auth-method extensibility): the identity
@@ -83,7 +75,7 @@ final readonly class RegisterUserHandler
             Uuid::uuid7(),
             $this->generateUniquePlayerCode->generate(),
             $userId,
-            $email,
+            $email, // release-2: drop with player.email (mirror of user_account.email for the blue-green rollout)
             $name !== '' ? $name : null,
             $now,
         );

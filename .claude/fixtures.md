@@ -12,8 +12,11 @@ This document describes the test data structure defined in `tests/DataFixtures/`
 | `PLAYER_WITH_FAVORITES` | Michael Johnson | player3@speedpuzzling.cz | Berlin, DE | Has favorite players |
 | `PLAYER_WITH_STRIPE` | Sarah Williams | player4@speedpuzzling.cz | London, GB | **Has active membership**, Stripe customer, public collection |
 
+### User accounts
+Every fixture player has a `user_account` row (`UserAccountFixture`) with the e-mail from the table above - `user_account.email` is the single source of truth for a player's address, `player.email` is only a rollout mirror (dropped in release 2). The rows mirror an Auth0 import (`legacy_auth0 = true`, verified, no password), the state `TestingLogin`/`TestingViewer` used to create on demand.
+
 ### User IDs
-Fixture players use the `auth0|…` format of accounts imported from Auth0 (the test login helpers give them a `legacy_auth0` user account on demand); new registrations get `msp|<uuid7>`.
+Fixture players use the `auth0|…` format of accounts imported from Auth0; new registrations get `msp|<uuid7>`.
 - `PLAYER_REGULAR`: `auth0|regular001`
 - `PLAYER_WITH_STRIPE`: `auth0|stripe005`
 

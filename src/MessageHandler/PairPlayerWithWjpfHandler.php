@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\PairPlayerWithWjpf;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\Wjpf\WjpfIdentityRecorder;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -16,6 +17,7 @@ readonly final class PairPlayerWithWjpfHandler
     public function __construct(
         private PlayerRepository $playerRepository,
         private WjpfIdentityRecorder $wjpfIdentityRecorder,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -28,7 +30,7 @@ readonly final class PairPlayerWithWjpfHandler
 
         // The code flow carries no address, so fall back to the one we hold - checked_email
         // is "which address this row is about", and provenance lives in last_response.source.
-        $email = $message->email ?? $player->email ?? '';
+        $email = $message->email ?? $this->playerAccountEmail->ofPlayer($player) ?? '';
 
         $this->wjpfIdentityRecorder->recordPairing(
             player: $player,

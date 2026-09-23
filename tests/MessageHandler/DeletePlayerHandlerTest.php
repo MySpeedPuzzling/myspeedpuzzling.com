@@ -49,14 +49,9 @@ final class DeletePlayerHandlerTest extends KernelTestCase
     {
         // The account row (login email + password hash) must not survive a GDPR
         // deletion, and its audit trail cascades with it at the DB level
-        $userAccount = new UserAccount(
-            Uuid::uuid7(),
-            PlayerFixture::PLAYER_REGULAR_USER_ID,
-            'delete.me@example.com',
-            new \DateTimeImmutable(),
-        );
-        $this->entityManager->persist($userAccount);
-        $this->entityManager->flush();
+        $userAccount = $this->entityManager->getRepository(UserAccount::class)
+            ->findOneBy(['userId' => PlayerFixture::PLAYER_REGULAR_USER_ID]);
+        self::assertNotNull($userAccount);
 
         $connection = $this->entityManager->getConnection();
         $connection->insert('auth_audit_log', [

@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Events\FeatureRequestStatusChanged;
 use SpeedPuzzling\Web\MessageHandler\NotifyWhenFeatureRequestStatusChanged;
 use SpeedPuzzling\Web\Query\GetFeatureRequestVoters;
 use SpeedPuzzling\Web\Repository\FeatureRequestRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Tests\DataFixtures\FeatureRequestFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\FeatureRequestStatus;
@@ -46,6 +47,7 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
             getFeatureRequestVoters: $container->get(GetFeatureRequestVoters::class),
             mailer: $this->mailer,
             translator: $container->get(TranslatorInterface::class),
+            playerAccountEmail: $container->get(PlayerAccountEmail::class),
         );
     }
 
@@ -112,9 +114,10 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
 
     public function testSkipsWhenAuthorHasNoEmailButStillNotifiesUpvoters(): void
     {
+        // No account row = no e-mail (user_account.email is the single source of truth)
         $this->connection->executeStatement(
-            'UPDATE player SET email = NULL WHERE id = :id',
-            ['id' => PlayerFixture::PLAYER_WITH_STRIPE],
+            'DELETE FROM user_account WHERE user_id = :userId',
+            ['userId' => PlayerFixture::PLAYER_WITH_STRIPE_USER_ID],
         );
         $this->entityManager->clear();
 
@@ -133,9 +136,10 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
 
     public function testSkipsUpvoterWithoutEmail(): void
     {
+        // No account row = no e-mail (user_account.email is the single source of truth)
         $this->connection->executeStatement(
-            'UPDATE player SET email = NULL WHERE id = :id',
-            ['id' => PlayerFixture::PLAYER_REGULAR],
+            'DELETE FROM user_account WHERE user_id = :userId',
+            ['userId' => PlayerFixture::PLAYER_REGULAR_USER_ID],
         );
         $this->entityManager->clear();
 

@@ -39,12 +39,12 @@ readonly final class GetPlayersForWjpfSync
         $query = <<<SQL
 SELECT
     player.id AS player_id,
-    LOWER(TRIM(player.email)) AS email,
+    LOWER(TRIM(user_account.email)) AS email,
     player.name AS player_name
 FROM player
+INNER JOIN user_account ON user_account.user_id = player.user_id
 LEFT JOIN wjpf_identity ON wjpf_identity.player_id = player.id
-WHERE player.email IS NOT NULL
-    AND TRIM(player.email) != ''
+WHERE TRIM(user_account.email) != ''
     AND player.is_private = false
 SQL;
 

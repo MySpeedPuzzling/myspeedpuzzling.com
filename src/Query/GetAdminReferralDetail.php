@@ -39,11 +39,12 @@ SELECT
     p.id AS player_id,
     p.name AS player_name,
     p.code,
-    p.email,
+    ua.email,
     p.country,
     p.referral_program_joined_at,
     p.referral_program_suspended
 FROM player p
+LEFT JOIN user_account ua ON ua.user_id = p.user_id
 WHERE p.id = :playerId
 SQL;
 

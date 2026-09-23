@@ -54,6 +54,44 @@ final class EditProfileControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('a[href$="/account/recent-activity"]'));
     }
 
+    /**
+     * user_account.email is the single source of truth and the verified change-e-mail flow
+     * (current password + link to the new inbox) is the only way to change it: the profile
+     * form has no e-mail field any more, and smuggling one in changes nothing.
+     */
+    public function testProfileFormHasNoEmailFieldAndIgnoresASmuggledOne(): void
+    {
+        $browser = self::createClient();
+        $userAccount = $this->seedNativeAccount($browser);
+        $originalEmail = $userAccount->email;
+        $browser->loginUser($userAccount, 'main');
+
+        $crawler = $browser->request('GET', '/en/edit-profile');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('input[name="edit_profile_form[email]"]'));
+
+        $form = $crawler->filter('form[name="edit_profile_form"]')->form();
+        $formValues = $form->getPhpValues()['edit_profile_form'] ?? null;
+        self::assertIsArray($formValues);
+        $formValues['name'] = 'Renamed Puzzler';
+        $formValues['email'] = 'hijacked@example.com';
+
+        $browser->request('POST', '/en/edit-profile', ['edit_profile_form' => $formValues]);
+
+        $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+
+        $reloadedAccount = $entityManager->getRepository(UserAccount::class)->findOneBy(['userId' => $userAccount->userId]);
+        self::assertNotNull($reloadedAccount);
+        self::assertSame($originalEmail, $reloadedAccount->email);
+
+        $player = $entityManager->getRepository(Player::class)->findOneBy(['userId' => $userAccount->userId]);
+        self::assertNotNull($player);
+        // The rollout mirror column follows the account, never the form (release-2: drop with player.email)
+        self::assertSame($originalEmail, $player->email);
+    }
+
     private function seedNativeAccount(KernelBrowser $browser): UserAccount
     {
         $email = sprintf('editprofile+%s@example.com', bin2hex(random_bytes(4)));

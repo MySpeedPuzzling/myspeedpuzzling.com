@@ -22,13 +22,13 @@ readonly final class GetFeatureRequestVoters
         $query = <<<SQL
 SELECT DISTINCT ON (fv.voter_id)
     fv.voter_id AS player_id,
-    p.email AS email,
+    ua.email AS email,
     p.locale AS locale
 FROM feature_request_vote fv
 JOIN player p ON fv.voter_id = p.id
+JOIN user_account ua ON ua.user_id = p.user_id
 WHERE fv.feature_request_id = :featureRequestId
     AND fv.voter_id != :excludedPlayerId
-    AND p.email IS NOT NULL
 ORDER BY fv.voter_id, fv.voted_at DESC
 SQL;
 

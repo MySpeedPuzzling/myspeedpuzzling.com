@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\ConsoleCommands;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\DeletePlayer;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\ResolvePlayerByIdentifier;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -30,6 +31,7 @@ final class DeletePlayerConsoleCommand extends Command
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private ResolvePlayerByIdentifier $resolvePlayerByIdentifier,
+        readonly private PlayerAccountEmail $playerAccountEmail,
     ) {
         parent::__construct();
     }
@@ -62,7 +64,7 @@ final class DeletePlayerConsoleCommand extends Command
             ['Player ID' => $player->id->toString()],
             ['Code' => '#' . $player->code],
             ['Name' => $player->name ?? '—'],
-            ['E-mail' => $player->email ?? '—'],
+            ['E-mail' => $this->playerAccountEmail->ofPlayer($player) ?? '—'],
             ['User ID' => $player->userId ?? '—'],
             ['Registered' => $player->registeredAt->format('Y-m-d H:i')],
         );

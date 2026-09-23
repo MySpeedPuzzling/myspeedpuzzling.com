@@ -49,7 +49,6 @@ readonly final class EditProfileHandler
 
         $player->changeProfile(
             name: $message->name,
-            email: $message->email,
             city: $message->city,
             country: $message->country,
             avatar: $avatarPath,

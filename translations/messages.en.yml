@@ -3965,11 +3965,6 @@ free_trial:
         button: "Start my free trial"
         or_subscribe: "or subscribe right away"
         one_per_player: "One trial per player."
-        condition_age: "Account at least %age_days% days old"
-        condition_age_from: "from %date%"
-        condition_puzzles: "%required% puzzles logged"
-        progress: "%logged% of %required% so far"
-        add_time: "Add a solved puzzle"
     modal:
         text: "You can try everything members have - free for %days% days. No card, nothing to cancel."
         button: "Try it free for %days% days"
@@ -3984,9 +3979,7 @@ free_trial:
         started: "Your free trial is on - everything is unlocked for %days% days. Enjoy!"
     not_available: "The free trial is for players who have not had a membership yet."
     unlock:
-        age_and_puzzles: "You can try membership free for %trial_days% days once your account is %age_days% days old (from %date%) and you have logged %required% puzzles (%logged% so far)."
         age: "You can try membership free for %trial_days% days once your account is %age_days% days old - from %date%."
-        puzzles: "You can try membership free for %trial_days% days once you have logged %required% puzzles - %logged% so far."
     status:
         active: "Your free trial is running"
         days_left: "{1}1 day left|]1,Inf[%count% days left"

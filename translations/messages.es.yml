@@ -3682,11 +3682,6 @@ free_trial:
         button: "Empezar mi prueba gratuita"
         or_subscribe: "o suscríbete directamente"
         one_per_player: "Una prueba por jugador."
-        condition_age: "Cuenta con al menos %age_days% días"
-        condition_age_from: "a partir del %date%"
-        condition_puzzles: "%required% puzzles registrados"
-        progress: "%logged% de %required% hasta ahora"
-        add_time: "Añadir un puzzle resuelto"
     modal:
         text: "Puedes probar todo lo que tienen los miembros - gratis durante %days% días. Sin tarjeta, nada que cancelar."
         button: "Probar gratis %days% días"
@@ -3701,9 +3696,7 @@ free_trial:
         started: "Tu prueba gratuita está en marcha - todo desbloqueado durante %days% días. ¡Disfrútala!"
     not_available: "La prueba gratuita es para jugadores que todavía no han tenido una membresía."
     unlock:
-        age_and_puzzles: "Podrás probar la membresía gratis durante %trial_days% días cuando tu cuenta tenga %age_days% días (a partir del %date%) y hayas registrado %required% puzzles (llevas %logged%)."
         age: "Podrás probar la membresía gratis durante %trial_days% días cuando tu cuenta tenga %age_days% días - a partir del %date%."
-        puzzles: "Podrás probar la membresía gratis durante %trial_days% días cuando hayas registrado %required% puzzles - llevas %logged%."
     status:
         active: "Tu prueba gratuita está en marcha"
         days_left: "{1}Queda 1 día|]1,Inf[Quedan %count% días"

@@ -3680,11 +3680,6 @@ free_trial:
         button: "Spustit zkušební období"
         or_subscribe: "nebo si členství rovnou předplať"
         one_per_player: "Každý hráč ho má jednou."
-        condition_age: "Účet starý aspoň %age_days% dní"
-        condition_age_from: "od %date%"
-        condition_puzzles: "Zapsaných %required% puzzle"
-        progress: "zatím %logged% z %required%"
-        add_time: "Přidat složené puzzle"
     modal:
         text: "Všechno, co mají členové, si můžeš vyzkoušet - na %days% dní zdarma. Bez karty, nic se neruší."
         button: "Vyzkoušet na %days% dní zdarma"
@@ -3699,9 +3694,7 @@ free_trial:
         started: "Zkušební období běží - na %days% dní máš odemčeno úplně všechno. Užij si to!"
     not_available: "Zkušební období je pro hráče, kteří členství ještě nikdy neměli."
     unlock:
-        age_and_puzzles: "Členství si můžeš na %trial_days% dní zdarma vyzkoušet, jakmile bude tvůj účet starý %age_days% dní (od %date%) a budeš mít zapsaných %required% puzzle (zatím %logged%)."
         age: "Členství si můžeš na %trial_days% dní zdarma vyzkoušet, jakmile bude tvůj účet starý %age_days% dní - od %date%."
-        puzzles: "Členství si můžeš na %trial_days% dní zdarma vyzkoušet, jakmile budeš mít zapsaných %required% puzzle - zatím %logged%."
     status:
         active: "Běží ti zkušební období"
         days_left: "{1}Zbývá 1 den|[2,4]Zbývají %count% dny|[5,Inf[Zbývá %count% dní"

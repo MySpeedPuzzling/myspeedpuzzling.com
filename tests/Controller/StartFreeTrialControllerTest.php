@@ -131,7 +131,7 @@ final class StartFreeTrialControllerTest extends WebTestCase
         $this->assertResponseRedirects('/en/membership');
     }
 
-    public function testPlayerInTheirFirstWeekIsToldFromWhenAndNothingElse(): void
+    public function testPlayerInTheirFirstWeekIsToldFromWhen(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
@@ -143,10 +143,6 @@ final class StartFreeTrialControllerTest extends WebTestCase
         self::assertCount(1, $card);
         self::assertCount(0, $card->filter('form'), 'Nothing to click yet');
         self::assertStringContainsString('once your account is 7 days old', $card->text());
-        self::assertStringNotContainsString('once you have logged', $card->text(), 'The puzzles are there - not a word about them');
-        self::assertSame('no', $card->filter('[data-condition="age"]')->attr('data-met'));
-        self::assertSame('yes', $card->filter('[data-condition="puzzles"]')->attr('data-met'));
-        self::assertCount(0, $card->filter('a[href*="add"]'), 'No "add a puzzle" button when puzzles are not what is missing');
 
         // The members modal says the same instead of offering a button that would not work
         self::assertCount(0, $crawler->filter('#membersExclusiveModal form'));
@@ -155,38 +151,6 @@ final class StartFreeTrialControllerTest extends WebTestCase
         $this->start($browser, ['source' => 'membership_page']);
         $this->assertResponseRedirects('/en/membership');
         $this->assertNoMembership($browser, PlayerFixture::PLAYER_REGULAR);
-    }
-
-    public function testPlayerWithTooFewPuzzlesIsToldHowManyAndNothingElse(): void
-    {
-        $browser = $this->establishedPlayer();
-        $this->keepLoggedPuzzles($browser->getContainer()->get(Connection::class), PlayerFixture::PLAYER_REGULAR, 2);
-
-        $crawler = $browser->request('GET', '/en/membership');
-        $card = $crawler->filter('.free-trial-offer');
-
-        self::assertCount(0, $card->filter('form'));
-        self::assertStringContainsString('once you have logged 5 puzzles - 2 so far', $card->text());
-        self::assertStringNotContainsString('days old (from', $card->text());
-        self::assertSame('yes', $card->filter('[data-condition="age"]')->attr('data-met'));
-        self::assertSame('no', $card->filter('[data-condition="puzzles"]')->attr('data-met'));
-        self::assertGreaterThan(0, $card->filter('a.btn')->count(), 'The way to the missing puzzles');
-
-        $this->start($browser, ['source' => 'membership_page']);
-        $this->assertResponseRedirects('/en/membership');
-        $this->assertNoMembership($browser, PlayerFixture::PLAYER_REGULAR);
-    }
-
-    public function testBrandNewPlayerIsToldBoth(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-        $this->keepLoggedPuzzles($browser->getContainer()->get(Connection::class), PlayerFixture::PLAYER_REGULAR, 0);
-
-        $text = $browser->request('GET', '/en/membership')->filter('.free-trial-offer')->text();
-
-        self::assertStringContainsString('once your account is 7 days old', $text);
-        self::assertStringContainsString('and you have logged 5 puzzles (0 so far)', $text);
     }
 
     private function establishedPlayer(): KernelBrowser

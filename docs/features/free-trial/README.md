@@ -14,8 +14,8 @@ Status: plan + brainstorm. DeciStatus: **built and rolled out to everyone 2026-0
 | Topic | Outcome |
 |-------|---------|
 | Eligibility | no `membership` row - never subscribed, never claimed a voucher, never granted one, never had a trial (`PlayerProfile::$freeTrialAvailable`) |
-| Unlock conditions | the trial can be **started** only when the account is **7 days old** (`FreeTrial::MINIMUM_ACCOUNT_AGE_DAYS`) **and 5 puzzles are logged** (`MINIMUM_LOGGED_PUZZLES`, rows the player tracked, relax entries included) - `PlayerProfile::canStartFreeTrial()` for the UI, `StartFreeTrialHandler` authoritative (`FreeTrialNotUnlockedYet`). Keeps accounts made only to collect trials out. Production 2026-09-21: of 10,128 players without a membership 4,057 have ≥ 5 logged, 2,418 have 1-4, 3,653 none |
-| Telling the player | **only what is still missing, never what is met**: one sentence out of three (`free_trial.unlock.age_and_puzzles` / `.age` / `.puzzles`, partial `membership/_free_trial_unlock_sentence.html.twig`) on the membership card and in the members-only modal, with the date the account turns 7 days and "N so far"; the card adds a two-row checklist (met = ticked) and an "Add a solved puzzle" button only when puzzles are what is missing |
+| Unlock condition | the trial can be **started** only when the account is **7 days old** (`FreeTrial::MINIMUM_ACCOUNT_AGE_DAYS`) - `PlayerProfile::canStartFreeTrial()` for the UI, `StartFreeTrialHandler` authoritative (`FreeTrialNotUnlockedYet`). Keeps accounts made only to collect trials out. A "5 logged puzzles" condition shipped on 2026-09-21 and was **removed on 2026-09-23**: players who never log a time do become paying members, so they must get to try it too |
+| Telling the player | a player still in their first week sees, instead of the button, one sentence with the date the trial opens (`free_trial.unlock.age`, partial `membership/_free_trial_unlock_sentence.html.twig`) - on the membership card and in the members-only modal |
 | Storage (D1) | `membership.trial_started_at`, `trial_ends_at`, `trial_source`, `trial_ending_reminder_sent_at`, `trial_converted_at` (first subscription of a trial player - funnel only) |
 | Verified e-mail (D9) | **not required.** Production, 2026-09-20: of 10,116 players without a membership only 6,378 have a verified e-mail - the condition would have locked ~3,700 players out of a marketing feature to prevent a EUR 6 abuse |
 | Surfaces (D4) | membership page card; button in the members-only modal; one-time offer modal, never twice. Button and modal appear only for a player who can start the trial right now - a player who is not there yet keeps the modal unused for the day they are. All three web only (D7) |
@@ -28,7 +28,6 @@ Status: plan + brainstorm. DeciStatus: **built and rolled out to everyone 2026-0
 | Locales | all six, e-mails included |
 | Side fix | the "membership granted" e-mail printed `endsAt` (always empty for a grant) as its expiry - now `grantedUntil` |
 | After the trial lapses | same as any lapsed member, checked 2026-09-21: existing custom collections stay visible to their owner (members badge), creating / adding to them is gated, nothing is deleted, everything is back on subscribe |
-| Cost | the puzzle count rides on the viewer's own profile query, only while the trial is still open to them, and is capped at 5 (`LIMIT`) - no extra query, no slow count for a player with thousands of times |
 | Not done | `GrantMembership` still refuses a player who has a membership row (incl. an ended trial) - use a voucher for them, or extend the handler when it is first needed |
 
 ### Reading the numbers by SQL

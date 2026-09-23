@@ -3682,11 +3682,6 @@ free_trial:
         button: "Kostenlosen Test starten"
         or_subscribe: "oder gleich abonnieren"
         one_per_player: "Ein Test pro Spieler."
-        condition_age: "Konto mindestens %age_days% Tage alt"
-        condition_age_from: "ab dem %date%"
-        condition_puzzles: "%required% Puzzles eingetragen"
-        progress: "bisher %logged% von %required%"
-        add_time: "Gelöstes Puzzle hinzufügen"
     modal:
         text: "Du kannst alles ausprobieren, was Mitglieder haben - %days% Tage kostenlos. Keine Karte, nichts zu kündigen."
         button: "%days% Tage kostenlos testen"
@@ -3701,9 +3696,7 @@ free_trial:
         started: "Dein kostenloser Test läuft - %days% Tage lang ist alles freigeschaltet. Viel Spaß!"
     not_available: "Der kostenlose Test ist für Spieler, die noch nie eine Mitgliedschaft hatten."
     unlock:
-        age_and_puzzles: "Du kannst die Mitgliedschaft %trial_days% Tage kostenlos testen, sobald dein Konto %age_days% Tage alt ist (ab dem %date%) und du %required% Puzzles eingetragen hast (bisher %logged%)."
         age: "Du kannst die Mitgliedschaft %trial_days% Tage kostenlos testen, sobald dein Konto %age_days% Tage alt ist - ab dem %date%."
-        puzzles: "Du kannst die Mitgliedschaft %trial_days% Tage kostenlos testen, sobald du %required% Puzzles eingetragen hast - bisher %logged%."
     status:
         active: "Dein kostenloser Test läuft"
         days_left: "{1}Noch 1 Tag|]1,Inf[Noch %count% Tage"

@@ -3684,11 +3684,6 @@ free_trial:
         button: "Commencer mon essai gratuit"
         or_subscribe: "ou abonnez-vous directement"
         one_per_player: "Un essai par joueur."
-        condition_age: "Compte d'au moins %age_days% jours"
-        condition_age_from: "à partir du %date%"
-        condition_puzzles: "%required% puzzles enregistrés"
-        progress: "%logged% sur %required% pour l'instant"
-        add_time: "Ajouter un puzzle terminé"
     modal:
         text: "Vous pouvez essayer tout ce qu'ont les membres - gratuitement pendant %days% jours. Sans carte, rien à résilier."
         button: "Essayer gratuitement %days% jours"
@@ -3703,9 +3698,7 @@ free_trial:
         started: "Votre essai gratuit a commencé - tout est débloqué pendant %days% jours. Profitez-en !"
     not_available: "L'essai gratuit est réservé aux joueurs qui n'ont encore jamais eu d'adhésion."
     unlock:
-        age_and_puzzles: "Vous pourrez essayer l'adhésion gratuitement pendant %trial_days% jours lorsque votre compte aura %age_days% jours (à partir du %date%) et que vous aurez enregistré %required% puzzles (%logged% pour l'instant)."
         age: "Vous pourrez essayer l'adhésion gratuitement pendant %trial_days% jours lorsque votre compte aura %age_days% jours - à partir du %date%."
-        puzzles: "Vous pourrez essayer l'adhésion gratuitement pendant %trial_days% jours lorsque vous aurez enregistré %required% puzzles - %logged% pour l'instant."
     status:
         active: "Votre essai gratuit est en cours"
         days_left: "{0,1}%count% jour restant|]1,Inf[%count% jours restants"

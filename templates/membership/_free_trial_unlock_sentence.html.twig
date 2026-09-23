@@ -1,20 +1,7 @@
-{# One sentence telling a player who never had a membership what still stands between them and the free
-   trial - only the conditions that are still open (account age, logged puzzles), never the met ones.
-   Parameter: profile (PlayerProfile). #}
-{%- set trial_days = constant('SpeedPuzzling\\Web\\Value\\FreeTrial::DAYS') -%}
-{%- set required = constant('SpeedPuzzling\\Web\\Value\\FreeTrial::MINIMUM_LOGGED_PUZZLES') -%}
-{%- set age_days = constant('SpeedPuzzling\\Web\\Value\\FreeTrial::MINIMUM_ACCOUNT_AGE_DAYS') -%}
-{%- set params = {
-    '%trial_days%': trial_days,
-    '%required%': required,
-    '%logged%': profile.freeTrialLoggedPuzzles,
-    '%age_days%': age_days,
-    '%date%': profile.freeTrialOldEnoughAt ? profile.freeTrialOldEnoughAt|format_date('long') : '',
-} -%}
-{%- if profile.freeTrialOldEnoughAt and profile.freeTrialLoggedPuzzlesMissing > 0 -%}
-    {{ 'free_trial.unlock.age_and_puzzles'|trans(params) }}
-{%- elseif profile.freeTrialOldEnoughAt -%}
-    {{ 'free_trial.unlock.age'|trans(params) }}
-{%- else -%}
-    {{ 'free_trial.unlock.puzzles'|trans(params) }}
-{%- endif -%}
+{# One sentence telling a player who never had a membership from when the free trial is theirs to start.
+   Parameter: profile (PlayerProfile) - freeTrialOldEnoughAt must be set. #}
+{{- 'free_trial.unlock.age'|trans({
+    '%trial_days%': constant('SpeedPuzzling\\Web\\Value\\FreeTrial::DAYS'),
+    '%age_days%': constant('SpeedPuzzling\\Web\\Value\\FreeTrial::MINIMUM_ACCOUNT_AGE_DAYS'),
+    '%date%': profile.freeTrialOldEnoughAt|format_date('long'),
+}) -}}

@@ -26,7 +26,7 @@ final class StartFreeTrialHandlerTest extends KernelTestCase
 
     protected function setUp(): void
     {
-        // Old enough and with plenty of puzzles logged - each test takes away what it is about
+        // Old enough - each test takes away what it is about
         $this->registeredDaysAgo(self::getContainer()->get(Connection::class), PlayerFixture::PLAYER_REGULAR, 8);
     }
 
@@ -96,31 +96,11 @@ final class StartFreeTrialHandlerTest extends KernelTestCase
         self::assertTrue($profile->freeTrialAvailable, 'Still theirs to have');
         self::assertFalse($profile->canStartFreeTrial(), 'Just not yet');
         self::assertNotNull($profile->freeTrialOldEnoughAt);
-        self::assertSame(0, $profile->freeTrialLoggedPuzzlesMissing());
 
         $this->expectFailure(
             FreeTrialNotUnlockedYet::class,
             static fn () => $container->get(MessageBusInterface::class)->dispatch(new StartFreeTrial(PlayerFixture::PLAYER_REGULAR, FreeTrialSource::MembershipPage)),
         );
-    }
-
-    public function testFewerThanFiveLoggedPuzzlesHasToWait(): void
-    {
-        $container = self::getContainer();
-        $this->keepLoggedPuzzles($container->get(Connection::class), PlayerFixture::PLAYER_REGULAR, 4);
-
-        $profile = $container->get(GetPlayerProfile::class)->byUserId(PlayerFixture::PLAYER_REGULAR_USER_ID);
-        self::assertFalse($profile->canStartFreeTrial());
-        self::assertNull($profile->freeTrialOldEnoughAt, 'The age is fine - only the puzzles are told');
-        self::assertSame(4, $profile->freeTrialLoggedPuzzles);
-        self::assertSame(1, $profile->freeTrialLoggedPuzzlesMissing());
-
-        $this->expectFailure(
-            FreeTrialNotUnlockedYet::class,
-            static fn () => $container->get(MessageBusInterface::class)->dispatch(new StartFreeTrial(PlayerFixture::PLAYER_REGULAR, FreeTrialSource::MembershipPage)),
-        );
-
-        self::assertSame(FreeTrial::MINIMUM_LOGGED_PUZZLES, $container->get(GetPlayerProfile::class)->byUserId(PlayerFixture::PLAYER_WITH_FAVORITES_USER_ID)->freeTrialLoggedPuzzles, 'Never counted past the number that matters');
     }
 
     private function expectFreeTrialNotAvailable(callable $dispatch): void

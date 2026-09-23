@@ -3671,11 +3671,6 @@ free_trial:
         button: "無料トライアルを始める"
         or_subscribe: "または今すぐ登録"
         one_per_player: "お一人様一回限りです。"
-        condition_age: "アカウント登録から%age_days%日以上"
-        condition_age_from: "%date%から"
-        condition_puzzles: "パズルを%required%個記録"
-        progress: "現在 %required%個中%logged%個"
-        add_time: "完成したパズルを追加"
     modal:
         text: "メンバー向けのすべての機能を%days%日間無料でお試しいただけます。カード不要、解約手続きも不要です。"
         button: "%days%日間無料で試す"
@@ -3690,9 +3685,7 @@ free_trial:
         started: "無料トライアルが始まりました - %days%日間、すべての機能をご利用いただけます。お楽しみください！"
     not_available: "無料トライアルは、これまでメンバーシップをご利用になったことのない方が対象です。"
     unlock:
-        age_and_puzzles: "アカウント登録から%age_days%日が経過し（%date%から）、パズルを%required%個記録すると（現在%logged%個）、メンバーシップを%trial_days%日間無料でお試しいただけます。"
         age: "アカウント登録から%age_days%日が経過すると、メンバーシップを%trial_days%日間無料でお試しいただけます（%date%から）。"
-        puzzles: "パズルを%required%個記録すると、メンバーシップを%trial_days%日間無料でお試しいただけます（現在%logged%個）。"
     status:
         active: "無料トライアル中です"
         days_left: "残り%count%日"

@@ -51,26 +51,6 @@ final class AnnouncementModalTest extends WebTestCase
         self::assertSame(0, $this->impressions($browser, PlayerFixture::PLAYER_REGULAR), 'Nothing is used up - the modal comes later');
     }
 
-    public function testItWaitsUnusedUntilThePlayerCanReallyStartTheTrial(): void
-    {
-        $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredDaysAgo: 40);
-        $database = $browser->getContainer()->get(Connection::class);
-        $this->keepLoggedPuzzles($database, PlayerFixture::PLAYER_REGULAR, 4);
-
-        $crawler = $browser->request('GET', self::ORDINARY_PAGE);
-        self::assertCount(0, $crawler->filter(self::MODAL), 'Its one button would not work yet');
-        self::assertSame(0, $this->impressions($browser, PlayerFixture::PLAYER_REGULAR));
-
-        // The fifth puzzle
-        $database->executeStatement(
-            'UPDATE puzzle_solving_time SET player_id = :id WHERE id = (SELECT id FROM puzzle_solving_time WHERE player_id = :other LIMIT 1)',
-            ['id' => PlayerFixture::PLAYER_REGULAR, 'other' => PlayerFixture::PLAYER_ADMIN],
-        );
-
-        $crawler = $browser->request('GET', self::ORDINARY_PAGE);
-        self::assertCount(1, $crawler->filter(self::MODAL));
-    }
-
     public function testMembersNeverSeeIt(): void
     {
         $browser = $this->signedIn(PlayerFixture::PLAYER_WITH_STRIPE, registeredDaysAgo: 40);

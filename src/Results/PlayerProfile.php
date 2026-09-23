@@ -59,7 +59,6 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     registered_at?: null|string,
  *     has_membership_row?: bool,
  *     free_trial_ends_at?: null|string,
- *     free_trial_logged_puzzles?: null|int|string,
  *     modal_impressions?: null|string,
  *  }
  */
@@ -147,11 +146,6 @@ readonly final class PlayerProfile
          */
         public array $modalImpressions = [],
         /**
-         * Puzzles this player logged, counted no further than FreeTrial::MINIMUM_LOGGED_PUZZLES and only
-         * while the trial is still open to them - what the trial offers need, not a statistic.
-         */
-        public int $freeTrialLoggedPuzzles = 0,
-        /**
          * When the account becomes old enough for the trial (FreeTrial::MINIMUM_ACCOUNT_AGE_DAYS) -
          * null once it is, so "still waiting" and "from when" are one value.
          */
@@ -160,19 +154,11 @@ readonly final class PlayerProfile
     }
 
     /**
-     * Never had a membership, the account is old enough AND enough puzzles are logged - the trial can be
-     * started right now. Each condition that is still open is told to the player, the met ones are not.
+     * Never had a membership AND the account is old enough - the trial can be started right now.
      */
     public function canStartFreeTrial(): bool
     {
-        return $this->freeTrialAvailable
-            && $this->freeTrialOldEnoughAt === null
-            && $this->freeTrialLoggedPuzzlesMissing() === 0;
-    }
-
-    public function freeTrialLoggedPuzzlesMissing(): int
-    {
-        return max(0, FreeTrial::MINIMUM_LOGGED_PUZZLES - $this->freeTrialLoggedPuzzles);
+        return $this->freeTrialAvailable && $this->freeTrialOldEnoughAt === null;
     }
 
     /**
@@ -329,7 +315,6 @@ readonly final class PlayerProfile
             freeTrialAvailable: ($row['has_membership_row'] ?? true) === false,
             freeTrialEndsAt: $freeTrialEndsAt,
             modalImpressions: $modalImpressions,
-            freeTrialLoggedPuzzles: (int) ($row['free_trial_logged_puzzles'] ?? 0),
             freeTrialOldEnoughAt: $freeTrialOldEnoughAt,
         );
     }

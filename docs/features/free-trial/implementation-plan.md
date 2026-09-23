@@ -5,8 +5,7 @@ the build order: what to create, what to change, how to test it, how to roll it 
 
 Status: **built 2026-09-21** in one change (steps 1-5 together, one migration). What remains is the
 rollout at the bottom. Deviations from this plan are listed in README "As built" - the biggest ones:
-the feature flag is gone (rolled out to everyone 2026-09-21) and starting a trial needs a 7-day-old account
-with 5 logged puzzles, so everything below about `FREE_TRIAL_ENABLED` and the 24 h modal gate is history.
+the feature flag is gone (rolled out to everyone 2026-09-21) and starting a trial needs a 7-day-old account, so everything below about `FREE_TRIAL_ENABLED` and the 24 h modal gate is history.
 
 ## Shape of the work
 

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -70,6 +71,13 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
         );
 
         $this->addFlash('success', $this->translator->trans('admin.puzzle_merge_request.approved'));
+
+        // Merges started from the approval queue go back there
+        $returnUrl = ReturnUrl::tryFrom($request->request->getString('return'));
+
+        if ($returnUrl !== null) {
+            return $this->redirect((string) $returnUrl);
+        }
 
         return $this->redirectToRoute('admin_puzzle_merge_requests');
     }

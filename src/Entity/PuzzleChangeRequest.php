@@ -55,7 +55,7 @@ class PuzzleChangeRequest
         #[Immutable]
         #[Column(nullable: true)]
         public null|string $proposedName = null,
-        #[Immutable]
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[ManyToOne]
         #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
         public null|Manufacturer $proposedManufacturer = null,
@@ -119,5 +119,14 @@ class PuzzleChangeRequest
             || $this->proposedEan !== null
             || $this->proposedIdentificationNumber !== null
             || $this->proposedImage !== null;
+    }
+
+    /**
+     * The proposed brand was merged into another one - keep proposing the same
+     * brand under its surviving record instead of losing the proposal.
+     */
+    public function proposedManufacturerMergedInto(Manufacturer $into): void
+    {
+        $this->proposedManufacturer = $into;
     }
 }

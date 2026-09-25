@@ -484,7 +484,7 @@
             <div class="topbar topbar-light">
                 <div class="container">
                     <div class="topbar-text text-nowrap">
-                        {# Admins see everything; community moderators only the two puzzle review queues #}
+                        {# Admins see everything; community moderators only the puzzle review queues #}
                         {% if is_granted('PUZZLE_MODERATION_ACCESS') %}
                             <div class="topbar-text dropdown disable-autohide me-2 me-sm-3">
                                 <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
@@ -500,6 +500,11 @@
                                     <li>
                                         <a class="dropdown-item pb-1 {% if currentRoute == 'admin_puzzle_merge_requests' %}active{% endif %}" href="{{ path('admin_puzzle_merge_requests') }}">
                                             Puzzle Merge Requests
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_puzzle_approvals' %}active{% endif %}" href="{{ path('admin_puzzle_approvals') }}">
+                                            Puzzle Approvals
                                         </a>
                                     </li>
                                     {% if is_granted('ADMIN_ACCESS') %}

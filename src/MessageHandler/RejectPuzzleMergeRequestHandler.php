@@ -14,6 +14,8 @@ use SpeedPuzzling\Web\Message\RejectPuzzleMergeRequest;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
 use SpeedPuzzling\Web\Value\NotificationType;
+use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
+use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -24,6 +26,7 @@ readonly final class RejectPuzzleMergeRequestHandler
         private PlayerRepository $playerRepository,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
     ) {
     }
 
@@ -37,6 +40,17 @@ readonly final class RejectPuzzleMergeRequestHandler
         $reviewer = $this->playerRepository->get($message->reviewerId);
 
         $mergeRequest->reject($reviewer, $this->clock->now(), $message->rejectionReason);
+
+        $this->puzzleModerationDecisionRecorder->record(
+            action: PuzzleModerationAction::MergeRequestRejected,
+            decidedBy: $reviewer,
+            source: $message->decisionSource,
+            puzzleId: $mergeRequest->sourcePuzzle?->id,
+            puzzleName: $mergeRequest->sourcePuzzle?->name,
+            mergeRequestId: $mergeRequest->id,
+            note: $message->rejectionReason,
+            details: ['reportedDuplicatePuzzleIds' => $mergeRequest->reportedDuplicatePuzzleIds],
+        );
 
         // Create notification for reporter (if reporter still exists)
         if ($mergeRequest->reporter !== null) {

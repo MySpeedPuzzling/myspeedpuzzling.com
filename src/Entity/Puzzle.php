@@ -10,6 +10,7 @@ use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\Index;
+use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
@@ -59,7 +60,21 @@ class Puzzle
         public null|DateTimeImmutable $hideImageUntil = null,
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $hideUntil = null,
+        // Who approved the puzzle in the approval queue, and when. Both stay null for
+        // puzzles approved before the queue existed (by SQL) or added approved.
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $approvedAt = null,
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'SET NULL')]
+        public null|Player $approvedBy = null,
     ) {
+    }
+
+    public function approve(Player $approvedBy, DateTimeImmutable $approvedAt): void
+    {
+        $this->approved = true;
+        $this->approvedBy = $approvedBy;
+        $this->approvedAt = $approvedAt;
     }
 
     public function updateProductIdentifiers(null|string $ean, null|string $identificationNumber): void

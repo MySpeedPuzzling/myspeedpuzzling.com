@@ -16,7 +16,9 @@ use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Services\PuzzleImageNamer;
+use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\NotificationType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -31,6 +33,7 @@ readonly final class ApprovePuzzleChangeRequestHandler
         private ClockInterface $clock,
         private Filesystem $filesystem,
         private PuzzleImageNamer $puzzleImageNamer,
+        private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
     ) {
     }
 
@@ -112,6 +115,18 @@ readonly final class ApprovePuzzleChangeRequestHandler
 
         // Mark request as approved
         $changeRequest->approve($reviewer, $this->clock->now());
+
+        $this->puzzleModerationDecisionRecorder->record(
+            action: PuzzleModerationAction::ChangeRequestApproved,
+            decidedBy: $reviewer,
+            puzzleId: $puzzle->id,
+            puzzleName: $puzzle->name,
+            changeRequestId: $changeRequest->id,
+            details: [
+                'selectedFields' => $selectedFields,
+                'overrides' => $message->overrides,
+            ],
+        );
 
         // Create notification for reporter
         $notification = new Notification(

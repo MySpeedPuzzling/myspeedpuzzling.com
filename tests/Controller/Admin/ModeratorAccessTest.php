@@ -8,7 +8,9 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Message\GrantModeratorRole;
 use SpeedPuzzling\Web\Query\GetModerators;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
+use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -30,6 +32,9 @@ final class ModeratorAccessTest extends WebTestCase
     {
         yield 'puzzle change requests' => ['/admin/puzzle-change-requests'];
         yield 'puzzle merge requests' => ['/admin/puzzle-merge-requests'];
+        yield 'puzzle approvals' => ['/admin/puzzle-approvals'];
+        yield 'puzzle approvals, approved tab' => ['/admin/puzzle-approvals?tab=approved'];
+        yield 'puzzle approval detail' => ['/admin/puzzle-approvals/' . PuzzleFixture::PUZZLE_UNAPPROVED];
     }
 
     /**
@@ -122,6 +127,7 @@ final class ModeratorAccessTest extends WebTestCase
         $crawler = $browser->request('GET', '/admin/puzzle-change-requests');
 
         self::assertCount(1, $crawler->filter('a[href="/admin/puzzle-merge-requests"]'));
+        self::assertCount(1, $crawler->filter('a[href="/admin/puzzle-approvals"]'));
         self::assertCount(0, $crawler->filter('a[href="/admin/moderators"]'));
         self::assertCount(0, $crawler->filter('a[href="/admin/vouchers"]'));
     }
@@ -160,6 +166,43 @@ final class ModeratorAccessTest extends WebTestCase
         $browser->submitForm('Grant moderator role', ['add_moderators_form[players]' => '']);
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    public function testModeratorApprovesANewPuzzleAndIsCreditedAsApprover(): void
+    {
+        $browser = $this->signedInModerator();
+
+        $crawler = $browser->request('GET', '/admin/puzzle-approvals/' . PuzzleFixture::PUZZLE_UNAPPROVED);
+        self::assertResponseIsSuccessful();
+
+        $form = $crawler->selectButton('Approve puzzle')->form([
+            'name' => 'Puzzle 20 corrected',
+            'brand_choice' => 'approve',
+        ]);
+        $browser->submit($form);
+        self::assertResponseRedirects('/admin/puzzle-approvals');
+
+        $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_UNAPPROVED);
+        self::assertTrue($puzzle->approved);
+        self::assertSame('Puzzle 20 corrected', $puzzle->name);
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $puzzle->approvedBy?->id->toString());
+    }
+
+    public function testMergeFromTheApprovalQueueOpensTheMergeReview(): void
+    {
+        $browser = $this->signedInModerator();
+
+        $crawler = $browser->request('GET', '/admin/puzzle-approvals/' . PuzzleFixture::PUZZLE_UNAPPROVED);
+        $form = $crawler->filter('form[action$="/merge"]')->last()->form([
+            'target_puzzle' => 'https://myspeedpuzzling.com/en/puzzle/' . PuzzleFixture::PUZZLE_1000_01,
+        ]);
+        $browser->submit($form);
+
+        self::assertResponseRedirects();
+        self::assertStringStartsWith('/admin/puzzle-merge-requests/', (string) $browser->getResponse()->headers->get('Location'));
+        $browser->followRedirect();
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('input[name="return"][value="/admin/puzzle-approvals"]');
     }
 
     private function signedInModerator(): KernelBrowser

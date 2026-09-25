@@ -30,7 +30,9 @@ use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Services\PuzzleMergeSnapshotBuilder;
+use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\NotificationType;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -47,6 +49,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
         private ClockInterface $clock,
         private LoggerInterface $logger,
         private PuzzleMergeSnapshotBuilder $snapshotBuilder,
+        private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
     ) {
     }
 
@@ -125,6 +128,19 @@ readonly final class ApprovePuzzleMergeRequestHandler
         // nothing of its own - this never overwrites a value the reviewer chose.
         $this->preserveDetailsFromMergedPuzzles($puzzlesToMerge, $survivorPuzzle);
 
+        // The survivor stands for every merged record now. If any of them was already
+        // approved, the merged puzzle is too - otherwise merging an approved puzzle into
+        // a newer unapproved duplicate (it survives when it has more times) would pull
+        // an approved puzzle back out of the catalogue.
+        if ($survivorPuzzle->approved === false) {
+            foreach ($puzzlesToMerge as $puzzleToMerge) {
+                if ($puzzleToMerge->approved) {
+                    $survivorPuzzle->approve($reviewer, $this->clock->now());
+                    break;
+                }
+            }
+        }
+
         // Migrate all puzzle-related records from merged puzzles to survivor
         $migrationInventory = $this->migrateRecordsToSurvivor($puzzlesToMerge, $survivorPuzzle);
 
@@ -150,8 +166,9 @@ readonly final class ApprovePuzzleMergeRequestHandler
             }
         }
 
-        // Create notification for reporter (if reporter still exists)
-        if ($mergeRequest->reporter !== null) {
+        // Create notification for reporter (if reporter still exists) - not when the
+        // reviewer merged their own request, e.g. straight from the approval queue
+        if ($mergeRequest->reporter !== null && $mergeRequest->reporter->id->equals($reviewer->id) === false) {
             $notification = new Notification(
                 id: Uuid::uuid7(),
                 player: $mergeRequest->reporter,
@@ -177,6 +194,27 @@ readonly final class ApprovePuzzleMergeRequestHandler
             decisionNote: $message->decisionNote,
             decisionConfidence: $message->decisionConfidence,
         ));
+
+        $this->puzzleModerationDecisionRecorder->record(
+            action: PuzzleModerationAction::MergeRequestApproved,
+            decidedBy: $reviewer,
+            source: $message->decisionSource,
+            puzzleId: $survivorPuzzle->id,
+            puzzleName: $survivorPuzzle->name,
+            mergeRequestId: $mergeRequest->id,
+            note: $message->decisionNote,
+            details: [
+                'survivorPuzzleId' => $survivorPuzzle->id->toString(),
+                'mergedPuzzleIds' => array_map(
+                    static fn(Puzzle $puzzle): string => $puzzle->id->toString(),
+                    $puzzlesToMerge,
+                ),
+                'mergedPuzzleNames' => array_map(
+                    static fn(Puzzle $puzzle): string => $puzzle->name,
+                    $puzzlesToMerge,
+                ),
+            ],
+        );
 
         // Puzzle deletions are handled by PuzzleMergeApproved event (recorded in approve() method)
         // This ensures migrations are flushed first, then deletions happen in a separate transaction

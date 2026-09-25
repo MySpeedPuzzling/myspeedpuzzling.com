@@ -4,6 +4,15 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Puzzle approvals
+
+Shipped 2026-09-25. Design: [`features/puzzle-approvals.md`](features/puzzle-approvals.md).
+
+- [ ] Tell the adder when their puzzle is approved or merged (notification type + `GetNotifications` branch)
+- [ ] Count approvals in `GetModerators` (reads `reviewed_by_id` today; `puzzle_moderation_decision` has everything)
+- [ ] A read-only history page over `puzzle_moderation_decision` (who decided what, filter by player)
+- [ ] 196 unapproved brands on production, 158 of them held as merge candidates (`/root/brand-merge-proposal-2026-09-17.json` on the box) - the queue now handles them one puzzle at a time
+
 ## Image storage (bucket audit 2026-09-22)
 
 Full scan of the bucket against every DB image column; fixes shipped in lily.srv (imgproxy source limit 30 → 60 MP,

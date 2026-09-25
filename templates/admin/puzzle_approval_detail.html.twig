@@ -1,0 +1,270 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Approve - {{ puzzle.puzzleName }}{% endblock %}
+
+{% block content %}
+    {% include '_return_back_button.html.twig' with {fallbackUrl: path('admin_puzzle_approvals'), fallbackTitle: 'Puzzle approvals'} %}
+
+    {% set newBrand = puzzle.manufacturerId is not null and not puzzle.manufacturerApproved %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            {# The puzzle as it was added #}
+            <div class="card shadow mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center gap-2 px-3 px-md-4">
+                    <h1 class="h4 mb-0">New puzzle</h1>
+                    {% if puzzle.approved %}
+                        <span class="badge bg-success">Approved</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    {% endif %}
+                </div>
+                <div class="card-body px-3 px-md-4">
+                    <div class="d-flex flex-column flex-sm-row gap-3">
+                        <div class="flex-shrink-0 gallery" style="max-width: 220px;">
+                            {% if puzzle.image %}
+                                <a class="gallery-item d-block rounded overflow-hidden" href="{{ uploaded_asset(puzzle.image) }}">
+                                    <img src="{{ puzzle.image|puzzle_image('puzzle_medium') }}"
+                                         alt="{{ puzzle.puzzleName }}"
+                                         class="img-fluid rounded"
+                                         style="max-height: 220px; object-fit: contain;">
+                                </a>
+                            {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center text-muted" style="width: 120px; height: 80px;">
+                                    <span class="small">No image</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="min-w-0">
+                            <h2 class="h5 mb-1 text-break">
+                                <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" target="_blank">{{ puzzle.puzzleName }}</a>
+                            </h2>
+                            <p class="text-muted mb-2 text-break">
+                                {{ puzzle.manufacturerName ?? 'No brand' }}
+                                {% if newBrand %}<span class="badge bg-warning text-dark ms-1">New brand</span>{% endif %}
+                                &bull; {{ puzzle.piecesCount }} pieces
+                            </p>
+                            <dl class="row small mb-0">
+                                <dt class="col-5 col-sm-4 fw-normal text-muted">EAN</dt>
+                                <dd class="col-7 col-sm-8 text-break">{{ puzzle.ean ?? '—' }}</dd>
+                                <dt class="col-5 col-sm-4 fw-normal text-muted">Brand code</dt>
+                                <dd class="col-7 col-sm-8 text-break">{{ puzzle.identificationNumber ?? '—' }}</dd>
+                                <dt class="col-5 col-sm-4 fw-normal text-muted">Solving times</dt>
+                                <dd class="col-7 col-sm-8">{{ puzzle.solvedTimes }}</dd>
+                                <dt class="col-5 col-sm-4 fw-normal text-muted">Added</dt>
+                                <dd class="col-7 col-sm-8 text-break mb-0">
+                                    {% if puzzle.addedById %}
+                                        <a href="{{ path('player_profile', {playerId: puzzle.addedById}) }}" target="_blank">
+                                            {{ puzzle.addedByName ?? ('#' ~ puzzle.addedByCode) }}</a>{% if puzzle.addedByName %} <span class="text-muted">#{{ puzzle.addedByCode }}</span>{% endif %}
+                                    {% endif %}
+                                    {% if puzzle.addedAt %}<span class="text-muted">&bull; {{ puzzle.addedAt|ago }}</span>{% endif %}
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if puzzle.approved %}
+                <div class="alert alert-success">
+                    This puzzle is already approved. <a href="{{ path('admin_puzzle_approvals') }}">Back to the queue</a>
+                </div>
+            {% else %}
+
+            {% if puzzle.inPendingMergeRequest %}
+                <div class="alert alert-info">
+                    This puzzle is already part of a pending
+                    <a href="{{ path('admin_puzzle_merge_requests') }}">merge request</a>.
+                </div>
+            {% endif %}
+
+            {# 1. Duplicate check #}
+            <div class="card shadow mb-4">
+                <div class="card-header px-3 px-md-4">
+                    <h2 class="h5 mb-0">Is it a duplicate?</h2>
+                </div>
+                <div class="card-body px-3 px-md-4">
+                    {% if duplicates is empty %}
+                        <p class="text-muted small">No puzzle with the same EAN or a similar name and piece count was found.</p>
+                    {% else %}
+                        <p class="text-muted small">
+                            Same EAN, or similar name with the same piece count. Compare the artwork - merging opens the merge review, where you settle the final details; every solving time is kept.
+                        </p>
+                        <div class="list-group mb-3">
+                            {% for candidate in duplicates %}
+                                <div class="list-group-item d-flex flex-column flex-sm-row gap-2 gap-sm-3 align-items-sm-center py-3">
+                                    <div class="d-flex gap-3 align-items-center flex-grow-1 min-w-0">
+                                        <div class="flex-shrink-0 text-center gallery" style="width: 72px;">
+                                            {% if candidate.image %}
+                                                <a class="gallery-item d-block" href="{{ uploaded_asset(candidate.image) }}">
+                                                    <img src="{{ candidate.image|puzzle_image('puzzle_small') }}"
+                                                         alt=""
+                                                         class="rounded"
+                                                         style="max-height: 72px; max-width: 72px;">
+                                                </a>
+                                            {% else %}
+                                                <i class="bi bi-puzzle text-muted fs-3"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div class="min-w-0">
+                                            <a href="{{ path('puzzle_detail', {puzzleId: candidate.puzzleId}) }}" target="_blank" class="fw-semibold text-break">{{ candidate.puzzleName }}</a>
+                                            <div class="small text-muted text-break">
+                                                {{ candidate.manufacturerName ?? 'No brand' }} &bull; {{ candidate.piecesCount }} pcs
+                                                {% if candidate.ean %}&bull; EAN {{ candidate.ean }}{% endif %}
+                                            </div>
+                                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                                {% if candidate.sameEan %}<span class="badge bg-danger">Same EAN</span>{% endif %}
+                                                {% if candidate.approved %}
+                                                    <span class="badge bg-success">Approved</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning text-dark">Also pending</span>
+                                                {% endif %}
+                                                <span class="badge bg-light text-dark border">{{ candidate.solvedTimes }} {{ candidate.solvedTimes == 1 ? 'time' : 'times' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <form action="{{ path('admin_merge_unapproved_puzzle', {puzzleId: puzzle.puzzleId}) }}" method="post" class="d-grid flex-shrink-0">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('merge-puzzle-' ~ puzzle.puzzleId) }}">
+                                        <input type="hidden" name="target_puzzle" value="{{ candidate.puzzleId }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-intersect me-1"></i> Merge with this
+                                        </button>
+                                    </form>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <form action="{{ path('admin_merge_unapproved_puzzle', {puzzleId: puzzle.puzzleId}) }}" method="post">
+                        <input type="hidden" name="_token" value="{{ csrf_token('merge-puzzle-' ~ puzzle.puzzleId) }}">
+                        <label for="target_puzzle" class="form-label small">Duplicate of another puzzle? Paste its address or ID</label>
+                        <div class="d-flex flex-column flex-sm-row gap-2">
+                            <input type="text"
+                                   id="target_puzzle"
+                                   name="target_puzzle"
+                                   class="form-control"
+                                   required
+                                   autocomplete="off"
+                                   placeholder="https://myspeedpuzzling.com/en/puzzle/…">
+                            <button type="submit" class="btn btn-outline-primary flex-shrink-0">Merge</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {# 2. Approve #}
+            <div class="card shadow mb-4">
+                <div class="card-header px-3 px-md-4">
+                    <h2 class="h5 mb-0">Approve</h2>
+                </div>
+                <div class="card-body px-3 px-md-4">
+                    <form action="{{ path('admin_approve_puzzle', {puzzleId: puzzle.puzzleId}) }}" method="post">
+                        <input type="hidden" name="_token" value="{{ csrf_token('approve-puzzle-' ~ puzzle.puzzleId) }}">
+                        <input type="hidden" name="current_manufacturer_id" value="{{ puzzle.manufacturerId }}">
+
+                        <p class="text-muted small">Correct anything that is wrong before approving.</p>
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" id="name" name="name" class="form-control" value="{{ puzzle.puzzleName }}" required>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-12 col-sm-4">
+                                <label for="pieces_count" class="form-label">Pieces</label>
+                                <input type="number" inputmode="numeric" min="1" id="pieces_count" name="pieces_count" class="form-control" value="{{ puzzle.piecesCount }}" required>
+                            </div>
+                            <div class="col-12 col-sm-8">
+                                <label for="ean" class="form-label">EAN <small class="text-muted">(comma-separated)</small></label>
+                                <input type="text" inputmode="numeric" id="ean" name="ean" class="form-control" value="{{ puzzle.ean }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="identification_number" class="form-label">Brand code <small class="text-muted">(comma-separated)</small></label>
+                            <input type="text" id="identification_number" name="identification_number" class="form-control" value="{{ puzzle.identificationNumber }}">
+                        </div>
+
+                        {# Brand #}
+                        {% set suggestedIds = brand_suggestions|map(s => s.manufacturerId) %}
+                        {% set preselectedBrandId = brand_suggestions is not empty ? brand_suggestions|first.manufacturerId : (newBrand ? null : puzzle.manufacturerId) %}
+
+                        <fieldset class="border rounded-3 p-3 mb-4">
+                            <legend class="float-none w-auto px-2 fs-6 fw-semibold mb-0">Brand</legend>
+
+                            {% if newBrand %}
+                                <div class="alert alert-warning small mb-3">
+                                    <strong>{{ puzzle.manufacturerName }}</strong> is a new brand
+                                    ({{ puzzle.manufacturerPuzzlesCount }} {{ puzzle.manufacturerPuzzlesCount == 1 ? 'puzzle' : 'puzzles' }}).
+                                    Players often type an existing brand differently - check before approving it.
+                                    {% if brand_suggestions is not empty %}
+                                        <div class="mt-2">
+                                            Looks like:
+                                            {% for suggestion in brand_suggestions %}
+                                                <strong>{{ suggestion.manufacturerName }}</strong>
+                                                <span class="text-muted">({{ suggestion.puzzlesCount }}{% if suggestion.eanPrefixMatches %}, EAN prefix matches{% endif %})</span>{% if not loop.last %}, {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio" name="brand_choice" id="brand_merge" value="merge_into" required>
+                                    <label class="form-check-label" for="brand_merge">
+                                        It is an existing brand - merge <strong>{{ puzzle.manufacturerName }}</strong> into the brand below
+                                        <span class="d-block small text-muted">
+                                            {% if puzzle.manufacturerPuzzlesCount > 1 %}Moves all {{ puzzle.manufacturerPuzzlesCount }} of its puzzles{% else %}Moves this puzzle{% endif %}
+                                            and deletes the duplicate brand.
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio" name="brand_choice" id="brand_use_existing" value="use_existing" required>
+                                    <label class="form-check-label" for="brand_use_existing">
+                                        Only this puzzle is from another brand - move it to the brand below
+                                    </label>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="brand_choice" id="brand_approve" value="approve" required>
+                                    <label class="form-check-label" for="brand_approve">
+                                        It is a real new brand - approve <strong>{{ puzzle.manufacturerName }}</strong>
+                                    </label>
+                                </div>
+                            {% endif %}
+
+                            <label for="target_manufacturer_id" class="form-label small">
+                                {{ newBrand ? 'Existing brand (for merge or move)' : 'Brand' }}
+                            </label>
+                            <select id="target_manufacturer_id" name="target_manufacturer_id" class="form-select">
+                                {% if newBrand and preselectedBrandId is null %}
+                                    <option value="">-- Select a brand --</option>
+                                {% endif %}
+                                {% if brand_suggestions is not empty %}
+                                    <optgroup label="Suggested">
+                                        {% for suggestion in brand_suggestions %}
+                                            <option value="{{ suggestion.manufacturerId }}" {{ suggestion.manufacturerId == preselectedBrandId ? 'selected' : '' }}>{{ suggestion.manufacturerName }}</option>
+                                        {% endfor %}
+                                    </optgroup>
+                                {% endif %}
+                                <optgroup label="All approved brands">
+                                    {% for brand in approved_brands %}
+                                        {% if brand.manufacturerId not in suggestedIds %}
+                                            <option value="{{ brand.manufacturerId }}" {{ brand.manufacturerId == preselectedBrandId ? 'selected' : '' }}>{{ brand.manufacturerName }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </optgroup>
+                            </select>
+                        </fieldset>
+
+                        <div class="d-grid d-sm-flex">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-lg me-1"></i> Approve puzzle
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

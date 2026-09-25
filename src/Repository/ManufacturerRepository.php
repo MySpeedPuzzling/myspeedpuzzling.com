@@ -40,4 +40,9 @@ readonly final class ManufacturerRepository
 
         return (int) $count > 0;
     }
+
+    public function delete(Manufacturer $manufacturer): void
+    {
+        $this->entityManager->remove($manufacturer);
+    }
 }

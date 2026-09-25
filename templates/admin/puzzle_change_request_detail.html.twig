@@ -223,7 +223,7 @@
                 </div>
                 <div class="card-body px-3 px-md-4">
                     <a href="{{ path('player_profile', {playerId: request.reporterId}) }}" target="_blank">
-                        {{ request.reporterName ?? '#' ~ request.reporterCode }}
+                        {{ request.reporterName ?? ('#' ~ request.reporterCode) }}
                     </a>
                     {% if request.reporterName and request.reporterCode %}
                         <span class="text-muted">#{{ request.reporterCode }}</span>

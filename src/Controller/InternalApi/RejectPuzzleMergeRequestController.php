@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use SpeedPuzzling\Web\Message\RejectPuzzleMergeRequest;
+use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
@@ -51,6 +52,7 @@ final class RejectPuzzleMergeRequestController extends AbstractController
             mergeRequestId: $mergeRequestId,
             reviewerId: $this->reviewerPlayerId,
             rejectionReason: $rejectionReason,
+            decisionSource: MergeDecisionSource::InternalApi,
         ));
 
         return new Response(null, Response::HTTP_NO_CONTENT);

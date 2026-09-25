@@ -52,6 +52,7 @@ final class AdminAreaAccessTest extends WebTestCase
         yield 'oauth2 requests' => ['/admin/oauth2-requests'];
         yield 'puzzle change requests' => ['/admin/puzzle-change-requests'];
         yield 'puzzle merge requests' => ['/admin/puzzle-merge-requests'];
+        yield 'puzzle approvals' => ['/admin/puzzle-approvals'];
         yield 'vouchers' => ['/admin/vouchers'];
     }
 

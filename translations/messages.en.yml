@@ -2080,6 +2080,10 @@ admin:
         approved: "Change request has been approved and puzzle updated."
         rejected: "Change request has been rejected."
         rejection_reason_required: "Rejection reason is required."
+    puzzle_approval:
+        approved: "Puzzle has been approved."
+        already_approved: "This puzzle had already been approved or merged by someone else."
+        merge_target_invalid: "Paste the ID or the address of another existing puzzle."
     puzzle_merge_request:
         approved: "Merge request has been approved. Puzzles have been merged."
         rejected: "Merge request has been rejected."

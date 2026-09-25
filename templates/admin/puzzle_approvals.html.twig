@@ -1,0 +1,155 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Puzzle Approvals{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-2">Puzzle Approvals</h1>
+    <p class="text-muted small mb-4">
+        Newly added puzzles are visible only to the player who added them until they are approved.
+        Check the details, fix what is wrong, or merge a duplicate into the existing puzzle - solving times are always kept.
+    </p>
+
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link py-2 px-2 px-md-3 fs-sm {{ active_tab == 'pending' ? 'active' : '' }}"
+               href="{{ path('admin_puzzle_approvals', {tab: 'pending'}) }}">
+                Pending
+                {% if counts.pending > 0 %}
+                    <span class="badge bg-warning text-dark">{{ counts.pending }}</span>
+                {% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link py-2 px-2 px-md-3 fs-sm {{ active_tab == 'approved' ? 'active' : '' }}"
+               href="{{ path('admin_puzzle_approvals', {tab: 'approved'}) }}">
+                Approved
+                {% if counts.approved > 0 %}
+                    <span class="badge bg-success">{{ counts.approved }}</span>
+                {% endif %}
+            </a>
+        </li>
+    </ul>
+
+    {% if active_tab == 'pending' %}
+        {% if pending is empty %}
+            <div class="alert alert-info">No puzzles are waiting for approval.</div>
+        {% else %}
+            <div class="card shadow">
+                <div class="list-group list-group-flush">
+                    {% for puzzle in pending %}
+                        <a href="{{ path('admin_puzzle_approval_detail', {puzzleId: puzzle.puzzleId}) }}"
+                           class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-3">
+                            <div class="flex-shrink-0 text-center" style="width: 56px;">
+                                {% if puzzle.image %}
+                                    <img src="{{ puzzle.image|puzzle_image('puzzle_small') }}"
+                                         alt=""
+                                         class="rounded"
+                                         style="max-height: 56px; max-width: 56px;">
+                                {% else %}
+                                    <i class="bi bi-puzzle text-muted fs-3"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-semibold text-body text-break">{{ puzzle.puzzleName }}</div>
+                                <div class="small text-muted text-break">
+                                    {{ puzzle.manufacturerName ?? 'No brand' }} &bull; {{ puzzle.piecesCount }} pcs
+                                </div>
+                                <div class="d-flex flex-wrap gap-1 my-1">
+                                    {% if puzzle.manufacturerId and not puzzle.manufacturerApproved %}
+                                        <span class="badge bg-warning text-dark">New brand</span>
+                                    {% endif %}
+                                    {% if puzzle.hasSameEanPuzzle %}
+                                        <span class="badge bg-danger">Same EAN exists</span>
+                                    {% endif %}
+                                    {% if puzzle.inPendingMergeRequest %}
+                                        <span class="badge bg-info text-dark">In merge request</span>
+                                    {% endif %}
+                                    {% if not puzzle.image %}
+                                        <span class="badge bg-secondary">No image</span>
+                                    {% endif %}
+                                    {% if puzzle.solvedTimes > 0 %}
+                                        <span class="badge bg-light text-dark border">{{ puzzle.solvedTimes }} {{ puzzle.solvedTimes == 1 ? 'time' : 'times' }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="small text-muted text-break">
+                                    {% if puzzle.addedById %}
+                                        {{ puzzle.addedByName ? puzzle.addedByName ~ ' #' ~ puzzle.addedByCode : '#' ~ puzzle.addedByCode }}
+                                    {% endif %}
+                                    {% if puzzle.addedAt %}&bull; {{ puzzle.addedAt|ago }}{% endif %}
+                                </div>
+                            </div>
+                            <i class="bi bi-chevron-right text-muted flex-shrink-0"></i>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        {% if approved is empty %}
+            <div class="alert alert-info">No puzzles have been approved in the queue yet.</div>
+        {% else %}
+            <div class="card shadow">
+                <div class="list-group list-group-flush">
+                    {% for decision in approved %}
+                        {% set rowClass = 'list-group-item d-flex align-items-center gap-3 py-3' %}
+                        {% if decision.puzzleExists %}
+                            <a href="{{ path('puzzle_detail', {puzzleId: decision.puzzleId}) }}" target="_blank" class="{{ rowClass }} list-group-item-action">
+                        {% else %}
+                            <div class="{{ rowClass }}">
+                        {% endif %}
+                            <div class="flex-shrink-0 text-center" style="width: 56px;">
+                                {% if decision.image %}
+                                    <img src="{{ decision.image|puzzle_image('puzzle_small') }}"
+                                         alt=""
+                                         class="rounded"
+                                         style="max-height: 56px; max-width: 56px;">
+                                {% else %}
+                                    <i class="bi bi-puzzle text-muted fs-3"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-semibold text-body text-break">{{ decision.puzzleName }}</div>
+                                {% if decision.puzzleExists %}
+                                    <div class="small text-muted text-break">
+                                        {{ decision.manufacturerName ?? 'No brand' }} &bull; {{ decision.piecesCount }} pcs
+                                    </div>
+                                {% else %}
+                                    <div class="small text-muted fst-italic">Merged or deleted since</div>
+                                {% endif %}
+                                <div class="small text-muted text-break">
+                                    Approved {{ decision.decidedAt|ago }} by
+                                    {{ decision.decidedByName ? decision.decidedByName ~ ' #' ~ decision.decidedByCode : '#' ~ decision.decidedByCode }}
+                                </div>
+                            </div>
+                        {% if decision.puzzleExists %}
+                            <i class="bi bi-box-arrow-up-right text-muted flex-shrink-0"></i>
+                            </a>
+                        {% else %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
+
+    {% if pages > 1 %}
+        <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="Pages">
+            {% if page > 1 %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_puzzle_approvals', {tab: active_tab, page: page - 1}) }}">
+                    <i class="bi bi-chevron-left"></i> Newer
+                </a>
+            {% else %}
+                <span></span>
+            {% endif %}
+            <span class="small text-muted">Page {{ page }} of {{ pages }}</span>
+            {% if page < pages %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_puzzle_approvals', {tab: active_tab, page: page + 1}) }}">
+                    Older <i class="bi bi-chevron-right"></i>
+                </a>
+            {% else %}
+                <span></span>
+            {% endif %}
+        </nav>
+    {% endif %}
+{% endblock %}

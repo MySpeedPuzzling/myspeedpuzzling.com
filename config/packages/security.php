@@ -228,7 +228,7 @@ return App::config([
             // The one corner of /admin open to community moderators as well as admins.
             // Must stay above ^/admin - the first matching rule wins.
             [
-                'path' => '^/admin/puzzle-(change|merge)-requests',
+                'path' => '^/admin/puzzle-((change|merge)-requests|approvals)',
                 'roles' => [PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS],
             ],
             [

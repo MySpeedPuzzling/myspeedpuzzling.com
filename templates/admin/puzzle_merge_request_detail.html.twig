@@ -22,7 +22,7 @@
             <div class="mb-4 text-break">
                 <strong>Reported by:</strong>
                 <a href="{{ path('player_profile', {playerId: request.reporterId}) }}" target="_blank">
-                    {{ request.reporterName ?? '#' ~ request.reporterCode }}
+                    {{ request.reporterName ?? ('#' ~ request.reporterCode) }}
                 </a>
                 {% if request.reporterName and request.reporterCode %}
                     <span class="text-muted">#{{ request.reporterCode }}</span>
@@ -96,6 +96,10 @@
 
                     <form action="{{ path('admin_approve_puzzle_merge_request', {id: request.id}) }}"
                           method="post">
+                        {% set mergeReturnUrl = safe_return_url(app.request.query.get('return'), null) %}
+                        {% if mergeReturnUrl %}
+                            <input type="hidden" name="return" value="{{ mergeReturnUrl }}">
+                        {% endif %}
                         <div class="row">
                             <div class="col-12 col-lg-8">
                                 <div class="mb-3">

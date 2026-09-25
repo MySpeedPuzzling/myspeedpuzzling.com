@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Repository;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleChangeRequest;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
@@ -49,5 +50,14 @@ readonly final class PuzzleChangeRequestRepository
                 'proposedEan' => $proposedEan,
                 'status' => PuzzleReportStatus::Pending,
             ]);
+    }
+
+    /**
+     * @return list<PuzzleChangeRequest>
+     */
+    public function findByProposedManufacturer(Manufacturer $manufacturer): array
+    {
+        return $this->entityManager->getRepository(PuzzleChangeRequest::class)
+            ->findBy(['proposedManufacturer' => $manufacturer]);
     }
 }

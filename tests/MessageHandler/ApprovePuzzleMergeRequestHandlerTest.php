@@ -16,6 +16,10 @@ use SpeedPuzzling\Web\Entity\Tag;
 use SpeedPuzzling\Web\Entity\LentPuzzle;
 use SpeedPuzzling\Web\Entity\LentPuzzleTransfer;
 use SpeedPuzzling\Web\Entity\PuzzleMergeAudit;
+use SpeedPuzzling\Web\Value\NotificationType;
+use SpeedPuzzling\Web\Value\PuzzleModerationAction;
+use SpeedPuzzling\Web\Entity\Notification;
+use SpeedPuzzling\Web\Entity\PuzzleModerationDecision;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Entity\SoldSwappedItem;
@@ -747,5 +751,50 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         self::assertIsArray($migrated);
         self::assertIsArray($migrated['lentPuzzleTransfers']);
         self::assertContains($transferId->toString(), $migrated['lentPuzzleTransfers']);
+    }
+
+    public function testSurvivorInheritsApprovalAndTheDecisionIsLoggedWithoutSelfNotification(): void
+    {
+        $mergeRequestId = Uuid::uuid7()->toString();
+
+        // A moderator merging a new puzzle from the approval queue files the request themselves
+        $this->messageBus->dispatch(new SubmitPuzzleMergeRequest(
+            mergeRequestId: $mergeRequestId,
+            sourcePuzzleId: PuzzleFixture::PUZZLE_UNAPPROVED,
+            reporterId: PlayerFixture::PLAYER_ADMIN,
+            duplicatePuzzleIds: [PuzzleFixture::PUZZLE_1000_01],
+        ));
+
+        // The unapproved puzzle survives (e.g. it has more solving times)
+        $this->messageBus->dispatch(new ApprovePuzzleMergeRequest(
+            mergeRequestId: $mergeRequestId,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            survivorPuzzleId: PuzzleFixture::PUZZLE_UNAPPROVED,
+            mergedName: 'Merged',
+            mergedEan: null,
+            mergedIdentificationNumber: null,
+            mergedPiecesCount: 1000,
+            mergedManufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            selectedImagePuzzleId: null,
+        ));
+
+        $this->entityManager->clear();
+
+        $survivor = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_UNAPPROVED);
+        self::assertTrue($survivor->approved, 'An approved puzzle merged in keeps the result in the catalogue');
+        self::assertSame(PlayerFixture::PLAYER_ADMIN, $survivor->approvedBy?->id->toString());
+
+        $decisions = $this->entityManager->getRepository(PuzzleModerationDecision::class)
+            ->findBy(['mergeRequestId' => Uuid::fromString($mergeRequestId)]);
+        self::assertCount(1, $decisions);
+        self::assertSame(PuzzleModerationAction::MergeRequestApproved, $decisions[0]->action);
+        self::assertSame(PlayerFixture::PLAYER_ADMIN, $decisions[0]->decidedById->toString());
+        self::assertSame([PuzzleFixture::PUZZLE_1000_01], $decisions[0]->details['mergedPuzzleIds'] ?? null);
+
+        $selfNotifications = $this->entityManager->getRepository(Notification::class)->findBy([
+            'type' => NotificationType::PuzzleMergeRequestApproved,
+            'targetMergeRequest' => Uuid::fromString($mergeRequestId),
+        ]);
+        self::assertSame([], $selfNotifications);
     }
 }

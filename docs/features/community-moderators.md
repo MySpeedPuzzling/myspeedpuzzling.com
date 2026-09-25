@@ -8,12 +8,15 @@ Trusted community members who help maintain the puzzle catalogue without being a
 |------|-----------|-------|
 | Puzzle change requests — list, detail, approve, reject (`/admin/puzzle-change-requests*`) | yes | yes |
 | Puzzle merge requests — list, detail, approve, reject (`/admin/puzzle-merge-requests*`) | yes | yes |
+| Approving newly added puzzles, incl. brand approve / merge (`/admin/puzzle-approvals*`, [puzzle-approvals.md](puzzle-approvals.md)) | yes | yes |
 | "Go to admin" links on a puzzle's pending proposals | yes | yes |
 | Everything else under `/admin` (vouchers, referrals, moderation, e-mail audit, OAuth2, competition approvals) | **no (403)** | yes |
 | Appointing / removing moderators (`/admin/moderators`) | **no (403)** | yes |
 
-A moderator's decisions are recorded exactly like an admin's: `reviewed_by_id` on the request, and
-for merges the `puzzle_merge_audit` row (merges are destructive — see `docs/features/internal-api.md`).
+A moderator's decisions are recorded exactly like an admin's: `reviewed_by_id` on the request, for merges the
+`puzzle_merge_audit` row (merges are destructive — see `docs/features/internal-api.md`), and for **every** decision
+a `puzzle_moderation_decision` row that survives the request, the puzzle and the player
+([puzzle-approvals.md](puzzle-approvals.md#who-decided---puzzle_moderation_decision)).
 
 ## Data model
 
@@ -26,11 +29,12 @@ Granting twice keeps the original date; revoking sets it back to `NULL`.
 ## Authorization
 
 - `PuzzleModerationVoter` — attribute `PUZZLE_MODERATION_ACCESS`, granted to admins **and** moderators.
-  The attribute names the *capability*, not the role: when another area is opened to moderators,
-  give it its own attribute/voter instead of widening this one.
-- `config/packages/security.php` — `^/admin/puzzle-(change|merge)-requests` requires
+  The attribute names the *capability* (looking after the puzzle catalogue), not the role: when an area
+  outside the catalogue is opened to moderators, give it its own attribute/voter instead of widening this one.
+  Puzzle approvals (2026-09-25) are catalogue work and share it.
+- `config/packages/security.php` — `^/admin/puzzle-((change|merge)-requests|approvals)` requires
   `PUZZLE_MODERATION_ACCESS` and **must stay above** the `^/admin` → `ADMIN_ACCESS` rule (first match wins).
-- The eight puzzle-review controllers carry `#[IsGranted(PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS)]`;
+- The puzzle-review controllers (change, merge and approval queues) carry `#[IsGranted(PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS)]`;
   every other admin controller stays on `ADMIN_ACCESS`.
 - `PlayerProfile::$isModerator` (from `GetPlayerProfile`) is what the voter reads.
 - The top-bar key menu shows for `PUZZLE_MODERATION_ACCESS`; the admin-only entries inside it are

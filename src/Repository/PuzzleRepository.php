@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Repository;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 
@@ -28,5 +29,13 @@ readonly final class PuzzleRepository
         $puzzle = $this->entityManager->find(Puzzle::class, $puzzleId);
 
         return $puzzle ?? throw new PuzzleNotFound();
+    }
+
+    /**
+     * @return list<Puzzle>
+     */
+    public function findByManufacturer(Manufacturer $manufacturer): array
+    {
+        return $this->entityManager->getRepository(Puzzle::class)->findBy(['manufacturer' => $manufacturer]);
     }
 }

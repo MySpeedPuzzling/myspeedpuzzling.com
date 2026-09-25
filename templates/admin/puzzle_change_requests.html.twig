@@ -41,112 +41,46 @@
         </div>
     {% else %}
         <div class="card shadow">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead>
-                        <tr class="d-none d-md-table-row">
-                            <th>Puzzle</th>
-                            <th>Reporter</th>
-                            <th>Submitted</th>
-                            <th>Changes</th>
-                            {% if active_tab != 'pending' %}
-                                <th>Reviewed</th>
+            <div class="list-group list-group-flush">
+                {% for request in requests %}
+                    <a href="{{ path('admin_puzzle_change_request_detail', {id: request.id}) }}"
+                       class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-3">
+                        <div class="flex-shrink-0 text-center" style="width: 56px;">
+                            {% if request.puzzleImage %}
+                                <img src="{{ request.puzzleImage|puzzle_image('puzzle_small') }}"
+                                     alt=""
+                                     class="rounded"
+                                     style="max-height: 56px; max-width: 56px;">
+                            {% else %}
+                                <i class="bi bi-puzzle text-muted fs-3"></i>
                             {% endif %}
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for request in requests %}
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-start align-items-md-center">
-                                        {% if request.puzzleImage %}
-                                            <img src="{{ request.puzzleImage|puzzle_image('puzzle_small') }}"
-                                                 alt="{{ request.puzzleName }}"
-                                                 class="me-2 rounded flex-shrink-0"
-                                                 style="max-height: 40px;">
-                                        {% endif %}
-                                        <div class="min-w-0">
-                                            <a href="{{ path('puzzle_detail', {puzzleId: request.puzzleId}) }}"
-                                               target="_blank">
-                                                {{ request.puzzleName }}
-                                            </a>
-                                            <br>
-                                            <small class="text-muted">
-                                                {{ request.puzzleManufacturerName }} - {{ request.puzzlePiecesCount }} pcs
-                                            </small>
-                                        </div>
-                                    </div>
-                                    <div class="d-md-none mt-1">
-                                        <small class="text-muted">
-                                            {{ request.submittedAt|ago }}
-                                            &bull; <a href="{{ path('player_profile', {playerId: request.reporterId}) }}">{{ request.reporterName ? request.reporterName ~ ' #' ~ request.reporterCode : '#' ~ request.reporterCode }}</a>
-                                        </small>
-                                    </div>
-                                    {% if active_tab != 'pending' and request.reviewedAt %}
-                                        <div class="d-md-none">
-                                            <small class="text-muted">
-                                                Reviewed {{ request.reviewedAt|ago }}{% if request.reviewerName %} by {{ request.reviewerName }}{% endif %}
-                                            </small>
-                                        </div>
-                                    {% endif %}
-                                    <div class="d-md-none mt-1">
-                                        <div class="d-flex flex-wrap gap-1 mb-1">
-                                            {% if request.hasNameChange() %}<span class="badge bg-secondary">Name</span>{% endif %}
-                                            {% if request.hasManufacturerChange() %}<span class="badge bg-secondary">Manufacturer</span>{% endif %}
-                                            {% if request.hasPiecesCountChange() %}<span class="badge bg-secondary">Pieces</span>{% endif %}
-                                            {% if request.hasEanChange() %}<span class="badge bg-secondary">EAN</span>{% endif %}
-                                            {% if request.hasIdentificationNumberChange() %}<span class="badge bg-secondary">Brand Code</span>{% endif %}
-                                            {% if request.hasImageChange() %}<span class="badge bg-secondary">Image</span>{% endif %}
-                                        </div>
-                                        <a href="{{ path('admin_puzzle_change_request_detail', {id: request.id}) }}"
-                                           class="btn btn-sm btn-outline-primary">
-                                            View
-                                        </a>
-                                    </div>
-                                </td>
-                                <td class="d-none d-md-table-cell">
-                                    <a href="{{ path('player_profile', {playerId: request.reporterId}) }}"
-                                       target="_blank">
-                                        {{ request.reporterName ?? '#' ~ request.reporterCode }}
-                                    </a>
-                                    {% if request.reporterName and request.reporterCode %}
-                                        <br><small class="text-muted">#{{ request.reporterCode }}</small>
-                                    {% endif %}
-                                </td>
-                                <td class="d-none d-md-table-cell">
-                                    {{ request.submittedAt|ago }}
-                                </td>
-                                <td class="d-none d-md-table-cell">
-                                    <div class="d-flex flex-wrap gap-1">
-                                        {% if request.hasNameChange() %}<span class="badge bg-secondary">Name</span>{% endif %}
-                                        {% if request.hasManufacturerChange() %}<span class="badge bg-secondary">Manufacturer</span>{% endif %}
-                                        {% if request.hasPiecesCountChange() %}<span class="badge bg-secondary">Pieces</span>{% endif %}
-                                        {% if request.hasEanChange() %}<span class="badge bg-secondary">EAN</span>{% endif %}
-                                        {% if request.hasIdentificationNumberChange() %}<span class="badge bg-secondary">Brand Code</span>{% endif %}
-                                        {% if request.hasImageChange() %}<span class="badge bg-secondary">Image</span>{% endif %}
-                                    </div>
-                                </td>
-                                {% if active_tab != 'pending' %}
-                                    <td class="d-none d-md-table-cell">
-                                        {% if request.reviewedAt %}
-                                            {{ request.reviewedAt|ago }}
-                                            {% if request.reviewerName %}
-                                                <br><small class="text-muted">by {{ request.reviewerName }}</small>
-                                            {% endif %}
-                                        {% endif %}
-                                    </td>
-                                {% endif %}
-                                <td class="d-none d-md-table-cell text-end">
-                                    <a href="{{ path('admin_puzzle_change_request_detail', {id: request.id}) }}"
-                                       class="btn btn-sm btn-outline-primary">
-                                        View
-                                    </a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-semibold text-body text-break">{{ request.puzzleName }}</div>
+                            <div class="small text-muted">
+                                {{ request.puzzleManufacturerName }} &bull; {{ request.puzzlePiecesCount }} pcs
+                            </div>
+                            <div class="d-flex flex-wrap gap-1 my-1">
+                                {% if request.hasNameChange() %}<span class="badge bg-secondary">Name</span>{% endif %}
+                                {% if request.hasManufacturerChange() %}<span class="badge bg-secondary">Manufacturer</span>{% endif %}
+                                {% if request.hasPiecesCountChange() %}<span class="badge bg-secondary">Pieces</span>{% endif %}
+                                {% if request.hasEanChange() %}<span class="badge bg-secondary">EAN</span>{% endif %}
+                                {% if request.hasIdentificationNumberChange() %}<span class="badge bg-secondary">Brand Code</span>{% endif %}
+                                {% if request.hasImageChange() %}<span class="badge bg-secondary">Image</span>{% endif %}
+                            </div>
+                            <div class="small text-muted text-break">
+                                {{ request.reporterName ? request.reporterName ~ ' #' ~ request.reporterCode : '#' ~ request.reporterCode }}
+                                &bull; {{ request.submittedAt|ago }}
+                            </div>
+                            {% if active_tab != 'pending' and request.reviewedAt %}
+                                <div class="small text-muted">
+                                    Reviewed {{ request.reviewedAt|ago }}{% if request.reviewerName %} by {{ request.reviewerName }}{% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <i class="bi bi-chevron-right text-muted flex-shrink-0"></i>
+                    </a>
+                {% endfor %}
             </div>
         </div>
     {% endif %}

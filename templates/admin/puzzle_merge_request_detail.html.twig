@@ -6,7 +6,7 @@
     {% include '_return_back_button.html.twig' with {fallbackUrl: path('admin_puzzle_merge_requests'), fallbackTitle: 'Merge requests'} %}
 
     <div class="card shadow mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card-header d-flex justify-content-between align-items-center gap-2 px-3 px-md-4">
             <h1 class="h4 mb-0">Merge Request</h1>
             {% if request.status.value == 'pending' %}
                 <span class="badge bg-warning text-dark">Pending</span>
@@ -17,9 +17,9 @@
             {% endif %}
         </div>
 
-        <div class="card-body">
+        <div class="card-body px-3 px-md-4">
             {# Reporter info #}
-            <div class="mb-4">
+            <div class="mb-4 text-break">
                 <strong>Reported by:</strong>
                 <a href="{{ path('player_profile', {playerId: request.reporterId}) }}" target="_blank">
                     {{ request.reporterName ?? '#' ~ request.reporterCode }}
@@ -27,12 +27,12 @@
                 {% if request.reporterName and request.reporterCode %}
                     <span class="text-muted">#{{ request.reporterCode }}</span>
                 {% endif %}
-                <span class="text-muted ms-3">{{ request.submittedAt|ago }}</span>
+                <span class="text-muted">&bull; {{ request.submittedAt|ago }}</span>
             </div>
 
             {# Rejection reason if rejected #}
             {% if request.status.value == 'rejected' and request.rejectionReason %}
-                <div class="alert alert-danger">
+                <div class="alert alert-danger text-break">
                     <strong>Rejection Reason:</strong><br>
                     {{ request.rejectionReason }}
                 </div>
@@ -51,9 +51,9 @@
                             <div class="card shadow h-100 border-primary">
                                 {% if puzzle.puzzleImage %}
                                     <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}"
-                                         class="card-img-top"
+                                         class="card-img-top bg-light"
                                          alt="{{ puzzle.puzzleName }}"
-                                         style="height: 150px; object-fit: cover;">
+                                         style="height: 180px; object-fit: contain;">
                                 {% else %}
                                     <div class="card-img-top bg-light d-flex align-items-center justify-content-center"
                                          style="height: 150px;">
@@ -61,7 +61,7 @@
                                     </div>
                                 {% endif %}
                                 <div class="card-body">
-                                    <h6 class="card-title">
+                                    <h6 class="card-title text-break">
                                         <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" target="_blank">
                                             {{ puzzle.puzzleName }}
                                         </a>
@@ -203,14 +203,13 @@
                             </div>
                         </div>
 
-                        <hr class="my-4">
-                        <div class="d-flex gap-2">
+                        <div class="d-grid d-sm-flex gap-2 pt-3 mt-2 border-top">
                             <button type="submit" class="btn btn-success">
                                 <i class="bi bi-check-lg me-1"></i> Approve & Merge
                             </button>
 
                             <button type="button"
-                                    class="btn btn-danger"
+                                    class="btn btn-outline-danger"
                                     data-bs-toggle="modal"
                                     data-bs-target="#rejectModal">
                                 <i class="bi bi-x-lg me-1"></i> Reject
@@ -244,7 +243,7 @@
 {# Reject Modal #}
 {% if request.status.value == 'pending' %}
 <div class="modal fade" id="rejectModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form action="{{ path('admin_reject_puzzle_merge_request', {id: request.id}) }}" method="post">
                 <div class="modal-header">

@@ -118,6 +118,7 @@ services:
         restart: unless-stopped
         volumes:
             - .docker/nginx-imgproxy.conf:/etc/nginx/conf.d/default.conf
+            - ./public/img/placeholder-puzzle.jpg:/usr/share/nginx/placeholder/placeholder-puzzle.jpg:ro
             - .docker-data/imgproxy-cache:/var/cache/nginx/imgproxy
         depends_on:
             - imgproxy

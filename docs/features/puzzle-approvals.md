@@ -9,7 +9,7 @@ moderators.
 
 | Route | What |
 |-------|------|
-| `GET /admin/puzzle-approvals` (`admin_puzzle_approvals`) | Queue. Tabs *Pending* (all unapproved puzzles, newest first) and *Approved* (from the moderation log), 50 per page |
+| `GET /admin/puzzle-approvals` (`admin_puzzle_approvals`) | Queue of pending puzzles (all unapproved, newest first), 50 per page. No "approved" tab by design - who approved what lives in `puzzle_moderation_decision` |
 | `GET /admin/puzzle-approvals/{puzzleId}` (`admin_puzzle_approval_detail`) | One puzzle: its data, likely duplicates, the approve form |
 | `POST …/{puzzleId}/approve` (`admin_approve_puzzle`) | `ApprovePuzzle` (CSRF `approve-puzzle-{id}`) |
 | `POST …/{puzzleId}/merge` (`admin_merge_unapproved_puzzle`) | Files a merge request and opens the merge review (CSRF `merge-puzzle-{id}`) |

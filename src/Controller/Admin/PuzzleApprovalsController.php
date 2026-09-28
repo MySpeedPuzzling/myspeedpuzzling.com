@@ -26,21 +26,14 @@ final class PuzzleApprovalsController extends AbstractController
     #[IsGranted(PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS)]
     public function __invoke(Request $request): Response
     {
-        $tab = $request->query->getString('tab', 'pending') === 'approved' ? 'approved' : 'pending';
         $page = max(1, $request->query->getInt('page', 1));
-
-        $counts = [
-            'pending' => $this->getPuzzleApprovals->countPending(),
-            'approved' => $this->getPuzzleApprovals->countApproved(),
-        ];
+        $pendingCount = $this->getPuzzleApprovals->countPending();
 
         return $this->render('admin/puzzle_approvals.html.twig', [
-            'active_tab' => $tab,
             'page' => $page,
-            'pages' => max(1, (int) ceil($counts[$tab] / GetPuzzleApprovals::PAGE_SIZE)),
-            'counts' => $counts,
-            'pending' => $tab === 'pending' ? $this->getPuzzleApprovals->pending($page) : [],
-            'approved' => $tab === 'approved' ? $this->getPuzzleApprovals->recentlyApproved($page) : [],
+            'pages' => max(1, (int) ceil($pendingCount / GetPuzzleApprovals::PAGE_SIZE)),
+            'pending_count' => $pendingCount,
+            'pending' => $this->getPuzzleApprovals->pending($page),
         ]);
     }
 }

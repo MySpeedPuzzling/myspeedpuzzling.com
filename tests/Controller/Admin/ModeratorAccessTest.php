@@ -33,7 +33,6 @@ final class ModeratorAccessTest extends WebTestCase
         yield 'puzzle change requests' => ['/admin/puzzle-change-requests'];
         yield 'puzzle merge requests' => ['/admin/puzzle-merge-requests'];
         yield 'puzzle approvals' => ['/admin/puzzle-approvals'];
-        yield 'puzzle approvals, approved tab' => ['/admin/puzzle-approvals?tab=approved'];
         yield 'puzzle approval detail' => ['/admin/puzzle-approvals/' . PuzzleFixture::PUZZLE_UNAPPROVED];
     }
 

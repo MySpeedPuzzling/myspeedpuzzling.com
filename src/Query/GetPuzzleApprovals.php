@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
-use SpeedPuzzling\Web\Results\ApprovedPuzzleDecision;
 use SpeedPuzzling\Web\Results\BrandSuggestion;
 use SpeedPuzzling\Web\Results\PendingPuzzleApproval;
 use SpeedPuzzling\Web\Results\PuzzleDuplicateCandidate;
-use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 
 /**
  * Read side of the puzzle approval queue (docs/features/puzzle-approvals.md).
@@ -28,17 +26,6 @@ readonly final class GetPuzzleApprovals
     public function countPending(): int
     {
         $count = $this->database->fetchOne('SELECT COUNT(*) FROM puzzle WHERE approved = false');
-        assert(is_int($count));
-
-        return $count;
-    }
-
-    public function countApproved(): int
-    {
-        $count = $this->database->fetchOne(
-            'SELECT COUNT(*) FROM puzzle_moderation_decision WHERE action = :action',
-            ['action' => PuzzleModerationAction::PuzzleApproved->value],
-        );
         assert(is_int($count));
 
         return $count;
@@ -78,41 +65,6 @@ SQL,
         );
 
         return $row === false ? null : PendingPuzzleApproval::fromDatabaseRow($row);
-    }
-
-    /**
-     * @return list<ApprovedPuzzleDecision>
-     */
-    public function recentlyApproved(int $page = 1): array
-    {
-        $rows = $this->database->fetchAllAssociative(
-            <<<SQL
-SELECT
-    d.decided_at,
-    d.decided_by_id,
-    d.decided_by_name,
-    d.decided_by_code,
-    d.puzzle_id,
-    COALESCE(p.name, d.puzzle_name) AS puzzle_name,
-    p.id IS NOT NULL AS puzzle_exists,
-    p.image,
-    p.pieces_count,
-    m.name AS manufacturer_name
-FROM puzzle_moderation_decision d
-LEFT JOIN puzzle p ON p.id = d.puzzle_id
-LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
-WHERE d.action = :action
-ORDER BY d.decided_at DESC, d.id DESC
-LIMIT :limit OFFSET :offset
-SQL,
-            [
-                'action' => PuzzleModerationAction::PuzzleApproved->value,
-                'limit' => self::PAGE_SIZE,
-                'offset' => (max(1, $page) - 1) * self::PAGE_SIZE,
-            ],
-        );
-
-        return array_map(ApprovedPuzzleDecision::fromDatabaseRow(...), $rows);
     }
 
     /**

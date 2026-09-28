@@ -39,7 +39,7 @@ final class GetPuzzleApprovalsTest extends KernelTestCase
         self::assertSame(PlayerFixture::PLAYER_REGULAR, $unapproved->addedById);
     }
 
-    public function testAnApprovalMovesThePuzzleToTheApprovedTab(): void
+    public function testAnApprovedPuzzleLeavesTheQueue(): void
     {
         self::getContainer()->get(MessageBusInterface::class)->dispatch(new ApprovePuzzle(
             puzzleId: PuzzleFixture::PUZZLE_UNAPPROVED,
@@ -53,12 +53,6 @@ final class GetPuzzleApprovalsTest extends KernelTestCase
         ));
 
         self::assertNull($this->findPending(PuzzleFixture::PUZZLE_UNAPPROVED));
-
-        $approved = $this->query->recentlyApproved();
-        self::assertSame(1, $this->query->countApproved());
-        self::assertSame(PuzzleFixture::PUZZLE_UNAPPROVED, $approved[0]->puzzleId);
-        self::assertTrue($approved[0]->puzzleExists);
-        self::assertSame(PlayerFixture::PLAYER_ADMIN, $approved[0]->decidedById);
     }
 
     public function testPossibleDuplicatesAndBrandSuggestionsRun(): void

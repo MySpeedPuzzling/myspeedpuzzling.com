@@ -30,6 +30,8 @@ readonly final class SolvedPuzzleDetail
         public bool $firstAttempt,
         public bool $unboxed,
         public null|string $competitionId,
+        // The puzzle has an image, held back until a competition round starts (puzzleImage is null then)
+        public bool $puzzleImageHidden = false,
     ) {
     }
 
@@ -45,6 +47,7 @@ readonly final class SolvedPuzzleDetail
      *     manufacturer_id: string,
      *     puzzle_image: null|string,
      *     puzzle_image_ratio: null|string,
+     *     puzzle_image_hidden: bool,
      *     time: null|int,
      *     pieces_count: int,
      *     comment: null|string,
@@ -83,6 +86,7 @@ readonly final class SolvedPuzzleDetail
             firstAttempt: $row['first_attempt'],
             unboxed: $row['unboxed'],
             competitionId: $row['competition_id'],
+            puzzleImageHidden: $row['puzzle_image_hidden'],
         );
     }
 

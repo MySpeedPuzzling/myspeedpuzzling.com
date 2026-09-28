@@ -24,7 +24,7 @@ final class ResultImageController extends AbstractController
     public function __invoke(string $timeId): Response
     {
         try {
-            $fileContent = $this->getResultImage->forSolvingTime($timeId);
+            $resultImage = $this->getResultImage->forSolvingTime($timeId);
         } catch (FilesystemException | AsyncAwsException $exception) {
             // Object storage outage (the source photo is on S3 and not in the
             // local spool) - a temporary 404 beats a 500, and must not be cached
@@ -38,9 +38,16 @@ final class ResultImageController extends AbstractController
             ]);
         }
 
-        return new Response($fileContent, 200, [
+        $headers = [
             'Content-Type' => 'image/png',
             'Content-Disposition' => 'inline',
-        ]);
+        ];
+
+        // Drawn over the placeholder photo: fine to show, never to keep (crawlers, browsers, CDN)
+        if ($resultImage->withPlaceholder) {
+            $headers['Cache-Control'] = 'no-store';
+        }
+
+        return new Response($resultImage->content, 200, $headers);
     }
 }

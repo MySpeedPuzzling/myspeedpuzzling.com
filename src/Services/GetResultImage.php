@@ -9,16 +9,22 @@ use Intervention\Image\ImageManager;
 use Intervention\Image\MediaType;
 use Intervention\Image\Typography\FontFactory;
 use League\Flysystem\Filesystem;
+use League\Flysystem\FilesystemException;
+use Psr\Log\LoggerInterface;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Results\ResultImage;
+use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Value\SolvingTime;
 
 readonly final class GetResultImage
 {
+    private const string PLACEHOLDER_PHOTO = __DIR__ . '/../../public/img/placeholder-puzzle.jpg';
+
     public function __construct(
         private ImageManager $imageManager,
         private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
@@ -28,15 +34,16 @@ readonly final class GetResultImage
         private Filesystem $filesystem,
         private ClockInterface $clock,
         private PlayerRepository $playerRepository,
+        private LoggerInterface $logger,
     ) {
     }
 
     /**
      * @throws PuzzleSolvingTimeNotFound
-     * @throws \League\Flysystem\FilesystemException reads go to object storage
+     * @throws \League\Flysystem\FilesystemException the cache lookup goes to object storage
      * @throws \AsyncAws\Core\Exception\Exception fileExists() leaks raw AsyncAws exceptions on network failure
      */
-    public function forSolvingTime(string $timeId): string
+    public function forSolvingTime(string $timeId): ResultImage
     {
         $solvingTime = $this->getPlayerSolvedPuzzles->byTimeId($timeId);
         $player = $this->getPlayerProfile->byId($solvingTime->playerId);
@@ -53,7 +60,7 @@ readonly final class GetResultImage
             $this->filesystem->fileExists($path)
             && $this->filesystem->lastModified($path) >= $noOlderThan->getTimestamp()
         ) {
-            return $this->filesystem->read($path);
+            return new ResultImage($this->filesystem->read($path), withPlaceholder: false);
         }
 
         $rankingText = '';
@@ -94,8 +101,7 @@ readonly final class GetResultImage
         $puzzleNameLines = (int) ceil(strlen($puzzleName) / 25);
         $puzzleNameOffset = (int) ((3 - $puzzleNameLines) * $fontSizeNormal / 3);
         $puzzleNameHeight = $puzzleNameLines * $fontSizeNormal;
-        $imagePath = $solvingTime->finishedPuzzlePhoto ?? $solvingTime->puzzleImage ?? throw new \Exception('Image missing');
-        $imageContent = $this->filesystem->read($imagePath);
+        [$imageContent, $withPlaceholder] = $this->photoFor($solvingTime);
 
         $image = $this->imageManager->decode($imageContent)
             ->cover($size, $size)
@@ -172,8 +178,58 @@ readonly final class GetResultImage
 
         $fileContent = (string) $image->encodeUsingMediaType(MediaType::IMAGE_PNG, quality: 100);
 
-        $this->filesystem->write($path, $fileContent);
+        // A placeholder version is never stored: once the real photo is there, it is used
+        if ($withPlaceholder === false) {
+            $this->filesystem->write($path, $fileContent);
+        }
 
-        return $fileContent;
+        return new ResultImage($fileContent, $withPlaceholder);
+    }
+
+    /**
+     * The photo the share image is drawn over - the finished-puzzle photo, else the box. A missing
+     * one never fails the image (it is fetched by social crawlers, a 500 helps nobody): the
+     * placeholder stands in. A photo the database knows but storage does not have, or a puzzle
+     * without any image, is a data problem worth a look (warning); an image held back until a
+     * competition round starts is by design (info).
+     *
+     * @return array{0: string, 1: bool} photo bytes, drawn with the placeholder
+     */
+    private function photoFor(SolvedPuzzleDetail $solvingTime): array
+    {
+        $imagePath = $solvingTime->finishedPuzzlePhoto ?? $solvingTime->puzzleImage;
+        $context = [
+            'timeId' => $solvingTime->timeId,
+            'puzzleId' => $solvingTime->puzzleId,
+            'imagePath' => $imagePath,
+        ];
+
+        if ($imagePath === null) {
+            if ($solvingTime->puzzleImageHidden) {
+                $this->logger->info('Result image drawn with the placeholder - the puzzle image is hidden until its round starts', $context);
+            } else {
+                $this->logger->warning('Result image drawn with the placeholder - the puzzle has no image', $context);
+            }
+
+            return [$this->placeholderPhoto(), true];
+        }
+
+        try {
+            return [$this->filesystem->read($imagePath), false];
+        } catch (FilesystemException $exception) {
+            $this->logger->warning('Result image drawn with the placeholder - the photo could not be read from storage', $context + [
+                'exception' => $exception,
+            ]);
+
+            return [$this->placeholderPhoto(), true];
+        }
+    }
+
+    private function placeholderPhoto(): string
+    {
+        $content = file_get_contents(self::PLACEHOLDER_PHOTO);
+        assert($content !== false);
+
+        return $content;
     }
 }

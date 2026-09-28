@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Exceptions\EanAlreadyAssigned;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Exceptions\MultiscanBatchRejected;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzlesToCollection;
 use SpeedPuzzling\Web\Message\AddPuzzlesToWishList;
@@ -46,6 +47,7 @@ use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\Ean;
 use SpeedPuzzling\Web\Value\MultiscanAction;
 use SpeedPuzzling\Web\Value\PiecesRange;
+use SpeedPuzzling\Web\Value\PuzzleBoxPhoto;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -55,6 +57,7 @@ use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * The multiscan tray: rows scanned from boxes, one batch action, the "not
@@ -145,6 +148,13 @@ final class MultiscanTray
     #[LiveProp]
     public null|string $resolveError = null;
 
+    /**
+     * Id of the puzzle quick-add will create, fixed when the sheet opens: a retry after a
+     * lost response finds the puzzle it already created instead of adding it twice.
+     */
+    #[LiveProp]
+    public null|string $quickAddId = null;
+
     /** @var null|list<MultiscanRow> */
     private null|array $hydratedRows = null;
 
@@ -171,6 +181,7 @@ final class MultiscanTray
         readonly private MultiscanEligibility $eligibility,
         readonly private LendBorrowParticipantParser $participantParser,
         readonly private MessageBusInterface $messageBus,
+        readonly private ValidatorInterface $validator,
     ) {
     }
 
@@ -313,6 +324,95 @@ final class MultiscanTray
         $this->rows = [];
         $this->recap = null;
         $this->closeResolveSheet();
+    }
+
+    /**
+     * Puts back a tray the browser kept for this tab (multiscan controller, sessionStorage) after
+     * the page was reloaded - on phones opening the camera can make the browser drop the page.
+     * Every code is looked up again, like a fresh scan: nothing from the browser is trusted beyond
+     * "these codes, and this puzzle where it was picked among several".
+     */
+    #[LiveAction]
+    public function restore(#[LiveArg] string $state): void
+    {
+        $this->clearTransient();
+        $this->requireMember();
+
+        if ($this->rows !== []) {
+            return;
+        }
+
+        $data = json_decode($state, true);
+
+        if (!is_array($data) || !is_array($data['rows'] ?? null)) {
+            return;
+        }
+
+        foreach ($data['rows'] as $saved) {
+            if (count($this->rows) >= self::MAX_ROWS) {
+                break;
+            }
+
+            if (!is_array($saved) || !is_string($saved['ean'] ?? null)) {
+                continue;
+            }
+
+            $code = Ean::tryFrom($saved['ean']);
+
+            if ($code === null || $this->findRow($code) !== null) {
+                continue;
+            }
+
+            $candidates = $this->getMultiscanCandidates->forEan($code);
+            $candidateIds = array_map(static fn (PuzzleOverview $c): string => $c->puzzleId, $candidates);
+            $pickedId = is_string($saved['puzzleId'] ?? null) && in_array($saved['puzzleId'], $candidateIds, true)
+                ? $saved['puzzleId']
+                : (count($candidates) === 1 ? $candidates[0]->puzzleId : null);
+
+            $this->rows[] = match (true) {
+                $pickedId !== null => ['ean' => $code->digits, 'puzzleId' => $pickedId, 'state' => 'resolved', 'candidateIds' => []],
+                $candidates === [] => ['ean' => $code->digits, 'puzzleId' => null, 'state' => 'unknown', 'candidateIds' => []],
+                default => ['ean' => $code->digits, 'puzzleId' => null, 'state' => 'ambiguous', 'candidateIds' => $candidateIds],
+            };
+        }
+
+        if (is_string($data['action'] ?? null) && MultiscanAction::tryFrom($data['action']) !== null) {
+            $this->action = $data['action'];
+        }
+
+        if (is_string($data['collectionId'] ?? null) && ($data['collectionId'] === Collection::SYSTEM_ID || $this->collectionBelongsToPlayer($data['collectionId']))) {
+            $this->collectionId = $data['collectionId'];
+        }
+
+        // A quick-add that was being filled in comes back with what was typed (the photo is retaken)
+        $sheet = $data['sheet'] ?? null;
+
+        $sheetIndex = is_array($sheet) && is_string($sheet['ean'] ?? null) ? $this->rowIndex($sheet['ean']) : null;
+
+        if (is_array($sheet) && is_string($sheet['ean'] ?? null) && $sheetIndex !== null) {
+            $code = Ean::tryFrom($sheet['ean']);
+
+            if ($code !== null && $this->rows[$sheetIndex]['state'] === 'unknown') {
+                $this->openResolveSheet($code);
+                $this->quickAddOpen = ($sheet['quickAddOpen'] ?? false) === true;
+                $this->newName = is_string($sheet['name'] ?? null) ? mb_substr($sheet['name'], 0, 255) : '';
+                $this->newPiecesCount = is_string($sheet['pieces'] ?? null) ? mb_substr($sheet['pieces'], 0, 6) : '';
+                $this->newBrandName = is_string($sheet['brandName'] ?? null) ? mb_substr($sheet['brandName'], 0, 100) : '';
+
+                if (is_string($sheet['brand'] ?? null) && Uuid::isValid($sheet['brand'])) {
+                    $this->newBrand = $sheet['brand'];
+                }
+
+                // Same puzzle id as before the reload: a create that did go through is found, not repeated
+                if (is_string($sheet['quickAddId'] ?? null) && Uuid::isValid($sheet['quickAddId'])) {
+                    $this->quickAddId = $sheet['quickAddId'];
+                }
+            }
+        }
+
+        if ($this->rows !== []) {
+            $this->notify('restored', '', (string) count($this->rows));
+        }
     }
 
     #[LiveAction]
@@ -529,6 +629,18 @@ final class MultiscanTray
             throw new PlayerNotFound();
         }
 
+        $puzzleId = $this->quickAddId !== null && Uuid::isValid($this->quickAddId)
+            ? Uuid::fromString($this->quickAddId)
+            : Uuid::uuid7();
+
+        // A retry after the answer got lost on the way: the puzzle exists already - just use it
+        if ($this->puzzleExists($puzzleId->toString())) {
+            $this->resolveRowTo($ean->digits, $puzzleId->toString());
+            $this->notify('created', $ean->digits, $name);
+            $this->closeResolveSheet();
+            return;
+        }
+
         // Somebody registered the code meanwhile (or it is a hidden puzzle): never create a duplicate
         $existing = $this->findPuzzlesByExactEan->ids($ean);
 
@@ -557,8 +669,20 @@ final class MultiscanTray
             return;
         }
 
+        // Same rule as the add form: no new puzzle without a photo of its box
         $photo = $request->files->get('photo');
-        $puzzleId = Uuid::uuid7();
+
+        if (!$photo instanceof UploadedFile) {
+            $this->resolveError = 'multiscan.resolve.error.photo_required';
+            $this->quickAddOpen = true;
+            return;
+        }
+
+        if (count($this->validator->validate($photo, PuzzleBoxPhoto::constraint())) > 0) {
+            $this->resolveError = 'multiscan.resolve.error.photo_invalid';
+            $this->quickAddOpen = true;
+            return;
+        }
 
         try {
             $this->messageBus->dispatch(new AddPuzzle(
@@ -567,7 +691,7 @@ final class MultiscanTray
                 puzzleName: $name,
                 brand: $brand,
                 piecesCount: $pieces,
-                puzzlePhoto: $photo instanceof UploadedFile ? $photo : null,
+                puzzlePhoto: $photo,
                 puzzleEan: $ean->digits,
                 puzzleIdentificationNumber: null,
             ));
@@ -1042,6 +1166,7 @@ final class MultiscanTray
         $this->resolveQuery = '';
         $this->resolveError = null;
         $this->quickAddOpen = false;
+        $this->quickAddId = Uuid::uuid7()->toString();
         $this->newName = '';
         $this->newPiecesCount = '';
         $this->newBrand = '';
@@ -1061,6 +1186,7 @@ final class MultiscanTray
     private function closeResolveSheet(): void
     {
         $this->resolvingEan = null;
+        $this->quickAddId = null;
         $this->resolveQuery = '';
         $this->resolveError = null;
         $this->quickAddOpen = false;
@@ -1129,6 +1255,17 @@ final class MultiscanTray
         }
 
         return null;
+    }
+
+    private function puzzleExists(string $puzzleId): bool
+    {
+        try {
+            $this->getPuzzleOverview->byId($puzzleId);
+
+            return true;
+        } catch (PuzzleNotFound) {
+            return false;
+        }
     }
 
     private function hasPuzzle(string $puzzleId): bool

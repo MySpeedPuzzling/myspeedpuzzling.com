@@ -15,7 +15,8 @@ readonly final class AddPuzzle
         public string $puzzleName,
         public string $brand,
         public int $piecesCount,
-        public null|UploadedFile $puzzlePhoto,
+        // Required: a new puzzle is never created without a photo of its box (PuzzleBoxPhoto)
+        public UploadedFile $puzzlePhoto,
         public null|string $puzzleEan,
         public null|string $puzzleIdentificationNumber,
     ) {

@@ -131,8 +131,11 @@ Paths, in order:
 
 - **Find it in the catalogue** — search prefiltered by the detected brand, results with cover
   images. Picking one **links the EAN** to that puzzle (permanent: the next person scans clean).
-- **Add new puzzle** — brand and EAN prefilled, name + pieces typed, **optional photo** taken on the
-  spot (file upload inside the Live Component). Lands unapproved but usable immediately, like the
+- **Add new puzzle** — brand and EAN prefilled, name + pieces typed, and a **photo of the box, required**
+  like on the add form (changed 2026-09-28: the optional photo let 16 image-less puzzles in within four
+  days). `AddPuzzle::$puzzlePhoto` is non-nullable and `PuzzleBoxPhoto::constraint()` is the one rule for
+  both places; quick-add answers "take a photo of the box first" / "not a usable photo" inline and keeps
+  everything typed. See "Quick-add photo and never losing the tray" below. Lands unapproved but usable immediately, like the
   add form today. A "Open the full form" link leads to `puzzle_add?ean=…` in a new tab for the rare
   case someone wants everything (identification number, alternative name).
 - **Skip for now** — the row moves to a separate **Unresolved** section under the actionable list,
@@ -181,3 +184,25 @@ than the web camera; a native "multi mode" is an app-side change (follow-up).
 ## 10. Open follow-ups
 
 Tracked in [`implementation-plan.md`](implementation-plan.md) §"Follow-ups".
+
+## Quick-add photo and never losing the tray
+
+Requiring a camera step inside a scanning session must never cost the scanned pile (2026-09-28):
+
+- **The photo lives in the `multiscan` controller**, not in the file input: picked → shrunk in the browser
+  (`assets/image_compression.js`, shared with the add form: ≤ 2000 px JPEG, a 3 MB phone photo uploads as
+  ~0.65 MB) → kept per barcode, with a thumbnail + "Retake". The Live Component empties the input it uploaded
+  from after *every* answer, failed ones too, so each attempt uploads from a throw-away input
+  (`component.files('photo', …)`). Skipping a code and reopening it keeps its photo.
+- **"Add puzzle" without a photo opens the camera** instead of sending anything.
+- **Failures never show the framework's error modal** (`response:error` → `displayError = false`) - a toast
+  says the scans and the photo are kept, and the button works again (managed by the controller:
+  `data-loading` never re-enables after a failed request).
+- **A retry never creates a second puzzle**: `quickAddId` (LiveProp) is fixed when the resolve sheet opens and
+  becomes the new puzzle's id; `createPuzzle` finds an existing puzzle with that id and just uses it.
+- **Tray persistence**: after every render the controller mirrors the rows, action, collection and a half-filled
+  quick-add (not the photo) to `sessionStorage` (`multiscan-tray:<playerId>`, 24 h); on page load an empty tray
+  calls the `restore` LiveAction. `restore` trusts only the codes - every code is looked up again like a fresh
+  scan, a remembered pick is kept only when it is still one of that code's candidates. On phones, opening the
+  camera can make the browser drop the page; this brings everything back ("N scanned puzzles are back").
+

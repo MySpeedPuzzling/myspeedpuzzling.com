@@ -56,28 +56,24 @@ readonly final class AddPuzzleHandler
             $this->entityManager->persist($manufacturer);
         }
 
-        $puzzlePhotoPath = null;
-        $puzzleImageRatio = null;
-        if ($message->puzzlePhoto !== null) {
-            $extension = $message->puzzlePhoto->guessExtension() ?? 'jpg';
-            $puzzlePhotoPath = $this->puzzleImageNamer->generateFilename(
-                $manufacturer->name,
-                $message->puzzleName,
-                $message->piecesCount,
-                $message->puzzleId->toString(),
-                $extension,
-            );
+        $extension = $message->puzzlePhoto->guessExtension() ?? 'jpg';
+        $puzzlePhotoPath = $this->puzzleImageNamer->generateFilename(
+            $manufacturer->name,
+            $message->puzzleName,
+            $message->piecesCount,
+            $message->puzzleId->toString(),
+            $extension,
+        );
 
-            $this->imageOptimizer->optimize($message->puzzlePhoto->getPathname());
-            $puzzleImageRatio = $this->imageOptimizer->getImageRatio($message->puzzlePhoto->getPathname());
+        $this->imageOptimizer->optimize($message->puzzlePhoto->getPathname());
+        $puzzleImageRatio = $this->imageOptimizer->getImageRatio($message->puzzlePhoto->getPathname());
 
-            // Stream is better because it is memory safe
-            $stream = fopen($message->puzzlePhoto->getPathname(), 'rb');
-            $this->filesystem->writeStream($puzzlePhotoPath, $stream);
+        // Stream is better because it is memory safe
+        $stream = fopen($message->puzzlePhoto->getPathname(), 'rb');
+        $this->filesystem->writeStream($puzzlePhotoPath, $stream);
 
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
+        if (is_resource($stream)) {
+            fclose($stream);
         }
 
         $puzzle = new Puzzle(

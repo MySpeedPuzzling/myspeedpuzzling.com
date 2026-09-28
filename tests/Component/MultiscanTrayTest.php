@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
@@ -187,7 +188,7 @@ final class MultiscanTrayTest extends WebTestCase
 
         $tray->set('newName', 'Scanned box');
         $tray->set('newPiecesCount', '1000');
-        $tray->call('createPuzzle');
+        $tray->call('createPuzzle', files: ['photo' => self::boxPhoto()]);
         $html = $tray->render()->toString();
 
         self::assertStringContainsString('data-multiscan-notice="created"', $html);
@@ -196,12 +197,124 @@ final class MultiscanTrayTest extends WebTestCase
 
         /** @var Connection $database */
         $database = self::getContainer()->get(Connection::class);
-        $row = $database->fetchAssociative('SELECT name, approved, ean, manufacturer_id FROM puzzle WHERE id = :id', ['id' => self::rows($tray)[0]['puzzleId']]);
+        $row = $database->fetchAssociative('SELECT name, approved, ean, manufacturer_id, image FROM puzzle WHERE id = :id', ['id' => self::rows($tray)[0]['puzzleId']]);
         self::assertIsArray($row);
         self::assertSame('Scanned box', $row['name']);
         self::assertFalse($row['approved']);
         self::assertSame(PuzzleFixture::EAN_UNKNOWN, $row['ean']);
         self::assertSame('018d0002-0000-0000-0000-000000000001', $row['manufacturer_id'], 'brand prefilled from the EAN prefix');
+        self::assertNotNull($row['image'], 'a new puzzle always carries its box photo');
+    }
+
+    public function testQuickAddRefusesANewPuzzleWithoutAPhotoAndKeepsEverything(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_6000]);
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_UNKNOWN]);
+        $tray->call('toggleQuickAdd');
+        $tray->set('newName', 'Scanned box');
+        $tray->set('newPiecesCount', '1000');
+        $tray->call('createPuzzle');
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('Take a photo of the box first', $html);
+        self::assertSame(PuzzleFixture::EAN_UNKNOWN, self::component($tray)->resolvingEan);
+        self::assertTrue(self::component($tray)->quickAddOpen);
+        self::assertSame('Scanned box', self::component($tray)->newName, 'what was typed stays');
+        self::assertCount(2, self::rows($tray), 'the scanned pile stays');
+        self::assertSame(0, $this->puzzlesNamed('Scanned box'));
+
+        // Not an image at all
+        $notAPhoto = tempnam(sys_get_temp_dir(), 'not_a_photo_');
+        file_put_contents($notAPhoto, 'plain text');
+        $tray->call('createPuzzle', files: ['photo' => new UploadedFile($notAPhoto, 'box.txt', 'text/plain', null, true)]);
+
+        self::assertStringContainsString('This file is not a usable photo', $tray->render()->toString());
+        self::assertCount(2, self::rows($tray));
+        self::assertSame(0, $this->puzzlesNamed('Scanned box'));
+    }
+
+    public function testRetryAfterALostAnswerUsesThePuzzleAlreadyCreated(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        // The sheet comes back (after a reload) with the id the first attempt created the puzzle under
+        $tray->call('restore', ['state' => (string) json_encode([
+            'rows' => [['ean' => PuzzleFixture::EAN_UNKNOWN, 'puzzleId' => null]],
+            'sheet' => [
+                'ean' => PuzzleFixture::EAN_UNKNOWN,
+                'quickAddOpen' => true,
+                'quickAddId' => PuzzleFixture::PUZZLE_9000,
+                'name' => 'Scanned box',
+                'pieces' => '1000',
+            ],
+        ])]);
+        self::assertSame(PuzzleFixture::EAN_UNKNOWN, self::component($tray)->resolvingEan);
+
+        $tray->call('createPuzzle', files: ['photo' => self::boxPhoto()]);
+
+        self::assertSame('resolved', self::rows($tray)[0]['state']);
+        self::assertSame(PuzzleFixture::PUZZLE_9000, self::rows($tray)[0]['puzzleId']);
+        self::assertSame(0, $this->puzzlesNamed('Scanned box'), 'no second puzzle');
+    }
+
+    public function testRestoreRebuildsTheTrayFromTheCodesAlone(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        $tray->call('restore', ['state' => (string) json_encode([
+            'rows' => [
+                ['ean' => PuzzleFixture::EAN_PUZZLE_6000, 'puzzleId' => PuzzleFixture::PUZZLE_9000], // not its puzzle: ignored
+                ['ean' => PuzzleFixture::EAN_SHARED_4000_5000, 'puzzleId' => PuzzleFixture::PUZZLE_5000], // picked among two: kept
+                ['ean' => PuzzleFixture::EAN_UNKNOWN, 'puzzleId' => null],
+                ['ean' => 'not-a-code', 'puzzleId' => null],
+            ],
+            'action' => 'add_to_wishlist',
+        ])]);
+
+        $rows = self::rows($tray);
+        self::assertCount(3, $rows);
+        self::assertSame(['resolved', PuzzleFixture::PUZZLE_6000], [$rows[0]['state'], $rows[0]['puzzleId']]);
+        self::assertSame(['resolved', PuzzleFixture::PUZZLE_5000], [$rows[1]['state'], $rows[1]['puzzleId']]);
+        self::assertSame('unknown', $rows[2]['state']);
+        self::assertSame('add_to_wishlist', self::component($tray)->action);
+        self::assertStringContainsString('data-multiscan-notice="restored"', $tray->render()->toString());
+
+        // Never on top of a tray that already has rows
+        $tray->call('restore', ['state' => (string) json_encode(['rows' => [['ean' => PuzzleFixture::EAN_PUZZLE_300]]])]);
+        self::assertCount(3, self::rows($tray));
+    }
+
+    private static function component(TestLiveComponent $tray): MultiscanTray
+    {
+        $component = $tray->component();
+        assert($component instanceof MultiscanTray);
+
+        return $component;
+    }
+
+    private static function boxPhoto(): UploadedFile
+    {
+        $path = tempnam(sys_get_temp_dir(), 'box_photo_') . '.jpg';
+        $image = imagecreatetruecolor(20, 20);
+        assert($image !== false);
+        imagejpeg($image, $path);
+
+        return new UploadedFile($path, 'box.jpg', 'image/jpeg', null, true);
+    }
+
+    private function puzzlesNamed(string $name): int
+    {
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        $count = $database->fetchOne('SELECT COUNT(*) FROM puzzle WHERE name = :name', ['name' => $name]);
+        assert(is_int($count));
+
+        return $count;
     }
 
     public function testApplyLendsEligibleRowsKeepsTheRestAndShowsARecap(): void

@@ -32,7 +32,7 @@ raw scan on the box in `/root/bucket-scan.csv` + `/root/db-image-refs.tsv`.
 Shipped 2026-09-22. Design and plan: [`features/multiscan/README.md`](features/multiscan/README.md).
 
 - [ ] Aggregated lending notification ("Anna lent you 6 puzzles") instead of one per puzzle
-- [ ] Tray persistence across a reload (`sessionStorage` mirror + `restore()` action)
+- [x] Tray persistence across a reload (`sessionStorage` mirror + `restore()` action) - shipped 2026-09-28 with the required quick-add photo
 - [ ] Native apps: a multi-mode scanner in the iOS/Android shells (today the single-shot native scanner is re-opened per code)
 - [ ] More actions: mark solved without a time (shared date), list for swap/free, remove from library
 - [ ] "Undo last batch" for lend/return

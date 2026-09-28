@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\CompetitionChoices;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
+use SpeedPuzzling\Web\Value\PuzzleBoxPhoto;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -128,19 +129,7 @@ final class PuzzleAddFormType extends AbstractType
             'required' => false,
             'label_attr' => ['class' => 'required'],
             'constraints' => [
-                new Image(
-                    maxSize: '10m',
-                    mimeTypes: [
-                        'image/jpeg',
-                        'image/png',
-                        'image/gif',
-                        'image/webp',
-                        'image/heic',
-                        'image/heif',
-                        'image/avif',
-                    ],
-                    mimeTypesMessage: 'image_invalid_mime_type'
-                ),
+                PuzzleBoxPhoto::constraint(),
             ],
         ]);
 

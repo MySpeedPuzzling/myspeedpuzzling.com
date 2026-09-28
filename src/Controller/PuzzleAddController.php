@@ -235,6 +235,11 @@ final class PuzzleAddController extends AbstractController
                     $data->puzzlePhoto = clone $data->finishedPuzzlesPhoto;
                 }
 
+                // The form refuses a new puzzle without a photo (PuzzleAddFormType::applyDynamicRules)
+                if ($data->puzzlePhoto === null) {
+                    throw new \LogicException('A new puzzle reached the handler without a photo.');
+                }
+
                 $this->messageBus->dispatch(
                     new AddPuzzle(
                         puzzleId: $newPuzzleId,

@@ -11,6 +11,9 @@
      data-multiscan-notice-ean="{{ this.notice ? this.notice.ean : '' }}"
      data-multiscan-notice-name="{{ this.notice ? (this.notice.name ?? '') : '' }}"
      data-multiscan-sheet-open="{{ this.resolvingEan ? '1' : '0' }}"
+     data-multiscan-sheet-ean="{{ this.resolvingEan }}"
+     data-multiscan-quick-add-open="{{ this.quickAddOpen ? '1' : '0' }}"
+     data-multiscan-quick-add-id="{{ this.quickAddId }}"
      data-multiscan-unknown-count="{{ unresolved|length }}"
      data-multiscan-eans="{{ this.rows|map(r => r.ean)|join(' ') }}"
      data-loading="addClass(is-loading)">
@@ -336,12 +339,26 @@
                         <div class="mb-2">
                             <input type="text" class="form-control form-control-sm" data-model="on(change)|newBrandName" value="{{ this.newBrandName }}" placeholder="{{ 'multiscan.resolve.field.brand_other'|trans }}" maxlength="100" autocomplete="off">
                         </div>
-                        <div class="mb-2">
-                            <label class="form-label small mb-1" for="multiscan-new-photo">{{ 'multiscan.resolve.field.photo'|trans }}</label>
-                            <input type="file" id="multiscan-new-photo" name="photo" class="form-control form-control-sm" accept="image/*" capture="environment" data-live-ignore>
+                        {# Required, like on the add form. The multiscan controller keeps the (shrunk) photo
+                           itself, so a failed upload or a re-render never loses it - hence data-live-ignore #}
+                        <div class="mb-2 multiscan-photo" data-live-ignore data-multiscan-photo-for="{{ this.resolvingEan }}">
+                            <span class="form-label small mb-1 d-block">{{ 'multiscan.resolve.field.photo'|trans }}</span>
+                            <input type="file" id="multiscan-new-photo" class="visually-hidden" accept="image/*" capture="environment" data-action="change->multiscan#photoPicked">
+                            <label for="multiscan-new-photo" class="btn btn-outline-primary w-100 multiscan-photo-empty">
+                                <i class="bi-camera me-1"></i>{{ 'multiscan.resolve.photo.take'|trans }}
+                            </label>
+                            <div class="multiscan-photo-taken d-none align-items-center gap-2 border rounded p-2">
+                                <img alt="" class="rounded multiscan-photo-preview flex-shrink-0" width="56" height="56" style="object-fit: cover;">
+                                <span class="small text-success flex-grow-1"><i class="bi-check-circle-fill me-1"></i>{{ 'multiscan.resolve.photo.ready'|trans }}</span>
+                                <label for="multiscan-new-photo" class="btn btn-link btn-sm p-0">{{ 'multiscan.resolve.photo.retake'|trans }}</label>
+                            </div>
+                            <div class="multiscan-photo-working d-none small text-muted mt-1">
+                                <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>{{ 'multiscan.resolve.photo.preparing'|trans }}
+                            </div>
                         </div>
                         <div class="d-flex gap-2 align-items-center">
-                            <button type="button" class="btn btn-primary btn-sm" data-action="live#action" data-live-action-param="files(photo)|createPuzzle" data-loading="addAttribute(disabled)">
+                            {# Disabled only while saving - by the multiscan controller: the Live Component's data-loading never re-enables after a failed request #}
+                            <button type="button" class="btn btn-primary btn-sm" data-action="multiscan#createPuzzle">
                                 <i class="bi-plus-lg me-1"></i>{{ 'multiscan.resolve.create'|trans }}
                             </button>
                             <a href="{{ path('puzzle_add', {mode: 'collection', ean: this.resolvingEan}) }}" target="_blank" rel="noopener" class="btn btn-link btn-sm">

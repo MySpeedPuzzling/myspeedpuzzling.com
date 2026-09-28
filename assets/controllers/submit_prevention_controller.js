@@ -1,8 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-
-const COMPRESS_THRESHOLD_BYTES = 500 * 1024;
-const MAX_DIMENSION = 2000;
-const JPEG_QUALITY = 0.85;
+import { compressImage, shouldCompress } from '../image_compression.js';
 
 export default class extends Controller {
     static targets = ["submit", "label"];
@@ -77,9 +74,7 @@ export default class extends Controller {
 
             const file = input.files[0];
             if (this.processedFiles.has(file)) return;
-            if (file.size <= COMPRESS_THRESHOLD_BYTES) return;
-            if (file.type === 'image/gif') return;
-            if (!file.type.startsWith('image/')) return;
+            if (!shouldCompress(file)) return;
 
             result.push({ input, file });
         });
@@ -92,7 +87,7 @@ export default class extends Controller {
             this.processedFiles.add(file);
 
             try {
-                const compressedFile = await this.compressImage(file);
+                const compressedFile = await compressImage(file);
 
                 if (compressedFile.size < file.size) {
                     this.processedFiles.add(compressedFile);
@@ -104,73 +99,6 @@ export default class extends Controller {
                 // Compression failed — submit with original file
             }
         }
-    }
-
-    compressImage(file) {
-        return new Promise((resolve, reject) => {
-            const url = URL.createObjectURL(file);
-            const img = new Image();
-
-            img.onload = () => {
-                URL.revokeObjectURL(url);
-
-                try {
-                    let { width, height } = this.calculateDimensions(img.naturalWidth, img.naturalHeight);
-
-                    const canvas = document.createElement('canvas');
-                    canvas.width = width;
-                    canvas.height = height;
-
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    canvas.toBlob(
-                        (blob) => {
-                            if (!blob) {
-                                reject(new Error('Canvas toBlob returned null'));
-                                return;
-                            }
-
-                            const fileName = file.name.replace(/\.[^.]+$/, '.jpg');
-                            resolve(new File([blob], fileName, {
-                                type: 'image/jpeg',
-                                lastModified: Date.now(),
-                            }));
-                        },
-                        'image/jpeg',
-                        JPEG_QUALITY,
-                    );
-                } catch (error) {
-                    reject(error);
-                }
-            };
-
-            img.onerror = () => {
-                URL.revokeObjectURL(url);
-                reject(new Error('Failed to load image'));
-            };
-
-            img.src = url;
-        });
-    }
-
-    calculateDimensions(originalWidth, originalHeight) {
-        let width = originalWidth;
-        let height = originalHeight;
-
-        if (width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
-            return { width, height };
-        }
-
-        if (width > height) {
-            height = Math.round(height * (MAX_DIMENSION / width));
-            width = MAX_DIMENSION;
-        } else {
-            width = Math.round(width * (MAX_DIMENSION / height));
-            height = MAX_DIMENSION;
-        }
-
-        return { width, height };
     }
 
     disableSubmitButton() {

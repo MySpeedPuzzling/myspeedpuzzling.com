@@ -3785,6 +3785,53 @@ puzzle_picker:
         bottom_title: "Arrêtez de scruter l'étagère – laissez la roue décider"
         bottom_text: "Créez un compte gratuit, ajoutez les puzzles que vous possédez et laissez le sélecteur choisir pour vous."
 
+difficulty_ranking:
+    hardest_pieces:
+        title: "%count% puzzles %pieces% pièces les plus difficiles"
+        heading: "Les %count% puzzles de %pieces% pièces les plus difficiles"
+        description: "Les %count% puzzles de %pieces% pièces les plus difficiles d'après de vrais temps – chacun comparé au rythme habituel du puzzleur. %total% puzzles évalués."
+    easiest_pieces:
+        title: "%count% puzzles %pieces% pièces les plus faciles"
+        heading: "Les %count% puzzles de %pieces% pièces les plus faciles"
+        description: "Les %count% puzzles de %pieces% pièces les plus faciles d'après de vrais temps – chacun comparé au rythme habituel du puzzleur. %total% puzzles évalués."
+    hardest_brand:
+        title: "%count% puzzles %brand% les plus difficiles"
+        heading: "Les %count% puzzles %brand% les plus difficiles"
+        description: "Les %count% puzzles %brand% les plus difficiles d'après de vrais temps – chacun comparé au rythme habituel du puzzleur. %total% puzzles %brand% évalués."
+    easiest_brand:
+        title: "%count% puzzles %brand% les plus faciles"
+        heading: "Les %count% puzzles %brand% les plus faciles"
+        description: "Les %count% puzzles %brand% les plus faciles d'après de vrais temps – chacun comparé au rythme habituel du puzzleur. %total% puzzles %brand% évalués."
+    lead: "Classés d'après de vrais temps d'assemblage enregistrés sur MySpeedPuzzling – pas d'après des avis ni la difficulté indiquée sur la boîte."
+    toggle:
+        label: "Ordre"
+        hardest: "Les plus difficiles"
+        easiest: "Les plus faciles"
+    how_measured:
+        title: "Comment fonctionne le classement"
+        pieces: "Le premier essai en solo de chaque puzzleur est comparé à son temps habituel sur les puzzles de %pieces% pièces : ce qui compte, c'est l'écart par rapport à son rythme habituel, et non le fait que des puzzleurs rapides ou lents l'aient assemblé par hasard. Un puzzle est évalué dès qu'au moins 10 puzzleurs qualifiés l'ont assemblé : %total% puzzles de %pieces% pièces à ce jour."
+        brand: "Le premier essai en solo de chaque puzzleur est comparé à son temps habituel sur les puzzles du même nombre de pièces : ce qui compte, c'est l'écart par rapport à son rythme habituel, si bien que les puzzles %brand% de tailles différentes peuvent être classés ensemble. Un puzzle est évalué dès qu'au moins 10 puzzleurs qualifiés l'ont assemblé : %total% puzzles %brand% à ce jour."
+    methodology_link: "Comment nous mesurons la difficulté"
+    breadcrumb_pieces: "Puzzles %pieces% pièces"
+    median_solo: "Médiane %time%"
+    solo_solves: "%count% assemblage en solo|%count% assemblages en solo"
+    difficulty: "Difficulté"
+    difficulty_locked: "Difficulté – réservée aux membres"
+    members_cta:
+        title: "Classement complet de %total% puzzles avec leur difficulté"
+        text: "Les membres voient le classement complet avec la difficulté de chaque puzzle – ainsi que la difficulté, des prédictions de temps personnalisées et d'autres statistiques sur chaque page de puzzle."
+        button: "Débloquer le classement complet"
+    members_scope: "Top %count% sur %total% puzzles évalués, chacun avec sa difficulté."
+    members_scope_all: "Les %total% puzzles évalués, chacun avec sa difficulté."
+    all_pieces: "Tous les puzzles de %pieces% pièces"
+    all_brand: "Tous les puzzles %brand%"
+    more:
+        title: "Autres classements de difficulté"
+        hardest_by_pieces: "Puzzles les plus difficiles par nombre de pièces"
+        easiest_by_pieces: "Puzzles les plus faciles par nombre de pièces"
+        hardest_by_brand: "Puzzles les plus difficiles par marque"
+        easiest_by_brand: "Puzzles les plus faciles par marque"
+
 blocklist:
     title: "Joueurs bloqués"
     block_player: "Bloquer ce joueur"

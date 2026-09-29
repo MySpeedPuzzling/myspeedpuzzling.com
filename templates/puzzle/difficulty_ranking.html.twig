@@ -1,0 +1,234 @@
+{% extends 'base.html.twig' %}
+
+{#
+    Hardest / easiest puzzles of a piece count (pieces set) or a brand (brand set).
+
+    Difficulty is a members-only insight. ranking.withDifficulty is true only for
+    members: they get the difficulty per row and up to 100 puzzles. Everybody else
+    gets the first 25 names with every score and tier already stripped - the public
+    HTML must never carry a difficulty score or tier name, not even hidden
+    (Google indexes hidden text). See PuzzleDifficultyRankings.
+
+    Usability first: a one-sentence lead, then the list. Everything else (members
+    call to action, how the ranking works, other lists) sits in a sidebar on wide
+    screens and below the list on phones.
+
+    variant = hardest_pieces | easiest_pieces | hardest_brand | easiest_brand
+#}
+{% set scope = brand is not null ? 'brand' : 'pieces' %}
+{% set direction = ranking.direction.value %}
+{% set variant = direction ~ '_' ~ scope %}
+{% set route_parameters = brand is not null ? {slug: brand.slug} : {pieces: pieces} %}
+{% set trans_parameters = {
+    '%count%': ranking.entries|length,
+    '%total%': ranking.ratedPuzzlesCount,
+    '%pieces%': pieces ?? '',
+    '%brand%': brand is not null ? brand.brandName : '',
+} %}
+{% set heading = ('difficulty_ranking.' ~ variant ~ '.heading')|trans(trans_parameters) %}
+{% set hub_label = brand is not null ? brand.brandName : 'difficulty_ranking.breadcrumb_pieces'|trans(trans_parameters) %}
+{% set hub_route = brand is not null ? 'brand_puzzles' : 'pieces_puzzles' %}
+{% set public_entries = ranking.entries|slice(0, constant('SpeedPuzzling\\Web\\Services\\PuzzleDifficultyRankings::PUBLIC_LIMIT')) %}
+
+{% block title %}{{ ('difficulty_ranking.' ~ variant ~ '.title')|trans(trans_parameters) }}{% endblock %}
+{% block meta_description %}{{ ('difficulty_ranking.' ~ variant ~ '.description')|trans(trans_parameters) }}{% endblock %}
+
+{% block json_ld %}
+    {{ parent() }}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": {{ 'puzzle_detail.breadcrumb.database'|trans|json_encode|raw }},
+                "item": {{ url('puzzles')|json_encode|raw }}
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": {{ hub_label|json_encode|raw }},
+                "item": {{ url(hub_route, route_parameters)|json_encode|raw }}
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": {{ heading|json_encode|raw }}
+            }
+        ]
+    }
+    </script>
+    {# Always the public ranking (names only), whoever is viewing #}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": {{ ('difficulty_ranking.' ~ variant ~ '.heading')|trans(trans_parameters|merge({'%count%': public_entries|length}))|json_encode|raw }},
+        "numberOfItems": {{ public_entries|length }},
+        "itemListElement": [
+            {%- for entry in public_entries %}
+            {
+                "@type": "ListItem",
+                "position": {{ loop.index }},
+                "url": {{ url('puzzle_detail', {puzzleId: entry.puzzleId})|json_encode|raw }},
+                "name": {{ (entry.manufacturerName ~ ' ' ~ entry.puzzleName)|json_encode|raw }}
+            }{{ loop.last ? '' : ',' }}
+            {%- endfor %}
+        ]
+    }
+    </script>
+{% endblock %}
+
+{% block content %}
+    {% from 'puzzle_intelligence/_macros.html.twig' import difficulty_badge, human_difficulty %}
+
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'puzzle_detail.breadcrumb.database'|trans, url: path('puzzles')},
+        {label: hub_label, url: path(hub_route, route_parameters)},
+        {label: heading},
+    ]}) }}
+
+    <h1 class="h2 mb-1">{{ heading }}</h1>
+    <p class="text-muted mb-2">{{ 'difficulty_ranking.lead'|trans }}</p>
+
+    <nav class="btn-group btn-group-sm mb-3" aria-label="{{ 'difficulty_ranking.toggle.label'|trans }}">
+        {% for option in ['hardest', 'easiest'] %}
+            {% if option == direction %}
+                <span class="btn btn-primary" aria-current="page">{{ ('difficulty_ranking.toggle.' ~ option)|trans }}</span>
+            {% else %}
+                <a class="btn btn-outline-primary" href="{{ path(scope ~ '_' ~ option ~ '_puzzles', route_parameters) }}">{{ ('difficulty_ranking.toggle.' ~ option)|trans }}</a>
+            {% endif %}
+        {% endfor %}
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <ol class="list-unstyled mb-3" id="difficulty-ranking">
+                {% for entry in ranking.entries %}
+                    {% set puzzle_url = path('puzzle_detail', {puzzleId: entry.puzzleId}) %}
+                    <li class="card card-body shadow-sm p-2 mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="difficulty-rank fw-bold fs-5 text-center text-nowrap flex-shrink-0" style="width: 2.25rem; font-variant-numeric: tabular-nums;">{{ loop.index }}</span>
+
+                            <a href="{{ puzzle_url }}" class="flex-shrink-0">
+                                {{ lazy_puzzle_image(
+                                    entry.puzzleImage,
+                                    'puzzle_small',
+                                    'puzzle_img_alt'|trans({'%puzzle%': entry.manufacturerName ~ ' ' ~ entry.puzzleName}),
+                                    loop.index,
+                                    56,
+                                    'rounded-2',
+                                    56,
+                                    entry.puzzleImageRatio,
+                                    loop.first
+                                ) }}
+                            </a>
+
+                            <div class="flex-grow-1 lh-sm" style="min-width: 0;">
+                                <a class="fw-medium text-decoration-underline" href="{{ puzzle_url }}">{{ entry.puzzleName }}</a>
+                                {# Only what differs between the rows: the brand on a piece-count list,
+                                   the piece count on a brand list (the heading names the other one) #}
+                                <div class="fs-sm text-muted mt-1">
+                                    <span class="text-nowrap">
+                                        {%- if brand is null -%}
+                                            {{ entry.manufacturerName }}
+                                        {%- else -%}
+                                            {{ 'pieces_count'|trans({'%count%': entry.piecesCount})|raw }}
+                                        {%- endif -%}
+                                    </span> · <span class="text-nowrap">{{ 'difficulty_ranking.solo_solves'|trans({'%count%': entry.soloSolvesCount}) }}</span>
+                                </div>
+                                {# The median next to the difficulty: locked for everybody but members #}
+                                <div class="d-flex flex-wrap align-items-center mt-1" style="column-gap: .5rem;">
+                                    {% if entry.medianTimeSolo is not null %}
+                                        <span class="fs-sm text-muted text-nowrap">
+                                            {#- %time% is our own formatted duration, never user input -#}
+                                            {{ 'difficulty_ranking.median_solo'|trans({'%time%': '<strong class="text-body">' ~ entry.medianTimeSolo|compactTime ~ '</strong>'})|raw }}
+                                        </span>
+                                    {% endif %}
+
+                                    {% if ranking.withDifficulty and entry.difficultyTier is not null and entry.difficultyScore is not null %}
+                                        {{ difficulty_badge(entry.difficultyTier.name|lower, 'my-1') }}
+                                    {% elseif not ranking.withDifficulty %}
+                                        <button type="button"
+                                                class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1 py-0 px-2 my-1"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#membersExclusiveModal"
+                                                title="{{ 'difficulty_ranking.difficulty_locked'|trans }}"
+                                                aria-label="{{ 'difficulty_ranking.difficulty_locked'|trans }}">
+                                            <svg class="diff-icon" width="16" height="16" style="color: var(--diff-locked)" aria-hidden="true"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
+                                            <span class="fs-xs">{{ 'difficulty_ranking.difficulty'|trans }}</span>
+                                        </button>
+                                    {% endif %}
+                                </div>
+
+                                {% if ranking.withDifficulty and entry.difficultyScore is not null %}
+                                    <div class="fs-sm text-muted">{{ human_difficulty(entry.difficultyScore) }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ol>
+
+            {% if ranking.withDifficulty %}
+                <p class="small text-muted mb-4">
+                    {{ (ranking.entries|length < ranking.ratedPuzzlesCount ? 'difficulty_ranking.members_scope' : 'difficulty_ranking.members_scope_all')|trans(trans_parameters) }}
+                </p>
+            {% endif %}
+        </div>
+
+        <aside class="col-lg-4">
+            {% if not ranking.withDifficulty %}
+                <div class="card border-0 shadow-sm bg-secondary mb-4">
+                    <div class="card-body text-center py-4">
+                        <svg class="diff-icon mb-2" width="32" height="32" style="color: var(--diff-locked)" aria-hidden="true"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
+                        <h2 class="h5 mb-2">{{ 'difficulty_ranking.members_cta.title'|trans(trans_parameters) }}</h2>
+                        <p class="mb-3">{{ 'difficulty_ranking.members_cta.text'|trans }}</p>
+                        <button type="button" class="btn btn-primary btn-shadow" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                            <i class="bi bi-unlock me-1"></i>{{ 'difficulty_ranking.members_cta.button'|trans }}
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+
+            <h2 class="h6 mb-1" id="how-the-ranking-works">{{ 'difficulty_ranking.how_measured.title'|trans }}</h2>
+            <p class="small text-muted mb-2">
+                {{ ('difficulty_ranking.how_measured.' ~ scope)|trans(trans_parameters) }}
+                <a href="{{ path('methodology') }}">{{ 'difficulty_ranking.methodology_link'|trans }}</a>
+            </p>
+            <p class="mb-4">
+                <a class="btn btn-outline-secondary btn-sm" href="{{ path(hub_route, route_parameters) }}">
+                    {{ ('difficulty_ranking.all_' ~ scope)|trans(trans_parameters) }}
+                </a>
+            </p>
+
+            {# Every other list of the same direction - availability is cached, no extra query #}
+            {% set other_pieces = availability.piecesCounts|filter(count => brand is not null or count != pieces) %}
+            {% set other_brands = availability.brands|filter(other => brand is null or other.slug != brand.slug) %}
+
+            {% if other_pieces|length > 0 or other_brands|length > 0 %}
+                <h2 class="h6 mb-2">{{ 'difficulty_ranking.more.title'|trans }}</h2>
+
+                {% if other_pieces|length > 0 %}
+                    <p class="small text-muted mb-1">{{ ('difficulty_ranking.more.' ~ direction ~ '_by_pieces')|trans }}</p>
+                    <p class="mb-3">
+                        {% for count in other_pieces %}
+                            <a class="badge bg-primary badge-shadow rounded-pill text-white link-light" href="{{ path('pieces_' ~ direction ~ '_puzzles', {pieces: count}) }}">{{ 'pieces_count'|trans({'%count%': count})|raw }}</a>
+                        {% endfor %}
+                    </p>
+                {% endif %}
+
+                {% if other_brands|length > 0 %}
+                    <p class="small text-muted mb-1">{{ ('difficulty_ranking.more.' ~ direction ~ '_by_brand')|trans }}</p>
+                    <p class="mb-3">
+                        {% for other in other_brands %}
+                            <a class="badge bg-primary badge-shadow rounded-pill text-white link-light" href="{{ path('brand_' ~ direction ~ '_puzzles', {slug: other.slug}) }}">{{ other.brandName }}</a>
+                        {% endfor %}
+                    </p>
+                {% endif %}
+            {% endif %}
+        </aside>
+    </div>
+{% endblock %}

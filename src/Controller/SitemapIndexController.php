@@ -50,6 +50,9 @@ final class SitemapIndexController extends AbstractController
             $sitemaps[] = $this->generateUrl($route, [], UrlGeneratorInterface::ABSOLUTE_URL);
         }
 
+        // Hardest / easiest puzzle lists (PuzzleDifficultyRankings)
+        $sitemaps[] = $this->generateUrl('sitemap_difficulty', [], UrlGeneratorInterface::ABSOLUTE_URL);
+
         return $this->xmlResponse('sitemap_index.xml.twig', [
             'sitemaps' => $sitemaps,
         ]);

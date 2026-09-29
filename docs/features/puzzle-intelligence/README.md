@@ -545,8 +545,25 @@ Mar 2026: 52 min (Expert)
 | Improvement chart | -- | Yes |
 | Solve analysis recap | -- | Yes |
 | Difficulty filter on puzzle list | -- | Yes |
+| Hardest / easiest lists: the first 25 names | Yes | -- |
+| Hardest / easiest lists: difficulty per puzzle, ranking up to 100 | -- | Yes |
 
 Non-members see a blurred/locked CTA overlay triggering the membership modal (`#membersExclusiveModal`).
+
+### Public hardest / easiest lists
+
+`/en/puzzle/{pieces}-pieces/hardest|easiest` (hub piece counts with ≥ 50 rated puzzles) and
+`/en/puzzle/brand/{slug}/hardest|easiest` (approved brands with ≥ 40), all 6 locales, else 404.
+Rated = approved, not hidden, difficulty score of **medium or high** confidence; ordered by score,
+then sample size, then name. Everybody sees the ranked names (image, brand on a piece-count list /
+piece count on a brand list, solo solves, raw median solo time) with a locked difficulty button per
+row; members get the tier badge + "x% harder than average" and up to 100 puzzles. The public HTML
+never carries a score or tier name, not even hidden: the service hands non-members entries with
+difficulty stripped (`DifficultyRanking::forPublic()`). Usability first (Jan, 2026-09-30): a
+one-sentence lead, then the list; the explanation, the members call to action and the other lists
+come after it (a sidebar on wide screens).
+Code: `PuzzleDifficultyRankings` (1 h cache in the `difficulty_rankings_cache` pool), `GetDifficultyRankings`,
+`PiecesDifficultyRankingController`, `BrandDifficultyRankingController`, `sitemap-difficulty.xml`.
 
 ---
 

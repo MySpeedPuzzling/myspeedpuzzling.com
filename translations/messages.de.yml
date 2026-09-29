@@ -3783,6 +3783,53 @@ puzzle_picker:
         bottom_title: "Schluss mit Regal-Scannen – lassen Sie das Rad entscheiden"
         bottom_text: "Erstellen Sie ein kostenloses Konto, fügen Sie Ihre Puzzles hinzu und überlassen Sie der Auswahl die Wahl."
 
+difficulty_ranking:
+    hardest_pieces:
+        title: "Die %count% schwierigsten %pieces%-teiligen Puzzles"
+        heading: "Die %count% schwierigsten %pieces%-teiligen Puzzles"
+        description: "Die %count% schwierigsten Puzzles mit %pieces% Teilen nach echten Legezeiten – jede im Vergleich zum üblichen Tempo des Puzzlers. Bisher %total% Puzzles bewertet."
+    easiest_pieces:
+        title: "Die %count% leichtesten %pieces%-teiligen Puzzles"
+        heading: "Die %count% leichtesten %pieces%-teiligen Puzzles"
+        description: "Die %count% leichtesten Puzzles mit %pieces% Teilen nach echten Legezeiten – jede im Vergleich zum üblichen Tempo des Puzzlers. Bisher %total% Puzzles bewertet."
+    hardest_brand:
+        title: "Die %count% schwierigsten %brand% Puzzles"
+        heading: "Die %count% schwierigsten %brand% Puzzles"
+        description: "Die %count% schwierigsten %brand% Puzzles nach echten Legezeiten – jede im Vergleich zum üblichen Tempo des Puzzlers. Bisher %total% %brand% Puzzles bewertet."
+    easiest_brand:
+        title: "Die %count% leichtesten %brand% Puzzles"
+        heading: "Die %count% leichtesten %brand% Puzzles"
+        description: "Die %count% leichtesten %brand% Puzzles nach echten Legezeiten – jede im Vergleich zum üblichen Tempo des Puzzlers. Bisher %total% %brand% Puzzles bewertet."
+    lead: "Sortiert nach echten Legezeiten auf MySpeedPuzzling – nicht nach Meinungen oder der Schwierigkeitsangabe auf der Schachtel."
+    toggle:
+        label: "Reihenfolge"
+        hardest: "Schwierigste"
+        easiest: "Leichteste"
+    how_measured:
+        title: "So entsteht die Rangliste"
+        pieces: "Der erste Solo-Versuch jedes Puzzlers wird mit seiner üblichen Zeit für Puzzles mit %pieces% Teilen verglichen – entscheidend ist, wie stark die Zeit vom gewohnten Tempo abweicht, nicht ob zufällig eher schnelle oder langsame Puzzler das Puzzle gelegt haben. Bewertet wird ein Puzzle, sobald es mindestens 10 qualifizierte Puzzler gelegt haben: bisher %total% Puzzles mit %pieces% Teilen."
+        brand: "Der erste Solo-Versuch jedes Puzzlers wird mit seiner üblichen Zeit für Puzzles mit derselben Teileanzahl verglichen – entscheidend ist, wie stark die Zeit vom gewohnten Tempo abweicht, und so lassen sich auch %brand% Puzzles unterschiedlicher Größe direkt vergleichen. Bewertet wird ein Puzzle, sobald es mindestens 10 qualifizierte Puzzler gelegt haben: bisher %total% %brand% Puzzles."
+    methodology_link: "So messen wir die Schwierigkeit"
+    breadcrumb_pieces: "%pieces%-teilige Puzzles"
+    median_solo: "Median %time%"
+    solo_solves: "%count% Solo-Ergebnis|%count% Solo-Ergebnisse"
+    difficulty: "Schwierigkeit"
+    difficulty_locked: "Schwierigkeit – nur für Mitglieder"
+    members_cta:
+        title: "Komplette Rangliste aller %total% Puzzles mit ihrer Schwierigkeit"
+        text: "Mitglieder sehen die ganze Rangliste mit der Schwierigkeit jedes Puzzles – dazu Schwierigkeit, persönliche Zeitvorhersagen und weitere Einblicke auf jeder Puzzle-Seite."
+        button: "Komplette Rangliste freischalten"
+    members_scope: "Top %count% von %total% bewerteten Puzzles, jeweils mit ihrer Schwierigkeit."
+    members_scope_all: "Alle %total% bewerteten Puzzles, jeweils mit ihrer Schwierigkeit."
+    all_pieces: "Alle %pieces%-teiligen Puzzles"
+    all_brand: "Alle %brand% Puzzles"
+    more:
+        title: "Weitere Schwierigkeits-Ranglisten"
+        hardest_by_pieces: "Schwierigste Puzzles nach Teileanzahl"
+        easiest_by_pieces: "Leichteste Puzzles nach Teileanzahl"
+        hardest_by_brand: "Schwierigste Puzzles nach Marke"
+        easiest_by_brand: "Leichteste Puzzles nach Marke"
+
 blocklist:
     title: "Blockierte Spieler"
     block_player: "Diesen Spieler blockieren"

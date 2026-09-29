@@ -3781,6 +3781,53 @@ puzzle_picker:
         bottom_title: "Přestaňte přebírat poličku – ať rozhodne kolo"
         bottom_text: "Vytvořte si účet zdarma, přidejte puzzle, které máte doma, a nechte výběr rozhodnout za vás."
 
+difficulty_ranking:
+    hardest_pieces:
+        title: "Nejtěžší puzzle %pieces% dílků – top %count%"
+        heading: "%count% nejtěžších puzzlí s %pieces% dílky"
+        description: "%count% nejtěžších puzzlí s %pieces% dílky podle skutečných časů skládání – každý čas porovnaný s obvyklým tempem puzzlera. Zatím ohodnoceno %total% puzzlí."
+    easiest_pieces:
+        title: "Nejlehčí puzzle %pieces% dílků – top %count%"
+        heading: "%count% nejlehčích puzzlí s %pieces% dílky"
+        description: "%count% nejlehčích puzzlí s %pieces% dílky podle skutečných časů skládání – každý čas porovnaný s obvyklým tempem puzzlera. Zatím ohodnoceno %total% puzzlí."
+    hardest_brand:
+        title: "Nejtěžší puzzle %brand% – top %count%"
+        heading: "%count% nejtěžších puzzlí %brand%"
+        description: "%count% nejtěžších puzzlí %brand% podle skutečných časů skládání – každý čas porovnaný s obvyklým tempem puzzlera. Zatím ohodnoceno %total% puzzlí %brand%."
+    easiest_brand:
+        title: "Nejlehčí puzzle %brand% – top %count%"
+        heading: "%count% nejlehčích puzzlí %brand%"
+        description: "%count% nejlehčích puzzlí %brand% podle skutečných časů skládání – každý čas porovnaný s obvyklým tempem puzzlera. Zatím ohodnoceno %total% puzzlí %brand%."
+    lead: "Seřazeno podle skutečných časů skládání zapsaných na MySpeedPuzzling – ne podle dojmů ani obtížnosti natištěné na krabici."
+    toggle:
+        label: "Pořadí"
+        hardest: "Nejtěžší"
+        easiest: "Nejlehčí"
+    how_measured:
+        title: "Jak žebříček vzniká"
+        pieces: "První sólo pokus každého puzzlera porovnáváme s jeho obvyklým časem na puzzle s %pieces% dílky – rozhoduje, o kolik se čas liší od jeho obvyklého tempa, ne to, jestli puzzle náhodou skládali spíš rychlí, nebo pomalí puzzleři. Puzzle ohodnotíme, jakmile ho složí aspoň 10 kvalifikovaných puzzlerů: zatím %total% puzzlí s %pieces% dílky."
+        brand: "První sólo pokus každého puzzlera porovnáváme s jeho obvyklým časem na puzzle se stejným počtem dílků – rozhoduje, o kolik se čas liší od jeho obvyklého tempa, takže vedle sebe můžeme seřadit i různě velká puzzle %brand%. Puzzle ohodnotíme, jakmile ho složí aspoň 10 kvalifikovaných puzzlerů: zatím %total% puzzlí %brand%."
+    methodology_link: "Jak měříme obtížnost puzzle"
+    breadcrumb_pieces: "Puzzle %pieces% dílků"
+    median_solo: "Medián %time%"
+    solo_solves: "%count% sólo složení"
+    difficulty: "Obtížnost"
+    difficulty_locked: "Obtížnost – jen pro členy"
+    members_cta:
+        title: "Celý žebříček %total% puzzlí s hodnocením obtížnosti"
+        text: "Členové vidí celý žebříček s obtížností každého puzzle – a navíc obtížnost, osobní predikci času a další statistiky na stránce každého puzzle."
+        button: "Odemknout celý žebříček"
+    members_scope: "Top %count% z %total% ohodnocených puzzlí, u každého jeho obtížnost."
+    members_scope_all: "Všech %total% ohodnocených puzzlí, u každého jeho obtížnost."
+    all_pieces: "Všechna puzzle s %pieces% dílky"
+    all_brand: "Všechna puzzle %brand%"
+    more:
+        title: "Další žebříčky obtížnosti"
+        hardest_by_pieces: "Nejtěžší puzzle podle počtu dílků"
+        easiest_by_pieces: "Nejlehčí puzzle podle počtu dílků"
+        hardest_by_brand: "Nejtěžší puzzle podle značky"
+        easiest_by_brand: "Nejlehčí puzzle podle značky"
+
 blocklist:
     title: "Blokovaní hráči"
     block_player: "Zablokovat tohoto hráče"

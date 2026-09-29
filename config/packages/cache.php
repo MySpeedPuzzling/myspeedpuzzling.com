@@ -43,6 +43,13 @@ return App::config([
                 'solve_time_distribution_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // Public hardest / easiest puzzle lists (PuzzleDifficultyRankings):
+                // the same for every visitor, cached for an hour. Its own pool so
+                // the lists can be flushed on their own
+                // (cache:pool:clear difficulty_rankings_cache).
+                'difficulty_rankings_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
             ],
         ],
     ],

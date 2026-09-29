@@ -3774,6 +3774,53 @@ puzzle_picker:
         bottom_title: "棚を眺めるのはもう終わり – ルーレットに決めてもらいましょう"
         bottom_text: "無料アカウントを作成し、持っているパズルを追加して、ピッカーに選んでもらいましょう。"
 
+difficulty_ranking:
+    hardest_pieces:
+        title: "難しい%pieces%ピースパズル ランキングTOP%count%"
+        heading: "難しい%pieces%ピースパズル TOP%count%"
+        description: "実際の完成タイムから選んだ、難しい%pieces%ピースパズルTOP%count%。各タイムはその人のふだんのペースと比べています。これまでに%total%個のパズルを評価。"
+    easiest_pieces:
+        title: "簡単な%pieces%ピースパズル ランキングTOP%count%"
+        heading: "簡単な%pieces%ピースパズル TOP%count%"
+        description: "実際の完成タイムから選んだ、簡単な%pieces%ピースパズルTOP%count%。各タイムはその人のふだんのペースと比べています。これまでに%total%個のパズルを評価。"
+    hardest_brand:
+        title: "%brand%の難しいパズル ランキングTOP%count%"
+        heading: "%brand%の難しいパズル TOP%count%"
+        description: "実際の完成タイムから選んだ、%brand%の難しいパズルTOP%count%。各タイムはその人のふだんのペースと比べています。これまでに%brand%のパズル%total%個を評価。"
+    easiest_brand:
+        title: "%brand%の簡単なパズル ランキングTOP%count%"
+        heading: "%brand%の簡単なパズル TOP%count%"
+        description: "実際の完成タイムから選んだ、%brand%の簡単なパズルTOP%count%。各タイムはその人のふだんのペースと比べています。これまでに%brand%のパズル%total%個を評価。"
+    lead: "MySpeedPuzzlingに記録された実際の完成タイムによるランキングです。口コミや箱の難易度表示ではありません。"
+    toggle:
+        label: "並び順"
+        hardest: "難しい順"
+        easiest: "簡単な順"
+    how_measured:
+        title: "ランキングの仕組み"
+        pieces: "各パズラーのソロでの初挑戦タイムを、その人の%pieces%ピースパズルでのふだんのタイムと比べています。大切なのはいつものペースとの差で、速い人と遅い人のどちらが多く解いたかは関係ありません。条件を満たすパズラー10人以上が完成させると評価され、これまでに%pieces%ピースパズル%total%個を評価しました。"
+        brand: "各パズラーのソロでの初挑戦タイムを、同じピース数のパズルでのその人のふだんのタイムと比べています。大切なのはいつものペースとの差なので、サイズの異なる%brand%のパズルも同じランキングで比べられます。条件を満たすパズラー10人以上が完成させると評価され、これまでに%brand%のパズル%total%個を評価しました。"
+    methodology_link: "難易度の測り方"
+    breadcrumb_pieces: "%pieces%ピースパズル"
+    median_solo: "中央値 %time%"
+    solo_solves: "ソロ記録%count%件"
+    difficulty: "難易度"
+    difficulty_locked: "難易度 – メンバー限定"
+    members_cta:
+        title: "%total%個のパズルの完全ランキング（難易度つき）"
+        text: "メンバーは、すべてのパズルの難易度つき完全ランキングを見られます。さらに各パズルのページで、難易度やあなたの予測タイムなどのインサイトも確認できます。"
+        button: "完全ランキングを見る"
+    members_scope: "評価済み%total%個のうち上位%count%個（各パズルの難易度つき）"
+    members_scope_all: "評価済みの全%total%個（各パズルの難易度つき）"
+    all_pieces: "%pieces%ピースパズルをすべて見る"
+    all_brand: "%brand%のパズルをすべて見る"
+    more:
+        title: "その他の難易度ランキング"
+        hardest_by_pieces: "ピース数別の難しいパズル"
+        easiest_by_pieces: "ピース数別の簡単なパズル"
+        hardest_by_brand: "ブランド別の難しいパズル"
+        easiest_by_brand: "ブランド別の簡単なパズル"
+
 blocklist:
     title: "ブロック中のプレイヤー"
     block_player: "このプレイヤーをブロック"

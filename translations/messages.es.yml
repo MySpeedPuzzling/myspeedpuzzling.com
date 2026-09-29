@@ -3783,6 +3783,53 @@ puzzle_picker:
         bottom_title: "Deja de repasar la estantería – que decida la ruleta"
         bottom_text: "Crea una cuenta gratis, añade los puzzles que tienes y deja que el selector elija por ti."
 
+difficulty_ranking:
+    hardest_pieces:
+        title: "%count% puzzles de %pieces% piezas más difíciles"
+        heading: "Los %count% puzzles de %pieces% piezas más difíciles"
+        description: "Los %count% puzzles de %pieces% piezas más difíciles según tiempos reales – cada tiempo comparado con el ritmo habitual del puzzlero. %total% puzzles valorados."
+    easiest_pieces:
+        title: "%count% puzzles de %pieces% piezas más fáciles"
+        heading: "Los %count% puzzles de %pieces% piezas más fáciles"
+        description: "Los %count% puzzles de %pieces% piezas más fáciles según tiempos reales – cada tiempo comparado con el ritmo habitual del puzzlero. %total% puzzles valorados."
+    hardest_brand:
+        title: "Los %count% puzzles %brand% más difíciles"
+        heading: "Los %count% puzzles %brand% más difíciles"
+        description: "Los %count% puzzles %brand% más difíciles según tiempos reales – cada tiempo comparado con el ritmo habitual del puzzlero. %total% puzzles %brand% valorados."
+    easiest_brand:
+        title: "Los %count% puzzles %brand% más fáciles"
+        heading: "Los %count% puzzles %brand% más fáciles"
+        description: "Los %count% puzzles %brand% más fáciles según tiempos reales – cada tiempo comparado con el ritmo habitual del puzzlero. %total% puzzles %brand% valorados."
+    lead: "Ordenados según tiempos reales registrados en MySpeedPuzzling, no según opiniones ni la dificultad que indica la caja."
+    toggle:
+        label: "Orden"
+        hardest: "Más difíciles"
+        easiest: "Más fáciles"
+    how_measured:
+        title: "Cómo funciona la clasificación"
+        pieces: "El primer intento en solitario de cada puzzlero se compara con su tiempo habitual en puzzles de %pieces% piezas: lo que cuenta es cuánto se aleja el tiempo de su ritmo habitual, no si casualmente lo armaron puzzleros rápidos o lentos. Un puzzle recibe su valoración cuando al menos 10 puzzleros cualificados lo han armado: %total% puzzles de %pieces% piezas hasta ahora."
+        brand: "El primer intento en solitario de cada puzzlero se compara con su tiempo habitual en puzzles con el mismo número de piezas: lo que cuenta es cuánto se aleja el tiempo de su ritmo habitual, así que los puzzles %brand% de distintos tamaños se pueden clasificar juntos. Un puzzle recibe su valoración cuando al menos 10 puzzleros cualificados lo han armado: %total% puzzles %brand% hasta ahora."
+    methodology_link: "Cómo medimos la dificultad"
+    breadcrumb_pieces: "Puzzles de %pieces% piezas"
+    median_solo: "Mediana %time%"
+    solo_solves: "%count% resolución en solo|%count% resoluciones en solo"
+    difficulty: "Dificultad"
+    difficulty_locked: "Dificultad – solo para miembros"
+    members_cta:
+        title: "Clasificación completa de %total% puzzles con su dificultad"
+        text: "Los miembros ven la clasificación completa con la dificultad de cada puzzle, además de la dificultad, predicciones de tiempo personales y más información en la página de cada puzzle."
+        button: "Desbloquear la clasificación completa"
+    members_scope: "Top %count% de %total% puzzles valorados, cada uno con su dificultad."
+    members_scope_all: "Los %total% puzzles valorados, cada uno con su dificultad."
+    all_pieces: "Todos los puzzles de %pieces% piezas"
+    all_brand: "Todos los puzzles %brand%"
+    more:
+        title: "Más clasificaciones de dificultad"
+        hardest_by_pieces: "Puzzles más difíciles por número de piezas"
+        easiest_by_pieces: "Puzzles más fáciles por número de piezas"
+        hardest_by_brand: "Puzzles más difíciles por marca"
+        easiest_by_brand: "Puzzles más fáciles por marca"
+
 blocklist:
     title: "Jugadores bloqueados"
     block_player: "Bloquear a este jugador"

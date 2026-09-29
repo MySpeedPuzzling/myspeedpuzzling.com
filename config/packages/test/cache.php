@@ -15,12 +15,17 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 // The solve-time distributions are the exception: a guide test pins a page to a
 // known snapshot by writing it into this pool, and nothing it computes from a
 // test's rolled-back rows may outlive that test's kernel - so it lives in memory.
+// Same for the hardest / easiest puzzle lists, built from the rated puzzles a
+// test seeds and DAMA rolls back.
 return App::config([
     'framework' => [
         'cache' => [
             'app' => 'cache.adapter.filesystem',
             'pools' => [
                 'solve_time_distribution_cache' => [
+                    'adapters' => ['cache.adapter.array'],
+                ],
+                'difficulty_rankings_cache' => [
                     'adapters' => ['cache.adapter.array'],
                 ],
             ],

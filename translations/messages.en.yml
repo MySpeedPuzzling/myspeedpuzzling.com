@@ -4053,6 +4053,53 @@ puzzle_picker:
         bottom_title: "Stop scanning your shelf – let the wheel decide"
         bottom_text: "Create a free account, add the puzzles you own and let the picker do the choosing."
 
+difficulty_ranking:
+    hardest_pieces:
+        title: "%count% Hardest %pieces%-Piece Puzzles (Real Data)"
+        heading: "The %count% Hardest %pieces%-Piece Puzzles"
+        description: "The %count% hardest %pieces%-piece jigsaw puzzles, ranked from real solve times – each compared with the solver's usual pace. %total% puzzles rated so far."
+    easiest_pieces:
+        title: "%count% Easiest %pieces%-Piece Puzzles (Real Data)"
+        heading: "The %count% Easiest %pieces%-Piece Puzzles"
+        description: "The %count% easiest %pieces%-piece jigsaw puzzles, ranked from real solve times – each compared with the solver's usual pace. %total% puzzles rated so far."
+    hardest_brand:
+        title: "%count% Hardest %brand% Puzzles (Real Data)"
+        heading: "The %count% Hardest %brand% Puzzles"
+        description: "The %count% hardest %brand% jigsaw puzzles, ranked from real solve times – each compared with the solver's usual pace. %total% %brand% puzzles rated so far."
+    easiest_brand:
+        title: "%count% Easiest %brand% Puzzles (Real Data)"
+        heading: "The %count% Easiest %brand% Puzzles"
+        description: "The %count% easiest %brand% jigsaw puzzles, ranked from real solve times – each compared with the solver's usual pace. %total% %brand% puzzles rated so far."
+    lead: "Ranked by real solve times logged on MySpeedPuzzling – not by opinions or the difficulty printed on the box."
+    toggle:
+        label: "Order"
+        hardest: "Hardest"
+        easiest: "Easiest"
+    how_measured:
+        title: "How the ranking works"
+        pieces: "Each solver's first solo attempt is compared with their own usual time for %pieces%-piece puzzles – what counts is how much longer or shorter a puzzle took than usual, not whether fast or slow puzzlers happened to solve it. A puzzle gets rated once at least 10 qualified solvers have done it: %total% %pieces%-piece puzzles so far."
+        brand: "Each solver's first solo attempt is compared with their own usual time for puzzles with the same number of pieces – what counts is how much longer or shorter a puzzle took than usual, so %brand% puzzles of different sizes can be ranked side by side. A puzzle gets rated once at least 10 qualified solvers have done it: %total% %brand% puzzles so far."
+    methodology_link: "How we measure puzzle difficulty"
+    breadcrumb_pieces: "%pieces%-Piece Puzzles"
+    median_solo: "Median %time%"
+    solo_solves: "%count% solo solve|%count% solo solves"
+    difficulty: "Difficulty"
+    difficulty_locked: "Difficulty rating – for members"
+    members_cta:
+        title: "Full ranking of %total% puzzles with difficulty scores"
+        text: "Members see the whole ranking with the difficulty rating of every puzzle – plus difficulty, personal time predictions and more insights on every puzzle page."
+        button: "Unlock the full ranking"
+    members_scope: "Top %count% of %total% rated puzzles, each with its difficulty rating."
+    members_scope_all: "All %total% rated puzzles, each with its difficulty rating."
+    all_pieces: "All %pieces%-piece puzzles"
+    all_brand: "All %brand% puzzles"
+    more:
+        title: "More difficulty rankings"
+        hardest_by_pieces: "Hardest puzzles by piece count"
+        easiest_by_pieces: "Easiest puzzles by piece count"
+        hardest_by_brand: "Hardest puzzles by brand"
+        easiest_by_brand: "Easiest puzzles by brand"
+
 blocklist:
     title: "Blocked players"
     block_player: "Block this player"

@@ -6,7 +6,15 @@
 # Thrown by SocialAccountResolver (auth hardening PR 2). Rule 3 (an email match
 # that cannot be auto-linked because the account's address or the provider's
 # address is unverified - one message each) deliberately names the way out;
-# everything else stays on Symfony's generic message (anti-enumeration).
+# the rest stay deliberately vague (anti-enumeration).
 "There is already an account with this email address, but that address has not been verified yet. To be sure we connect the right accounts, please sign in to that account first (with your password or an emailed sign-in link), then connect %provider% in your profile settings under Connected sign-in methods.": "There is already an account with this email address, but that address has not been verified yet. To be sure we connect the right accounts, please sign in to that account first (with your password or an emailed sign-in link), then connect %provider% in your profile settings under Connected sign-in methods."
 "There is already an account with this email address, but %provider% has not confirmed that the address belongs to you. To be sure we connect the right accounts, please sign in to that account first (with your password or an emailed sign-in link), then connect %provider% in your profile settings under Connected sign-in methods.": "There is already an account with this email address, but %provider% has not confirmed that the address belongs to you. To be sure we connect the right accounts, please sign in to that account first (with your password or an emailed sign-in link), then connect %provider% in your profile settings under Connected sign-in methods."
 "%provider% did not share an email address with us, so we cannot sign you in this way. Please try again and allow access to your email address when %provider% asks - or sign in another way.": "%provider% did not share an email address with us, so we cannot sign you in this way. Please try again and allow access to your email address when %provider% asks - or sign in another way."
+#
+# Every social sign-in failure (SocialLoginFailureReason) shows one of these.
+# The last one is shared by every account-dependent refusal (admin-only stage,
+# refused auto-link), so it reveals nothing about the account.
+"You cancelled signing in with %provider%. Nothing was changed.": "You cancelled signing in with %provider%. Nothing was changed."
+"Signing in with %provider% took too long or was opened twice. Please try again.": "Signing in with %provider% took too long or was opened twice. Please try again."
+"Signing in with %provider% didn't work. Please try again, or sign in with your e-mail.": "Signing in with %provider% didn't work. Please try again, or sign in with your e-mail."
+"We couldn't sign you in with %provider%. Please sign in with your e-mail or password, then connect %provider% in your profile settings.": "We couldn't sign you in with %provider%. Please sign in with your e-mail or password, then connect %provider% in your profile settings."

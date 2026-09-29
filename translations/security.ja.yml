@@ -5,3 +5,11 @@
 "There is already an account with this email address, but that address has not been verified yet. To be sure we connect the right accounts, please sign in to that account first (with your password or an emailed sign-in link), then connect %provider% in your profile settings under Connected sign-in methods.": "このメールアドレスのアカウントはすでに存在しますが、そのアドレスはまだ確認されていません。正しいアカウント同士を確実に接続するため、まずそのアカウントに（パスワードまたはメールで届くサインイン用リンクで）サインインしてから、プロフィール設定の「接続済みのサインイン方法」で%provider%を接続してください。"
 "There is already an account with this email address, but %provider% has not confirmed that the address belongs to you. To be sure we connect the right accounts, please sign in to that account first (with your password or an emailed sign-in link), then connect %provider% in your profile settings under Connected sign-in methods.": "このメールアドレスのアカウントはすでに存在しますが、%provider%はこのアドレスがあなたのものであることを確認していません。正しいアカウント同士を確実に接続するため、まずそのアカウントに（パスワードまたはメールで届くサインイン用リンクで）サインインしてから、プロフィール設定の「接続済みのサインイン方法」で%provider%を接続してください。"
 "%provider% did not share an email address with us, so we cannot sign you in this way. Please try again and allow access to your email address when %provider% asks - or sign in another way.": "%provider%からメールアドレスが提供されなかったため、この方法ではサインインできません。もう一度お試しいただき、%provider%に求められたらメールアドレスへのアクセスを許可してください。または別の方法でサインインしてください。"
+#
+# Every social sign-in failure (SocialLoginFailureReason) shows one of these.
+# The last one is shared by every account-dependent refusal (admin-only stage,
+# refused auto-link), so it reveals nothing about the account.
+"You cancelled signing in with %provider%. Nothing was changed.": "%provider%でのサインインをキャンセルしました。変更は何も行われていません。"
+"Signing in with %provider% took too long or was opened twice. Please try again.": "%provider%でのサインインに時間がかかりすぎたか、二重に開かれました。もう一度お試しください。"
+"Signing in with %provider% didn't work. Please try again, or sign in with your e-mail.": "%provider%でのサインインがうまくいきませんでした。もう一度お試しいただくか、メールアドレスでサインインしてください。"
+"We couldn't sign you in with %provider%. Please sign in with your e-mail or password, then connect %provider% in your profile settings.": "%provider%でサインインできませんでした。メールアドレスまたはパスワードでサインインしてから、プロフィール設定で%provider%を接続してください。"

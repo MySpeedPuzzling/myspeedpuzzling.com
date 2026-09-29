@@ -5,7 +5,15 @@
 #
 # Thrown by SocialAccountResolver (auth hardening PR 2). Rule 3 (unverified
 # provider email matching an existing account) deliberately names the way out;
-# everything else stays on Symfony's generic message (anti-enumeration).
+# the rest stay deliberately vague (anti-enumeration).
 "There is already an account with this email address, but that address has not been verified yet. To be sure we connect the right accounts, please sign in to that account first (with your password or an emailed sign-in link), then connect %provider% in your profile settings under Connected sign-in methods.": "Il existe déjà un compte avec cette adresse e-mail, mais cette adresse n'a pas encore été vérifiée. Pour être sûrs d'associer les bons comptes, connectez-vous d'abord à ce compte (avec votre mot de passe ou un lien de connexion envoyé par e-mail), puis associez %provider% dans les paramètres de votre profil, sous Méthodes de connexion associées."
 "There is already an account with this email address, but %provider% has not confirmed that the address belongs to you. To be sure we connect the right accounts, please sign in to that account first (with your password or an emailed sign-in link), then connect %provider% in your profile settings under Connected sign-in methods.": "Il existe déjà un compte avec cette adresse e-mail, mais %provider% n'a pas confirmé que cette adresse vous appartient. Pour être sûrs d'associer les bons comptes, connectez-vous d'abord à ce compte (avec votre mot de passe ou un lien de connexion envoyé par e-mail), puis associez %provider% dans les paramètres de votre profil, sous Méthodes de connexion associées."
 "%provider% did not share an email address with us, so we cannot sign you in this way. Please try again and allow access to your email address when %provider% asks - or sign in another way.": "%provider% ne nous a pas communiqué d'adresse e-mail, nous ne pouvons donc pas vous connecter de cette façon. Réessayez et autorisez l'accès à votre adresse e-mail lorsque %provider% vous le demande - ou connectez-vous autrement."
+#
+# Every social sign-in failure (SocialLoginFailureReason) shows one of these.
+# The last one is shared by every account-dependent refusal (admin-only stage,
+# refused auto-link), so it reveals nothing about the account.
+"You cancelled signing in with %provider%. Nothing was changed.": "Vous avez annulé la connexion avec %provider%. Rien n'a été modifié."
+"Signing in with %provider% took too long or was opened twice. Please try again.": "La connexion avec %provider% a pris trop de temps ou a été ouverte deux fois. Veuillez réessayer."
+"Signing in with %provider% didn't work. Please try again, or sign in with your e-mail.": "La connexion avec %provider% n'a pas fonctionné. Veuillez réessayer ou vous connecter avec votre adresse e-mail."
+"We couldn't sign you in with %provider%. Please sign in with your e-mail or password, then connect %provider% in your profile settings.": "Nous n'avons pas pu vous connecter avec %provider%. Connectez-vous avec votre adresse e-mail ou votre mot de passe, puis associez %provider% dans les paramètres de votre profil."

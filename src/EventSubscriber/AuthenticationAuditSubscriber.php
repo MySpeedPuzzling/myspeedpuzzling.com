@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
 use SpeedPuzzling\Web\Security\SocialLoginAuthenticator;
+use SpeedPuzzling\Web\Security\SocialLoginFailed;
 use SpeedPuzzling\Web\Services\AuthAuditRecorder;
 use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -116,6 +117,10 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
         }
 
         $request = $event->getRequest();
+        $exception = $event->getException();
+        // Social failures name their internal reason (a fixed machine code, no
+        // personal data) - the visitor-facing copy is deliberately vaguer
+        $reasonCode = $exception instanceof SocialLoginFailed ? $exception->reason->value : null;
         $email = $request->hasSession()
             ? $request->getSession()->get(SecurityRequestAttributes::LAST_USERNAME)
             : null;
@@ -126,7 +131,8 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
             'authenticator' => $authenticator::class,
             'email' => $email,
             'client_ip' => $request->getClientIp(),
-            'exception' => $event->getException(),
+            'reason_code' => $reasonCode,
+            'exception' => $exception,
         ]);
 
         $this->authAuditRecorder->record(new RecordAuthAuditEvent(
@@ -135,7 +141,9 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
             authenticator: self::authenticatorLabel($authenticator),
             ipAddress: $request->getClientIp(),
             userAgent: $request->headers->get('User-Agent'),
-            metadata: ['reason' => $event->getException()::class],
+            metadata: $reasonCode === null
+                ? ['reason' => $exception::class]
+                : ['reason' => $exception::class, 'code' => $reasonCode],
         ));
     }
 

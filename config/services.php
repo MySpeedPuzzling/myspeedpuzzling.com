@@ -190,6 +190,7 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Security/ApiUser.php',
             __DIR__ . '/../src/Security/SignInLinkPasswordPrompt.php',
             __DIR__ . '/../src/Security/SocialRegistrationRequired.php',
+            __DIR__ . '/../src/Security/SocialLoginFailed.php',
         ]);
 
     // Single-use magic sign-in links (D18, issue #147): wraps the handler the

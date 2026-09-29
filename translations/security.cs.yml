@@ -5,7 +5,15 @@
 #
 # Thrown by SocialAccountResolver (auth hardening PR 2). Rule 3 (unverified
 # provider email matching an existing account) deliberately names the way out;
-# everything else stays on Symfony's generic message (anti-enumeration).
+# the rest stay deliberately vague (anti-enumeration).
 "There is already an account with this email address, but that address has not been verified yet. To be sure we connect the right accounts, please sign in to that account first (with your password or an emailed sign-in link), then connect %provider% in your profile settings under Connected sign-in methods.": "Účet s touto e-mailovou adresou už existuje, ale jeho adresa zatím nebyla ověřena. Abychom měli jistotu, že propojíme ty správné účty, přihlaste se prosím nejdřív do tohoto účtu (heslem nebo odkazem pro přihlášení zaslaným e-mailem) a potom si %provider% propojte v nastavení profilu v sekci Propojené způsoby přihlášení."
 "There is already an account with this email address, but %provider% has not confirmed that the address belongs to you. To be sure we connect the right accounts, please sign in to that account first (with your password or an emailed sign-in link), then connect %provider% in your profile settings under Connected sign-in methods.": "Účet s touto e-mailovou adresou už existuje, ale %provider% nepotvrdil, že adresa patří vám. Abychom měli jistotu, že propojíme ty správné účty, přihlaste se prosím nejdřív do tohoto účtu (heslem nebo odkazem pro přihlášení zaslaným e-mailem) a potom si %provider% propojte v nastavení profilu v sekci Propojené způsoby přihlášení."
 "%provider% did not share an email address with us, so we cannot sign you in this way. Please try again and allow access to your email address when %provider% asks - or sign in another way.": "%provider% nám nesdělil vaši e-mailovou adresu, takže vás tímto způsobem nemůžeme přihlásit. Zkuste to prosím znovu a když se %provider% zeptá, povolte přístup k e-mailové adrese - nebo se přihlaste jinak."
+#
+# Every social sign-in failure (SocialLoginFailureReason) shows one of these.
+# The last one is shared by every account-dependent refusal (admin-only stage,
+# refused auto-link), so it reveals nothing about the account.
+"You cancelled signing in with %provider%. Nothing was changed.": "Přihlášení přes %provider% jste zrušili. Nic se nezměnilo."
+"Signing in with %provider% took too long or was opened twice. Please try again.": "Přihlášení přes %provider% trvalo příliš dlouho nebo bylo otevřeno dvakrát. Zkuste to prosím znovu."
+"Signing in with %provider% didn't work. Please try again, or sign in with your e-mail.": "Přihlášení přes %provider% se nepovedlo. Zkuste to prosím znovu, nebo se přihlaste e-mailem."
+"We couldn't sign you in with %provider%. Please sign in with your e-mail or password, then connect %provider% in your profile settings.": "Přes %provider% vás nemůžeme přihlásit. Přihlaste se prosím e-mailem nebo heslem a potom si %provider% propojte v nastavení profilu."

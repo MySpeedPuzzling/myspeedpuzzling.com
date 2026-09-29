@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Services\SocialLogin\SocialProfileFetcher;
 use SpeedPuzzling\Web\Value\OauthFlowIntent;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 use SpeedPuzzling\Web\Value\OauthProvider;
+use SpeedPuzzling\Web\Value\SocialLoginFailureReason;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -87,20 +88,30 @@ abstract class SocialLoginAuthenticator extends AbstractAuthenticator
         ) {
             // supports() saw the state a moment ago - losing it here means a
             // concurrent callback consumed it (replay); fail closed
-            throw new AuthenticationException('OAuth state missing, expired or mismatched.');
+            throw new SocialLoginFailed(SocialLoginFailureReason::StateInvalid, $this->provider());
         }
 
         $providerError = $request->query->get('error') ?? $request->request->get('error');
 
         if (is_string($providerError) && $providerError !== '') {
-            // Typically access_denied: the user cancelled on the consent screen
-            throw new AuthenticationException('Provider returned an error: ' . $providerError);
+            $reason = SocialLoginFailureReason::fromProviderError($providerError);
+
+            if ($reason === SocialLoginFailureReason::ProviderError) {
+                // Not a cancel - keep the provider's own word for it (cut short:
+                // the parameter is whatever the callback URL says)
+                $this->logger->info('Social login provider returned an error.', [
+                    'provider' => $this->provider()->value,
+                    'provider_error' => mb_substr($providerError, 0, 64),
+                ]);
+            }
+
+            throw new SocialLoginFailed($reason, $this->provider());
         }
 
         $code = $request->query->get('code') ?? $request->request->get('code');
 
         if (!is_string($code) || $code === '') {
-            throw new AuthenticationException('Authorization code missing from the callback.');
+            throw new SocialLoginFailed(SocialLoginFailureReason::CodeMissing, $this->provider());
         }
 
         try {
@@ -116,7 +127,7 @@ abstract class SocialLoginAuthenticator extends AbstractAuthenticator
                 'provider' => $this->provider()->value,
             ]);
 
-            throw new AuthenticationException('Code exchange with the provider failed.');
+            throw new SocialLoginFailed(SocialLoginFailureReason::CodeExchangeFailed, $this->provider(), $exception);
         }
 
         $userAccount = $this->accountResolver->resolve($profile, $request->getLocale());
@@ -170,7 +181,14 @@ abstract class SocialLoginAuthenticator extends AbstractAuthenticator
         }
 
         // Same mechanism as the form login: the login page renders the error
-        // from the session (generic unless a Custom*Exception carries copy)
+        // from the session. Every failure thrown on this path is a
+        // SocialLoginFailed carrying friendly, translated copy; anything else
+        // that is a bare AuthenticationException would render Symfony's raw
+        // "An authentication exception occurred." - never show that
+        if ($exception::class === AuthenticationException::class) {
+            $exception = new SocialLoginFailed(SocialLoginFailureReason::ProviderError, $this->provider(), $exception);
+        }
+
         if ($request->hasSession()) {
             $request->getSession()->set(SecurityRequestAttributes::AUTHENTICATION_ERROR, $exception);
         }

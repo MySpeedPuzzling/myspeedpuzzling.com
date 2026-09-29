@@ -14,15 +14,18 @@ use SpeedPuzzling\Web\Entity\OauthIdentity;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Events\OauthIdentityLinked;
+use SpeedPuzzling\Web\Security\SocialLoginFailed;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestDouble\AppleIdTokenFactory;
 use SpeedPuzzling\Web\Tests\TestDouble\SocialLoginHttpMock;
 use SpeedPuzzling\Web\Value\OauthProvider;
+use SpeedPuzzling\Web\Value\SocialLoginFailureReason;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * End-to-end social login flows against mocked provider HTTP (the league
@@ -36,6 +39,13 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 final class SocialLoginFlowTest extends WebTestCase
 {
     use OverridesFeatureFlagEnv;
+
+    /**
+     * One message for every account-dependent refusal - admin-only denial,
+     * admin-only registration stop and refused auto-link must read the same,
+     * byte for byte, or the difference tells a stranger something.
+     */
+    private const string NOT_POSSIBLE_GOOGLE = "We couldn't sign you in with Google. Please sign in with your e-mail or password, then connect Google in your profile settings.";
 
     /** @var array<string, string|false> */
     private array $originalStringEnv = [];
@@ -284,9 +294,11 @@ final class SocialLoginFlowTest extends WebTestCase
         $state = $this->startFlow($browser, 'google', 'accounts.google.com');
 
         $this->queueGoogleExchange("g-adminonly-{$suffix}", "adminonly+{$suffix}@example.com", emailVerified: true);
-        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+        $userAgent = 'adminonly-' . $suffix;
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code", server: ['HTTP_USER_AGENT' => $userAgent]);
 
-        self::assertResponseRedirects('/login');
+        self::assertSame(self::NOT_POSSIBLE_GOOGLE, $this->followToLoginError($browser));
+        $this->assertFailureAudited($browser, $userAgent, 'admin_only_denied');
         $this->assertNotLoggedIn($browser);
 
         $connection = $browser->getContainer()->get(Connection::class);
@@ -326,10 +338,12 @@ final class SocialLoginFlowTest extends WebTestCase
         $state = $this->startFlow($browser, 'google', 'accounts.google.com');
 
         $this->queueGoogleExchange("g-noreg-{$suffix}", "noreg+{$suffix}@example.com", emailVerified: true);
-        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+        $userAgent = 'noreg-' . $suffix;
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code", server: ['HTTP_USER_AGENT' => $userAgent]);
 
         // Generic failure, no interstitial - the feature must not reveal itself
-        self::assertResponseRedirects('/login');
+        self::assertSame(self::NOT_POSSIBLE_GOOGLE, $this->followToLoginError($browser));
+        $this->assertFailureAudited($browser, $userAgent, 'admin_only_registration_disabled');
         $this->assertNotLoggedIn($browser);
 
         $connection = $browser->getContainer()->get(Connection::class);
@@ -877,6 +891,168 @@ final class SocialLoginFlowTest extends WebTestCase
         $this->assertSignedInAs($browser, $userAccount);
     }
 
+    public function testCancelAtGoogleShowsFriendlyMessage(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+        $userAgent = 'cancel-google-' . bin2hex(random_bytes(4));
+        $browser->request('GET', "/login/social/google/callback?state={$state}&error=access_denied", server: ['HTTP_USER_AGENT' => $userAgent]);
+
+        self::assertSame('You cancelled signing in with Google. Nothing was changed.', $this->followToLoginError($browser));
+        $this->assertFailureAudited($browser, $userAgent, 'provider_cancelled');
+        $this->assertNotLoggedIn($browser);
+    }
+
+    public function testCancelAtAppleFormPostShowsFriendlyMessage(): void
+    {
+        $this->enableApplePublicly();
+        $browser = self::createClient();
+
+        $state = $this->startFlow($browser, 'apple', 'appleid.apple.com');
+        $userAgent = 'cancel-apple-' . bin2hex(random_bytes(4));
+        $browser->request('POST', '/login/social/apple/callback', [
+            'state' => $state,
+            'error' => 'user_cancelled_authorize',
+        ], server: ['HTTP_USER_AGENT' => $userAgent]);
+
+        self::assertSame('You cancelled signing in with Apple. Nothing was changed.', $this->followToLoginError($browser));
+        $this->assertFailureAudited($browser, $userAgent, 'provider_cancelled');
+    }
+
+    public function testOtherProviderErrorShowsTryAgainMessage(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+        $userAgent = 'provider-error-' . bin2hex(random_bytes(4));
+        $browser->request('GET', "/login/social/google/callback?state={$state}&error=server_error", server: ['HTTP_USER_AGENT' => $userAgent]);
+
+        self::assertSame(
+            "Signing in with Google didn't work. Please try again, or sign in with your e-mail.",
+            $this->followToLoginError($browser),
+        );
+        $this->assertFailureAudited($browser, $userAgent, 'provider_error');
+    }
+
+    public function testMissingCodeShowsTryAgainMessage(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+        $userAgent = 'code-missing-' . bin2hex(random_bytes(4));
+        $browser->request('GET', "/login/social/google/callback?state={$state}", server: ['HTTP_USER_AGENT' => $userAgent]);
+
+        self::assertSame(
+            "Signing in with Google didn't work. Please try again, or sign in with your e-mail.",
+            $this->followToLoginError($browser),
+        );
+        $this->assertFailureAudited($browser, $userAgent, 'code_missing');
+    }
+
+    public function testFailedCodeExchangeShowsTryAgainMessage(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+        SocialLoginHttpMock::queue(new HttpResponse(400, ['Content-Type' => 'application/json'], '{"error":"invalid_grant"}'));
+        $userAgent = 'exchange-failed-' . bin2hex(random_bytes(4));
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code", server: ['HTTP_USER_AGENT' => $userAgent]);
+
+        self::assertSame(
+            "Signing in with Google didn't work. Please try again, or sign in with your e-mail.",
+            $this->followToLoginError($browser),
+        );
+        $this->assertFailureAudited($browser, $userAgent, 'code_exchange_failed');
+    }
+
+    public function testStateOfAnotherProviderShowsTookTooLongMessage(): void
+    {
+        // A login-intent state minted for Google, replayed at Apple's callback:
+        // supports() only peeks at the intent, authenticate() rejects the mismatch
+        $this->enableGooglePublicly();
+        $this->enableApplePublicly();
+        $browser = self::createClient();
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+        $userAgent = 'state-invalid-' . bin2hex(random_bytes(4));
+        $browser->request('POST', '/login/social/apple/callback', [
+            'state' => $state,
+            'code' => 'fake-apple-code',
+        ], server: ['HTTP_USER_AGENT' => $userAgent]);
+
+        self::assertSame(
+            'Signing in with Apple took too long or was opened twice. Please try again.',
+            $this->followToLoginError($browser),
+        );
+        $this->assertFailureAudited($browser, $userAgent, 'state_invalid');
+    }
+
+    public function testRefusedAutoLinkShowsTheSameGenericMessage(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $email = "autolink-refused+{$suffix}@example.com";
+        $userAccount = $this->seedAccount($browser, $email, password: 'hash');
+        // The account already carries ANOTHER Google identity - rule 2 must not add a second
+        $this->seedIdentity($browser, $userAccount, OauthProvider::Google, "g-existing-{$suffix}");
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+        $this->queueGoogleExchange("g-second-{$suffix}", $email, emailVerified: true);
+        $userAgent = 'autolink-refused-' . $suffix;
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code", server: ['HTTP_USER_AGENT' => $userAgent]);
+
+        self::assertSame(self::NOT_POSSIBLE_GOOGLE, $this->followToLoginError($browser));
+        $this->assertFailureAudited($browser, $userAgent, 'auto_link_refused');
+        self::assertSame(0, $this->identityCount($browser, "g-second-{$suffix}"));
+        $this->assertNotLoggedIn($browser);
+    }
+
+    public function testRule3RefusalRecordsItsReasonCode(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $email = "rule3-code+{$suffix}@example.com";
+        $this->seedAccount($browser, $email, password: 'hash');
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+        $this->queueGoogleExchange("g-rule3-code-{$suffix}", $email, emailVerified: false);
+        $userAgent = 'rule3-code-' . $suffix;
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code", server: ['HTTP_USER_AGENT' => $userAgent]);
+
+        self::assertStringContainsString('Google has not confirmed that the address belongs to you.', $this->followToLoginError($browser));
+        $this->assertFailureAudited($browser, $userAgent, 'provider_email_unverified');
+    }
+
+    public function testEveryFailureMessageIsTranslatedInAllLocales(): void
+    {
+        $translator = self::getContainer()->get(TranslatorInterface::class);
+
+        foreach (['cs', 'de', 'es', 'fr', 'ja'] as $locale) {
+            $catalogue = $translator->getCatalogue($locale);
+
+            foreach (SocialLoginFailureReason::cases() as $reason) {
+                self::assertTrue(
+                    $catalogue->defines($reason->messageKey(), 'security'),
+                    "Missing {$locale} translation for {$reason->value}",
+                );
+            }
+        }
+
+        self::assertSame(
+            'Přihlášení přes Apple jste zrušili. Nic se nezměnilo.',
+            $translator->trans(SocialLoginFailureReason::MESSAGE_CANCELLED, ['%provider%' => 'Apple'], 'security', 'cs'),
+        );
+    }
+
     public function testOneIdentityPerProviderPerAccountIsEnforcedByTheDatabase(): void
     {
         $browser = self::createClient();
@@ -890,6 +1066,38 @@ final class SocialLoginFlowTest extends WebTestCase
         // A second Google identity on the same account - what two racing link
         // flows would produce past the handler's advisory check
         $this->seedIdentity($browser, $userAccount, OauthProvider::Google, "g-uniq-b-{$suffix}");
+    }
+
+    /**
+     * Follows the failure redirect and returns the login page's error text -
+     * never Symfony's raw "An authentication exception occurred.".
+     */
+    private function followToLoginError(KernelBrowser $browser): string
+    {
+        self::assertResponseRedirects('/login');
+
+        $crawler = $browser->followRedirect();
+        $alert = $crawler->filter('.alert-danger');
+        self::assertCount(1, $alert);
+
+        $text = $alert->text();
+        self::assertStringNotContainsString('An authentication exception occurred', $text);
+
+        return $text;
+    }
+
+    private function assertFailureAudited(KernelBrowser $browser, string $userAgent, string $expectedCode): void
+    {
+        $metadata = $browser->getContainer()->get(Connection::class)->fetchOne(
+            "SELECT metadata FROM auth_audit_log WHERE event_type = 'login_failure' AND user_agent = :ua",
+            ['ua' => $userAgent],
+        );
+        self::assertIsString($metadata, 'The failure must land in the audit log');
+
+        /** @var array{reason?: string, code?: string} $decoded */
+        $decoded = json_decode($metadata, true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame($expectedCode, $decoded['code'] ?? null);
+        self::assertSame(SocialLoginFailed::class, $decoded['reason'] ?? null);
     }
 
     private function enableApplePublicly(): void

@@ -239,9 +239,11 @@ final class PuzzleDetailControllerTest extends WebTestCase
             $summary->filter('a')->each(static fn (Crawler $link): null|string => $link->attr('href')),
         );
 
-        // The summary sits above the insights toggle
+        // The summary sits at the bottom of the page, under the leaderboard - never above the puzzle's own content
         $html = (string) $browser->getResponse()->getContent();
-        self::assertLessThan(strpos($html, 'id="puzzleInsights"'), strpos($html, 'class="puzzle-summary'));
+        self::assertGreaterThan(strpos($html, 'id="puzzleInsights"'), strpos($html, 'class="puzzle-summary'));
+        self::assertGreaterThan(strpos($html, 'custom-table'), strpos($html, 'class="puzzle-summary'));
+        self::assertStringContainsString('About this puzzle', $crawler->filter('h2.puzzle-summary-heading')->text());
     }
 
     public function testSummaryNeverTalksAboutMembersOnlyInsights(): void

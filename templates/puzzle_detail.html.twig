@@ -242,12 +242,6 @@
         <div class="alert-warning alert small my-1" data-nosnippet>{{ 'puzzle_waiting_for_approval'|trans }}</div>
     {% endif %}
 
-    {{ include('puzzle/_summary.html.twig', {
-        puzzle: puzzle,
-        summary: puzzle_summary,
-        is_image_hidden: is_image_hidden,
-    }) }}
-
     {{ include('puzzle/_difficulty_section.html.twig', {
         puzzle_difficulty: puzzle_difficulty,
         time_prediction: time_prediction,
@@ -285,5 +279,16 @@
             {% endif %}
         </div>
     {% endif %}
+
+    {# Facts about the puzzle for readers who scroll this far (and for search engines) - deliberately at the
+       bottom: the top of the page belongs to the puzzle and its leaderboard (Jan, 2026-09-30) #}
+    <div class="mt-5 pt-3 border-top">
+        <h2 class="puzzle-summary-heading h6 text-muted mb-2">{{ 'puzzle_detail.summary.heading'|trans }}</h2>
+        {{ include('puzzle/_summary.html.twig', {
+            puzzle: puzzle,
+            summary: puzzle_summary,
+            is_image_hidden: is_image_hidden,
+        }) }}
+    </div>
 
 {% endblock %}

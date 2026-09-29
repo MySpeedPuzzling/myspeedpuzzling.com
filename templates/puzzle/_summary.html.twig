@@ -106,7 +106,7 @@
     ]) %}
 {% endif %}
 
-<section class="puzzle-summary mt-3">
+<section class="puzzle-summary">
     {# Japanese runs sentences together, every other locale separates them with a space #}
-    <p class="fs-sm mb-0">{{ sentences|join(app.request.locale == 'ja' ? '' : ' ')|raw }}</p>
+    <p class="fs-sm text-muted mb-0">{{ sentences|join(app.request.locale == 'ja' ? '' : ' ')|raw }}</p>
 </section>

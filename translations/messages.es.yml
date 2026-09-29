@@ -585,6 +585,7 @@
     "description_with_times": "{1}%brand% %name% (%pieces% piezas%ean%): mediana en solitario %median%, mejor tiempo %fastest% de %count% resolución. Compara tu tiempo en MySpeedPuzzling.|]1,Inf[%brand% %name% (%pieces% piezas%ean%): mediana en solitario %median%, mejor tiempo %fastest% de %count% resoluciones. Compara tu tiempo en MySpeedPuzzling."
     "description_with_single_time": "%brand% %name% (%pieces% piezas%ean%): %fastest%, el mejor tiempo en solitario hasta ahora. Compara tu tiempo en MySpeedPuzzling."
   "summary":
+    "heading": "Sobre este puzzle"
     "intro": "%name% es un puzzle de %pieces% piezas de %brand%."
     "intro_with_codes": "%name% es un puzzle de %pieces% piezas de %brand% (%codes%)."
     "codes":

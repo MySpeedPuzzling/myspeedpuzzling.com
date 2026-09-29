@@ -9,7 +9,6 @@ that would otherwise be forgotten. Newest section on top.
 Shipped with #214. Design: [`features/list-difficulty-and-my-list-filter.md`](features/list-difficulty-and-my-list-filter.md).
 
 - [ ] Turbo-stream re-renders of list items (reserve, move, lend, ...) drop the difficulty icon, solve count and `data-difficulty-tier` until reload - pass `puzzle_insights` for the one puzzle in the stream callers if it ever matters
-- [ ] Translate `puzzle_search.list.*` into cs/de/es/fr/ja (English only for now)
 
 ## Social login hardening
 

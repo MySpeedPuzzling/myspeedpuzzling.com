@@ -4080,3 +4080,15 @@ multiscan:
             create_failed: "No se pudo añadir el puzzle. Inténtalo de nuevo."
             photo_required: "Primero haz una foto de la caja: cada puzzle nuevo necesita una."
             photo_invalid: "Este archivo no es una foto válida. Haz una nueva foto de la caja (JPG, PNG, HEIC o WebP, hasta 10 MB)."
+
+puzzle_search:
+    list:
+        placeholder: "Mi lista"
+        wishlist: "Lista de deseos"
+        unsolved: "Sin resolver"
+        solved: "Resueltos por mí"
+        group_collections: "Colecciones"
+        group_members: "Préstamos y venta/intercambio"
+        borrowed: "Tomados prestados"
+        lent: "Prestados"
+        sell_swap: "Venta / intercambio"

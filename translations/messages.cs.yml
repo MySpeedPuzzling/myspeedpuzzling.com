@@ -4078,3 +4078,15 @@ multiscan:
             create_failed: "Puzzle se nepodařilo přidat. Zkus to prosím znovu."
             photo_required: "Nejdřív vyfoť krabici – každé nové puzzle potřebuje fotku."
             photo_invalid: "Tenhle soubor jako fotka nejde použít. Vyfoť krabici znovu (JPG, PNG, HEIC nebo WebP, max. 10 MB)."
+
+puzzle_search:
+    list:
+        placeholder: "Můj seznam"
+        wishlist: "Seznam přání"
+        unsolved: "Nesložené"
+        solved: "Složené mnou"
+        group_collections: "Kolekce"
+        group_members: "Půjčování a prodej/výměna"
+        borrowed: "Vypůjčené"
+        lent: "Půjčené"
+        sell_swap: "Prodej / výměna"

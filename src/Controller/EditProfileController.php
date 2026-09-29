@@ -28,6 +28,7 @@ use SpeedPuzzling\Web\Query\GetOAuth2ClientRequests;
 use SpeedPuzzling\Web\Query\GetPlayerOAuth2Consents;
 use SpeedPuzzling\Web\Query\GetPlayerPersonalAccessTokens;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -41,6 +42,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class EditProfileController extends AbstractController
 {
+    public const string JUST_CONNECTED_FLASH = 'social_link_just_connected';
+
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -71,6 +74,12 @@ final class EditProfileController extends AbstractController
 
         if ($player === null) {
             return $this->redirectToRoute('my_profile');
+        }
+
+        $socialLinkResult = $request->query->get('social_link_result');
+
+        if (is_string($socialLinkResult)) {
+            return $this->socialLinkResultToFlash($socialLinkResult, $request->query->get('social_link_provider'));
         }
 
         $defaultData = EditProfileFormData::fromPlayerProfile($player);
@@ -212,5 +221,37 @@ final class EditProfileController extends AbstractController
             'connected_oauth_identities' => $this->getOauthIdentities->byUserId($user->userId),
             'blocked_users' => $this->getUserBlocks->forPlayer($player->playerId),
         ]);
+    }
+
+    /**
+     * The link flows end here with the outcome in the query: the Apple callback
+     * is a cross-site POST without session cookies, so it cannot flash (see
+     * SocialLoginCallbackController). This request carries the session, so the
+     * outcome becomes the site-wide flash at the top of the page, and the
+     * redirect to the clean URL keeps a reload from repeating it. The card far
+     * down the page marks the freshly connected provider's row via its own
+     * flash label, which base.html.twig never renders.
+     */
+    private function socialLinkResultToFlash(string $result, mixed $providerValue): Response
+    {
+        $provider = OauthProvider::tryFrom(is_string($providerValue) ? $providerValue : '');
+
+        match ($result) {
+            'connected' => $this->addFlash('success', $provider === null
+                ? $this->translator->trans('edit_profile.social.result_connected')
+                : $this->translator->trans('edit_profile.social.result_connected_provider', [
+                    '%provider%' => $provider->displayName(),
+                ])),
+            'already_linked' => $this->addFlash('warning', $this->translator->trans('edit_profile.social.result_already_linked')),
+            'cancelled' => $this->addFlash('warning', $this->translator->trans('edit_profile.social.result_cancelled')),
+            'failed' => $this->addFlash('danger', $this->translator->trans('edit_profile.social.result_failed')),
+            default => null,
+        };
+
+        if ($result === 'connected' && $provider !== null) {
+            $this->addFlash(self::JUST_CONNECTED_FLASH, $provider->value);
+        }
+
+        return $this->redirectToRoute('edit_profile');
     }
 }

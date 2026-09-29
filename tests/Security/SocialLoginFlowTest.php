@@ -433,10 +433,23 @@ final class SocialLoginFlowTest extends WebTestCase
         self::assertSame("different+{$suffix}@gmail.com", $identityRow['email_at_link']);
         self::assertNull($identityRow['last_used_at'], 'A settings link is not a sign-in');
 
-        // The edit-profile page renders the feedback and the disconnect form
-        $crawler = $browser->request('GET', $location);
+        // The edit-profile page turns the outcome into the site-wide flash on
+        // a clean URL (a reload must not repeat it) ...
+        $browser->request('GET', $location);
+        self::assertResponseRedirects();
+        self::assertStringNotContainsString('social_link_result', (string) $browser->getResponse()->headers->get('Location'));
+
+        $crawler = $browser->followRedirect();
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('Connected!', $crawler->text());
+        self::assertSelectorTextContains('main > .container .alert-success', 'Google is connected. You can now use it to sign in.');
+        // ... and the card marks the freshly connected row quietly, no alert box
+        self::assertAnySelectorTextContains('.card .text-success', 'Connected — you can now use it to sign in.');
+        self::assertSelectorNotExists('.card .alert');
+
+        // Once only: the next visit shows the row as usual
+        $crawler = $browser->request('GET', (string) $browser->getRequest()->getUri());
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString('you can now use it to sign in', $crawler->text());
 
         $form = $crawler->filter('form[action$="/account/social/google/disconnect"] button')->form();
         $browser->submit($form);
@@ -670,6 +683,12 @@ final class SocialLoginFlowTest extends WebTestCase
         $browser->followRedirect();
         self::assertResponseRedirects();
         self::assertStringContainsString('social_link_result=failed', (string) $browser->getResponse()->headers->get('Location'));
+
+        // The failure is the site-wide error flash at the top of the page
+        $browser->followRedirect();
+        self::assertResponseRedirects();
+        $browser->followRedirect();
+        self::assertSelectorTextContains('main > .container .alert-danger', 'Connecting failed.');
 
         self::assertSame(0, $this->identityCount($browser, "g-forged-{$suffix}"));
     }

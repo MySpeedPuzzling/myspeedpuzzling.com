@@ -970,6 +970,8 @@ edit_profile:
         no_password_hint: "Your account has no password — you sign in with a connected account. Add a password to also enable email + password sign-in."
         set_password_button: "Add a password"
         result_connected: "Connected! You can now use it to sign in."
+        result_connected_provider: "%provider% is connected. You can now use it to sign in."
+        just_connected: "Connected — you can now use it to sign in."
         result_already_linked: "That provider account is already connected to a MySpeedPuzzling account."
         result_cancelled: "Connection cancelled — nothing changed."
         result_failed: "Connecting failed. Please try again in a moment."

@@ -944,6 +944,8 @@
     "no_password_hint": "このアカウントにはパスワードが設定されておらず、接続済みアカウントでサインインしています。パスワードを追加すると、メールアドレス＋パスワードでのサインインも利用できるようになります。"
     "set_password_button": "パスワードを追加"
     "result_connected": "接続しました！これでサインインに使用できます。"
+    "result_connected_provider": "%provider%を接続しました。これでサインインに使用できます。"
+    "just_connected": "接続しました — これでサインインに使用できます。"
     "result_already_linked": "そのプロバイダーのアカウントは、すでにMySpeedPuzzlingアカウントに接続されています。"
     "result_cancelled": "接続をキャンセルしました — 変更はありません。"
     "result_failed": "接続できませんでした。しばらくしてからもう一度お試しください。"

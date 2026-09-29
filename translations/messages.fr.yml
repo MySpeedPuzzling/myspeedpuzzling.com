@@ -792,6 +792,8 @@
     "no_password_hint": "Votre compte n'a pas de mot de passe — vous vous connectez avec un compte associé. Ajoutez un mot de passe pour activer aussi la connexion par e-mail + mot de passe."
     "set_password_button": "Ajouter un mot de passe"
     "result_connected": "Associé ! Vous pouvez maintenant l'utiliser pour vous connecter."
+    "result_connected_provider": "%provider% est associé. Vous pouvez maintenant l'utiliser pour vous connecter."
+    "just_connected": "Associé — vous pouvez maintenant l'utiliser pour vous connecter."
     "result_already_linked": "Ce compte fournisseur est déjà associé à un compte MySpeedPuzzling."
     "result_cancelled": "Association annulée — rien n'a changé."
     "result_failed": "L'association a échoué. Veuillez réessayer dans un instant."

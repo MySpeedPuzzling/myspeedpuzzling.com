@@ -540,6 +540,8 @@
     "no_password_hint": "Tu cuenta no tiene contraseña: inicias sesión con una cuenta conectada. Añade una contraseña para habilitar también el inicio de sesión con correo electrónico + contraseña."
     "set_password_button": "Añadir una contraseña"
     "result_connected": "¡Conectado! Ya puedes usarlo para iniciar sesión."
+    "result_connected_provider": "%provider% conectado. Ya puedes usarlo para iniciar sesión."
+    "just_connected": "Conectado: ya puedes usarlo para iniciar sesión."
     "result_already_linked": "Esa cuenta del proveedor ya está conectada a una cuenta de MySpeedPuzzling."
     "result_cancelled": "Conexión cancelada: no ha cambiado nada."
     "result_failed": "No hemos podido conectarlo. Inténtalo de nuevo en un momento."

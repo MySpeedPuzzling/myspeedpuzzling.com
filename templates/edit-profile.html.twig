@@ -205,19 +205,11 @@
                     <h3 class="h5">{{ 'edit_profile.social.title'|trans }}</h3>
                     <p class="text-muted fs-sm mb-2">{{ 'edit_profile.social.description'|trans }}</p>
 
-                    {# Link-flow feedback arrives as query parameters: the Apple
-                       callback is a cross-site POST without session cookies, so
-                       flashes are not an option there (see SocialLoginCallbackController) #}
-                    {% set social_link_result = app.request.query.get('social_link_result') %}
-                    {% if social_link_result == 'connected' %}
-                        <div class="alert alert-success py-2 fs-sm">{{ 'edit_profile.social.result_connected'|trans }}</div>
-                    {% elseif social_link_result == 'already_linked' %}
-                        <div class="alert alert-warning py-2 fs-sm">{{ 'edit_profile.social.result_already_linked'|trans }}</div>
-                    {% elseif social_link_result == 'cancelled' %}
-                        <div class="alert alert-warning py-2 fs-sm">{{ 'edit_profile.social.result_cancelled'|trans }}</div>
-                    {% elseif social_link_result == 'failed' %}
-                        <div class="alert alert-danger py-2 fs-sm">{{ 'edit_profile.social.result_failed'|trans }}</div>
-                    {% endif %}
+                    {# Link-flow outcomes are the site-wide flash at the top of the
+                       page (EditProfileController turns the query into flashes);
+                       here only the freshly connected provider's row gets a quiet
+                       confirmation, once #}
+                    {% set just_connected_providers = app.flashes(constant('SpeedPuzzling\\Web\\Controller\\EditProfileController::JUST_CONNECTED_FLASH')) %}
 
                     {% for identity in connected_oauth_identities %}
                         <div class="card border mb-2">
@@ -234,6 +226,11 @@
                                             {{ 'edit_profile.last_used_at'|trans }}: {{ identity.lastUsedAt|date('j. n. Y') }}
                                         {% endif %}
                                     </div>
+                                    {% if identity.provider.value in just_connected_providers %}
+                                        <p class="fs-sm mb-0 mt-1 text-success">
+                                            <i class="bi bi-check-circle me-1"></i>{{ 'edit_profile.social.just_connected'|trans }}
+                                        </p>
+                                    {% endif %}
                                 </div>
                                 <form method="post" action="{{ path('social_unlink', {provider: identity.provider.value}) }}">
                                     <input type="hidden" name="_token" value="{{ csrf_token('social_unlink_' ~ identity.provider.value) }}">

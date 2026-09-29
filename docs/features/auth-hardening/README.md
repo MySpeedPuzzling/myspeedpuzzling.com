@@ -191,7 +191,7 @@ Deliberately not done (see `docs/TODO.md`): Gmail dot/plus normalisation of prov
 
 ### UI
 
-- Buttons on `/login` and `/register` above/below the form, brand-guideline-compliant (each provider mandates logo/wording — "Continue with Google/Apple/Facebook"). Bootstrap-styled, no image CDNs (self-hosted SVGs in `assets/`).
+- Buttons on `/login` and `/register` above/below the form **and** the connect buttons in settings come from ONE partial, `templates/_social_provider_button.html.twig`, styled by `assets/styles/components/_social-signin.scss`: each follows its **provider's** branding, not the site's (Google light theme + four-colour G; Apple black with Apple's own "Left-aligned" logo artwork from Apple Design Resources, as tall as the button; Meta round logo on #1877F2). Wording "Continue with Google/Apple/Facebook" everywhere, settings included — Apple permits only Sign in / Sign up / Continue with Apple. Logos inlined, no image CDNs, no font downloads. Pinned by `tests/Security/SocialProviderButtonsTest.php`. Known deviation: Apple wants the title at 43 % of the button height; we keep the site's button text size so all three buttons match.
 - **"Connected sign-in methods"** settings section (the settled name): list linked providers, link/unlink, **and set-password** for social-only accounts (opens the email+password door; the password-reset flow works too since the email is verified).
 - Translations: EN only.
 

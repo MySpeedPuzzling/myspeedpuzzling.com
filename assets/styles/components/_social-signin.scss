@@ -1,0 +1,142 @@
+//
+// Social sign-in buttons (Google, Apple, Facebook)
+// --------------------------------------------------
+//
+// Each button follows its PROVIDER's branding, not the site's button styles,
+// so people recognise it instantly. Markup lives in ONE partial,
+// templates/_social_provider_button.html.twig, used by /login, /register and
+// the "Connected sign-in methods" card - keep it that way so they can't drift.
+//
+// Sizing stays Bootstrap's .btn (and .btn-sm), so all three are exactly as
+// tall as each other and as the site's own buttons. No font is downloaded
+// for these (docs/performance-optimizations.md): brand fonts are used only
+// when the device already has them.
+
+%social-signin-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}
+
+
+// Google - light theme of the Sign in with Google branding guidelines
+// (https://developers.google.com/identity/branding-guidelines, checked
+// 2026-09-29): fill #FFFFFF, 1px #747775 stroke inside, text #1F1F1F medium,
+// the standard four-colour "G" unmodified on white, 10px between logo and
+// text. Hover and pressed follow Google's own button: a light grey state layer
+// (#303030 at 8% / 12% over white) plus a soft shadow - never a dark fill.
+// Google asks for Google Sans Medium: used (or Roboto) when installed.
+
+.btn-google-signin {
+  @extend %social-signin-base;
+  --#{$prefix}btn-color: #1f1f1f;
+  --#{$prefix}btn-bg: #fff;
+  --#{$prefix}btn-border-color: #747775;
+  --#{$prefix}btn-hover-color: #1f1f1f;
+  --#{$prefix}btn-hover-bg: #eee;
+  --#{$prefix}btn-hover-border-color: #747775;
+  --#{$prefix}btn-active-color: #1f1f1f;
+  --#{$prefix}btn-active-bg: #e6e6e6;
+  --#{$prefix}btn-active-border-color: #747775;
+  --#{$prefix}btn-disabled-color: rgba(#1f1f1f, .38);
+  --#{$prefix}btn-disabled-bg: rgba(#fff, .61);
+  --#{$prefix}btn-disabled-border-color: rgba(#1f1f1f, .12);
+  --#{$prefix}btn-focus-shadow-rgb: 116, 119, 117;
+  font-family: 'Google Sans', Roboto, $font-family-sans-serif;
+  letter-spacing: .25px;
+
+  &:hover,
+  &:focus-visible {
+    box-shadow: 0 1px 2px 0 rgba(60, 64, 67, .3), 0 1px 3px 1px rgba(60, 64, 67, .15);
+  }
+
+  &:active {
+    box-shadow: none;
+  }
+}
+
+.btn-google-signin-logo {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+
+  .btn-sm & {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+  }
+}
+
+
+// Apple - black custom button per Apple's Human Interface Guidelines
+// (Sign in with Apple, checked 2026-09-29): logo and title both white on a
+// black button, only Apple's own logo artwork (Design Resources, "Left
+// aligned - White - Medium"), its height matching the button height, never
+// cropped and no extra vertical padding; system font preferred; title
+// "Continue with Apple". Background stays black on hover - only a shadow.
+
+.btn-apple-signin {
+  @extend %social-signin-base;
+  --#{$prefix}btn-color: #fff;
+  --#{$prefix}btn-bg: #000;
+  --#{$prefix}btn-border-color: #000;
+  --#{$prefix}btn-hover-color: #fff;
+  --#{$prefix}btn-hover-bg: #000;
+  --#{$prefix}btn-hover-border-color: #000;
+  --#{$prefix}btn-active-color: #fff;
+  --#{$prefix}btn-active-bg: #000;
+  --#{$prefix}btn-active-border-color: #000;
+  --#{$prefix}btn-focus-shadow-rgb: 0, 0, 0;
+  // The logo file carries its own vertical padding and must be as tall as the
+  // button, so the button drops its vertical padding and fixes the height a
+  // padded .btn of the same size would have.
+  height: calc(var(--#{$prefix}btn-padding-y) * 2 + var(--#{$prefix}btn-font-size) * var(--#{$prefix}btn-line-height) + var(--#{$prefix}btn-border-width) * 2);
+  padding-top: 0;
+  padding-bottom: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, $font-family-sans-serif;
+
+  &:hover,
+  &:focus-visible {
+    box-shadow: 0 .5rem 1.125rem -.5rem rgba(#000, .6);
+  }
+}
+
+.btn-apple-signin-logo {
+  flex-shrink: 0;
+  align-self: stretch;
+  height: 100%;
+  width: auto;
+}
+
+
+// Facebook - Meta brand rules: the round logo (never the bare "f"), white
+// on Facebook Blue #1877F2, at least 16px; "Continue with Facebook".
+
+.btn-facebook-signin {
+  @extend %social-signin-base;
+  --#{$prefix}btn-color: #fff;
+  --#{$prefix}btn-bg: #1877f2;
+  --#{$prefix}btn-border-color: #1877f2;
+  --#{$prefix}btn-hover-color: #fff;
+  --#{$prefix}btn-hover-bg: #166fe5;
+  --#{$prefix}btn-hover-border-color: #166fe5;
+  --#{$prefix}btn-active-color: #fff;
+  --#{$prefix}btn-active-bg: #1464d0;
+  --#{$prefix}btn-active-border-color: #1464d0;
+  --#{$prefix}btn-focus-shadow-rgb: 24, 119, 242;
+}
+
+.btn-facebook-signin-logo {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+
+  .btn-sm & {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+  }
+}

@@ -249,22 +249,14 @@
                        duplicate MySpeedPuzzling account #}
                     {% set connected_providers = connected_oauth_identities|map(identity => identity.provider.value) %}
                     <div class="d-flex gap-2 flex-wrap mt-2">
-                        {% if social_login_google_enabled and 'google' not in connected_providers %}
-                            {# Google's branding rules forbid a monochrome G - its own light button #}
-                            <a class="btn btn-google-signin btn-sm" href="{{ path('social_link_start', {provider: 'google'}) }}" data-turbo="false">
-                                {{ include('_google_g_logo.html.twig') }}{{ 'edit_profile.social.connect'|trans({'%provider%': 'Google'}) }}
-                            </a>
-                        {% endif %}
-                        {% if social_login_apple_enabled and 'apple' not in connected_providers %}
-                            <a class="btn btn-outline-primary btn-sm" href="{{ path('social_link_start', {provider: 'apple'}) }}" data-turbo="false">
-                                <i class="bi bi-apple me-1"></i>{{ 'edit_profile.social.connect'|trans({'%provider%': 'Apple'}) }}
-                            </a>
-                        {% endif %}
-                        {% if social_login_facebook_enabled and 'facebook' not in connected_providers %}
-                            <a class="btn btn-outline-primary btn-sm" href="{{ path('social_link_start', {provider: 'facebook'}) }}" data-turbo="false">
-                                <i class="bi bi-facebook me-1"></i>{{ 'edit_profile.social.connect'|trans({'%provider%': 'Facebook'}) }}
-                            </a>
-                        {% endif %}
+                        {# Same provider-branded buttons as on /login (one partial);
+                           the card's title says what they do here #}
+                        {% set social_provider_enabled = {google: social_login_google_enabled, apple: social_login_apple_enabled, facebook: social_login_facebook_enabled} %}
+                        {% for provider, enabled in social_provider_enabled %}
+                            {% if enabled and provider not in connected_providers %}
+                                {{ include('_social_provider_button.html.twig', {provider: provider, href: path('social_link_start', {provider: provider}), size: 'sm'}) }}
+                            {% endif %}
+                        {% endfor %}
                     </div>
                     {% if social_login_facebook_enabled and 'facebook' not in connected_providers %}
                         <div class="text-muted fs-xs mt-1">Facebook: {{ 'auth.social.facebook_hint'|trans }}</div>

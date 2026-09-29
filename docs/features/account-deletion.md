@@ -85,8 +85,79 @@ Mirrors `ResetPasswordRequest` (split token, D8/D18 rationale in
 | `SendAccountDeletionLink(userId, token, fallbackLocale)` | `SendAccountDeletionLinkHandler` | mails the link (+ export link) in the player's locale; separate handler so the row is committed before any mail goes out |
 | `ConfirmAccountDeletion(token)` | `ConfirmAccountDeletionHandler` | `ValidateAccountDeletionToken` → dispatches the existing `DeletePlayer` (nested, same transaction); an account without a player row is removed directly |
 
-`DeletePlayer` / `DeletePlayerHandler` are unchanged and remain the single place
-that knows how to anonymise/remove a player's data.
+`DeletePlayer` / `DeletePlayerHandler` remain the single place that knows how to
+anonymise/remove a player's data (files included, see below).
+
+## Files in object storage (#213)
+
+The privacy policy promises that nothing but Stripe's payment records survives an
+account deletion, so the player's files go too.
+
+**How:** `DeletePlayerHandler` reads the paths while the rows still exist (the
+avatar, the finished-puzzle photos of the solving times it removes) and dispatches
+`DeletePlayerStoredFiles(playerId, paths)` with a `DispatchAfterCurrentBusStamp`.
+The stamp holds the message until the *outermost* dispatch has finished - which
+includes the `doctrine_transaction` commit, also when `DeletePlayer` runs nested in
+`ConfirmAccountDeletion` - and drops it when anything rolls back, so a failed
+deletion never loses a file (`DeletePlayerStoredFilesHandlerTest::testRolledBackDeletionRequestsNothing`,
+via the test-only `Tests\TestDouble\DeletePlayerThenFail`). The message is routed
+`async`, so object storage is never in the way of the deletion itself.
+
+`DeletePlayerStoredFilesHandler`:
+
+- does nothing (warning) while the player row still exists - a second guard against
+  a message that did not come from a committed deletion;
+- deletes the listed paths **plus every object under `players/<id>/`** that no row
+  references (`Query\GetStoredFileReferences` checks every storage-key column):
+  result share images (`players/<id>/results/…`, a cache regenerated on demand) and
+  finished photos replaced by an earlier edit;
+- goes through `FailoverS3Adapter`, so a file still waiting in the upload spool
+  (S3 was down when it was uploaded) is dropped from the spool too and the drain
+  cron never uploads it later; a delete S3 refuses is queued in the spool for retry;
+- never throws: any failure is logged at warning with the exception; a missing
+  object counts as deleted.
+
+**Deliberately kept:**
+
+| What | Why |
+|---|---|
+| Photos of pair/team times handed over to another registered member (`players/<deleted id>/…`) | The result lives on for the other puzzlers; the photo belongs to the shared time. Still referenced, so the sweep skips it. |
+| Puzzle box photos the player uploaded when adding a puzzle (`puzzle.image`) | Catalogue data, like the puzzle itself (which stays, with `added_by_user_id` nulled). |
+| Change-request images (`proposal-…`) | Moderation/catalogue history, not personal data; an approved one is the puzzle's image. |
+| Competition/series logos | Belong to the event, which stays. |
+
+Nothing else is stored per player: sell/swap and marketplace listings, chat
+messages and conversations have no uploads.
+
+**imgproxy / images-cache:** only the original is deleted. Resized variants the
+`images-cache` nginx already holds stay on its disk until they fall out
+(`inactive=30d`, `max_size` in lily.srv's `nginx-imgproxy.conf`) - they are no longer
+linked from anywhere once the player row is gone, and browsers/CDN keep their
+`immutable` copies anyway. No purge needed.
+
+**Known gap (pre-existing, see `docs/TODO.md` "Image storage"):** `EditProfileHandler`
+never deletes the previous avatar when a new one is uploaded, so replaced avatars
+pile up. The cleanup command below removes them; the handler fix belongs to the
+general "delete the old key when an image is replaced" item.
+
+### One-off cleanup of orphaned avatars
+
+`myspeedpuzzling:storage:delete-orphaned-avatars [--delete]` - lists every object
+under `avatars/` that no row references (`Services\Storage\OrphanedAvatarFinder`),
+skipping objects younger than 24 h (`EditProfileHandler` uploads before its
+transaction commits). **Dry run by default**; `--delete` dispatches
+`DeleteOrphanedAvatar` per path, whose handler re-checks the reference right before
+deleting. Safe to re-run.
+
+On production (as root on lily, never from a laptop):
+
+```bash
+cd /srv/myspeedpuzzling
+# 1. dry run - read the list, spot-check a few keys
+docker compose run --rm --no-deps messenger-consumer bin/console myspeedpuzzling:storage:delete-orphaned-avatars | tee /root/orphaned-avatars-$(date +%F).txt
+# 2. delete
+docker compose run --rm --no-deps messenger-consumer bin/console myspeedpuzzling:storage:delete-orphaned-avatars --delete
+```
 
 ## Console command
 
@@ -123,4 +194,5 @@ given (non-interactive runs need `--force`).
 - Templates: `edit-profile.html.twig` (danger zone), `account_deletion_confirm.html.twig`, `account_deletion_dead_link.html.twig`, `account_deleted.html.twig`, `emails/account_deletion.html.twig`
 - Translations: `messages.*.yml` (`edit_profile.danger_zone.*`, `account_deletion.*`, `account_activity.event.account_deletion_requested`), `emails.*.yml` (`account_deletion.*`) — all six locales
 - Config: `rate_limiter.php` (`account_deletion_request`)
+- Stored files: `Message/DeletePlayerStoredFiles` + handler, `Message/DeleteOrphanedAvatar` + handler, `Query/GetStoredFileReferences`, `Services/Storage/OrphanedAvatarFinder`, `ConsoleCommands/DeleteOrphanedAvatarsConsoleCommand`; tests `tests/MessageHandler/DeletePlayerStoredFilesHandlerTest`, `tests/Services/Storage/OrphanedAvatarFinderTest`
 - Tests: `tests/Value/AccountDeletionTokenTest`, `tests/MessageHandler/{Request,Send…Link,Confirm}AccountDeletion…HandlerTest`, `tests/Controller/{Request,Confirm}AccountDeletionControllerTest`, `tests/Services/ResolvePlayerByIdentifierTest`, `tests/Query/GetAccountDeletionSummaryTest`

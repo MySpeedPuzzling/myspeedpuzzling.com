@@ -32,7 +32,8 @@ raw scan on the box in `/root/bucket-scan.csv` + `/root/db-image-refs.tsv`.
       pruned, regenerated on demand by `GetResultImage` - a lifecycle rule or a prune cron (e.g. older than 30 days)
 - [ ] Handlers never delete the previous object when a puzzle image / finished photo / logo is replaced or the time is
       deleted - 6,862 orphans ≈ 16 GB today (`3-orphaned-objects-not-referenced.csv`); delete the old key in the handler
-- [ ] One-off: delete the existing orphans after a spot check
+- [ ] One-off: delete the existing orphans after a spot check (avatars: `myspeedpuzzling:storage:delete-orphaned-avatars`,
+      #213 - see [`features/account-deletion.md`](features/account-deletion.md); a deleted account's files now go automatically)
 - [ ] Optional: downscale the 84 pre-`ImageOptimizer` originals above 30 MP to 2,000 px like today's uploads
       (`2-oversized-originals-over-30mp.csv`); not needed for serving since the limit covers them
 

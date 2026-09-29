@@ -66,6 +66,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetRoundTeams' => self::ORGANISER,
         'GetSoldSwappedHistory' => self::BILATERAL,
         'GetStatistics' => self::AGGREGATE,
+        'GetStoredFileReferences' => 'Storage housekeeping - reads which file keys rows point at, never who.',
         'GetSubscribedPlayers' => self::BACKGROUND,
         'GetTableLayoutForRound' => self::ORGANISER,
         'GetUserBlocks' => 'The blocklist itself.',

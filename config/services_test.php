@@ -25,6 +25,9 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(\SpeedPuzzling\Web\Services\CompetitionParticipantExporter::class)->public();
     $services->set(\SpeedPuzzling\Web\Query\GetCompetitionParticipantsForManagement::class)->public();
 
+    // Rolls back a nested DeletePlayer - proves its post-commit work is dropped
+    $services->set(\SpeedPuzzling\Web\Tests\TestDouble\DeletePlayerThenFailHandler::class);
+
     // Fails a test whose form POST answers 200 - Turbo Drive would discard it in the browser
     $services->set(\SpeedPuzzling\Web\Tests\TestDouble\SilentFormSubmissionGuard::class)->tag('kernel.event_subscriber');
 

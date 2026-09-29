@@ -35,6 +35,7 @@ use SpeedPuzzling\Web\Entity\UserBlock;
 use SpeedPuzzling\Web\Entity\WishListItem;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\DeletePlayer;
+use SpeedPuzzling\Web\Message\DeletePlayerStoredFiles;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
 use SpeedPuzzling\Web\Repository\NewsletterSubscriberRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -47,6 +48,7 @@ use Stripe\Exception\ApiErrorException;
 use Stripe\StripeClient;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 #[AsMessageHandler]
 final class DeletePlayerHandler
@@ -72,10 +74,12 @@ final class DeletePlayerHandler
         $player = $this->playerRepository->get($message->playerId);
         $playerId = $player->id->toString();
         $playerName = $player->name ?? $player->code;
+        // Read before anything is removed - the rows holding the paths go with the player
+        $storedFiles = $player->avatar !== null ? [$player->avatar] : [];
 
         $this->cancelStripeSubscription($playerId);
 
-        $this->handlePuzzleSolvingTimes($player, $playerName);
+        $storedFiles = [...$storedFiles, ...$this->handlePuzzleSolvingTimes($player, $playerName)];
         // Same anonymisation for the pairs/teams the times belong to - the member row would block the delete otherwise
         $this->puzzlingTeamMemberConversion->playerToGuest($playerId, $playerName);
         $this->scrubFavoritePlayers($playerId);
@@ -106,6 +110,14 @@ final class DeletePlayerHandler
         $this->deleteUserAccount($player);
         $this->entityManager->remove($player);
 
+        // Files go only once the deletion has committed (the stamp holds the message until the
+        // outermost dispatch - ConfirmAccountDeletion included - has finished, and drops it on a
+        // rollback); async, so object storage is never in the way of the deletion itself
+        $this->messageBus->dispatch(
+            new DeletePlayerStoredFiles($playerId, $storedFiles),
+            [new DispatchAfterCurrentBusStamp()],
+        );
+
         $this->logger->info('Player deleted via GDPR request', [
             'player_id' => $playerId,
         ]);
@@ -131,21 +143,24 @@ final class DeletePlayerHandler
         }
     }
 
-    private function handlePuzzleSolvingTimes(Player $player, string $playerName): void
+    /**
+     * @return list<string> photos of the removed times - they go with the times
+     */
+    private function handlePuzzleSolvingTimes(Player $player, string $playerName): array
     {
         $playerId = $player->id->toString();
+        $removedPhotos = [];
 
         $ownedTimes = $this->entityManager->getRepository(PuzzleSolvingTime::class)->findBy(['player' => $player]);
 
         foreach ($ownedTimes as $time) {
-            if ($time->team === null) {
-                $this->entityManager->remove($time);
-                continue;
-            }
+            $newOwner = $time->team === null ? null : $this->findNewOwner($time->team, $playerId);
 
-            $newOwner = $this->findNewOwner($time->team, $playerId);
+            if ($time->team === null || $newOwner === null) {
+                if ($time->finishedPuzzlePhoto !== null) {
+                    $removedPhotos[] = $time->finishedPuzzlePhoto;
+                }
 
-            if ($newOwner === null) {
                 $this->entityManager->remove($time);
                 continue;
             }
@@ -164,6 +179,8 @@ final class DeletePlayerHandler
             $newPuzzlers = $this->anonymizePuzzlerInGroup($time->team, $playerId, $playerName);
             $time->replaceTeam(new PuzzlersGroup($time->team->teamId, $newPuzzlers));
         }
+
+        return $removedPhotos;
     }
 
     /**

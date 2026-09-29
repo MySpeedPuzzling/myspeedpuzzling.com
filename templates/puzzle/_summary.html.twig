@@ -1,0 +1,112 @@
+{#
+    Summary paragraph of a puzzle page (docs/features/seo/implementation-plan-2026-10.md, WS-A): unique, true text
+    for search snippets and AI overviews, built from public data only. Never Puzzle Insights - no difficulty, tier,
+    percentile or "harder/easier than" wording, those are the members' exclusive.
+
+    Every sentence is collected as HTML and the paragraph is printed raw: a sentence without markup is escaped
+    whole, a sentence with links gets each user-provided value escaped before it goes in.
+
+    Expects: puzzle (PuzzleOverview), summary (PuzzleSummary), is_image_hidden (EAN and product number stay out
+    while the image is embargoed, as the EAN in the header).
+#}
+{% set brand_html = puzzle.manufacturerSlug is not null
+    ? '<a href="' ~ path('brand_puzzles', {slug: puzzle.manufacturerSlug})|e ~ '">' ~ puzzle.manufacturerName|e ~ '</a>'
+    : puzzle.manufacturerName|e
+%}
+
+{# A puzzle may hold several codes, comma-separated (one per edition or region) #}
+{% set summary_ean = (puzzle.puzzleEan and not is_image_hidden)
+    ? puzzle.puzzleEan|split(',')|map(code => code|trim)|filter(code => code is not same as(''))|join(' / ')
+    : ''
+%}
+{% set summary_product_number = (puzzle.puzzleIdentificationNumber and not is_image_hidden)
+    ? puzzle.puzzleIdentificationNumber|split(',')|map(code => code|trim)|filter(code => code is not same as(''))|join(' / ')
+    : ''
+%}
+{% if summary_ean and summary_product_number %}
+    {% set summary_codes = 'puzzle_detail.summary.codes.both'|trans({'%ean%': summary_ean, '%code%': summary_product_number}) %}
+{% elseif summary_ean %}
+    {% set summary_codes = 'puzzle_detail.summary.codes.ean'|trans({'%ean%': summary_ean}) %}
+{% elseif summary_product_number %}
+    {% set summary_codes = 'puzzle_detail.summary.codes.product_number'|trans({'%code%': summary_product_number}) %}
+{% else %}
+    {% set summary_codes = '' %}
+{% endif %}
+
+{% set summary_intro_parameters = {
+    '%name%': puzzle.puzzleName|e,
+    '%pieces%': puzzle.piecesCount,
+    '%brand%': brand_html,
+} %}
+{% set sentences = [summary_codes
+    ? 'puzzle_detail.summary.intro_with_codes'|trans(summary_intro_parameters|merge({'%codes%': summary_codes|e}))
+    : 'puzzle_detail.summary.intro'|trans(summary_intro_parameters)
+] %}
+
+{% if puzzle.puzzleAlternativeName and puzzle.puzzleAlternativeName != puzzle.puzzleName %}
+    {% set sentences = sentences|merge([
+        'puzzle_detail.summary.alternative_name'|trans({'%alternative_name%': puzzle.puzzleAlternativeName})|e,
+    ]) %}
+{% endif %}
+
+{% if summary.hasSingleSoloTime %}
+    {% set sentences = sentences|merge([
+        'puzzle_detail.summary.solo_single_time'|trans({
+            '%count%': summary.soloSolvesCount,
+            '%fastest%': summary.fastestTimeSolo|compactTime,
+        })|e,
+    ]) %}
+{% elseif summary.hasSoloTimes %}
+    {% set sentences = sentences|merge([
+        'puzzle_detail.summary.solo'|trans({
+            '%count%': summary.soloSolvesCount,
+            '%median%': summary.medianTimeSolo|compactTime,
+            '%fastest%': summary.fastestTimeSolo|compactTime,
+        })|e,
+    ]) %}
+{% endif %}
+
+{% if summary.hasDuoTimes %}
+    {% set sentences = sentences|merge([
+        'puzzle_detail.summary.duo'|trans({
+            '%count%': summary.duoSolvesCount,
+            '%fastest%': summary.fastestTimeDuo|compactTime,
+        })|e,
+    ]) %}
+{% endif %}
+
+{% if summary.hasTeamTimes %}
+    {% set sentences = sentences|merge([
+        'puzzle_detail.summary.team'|trans({
+            '%count%': summary.teamSolvesCount,
+            '%fastest%': summary.fastestTimeTeam|compactTime,
+        })|e,
+    ]) %}
+{% endif %}
+
+{% if summary.usedAt is not empty %}
+    {% set used_at_links = summary.usedAt|map(competition => competition.routeName is not null
+        ? '<a href="' ~ path(competition.routeName, competition.routeParameters)|e ~ '">' ~ competition.displayName|e ~ '</a>'
+        : competition.displayName|e
+    ) %}
+    {% set sentences = sentences|merge([
+        'puzzle_detail.summary.used_at'|trans({
+            '%count%': summary.usedAt|length,
+            '%competitions%': used_at_links|join('puzzle_detail.summary.list_separator'|trans, 'puzzle_detail.summary.list_last_separator'|trans),
+        }),
+    ]) %}
+{% endif %}
+
+{% if not summary.hasSoloTimes %}
+    {# The add page is robots-blocked, the translated link carries rel="nofollow" #}
+    {% set sentences = sentences|merge([
+        (summary.hasGroupTimes ? 'puzzle_detail.summary.no_solo_times' : 'puzzle_detail.summary.no_times')|trans({
+            '%add_url%': path('puzzle_add', {puzzleId: puzzle.puzzleId})|e,
+        }),
+    ]) %}
+{% endif %}
+
+<section class="puzzle-summary mt-3">
+    {# Japanese runs sentences together, every other locale separates them with a space #}
+    <p class="fs-sm mb-0">{{ sentences|join(app.request.locale == 'ja' ? '' : ' ')|raw }}</p>
+</section>

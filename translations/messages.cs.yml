@@ -849,9 +849,29 @@
     "failed": "Potvrzovací e-mail se nepodařilo odeslat. Zkuste to prosím za chvíli znovu."
 "puzzle_detail":
   "meta":
-    "title": "%brand% %name% – %pieces% dílků"
-    "description": "Skutečné časy skládání %brand% %name% (%pieces% dílků): podívej se na nejrychlejší a průměrné časy puzzlerů z celého světa a zaznamenej si vlastní."
-    "description_with_times": "%brand% %name%, %pieces% dílků — nejrychlejší čas %fastest%, průměr %average% z %count% složení na MySpeedPuzzling."
+    "title": "%brand% %name% – puzzle %pieces% dílků"
+    "ean": ", EAN %ean%"
+    "description": "%brand% %name% – puzzle %pieces% dílků%ean%. Zatím žádné časy skládání – zapiš ten svůj a buď první na MySpeedPuzzling."
+    "description_no_solo_times": "%brand% %name% – puzzle %pieces% dílků%ean%. Zatím žádné sólo časy – zapiš ten svůj a buď první na MySpeedPuzzling."
+    "description_with_times": "%brand% %name% (%pieces% dílků%ean%): medián sólo času %median%, nejrychlejší %fastest% z %count% složení. Porovnej svůj čas na MySpeedPuzzling."
+    "description_with_single_time": "%brand% %name% (%pieces% dílků%ean%): zatím nejrychlejší sólo čas %fastest%. Porovnej svůj čas na MySpeedPuzzling."
+  "summary":
+    "intro": "%name% je puzzle od značky %brand% s %pieces% dílky."
+    "intro_with_codes": "%name% je puzzle od značky %brand% s %pieces% dílky (%codes%)."
+    "codes":
+      "ean": "EAN %ean%"
+      "product_number": "katalogové číslo %code%"
+      "both": "EAN %ean%, katalogové číslo %code%"
+    "alternative_name": "Známé také jako %alternative_name%."
+    "solo": "{1}Zaznamenáno %count% sólo složení: medián %median%, nejrychlejší %fastest%.|[2,4]Zaznamenána %count% sólo složení: medián %median%, nejrychlejší %fastest%.|[5,Inf[Zaznamenáno %count% sólo složení: medián %median%, nejrychlejší %fastest%."
+    "solo_single_time": "{1}Zatím zaznamenáno jedno sólo složení: %fastest%.|[2,4]Zatím zaznamenána %count% sólo složení, nejrychlejší za %fastest%.|[5,Inf[Zatím zaznamenáno %count% sólo složení, nejrychlejší za %fastest%."
+    "duo": "{1}Dvojice: jedno složení (%fastest%).|[2,Inf[Dvojice: %count% složení (nejrychlejší %fastest%)."
+    "team": "{1}Týmy: jedno složení (%fastest%).|[2,Inf[Týmy: %count% složení (nejrychlejší %fastest%)."
+    "used_at": "{1}Použito na soutěži %competitions%.|[2,Inf[Použito na soutěžích %competitions%."
+    "list_separator": ", "
+    "list_last_separator": " a "
+    "no_times": "Zatím žádné časy skládání – <a href=\"%add_url%\" rel=\"nofollow\">zapiš ten svůj</a> a buď první v žebříčku."
+    "no_solo_times": "Zatím žádné sólo časy – <a href=\"%add_url%\" rel=\"nofollow\">zapiš ten svůj</a> a buď první v sólo žebříčku."
   "breadcrumb":
     "database": "Databáze puzzle"
   "related":

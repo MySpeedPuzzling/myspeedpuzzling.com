@@ -18,6 +18,10 @@ readonly final class GetTags
     }
 
     /**
+     * With the publicly visible competition each tag belongs to, so the puzzle page can link a tag badge to its
+     * event instead of a filter URL. A tag of several competitions links the latest one; a competition wins
+     * over a series holding the same tag.
+     *
      * @throws PuzzleNotFound
      * @return array<PuzzleTag>
      */
@@ -27,15 +31,40 @@ readonly final class GetTags
             throw new PuzzleNotFound();
         }
 
+        $visibleCompetition = IsCompetitionPubliclyVisible::SQL_CONDITION;
+
         $query = <<<SQL
 SELECT
   tag.id AS tag_id,
-  tag.name
-FROM tag
-LEFT JOIN tag_puzzle ON tag.id = tag_puzzle.tag_id
+  tag.name,
+  linked.name AS competition_name,
+  linked.slug AS competition_slug,
+  linked.series_name AS competition_series_name,
+  linked.series_slug AS competition_series_slug,
+  linked.is_series AS competition_is_series
+FROM tag_puzzle
+INNER JOIN tag ON tag.id = tag_puzzle.tag_id
+LEFT JOIN LATERAL (
+    SELECT candidate.name, candidate.slug, candidate.series_name, candidate.series_slug, candidate.is_series
+    FROM (
+        SELECT c.name, c.slug, cs.name AS series_name, cs.slug AS series_slug, false AS is_series, c.date_from
+        FROM competition c
+        LEFT JOIN competition_series cs ON cs.id = c.series_id
+        WHERE c.tag_id = tag.id
+            AND {$visibleCompetition}
+        UNION ALL
+        SELECT cs.name, cs.slug, NULL, NULL, true, NULL
+        FROM competition_series cs
+        WHERE cs.tag_id = tag.id
+            AND cs.approved_at IS NOT NULL
+            AND cs.rejected_at IS NULL
+    ) candidate
+    ORDER BY candidate.is_series, candidate.date_from DESC NULLS LAST, candidate.name
+    LIMIT 1
+) linked ON true
 WHERE tag_puzzle.puzzle_id = :puzzleId
+ORDER BY tag.name
 SQL;
-
 
         $data = $this->database
             ->executeQuery($query, [
@@ -48,6 +77,11 @@ SQL;
              * @var array{
              *     tag_id: string,
              *     name: string,
+             *     competition_name: null|string,
+             *     competition_slug: null|string,
+             *     competition_series_name: null|string,
+             *     competition_series_slug: null|string,
+             *     competition_is_series: null|bool,
              * } $row
              */
 

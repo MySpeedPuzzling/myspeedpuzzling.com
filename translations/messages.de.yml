@@ -829,9 +829,29 @@
     "failed": "Wir konnten die Bestätigungs-E-Mail nicht senden. Bitte versuchen Sie es gleich noch einmal."
 "puzzle_detail":
   "meta":
-    "title": "%brand% %name% – %pieces% Teile"
-    "description": "Echte Legezeiten für %brand% %name% (%pieces% Teile): Sehen Sie die schnellsten und durchschnittlichen Zeiten von Speed Puzzlern weltweit und erfassen Sie Ihre eigene."
-    "description_with_times": "%brand% %name%, %pieces% Teile — schnellste Zeit %fastest%, Durchschnitt %average% aus %count% Ergebnissen auf MySpeedPuzzling."
+    "title": "%brand% %name% – %pieces% Teile Puzzle"
+    "ean": ", EAN %ean%"
+    "description": "%brand% %name% – %pieces%-teiliges Puzzle%ean%. Noch keine Legezeiten – erfassen Sie jetzt die erste auf MySpeedPuzzling."
+    "description_no_solo_times": "%brand% %name% – %pieces%-teiliges Puzzle%ean%. Noch keine Solozeiten – erfassen Sie jetzt die erste auf MySpeedPuzzling."
+    "description_with_times": "{1}%brand% %name% (%pieces% Teile%ean%): Median-Solozeit %median%, Bestzeit %fastest% aus %count% Ergebnis. Vergleichen Sie Ihre Zeit auf MySpeedPuzzling.|]1,Inf[%brand% %name% (%pieces% Teile%ean%): Median-Solozeit %median%, Bestzeit %fastest% aus %count% Ergebnissen. Vergleichen Sie Ihre Zeit auf MySpeedPuzzling."
+    "description_with_single_time": "%brand% %name% (%pieces% Teile%ean%): bisherige Solo-Bestzeit %fastest%. Vergleichen Sie Ihre Zeit auf MySpeedPuzzling."
+  "summary":
+    "intro": "%name% ist ein %pieces%-teiliges Puzzle von %brand%."
+    "intro_with_codes": "%name% ist ein %pieces%-teiliges Puzzle von %brand% (%codes%)."
+    "codes":
+      "ean": "EAN %ean%"
+      "product_number": "Artikelnummer %code%"
+      "both": "EAN %ean%, Artikelnummer %code%"
+    "alternative_name": "Auch bekannt als %alternative_name%."
+    "solo": "{1}%count% Solo-Ergebnis erfasst: Median %median%, Bestzeit %fastest%.|]1,Inf[%count% Solo-Ergebnisse erfasst: Median %median%, Bestzeit %fastest%."
+    "solo_single_time": "{1}Bisher ein Solo-Ergebnis erfasst: %fastest%.|]1,Inf[Bisher %count% Solo-Ergebnisse erfasst, Bestzeit %fastest%."
+    "duo": "{1}Paare: ein Ergebnis (%fastest%).|]1,Inf[Paare: %count% Ergebnisse (Bestzeit %fastest%)."
+    "team": "{1}Teams: ein Ergebnis (%fastest%).|]1,Inf[Teams: %count% Ergebnisse (Bestzeit %fastest%)."
+    "used_at": "Eingesetzt bei %competitions%."
+    "list_separator": ", "
+    "list_last_separator": " und "
+    "no_times": "Noch keine Legezeiten – <a href=\"%add_url%\" rel=\"nofollow\">tragen Sie Ihre ein</a> und führen Sie die Rangliste an."
+    "no_solo_times": "Noch keine Solozeiten – <a href=\"%add_url%\" rel=\"nofollow\">tragen Sie Ihre ein</a> und führen Sie die Solo-Rangliste an."
   "breadcrumb":
     "database": "Puzzle-Datenbank"
   "related":

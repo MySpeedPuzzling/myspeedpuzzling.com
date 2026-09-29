@@ -832,9 +832,29 @@
     "failed": "Nous n'avons pas pu envoyer l'e-mail de confirmation. Veuillez réessayer dans un instant."
 "puzzle_detail":
   "meta":
-    "title": "%brand% %name% – %pieces% pièces"
-    "description": "Vrais temps d'assemblage pour %brand% %name% (%pieces% pièces) : découvrez les temps les plus rapides et moyens de puzzleurs du monde entier et suivez le vôtre."
-    "description_with_times": "%brand% %name%, %pieces% pièces — meilleur temps %fastest%, moyenne %average% sur %count% assemblages sur MySpeedPuzzling."
+    "title": "%brand% %name% – Puzzle %pieces% pièces"
+    "ean": ", EAN %ean%"
+    "description": "%brand% %name% – puzzle de %pieces% pièces%ean%. Aucun temps pour l'instant – enregistrez le vôtre et soyez le premier sur MySpeedPuzzling."
+    "description_no_solo_times": "%brand% %name% – puzzle de %pieces% pièces%ean%. Aucun temps en solo pour l'instant – enregistrez le vôtre et soyez le premier sur MySpeedPuzzling."
+    "description_with_times": "{1}%brand% %name% (%pieces% pièces%ean%) : temps médian en solo %median%, meilleur temps %fastest% sur %count% assemblage. Comparez votre temps sur MySpeedPuzzling.|]1,Inf[%brand% %name% (%pieces% pièces%ean%) : temps médian en solo %median%, meilleur temps %fastest% sur %count% assemblages. Comparez votre temps sur MySpeedPuzzling."
+    "description_with_single_time": "%brand% %name% (%pieces% pièces%ean%) : %fastest%, le meilleur temps en solo à ce jour. Comparez votre temps sur MySpeedPuzzling."
+  "summary":
+    "intro": "%name% est un puzzle de %pieces% pièces de la marque %brand%."
+    "intro_with_codes": "%name% est un puzzle de %pieces% pièces de la marque %brand% (%codes%)."
+    "codes":
+      "ean": "EAN %ean%"
+      "product_number": "référence %code%"
+      "both": "EAN %ean%, référence %code%"
+    "alternative_name": "Également connu sous le nom de %alternative_name%."
+    "solo": "{1}%count% assemblage en solo enregistré : temps médian %median%, meilleur temps %fastest%.|]1,Inf[%count% assemblages en solo enregistrés : temps médian %median%, meilleur temps %fastest%."
+    "solo_single_time": "{1}Un seul assemblage en solo enregistré pour l'instant : %fastest%.|]1,Inf[%count% assemblages en solo enregistrés pour l'instant, le plus rapide en %fastest%."
+    "duo": "{1}En duo : un assemblage (%fastest%).|]1,Inf[En duo : %count% assemblages (meilleur temps %fastest%)."
+    "team": "{1}En équipe : un assemblage (%fastest%).|]1,Inf[En équipe : %count% assemblages (meilleur temps %fastest%)."
+    "used_at": "Utilisé en compétition : %competitions%."
+    "list_separator": ", "
+    "list_last_separator": " et "
+    "no_times": "Aucun temps pour l'instant – <a href=\"%add_url%\" rel=\"nofollow\">enregistrez le vôtre</a> et soyez le premier au classement."
+    "no_solo_times": "Aucun temps en solo pour l'instant – <a href=\"%add_url%\" rel=\"nofollow\">enregistrez le vôtre</a> et soyez le premier au classement solo."
   "breadcrumb":
     "database": "Base de données de puzzles"
   "related":

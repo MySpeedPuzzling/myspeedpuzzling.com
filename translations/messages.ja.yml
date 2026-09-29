@@ -984,9 +984,29 @@
     "failed": "確認メールを送信できませんでした。しばらくしてからもう一度お試しください。"
 "puzzle_detail":
   "meta":
-    "title": "%brand% %name% – %pieces%ピース"
-    "description": "%brand% %name%（%pieces%ピース）の実際の完成タイム：世界中のスピードパズラーの最速・平均タイムをチェックして、自分の記録も残しましょう。"
-    "description_with_times": "%brand% %name%、%pieces%ピース — 最速タイム %fastest%、平均 %average%（MySpeedPuzzlingの%count%件の記録より）。"
+    "title": "%brand% %name% – %pieces%ピース パズル"
+    "ean": "、JANコード %ean%"
+    "description": "%brand% %name% – %pieces%ピースのジグソーパズル%ean%。まだ完成タイムがありません。あなたのタイムを記録して、MySpeedPuzzlingで一番乗りしましょう。"
+    "description_no_solo_times": "%brand% %name% – %pieces%ピースのジグソーパズル%ean%。まだソロの完成タイムがありません。あなたのタイムを記録して、MySpeedPuzzlingで一番乗りしましょう。"
+    "description_with_times": "%brand% %name%（%pieces%ピース%ean%）：ソロの中央値 %median%、最速 %fastest%（%count%件の記録より）。MySpeedPuzzlingで自分のタイムと比べてみましょう。"
+    "description_with_single_time": "%brand% %name%（%pieces%ピース%ean%）：これまでのソロ最速タイムは %fastest%。MySpeedPuzzlingで自分のタイムと比べてみましょう。"
+  "summary":
+    "intro": "%name%は%brand%の%pieces%ピースのジグソーパズルです。"
+    "intro_with_codes": "%name%は%brand%の%pieces%ピースのジグソーパズルです（%codes%）。"
+    "codes":
+      "ean": "JANコード %ean%"
+      "product_number": "品番 %code%"
+      "both": "JANコード %ean%、品番 %code%"
+    "alternative_name": "別名：%alternative_name%。"
+    "solo": "ソロの記録は%count%件：中央値 %median%、最速 %fastest%。"
+    "solo_single_time": "{1}これまでのソロの記録は1件：%fastest%。|]1,Inf[これまでのソロの記録は%count%件、最速は%fastest%。"
+    "duo": "ペア：%count%件（最速 %fastest%）。"
+    "team": "チーム：%count%件（最速 %fastest%）。"
+    "used_at": "使用された大会：%competitions%。"
+    "list_separator": "、"
+    "list_last_separator": "、"
+    "no_times": "まだ完成タイムがありません。<a href=\"%add_url%\" rel=\"nofollow\">あなたのタイムを記録して</a>、ランキングに一番乗りしましょう。"
+    "no_solo_times": "まだソロの完成タイムがありません。<a href=\"%add_url%\" rel=\"nofollow\">あなたのタイムを記録して</a>、ソロランキングに一番乗りしましょう。"
   "breadcrumb":
     "database": "ジグソーパズルデータベース"
   "related":

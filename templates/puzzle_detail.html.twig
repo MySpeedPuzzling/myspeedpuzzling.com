@@ -1,20 +1,32 @@
 {% extends 'base.html.twig' %}
 
-{% set puzzle_meta_description = (puzzle.solvedTimes > 0 and puzzle.fastestTimeSolo > 0)
-    ? 'puzzle_detail.meta.description_with_times'|trans({
-        '%brand%': puzzle.manufacturerName,
-        '%name%': puzzle.puzzleName,
-        '%pieces%': puzzle.piecesCount,
-        '%fastest%': puzzle.fastestTimeSolo|compactTime,
-        '%average%': puzzle.averageTimeSolo|compactTime,
-        '%count%': puzzle.solvedTimes,
-    })
-    : 'puzzle_detail.meta.description'|trans({
-        '%brand%': puzzle.manufacturerName,
-        '%name%': puzzle.puzzleName,
-        '%pieces%': puzzle.piecesCount,
-    })
+{# The same public facts as the summary paragraph (puzzle/_summary.html.twig), EAN only while the image is not
+   embargoed. One EAN is enough here - a puzzle may list several, comma-separated. #}
+{% set puzzle_meta_ean = (puzzle.puzzleEan and not is_image_hidden)
+    ? 'puzzle_detail.meta.ean'|trans({'%ean%': puzzle.puzzleEan|split(',')|first|trim})
+    : ''
 %}
+{% set puzzle_meta_parameters = {
+    '%brand%': puzzle.manufacturerName,
+    '%name%': puzzle.puzzleName,
+    '%pieces%': puzzle.piecesCount,
+    '%ean%': puzzle_meta_ean,
+} %}
+{% if puzzle_summary.hasSingleSoloTime %}
+    {% set puzzle_meta_description = 'puzzle_detail.meta.description_with_single_time'|trans(puzzle_meta_parameters|merge({
+        '%fastest%': puzzle_summary.fastestTimeSolo|compactTime,
+    })) %}
+{% elseif puzzle_summary.hasSoloTimes %}
+    {% set puzzle_meta_description = 'puzzle_detail.meta.description_with_times'|trans(puzzle_meta_parameters|merge({
+        '%median%': puzzle_summary.medianTimeSolo|compactTime,
+        '%fastest%': puzzle_summary.fastestTimeSolo|compactTime,
+        '%count%': puzzle_summary.soloSolvesCount,
+    })) %}
+{% elseif puzzle_summary.hasGroupTimes %}
+    {% set puzzle_meta_description = 'puzzle_detail.meta.description_no_solo_times'|trans(puzzle_meta_parameters) %}
+{% else %}
+    {% set puzzle_meta_description = 'puzzle_detail.meta.description'|trans(puzzle_meta_parameters) %}
+{% endif %}
 
 {% block title %}{{ 'puzzle_detail.meta.title'|trans({ '%brand%': puzzle.manufacturerName, '%name%': puzzle.puzzleName, '%pieces%': puzzle.piecesCount }) }}{% endblock %}
 {% block meta_description %}{{ puzzle_meta_description }}{% endblock %}
@@ -96,7 +108,9 @@
 {% endblock %}
 
 {% block content %}
-    {{ include('_return_back_button.html.twig') }}
+    <div data-nosnippet>
+        {{ include('_return_back_button.html.twig') }}
+    </div>
 
     <div class="position-relative">
 
@@ -174,15 +188,23 @@
 
                     {% if tags %}
                         <p class="mb-0">
+                            {# A tag links to its competition's page; one without a publicly visible competition stays
+                               a plain badge - never a ?tag= filter URL, crawlers get an empty canonicalised shell there #}
                             {% for tag in tags %}
-                                <a class="badge bg-primary badge-shadow rounded-pill text-white link-light" href="{{ path('puzzles', {tag: tag.tagId}) }}"><i class="ci-diamond"></i> {{ tag.name }}</a>
+                                {% if tag.competition is not null and tag.competition.routeName is not null %}
+                                    <a class="badge bg-primary badge-shadow rounded-pill text-white link-light" href="{{ path(tag.competition.routeName, tag.competition.routeParameters) }}"><i class="ci-diamond"></i> {{ tag.name }}</a>
+                                {% else %}
+                                    <span class="badge bg-primary badge-shadow rounded-pill text-white"><i class="ci-diamond"></i> {{ tag.name }}</span>
+                                {% endif %}
                             {% endfor %}
                         </p>
                     {% endif %}
                 </div>
             </div>
 
-            <div class="dropdown">
+            {# data-nosnippet: Google used the hidden menu labels as the search snippet ("Suggest a change …");
+               it is honoured on div/span/section only, not on the ul #}
+            <div class="dropdown" data-nosnippet>
                 <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="ci-menu"></i>
                 </button>
@@ -217,8 +239,14 @@
     </div>
 
     {% if not puzzle.puzzleApproved %}
-        <div class="alert-warning alert small my-1">{{ 'puzzle_waiting_for_approval'|trans }}</div>
+        <div class="alert-warning alert small my-1" data-nosnippet>{{ 'puzzle_waiting_for_approval'|trans }}</div>
     {% endif %}
+
+    {{ include('puzzle/_summary.html.twig', {
+        puzzle: puzzle,
+        summary: puzzle_summary,
+        is_image_hidden: is_image_hidden,
+    }) }}
 
     {{ include('puzzle/_difficulty_section.html.twig', {
         puzzle_difficulty: puzzle_difficulty,

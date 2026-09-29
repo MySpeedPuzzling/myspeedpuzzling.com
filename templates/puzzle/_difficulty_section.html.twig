@@ -2,6 +2,9 @@
 
 {% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
 
+{# data-nosnippet: members-only UI chrome must never become a Google snippet #}
+<div data-nosnippet>
+
 {# Toggle button + methodology link on same line — always visible #}
 <div class="d-flex align-items-center gap-2 mt-3 mb-2">
     <button
@@ -173,77 +176,43 @@
                     </small>
                 {% endif %}
             {% else %}
-                {# Non-member: blurred dummy content with overlay CTA #}
+                {# Non-member teaser: the names of what members get, then a blurred skeleton of bars and badges.
+                   It must never hold values - Google indexed the old dummy numbers ("Challenging · 12% harder
+                   than average · ~48min") as facts about every puzzle and showed them as its snippet. #}
+                <ul class="list-unstyled d-flex flex-wrap gap-2 fs-sm text-muted mb-3">
+                    <li class="me-2"><i class="bi bi-bar-chart-line me-1"></i>{{ 'puzzle_intelligence.difficulty.title'|trans }}</li>
+                    <li class="me-2"><i class="bi bi-clock-history me-1"></i>{{ 'puzzle_intelligence.prediction.title'|trans }}</li>
+                    <li class="me-2"><i class="bi bi-arrow-repeat me-1"></i>{{ 'puzzle_intelligence.personality.memorability'|trans }}</li>
+                    <li class="me-2"><i class="bi bi-speedometer2 me-1"></i>{{ 'puzzle_intelligence.personality.skill_sensitivity'|trans }}</li>
+                </ul>
                 <div class="position-relative">
-                    <div style="filter: blur(5px); user-select: none; padding: 0 0.25rem 0.5rem;" aria-hidden="true">
-                        {# Dummy Difficulty #}
-                        <h6 class="card-title mb-1">Difficulty</h6>
+                    <div class="placeholder-glow" style="filter: blur(3px); user-select: none; padding: 0 0.25rem 0.5rem;" aria-hidden="true">
+                        {# Difficulty: tier badge and a line #}
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="placeholder rounded-pill badge-tier-challenging" style="width: 7.5rem; height: 1.75rem;"></span>
+                            <span class="placeholder col-4"></span>
+                        </div>
+                        <span class="placeholder placeholder-sm col-8"></span>
+
+                        {# Time prediction: value and range #}
+                        <hr class="my-3">
                         <div class="d-flex align-items-center gap-2 mb-1">
-                            <span class="badge badge-tier-challenging badge-tier-styled fs-6 d-inline-flex align-items-center gap-1">
-                                <svg class="diff-icon" width="24" height="24" style="color: #fff">
-                                    <use href="/difficulty-icons-sprite.svg#diff-challenging"/>
-                                </svg>
-                                Challenging
-                            </span>
-                            <span class="fs-sm">12% harder than average</span>
+                            <span class="placeholder col-2"></span>
+                            <span class="placeholder placeholder-sm col-4"></span>
                         </div>
-                        <small class="text-muted">Based on completion times relative to other puzzles with the same piece count.</small>
+                        <span class="placeholder placeholder-sm col-6"></span>
 
-                        {# Dummy Confidence #}
-                        <hr class="my-3">
-                        <h6 class="fs-sm text-muted mb-0 d-flex align-items-center gap-1">
-                            <i class="bi bi-shield-check" style="font-size: 1.1em;"></i>Confidence
-                        </h6>
-                        <small class="text-muted">
-                            <span>
-                                <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i>
-                                <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i>
-                                <i class="bi bi-circle text-muted" style="font-size: 0.5rem;"></i>
-                            </span>
-                            24 solves &middot; Medium confidence
-                        </small>
-
-                        {# Dummy Time Prediction #}
-                        <hr class="my-3">
-                        <h6 class="fs-sm text-muted mb-0 d-flex align-items-center gap-1">
-                            <i class="bi bi-clock-history" style="font-size: 1.1em;"></i>Time Prediction
-                        </h6>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="fw-bold">~48min</span>
-                            <small class="text-muted">Range: 35min - 64min</small>
-                        </div>
-                        <small class="text-muted">Based on average completion times for this puzzle.</small>
-
-                        {# Dummy Personality Traits #}
-                        <hr class="my-3">
-                        <h6 class="fs-sm text-muted mb-0 d-flex align-items-center gap-1">
-                            <i class="bi bi-arrow-repeat" style="font-size: 1.1em;"></i>Memorability
-                        </h6>
-                        <div class="py-1">
+                        {# Memorability and skill sensitivity: level badge and bar #}
+                        {% for bar_width in [50, 62] %}
+                            <hr class="my-3">
                             <div class="d-flex align-items-center justify-content-between mb-1">
-                                <small class="text-muted">1.3x</small>
-                                <span class="badge badge-tier-veryeasy" style="font-weight: 500;">Moderate</span>
+                                <span class="placeholder placeholder-sm col-1"></span>
+                                <span class="placeholder rounded-pill badge-tier-veryeasy" style="width: 4.5rem;"></span>
                             </div>
                             <div class="progress" style="height: 4px;">
-                                <div class="progress-bar" style="width: 50%; background-color: var(--diff-very-easy);"></div>
+                                <div class="progress-bar" style="width: {{ bar_width }}%; background-color: var(--diff-very-easy);"></div>
                             </div>
-                            <small class="text-muted">How much faster people get on repeat solves.</small>
-                        </div>
-
-                        <hr class="my-3">
-                        <h6 class="fs-sm text-muted mb-0 d-flex align-items-center gap-1">
-                            <i class="bi bi-speedometer2" style="font-size: 1.1em;"></i>Skill Sensitivity
-                        </h6>
-                        <div class="py-1">
-                            <div class="d-flex align-items-center justify-content-between mb-1">
-                                <small class="text-muted">1.5x</small>
-                                <span class="badge badge-tier-veryeasy" style="font-weight: 500;">Moderate</span>
-                            </div>
-                            <div class="progress" style="height: 4px;">
-                                <div class="progress-bar" style="width: 62%; background-color: var(--diff-very-easy);"></div>
-                            </div>
-                            <small class="text-muted">How much skill level affects solving time.</small>
-                        </div>
+                        {% endfor %}
                     </div>
                     <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
                         <button
@@ -259,4 +228,6 @@
             {% endif %}
         </div>
     </div>
+</div>
+
 </div>

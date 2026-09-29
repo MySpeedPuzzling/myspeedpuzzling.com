@@ -12,6 +12,7 @@ Shipped 2026-09-29 (flags still dark). Design: [`features/auth-hardening/README.
 - [x] Translate the interstitial strings `auth.social.confirm.sign_in_and_connect` / `duplicate_accounts_help` and re-translate `auth.social.confirm.have_account` in cs/de/es/fr/ja (2026-09-29)
 - [ ] Deliberately NOT done: Gmail dot/plus normalisation of provider emails when matching accounts (rule 2/3 compare the canonicalised address as-is)
 - [ ] True account merge (two accounts, two players) stays a manual admin operation - write the runbook when the first request comes in
+- [ ] "Continue with Microsoft" (personal accounts, ~13 % of players have a Microsoft mailbox) - planned, not built: [`microsoft-plan.md`](features/auth-hardening/microsoft-plan.md) (open questions for Jan at the end), console guide draft [`setup-microsoft.md`](features/auth-hardening/setup-microsoft.md)
 
 ## Puzzle approvals
 

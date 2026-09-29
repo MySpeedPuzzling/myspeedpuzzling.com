@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class HubControllerTest extends WebTestCase
 {
@@ -76,5 +77,38 @@ final class HubControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/hub');
 
         self::assertCount(0, $crawler->filter('.getting-started'));
+    }
+
+    public function testHubIsKeptOutOfTheIndexInEveryLocaleButItsLinksAreFollowed(): void
+    {
+        $browser = self::createClient();
+        $router = self::getContainer()->get(UrlGeneratorInterface::class);
+
+        foreach (['cs', 'en', 'es', 'ja', 'fr', 'de'] as $locale) {
+            $crawler = $browser->request('GET', $router->generate('hub', ['_locale' => $locale]));
+
+            $this->assertResponseIsSuccessful();
+            self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'), $locale);
+        }
+    }
+
+    public function testHubStaysNoindexForSignedInPlayers(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/hub');
+
+        self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
+    }
+
+    public function testHubStaysInTheNavigation(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/ladder');
+
+        self::assertCount(1, $crawler->filter('.navbar-nav a[href="/en/hub"]'));
     }
 }

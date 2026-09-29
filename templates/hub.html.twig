@@ -2,6 +2,9 @@
 
 {% block title %}{{ 'hub.meta.title'|trans }}{% endblock %}
 {% block meta_description %}{{ 'hub.meta.description'|trans }}{% endblock %}
+{# A personal dashboard that duplicates recent activity and the ladder: not a search landing page,
+   but its links still lead crawlers to players and puzzles #}
+{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
 
 {% block content %}
     <h1 class="h3 mb-0">

@@ -40,8 +40,9 @@ export default class extends Controller {
         this.tomSelect = new TomSelect(this.element, {
             // No sortField override: options keep the order the server produced
             // (brands are intentionally ordered by popularity).
+            // Typing happens in the control itself, like the add-form selects -
+            // no separate search box inside the dropdown.
             plugins: {
-                dropdown_input: {},
                 clear_button: { title: '' },
             },
             // Options may carry a `logo` (thumbnail URL) - brands do, like in the add form.

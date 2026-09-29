@@ -811,6 +811,7 @@
     "result_connected": "Propojeno! Odteď se přes něj můžete přihlašovat."
     "result_connected_provider": "%provider% je propojený. Odteď se přes něj můžete přihlašovat."
     "just_connected": "Propojeno — odteď se přes něj můžete přihlašovat."
+    "not_connected": "Nepropojeno"
     "result_already_linked": "Tento účet poskytovatele už je propojený s účtem na MySpeedPuzzling."
     "result_cancelled": "Propojení zrušeno — nic se nezměnilo."
     "result_failed": "Propojení se nepodařilo. Zkuste to prosím za chvíli znovu."

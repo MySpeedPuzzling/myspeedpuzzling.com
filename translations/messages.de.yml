@@ -791,6 +791,7 @@
     "result_connected": "Verbunden! Sie können sich jetzt damit anmelden."
     "result_connected_provider": "%provider% ist verbunden. Sie können sich jetzt damit anmelden."
     "just_connected": "Verbunden – Sie können sich jetzt damit anmelden."
+    "not_connected": "Nicht verbunden"
     "result_already_linked": "Dieses Anbieter-Konto ist bereits mit einem MySpeedPuzzling-Konto verbunden."
     "result_cancelled": "Verbindung abgebrochen – nichts wurde geändert."
     "result_failed": "Das Verbinden ist fehlgeschlagen. Bitte versuchen Sie es gleich noch einmal."

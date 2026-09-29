@@ -542,6 +542,7 @@
     "result_connected": "¡Conectado! Ya puedes usarlo para iniciar sesión."
     "result_connected_provider": "%provider% conectado. Ya puedes usarlo para iniciar sesión."
     "just_connected": "Conectado: ya puedes usarlo para iniciar sesión."
+    "not_connected": "No conectado"
     "result_already_linked": "Esa cuenta del proveedor ya está conectada a una cuenta de MySpeedPuzzling."
     "result_cancelled": "Conexión cancelada: no ha cambiado nada."
     "result_failed": "No hemos podido conectarlo. Inténtalo de nuevo en un momento."

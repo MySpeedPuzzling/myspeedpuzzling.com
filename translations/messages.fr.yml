@@ -794,6 +794,7 @@
     "result_connected": "Associé ! Vous pouvez maintenant l'utiliser pour vous connecter."
     "result_connected_provider": "%provider% est associé. Vous pouvez maintenant l'utiliser pour vous connecter."
     "just_connected": "Associé — vous pouvez maintenant l'utiliser pour vous connecter."
+    "not_connected": "Non associé"
     "result_already_linked": "Ce compte fournisseur est déjà associé à un compte MySpeedPuzzling."
     "result_cancelled": "Association annulée — rien n'a changé."
     "result_failed": "L'association a échoué. Veuillez réessayer dans un instant."

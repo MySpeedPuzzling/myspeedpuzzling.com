@@ -19,6 +19,9 @@
       display mode shows times - see collections/_display_mode.html.twig)
     - predictions: map puzzle id => TimePredictionResult (collection context, members with the
       "times + predictions" display mode)
+    - puzzle_insights: map puzzle id => PuzzleListInsight (difficulty tier + solve count, see
+      ResolvePuzzleListInsights). Absent on turbo-stream re-renders: the item then shows neither.
+    - insights_with_difficulty: whether the viewer may see tiers (active membership)
 #}
 
 {# Set defaults for optional parameters #}
@@ -66,12 +69,20 @@
 {% set my_time = show_my_times ? (my_times[item.puzzleId] ?? null) : null %}
 {% set my_prediction = show_my_times ? ((predictions|default({}))[item.puzzleId] ?? null) : null %}
 
+{# Difficulty tier (members) and community solve count #}
+{% set show_insights = puzzle_insights is defined %}
+{% set with_difficulty = show_insights and insights_with_difficulty|default(false) %}
+{% set insight = show_insights ? (puzzle_insights[item.puzzleId] ?? null) : null %}
+
 <div class="col-12 col-lg-6"
      id="{{ container_id }}"
      data-collection-items-target="item"
      data-puzzle-id="{{ item.puzzleId }}"
      data-collection-filter-target="item"
      data-pieces-count="{{ item.piecesCount }}"
+     {% if with_difficulty %}
+     data-difficulty-tier="{{ insight is not null and insight.difficultyTier is not null ? insight.difficultyTier.value : 0 }}"
+     {% endif %}
      {% if show_my_times %}
      data-my-fastest-seconds="{{ my_time is not null and my_time.fastestSeconds is not null ? my_time.fastestSeconds : '' }}"
      data-predicted-seconds="{{ my_prediction is not null ? my_prediction.predictedSeconds : '' }}"
@@ -113,12 +124,24 @@
                             {{ item.puzzleName }}
                         </a>
                         <br>
-                        <small class="fw-bold">{{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}</small>
+                        {% if show_insights %}
+                            {% from '_difficulty_icon.html.twig' import icon as difficulty_icon %}
+                            <span class="d-inline-flex align-items-center gap-1">
+                                {{ difficulty_icon(insight.difficultyTier ?? null, not with_difficulty) }}
+                                <small class="fw-bold">{{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}</small>
+                            </span>
+                        {% else %}
+                            <small class="fw-bold">{{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}</small>
+                        {% endif %}
 
                         {# Manufacturer name #}
                         <div class="fs-sm text-muted">
                             {{ item.manufacturerName ?? '-' }}
                         </div>
+
+                        {% if insight is not null %}
+                            <small class="d-block puzzle-solved-times">{{ 'puzzle_solved_times'|trans({'%count%': insight.solvedTimes})|capitalize|raw }}</small>
+                        {% endif %}
 
                         {# My times (+ prediction): the viewer's own results on this puzzle. "Not solved yet",
                            or solved N× with the fastest time (and the latest one only when it is a different

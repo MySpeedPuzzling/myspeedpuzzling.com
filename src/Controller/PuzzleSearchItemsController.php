@@ -59,6 +59,7 @@ final class PuzzleSearchItemsController extends AbstractController
         $criteria = PuzzleSearchCriteria::fromRequest(
             $request,
             isMember: $playerProfile?->activeMembership === true,
+            isLoggedIn: $playerProfile !== null,
         );
 
         $rawOffset = $request->query->get('offset');
@@ -72,6 +73,8 @@ final class PuzzleSearchItemsController extends AbstractController
             $piecesFilter,
             $criteria->tagId,
             $criteria->difficultyTiers,
+            $criteria->list,
+            $playerProfile?->playerId,
         );
 
         $offset = min($offset, $totalCount);
@@ -85,6 +88,8 @@ final class PuzzleSearchItemsController extends AbstractController
             offset: $offset,
             limit: PuzzleSearchCriteria::PAGE_SIZE,
             difficultyTiers: $criteria->difficultyTiers,
+            list: $criteria->list,
+            listPlayerId: $playerProfile?->playerId,
         );
 
         $puzzleIds = array_map(static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId, $puzzles);

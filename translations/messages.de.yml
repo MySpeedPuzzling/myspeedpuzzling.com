@@ -4080,3 +4080,15 @@ multiscan:
             create_failed: "Das Puzzle konnte nicht angelegt werden. Bitte versuche es erneut."
             photo_required: "Fotografiere zuerst die Schachtel – jedes neue Puzzle braucht ein Foto."
             photo_invalid: "Diese Datei ist kein brauchbares Foto. Fotografiere die Schachtel neu (JPG, PNG, HEIC oder WebP, bis 10 MB)."
+
+puzzle_search:
+    list:
+        placeholder: "Meine Liste"
+        wishlist: "Wunschliste"
+        unsolved: "Ungelöst"
+        solved: "Von mir gelöst"
+        group_collections: "Sammlungen"
+        group_members: "Verleihen & Verkauf/Tausch"
+        borrowed: "Ausgeliehen"
+        lent: "Verliehen"
+        sell_swap: "Verkauf / Tausch"

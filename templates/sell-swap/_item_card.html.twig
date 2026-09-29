@@ -136,6 +136,17 @@
             </div>
         </a>
 
+        {# Outside the link: the locked icon opens the members modal #}
+        {% if show_insights|default(false) %}
+            {% from '_difficulty_icon.html.twig' import icon as difficulty_icon %}
+            <div class="fs-xs text-muted d-flex align-items-center gap-1 mb-1">
+                {{ difficulty_icon(insight.difficultyTier ?? null, not with_difficulty, 16) }}
+                {% if insight is not null %}
+                    <span class="puzzle-solved-times">{{ 'puzzle_solved_times'|trans({'%count%': insight.solvedTimes})|capitalize|raw }}</span>
+                {% endif %}
+            </div>
+        {% endif %}
+
         {% if item.comment %}
             <div class="fs-xs text-muted mb-1">{{ item.comment|length > 80 ? item.comment|slice(0, 77) ~ '...' : item.comment }}</div>
         {% endif %}

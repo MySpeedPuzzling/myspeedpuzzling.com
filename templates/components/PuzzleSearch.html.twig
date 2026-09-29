@@ -46,6 +46,29 @@
                 </select>
             </div>
 
+            {# The viewer's own lists: few, per-viewer options, so they are rendered
+               here (never through the shared, cached filter-options endpoint). #}
+            {% set list_groups = this.listOptions %}
+            {% if list_groups is not empty %}
+                <div class="col-6 col-md-3 col-lg-2 mb-2" data-live-ignore>
+                    <select
+                        id="puzzle-search-list"
+                        class="form-select"
+                        data-controller="tomselect-sync"
+                        data-model="on(change)|list"
+                    >
+                        <option value="">{{ 'puzzle_search.list.placeholder'|trans }}</option>
+                        {% for group in list_groups %}
+                            {% if group.group is not null %}<optgroup label="{{ group.group|trans }}">{% endif %}
+                            {% for option in group.options %}
+                                <option value="{{ option.value }}" {{ this.list == option.value ? 'selected' }}>{{ option.translate ? option.label|trans : option.label }}</option>
+                            {% endfor %}
+                            {% if group.group is not null %}</optgroup>{% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            {% endif %}
+
             <div class="col-sm-6 col-lg-4">
                 {% for option in ['', '1-499', '500', '501-999', '1000', '1001+'] %}
                     {% set option_id = 'pieces-' ~ (option == '' ? 'any' : option|replace({'+': ''})) %}
@@ -186,6 +209,11 @@
                 <div class="col-6 col-md-3 col-lg-2 mb-2">
                     <span class="placeholder rounded d-block" style="height: 38px;"></span>
                 </div>
+                {% if logged_user.profile is not null %}
+                    <div class="col-6 col-md-3 col-lg-2 mb-2">
+                        <span class="placeholder rounded d-block" style="height: 38px;"></span>
+                    </div>
+                {% endif %}
                 <div class="col-sm-6 col-lg-4 mb-2">
                     <span class="placeholder rounded d-inline-block me-2" style="height: 30px; width: 60px;"></span>
                     <span class="placeholder rounded d-inline-block me-2" style="height: 30px; width: 70px;"></span>

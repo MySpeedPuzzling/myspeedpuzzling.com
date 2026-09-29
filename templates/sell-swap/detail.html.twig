@@ -230,6 +230,8 @@
                         </div>
                     </div>
                 </div>
+
+                {{ include('_difficulty_filter_chips.html.twig') }}
             </div>
         </div>
     {% endif %}
@@ -246,28 +248,14 @@
     {% else %}
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-3">
             {% for item in items %}
-                <div class="col"
-                     id="library-sell-swap-{{ item.puzzleId }}"
-                     data-collection-items-target="item"
-                     data-puzzle-id="{{ item.puzzleId }}"
-                     data-collection-filter-target="item"
-                     data-pieces-count="{{ item.piecesCount }}"
-                     data-puzzle-name="{{ item.puzzleName }}"
-                     data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"
-                     data-puzzle-code="{{ item.puzzleIdentificationNumber ?? '' }}"
-                     data-ean="{{ item.ean ?? '' }}"
-                     data-manufacturer="{{ item.manufacturerName ?? '' }}"
-                     data-listing-type="{{ item.listingType.value }}"
-                     data-price="{{ item.price ?? '' }}">
-                    {% include 'sell-swap/_item_card.html.twig' with {
-                        item: item,
-                        settings: settings,
-                        isOwnProfile: isOwnProfile,
-                        logged_user: logged_user,
-                        sellSwapReturnUrl: path('sell_swap_list_detail', {playerId: player.playerId, return: app.request.query.get('return'), return_title: app.request.query.get('return_title')}),
-                        sellSwapReturnTitle: 'sell_swap_list.title'|trans,
-                    } only %}
-                </div>
+                {{ include('sell-swap/_item.html.twig', {
+                    item: item,
+                    settings: settings,
+                    isOwnProfile: isOwnProfile,
+                    logged_user: logged_user,
+                    sellSwapReturnUrl: path('sell_swap_list_detail', {playerId: player.playerId, return: app.request.query.get('return'), return_title: app.request.query.get('return_title')}),
+                    sellSwapReturnTitle: 'sell_swap_list.title'|trans,
+                }) }}
             {% endfor %}
         </div>
 

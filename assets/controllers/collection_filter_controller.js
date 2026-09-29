@@ -6,7 +6,7 @@ import TomSelect from 'tom-select';
  *
  * A unified filter for collection/library items across all pages.
  * Features: text search, manufacturer dropdown, pieces count radio pills,
- * listing type filter, price range filter.
+ * difficulty tier chips (members), listing type filter, price range filter.
  *
  * All targets are optional - the controller gracefully handles missing elements.
  */
@@ -16,6 +16,7 @@ export default class extends Controller {
         "search",            // Text search input
         "manufacturer",      // Manufacturer select dropdown
         "piecesRadio",       // Pieces count radio buttons
+        "difficultyTier",    // Difficulty tier checkboxes (members) - items carry data-difficulty-tier
         "listingTypeSelect", // Listing type select dropdown (sell-swap)
         "priceMin",          // Price min input (sell-swap)
         "priceMax",          // Price max input (sell-swap)
@@ -124,13 +125,14 @@ export default class extends Controller {
         const searchTerm = this.normalizeString(this.hasSearchTarget ? this.searchTarget.value : '');
         const manufacturer = this.hasManufacturerTarget ? this.manufacturerTarget.value : '';
         const piecesRange = this.getSelectedPiecesRange();
+        const difficultyTiers = this.getSelectedDifficultyTiers();
         const listingType = this.getSelectedListingType();
         const priceRange = this.getPriceRange();
 
         let visibleCount = 0;
 
         this.itemTargets.forEach(item => {
-            const isVisible = this.itemMatchesFilters(item, searchTerm, manufacturer, piecesRange, listingType, priceRange);
+            const isVisible = this.itemMatchesFilters(item, searchTerm, manufacturer, piecesRange, difficultyTiers, listingType, priceRange);
             item.style.display = isVisible ? '' : 'none';
             if (isVisible) visibleCount++;
         });
@@ -139,7 +141,7 @@ export default class extends Controller {
         this.updateNoResultsMessage(visibleCount === 0);
     }
 
-    itemMatchesFilters(item, searchTerm, manufacturer, piecesRange, listingType, priceRange) {
+    itemMatchesFilters(item, searchTerm, manufacturer, piecesRange, difficultyTiers, listingType, priceRange) {
         // Text search - matches name, alternative name, code, or EAN
         if (searchTerm) {
             const name = this.normalizeString(item.dataset.puzzleName || '');
@@ -165,6 +167,12 @@ export default class extends Controller {
             if (!this.matchesPiecesRange(piecesCount, piecesRange)) {
                 return false;
             }
+        }
+
+        // Difficulty tier filter: "0" (not enough data yet) matches no tier, as on the puzzle database.
+        // An item without the attribute (re-rendered by a turbo stream) is never hidden by it.
+        if (difficultyTiers.size > 0 && item.dataset.difficultyTier !== undefined && !difficultyTiers.has(item.dataset.difficultyTier)) {
+            return false;
         }
 
         // Listing type filter (sell-swap)
@@ -195,6 +203,10 @@ export default class extends Controller {
 
         const checked = this.piecesRadioTargets.find(radio => radio.checked);
         return checked ? (checked.dataset.range || '') : '';
+    }
+
+    getSelectedDifficultyTiers() {
+        return new Set(this.difficultyTierTargets.filter(checkbox => checkbox.checked).map(checkbox => checkbox.value));
     }
 
     getSelectedListingType() {
@@ -251,6 +263,10 @@ export default class extends Controller {
                 allRadio.checked = true;
             }
         }
+
+        this.difficultyTierTargets.forEach(checkbox => {
+            checkbox.checked = false;
+        });
 
         // Reset listing type to "all"
         if (this.hasListingTypeSelectTarget) {

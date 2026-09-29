@@ -14,7 +14,8 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * Input may come from URLs or client-side props, so it can carry values the UI
  * never produces: empty strings from cleared selects, mangled UUIDs from
- * truncated links, unknown sorts, or premium filters from non-members.
+ * truncated links, unknown sorts, premium filters from non-members, or a
+ * "my list" filter from guests.
  * Everything is normalized here so querying stays graceful.
  */
 final readonly class PuzzleSearchCriteria
@@ -37,6 +38,7 @@ final readonly class PuzzleSearchCriteria
         public null|string $tagId,
         public array $difficultyTiers,
         public string $sortBy,
+        public null|PuzzleSearchList $list,
     ) {
     }
 
@@ -51,6 +53,8 @@ final readonly class PuzzleSearchCriteria
         array $difficultyTiers,
         string $sortBy,
         bool $isMember,
+        null|string $list = null,
+        bool $isLoggedIn = false,
     ): self {
         if (in_array($sortBy, self::VALID_SORTS, true) === false) {
             $sortBy = 'most-solved';
@@ -66,6 +70,13 @@ final readonly class PuzzleSearchCriteria
             }
         }
 
+        // The viewer's own lists need a viewer; member lists need a membership.
+        $parsedList = PuzzleSearchList::tryFrom($list);
+
+        if ($parsedList !== null && ($isLoggedIn === false || ($parsedList->isMembersOnly() && $isMember === false))) {
+            $parsedList = null;
+        }
+
         return new self(
             brandId: self::normalizeUuid($brandId),
             search: $search === '' ? null : $search,
@@ -73,10 +84,11 @@ final readonly class PuzzleSearchCriteria
             tagId: self::normalizeUuid($tagId),
             difficultyTiers: self::normalizeDifficultyTiers($difficultyTiers),
             sortBy: $sortBy,
+            list: $parsedList,
         );
     }
 
-    public static function fromRequest(Request $request, bool $isMember): self
+    public static function fromRequest(Request $request, bool $isMember, bool $isLoggedIn = false): self
     {
         $query = $request->query->all();
 
@@ -88,9 +100,15 @@ final readonly class PuzzleSearchCriteria
             difficultyTiers: is_array($query['difficultyTiers'] ?? null) ? $query['difficultyTiers'] : [],
             sortBy: is_string($query['sortBy'] ?? null) ? $query['sortBy'] : 'most-solved',
             isMember: $isMember,
+            list: is_string($query['list'] ?? null) ? $query['list'] : null,
+            isLoggedIn: $isLoggedIn,
         );
     }
 
+    /**
+     * The default view is served from a cache shared by every visitor, so
+     * anything viewer-specific (the list) must make it non-default.
+     */
     public function isDefault(): bool
     {
         return $this->brandId === null
@@ -98,7 +116,8 @@ final readonly class PuzzleSearchCriteria
             && $this->pieces === null
             && $this->tagId === null
             && $this->difficultyTiers === []
-            && $this->sortBy === 'most-solved';
+            && $this->sortBy === 'most-solved'
+            && $this->list === null;
     }
 
     /**
@@ -132,6 +151,10 @@ final readonly class PuzzleSearchCriteria
 
         if ($this->sortBy !== 'most-solved') {
             $parameters['sortBy'] = $this->sortBy;
+        }
+
+        if ($this->list !== null) {
+            $parameters['list'] = $this->list->value();
         }
 
         return $parameters;

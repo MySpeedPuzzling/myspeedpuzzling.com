@@ -51,4 +51,34 @@ trait QueryCountAssertions
 
         self::assertLessThanOrEqual($max, $count, sprintf('%s: expected at most %d queries, the request ran %d.', $why, $max, $count));
     }
+
+    /**
+     * The SQL the profiled request ran, for asserting what did (not) happen.
+     *
+     * @return list<string>
+     */
+    protected function executedSql(KernelBrowser $browser): array
+    {
+        $profile = $browser->getProfile();
+        self::assertInstanceOf(Profile::class, $profile, 'The profiler did not collect the request - call startCountingQueries() before the request.');
+
+        $collector = $profile->getCollector('db');
+        self::assertInstanceOf(DoctrineDataCollector::class, $collector);
+
+        $sql = [];
+
+        foreach ($collector->getQueries() as $connectionQueries) {
+            if (is_array($connectionQueries) === false) {
+                continue;
+            }
+
+            foreach ($connectionQueries as $query) {
+                if (is_array($query) && is_string($query['sql'] ?? null)) {
+                    $sql[] = $query['sql'];
+                }
+            }
+        }
+
+        return $sql;
+    }
 }

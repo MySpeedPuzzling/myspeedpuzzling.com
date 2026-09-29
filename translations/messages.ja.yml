@@ -4071,3 +4071,15 @@ multiscan:
             create_failed: "パズルを追加できませんでした。もう一度お試しください。"
             photo_required: "まず箱の写真を撮ってください – 新しいパズルには写真が必要です。"
             photo_invalid: "このファイルは写真として使用できません。箱の写真を撮り直してください（JPG・PNG・HEIC・WebP、10MBまで）。"
+
+puzzle_search:
+    list:
+        placeholder: "マイリスト"
+        wishlist: "ウィッシュリスト"
+        unsolved: "未完成"
+        solved: "自分が完成"
+        group_collections: "コレクション"
+        group_members: "貸出・売買/交換"
+        borrowed: "借用中"
+        lent: "貸出中"
+        sell_swap: "売買・交換"

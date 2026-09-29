@@ -39,6 +39,27 @@ enum DifficultyTier: int
         return $index === false ? null : self::from($index + 1);
     }
 
+    /**
+     * Symbol id in /difficulty-icons-sprite.svg, also the name of the colour
+     * CSS variable (var(--diff-*)).
+     */
+    public function icon(): string
+    {
+        return match ($this) {
+            self::VeryEasy => 'diff-very-easy',
+            self::Easy => 'diff-easy',
+            self::Average => 'diff-average',
+            self::Challenging => 'diff-challenging',
+            self::Hard => 'diff-hard',
+            self::VeryHard => 'diff-very-hard',
+        };
+    }
+
+    public function translationKey(): string
+    {
+        return 'puzzle_intelligence.difficulty.tiers.' . strtolower($this->name);
+    }
+
     public static function fromScore(float $score): self
     {
         return match (true) {

@@ -1,0 +1,50 @@
+{# Solo vs. pair vs. team for one piece count.
+   Expects: pieces, solo (SolveTimeDistribution), duo + team (null below the minimum group solves). #}
+{% import 'guides/_macros.html.twig' as guide %}
+
+<div class="guide-table-card mb-2">
+    <div class="table-responsive">
+        <table class="table table-striped guide-table mb-0">
+            <thead>
+                <tr>
+                    <th scope="col">{{ pieces|number_format }} pieces</th>
+                    <th scope="col">Median time</th>
+                    <th scope="col">Typical range (middle 50%)</th>
+                    <th scope="col">vs. solo</th>
+                    <th scope="col" class="text-end">Recorded solves</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th scope="row">Solo</th>
+                    <td>{{ solo.medianSeconds|compactTime }}</td>
+                    <td>{{ solo.p25Seconds|compactTime }} – {{ solo.p75Seconds|compactTime }}</td>
+                    <td>–</td>
+                    <td class="text-end">{{ solo.solvesCount|number_format }}</td>
+                </tr>
+                {% if duo %}
+                    <tr>
+                        <th scope="row">Pair (2 people)</th>
+                        <td>{{ duo.medianSeconds|compactTime }}</td>
+                        <td>{{ duo.p25Seconds|compactTime }} – {{ duo.p75Seconds|compactTime }}</td>
+                        <td>{{ guide.speed_up(duo, solo) }} as fast</td>
+                        <td class="text-end">{{ duo.solvesCount|number_format }}</td>
+                    </tr>
+                {% endif %}
+                {% if team %}
+                    <tr>
+                        <th scope="row">Team (3 or more)</th>
+                        <td>{{ team.medianSeconds|compactTime }}</td>
+                        <td>{{ team.p25Seconds|compactTime }} – {{ team.p75Seconds|compactTime }}</td>
+                        <td>{{ guide.speed_up(team, solo) }} as fast</td>
+                        <td class="text-end">{{ team.solvesCount|number_format }}</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<p class="text-muted fs-sm">
+    A pair or team time is recorded once per group, for the whole puzzle. Group medians are only published from
+    {{ constant('SpeedPuzzling\\Web\\Services\\PuzzleTimeGuides::MINIMUM_GROUP_SOLVES') }} recorded solves.
+</p>

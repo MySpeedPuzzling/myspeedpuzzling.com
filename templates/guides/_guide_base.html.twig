@@ -4,8 +4,8 @@
    The base template would generate 7 identical hreflang URLs for such routes
    (invalid hreflang), so emit a single self-referencing en + x-default pair. #}
 {% block hreflang %}
-    <link rel="alternate" hreflang="en" href="{{ url(currentRoute) }}">
-    <link rel="alternate" hreflang="x-default" href="{{ url(currentRoute) }}">
+    <link rel="alternate" hreflang="en" href="{{ url(currentRoute, currentRouteParams) }}">
+    <link rel="alternate" hreflang="x-default" href="{{ url(currentRoute, currentRouteParams) }}">
 {% endblock %}
 
 {% block title %}{{ guide_title }}{% endblock %}
@@ -34,7 +34,7 @@
                 "@type": "ListItem",
                 "position": 3,
                 "name": {{ guide_title|json_encode|raw }},
-                "item": {{ url(currentRoute)|json_encode|raw }}
+                "item": {{ url(currentRoute, currentRouteParams)|json_encode|raw }}
             }{% endif %}
         ]
     }
@@ -51,7 +51,7 @@
         "inLanguage": "en",
         "mainEntityOfPage": {
             "@type": "WebPage",
-            "@id": {{ url(currentRoute)|json_encode|raw }}
+            "@id": {{ url(currentRoute, currentRouteParams)|json_encode|raw }}
         },
         "author": {
             "@type": "Organization",
@@ -76,6 +76,8 @@
 {% set guideNav = [
     {route: 'guide_what_is_speed_puzzling', icon: 'bi-question-circle', title: 'guides.what_is.title', description: 'guides.what_is.card_description'},
     {route: 'guide_puzzle_time_by_pieces', icon: 'bi-stopwatch', title: 'guides.how_long.title', description: 'guides.how_long.card_description'},
+    {route: 'guide_average_puzzle_time', icon: 'bi-bar-chart-line', title: 'guides.average.title', description: 'guides.average.card_description'},
+    {route: 'guide_puzzle_time_pairs_and_teams', icon: 'bi-people', title: 'guides.how_long_pairs.title', description: 'guides.how_long_pairs.card_description'},
     {route: 'guide_speed_puzzling_tips', icon: 'bi-lightning', title: 'guides.tips.title', description: 'guides.tips.card_description'},
 ] %}
 
@@ -132,7 +134,7 @@
             <div class="container">
                 <p class="guide-next-eyebrow">{{ 'guides.ui.read_next'|trans }}</p>
                 <div class="row g-4">
-                    {% for nextGuide in guideNav|filter(nextGuide => nextGuide.route != currentRoute) %}
+                    {% for nextGuide in guideNav|filter(nextGuide => nextGuide.route != currentRoute)|slice(0, 4) %}
                         <div class="col-md-6">
                             <div class="guide-card">
                                 <div class="guide-card-icon" aria-hidden="true"><i class="bi {{ nextGuide.icon }}"></i></div>

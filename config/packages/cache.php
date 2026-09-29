@@ -37,6 +37,12 @@ return App::config([
                 'wjpf_pairing_code_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // Community solve-time distributions behind the guides and the FAQ
+                // (SolveTimeDistributionProvider) - one entry per puzzling type,
+                // recomputed every 6 hours.
+                'solve_time_distribution_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
             ],
         ],
     ],

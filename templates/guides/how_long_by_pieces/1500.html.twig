@@ -1,0 +1,41 @@
+{% extends 'guides/how_long_by_pieces/_layout.html.twig' %}
+
+{% import 'guides/_macros.html.twig' as guide %}
+
+{% block size_intro %}
+    <p>
+        A 1500-piece puzzle is a project, not an evening: the median solve takes
+        {{ guide.duration_words(distribution.medianSeconds) }} of active puzzling. At this size, hours at the table and
+        days on the calendar are easy to mix up. This page counts only the hours at the table; how many evenings you
+        spread them over is up to you.
+    </p>
+{% endblock %}
+
+{% block size_callout %}
+    <div class="guide-callout">
+        <p>
+            Far fewer puzzlers time a 1500 than a 500 or a 1000: these numbers come from
+            {{ distribution.solvesCount|number_format }} solves by {{ distribution.playersCount|number_format }} puzzlers.
+            That is plenty for a solid median, but expect the numbers on this page to move more than those of the popular
+            sizes as new solves come in.
+        </p>
+    </div>
+{% endblock %}
+
+{% block size_factors %}
+    <ul class="guide-list">
+        <li>
+            <strong>Table space.</strong> Most 1500-piece puzzles finish at around 80–85 × 60 cm (about 32 × 24 in),
+            and the loose pieces need room too. Sorting trays you can stack or move keep the building area clear.
+        </li>
+        <li>
+            <strong>Big single-colour areas.</strong> At this size a sky or a sea can be several hundred pieces of nearly
+            the same colour. That is where the hours go — sorting those pieces by shape instead of colour is what gets
+            them done.
+        </li>
+        <li>
+            <strong>Pausing honestly.</strong> Over several sessions it is easy to lose track of time. Pausing the
+            stopwatch whenever you leave the table keeps your time comparable with everyone else's.
+        </li>
+    </ul>
+{% endblock %}

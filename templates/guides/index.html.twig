@@ -24,6 +24,20 @@
             {% endfor %}
         </div>
 
+        {% if guide_paths is not empty %}
+            <section class="guide-callout mt-4 mb-0" aria-labelledby="guides-by-size">
+                <h2 class="guide-card-title" id="guides-by-size">{{ 'guides.index.by_size_title'|trans }}</h2>
+                <p class="guide-card-text">{{ 'guides.index.by_size_description'|trans }}</p>
+                <ul class="guide-list row row-cols-1 row-cols-md-2 row-cols-lg-3 g-0 mb-0">
+                    {% for pieces, guidePath in guide_paths %}
+                        <li class="col">
+                            <a href="{{ guidePath }}">{{ 'guides.how_long_pieces.title'|trans({'%pieces%': pieces}) }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
         <p class="guide-index-footnote">
             {{ 'guides.index.footnote'|trans }}
         </p>

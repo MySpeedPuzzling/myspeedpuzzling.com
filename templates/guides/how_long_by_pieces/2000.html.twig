@@ -1,0 +1,44 @@
+{% extends 'guides/how_long_by_pieces/_layout.html.twig' %}
+
+{% import 'guides/_macros.html.twig' as guide %}
+
+{% block size_intro %}
+    <p>
+        2000 pieces is the biggest size in this series, and the median solve takes
+        {{ guide.duration_words(distribution.medianSeconds) }} of active
+        puzzling{% if distribution.medianSeconds > 8 * 3600 %} — more than a full working day at the table{% endif %}.
+        Spread over a weekend or a string of evenings, the calendar time can be anything; the useful question is how
+        many hours of actual puzzling a 2000-piece puzzle holds, and that is what we measured.
+    </p>
+{% endblock %}
+
+{% block size_callout %}
+    <div class="guide-callout">
+        <p>
+            Only a small group of puzzlers times their 2000-piece solves: {{ distribution.solvesCount|number_format }}
+            solves by {{ distribution.playersCount|number_format }} puzzlers so far. The middle half of them lands
+            anywhere between {{ distribution.p25Seconds|compactTime }} and {{ distribution.p75Seconds|compactTime }} —
+            a range of {{ ((distribution.p75Seconds - distribution.p25Seconds) / 3600)|round }} hours, so treat the median
+            as a rough centre rather than a promise.
+        </p>
+    </div>
+{% endblock %}
+
+{% block size_factors %}
+    <ul class="guide-list">
+        <li>
+            <strong>A table that fits it.</strong> A finished 2000-piece puzzle is usually around a metre wide and 70
+            centimetres deep (about 38 × 27 in). If it does not fit on one table, a puzzle board or mat you can roll up
+            between sessions saves re-sorting.
+        </li>
+        <li>
+            <strong>Working in sections.</strong> With 2000 pieces, building separate regions — a building, a tree line,
+            the lettering — and joining them later often beats working outwards from one corner. Each section is a
+            smaller puzzle with its own sorted pile.
+        </li>
+        <li>
+            <strong>Keeping the pieces sorted between sessions.</strong> Trays or boxes per colour group mean the next
+            session starts building straight away instead of searching the whole pile again.
+        </li>
+    </ul>
+{% endblock %}

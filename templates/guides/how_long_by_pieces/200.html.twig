@@ -1,0 +1,38 @@
+{% extends 'guides/how_long_by_pieces/_layout.html.twig' %}
+
+{% block size_intro %}
+    <p>
+        200 pieces is where puzzles for older children meet quick puzzles for adults. It is still a single sitting, but
+        it is the first size where a little planning starts to pay off — and a good one for timing yourself regularly,
+        because a solve fits into a lunch break and is easy to repeat.
+    </p>
+{% endblock %}
+
+{% block size_callout %}
+    <div class="guide-callout">
+        <p>
+            Two very different puzzles share this piece count: children's puzzles with extra-large pieces, and compact
+            puzzles for adults with small ones. Before comparing your {{ pieces }}-piece time with the median of
+            {{ distribution.medianSeconds|compactTime }}, check the finished size on the box — reaching across a big
+            picture and squinting at a small one both cost time.
+        </p>
+    </div>
+{% endblock %}
+
+{% block size_factors %}
+    <ul class="guide-list">
+        <li>
+            <strong>A first sorting pass.</strong> Putting the edge pieces aside and grouping the two or three strongest
+            colours takes a few minutes, and at 200 pieces it starts to save more than it costs.
+        </li>
+        <li>
+            <strong>Frame first, or not.</strong> A 200-piece border is only around a quarter of the pieces, so building
+            it first gives the picture a frame quickly. When the border is plain and the middle is busy, starting in the
+            middle is often faster.
+        </li>
+        <li>
+            <strong>Repeating a puzzle.</strong> A 200-piece puzzle is short enough to solve twice in a week. Timing both
+            runs is the quickest way to see how much of your time is searching and how much is technique.
+        </li>
+    </ul>
+{% endblock %}

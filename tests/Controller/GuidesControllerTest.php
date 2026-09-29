@@ -23,6 +23,8 @@ final class GuidesControllerTest extends WebTestCase
 
         self::assertStringContainsString('/en/guides/what-is-speed-puzzling', $content);
         self::assertStringContainsString('/en/guides/how-long-does-a-1000-piece-puzzle-take', $content);
+        self::assertStringContainsString('/en/guides/average-puzzle-time-by-piece-count', $content);
+        self::assertStringContainsString('/en/guides/how-long-does-a-1000-piece-puzzle-take-with-2-people', $content);
         self::assertStringContainsString('/en/guides/speed-puzzling-tips', $content);
     }
 
@@ -89,6 +91,8 @@ final class GuidesControllerTest extends WebTestCase
             '/en/guides',
             '/en/guides/what-is-speed-puzzling',
             '/en/guides/how-long-does-a-1000-piece-puzzle-take',
+            '/en/guides/average-puzzle-time-by-piece-count',
+            '/en/guides/how-long-does-a-1000-piece-puzzle-take-with-2-people',
             '/en/guides/speed-puzzling-tips',
         ];
 

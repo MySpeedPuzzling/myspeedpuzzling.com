@@ -1,5 +1,7 @@
 {% extends 'guides/_guide_base.html.twig' %}
 
+{% import 'guides/_macros.html.twig' as guide %}
+
 {% block guide_header %}
     {% set d1000 = distributions[1000] ?? null %}
 
@@ -102,7 +104,13 @@
                     <tbody>
                         {% for distribution in distributions %}
                             <tr{% if distribution.piecesCount == 1000 %} class="guide-table-highlight"{% endif %}>
-                                <th scope="row">{{ distribution.piecesCount|number_format }}</th>
+                                <th scope="row">
+                                    {% if distribution.piecesCount != 1000 and guide_paths[distribution.piecesCount] is defined %}
+                                        <a href="{{ guide_paths[distribution.piecesCount] }}">{{ distribution.piecesCount|number_format }}</a>
+                                    {% else %}
+                                        {{ distribution.piecesCount|number_format }}
+                                    {% endif %}
+                                </th>
                                 <td>{{ distribution.medianSeconds|compactTime }}</td>
                                 <td>{{ distribution.p25Seconds|compactTime }} – {{ distribution.p75Seconds|compactTime }}</td>
                                 <td>{{ distribution.p90Seconds|compactTime }}</td>
@@ -115,6 +123,8 @@
         </div>
         <p class="text-muted fs-sm">
             Solo solves only. "Typical range" is the 25th–75th percentile: half of all recorded solves fall inside it.
+            Pair and team medians for every size are in the
+            <a href="{{ path('guide_average_puzzle_time') }}">average puzzle time by piece count</a> table.
         </p>
     {% endif %}
 
@@ -140,6 +150,31 @@
                 {{ d1000.firstAttemptMedianSeconds|compactTime }}, compared to {{ d1000.medianSeconds|compactTime }}
                 across all solves. If you are timing your very first run of a fresh puzzle, expect to sit slightly above
                 the overall numbers — that is normal.
+            </p>
+        {% endif %}
+
+        {% if duo1000 or team1000 %}
+            <h2>1000 pieces with a partner or a team</h2>
+
+            <p>
+                A 1000-piece puzzle is the classic size to share — it is also what teams race at the World Jigsaw Puzzle
+                Championship.
+                {% if duo1000 %}
+                    Two people finish one in a median {{ duo1000.medianSeconds|compactTime }},
+                    {{ guide.speed_up(duo1000, d1000) }} as fast as one person{% if duo1000.speedUpOver(d1000) < 2 %}, not
+                    twice as fast{% endif %}.
+                {% endif %}
+                {% if team1000 %}
+                    Teams of three or more get it done in {{ team1000.medianSeconds|compactTime }}
+                    ({{ guide.speed_up(team1000, d1000) }} as fast as solo).
+                {% endif %}
+            </p>
+
+            {{ include('guides/_group_comparison.html.twig', {pieces: 1000, solo: d1000, duo: duo1000, team: team1000}) }}
+
+            <p>
+                Why a partner does not halve the time, and exactly how long a 1000-piece puzzle takes with four people:
+                <a href="{{ path('guide_puzzle_time_pairs_and_teams') }}">How long does a 1000-piece puzzle take with 2 people?</a>
             </p>
         {% endif %}
     {% endif %}
@@ -177,9 +212,9 @@
     <p>
         Every number on this page is computed from solve times recorded by real puzzlers on MySpeedPuzzling — timed with
         the built-in <a href="{{ path('stopwatch') }}">puzzle stopwatch</a> or entered manually and expressed as active
-        puzzling time. We count solo solves only (no pairs or teams), exclude entries flagged as implausible, and
-        exclude solves timed "from the unopened box", since unboxing and flipping pieces adds time that is not
-        comparable. Percentiles are computed per piece count, so a 500-piece solve is never mixed into the 1000-piece
+        puzzling time. The main numbers count solo solves only — pair and team times, recorded once per group, appear
+        only in their own comparison. We exclude entries flagged as implausible, and exclude solves timed "from the
+        unopened box", since unboxing and flipping pieces adds time that is not comparable. Percentiles are computed per piece count, so a 500-piece solve is never mixed into the 1000-piece
         statistics. You can read more about how MySpeedPuzzling computes community statistics on our
         <a href="{{ path('methodology') }}">methodology page</a>.
     </p>

@@ -24,14 +24,14 @@ final class GuideSpeedPuzzlingTipsController extends AbstractController
     #[Route(path: '/en/guides/speed-puzzling-tips', name: 'guide_speed_puzzling_tips', defaults: ['_locale' => 'en'])]
     public function __invoke(): Response
     {
-        $distributions = $this->solveTimeDistributionProvider->forStandardPiecesBuckets();
+        $solo = $this->solveTimeDistributionProvider->snapshot();
 
         return $this->render('guides/speed_puzzling_tips.html.twig', [
-            'distributions' => $distributions,
+            'distributions' => $solo->distributions,
             'guide_title' => $this->translator->trans('guides.tips.title', locale: 'en'),
             'guide_description' => $this->translator->trans('guides.tips.meta_description', locale: 'en'),
             'guide_published' => '2026-07-11',
-            'guide_modified' => '2026-07-11',
+            'guide_modified' => $solo->computedAt->format('Y-m-d'),
         ]);
     }
 }

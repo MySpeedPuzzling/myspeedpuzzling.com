@@ -1,0 +1,46 @@
+{% extends 'guides/how_long_by_pieces/_layout.html.twig' %}
+
+{% block size_intro %}
+    <p>
+        500 pieces is the standard size of speed puzzling. The individual rounds of the World Jigsaw Puzzle Championship
+        and most national championships are raced on 500-piece puzzles, which makes it the size puzzlers measure
+        themselves by — and the most-tracked size on MySpeedPuzzling: {{ distribution.solvesCount|number_format }} solo
+        solves, {{ (distribution.solvesCount / all_sizes_solves * 100)|round }}% of all recorded solves between 100 and
+        2000 pieces.
+    </p>
+{% endblock %}
+
+{% block size_callout %}
+    <div class="guide-callout">
+        <p>
+            Keep in mind whose times these are: puzzlers who choose to track their solves on a speed puzzling site, on
+            the size they race. The median of {{ distribution.medianSeconds|compactTime }} is their pace — and even among
+            them, one solve in ten takes longer than {{ distribution.p90Seconds|compactTime }}.
+        </p>
+    </div>
+{% endblock %}
+
+{% block size_factors %}
+    <ul class="guide-list">
+        <li>
+            <strong>An unseen puzzle.</strong> Competitions hand out a puzzle nobody has seen before, so the benchmark
+            that matters is the first-attempt median above, not the overall one.
+        </li>
+        <li>
+            <strong>Sorting as part of the race.</strong> Competitive puzzlers do not treat sorting as a warm-up: every
+            piece face-up, edges out, colour groups made, and only then building. It feels slow and wins time — a
+            half-sorted table means every search costs double. The
+            <a href="{{ path('guide_speed_puzzling_tips') }}">speed puzzling tips</a> go through the whole routine.
+        </li>
+        <li>
+            <strong>Practice on the same size.</strong> 500 pieces is big enough to exercise a full strategy and small
+            enough to finish in one focused session, so you can time yourself often. If you want a target: the top 10%
+            of recorded solves finish under {{ distribution.p10Seconds|compactTime }}.
+        </li>
+    </ul>
+{% endblock %}
+
+{% block size_next_steps %}
+    Then see where you would rank on the <a href="{{ path('ladder_solo_500_pieces', {_locale: 'en'}) }}">500-piece
+    solo leaderboard</a>.
+{% endblock %}

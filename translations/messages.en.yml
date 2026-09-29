@@ -3381,6 +3381,8 @@ guides:
         intro: "Written by the speed puzzling community, backed by real tracked solve times — not guesses."
         read_guide: "Read the guide"
         footnote: "All statistics in these guides are computed from solves recorded on MySpeedPuzzling and refresh automatically as the community tracks new times."
+        by_size_title: "How long does a puzzle take? Pick a size"
+        by_size_description: "Measured median times, typical ranges, first attempts and pair and team comparisons for every standard puzzle size."
     what_is:
         title: "What Is Speed Puzzling?"
         meta_description: "Speed puzzling is jigsaw puzzling against the clock. Learn how competitions like the WJPC work, what times are typical, and how to get started."
@@ -3390,6 +3392,19 @@ guides:
         meta_description: "Measured across %count% recorded solo solves: the median 1000-piece puzzle takes %median%. Real percentiles and fastest times, by piece count."
         meta_description_fallback: "The only data-backed answer online: median times, percentiles and fastest recorded solves by piece count, from real tracked solves."
         card_description: "Real data, not guesses: median times, percentiles, and fastest recorded results by piece count."
+    how_long_pieces:
+        title: "How Long Does a %pieces%-Piece Puzzle Take?"
+        meta_description: "Measured across %count% timed solo solves: a %pieces%-piece jigsaw puzzle takes a median %median%. Typical range, first attempts, pairs vs. teams."
+    how_long_pairs:
+        title: "1000-Piece Puzzle With 2 People: How Long?"
+        meta_description: "From %count% timed pair solves: two people finish a 1000-piece puzzle in a median %median%, vs. %solo_median% solo. Plus teams of 4 and 500 pieces."
+        meta_description_fallback: "How much faster two people or a team of four finish a 500- or 1000-piece puzzle, measured from real timed solves instead of guessed."
+        card_description: "Solo, two people or a team of four? Measured pair and team times for 500 and 1000 pieces."
+    average:
+        title: "Average Jigsaw Puzzle Time by Piece Count"
+        meta_description: "Median times from %count% timed solo solves: 500 pieces take %median_500%, 1000 pieces %median_1000%. Every size from 100 to 2000 pieces, solo, pairs and teams."
+        meta_description_fallback: "Median jigsaw puzzle times for every standard size from 100 to 2000 pieces - solo, pairs and teams - measured from real timed solves."
+        card_description: "One table for every size from 100 to 2000 pieces: measured solo, pair and team medians."
     tips:
         title: "Speed Puzzling Tips: How to Get Faster"
         meta_description: "Ten practical speed puzzling tips used by competitive puzzlers — sorting, edges, color blocking, setup, and how to measure real progress."

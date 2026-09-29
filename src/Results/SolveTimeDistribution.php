@@ -6,6 +6,10 @@ namespace SpeedPuzzling\Web\Results;
 
 readonly final class SolveTimeDistribution
 {
+    /**
+     * @param int $playersCount Distinct solvers: players for solo, pairs/teams (the exact set of people) for group types
+     * @param null|int $notFirstAttemptMedianSeconds Solves not marked as a first attempt: repeats, plus first attempts nobody marked
+     */
     public function __construct(
         public int $piecesCount,
         public int $solvesCount,
@@ -18,6 +22,8 @@ readonly final class SolveTimeDistribution
         public int $fastestSeconds,
         public null|int $firstAttemptMedianSeconds,
         public int $firstAttemptCount,
+        public null|int $notFirstAttemptMedianSeconds,
+        public int $notFirstAttemptCount,
     ) {
     }
 
@@ -34,6 +40,8 @@ readonly final class SolveTimeDistribution
      *     fastest_seconds: int,
      *     first_attempt_median_seconds: null|float,
      *     first_attempt_count: int,
+     *     not_first_attempt_median_seconds: null|float,
+     *     not_first_attempt_count: int,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -52,6 +60,26 @@ readonly final class SolveTimeDistribution
                 ? (int) round($row['first_attempt_median_seconds'])
                 : null,
             firstAttemptCount: $row['first_attempt_count'],
+            notFirstAttemptMedianSeconds: $row['not_first_attempt_median_seconds'] !== null
+                ? (int) round($row['not_first_attempt_median_seconds'])
+                : null,
+            notFirstAttemptCount: $row['not_first_attempt_count'],
         );
+    }
+
+    /**
+     * Median active puzzling time per piece, e.g. 7.8 for a 500-piece median of 1h 5min.
+     */
+    public function medianSecondsPerPiece(): float
+    {
+        return $this->medianSeconds / max(1, $this->piecesCount);
+    }
+
+    /**
+     * How many times faster this median is than the other one (e.g. a pair vs. solo), 1 decimal.
+     */
+    public function speedUpOver(self $slower): float
+    {
+        return round($slower->medianSeconds / max(1, $this->medianSeconds), 1);
     }
 }

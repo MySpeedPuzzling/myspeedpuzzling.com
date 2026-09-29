@@ -1,0 +1,18 @@
+{# A duration in words for running text: "3 hours 15 minutes", "38 minutes", "8 minutes 48 seconds". #}
+{% macro duration_words(seconds) -%}
+    {%- set hours = seconds // 3600 -%}
+    {%- set minutes = (seconds % 3600) // 60 -%}
+    {%- set remainingSeconds = seconds % 60 -%}
+    {%- if hours > 0 -%}
+        {{ hours }} hour{{ hours == 1 ? '' : 's' }}{% if minutes > 0 %} {{ minutes }} minute{{ minutes == 1 ? '' : 's' }}{% endif %}
+    {%- elseif minutes >= 10 or remainingSeconds == 0 -%}
+        {{ minutes }} minute{{ minutes == 1 ? '' : 's' }}
+    {%- else -%}
+        {{ minutes }} minute{{ minutes == 1 ? '' : 's' }} {{ remainingSeconds }} second{{ remainingSeconds == 1 ? '' : 's' }}
+    {%- endif -%}
+{%- endmacro %}
+
+{# "1.9× as fast as one person" - how many times faster the faster median is. #}
+{% macro speed_up(faster, slower) -%}
+    {{- faster.speedUpOver(slower)|number_format(1) -}}&times;
+{%- endmacro %}

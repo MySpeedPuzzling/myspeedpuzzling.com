@@ -1,0 +1,38 @@
+{% extends 'guides/how_long_by_pieces/_layout.html.twig' %}
+
+{% block size_intro %}
+    <p>
+        A 100-piece jigsaw is the sprint of the puzzle world. It is the classic size for children's puzzles and a quick
+        family activity — and for adults, the quickest puzzle you are likely to time, short enough to do several in one
+        evening. Here is how long it really takes, measured instead of guessed.
+    </p>
+{% endblock %}
+
+{% block size_callout %}
+    <div class="guide-callout">
+        <p>
+            With a median of {{ distribution.medianSeconds|compactTime }}, the setup is a real part of the time: turning
+            100 pieces face-up takes the same minute or two however fast you build. If you want a faster time, flip and
+            pull out the edge pieces in one pass instead of two.
+        </p>
+    </div>
+{% endblock %}
+
+{% block size_factors %}
+    <ul class="guide-list">
+        <li>
+            <strong>Piece size.</strong> Children's 100-piece puzzles often use extra-large pieces. They are easy to see
+            and pick up, but the finished picture can be as big as a 500-piece puzzle, so you reach further for every
+            piece.
+        </li>
+        <li>
+            <strong>Bold pictures.</strong> Many 100-piece puzzles show cartoon or character art with clear blocks of
+            colour, and those go together fast. A 100-piece photo of sky, sea or a single-colour pattern is a different
+            puzzle altogether, even though the piece count is the same.
+        </li>
+        <li>
+            <strong>Hands, not planning.</strong> With so few pieces there is little to sort. Most of the time goes into
+            picking up, trying and placing, so a clear table and pieces within reach matter more than any strategy.
+        </li>
+    </ul>
+{% endblock %}

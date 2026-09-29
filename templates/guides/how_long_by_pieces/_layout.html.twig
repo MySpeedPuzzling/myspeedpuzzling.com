@@ -1,0 +1,211 @@
+{% extends 'guides/_guide_base.html.twig' %}
+
+{# Shared frame of the "How long does a {N}-piece puzzle take?" guides. Every number
+   is live; each size's own template ({N}.html.twig) supplies the prose that is true
+   for that size only: size_intro, size_callout and size_factors. #}
+
+{% import 'guides/_macros.html.twig' as guide %}
+
+{% block guide_header %}
+    <h1 class="guide-hero-title">How Long Does a {{ pieces }}-Piece Puzzle Take?</h1>
+
+    <p class="guide-hero-lead">
+        <strong>Across {{ distribution.solvesCount|number_format }} solo solves recorded on MySpeedPuzzling, the median time
+        to finish a {{ pieces }}-piece jigsaw puzzle is {{ guide.duration_words(distribution.medianSeconds) }}.</strong>
+        Half of all recorded solves land between {{ distribution.p25Seconds|compactTime }} and
+        {{ distribution.p75Seconds|compactTime }}, and nine out of ten are done within {{ distribution.p90Seconds|compactTime }}.
+    </p>
+{% endblock %}
+
+{% block guide_content %}
+    {% block size_intro %}{% endblock %}
+
+    <h2>The {{ pieces }}-piece answer, in numbers</h2>
+
+    <div class="guide-scoreboard">
+        <p class="guide-scoreboard-eyebrow"><span class="guide-live-dot" aria-hidden="true"></span>{{ 'guides.ui.data_note'|trans }}</p>
+
+        <div class="guide-scoreboard-main">
+            <span class="guide-stat-number guide-stat-number-big">{{ distribution.medianSeconds|compactTime }}</span>
+            <span class="guide-stat-label">Median time</span>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-6 col-md-3">
+                <span class="guide-stat-number">{{ distribution.p25Seconds|compactTime }}–{{ distribution.p75Seconds|compactTime }}</span>
+                <span class="guide-stat-label">Typical range (middle 50%)</span>
+            </div>
+            <div class="col-6 col-md-3">
+                <span class="guide-stat-number">{{ distribution.p90Seconds|compactTime }}</span>
+                <span class="guide-stat-label">90% finish within</span>
+            </div>
+            <div class="col-6 col-md-2">
+                <span class="guide-stat-number">{{ distribution.fastestSeconds|compactTime }}</span>
+                <span class="guide-stat-label">Fastest recorded</span>
+            </div>
+            <div class="col-6 col-md-2">
+                <span class="guide-stat-number">{{ distribution.solvesCount|number_format }}</span>
+                <span class="guide-stat-label">Recorded solves</span>
+            </div>
+            <div class="col-12 col-md-2">
+                <span class="guide-stat-number">{{ distribution.playersCount|number_format }}</span>
+                <span class="guide-stat-label">Puzzlers measured</span>
+            </div>
+        </div>
+    </div>
+
+    {% block size_callout %}{% endblock %}
+
+    <h2>What counts as fast for {{ pieces }} pieces?</h2>
+
+    <p>
+        Finishing a {{ pieces }}-piece puzzle under {{ distribution.p25Seconds|compactTime }} puts you in the fastest quarter
+        of recorded solves, and under {{ distribution.p10Seconds|compactTime }} in the top 10%. The fastest solo
+        {{ pieces }}-piece solve on MySpeedPuzzling stands at {{ distribution.fastestSeconds|compactTime }}. On the slow side,
+        one solve in ten takes longer than {{ distribution.p90Seconds|compactTime }} — a relaxed pace, a hard image or a
+        first puzzle in years all count, and none of them is a wrong way to do a puzzle.
+    </p>
+
+    {% if distribution.firstAttemptMedianSeconds is not null and distribution.notFirstAttemptMedianSeconds is not null %}
+        {% set firstAttempt = distribution.firstAttemptMedianSeconds %}
+        {% set otherAttempts = distribution.notFirstAttemptMedianSeconds %}
+
+        <h2>First attempt vs. repeat solves</h2>
+
+        <p>
+            Puzzlers can mark a solve as their very first time on that puzzle. The
+            {{ distribution.firstAttemptCount|number_format }} {{ pieces }}-piece solves marked that way have a median of
+            {{ firstAttempt|compactTime }}. The other {{ distribution.notFirstAttemptCount|number_format }} — repeat solves,
+            plus first attempts nobody marked — have a median of {{ otherAttempts|compactTime }}.
+            {% if otherAttempts < firstAttempt * 0.95 %}
+                That is about {{ ((1 - otherAttempts / firstAttempt) * 100)|round }}% faster: once you know the picture,
+                you remember the tricky areas and where to start. If you are timing a puzzle you have never seen, compare
+                yourself with the first-attempt number.
+            {% elseif otherAttempts > firstAttempt * 1.05 %}
+                At this size the solves not marked as a first attempt are the slower group, so a repeat does not buy a
+                clear speed-up in our data.
+            {% else %}
+                At this size the two medians are practically the same: in our data, a repeat does not make a
+                {{ pieces }}-piece puzzle clearly faster.
+            {% endif %}
+        </p>
+    {% endif %}
+
+    <h2>Solo, pair or team?</h2>
+
+    {% if duo or team %}
+        <p>
+            {% if duo %}
+                Two people finish a {{ pieces }}-piece puzzle in a median {{ duo.medianSeconds|compactTime }},
+                {{ guide.speed_up(duo, distribution) }} as fast as one person{% if duo.speedUpOver(distribution) < 2 %} —
+                not twice as fast, because two people share one picture, one border and one pile of pieces{% endif %}.
+            {% endif %}
+            {% if team %}
+                Teams of three or more need {{ team.medianSeconds|compactTime }} ({{ guide.speed_up(team, distribution) }}
+                as fast as solo).
+            {% endif %}
+            {% if duo is null %}
+                Pairs have fewer than {{ constant('SpeedPuzzling\\Web\\Services\\PuzzleTimeGuides::MINIMUM_GROUP_SOLVES') }}
+                recorded {{ pieces }}-piece solves so far, too few to publish a median.
+            {% elseif team is null %}
+                Teams have fewer than {{ constant('SpeedPuzzling\\Web\\Services\\PuzzleTimeGuides::MINIMUM_GROUP_SOLVES') }}
+                recorded {{ pieces }}-piece solves so far, too few to publish a median.
+            {% endif %}
+        </p>
+
+        {{ include('guides/_group_comparison.html.twig', {pieces: pieces, solo: distribution, duo: duo, team: team}) }}
+    {% else %}
+        <p>
+            Pairs and teams rarely time a {{ pieces }}-piece puzzle: each has fewer than
+            {{ constant('SpeedPuzzling\\Web\\Services\\PuzzleTimeGuides::MINIMUM_GROUP_SOLVES') }} recorded solves at this
+            size, too few to publish a median.
+        </p>
+    {% endif %}
+
+    <p>
+        How much a second person — or a team of four — really saves on the sizes groups race most:
+        <a href="{{ path('guide_puzzle_time_pairs_and_teams') }}">how long a 1000-piece puzzle takes with 2 people</a>.
+    </p>
+
+    {% if smaller or larger %}
+        <h2>{{ pieces }} pieces next to other sizes</h2>
+
+        <p>
+            {% if smaller %}
+                A {{ smaller.piecesCount }}-piece puzzle takes a median {{ smaller.medianSeconds|compactTime }}, so going
+                up to {{ pieces }} pieces multiplies the time by {{ (distribution.medianSeconds / smaller.medianSeconds)|number_format(1) }}.
+            {% endif %}
+            {% if larger %}
+                Moving up to {{ larger.piecesCount }} pieces takes it to {{ larger.medianSeconds|compactTime }} —
+                {{ (larger.medianSeconds / distribution.medianSeconds)|number_format(1) }}&times; the {{ pieces }}-piece median.
+            {% endif %}
+            At {{ pieces }} pieces the median solver spends {{ distribution.medianSecondsPerPiece|number_format(1) }} seconds
+            per piece{% if larger and larger.medianSecondsPerPiece > distribution.medianSecondsPerPiece %}; at
+            {{ larger.piecesCount }} pieces it is {{ larger.medianSecondsPerPiece|number_format(1) }}, because every extra
+            piece adds more places to look{% elseif smaller and smaller.medianSecondsPerPiece < distribution.medianSecondsPerPiece %},
+            up from {{ smaller.medianSecondsPerPiece|number_format(1) }} at {{ smaller.piecesCount }} pieces — every extra
+            piece adds more places to look{% endif %}.
+        </p>
+
+        <div class="guide-table-card mb-2">
+            <div class="table-responsive">
+                <table class="table table-striped guide-table mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Pieces</th>
+                            <th scope="col">Median time</th>
+                            <th scope="col">Seconds per piece</th>
+                            <th scope="col" class="text-end">Recorded solves</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in [smaller, distribution, larger]|filter(row => row is not null) %}
+                            <tr{% if row.piecesCount == pieces %} class="guide-table-highlight"{% endif %}>
+                                <th scope="row">
+                                    {% if row.piecesCount != pieces and guide_paths[row.piecesCount] is defined %}
+                                        <a href="{{ guide_paths[row.piecesCount] }}">{{ row.piecesCount|number_format }}</a>
+                                    {% else %}
+                                        {{ row.piecesCount|number_format }}
+                                    {% endif %}
+                                </th>
+                                <td>{{ row.medianSeconds|compactTime }}</td>
+                                <td>{{ row.medianSecondsPerPiece|number_format(1) }}</td>
+                                <td class="text-end">{{ row.solvesCount|number_format }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <p class="text-muted fs-sm">
+            Solo solves only. Every size from 100 to 2000 pieces side by side:
+            <a href="{{ path('guide_average_puzzle_time') }}">average puzzle time by piece count</a>.
+        </p>
+    {% endif %}
+
+    <h2>What changes your {{ pieces }}-piece time</h2>
+
+    {% block size_factors %}{% endblock %}
+
+    <h2>Find out how long it takes <em>you</em></h2>
+
+    <p>
+        The median is the community's answer — yours takes one puzzle and a stopwatch. Time your next solve with the
+        free <a href="{{ path('stopwatch') }}">MySpeedPuzzling stopwatch</a>, which pauses when you take a break, then
+        look up your puzzle among the <a href="{{ path('pieces_puzzles', {pieces: pieces, _locale: 'en'}) }}">{{ pieces }}-piece puzzles
+        in our database</a> and compare your time with everyone else who solved that exact puzzle.
+        {% block size_next_steps %}{% endblock %}
+    </p>
+
+    <h2>How we measured this</h2>
+
+    <p>
+        Every number on this page is computed from solo solves of {{ pieces }}-piece puzzles recorded on MySpeedPuzzling,
+        timed with the built-in stopwatch or entered by hand as active puzzling time. We leave out solves flagged as
+        implausible, times faster than 0.6 seconds per piece (typos, mostly), and solves timed from the unopened box.
+        The statistics refresh automatically as the community tracks new solves; the
+        <a href="{{ path('methodology') }}">methodology page</a> explains how MySpeedPuzzling computes community
+        statistics, and the <a href="{{ path('guide_puzzle_time_by_pieces') }}">1000-piece guide</a> covers the
+        classic 1000-piece puzzle in depth.
+    </p>
+{% endblock %}

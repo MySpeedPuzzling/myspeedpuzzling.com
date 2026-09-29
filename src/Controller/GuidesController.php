@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Services\PuzzleTimeGuides;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -38,6 +39,7 @@ final class GuidesController extends AbstractController
 {
     public function __construct(
         readonly private TranslatorInterface $translator,
+        readonly private PuzzleTimeGuides $puzzleTimeGuides,
     ) {
     }
 
@@ -47,6 +49,7 @@ final class GuidesController extends AbstractController
         return $this->render('guides/index.html.twig', [
             'guide_title' => $this->translator->trans('guides.index.title', locale: 'en'),
             'guide_description' => $this->translator->trans('guides.index.meta_description', locale: 'en'),
+            'guide_paths' => $this->puzzleTimeGuides->paths(),
         ]);
     }
 }

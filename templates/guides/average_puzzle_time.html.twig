@@ -1,0 +1,148 @@
+{% extends 'guides/_guide_base.html.twig' %}
+
+{% import 'guides/_macros.html.twig' as guide %}
+
+{% block guide_header %}
+    <h1 class="guide-hero-title">Average Puzzle Time by Piece Count</h1>
+
+    {% if solo500 and solo1000 %}
+        <p class="guide-hero-lead">
+            <strong>A 500-piece jigsaw puzzle takes a median {{ guide.duration_words(solo500.medianSeconds) }}, a 1000-piece
+            puzzle {{ guide.duration_words(solo1000.medianSeconds) }}</strong> — measured across
+            {{ total_solo_solves|number_format }} timed solo solves on MySpeedPuzzling. Here is every standard size from 100
+            to 2000 pieces, for one person, a pair and a team.
+        </p>
+    {% else %}
+        <p class="guide-hero-lead">
+            Median solve times for every standard size from 100 to 2000 pieces — for one person, a pair and a team —
+            measured from real timed solves, not guessed.
+        </p>
+    {% endif %}
+{% endblock %}
+
+{% block guide_content %}
+    <p>
+        Ask how long a puzzle takes and you usually get a guess. This table is not one: every number is computed from
+        solves the speed puzzling community timed and recorded on MySpeedPuzzling, and it refreshes as new solves come
+        in. Pick a size to open its own guide with the full breakdown.
+    </p>
+
+    {% if rows is not empty %}
+        <h2>Puzzle time by piece count</h2>
+
+        <div class="guide-table-card mb-2">
+            <div class="table-responsive">
+                <table class="table table-striped guide-table mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Pieces</th>
+                            <th scope="col">Solo median</th>
+                            <th scope="col">Solo middle 50%</th>
+                            <th scope="col">Pair median</th>
+                            <th scope="col">Team median</th>
+                            <th scope="col" class="text-end">Solo solves</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            <tr>
+                                <th scope="row">
+                                    {% if guide_paths[row.pieces] is defined %}
+                                        <a href="{{ guide_paths[row.pieces] }}">{{ row.pieces|number_format }} pieces</a>
+                                    {% else %}
+                                        {{ row.pieces|number_format }} pieces
+                                    {% endif %}
+                                </th>
+                                <td>{{ row.solo.medianSeconds|compactTime }}</td>
+                                <td>{{ row.solo.p25Seconds|compactTime }} – {{ row.solo.p75Seconds|compactTime }}</td>
+                                <td>{{ row.duo ? row.duo.medianSeconds|compactTime : '–' }}</td>
+                                <td>{{ row.team ? row.team.medianSeconds|compactTime : '–' }}</td>
+                                <td class="text-end">{{ row.solo.solvesCount|number_format }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <p class="text-muted fs-sm">
+            Active puzzling time. A pair is two people, a team three or more; "–" means fewer than
+            {{ constant('SpeedPuzzling\\Web\\Services\\PuzzleTimeGuides::MINIMUM_GROUP_SOLVES') }} recorded group solves at
+            that size, too few for a median. Sizes appear once they have
+            {{ constant('SpeedPuzzling\\Web\\Services\\PuzzleTimeGuides::MINIMUM_SOLO_SOLVES') }} recorded solo solves.
+        </p>
+
+        {% set smallest = rows|first %}
+        {% set largest = rows|last %}
+
+        {% if smallest.pieces != largest.pieces %}
+            <h2>Why time grows faster than piece count</h2>
+
+            <p>
+                {% set piecesRatio = (largest.pieces / smallest.pieces)|round %}
+                {% if largest.solo.medianSecondsPerPiece > smallest.solo.medianSecondsPerPiece %}
+                    Going from {{ smallest.pieces }} to {{ largest.pieces|number_format }} pieces multiplies the pieces by
+                    {{ piecesRatio }}, but the median time by {{ (largest.solo.medianSeconds / smallest.solo.medianSeconds)|round }}.
+                {% endif %}
+                At {{ smallest.pieces }} pieces the median solver spends
+                {{ smallest.solo.medianSecondsPerPiece|number_format(1) }} seconds per piece; at
+                {{ largest.pieces|number_format }} pieces it is {{ largest.solo.medianSecondsPerPiece|number_format(1) }}.
+                Every extra piece adds more places to look, sorting takes longer, and on a big puzzle each piece carries a
+                smaller part of the picture, so it gives you less to go on.
+                {% if solo500 and solo1000 %}
+                    The jump from 500 to 1000 pieces shows it best: double the pieces, but
+                    {{ (solo1000.medianSeconds / solo500.medianSeconds)|number_format(1) }}&times; the median time.
+                {% endif %}
+            </p>
+
+            <p>
+                Part of the difference is also who solves what. 500 pieces is the size speed puzzlers race, so its median
+                reflects a lot of practised solvers; far fewer people time a 1500- or 2000-piece puzzle. Each size's median
+                is honest for that size — just keep in mind it describes the puzzlers who solve it.
+            </p>
+        {% endif %}
+    {% endif %}
+
+    <h2>Median, not average — on purpose</h2>
+
+    <p>
+        This page answers "what is the average puzzle time", but the numbers are medians: the time half of all solves
+        beat. Solve times are lopsided: most solves cluster together, and a long tail of much slower ones — a relaxed
+        pace, a hard image — pulls the arithmetic mean upwards. The median ignores how far that tail reaches, so it
+        stays a fair "typical" time. The middle 50% column shows how wide the typical range is.
+    </p>
+
+    <h2>Solo, in a pair, or as a team</h2>
+
+    <p>
+        {% set pairSpeedUps = rows|filter(row => row.duo is not null)|map(row => row.duo.speedUpOver(row.solo)) %}
+        {% if pairSpeedUps is not empty %}
+            {% if min(pairSpeedUps) > 1 and max(pairSpeedUps) < 2 %}
+                A second person makes every size faster, but never twice as fast:
+            {% endif %}
+            pairs are between {{ min(pairSpeedUps)|number_format(1) }}&times; and
+            {{ max(pairSpeedUps)|number_format(1) }}&times; as fast as one person, depending on the size.
+        {% endif %}
+        How much a partner really saves on 500 and 1000 pieces — and what four people manage — is in
+        <a href="{{ path('guide_puzzle_time_pairs_and_teams') }}">how long a 1000-piece puzzle takes with 2 people</a>.
+    </p>
+
+    <h2>How we measured this</h2>
+
+    <p>
+        We count solves recorded on MySpeedPuzzling as active puzzling time — timed with the built-in
+        <a href="{{ path('stopwatch') }}">stopwatch</a>, which pauses during breaks, or entered by hand. We leave out solves
+        flagged as implausible, times faster than 0.6 seconds per piece, and solves timed from the unopened box, and we
+        compute every size separately. A pair or team time is recorded once per group. The
+        <a href="{{ path('methodology') }}">methodology page</a> explains how MySpeedPuzzling computes its community
+        statistics.
+    </p>
+
+    <h2>Find out where you fit</h2>
+
+    <p>
+        Time your next puzzle with the free <a href="{{ path('stopwatch') }}">MySpeedPuzzling stopwatch</a>, then look it
+        up in the <a href="{{ path('puzzles') }}">puzzle database</a> to compare your time with everyone who solved the
+        same puzzle. The classic 1000-piece puzzle has its own in-depth guide:
+        <a href="{{ path('guide_puzzle_time_by_pieces') }}">how long does a 1000-piece puzzle take?</a>
+    </p>
+{% endblock %}

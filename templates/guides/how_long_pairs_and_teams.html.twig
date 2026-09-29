@@ -1,0 +1,223 @@
+{% extends 'guides/_guide_base.html.twig' %}
+
+{% import 'guides/_macros.html.twig' as guide %}
+
+{% block guide_header %}
+    {% set solo = sizes[1000].solo %}
+    {% set duo = sizes[1000].duo %}
+
+    <h1 class="guide-hero-title">How Long Does a 1000-Piece Puzzle Take With 2 People?</h1>
+
+    {% if solo and duo %}
+        <p class="guide-hero-lead">
+            <strong>Two people finish a 1000-piece jigsaw puzzle in a median {{ guide.duration_words(duo.medianSeconds) }}
+            — {{ guide.speed_up(duo, solo) }} as fast as one person, who needs {{ guide.duration_words(solo.medianSeconds) }}.</strong>
+            Measured across {{ duo.solvesCount|number_format }} pair solves recorded on MySpeedPuzzling, next to
+            {{ solo.solvesCount|number_format }} solo solves of the same size.
+        </p>
+    {% else %}
+        <p class="guide-hero-lead">
+            Two people are faster than one — but not twice as fast. This guide compares measured solo, pair and team
+            times for 500- and 1000-piece puzzles as soon as enough of them are recorded.
+        </p>
+    {% endif %}
+{% endblock %}
+
+{% block guide_content %}
+    {% set s500 = sizes[500] %}
+    {% set s1000 = sizes[1000] %}
+
+    <p>
+        It is tempting to answer this by halving the solo time. The data says otherwise: two people do get faster, but
+        they also get in each other's way. The numbers on this page come from real pair and team solves timed by the
+        speed puzzling community — the only large collection of measured group times we know of.
+    </p>
+
+    {% if s1000.duo %}
+        <h2>The 2-person answer, in numbers</h2>
+
+        <div class="guide-scoreboard">
+            <p class="guide-scoreboard-eyebrow"><span class="guide-live-dot" aria-hidden="true"></span>{{ 'guides.ui.data_note'|trans }}</p>
+
+            <div class="guide-scoreboard-main">
+                <span class="guide-stat-number guide-stat-number-big">{{ s1000.duo.medianSeconds|compactTime }}</span>
+                <span class="guide-stat-label">Median pair time, 1000 pieces</span>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-6 col-md-3">
+                    <span class="guide-stat-number">{{ s1000.duo.p25Seconds|compactTime }}–{{ s1000.duo.p75Seconds|compactTime }}</span>
+                    <span class="guide-stat-label">Typical range (middle 50%)</span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <span class="guide-stat-number">{{ s1000.duo.p90Seconds|compactTime }}</span>
+                    <span class="guide-stat-label">90% finish within</span>
+                </div>
+                <div class="col-6 col-md-2">
+                    <span class="guide-stat-number">{{ s1000.duo.fastestSeconds|compactTime }}</span>
+                    <span class="guide-stat-label">Fastest recorded</span>
+                </div>
+                <div class="col-6 col-md-2">
+                    <span class="guide-stat-number">{{ s1000.duo.solvesCount|number_format }}</span>
+                    <span class="guide-stat-label">Recorded pair solves</span>
+                </div>
+                <div class="col-12 col-md-2">
+                    <span class="guide-stat-number">{{ s1000.duo.playersCount|number_format }}</span>
+                    <span class="guide-stat-label">Pairs measured</span>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <h2>Why two people are not twice as fast</h2>
+
+    {% if s1000.solo and s1000.duo %}
+        <p>
+            Halving the solo median would give {{ (s1000.solo.medianSeconds // 2)|compactTime }}. Real pairs need
+            {{ s1000.duo.medianSeconds|compactTime }}, so together they put in {{ (2 * s1000.duo.medianSeconds)|compactTime }}
+            of combined puzzling time —
+            {% if 2 * s1000.duo.medianSeconds > s1000.solo.medianSeconds %}more than{% else %}no more than{% endif %}
+            the {{ s1000.solo.medianSeconds|compactTime }} one person spends alone. A partner buys speed, not efficiency.
+            {% if s500.solo and s500.duo and s1000.duo.speedUpOver(s1000.solo) > s500.duo.speedUpOver(s500.solo) %}
+                A partner helps more on 1000 pieces ({{ guide.speed_up(s1000.duo, s1000.solo) }} as fast) than on 500
+                ({{ guide.speed_up(s500.duo, s500.solo) }}), where there is less room to work on different parts at once.
+            {% endif %}
+        </p>
+    {% endif %}
+
+    <ul class="guide-list">
+        <li>
+            <strong>One pile, two searchers.</strong> Both people look through the same loose pieces, and a piece your
+            partner is holding is a piece you cannot find.
+        </li>
+        <li>
+            <strong>Crowded moments.</strong> The border and the final stretch leave little room for two people at once;
+            the middle of the solve is where a second person pays off.
+        </li>
+        <li>
+            <strong>Talking costs time — and saves more.</strong> "I'm on the red roof" is the difference between two
+            people solving one puzzle and two people solving the same corner.
+        </li>
+    </ul>
+
+    <div class="guide-callout">
+        <p>
+            Fast pairs divide the picture, not the jobs: each takes their own colour areas and sorts for them, and they
+            meet in the middle. Two people working the same area mostly get in each other's way.
+        </p>
+    </div>
+
+    {% if s1000.solo %}
+        <h2>1000 pieces: solo vs. pair vs. team</h2>
+
+        {{ include('guides/_group_comparison.html.twig', {pieces: 1000, solo: s1000.solo, duo: s1000.duo, team: s1000.team}) }}
+    {% endif %}
+
+    <h2>How long does a 1000-piece puzzle take with 4 people?</h2>
+
+    <p>
+        On MySpeedPuzzling a "team" is any group of three or more puzzlers.
+        {% if s1000.team and s1000.four and s1000.four.solvesCount * 2 > s1000.team.solvesCount %}
+            Four is the most common team size for 1000 pieces —
+            {{ (s1000.four.solvesCount / s1000.team.solvesCount * 100)|round }}% of the recorded 1000-piece team solves are
+            groups of exactly four, the same line-up as the team category of the World Jigsaw Puzzle Championship.
+        {% else %}
+            The team category of the World Jigsaw Puzzle Championship is four puzzlers on a 1000-piece puzzle.
+        {% endif %}
+        {% if s1000.four %}
+            Teams of four finish a 1000-piece puzzle in a median {{ guide.duration_words(s1000.four.medianSeconds) }}
+            ({{ s1000.four.solvesCount|number_format }} solves){% if s1000.solo %} — {{ guide.speed_up(s1000.four, s1000.solo) }}
+            as fast as one person{% endif %}.
+            {% if s1000.three %}
+                Groups of three need {{ s1000.three.medianSeconds|compactTime }}{% if s1000.four.medianSeconds < s1000.three.medianSeconds %},
+                so the fourth person saves about {{ (s1000.three.medianSeconds - s1000.four.medianSeconds)|compactTime }}{% endif %}.
+            {% endif %}
+        {% else %}
+            There are not enough recorded solves by teams of exactly four yet to publish their median.
+        {% endif %}
+    </p>
+
+    {% if s1000.solo or s500.solo %}
+        <div class="guide-table-card mb-2">
+            <div class="table-responsive">
+                <table class="table table-striped guide-table mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">People</th>
+                            <th scope="col">500 pieces</th>
+                            <th scope="col">1000 pieces</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in [
+                            {label: '1 (solo)', key: 'solo'},
+                            {label: '2 (pair)', key: 'duo'},
+                            {label: '3', key: 'three'},
+                            {label: '4', key: 'four'},
+                        ] %}
+                            <tr{% if row.key == 'four' %} class="guide-table-highlight"{% endif %}>
+                                <th scope="row">{{ row.label }}</th>
+                                {% for pieces in [500, 1000] %}
+                                    {% set cell = attribute(sizes[pieces], row.key) %}
+                                    <td>
+                                        {% if cell %}
+                                            {{ cell.medianSeconds|compactTime }}
+                                            <span class="text-muted fs-sm">({{ cell.solvesCount|number_format }} solves)</span>
+                                        {% else %}
+                                            –
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <p class="text-muted fs-sm">
+            Median times. Groups of five or more count as teams in the other tables; they are not shown separately here.
+        </p>
+    {% endif %}
+
+    <h2>And a 500-piece puzzle with 2 people?</h2>
+
+    <p>
+        {% if s500.solo and s500.duo %}
+            Two people finish a 500-piece puzzle in a median {{ guide.duration_words(s500.duo.medianSeconds) }}, against
+            {{ s500.solo.medianSeconds|compactTime }} solo — {{ guide.speed_up(s500.duo, s500.solo) }} as fast.
+            {% if s500.team %}
+                Teams of three or more bring it down to {{ s500.team.medianSeconds|compactTime }}.
+            {% endif %}
+        {% endif %}
+        500 pieces is also a competition size for pairs: at the World Jigsaw Puzzle Championship, pairs race 500-piece
+        puzzles up to the semifinal and a 1000-piece puzzle in the final.
+    </p>
+
+    {% if s500.solo %}
+        {{ include('guides/_group_comparison.html.twig', {pieces: 500, solo: s500.solo, duo: s500.duo, team: s500.team}) }}
+    {% endif %}
+
+    <h2>How we measured this</h2>
+
+    <p>
+        A pair or team time is recorded once per group, for the whole puzzle, with the same stopwatch and the same rules
+        as solo times: active puzzling time only, no solves flagged as implausible, none faster than 0.6 seconds per
+        piece, and none timed from the unopened box. Pairs are exactly two people; a team is three or more. A group
+        median is published only from {{ constant('SpeedPuzzling\\Web\\Services\\PuzzleTimeGuides::MINIMUM_GROUP_SOLVES') }}
+        recorded solves. More about how MySpeedPuzzling computes its statistics is on the
+        <a href="{{ path('methodology') }}">methodology page</a>.
+    </p>
+
+    <h2>Time your next pair or team solve</h2>
+
+    <p>
+        Start the free <a href="{{ path('stopwatch') }}">MySpeedPuzzling stopwatch</a> and add your partners when you save
+        the time. Then compare yourselves on the leaderboards for
+        <a href="{{ path('ladder_pairs_1000_pieces', {_locale: 'en'}) }}">1000-piece pairs</a>,
+        <a href="{{ path('ladder_pairs_500_pieces', {_locale: 'en'}) }}">500-piece pairs</a> and
+        <a href="{{ path('ladder_groups_1000_pieces', {_locale: 'en'}) }}">1000-piece teams</a>. Solo numbers for every size
+        are in the <a href="{{ path('guide_average_puzzle_time') }}">average puzzle time by piece count</a> table, and
+        {% if guide_paths[500] is defined %}the <a href="{{ guide_paths[500] }}">500-piece</a> and {% endif %}the
+        <a href="{{ path('guide_puzzle_time_by_pieces') }}">1000-piece</a> guides go deeper into solo times.
+    </p>
+{% endblock %}

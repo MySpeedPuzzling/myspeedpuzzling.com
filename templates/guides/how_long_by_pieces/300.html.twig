@@ -1,0 +1,42 @@
+{% extends 'guides/how_long_by_pieces/_layout.html.twig' %}
+
+{% block size_intro %}
+    <p>
+        300 pieces is the one-sitting puzzle: long enough to feel like a real puzzle, short enough to finish before
+        dinner. It is also a popular practice size among speed puzzlers — big enough to rehearse the whole routine of
+        flipping, sorting and building colour blocks, small enough to run it again the same week.
+    </p>
+{% endblock %}
+
+{% block size_callout %}
+    <div class="guide-callout">
+        <p>
+            {% if distribution.p75Seconds < 3600 %}
+                Three out of four recorded 300-piece solves finish within {{ distribution.p75Seconds|compactTime }}, so
+                most solves at this size stay under an hour.
+            {% else %}
+                Half of all recorded 300-piece solves finish within {{ distribution.medianSeconds|compactTime }}.
+            {% endif %}
+            If yours took much longer, look at the piece size first: many 300-piece puzzles for adults are made with
+            large pieces, which are easy on the eyes but spread over a lot more table.
+        </p>
+    </div>
+{% endblock %}
+
+{% block size_factors %}
+    <ul class="guide-list">
+        <li>
+            <strong>Large-piece formats.</strong> A large-piece 300 is a comfortable puzzle, not a fast one: more reaching,
+            fewer pieces within view at once. Compare times only between puzzles of a similar finished size.
+        </li>
+        <li>
+            <strong>A practised routine.</strong> The same three steps — everything face-up, edges out, colour groups —
+            decide a 500 or a 1000 too, and at 300 pieces you can rehearse them in about
+            {{ distribution.medianSeconds|compactTime }}. Get them smooth here and the bigger sizes follow.
+        </li>
+        <li>
+            <strong>Colour blocks over single pieces.</strong> At 300 pieces the picture usually splits into a handful
+            of clear areas. Building each area as its own small puzzle beats hunting for one specific piece.
+        </li>
+    </ul>
+{% endblock %}

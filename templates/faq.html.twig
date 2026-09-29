@@ -5,7 +5,7 @@
 
 {# Defined at top level so the JSON-LD and the visible accordion below cannot
    drift apart - they must answer every question identically. #}
-{% set faq_items = ['what_is_speed_puzzling', 'how_long_1000_pieces', 'how_competitions_work', 'physical_puzzles', 'fair_play', 'qr', 'add_time_for_missing_puzzle', 'edit_or_delete_time', 'button_start_solving', 'button_add_my_time', 'helping'] %}
+{% set faq_items = ['what_is_speed_puzzling', 'how_long_1000_pieces', 'how_competitions_work', 'physical_puzzles', 'fair_play', 'qr', 'add_time_for_missing_puzzle', 'edit_or_delete_time', 'button_start_solving', 'button_add_my_time', 'duplicate_accounts', 'instagram_sign_in', 'helping'] %}
 
 {# The 1000-piece answer quotes live community numbers. With no recorded solves
    to quote we drop the question entirely rather than publish an empty claim -
@@ -19,6 +19,7 @@
     '%guide_link%': path('guide_what_is_speed_puzzling'),
     '%times_guide_link%': path('guide_puzzle_time_by_pieces'),
     '%events_link%': path('events'),
+    '%edit_profile_link%': path('edit_profile'),
     '%median_1000%': median_1000,
     '%fast_1000%': fast_1000,
 } %}
@@ -55,9 +56,11 @@
         <a class="btn btn-outline-primary btn-sm" href="{{ path('getting_started') }}"><i class="bi bi-signpost-2 me-1"></i>{{ 'onboarding.guide.faq_link'|trans }}</a>
     </p>
 
-    <div class="accordion accordion-faq my-3">
+    {# Every question has a stable anchor (underscores become dashes, e.g.
+       faq#duplicate-accounts is linked from elsewhere) - faq_anchor opens it. #}
+    <div class="accordion accordion-faq my-3" data-controller="faq-anchor">
         {% for item in faq_items %}
-            <div class="accordion-item my-2 shadow">
+            <div class="accordion-item my-2 shadow" id="{{ item|replace({'_': '-'}) }}" style="scroll-margin-top: 6rem;">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#item-{{ item }}" aria-expanded="false" aria-controls="item-{{ item }}">
                         {{ ('faq.question_' ~ item)|trans(faq_params)|raw }}

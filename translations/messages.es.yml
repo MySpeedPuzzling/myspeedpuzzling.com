@@ -13,6 +13,7 @@
   "support_us": "Apóyanos"
   "terms_of_service": "Términos de servicio"
   "privacy_policy": "Política de privacidad"
+  "data_deletion": "Eliminación de datos"
   "membership": "Membresía"
   "search": "Buscar"
   "statistics": "Estadísticas"
@@ -821,6 +822,15 @@
   "answer_how_long_1000_pieces": "<p class=\"mb-0\">Según las resoluciones en solitario registradas en MySpeedPuzzling, el tiempo mediano para un puzzle de 1000 piezas es de alrededor de %median_1000%. Los speed puzzleros terminan habitualmente en menos de %fast_1000%, y los más rápidos muy por debajo. Consulta las <a href=\"%times_guide_link%\">estadísticas completas por número de piezas</a> (en inglés) para medianas, percentiles y récords.</p>\n"
   "question_how_competitions_work": "¿Cómo funcionan los campeonatos de speed puzzling?"
   "answer_how_competitions_work": "<p class=\"mb-0\">En la mayoría de los campeonatos y concursos, todos los participantes arman el mismo puzzle al mismo tiempo — gana quien termina primero o a quien le quedan menos piezas cuando se acaba el tiempo. Hay categorías individual, parejas y equipos, desde encuentros locales hasta el World Jigsaw Puzzle Championship, además de concursos en línea. Explora nuestro <a href=\"%events_link%\">calendario de eventos</a> para encontrar un campeonato cerca de ti.</p>\n"
+  "question_duplicate_accounts": "He creado sin querer una segunda cuenta (por ejemplo, al iniciar sesión con Google, Facebook o Apple). ¿Qué hago?"
+  "answer_duplicate_accounts": |
+    <p>Puede ocurrir si inicias sesión con Google, Facebook o Apple usando una dirección de correo distinta de la de tu cuenta de MySpeedPuzzling (por ejemplo, una dirección de «Ocultar mi correo electrónico» de Apple). En ese caso no tenemos forma de saber que eres tú, así que se crea una cuenta nueva e independiente.</p>
+    <p><strong>Cómo evitarlo:</strong> inicia sesión primero en tu cuenta existente (con tu correo y contraseña o con un enlace de inicio de sesión), abre <a href="%edit_profile_link%">Editar perfil</a> y conecta el proveedor en <strong>Métodos de inicio de sesión conectados</strong>. A partir de entonces, al iniciar sesión con Google, Facebook o Apple entrarás directamente en tu cuenta, aunque el proveedor use otra dirección de correo.</p>
+    <p class="mb-0"><strong>Si ya ha ocurrido:</strong> tranquilo, no se pierde nada. Escríbenos a <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a> indicando las direcciones de correo (o los códigos de jugador) de ambas cuentas y cuál quieres conservar. Un administrador fusionará las cuentas manualmente.</p>
+  "question_instagram_sign_in": "¿Puedo iniciar sesión con Instagram?"
+  "answer_instagram_sign_in": |
+    <p>No directamente, pero si tu cuenta de Instagram está vinculada a una cuenta de Facebook en el Centro de cuentas de Meta, basta con elegir <strong>Continuar con Facebook</strong> e iniciar sesión con esa cuenta de Facebook.</p>
+    <p class="mb-0">¿No tienes cuenta de Facebook? Inicia sesión con Google, con Apple o con tu dirección de correo electrónico.</p>
 "puzzlers":
   "meta":
     "title": "Speed puzzleros de todo el mundo"
@@ -1180,10 +1190,130 @@
   "meta":
     "title": "Política de Privacidad"
     "description": "Política de Privacidad de la plataforma MySpeedPuzzling.com"
-  "content": "<h1>Política de Privacidad</h1>\n<p>El propósito de este documento es informarte sobre cómo manejamos tus datos personales en MySpeedPuzzling.com. Valoramos mucho tu confianza y privacidad.</p>\n<h2>1. Nombre Público</h2>\n<p>Al registrarte en MySpeedPuzzling.com, puedes elegir un <strong>nombre público</strong> – puede ser un apodo, abreviación o iniciales. Este nombre se muestra a todos los visitantes del sitio web. Por favor ten cuidado al elegir un nombre si deseas mantenerte más anónimo.</p>\n<h2>2. Email</h2>\n<ul>\n    <li>Proporcionas tu dirección de email para iniciar sesión y comunicarte con los administradores de la plataforma.</li>\n    <li><strong>La dirección de email no es pública</strong> – no aparece en ningún lugar de tu perfil y no es accesible para terceros.</li>\n    <li>Tu email se almacena en una base de datos encriptada, y solo los autores de la aplicación tienen acceso a él.</li>\n    <li>No compartimos tu dirección de email con ninguna otra entidad.</li>\n\
-    </ul>\n<h2>3. Contraseña</h2>\n<ul>\n    <li>Tu contraseña se almacena en nuestra base de datos solo como un <strong>hash</strong> – esta es una encriptación irreversible, por lo que ningún administrador o desarrollador puede descubrir su forma original.</li>\n    <li>Cuando inicias sesión, la información que ingresas se compara contra el hash almacenado en la base de datos.</li>\n    <li>Por razones de seguridad, nunca enviamos por email la contraseña original; si es necesario, puedes restablecerla usando el proceso \"Olvidé mi Contraseña\".</li>\n</ul>\n<h2>4. Información Pública Opcional</h2>\n<p>Los usuarios tienen la opción de proporcionar <strong>información pública</strong> adicional en su perfil (ej., ciudad, país, enlaces de redes sociales, descripción, avatar) para una mejor interacción comunitaria.</p>\n<ul>\n    <li>Esta información es visible para todos los visitantes y <strong>no se considera</strong> datos personales sensibles.</li>\n    <li>Serás notificado de que esta\
-    \ información es pública al completarla.</li>\n    <li>Sin embargo, estos datos también se almacenan en nuestra base de datos encriptada.</li>\n</ul>\n<h2>5. Información de Pago</h2>\n<ul>\n    <li>La plataforma MySpeedPuzzling.com <strong>no recolecta ningún dato sobre métodos de pago</strong> – todos los pagos son procesados exclusivamente a través de la compañía asociada Stripe.</li>\n    <li>Nunca tenemos acceso a los detalles de tu tarjeta de pago, información de cuenta bancaria o cualquier otro dato financiero.</li>\n</ul>\n<h2>6. Seguridad y Privacidad</h2>\n<ul>\n    <li>La seguridad de nuestros usuarios es nuestra prioridad – los servidores y bases de datos están protegidos contra acceso no autorizado, filtraciones de datos y otras amenazas cibernéticas.</li>\n    <li>Tus datos personales (ej., email o información de perfil opcional) siempre están encriptados, y solo los autores de la aplicación pueden acceder a ellos.</li>\n    <li>Mantenemos todas las medidas de seguridad\
-    \ estándar y trabajamos continuamente para mejorar nuestra seguridad.</li>\n</ul>\n<p>Si tienes alguna pregunta sobre la protección de datos personales o si no estás seguro de si algo está suficientemente claro, por favor contáctanos en <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a>.</p>\n<p><em><small>Última actualización: Enero 2025</small></em></p>\n"
+  "content": |
+    <h1>Política de Privacidad</h1>
+    <p>El propósito de este documento es informarte sobre cómo manejamos tus datos personales en MySpeedPuzzling.com. Valoramos mucho tu confianza y privacidad.</p>
+    <h2>1. Nombre Público</h2>
+    <p>Al registrarte en MySpeedPuzzling.com, puedes elegir un <strong>nombre público</strong> – puede ser un apodo, abreviación o iniciales. Este nombre se muestra a todos los visitantes del sitio web. Por favor ten cuidado al elegir un nombre si deseas mantenerte más anónimo.</p>
+    <h2>2. Email</h2>
+    <ul>
+        <li>Proporcionas tu dirección de email para iniciar sesión y comunicarte con los administradores de la plataforma.</li>
+        <li><strong>La dirección de email no es pública</strong> – no aparece en ningún lugar de tu perfil y no es accesible para terceros.</li>
+        <li>Tu email se almacena en una base de datos encriptada, y solo los autores de la aplicación tienen acceso a él.</li>
+        <li>No compartimos tu dirección de email con ninguna otra entidad.</li>
+        <li>Cuando creas una cuenta con correo electrónico y contraseña, te enviamos un único mensaje con un enlace para confirmar que la dirección es realmente tuya. Aparte de eso, solo te enviamos los correos que tu cuenta necesita (por ejemplo, enlaces de inicio de sesión, el restablecimiento de la contraseña o la confirmación de la eliminación de la cuenta) y los mensajes que tú mismo has activado en la configuración.</li>
+    </ul>
+    <h2>3. Contraseña</h2>
+    <ul>
+        <li>Tu contraseña se almacena en nuestra base de datos solo como un <strong>hash</strong> – esta es una encriptación irreversible, por lo que ningún administrador o desarrollador puede descubrir su forma original.</li>
+        <li>Cuando inicias sesión, la información que ingresas se compara contra el hash almacenado en la base de datos.</li>
+        <li>Por razones de seguridad, nunca enviamos por email la contraseña original; si es necesario, puedes restablecerla usando el proceso "Olvidé mi Contraseña".</li>
+    </ul>
+    <h2>4. Información Pública Opcional</h2>
+    <p>Los usuarios tienen la opción de proporcionar <strong>información pública</strong> adicional en su perfil (ej., ciudad, país, enlaces de redes sociales, descripción, avatar) para una mejor interacción comunitaria.</p>
+    <ul>
+        <li>Esta información es visible para todos los visitantes y <strong>no se considera</strong> datos personales sensibles.</li>
+        <li>Serás notificado de que esta información es pública al completarla.</li>
+        <li>Sin embargo, estos datos también se almacenan en nuestra base de datos encriptada.</li>
+    </ul>
+    <h2>5. Información de Pago</h2>
+    <ul>
+        <li>La plataforma MySpeedPuzzling.com <strong>no recolecta ningún dato sobre métodos de pago</strong> – todos los pagos son procesados exclusivamente a través de la compañía asociada Stripe.</li>
+        <li>Nunca tenemos acceso a los detalles de tu tarjeta de pago, información de cuenta bancaria o cualquier otro dato financiero.</li>
+    </ul>
+    <h2>6. Seguridad y Privacidad</h2>
+    <ul>
+        <li>La seguridad de nuestros usuarios es nuestra prioridad – los servidores y bases de datos están protegidos contra acceso no autorizado, filtraciones de datos y otras amenazas cibernéticas.</li>
+        <li>Tus datos personales (ej., email o información de perfil opcional) siempre están encriptados, y solo los autores de la aplicación pueden acceder a ellos.</li>
+        <li>Mantenemos todas las medidas de seguridad estándar y trabajamos continuamente para mejorar nuestra seguridad.</li>
+    </ul>
+    <h2>7. Inicio de sesión con Google, Facebook (Meta) y Apple</h2>
+    <p>En lugar de usar una contraseña, puedes iniciar sesión con tu cuenta de Google, Facebook o Apple. Si usas Instagram, puedes iniciar sesión a través de la cuenta de Facebook vinculada a ella en el Centro de cuentas de Meta. Estos métodos de inicio de sesión son totalmente opcionales: siempre puedes entrar con tu correo electrónico y contraseña, o con un enlace de inicio de sesión que te enviamos por correo.</p>
+    <h3 class="h5">Qué recibimos del proveedor</h3>
+    <ul>
+        <li>un identificador único de tu cuenta en ese proveedor: una cadena de caracteres que, por sí sola, no revela nada sobre ti,</li>
+        <li>tu dirección de correo electrónico, si aceptas compartirla; Apple te permite ocultar tu dirección real y darnos en su lugar una dirección de reenvío privada (…@privaterelay.appleid.com), a través de la cual te llegan nuestros mensajes,</li>
+        <li>tu nombre: solo lo usamos para rellenar de antemano el nombre público de una cuenta recién creada, y puedes cambiarlo cuando quieras (Apple envía el nombre únicamente la primera vez que inicias sesión).</li>
+    </ul>
+    <p>El proveedor también puede enviarnos datos básicos del perfil, como la foto de perfil. No los usamos ni los guardamos.</p>
+    <h3 class="h5">Qué guardamos</h3>
+    <ul>
+        <li>de qué proveedor se trata y tu identificador en él,</li>
+        <li>la dirección de correo que el proveedor nos comunicó al vincularlo, con fines de soporte, para saber qué cuenta está vinculada,</li>
+        <li>cuándo vinculaste el proveedor y cuándo iniciaste sesión con él por última vez.</li>
+    </ul>
+    <h3 class="h5">Qué nunca recibimos</h3>
+    <ul>
+        <li>Nunca vemos tu contraseña de Google, Facebook o Apple.</li>
+        <li>No tenemos acceso a tus publicaciones, fotos, amigos, contactos, mensajes ni a nada más de tu cuenta en el proveedor, y nunca publicamos nada en tu nombre.</li>
+        <li>No conservamos los tokens de acceso que emite el proveedor: se usan una sola vez durante el inicio de sesión para leer los datos indicados arriba y después se descartan.</li>
+    </ul>
+    <h3 class="h5">Finalidad y base jurídica</h3>
+    <p>Usamos estos datos exclusivamente para que puedas iniciar sesión y para proteger tu cuenta. La base jurídica es la ejecución de un contrato: la prestación del servicio en el que te has registrado (art. 6.1.b del RGPD). No los usamos con fines de marketing ni los cedemos a nadie.</p>
+    <h3 class="h5">Cómo desconectar un proveedor</h3>
+    <p>Puedes desconectar un proveedor en cualquier momento en <a href="%edit_profile_link%">Editar perfil</a> → <strong>Métodos de inicio de sesión conectados</strong>, siempre que te quede otra forma de iniciar sesión (por ejemplo, una contraseña). Al desconectarlo, el vínculo guardado se elimina de inmediato. Para retirarnos también el acceso en el lado del proveedor, elimina MySpeedPuzzling en su configuración:</p>
+    <ul>
+        <li><strong>Facebook:</strong> Configuración y privacidad → Configuración → Aplicaciones y sitios web</li>
+        <li><strong>Google:</strong> <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">myaccount.google.com</a> → Seguridad → Tus conexiones con aplicaciones y servicios de terceros</li>
+        <li><strong>Apple:</strong> en el iPhone o iPad, Ajustes → tu nombre (Cuenta de Apple) → Inicio de sesión y seguridad → Iniciar sesión con Apple; en la web, en <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
+    </ul>
+    <h3 class="h5">Los proveedores son responsables independientes</h3>
+    <p>Cuando inicias sesión con Google, Facebook o Apple, estas empresas tratan tus datos como responsables independientes, conforme a sus propias condiciones y políticas de privacidad, sobre las que no tenemos ninguna influencia:</p>
+    <ul>
+        <li>Google (Google Ireland Limited): <a href="https://policies.google.com/privacy?hl=es" target="_blank" rel="noopener">policies.google.com/privacy</a></li>
+        <li>Meta (Meta Platforms Ireland Limited): <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">facebook.com/privacy/policy</a></li>
+        <li>Apple (Apple Distribution International Limited): <a href="https://www.apple.com/es/legal/privacy/" target="_blank" rel="noopener">apple.com/legal/privacy</a></li>
+    </ul>
+    <h2>8. Registro de seguridad de inicios de sesión</h2>
+    <p>Para proteger tu cuenta, registramos los eventos relacionados con la seguridad: inicios de sesión correctos y fallidos, cierres de sesión, solicitudes de enlaces de inicio de sesión o de restablecimiento de contraseña, cambios de contraseña y de dirección de correo, el registro, la vinculación y desvinculación de Google, Facebook o Apple, y las solicitudes de eliminación de la cuenta.</p>
+    <ul>
+        <li>Cada registro contiene el tipo de evento, cuándo ocurrió, el método de inicio de sesión utilizado, la dirección de correo afectada, la dirección IP y la identificación de tu navegador y dispositivo (el llamado user agent).</li>
+        <li>Lo usamos para detectar e investigar accesos no autorizados a las cuentas y para mostrarte tu propio historial: puedes consultarlo en cualquier momento en la página <strong>Actividad reciente de la cuenta</strong>, en la configuración de tu perfil.</li>
+        <li>La base jurídica es nuestro interés legítimo en mantener segura tu cuenta y toda la plataforma (art. 6.1.f del RGPD).</li>
+        <li>Los registros se eliminan automáticamente a los 24 meses; los que pertenecen a tu cuenta se eliminan de inmediato junto con ella.</li>
+    </ul>
+    <h2>9. Eliminación de tus datos</h2>
+    <p>Puedes eliminar tu cuenta, junto con tus datos personales, tú mismo y en cualquier momento. Encontrarás las instrucciones paso a paso en la página <a href="%data_deletion_link%">Cómo eliminar tus datos</a>.</p>
+    <p>Si tienes alguna pregunta sobre la protección de datos personales o si no estás seguro de si algo está suficientemente claro, por favor contáctanos en <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</p>
+    <p><em><small>Última actualización: 29 de septiembre de 2026</small></em></p>
+"data_deletion":
+  "meta":
+    "title": "Cómo eliminar tus datos"
+    "description": "Cómo eliminar tu cuenta de MySpeedPuzzling y tus datos personales, desconectar Google, Facebook o Apple y quitar la aplicación en el proveedor."
+  "content": |
+    <h1>Cómo eliminar tus datos</h1>
+    <p>Puedes eliminar tu cuenta de MySpeedPuzzling, junto con tus datos personales, tú mismo: en cualquier momento y con unos pocos clics. En esta página te explicamos cómo hacerlo, qué se elimina exactamente y qué hacer si solo quieres desconectar Google, Facebook o Apple.</p>
+    <h2>1. Eliminar tu cuenta</h2>
+    <ol>
+        <li>Inicia sesión y abre <a href="%edit_profile_link%">Editar perfil</a> (lo encontrarás en el menú de usuario).</li>
+        <li>Desplázate hasta la <strong>Zona de peligro</strong>, al final de la página.</li>
+        <li>¿Quieres conservar tus tiempos? Haz clic en <strong>Exportar mis datos primero</strong>: una vez eliminada la cuenta, ya no se podrán recuperar.</li>
+        <li>Haz clic en <strong>Enviarme el enlace de confirmación</strong>. Lo enviamos a la dirección de correo de tu cuenta y es válido durante una hora.</li>
+        <li>Abre el enlace, marca <strong>Entiendo que esto es permanente y no se puede deshacer.</strong> y haz clic en <strong>Sí, eliminar mi cuenta de forma permanente</strong>.</li>
+    </ol>
+    <p>Tu cuenta se elimina de inmediato. No hay plazo de espera ni vuelta atrás.</p>
+    <h2>2. Qué se elimina</h2>
+    <ul>
+        <li>tu cuenta: la dirección de correo de inicio de sesión, la contraseña, los métodos de inicio de sesión conectados (Google, Facebook, Apple) y el registro de seguridad de inicios de sesión,</li>
+        <li>tu perfil de jugador con todos sus datos,</li>
+        <li>tus tiempos individuales, colecciones, lista de deseos, puzles ofrecidos para venta o intercambio, insignias, cronómetros y notificaciones,</li>
+        <li>tu membresía (una suscripción activa se cancela) y tu suscripción al boletín.</li>
+    </ul>
+    <p>Algunas cosas las compartes con otros jugadores, así que se conservan para ellos, pero ya no están vinculadas a ninguna cuenta y solo muestran, como texto sin enlace, el nombre que usabas: los tiempos en pareja y en equipo resueltos junto con otros jugadores registrados, las conversaciones y las transacciones del mercado, incluidas las valoraciones, y las sugerencias con sus comentarios. Los puzles que añadiste al catálogo permanecen en él, sin ningún vínculo contigo. En nuestro registro de correos enviados, tu dirección se sustituye por un hash irreversible.</p>
+    <p>Stripe, que procesa nuestros pagos, conserva los registros de los pagos anteriores conforme a su propia política de privacidad.</p>
+    <h2>3. Desconectar solo Google, Facebook o Apple</h2>
+    <p>Si quieres conservar tu cuenta y solo dejar de iniciar sesión con Google, Facebook o Apple, abre <a href="%edit_profile_link%">Editar perfil</a> → <strong>Métodos de inicio de sesión conectados</strong> y haz clic en <strong>Desconectar</strong> junto al proveedor. El vínculo guardado (el identificador del proveedor, la dirección de correo en el momento de la vinculación y cuándo se vinculó y se usó por última vez) se elimina de inmediato. Si es tu única forma de iniciar sesión, añade primero una contraseña para no quedarte sin acceso.</p>
+    <h2>4. Quitar MySpeedPuzzling en el proveedor</h2>
+    <p>Desconectar el proveedor en nuestra web no cambia nada en tu cuenta de Google, Facebook o Apple. Para retirarnos también el acceso allí, elimina MySpeedPuzzling en la configuración del proveedor:</p>
+    <ul>
+        <li><strong>Facebook:</strong> Configuración y privacidad → Configuración → Aplicaciones y sitios web</li>
+        <li><strong>Google:</strong> <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">myaccount.google.com</a> → Seguridad → Tus conexiones con aplicaciones y servicios de terceros</li>
+        <li><strong>Apple:</strong> en el iPhone o iPad, Ajustes → tu nombre (Cuenta de Apple) → Inicio de sesión y seguridad → Iniciar sesión con Apple; en la web, en <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
+    </ul>
+    <p>Quitar la aplicación en el proveedor no elimina tu cuenta de MySpeedPuzzling; para eso, sigue el paso 1.</p>
+    <h2>5. ¿Necesitas ayuda?</h2>
+    <p>Si ya no puedes iniciar sesión o prefieres que eliminemos tus datos por ti, escríbenos a <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, a ser posible desde la dirección de correo de tu cuenta. Nos encargaremos en el plazo máximo de un mes, normalmente mucho antes.</p>
+    <p>Puedes leer más sobre cómo tratamos los datos personales en nuestra <a href="%privacy_link%">Política de privacidad</a>.</p>
 "countdown":
   "days": "días"
   "hours": "horas"

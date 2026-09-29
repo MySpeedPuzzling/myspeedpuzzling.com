@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'data_deletion.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'data_deletion.meta.description'|trans }}{% endblock %}
+
+{% block content %}
+    <section class="terms-of-service">
+        {{ 'data_deletion.content'|trans({
+            '%edit_profile_link%': path('edit_profile'),
+            '%privacy_link%': path('privacy_policy'),
+        })|raw }}
+    </section>
+{% endblock %}

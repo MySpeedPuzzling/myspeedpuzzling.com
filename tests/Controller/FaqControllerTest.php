@@ -47,6 +47,20 @@ final class FaqControllerTest extends WebTestCase
         self::assertStringNotContainsString('%fast_1000%', $content);
     }
 
+    public function testSignInQuestionsHaveStableAnchors(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/faq');
+
+        $this->assertResponseIsSuccessful();
+
+        // Other pages link straight to faq#duplicate-accounts - renaming the item breaks them
+        self::assertCount(1, $crawler->filter('#duplicate-accounts .accordion-collapse'));
+        self::assertCount(1, $crawler->filter('#instagram-sign-in .accordion-collapse'));
+        self::assertStringNotContainsString('%edit_profile_link%', (string) $browser->getResponse()->getContent());
+    }
+
     public function testFaqStructuredDataIsValidJson(): void
     {
         $browser = self::createClient();

@@ -29,7 +29,7 @@ One thing up front: **Instagram sign-in does not exist anymore** — Meta shut d
 
 - **App domains**: `myspeedpuzzling.com`
 - **Privacy policy URL** and **Terms of service URL**: the two links above (both are required before the app can go Live)
-- **User data deletion**: choose *Data deletion instructions URL* and point it at `https://myspeedpuzzling.com/en/privacy-policy` (the policy describes account deletion; users delete themselves in profile settings — full GDPR wipe including the linked identity)
+- **User data deletion**: choose *Data deletion instructions URL* and point it at `https://myspeedpuzzling.com/en/data-deletion` (`DataDeletionController`, all 6 locales: self-service deletion steps, what goes, disconnecting a provider, removing the app on Facebook's side, contact e-mail; users delete themselves in profile settings — full GDPR wipe including the linked identity)
 - **App icon** (1024×1024) + **Category** (e.g. *Entertainment* or *Lifestyle*)
 - **Website**: add platform *Website* with `https://myspeedpuzzling.com` if the console asks for a platform
 

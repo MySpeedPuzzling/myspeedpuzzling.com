@@ -13,6 +13,7 @@
   "support_us": "Podpořte nás"
   "terms_of_service": "Obchodní podmínky"
   "privacy_policy": "Ochrana osobních údajů"
+  "data_deletion": "Smazání údajů"
   "membership": "Členství"
   "search": "Hledej"
   "statistics": "Statistiky"
@@ -698,6 +699,15 @@
   "answer_how_long_1000_pieces": "<p class=\"mb-0\">Podle sólo skládání zaznamenaných na MySpeedPuzzling je medián času u puzzle o 1000 dílcích přibližně %median_1000%. Speed puzzleři běžně skládají pod %fast_1000% a ti nejrychlejší jsou ještě výrazně rychlejší. Kompletní <a href=\"%times_guide_link%\">statistiky podle počtu dílků</a> (v angličtině) nabízejí mediány, percentily i rekordy.</p>\n"
   "question_how_competitions_work": "Jak fungují speed puzzling závody?"
   "answer_how_competitions_work": "<p class=\"mb-0\">Ve většině závodů skládají všichni účastníci stejné puzzle ve stejný čas — vyhrává ten, kdo je složí první, nebo komu po vypršení limitu zbývá nejméně dílků. Existují kategorie sólo, dvojice i týmy, od místních setkání až po mistrovství světa World Jigsaw Puzzle Championship, a také online soutěže. Projděte si náš <a href=\"%events_link%\">kalendář eventů</a> a najděte závod ve svém okolí.</p>\n"
+  "question_duplicate_accounts": "Omylem jsem si založil/a druhý účet (např. přihlášením přes Google, Facebook nebo Apple) – co teď?"
+  "answer_duplicate_accounts": |
+    <p>To se může stát, když se přes Google, Facebook nebo Apple přihlásíte s jinou e-mailovou adresou, než jakou používá váš účet na MySpeedPuzzling (třeba s adresou z funkce Apple „Skrýt můj e-mail“). Nemáme pak jak poznat, že jste to vy, a proto vznikne nový, samostatný účet.</p>
+    <p><strong>Jak tomu předejít:</strong> nejdřív se přihlaste ke svému stávajícímu účtu (e-mailem a heslem nebo odkazem pro přihlášení), otevřete <a href="%edit_profile_link%">Upravit profil</a> a v sekci <strong>Propojené způsoby přihlášení</strong> poskytovatele propojte. Od té chvíle vás přihlášení přes Google, Facebook nebo Apple dovede rovnou do vašeho účtu – i když poskytovatel používá jinou e-mailovou adresu.</p>
+    <p class="mb-0"><strong>Když už se to stalo:</strong> nic se neztratilo. Napište nám na <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, uveďte e-mailové adresy (nebo hráčské kódy) obou účtů a který z nich si chcete ponechat. Administrátor vám účty ručně sloučí.</p>
+  "question_instagram_sign_in": "Můžu se přihlásit přes Instagram?"
+  "answer_instagram_sign_in": |
+    <p>Přímo ne – pokud ale máte instagramový účet propojený s účtem na Facebooku v Centru účtů Meta, stačí zvolit <strong>Pokračovat přes Facebook</strong> a přihlásit se tímto facebookovým účtem.</p>
+    <p class="mb-0">Nemáte účet na Facebooku? Přihlaste se přes Google, Apple nebo svou e-mailovou adresou.</p>
 "profile":
   "add_to_favorites": "Přidat do oblíbených"
   "remove_from_favorites": "Odebrat z oblíbených"
@@ -1177,10 +1187,130 @@
   "meta":
     "title": "Zásady ochrany osobních údajů"
     "description": "Zásady ochrany osobních údajů platformy MySpeedPuzzling.com"
-  "content": "<h1>Zásady ochrany osobních údajů</h1>\n<p>Cílem tohoto dokumentu je informovat vás o tom, jakým způsobem na MySpeedPuzzling.com nakládáme s vašimi osobními údaji, které nám svěříte. Velmi si vážíme vaší důvěry a soukromí.</p>\n<h2>1. Veřejné jméno</h2>\n<p>Při registraci na MySpeedPuzzling.com si můžete zvolit své <strong>veřejné jméno</strong> – může to být přezdívka, zkratka nebo iniciály. Toto jméno se zobrazí všem návštěvníkům webové stránky. Proto buďte prosím opatrní při výběru jména, pokud si přejete zůstat více v anonymitě.</p>\n<h2>2. E-mail</h2>\n<ul>\n    <li>E-mail zadáváte pro účely přihlašování a komunikace s administrátory platformy.</li>\n    <li><strong>E-mail je neveřejný</strong> – nezobrazuje se nikde v profilu a není přístupný třetím stranám.</li>\n    <li>E-mail je uložen v šifrované databázi a přístup k němu mají pouze autoři aplikace.</li>\n    <li>Žádným dalším subjektům váš e-mail neposkytujeme.</li>\n</ul>\n<h2>3. Heslo</h2>\n<ul>\n    <li>Heslo\
-    \ je v naší databázi uloženo pouze ve formě <strong>hashe</strong> – jedná se o nevratné zašifrování, takže nikdo z administrátorů ani z vývojářů nemůže zjistit jeho původní znění.</li>\n    <li>Při přihlašování se váš zadaný údaj pouze porovnává s hashem uloženým v databázi.</li>\n    <li>Z bezpečnostních důvodů proto nikdy nezasíláme původní heslo e-mailem; v případě potřeby si jej můžete obnovit pomocí procesu „Zapomenuté heslo“.</li>\n</ul>\n<h2>4. Volitelné veřejné údaje</h2>\n<p>Uživatel má možnost vyplnit na svém profilu další <strong>veřejné informace</strong> (např. město, stát, odkazy na sociální sítě, popisek, avatar), které slouží k lepší interakci v komunitě.</p>\n<ul>\n    <li>Tyto údaje se zobrazují všem návštěvníkům a <strong>nejsou považovány za citlivé</strong> osobní údaje.</li>\n    <li>Při vyplňování jste upozorněni, že se jedná o veřejné informace.</li>\n    <li>Přesto jsou i tyto údaje ukládány v naší šifrované databázi.</li>\n</ul>\n<h2>5. Platební údaje</h2>\n\
-    <ul>\n    <li>Platforma MySpeedPuzzling.com <strong>neshromažďuje žádné údaje o platebních metodách</strong> – všechny platby jsou zpracovávány výhradně přes partnerskou společnost Stripe.</li>\n    <li>Nikdy nemáme přístup k vašim platebním kartám, bankovním údajům ani jiným finančním údajům.</li>\n</ul>\n<h2>6. Zabezpečení a soukromí</h2>\n<ul>\n    <li>Bezpečí našich uživatelů je pro nás prioritou – servery a databáze jsou chráněny proti neoprávněným přístupům, únikům dat a jiným kybernetickým hrozbám.</li>\n    <li>Vaše osobní údaje (např. e-mail či volitelné profilové údaje) jsou vždy šifrovány a mají k nim přístup pouze autoři aplikace.</li>\n    <li>Zachováváme všechny běžné bezpečnostní standardy a na zabezpečení neustále pracujeme.</li>\n</ul>\n<p>Pokud máte jakékoliv dotazy k ochraně osobních údajů nebo si nejste jisti, zda je něco dostatečně srozumitelné, kontaktujte nás na <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a>.</p>\n<p><em><small>Poslední\
-    \ aktualizace: leden 2025</small></em></p>\n"
+  "content": |
+    <h1>Zásady ochrany osobních údajů</h1>
+    <p>Cílem tohoto dokumentu je informovat vás o tom, jakým způsobem na MySpeedPuzzling.com nakládáme s vašimi osobními údaji, které nám svěříte. Velmi si vážíme vaší důvěry a soukromí.</p>
+    <h2>1. Veřejné jméno</h2>
+    <p>Při registraci na MySpeedPuzzling.com si můžete zvolit své <strong>veřejné jméno</strong> – může to být přezdívka, zkratka nebo iniciály. Toto jméno se zobrazí všem návštěvníkům webové stránky. Proto buďte prosím opatrní při výběru jména, pokud si přejete zůstat více v anonymitě.</p>
+    <h2>2. E-mail</h2>
+    <ul>
+        <li>E-mail zadáváte pro účely přihlašování a komunikace s administrátory platformy.</li>
+        <li><strong>E-mail je neveřejný</strong> – nezobrazuje se nikde v profilu a není přístupný třetím stranám.</li>
+        <li>E-mail je uložen v šifrované databázi a přístup k němu mají pouze autoři aplikace.</li>
+        <li>Žádným dalším subjektům váš e-mail neposkytujeme.</li>
+        <li>Když si založíte účet pomocí e-mailu a hesla, pošleme vám jednorázovou zprávu s odkazem, kterým potvrdíte, že adresa opravdu patří vám. Jinak vám posíláme jen e-maily, které váš účet nezbytně potřebuje (např. odkazy pro přihlášení, obnovení hesla nebo potvrzení smazání účtu), a zprávy, jejichž odběr jste si sami zapnuli v nastavení.</li>
+    </ul>
+    <h2>3. Heslo</h2>
+    <ul>
+        <li>Heslo je v naší databázi uloženo pouze ve formě <strong>hashe</strong> – jedná se o nevratné zašifrování, takže nikdo z administrátorů ani z vývojářů nemůže zjistit jeho původní znění.</li>
+        <li>Při přihlašování se váš zadaný údaj pouze porovnává s hashem uloženým v databázi.</li>
+        <li>Z bezpečnostních důvodů proto nikdy nezasíláme původní heslo e-mailem; v případě potřeby si jej můžete obnovit pomocí procesu „Zapomenuté heslo“.</li>
+    </ul>
+    <h2>4. Volitelné veřejné údaje</h2>
+    <p>Uživatel má možnost vyplnit na svém profilu další <strong>veřejné informace</strong> (např. město, stát, odkazy na sociální sítě, popisek, avatar), které slouží k lepší interakci v komunitě.</p>
+    <ul>
+        <li>Tyto údaje se zobrazují všem návštěvníkům a <strong>nejsou považovány za citlivé</strong> osobní údaje.</li>
+        <li>Při vyplňování jste upozorněni, že se jedná o veřejné informace.</li>
+        <li>Přesto jsou i tyto údaje ukládány v naší šifrované databázi.</li>
+    </ul>
+    <h2>5. Platební údaje</h2>
+    <ul>
+        <li>Platforma MySpeedPuzzling.com <strong>neshromažďuje žádné údaje o platebních metodách</strong> – všechny platby jsou zpracovávány výhradně přes partnerskou společnost Stripe.</li>
+        <li>Nikdy nemáme přístup k vašim platebním kartám, bankovním údajům ani jiným finančním údajům.</li>
+    </ul>
+    <h2>6. Zabezpečení a soukromí</h2>
+    <ul>
+        <li>Bezpečí našich uživatelů je pro nás prioritou – servery a databáze jsou chráněny proti neoprávněným přístupům, únikům dat a jiným kybernetickým hrozbám.</li>
+        <li>Vaše osobní údaje (např. e-mail či volitelné profilové údaje) jsou vždy šifrovány a mají k nim přístup pouze autoři aplikace.</li>
+        <li>Zachováváme všechny běžné bezpečnostní standardy a na zabezpečení neustále pracujeme.</li>
+    </ul>
+    <h2>7. Přihlášení přes Google, Facebook (Meta) a Apple</h2>
+    <p>Místo hesla se můžete přihlásit svým účtem Google, Facebook nebo Apple. Pokud používáte Instagram, můžete se přihlásit přes facebookový účet, který je s ním propojený v Centru účtů Meta. Tyto způsoby přihlášení jsou zcela dobrovolné – vždy se můžete přihlásit i e-mailem a heslem, případně odkazem, který vám pošleme e-mailem.</p>
+    <h3 class="h5">Co od poskytovatele dostáváme</h3>
+    <ul>
+        <li>jedinečný identifikátor vašeho účtu u daného poskytovatele – řetězec znaků, který sám o sobě o vás nic neprozrazuje,</li>
+        <li>vaši e-mailovou adresu, pokud s jejím sdílením souhlasíte – Apple vám umožňuje skutečnou adresu skrýt a poskytnout nám místo ní soukromou přeposílací adresu (…@privaterelay.appleid.com), přes kterou vám naše zprávy doručí,</li>
+        <li>vaše jméno – použijeme ho jen k předvyplnění veřejného jména nově založeného účtu a kdykoli si ho můžete změnit (Apple jméno posílá pouze při úplně prvním přihlášení).</li>
+    </ul>
+    <p>Poskytovatel nám může poslat i základní profilové údaje, například profilovou fotku. Ty nepoužíváme ani neukládáme.</p>
+    <h3 class="h5">Co ukládáme</h3>
+    <ul>
+        <li>o kterého poskytovatele jde a váš identifikátor u něj,</li>
+        <li>e-mailovou adresu, kterou nám poskytovatel sdělil v okamžiku propojení – pro potřeby podpory, abychom poznali, který účet je propojený,</li>
+        <li>kdy jste poskytovatele propojili a kdy jste se přes něj naposledy přihlásili.</li>
+    </ul>
+    <h3 class="h5">Co nikdy nedostáváme</h3>
+    <ul>
+        <li>Vaše heslo ke Googlu, Facebooku ani Applu nikdy neuvidíme.</li>
+        <li>Nemáme přístup k vašim příspěvkům, fotkám, přátelům, kontaktům, zprávám ani k ničemu dalšímu ve vašem účtu u poskytovatele a nikdy za vás nic nezveřejňujeme.</li>
+        <li>Přístupové tokeny, které poskytovatel vydá, neuchováváme – při přihlášení se jednou použijí k načtení výše uvedených údajů a poté se zahodí.</li>
+    </ul>
+    <h3 class="h5">Účel a právní základ</h3>
+    <p>Tyto údaje používáme výhradně k tomu, abychom vás přihlásili a ochránili váš účet. Právním základem je plnění smlouvy – poskytování služby, ke které jste se zaregistrovali (čl. 6 odst. 1 písm. b) GDPR). Nepoužíváme je k marketingu a nikomu je nepředáváme.</p>
+    <h3 class="h5">Jak poskytovatele odpojit</h3>
+    <p>Poskytovatele můžete kdykoli odpojit v <a href="%edit_profile_link%">Upravit profil</a> → <strong>Propojené způsoby přihlášení</strong>, pokud vám zůstane jiný způsob přihlášení (například heslo). Odpojením se uložené propojení okamžitě smaže. Chcete-li nám odebrat přístup i na straně poskytovatele, odeberte MySpeedPuzzling v jeho nastavení:</p>
+    <ul>
+        <li><strong>Facebook:</strong> Nastavení a soukromí → Nastavení → Aplikace a weby</li>
+        <li><strong>Google:</strong> <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">myaccount.google.com</a> → Zabezpečení → Vaše propojení s aplikacemi a službami třetích stran</li>
+        <li><strong>Apple:</strong> na iPhonu nebo iPadu Nastavení → vaše jméno (Apple účet) → Přihlašování a zabezpečení → Přihlašování přes Apple; na webu na <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
+    </ul>
+    <h3 class="h5">Poskytovatelé jsou samostatní správci</h3>
+    <p>Když se přihlásíte přes Google, Facebook nebo Apple, zpracovávají tyto společnosti vaše údaje jako samostatní správci, podle vlastních podmínek a zásad ochrany osobních údajů, které nemůžeme ovlivnit:</p>
+    <ul>
+        <li>Google (Google Ireland Limited): <a href="https://policies.google.com/privacy?hl=cs" target="_blank" rel="noopener">policies.google.com/privacy</a></li>
+        <li>Meta (Meta Platforms Ireland Limited): <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">facebook.com/privacy/policy</a></li>
+        <li>Apple (Apple Distribution International Limited): <a href="https://www.apple.com/cz/legal/privacy/" target="_blank" rel="noopener">apple.com/legal/privacy</a></li>
+    </ul>
+    <h2>8. Bezpečnostní záznam přihlášení</h2>
+    <p>Abychom ochránili váš účet, zaznamenáváme události, které souvisejí s jeho zabezpečením: úspěšná i neúspěšná přihlášení, odhlášení, žádosti o odkaz pro přihlášení nebo pro obnovení hesla, změny hesla a e-mailové adresy, registraci, propojení a odpojení účtu Google, Facebook nebo Apple a žádosti o smazání účtu.</p>
+    <ul>
+        <li>Každý záznam obsahuje druh události, kdy nastala, použitý způsob přihlášení, dotčenou e-mailovou adresu, IP adresu a identifikaci vašeho prohlížeče a zařízení (tzv. user agent).</li>
+        <li>Záznam nám slouží k odhalení a prošetření neoprávněného přístupu k účtům a vám k přehledu o vlastní historii – kdykoli si ji můžete prohlédnout na stránce <strong>Nedávná aktivita na účtu</strong> v nastavení profilu.</li>
+        <li>Právním základem je náš oprávněný zájem na zabezpečení vašeho účtu i celé platformy (čl. 6 odst. 1 písm. f) GDPR).</li>
+        <li>Záznamy se automaticky mažou po 24 měsících; ty, které patří k vašemu účtu, se smažou okamžitě spolu s ním.</li>
+    </ul>
+    <h2>9. Smazání vašich údajů</h2>
+    <p>Svůj účet včetně osobních údajů můžete kdykoli smazat sami. Podrobný postup najdete na stránce <a href="%data_deletion_link%">Jak smazat svá data</a>.</p>
+    <p>Pokud máte jakékoliv dotazy k ochraně osobních údajů nebo si nejste jisti, zda je něco dostatečně srozumitelné, kontaktujte nás na <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</p>
+    <p><em><small>Poslední aktualizace: 29. září 2026</small></em></p>
+"data_deletion":
+  "meta":
+    "title": "Jak smazat svá data"
+    "description": "Jak smazat účet na MySpeedPuzzling i s osobními údaji, jak odpojit Google, Facebook nebo Apple a jak aplikaci odebrat na straně poskytovatele."
+  "content": |
+    <h1>Jak smazat svá data</h1>
+    <p>Svůj účet na MySpeedPuzzling můžete i s osobními údaji smazat sami – kdykoli a na pár kliknutí. Na této stránce najdete postup, co přesně se smaže a co dělat, když chcete jen odpojit Google, Facebook nebo Apple.</p>
+    <h2>1. Smazání účtu</h2>
+    <ol>
+        <li>Přihlaste se a otevřete <a href="%edit_profile_link%">Upravit profil</a> (najdete v uživatelském menu).</li>
+        <li>Sjeďte úplně dolů do sekce <strong>Nebezpečná zóna</strong>.</li>
+        <li>Chcete si ponechat své časy skládání? Klikněte na <strong>Nejdřív si exportovat data</strong> – po smazání účtu už je nepůjde obnovit.</li>
+        <li>Klikněte na <strong>Poslat mi potvrzovací odkaz e-mailem</strong>. Odkaz pošleme na e-mailovou adresu vašeho účtu a platí jednu hodinu.</li>
+        <li>Otevřete odkaz, zaškrtněte <strong>Rozumím, že je to trvalé a nelze to vrátit.</strong> a klikněte na <strong>Ano, trvale smazat můj účet</strong>.</li>
+    </ol>
+    <p>Účet se smaže okamžitě. Neexistuje žádná ochranná lhůta a cesta zpět už není.</p>
+    <h2>2. Co se smaže</h2>
+    <ul>
+        <li>váš účet: přihlašovací e-mail, heslo, propojené způsoby přihlášení (Google, Facebook, Apple) a bezpečnostní záznam přihlášení,</li>
+        <li>váš hráčský profil se všemi údaji,</li>
+        <li>vaše sólo časy skládání, sbírky, seznam přání, puzzle nabízená k prodeji či výměně, odznaky, stopky a notifikace,</li>
+        <li>vaše členství (aktivní předplatné se zruší) a odběr newsletteru.</li>
+    </ul>
+    <p>Některé věci sdílíte s dalšími hráči, a proto jim zůstanou – už ale nejsou propojené s žádným účtem a zobrazuje se u nich jen jméno, které jste používali, jako prostý text. Jde o časy dvojic a týmů složené společně s dalšími registrovanými hráči, konverzace a obchody na tržišti včetně hodnocení a návrhy funkcí s komentáři. Puzzle, která jste přidali do katalogu, v něm zůstanou, ale bez vazby na vás. V záznamu odeslaných e-mailů se vaše adresa nahradí nevratným otiskem (hashem).</p>
+    <p>Stripe, který pro nás zpracovává platby, uchovává záznamy o dřívějších platbách podle svých vlastních zásad ochrany osobních údajů.</p>
+    <h2>3. Jen odpojení Googlu, Facebooku nebo Applu</h2>
+    <p>Pokud si chcete účet ponechat a jen se přestat přihlašovat přes Google, Facebook nebo Apple, otevřete <a href="%edit_profile_link%">Upravit profil</a> → <strong>Propojené způsoby přihlášení</strong> a u poskytovatele klikněte na <strong>Odpojit</strong>. Uložené propojení (identifikátor od poskytovatele, e-mail z okamžiku propojení a údaj o tom, kdy jste účet propojili a naposledy použili) se okamžitě smaže. Pokud je to váš jediný způsob přihlášení, nastavte si nejdřív heslo, ať se nezamknete mimo svůj účet.</p>
+    <h2>4. Odebrání MySpeedPuzzling na straně poskytovatele</h2>
+    <p>Odpojení u nás na vašem účtu Google, Facebook nebo Apple nic nemění. Chcete-li nám odebrat přístup i tam, odeberte MySpeedPuzzling v nastavení poskytovatele:</p>
+    <ul>
+        <li><strong>Facebook:</strong> Nastavení a soukromí → Nastavení → Aplikace a weby</li>
+        <li><strong>Google:</strong> <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">myaccount.google.com</a> → Zabezpečení → Vaše propojení s aplikacemi a službami třetích stran</li>
+        <li><strong>Apple:</strong> na iPhonu nebo iPadu Nastavení → vaše jméno (Apple účet) → Přihlašování a zabezpečení → Přihlašování přes Apple; na webu na <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
+    </ul>
+    <p>Odebráním aplikace u poskytovatele se váš účet na MySpeedPuzzling nesmaže – k tomu slouží postup v bodě 1.</p>
+    <h2>5. Potřebujete pomoc?</h2>
+    <p>Pokud se už nemůžete přihlásit nebo byste byli raději, kdybychom vaše data smazali za vás, napište nám na <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, ideálně z e-mailové adresy vašeho účtu. Vyřídíme to nejpozději do jednoho měsíce – obvykle mnohem dřív.</p>
+    <p>Více o tom, jak nakládáme s osobními údaji, najdete v <a href="%privacy_link%">Zásadách ochrany osobních údajů</a>.</p>
 "countdown":
   "days": "dny"
   "hours": "hod"

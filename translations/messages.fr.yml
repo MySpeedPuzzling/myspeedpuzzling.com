@@ -13,6 +13,7 @@
   "support_us": "Nous soutenir"
   "terms_of_service": "Conditions d'utilisation"
   "privacy_policy": "Politique de confidentialité"
+  "data_deletion": "Suppression des données"
   "membership": "Adhésion"
   "search": "Rechercher"
   "statistics": "Statistiques"
@@ -681,6 +682,15 @@
   "answer_how_long_1000_pieces": "<p class=\"mb-0\">D'après les assemblages en solo enregistrés sur MySpeedPuzzling, le temps médian pour un puzzle de 1000 pièces est d'environ %median_1000%. Les speed puzzleurs terminent régulièrement en moins de %fast_1000%, et les plus rapides bien en dessous. Consultez les <a href=\"%times_guide_link%\">statistiques complètes par nombre de pièces</a> (en anglais) pour les médianes, percentiles et records.</p>\n"
   "question_how_competitions_work": "Comment fonctionnent les concours de speed puzzling ?"
   "answer_how_competitions_work": "<p class=\"mb-0\">Dans la plupart des concours de puzzle, tous les participants assemblent le même puzzle en même temps — celui qui termine en premier, ou à qui il reste le moins de pièces à la fin du temps imparti, gagne. Il existe des catégories solo, duo et équipe, des rencontres locales au World Jigsaw Puzzle Championship, ainsi que des concours en ligne. Parcourez notre <a href=\"%events_link%\">calendrier des événements</a> pour trouver un concours près de chez vous.</p>\n"
+  "question_duplicate_accounts": "J'ai créé un deuxième compte par erreur (par exemple en me connectant avec Google, Facebook ou Apple) – que faire ?"
+  "answer_duplicate_accounts": |
+    <p>Cela peut arriver si vous vous connectez avec Google, Facebook ou Apple en utilisant une adresse e-mail différente de celle de votre compte MySpeedPuzzling (par exemple une adresse créée avec « Masquer mon adresse e-mail » d'Apple). Nous n'avons alors aucun moyen de savoir que c'est vous, et un nouveau compte distinct est créé.</p>
+    <p><strong>Comment l'éviter :</strong> connectez-vous d'abord à votre compte existant (avec votre e-mail et votre mot de passe, ou avec un lien de connexion), ouvrez <a href="%edit_profile_link%">Modifier le profil</a> et associez le fournisseur dans <strong>Méthodes de connexion associées</strong>. Ensuite, la connexion avec Google, Facebook ou Apple vous mènera directement à votre compte – même si le fournisseur utilise une autre adresse e-mail.</p>
+    <p class="mb-0"><strong>Si c'est déjà arrivé :</strong> pas d'inquiétude, rien n'est perdu. Écrivez-nous à <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a> en indiquant les adresses e-mail (ou les codes joueur) des deux comptes et celui que vous souhaitez conserver. Un administrateur fusionnera les comptes manuellement.</p>
+  "question_instagram_sign_in": "Puis-je me connecter avec Instagram ?"
+  "answer_instagram_sign_in": |
+    <p>Pas directement – mais si votre compte Instagram est associé à un compte Facebook dans l'Espace Comptes de Meta, choisissez simplement <strong>Continuer avec Facebook</strong> et connectez-vous avec ce compte Facebook.</p>
+    <p class="mb-0">Vous n'avez pas de compte Facebook ? Connectez-vous avec Google, avec Apple ou avec votre adresse e-mail.</p>
 "profile":
   "add_to_favorites": "Ajouter aux favoris"
   "remove_from_favorites": "Retirer des favoris"
@@ -1181,10 +1191,130 @@
   "meta":
     "title": "Politique de confidentialité"
     "description": "Politique de confidentialité de la plateforme MySpeedPuzzling.com"
-  "content": "<h1>Politique de confidentialité</h1>\n<p>Le but de ce document est de vous informer sur la façon dont nous gérons vos données personnelles sur MySpeedPuzzling.com. Nous apprécions grandement votre confiance et votre vie privée.</p>\n<h2>1. Nom public</h2>\n<p>Lors de l'inscription sur MySpeedPuzzling.com, vous pouvez choisir un <strong>nom public</strong> – cela peut être un surnom, une abréviation, ou des initiales. Ce nom est affiché à tous les visiteurs du site web. Veuillez être prudent lors du choix d'un nom si vous souhaitez rester plus anonyme.</p>\n<h2>2. Email</h2>\n<ul>\n    <li>Vous fournissez votre adresse email pour vous connecter et communiquer avec les administrateurs de la plateforme.</li>\n    <li><strong>L'adresse email n'est pas publique</strong> – elle n'apparaît nulle part dans votre profil et n'est pas accessible aux tiers.</li>\n    <li>Votre email est stocké dans une base de données chiffrée, et seuls les auteurs de l'application y ont accès.</li>\n\
-    \    <li>Nous ne partageons votre adresse email avec aucune autre entité.</li>\n</ul>\n<h2>3. Mot de passe</h2>\n<ul>\n    <li>Votre mot de passe est stocké dans notre base de données uniquement sous forme de <strong>hash</strong> – c'est un chiffrement irréversible, donc aucun administrateur ou développeur ne peut découvrir sa forme originale.</li>\n    <li>Quand vous vous connectez, l'information que vous saisissez est comparée au hash stocké dans la base de données.</li>\n    <li>Pour des raisons de sécurité, nous n'envoyons jamais le mot de passe original par email ; si nécessaire, vous pouvez le réinitialiser en utilisant le processus \"Mot de passe oublié\".</li>\n</ul>\n<h2>4. Informations publiques optionnelles</h2>\n<p>Les utilisateurs ont la possibilité de fournir des <strong>informations publiques</strong> supplémentaires sur leur profil (par ex., ville, pays, liens de réseaux sociaux, description, avatar) pour une meilleure interaction communautaire.</p>\n<ul>\n    <li>Cette\
-    \ information est visible par tous les visiteurs et n'est <strong>pas considérée comme sensible</strong> en tant que données personnelles.</li>\n    <li>Vous serez notifié que cette information est publique lors du remplissage.</li>\n    <li>Néanmoins, ces données sont également stockées dans notre base de données chiffrée.</li>\n</ul>\n<h2>5. Informations de paiement</h2>\n<ul>\n    <li>La plateforme MySpeedPuzzling.com <strong>ne collecte aucune donnée sur les méthodes de paiement</strong> – tous les paiements sont traités exclusivement par la société partenaire Stripe.</li>\n    <li>Nous n'avons jamais accès aux détails de votre carte de paiement, informations de compte bancaire, ou toute autre donnée financière.</li>\n</ul>\n<h2>6. Sécurité et vie privée</h2>\n<ul>\n    <li>La sécurité de nos utilisateurs est notre priorité – serveurs et bases de données sont protégés contre l'accès non autorisé, les fuites de données et autres cybermenaces.</li>\n    <li>Vos données personnelles\
-    \ (par ex., email ou informations de profil optionnelles) sont toujours chiffrées, et seuls les auteurs de l'application peuvent y accéder.</li>\n    <li>Nous respectons toutes les mesures de sécurité standard et travaillons continuellement à améliorer notre sécurité.</li>\n</ul>\n<p>Si vous avez des questions sur la protection des données personnelles ou si vous n'êtes pas sûr que quelque chose soit suffisamment clair, veuillez nous contacter à <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a>.</p>\n<p><em><small>Dernière mise à jour : Janvier 2025</small></em></p>\n"
+  "content": |
+    <h1>Politique de confidentialité</h1>
+    <p>Le but de ce document est de vous informer sur la façon dont nous gérons vos données personnelles sur MySpeedPuzzling.com. Nous apprécions grandement votre confiance et votre vie privée.</p>
+    <h2>1. Nom public</h2>
+    <p>Lors de l'inscription sur MySpeedPuzzling.com, vous pouvez choisir un <strong>nom public</strong> – cela peut être un surnom, une abréviation, ou des initiales. Ce nom est affiché à tous les visiteurs du site web. Veuillez être prudent lors du choix d'un nom si vous souhaitez rester plus anonyme.</p>
+    <h2>2. Email</h2>
+    <ul>
+        <li>Vous fournissez votre adresse email pour vous connecter et communiquer avec les administrateurs de la plateforme.</li>
+        <li><strong>L'adresse email n'est pas publique</strong> – elle n'apparaît nulle part dans votre profil et n'est pas accessible aux tiers.</li>
+        <li>Votre email est stocké dans une base de données chiffrée, et seuls les auteurs de l'application y ont accès.</li>
+        <li>Nous ne partageons votre adresse email avec aucune autre entité.</li>
+        <li>Lorsque vous créez un compte avec une adresse e-mail et un mot de passe, nous vous envoyons un message unique contenant un lien pour confirmer que l'adresse vous appartient bien. En dehors de cela, nous ne vous envoyons que les e-mails nécessaires à votre compte (par exemple les liens de connexion, la réinitialisation du mot de passe ou la confirmation de la suppression du compte) et les messages que vous avez choisi de recevoir dans vos paramètres.</li>
+    </ul>
+    <h2>3. Mot de passe</h2>
+    <ul>
+        <li>Votre mot de passe est stocké dans notre base de données uniquement sous forme de <strong>hash</strong> – c'est un chiffrement irréversible, donc aucun administrateur ou développeur ne peut découvrir sa forme originale.</li>
+        <li>Quand vous vous connectez, l'information que vous saisissez est comparée au hash stocké dans la base de données.</li>
+        <li>Pour des raisons de sécurité, nous n'envoyons jamais le mot de passe original par email ; si nécessaire, vous pouvez le réinitialiser en utilisant le processus "Mot de passe oublié".</li>
+    </ul>
+    <h2>4. Informations publiques optionnelles</h2>
+    <p>Les utilisateurs ont la possibilité de fournir des <strong>informations publiques</strong> supplémentaires sur leur profil (par ex., ville, pays, liens de réseaux sociaux, description, avatar) pour une meilleure interaction communautaire.</p>
+    <ul>
+        <li>Cette information est visible par tous les visiteurs et n'est <strong>pas considérée comme sensible</strong> en tant que données personnelles.</li>
+        <li>Vous serez notifié que cette information est publique lors du remplissage.</li>
+        <li>Néanmoins, ces données sont également stockées dans notre base de données chiffrée.</li>
+    </ul>
+    <h2>5. Informations de paiement</h2>
+    <ul>
+        <li>La plateforme MySpeedPuzzling.com <strong>ne collecte aucune donnée sur les méthodes de paiement</strong> – tous les paiements sont traités exclusivement par la société partenaire Stripe.</li>
+        <li>Nous n'avons jamais accès aux détails de votre carte de paiement, informations de compte bancaire, ou toute autre donnée financière.</li>
+    </ul>
+    <h2>6. Sécurité et vie privée</h2>
+    <ul>
+        <li>La sécurité de nos utilisateurs est notre priorité – serveurs et bases de données sont protégés contre l'accès non autorisé, les fuites de données et autres cybermenaces.</li>
+        <li>Vos données personnelles (par ex., email ou informations de profil optionnelles) sont toujours chiffrées, et seuls les auteurs de l'application peuvent y accéder.</li>
+        <li>Nous respectons toutes les mesures de sécurité standard et travaillons continuellement à améliorer notre sécurité.</li>
+    </ul>
+    <h2>7. Connexion avec Google, Facebook (Meta) et Apple</h2>
+    <p>Au lieu d'utiliser un mot de passe, vous pouvez vous connecter avec votre compte Google, Facebook ou Apple. Si vous utilisez Instagram, vous pouvez vous connecter via le compte Facebook qui y est associé dans l'Espace Comptes de Meta. Ces modes de connexion sont entièrement facultatifs : vous pouvez toujours vous connecter avec votre adresse e-mail et votre mot de passe, ou avec un lien de connexion envoyé par e-mail.</p>
+    <h3 class="h5">Ce que nous recevons du fournisseur</h3>
+    <ul>
+        <li>un identifiant unique de votre compte chez ce fournisseur – une suite de caractères qui, à elle seule, ne dit rien de vous,</li>
+        <li>votre adresse e-mail, si vous acceptez de la partager – Apple vous permet de masquer votre véritable adresse et de nous communiquer à la place une adresse de relais privée (…@privaterelay.appleid.com), qui vous transmet nos messages,</li>
+        <li>votre nom – nous l'utilisons uniquement pour préremplir le nom public d'un compte nouvellement créé, et vous pouvez le modifier à tout moment (Apple ne transmet le nom que lors de la toute première connexion).</li>
+    </ul>
+    <p>Un fournisseur peut également envoyer des informations de profil de base, comme une photo de profil. Nous ne les utilisons pas et ne les conservons pas.</p>
+    <h3 class="h5">Ce que nous conservons</h3>
+    <ul>
+        <li>de quel fournisseur il s'agit et votre identifiant chez lui,</li>
+        <li>l'adresse e-mail communiquée par le fournisseur au moment de l'association – à des fins d'assistance, pour savoir quel compte est associé,</li>
+        <li>la date à laquelle vous avez associé le fournisseur et celle de votre dernière connexion avec lui.</li>
+    </ul>
+    <h3 class="h5">Ce que nous ne recevons jamais</h3>
+    <ul>
+        <li>Nous ne voyons jamais votre mot de passe Google, Facebook ou Apple.</li>
+        <li>Nous n'avons aucun accès à vos publications, photos, amis, contacts, messages ni à quoi que ce soit d'autre dans votre compte chez le fournisseur, et nous ne publions jamais rien en votre nom.</li>
+        <li>Nous ne conservons pas les jetons d'accès émis par le fournisseur – ils servent une seule fois, lors de la connexion, à lire les informations ci-dessus, puis sont supprimés.</li>
+    </ul>
+    <h3 class="h5">Finalité et base juridique</h3>
+    <p>Nous utilisons ces données uniquement pour vous connecter et protéger votre compte. La base juridique est l'exécution d'un contrat – la fourniture du service auquel vous vous êtes inscrit (article 6, paragraphe 1, point b) du RGPD). Nous ne les utilisons pas à des fins marketing et ne les transmettons à personne.</p>
+    <h3 class="h5">Dissocier un fournisseur</h3>
+    <p>Vous pouvez dissocier un fournisseur à tout moment dans <a href="%edit_profile_link%">Modifier le profil</a> → <strong>Méthodes de connexion associées</strong>, à condition de disposer encore d'un autre moyen de connexion (par exemple un mot de passe). La dissociation supprime immédiatement l'association enregistrée. Pour nous retirer également l'accès du côté du fournisseur, supprimez MySpeedPuzzling dans ses paramètres :</p>
+    <ul>
+        <li><strong>Facebook :</strong> Paramètres et confidentialité → Paramètres → Applications et sites web</li>
+        <li><strong>Google :</strong> <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">myaccount.google.com</a> → Sécurité → Vos connexions à des applications et services tiers</li>
+        <li><strong>Apple :</strong> sur iPhone ou iPad, Réglages → votre nom (compte Apple) → Connexion et sécurité → Se connecter avec Apple ; sur le web, sur <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
+    </ul>
+    <h3 class="h5">Les fournisseurs sont des responsables de traitement indépendants</h3>
+    <p>Lorsque vous vous connectez avec Google, Facebook ou Apple, ces sociétés traitent vos données en tant que responsables de traitement indépendants, selon leurs propres conditions et politiques de confidentialité, sur lesquelles nous n'avons aucune influence :</p>
+    <ul>
+        <li>Google (Google Ireland Limited) : <a href="https://policies.google.com/privacy?hl=fr" target="_blank" rel="noopener">policies.google.com/privacy</a></li>
+        <li>Meta (Meta Platforms Ireland Limited) : <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">facebook.com/privacy/policy</a></li>
+        <li>Apple (Apple Distribution International Limited) : <a href="https://www.apple.com/fr/legal/privacy/" target="_blank" rel="noopener">apple.com/legal/privacy</a></li>
+    </ul>
+    <h2>8. Journal de sécurité des connexions</h2>
+    <p>Pour protéger votre compte, nous enregistrons les événements liés à sa sécurité : connexions réussies et échouées, déconnexions, demandes de liens de connexion ou de réinitialisation du mot de passe, changements de mot de passe et d'adresse e-mail, inscription, association et dissociation de Google, Facebook ou Apple, ainsi que les demandes de suppression du compte.</p>
+    <ul>
+        <li>Chaque entrée contient le type d'événement, sa date et son heure, le mode de connexion utilisé, l'adresse e-mail concernée, l'adresse IP et l'identification de votre navigateur et de votre appareil (le « user agent »).</li>
+        <li>Nous l'utilisons pour détecter les accès non autorisés aux comptes et enquêter à leur sujet, ainsi que pour vous montrer votre propre historique – vous pouvez le consulter à tout moment sur la page <strong>Activité récente du compte</strong>, dans les paramètres de votre profil.</li>
+        <li>La base juridique est notre intérêt légitime à assurer la sécurité de votre compte et de l'ensemble de la plateforme (article 6, paragraphe 1, point f) du RGPD).</li>
+        <li>Les entrées sont supprimées automatiquement au bout de 24 mois ; celles qui concernent votre compte sont supprimées immédiatement avec lui.</li>
+    </ul>
+    <h2>9. Suppression de vos données</h2>
+    <p>Vous pouvez supprimer vous-même votre compte, y compris vos données personnelles, à tout moment. Vous trouverez les instructions détaillées sur la page <a href="%data_deletion_link%">Comment supprimer vos données</a>.</p>
+    <p>Si vous avez des questions sur la protection des données personnelles ou si vous n'êtes pas sûr que quelque chose soit suffisamment clair, veuillez nous contacter à <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</p>
+    <p><em><small>Dernière mise à jour : 29 septembre 2026</small></em></p>
+"data_deletion":
+  "meta":
+    "title": "Comment supprimer vos données"
+    "description": "Comment supprimer votre compte MySpeedPuzzling et vos données personnelles, dissocier Google, Facebook ou Apple et retirer l'application chez le fournisseur."
+  "content": |
+    <h1>Comment supprimer vos données</h1>
+    <p>Vous pouvez supprimer vous-même votre compte MySpeedPuzzling, y compris vos données personnelles – à tout moment et en quelques clics. Cette page explique comment faire, ce qui est supprimé exactement et que faire si vous souhaitez seulement dissocier Google, Facebook ou Apple.</p>
+    <h2>1. Supprimer votre compte</h2>
+    <ol>
+        <li>Connectez-vous et ouvrez <a href="%edit_profile_link%">Modifier le profil</a> (dans le menu utilisateur).</li>
+        <li>Faites défiler jusqu'à la <strong>Zone de danger</strong>, tout en bas de la page.</li>
+        <li>Vous souhaitez conserver vos temps ? Cliquez sur <strong>Exporter mes données d'abord</strong> – une fois le compte supprimé, ils ne pourront plus être récupérés.</li>
+        <li>Cliquez sur <strong>M'envoyer le lien de confirmation par e-mail</strong>. Nous l'envoyons à l'adresse e-mail de votre compte ; il est valable une heure.</li>
+        <li>Ouvrez le lien, cochez <strong>Je comprends que cette action est définitive et irréversible.</strong> et cliquez sur <strong>Oui, supprimer définitivement mon compte</strong>.</li>
+    </ol>
+    <p>Votre compte est supprimé immédiatement. Il n'y a ni délai d'attente ni retour en arrière possible.</p>
+    <h2>2. Ce qui est supprimé</h2>
+    <ul>
+        <li>votre compte : l'adresse e-mail de connexion, le mot de passe, les méthodes de connexion associées (Google, Facebook, Apple) et le journal de sécurité des connexions,</li>
+        <li>votre profil de joueur avec toutes ses informations,</li>
+        <li>vos temps en solo, vos collections, votre liste de souhaits, les puzzles proposés à la vente ou à l'échange, vos badges, chronomètres et notifications,</li>
+        <li>votre adhésion (un abonnement actif est résilié) et votre inscription à la newsletter.</li>
+    </ul>
+    <p>Certaines choses sont partagées avec d'autres joueurs et restent donc visibles pour eux – mais elles ne sont plus liées à aucun compte et n'affichent plus que le nom que vous utilisiez, en simple texte : les temps en duo et en équipe réalisés avec d'autres joueurs inscrits, les conversations et les transactions de la place de marché, y compris les évaluations, ainsi que les suggestions et leurs commentaires. Les puzzles que vous avez ajoutés au catalogue y restent, sans aucun lien avec vous. Dans notre journal des e-mails envoyés, votre adresse est remplacée par une empreinte (hash) irréversible.</p>
+    <p>Stripe, qui traite nos paiements, conserve l'historique des paiements passés conformément à sa propre politique de confidentialité.</p>
+    <h2>3. Dissocier uniquement Google, Facebook ou Apple</h2>
+    <p>Si vous souhaitez garder votre compte et simplement ne plus vous connecter avec Google, Facebook ou Apple, ouvrez <a href="%edit_profile_link%">Modifier le profil</a> → <strong>Méthodes de connexion associées</strong> et cliquez sur <strong>Dissocier</strong> à côté du fournisseur. L'association enregistrée (l'identifiant du fournisseur, l'adresse e-mail au moment de l'association, ainsi que les dates d'association et de dernière utilisation) est supprimée immédiatement. S'il s'agit de votre seul moyen de connexion, ajoutez d'abord un mot de passe pour ne pas perdre l'accès à votre compte.</p>
+    <h2>4. Retirer MySpeedPuzzling chez le fournisseur</h2>
+    <p>La dissociation sur notre site ne change rien à votre compte Google, Facebook ou Apple. Pour nous retirer également l'accès de ce côté, supprimez MySpeedPuzzling dans les paramètres du fournisseur :</p>
+    <ul>
+        <li><strong>Facebook :</strong> Paramètres et confidentialité → Paramètres → Applications et sites web</li>
+        <li><strong>Google :</strong> <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">myaccount.google.com</a> → Sécurité → Vos connexions à des applications et services tiers</li>
+        <li><strong>Apple :</strong> sur iPhone ou iPad, Réglages → votre nom (compte Apple) → Connexion et sécurité → Se connecter avec Apple ; sur le web, sur <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
+    </ul>
+    <p>Retirer l'application chez le fournisseur ne supprime pas votre compte MySpeedPuzzling – pour cela, suivez l'étape 1.</p>
+    <h2>5. Besoin d'aide ?</h2>
+    <p>Si vous ne parvenez plus à vous connecter ou si vous préférez que nous supprimions vos données pour vous, écrivez-nous à <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, de préférence depuis l'adresse e-mail de votre compte. Nous nous en occuperons dans un délai d'un mois au plus – généralement bien plus tôt.</p>
+    <p>Pour en savoir plus sur la manière dont nous traitons les données personnelles, consultez notre <a href="%privacy_link%">Politique de confidentialité</a>.</p>
 "countdown":
   "days": "jours"
   "hours": "heures"

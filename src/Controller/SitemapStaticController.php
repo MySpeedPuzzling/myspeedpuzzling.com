@@ -28,6 +28,7 @@ final class SitemapStaticController extends AbstractController
         'ladder_groups_500_pieces',
         'ladder_groups_1000_pieces',
         'privacy_policy',
+        'data_deletion',
         'puzzles',
         'players',
         'recent_activity',

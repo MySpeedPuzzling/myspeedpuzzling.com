@@ -6,6 +6,9 @@
 {% block content %}
     <section class="terms-of-service">
 
-        {{ 'privacy_policy.content'|trans|raw }}
+        {{ 'privacy_policy.content'|trans({
+            '%edit_profile_link%': path('edit_profile'),
+            '%data_deletion_link%': path('data_deletion'),
+        })|raw }}
     </section>
 {% endblock %}

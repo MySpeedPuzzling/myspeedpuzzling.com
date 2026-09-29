@@ -24,6 +24,11 @@ Self-service, e-mail-confirmed, permanent account deletion. Built 2026-08-18.
    runs `DeletePlayer` in the same transaction → redirect to the goodbye page.
 5. **Goodbye page** `GET /account-deleted` (`account_deleted`).
 
+Public instructions for all of this live at `/en/data-deletion` (`data_deletion`
+route, all 6 locales, in the footer + sitemap, linked from the privacy policy) —
+it is also the "User data deletion" URL given to Meta for Facebook login. Keep it
+in sync when the flow or `DeletePlayerHandler` changes what is deleted.
+
 Expired / invalid links get their own outcome page ("nothing has been deleted,
 request a new link from your profile settings").
 

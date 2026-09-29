@@ -16,6 +16,7 @@ use Doctrine\ORM\Mapping\UniqueConstraint;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Events\OauthIdentityLinked;
 use SpeedPuzzling\Web\Value\OauthProvider;
 
 /**
@@ -28,8 +29,14 @@ use SpeedPuzzling\Web\Value\OauthProvider;
 #[Entity]
 #[Table(name: 'oauth_identity')]
 #[UniqueConstraint(columns: ['provider', 'provider_user_id'])]
-class OauthIdentity
+// One identity per provider per account: the settings UI offers exactly one
+// connect/disconnect per provider. LinkOauthIdentityHandler checks it first;
+// this index settles two racing link flows.
+#[UniqueConstraint(columns: ['user_account_id', 'provider'])]
+class OauthIdentity implements EntityWithEvents
 {
+    use HasEvents;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -62,6 +69,17 @@ class OauthIdentity
         #[Column(type: Types::DATETIMETZ_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $lastUsedAt = null,
     ) {
+    }
+
+    /**
+     * The identity was attached to an account that already existed (rule-2
+     * auto-link, settings connect, interstitial connect) - as opposed to being
+     * created together with a new account. Its owner gets a security notice:
+     * a new way into their account appeared.
+     */
+    public function linkedToExistingAccount(): void
+    {
+        $this->recordThat(new OauthIdentityLinked($this->userAccount->id, $this->provider, $this->linkedAt));
     }
 
     public function markUsed(DateTimeImmutable $now): void

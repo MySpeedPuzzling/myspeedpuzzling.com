@@ -3443,7 +3443,9 @@ auth:
             title: "Create a new account?"
             question: "You signed in with %provider% as %email%, and no MySpeedPuzzling account uses this email address yet. Create a new account?"
             create: "Create my account"
-            have_account: "Already have a MySpeedPuzzling account under a different email address? Sign in to it first, then connect %provider% in your profile settings — otherwise you would end up with two separate accounts."
+            have_account: "Already have a MySpeedPuzzling account under a different email address? Sign in to it and we will connect %provider% to it right away — otherwise you would end up with two separate accounts."
+            sign_in_and_connect: "Sign in and connect %provider%"
+            duplicate_accounts_help: "Ended up with two accounts by mistake? <a href=\"%faqUrl%\">Here is what to do</a>."
             expired: "That sign-up confirmation expired. Please try signing in again."
             created: "Welcome! Your account is ready and you are signed in."
     account_set_password:

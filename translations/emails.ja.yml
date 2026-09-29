@@ -237,3 +237,14 @@ free_trial_ending:
         <p>メンバーシップの無料トライアルは<b>%trialEndsAt%</b>に終了します。お手続きは不要です - 自動的に終了し、料金は一切かかりません。</p>
         <p>お役に立ったなら、<a href="%membershipUrl%">メンバーシップページ</a>からメンバーになれます。トライアル終了前に登録すれば残り日数はそのまま引き継がれ、初回のお支払いはその後になります。</p>
         <p>どちらを選ばれても - お試しいただきありがとうございました。楽しいパズルライフを！</p>
+
+oauth_identity_linked:
+    subject: "MySpeedPuzzlingアカウントに%provider%でのログインが連携されました"
+    title: "%provider%でのログインを連携しました"
+    content: |
+        <p>MySpeedPuzzlingアカウント <strong>%email%</strong> に%provider%アカウントが連携されました（%linkedAt%）。今後はこちらでもログインできます。</p>
+        <p>ご自身で操作された場合は、これ以上の対応は必要ありません。</p>
+    not_you_title: "心当たりがない場合"
+    not_you: |
+        <p>第三者があなたのアカウントにログインできる状態になっている可能性があります。ログインしてプロフィール設定を開き、「Connected sign-in methods」から%provider%の連携を解除してください。念のため<a href="%resetPasswordUrl%">パスワードも変更</a>することをおすすめします。</p>
+    button: "ログイン方法を確認する"

@@ -1,0 +1,47 @@
+{% trans_default_domain 'emails' %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig') }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'oauth_identity_linked.title'|trans({'%provider%': providerName}) }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    {{ 'oauth_identity_linked.content'|trans({
+                        '%provider%': providerName|e,
+                        '%email%': accountEmail|e,
+                        '%linkedAt%': linkedAt|e,
+                    })|raw }}
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p><strong>{{ 'oauth_identity_linked.not_you_title'|trans }}</strong></p>
+                    {{ 'oauth_identity_linked.not_you'|trans({
+                        '%provider%': providerName|e,
+                        '%resetPasswordUrl%': resetPasswordUrl,
+                    })|raw }}
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <center>
+                        <button href="{{ manageUrl }}">{{ 'oauth_identity_linked.button'|trans }}</button>
+                    </center>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

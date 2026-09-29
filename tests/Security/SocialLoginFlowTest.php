@@ -6,18 +6,23 @@ namespace SpeedPuzzling\Web\Tests\Security;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
-use Firebase\JWT\JWT;
 use GuzzleHttp\Psr7\Response as HttpResponse;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\OauthIdentity;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\UserAccount;
+use SpeedPuzzling\Web\Events\OauthIdentityLinked;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
+use SpeedPuzzling\Web\Tests\TestDouble\AppleIdTokenFactory;
 use SpeedPuzzling\Web\Tests\TestDouble\SocialLoginHttpMock;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
+use Symfony\Component\Mime\Email;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /**
  * End-to-end social login flows against mocked provider HTTP (the league
@@ -401,8 +406,17 @@ final class SocialLoginFlowTest extends WebTestCase
         $this->queueGoogleExchange("g-rule5-{$suffix}", "different+{$suffix}@gmail.com", emailVerified: true);
         $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
 
+        // The callback never links - it parks the profile and hands over to
+        // the finish route, which checks who is signed in
+        self::assertResponseStatusCodeSame(303);
+        self::assertStringContainsString('/connect/social/google/finish/', (string) $browser->getResponse()->headers->get('Location'));
+
+        $browser->followRedirect();
         self::assertResponseRedirects();
         $location = (string) $browser->getResponse()->headers->get('Location');
+
+        // The owner is told about the new way into their account
+        $this->assertLinkNoticeQueued($browser, $userAccount, OauthProvider::Google);
         self::assertStringContainsString('social_link_result=connected', $location);
         self::assertStringContainsString('social_link_provider=google', $location);
 
@@ -448,27 +462,12 @@ final class SocialLoginFlowTest extends WebTestCase
 
         $state = $this->startFlow($browser, 'apple', 'appleid.apple.com');
 
-        [$jwks, $idToken] = $this->rsaSignedIdToken([
-            'iss' => 'https://appleid.apple.com',
-            'aud' => 'com.myspeedpuzzling.test',
+        AppleIdTokenFactory::queueTokenExchange([
             'sub' => $sub,
             'email' => $email,
             'email_verified' => true,
-            'iat' => time(),
-            'exp' => time() + 600,
+            'is_private_email' => 'true',
         ]);
-
-        // Token endpoint answers first, then AppleAccessToken fetches the JWKs
-        SocialLoginHttpMock::queue(
-            self::jsonResponse([
-                'access_token' => 'apple-at',
-                'token_type' => 'Bearer',
-                'expires_in' => 3600,
-                'refresh_token' => 'apple-rt',
-                'id_token' => $idToken,
-            ]),
-            new HttpResponse(200, ['Content-Type' => 'application/json'], $jwks),
-        );
 
         // Cross-site form_post: a POST without any session cookie, carrying the
         // one-shot `user` payload of the first authorization
@@ -508,6 +507,485 @@ final class SocialLoginFlowTest extends WebTestCase
         self::assertSame($email, $identityRow['email_at_link']);
     }
 
+    public function testRule2IsRefusedWhenTheExistingAccountIsUnverified(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $email = "unverified+{$suffix}@example.com";
+        // Someone registered this address here and never confirmed it - an
+        // email match proves nothing about who owns the account
+        $this->seedAccount($browser, $email, password: 'hash', emailVerified: false);
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+
+        $this->queueGoogleExchange("g-unverified-{$suffix}", $email, emailVerified: true);
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+
+        self::assertResponseRedirects('/login');
+        $crawler = $browser->followRedirect();
+        self::assertStringContainsString('Sign in with your password first, then connect Google', $crawler->text());
+
+        self::assertSame(0, $this->identityCount($browser, "g-unverified-{$suffix}"));
+        $this->assertNotLoggedIn($browser);
+    }
+
+    /**
+     * Apple sends email_verified as a string too; the library treats "false"
+     * as truthy. Our own claim reading must not.
+     */
+    public function testAppleStringFalseEmailVerifiedNeverAutoLinks(): void
+    {
+        $this->enableApplePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $email = "applefalse+{$suffix}@example.com";
+        $this->seedAccount($browser, $email, password: 'hash');
+
+        $state = $this->startFlow($browser, 'apple', 'appleid.apple.com');
+
+        AppleIdTokenFactory::queueTokenExchange([
+            'sub' => "apple-false-{$suffix}",
+            'email' => $email,
+            'email_verified' => 'false',
+        ]);
+        $browser->request('POST', '/login/social/apple/callback', ['state' => $state, 'code' => 'fake-apple-code']);
+
+        self::assertResponseRedirects('/login');
+        $crawler = $browser->followRedirect();
+        self::assertStringContainsString('Sign in with your password first, then connect Apple', $crawler->text());
+
+        self::assertSame(0, $this->identityCount($browser, "apple-false-{$suffix}"));
+    }
+
+    public function testAppleIdTokenForAnotherClientIsRejected(): void
+    {
+        $this->enableApplePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $email = "appleaud+{$suffix}@example.com";
+        $this->seedAccount($browser, $email, password: 'hash');
+
+        $state = $this->startFlow($browser, 'apple', 'appleid.apple.com');
+
+        // Validly signed by "Apple" - but issued to somebody else's app
+        AppleIdTokenFactory::queueTokenExchange([
+            'aud' => 'com.somebody.else',
+            'sub' => "apple-aud-{$suffix}",
+            'email' => $email,
+            'email_verified' => true,
+        ]);
+        $browser->request('POST', '/login/social/apple/callback', ['state' => $state, 'code' => 'fake-apple-code']);
+
+        self::assertResponseRedirects('/login');
+        self::assertSame(0, $this->identityCount($browser, "apple-aud-{$suffix}"));
+        $this->assertNotLoggedIn($browser);
+    }
+
+    /**
+     * Decision 2026-09-29: a provider email explicitly marked unverified is
+     * not refused - the account is created unverified and asked to confirm.
+     */
+    public function testRule4WithExplicitlyUnverifiedEmailCreatesUnverifiedAccountAndSendsVerification(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $email = "rule4unverified+{$suffix}@example.com";
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+
+        $this->queueGoogleExchange("g-rule4u-{$suffix}", $email, emailVerified: false);
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+
+        $token = $this->registrationTokenFromLocation($browser);
+
+        $browser->request('POST', '/register/social', ['token' => $token]);
+        self::assertResponseRedirects();
+
+        $messages = self::getMailerMessages();
+        self::assertCount(1, $messages);
+        self::assertInstanceOf(Email::class, $messages[0]);
+        self::assertSame($email, $messages[0]->getTo()[0]->getAddress());
+        self::assertStringContainsString('/verify-email?token=', (string) $messages[0]->getHtmlBody());
+
+        $this->assertRememberMeCookieIssued($browser);
+
+        $verifiedAt = $browser->getContainer()->get(Connection::class)->fetchOne(
+            'SELECT email_verified_at FROM user_account WHERE email = :email',
+            ['email' => $email],
+        );
+        self::assertNull($verifiedAt);
+    }
+
+    public function testRule4WithTrustedEmailSendsNoVerificationAndRemembersTheUser(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+
+        $this->queueGoogleExchange("g-rule4v-{$suffix}", "rule4verified+{$suffix}@example.com", emailVerified: true);
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+
+        $browser->request('POST', '/register/social', ['token' => $this->registrationTokenFromLocation($browser)]);
+        self::assertResponseRedirects();
+
+        self::assertCount(0, self::getMailerMessages());
+        $this->assertRememberMeCookieIssued($browser);
+    }
+
+    /**
+     * Forged connect: the attacker starts a connect flow from THEIR account
+     * and gets the victim to complete it. The victim's provider identity must
+     * never land on the attacker's account.
+     */
+    public function testForgedConnectCompletedByAnotherSignedInAccountLinksNothing(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $attacker = $this->seedAccount($browser, "attacker+{$suffix}@example.com", password: 'hash');
+        $victim = $this->seedAccount($browser, "victim+{$suffix}@example.com", password: 'hash');
+
+        $browser->loginUser($attacker, 'main');
+        $browser->request('GET', '/account/social/google/connect');
+        $state = $this->stateFromLocation($browser, 'accounts.google.com');
+
+        // The victim's browser completes the consent and follows the callback
+        $browser->loginUser($victim, 'main');
+        $this->queueGoogleExchange("g-forged-{$suffix}", "victim+{$suffix}@gmail.com", emailVerified: true);
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+        self::assertResponseStatusCodeSame(303);
+
+        $browser->followRedirect();
+        self::assertResponseRedirects();
+        self::assertStringContainsString('social_link_result=failed', (string) $browser->getResponse()->headers->get('Location'));
+
+        self::assertSame(0, $this->identityCount($browser, "g-forged-{$suffix}"));
+    }
+
+    public function testFinishTokenIsSingleUse(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $userAccount = $this->seedAccount($browser, "once+{$suffix}@example.com", password: 'hash');
+        $browser->loginUser($userAccount, 'main');
+
+        $browser->request('GET', '/account/social/google/connect');
+        $state = $this->stateFromLocation($browser, 'accounts.google.com');
+
+        $this->queueGoogleExchange("g-once-{$suffix}", "once+{$suffix}@gmail.com", emailVerified: true);
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+        $finishUrl = (string) $browser->getResponse()->headers->get('Location');
+
+        $browser->request('GET', $finishUrl);
+        self::assertStringContainsString('social_link_result=connected', (string) $browser->getResponse()->headers->get('Location'));
+
+        $browser->request('GET', $finishUrl);
+        self::assertStringContainsString('social_link_result=failed', (string) $browser->getResponse()->headers->get('Location'));
+    }
+
+    public function testRule2AutoLinkQueuesTheSecurityNotice(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $email = "notice+{$suffix}@example.com";
+        $userAccount = $this->seedAccount($browser, $email, password: 'hash');
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+
+        $this->queueGoogleExchange("g-notice-{$suffix}", $email, emailVerified: true);
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+
+        self::assertResponseRedirects();
+        $this->assertLinkNoticeQueued($browser, $userAccount, OauthProvider::Google);
+    }
+
+    /**
+     * The interstitial's "I already have an account": the parked provider
+     * profile survives the sign-in and is connected to the account signed in to.
+     */
+    public function testInterstitialSignInKeepsTheProviderProfileAndConnectsIt(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $existing = $this->seedAccount($browser, "existing+{$suffix}@example.com", password: 'hash');
+        $providerEmail = "other+{$suffix}@gmail.com";
+
+        $returnPath = $this->parkThroughInterstitial($browser, "g-keep-{$suffix}", $providerEmail);
+
+        // Signs in to the existing account (any method), then lands on the return path
+        $browser->loginUser($existing, 'main');
+        $browser->request('GET', $returnPath);
+
+        self::assertResponseRedirects();
+        self::assertStringContainsString('social_link_result=connected', (string) $browser->getResponse()->headers->get('Location'));
+        $this->assertLinkNoticeQueued($browser, $existing, OauthProvider::Google);
+
+        $connection = $browser->getContainer()->get(Connection::class);
+        $identityAccount = $connection->fetchOne(
+            'SELECT user_account_id FROM oauth_identity WHERE provider_user_id = :sub',
+            ['sub' => "g-keep-{$suffix}"],
+        );
+        self::assertSame($existing->id->toString(), $identityAccount);
+
+        $duplicates = self::countRows($connection, 'SELECT COUNT(*) FROM user_account WHERE email = :email', ['email' => $providerEmail]);
+        self::assertSame(0, $duplicates, 'No second account may appear');
+    }
+
+    /**
+     * Without the browser binding the finish URL would be a forged-connect
+     * primitive: park your own Google profile, send the link to a signed-in
+     * victim, sign in to their account with Google afterwards.
+     */
+    public function testInterstitialFinishUrlOpenedInAnotherBrowserLinksNothing(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $victim = $this->seedAccount($browser, "victim2+{$suffix}@example.com", password: 'hash');
+
+        $returnPath = $this->parkThroughInterstitial($browser, "g-steal-{$suffix}", "attacker2+{$suffix}@gmail.com");
+
+        // The victim's browser: signed in, but never saw the binding cookie
+        $browser->getCookieJar()->clear();
+        $browser->loginUser($victim, 'main');
+        $browser->request('GET', $returnPath);
+
+        self::assertResponseRedirects();
+        self::assertStringContainsString('social_link_result=failed', (string) $browser->getResponse()->headers->get('Location'));
+        self::assertSame(0, $this->identityCount($browser, "g-steal-{$suffix}"));
+    }
+
+    public function testInterstitialLinksToTheFaqAboutDuplicateAccounts(): void
+    {
+        $this->enableGooglePublicly();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+
+        $this->queueGoogleExchange("g-faq-{$suffix}", "faq+{$suffix}@example.com", emailVerified: true);
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+
+        $crawler = $browser->request('GET', (string) $browser->getResponse()->headers->get('Location'));
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('a[href$="#duplicate-accounts"]'));
+    }
+
+    public function testOneAccountCanSignInWithAllThreeProviders(): void
+    {
+        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_GOOGLE_ENABLED', true);
+        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_FACEBOOK_ENABLED', true);
+        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_APPLE_ENABLED', true);
+        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
+        $this->overrideAppleCredentials();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $userAccount = $this->seedAccount($browser, "three+{$suffix}@example.com", password: 'hash');
+        $browser->loginUser($userAccount, 'main');
+
+        // Connect all three from settings, each under a different address
+        $browser->request('GET', '/account/social/google/connect');
+        $state = $this->stateFromLocation($browser, 'accounts.google.com');
+        $this->queueGoogleExchange("g-three-{$suffix}", "three+{$suffix}@gmail.com", emailVerified: true);
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+        $this->assertFinishConnects($browser);
+
+        $browser->request('GET', '/account/social/facebook/connect');
+        $state = $this->stateFromLocation($browser, 'facebook.com');
+        $this->queueFacebookExchange("fb-three-{$suffix}", "three+{$suffix}@facebook.example.com");
+        $browser->request('GET', "/login/social/facebook/callback?state={$state}&code=fake-code");
+        $this->assertFinishConnects($browser);
+
+        $browser->request('GET', '/account/social/apple/connect');
+        $state = $this->stateFromLocation($browser, 'appleid.apple.com');
+        AppleIdTokenFactory::queueTokenExchange([
+            'sub' => "apple-three-{$suffix}",
+            'email' => "three{$suffix}@privaterelay.appleid.com",
+            'email_verified' => 'true',
+            'is_private_email' => 'true',
+        ]);
+        $browser->request('POST', '/login/social/apple/callback', ['state' => $state, 'code' => 'fake-apple-code']);
+        $this->assertFinishConnects($browser);
+
+        $connection = $browser->getContainer()->get(Connection::class);
+        self::assertSame(3, self::countRows(
+            $connection,
+            'SELECT COUNT(*) FROM oauth_identity WHERE user_account_id = :id',
+            ['id' => $userAccount->id->toString()],
+        ));
+
+        // ...and every one of them signs in to that same account (rule 1)
+        $browser->request('GET', '/logout');
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+        $this->queueGoogleExchange("g-three-{$suffix}", "three+{$suffix}@gmail.com", emailVerified: true);
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+        $this->assertSignedInAs($browser, $userAccount);
+
+        $browser->request('GET', '/logout');
+        $state = $this->startFlow($browser, 'facebook', 'facebook.com');
+        $this->queueFacebookExchange("fb-three-{$suffix}", "three+{$suffix}@facebook.example.com");
+        $browser->request('GET', "/login/social/facebook/callback?state={$state}&code=fake-code");
+        $this->assertSignedInAs($browser, $userAccount);
+
+        $browser->request('GET', '/logout');
+        $state = $this->startFlow($browser, 'apple', 'appleid.apple.com');
+        AppleIdTokenFactory::queueTokenExchange([
+            'sub' => "apple-three-{$suffix}",
+            'email' => "three{$suffix}@privaterelay.appleid.com",
+            'email_verified' => true,
+        ]);
+        $browser->request('POST', '/login/social/apple/callback', ['state' => $state, 'code' => 'fake-apple-code']);
+        $this->assertSignedInAs($browser, $userAccount);
+    }
+
+    public function testOneIdentityPerProviderPerAccountIsEnforcedByTheDatabase(): void
+    {
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $userAccount = $this->seedAccount($browser, "uniq+{$suffix}@example.com", password: 'hash');
+        $this->seedIdentity($browser, $userAccount, OauthProvider::Google, "g-uniq-a-{$suffix}");
+
+        $this->expectException(UniqueConstraintViolationException::class);
+
+        // A second Google identity on the same account - what two racing link
+        // flows would produce past the handler's advisory check
+        $this->seedIdentity($browser, $userAccount, OauthProvider::Google, "g-uniq-b-{$suffix}");
+    }
+
+    private function enableApplePublicly(): void
+    {
+        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_APPLE_ENABLED', true);
+        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
+        $this->overrideAppleCredentials();
+    }
+
+    /**
+     * Drives a rule-4 flow to the interstitial and answers "I already have an
+     * account".
+     *
+     * @return string the post-login ?return= path (the link finish route)
+     */
+    private function parkThroughInterstitial(KernelBrowser $browser, string $sub, string $providerEmail): string
+    {
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+
+        $this->queueGoogleExchange($sub, $providerEmail, emailVerified: true);
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+
+        $browser->request('POST', '/register/social/sign-in', ['token' => $this->registrationTokenFromLocation($browser)]);
+
+        self::assertResponseRedirects();
+        $location = (string) $browser->getResponse()->headers->get('Location');
+        self::assertStringStartsWith('/login?return=', $location);
+        self::assertNotNull($browser->getCookieJar()->get('msp_social_link', '/connect/social'), 'The binding cookie must be set');
+
+        parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
+        $returnPath = $query['return'] ?? null;
+        self::assertIsString($returnPath);
+        self::assertStringStartsWith('/connect/social/google/finish/', $returnPath);
+
+        // The login page carries the destination on
+        $browser->request('GET', $location);
+        self::assertResponseIsSuccessful();
+
+        return $returnPath;
+    }
+
+    private function registrationTokenFromLocation(KernelBrowser $browser): string
+    {
+        $location = (string) $browser->getResponse()->headers->get('Location');
+        self::assertStringContainsString('/register/social?token=', $location);
+
+        parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
+        $token = $query['token'] ?? null;
+        self::assertIsString($token);
+
+        return $token;
+    }
+
+    private function assertFinishConnects(KernelBrowser $browser): void
+    {
+        self::assertResponseStatusCodeSame(303);
+        $browser->followRedirect();
+        self::assertStringContainsString('social_link_result=connected', (string) $browser->getResponse()->headers->get('Location'));
+    }
+
+    private function assertSignedInAs(KernelBrowser $browser, UserAccount $userAccount): void
+    {
+        self::assertResponseRedirects();
+        self::assertStringContainsString('my-profile', (string) $browser->getResponse()->headers->get('Location'));
+
+        $token = $browser->getContainer()->get(TokenStorageInterface::class)->getToken();
+        self::assertNotNull($token);
+        self::assertSame($userAccount->userId, $token->getUserIdentifier());
+    }
+
+    private function assertLinkNoticeQueued(KernelBrowser $browser, UserAccount $userAccount, OauthProvider $provider): void
+    {
+        $transport = $browser->getContainer()->get('messenger.transport.async');
+        self::assertInstanceOf(InMemoryTransport::class, $transport);
+
+        $notices = [];
+
+        foreach ($transport->getSent() as $envelope) {
+            $event = $envelope->getMessage();
+
+            if ($event instanceof OauthIdentityLinked && $event->userAccountId->equals($userAccount->id)) {
+                $notices[] = $event;
+            }
+        }
+
+        self::assertCount(1, $notices, 'Linking must queue exactly one security notice for the owner');
+        self::assertSame($provider, $notices[0]->provider);
+    }
+
+    private function assertRememberMeCookieIssued(KernelBrowser $browser): void
+    {
+        foreach ($browser->getResponse()->headers->getCookies() as $cookie) {
+            if ($cookie->getName() === 'REMEMBERME' && (string) $cookie->getValue() !== '') {
+                return;
+            }
+        }
+
+        self::fail('A new social account must get the always-on remember-me cookie');
+    }
+
+    private function identityCount(KernelBrowser $browser, string $providerUserId): int
+    {
+        return self::countRows(
+            $browser->getContainer()->get(Connection::class),
+            'SELECT COUNT(*) FROM oauth_identity WHERE provider_user_id = :sub',
+            ['sub' => $providerUserId],
+        );
+    }
+
+    private function queueFacebookExchange(string $id, string $email): void
+    {
+        SocialLoginHttpMock::queue(
+            self::jsonResponse(['access_token' => 'fb-token', 'token_type' => 'Bearer', 'expires_in' => 3600]),
+            self::jsonResponse(['id' => $id, 'name' => 'Facebook User', 'email' => $email]),
+        );
+    }
+
     private function enableGooglePublicly(): void
     {
         $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_GOOGLE_ENABLED', true);
@@ -516,60 +994,10 @@ final class SocialLoginFlowTest extends WebTestCase
 
     private function overrideAppleCredentials(): void
     {
-        // A throwaway EC P-256 key: the provider signs its ES256 client-secret
-        // JWT with it for real, only the HTTP endpoints are mocked
-        $ecKey = openssl_pkey_new([
-            'private_key_type' => OPENSSL_KEYTYPE_EC,
-            'curve_name' => 'prime256v1',
-        ]);
-        assert($ecKey !== false);
-        openssl_pkey_export($ecKey, $ecPem);
-        assert(is_string($ecPem));
-
-        $this->overrideStringEnv('APPLE_CLIENT_ID', 'com.myspeedpuzzling.test');
+        $this->overrideStringEnv('APPLE_CLIENT_ID', AppleIdTokenFactory::CLIENT_ID);
         $this->overrideStringEnv('APPLE_TEAM_ID', 'TESTTEAM01');
         $this->overrideStringEnv('APPLE_KEY_ID', 'TESTKEY001');
-        $this->overrideStringEnv('APPLE_PRIVATE_KEY', $ecPem);
-    }
-
-    /**
-     * @param array<string, mixed> $claims
-     *
-     * @return array{0: string, 1: string} JWKS body + RS256-signed id_token
-     */
-    private function rsaSignedIdToken(array $claims): array
-    {
-        $rsaKey = openssl_pkey_new([
-            'private_key_type' => OPENSSL_KEYTYPE_RSA,
-            'private_key_bits' => 2048,
-        ]);
-        assert($rsaKey !== false);
-        openssl_pkey_export($rsaKey, $rsaPem);
-        assert(is_string($rsaPem));
-        $details = openssl_pkey_get_details($rsaKey);
-        assert(is_array($details));
-        $rsa = $details['rsa'];
-        assert(is_array($rsa) && is_string($rsa['n']) && is_string($rsa['e']));
-
-        $jwks = json_encode([
-            'keys' => [
-                [
-                    'kty' => 'RSA',
-                    'alg' => 'RS256',
-                    'use' => 'sig',
-                    'kid' => 'test-kid',
-                    'n' => self::base64Url($rsa['n']),
-                    'e' => self::base64Url($rsa['e']),
-                ],
-            ],
-        ], JSON_THROW_ON_ERROR);
-
-        return [$jwks, JWT::encode($claims, $rsaPem, 'RS256', 'test-kid')];
-    }
-
-    private static function base64Url(string $binary): string
-    {
-        return rtrim(strtr(base64_encode($binary), '+/', '-_'), '=');
+        $this->overrideStringEnv('APPLE_PRIVATE_KEY', AppleIdTokenFactory::clientSecretKeyPem());
     }
 
     private function overrideStringEnv(string $name, string $value): void
@@ -634,11 +1062,19 @@ final class SocialLoginFlowTest extends WebTestCase
         return new HttpResponse(200, ['Content-Type' => 'application/json'], json_encode($payload, JSON_THROW_ON_ERROR));
     }
 
-    private function seedAccount(KernelBrowser $browser, string $email, null|string $password, bool $isAdmin = false): UserAccount
+    /**
+     * Seeded accounts are verified by default, like every account that existed
+     * when the 2026-09-29 backfill ran; pass false for a fresh, unconfirmed one.
+     */
+    private function seedAccount(KernelBrowser $browser, string $email, null|string $password, bool $isAdmin = false, bool $emailVerified = true): UserAccount
     {
         $userId = 'msp|' . Uuid::uuid7()->toString();
 
         $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+
+        if ($emailVerified) {
+            $userAccount->markEmailVerified(new DateTimeImmutable());
+        }
 
         if ($password !== null) {
             $userAccount->changePassword($password);

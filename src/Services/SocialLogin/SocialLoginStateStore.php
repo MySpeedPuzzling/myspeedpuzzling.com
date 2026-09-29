@@ -7,14 +7,15 @@ namespace SpeedPuzzling\Web\Services\SocialLogin;
 use Psr\Cache\CacheItemPoolInterface;
 use SpeedPuzzling\Web\Value\OauthFlowIntent;
 use SpeedPuzzling\Web\Value\OauthFlowState;
+use SpeedPuzzling\Web\Value\ParkedSocialLink;
 use SpeedPuzzling\Web\Value\ParkedSocialRegistration;
 use SpeedPuzzling\Web\Value\SocialUserProfile;
 
 /**
- * Single-use, short-TTL server-side storage for the two secrets of the social
+ * Single-use, short-TTL server-side storage for the secrets of the social
  * login flows: the OAuth `state` (+ PKCE verifier, + link-intent target
- * account) and the rule-4 parked provider profile awaiting the interstitial
- * confirmation. Cache instead of the session on purpose - see the pool comment
+ * account), the rule-4 parked provider profile awaiting the interstitial
+ * confirmation, and the provider profile awaiting a bound link (finish route). Cache instead of the session on purpose - see the pool comment
  * in config/packages/cache.php.
  */
 final readonly class SocialLoginStateStore
@@ -112,6 +113,57 @@ final readonly class SocialLoginStateStore
         }
 
         return $payload;
+    }
+
+    /**
+     * @return string the single-use token of the finish route - see
+     *         ParkedSocialLink for why linking is never done in the callback
+     */
+    public function parkLink(ParkedSocialLink $link): string
+    {
+        $token = bin2hex(random_bytes(16));
+
+        $item = $this->socialLoginStateCache->getItem(self::linkKey($token));
+        $item->set($link);
+        $item->expiresAfter(self::TTL_SECONDS);
+
+        $this->socialLoginStateCache->save($item);
+
+        return $token;
+    }
+
+    public function consumeLink(null|string $token): null|ParkedSocialLink
+    {
+        $key = self::safeLinkKey($token);
+
+        if ($key === null) {
+            return null;
+        }
+
+        $item = $this->socialLoginStateCache->getItem($key);
+        $payload = $item->isHit() ? $item->get() : null;
+
+        if (!$payload instanceof ParkedSocialLink) {
+            return null;
+        }
+
+        $this->socialLoginStateCache->deleteItem($key);
+
+        return $payload;
+    }
+
+    private static function linkKey(string $token): string
+    {
+        return 'oauth_link_' . $token;
+    }
+
+    private static function safeLinkKey(null|string $token): null|string
+    {
+        if ($token === null || preg_match('/^[a-f0-9]{32}$/', $token) !== 1) {
+            return null;
+        }
+
+        return self::linkKey($token);
     }
 
     private static function stateKey(string $state): string

@@ -4,6 +4,16 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Social login hardening
+
+Shipped 2026-09-29 (flags still dark). Design: [`features/auth-hardening/README.md`](features/auth-hardening/README.md) §Hardening 2026-09-29.
+
+- [ ] Apple server-to-server notifications endpoint (`email-disabled`, `consent-revoked`, `account-delete`) - today a revoked Apple ID or a dead relay address goes unnoticed
+- [ ] Use `SocialUserProfile::$isPrivateRelay` in the UI (interstitial copy for Apple "Hide My Email" addresses)
+- [ ] Translate the interstitial strings `auth.social.confirm.sign_in_and_connect` / `duplicate_accounts_help` (English-only by decision; other locales fall back) and re-translate `auth.social.confirm.have_account` in cs/de/es/fr/ja - the English copy now says the provider is connected automatically
+- [ ] Deliberately NOT done: Gmail dot/plus normalisation of provider emails when matching accounts (rule 2/3 compare the canonicalised address as-is)
+- [ ] True account merge (two accounts, two players) stays a manual admin operation - write the runbook when the first request comes in
+
 ## Puzzle approvals
 
 Shipped 2026-09-25. Design: [`features/puzzle-approvals.md`](features/puzzle-approvals.md).

@@ -30,7 +30,7 @@ The free trial (`docs/features/free-trial/README.md`) shipped dark behind it for
 - **Default:** OFF (code ships dark; credentials empty in the repo). Each flips independently via Infisical once its provider console setup (Google Cloud / Meta developers / Apple Developer) is done.
 - **Gated files:**
   - `src/Security/{Google,Facebook,Apple}LoginAuthenticator.php` — `supports()` refuses callbacks for a disabled provider (via `SocialLoginSettings`)
-  - `src/Controller/SocialLoginStartController.php`, `SocialConnectController.php`, `SocialLoginCallbackController.php` — 404 for a disabled provider
+  - `src/Controller/SocialLoginStartController.php`, `SocialConnectController.php`, `SocialLoginCallbackController.php` — 404 for a disabled provider. The link finish route (`SocialLinkFinishController`) is not flag-gated itself: it only consumes a profile a gated callback/interstitial parked
   - `templates/_social_login_buttons.html.twig` — per-provider button rendering on `/login` + `/register`
   - `templates/edit-profile.html.twig` — per-provider connect buttons; the whole "Connected sign-in methods" card hides when no provider is enabled. Unlink is deliberately NOT flag-gated (`UnlinkSocialIdentityController`) — a linked identity must stay removable after its provider is switched off
 - **Remove when:** never (operational kill switches per provider), unless a provider is retired
@@ -42,7 +42,7 @@ The free trial (`docs/features/free-trial/README.md`) shipped dark behind it for
 - **Default:** **ON** — even with a provider enabled, social login stays invisible to the public until flipped to `0` after end-to-end verification in production. While ON:
   - `/login` and `/register` render **no social buttons for anyone** (`templates/_social_login_buttons.html.twig`) — those pages must stay uniform for every visitor; admins test via the direct `/login/social/{provider}` URLs
   - the callback denies non-admin accounts with a generic failure (`SocialLoginAdminOnlyGuard`, used by `SocialAccountResolver` and the link/unlink handlers — admin = `player.isAdmin`, same source as `AdminAccessVoter`)
-  - rule-4 registration is disabled entirely (`RegisterWithOauthIdentityHandler` throws, the resolver never parks a profile, `SocialRegisterConfirmController` 404s)
+  - rule-4 registration is disabled entirely (`RegisterWithOauthIdentityHandler` throws, the resolver never parks a profile, `SocialRegisterConfirmController` and the interstitial's "sign in and connect" `SocialRegisterSignInController` 404)
   - the edit-profile "Connected sign-in methods" card renders only for `is_granted('ADMIN_ACCESS')`
 - **Remove when:** social login is verified publicly live and stable (~a few weeks after public launch)
 

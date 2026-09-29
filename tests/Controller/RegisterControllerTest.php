@@ -62,6 +62,32 @@ final class RegisterControllerTest extends WebTestCase
         self::assertStringNotContainsString('/login-link', $body);
     }
 
+    /**
+     * Security::login() only runs the always-on remember-me when it is handed
+     * a RememberMeBadge - without it a fresh sign-up lost its session with the
+     * browser, while every later password sign-in stayed for 30 days.
+     */
+    public function testRegistrationIssuesTheRememberMeCookie(): void
+    {
+        $browser = self::createClient();
+
+        $this->submitRegistration($browser, $this->randomEmail('register.remember'), 'a-properly-long-passphrase');
+
+        self::assertResponseRedirects('/welcome');
+
+        $rememberMe = null;
+
+        foreach ($browser->getResponse()->headers->getCookies() as $cookie) {
+            if ($cookie->getName() === 'REMEMBERME') {
+                $rememberMe = $cookie;
+            }
+        }
+
+        self::assertNotNull($rememberMe, 'A new account must be remembered like any other sign-in');
+        self::assertNotSame('', (string) $rememberMe->getValue());
+        self::assertGreaterThan(time() + 86400, $rememberMe->getExpiresTime());
+    }
+
     public function testWelcomeScreenNamesTheAddressTheVerificationWentTo(): void
     {
         $browser = self::createClient();

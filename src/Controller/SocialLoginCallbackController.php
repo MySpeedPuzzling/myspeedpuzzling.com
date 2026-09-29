@@ -6,19 +6,17 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\EventSubscriber\NativeAuthPageSubscriber;
-use SpeedPuzzling\Web\Exceptions\OauthIdentityAlreadyLinked;
-use SpeedPuzzling\Web\Message\LinkOauthIdentity;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginStateStore;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialProfileFetcher;
 use SpeedPuzzling\Web\Value\OauthFlowIntent;
 use SpeedPuzzling\Web\Value\OauthProvider;
+use SpeedPuzzling\Web\Value\ParkedSocialLink;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
-use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
@@ -26,11 +24,20 @@ use Symfony\Component\Routing\Attribute\Route;
  * controller - the per-provider authenticators intercept them at the firewall.
  * What lands here is the LINK flow (rule 5) plus expired/invalid states.
  *
- * Deliberately session-free: Apple's cross-site POST arrives without the
- * session cookie, and writing a flash would mint a NEW session whose cookie
- * replaces the logged-in one - logging the user out as a side effect of
- * connecting a provider. Feedback travels as query parameters instead, which
- * the edit-profile page renders.
+ * This controller never links. It cannot know WHO finishes the flow - Apple's
+ * cross-site POST arrives without any cookie - so linking here would let an
+ * attacker start a connect flow from THEIR account and trick a victim into
+ * completing the consent (forged connect: the victim's Google/Apple/Facebook
+ * lands on the attacker's account, and the victim's next "Continue with
+ * Google" signs them into it). Instead it parks the provider-proven profile
+ * together with the account that started the flow and 303-redirects to the
+ * finish route, where the signed-in visitor must be that same account
+ * (SocialLinkFinishController). The redirect turns Apple's POST into a
+ * top-level GET, which does carry the SameSite=Lax session/remember-me cookies.
+ *
+ * Deliberately session-free: writing a flash here would mint a NEW session
+ * whose cookie replaces the logged-in one on Apple's cookie-less POST. Early
+ * failures travel as query parameters, which the edit-profile page renders.
  */
 final class SocialLoginCallbackController extends AbstractController
 {
@@ -38,7 +45,6 @@ final class SocialLoginCallbackController extends AbstractController
         private readonly SocialLoginSettings $socialLoginSettings,
         private readonly SocialLoginStateStore $stateStore,
         private readonly SocialProfileFetcher $profileFetcher,
-        private readonly MessageBusInterface $messageBus,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -94,27 +100,16 @@ final class SocialLoginCallbackController extends AbstractController
             return $this->linkResult($oauthProvider, 'failed');
         }
 
-        try {
-            $this->messageBus->dispatch(new LinkOauthIdentity(
-                userId: $flowState->userId,
-                provider: $oauthProvider,
-                providerUserId: $profile->providerUserId,
-                emailAtLink: $profile->email,
-            ));
-        } catch (HandlerFailedException $exception) {
-            if ($exception->getPrevious() instanceof OauthIdentityAlreadyLinked) {
-                return $this->linkResult($oauthProvider, 'already_linked');
-            }
+        $token = $this->stateStore->parkLink(new ParkedSocialLink(
+            profile: $profile,
+            targetUserId: $flowState->userId,
+            browserBindingHash: null,
+        ));
 
-            $this->logger->error('Linking a social identity failed.', [
-                'exception' => $exception,
-                'provider' => $oauthProvider->value,
-            ]);
-
-            return $this->linkResult($oauthProvider, 'failed');
-        }
-
-        return $this->linkResult($oauthProvider, 'connected');
+        return new RedirectResponse(
+            $this->generateUrl('social_link_finish', ['provider' => $oauthProvider->value, 'token' => $token]),
+            Response::HTTP_SEE_OTHER,
+        );
     }
 
     private function linkResult(OauthProvider $provider, string $result): Response

@@ -237,3 +237,14 @@ free_trial_ending:
         <p>Votre essai gratuit de l'adhésion se termine le <b>%trialEndsAt%</b>. Vous n'avez rien à faire - il se termine tout seul et rien ne vous sera facturé.</p>
         <p>S'il vous a été utile, vous pouvez devenir membre sur la <a href="%membershipUrl%">page d'adhésion</a>. Abonnez-vous avant la fin de l'essai et les jours restants vous restent acquis - votre premier paiement n'interviendra qu'après.</p>
         <p>Quelle que soit votre décision - merci d'avoir essayé, et bons puzzles !</p>
+
+oauth_identity_linked:
+    subject: "La connexion avec %provider% a été associée à votre compte MySpeedPuzzling"
+    title: "Connexion avec %provider% associée"
+    content: |
+        <p>Un compte %provider% vient d'être associé à votre compte MySpeedPuzzling <strong>%email%</strong> (%linkedAt%). Vous pouvez désormais l'utiliser pour vous connecter.</p>
+        <p>Si c'était vous, vous n'avez rien d'autre à faire.</p>
+    not_you_title: "Ce n'était pas vous ?"
+    not_you: |
+        <p>Dans ce cas, quelqu'un d'autre pourrait se connecter à votre compte. Connectez-vous, ouvrez les paramètres de votre profil et dissociez %provider% dans « Connected sign-in methods », puis, par précaution, <a href="%resetPasswordUrl%">changez votre mot de passe</a>.</p>
+    button: "Vérifier mes méthodes de connexion"

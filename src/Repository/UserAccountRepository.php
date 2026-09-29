@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Repository;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\NoResultException;
+use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\UserAccount;
 
 readonly final class UserAccountRepository
@@ -23,6 +24,11 @@ readonly final class UserAccountRepository
     public function remove(UserAccount $userAccount): void
     {
         $this->entityManager->remove($userAccount);
+    }
+
+    public function findById(UuidInterface $id): null|UserAccount
+    {
+        return $this->entityManager->find(UserAccount::class, $id);
     }
 
     public function findByUserId(string $userId): null|UserAccount

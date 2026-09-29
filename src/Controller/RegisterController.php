@@ -24,6 +24,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Authenticator\Passport\Badge\RememberMeBadge;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -124,6 +125,10 @@ final class RegisterController extends AbstractController
                 $this->userAccountProvider->loadUserByIdentifier($userId),
                 authenticatorName: LoginFormAuthenticator::class,
                 firewallName: 'main',
+                // Without the badge Security::login() skips the always-on remember-me
+                // (the listener only acts on passports/badges it is given), so a fresh
+                // sign-up was signed out as soon as the browser session ended
+                badges: [new RememberMeBadge()],
             );
 
             $this->messageBus->dispatch(

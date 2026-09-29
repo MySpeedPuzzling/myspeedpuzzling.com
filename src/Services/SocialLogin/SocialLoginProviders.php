@@ -38,6 +38,15 @@ final readonly class SocialLoginProviders
     ) {
     }
 
+    /**
+     * The `aud` every Apple id_token must carry - the library verifies the
+     * signature only, so SocialProfileFetcher checks the audience itself.
+     */
+    public function appleClientId(): string
+    {
+        return $this->appleClientId;
+    }
+
     public function create(OauthProvider $provider): AbstractProvider
     {
         $redirectUri = $this->urlGenerator->generate(

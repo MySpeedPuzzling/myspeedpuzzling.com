@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\SocialLogin;
 
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\SocialLoginRestrictedToAdmins;
@@ -70,17 +71,22 @@ final readonly class SocialAccountResolver
             $userAccount = $this->userAccountRepository->findByEmail($profile->email);
 
             if ($userAccount !== null) {
-                // Rule 3: matching account but the provider did not verify the
-                // address - auto-linking would hand the account to whoever
-                // typed this email at the provider (account-takeover guard)
-                if ($profile->emailVerified === false) {
+                // Rule 3: an email match alone proves nothing unless BOTH sides
+                // verified the address. Provider-unverified: auto-linking would
+                // hand the account to whoever typed this email at the provider.
+                // MSP-unverified: whoever registered here with someone else's
+                // address (never confirming it) would get that person's future
+                // Google/Apple/Facebook sign-in - or the other way round
+                // (account-takeover guards, decision 2026-09-29).
+                if ($profile->emailVerified === false || $userAccount->emailVerifiedAt === null) {
                     throw new CustomUserMessageAuthenticationException(
                         self::ERROR_SIGN_IN_AND_CONNECT,
                         ['%provider%' => $provider->displayName()],
                     );
                 }
 
-                // Rule 2: provider-verified email matches -> auto-link + log in
+                // Rule 2: provider-verified email matches a verified account ->
+                // auto-link + log in (the owner gets a security notice mail)
                 $this->assertAdminAllowed($userAccount->userId);
 
                 try {
@@ -91,10 +97,12 @@ final readonly class SocialAccountResolver
                         emailAtLink: $profile->email,
                         usedForLogin: true,
                     ));
-                } catch (HandlerFailedException $exception) {
+                } catch (HandlerFailedException | UniqueConstraintViolationException $exception) {
                     // E.g. the account already carries a DIFFERENT identity of
-                    // this provider; naming the reason would leak which methods
-                    // the account has, so the failure stays generic
+                    // this provider (the handler's check, or the unique
+                    // (user_account_id, provider) index when two callbacks race);
+                    // naming the reason would leak which methods the account
+                    // has, so the failure stays generic
                     $this->logger->warning('Social login auto-link (rule 2) refused.', [
                         'exception' => $exception,
                         'provider' => $provider->value,

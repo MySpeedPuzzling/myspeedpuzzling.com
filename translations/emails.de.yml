@@ -237,3 +237,14 @@ free_trial_ending:
         <p>Dein kostenloser Test der Mitgliedschaft endet am <b>%trialEndsAt%</b>. Du musst nichts tun - er endet von selbst und dir wird nichts berechnet.</p>
         <p>Wenn er sich als nützlich erwiesen hat, kannst du auf der <a href="%membershipUrl%">Mitgliedschaftsseite</a> Mitglied werden. Abonniere vor dem Ende des Tests und die verbleibenden Tage bleiben dir erhalten - deine erste Zahlung kommt erst danach.</p>
         <p>Wie auch immer du dich entscheidest - danke fürs Ausprobieren und viel Spaß beim Puzzeln!</p>
+
+oauth_identity_linked:
+    subject: "Die Anmeldung mit %provider% wurde mit deinem MySpeedPuzzling-Konto verbunden"
+    title: "Anmeldung mit %provider% verbunden"
+    content: |
+        <p>Soeben wurde ein %provider%-Konto mit deinem MySpeedPuzzling-Konto <strong>%email%</strong> verbunden (%linkedAt%). Ab jetzt kannst du dich damit anmelden.</p>
+        <p>Wenn du das warst, musst du nichts weiter tun.</p>
+    not_you_title: "Das warst nicht du?"
+    not_you: |
+        <p>Dann kann sich möglicherweise jemand anderes in dein Konto einloggen. Melde dich an, öffne deine Profileinstellungen und trenne %provider% unter „Connected sign-in methods" – und <a href="%resetPasswordUrl%">ändere sicherheitshalber dein Passwort</a>.</p>
+    button: "Meine Anmeldemethoden prüfen"

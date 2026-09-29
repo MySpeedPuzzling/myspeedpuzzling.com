@@ -6,10 +6,20 @@ namespace SpeedPuzzling\Web\Value;
 
 /**
  * What a provider proved about the visitor, normalized across Google, Apple
- * and Facebook. `emailVerified` drives the auto-link decision (rule 2 vs 3):
- * Google exposes the `email_verified` claim, Apple only releases verified
- * emails in the id_token, Facebook returns only confirmed emails - a denied
- * email permission arrives here as a null email.
+ * and Facebook. Trust policy (2026-09-29): the provider email is trusted
+ * unless the provider explicitly marks it unverified. `emailVerified` is what
+ * that policy concluded, per provider (SocialProfileFetcher):
+ *
+ * - Google: the `email_verified` claim must be exactly true (any domain).
+ * - Facebook: an email that is present is trusted - the Graph API returns only
+ *   confirmed addresses; a denied email permission arrives as a null email.
+ * - Apple: read from the validated id_token claims - `email_verified` may come
+ *   as a boolean or as the string "true"/"false"; only true/"true" count. An
+ *   email Apple explicitly marks unverified is kept (rule 4 still registers
+ *   the account, unverified, and asks for confirmation) but never auto-links.
+ *
+ * `emailVerified` drives both the auto-link decision (rule 2 vs 3) and whether
+ * a rule-4 account starts verified.
  */
 final readonly class SocialUserProfile
 {
@@ -19,6 +29,9 @@ final readonly class SocialUserProfile
         public null|string $email,
         public bool $emailVerified,
         public null|string $name,
+        // Apple "Hide My Email": the address is an @privaterelay.appleid.com
+        // forwarder (`is_private_email` claim). Always false for other providers.
+        public bool $isPrivateRelay = false,
     ) {
     }
 }

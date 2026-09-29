@@ -63,7 +63,7 @@ final readonly class LinkOauthIdentityHandler
 
         $now = $this->clock->now();
 
-        $this->oauthIdentityRepository->save(new OauthIdentity(
+        $oauthIdentity = new OauthIdentity(
             id: Uuid::uuid7(),
             userAccount: $userAccount,
             provider: $message->provider,
@@ -71,7 +71,16 @@ final readonly class LinkOauthIdentityHandler
             emailAtLink: $message->emailAtLink,
             linkedAt: $now,
             lastUsedAt: $message->usedForLogin ? $now : null,
-        ));
+        );
+        // Every link path (rule-2 auto-link, settings connect, interstitial
+        // connect) ends here, so every one of them mails the owner a notice
+        $oauthIdentity->linkedToExistingAccount();
+
+        // Two racing link flows both pass the checks above; the unique
+        // (user_account_id, provider) index lets exactly one of them commit and
+        // the loser surfaces as a UniqueConstraintViolationException at flush,
+        // which the callers treat like OauthIdentityAlreadyLinked
+        $this->oauthIdentityRepository->save($oauthIdentity);
 
         $this->authAuditRecorder->record(new RecordAuthAuditEvent(
             eventType: AuthAuditEventType::OauthIdentityLinked,

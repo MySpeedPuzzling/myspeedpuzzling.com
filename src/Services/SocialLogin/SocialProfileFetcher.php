@@ -8,16 +8,19 @@ use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use League\OAuth2\Client\Provider\FacebookUser;
 use League\OAuth2\Client\Provider\GoogleUser;
 use League\OAuth2\Client\Token\AccessToken;
+use League\OAuth2\Client\Token\AppleAccessToken;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use SpeedPuzzling\Web\Value\SocialUserProfile;
 
 /**
  * Exchanges the authorization code and normalizes what each provider proved
  * into one SocialUserProfile shape (see the Value class for the per-provider
- * email-verification semantics).
+ * email trust policy).
  */
 final readonly class SocialProfileFetcher
 {
+    private const string APPLE_ISSUER = 'https://appleid.apple.com';
+
     public function __construct(
         private SocialLoginProviders $providers,
     ) {
@@ -46,7 +49,7 @@ final readonly class SocialProfileFetcher
         assert($accessToken instanceof AccessToken);
 
         if ($provider === OauthProvider::Apple) {
-            return self::appleProfile($accessToken, $appleUserPayload);
+            return $this->appleProfile($accessToken, $appleUserPayload);
         }
 
         $resourceOwner = $leagueProvider->getResourceOwner($accessToken);
@@ -83,23 +86,90 @@ final readonly class SocialProfileFetcher
 
     /**
      * Apple has no userinfo endpoint - identity comes from the id_token the
-     * token endpoint returned (AppleAccessToken verified it against Apple's
-     * JWKs and only exposes the email when the claim says verified).
+     * token endpoint returned. AppleAccessToken verifies its signature (and
+     * expiry) against Apple's JWKs and sets the resource owner id only on that
+     * verified path, but everything else it derives is unreliable: it treats
+     * `email_verified: "false"` (Apple sends strings too) as truthy, and it
+     * checks neither the audience nor the issuer. So the claims are read here,
+     * from the same already-verified token, and judged by our own rules.
+     *
+     * @throws \UnexpectedValueException the token is not one Apple issued to us
      */
-    private static function appleProfile(AccessToken $accessToken, null|string $userPayload): SocialUserProfile
+    private function appleProfile(AccessToken $accessToken, null|string $userPayload): SocialUserProfile
     {
+        if (!$accessToken instanceof AppleAccessToken) {
+            throw new \UnexpectedValueException('Apple token endpoint did not produce an AppleAccessToken.');
+        }
+
         $providerUserId = $accessToken->getResourceOwnerId();
+        // Only set when the library verified the id_token signature
         assert(is_string($providerUserId) && $providerUserId !== '');
 
-        $email = $accessToken->getValues()['email'] ?? null;
+        $claims = self::jwtClaims($accessToken->getIdToken());
+
+        if (($claims['iss'] ?? null) !== self::APPLE_ISSUER) {
+            throw new \UnexpectedValueException('Apple id_token has an unexpected issuer.');
+        }
+
+        $audience = $claims['aud'] ?? null;
+        $expectedAudience = $this->providers->appleClientId();
+
+        if (
+            $expectedAudience === ''
+            || ($audience !== $expectedAudience && !(is_array($audience) && in_array($expectedAudience, $audience, true)))
+        ) {
+            throw new \UnexpectedValueException('Apple id_token was not issued to this client.');
+        }
+
+        if (($claims['sub'] ?? null) !== $providerUserId) {
+            throw new \UnexpectedValueException('Apple id_token subject mismatch.');
+        }
+
+        $email = $claims['email'] ?? null;
+        $email = is_string($email) && $email !== '' ? $email : null;
 
         return new SocialUserProfile(
             provider: OauthProvider::Apple,
             providerUserId: $providerUserId,
-            email: is_string($email) ? $email : null,
-            emailVerified: is_string($email),
+            email: $email,
+            emailVerified: $email !== null && in_array($claims['email_verified'] ?? null, [true, 'true'], true),
             name: self::appleName($userPayload),
+            isPrivateRelay: in_array($claims['is_private_email'] ?? null, [true, 'true'], true),
         );
+    }
+
+    /**
+     * Payload of a JWT whose signature was ALREADY verified (by AppleAccessToken).
+     * Never use this on an unverified token.
+     *
+     * @return array<string, mixed>
+     */
+    private static function jwtClaims(mixed $jwt): array
+    {
+        if (!is_string($jwt)) {
+            throw new \UnexpectedValueException('Apple id_token missing.');
+        }
+
+        $segments = explode('.', $jwt);
+
+        if (count($segments) !== 3) {
+            throw new \UnexpectedValueException('Apple id_token is not a JWT.');
+        }
+
+        $json = base64_decode(strtr($segments[1], '-_', '+/'), true);
+
+        try {
+            $claims = json_decode((string) $json, associative: true, flags: JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            throw new \UnexpectedValueException('Apple id_token payload is not JSON.', previous: $exception);
+        }
+
+        if (!is_array($claims)) {
+            throw new \UnexpectedValueException('Apple id_token payload is not an object.');
+        }
+
+        /** @var array<string, mixed> $claims */
+        return $claims;
     }
 
     private static function appleName(null|string $userPayload): null|string

@@ -27,6 +27,7 @@ use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Authenticator\Passport\Badge\RememberMeBadge;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -153,10 +154,16 @@ final class SocialRegisterConfirmController extends AbstractController
                 OauthProvider::Apple => AppleLoginAuthenticator::class,
             },
             firewallName: 'main',
+            // Without the badge Security::login() skips the always-on remember-me
+            // (the listener only acts on passports/badges it is given), so a fresh
+            // sign-up was signed out as soon as the browser session ended
+            badges: [new RememberMeBadge()],
         );
 
-        // Google/Apple emails arrive provider-verified; the rare unverified
-        // one (Facebook edge) gets the same confirmation ask as native signup
+        // Trusted provider emails start verified; one the provider explicitly
+        // marked unverified (Google email_verified=false, Apple "false") still
+        // gets its account - unverified - plus the same confirmation mail as
+        // a native signup (decision 2026-09-29: do not refuse)
         if ($parked->profile->emailVerified === false) {
             $this->messageBus->dispatch(new SendEmailVerificationLink(
                 userId: $userId,

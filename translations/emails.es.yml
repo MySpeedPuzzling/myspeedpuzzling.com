@@ -237,3 +237,14 @@ free_trial_ending:
         <p>Tu prueba gratuita de la membresía termina el <b>%trialEndsAt%</b>. No tienes que hacer nada - termina sola y no se te cobrará nada.</p>
         <p>Si te ha resultado útil, puedes hacerte miembro en la <a href="%membershipUrl%">página de membresía</a>. Suscríbete antes de que termine la prueba y conservarás los días restantes - tu primer pago llegará después de ellos.</p>
         <p>Decidas lo que decidas - gracias por probarla, ¡y felices puzzles!</p>
+
+oauth_identity_linked:
+    subject: "Se ha conectado el inicio de sesión con %provider% a tu cuenta de MySpeedPuzzling"
+    title: "Inicio de sesión con %provider% conectado"
+    content: |
+        <p>Se acaba de conectar una cuenta de %provider% a tu cuenta de MySpeedPuzzling <strong>%email%</strong> (%linkedAt%). A partir de ahora puedes usarla para iniciar sesión.</p>
+        <p>Si has sido tú, no tienes que hacer nada más.</p>
+    not_you_title: "¿No has sido tú?"
+    not_you: |
+        <p>Entonces otra persona podría iniciar sesión en tu cuenta. Inicia sesión, abre los ajustes de tu perfil y desconecta %provider% en «Connected sign-in methods», y por seguridad <a href="%resetPasswordUrl%">cambia tu contraseña</a>.</p>
+    button: "Revisar mis métodos de inicio de sesión"

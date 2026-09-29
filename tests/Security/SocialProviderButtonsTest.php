@@ -166,7 +166,7 @@ final class SocialProviderButtonsTest extends WebTestCase
     {
         $google = $crawler->filter(sprintf('a.btn-google-signin[href^="%sgoogle"]', $hrefPrefix));
         self::assertCount(1, $google);
-        self::assertSame('Continue with Google', trim($google->text()));
+        self::assertSame('Continue with Google', self::buttonLabel($google));
         $fills = $google->filter('svg.btn-google-signin-logo path')->each(
             static fn (Crawler $path): string => (string) $path->attr('fill'),
         );
@@ -175,18 +175,29 @@ final class SocialProviderButtonsTest extends WebTestCase
         $apple = $crawler->filter(sprintf('a.btn-apple-signin[href^="%sapple"]', $hrefPrefix));
         self::assertCount(1, $apple);
         // Apple allows only "Sign in / Sign up / Continue with Apple"
-        self::assertSame('Continue with Apple', trim($apple->text()));
+        self::assertSame('Continue with Apple', self::buttonLabel($apple));
         // Apple's "Left-aligned - Medium" artwork, uncropped
         self::assertSame('0 0 31 44', $apple->filter('svg.btn-apple-signin-logo')->attr('viewBox'));
 
         $facebook = $crawler->filter(sprintf('a.btn-facebook-signin[href^="%sfacebook"]', $hrefPrefix));
         self::assertCount(1, $facebook);
-        self::assertSame('Continue with Facebook', trim($facebook->text()));
+        self::assertSame('Continue with Facebook', self::buttonLabel($facebook));
         self::assertCount(1, $facebook->filter('svg.btn-facebook-signin-logo'));
 
         foreach ([$google, $apple, $facebook] as $button) {
             self::assertStringNotContainsString('btn-outline', (string) $button->attr('class'));
         }
+    }
+
+    /**
+     * The visible label - without the "Last used" tag the sign-in page tucks
+     * (hidden until the browser remembers a method) into each button
+     */
+    private static function buttonLabel(Crawler $button): string
+    {
+        $badge = $button->filter('.auth-last-used');
+
+        return trim(str_replace($badge->count() > 0 ? $badge->text() : '', '', $button->text()));
     }
 
     private function enableAllProvidersPublicly(): void

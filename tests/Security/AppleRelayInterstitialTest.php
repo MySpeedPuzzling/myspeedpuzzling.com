@@ -82,7 +82,7 @@ final class AppleRelayInterstitialTest extends WebTestCase
         ]);
 
         self::assertCount(0, $crawler->filter('[data-social-register-relay]'));
-        self::assertSame('Create a new account?', trim($crawler->filter('h1')->text()));
+        self::assertSame('One more step', trim($crawler->filter('h1')->text()));
         self::assertCount(1, $crawler->filter('form[action$="/register/social"] button.btn-primary'));
     }
 
@@ -113,13 +113,13 @@ final class AppleRelayInterstitialTest extends WebTestCase
     private function assertRelayVariant(Crawler $crawler): void
     {
         self::assertCount(1, $crawler->filter('[data-social-register-relay]'));
-        self::assertSame('Do you already have a MySpeedPuzzling account?', trim($crawler->filter('h1')->text()));
-        self::assertStringContainsString('Apple is hiding your e-mail address', $crawler->text());
+        self::assertSame('Have you used MySpeedPuzzling before?', trim($crawler->filter('h1')->text()));
+        self::assertStringContainsString('Apple is hiding your email', $crawler->text());
 
         // "I already have an account" is the primary action, "create" the secondary one
         $primary = $crawler->filter('form[action$="/register/social/sign-in"] button.btn-primary');
         self::assertCount(1, $primary);
-        self::assertStringContainsString('I already have an account', $primary->text());
+        self::assertStringContainsString('Yes — sign in and connect Apple', $primary->text());
         self::assertCount(0, $crawler->filter('form[action$="/register/social"] button.btn-primary'));
         self::assertCount(1, $crawler->filter('form[action$="/register/social"] button.btn-outline-secondary'));
     }

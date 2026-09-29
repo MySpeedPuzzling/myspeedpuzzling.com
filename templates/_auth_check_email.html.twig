@@ -1,0 +1,55 @@
+{# "Check your email" - shared by the sign-in link and the password reset
+   (docs/features/auth-ux-redesign.md §4.4/§4.5, GOV.UK "confirm an email
+   address"): where the mail went, how to fix a wrong address, a shortcut into
+   the big webmails, and a new mail once the first had time to arrive.
+
+   Embedded, not included: the `next_step` block is where the sign-in page
+   will get its code input (phase 2) without redesigning the screen.
+
+   Parameters: sent_to (translated "We sent ... to"), email, resent (bool),
+   resent_message, webmail (WebmailProvider|null), change_href, resend_action,
+   resend_csrf_id, resend_label, return_path (optional). #}
+{{ include('_auth_back_link.html.twig', {href: back_href|default(path('login'))}) }}
+
+<h1 class="auth-title">{{ 'auth.check_email.title'|trans }}</h1>
+
+{% if resent %}
+    <div class="alert alert-success mt-2" role="status">{{ resent_message }}</div>
+{% endif %}
+
+<p class="auth-sent-to mt-2">{{ sent_to }}</p>
+<p class="auth-sent-email" data-auth-email-handoff-target="known">{{ email }}</p>
+<p class="mb-0">
+    {{ 'auth.check_email.wrong_address'|trans }}
+    <a class="auth-inline-link" href="{{ change_href }}">{{ 'auth.check_email.change'|trans }}</a>
+</p>
+
+<div class="auth-next-step">
+    {% block next_step %}{% endblock %}
+
+    {% if webmail %}
+        <a class="btn btn-primary w-100 mt-3" href="{{ webmail.inboxUrl }}" target="_blank" rel="noopener">
+            {{ 'auth.check_email.open_webmail'|trans({'%provider%': webmail.name}) }}
+            <i class="bi bi-box-arrow-up-right ms-2" aria-hidden="true"></i>
+        </a>
+    {% endif %}
+</div>
+
+<div class="auth-resend">
+    <p class="mb-2">{{ 'auth.check_email.nothing_arrived'|trans }}</p>
+
+    {# Posts the same address again; the rate limit behind it is the real limit,
+       the countdown only keeps an impatient tap from spending it #}
+    <form action="{{ resend_action }}" method="post" data-controller="resend-countdown" data-resend-countdown-seconds-value="45" data-resend-countdown-waiting-value="{{ 'auth.check_email.resend_wait'|trans }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(resend_csrf_id) }}">
+        <input type="hidden" name="email" value="{{ email }}">
+        <input type="hidden" name="resend" value="1">
+        {% if return_path|default(null) %}
+            <input type="hidden" name="return" value="{{ return_path }}">
+        {% endif %}
+
+        <button type="submit" class="btn btn-outline-primary w-100" data-resend-countdown-target="button">
+            <i class="bi bi-arrow-clockwise me-2" aria-hidden="true"></i><span data-resend-countdown-target="label">{{ resend_label }}</span>
+        </button>
+    </form>
+</div>

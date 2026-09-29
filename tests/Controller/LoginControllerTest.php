@@ -20,21 +20,64 @@ final class LoginControllerTest extends WebTestCase
     {
         $browser = self::createClient();
 
-        $crawler = $browser->request('GET', '/login');
+        $crawler = $browser->request('GET', '/login?return=/en/puzzle');
 
         self::assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('form#login-form input[name="email"]'));
-        self::assertCount(1, $crawler->filter('form#login-form input[name="password"]'));
+        self::assertCount(1, $crawler->filter('form#login-form input[name="email"][autocomplete="username"]'));
+        self::assertCount(1, $crawler->filter('form#login-form input[name="password"][autocomplete="current-password"]'));
 
-        // The magic-link rescue is a permanent, prominent secondary action (UX funnel §3).
-        // It submits its own form, pre-filled with the address, so the typed password
-        // never travels to a second endpoint
-        self::assertCount(1, $crawler->filter('button[form="sign-in-link-form"]'));
-        self::assertSame('/login-link', $crawler->filter('form#sign-in-link-form')->attr('action'));
-        self::assertCount(0, $crawler->filter('form#sign-in-link-form input[name="password"]'));
+        // "Create an account" is the first thing under the heading, and keeps
+        // where the visitor was headed
+        self::assertSame('/register?return=/en/puzzle', $crawler->filter('.auth-crosslink a')->attr('href'));
+
+        // "Forgot password?" sits on the password label row, before the field
+        self::assertSame('/password-reset', $crawler->filter('.auth-label-row a.auth-inline-link')->attr('href'));
+
+        // The sign-in link rescue (UX funnel §3) is an honest link to its own page
+        // now - the typed address follows through sessionStorage, never the URL -
+        // and no hidden second form carries the address any more
+        self::assertCount(1, $crawler->filter('a[href="/login-link?return=/en/puzzle"]'));
+        self::assertCount(0, $crawler->filter('#sign-in-link-form, [form="sign-in-link-form"]'));
 
         // Nothing on the page points at the retired Auth0 stack any more
         self::assertStringNotContainsStringIgnoringCase('auth0', (string) $browser->getResponse()->getContent());
+    }
+
+    /**
+     * docs/features/auth-ux-redesign.md §4.1/§5.2: 16px-friendly mobile fields
+     * that password managers and phone keyboards understand, no autofocus on
+     * arrival, and a show/hide toggle that is a real, labelled button.
+     */
+    public function testFieldsCarryTheMobileAndPasswordManagerAttributes(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/login');
+
+        $email = $crawler->filter('#login-email');
+        self::assertSame('email', $email->attr('type'));
+        self::assertSame('none', $email->attr('autocapitalize'));
+        self::assertSame('off', $email->attr('autocorrect'));
+        self::assertSame('false', $email->attr('spellcheck'));
+        self::assertSame('next', $email->attr('enterkeyhint'));
+        self::assertNull($email->attr('autofocus'));
+
+        $password = $crawler->filter('#login-password');
+        self::assertSame('go', $password->attr('enterkeyhint'));
+        self::assertNull($password->attr('autofocus'));
+        self::assertNull($password->attr('maxlength'));
+
+        $toggle = $crawler->filter('.password-field button.password-toggle');
+        self::assertCount(1, $toggle);
+        self::assertSame('button', $toggle->attr('type'));
+        self::assertSame('login-password', $toggle->attr('aria-controls'));
+        self::assertSame('false', $toggle->attr('aria-pressed'));
+        self::assertSame('password-toggle', $toggle->attr('data-controller'));
+        self::assertSame('Show password', trim($toggle->filter('.visually-hidden')->text()));
+
+        // Remembers the method on this device only (localStorage), never the address
+        self::assertSame('password', $crawler->filter('form#login-form')->attr('data-last-sign-in-method'));
+        self::assertNotNull($crawler->filter('[data-controller~="last-sign-in"]')->getNode(0));
     }
 
     /**
@@ -90,21 +133,50 @@ final class LoginControllerTest extends WebTestCase
             'email' => $email,
             'password' => 'not-the-password',
             '_csrf_token' => 'csrf-token',
+            'return' => '/en/puzzle',
         ], [], ['HTTP_ORIGIN' => 'http://localhost']);
 
-        self::assertResponseRedirects('/login');
+        self::assertResponseRedirects('/login?return=/en/puzzle');
 
         $crawler = $browser->followRedirect();
 
         self::assertResponseIsSuccessful();
-        // UX funnel §4: the helper appears on failure, with the address still in place
+        // UX funnel §4: the helper appears on failure, with the address still in
+        // place and the focus on the password - the part that needs retyping
         self::assertSame($email, $crawler->filter('form#login-form input[name="email"]')->attr('value'));
-        self::assertStringContainsString('speedpuzzling', $crawler->filter('.alert-info')->text());
-        self::assertStringNotContainsStringIgnoringCase('auth0', $crawler->filter('main')->text());
-        self::assertCount(1, $crawler->filter('.alert-info button[form="sign-in-link-form"]'));
+        self::assertNotNull($crawler->filter('#login-password')->attr('autofocus'));
 
-        // One click away from a link, with nothing to retype
-        self::assertSame($email, $crawler->filter('form#sign-in-link-form input[name="email"]')->attr('value'));
+        $alert = $crawler->filter('.alert[role="alert"]');
+        self::assertCount(1, $alert);
+        self::assertStringContainsString("That email and password don't match.", $alert->text());
+        self::assertStringContainsString('speedpuzzling', $alert->text());
+        self::assertStringNotContainsStringIgnoringCase('auth0', $crawler->filter('main')->text());
+
+        // One tap away from a link, the destination kept
+        self::assertCount(1, $alert->filter('a[href="/login-link?return=/en/puzzle"]'));
+    }
+
+    /**
+     * Wrong password and unknown address must look the same (D8)
+     */
+    public function testUnknownAddressFailsExactlyLikeAWrongPassword(): void
+    {
+        $browser = self::createClient();
+        $known = $this->seedAccount($browser);
+
+        $texts = [];
+
+        foreach ([$known, sprintf('nobody+%s@example.com', bin2hex(random_bytes(4)))] as $email) {
+            $browser->request('POST', '/login', [
+                'email' => $email,
+                'password' => 'not-the-password',
+                '_csrf_token' => 'csrf-token',
+            ], [], ['HTTP_ORIGIN' => 'http://localhost']);
+
+            $texts[] = $browser->followRedirect()->filter('.alert[role="alert"]')->text();
+        }
+
+        self::assertSame($texts[0], $texts[1]);
     }
 
     private function seedAccount(KernelBrowser $browser): string

@@ -1,0 +1,7 @@
+{# "‹ Back to sign in" above the h1 of every auth sub-page: top left is where
+   every mobile OS puts "back", and above the heading it is never under the
+   keyboard. A plain link, first in tab order after the skip link.
+   Parameters: href (optional, defaults to /login - pass it to keep ?return=). #}
+<a class="auth-back-link" href="{{ href|default(path('login')) }}">
+    <i class="bi bi-chevron-left" aria-hidden="true"></i>{{ 'auth.back_to_sign_in'|trans }}
+</a>

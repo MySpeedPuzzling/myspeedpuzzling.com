@@ -2,30 +2,27 @@
    the relay address never matches an existing account, so the e-mail tells us
    nothing - an existing member would silently get a second account. Here the
    sign-in-and-connect path is the primary action and "create" the secondary one. #}
-<div class="card shadow my-3" data-social-register-relay>
-    <div class="card-body">
-        <p>{{ 'auth.social.relay.explanation'|trans }}</p>
-        <p>{{ 'auth.social.relay.have_account'|trans }}</p>
+<div data-social-register-relay>
+    <p>{{ 'auth.social.relay.explanation'|trans }}</p>
 
-        <form action="{{ path('social_register_sign_in') }}" method="post">
-            {# The single-use parked token doubles as the CSRF guard #}
-            <input type="hidden" name="token" value="{{ token }}">
+    <form action="{{ path('social_register_sign_in') }}" method="post">
+        {# The single-use parked token doubles as the CSRF guard #}
+        <input type="hidden" name="token" value="{{ token }}">
 
-            <button type="submit" class="btn btn-primary w-100">
-                <i class="bi bi-box-arrow-in-right me-1"></i>{{ 'auth.social.relay.sign_in_and_connect'|trans }}
-            </button>
-        </form>
+        <button type="submit" class="btn btn-primary w-100">
+            {{ 'auth.social.relay.sign_in_and_connect'|trans }}
+        </button>
+    </form>
 
-        <hr>
+    <p class="text-muted fs-sm mt-2">{{ 'auth.social.relay.have_account'|trans }}</p>
 
-        <p class="text-muted fs-sm mb-2">{{ 'auth.social.relay.new_here'|trans({'%email%': email}) }}</p>
+    <form class="mt-4" action="{{ path('social_register_confirm') }}" method="post">
+        <input type="hidden" name="token" value="{{ token }}">
 
-        <form action="{{ path('social_register_confirm') }}" method="post">
-            <input type="hidden" name="token" value="{{ token }}">
+        <button type="submit" class="btn btn-outline-secondary w-100">
+            {{ 'auth.social.relay.create'|trans }}
+        </button>
+    </form>
 
-            <button type="submit" class="btn btn-outline-secondary w-100">
-                <i class="bi bi-person-plus me-1"></i>{{ 'auth.social.relay.create'|trans }}
-            </button>
-        </form>
-    </div>
+    <p class="text-muted fs-sm mt-2 mb-0">{{ 'auth.social.relay.new_here'|trans({'%email%': email}) }}</p>
 </div>

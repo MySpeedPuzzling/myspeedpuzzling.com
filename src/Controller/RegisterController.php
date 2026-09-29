@@ -97,6 +97,9 @@ final class RegisterController extends AbstractController
 
                     return $this->render('register.html.twig', [
                         'form' => $form,
+                        // The template swaps the plain error text for one with the
+                        // "sign in" / "get a sign-in link" links
+                        'email_taken' => true,
                     ]);
                 }
 
@@ -143,6 +146,7 @@ final class RegisterController extends AbstractController
 
         return $this->render('register.html.twig', [
             'form' => $form,
+            'email_taken' => false,
         ]);
     }
 }

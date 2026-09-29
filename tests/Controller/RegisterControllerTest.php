@@ -150,6 +150,38 @@ final class RegisterControllerTest extends WebTestCase
         // 422, not 200: Turbo Drive discards a 200 answer to a form submission and the error with it
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('already has an account', $crawler->filter('form')->text());
+
+        // The error is the way in: links, not prose about buttons to find
+        $error = $crawler->filter('form .invalid-feedback');
+        self::assertCount(1, $error->filter('a[href="/login"]'));
+        self::assertCount(1, $error->filter('a[href="/login-link"]'));
+    }
+
+    /**
+     * docs/features/auth-ux-redesign.md §4.2: required fields first, the
+     * optional name last, "(optional)" in the label itself, the password rule
+     * before typing, a show/hide toggle, no autofocus on arrival.
+     */
+    public function testFormPutsTheOptionalNameLastAndHelpsBeforeTyping(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/register?return=/en/puzzle');
+
+        $fields = $crawler->filter('form[name="registration_form"] input:not([type="hidden"])')->each(
+            static fn (Crawler $input): string => (string) $input->attr('name'),
+        );
+        self::assertSame(['registration_form[email]', 'registration_form[plainPassword]', 'registration_form[name]'], $fields);
+
+        self::assertSame('Your name (optional)', trim($crawler->filter('label[for="registration_form_name"]')->text()));
+        self::assertStringContainsString('At least 8 characters.', $crawler->filter('#registration_form_plainPassword_help')->text());
+        self::assertSame('new-password', $crawler->filter('#registration_form_plainPassword')->attr('autocomplete'));
+        self::assertSame('8', $crawler->filter('#registration_form_plainPassword')->attr('minlength'));
+        self::assertSame('registration_form_plainPassword', $crawler->filter('button.password-toggle')->attr('aria-controls'));
+        self::assertCount(0, $crawler->filter('form[name="registration_form"] [autofocus]'));
+
+        // "Already have an account? Sign in" under the heading keeps the destination
+        self::assertSame('/login?return=/en/puzzle', $crawler->filter('.auth-crosslink a')->attr('href'));
     }
 
     /**

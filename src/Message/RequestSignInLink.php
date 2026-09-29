@@ -10,6 +10,8 @@ final readonly class RequestSignInLink
         public string $email,
         /** Used when the account has no player locale yet (the email must still be readable) */
         public string $fallbackLocale,
+        /** The login page's ?return=, validated by the caller; the link lands there */
+        public null|string $returnPath = null,
     ) {
     }
 }

@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+
+{# Shared frame of the sign-in / sign-up pages (docs/features/auth-ux-redesign.md):
+   one borderless column (max 440px) - on a phone the page IS the form, no card -
+   and the illustration next to it from md up.
+
+   auth-email-handoff carries the typed address between these pages in
+   sessionStorage (never in a URL); last-sign-in marks the method this device
+   used last. Both are client-side only, so the pages stay session-free. #}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row pb-2" data-controller="auth-email-handoff last-sign-in">
+        <div class="col-md-7 col-lg-6">
+            <div class="auth-page">
+                {% block auth_content %}{% endblock %}
+            </div>
+        </div>
+
+        <div class="col-md-5 offset-lg-1 d-none d-md-block text-center auth-illustration">
+            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        </div>
+    </div>
+{% endblock %}

@@ -1,30 +1,51 @@
-{# Pass the login page's ?return= on to the OAuth start route, so a social
-   sign-in lands where a password sign-in would. The start route validates it
-   before it enters the (server-side, single-use) OAuth state payload. #}
-{% set returnParams = safe_return_url(app.request.query.get('return')) is null ? {} : {'return': safe_return_url(app.request.query.get('return'))} %}
-{# Social sign-in buttons (auth hardening PR 2). Which ones render depends on
-   configuration only (SocialLoginSettings), never on the visitor - every
-   visitor of the hosting pages gets the same markup.
-   The buttons themselves (provider branding) live in _social_provider_button. #}
-{% if social_login.isAnyEnabled() %}
-    <div class="text-center my-3 text-muted fs-sm">{{ 'auth.social.or_continue_with'|trans }}</div>
+{# Social sign-in buttons (auth hardening PR 2) at the top of /login and
+   /register, followed by the "or" divider that leads to the email form
+   (docs/features/auth-ux-redesign.md §4.1). Which ones render depends on
+   configuration only (SocialLoginSettings), never on the visitor - except in a
+   social app's built-in browser (auth pages are no-store, so that is safe):
+   there Google refuses to sign anybody in ("403 disallowed_useragent"), so its
+   button points at the notice explaining the way out instead of into the dead
+   end. It is re-targeted, never removed.
 
-    <div class="d-grid gap-2">
+   The buttons themselves (provider branding) live in _social_provider_button.
+
+   Parameters: existing_account_hint (bool, /login only), last_used (bool). #}
+
+{# Pass the page's ?return= on to the OAuth start route, so a social sign-in
+   lands where a password sign-in would. The start route validates it before it
+   enters the (server-side, single-use) OAuth state payload. #}
+{% set returnParams = safe_return_url(app.request.query.get('return')) is null ? {} : {'return': safe_return_url(app.request.query.get('return'))} %}
+{% set in_app = in_app_browser() %}
+
+{% if social_login.isAnyEnabled() %}
+    <div class="auth-social">
         {% if social_login.isProviderEnabled('google') %}
-            {{ include('_social_provider_button.html.twig', {provider: 'google', href: path('social_login_start', {provider: 'google'}|merge(returnParams)), full_width: true}) }}
+            {% if in_app is not null %}
+                {{ include('_social_provider_button.html.twig', {provider: 'google', href: '#in-app-browser-notice', full_width: true, last_used: last_used|default(false), describedby: 'in-app-browser-notice'}) }}
+            {% else %}
+                {{ include('_social_provider_button.html.twig', {provider: 'google', href: path('social_login_start', {provider: 'google'}|merge(returnParams)), full_width: true, last_used: last_used|default(false)}) }}
+            {% endif %}
         {% endif %}
 
         {% if social_login.isProviderEnabled('apple') %}
-            {{ include('_social_provider_button.html.twig', {provider: 'apple', href: path('social_login_start', {provider: 'apple'}|merge(returnParams)), full_width: true}) }}
+            {{ include('_social_provider_button.html.twig', {provider: 'apple', href: path('social_login_start', {provider: 'apple'}|merge(returnParams)), full_width: true, last_used: last_used|default(false)}) }}
         {% endif %}
 
         {# Facebook Login is the only Meta sign-in open to us (Instagram's login
            API is business-only and shares no email), hence the Instagram hint. #}
         {% if social_login.isProviderEnabled('facebook') %}
             <div>
-                {{ include('_social_provider_button.html.twig', {provider: 'facebook', href: path('social_login_start', {provider: 'facebook'}|merge(returnParams)), full_width: true}) }}
+                {{ include('_social_provider_button.html.twig', {provider: 'facebook', href: path('social_login_start', {provider: 'facebook'}|merge(returnParams)), full_width: true, last_used: last_used|default(false)}) }}
                 <div class="text-muted text-center fs-xs mt-1">{{ 'auth.social.facebook_hint'|trans }}</div>
             </div>
         {% endif %}
     </div>
+
+    {# Promise only what linking rule 2 delivers: a matching address signs in to
+       the existing account; a different one ends at the rule-4 question #}
+    {% if existing_account_hint|default(false) %}
+        <p class="auth-social-hint">{{ 'auth.social.existing_account_hint'|trans }}</p>
+    {% endif %}
+
+    <div class="auth-divider">{{ 'auth.login.or'|trans }}</div>
 {% endif %}

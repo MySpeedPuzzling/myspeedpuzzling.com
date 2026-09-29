@@ -1,0 +1,38 @@
+{# Shown on /login and /register inside a social app's built-in browser
+   (Instagram, Facebook, Messenger, Threads, TikTok, LINE - InAppBrowser):
+   Google sign-in fails there, and a link from the mail would sign in the
+   phone's real browser rather than this tab. Offers the way out before the
+   visitor walks into either (docs/features/auth-ux-redesign.md §4.8).
+   The Google button points here (#in-app-browser-notice) instead of starting
+   OAuth; :target highlights the notice when it does. #}
+{% set in_app = in_app_browser() %}
+{% if in_app is not null %}
+    {% set page_url = app.request.uri %}
+    <div class="alert alert-info auth-in-app-notice" id="in-app-browser-notice" role="note" data-controller="copy-link" data-copy-link-url-value="{{ page_url }}" data-copy-link-copied-value="{{ 'auth.in_app.copied'|trans }}">
+        <p class="fw-medium mb-1">
+            <i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ 'auth.in_app.title'|trans({'%app%': in_app.app}) }}
+        </p>
+        <p class="mb-2">
+            {% if social_login.isProviderEnabled('google') %}{{ 'auth.in_app.google'|trans }} {% endif %}{{ 'auth.in_app.open_elsewhere'|trans }}
+        </p>
+
+        {% if in_app.ios %}
+            <p class="mb-2">{{ 'auth.in_app.ios_hint'|trans }}</p>
+        {% endif %}
+
+        <div class="d-flex flex-wrap gap-2">
+            {% if in_app.android %}
+                <a class="btn btn-primary" href="{{ chrome_intent_url(in_app) }}" data-turbo="false">
+                    <i class="bi bi-browser-chrome me-1" aria-hidden="true"></i>{{ 'auth.in_app.open_android'|trans }}
+                </a>
+            {% endif %}
+
+            <button type="button" class="btn btn-outline-primary" data-copy-link-target="button" data-action="copy-link#copy">
+                <i class="bi bi-link-45deg me-1" aria-hidden="true"></i><span>{{ 'auth.in_app.copy'|trans }}</span>
+            </button>
+        </div>
+
+        <label class="visually-hidden" for="in-app-browser-url">{{ 'auth.in_app.copy'|trans }}</label>
+        <input class="form-control form-control-sm mt-2" id="in-app-browser-url" type="url" value="{{ page_url }}" readonly hidden data-copy-link-target="field">
+    </div>
+{% endif %}

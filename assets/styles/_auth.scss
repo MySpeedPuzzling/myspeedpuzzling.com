@@ -1,0 +1,274 @@
+//
+// Sign in, create account, sign-in link, password reset
+// (docs/features/auth-ux-redesign.md). Mobile first: on a phone the page IS
+// the form - one column, no card, nothing spent on decoration. Desktop keeps
+// the same borderless column (max 440px) next to the illustration.
+// --------------------------------------------------
+
+.auth-page {
+    max-width: 440px;
+    // viewport-fit=cover: keep the last button off the home indicator
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+
+    // 16px or iOS Safari zooms into every focused field; 48px tall for thumbs
+    .form-control {
+        min-height: 3rem;
+        padding: .6875rem 1rem;
+        font-size: 1rem;
+        // Focus/scroll-into-view never tucks a field under the sticky header
+        scroll-margin-top: 6rem;
+    }
+
+    .btn:not(.btn-sm) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3rem;
+        font-size: 1rem;
+        white-space: normal;
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: $headings-color;
+    }
+
+    // Hint lines must stay readable: $gray-600 is 3.6:1 on white, $gray-700 is 7.4:1
+    .text-muted,
+    .form-text {
+        color: $gray-700 !important;
+    }
+
+    // The theme's alert text is a light tint of the alert colour (the info one
+    // is ~2.5:1 on its background); the background and border already say
+    // which kind it is, so the words go dark
+    .alert {
+        font-size: $font-size-sm;
+        color: $gray-800;
+    }
+
+    // Links inside an error must not rely on colour alone
+    .invalid-feedback a {
+        font-weight: 500;
+        text-decoration: underline;
+    }
+}
+
+.auth-title {
+    margin-bottom: .25rem;
+    font-size: 1.5rem;
+
+    @include media-breakpoint-up(md) {
+        font-size: $h3-font-size;
+    }
+
+    @include media-breakpoint-up(lg) {
+        font-size: $h2-font-size;
+    }
+}
+
+// "New to MySpeedPuzzling? Create an account" - directly under the h1
+.auth-crosslink {
+    margin-bottom: 1.5rem;
+    font-size: $font-size-md;
+
+    a {
+        display: inline-block;
+        padding-block: .625rem;
+        margin-block: -.625rem;
+        font-weight: 500;
+    }
+}
+
+.auth-lead {
+    margin-bottom: 1.5rem;
+    color: $gray-700;
+}
+
+// "‹ Back to sign in" above the h1 - top left, where every OS puts "back"
+.auth-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    min-height: 2.75rem;
+    margin-bottom: .25rem;
+    margin-left: -.25rem;
+    padding-right: .5rem;
+    font-size: $font-size-md;
+    font-weight: 500;
+    text-decoration: none;
+
+    i {
+        font-size: .875rem;
+    }
+}
+
+// Label with a link on the same row ("Password ...... Forgot password?")
+.auth-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: .375rem;
+
+    .form-label {
+        margin-bottom: 0;
+    }
+}
+
+// A small text link that is still a 44px target
+.auth-inline-link {
+    display: inline-block;
+    padding-block: .75rem;
+    margin-block: -.75rem;
+    font-size: $font-size-sm;
+    font-weight: 500;
+}
+
+// ——— or ———
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin: 1.5rem 0 1.25rem;
+    color: $gray-700;
+    font-size: $font-size-sm;
+
+    &::before,
+    &::after {
+        content: "";
+        flex: 1 1 0;
+        border-top: 1px solid $border-color;
+    }
+}
+
+.auth-social {
+    display: grid;
+    gap: .75rem;
+}
+
+.auth-social-hint {
+    margin: .5rem 0 0;
+    font-size: $font-size-sm;
+    color: $gray-700;
+}
+
+// Provider button that was pressed and is on its way to the provider
+.auth-social .btn.is-loading {
+    opacity: .65;
+    pointer-events: none;
+}
+
+// "Last used" - a tag on the corner of the method this device used last
+// (never moves or resizes anything: absolutely positioned, or inline in a
+// label row that already has the height)
+[data-last-sign-in-method] {
+    position: relative;
+}
+
+.auth-last-used {
+    font-size: .6875rem;
+    font-weight: 500;
+    line-height: 1;
+    padding: .25rem .5rem;
+    border-radius: 1rem;
+    // Dark, not the brand coral: white on #fe696a is below 3:1
+    color: $white;
+    background-color: $gray-800;
+    letter-spacing: .01em;
+    white-space: nowrap;
+
+    .btn > & {
+        position: absolute;
+        top: -.5rem;
+        right: .75rem;
+        font-family: $font-family-sans-serif;
+    }
+}
+
+// Password with a show/hide toggle inside the field
+.password-field {
+    position: relative;
+
+    .form-control {
+        padding-right: 3.25rem;
+    }
+
+    // Bootstrap's invalid icon moves left of the toggle
+    .form-control.is-invalid {
+        padding-right: 5rem;
+        background-position: right 3.25rem center;
+    }
+}
+
+.password-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0 $input-border-radius $input-border-radius 0;
+    background: transparent;
+    color: $gray-700;
+    font-size: 1.125rem;
+
+    &:hover {
+        color: $headings-color;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: -2px;
+    }
+}
+
+// "Check your email"
+.auth-sent-to {
+    margin-bottom: 0;
+    color: $gray-700;
+}
+
+.auth-sent-email {
+    margin-bottom: .25rem;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: $headings-color;
+    overflow-wrap: anywhere;
+}
+
+.auth-next-step {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border-radius: $border-radius-lg;
+    background-color: $gray-100;
+}
+
+.auth-resend {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid $border-color;
+}
+
+// Instagram / Facebook / TikTok built-in browser
+.auth-in-app-notice {
+    scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
+    transition: box-shadow .2s ease-in-out;
+
+    &:target {
+        box-shadow: 0 0 0 .25rem rgba($primary, .35);
+    }
+
+    .btn {
+        min-height: 2.75rem !important;
+        font-size: $font-size-sm !important;
+    }
+}
+
+.auth-illustration img {
+    max-width: 420px;
+}

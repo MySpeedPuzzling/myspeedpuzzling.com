@@ -29,8 +29,7 @@ final readonly class RequestPasswordResetHandler
 
     /**
      * Returns the plain reset token to email to the user, or null when no email may be
-     * sent (unknown address or an active request already exists). The caller must respond
-     * identically in both cases - the null is deliberately indistinguishable from success
+     * sent (unknown address). The caller must respond identically in both cases - the null is deliberately indistinguishable from success
      * so the endpoint cannot be used to probe which emails have an account.
      */
     public function __invoke(RequestPasswordReset $message): null|PasswordResetToken
@@ -54,10 +53,13 @@ final readonly class RequestPasswordResetHandler
         // requests around so their links can still say "expired" instead of "invalid"
         $this->resetPasswordRequestRepository->removeExpiredBefore($now->modify('-1 week'));
 
-        if ($this->resetPasswordRequestRepository->hasActiveRequestForUserAccount($userAccount, $now)) {
-            return null;
-        }
-
+        // A repeat request mints another link rather than going silent: the
+        // "check your email" screen offers "send a new link", and a promise that
+        // quietly sends nothing is worse than no button. Older open links keep
+        // working until any one of them is used (ResetPasswordHandler removes
+        // them all) - so nobody can void a link someone else is about to click by
+        // asking again. Mail volume per address stays capped by the controller's
+        // rate limiters.
         $token = PasswordResetToken::generate();
 
         $this->resetPasswordRequestRepository->save(

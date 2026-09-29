@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\LoginLinkRequest;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\LoginLinkRequestRepository;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\LoginLink\Exception\InvalidLoginLinkException;
@@ -42,6 +43,15 @@ use Symfony\Component\Security\Http\LoginLink\LoginLinkHandlerInterface;
  */
 final readonly class SingleUseLoginLinkHandler implements LoginLinkHandlerInterface
 {
+    /**
+     * Request attribute carrying the booked return path of the link being used,
+     * read by LoginLinkSuccessHandler (which validates it again).
+     */
+    public const string RETURN_PATH_ATTRIBUTE = '_sign_in_link_return_path';
+
+    /** The column's size - a longer path is simply not carried. */
+    private const int MAX_RETURN_PATH_LENGTH = 2048;
+
     public function __construct(
         private LoginLinkHandlerInterface $inner,
         private LoginLinkRequestRepository $loginLinkRequestRepository,
@@ -51,6 +61,21 @@ final readonly class SingleUseLoginLinkHandler implements LoginLinkHandlerInterf
     }
 
     public function createLoginLink(UserInterface $user, null|Request $request = null, null|int $lifetime = null): LoginLinkDetails
+    {
+        return $this->issue($user, $request, $lifetime, null);
+    }
+
+    /**
+     * Like createLoginLink(), and remembers where the visitor was headed. The
+     * destination is booked with the link's row, not appended to the URL: the
+     * signed link stays exactly what Symfony signed.
+     */
+    public function createLoginLinkReturningTo(UserInterface $user, null|ReturnUrl $returnUrl): LoginLinkDetails
+    {
+        return $this->issue($user, null, null, $returnUrl);
+    }
+
+    private function issue(UserInterface $user, null|Request $request, null|int $lifetime, null|ReturnUrl $returnUrl): LoginLinkDetails
     {
         if (!$user instanceof UserAccount) {
             throw new LogicException('Sign-in links can only be issued for native user accounts.');
@@ -72,6 +97,7 @@ final readonly class SingleUseLoginLinkHandler implements LoginLinkHandlerInterf
                 LoginLinkRequest::hashToken($this->extractSignatureHash($loginLinkDetails->getUrl())),
                 $now,
                 $loginLinkDetails->getExpiresAt(),
+                $returnUrl !== null && strlen($returnUrl->path) <= self::MAX_RETURN_PATH_LENGTH ? $returnUrl->path : null,
             ),
         );
 
@@ -109,6 +135,10 @@ final readonly class SingleUseLoginLinkHandler implements LoginLinkHandlerInterf
             )
         ) {
             throw new InvalidLoginLinkException('Login link has already been used.');
+        }
+
+        if ($loginLinkRequest->returnPath !== null) {
+            $request->attributes->set(self::RETURN_PATH_ATTRIBUTE, $loginLinkRequest->returnPath);
         }
 
         return $user;

@@ -1,0 +1,22 @@
+{% extends '_auth_layout.html.twig' %}
+
+{% block title %}{{ 'auth.check_email.title'|trans }}{% endblock %}
+
+{% set return_params = return_path is null ? {} : {'return': return_path} %}
+
+{% block auth_content %}
+    {% embed '_auth_check_email.html.twig' with {
+        back_href: path('login', return_params),
+        sent_to: 'auth.check_email.link_sent_to'|trans,
+        resent_message: 'auth.check_email.resent'|trans,
+        change_href: path('sign_in_link_request', return_params),
+        resend_action: path('sign_in_link_request'),
+        resend_csrf_id: constant('SpeedPuzzling\\Web\\Controller\\SignInLinkController::CSRF_TOKEN_ID'),
+        resend_label: 'auth.check_email.resend_link'|trans,
+    } %}
+        {# Phase 2 puts the 6-digit code input here #}
+        {% block next_step %}
+            <p class="mb-0">{{ 'auth.check_email.link_next_step'|trans({'%minutes%': expires_in_minutes}) }}</p>
+        {% endblock %}
+    {% endembed %}
+{% endblock %}

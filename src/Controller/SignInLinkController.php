@@ -8,6 +8,8 @@ use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\EventSubscriber\NativeAuthPageSubscriber;
 use SpeedPuzzling\Web\Message\RequestSignInLink;
+use SpeedPuzzling\Web\Services\CheckEmailFlash;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,12 +17,19 @@ use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Validator\Constraints\Email;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * "Email me a sign-in link" (D6, issue #147): the rescue for everybody without
  * a usable password - forgotten, or filed by their password manager under the
  * old Auth0 sign-in domain.
+ *
+ * Success is its own screen (/login-link/sent, SignInLinkSentController): the
+ * address travels there in a flash (CheckEmailFlash), never in a URL. Anything that
+ * went wrong re-renders this form with 422 (Turbo Drive drops a 200 answer to
+ * a form POST).
  *
  * The answer is the same whether or not the address has an account - the page
  * never reveals who is registered (D8 enumeration tradeoff).
@@ -33,9 +42,9 @@ final class SignInLinkController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
         private readonly LoggerInterface $logger,
+        private readonly ValidatorInterface $validator,
         private readonly RateLimiterFactoryInterface $signInLinkEmailLimiter,
         private readonly RateLimiterFactoryInterface $signInLinkIpLimiter,
-        private readonly int $signInLinkLifetimeSeconds,
     ) {
     }
 
@@ -47,11 +56,12 @@ final class SignInLinkController extends AbstractController
     )]
     public function __invoke(Request $request): Response
     {
+        $returnUrl = ReturnUrl::tryFrom($request->isMethod('POST')
+            ? $request->request->getString('return')
+            : $request->query->getString('return'));
+
         if ($request->isMethod('POST') === false) {
-            return $this->render('sign_in_link.html.twig', [
-                'email' => $request->query->getString('email'),
-                'expires_in_minutes' => intdiv($this->signInLinkLifetimeSeconds, 60),
-            ]);
+            return $this->renderForm('', $returnUrl);
         }
 
         if (!$this->isCsrfTokenValid(self::CSRF_TOKEN_ID, (string) $request->request->get('_token'))) {
@@ -61,15 +71,15 @@ final class SignInLinkController extends AbstractController
         $email = trim((string) $request->request->get('email'));
 
         if ($email === '') {
-            $this->addFlash('warning', $this->translator->trans('auth.sign_in_link.email_required'));
+            return $this->renderForm($email, $returnUrl, fieldError: 'auth.sign_in_link.email_required');
+        }
 
-            return $this->redirectToRoute('sign_in_link_request');
+        if (count($this->validator->validate($email, new Email())) > 0) {
+            return $this->renderForm($email, $returnUrl, fieldError: 'auth.check_email.email_invalid');
         }
 
         if ($this->consumeRateLimit($email, $request->getClientIp()) === false) {
-            $this->addFlash('warning', $this->translator->trans('auth.sign_in_link.too_many_requests'));
-
-            return $this->redirectToRoute('sign_in_link_request');
+            return $this->renderForm($email, $returnUrl, alert: 'auth.sign_in_link.too_many_requests');
         }
 
         try {
@@ -77,6 +87,7 @@ final class SignInLinkController extends AbstractController
                 new RequestSignInLink(
                     email: $email,
                     fallbackLocale: $request->getLocale(),
+                    returnPath: $returnUrl?->path,
                 ),
             );
         } catch (HandlerFailedException $exception) {
@@ -84,15 +95,33 @@ final class SignInLinkController extends AbstractController
                 'exception' => $exception,
             ]);
 
-            $this->addFlash('danger', $this->translator->trans('auth.sign_in_link.failed'));
-
-            return $this->redirectToRoute('sign_in_link_request');
+            return $this->renderForm($email, $returnUrl, alert: 'auth.sign_in_link.failed');
         }
 
         // Deliberately identical for known and unknown addresses
-        $this->addFlash('success', $this->translator->trans('auth.sign_in_link.sent'));
+        CheckEmailFlash::add($request, CheckEmailFlash::SIGN_IN_LINK, $email, $request->request->getBoolean('resend'));
 
-        return $this->redirectToRoute('sign_in_link_request');
+        return $this->redirectToRoute(
+            'sign_in_link_sent',
+            $returnUrl === null ? [] : ['return' => $returnUrl->path],
+            Response::HTTP_SEE_OTHER,
+        );
+    }
+
+    private function renderForm(
+        string $email,
+        null|ReturnUrl $returnUrl,
+        null|string $fieldError = null,
+        null|string $alert = null,
+    ): Response {
+        $failed = $fieldError !== null || $alert !== null;
+
+        return $this->render('sign_in_link.html.twig', [
+            'email' => $email,
+            'return_path' => $returnUrl?->path,
+            'field_error' => $fieldError === null ? null : $this->translator->trans($fieldError),
+            'alert' => $alert === null ? null : $this->translator->trans($alert),
+        ], new Response(status: $failed ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
     }
 
     /**

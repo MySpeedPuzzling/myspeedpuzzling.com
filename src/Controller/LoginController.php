@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Core\Exception\BadCredentialsException;
+use Symfony\Component\Security\Core\Exception\TooManyLoginAttemptsAuthenticationException;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 /**
@@ -32,9 +34,21 @@ final class LoginController extends AbstractController
             return $this->redirectToRoute('my_profile');
         }
 
+        $error = $authenticationUtils->getLastAuthenticationError();
+
         return $this->render('login.html.twig', [
             'last_email' => $authenticationUtils->getLastUsername(),
-            'error' => $authenticationUtils->getLastAuthenticationError(),
+            'error' => $error,
+            // Wrong password and unknown address are both BadCredentials (the
+            // authenticator hides which one), so 'credentials' never reveals
+            // whether an account exists. Anything else - social sign-in failures,
+            // an expired CSRF token - keeps its own translated message.
+            'failure_kind' => match (true) {
+                $error === null => null,
+                $error instanceof TooManyLoginAttemptsAuthenticationException => 'throttled',
+                $error instanceof BadCredentialsException => 'credentials',
+                default => 'other',
+            },
         ]);
     }
 }

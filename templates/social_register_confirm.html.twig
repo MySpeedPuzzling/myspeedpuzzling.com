@@ -1,56 +1,45 @@
-{% extends 'base.html.twig' %}
+{% extends '_auth_layout.html.twig' %}
 
 {% block title %}{{ (is_private_relay ? 'auth.social.relay.title' : 'auth.social.confirm.title')|trans }}{% endblock %}
-{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
-{% block content %}
-    <div class="row gy-3 pb-4">
-        <div class="col-lg-6 col-md-8">
-            <h1 class="h2">{{ (is_private_relay ? 'auth.social.relay.title' : 'auth.social.confirm.title')|trans }}</h1>
+{# The rule-4 interstitial (docs/features/auth-ux-redesign.md §4.7). #}
 
-            {% if is_private_relay %}
-                {% include '_social_register_relay.html.twig' %}
-            {% else %}
-            <div class="card shadow my-3">
-                <div class="card-body">
-                    <p>{{ 'auth.social.confirm.question'|trans({'%provider%': provider_name, '%email%': email}) }}</p>
+{% block auth_content %}
+    <h1 class="auth-title mb-3">{{ (is_private_relay ? 'auth.social.relay.title' : 'auth.social.confirm.title')|trans }}</h1>
 
-                    <form action="{{ path('social_register_confirm') }}" method="post">
-                        {# The single-use parked token doubles as the CSRF guard #}
-                        <input type="hidden" name="token" value="{{ token }}">
+    {% if is_private_relay %}
+        {% include '_social_register_relay.html.twig' %}
+    {% else %}
+        <p>{{ 'auth.social.confirm.question'|trans({'%provider%': provider_name, '%email%': email}) }}</p>
 
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-person-plus me-1"></i>{{ 'auth.social.confirm.create'|trans }}
-                        </button>
-                    </form>
+        <form action="{{ path('social_register_confirm') }}" method="post">
+            {# The single-use parked token doubles as the CSRF guard #}
+            <input type="hidden" name="token" value="{{ token }}">
 
-                    <hr>
+            <button type="submit" class="btn btn-primary w-100">
+                {{ 'auth.social.confirm.create'|trans }}
+            </button>
+        </form>
 
-                    {# The whole point of this page (plan §Linking vs merging): a
-                       visitor who already has an account under another address must
-                       not mint a duplicate account. The provider profile stays parked
-                       through the sign-in and gets connected to whichever account
-                       they sign in to (SocialRegisterSignInController). #}
-                    <p class="text-muted fs-sm mb-2">{{ 'auth.social.confirm.have_account'|trans({'%provider%': provider_name}) }}</p>
+        {# The whole point of this page (plan §Linking vs merging): a visitor who
+           already has an account under another address must not mint a
+           duplicate account. The provider profile stays parked through the
+           sign-in and gets connected to whichever account they sign in to
+           (SocialRegisterSignInController). #}
+        <h2 class="h6 mt-4 pt-3 mb-2 border-top">{{ 'auth.social.confirm.have_account_title'|trans }}</h2>
 
-                    <form action="{{ path('social_register_sign_in') }}" method="post">
-                        <input type="hidden" name="token" value="{{ token }}">
+        <form action="{{ path('social_register_sign_in') }}" method="post">
+            <input type="hidden" name="token" value="{{ token }}">
 
-                        <button type="submit" class="btn btn-outline-secondary w-100">
-                            <i class="bi bi-box-arrow-in-right me-1"></i>{{ 'auth.social.confirm.sign_in_and_connect'|trans({'%provider%': provider_name}) }}
-                        </button>
-                    </form>
-                </div>
-            </div>
-            {% endif %}
+            <button type="submit" class="btn btn-outline-secondary w-100">
+                {{ 'auth.social.confirm.sign_in_and_connect'|trans({'%provider%': provider_name}) }}
+            </button>
+        </form>
 
-            <p class="text-muted fs-sm">
-                {{ 'auth.social.confirm.duplicate_accounts_help'|trans({'%faqUrl%': path('faq') ~ '#duplicate-accounts'})|raw }}
-            </p>
-        </div>
+        <p class="text-muted fs-sm mt-2">{{ 'auth.social.confirm.have_account'|trans({'%provider%': provider_name}) }}</p>
+    {% endif %}
 
-        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
-            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
-        </div>
-    </div>
+    <p class="text-muted fs-sm mt-4 mb-0">
+        {{ 'auth.social.confirm.duplicate_accounts_help'|trans({'%faqUrl%': path('faq') ~ '#duplicate-accounts'})|raw }}
+    </p>
 {% endblock %}

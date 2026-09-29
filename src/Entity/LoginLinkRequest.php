@@ -47,6 +47,15 @@ class LoginLinkRequest
         #[Immutable]
         #[Column(type: Types::DATETIMETZ_IMMUTABLE)]
         public DateTimeImmutable $expiresAt,
+        /**
+         * Where the visitor was headed when they asked for the link (the login
+         * page's ?return=, already validated by ReturnUrl). Kept here rather than
+         * in the link itself, so the signed URL carries no unsigned parameter.
+         * Re-validated when the link is used.
+         */
+        #[Immutable]
+        #[Column(length: 2048, nullable: true)]
+        public null|string $returnPath = null,
     ) {
     }
 

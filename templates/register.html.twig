@@ -1,45 +1,54 @@
-{% extends 'base.html.twig' %}
+{% extends '_auth_layout.html.twig' %}
 
 {% block title %}{{ 'auth.register.title'|trans }}{% endblock %}
-{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
-{% block content %}
-    <div class="row gy-3 pb-4">
-        <div class="col-lg-6 col-md-8">
-            <h1 class="h2">{{ 'auth.register.title'|trans }}</h1>
+{# docs/features/auth-ux-redesign.md §4.2: "Already have an account? Sign in"
+   right under the heading, provider buttons first (no password to invent),
+   then email -> password -> the optional name. #}
 
-            <p class="text-muted">{{ 'auth.register.intro'|trans }}</p>
+{% set return_path = safe_return_url(app.request.query.get('return')) %}
+{% set return_params = return_path is null ? {} : {'return': return_path} %}
 
-            <div class="card shadow my-3">
-                <div class="card-body">
-                    {{ form_start(form, {'action': path('register')}) }}
-                        {{ form_row(form.name) }}
-                        {{ form_row(form.email) }}
+{% block auth_content %}
+    <h1 class="auth-title">{{ 'auth.register.title'|trans }}</h1>
+    <p class="auth-crosslink">
+        {{ 'auth.register.have_account'|trans }}
+        <a href="{{ path('login', return_params) }}">{{ 'auth.login.submit'|trans }}</a>
+    </p>
 
-                        <div class="mb-3">
-                            {{ form_label(form.plainPassword) }}
-                            {{ form_widget(form.plainPassword) }}
-                            {{ form_help(form.plainPassword) }}
-                            {{ form_errors(form.plainPassword) }}
-                        </div>
+    {{ include('_in_app_browser_notice.html.twig') }}
 
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-person-plus me-1"></i>{{ 'auth.register.submit'|trans }}
-                        </button>
-                    {{ form_end(form) }}
+    {{ include('_social_login_buttons.html.twig') }}
 
-                    {{ include('_social_login_buttons.html.twig') }}
+    {{ form_start(form, {'action': path('register')}) }}
+        <div class="mb-3">
+            {{ form_label(form.email) }}
+            {{ form_widget(form.email) }}
+            {% if email_taken %}
+                {# D8: the unique-email error is an accepted enumeration tradeoff; it
+                   points at the way in rather than only saying "taken" #}
+                <div class="invalid-feedback d-block">
+                    {{ 'auth.register.email_taken'|trans({'%sign_in_url%': path('login', return_params), '%link_url%': path('sign_in_link_request', return_params)})|raw }}
                 </div>
+            {% else %}
+                {{ form_errors(form.email) }}
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            {{ form_label(form.plainPassword) }}
+            <div class="password-field">
+                {{ form_widget(form.plainPassword) }}
+                {{ include('_password_toggle.html.twig', {input_id: form.plainPassword.vars.id}) }}
             </div>
-
-            <p class="fs-sm">
-                {{ 'auth.register.have_account'|trans }}
-                <a href="{{ path('login') }}">{{ 'auth.login.submit'|trans }}</a>
-            </p>
+            {{ form_help(form.plainPassword) }}
+            {{ form_errors(form.plainPassword) }}
         </div>
 
-        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
-            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
-        </div>
-    </div>
+        {{ form_row(form.name) }}
+
+        <button type="submit" class="btn btn-primary w-100" data-turbo-submits-with="{{ 'auth.register.submitting'|trans }}">
+            {{ 'auth.register.submit'|trans }}
+        </button>
+    {{ form_end(form) }}
 {% endblock %}

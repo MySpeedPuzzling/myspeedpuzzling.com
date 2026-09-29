@@ -1,112 +1,107 @@
-{% extends 'base.html.twig' %}
+{% extends '_auth_layout.html.twig' %}
 
 {% block title %}{{ 'auth.login.title'|trans }}{% endblock %}
-{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
-{% block content %}
-    <div class="row gy-3 pb-4">
-        {# The sign-in link buttons live in two places (the failure helper above the
-           card, the secondary action inside it) and both submit the separate
-           sign-in-link form below via form="..." - a nested form is not possible,
-           and re-posting the login form would send the typed password to a second
-           endpoint for no reason. #}
-        <div class="col-lg-6 col-md-8" data-controller="sign-in-link">
-            <h1 class="h2">{{ 'auth.login.title'|trans }}</h1>
+{# docs/features/auth-ux-redesign.md §4.1: "create an account" right under the
+   heading, provider buttons first (one tap for most returning players and no
+   password manager involved), then email + password with "Forgot password?"
+   next to the field that fails, and the sign-in link as an honest secondary
+   button - a real link to its own page, not a hidden form. #}
 
-            {% if app.request.query.get('social') == 'expired' %}
-                <div class="alert alert-warning" role="alert">
-                    <i class="ci-time me-2"></i>
-                    {{ 'auth.social.attempt_expired'|trans }}
-                </div>
-            {% endif %}
+{% set return_path = safe_return_url(app.request.query.get('return')) %}
+{% set return_params = return_path is null ? {} : {'return': return_path} %}
 
-            {% if error %}
-                <div class="alert alert-danger" role="alert">
-                    <i class="ci-close-circle me-2"></i>
-                    {{ error.messageKey|trans(error.messageData, 'security') }}
-                </div>
+{% block auth_content %}
+    <h1 class="auth-title">{{ 'auth.login.title'|trans }}</h1>
+    <p class="auth-crosslink">
+        {{ 'auth.login.new_here'|trans }}
+        <a href="{{ path('register', return_params) }}">{{ 'auth.register.title'|trans }}</a>
+    </p>
 
-                {# UX funnel §4: every failed attempt - wrong password, unknown account,
-                   throttled - shows the same helper, so it never signals whether an
-                   account exists #}
-                {{ include('_login_failure_helper.html.twig') }}
-            {% endif %}
+    {% if app.request.query.get('social') == 'expired' %}
+        <div class="alert alert-warning" role="alert">
+            {{ 'auth.social.attempt_expired'|trans }}
+        </div>
+    {% endif %}
 
-            <div class="card shadow my-3">
-                <div class="card-body">
-                    <form action="{{ path('login') }}" method="post" id="login-form">
-                        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
-                        {# Where the visitor was headed before being asked to sign in. Put here
-                           by LoginEntryPoint as ?return=; echoed back so the destination survives
-                           the POST without a session. Re-validated server-side on submit. #}
-                        {% if safe_return_url(app.request.query.get('return')) %}
-                            <input type="hidden" name="return" value="{{ safe_return_url(app.request.query.get('return')) }}">
-                        {% endif %}
+    {% if failure_kind in ['credentials', 'throttled'] %}
+        {# UX funnel §4: the same helper for every reason a password sign-in
+           fails - wrong password, unknown address - so it never signals whether
+           an account exists #}
+        {{ include('_login_failure_helper.html.twig', {throttled: failure_kind == 'throttled', return_params: return_params}) }}
+    {% elseif error %}
+        <div class="alert alert-danger" role="alert">
+            {{ error.messageKey|trans(error.messageData, 'security') }}
+        </div>
+    {% endif %}
 
-                        <div class="mb-3">
-                            <label class="form-label" for="login-email">{{ 'auth.login.email'|trans }}</label>
-                            <input
-                                class="form-control"
-                                type="email"
-                                id="login-email"
-                                name="email"
-                                value="{{ last_email }}"
-                                autocomplete="username"
-                                autofocus
-                                required
-                                data-action="input->sign-in-link#mirrorEmail"
-                            >
-                        </div>
+    {{ include('_in_app_browser_notice.html.twig') }}
 
-                        <div class="mb-3">
-                            <label class="form-label" for="login-password">{{ 'auth.login.password'|trans }}</label>
-                            <input
-                                class="form-control"
-                                type="password"
-                                id="login-password"
-                                name="password"
-                                autocomplete="current-password"
-                                required
-                            >
-                        </div>
+    {{ include('_social_login_buttons.html.twig', {existing_account_hint: true, last_used: true}) }}
 
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-box-arrow-in-right me-1"></i>{{ 'auth.login.submit'|trans }}
-                        </button>
-                    </form>
+    <form action="{{ path('login') }}" method="post" id="login-form" data-last-sign-in-method="password" data-action="submit->last-sign-in#remember">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+        {# Where the visitor was headed before being asked to sign in. Put here
+           by LoginEntryPoint as ?return=; echoed back so the destination survives
+           the POST without a session. Re-validated server-side on submit. #}
+        {% if return_path %}
+            <input type="hidden" name="return" value="{{ return_path }}">
+        {% endif %}
 
-                    <div class="text-center my-3 text-muted fs-sm">{{ 'auth.login.or'|trans }}</div>
-
-                    {# Prominent, permanent secondary action (UX funnel §3) #}
-                    <button type="submit" class="btn btn-outline-primary w-100" form="sign-in-link-form">
-                        <i class="bi bi-envelope me-1"></i>{{ 'auth.sign_in_link.submit'|trans }}
-                    </button>
-
-                    <p class="text-muted fs-sm mt-2 mb-3">{{ 'auth.sign_in_link.explainer'|trans }}</p>
-
-                    {{ include('_social_login_buttons.html.twig') }}
-
-                    {# Tertiary, in the UX funnel's order (§3): password login first, the
-                       sign-in link prominently second, these last. #}
-                    <p class="fs-sm mb-0">
-                        <a href="{{ path('request_password_reset') }}">{{ 'auth.password_reset.link'|trans }}</a>
-                        <span class="text-muted mx-1">·</span>
-                        <a href="{{ path('register') }}">{{ 'auth.register.title'|trans }}</a>
-                    </p>
-                </div>
+        <div class="mb-3">
+            <div class="auth-label-row">
+                <label class="form-label" for="login-email">{{ 'auth.login.email'|trans }}</label>
+                <span class="auth-last-used" data-last-sign-in-target="badge" data-last-sign-in-method="password" hidden>{{ 'auth.social.last_used'|trans }}</span>
             </div>
-
-            {# Carries the address the user typed (mirrored by the Stimulus controller);
-               without JavaScript it carries the last attempted one, and an empty value
-               simply lands on the sign-in link page, which asks for it. #}
-            <form action="{{ path('sign_in_link_request') }}" method="post" id="sign-in-link-form">
-                <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\SignInLinkController::CSRF_TOKEN_ID')) }}">
-                <input type="hidden" name="email" value="{{ last_email }}" data-sign-in-link-target="email">
-            </form>
+            {# No autofocus: on arrival it would pop the keyboard over the provider
+               buttons and start screen readers mid-form #}
+            <input
+                class="form-control"
+                type="email"
+                id="login-email"
+                name="email"
+                value="{{ last_email }}"
+                autocomplete="username"
+                autocapitalize="none"
+                autocorrect="off"
+                spellcheck="false"
+                enterkeyhint="next"
+                required
+            >
         </div>
 
-        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
-            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        <div class="mb-3">
+            {# "Forgot password?" sits on the label row: seen before anything fails,
+               and in DOM order before the field it belongs to #}
+            <div class="auth-label-row">
+                <label class="form-label" for="login-password">{{ 'auth.login.password'|trans }}</label>
+                <a class="auth-inline-link" href="{{ path('request_password_reset') }}">{{ 'auth.password_reset.link'|trans }}</a>
+            </div>
+            <div class="password-field">
+                <input
+                    class="form-control"
+                    type="password"
+                    id="login-password"
+                    name="password"
+                    autocomplete="current-password"
+                    enterkeyhint="go"
+                    required
+                    {# After a failed attempt the address is still there - the
+                       password is what needs retyping #}
+                    {% if failure_kind == 'credentials' %}autofocus{% endif %}
+                >
+                {{ include('_password_toggle.html.twig', {input_id: 'login-password'}) }}
+            </div>
         </div>
-    </div>
+
+        <button type="submit" class="btn btn-primary w-100" data-turbo-submits-with="{{ 'auth.login.submitting'|trans }}">
+            {{ 'auth.login.submit'|trans }}
+        </button>
+    </form>
+
+    {# The permanent rescue (UX funnel §3) - an honest link to its own page; the
+       typed address follows via sessionStorage (auth-email-handoff) #}
+    <a class="btn btn-outline-secondary w-100 mt-3" href="{{ path('sign_in_link_request', return_params) }}">
+        <i class="bi bi-envelope me-2" aria-hidden="true"></i>{{ 'auth.login.link_instead'|trans }}
+    </a>
 {% endblock %}

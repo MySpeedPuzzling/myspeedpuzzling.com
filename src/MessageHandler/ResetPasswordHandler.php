@@ -29,8 +29,10 @@ final readonly class ResetPasswordHandler
     /**
      * @throws InvalidPasswordResetToken
      * @throws PasswordResetTokenExpired
+     *
+     * @return string the account's user id, so the caller can sign the browser in
      */
-    public function __invoke(ResetPassword $message): void
+    public function __invoke(ResetPassword $message): string
     {
         $userAccount = $this->validatePasswordResetToken->validate($message->token);
 
@@ -45,5 +47,7 @@ final readonly class ResetPasswordHandler
             eventType: AuthAuditEventType::PasswordResetCompleted,
             userId: $userAccount->userId,
         ));
+
+        return $userAccount->userId;
     }
 }

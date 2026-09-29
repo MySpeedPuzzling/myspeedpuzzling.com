@@ -29,21 +29,6 @@ readonly final class ResetPasswordRequestRepository
             ]);
     }
 
-    public function hasActiveRequestForUserAccount(UserAccount $userAccount, DateTimeImmutable $now): bool
-    {
-        $count = $this->entityManager->createQueryBuilder()
-            ->select('COUNT(reset_password_request.id)')
-            ->from(ResetPasswordRequest::class, 'reset_password_request')
-            ->where('reset_password_request.userAccount = :userAccount')
-            ->andWhere('reset_password_request.expiresAt > :now')
-            ->setParameter('userAccount', $userAccount)
-            ->setParameter('now', $now)
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        return (int) $count > 0;
-    }
-
     public function removeAllForUserAccount(UserAccount $userAccount): void
     {
         $this->entityManager->createQueryBuilder()

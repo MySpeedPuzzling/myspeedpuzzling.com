@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\EventSubscriber\NativeAuthPageSubscriber;
 use SpeedPuzzling\Web\Message\RequestPasswordReset;
 use SpeedPuzzling\Web\Message\SendPasswordResetLink;
+use SpeedPuzzling\Web\Services\CheckEmailFlash;
 use SpeedPuzzling\Web\Value\PasswordResetToken;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,13 +19,15 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Validator\Constraints\Email;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * "Forgot password?" (issue #147). Answers identically whether or not the
- * address has an account, and whether or not a live request already throttles a
- * second mail - the page must never become a way to probe who is registered
- * (D8 enumeration tradeoff, mirrors the sign-in link endpoint).
+ * address has an account - the page must never become a way to probe who is
+ * registered (D8 enumeration tradeoff, mirrors the sign-in link endpoint).
+ * Success is its own "Check your email" screen (PasswordResetSentController).
  */
 final class RequestPasswordResetController extends AbstractController
 {
@@ -34,6 +37,7 @@ final class RequestPasswordResetController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
         private readonly LoggerInterface $logger,
+        private readonly ValidatorInterface $validator,
         private readonly RateLimiterFactoryInterface $passwordResetEmailLimiter,
         private readonly RateLimiterFactoryInterface $passwordResetIpLimiter,
     ) {
@@ -48,9 +52,7 @@ final class RequestPasswordResetController extends AbstractController
     public function __invoke(Request $request): Response
     {
         if ($request->isMethod('POST') === false) {
-            return $this->render('request_password_reset.html.twig', [
-                'email' => $request->query->getString('email'),
-            ]);
+            return $this->renderForm('');
         }
 
         if (!$this->isCsrfTokenValid(self::CSRF_TOKEN_ID, (string) $request->request->get('_token'))) {
@@ -60,15 +62,15 @@ final class RequestPasswordResetController extends AbstractController
         $email = trim((string) $request->request->get('email'));
 
         if ($email === '') {
-            $this->addFlash('warning', $this->translator->trans('auth.password_reset.email_required'));
+            return $this->renderForm($email, fieldError: 'auth.password_reset.email_required');
+        }
 
-            return $this->redirectToRoute('request_password_reset');
+        if (count($this->validator->validate($email, new Email())) > 0) {
+            return $this->renderForm($email, fieldError: 'auth.check_email.email_invalid');
         }
 
         if ($this->consumeRateLimit($email, $request->getClientIp()) === false) {
-            $this->addFlash('warning', $this->translator->trans('auth.password_reset.too_many_requests'));
-
-            return $this->redirectToRoute('request_password_reset');
+            return $this->renderForm($email, alert: 'auth.password_reset.too_many_requests');
         }
 
         try {
@@ -81,7 +83,7 @@ final class RequestPasswordResetController extends AbstractController
             $token = $handledStamp->getResult();
             assert($token === null || $token instanceof PasswordResetToken);
 
-            // null means unknown address or an already-live request - both silent
+            // null means an unknown address - silent
             if ($token !== null) {
                 $this->messageBus->dispatch(
                     new SendPasswordResetLink(
@@ -96,14 +98,26 @@ final class RequestPasswordResetController extends AbstractController
                 'exception' => $exception,
             ]);
 
-            $this->addFlash('danger', $this->translator->trans('auth.password_reset.failed'));
-
-            return $this->redirectToRoute('request_password_reset');
+            return $this->renderForm($email, alert: 'auth.password_reset.failed');
         }
 
-        $this->addFlash('success', $this->translator->trans('auth.password_reset.sent'));
+        // Deliberately identical for known and unknown addresses. The address rides
+        // to the next screen in a flash, never in the URL.
+        CheckEmailFlash::add($request, CheckEmailFlash::PASSWORD_RESET, $email, $request->request->getBoolean('resend'));
 
-        return $this->redirectToRoute('request_password_reset');
+        return $this->redirectToRoute('password_reset_sent', status: Response::HTTP_SEE_OTHER);
+    }
+
+    private function renderForm(string $email, null|string $fieldError = null, null|string $alert = null): Response
+    {
+        $failed = $fieldError !== null || $alert !== null;
+
+        // A form POST answered 200 is dropped by Turbo Drive: every failure is a 422
+        return $this->render('request_password_reset.html.twig', [
+            'email' => $email,
+            'field_error' => $fieldError === null ? null : $this->translator->trans($fieldError),
+            'alert' => $alert === null ? null : $this->translator->trans($alert),
+        ], new Response(status: $failed ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
     }
 
     private function consumeRateLimit(string $email, null|string $clientIp): bool

@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Security\SignInLinkPasswordPrompt;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
@@ -34,7 +35,7 @@ final class SignInLinkTest extends WebTestCase
 
         $this->requestSignInLink($browser, $email);
 
-        self::assertResponseRedirects('/login-link');
+        self::assertResponseRedirects('/login-link/sent', 303);
 
         $signInUrl = $this->lastSignInLinkUrl();
         self::assertStringContainsString('/login-link/check', $signInUrl);
@@ -212,9 +213,132 @@ final class SignInLinkTest extends WebTestCase
 
         $this->requestSignInLink($browser, sprintf('nobody+%s@example.com', bin2hex(random_bytes(4))));
 
-        // Anti-enumeration: same redirect, same flash, no mail
-        self::assertResponseRedirects('/login-link');
+        // Anti-enumeration: same redirect, same screen, no mail
+        self::assertResponseRedirects('/login-link/sent', 303);
         self::assertCount(0, self::getMailerMessages());
+    }
+
+    public function testCheckYourEmailScreenIsTheSameForKnownAndUnknownAddresses(): void
+    {
+        $browser = self::createClient();
+        $known = $this->seedAccount($browser, 'msp|signin11', 'signin.eleven');
+        $unknown = sprintf('nobody+%s@example.com', bin2hex(random_bytes(4)));
+
+        $screens = [];
+
+        foreach ([$known, $unknown] as $email) {
+            $this->requestSignInLink($browser, $email);
+            $crawler = $browser->followRedirect();
+
+            self::assertResponseIsSuccessful();
+            self::assertSame($email, trim($crawler->filter('.auth-sent-email')->text()));
+            // Resend posts the same address back, behind the countdown
+            self::assertSame($email, $crawler->filter('form[action="/login-link"] input[name="email"]')->attr('value'));
+            self::assertSame('1', $crawler->filter('form[action="/login-link"] input[name="resend"]')->attr('value'));
+            self::assertSame('resend-countdown', $crawler->filter('form[action="/login-link"]')->attr('data-controller'));
+            self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+
+            $screens[] = str_replace($email, '', $crawler->filter('main')->text());
+        }
+
+        self::assertSame($screens[0], $screens[1]);
+    }
+
+    public function testCheckYourEmailScreenOffersTheWebmailAndWorksOnlyOnce(): void
+    {
+        $browser = self::createClient();
+
+        $this->requestSignInLink($browser, sprintf('someone.%s@gmail.com', bin2hex(random_bytes(4))));
+        $crawler = $browser->followRedirect();
+
+        $webmail = $crawler->filter('a[href="https://mail.google.com/"]');
+        self::assertCount(1, $webmail);
+        self::assertSame('_blank', $webmail->attr('target'));
+        self::assertStringContainsString('noopener', (string) $webmail->attr('rel'));
+
+        // The address came in a flash, not the URL: a reload has nothing to show
+        $browser->request('GET', '/login-link/sent');
+        self::assertResponseRedirects('/login-link', 303);
+    }
+
+    public function testDirectVisitToTheSentScreenGoesBackToTheForm(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/login-link/sent');
+
+        self::assertResponseRedirects('/login-link', 303);
+        // Asking for the flash must not start a session for an anonymous visitor
+        self::assertSame([], $browser->getResponse()->headers->getCookies());
+    }
+
+    public function testResendSaysSoAndSendsAnotherLink(): void
+    {
+        $browser = self::createClient();
+        $email = $this->seedAccount($browser, 'msp|signin12', 'signin.twelve');
+
+        $this->requestSignInLink($browser, $email, ['resend' => '1']);
+        self::assertCount(1, self::getMailerMessages());
+
+        $crawler = $browser->followRedirect();
+        self::assertSame('We sent you a new link.', trim($crawler->filter('.alert-success[role="status"]')->text()));
+    }
+
+    public function testEmptyOrInvalidAddressIsAnsweredWith422AndAFieldError(): void
+    {
+        $browser = self::createClient();
+
+        foreach (['' => 'Enter your email address.', 'not-an-email' => 'Enter a valid email address'] as $email => $message) {
+            $crawler = $this->requestSignInLink($browser, (string) $email);
+
+            // Turbo Drive drops a 200 answer to a form POST: failures are 422
+            self::assertResponseStatusCodeSame(422);
+            $field = $crawler->filter('#sign-in-link-email');
+            self::assertSame('true', $field->attr('aria-invalid'));
+            self::assertSame('sign-in-link-email-error', $field->attr('aria-describedby'));
+            self::assertStringContainsString($message, $crawler->filter('#sign-in-link-email-error')->text());
+        }
+
+        self::assertCount(0, self::getMailerMessages());
+    }
+
+    public function testTheLinkLandsWhereTheVisitorWasHeaded(): void
+    {
+        $browser = self::createClient();
+        $email = $this->seedAccount($browser, 'msp|signin13', 'signin.thirteen');
+
+        // /login?return=... -> "Email me a sign-in link instead" keeps it
+        $crawler = $browser->request('GET', '/login?return=/en/puzzle');
+        $linkPage = $crawler->filter('a[href^="/login-link?return="]')->attr('href');
+        self::assertSame('/login-link?return=/en/puzzle', $linkPage);
+
+        $crawler = $browser->request('GET', $linkPage);
+        self::assertSame('/en/puzzle', $crawler->filter('form[action="/login-link"] input[name="return"]')->attr('value'));
+
+        $this->requestSignInLink($browser, $email, ['return' => '/en/puzzle']);
+        self::assertResponseRedirects('/login-link/sent?return=/en/puzzle', 303);
+
+        $signInUrl = $this->lastSignInLinkUrl();
+        // Booked with the link's row, not carried in the signed URL
+        self::assertStringNotContainsString('return', $signInUrl);
+
+        $this->followSignInLink($browser, $signInUrl);
+
+        self::assertResponseRedirects('/en/puzzle');
+        self::assertNotNull($browser->getContainer()->get(TokenStorageInterface::class)->getToken());
+    }
+
+    public function testAHostileReturnIsIgnored(): void
+    {
+        $browser = self::createClient();
+        $email = $this->seedAccount($browser, 'msp|signin14', 'signin.fourteen');
+
+        $this->requestSignInLink($browser, $email, ['return' => '//evil.example/phish']);
+        self::assertResponseRedirects('/login-link/sent', 303);
+
+        $this->followSignInLink($browser, $this->lastSignInLinkUrl());
+
+        self::assertResponseRedirects('/en/my-profile');
     }
 
     public function testRequestPageStaysSessionFreeAndOutOfSharedCaches(): void
@@ -305,12 +429,19 @@ final class SignInLinkTest extends WebTestCase
         self::assertNull($this->reloadAccountPassword($browser, 'auth0|signin7'));
     }
 
-    private function requestSignInLink(KernelBrowser $browser, string $email): void
+    /**
+     * @param array<string, string> $extra
+     */
+    private function requestSignInLink(KernelBrowser $browser, string $email, array $extra = []): Crawler
     {
-        $browser->request('POST', '/login-link', [
+        // Fresh client IP per request: the per-IP limiter's cache outlives the test
+        $browser->setServerParameter('REMOTE_ADDR', sprintf('198.51.100.%d', random_int(1, 254)));
+
+        return $browser->request('POST', '/login-link', [
             'email' => $email,
             // Stateless CSRF: the rendered token value is the cookie name itself
             '_token' => 'csrf-token',
+            ...$extra,
         ], [], [
             // Stateless CSRF validates same-origin requests via the Origin header -
             // BrowserKit does not send one on its own

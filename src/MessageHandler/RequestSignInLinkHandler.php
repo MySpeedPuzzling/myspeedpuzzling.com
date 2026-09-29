@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Security\SingleUseLoginLinkHandler;
 use SpeedPuzzling\Web\Services\AuthAuditRecorder;
 use SpeedPuzzling\Web\Value\AuthAuditEventType;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -57,7 +58,10 @@ final readonly class RequestSignInLinkHandler
             return;
         }
 
-        $loginLinkDetails = $this->loginLinkHandler->createLoginLink($userAccount);
+        $loginLinkDetails = $this->loginLinkHandler->createLoginLinkReturningTo(
+            $userAccount,
+            ReturnUrl::tryFrom($message->returnPath),
+        );
 
         $player = $this->playerRepository->findByUserId($userAccount->userId);
         $locale = $player !== null && $player->locale !== null

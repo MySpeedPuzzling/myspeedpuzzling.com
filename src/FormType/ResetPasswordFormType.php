@@ -30,6 +30,9 @@ final class ResetPasswordFormType extends AbstractType
             'attr' => [
                 'autocomplete' => 'new-password',
                 'data-password-suggestion-target' => 'field',
+                'minlength' => StrongPassword::MINIMUM_LENGTH,
+                'enterkeyhint' => 'done',
+                // The one field of a page the visitor opened to type exactly this
                 'autofocus' => true,
             ],
         ]);

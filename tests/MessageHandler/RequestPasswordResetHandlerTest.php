@@ -53,12 +53,22 @@ final class RequestPasswordResetHandlerTest extends KernelTestCase
         self::assertNull($this->requestPasswordReset('nobody@example.com'));
     }
 
-    public function testThrottlesWhileActiveRequestExists(): void
+    /**
+     * "Send a new link" on the check-your-email screen must really send one;
+     * the older link keeps working too (volume is capped by the rate limiters)
+     */
+    public function testRepeatRequestMintsAnotherLinkAndKeepsTheOlderOne(): void
     {
         $this->createUserAccount('msp|reset2', 'reset.two@example.com');
 
-        self::assertNotNull($this->requestPasswordReset('reset.two@example.com'));
-        self::assertNull($this->requestPasswordReset('reset.two@example.com'));
+        $first = $this->requestPasswordReset('reset.two@example.com');
+        $second = $this->requestPasswordReset('reset.two@example.com');
+
+        self::assertNotNull($first);
+        self::assertNotNull($second);
+        self::assertNotSame($first->selector, $second->selector);
+        self::assertNotNull($this->resetPasswordRequestRepository->findBySelector($first->selector));
+        self::assertNotNull($this->resetPasswordRequestRepository->findBySelector($second->selector));
     }
 
     public function testAllowsNewRequestAfterPreviousExpired(): void

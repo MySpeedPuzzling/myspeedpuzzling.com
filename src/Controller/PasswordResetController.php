@@ -11,13 +11,18 @@ use SpeedPuzzling\Web\Exceptions\PasswordResetTokenExpired;
 use SpeedPuzzling\Web\FormData\ResetPasswordFormData;
 use SpeedPuzzling\Web\FormType\ResetPasswordFormType;
 use SpeedPuzzling\Web\Message\ResetPassword;
+use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
+use SpeedPuzzling\Web\Security\UserAccountProvider;
 use SpeedPuzzling\Web\Services\ValidatePasswordResetToken;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Authenticator\Passport\Badge\RememberMeBadge;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -28,6 +33,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * anonymous-cacheability constraint: a session cookie here would follow the
  * visitor across every later page). Referrer-Policy: no-referrer closes the one
  * hole that buys - the token leaking to anything the page links out to.
+ *
+ * A successful reset signs the browser in (auth UX redesign, owner decision D4):
+ * whoever holds a live token controls the mailbox, which is exactly what an
+ * emailed sign-in link already accepts as proof - sending them to /login to type
+ * the password they chose seconds ago added friction, not security.
  */
 final class PasswordResetController extends AbstractController
 {
@@ -36,6 +46,8 @@ final class PasswordResetController extends AbstractController
         private readonly ValidatePasswordResetToken $validatePasswordResetToken,
         private readonly TranslatorInterface $translator,
         private readonly LoggerInterface $logger,
+        private readonly Security $security,
+        private readonly UserAccountProvider $userAccountProvider,
     ) {
     }
 
@@ -54,7 +66,7 @@ final class PasswordResetController extends AbstractController
         // Checked up front so a dead link says so immediately, instead of letting the
         // user pick a password and only then telling them it was wasted
         try {
-            $this->validatePasswordResetToken->validate($token);
+            $userAccount = $this->validatePasswordResetToken->validate($token);
         } catch (PasswordResetTokenExpired) {
             return $this->renderDeadToken('expired');
         } catch (InvalidPasswordResetToken) {
@@ -67,7 +79,7 @@ final class PasswordResetController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $this->messageBus->dispatch(
+                $envelope = $this->messageBus->dispatch(
                     new ResetPassword(
                         token: $token,
                         plainPassword: $data->plainPassword,
@@ -93,18 +105,36 @@ final class PasswordResetController extends AbstractController
                 // The form itself is valid, so render() would answer 200 - which Turbo Drive discards, flash included
                 return $this->noReferrer($this->render('password_reset.html.twig', [
                     'form' => $form,
+                    'account_email' => $userAccount->email,
                 ], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY)));
             }
 
-            // Not logged in here on purpose: proving control of the mailbox resets the
-            // password, it does not authenticate the browser that opened the link
+            /** @var HandledStamp $handledStamp */
+            $handledStamp = $envelope->last(HandledStamp::class);
+            $userId = $handledStamp->getResult();
+            assert(is_string($userId));
+
+            // Signed in like any other login: the named authenticator (the firewall
+            // carries several) and the always-on remember-me badge. LoginSuccessEvent
+            // puts the sign-in into the audit log next to password_reset_completed.
+            $this->security->login(
+                $this->userAccountProvider->loadUserByIdentifier($userId),
+                authenticatorName: LoginFormAuthenticator::class,
+                firewallName: 'main',
+                badges: [new RememberMeBadge()],
+            );
+
             $this->addFlash('success', $this->translator->trans('auth.password_reset.done'));
 
-            return $this->redirectToRoute('login');
+            return $this->redirectToRoute('my_profile', status: Response::HTTP_SEE_OTHER);
         }
 
         return $this->noReferrer($this->render('password_reset.html.twig', [
             'form' => $form,
+            // For the hidden username field: lets the password manager file the new
+            // password under the right account. Not an enumeration leak - only the
+            // holder of a live token for this account ever sees the page.
+            'account_email' => $userAccount->email,
         ]));
     }
 

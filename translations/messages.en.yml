@@ -2541,6 +2541,12 @@ moderation:
     ban_lifted: "Marketplace ban has been lifted."
     listing_removed: "Listing has been removed."
 
+catalogue_numbers:
+    puzzles: "puzzle|puzzles"
+    brands: "brand|brands"
+    puzzles_with_ean: "puzzle with an EAN barcode|puzzles with an EAN barcode"
+    solve_times: "recorded solve time|recorded solve times"
+
 puzzle_tracker_app:
     meta:
         title: "Puzzle Tracker App – Times & Collection"
@@ -2623,6 +2629,27 @@ puzzle_tracker_app:
         times_logged: "Solving times logged"
         pieces_assembled: "Puzzle pieces assembled"
         hours_puzzling: "Hours of puzzling"
+    database:
+        title: "A Jigsaw Puzzle Database Built by Puzzlers"
+        subtitle: "Each solve you log is tied to a real puzzle in our shared database. Search it by name, brand or EAN barcode and compare your time with everyone who solved the same puzzle."
+        cta: "Browse the Puzzle Database"
+    explore:
+        title: "Explore MySpeedPuzzling"
+        puzzles:
+            title: "Puzzle Database"
+            description: "Look up any puzzle by name, brand or barcode and see its median and fastest solve times."
+        ladder:
+            title: "Leaderboards"
+            description: "The fastest solo, pair and team times for 500- and 1000-piece puzzles."
+        guides:
+            title: "Speed Puzzling Guides"
+            description: "What speed puzzling is, how to get faster and how long a puzzle really takes."
+        events:
+            title: "Events & Competitions"
+            description: "Find speed puzzling competitions near you and follow their results."
+        faq:
+            title: "FAQ"
+            description: "Answers to the most common questions about MySpeedPuzzling."
     cta:
         title: "Ready to Start Tracking?"
         description: "Join thousands of puzzlers who use MySpeedPuzzling to track their collections and times. Create your free account in seconds."

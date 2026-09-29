@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Services\CatalogueNumbersProvider;
 use SpeedPuzzling\Web\Services\HomepageStatistics;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,6 +19,7 @@ final class HomepageController extends AbstractController
     public function __construct(
         readonly private HomepageStatistics $homepageStatistics,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private CatalogueNumbersProvider $catalogueNumbersProvider,
     ) {
     }
 
@@ -51,6 +53,7 @@ final class HomepageController extends AbstractController
 
         return $this->render('homepage.html.twig', [
             'homepage_statistics' => $this->homepageStatistics->all(),
+            'catalogue' => $this->catalogueNumbersProvider->numbers(),
         ]);
     }
 }

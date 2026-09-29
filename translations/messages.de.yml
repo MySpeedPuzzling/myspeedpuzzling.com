@@ -2247,6 +2247,12 @@
   "user_unmuted": "Die Stummschaltung des Benutzers wurde aufgehoben."
   "warning_issued": "Eine Warnung wurde ausgesprochen."
 
+catalogue_numbers:
+    puzzles: "Puzzle|Puzzles"
+    brands: "Marke|Marken"
+    puzzles_with_ean: "Puzzle mit EAN-Barcode|Puzzles mit EAN-Barcode"
+    solve_times: "erfasste Legezeit|erfasste Legezeiten"
+
 puzzle_tracker_app:
     meta:
         title: "Puzzle Tracker App – Zeiten & Sammlung"
@@ -2329,6 +2335,27 @@ puzzle_tracker_app:
         times_logged: "Erfasste Legezeiten"
         pieces_assembled: "Zusammengesetzte Teile"
         hours_puzzling: "Stunden gepuzzelt"
+    database:
+        title: "Eine Puzzle-Datenbank, von Puzzlern aufgebaut"
+        subtitle: "Jede erfasste Zeit gehört zu einem echten Puzzle in unserer gemeinsamen Datenbank. Suche nach Name, Marke oder EAN-Barcode und vergleiche deine Zeit mit allen, die dasselbe Puzzle gelegt haben."
+        cta: "Puzzle-Datenbank durchsuchen"
+    explore:
+        title: "Entdecke MySpeedPuzzling"
+        puzzles:
+            title: "Puzzle-Datenbank"
+            description: "Finde jedes Puzzle nach Name, Marke oder Barcode und sieh dir Median- und Bestzeiten an."
+        ladder:
+            title: "Bestenlisten"
+            description: "Die schnellsten Solo-, Paar- und Teamzeiten für Puzzles mit 500 und 1000 Teilen."
+        guides:
+            title: "Speed-Puzzle-Guides"
+            description: "Was Speedpuzzeln ist, wie du schneller wirst und wie lange ein Puzzle wirklich dauert (auf Englisch)."
+        events:
+            title: "Events & Wettbewerbe"
+            description: "Finde Speed-Puzzle-Wettbewerbe in deiner Nähe und verfolge ihre Ergebnisse."
+        faq:
+            title: "FAQ"
+            description: "Antworten auf die häufigsten Fragen zu MySpeedPuzzling."
     cta:
         title: "Bereit loszulegen?"
         description: "Schließe dich Tausenden Puzzlern an, die MySpeedPuzzling zum Verfolgen ihrer Sammlungen und Zeiten nutzen. Erstelle dein kostenloses Konto in Sekunden."

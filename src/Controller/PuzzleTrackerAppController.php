@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetStatistics;
+use SpeedPuzzling\Web\Services\CatalogueNumbersProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -13,6 +14,7 @@ final class PuzzleTrackerAppController extends AbstractController
 {
     public function __construct(
         readonly private GetStatistics $getStatistics,
+        readonly private CatalogueNumbersProvider $catalogueNumbersProvider,
     ) {
     }
 
@@ -31,6 +33,7 @@ final class PuzzleTrackerAppController extends AbstractController
     {
         return $this->render('puzzle-tracker-app.html.twig', [
             'global_statistics' => $this->getStatistics->globally(),
+            'catalogue' => $this->catalogueNumbersProvider->numbers(),
         ]);
     }
 }

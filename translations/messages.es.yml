@@ -2247,6 +2247,12 @@
   "user_unmuted": "El usuario ha sido desilenciado."
   "warning_issued": "Se ha emitido una advertencia."
 
+catalogue_numbers:
+    puzzles: "puzzle|puzzles"
+    brands: "marca|marcas"
+    puzzles_with_ean: "puzzle con código de barras EAN|puzzles con código de barras EAN"
+    solve_times: "tiempo registrado|tiempos registrados"
+
 puzzle_tracker_app:
     meta:
         title: "Puzzle Tracker – Tiempos y colección"
@@ -2329,6 +2335,27 @@ puzzle_tracker_app:
         times_logged: "Tiempos registrados"
         pieces_assembled: "Piezas ensambladas"
         hours_puzzling: "Horas armando puzzles"
+    database:
+        title: "Una base de datos de puzzles creada por puzzleros"
+        subtitle: "Cada tiempo que registras pertenece a un puzzle real de nuestra base de datos compartida. Búscalo por nombre, marca o código de barras EAN y compara tu tiempo con el de todos los que armaron el mismo puzzle."
+        cta: "Explorar la base de datos de puzzles"
+    explore:
+        title: "Descubre MySpeedPuzzling"
+        puzzles:
+            title: "Base de datos de puzzles"
+            description: "Encuentra cualquier puzzle por nombre, marca o código de barras y consulta sus tiempos medianos y más rápidos."
+        ladder:
+            title: "Clasificaciones"
+            description: "Los tiempos más rápidos en solitario, en pareja y por equipos en puzzles de 500 y 1000 piezas."
+        guides:
+            title: "Guías de speed puzzling"
+            description: "Qué es el speed puzzling, cómo ser más rápido y cuánto se tarda de verdad en armar un puzzle (en inglés)."
+        events:
+            title: "Eventos y competiciones"
+            description: "Encuentra competiciones de speed puzzling cerca de ti y sigue sus resultados."
+        faq:
+            title: "Preguntas frecuentes"
+            description: "Respuestas a las preguntas más habituales sobre MySpeedPuzzling."
     cta:
         title: "¿Listo para empezar?"
         description: "Únete a miles de puzzleros que usan MySpeedPuzzling para gestionar sus colecciones y tiempos. Crea tu cuenta gratuita en segundos."

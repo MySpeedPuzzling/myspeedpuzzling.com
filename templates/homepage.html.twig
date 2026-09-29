@@ -140,7 +140,7 @@
                 '%schmidt_link%': path('brand_puzzles', {slug: 'schmidt'}),
                 '%trefl_link%': path('brand_puzzles', {slug: 'trefl'}),
                 '%puzzles_link%': path('puzzles'),
-            })},
+            }), catalogue_numbers: true},
         ] %}
 
         {% for section in featureSections %}
@@ -171,6 +171,9 @@
                 {% endif %}
                     <h2 class="h3">{{ section.title }}</h2>
                     <p class="mb-0">{{ section.text|raw }}</p>
+                    {% if section.catalogue_numbers is defined %}
+                        {{ include('_catalogue_numbers.html.twig', {catalogue: catalogue, variant: 'compact'}) }}
+                    {% endif %}
                 </div>
             </div>
         {% endfor %}

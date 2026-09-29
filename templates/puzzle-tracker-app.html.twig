@@ -256,6 +256,51 @@
         </div>
     </section>
 
+    {# Puzzle Database Section - live catalogue numbers #}
+    <section class="bg-secondary py-5" id="puzzle-database">
+        <div class="container px-3">
+            <div class="text-center mb-4">
+                <h2 class="mb-3">{{ 'puzzle_tracker_app.database.title'|trans }}</h2>
+                <p class="lead text-muted col-lg-8 mx-auto">{{ 'puzzle_tracker_app.database.subtitle'|trans }}</p>
+            </div>
+
+            {{ include('_catalogue_numbers.html.twig', {catalogue: catalogue, variant: 'cards'}) }}
+
+            <p class="text-center mt-4 mb-0">
+                <a href="{{ path('puzzles') }}" class="btn btn-primary btn-shadow">{{ 'puzzle_tracker_app.database.cta'|trans }}</a>
+            </p>
+        </div>
+    </section>
+
+    {# Explore Section - the pages a new puzzler goes to next #}
+    <section class="py-5" id="explore">
+        <div class="container px-3">
+            <h2 class="text-center mb-4">{{ 'puzzle_tracker_app.explore.title'|trans }}</h2>
+
+            {% set explore_links = [
+                {key: 'puzzles', url: path('puzzles'), icon: 'bi-search'},
+                {key: 'ladder', url: path('ladder'), icon: 'bi-trophy'},
+                {key: 'guides', url: path('guides'), icon: 'bi-book'},
+                {key: 'events', url: path('events'), icon: 'bi-calendar-event'},
+                {key: 'faq', url: path('faq'), icon: 'bi-question-circle'},
+            ] %}
+
+            <div class="row g-4 justify-content-center">
+                {% for link in explore_links %}
+                    <div class="col-sm-6 col-lg-4">
+                        <a href="{{ link.url }}" class="card border-0 shadow-sm h-100 text-decoration-none">
+                            <div class="card-body p-4">
+                                <i class="bi {{ link.icon }} fs-3 text-primary mb-3 d-block" aria-hidden="true"></i>
+                                <h3 class="h6">{{ ('puzzle_tracker_app.explore.' ~ link.key ~ '.title')|trans }}</h3>
+                                <p class="text-muted mb-0 small">{{ ('puzzle_tracker_app.explore.' ~ link.key ~ '.description')|trans }}</p>
+                            </div>
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
     {# Final CTA Section #}
     <section class="bg-secondary py-5">
         <div class="container px-3">

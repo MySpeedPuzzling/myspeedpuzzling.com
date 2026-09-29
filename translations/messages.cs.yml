@@ -2245,6 +2245,12 @@
   "user_unmuted": "Ztlumení uživatele bylo zrušeno."
   "warning_issued": "Varování bylo vydáno."
 
+catalogue_numbers:
+    puzzles: "puzzle"
+    brands: "značka|značky|značek"
+    puzzles_with_ean: "puzzle s EAN kódem"
+    solve_times: "zaznamenaný čas|zaznamenané časy|zaznamenaných časů"
+
 puzzle_tracker_app:
     meta:
         title: "Puzzle Tracker – Časy a sbírka puzzle"
@@ -2327,6 +2333,27 @@ puzzle_tracker_app:
         times_logged: "Zaznamenaných časů"
         pieces_assembled: "Složených dílků"
         hours_puzzling: "Hodin skládání"
+    database:
+        title: "Databáze puzzle, kterou tvoří sami skládači"
+        subtitle: "Každé zaznamenané skládání patří ke konkrétnímu puzzle v naší společné databázi. Hledejte v ní podle názvu, značky nebo EAN kódu a porovnejte svůj čas se všemi, kdo skládali stejné puzzle."
+        cta: "Procházet databázi puzzle"
+    explore:
+        title: "Objevte MySpeedPuzzling"
+        puzzles:
+            title: "Databáze puzzle"
+            description: "Najděte jakékoli puzzle podle názvu, značky nebo čárového kódu a podívejte se na jeho medián a nejrychlejší časy."
+        ladder:
+            title: "Žebříčky"
+            description: "Nejrychlejší časy jednotlivců, dvojic i týmů v puzzle o 500 a 1000 dílcích."
+        guides:
+            title: "Průvodci speed puzzlingem"
+            description: "Co je speed puzzling, jak skládat rychleji a jak dlouho skládání puzzle doopravdy trvá (v angličtině)."
+        events:
+            title: "Eventy a soutěže"
+            description: "Najděte speed puzzling soutěže ve svém okolí a sledujte jejich výsledky."
+        faq:
+            title: "Časté dotazy"
+            description: "Odpovědi na nejčastější otázky o MySpeedPuzzling."
     cta:
         title: "Připraveni začít?"
         description: "Přidejte se k tisícům skládačů, kteří používají MySpeedPuzzling ke sledování sbírek a časů. Vytvořte si účet zdarma během pár vteřin."

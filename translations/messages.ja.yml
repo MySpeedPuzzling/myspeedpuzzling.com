@@ -2238,6 +2238,12 @@
   "user_unmuted": "ユーザーのミュートが解除されました。"
   "warning_issued": "警告が発行されました。"
 
+catalogue_numbers:
+    puzzles: "パズル"
+    brands: "ブランド"
+    puzzles_with_ean: "EANバーコード付きパズル"
+    solve_times: "記録されたタイム"
+
 puzzle_tracker_app:
     meta:
         title: "パズルトラッカー – タイムとコレクション"
@@ -2320,6 +2326,27 @@ puzzle_tracker_app:
         times_logged: "記録されたタイム"
         pieces_assembled: "組み立てられたピース"
         hours_puzzling: "パズルに費やした時間"
+    database:
+        title: "パズラーがつくるジグソーパズルデータベース"
+        subtitle: "記録したタイムはすべて、みんなで共有するデータベースの実在のパズルにひも付きます。名前・ブランド・EANバーコードで検索して、同じパズルを完成させた全員とタイムを比べましょう。"
+        cta: "パズルデータベースを見る"
+    explore:
+        title: "MySpeedPuzzlingをもっと見る"
+        puzzles:
+            title: "パズルデータベース"
+            description: "名前・ブランド・バーコードでどんなパズルも探せて、中央値タイムと最速タイムを確認できます。"
+        ladder:
+            title: "ランキング"
+            description: "500ピース・1000ピースパズルのソロ・ペア・チーム最速タイム。"
+        guides:
+            title: "スピードパズルガイド"
+            description: "スピードパズルとは何か、速くなるコツ、パズル完成に実際どれくらいかかるか（英語）。"
+        events:
+            title: "イベント・大会"
+            description: "近くのスピードパズル大会を見つけて、結果をチェックしましょう。"
+        faq:
+            title: "よくある質問"
+            description: "MySpeedPuzzlingについてのよくある質問と回答。"
     cta:
         title: "始める準備はできましたか？"
         description: "MySpeedPuzzlingでコレクションとタイムを管理している何千人ものパズラーに加わりましょう。数秒で無料アカウントを作成できます。"

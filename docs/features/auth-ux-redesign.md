@@ -625,7 +625,7 @@ Where: `/login` and `/register`, above the provider buttons:
 | `templates/_auth_back_link.html.twig`, `_password_input.html.twig`, `_in_app_browser_notice.html.twig` (**new partials**) | Shared pieces so the pages can't drift (same principle as `_social_provider_button`). |
 | `templates/sign_in_link_check.html.twig` | no card; keep the self-submitting form untouched. |
 | `src/Controller/SignInLinkController.php` | 422 on empty/invalid; 303 → `sign_in_link_sent` with the address in a flash; carry `return`. |
-| `src/Controller/SignInLinkSentController.php` (**new**, GET `/login-link/sent`) + `SignInCodeController` (**new**, POST `/login-link/code`) | Screen + code check. |
+| `src/Controller/SignInLinkSentController.php` (**new**, GET `/login-link/sent`) + `SignInCodeController` (**new**, POST `/verify-code`, was `/login-link/code` until 2026-09-30) | Screen + code check. |
 | `src/Controller/RequestPasswordResetController.php` + `PasswordResetSentController.php` (**new**) | Same pattern. |
 | `src/Controller/PasswordResetController.php` | Pass account email for the hidden username field; optional auto sign-in (§7 D4). |
 | `src/Security/LoginLinkSuccessHandler.php` | Honour validated return URL. |

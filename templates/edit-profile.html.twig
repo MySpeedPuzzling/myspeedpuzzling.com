@@ -205,59 +205,78 @@
                     <h3 class="h5">{{ 'edit_profile.social.title'|trans }}</h3>
                     <p class="text-muted fs-sm mb-2">{{ 'edit_profile.social.description'|trans }}</p>
 
-                    {# Link-flow outcomes are the site-wide flash at the top of the
-                       page (EditProfileController turns the query into flashes);
-                       here only the freshly connected provider's row gets a quiet
-                       confirmation, once #}
                     {% set just_connected_providers = app.flashes(constant('SpeedPuzzling\\Web\\Controller\\EditProfileController::JUST_CONNECTED_FLASH')) %}
 
-                    {% for identity in connected_oauth_identities %}
-                        <div class="card border mb-2">
-                            <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>{{ identity.provider.displayName }}</strong>
+                    {# One list of every provider: connected ones first (even when
+                       their flag has since been switched off - they can still be
+                       disconnected), then the enabled ones not connected yet with
+                       their branded "Continue with" button (the same partial as on
+                       /login). Badges reuse the buttons' logo artwork. #}
+                    {% set connected_providers = connected_oauth_identities|map(identity => identity.provider.value) %}
+                    <ul class="social-identity-list list-unstyled mb-0">
+                        {% for identity in connected_oauth_identities %}
+                            {% set provider = identity.provider.value %}
+                            <li class="social-identity">
+                                <span class="social-identity-badge social-identity-badge-{{ provider }}">
+                                    {{- include('_social_provider_logo.html.twig', {provider: provider, class: 'social-identity-logo'}) -}}
+                                </span>
+                                <div class="social-identity-body">
+                                    <strong class="d-block">{{ identity.provider.displayName }}</strong>
                                     {% if identity.emailAtLink %}
-                                        <span class="text-muted ms-2 fs-sm">{{ identity.emailAtLink }}</span>
+                                        <span class="social-identity-email d-block text-truncate fs-sm" title="{{ identity.emailAtLink }}">{{ identity.emailAtLink }}</span>
                                     {% endif %}
-                                    <div class="fs-sm text-muted mt-1">
+                                    <div class="fs-xs text-muted mt-1">
                                         {{ 'edit_profile.social.linked_at'|trans }}: {{ identity.linkedAt|date('j. n. Y') }}
                                         {% if identity.lastUsedAt is not null %}
                                             <span class="mx-1">&middot;</span>
                                             {{ 'edit_profile.last_used_at'|trans }}: {{ identity.lastUsedAt|date('j. n. Y') }}
                                         {% endif %}
                                     </div>
-                                    {% if identity.provider.value in just_connected_providers %}
+                                    {# Link-flow outcomes are the site-wide flash at the top of the
+                                       page (EditProfileController turns the query into flashes);
+                                       here only the freshly connected provider's row gets a quiet
+                                       confirmation, once #}
+                                    {% if provider in just_connected_providers %}
                                         <p class="fs-sm mb-0 mt-1 text-success">
                                             <i class="bi bi-check-circle me-1"></i>{{ 'edit_profile.social.just_connected'|trans }}
                                         </p>
                                     {% endif %}
                                 </div>
-                                <form method="post" action="{{ path('social_unlink', {provider: identity.provider.value}) }}">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('social_unlink_' ~ identity.provider.value) }}">
+                                <form class="social-identity-action" method="post" action="{{ path('social_unlink', {provider: provider}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('social_unlink_' ~ provider) }}">
                                     <button type="submit" class="btn btn-outline-danger btn-sm">{{ 'edit_profile.social.disconnect'|trans }}</button>
                                 </form>
-                            </div>
-                        </div>
-                    {% endfor %}
+                            </li>
+                        {% endfor %}
 
-                    {# Connect runs rule 5: the identity attaches to THIS account,
-                       no provider-email match required - linking here is exactly
-                       how a different-email provider account avoids becoming a
-                       duplicate MySpeedPuzzling account #}
-                    {% set connected_providers = connected_oauth_identities|map(identity => identity.provider.value) %}
-                    <div class="d-flex gap-2 flex-wrap mt-2">
-                        {# Same provider-branded buttons as on /login (one partial);
-                           the card's title says what they do here #}
+                        {# Connect runs rule 5: the identity attaches to THIS account,
+                           no provider-email match required - linking here is exactly
+                           how a different-email provider account avoids becoming a
+                           duplicate MySpeedPuzzling account #}
                         {% set social_provider_enabled = {google: social_login_google_enabled, apple: social_login_apple_enabled, facebook: social_login_facebook_enabled} %}
+                        {% set provider_names = {google: 'Google', apple: 'Apple', facebook: 'Facebook'} %}
                         {% for provider, enabled in social_provider_enabled %}
                             {% if enabled and provider not in connected_providers %}
-                                {{ include('_social_provider_button.html.twig', {provider: provider, href: path('social_link_start', {provider: provider}), size: 'sm'}) }}
+                                <li class="social-identity">
+                                    <span class="social-identity-badge social-identity-badge-{{ provider }}">
+                                        {{- include('_social_provider_logo.html.twig', {provider: provider, class: 'social-identity-logo'}) -}}
+                                    </span>
+                                    <div class="social-identity-body">
+                                        <strong class="d-block">{{ provider_names[provider] }}</strong>
+                                        <div class="fs-xs text-muted mt-1">
+                                            {{ 'edit_profile.social.not_connected'|trans -}}
+                                            {% if provider == 'facebook' %}
+                                                <span class="mx-1">&middot;</span>{{ 'auth.social.facebook_hint'|trans }}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="social-identity-action">
+                                        {{ include('_social_provider_button.html.twig', {provider: provider, href: path('social_link_start', {provider: provider}), size: 'sm'}) }}
+                                    </div>
+                                </li>
                             {% endif %}
                         {% endfor %}
-                    </div>
-                    {% if social_login_facebook_enabled and 'facebook' not in connected_providers %}
-                        <div class="text-muted fs-xs mt-1">Facebook: {{ 'auth.social.facebook_hint'|trans }}</div>
-                    {% endif %}
+                    </ul>
                 </div>
             {% endif %}
 

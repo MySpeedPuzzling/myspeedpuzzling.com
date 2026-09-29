@@ -140,3 +140,93 @@
     margin-right: 8px;
   }
 }
+
+
+// "Connected sign-in methods" list on edit-profile: one row per provider,
+// its official logo (the same artwork as the buttons, see
+// _social_provider_logo.html.twig) in a round badge on the left, text in the
+// middle (email truncates), the action on the right - stacked under the
+// text on very narrow phones.
+
+.social-identity {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .75rem;
+  border: var(--#{$prefix}border-width) solid var(--#{$prefix}border-color);
+  border-radius: var(--#{$prefix}border-radius-lg);
+
+  & + & {
+    margin-top: .5rem;
+  }
+}
+
+.social-identity-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+// Google's G always sits on white
+.social-identity-badge-google {
+  background: #fff;
+  border: 1px solid #dadce0;
+
+  .social-identity-logo {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+// Apple's white logo artwork on black, at its full (padded) height
+.social-identity-badge-apple {
+  background: #000;
+
+  .social-identity-logo {
+    height: 100%;
+    width: auto;
+  }
+}
+
+// Meta's round logo IS the badge, in Facebook Blue
+.social-identity-badge-facebook {
+  color: #1877f2;
+
+  .social-identity-logo {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.social-identity-body {
+  // zero basis: a long email must truncate, never push the text under the badge
+  flex: 1 1 0;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.social-identity-email {
+  color: var(--#{$prefix}body-color);
+}
+
+.social-identity-action {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+@media (max-width: 400px) {
+  .social-identity {
+    flex-wrap: wrap;
+  }
+
+  // under the text, aligned with it (badge width + gap)
+  .social-identity-action {
+    flex-basis: 100%;
+    padding-left: 3.25rem;
+  }
+}

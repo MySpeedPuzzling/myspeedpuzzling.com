@@ -972,6 +972,7 @@ edit_profile:
         result_connected: "Connected! You can now use it to sign in."
         result_connected_provider: "%provider% is connected. You can now use it to sign in."
         just_connected: "Connected — you can now use it to sign in."
+        not_connected: "Not connected"
         result_already_linked: "That provider account is already connected to a MySpeedPuzzling account."
         result_cancelled: "Connection cancelled — nothing changed."
         result_failed: "Connecting failed. Please try again in a moment."

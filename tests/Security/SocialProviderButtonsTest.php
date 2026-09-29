@@ -4,9 +4,16 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Security;
 
+use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\OauthIdentity;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -52,6 +59,50 @@ final class SocialProviderButtonsTest extends WebTestCase
 
         $this->assertBrandedButtons($crawler, '/account/social/');
         self::assertCount(0, $crawler->filter('.bi-google, .bi-apple, .bi-facebook'), 'Icon-font glyphs are not the providers\' logos');
+    }
+
+    public function testSettingsListsEveryProviderConnectedOnesFirstWithTheirLogo(): void
+    {
+        $this->enableAllProvidersPublicly();
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $container = $browser->getContainer();
+        $player = $container->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR);
+        assert($player->userId !== null);
+        $userAccount = $container->get(UserAccountRepository::class)->findByUserId($player->userId);
+        assert($userAccount !== null);
+        $entityManager = $container->get(EntityManagerInterface::class);
+        $entityManager->persist(new OauthIdentity(
+            id: Uuid::uuid7(),
+            userAccount: $userAccount,
+            provider: OauthProvider::Apple,
+            providerUserId: 'apple-list-test',
+            emailAtLink: 'x7k2m9q4pz@privaterelay.appleid.com',
+            linkedAt: new DateTimeImmutable('2026-09-20 10:00:00'),
+        ));
+        $entityManager->flush();
+
+        $crawler = $browser->request('GET', '/en/edit-profile');
+        self::assertResponseIsSuccessful();
+
+        $rows = $crawler->filter('.social-identity-list > li.social-identity');
+        self::assertCount(3, $rows);
+
+        // Connected first: Apple's own logo artwork in the badge, email, Disconnect with CSRF
+        $apple = $rows->eq(0);
+        self::assertSame('0 0 31 44', $apple->filter('.social-identity-badge-apple svg.social-identity-logo')->attr('viewBox'));
+        self::assertStringContainsString('x7k2m9q4pz@privaterelay.appleid.com', $apple->filter('.social-identity-email')->text());
+        self::assertCount(1, $apple->filter('form[action="/account/social/apple/disconnect"] input[name="_token"]'));
+        self::assertSame('Disconnect', trim($apple->filter('button[type="submit"]')->text()));
+        self::assertCount(0, $apple->filter('a.btn-apple-signin'));
+
+        // Then the not connected ones, each with its branded connect button
+        self::assertCount(1, $rows->eq(1)->filter('.social-identity-badge-google svg.social-identity-logo path[fill="#4285F4"]'));
+        self::assertCount(1, $rows->eq(1)->filter('a.btn-google-signin[href^="/account/social/google"]'));
+        self::assertCount(1, $rows->eq(2)->filter('.social-identity-badge-facebook svg.social-identity-logo'));
+        self::assertCount(1, $rows->eq(2)->filter('a.btn-facebook-signin[href^="/account/social/facebook"]'));
+        self::assertStringContainsString('also for Instagram users', $rows->eq(2)->text());
     }
 
     private function assertBrandedButtons(Crawler $crawler, string $hrefPrefix): void

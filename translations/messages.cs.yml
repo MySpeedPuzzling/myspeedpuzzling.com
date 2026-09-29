@@ -258,6 +258,9 @@
     "rank": "Pořadí %rank% z %total%"
     "jump_to_me": "Skočit na mě"
     "show_all": "Všechny moje časy (%count%)"
+  "leaderboard":
+    "show_more": "Zobrazit další %count%|Zobrazit další %count%|Zobrazit dalších %count%"
+    "show_all": "Zobrazit všechny (%count%)"
 "stopwatch":
   "meta":
     "title": "Stopky"

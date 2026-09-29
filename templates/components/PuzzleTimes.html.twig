@@ -1,6 +1,7 @@
 {% from 'puzzle_intelligence/_macros.html.twig' import skill_icon %}
 <div {{ attributes }} data-loading="addClass(opacity-50)">
-    <div class="puzzle-category-types mt-3 my-2">
+    {# data-nosnippet keeps UI chrome out of search snippets - Google honours it only on div, span and section #}
+    <div class="puzzle-category-types mt-3 my-2" data-nosnippet>
         <button
             class="btn {{ this.category == 'solo' ? 'active' }} {{ this.soloTimesCount == 0 ? 'disabled'}}"
             data-action="live#action"
@@ -173,7 +174,7 @@
 
     {% endif %}
 
-    <div class="d-flex align-content-between justify-content-between mt-3">
+    <div class="d-flex align-content-between justify-content-between mt-3" data-nosnippet>
         <div class="fs-sm">
             {% if this.times|length > 1 %}
                 {% if this.medianTime %}
@@ -325,7 +326,9 @@
             </div>
         {% endif %}
 
-        <div class="table-responsive custom-table-wrapper mt-2 mb-5" {{ stimulus_controller('toggle') }}>
+        {% set hiddenRowsCount = this.hiddenRowsCount %}
+
+        <div class="table-responsive custom-table-wrapper mt-2 {{ hiddenRowsCount > 0 ? 'mb-3' : 'mb-5' }}" {{ stimulus_controller('toggle') }}>
             <table class="table custom-table table-striped table-hover mb-0">
                 <thead>
                 <tr>
@@ -336,15 +339,22 @@
                 </thead>
 
                 <tbody>
-                {% set  previousTimeId = null %}
-                {% for timeId, aggregated_solver in this.times %}
+                {# Only the top rows are rendered (PuzzleTimes::DEFAULT_LIMIT), the rest comes with the buttons below the table #}
+                {% for timeId, aggregated_solver in this.visibleTimes %}
+                    {% if loop.last and this.ownRowBeyondLimit %}
+                        {# The viewer's own row lies further down the leaderboard: shown out of order, with its real rank #}
+                        <tr class="leaderboard-gap">
+                            <td colspan="3" class="text-center text-muted py-1">⋯</td>
+                        </tr>
+                    {% endif %}
+
                     {% set is_own_row = logged_user.profile is not null and ((aggregated_solver[0].players is not defined and aggregated_solver[0].playerId is same as logged_user.profile.playerId) or (aggregated_solver[0].players is defined and aggregated_solver[0].containsPlayer(logged_user.profile.playerId))) %}
                     <tr
                         id="leaderboard-row-{{ timeId }}"
                         style="scroll-margin-top: 120px;"
                         class="{{ is_own_row ? 'table-active-player' }}"
                     >
-                        <td class="rank">{{ previousTimeId and aggregated_solver[0].time == this.times[previousTimeId][0].time ? loop.index-1 : loop.index }}.</td>
+                        <td class="rank">{{ this.ranks[timeId] }}.</td>
 
                         <td class="player-name">
                             {% if aggregated_solver[0].players is defined %}
@@ -475,8 +485,6 @@
                             {% endif %}
                         </td>
                     </tr>
-
-                    {% set previousTimeId = timeId %}
                 {% endfor %}
 
                 {% if this.times|length < 1 %}
@@ -487,5 +495,32 @@
                 </tbody>
             </table>
         </div>
+
+        {% if hiddenRowsCount > 0 %}
+            {# Buttons, not links: pages 2..N of one puzzle would be near-duplicate URLs wasting crawl budget #}
+            <div class="d-flex flex-wrap justify-content-center gap-2 mb-5" data-nosnippet>
+                <button
+                    type="button"
+                    class="btn btn-outline-primary btn-sm"
+                    data-action="live#action"
+                    data-live-action-param="showMore"
+                    data-loading="addAttribute(disabled)"
+                >
+                    {{ 'puzzle_times.leaderboard.show_more'|trans({'%count%': this.showMoreCount}) }}
+                    <span class="spinner-border spinner-border-sm ms-1 d-none" role="status" data-loading="action(showMore)|removeClass(d-none)"></span>
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-outline-primary btn-sm"
+                    data-action="live#action"
+                    data-live-action-param="showAll"
+                    data-loading="addAttribute(disabled)"
+                >
+                    {{ 'puzzle_times.leaderboard.show_all'|trans({'%count%': this.times|length}) }}
+                    <span class="spinner-border spinner-border-sm ms-1 d-none" role="status" data-loading="action(showAll)|removeClass(d-none)"></span>
+                </button>
+            </div>
+        {% endif %}
     </div>
 </div>

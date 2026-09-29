@@ -259,6 +259,9 @@
     "rank": "%total% 中 %rank% 位"
     "jump_to_me": "自分へジャンプ"
     "show_all": "自分の全タイム (%count%)"
+  "leaderboard":
+    "show_more": "さらに%count%件表示"
+    "show_all": "すべて表示 (%count%)"
 "stopwatch":
   "meta":
     "title": "ストップウォッチ"

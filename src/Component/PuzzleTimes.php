@@ -24,6 +24,13 @@ final class PuzzleTimes
 {
     use DefaultActionTrait;
 
+    /**
+     * Rows rendered in the table until the visitor asks for more. The page used to carry the
+     * whole leaderboard (up to ~1,700 rows / 8 MB of HTML on popular puzzles); everyone stays
+     * reachable through the "show more" / "show all" actions (buttons, not crawlable links).
+     */
+    public const int DEFAULT_LIMIT = 100;
+
     #[LiveProp]
     public null|string $puzzleId = null;
 
@@ -33,20 +40,24 @@ final class PuzzleTimes
     #[LiveProp]
     public string $category = 'solo';
 
-    #[LiveProp(writable: true)]
+    // Not writable: changed only by the actions below, and reset whenever the list changes
+    #[LiveProp]
+    public int $limit = self::DEFAULT_LIMIT;
+
+    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
     public bool $onlyFirstTries = false;
 
-    #[LiveProp(writable: true)]
+    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
     public bool $onlyUnboxed = false;
 
-    #[LiveProp(writable: true)]
+    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
     public bool $onlyFavoritePlayers = false;
 
     // Pair / team tabs only: the results the viewer took part in
-    #[LiveProp(writable: true)]
+    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
     public bool $onlyMyTeams = false;
 
-    #[LiveProp(writable: true)]
+    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
     public null|string $country = null;
 
     public null|int $myRank = null;
@@ -60,8 +71,30 @@ final class PuzzleTimes
     public int $duoRelaxCount = 0;
     public int $groupRelaxCount = 0;
 
-    /** @var array<string, array<PuzzleSolver|PuzzleSolversGroup>> */
+    /**
+     * The whole filtered leaderboard - the chart, the median/average and "your rank" read all of it
+     *
+     * @var array<string, array<PuzzleSolver|PuzzleSolversGroup>>
+     */
     public array $times = [];
+
+    /**
+     * Rank of every row of $times; a row with the same time as the row above shares its rank
+     *
+     * @var array<string, int>
+     */
+    public array $ranks = [];
+
+    /**
+     * The rows the table renders: the first $limit rows of $times, keys preserved, plus the
+     * viewer's own row when it lies beyond them ($ownRowBeyondLimit)
+     *
+     * @var array<string, array<PuzzleSolver|PuzzleSolversGroup>>
+     */
+    public array $visibleTimes = [];
+
+    // The viewer's row is appended after the visible rows, behind a "⋯" row, so "Jump to me" always has a target
+    public bool $ownRowBeyondLimit = false;
 
     /** @var array<PuzzleSolver|PuzzleSolversGroup> */
     public array $myAttempts = [];
@@ -75,6 +108,9 @@ final class PuzzleTimes
     /** @var array<string, int> */
     public array $availableCountries = [];
 
+    // showAll() runs before the rows are loaded (populate() is a PreReRender hook), so the total is resolved there
+    private bool $showAllRequested = false;
+
     public function __construct(
         readonly private GetPuzzleSolvers $getPuzzleSolvers,
         readonly private PuzzlesSorter $puzzlesSorter,
@@ -85,9 +121,30 @@ final class PuzzleTimes
     #[LiveAction]
     public function changeResultsCategory(#[LiveArg] string $category): void
     {
-        if (in_array($category, ['solo', 'duo', 'group'], true)) {
+        if (in_array($category, ['solo', 'duo', 'group'], true) && $category !== $this->category) {
             $this->category = $category;
+            $this->limit = self::DEFAULT_LIMIT;
         }
+    }
+
+    #[LiveAction]
+    public function showMore(): void
+    {
+        $this->limit += self::DEFAULT_LIMIT;
+    }
+
+    #[LiveAction]
+    public function showAll(): void
+    {
+        $this->showAllRequested = true;
+    }
+
+    /**
+     * LiveProp onUpdated hook of every filter: a differently filtered list starts from its top again
+     */
+    public function onFilterUpdated(): void
+    {
+        $this->limit = self::DEFAULT_LIMIT;
     }
 
     #[PostMount]
@@ -338,6 +395,61 @@ final class PuzzleTimes
                     break;
                 }
             }
+        }
+
+        $this->sliceVisibleRows();
+    }
+
+    /**
+     * Rows still hidden below the visible ones (the viewer's own row counts among them even when it is shown out of order)
+     */
+    public function getHiddenRowsCount(): int
+    {
+        return max(0, count($this->times) - $this->limit);
+    }
+
+    public function getShowMoreCount(): int
+    {
+        return min(self::DEFAULT_LIMIT, $this->getHiddenRowsCount());
+    }
+
+    /**
+     * Slicing happens after every filter and sort, so filters keep working on the whole leaderboard
+     */
+    private function sliceVisibleRows(): void
+    {
+        if ($this->showAllRequested === true) {
+            $this->limit = count($this->times);
+        }
+
+        $this->limit = max(1, $this->limit);
+        $this->ranks = [];
+        $position = 0;
+        $rank = 0;
+        $previousTime = null;
+
+        foreach ($this->times as $rowKey => $grouped) {
+            $position++;
+            $time = $grouped[0]->time;
+
+            if ($position === 1 || $time !== $previousTime) {
+                $rank = $position;
+            }
+
+            $this->ranks[$rowKey] = $rank;
+            $previousTime = $time;
+        }
+
+        $this->visibleTimes = array_slice($this->times, 0, $this->limit, preserve_keys: true);
+        $this->ownRowBeyondLimit = false;
+
+        if (
+            $this->myRowKey !== null
+            && isset($this->times[$this->myRowKey])
+            && isset($this->visibleTimes[$this->myRowKey]) === false
+        ) {
+            $this->visibleTimes[$this->myRowKey] = $this->times[$this->myRowKey];
+            $this->ownRowBeyondLimit = true;
         }
     }
 

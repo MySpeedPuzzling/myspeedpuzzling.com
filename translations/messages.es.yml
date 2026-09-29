@@ -259,6 +259,9 @@
     "rank": "Puesto %rank% de %total%"
     "jump_to_me": "Ir a mí"
     "show_all": "Todos mis tiempos (%count%)"
+  "leaderboard":
+    "show_more": "Mostrar %count% más"
+    "show_all": "Mostrar todos (%count%)"
 "stopwatch":
   "meta":
     "title": "Cronómetro"

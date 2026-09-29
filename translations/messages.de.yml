@@ -257,6 +257,9 @@
     "rank": "Rang %rank% von %total%"
     "jump_to_me": "Zu mir springen"
     "show_all": "Alle meine Zeiten (%count%)"
+  "leaderboard":
+    "show_more": "%count% weitere anzeigen"
+    "show_all": "Alle anzeigen (%count%)"
 "stopwatch":
   "meta":
     "title": "Stoppuhr"

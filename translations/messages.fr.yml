@@ -260,6 +260,9 @@
     "rank": "Classement %rank% sur %total%"
     "jump_to_me": "Aller à moi"
     "show_all": "Tous mes temps (%count%)"
+  "leaderboard":
+    "show_more": "Afficher %count% de plus"
+    "show_all": "Tout afficher (%count%)"
 "stopwatch":
   "meta":
     "title": "Chronomètre"

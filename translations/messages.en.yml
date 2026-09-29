@@ -284,6 +284,9 @@ puzzle_times:
         rank: "Rank %rank% of %total%"
         jump_to_me: "Jump to me"
         show_all: "All my times (%count%)"
+    leaderboard:
+        show_more: "Show %count% more"
+        show_all: "Show all (%count%)"
 
 stopwatch:
     meta:

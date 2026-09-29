@@ -12,6 +12,8 @@ use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Results\AutocompletePuzzle;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Value\PiecesRange;
+use SpeedPuzzling\Web\Value\PuzzleSearchList;
+use SpeedPuzzling\Web\Value\PuzzleSearchListKind;
 
 readonly final class SearchPuzzle
 {
@@ -32,6 +34,8 @@ readonly final class SearchPuzzle
         PiecesRange $pieces,
         null|string $tag,
         array $difficultyTiers = [],
+        null|PuzzleSearchList $list = null,
+        null|string $listPlayerId = null,
     ): int {
         if ($brandId !== null && Uuid::isValid($brandId) === false) {
             throw new ManufacturerNotFound();
@@ -44,6 +48,8 @@ readonly final class SearchPuzzle
             $difficultyJoin = 'LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = puzzle.id';
             $difficultyCondition = 'AND pd.difficulty_tier IN(:difficultyTiers)';
         }
+
+        [$listCondition, $listParams] = self::listFilter($list, $listPlayerId);
 
         $query = <<<SQL
 SELECT
@@ -66,6 +72,7 @@ WHERE
    )
     AND (:useTags = false OR tag_puzzle.tag_id IN(:tag))
     {$difficultyCondition}
+    {$listCondition}
 SQL;
 
         $eanSearch = trim($search ?? '', '0');
@@ -89,6 +96,8 @@ SQL;
             $params['difficultyTiers'] = $difficultyTiers;
             $types['difficultyTiers'] = ArrayParameterType::INTEGER;
         }
+
+        $params = [...$params, ...$listParams];
 
         $count = $this->database
             ->executeQuery($query, $params, $types)
@@ -114,6 +123,8 @@ SQL;
         int $offset = 0,
         int $limit = 20,
         array $difficultyTiers = [],
+        null|PuzzleSearchList $list = null,
+        null|string $listPlayerId = null,
     ): array {
         if ($brandId !== null && Uuid::isValid($brandId) === false) {
             throw new ManufacturerNotFound();
@@ -130,6 +141,8 @@ SQL;
             $difficultyJoin = 'LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = puzzle.id';
             $difficultyCondition = 'AND pd.difficulty_tier IN(:difficultyTiers)';
         }
+
+        [$listCondition, $listParams] = self::listFilter($list, $listPlayerId);
 
         $query = <<<SQL
 WITH puzzle_base AS (
@@ -189,6 +202,7 @@ WITH puzzle_base AS (
         )
         AND (:useTags = 0 OR tag_puzzle.tag_id IN(:tag))
         {$difficultyCondition}
+        {$listCondition}
 )
 SELECT
     pb.puzzle_id,
@@ -272,6 +286,8 @@ SQL;
             $types['difficultyTiers'] = ArrayParameterType::INTEGER;
         }
 
+        $params = [...$params, ...$listParams];
+
         $data = $this->database
             ->executeQuery($query, $params, $types)
             ->fetchAllAssociative();
@@ -304,6 +320,65 @@ SQL;
 
             return PuzzleOverview::fromDatabaseRow($row);
         }, $data);
+    }
+
+    /**
+     * "Only puzzles from my ..." as a semi-join on puzzle.id: it never adds rows, so
+     * DISTINCT ON / COUNT(DISTINCT) stay as they are and the page and the count
+     * cannot disagree. Every kind is scoped to the viewer, which is what makes a
+     * collection id of somebody else match nothing.
+     *
+     * "Solved" is a time of the player's own or one as a team member - the team
+     * test is a jsonb containment so custom_pst_team_puzzlers_gin answers it, and
+     * it names the player by the constant parameter (see GetUnsolvedPuzzles).
+     * "Unsolved" = in any of my collections or borrowed by me, and not solved -
+     * the definition of GetUserPuzzleStatuses.
+     *
+     * @return array{string, array<string, string>}
+     */
+    private static function listFilter(null|PuzzleSearchList $list, null|string $listPlayerId): array
+    {
+        if ($list === null) {
+            return ['', []];
+        }
+
+        if ($listPlayerId === null) {
+            throw new \LogicException('Filtering by a puzzle list needs the player whose list it is.');
+        }
+
+        $params = ['listPlayerId' => $listPlayerId];
+
+        $borrowed = 'SELECT lp.puzzle_id FROM lent_puzzle lp WHERE lp.current_holder_player_id = :listPlayerId AND (lp.owner_player_id IS NULL OR lp.owner_player_id <> :listPlayerId)';
+        $teamSolved = "pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:listPlayerId AS UUID)))";
+
+        $subquery = match ($list->kind) {
+            PuzzleSearchListKind::Library => 'SELECT ci.puzzle_id FROM collection_item ci WHERE ci.player_id = :listPlayerId AND ci.collection_id IS NULL',
+            PuzzleSearchListKind::Collection => 'SELECT ci.puzzle_id FROM collection_item ci WHERE ci.player_id = :listPlayerId AND ci.collection_id = :listCollectionId',
+            PuzzleSearchListKind::Wishlist => 'SELECT wli.puzzle_id FROM wish_list_item wli WHERE wli.player_id = :listPlayerId',
+            PuzzleSearchListKind::SellSwap => 'SELECT ssli.puzzle_id FROM sell_swap_list_item ssli WHERE ssli.player_id = :listPlayerId',
+            PuzzleSearchListKind::Borrowed => $borrowed,
+            PuzzleSearchListKind::Lent => 'SELECT lp.puzzle_id FROM lent_puzzle lp WHERE lp.owner_player_id = :listPlayerId',
+            PuzzleSearchListKind::Solved => "SELECT pst.puzzle_id FROM puzzle_solving_time pst WHERE pst.player_id = :listPlayerId
+                UNION ALL
+                SELECT pst.puzzle_id FROM puzzle_solving_time pst WHERE {$teamSolved}",
+            PuzzleSearchListKind::Unsolved => "SELECT owned.puzzle_id FROM (
+                    SELECT ci.puzzle_id FROM collection_item ci WHERE ci.player_id = :listPlayerId
+                    UNION
+                    {$borrowed}
+                ) owned
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM puzzle_solving_time pst
+                    WHERE pst.puzzle_id = owned.puzzle_id
+                      AND (pst.player_id = :listPlayerId OR ({$teamSolved}))
+                )",
+        };
+
+        if ($list->kind === PuzzleSearchListKind::Collection) {
+            assert($list->collectionId !== null);
+            $params['listCollectionId'] = $list->collectionId;
+        }
+
+        return ["AND puzzle.id IN ({$subquery})", $params];
     }
 
     /**

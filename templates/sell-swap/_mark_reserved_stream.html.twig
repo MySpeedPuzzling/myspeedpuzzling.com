@@ -26,25 +26,7 @@
 {% elseif context == 'list' %}
     <turbo-stream action="replace" target="library-sell-swap-{{ item.puzzleId }}">
         <template>
-            <div class="col"
-                 id="library-sell-swap-{{ item.puzzleId }}"
-                 data-collection-items-target="item"
-                 data-puzzle-id="{{ item.puzzleId }}"
-                 data-collection-filter-target="item"
-                 data-pieces-count="{{ item.piecesCount }}"
-                 data-puzzle-name="{{ item.puzzleName }}"
-                 data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"
-                 data-puzzle-code="{{ item.puzzleIdentificationNumber ?? '' }}"
-                 data-ean="{{ item.ean ?? '' }}"
-                 data-manufacturer="{{ item.manufacturerName ?? '' }}"
-                 data-listing-type="{{ item.listingType.value }}"
-                 data-price="{{ item.price ?? '' }}">
-                {% include 'sell-swap/_item_card.html.twig' with {
-                    item: item,
-                    settings: settings,
-                    isOwnProfile: true,
-                } only %}
-            </div>
+            {{ include('sell-swap/_item.html.twig', {item: item, settings: settings, isOwnProfile: true}, with_context = false) }}
         </template>
     </turbo-stream>
 {% endif %}

@@ -1,0 +1,14 @@
+{#
+    Difficulty tier icon from /difficulty-icons-sprite.svg.
+    tier   - DifficultyTier|null (null = not enough data yet)
+    locked - true for viewers without an active membership: the lock opens #membersExclusiveModal
+    attrs  - extra attributes, only ever a literal from the calling template
+#}
+{% macro icon(tier, locked = false, size = 24, attrs = '') %}
+    {%- if locked -%}
+        <svg class="diff-icon" width="{{ size }}" height="{{ size }}" style="color: var(--diff-locked); cursor: pointer;" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" {{ attrs|raw }}><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
+    {%- else -%}
+        {%- set name = tier is not null ? tier.icon : 'diff-unknown' -%}
+        <svg class="diff-icon" width="{{ size }}" height="{{ size }}" style="color: var(--{{ name }})"><use href="/difficulty-icons-sprite.svg#{{ name }}"/></svg>
+    {%- endif -%}
+{% endmacro %}

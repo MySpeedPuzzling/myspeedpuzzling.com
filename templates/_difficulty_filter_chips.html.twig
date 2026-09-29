@@ -1,0 +1,25 @@
+{#
+    Difficulty tier chips for the client-side collection-filter controller.
+    Members only (insights_with_difficulty, see ResolvePuzzleListInsights) - hidden for everyone else,
+    like the difficulty filter on the puzzle database page.
+#}
+{% if insights_with_difficulty|default(false) %}
+    {% from '_difficulty_icon.html.twig' import icon as difficulty_icon %}
+    <div class="col-12 mb-2">
+        <div class="d-flex flex-wrap align-items-center gap-1">
+            <small class="text-muted me-1">{{ 'puzzle_intelligence.difficulty.filter_label'|trans }}:</small>
+            {% for tier in enum('SpeedPuzzling\\Web\\Value\\DifficultyTier').cases() %}
+                <div class="form-check form-option form-check-inline mb-0">
+                    <input type="checkbox" class="form-check-input" id="list-difficulty-{{ tier.value }}"
+                           value="{{ tier.value }}"
+                           data-collection-filter-target="difficultyTier"
+                           data-action="change->collection-filter#filter">
+                    <label for="list-difficulty-{{ tier.value }}" class="form-option-label d-inline-flex align-items-center gap-1">
+                        {{ difficulty_icon(tier, false, 16) }}
+                        {{ tier.translationKey|trans }}
+                    </label>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}

@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Results\CollectionItemOverview;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Services\ResolveCollectionDisplay;
+use SpeedPuzzling\Web\Services\ResolvePuzzleListInsights;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -30,6 +31,7 @@ final class SystemCollectionDetailController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private ResolveCollectionDisplay $resolveCollectionDisplay,
+        readonly private ResolvePuzzleListInsights $resolvePuzzleListInsights,
     ) {
     }
 
@@ -92,6 +94,7 @@ final class SystemCollectionDetailController extends AbstractController
             'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($playerId),
             'system_collection_id' => Collection::SYSTEM_ID,
             ...$display->templateParameters(),
+            ...$this->resolvePuzzleListInsights->forViewer($loggedPlayerProfile, array_column($items, 'puzzleId'))->templateParameters(),
         ]);
     }
 }

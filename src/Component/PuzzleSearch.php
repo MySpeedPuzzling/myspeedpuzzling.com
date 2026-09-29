@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
+use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Results\PiecesFilter;
 use SpeedPuzzling\Web\Results\PlayerRanking;
 use SpeedPuzzling\Web\Results\PuzzleDifficultyResult;
@@ -21,6 +23,8 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\PiecesRange;
 use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
+use SpeedPuzzling\Web\Value\PuzzleSearchList;
+use SpeedPuzzling\Web\Value\PuzzleSearchListKind;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -68,6 +72,13 @@ final class PuzzleSearch
     #[LiveProp(writable: true, url: true)]
     public string $sortBy = 'most-solved';
 
+    /**
+     * "Only puzzles from my ..." (see PuzzleSearchList) - signed-in players only,
+     * member lists for members only; enforced by PuzzleSearchCriteria.
+     */
+    #[LiveProp(writable: true, url: true)]
+    public null|string $list = null;
+
     /** @var list<PuzzleOverview> */
     public array $puzzles = [];
 
@@ -91,6 +102,9 @@ final class PuzzleSearch
 
     private bool $dataLoaded = false;
 
+    /** @var null|list<CollectionOverview> */
+    private null|array $ownCollections = null;
+
     public function __construct(
         private readonly SearchPuzzle $searchPuzzle,
         private readonly GetUserPuzzleStatuses $getUserPuzzleStatuses,
@@ -100,6 +114,7 @@ final class PuzzleSearch
         private readonly PuzzleFilterOptions $puzzleFilterOptions,
         private readonly GetSellSwapListItems $getSellSwapListItems,
         private readonly GetPuzzleDifficulty $getPuzzleDifficulty,
+        private readonly GetPlayerCollections $getPlayerCollections,
         private readonly CacheInterface $cache,
     ) {
         $this->puzzleStatuses = UserPuzzleStatuses::empty();
@@ -125,7 +140,8 @@ final class PuzzleSearch
     #[PostMount]
     public function loadInitialData(): void
     {
-        $this->normalizeState();
+        // A list makes the view non-default, so its ownership check can wait for the deferred render
+        $this->normalizeState(checkListOwnership: false);
 
         if ($this->criteria->isDefault()) {
             $this->loadData();
@@ -149,7 +165,7 @@ final class PuzzleSearch
         }
     }
 
-    private function normalizeState(): void
+    private function normalizeState(bool $checkListOwnership = true): void
     {
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 
@@ -161,6 +177,8 @@ final class PuzzleSearch
             difficultyTiers: $this->difficultyTiers,
             sortBy: $this->sortBy,
             isMember: $profile?->activeMembership === true,
+            list: $checkListOwnership === false || $this->isOwnList($this->list) ? $this->list : null,
+            isLoggedIn: $profile !== null,
         );
 
         // Reflect the normalized values back into the props so the rendered
@@ -171,6 +189,45 @@ final class PuzzleSearch
         $this->tagId = $this->criteria->tagId;
         $this->difficultyTiers = array_map(strval(...), $this->criteria->difficultyTiers);
         $this->sortBy = $this->criteria->sortBy;
+        $this->list = $this->criteria->list?->value();
+    }
+
+    /**
+     * A collection that is not (or no longer) one of the viewer's would match
+     * nothing while the select could not show it as selected - drop it instead.
+     * Costs the collections query only when a collection is actually picked.
+     */
+    private function isOwnList(null|string $list): bool
+    {
+        $parsed = PuzzleSearchList::tryFrom($list);
+
+        if ($parsed === null || $parsed->kind !== PuzzleSearchListKind::Collection) {
+            return true;
+        }
+
+        foreach ($this->getOwnCollections() as $collection) {
+            if ($collection->collectionId === $parsed->collectionId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<CollectionOverview>
+     */
+    private function getOwnCollections(): array
+    {
+        if ($this->ownCollections === null) {
+            $profile = $this->retrieveLoggedUserProfile->getProfile();
+
+            $this->ownCollections = $profile !== null && $profile->activeMembership
+                ? array_values($this->getPlayerCollections->byPlayerId($profile->playerId))
+                : [];
+        }
+
+        return $this->ownCollections;
     }
 
     /**
@@ -189,6 +246,7 @@ final class PuzzleSearch
             return true;
         }
 
+        $playerId = $this->retrieveLoggedUserProfile->getProfile()?->playerId;
         $piecesFilter = PiecesRange::fromFilter(PiecesFilter::fromUserInput($this->criteria->pieces));
 
         $this->totalCount = $this->searchPuzzle->countByUserInput(
@@ -197,6 +255,8 @@ final class PuzzleSearch
             $piecesFilter,
             $this->criteria->tagId,
             $this->criteria->difficultyTiers,
+            $this->criteria->list,
+            $playerId,
         );
 
         $this->puzzles = $this->searchPuzzle->byUserInput(
@@ -208,6 +268,8 @@ final class PuzzleSearch
             offset: 0,
             limit: PuzzleSearchCriteria::PAGE_SIZE,
             difficultyTiers: $this->criteria->difficultyTiers,
+            list: $this->criteria->list,
+            listPlayerId: $playerId,
         );
 
         return false;
@@ -327,6 +389,70 @@ final class PuzzleSearch
     }
 
     /**
+     * The viewer's lists for the "My list" select - empty for guests (no select,
+     * no query). Members additionally get their custom collections and the
+     * lending / sell-swap lists; labels are translation keys unless `translate`
+     * is false (collection names).
+     *
+     * @return list<array{group: null|string, options: list<array{value: string, label: string, translate: bool}>}>
+     */
+    public function getListOptions(): array
+    {
+        $profile = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($profile === null) {
+            return [];
+        }
+
+        $option = static fn (PuzzleSearchListKind $kind, string $label): array => [
+            'value' => $kind->value,
+            'label' => $label,
+            'translate' => true,
+        ];
+
+        $groups = [[
+            'group' => null,
+            'options' => [
+                $option(PuzzleSearchListKind::Library, 'collections.system_name'),
+                $option(PuzzleSearchListKind::Wishlist, 'puzzle_search.list.wishlist'),
+                $option(PuzzleSearchListKind::Unsolved, 'puzzle_search.list.unsolved'),
+                $option(PuzzleSearchListKind::Solved, 'puzzle_search.list.solved'),
+            ],
+        ]];
+
+        if ($profile->activeMembership === false) {
+            return $groups;
+        }
+
+        $collections = array_map(
+            static fn (CollectionOverview $collection): array => [
+                'value' => PuzzleSearchList::collection((string) $collection->collectionId)->value(),
+                'label' => $collection->name,
+                'translate' => false,
+            ],
+            array_values(array_filter(
+                $this->getOwnCollections(),
+                static fn (CollectionOverview $collection): bool => $collection->collectionId !== null,
+            )),
+        );
+
+        if ($collections !== []) {
+            $groups[] = ['group' => 'puzzle_search.list.group_collections', 'options' => $collections];
+        }
+
+        $groups[] = [
+            'group' => 'puzzle_search.list.group_members',
+            'options' => [
+                $option(PuzzleSearchListKind::Borrowed, 'puzzle_search.list.borrowed'),
+                $option(PuzzleSearchListKind::Lent, 'puzzle_search.list.lent'),
+                $option(PuzzleSearchListKind::SellSwap, 'puzzle_search.list.sell_swap'),
+            ],
+        ];
+
+        return $groups;
+    }
+
+    /**
      * @return list<array{value: int, label: string, icon: string}>
      */
     public function getDifficultyTierOptions(): array
@@ -334,15 +460,8 @@ final class PuzzleSearch
         return array_map(
             static fn (DifficultyTier $tier): array => [
                 'value' => $tier->value,
-                'label' => 'puzzle_intelligence.difficulty.tiers.' . strtolower($tier->name),
-                'icon' => match ($tier) {
-                    DifficultyTier::VeryEasy => 'diff-very-easy',
-                    DifficultyTier::Easy => 'diff-easy',
-                    DifficultyTier::Average => 'diff-average',
-                    DifficultyTier::Challenging => 'diff-challenging',
-                    DifficultyTier::Hard => 'diff-hard',
-                    DifficultyTier::VeryHard => 'diff-very-hard',
-                },
+                'label' => $tier->translationKey(),
+                'icon' => $tier->icon(),
             ],
             DifficultyTier::cases(),
         );

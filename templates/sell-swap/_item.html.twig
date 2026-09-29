@@ -1,0 +1,38 @@
+{#
+    One sell/swap list item: the collection-filter wrapper + the card.
+    Shared by the list page and the reserve / remove-reservation streams.
+
+    Parameters: item, settings, isOwnProfile, logged_user (optional), sellSwapReturnUrl / sellSwapReturnTitle (optional),
+    puzzle_insights + insights_with_difficulty (optional, see _puzzle_library_item.html.twig - absent on streams)
+#}
+{% set show_insights = puzzle_insights is defined %}
+{% set with_difficulty = show_insights and insights_with_difficulty|default(false) %}
+{% set insight = show_insights ? (puzzle_insights[item.puzzleId] ?? null) : null %}
+<div class="col"
+     id="library-sell-swap-{{ item.puzzleId }}"
+     data-collection-items-target="item"
+     data-puzzle-id="{{ item.puzzleId }}"
+     data-collection-filter-target="item"
+     data-pieces-count="{{ item.piecesCount }}"
+     {% if with_difficulty %}
+     data-difficulty-tier="{{ insight is not null and insight.difficultyTier is not null ? insight.difficultyTier.value : 0 }}"
+     {% endif %}
+     data-puzzle-name="{{ item.puzzleName }}"
+     data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"
+     data-puzzle-code="{{ item.puzzleIdentificationNumber ?? '' }}"
+     data-ean="{{ item.ean ?? '' }}"
+     data-manufacturer="{{ item.manufacturerName ?? '' }}"
+     data-listing-type="{{ item.listingType.value }}"
+     data-price="{{ item.price ?? '' }}">
+    {% include 'sell-swap/_item_card.html.twig' with {
+        item: item,
+        settings: settings,
+        isOwnProfile: isOwnProfile,
+        logged_user: logged_user|default(null),
+        sellSwapReturnUrl: sellSwapReturnUrl|default(null),
+        sellSwapReturnTitle: sellSwapReturnTitle|default(null),
+        show_insights: show_insights,
+        with_difficulty: with_difficulty,
+        insight: insight,
+    } only %}
+</div>

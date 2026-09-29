@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
-use SpeedPuzzling\Web\Services\UploaderHelper;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -14,7 +13,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class SitemapImagesControllerTest extends WebTestCase
 {
-    public function testListsEachPhotoOnceOnTheEnglishPageWithTheOriginalImage(): void
+    public function testListsEachPhotoOnceOnTheEnglishPageWithTheStrippedThumbnail(): void
     {
         $browser = self::createClient();
         $this->setImage(PuzzleFixture::PUZZLE_500_01, 'box-photo.jpg');
@@ -22,31 +21,20 @@ final class SitemapImagesControllerTest extends WebTestCase
         $content = $this->fetchImageSitemap($browser);
 
         $englishUrl = $this->absoluteUrl('en', PuzzleFixture::PUZZLE_500_01);
-        $original = self::getContainer()->get(UploaderHelper::class)->getPublicPath('box-photo.jpg');
+        $thumbnail = self::getContainer()->get(ImageThumbnailTwigExtension::class)->thumbnailUrl('box-photo.jpg', 'puzzle_medium');
 
         self::assertStringContainsString(
             sprintf('<url><loc>%s</loc>', $englishUrl),
             $content,
         );
-        self::assertStringContainsString(sprintf('<image:loc>%s</image:loc>', $original), $content);
-        self::assertStringContainsString('/original/box-photo.jpg', $original);
+        self::assertStringContainsString(sprintf('<image:loc>%s</image:loc>', $thumbnail), $content);
+
+        // Never the uploaded original: pre-2026 originals can still carry EXIF location data
+        self::assertStringNotContainsString('/original/box-photo.jpg', $content);
 
         // The x-default URL only - no Czech (or other locale) duplicate of the same photo
         self::assertStringNotContainsString(sprintf('<loc>%s</loc>', $this->absoluteUrl('cs', PuzzleFixture::PUZZLE_500_01)), $content);
         self::assertSame(1, substr_count($content, 'box-photo.jpg'));
-    }
-
-    public function testPhotoInAFormatGoogleCannotIndexFallsBackToTheThumbnail(): void
-    {
-        $browser = self::createClient();
-        $this->setImage(PuzzleFixture::PUZZLE_500_01, 'iphone-photo.HEIC');
-
-        $content = $this->fetchImageSitemap($browser);
-
-        $thumbnail = self::getContainer()->get(ImageThumbnailTwigExtension::class)->thumbnailUrl('iphone-photo.HEIC', 'puzzle_medium');
-
-        self::assertStringContainsString(sprintf('<image:loc>%s</image:loc>', $thumbnail), $content);
-        self::assertStringNotContainsString('/original/iphone-photo.HEIC', $content);
     }
 
     public function testEntryCarriesTheLastmodOfThePuzzlePage(): void

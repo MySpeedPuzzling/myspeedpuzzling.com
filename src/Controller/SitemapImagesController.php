@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetPuzzleIdsForSitemap;
-use SpeedPuzzling\Web\Services\UploaderHelper;
 use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,18 +23,9 @@ final class SitemapImagesController extends AbstractController
 
     public const int IMAGES_PER_PAGE = 20_000;
 
-    /**
-     * Formats Google Images indexes. Anything else (HEIC straight from an iPhone) gets the
-     * WebP thumbnail instead of the original.
-     *
-     * @var list<string>
-     */
-    private const array INDEXABLE_ORIGINAL_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif'];
-
     public function __construct(
         readonly private GetPuzzleIdsForSitemap $getPuzzleIdsForSitemap,
         readonly private ImageThumbnailTwigExtension $imageThumbnail,
-        readonly private UploaderHelper $uploaderHelper,
     ) {
     }
 
@@ -64,27 +54,15 @@ final class SitemapImagesController extends AbstractController
                     'puzzleId' => $puzzle['id'],
                 ], UrlGeneratorInterface::ABSOLUTE_URL),
                 'lastmod' => $puzzle['lastmod'],
-                'image' => $this->largestIndexableImage($puzzle['image']),
+                // The imgproxy thumbnail, never the uploaded original: originals from before Feb 2026
+                // can still carry EXIF (incl. location) - imgproxy strips metadata. Switch to a larger
+                // stripped preset once one exists (docs/TODO.md, "Image storage").
+                'image' => $this->imageThumbnail->thumbnailUrl($puzzle['image'], 'puzzle_medium'),
             ];
         }
 
         return $this->xmlResponse('sitemap_images.xml.twig', [
             'entries' => $entries,
         ]);
-    }
-
-    /**
-     * The uploaded original - the file the puzzle page's gallery opens. imgproxy has no preset
-     * above 400 px (puzzle_medium); uploads since Feb 2026 are capped at 2000 px.
-     */
-    private function largestIndexableImage(string $image): string
-    {
-        $extension = strtolower(pathinfo($image, PATHINFO_EXTENSION));
-
-        if (in_array($extension, self::INDEXABLE_ORIGINAL_EXTENSIONS, true)) {
-            return $this->uploaderHelper->getPublicPath($image);
-        }
-
-        return $this->imageThumbnail->thumbnailUrl($image, 'puzzle_medium');
     }
 }

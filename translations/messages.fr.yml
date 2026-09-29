@@ -895,6 +895,7 @@
     "description": "Découvrez les speed puzzleurs du pays %country% : profils de joueurs, meilleurs temps de puzzle et classements nationaux sur MySpeedPuzzling."
   "title": "Speed puzzleurs du pays %country%"
   "link": "Puzzleurs par pays"
+  "empty": "Aucun speed puzzleur du pays %country% n'a encore de profil public."
 "player_profile":
   "meta":
     "title": "%name% – Profil de speed puzzleur"

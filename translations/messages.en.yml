@@ -1076,6 +1076,7 @@ players_per_country:
         description: "Meet speed puzzlers from %country%: player profiles, fastest jigsaw times and national rankings on MySpeedPuzzling."
     title: "Speed Puzzlers from %country%"
     link: "Puzzlers per country"
+    empty: "No speed puzzler from %country% has a public profile yet."
 
 player_profile:
     meta:

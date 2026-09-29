@@ -892,6 +892,7 @@
     "description": "Treffen Sie Speed Puzzler aus %country%: Spielerprofile, schnellste Puzzle-Zeiten und nationale Rankings auf MySpeedPuzzling."
   "title": "Speed Puzzler aus %country%"
   "link": "Puzzler pro Land"
+  "empty": "Aus %country% hat noch kein Speed Puzzler ein öffentliches Profil."
 "player_profile":
   "meta":
     "title": "%name% – Speed Puzzler Profil"

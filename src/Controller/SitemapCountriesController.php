@@ -23,15 +23,11 @@ final class SitemapCountriesController extends AbstractController
     {
         $entries = [];
 
-        // Only countries with at least one player - empty country pages are
-        // thin content and should not be crawled.
-        foreach ($this->getPlayersPerCountry->count() as $playersPerCountry) {
-            if ($playersPerCountry->countryCode === null) {
-                continue;
-            }
-
+        // Only countries whose page lists at least one public player - an empty
+        // country page is thin content and carries noindex.
+        foreach ($this->getPlayersPerCountry->countriesWithPublicPlayers() as $country) {
             array_push($entries, ...$this->localizedEntries('players_per_country', [
-                'countryCode' => $playersPerCountry->countryCode->name,
+                'countryCode' => $country->name,
             ]));
         }
 

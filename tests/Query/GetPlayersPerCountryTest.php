@@ -52,6 +52,24 @@ final class GetPlayersPerCountryTest extends KernelTestCase
         self::assertSame($everyone, $this->playerIdsIn(CountryCode::us));
     }
 
+    public function testCountriesWithPublicPlayersLeaveOutCountriesOfPrivatePlayersOnly(): void
+    {
+        $database = self::getContainer()->get(Connection::class);
+        // PLAYER_PRIVATE is from "us" - make sure nobody public is
+        $database->executeStatement("UPDATE player SET is_private = true WHERE country = 'us'");
+
+        $countries = $this->query->countriesWithPublicPlayers();
+        self::assertContains(CountryCode::cz, $countries);
+        self::assertNotContains(CountryCode::us, $countries);
+
+        $database->executeStatement(
+            'UPDATE player SET is_private = false WHERE id = :id',
+            ['id' => PlayerFixture::PLAYER_PRIVATE],
+        );
+
+        self::assertContains(CountryCode::us, $this->query->countriesWithPublicPlayers());
+    }
+
     /**
      * @return list<string>
      */

@@ -912,6 +912,7 @@
     "description": "Poznej speed puzzlery ze země %country%: profily hráčů, nejrychlejší časy skládání a národní žebříčky na MySpeedPuzzling."
   "title": "Speed puzzleři ze země %country%"
   "link": "Puzzleři dle země"
+  "empty": "Ze země %country% zatím nemá veřejný profil žádný speed puzzler."
 "player_profile":
   "meta":
     "title": "%name% – Profil speed puzzlera"

@@ -48,6 +48,41 @@ SQL;
     }
 
     /**
+     * Countries whose players page lists somebody for an anonymous visitor (the same rule as
+     * byCountry() without a viewer). The page is noindex without players, so only these belong
+     * in the sitemap.
+     *
+     * @return list<CountryCode>
+     */
+    public function countriesWithPublicPlayers(): array
+    {
+        $query = <<<SQL
+SELECT DISTINCT country
+FROM player
+WHERE country IS NOT NULL
+    AND is_private = false
+ORDER BY country
+SQL;
+
+        /** @var list<string> $codes */
+        $codes = $this->database
+            ->executeQuery($query)
+            ->fetchFirstColumn();
+
+        $countries = [];
+
+        foreach ($codes as $code) {
+            $country = CountryCode::fromCode($code);
+
+            if ($country !== null) {
+                $countries[] = $country;
+            }
+        }
+
+        return $countries;
+    }
+
+    /**
      * @return array<PlayerIdentification>
      */
     public function byCountry(CountryCode $countryCode): array

@@ -2,9 +2,15 @@
 
 {% block title %}{{ 'players_per_country.meta.title'|trans({'%country%': country.value}) }}{% endblock %}
 {% block meta_description %}{{ 'players_per_country.meta.description'|trans({'%country%': country.value}) }}{% endblock %}
+{# Every country code has a page; one without a single public player is thin content - still a 200, but not for the index #}
+{% block robots %}{% if players is empty %}<meta name="robots" content="noindex, follow">{% else %}{{ parent() }}{% endif %}{% endblock %}
 
 {% block content %}
     <h1>{{ 'players_per_country.title'|trans({'%country%': country.value}) }} <i class="shadow-custom fi fi-{{ country.name }}"></i></h1>
+
+    {% if players is empty %}
+        <p class="text-muted">{{ 'players_per_country.empty'|trans({'%country%': country.value}) }}</p>
+    {% endif %}
 
     {% for player in players %}
         <div class="pb-1">

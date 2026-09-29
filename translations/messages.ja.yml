@@ -1034,6 +1034,7 @@
     "description": "%country%のスピードパズラーを紹介：プレイヤープロフィール、最速タイム、国内ランキングをMySpeedPuzzlingで。"
   "title": "%country%のスピードパズラー"
   "link": "国別パズラー"
+  "empty": "%country%のスピードパズラーで公開プロフィールを持つ人はまだいません。"
 "player_profile":
   "meta":
     "title": "%name% – スピードパズラープロフィール"

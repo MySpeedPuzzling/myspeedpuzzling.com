@@ -743,6 +743,7 @@
   "statistics_pieces_count": "Počet složených dílků"
   "favorite_puzzlers": "Oblíbení puzzleři"
   "no_favorite_puzzlers": "Žádní oblíbení puzzleři"
+  "favorite_puzzlers_meta_description": "Oblíbení puzzleři hráče %name% na MySpeedPuzzling: skládači, jejichž časy skládání puzzle sleduje nejpozorněji."
   "solved_puzzles": "Poskládané puzzle"
   "solved_puzzles_solo": "Jednotlivec"
   "solved_puzzles_group": "Skupinové skládání"
@@ -1424,6 +1425,7 @@
 "blog":
   "outage-2025-02-17":
     "meta_title": "Největší výpadek v naší historii"
+    "meta_description": "17. února 2025 byl MySpeedPuzzling téměř 10 hodin mimo provoz. Celý příběh: co se stalo, jak jsme našli viníka a co jsme se z toho naučili."
     "title": "Největší výpadek v historii MySpeedPuzzling"
     "content": "<h2 class=\"h5\">Dne 17.2. jsme měli nejdelší výpadek v historii MySpeedPuzzling ...</h2>\n<h4 class=\"h6\">Nejdříve ze všeho vám chci všem moc poděkovat za vaší trpělivost a důvěru! Věřte, že těch 7 hodin kdy jsme věděli, že MSP nefunguje, pro nás bylo velmi stresujících!</h4>\n<p>Dnes jsme měli téměř 10 hodin výpadek celé platformy. Jedná se o nejdelší výpadek v historii MySpeedPuzzlingu. Nebyla to naše chyba... nebo jo?</p>\n<p>Protože se snažíme být 100% transparentní, popíšeme vše jak se stalo, krok za krokem.</p>\n<p>Šel jsem spát zhruba v 1:30 (bohužel chvilku předtím, než se to celé stalo), kdy jsem dokončil další z novinek na MySpeedPuzzling. Kolem 5 ráno, kdy se jedno z dětí vzbudilo na toaletu, Simona automaticky zkontrolovala na elefonu notifikace, často se dívá kdo přidal nové časy a jak rychle stihl puzzle složit. Ano i v 5 ráno... Čekalo ji však nemilé překvapení - stránka, která se nenačítá. Simona do mě strčila se slovy: MySpeedPuzzling nefunguje! Taková\
       \ slova mě velmi rychle probrala. Beru do ruky telefon, zkouším a opravdu, nefunguje! Jdu pro notebook, zkontrolovat blíže co se děje. V 1:59 v noci nám přišla automatická notifikace z monitoringu, to většinou nevěstí nic nového. Bohužel jsem si jí nevšiml, protože jsem šel spát chvíli předtím. Navíc úprava, kterou jsem prováděl nebyla vůbec destruktivního rázu a nemohla způsobit takovýto výpadek. Takto tedy začal náš pondělní výpadek, který trval téměř až do 12:00.</p>\n<h5>Technické detaily pro geeky:</h5>\n<p><em>(pomůže vám to nahlédnout do naší serverové infrastruktury)</em></p>\n<p>Před týdnem, jsem instaloval na náš MySpeedPuzzling fyzický server i mail server - jako přípravu na migraci z Auth0 na vlastní autentizační službu + newsletter a další věci - posílat desetitisíce e-mailů měsíčně už není en tak a je potřeba se na to řádně připravit. Jak se nakonec ukázalo, může za to právě onen Mail server, ale nepředbíhejme.</p>\n<p>První zjištění bylo, že timeoutují porty 443 a 80\
@@ -1447,6 +1449,7 @@
     "latest": "naposledy %time%"
   "meta":
     "title": "Puzzle knihovna"
+    "description": "Knihovna puzzle hráče %name% na MySpeedPuzzling: sbírky puzzle, složená i nesložená puzzle, seznam přání a puzzle na prodej či výměnu."
   "title": "Puzzle knihovna"
   "title_other": "Puzzle knihovna uživatele %name%"
   "create":
@@ -2200,6 +2203,7 @@
       "description": "Po dokončení transakce nezapomeňte ohodnotit druhého puzzlera! Hodnocení pomáhají budovat důvěru v komunitě a ukazují ostatním, jak zkušenost proběhla."
       "title": "Zanechte hodnocení"
     "title": "Jak funguje tržiště"
+    "meta_description": "Jak funguje tržiště MySpeedPuzzling: nabídněte puzzle ze své sbírky, domluvte se s ostatními puzzlery v chatu, rezervujte, dokončete prodej či výměnu a zanechte hodnocení."
   "how_it_works_button": "Jak to funguje?"
   "listing_type":
     "both": "Prodej / Výměna"
@@ -3129,6 +3133,7 @@ qr_code:
     "how_it_works_step3": "Vyděláte 10 % z jeho platby za předplatné po celou dobu, co zůstane předplatitelem"
 "activity_calendar":
   "page_title": "Kalendář aktivity"
+  "meta_description": "Kalendář aktivity hráče %name% na MySpeedPuzzling: dny se složenými puzzle – sólo, ve dvojici i v týmu – měsíc po měsíci."
   "prev_month": "Předchozí měsíc"
   "next_month": "Další měsíc"
   "no_activity_this_month": "V tomto měsíci zatím nebyla zaznamenána žádná aktivita."

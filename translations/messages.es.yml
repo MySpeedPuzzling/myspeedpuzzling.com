@@ -472,6 +472,7 @@
   "statistics_pieces_count": "Número de piezas armadas"
   "favorite_puzzlers": "Puzzleros favoritos"
   "no_favorite_puzzlers": "No hay puzzleros favoritos"
+  "favorite_puzzlers_meta_description": "Los puzzleros favoritos de %name% en MySpeedPuzzling: los speed puzzlers cuyos tiempos sigue más de cerca."
   "solved_puzzles": "Rompecabezas resueltos"
   "solved_puzzles_solo": "Individual"
   "solved_puzzles_group": "Armado en grupo"
@@ -1427,6 +1428,7 @@
 "blog":
   "outage-2025-02-17":
     "meta_title": "La mayor interrupción de nuestra historia"
+    "meta_description": "El 17 de febrero de 2025 MySpeedPuzzling estuvo caído casi 10 horas. Toda la historia: qué pasó, cómo encontramos al culpable y qué aprendimos."
     "title": "La Mayor Interrupción en la Historia de MySpeedPuzzling"
     "content": "<h2 class=\"h5\">El 17 de febrero, experimentamos la interrupción más larga en la historia de MySpeedPuzzling ...</h2>\n<h4 class=\"h6\">¡Antes que nada, quiero agradecerles mucho a todos por su paciencia y confianza! ¡Créanme, esas 7 horas cuando sabíamos que MSP no estaba funcionando fueron extremadamente estresantes para nosotros!</h4>\n<p>Hoy, tuvimos una interrupción de casi 10 horas de toda la plataforma. Es la interrupción más larga en la historia de MySpeedPuzzling. No fue nuestra culpa... ¿o sí lo fue?</p>\n<p>Porque nos esforzamos por ser 100% transparentes, aquí tienes un relato paso a paso de lo que pasó.</p>\n<p>Me fui a la cama alrededor de la 1:30 AM (desafortunadamente, justo antes de que todo se viniera abajo), habiendo acabado de terminar otra nueva característica para MySpeedPuzzling. Alrededor de las 5 AM, cuando uno de nuestros hijos se levantó para ir al baño, Simona automáticamente revisó las notificaciones en su teléfono—a menudo mira quién publicó\
       \ nuevos tiempos y qué tan rápido lograron resolver el rompecabezas. Sí, incluso a las 5 de la mañana... Pero fue recibida por una sorpresa desagradable: ¡la página no cargaba! Me empujó, diciendo: \"¡MySpeedPuzzling no está funcionando!\" Escuchar eso me despertó inmediatamente. Tomé mi teléfono, lo intenté, ¡y realmente no estaba funcionando! Tomé mi laptop para examinar las cosas más de cerca. A la 1:59 AM, habíamos recibido una notificación de monitoreo automatizada, lo cual usualmente no son buenas noticias. Desafortunadamente, me la perdí porque me había ido a la cama justo antes. Además, el cambio que había hecho no era de ninguna manera destructivo y no podría haber causado tal interrupción. Y así comenzó nuestra interrupción del lunes, que duró casi hasta el mediodía.</p>\n<h5>Detalles técnicos para geeks:</h5>\n<p><em>(esto te dará un vistazo a nuestra infraestructura de servidor)</em></p>\n<p>Hace una semana, instalé un servidor de correo en nuestro servidor físico de MySpeedPuzzling—esto\
@@ -1531,6 +1533,7 @@
     "unlock_link": "Desbloquear con membresía"
   "meta":
     "title": "Biblioteca de puzzles"
+    "description": "La biblioteca de puzzles de %name% en MySpeedPuzzling: colecciones de puzzles, puzzles resueltos y pendientes, lista de deseos y puzzles en venta o intercambio."
   "move_puzzle": "Mover puzzle a la colección"
   "move_puzzle_submit": "Mover"
   "move_to_collection": "Mover a colección"
@@ -2202,6 +2205,7 @@
       "description": "Después de completar la transacción, ¡no olvides calificar al otro puzzler! Las calificaciones ayudan a construir confianza en la comunidad y muestran a otros cómo fue la experiencia."
       "title": "Deja una calificación"
     "title": "Cómo funciona el mercado"
+    "meta_description": "Cómo funciona el mercado de MySpeedPuzzling: publica puzzles de tu colección, chatea con otros puzzleros, resérvalos, completa la venta o el intercambio y deja una calificación."
   "how_it_works_button": "¿Cómo funciona?"
   "listing_type":
     "both": "Venta / Intercambio"
@@ -3131,6 +3135,7 @@ fair_use_policy:
     "how_it_works_step3": "Ganas el 10 % de su pago de suscripción mientras siga suscrito"
 "activity_calendar":
   "page_title": "Calendario de actividad"
+  "meta_description": "El calendario de actividad de %name% en MySpeedPuzzling: los días con puzzles resueltos, en solitario, en pareja o en equipo, mes a mes."
   "prev_month": "Mes anterior"
   "next_month": "Mes siguiente"
   "no_activity_this_month": "Aún no se ha registrado actividad este mes."

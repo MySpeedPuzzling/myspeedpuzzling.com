@@ -723,6 +723,7 @@
   "statistics_pieces_count": "Anzahl zusammengesetzter Teile"
   "favorite_puzzlers": "Lieblings-Puzzler"
   "no_favorite_puzzlers": "Keine Lieblings-Puzzler"
+  "favorite_puzzlers_meta_description": "Die Lieblings-Puzzler von %name% auf MySpeedPuzzling: die Speed Puzzler, deren Legezeiten %name% am aufmerksamsten verfolgt."
   "solved_puzzles": "Gelöste Puzzles"
   "solved_puzzles_solo": "Einzeln"
   "solved_puzzles_group": "Gruppenzusammensetzung"
@@ -1406,6 +1407,7 @@
 "blog":
   "outage-2025-02-17":
     "meta_title": "Der größte Ausfall unserer Geschichte"
+    "meta_description": "Am 17. Februar 2025 war MySpeedPuzzling fast 10 Stunden lang nicht erreichbar. Die ganze Geschichte: was passiert ist, wie wir die Ursache fanden und was wir daraus gelernt haben."
     "title": "Der größte Ausfall in der Geschichte von MySpeedPuzzling"
     "content": "<h2 class=\"h5\">Am 17. Februar hatten wir den längsten Ausfall in der Geschichte von MySpeedPuzzling ...</h2>\n<h4 class=\"h6\">Zunächst möchte ich Ihnen allen so sehr für Ihre Geduld und Ihr Vertrauen danken! Glauben Sie mir, diese 7 Stunden, in denen wir wussten, dass MSP nicht funktioniert, waren extrem stressig für uns!</h4>\n<p>Heute hatten wir einen fast 10-stündigen Ausfall der gesamten Plattform. Es ist der längste Ausfall in der Geschichte von MySpeedPuzzling. Es war nicht unsere Schuld... oder doch?</p>\n<p>Da wir bestrebt sind, 100% transparent zu sein, hier ist eine schrittweise Darstellung dessen, was passiert ist.</p>\n<p>Ich ging gegen 1:30 Uhr ins Bett (leider kurz bevor alles zusammenbrach), nachdem ich gerade eine weitere neue Funktion für MySpeedPuzzling fertiggestellt hatte. Gegen 5 Uhr morgens, als eines unserer Kinder aufstand, um auf die Toilette zu gehen, überprüfte Simona automatisch Benachrichtigungen auf ihrem Handy - sie schaut oft, wer neue Zeiten\
       \ gepostet hat und wie schnell sie das Puzzle zu lösen schafften. Ja, sogar um 5 Uhr morgens... Aber sie wurde von einer unangenehmen Überraschung begrüßt: Die Seite würde nicht laden. Sie stieß mich an und sagte: \"MySpeedPuzzling funktioniert nicht!\" Das zu hören weckte mich sofort. Ich griff nach meinem Handy, probierte es aus, und es funktionierte wirklich nicht! Ich griff nach meinem Laptop, um die Dinge genauer zu untersuchen. Um 1:59 Uhr hatten wir eine automatisierte Überwachungsbenachrichtigung erhalten, was normalerweise keine gute Nachricht ist. Leider verpasste ich sie, weil ich gerade ins Bett gegangen war. Außerdem war die Änderung, die ich vorgenommen hatte, in keiner Weise destruktiv und hätte einen solchen Ausfall nicht verursachen können. Und so begann unser Montag-Ausfall, der bis fast Mittag dauerte.</p>\n<h5>Technische Details für Geeks:</h5>\n<p><em>(das wird Ihnen einen Einblick in unsere Server-Infrastruktur geben)</em></p>\n<p>Vor einer Woche installierte\
@@ -1449,6 +1451,7 @@
     "latest": "zuletzt %time%"
   "meta":
     "title": "Puzzlebibliothek"
+    "description": "Die Puzzlebibliothek von %name% auf MySpeedPuzzling: Puzzle-Sammlungen, gelegte und ungelegte Puzzles, Wunschliste und Puzzles zum Verkauf oder Tausch."
   "title": "Puzzlebibliothek"
   "title_other": "Puzzlebibliothek von %name%"
   "create":
@@ -2202,6 +2205,7 @@
       "description": "Nach Abschluss der Transaktion vergessen Sie nicht, den anderen Puzzler zu bewerten! Bewertungen helfen, Vertrauen in der Community aufzubauen und zeigen anderen, wie die Erfahrung war."
       "title": "Bewertung hinterlassen"
     "title": "Wie der Marktplatz funktioniert"
+    "meta_description": "So funktioniert der MySpeedPuzzling-Marktplatz: Puzzles aus Ihrer Sammlung anbieten, mit anderen Puzzlern chatten, reservieren, Verkauf oder Tausch abschließen und bewerten."
   "how_it_works_button": "Wie funktioniert es?"
   "listing_type":
     "both": "Verkauf / Tausch"
@@ -3131,6 +3135,7 @@ qr_code:
     "how_it_works_step3": "Du verdienst 10 % seiner Abo-Zahlung, solange er abonniert bleibt"
 "activity_calendar":
   "page_title": "Aktivitätskalender"
+  "meta_description": "Der Aktivitätskalender von %name% auf MySpeedPuzzling: die Tage, an denen Puzzles gelegt wurden – solo, zu zweit oder im Team, Monat für Monat."
   "prev_month": "Vorheriger Monat"
   "next_month": "Nächster Monat"
   "no_activity_this_month": "Für diesen Monat wurde noch keine Aktivität erfasst."

@@ -902,6 +902,7 @@ profile:
     statistics_pieces_count: "Number of pieces assembled"
     favorite_puzzlers: "Favorite puzzlers"
     no_favorite_puzzlers: "No favorite puzzlers"
+    favorite_puzzlers_meta_description: "%name%'s favorite speed puzzlers on MySpeedPuzzling: the players whose jigsaw puzzle times they follow most closely."
     solved_puzzles: "Solved puzzles"
     solved_puzzles_solo: "Individual"
     solved_puzzles_group: "Group assembly"
@@ -1685,6 +1686,7 @@ countdown:
 blog:
     outage-2025-02-17:
         meta_title: "The Biggest Outage in Our History"
+        meta_description: "MySpeedPuzzling was down for almost 10 hours on February 17, 2025. The full story: what happened, how we found the culprit and what we learned."
         title: The Biggest Outage in the History of MySpeedPuzzling
         content: |
             <h2 class="h5">On February 17, we experienced the longest outage in the history of MySpeedPuzzling ...</h2>
@@ -1725,6 +1727,7 @@ collections:
         latest: "latest %time%"
     meta:
         title: "Puzzle Library"
+        description: "%name%'s puzzle library on MySpeedPuzzling: jigsaw puzzle collections, solved and unsolved puzzles, wish list and puzzles for sale or swap."
     title: "Puzzle Library"
     title_other: "Puzzle library of %name%"
     create:
@@ -2501,6 +2504,7 @@ marketplace:
     how_it_works_button: "How it works?"
     how_it_works:
         title: "How the Marketplace Works"
+        meta_description: "How the MySpeedPuzzling marketplace works: list puzzles from your collection, chat with other puzzlers, reserve, complete the sale or swap and leave a rating."
         back_to_marketplace: "Marketplace"
         browse_marketplace: "Browse the Marketplace"
         intro: "The MySpeedPuzzling Marketplace is a place where puzzle lovers connect to sell, swap, or give away puzzles. Here's everything you need to know to get started."
@@ -3348,6 +3352,7 @@ referral:
 
 activity_calendar:
     page_title: "Activity calendar"
+    meta_description: "%name%'s puzzling activity calendar on MySpeedPuzzling: the days they solved jigsaw puzzles, solo, in pairs or in teams, month by month."
     prev_month: "Previous month"
     next_month: "Next month"
     no_activity_this_month: "No activity recorded in this month yet."

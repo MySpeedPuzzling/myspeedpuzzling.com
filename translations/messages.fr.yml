@@ -726,6 +726,7 @@
   "statistics_pieces_count": "Nombre de pièces assemblées"
   "favorite_puzzlers": "Puzzleurs favoris"
   "no_favorite_puzzlers": "Aucun puzzleur favori"
+  "favorite_puzzlers_meta_description": "Les puzzleurs favoris de %name% sur MySpeedPuzzling : les speed puzzlers dont %name% suit les temps de plus près."
   "solved_puzzles": "Puzzles résolus"
   "solved_puzzles_solo": "Individuel"
   "solved_puzzles_group": "Assemblage en groupe"
@@ -1428,6 +1429,7 @@
 "blog":
   "outage-2025-02-17":
     "meta_title": "La plus grande panne de notre histoire"
+    "meta_description": "Le 17 février 2025, MySpeedPuzzling a été indisponible pendant près de 10 heures. Toute l'histoire : ce qui s'est passé, comment nous avons trouvé le coupable et ce que nous en avons appris."
     "title": "La plus grande panne de l'histoire de MySpeedPuzzling"
     "content": "<h2 class=\"h5\">Le 17 février, nous avons connu la plus longue panne de l'histoire de MySpeedPuzzling ...</h2>\n<h4 class=\"h6\">Tout d'abord, je veux vous remercier tous énormément pour votre patience et votre confiance ! Croyez-moi, ces 7 heures où nous savions que MSP ne fonctionnait pas ont été extrêmement stressantes pour nous !</h4>\n<p>Aujourd'hui, nous avons eu une panne de presque 10 heures de toute la plateforme. C'est la plus longue panne de l'histoire de MySpeedPuzzling. Ce n'était pas de notre faute... ou l'était-ce ?</p>\n<p>Parce que nous nous efforçons d'être 100% transparents, voici un compte-rendu étape par étape de ce qui s'est passé.</p>\n<p>Je suis allé me coucher vers 1h30 (malheureusement, juste avant que tout tombe en panne), ayant juste terminé une autre nouvelle fonctionnalité pour MySpeedPuzzling. Vers 5h, quand un de nos enfants s'est levé pour aller aux toilettes, Simona a automatiquement vérifié les notifications sur son téléphone—elle regarde\
       \ souvent qui a publié de nouveaux temps et à quelle vitesse ils ont réussi à résoudre le puzzle. Oui, même à 5h du matin... Mais elle a été accueillie par une surprise désagréable : la page ne se chargeait pas. Elle m'a poussé en disant : \"MySpeedPuzzling ne fonctionne pas !\" Entendre ça m'a réveillé immédiatement. J'ai pris mon téléphone, j'ai essayé, et ça ne fonctionnait vraiment pas ! J'ai pris mon portable pour examiner les choses de plus près. À 1h59, nous avions reçu une notification de surveillance automatisée, ce qui n'est généralement pas de bonnes nouvelles. Malheureusement, je l'ai ratée parce que j'étais allé me coucher juste avant. De plus, le changement que j'avais fait n'était en aucun cas destructeur et n'aurait pas pu causer une telle panne. Et c'est ainsi qu'a commencé notre panne de lundi, qui a duré presque jusqu'à midi.</p>\n<h5>Détails techniques pour les geeks :</h5>\n<p><em>(ceci vous donnera un aperçu de notre infrastructure serveur)</em></p>\n<p>Il y a\
@@ -1532,6 +1534,7 @@
     "unlock_link": "Débloquer avec l'adhésion"
   "meta":
     "title": "Bibliothèque de puzzles"
+    "description": "La bibliothèque de puzzles de %name% sur MySpeedPuzzling : collections de puzzles, puzzles terminés et à faire, liste de souhaits et puzzles à vendre ou à échanger."
   "move_puzzle": "Déplacer le puzzle vers la collection"
   "move_puzzle_submit": "Déplacer"
   "move_to_collection": "Déplacer vers la collection"
@@ -2203,6 +2206,7 @@
       "description": "Après la transaction, n'oubliez pas d'évaluer l'autre puzzler ! Les évaluations aident à construire la confiance dans la communauté et montrent aux autres comment l'expérience s'est déroulée."
       "title": "Laissez une évaluation"
     "title": "Comment fonctionne le marché"
+    "meta_description": "Comment fonctionne le marché MySpeedPuzzling : proposez des puzzles de votre collection, discutez avec d'autres puzzlers, réservez, finalisez la vente ou l'échange et laissez une évaluation."
   "how_it_works_button": "Comment ça marche ?"
   "listing_type":
     "both": "Vente / Échange"
@@ -3133,6 +3137,7 @@ edition:
 
 "activity_calendar":
   "page_title": "Calendrier d'activité"
+  "meta_description": "Le calendrier d'activité de %name% sur MySpeedPuzzling : les jours où des puzzles ont été assemblés, en solo, en duo ou en équipe, mois après mois."
   "prev_month": "Mois précédent"
   "next_month": "Mois suivant"
   "no_activity_this_month": "Aucune activité enregistrée ce mois-ci pour l'instant."

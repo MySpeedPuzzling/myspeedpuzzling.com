@@ -1,6 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ player.playerName ?? ('#' ~ player.code|upper) }} - {{ 'menu.favorite_puzzlers'|trans }}{% endblock %}
+{% block meta_description %}{{ 'profile.favorite_puzzlers_meta_description'|trans({'%name%': profile_head_name(player)}) }}{% endblock %}
 
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" />

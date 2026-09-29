@@ -1,6 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ isOwnProfile ? 'collections.meta.title'|trans : 'collections.title_other'|trans({'%name%': profile_name(player)}) }}{% endblock %}
+{% block meta_description %}{{ 'collections.meta.description'|trans({'%name%': profile_head_name(player)}) }}{% endblock %}
 
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" />

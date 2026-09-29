@@ -1,6 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ player.playerName ?? ('#' ~ player.code|upper) }} - {{ 'activity_calendar.page_title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'activity_calendar.meta_description'|trans({'%name%': profile_head_name(player)}) }}{% endblock %}
 
 {% block content %}
 

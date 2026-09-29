@@ -1,6 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ 'marketplace.how_it_works.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'marketplace.how_it_works.meta_description'|trans }}{% endblock %}
 
 {% block content %}
     {% include '_return_back_button.html.twig' with {fallbackUrl: path('marketplace'), fallbackTitle: 'marketplace.how_it_works.back_to_marketplace'|trans} %}

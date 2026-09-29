@@ -12,7 +12,9 @@
         {% set canonicalUrl = currentRoute ? url(currentRoute, currentRouteParams) : app.request.uri %}
         {# Language-switcher links keep the query string so switching locale preserves filters;
            hreflang alternates below intentionally do NOT (they must match the canonical URL). #}
-        {% set routeParams = currentRouteParams|merge(cleanQuery) %}
+        {# Locale-less auth pages (`_auth_page`, NativeAuthPageSubscriber) read the switcher's
+           ?_locale= and must keep ?return= across the switch, or the visitor loses their destination. #}
+        {% set routeParams = currentRouteParams|merge(app.request.attributes.get('_auth_page') is same as(true) ? app.request.query.all : cleanQuery) %}
         {% set routeParamsEn = routeParams|merge({'_locale': 'en'}) %}
         {% set routeParamsCs = routeParams|merge({'_locale': 'cs'}) %}
         {% set routeParamsEs = routeParams|merge({'_locale': 'es'}) %}

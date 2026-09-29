@@ -250,8 +250,9 @@
                     {% set connected_providers = connected_oauth_identities|map(identity => identity.provider.value) %}
                     <div class="d-flex gap-2 flex-wrap mt-2">
                         {% if social_login_google_enabled and 'google' not in connected_providers %}
-                            <a class="btn btn-outline-primary btn-sm" href="{{ path('social_link_start', {provider: 'google'}) }}" data-turbo="false">
-                                <i class="bi bi-google me-1"></i>{{ 'edit_profile.social.connect'|trans({'%provider%': 'Google'}) }}
+                            {# Google's branding rules forbid a monochrome G - its own light button #}
+                            <a class="btn btn-google-signin btn-sm" href="{{ path('social_link_start', {provider: 'google'}) }}" data-turbo="false">
+                                {{ include('_google_g_logo.html.twig') }}{{ 'edit_profile.social.connect'|trans({'%provider%': 'Google'}) }}
                             </a>
                         {% endif %}
                         {% if social_login_apple_enabled and 'apple' not in connected_providers %}

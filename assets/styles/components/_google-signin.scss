@@ -1,0 +1,62 @@
+//
+// "Continue with Google" button
+// --------------------------------------------------
+//
+// Light theme of Google's Sign in with Google branding guidelines
+// (https://developers.google.com/identity/branding-guidelines, checked 2026-09-29):
+// fill #FFFFFF, 1px #747775 stroke inside, text #1F1F1F medium, the standard
+// four-colour "G" unmodified on white, 10px between logo and text. Hover and
+// pressed follow Google's own button: a light grey state layer (#303030 at
+// 8% / 12% over white) plus a soft shadow - never a dark fill.
+//
+// Google asks for Google Sans Medium. We don't download a font for one button
+// (docs/performance-optimizations.md): the device's Google Sans or Roboto is
+// used when installed (Android, ChromeOS), otherwise the site font.
+//
+// Sizing stays Bootstrap's .btn, so the button is exactly as tall and wide as
+// the other providers' buttons next to it.
+
+.btn-google-signin {
+  --#{$prefix}btn-color: #1f1f1f;
+  --#{$prefix}btn-bg: #fff;
+  --#{$prefix}btn-border-color: #747775;
+  --#{$prefix}btn-hover-color: #1f1f1f;
+  --#{$prefix}btn-hover-bg: #eee;
+  --#{$prefix}btn-hover-border-color: #747775;
+  --#{$prefix}btn-active-color: #1f1f1f;
+  --#{$prefix}btn-active-bg: #e6e6e6;
+  --#{$prefix}btn-active-border-color: #747775;
+  --#{$prefix}btn-disabled-color: rgba(#1f1f1f, .38);
+  --#{$prefix}btn-disabled-bg: rgba(#fff, .61);
+  --#{$prefix}btn-disabled-border-color: rgba(#1f1f1f, .12);
+  --#{$prefix}btn-focus-shadow-rgb: 116, 119, 117;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Google Sans', Roboto, $font-family-sans-serif;
+  font-weight: 500;
+  letter-spacing: .25px;
+
+  &:hover,
+  &:focus-visible {
+    box-shadow: 0 1px 2px 0 rgba(60, 64, 67, .3), 0 1px 3px 1px rgba(60, 64, 67, .15);
+  }
+
+  &:active {
+    box-shadow: none;
+  }
+}
+
+.btn-google-signin-logo {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+
+  .btn-sm & {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+  }
+}

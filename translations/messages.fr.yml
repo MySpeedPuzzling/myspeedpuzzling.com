@@ -3250,6 +3250,13 @@ edition:
     "continue_with": "Continuer avec %provider%"
     "facebook_hint": "Compte Meta - aussi pour les utilisateurs d'Instagram"
     "attempt_expired": "Cette tentative de connexion a expiré ou a déjà été utilisée. Veuillez réessayer."
+    "relay":
+      "title": "Avez-vous déjà un compte MySpeedPuzzling ?"
+      "explanation": "Apple masque votre adresse e-mail (« Masquer mon adresse e-mail »), nous ne pouvons donc pas savoir si vous avez déjà un compte MySpeedPuzzling."
+      "have_account": "Si c'est le cas, choisissez « J'ai déjà un compte » : connectez-vous comme d'habitude et nous associerons aussitôt Apple à ce compte. Ensuite, « Se connecter avec Apple » vous fera entrer directement."
+      "sign_in_and_connect": "J'ai déjà un compte"
+      "new_here": "Nouveau sur MySpeedPuzzling ? Créez un compte : nos e-mails vous parviendront via l'adresse de relais d'Apple %email%."
+      "create": "Je suis nouveau : créer mon compte"
     "confirm":
       "title": "Créer un nouveau compte ?"
       "question": "Vous vous êtes connecté avec %provider% en tant que %email%, et aucun compte MySpeedPuzzling n'utilise encore cette adresse e-mail. Créer un nouveau compte ?"

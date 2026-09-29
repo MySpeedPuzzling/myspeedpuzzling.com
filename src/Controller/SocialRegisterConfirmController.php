@@ -88,6 +88,9 @@ final class SocialRegisterConfirmController extends AbstractController
             'token' => self::tokenFrom($request),
             'email' => $parked->profile->email,
             'provider_name' => $parked->profile->provider->displayName(),
+            // Apple "Hide My Email": the address can never match an existing
+            // account, so the page leads with "I already have an account"
+            'is_private_relay' => $parked->profile->usesPrivateRelay(),
         ]);
     }
 

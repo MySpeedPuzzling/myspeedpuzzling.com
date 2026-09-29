@@ -3248,6 +3248,13 @@ auth:
         continue_with: "Weiter mit %provider%"
         facebook_hint: "Meta-Konto - auch für Instagram-Nutzer"
         attempt_expired: "Dieser Anmeldeversuch ist abgelaufen oder wurde bereits verwendet. Bitte versuchen Sie es erneut."
+        relay:
+            title: "Haben Sie bereits ein MySpeedPuzzling-Konto?"
+            explanation: "Apple verbirgt Ihre E-Mail-Adresse („E-Mail-Adresse verbergen“), daher können wir nicht feststellen, ob Sie bereits ein MySpeedPuzzling-Konto haben."
+            have_account: "Falls ja, wählen Sie „Ich habe bereits ein Konto“: Melden Sie sich wie gewohnt an, und wir verbinden Apple sofort mit diesem Konto. Ab dann bringt Sie „Mit Apple anmelden“ direkt hinein."
+            sign_in_and_connect: "Ich habe bereits ein Konto"
+            new_here: "Neu bei MySpeedPuzzling? Erstellen Sie ein Konto – unsere E-Mails erreichen Sie über Apples Weiterleitungsadresse %email%."
+            create: "Ich bin neu – Konto erstellen"
         confirm:
             title: "Neues Konto erstellen?"
             question: "Sie haben sich mit %provider% als %email% angemeldet, und noch kein MySpeedPuzzling-Konto verwendet diese E-Mail-Adresse. Neues Konto erstellen?"

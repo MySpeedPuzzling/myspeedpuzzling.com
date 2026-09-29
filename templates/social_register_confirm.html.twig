@@ -1,13 +1,16 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'auth.social.confirm.title'|trans }}{% endblock %}
+{% block title %}{{ (is_private_relay ? 'auth.social.relay.title' : 'auth.social.confirm.title')|trans }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
     <div class="row gy-3 pb-4">
         <div class="col-lg-6 col-md-8">
-            <h1 class="h2">{{ 'auth.social.confirm.title'|trans }}</h1>
+            <h1 class="h2">{{ (is_private_relay ? 'auth.social.relay.title' : 'auth.social.confirm.title')|trans }}</h1>
 
+            {% if is_private_relay %}
+                {% include '_social_register_relay.html.twig' %}
+            {% else %}
             <div class="card shadow my-3">
                 <div class="card-body">
                     <p>{{ 'auth.social.confirm.question'|trans({'%provider%': provider_name, '%email%': email}) }}</p>
@@ -39,6 +42,7 @@
                     </form>
                 </div>
             </div>
+            {% endif %}
 
             <p class="text-muted fs-sm">
                 {{ 'auth.social.confirm.duplicate_accounts_help'|trans({'%faqUrl%': path('faq') ~ '#duplicate-accounts'})|raw }}

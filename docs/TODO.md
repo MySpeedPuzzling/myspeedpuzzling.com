@@ -8,8 +8,7 @@ that would otherwise be forgotten. Newest section on top.
 
 Shipped 2026-09-29 (flags still dark). Design: [`features/auth-hardening/README.md`](features/auth-hardening/README.md) §Hardening 2026-09-29.
 
-- [ ] Apple server-to-server notifications endpoint (`email-disabled`, `consent-revoked`, `account-delete`) - today a revoked Apple ID or a dead relay address goes unnoticed
-- [ ] Use `SocialUserProfile::$isPrivateRelay` in the UI (interstitial copy for Apple "Hide My Email" addresses)
+- [ ] Stripe mails to Apple relay addresses: Stripe customers carry the account e-mail, so receipts to `@privaterelay.appleid.com` come from Stripe's domain and are likely dropped by the relay - Stripe custom e-mail domain + register it with Apple, or accept ([`setup-apple.md`](features/auth-hardening/setup-apple.md) §Open questions)
 - [x] Translate the interstitial strings `auth.social.confirm.sign_in_and_connect` / `duplicate_accounts_help` and re-translate `auth.social.confirm.have_account` in cs/de/es/fr/ja (2026-09-29)
 - [ ] Deliberately NOT done: Gmail dot/plus normalisation of provider emails when matching accounts (rule 2/3 compare the canonicalised address as-is)
 - [ ] True account merge (two accounts, two players) stays a manual admin operation - write the runbook when the first request comes in

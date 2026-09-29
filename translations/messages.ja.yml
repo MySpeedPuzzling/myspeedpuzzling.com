@@ -3239,6 +3239,13 @@ qr_code:
     "continue_with": "%provider%で続ける"
     "facebook_hint": "Metaアカウント - Instagramユーザーもこちら"
     "attempt_expired": "このサインインの試行は期限切れか、すでに使用されています。もう一度お試しください。"
+    "relay":
+      "title": "MySpeedPuzzlingのアカウントをすでにお持ちですか？"
+      "explanation": "Appleがメールアドレスを非表示にしている（「メールを非公開」）ため、MySpeedPuzzlingのアカウントをすでにお持ちかどうかを確認できません。"
+      "have_account": "お持ちの場合は「すでにアカウントを持っています」を選んでください。いつもの方法でサインインすると、そのアカウントにAppleをすぐに連携します。以降は「Appleでサインイン」でそのまま入れます。"
+      "sign_in_and_connect": "すでにアカウントを持っています"
+      "new_here": "MySpeedPuzzlingは初めてですか？アカウントを作成してください。私たちからのメールはAppleの転送用アドレス %email% 経由で届きます。"
+      "create": "初めてです — アカウントを作成"
     "confirm":
       "title": "新しいアカウントを作成しますか？"
       "question": "%provider%で%email%としてサインインしましたが、このメールアドレスを使用しているMySpeedPuzzlingアカウントはまだありません。新しいアカウントを作成しますか？"

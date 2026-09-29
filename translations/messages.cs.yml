@@ -3246,6 +3246,13 @@ auth:
         continue_with: "Pokračovat přes %provider%"
         facebook_hint: "Účet Meta - i pro uživatele Instagramu"
         attempt_expired: "Tento pokus o přihlášení vypršel nebo už byl použit. Zkuste to prosím znovu."
+        relay:
+            title: "Máte už účet na MySpeedPuzzling?"
+            explanation: "Apple skrývá vaši e-mailovou adresu („Skrýt můj e-mail“), takže nemůžeme zjistit, jestli už u nás účet máte."
+            have_account: "Pokud ho už máte, zvolte „Už mám účet“: přihlaste se tak, jak jste zvyklí, a Apple k tomuto účtu hned propojíme. Od té doby vás Přihlášení přes Apple pustí rovnou dovnitř."
+            sign_in_and_connect: "Už mám účet"
+            new_here: "Jste na MySpeedPuzzling noví? Vytvořte si účet — naše e-maily vám budou chodit přes přeposílací adresu Apple %email%."
+            create: "Jsem tu nový — vytvořit účet"
         confirm:
             title: "Vytvořit nový účet?"
             question: "Přihlásili jste se přes %provider% jako %email% a tuto e-mailovou adresu zatím žádný účet na MySpeedPuzzling nepoužívá. Vytvořit nový účet?"

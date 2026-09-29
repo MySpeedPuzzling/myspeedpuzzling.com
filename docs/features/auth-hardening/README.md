@@ -169,7 +169,12 @@ Anything else is a generic `social_link_result=failed`. The 303 turns Apple's PO
 
 **Race on linking.** The unique `(user_account_id, provider)` index (`Version20260929125011`) settles two racing link flows; callers treat the resulting `UniqueConstraintViolationException` like `OauthIdentityAlreadyLinked`.
 
-Deliberately not done (see `docs/TODO.md`): Gmail dot/plus normalisation of provider emails, Apple server-to-server notifications, true account merge (manual admin operation).
+Deliberately not done (see `docs/TODO.md`): Gmail dot/plus normalisation of provider emails, true account merge (manual admin operation).
+
+**Apple go-live prep (2026-09-29)** — full runbook in [`setup-apple.md`](setup-apple.md):
+- *Relay-aware interstitial.* When the parked profile `usesPrivateRelay()` (the `is_private_email` claim, or an `@privaterelay.appleid.com` address), `/register/social` renders `_social_register_relay.html.twig`: Apple hides the address, so no existing account can be found → "I already have an account" (sign in, then Apple is connected) is the primary button, "create my account" secondary. Strings `auth.social.relay.*` in all 6 locales. The flag survives parking because the cache stores the serialized `SocialUserProfile` object (`AppleRelayInterstitialTest`).
+- *Server-to-server notifications.* `POST /webhook/apple-sign-in` (stateless firewall) → `AppleServerNotificationVerifier` (RS256 against Apple's JWKS, cached in `social_login_state_cache`, refetch only for an unknown `kid` and at most every 5 min; `aud` = `APPLE_APP_ID` — the primary App ID these tokens carry — or `APPLE_CLIENT_ID`) → `ProcessAppleSignInEvent`. `account-delete(d)` always removes the identity (warning when it was the last sign-in method); `consent-revoked` removes it unless it is the last method (kept: re-consent returns the same `sub`, so rule 1 avoids a duplicate account); `email-disabled/enabled` info log only. Removals write `oauth_identity_unlinked` audit rows with `source: apple_server_notification`. Works regardless of `SOCIAL_LOGIN_APPLE_ENABLED`.
+- *Relay e-mail sources.* Every sending domain must be registered with Apple (`mail.`, `notify.`, `news.` + apex) — list and SPF/DKIM status in `setup-apple.md` §4.
 
 ### Provider gotchas (read before implementing)
 
@@ -177,7 +182,7 @@ Deliberately not done (see `docs/TODO.md`): Gmail dot/plus normalisation of prov
 - Client secret is a self-signed **ES256 JWT** built from a `.p8` key (env: `APPLE_CLIENT_ID` = Services ID, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`). The league Apple provider handles generation.
 - When requesting `name`/`email` scopes Apple **requires `response_mode=form_post`** → the callback arrives as a **cross-site POST**: with `SameSite=Lax` session cookies the session (and the state stored in it) is NOT sent. **Store state server-side in Symfony cache keyed by the state value (TTL 10 min) instead of the session** — validate by lookup+delete. The callback route must accept POST and be excluded from CSRF (state is the CSRF protection here).
 - Name + email are delivered **only on the user's FIRST authorization** — capture them in that callback or lose them (re-consent requires the user to revoke at appleid.apple.com).
-- Private relay emails (`@privaterelay.appleid.com`): Apple's relay only forwards mail from **domains registered in the Apple Developer console** (Certificates → Services → Sign in with Apple for Email Communication). **Register `mail.myspeedpuzzling.com` (and its SPF) there** or every transactional email to relay users silently bounces.
+- Private relay emails (`@privaterelay.appleid.com`): Apple's relay only forwards mail from **domains registered in the Apple Developer console** (Certificates → Services → Sign in with Apple for Email Communication). **Register every sending domain there — `mail.`, `notify.`, `news.myspeedpuzzling.com` (+ apex), see `setup-apple.md` §4** — or every email to relay users is silently dropped.
 - Needs a paid Apple Developer account ($99/yr), a Services ID with the domain + return URLs verified.
 
 **Google** (easiest — do first): standard OIDC; verify `email_verified`; use PKCE.

@@ -125,6 +125,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$appleTeamId', '%env(trim:string:APPLE_TEAM_ID)%')
         ->bind('$appleKeyId', '%env(trim:string:APPLE_KEY_ID)%')
         ->bind('$applePrivateKey', '%env(trim:string:APPLE_PRIVATE_KEY)%')
+        ->bind('$appleAppId', '%env(trim:string:APPLE_APP_ID)%')
         ->bind('$listmonkApiUrl', '%listmonkApiUrl%')
         ->bind('$listmonkApiUser', '%listmonkApiUser%')
         ->bind('$listmonkApiToken', '%listmonkApiToken%')
@@ -304,6 +305,10 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set('social_login.http_client', \GuzzleHttp\Client::class);
 
     $services->set(\SpeedPuzzling\Web\Services\SocialLogin\SocialLoginProviders::class)
+        ->arg('$httpClient', service('social_login.http_client'));
+
+    // Fetches Apple's JWKS through the same (test-mockable) client
+    $services->set(\SpeedPuzzling\Web\Services\SocialLogin\AppleServerNotificationVerifier::class)
         ->arg('$httpClient', service('social_login.http_client'));
 
     // The deprecated Sentry\Monolog\Handler (removed in sentry/sentry 5.0) was split

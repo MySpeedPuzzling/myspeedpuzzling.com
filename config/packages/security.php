@@ -65,7 +65,9 @@ return App::config([
                 // clients - beacons carry no cookies-worth of context and must never start a session.
                 // /api/v0/wjpf-pairing: server-to-server call from worldjigsawpuzzle.org,
                 // authenticated by its own static token in the request - no user, no session.
-                'pattern' => '^(/-/health-check|/-/asset-load-failure$|/-/stale-document$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$)',
+                // /webhook/apple-sign-in: Sign in with Apple server-to-server notifications,
+                // authenticated by Apple's signature on the posted token.
+                'pattern' => '^(/-/health-check|/-/asset-load-failure$|/-/stale-document$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$|/webhook/apple-sign-in$)',
                 'stateless' => true,
                 'security' => false,
             ],

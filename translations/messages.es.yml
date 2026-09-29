@@ -3248,6 +3248,13 @@ fair_use_policy:
     "continue_with": "Continuar con %provider%"
     "facebook_hint": "Cuenta de Meta - también para usuarios de Instagram"
     "attempt_expired": "Ese intento de inicio de sesión ha caducado o ya se ha usado. Por favor, inténtalo de nuevo."
+    "relay":
+      "title": "¿Ya tienes una cuenta de MySpeedPuzzling?"
+      "explanation": "Apple oculta tu dirección de correo electrónico («Ocultar mi correo electrónico»), así que no podemos saber si ya tienes una cuenta de MySpeedPuzzling."
+      "have_account": "Si ya tienes una, elige «Ya tengo una cuenta»: inicia sesión como lo haces siempre y conectaremos Apple a esa cuenta enseguida. A partir de entonces, Iniciar sesión con Apple te llevará directamente dentro."
+      "sign_in_and_connect": "Ya tengo una cuenta"
+      "new_here": "¿Eres nuevo en MySpeedPuzzling? Crea una cuenta: nuestros correos te llegarán a través de la dirección de reenvío de Apple %email%."
+      "create": "Soy nuevo: crear mi cuenta"
     "confirm":
       "title": "¿Crear una cuenta nueva?"
       "question": "Has iniciado sesión con %provider% como %email%, y todavía ninguna cuenta de MySpeedPuzzling usa esta dirección de correo electrónico. ¿Crear una cuenta nueva?"

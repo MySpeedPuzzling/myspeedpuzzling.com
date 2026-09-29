@@ -34,4 +34,15 @@ final readonly class SocialUserProfile
         public bool $isPrivateRelay = false,
     ) {
     }
+
+    /**
+     * The claim, or - should Apple ever omit it - the relay domain itself.
+     * A relay address never matches an existing account, so the rule-4
+     * interstitial pushes "I already have an account" for these visitors.
+     */
+    public function usesPrivateRelay(): bool
+    {
+        return $this->isPrivateRelay
+            || ($this->email !== null && str_ends_with(strtolower($this->email), '@privaterelay.appleid.com'));
+    }
 }

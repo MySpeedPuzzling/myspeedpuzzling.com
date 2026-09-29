@@ -3500,6 +3500,13 @@ auth:
         continue_with: "Continue with %provider%"
         facebook_hint: "Meta account - also for Instagram users"
         attempt_expired: "That sign-in attempt expired or was already used. Please try again."
+        relay:
+            title: "Do you already have a MySpeedPuzzling account?"
+            explanation: "Apple is hiding your e-mail address (\"Hide My Email\"), so we cannot find out whether you already have a MySpeedPuzzling account."
+            have_account: "If you already have one, choose \"I already have an account\": sign in the way you usually do and we connect Apple to that account right away. From then on, Sign in with Apple takes you straight in."
+            sign_in_and_connect: "I already have an account"
+            new_here: "New to MySpeedPuzzling? Create an account — our e-mails will reach you through Apple's forwarding address %email%."
+            create: "I'm new here — create my account"
         confirm:
             title: "Create a new account?"
             question: "You signed in with %provider% as %email%, and no MySpeedPuzzling account uses this email address yet. Create a new account?"

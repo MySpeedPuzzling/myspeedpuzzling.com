@@ -3161,6 +3161,7 @@ qr_code:
     "new_here": "MySpeedPuzzlingは初めてですか？"
     "submitting": "サインイン中…"
     "link_instead": "サインインコードをメールで受け取る"
+    "or_continue_with": "または次の方法で続ける"
   "failure_helper":
     "title": "メールアドレスとパスワードが一致しません。"
     "vault_tip": "パスワードマネージャーに保存している場合は「speedpuzzling」で検索してください。古い項目は別のウェブアドレスで保存されていることがあります。"
@@ -3200,6 +3201,7 @@ qr_code:
     "name_optional": "お名前（任意）"
     "submitting": "アカウントを作成中…"
     "email_taken": "このメールアドレスのアカウントはすでにあります。<a href=\"%sign_in_url%\">サインイン</a>するか、<a href=\"%link_url%\">サインインコードを受け取って</a>ください。"
+    "continue_with_email": "メールアドレスで続ける"
   "welcome":
     "title": "MySpeedPuzzlingへようこそ！"
     "verification_sent": "%email%に確認リンクをお送りしました。リンクを開いて、このアドレスがあなたのものであることをご確認ください。"
@@ -3266,7 +3268,7 @@ qr_code:
       "created": "ようこそ！アカウントの準備が整い、サインインが完了しました。"
       "have_account_title": "別のメールアドレスでアカウントをお持ちですか？"
     "last_used": "前回使用"
-    "existing_account_hint": "すでにアカウントをお持ちですか？同じメールアドレスなら、そのアカウントにサインインします。"
+    "existing_account_hint": "MySpeedPuzzlingのアカウントと同じメールアドレスなら、そのアカウントにそのままサインインします。"
   "account_set_password":
     "title": "パスワードを追加"
     "intro": "現在は接続済みアカウントでサインインしています。パスワードを追加すると、従来のメールアドレス＋パスワードでのサインインも利用できるようになります — 予備のサインイン方法として便利です。"

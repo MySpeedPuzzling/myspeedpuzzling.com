@@ -3172,6 +3172,7 @@ edition:
     "new_here": "Nouveau sur MySpeedPuzzling ?"
     "submitting": "Connexion…"
     "link_instead": "M'envoyer plutôt un code de connexion"
+    "or_continue_with": "ou continuez avec"
   "failure_helper":
     "title": "L'adresse e-mail et le mot de passe ne correspondent pas."
     "vault_tip": "Si votre gestionnaire de mots de passe l'a enregistré, cherchez « speedpuzzling » : les anciennes entrées peuvent être classées sous une autre adresse web."
@@ -3211,6 +3212,7 @@ edition:
     "name_optional": "Votre nom (facultatif)"
     "submitting": "Création du compte…"
     "email_taken": "Cet e-mail a déjà un compte. <a href=\"%sign_in_url%\">Connectez-vous</a> ou <a href=\"%link_url%\">recevez un code de connexion</a>."
+    "continue_with_email": "Continuer avec l'e-mail"
   "welcome":
     "title": "Bienvenue sur MySpeedPuzzling !"
     "verification_sent": "Nous avons envoyé un lien de confirmation à %email%. Ouvrez-le pour confirmer que cette adresse est bien la vôtre."
@@ -3277,7 +3279,7 @@ edition:
       "created": "Bienvenue ! Votre compte est prêt et vous êtes connecté."
       "have_account_title": "Déjà un compte avec une autre adresse e-mail ?"
     "last_used": "Dernier utilisé"
-    "existing_account_hint": "Déjà un compte ? Vous y arriverez directement s'il utilise la même adresse e-mail."
+    "existing_account_hint": "Même adresse e-mail que votre compte MySpeedPuzzling ? Vous y arriverez directement."
   "account_set_password":
     "title": "Ajouter un mot de passe"
     "intro": "Vous vous connectez avec un compte associé. Ajouter un mot de passe ouvre aussi la porte classique e-mail + mot de passe — utile comme méthode de connexion de secours."

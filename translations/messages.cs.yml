@@ -3168,6 +3168,7 @@ auth:
         new_here: "Jste na MySpeedPuzzling noví?"
         submitting: "Přihlašujeme…"
         link_instead: "Raději mi pošlete přihlašovací kód"
+        or_continue_with: "nebo pokračujte přes"
     failure_helper:
         title: "E-mail a heslo k sobě nesedí."
         vault_tip: "Pokud vám heslo uložil správce hesel, vyhledejte v něm „speedpuzzling“ — starší záznamy mohou být uložené pod jinou webovou adresou."
@@ -3207,6 +3208,7 @@ auth:
         name_optional: "Vaše jméno (nepovinné)"
         submitting: "Zakládáme účet…"
         email_taken: "Tento e-mail už má účet. <a href=\"%sign_in_url%\">Přihlaste se</a> nebo si <a href=\"%link_url%\">nechte poslat přihlašovací kód</a>."
+        continue_with_email: "Pokračovat přes e-mail"
     welcome:
         title: "Vítejte na MySpeedPuzzling!"
         verification_sent: "Na adresu %email% jsme poslali potvrzovací odkaz. Otevřete ho a potvrďte, že je adresa vaše."
@@ -3273,7 +3275,7 @@ auth:
             created: "Vítejte! Váš účet je připravený a jste přihlášeni."
             have_account_title: "Máte už účet pod jiným e-mailem?"
         last_used: "Naposledy použito"
-        existing_account_hint: "Už máte účet? Pokud používá stejný e-mail, přihlásíte se rovnou do něj."
+        existing_account_hint: "Stejný e-mail jako u vašeho účtu na MySpeedPuzzling? Přihlásíte se rovnou do něj."
     account_set_password:
         title: "Přidat heslo"
         intro: "Přihlašujete se přes propojený účet. Přidáním hesla si otevřete i klasickou cestu e-mail + heslo — hodí se jako záložní způsob přihlášení."

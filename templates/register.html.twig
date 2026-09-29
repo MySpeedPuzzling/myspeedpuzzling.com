@@ -2,12 +2,21 @@
 
 {% block title %}{{ 'auth.register.title'|trans }}{% endblock %}
 
-{# docs/features/auth-ux-redesign.md §4.2: "Already have an account? Sign in"
-   right under the heading, provider buttons first (no password to invent),
-   then email -> password -> the optional name. #}
+{# docs/features/auth-ux-redesign.md §4.2 + §10: "Already have an account?
+   Sign in" right under the heading, then one list of equal-weight ways in -
+   "Continue with email" first, the providers below it - so the page stays
+   calm with four or five providers. "Continue with email" opens the form right
+   under itself (auth-disclosure); without JavaScript it is a link to
+   ?method=email, which renders the form open.
+
+   The form is rendered open whenever hiding it would hide something: a
+   submitted form (422 with errors, the "email taken" answer), ?method=email,
+   or no provider configured at all (nothing to choose between). #}
 
 {% set return_path = safe_return_url(app.request.query.get('return')) %}
 {% set return_params = return_path is null ? {} : {'return': return_path} %}
+{% set any_provider = social_login.isAnyEnabled() %}
+{% set email_open = not any_provider or form.vars.submitted or app.request.query.get('method') == 'email' %}
 
 {% block auth_content %}
     <h1 class="auth-title">{{ 'auth.register.title'|trans }}</h1>
@@ -18,37 +27,63 @@
 
     {{ include('_in_app_browser_notice.html.twig') }}
 
-    {{ include('_social_login_buttons.html.twig') }}
+    <div class="auth-social" data-controller="auth-disclosure">
+        {% if any_provider %}
+            <a
+                class="btn btn-email-signin w-100"
+                href="{{ path('register', return_params|merge({method: 'email'})) }}"
+                data-auth-disclosure-target="trigger"
+                data-action="auth-disclosure#open"
+                aria-controls="register-email"
+                aria-expanded="{{ email_open ? 'true' : 'false' }}"
+                {% if email_open %}hidden{% endif %}
+            >
+                <i class="bi bi-envelope btn-email-signin-icon" aria-hidden="true"></i>{{ 'auth.register.continue_with_email'|trans }}
+            </a>
+        {% endif %}
 
-    {{ form_start(form, {'action': path('register')}) }}
-        <div class="mb-3">
-            {{ form_label(form.email) }}
-            {{ form_widget(form.email) }}
-            {% if email_taken %}
-                {# D8: the unique-email error is an accepted enumeration tradeoff; it
-                   points at the way in rather than only saying "taken" #}
-                <div class="invalid-feedback d-block">
-                    {{ 'auth.register.email_taken'|trans({'%sign_in_url%': path('login', return_params), '%link_url%': path('sign_in_link_request', return_params)})|raw }}
+        <div id="register-email" class="auth-disclosure-panel" data-auth-disclosure-target="panel" {% if not email_open %}hidden{% endif %}>
+            {{ form_start(form, {'action': path('register')}) }}
+                <div class="mb-3">
+                    {{ form_label(form.email) }}
+                    {{ form_widget(form.email) }}
+                    {% if email_taken %}
+                        {# D8: the unique-email error is an accepted enumeration tradeoff; it
+                           points at the way in rather than only saying "taken" #}
+                        <div class="invalid-feedback d-block">
+                            {{ 'auth.register.email_taken'|trans({'%sign_in_url%': path('login', return_params), '%link_url%': path('sign_in_link_request', return_params)})|raw }}
+                        </div>
+                    {% else %}
+                        {{ form_errors(form.email) }}
+                    {% endif %}
                 </div>
-            {% else %}
-                {{ form_errors(form.email) }}
+
+                <div class="mb-3">
+                    {{ form_label(form.plainPassword) }}
+                    <div class="password-field">
+                        {{ form_widget(form.plainPassword) }}
+                        {{ include('_password_toggle.html.twig', {input_id: form.plainPassword.vars.id}) }}
+                    </div>
+                    {{ form_help(form.plainPassword) }}
+                    {{ form_errors(form.plainPassword) }}
+                </div>
+
+                {{ form_row(form.name) }}
+
+                <button type="submit" class="btn btn-primary w-100" data-auth-disclosure-target="submit" data-turbo-submits-with="{{ 'auth.register.submitting'|trans }}">
+                    {{ 'auth.register.submit'|trans }}
+                </button>
+            {{ form_end(form) }}
+
+            {% if any_provider %}
+                <div class="auth-divider mb-0">{{ 'auth.login.or_continue_with'|trans }}</div>
             {% endif %}
         </div>
+    </div>
 
-        <div class="mb-3">
-            {{ form_label(form.plainPassword) }}
-            <div class="password-field">
-                {{ form_widget(form.plainPassword) }}
-                {{ include('_password_toggle.html.twig', {input_id: form.plainPassword.vars.id}) }}
-            </div>
-            {{ form_help(form.plainPassword) }}
-            {{ form_errors(form.plainPassword) }}
+    {% if any_provider %}
+        <div class="mt-3">
+            {{ include('_social_login_buttons.html.twig') }}
         </div>
-
-        {{ form_row(form.name) }}
-
-        <button type="submit" class="btn btn-primary w-100" data-turbo-submits-with="{{ 'auth.register.submitting'|trans }}">
-            {{ 'auth.register.submit'|trans }}
-        </button>
-    {{ form_end(form) }}
+    {% endif %}
 {% endblock %}

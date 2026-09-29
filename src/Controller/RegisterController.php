@@ -67,7 +67,7 @@ final class RegisterController extends AbstractController
             if ($rateLimit->isAccepted() === false) {
                 $this->addFlash('warning', $this->translator->trans('auth.register.too_many_attempts'));
 
-                return $this->redirectToRoute('register');
+                return $this->redirectToRoute('register', ['method' => 'email']);
             }
 
             try {
@@ -109,7 +109,7 @@ final class RegisterController extends AbstractController
 
                 $this->addFlash('danger', $this->translator->trans('auth.register.failed'));
 
-                return $this->redirectToRoute('register');
+                return $this->redirectToRoute('register', ['method' => 'email']);
             }
 
             /** @var HandledStamp $handledStamp */

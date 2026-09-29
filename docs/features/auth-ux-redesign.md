@@ -3,6 +3,8 @@
 Status: **phase 1 SHIPPED 2026-09-29** (layout, copy, sent screens, toggle, in-app notice, return URL
 through the link, auto sign-in after reset). **Phase 2 SHIPPED 2026-09-29**: the 6-digit code in the
 sign-in e-mail next to the link (§4.3/§4.4, D1) - see §9 for what was built and where it differs.
+**Method order changed 2026-09-30** (owner): `/login` email first, `/register` "Continue with email"
+first with the form opening in place - §10 supersedes the "provider buttons first" parts of §4.1/§4.2.
 Mobile first, desktop kept good. See §8 for what shipped and where it differs from this spec.
 Scope: `/login`, `/register`, `/login-link` (+ new "check your email" state), `/password-reset`
 (+ "check your email"), `/password-reset/{token}`, `/register/social` (both variants), the in-app
@@ -770,4 +772,30 @@ phone". A typed code signs in the browser that asked for it.
 **Desktop polish (same release):** `_auth_layout.html.twig` centres the form + illustration as one
 group (`.auth-frame`, max 60rem from md up) instead of form hard left / picture hard right at
 1280px; mobile unchanged.
+
+---
+
+## 10. Order of the ways in (owner decision 2026-09-30)
+
+**/login - email first.** All ~11.4k existing accounts have a password; social sign-in is new. Order:
+heading + "New to MySpeedPuzzling? Create an account" -> in-app browser notice (unchanged, on top)
+-> failure alert -> email -> password ("Forgot password?" on the label row, toggle) -> Sign in ->
+"Email me a sign-in code instead" -> divider "or continue with" -> provider buttons -> "Same email
+as your MySpeedPuzzling account? You'll land right in it." No providers configured -> no divider.
+"Last used" keeps working on whichever element it marks.
+
+**/register - equal-weight list, email first, progressive disclosure** (scales to 4-5 providers:
+Facebook and Microsoft are coming): heading + "Already have an account? Sign in" -> in-app notice
+-> **"Continue with email"** (envelope, neutral white/grey-stroke button like Google's, class
+`btn-email-signin`) -> the providers. Tapping it opens the email / password / optional-name form
+**right under that button** (`auth_disclosure_controller.js`: shows the panel, hides the button,
+focuses the email field, `replaceState` to `?method=email` so a reload keeps it open, scrolls just
+enough to show "Create account" without pushing the top of the form under the header); an
+"or continue with" divider then leads to the providers below. Without JS the button is a link to
+`/register?method=email`, rendered open server-side. The form is also rendered open for a
+submitted form (422 errors, "email taken"), after the register redirects (throttled / failed ->
+`?method=email`), and when no provider is configured (nothing to choose between). At 360x800 the
+open form's "Create account" button is on screen right after the tap.
+
+Tests: `tests/Security/AuthPageMethodOrderTest.php`.
 

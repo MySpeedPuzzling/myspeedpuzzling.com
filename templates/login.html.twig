@@ -2,11 +2,12 @@
 
 {% block title %}{{ 'auth.login.title'|trans }}{% endblock %}
 
-{# docs/features/auth-ux-redesign.md §4.1: "create an account" right under the
-   heading, provider buttons first (one tap for most returning players and no
-   password manager involved), then email + password with "Forgot password?"
-   next to the field that fails, and the sign-in link as an honest secondary
-   button - a real link to its own page, not a hidden form. #}
+{# docs/features/auth-ux-redesign.md §4.1 + §10: "create an account" right
+   under the heading, then EMAIL FIRST - every existing account has a password
+   (social sign-in is new), so the form most people need comes first: email +
+   password with "Forgot password?" next to the field that fails, the sign-in
+   code as an honest secondary button (a real link to its own page), and the
+   provider buttons below an "or continue with" divider. #}
 
 {% set return_path = safe_return_url(app.request.query.get('return')) %}
 {% set return_params = return_path is null ? {} : {'return': return_path} %}
@@ -37,8 +38,6 @@
 
     {{ include('_in_app_browser_notice.html.twig') }}
 
-    {{ include('_social_login_buttons.html.twig', {existing_account_hint: true, last_used: true}) }}
-
     <form action="{{ path('login') }}" method="post" id="login-form" data-last-sign-in-method="password" data-action="submit->last-sign-in#remember">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
         {# Where the visitor was headed before being asked to sign in. Put here
@@ -53,8 +52,8 @@
                 <label class="form-label" for="login-email">{{ 'auth.login.email'|trans }}</label>
                 <span class="auth-last-used" data-last-sign-in-target="badge" data-last-sign-in-method="password" hidden>{{ 'auth.social.last_used'|trans }}</span>
             </div>
-            {# No autofocus: on arrival it would pop the keyboard over the provider
-               buttons and start screen readers mid-form #}
+            {# No autofocus: on arrival it would pop the keyboard over the page
+               and start screen readers mid-form #}
             <input
                 class="form-control"
                 type="email"
@@ -104,4 +103,6 @@
     <a class="btn btn-outline-secondary w-100 mt-3" href="{{ path('sign_in_link_request', return_params) }}">
         <i class="bi bi-envelope me-2" aria-hidden="true"></i>{{ 'auth.login.link_instead'|trans }}
     </a>
+
+    {{ include('_social_login_buttons.html.twig', {existing_account_hint: true, last_used: true, divider_before: 'auth.login.or_continue_with'|trans}) }}
 {% endblock %}

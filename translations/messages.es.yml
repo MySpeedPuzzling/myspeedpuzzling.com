@@ -3170,6 +3170,7 @@ fair_use_policy:
     "new_here": "¿Eres nuevo en MySpeedPuzzling?"
     "submitting": "Iniciando sesión…"
     "link_instead": "Envíame un código de acceso"
+    "or_continue_with": "o continúa con"
   "failure_helper":
     "title": "El correo y la contraseña no coinciden."
     "vault_tip": "Si la guardaste en un gestor de contraseñas, busca «speedpuzzling»: las entradas antiguas pueden estar guardadas con otra dirección web."
@@ -3209,6 +3210,7 @@ fair_use_policy:
     "name_optional": "Tu nombre (opcional)"
     "submitting": "Creando tu cuenta…"
     "email_taken": "Este correo ya tiene una cuenta. <a href=\"%sign_in_url%\">Inicia sesión</a> o <a href=\"%link_url%\">pide un código de acceso</a>."
+    "continue_with_email": "Continuar con correo electrónico"
   "welcome":
     "title": "¡Bienvenido a MySpeedPuzzling!"
     "verification_sent": "Hemos enviado un enlace de confirmación a %email%. Ábrelo para confirmar que la dirección es tuya."
@@ -3275,7 +3277,7 @@ fair_use_policy:
       "created": "¡Bienvenido! Tu cuenta ya está lista y has iniciado sesión."
       "have_account_title": "¿Ya tienes una cuenta con otro correo?"
     "last_used": "Último usado"
-    "existing_account_hint": "¿Ya tienes cuenta? Entrarás en ella si usa el mismo correo."
+    "existing_account_hint": "¿El mismo correo que tu cuenta de MySpeedPuzzling? Entrarás directamente en ella."
   "account_set_password":
     "title": "Añadir una contraseña"
     "intro": "Inicias sesión con una cuenta conectada. Al añadir una contraseña se abre también la puerta clásica de correo electrónico + contraseña: útil como método de acceso de reserva."

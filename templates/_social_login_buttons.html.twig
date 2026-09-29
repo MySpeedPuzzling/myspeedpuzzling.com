@@ -1,6 +1,7 @@
-{# Social sign-in buttons (auth hardening PR 2) at the top of /login and
-   /register, followed by the "or" divider that leads to the email form
-   (docs/features/auth-ux-redesign.md §4.1). Which ones render depends on
+{# Social sign-in buttons (auth hardening PR 2) on /login (below the email
+   form, after an "or continue with" divider - every existing account has a
+   password, social sign-in is the newcomer) and on /register (below "Continue
+   with email"), docs/features/auth-ux-redesign.md §10. Which ones render depends on
    configuration only (SocialLoginSettings), never on the visitor - except in a
    social app's built-in browser (auth pages are no-store, so that is safe):
    there Google refuses to sign anybody in ("403 disallowed_useragent"), so its
@@ -9,7 +10,8 @@
 
    The buttons themselves (provider branding) live in _social_provider_button.
 
-   Parameters: existing_account_hint (bool, /login only), last_used (bool). #}
+   Parameters: existing_account_hint (bool, /login only), last_used (bool),
+   divider_before (translated text of a divider above the buttons, optional). #}
 
 {# Pass the page's ?return= on to the OAuth start route, so a social sign-in
    lands where a password sign-in would. The start route validates it before it
@@ -18,6 +20,10 @@
 {% set in_app = in_app_browser() %}
 
 {% if social_login.isAnyEnabled() %}
+    {% if divider_before|default(null) %}
+        <div class="auth-divider">{{ divider_before }}</div>
+    {% endif %}
+
     <div class="auth-social">
         {% if social_login.isProviderEnabled('google') %}
             {% if in_app is not null %}
@@ -46,6 +52,4 @@
     {% if existing_account_hint|default(false) %}
         <p class="auth-social-hint">{{ 'auth.social.existing_account_hint'|trans }}</p>
     {% endif %}
-
-    <div class="auth-divider">{{ 'auth.login.or'|trans }}</div>
 {% endif %}

@@ -295,6 +295,39 @@
     }
 }
 
+// "Continue with email" on /register: one of the equal-weight ways in, drawn
+// like the neutral provider buttons (white, grey stroke) so it does not
+// outrank them - and the site's own envelope, not a brand logo.
+.btn-email-signin {
+    --#{$prefix}btn-color: #1f1f1f;
+    --#{$prefix}btn-bg: #fff;
+    --#{$prefix}btn-border-color: #747775;
+    --#{$prefix}btn-hover-color: #1f1f1f;
+    --#{$prefix}btn-hover-bg: #eee;
+    --#{$prefix}btn-hover-border-color: #747775;
+    --#{$prefix}btn-active-color: #1f1f1f;
+    --#{$prefix}btn-active-bg: #e6e6e6;
+    --#{$prefix}btn-active-border-color: #747775;
+    --#{$prefix}btn-focus-shadow-rgb: 116, 119, 117;
+    font-weight: 500;
+}
+
+.btn-email-signin-icon {
+    margin-right: 10px;
+    font-size: 1.125rem;
+    line-height: 1;
+}
+
+// The email form opened under "Continue with email" - the providers follow
+// below the "or continue with" divider
+.auth-disclosure-panel {
+    scroll-margin-top: 6rem;
+
+    .auth-divider {
+        margin-bottom: 0;
+    }
+}
+
 // Desktop: the form and the illustration as one centred group, instead of
 // the form hugging the left edge and the picture the right one. Phones never
 // see the illustration, so nothing changes there.

@@ -3422,6 +3422,7 @@ auth:
         new_here: "New to MySpeedPuzzling?"
         submitting: "Signing in…"
         link_instead: "Email me a sign-in code instead"
+        or_continue_with: "or continue with"
     failure_helper:
         title: "That email and password don't match."
         vault_tip: "If your password manager saved it, search it for \"speedpuzzling\" — older entries may be filed under a different web address."
@@ -3461,6 +3462,7 @@ auth:
         name_optional: "Your name (optional)"
         submitting: "Creating your account…"
         email_taken: "This email already has an account. <a href=\"%sign_in_url%\">Sign in</a> or <a href=\"%link_url%\">get a sign-in code</a>."
+        continue_with_email: "Continue with email"
     welcome:
         title: "Welcome to MySpeedPuzzling!"
         verification_sent: "We sent a confirmation link to %email%. Open it to confirm the address is yours."
@@ -3527,7 +3529,7 @@ auth:
             created: "Welcome! Your account is ready and you are signed in."
             have_account_title: "Already have an account under a different email?"
         last_used: "Last used"
-        existing_account_hint: "Already have an account? You'll land in it if it uses the same email."
+        existing_account_hint: "Same email as your MySpeedPuzzling account? You'll land right in it."
     account_set_password:
         title: "Add a password"
         intro: "You sign in with a connected account. Adding a password also opens the classic email + password door — useful as a backup sign-in method."

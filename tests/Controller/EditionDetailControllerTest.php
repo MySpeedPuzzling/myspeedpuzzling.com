@@ -78,6 +78,7 @@ final class EditionDetailControllerTest extends WebTestCase
     public function testPastEditionTitleNamesItsSeriesAndSaysResults(): void
     {
         $browser = self::createClient();
+        self::linkResultToThePastEdition();
 
         $crawler = $browser->request('GET', self::PAST_EDITION_URL);
 
@@ -88,9 +89,25 @@ final class EditionDetailControllerTest extends WebTestCase
         self::assertSame('EJJ #68 — February 2026', trim($crawler->filter('h1')->text()));
     }
 
+    public function testPastEditionWithoutResultsIsNamedLikeAnUpcomingOne(): void
+    {
+        $browser = self::createClient();
+
+        // No fixture result is linked to EJJ #68 - a "Results" title would disappoint searchers
+        $crawler = $browser->request('GET', self::PAST_EDITION_URL);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame('Euro Jigsaw Jam · EJJ #68 — February 2026 – MySpeedPuzzling', $crawler->filter('title')->text());
+        self::assertStringStartsWith(
+            'EJJ #68 — February 2026 — Euro Jigsaw Jam speed puzzling competition on ',
+            (string) $crawler->filter('meta[name="description"]')->attr('content'),
+        );
+    }
+
     public function testPastEditionTitleIsLocalized(): void
     {
         $browser = self::createClient();
+        self::linkResultToThePastEdition();
 
         $crawler = $browser->request('GET', '/de/series/euro-jigsaw-jam-series/ejj-68-february-2026');
 
@@ -112,16 +129,17 @@ final class EditionDetailControllerTest extends WebTestCase
     {
         $browser = self::createClient();
 
-        // "Berlin Puzzle Cup 2026" of the series "Berlin Puzzle Cup", 45 days ago
+        // "Berlin Puzzle Cup 2026" of the series "Berlin Puzzle Cup", 45 days ago, no results here
         $crawler = $browser->request('GET', '/en/series/berlin-puzzle-cup/berlin-puzzle-cup-2026');
 
         $this->assertResponseIsSuccessful();
-        self::assertSame('Berlin Puzzle Cup 2026 Results – MySpeedPuzzling', $crawler->filter('title')->text());
+        self::assertSame('Berlin Puzzle Cup 2026 – MySpeedPuzzling', $crawler->filter('title')->text());
     }
 
     public function testEditionWithoutDatesIsDatedByItsRounds(): void
     {
         $browser = self::createClient();
+        self::linkResultToThePastEdition();
         $connection = self::getContainer()->get(Connection::class);
         $connection->executeStatement(
             "UPDATE competition SET name = 'EJJ #68', date_from = NULL, date_to = NULL WHERE id = :id",
@@ -146,10 +164,7 @@ final class EditionDetailControllerTest extends WebTestCase
     public function testPastEditionMetaDescriptionSaysHowManyResultsThereAre(): void
     {
         $browser = self::createClient();
-        self::getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE puzzle_solving_time SET competition_id = :editionId WHERE id = :timeId',
-            ['editionId' => CompetitionSeriesFixture::EDITION_EJJ_68, 'timeId' => PuzzleSolvingTimeFixture::TIME_01],
-        );
+        self::linkResultToThePastEdition();
 
         $crawler = $browser->request('GET', self::PAST_EDITION_URL);
 
@@ -243,5 +258,16 @@ final class EditionDetailControllerTest extends WebTestCase
         self::assertSame('Euro Jigsaw Jam · EJJ #68 — February 2026', $event['name'] ?? null);
         self::assertIsString($event['image'] ?? null);
         self::assertStringEndsWith('/original/ejj-logo.png', $event['image']);
+    }
+
+    /**
+     * No fixture time is linked to EJJ #68 - one result makes it an edition with results here.
+     */
+    private static function linkResultToThePastEdition(): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE puzzle_solving_time SET competition_id = :editionId WHERE id = :timeId',
+            ['editionId' => CompetitionSeriesFixture::EDITION_EJJ_68, 'timeId' => PuzzleSolvingTimeFixture::TIME_01],
+        );
     }
 }

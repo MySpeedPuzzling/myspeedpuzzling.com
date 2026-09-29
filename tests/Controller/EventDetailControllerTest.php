@@ -276,14 +276,16 @@ final class EventDetailControllerTest extends WebTestCase
         self::assertStringContainsString('in Prague', $description);
     }
 
-    public function testPastEventWithoutResultsKeepsTheGeneralDescription(): void
+    public function testPastEventWithoutResultsIsNamedLikeAnUpcomingOne(): void
     {
         $browser = self::createClient();
+        // Over, but nobody added a result to it here - a "Results" title would disappoint searchers
         self::moveToThePast(CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024);
 
         $crawler = $browser->request('GET', '/en/events/czech-nationals-2024');
 
         $this->assertResponseIsSuccessful();
+        self::assertSame('Czech National Championship 2024 – MySpeedPuzzling', $crawler->filter('title')->text());
         self::assertStringStartsWith('Czech National Championship 2024 — speed puzzling competition on ', self::metaDescription($crawler));
     }
 

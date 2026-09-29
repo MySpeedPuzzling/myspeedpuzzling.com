@@ -126,6 +126,17 @@ final class EventTitleTest extends TestCase
         self::assertTrue($past->isPast);
     }
 
+    public function testSaysResultsOnlyOnceOverAndWithResults(): void
+    {
+        $past = EventTitle::forCompetition($this->competition('Festival Des Jeux', '2026-09-26', '2026-09-26'), null, [], $this->today());
+        $upcoming = EventTitle::forCompetition($this->competition('Danish Puzzle Marathon', '2026-10-24', '2026-10-24'), null, [], $this->today());
+
+        self::assertTrue($past->saysResults(1));
+        // Over, but nobody added a result here - named like an upcoming event
+        self::assertFalse($past->saysResults(0));
+        self::assertFalse($upcoming->saysResults(12));
+    }
+
     public function testOwnDatesWinOverTheRounds(): void
     {
         $title = EventTitle::forCompetition(

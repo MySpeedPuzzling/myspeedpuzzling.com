@@ -17,7 +17,8 @@ use SpeedPuzzling\Web\Results\EditionRoundDetail;
  *   alone are often meaningless ("#21 - May 2026", "2026 Finals").
  * - The year follows the name unless the name already carries one ("Puzzle Marathon 2026").
  * - The event is over once its last day is before today - date_to ?? date_from, compared by calendar
- *   day like CompetitionEvent::startsAfter() and the event lists. Its pages then say "Results".
+ *   day like CompetitionEvent::startsAfter() and the event lists. Its pages then say "Results" - but
+ *   only when MySpeedPuzzling has results for it (saysResults()).
  *
  * Editions often have no dates of their own, only rounds - the round schedule stands in for them.
  */
@@ -72,5 +73,15 @@ readonly final class EventTitle
     public function label(): string
     {
         return $this->year === null ? $this->name : $this->name . ' ' . $this->year;
+    }
+
+    /**
+     * Whether the title and meta description lead with "Results": the event is over and people added
+     * results for it here. A "Results" title over a page without any would disappoint whoever searched
+     * for them - such an event is named like an upcoming one.
+     */
+    public function saysResults(int $resultsCount): bool
+    {
+        return $this->isPast && $resultsCount > 0;
     }
 }

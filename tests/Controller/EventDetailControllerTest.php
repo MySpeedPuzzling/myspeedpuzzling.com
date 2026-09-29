@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\TagFixture;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -322,6 +323,30 @@ final class EventDetailControllerTest extends WebTestCase
         );
         $this->assertSelectorTextContains('#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01, 'Qualification Round');
         $this->assertSelectorTextNotContains('main', 'No puzzles here');
+    }
+
+    public function testEventWithoutRoundsListsThePuzzlesPeopleLoggedTimesFor(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        // Euro Jigsaw Jam has neither a tag nor rounds
+        $connection->executeStatement(
+            'UPDATE puzzle_solving_time SET competition_id = :competitionId WHERE id = :timeId',
+            ['competitionId' => CompetitionFixture::COMPETITION_RECURRING_ONLINE, 'timeId' => PuzzleSolvingTimeFixture::TIME_01],
+        );
+        $puzzleId = $connection->fetchOne(
+            'SELECT puzzle_id FROM puzzle_solving_time WHERE id = :timeId',
+            ['timeId' => PuzzleSolvingTimeFixture::TIME_01],
+        );
+        self::assertIsString($puzzleId);
+
+        $crawler = $browser->request('GET', '/en/events/euro-jigsaw-jam');
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame(
+            ['puzzle-list-item-' . $puzzleId],
+            $crawler->filter('[id^="puzzle-list-item-"]')->each(static fn (Crawler $item): string => (string) $item->attr('id')),
+        );
     }
 
     public function testEventWithoutAnyPuzzlesSaysSo(): void

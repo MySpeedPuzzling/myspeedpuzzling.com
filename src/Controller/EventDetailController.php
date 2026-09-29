@@ -29,6 +29,10 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class EventDetailController extends AbstractController
 {
+    // An event entered without rounds lists the puzzles people logged times for - a perpetual online
+    // event collects hundreds, the most logged ones are enough
+    private const int SOLVED_PUZZLES_LIMIT = 48;
+
     public function __construct(
         readonly private GetCompetitionEvents $getCompetitionEvents,
         readonly private GetCompetitionPuzzles $getCompetitionPuzzles,
@@ -78,9 +82,14 @@ final class EventDetailController extends AbstractController
             $puzzles = $this->getPuzzleOverview->byTagId($competitionEvent->tagId);
         }
 
-        // Many organisers never tag their puzzles: then the puzzles of the event's rounds
+        // Many organisers never tag their puzzles: then the puzzles of the event's rounds, and for an event
+        // entered without rounds the puzzles people logged times for there
         if ($puzzles === []) {
             $puzzles = $this->getCompetitionPuzzles->roundPuzzleOverviews($competitionId);
+        }
+
+        if ($puzzles === []) {
+            $puzzles = $this->getCompetitionPuzzles->solvedPuzzleOverviews($competitionId, self::SOLVED_PUZZLES_LIMIT);
         }
 
         // Which round each puzzle was solved in. The query already applies the round's hide rules,

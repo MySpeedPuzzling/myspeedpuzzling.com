@@ -13,8 +13,9 @@ use SpeedPuzzling\Web\Results\CompetitionPuzzle;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 
 /**
- * The puzzles used at competitions - the ones carrying the competition's tag and the ones attached to
- * its rounds. A secret puzzle never leaks - the same embargo rules as GetEditionRounds:
+ * The puzzles used at competitions - the ones carrying the competition's tag, the ones attached to its
+ * rounds, or the ones people logged times for there. A secret puzzle never leaks - the same embargo
+ * rules as GetEditionRounds:
  *
  * - puzzle.hide_until drops the puzzle, puzzle.hide_image_until drops its image;
  * - a round puzzle flagged hide-until-round-starts stays hidden (mode "entirely") or imageless
@@ -214,6 +215,47 @@ ORDER BY round_puzzle.first_round_starts_at, puzzle.name
 SQL;
 
         return $this->puzzleOverviews($query, ['competitionId' => $competitionId], []);
+    }
+
+    /**
+     * The puzzles people logged (not suspicious) times for at a competition, the most logged first -
+     * for an event page whose event has neither tagged nor round puzzles, e.g. championships entered
+     * without rounds. Capped, because a perpetual online event collects hundreds of puzzles.
+     *
+     * @return list<PuzzleOverview>
+     */
+    public function solvedPuzzleOverviews(string $competitionId, int $limit): array
+    {
+        if (Uuid::isValid($competitionId) === false) {
+            return [];
+        }
+
+        $columns = self::puzzleOverviewColumns('false');
+
+        $query = <<<SQL
+WITH solved_puzzle AS (
+    SELECT pst.puzzle_id, COUNT(*) AS times_count
+    FROM puzzle_solving_time pst
+    WHERE pst.competition_id = :competitionId
+        AND pst.suspicious = false
+    GROUP BY pst.puzzle_id
+)
+SELECT
+{$columns}
+FROM solved_puzzle
+INNER JOIN puzzle ON puzzle.id = solved_puzzle.puzzle_id
+INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+LEFT JOIN puzzle_statistics ON puzzle_statistics.puzzle_id = puzzle.id
+WHERE puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp
+ORDER BY solved_puzzle.times_count DESC, puzzle.name
+LIMIT :limit
+SQL;
+
+        return $this->puzzleOverviews(
+            $query,
+            ['competitionId' => $competitionId, 'limit' => $limit],
+            ['limit' => ParameterType::INTEGER],
+        );
     }
 
     /**

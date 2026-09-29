@@ -122,6 +122,7 @@ final class GetCompetitionPuzzlesTest extends KernelTestCase
         self::assertSame([], $this->query->forCompetitions([]));
         self::assertSame([], $this->query->forCompetitions(['not-a-uuid']));
         self::assertSame([], $this->query->roundPuzzleOverviews('not-a-uuid'));
+        self::assertSame([], $this->query->solvedPuzzleOverviews('not-a-uuid', 10));
     }
 
     public function testRoundPuzzleOverviewsInScheduleOrderEachOnce(): void
@@ -159,6 +160,36 @@ final class GetCompetitionPuzzlesTest extends KernelTestCase
         self::assertSame(CompetitionApiFixture::IMAGE_VISIBLE, $overviews[CompetitionApiFixture::PUZZLE_VISIBLE]->puzzleImage);
         // The past round comes first in the schedule
         self::assertSame(CompetitionApiFixture::PUZZLE_PAST, array_key_first($overviews));
+    }
+
+    public function testSolvedPuzzleOverviewsMostLoggedFirst(): void
+    {
+        // WJPC 2024: three qualification times on PUZZLE_500_01, two final times on PUZZLE_1000_02
+        $ids = array_map(
+            static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId,
+            $this->query->solvedPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024, 10),
+        );
+
+        self::assertSame([PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_1000_02], $ids);
+
+        $capped = $this->query->solvedPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024, 1);
+        self::assertCount(1, $capped);
+        self::assertSame(PuzzleFixture::PUZZLE_500_01, $capped[0]->puzzleId);
+    }
+
+    public function testSolvedPuzzleOverviewsIgnoreSuspiciousTimes(): void
+    {
+        $this->database->executeStatement(
+            'UPDATE puzzle_solving_time SET suspicious = true WHERE competition_id = :competitionId AND puzzle_id = :puzzleId',
+            ['competitionId' => CompetitionFixture::COMPETITION_WJPC_2024, 'puzzleId' => PuzzleFixture::PUZZLE_500_01],
+        );
+
+        $ids = array_map(
+            static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId,
+            $this->query->solvedPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024, 10),
+        );
+
+        self::assertSame([PuzzleFixture::PUZZLE_1000_02], $ids);
     }
 
     private function tag(string $tagId, string $puzzleId): void

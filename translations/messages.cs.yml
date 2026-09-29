@@ -2318,7 +2318,7 @@ puzzle_intelligence:
             challenging: "Náročné"
             hard: "Těžké"
             veryhard: "Velmi těžké"
-            unknown: "Zatím nehodnoceno"
+            unknown: "Neznámá"
     distribution:
         top: "Top"
         much_faster: "Mnohem rychlejší"

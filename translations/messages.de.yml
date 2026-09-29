@@ -2390,7 +2390,7 @@ puzzle_intelligence:
             challenging: "Anspruchsvoll"
             hard: "Schwer"
             veryhard: "Sehr Schwer"
-            unknown: "Noch nicht bewertet"
+            unknown: "Unbekannt"
     distribution:
         top: "Top"
         much_faster: "Viel schneller"

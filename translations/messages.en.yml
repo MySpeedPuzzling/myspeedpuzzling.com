@@ -2685,7 +2685,7 @@ puzzle_intelligence:
             challenging: "Challenging"
             hard: "Hard"
             veryhard: "Very Hard"
-            unknown: "Not rated yet"
+            unknown: "Unknown"
         confidence_levels:
             low: "Low confidence"
             medium: "Medium confidence"

@@ -2381,7 +2381,7 @@ puzzle_intelligence:
             challenging: "やや難しい"
             hard: "難しい"
             veryhard: "非常に難しい"
-            unknown: "未評価"
+            unknown: "不明"
     distribution:
         top: "トップ"
         much_faster: "かなり速い"

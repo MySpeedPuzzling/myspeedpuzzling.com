@@ -21,6 +21,10 @@ return App::config([
                 // session-free (#164), so its token id must not fall back to the
                 // session-backed manager
                 'sign_in_link',
+                // The 6-digit code form on the "Check your email" screen - stateless
+                // like the request form it follows; the token must not depend on
+                // the session that SignInCodePending keeps
+                'sign_in_code',
                 // Same reason: the "forgot password" form is rendered for anonymous
                 // visitors, and a session-backed token would put a cookie on the page
                 'request_password_reset',

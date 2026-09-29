@@ -166,13 +166,14 @@ feature_request_declined:
             <p><strong>チームからのコメント:</strong> %adminComment%</p>
 
 sign_in_link:
-    subject: "MySpeedPuzzling.comのサインインリンク"
-    title: "サインインリンクをお送りします"
+    subject: "MySpeedPuzzlingのサインインコード: %code%"
+    title: "サインインコード"
     content: |
-        <p>下のボタンをクリックすると、パスワードなしでMySpeedPuzzling.comにサインインできます。</p>
+        <p>コードをリクエストしたMySpeedPuzzlingのページで、このコードを入力してください。</p>
+    or_link: "または、ワンタップでサインイン:"
     button: "サインイン"
-    expires: "リンクは1回のみ有効で、%minutes%分で期限切れになります。"
-    not_requested: "お心当たりがない場合は、このメールは無視していただいて問題ありません。リンクがなければ誰もサインインできません。"
+    expires: "コードとリンクは合わせて1回のみ有効です(先に使った方が有効)。どちらも%minutes%分で期限切れになります。"
+    not_requested: "お心当たりがない場合は、このメールは無視していただいて問題ありません。コードまたはリンクがなければ誰もサインインできません。"
 
 verify_email:
     subject: "MySpeedPuzzling.comのメールアドレスを確認してください"

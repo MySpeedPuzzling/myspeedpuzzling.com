@@ -166,13 +166,14 @@ feature_request_declined:
             <p><strong>Komentář od týmu:</strong> %adminComment%</p>
 
 sign_in_link:
-    subject: "Váš přihlašovací odkaz pro MySpeedPuzzling.com"
-    title: "Tady je váš přihlašovací odkaz"
+    subject: "%code% je váš přihlašovací kód pro MySpeedPuzzling"
+    title: "Váš přihlašovací kód"
     content: |
-        <p>Kliknutím na tlačítko níže se přihlásíte na MySpeedPuzzling.com — heslo nepotřebujete.</p>
+        <p>Zadejte tento kód na stránce MySpeedPuzzling, kde jste si o něj řekli:</p>
+    or_link: "Nebo se přihlaste jedním klepnutím:"
     button: "Přihlásit se"
-    expires: "Odkaz funguje jednou a vyprší za %minutes% minut."
-    not_requested: "Nežádali jste o něj? Tento e-mail můžete klidně ignorovat — bez odkazu se nikdo nepřihlásí."
+    expires: "Kód i odkaz fungují jen jednou — platí ten, který použijete dřív. Oba vyprší za %minutes% minut."
+    not_requested: "Nežádali jste o něj? Tento e-mail můžete klidně ignorovat — bez kódu nebo odkazu se nikdo nepřihlásí."
 
 verify_email:
     subject: "Potvrďte svou e-mailovou adresu pro MySpeedPuzzling.com"

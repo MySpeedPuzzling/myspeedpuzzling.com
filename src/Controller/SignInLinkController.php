@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Log\LoggerInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\EventSubscriber\NativeAuthPageSubscriber;
 use SpeedPuzzling\Web\Message\RequestSignInLink;
 use SpeedPuzzling\Web\Services\CheckEmailFlash;
+use SpeedPuzzling\Web\Services\SignInCodePending;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,9 +24,10 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * "Email me a sign-in link" (D6, issue #147): the rescue for everybody without
+ * "Email me a sign-in code" (D6, issue #147): the rescue for everybody without
  * a usable password - forgotten, or filed by their password manager under the
- * old Auth0 sign-in domain.
+ * old Auth0 sign-in domain. The mail carries a link and a 6-digit code (auth UX
+ * redesign phase 2); the code is bound to this browser (SignInCodePending).
  *
  * Success is its own screen (/login-link/sent, SignInLinkSentController): the
  * address travels there in a flash (CheckEmailFlash), never in a URL. Anything that
@@ -45,6 +48,7 @@ final class SignInLinkController extends AbstractController
         private readonly ValidatorInterface $validator,
         private readonly RateLimiterFactoryInterface $signInLinkEmailLimiter,
         private readonly RateLimiterFactoryInterface $signInLinkIpLimiter,
+        private readonly SignInCodePending $signInCodePending,
     ) {
     }
 
@@ -82,12 +86,17 @@ final class SignInLinkController extends AbstractController
             return $this->renderForm($email, $returnUrl, alert: 'auth.sign_in_link.too_many_requests');
         }
 
+        // Chosen here, not in the handler: this browser keeps it to check the
+        // e-mailed 6-digit code against - also when no mail goes out (D8)
+        $requestId = Uuid::uuid7();
+
         try {
             $this->messageBus->dispatch(
                 new RequestSignInLink(
                     email: $email,
                     fallbackLocale: $request->getLocale(),
                     returnPath: $returnUrl?->path,
+                    requestId: $requestId,
                 ),
             );
         } catch (HandlerFailedException $exception) {
@@ -100,6 +109,7 @@ final class SignInLinkController extends AbstractController
 
         // Deliberately identical for known and unknown addresses
         CheckEmailFlash::add($request, CheckEmailFlash::SIGN_IN_LINK, $email, $request->request->getBoolean('resend'));
+        $this->signInCodePending->start($request, $requestId, $email);
 
         return $this->redirectToRoute(
             'sign_in_link_sent',

@@ -3169,19 +3169,19 @@ fair_use_policy:
     "or": "o"
     "new_here": "¿Eres nuevo en MySpeedPuzzling?"
     "submitting": "Iniciando sesión…"
-    "link_instead": "Envíame un enlace de acceso"
+    "link_instead": "Envíame un código de acceso"
   "failure_helper":
     "title": "El correo y la contraseña no coinciden."
     "vault_tip": "Si la guardaste en un gestor de contraseñas, busca «speedpuzzling»: las entradas antiguas pueden estar guardadas con otra dirección web."
-    "throttled": "Demasiados intentos. Espera unos minutos o pide un enlace de acceso por correo."
-    "link": "Envíame un enlace de acceso"
+    "throttled": "Demasiados intentos. Espera unos minutos o pide un código de acceso por correo."
+    "link": "Enviarme un código de acceso"
   "sign_in_link":
-    "title": "Recibir un enlace de acceso"
-    "intro": "Te enviaremos por correo un enlace para entrar, sin contraseña."
-    "submit": "Envíame un enlace de acceso por correo"
+    "title": "Recibe un código de acceso"
+    "intro": "Te enviaremos por correo un código y un enlace. Cualquiera de los dos te da acceso, sin contraseña."
+    "submit": "Enviarme un código"
     "email_required": "Introduce tu dirección de correo electrónico."
-    "too_many_requests": "Has pedido varios enlaces seguidos. Espera unos minutos: el último que te enviamos sigue funcionando."
-    "failed": "No hemos podido enviar el enlace de acceso. Inténtalo de nuevo en un momento."
+    "too_many_requests": "Has pedido varios códigos seguidos. Espera unos minutos: el último que te enviamos sigue funcionando."
+    "failed": "No hemos podido enviar el correo de acceso. Inténtalo de nuevo en un momento."
     "invalid_link": "Ese enlace de acceso ya no es válido: puede que haya caducado o que ya se haya usado. Solicita uno nuevo aquí abajo."
     "check_title": "Iniciando sesión…"
     "check_intro": "Un momento: estamos iniciando tu sesión. Si no ocurre nada en unos segundos, pulsa el botón."
@@ -3203,12 +3203,12 @@ fair_use_policy:
     "password_hint": "Al menos %minimum% caracteres."
     "submit": "Crear cuenta"
     "have_account": "¿Ya tienes una cuenta?"
-    "email_already_registered": "Esta dirección de correo electrónico ya tiene una cuenta. Inicia sesión, o usa \"Envíame un enlace de acceso por correo\" si no consigues dar con la contraseña."
+    "email_already_registered": "Esta dirección ya tiene una cuenta. Inicia sesión, o usa «Envíame un código de acceso» si no das con la contraseña."
     "too_many_attempts": "Demasiados intentos de registro desde aquí. Inténtalo de nuevo más tarde."
     "failed": "No hemos podido crear tu cuenta. Inténtalo de nuevo en un momento."
     "name_optional": "Tu nombre (opcional)"
     "submitting": "Creando tu cuenta…"
-    "email_taken": "Este correo ya tiene una cuenta. <a href=\"%sign_in_url%\">Inicia sesión</a> o <a href=\"%link_url%\">pide un enlace de acceso</a>."
+    "email_taken": "Este correo ya tiene una cuenta. <a href=\"%sign_in_url%\">Inicia sesión</a> o <a href=\"%link_url%\">pide un código de acceso</a>."
   "welcome":
     "title": "¡Bienvenido a MySpeedPuzzling!"
     "verification_sent": "Hemos enviado un enlace de confirmación a %email%. Ábrelo para confirmar que la dirección es tuya."
@@ -3250,7 +3250,7 @@ fair_use_policy:
       "headline": "Este enlace de restablecimiento no funciona"
       "message": "Puede que ya se haya usado, o que un enlace de restablecimiento más nuevo lo haya sustituido. Solicita uno nuevo aquí abajo."
     "just_get_in": "¿Solo quieres entrar?"
-    "get_link_instead": "Pide un enlace de acceso"
+    "get_link_instead": "Pide un código de acceso"
     "submitting": "Guardando…"
     "request_new": "Envíame un enlace nuevo"
   "social":
@@ -3298,6 +3298,11 @@ fair_use_policy:
     "resent": "Te hemos enviado un enlace nuevo."
     "sending": "Enviando…"
     "email_invalid": "Introduce una dirección de correo válida, como nombre@example.com."
+    "code_sent_to": "Hemos enviado un código de 6 dígitos y un enlace de acceso a"
+    "code_next_step": "O toca el enlace del correo. El código y el enlace sirven una vez, durante %minutes% minutos."
+    "resend_code": "Enviar un código nuevo"
+    "resend_code_wait": "Enviar un código nuevo (%time%)"
+    "resent_code": "Te hemos enviado un código nuevo. El anterior ya no sirve aquí."
   "in_app":
     "title": "Estás en el navegador de %app%"
     "google": "El inicio de sesión con Google no funciona aquí."
@@ -3306,6 +3311,16 @@ fair_use_policy:
     "open_android": "Abrir en Chrome"
     "copy": "Copiar enlace"
     "copied": "Enlace copiado"
+  "sign_in_code":
+    "label": "Introduce el código de 6 dígitos del correo"
+    "wrong": "Ese código no es correcto. Te queda %count% intento.|Ese código no es correcto. Te quedan %count% intentos."
+    "malformed": "Introduce los 6 dígitos del correo."
+    "throttled": "Demasiados intentos. Espera unos minutos o usa el enlace del correo."
+    "locked_out": "Demasiados intentos: este código ya no sirve. Usa el enlace del correo o pide un código nuevo."
+    "expired": "Este código ha caducado. Pide uno nuevo abajo."
+    "used": "Este código, o el enlace del mismo correo, ya se ha usado. Pide uno nuevo abajo."
+    "no_pending": "Ese código de acceso ya no es válido aquí. Pide uno nuevo abajo."
+    "failed": "No ha funcionado. Inténtalo de nuevo."
 
 newsletter:
     footer:
@@ -3381,6 +3396,8 @@ account_activity:
         oauth_identity_linked: "Método de inicio de sesión conectado"
         oauth_identity_unlinked: "Método de inicio de sesión desconectado"
         account_deletion_requested: "Eliminación de cuenta solicitada"
+        sign_in_code_used: "Inicio de sesión con un código enviado por correo"
+        sign_in_code_failed: "Código de acceso incorrecto"
 
 account_deletion:
     confirm:

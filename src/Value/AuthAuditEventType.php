@@ -11,6 +11,10 @@ enum AuthAuditEventType: string
     case Logout = 'logout';
     case SignInLinkRequested = 'sign_in_link_requested';
     case SignInLinkUsed = 'sign_in_link_used';
+    // The 6-digit code from the same mail (auth UX redesign phase 2). A wrong
+    // code is its own event (metadata.code = SignInCodeOutcome, never the code)
+    case SignInCodeUsed = 'sign_in_code_used';
+    case SignInCodeFailed = 'sign_in_code_failed';
     case PasswordResetRequested = 'password_reset_requested';
     case PasswordResetCompleted = 'password_reset_completed';
     case PasswordChanged = 'password_changed';

@@ -3421,19 +3421,19 @@ auth:
         or: "or"
         new_here: "New to MySpeedPuzzling?"
         submitting: "Signing in…"
-        link_instead: "Email me a sign-in link instead"
+        link_instead: "Email me a sign-in code instead"
     failure_helper:
         title: "That email and password don't match."
         vault_tip: "If your password manager saved it, search it for \"speedpuzzling\" — older entries may be filed under a different web address."
-        throttled: "Too many attempts. Wait a few minutes, or get a sign-in link by email."
-        link: "Email me a sign-in link"
+        throttled: "Too many attempts. Wait a few minutes, or get a sign-in code by email."
+        link: "Email me a sign-in code"
     sign_in_link:
-        title: "Get a sign-in link"
-        intro: "We'll email you a link that signs you in — no password needed."
-        submit: "Email me a sign-in link"
+        title: "Get a sign-in code"
+        intro: "We'll email you a code and a link. Either one signs you in — no password needed."
+        submit: "Email me a code"
         email_required: "Enter your email address."
-        too_many_requests: "You've asked for several links in a row. Wait a few minutes — the last one we sent still works."
-        failed: "We could not send the sign-in link. Please try again in a moment."
+        too_many_requests: "You've asked for several codes in a row. Wait a few minutes — the last one we sent still works."
+        failed: "We could not send the sign-in email. Please try again in a moment."
         invalid_link: "That sign-in link is no longer valid — it may have expired or already been used. Request a new one below."
         check_title: "Signing you in…"
         check_intro: "Just a moment — you are being signed in. If nothing happens within a few seconds, press the button."
@@ -3455,12 +3455,12 @@ auth:
         password_hint: "At least %minimum% characters."
         submit: "Create account"
         have_account: "Already have an account?"
-        email_already_registered: "This email address already has an account. Sign in instead — or use \"Email me a sign-in link\" if the password will not come to hand."
+        email_already_registered: "This email address already has an account. Sign in instead — or use \"Email me a sign-in code\" if the password will not come to hand."
         too_many_attempts: "Too many registration attempts from here. Please try again later."
         failed: "We could not create your account. Please try again in a moment."
         name_optional: "Your name (optional)"
         submitting: "Creating your account…"
-        email_taken: "This email already has an account. <a href=\"%sign_in_url%\">Sign in</a> or <a href=\"%link_url%\">get a sign-in link</a>."
+        email_taken: "This email already has an account. <a href=\"%sign_in_url%\">Sign in</a> or <a href=\"%link_url%\">get a sign-in code</a>."
     welcome:
         title: "Welcome to MySpeedPuzzling!"
         verification_sent: "We sent a confirmation link to %email%. Open it to confirm the address is yours."
@@ -3502,7 +3502,7 @@ auth:
             headline: "This reset link does not work"
             message: "It may already have been used, or a newer reset link replaced it. Ask for a new one below."
         just_get_in: "Just want to get in?"
-        get_link_instead: "Get a sign-in link instead"
+        get_link_instead: "Get a sign-in code instead"
         submitting: "Saving…"
         request_new: "Email me a new link"
     social:
@@ -3550,6 +3550,11 @@ auth:
         resent: "We sent you a new link."
         sending: "Sending…"
         email_invalid: "Enter a valid email address, like name@example.com."
+        code_sent_to: "We sent a 6-digit code and a sign-in link to"
+        code_next_step: "Or tap the link in the email. Code and link work once, for %minutes% minutes."
+        resend_code: "Send a new code"
+        resend_code_wait: "Send a new code (%time%)"
+        resent_code: "We sent a new code. The old one no longer works here."
     in_app:
         title: "You're in %app%'s browser"
         google: "Google sign-in doesn't work here."
@@ -3558,6 +3563,16 @@ auth:
         open_android: "Open in Chrome"
         copy: "Copy link"
         copied: "Link copied"
+    sign_in_code:
+        label: "Enter the 6-digit code from the email"
+        wrong: "That code isn't right. %count% try left.|That code isn't right. %count% tries left."
+        malformed: "Enter the 6 digits from the email."
+        throttled: "Too many tries. Wait a few minutes, or use the link in the email."
+        locked_out: "Too many tries — this code no longer works. Use the link in the email, or request a new code."
+        expired: "This code has expired. Request a new one below."
+        used: "This code, or the link from the same email, has already been used. Request a new one below."
+        no_pending: "That sign-in code is no longer valid here. Request a new one below."
+        failed: "That did not work. Please try again."
 
 newsletter:
     footer:
@@ -3633,6 +3648,8 @@ account_activity:
         oauth_identity_linked: "Sign-in method connected"
         oauth_identity_unlinked: "Sign-in method disconnected"
         account_deletion_requested: "Account deletion requested"
+        sign_in_code_used: "Signed in with an emailed code"
+        sign_in_code_failed: "Wrong sign-in code entered"
 
 account_deletion:
     confirm:

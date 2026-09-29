@@ -1,8 +1,8 @@
 # Sign-in / sign-up UX redesign
 
 Status: **phase 1 SHIPPED 2026-09-29** (layout, copy, sent screens, toggle, in-app notice, return URL
-through the link, auto sign-in after reset). **Phase 2 = the 6-digit code** in the sign-in e-mail
-(§4.3/§4.4, D1) - not built; everything below still says "code" where phase 1 says "link".
+through the link, auto sign-in after reset). **Phase 2 SHIPPED 2026-09-29**: the 6-digit code in the
+sign-in e-mail next to the link (§4.3/§4.4, D1) - see §9 for what was built and where it differs.
 Mobile first, desktop kept good. See §8 for what shipped and where it differs from this spec.
 Scope: `/login`, `/register`, `/login-link` (+ new "check your email" state), `/password-reset`
 (+ "check your email"), `/password-reset/{token}`, `/register/social` (both variants), the in-app
@@ -732,3 +732,42 @@ D4 auto sign-in after reset **yes**; D5 last-used badge **yes**; D6 shared compu
   ending on the welcome page; only the login ↔ register cross-links carry `?return=`.
 - Viewport `maximum-scale=1` is **intentional** (stops iOS focus-zoom on < 16px inputs); left as
   is. Follow-up issue: make every input ≥ 16px site-wide first, then drop it.
+
+---
+
+## 9. Phase 2 - the 6-digit code, as built (2026-09-29)
+
+Why: in Instagram/Facebook in-app browsers a tapped e-mail link opens the phone's own browser, so
+the visitor ends up signed in *there*; same for "read the mail on the laptop, sign in on the
+phone". A typed code signs in the browser that asked for it.
+
+| Piece | What shipped |
+|---|---|
+| Mail | `RequestSignInLinkHandler` mints the code (`SignInCodeHasher::generate()`, `random_int`) with the link; subject `"%code% is your MySpeedPuzzling sign-in code"`, big monospace code (one unbroken run of digits - copy, long-press and OS one-time-code autofill get exactly six), then "Or sign in with one tap" + the unchanged link. 6 locales (`emails.*.yml` `sign_in_link.*`). The link, its self-submitting check page and the scanner grace window are untouched. |
+| Storage | Same `login_link_request` row (one request = one sign-in): `code_hash` = HMAC-SHA256(`kernel.secret`, row id + code) - the row id is the per-request salt, `code_failed_attempts`, `code_used_at`. Constant-time compare (`hash_equals`). |
+| Binding to the browser | `SignInLinkController` picks the request id (`RequestSignInLink::$requestId`) and `SignInCodePending` keeps it in the session (plus the address, expiry = link lifetime) - never in a URL. The session already exists on this path (the flash). Unknown addresses get a pending id no row will ever carry, so screen, countdown and failure look identical (D8). A new request replaces the pending one ("The old one no longer works here" - the older mail's *link* still works). |
+| Screen | `/login-link/sent` renders while a sign-in is pending - also after a reload (in-app browsers may reload when the visitor switches to the mail app); first view still reads the flash for the "we sent a new one" line. Code form in the `next_step` block: one input, `inputmode=numeric`, `autocomplete=one-time-code`, `pattern=[0-9]*`, `maxlength=6`, `enterkeyhint=go`, autofocus, 28px monospace with letter-spacing. `sign_in_code_controller.js`: keeps digits of a paste ("123 456" before maxlength cuts it), drops non-digits, submits on the 6th digit (never the same six twice in a row). Works without JS (server strips spaces/dashes/nbsp). |
+| Authentication | `SignInCodeAuthenticator` on `main`, `supports()` = exactly `POST /login-link/code` (route `sign_in_code`) - it never fails on anything else, so the remember-me cookie of other requests is safe. Order: pending sign-in in this session -> CSRF (stateless id `sign_in_code`) -> six digits -> limiters -> `VerifySignInCode` (handler locks the row `FOR UPDATE`, counts, consumes, *reports* a `SignInCodeCheck` instead of throwing so the attempt counter commits). Success = normal login (session migration, always-on `RememberMeBadge`, `LoginSuccessEvent`), landing shared with the link (`LoginLinkSuccessHandler`: legacy set-password prompt, booked `?return=`, profile), 303. Failure -> `SignInCodeController` re-renders the screen with **422**. |
+| Limits | 5 wrong codes per issued code (`LoginLinkRequest::MAX_CODE_ATTEMPTS`), then the **code** dies and the **link keeps working** - guessing digits teaches nothing about the link's signature, and whoever holds the mail should still get in with one tap; killing the link would only punish the person who mistyped. On top: `sign_in_code_email` 10 / 15 min per address (so fresh codes don't buy fresh guesses), `sign_in_code_ip` 30 / 15 min. With 3 requests / 15 min per address that is <= 10 guesses per 10^6 codes per window. |
+| One sign-in per request | Link used -> `consumed_at` set -> code says "already been used". Code used -> `consumed_at` + `code_used_at` -> `consumeIfOpen()` refuses the link even inside the 60 s scanner grace window. |
+| Messages | Wrong: "That code isn't right. N tries left." (plural forms per locale), 5th: "Too many tries — this code no longer works. Use the link in the email, or request a new code.", limiter: "Too many tries. Wait a few minutes, or use the link in the email.", expired / used alerts, not six digits: "Enter the 6 digits from the email." (costs no try). Nothing pending (other browser, used, locked) -> 303 to `/login-link` with "That sign-in code is no longer valid here." |
+| Audit | `sign_in_code_used` (success), `sign_in_code_failed` with `metadata.code` = `SignInCodeOutcome` (`wrong`, `locked_out`, `expired`, `used`, `throttled`, `malformed`, `unknown`...) - never the typed value. Both on the recent-activity page. |
+| Copy | "Email me a sign-in code instead" (login), "Get a sign-in code" / "We'll email you a code and a link..." (`/login-link`), "We sent a 6-digit code and a sign-in link to", "Enter the 6-digit code from the email", "Send a new code" - all 6 locales. |
+
+**Deviations from §4.4, and why**
+
+- The code is shown and put in the subject **without** the space ("123456", not "123 456"): an
+  unbroken run is what one-time-code autofill and "copy code" chips pick up reliably; the input
+  still accepts "123 456".
+- Lock-out kills the code only, not the link (spec said "the code dies (link too)") - see Limits.
+- Auto-submit on every sixth digit (not only on paste): the form never re-sends the same six digits,
+  so correcting one digit is one new attempt, never a loop.
+- Same-second requests: a Symfony login link is a pure function of account + expiry second, so two
+  requests in one second produced the same link and the second row hit the unique hash (phase 1
+  bug, reachable with a double tap). `SingleUseLoginLinkHandler` now shifts the colliding link's
+  expiry by a second.
+
+**Desktop polish (same release):** `_auth_layout.html.twig` centres the form + illustration as one
+group (`.auth-frame`, max 60rem from md up) instead of form hard left / picture hard right at
+1280px; mobile unchanged.
+

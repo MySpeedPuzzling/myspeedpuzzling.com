@@ -39,6 +39,20 @@ return App::config([
                 'limit' => 20,
                 'interval' => '1 hour',
             ],
+            // The 6-digit code from the sign-in e-mail (auth UX redesign phase 2). The
+            // real cap is per issued code (5 wrong tries, VerifySignInCodeHandler);
+            // these stop a guesser from simply asking for fresh codes (per address)
+            // or working through many addresses (per IP; generous for venue NATs).
+            'sign_in_code_email' => [
+                'policy' => 'sliding_window',
+                'limit' => 10,
+                'interval' => '15 minutes',
+            ],
+            'sign_in_code_ip' => [
+                'policy' => 'sliding_window',
+                'limit' => 30,
+                'interval' => '15 minutes',
+            ],
             // Password reset is the same shape of hazard as the sign-in link: an
             // unauthenticated endpoint that mails an address the caller picks.
             'password_reset_email' => [

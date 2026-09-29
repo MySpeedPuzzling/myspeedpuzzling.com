@@ -108,6 +108,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$bounceEmailDomain', '%bounceEmailDomain%')
         ->bind('$signInLinkLifetimeSeconds', '%signInLinkLifetimeSeconds%')
         ->bind('$signInLinkReuseGraceSeconds', '%signInLinkReuseGraceSeconds%')
+        ->bind('$kernelSecret', '%kernel.secret%')
         ->bind('$pairsTeamsPickerPublic', '%pairsTeamsPickerPublic%')
         ->bind('$socialLoginFacebookEnabled', '%socialLoginFacebookEnabled%')
         ->bind('$googleClientId', '%env(trim:string:GOOGLE_CLIENT_ID)%')
@@ -184,6 +185,7 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Security/SignInLinkPasswordPrompt.php',
             __DIR__ . '/../src/Security/SocialRegistrationRequired.php',
             __DIR__ . '/../src/Security/SocialLoginFailed.php',
+            __DIR__ . '/../src/Security/SignInCodeRejected.php',
         ]);
 
     // Single-use magic sign-in links (D18, issue #147): wraps the handler the

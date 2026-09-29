@@ -7,16 +7,65 @@
 {% block auth_content %}
     {% embed '_auth_check_email.html.twig' with {
         back_href: path('login', return_params),
-        sent_to: 'auth.check_email.link_sent_to'|trans,
-        resent_message: 'auth.check_email.resent'|trans,
+        sent_to: 'auth.check_email.code_sent_to'|trans,
+        resent_message: 'auth.check_email.resent_code'|trans,
         change_href: path('sign_in_link_request', return_params),
         resend_action: path('sign_in_link_request'),
         resend_csrf_id: constant('SpeedPuzzling\\Web\\Controller\\SignInLinkController::CSRF_TOKEN_ID'),
-        resend_label: 'auth.check_email.resend_link'|trans,
+        resend_label: 'auth.check_email.resend_code'|trans,
+        resend_wait_label: 'auth.check_email.resend_code_wait'|trans,
     } %}
-        {# Phase 2 puts the 6-digit code input here #}
+        {# The 6-digit code (docs/features/auth-ux-redesign.md §4.4, phase 2): it
+           signs in THIS browser - the in-app browser case, where the link would
+           open the phone's own browser. One input, not six boxes (paste, autofill
+           and screen readers all need one field). Works without JS; the
+           sign-in-code controller only cleans pasted text and submits on the
+           sixth digit. #}
         {% block next_step %}
-            <p class="mb-0">{{ 'auth.check_email.link_next_step'|trans({'%minutes%': expires_in_minutes}) }}</p>
+            {% if alert %}
+                <div class="alert alert-warning" role="alert">{{ alert }}</div>
+            {% endif %}
+
+            {% if code_available %}
+                <form action="{{ path('sign_in_code') }}" method="post" novalidate class="auth-code-form" data-controller="sign-in-code" data-action="submit->last-sign-in#remember" data-last-sign-in-method="link">
+                    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Security\\SignInCodeAuthenticator::CSRF_TOKEN_ID')) }}">
+                    {% if return_path %}
+                        <input type="hidden" name="return" value="{{ return_path }}">
+                    {% endif %}
+
+                    <label class="form-label" for="sign-in-code">{{ 'auth.sign_in_code.label'|trans }}</label>
+                    <input
+                        class="form-control auth-code-input{{ code_error ? ' is-invalid' : '' }}"
+                        type="text"
+                        id="sign-in-code"
+                        name="code"
+                        inputmode="numeric"
+                        autocomplete="one-time-code"
+                        pattern="[0-9]*"
+                        maxlength="6"
+                        enterkeyhint="go"
+                        autocapitalize="none"
+                        autocorrect="off"
+                        spellcheck="false"
+                        required
+                        autofocus
+                        data-sign-in-code-target="input"
+                        data-action="input->sign-in-code#input paste->sign-in-code#paste"
+                        {% if code_error %}aria-invalid="true" aria-describedby="sign-in-code-error"{% endif %}
+                    >
+                    {% if code_error %}
+                        <div class="invalid-feedback d-block" id="sign-in-code-error">{{ code_error }}</div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-primary w-100 mt-3" data-turbo-submits-with="{{ 'auth.login.submitting'|trans }}">
+                        {{ 'auth.login.submit'|trans }}
+                    </button>
+                </form>
+
+                <p class="mt-3 mb-0">{{ 'auth.check_email.code_next_step'|trans({'%minutes%': expires_in_minutes}) }}</p>
+            {% elseif not alert %}
+                <p class="mb-0">{{ 'auth.check_email.link_next_step'|trans({'%minutes%': expires_in_minutes}) }}</p>
+            {% endif %}
         {% endblock %}
     {% endembed %}
 {% endblock %}

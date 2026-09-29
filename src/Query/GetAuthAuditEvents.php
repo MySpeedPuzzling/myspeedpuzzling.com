@@ -21,7 +21,9 @@ readonly final class GetAuthAuditEvents
     private const array VISIBLE_EVENT_TYPES = [
         'login_success',
         'sign_in_link_used',
+        'sign_in_code_used',
         'login_failure',
+        'sign_in_code_failed',
         'password_changed',
         'password_reset_completed',
         'oauth_login',

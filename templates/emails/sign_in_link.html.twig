@@ -1,4 +1,12 @@
 {% trans_default_domain 'emails' %}
+{# One mail, two ways in (docs/features/auth-ux-redesign.md §4.4): the 6-digit
+   code for the browser that asked for it (an in-app browser would hand the
+   link to the phone's own browser), the link for one tap anywhere. The code is
+   also in the subject, so the notification alone is enough.
+
+   The code is one unbroken run of digits (letter-spacing only looks spaced), so
+   a copy, a long-press or the OS's one-time-code autofill gets exactly six
+   digits. #}
 {% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
     <wrapper>
         <container>
@@ -20,6 +28,15 @@
 
             <row>
                 <columns>
+                    <center>
+                        <p class="text-center" style="margin: 8px 0 16px; padding: 14px 20px; background: #f3f5f9; border-radius: 8px; font-family: 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace; font-size: 34px; line-height: 1.2; font-weight: 700; letter-spacing: 8px; color: #2b3445;">{{ code }}</p>
+                    </center>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p class="text-center">{{ 'sign_in_link.or_link'|trans }}</p>
                     <center>
                         <button href="{{ signInUrl }}">{{ 'sign_in_link.button'|trans }}</button>
                     </center>

@@ -21,13 +21,35 @@ use Ramsey\Uuid\UuidInterface;
  * Every issued link gets a row here (only the sha256 of the link signature is
  * stored — a DB leak alone can never forge a usable link) and the row is
  * consumed on the first successful login. Same shape as ResetPasswordRequest.
+ *
+ * Since the auth UX redesign phase 2 the same mail also carries a 6-digit code
+ * (docs/features/auth-ux-redesign.md §4.4) for the browser that asked for it -
+ * the in-app browser case, where the link would open the phone's own browser.
+ * Link and code are one sign-in: whichever is used first consumes the row.
+ * Only an HMAC of the code is stored (SignInCodeHasher), keyed with the row id.
  */
 #[Entity]
 class LoginLinkRequest
 {
+    public const int MAX_CODE_ATTEMPTS = 5;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIMETZ_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $consumedAt = null;
+
+    /**
+     * Set when the code (not the link) signed in. The link's scanner grace
+     * window (SingleUseLoginLinkHandler) does not apply then: the one sign-in
+     * of this request already happened, in the browser that asked for it.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIMETZ_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $codeUsedAt = null;
+
+    /** Wrong codes typed for this request; at MAX_CODE_ATTEMPTS the code is dead (the link lives on) */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => 0])]
+    public int $codeFailedAttempts = 0;
 
     public function __construct(
         #[Id]
@@ -56,6 +78,13 @@ class LoginLinkRequest
         #[Immutable]
         #[Column(length: 2048, nullable: true)]
         public null|string $returnPath = null,
+        /**
+         * HMAC-SHA256 of the 6-digit code (SignInCodeHasher). Null for a link
+         * issued without a code (anything but the "Email me a sign-in code" form).
+         */
+        #[Immutable]
+        #[Column(length: 64, nullable: true)]
+        public null|string $codeHash = null,
     ) {
     }
 
@@ -67,6 +96,22 @@ class LoginLinkRequest
     public function consume(DateTimeImmutable $now): void
     {
         $this->consumedAt = $now;
+    }
+
+    public function consumeWithCode(DateTimeImmutable $now): void
+    {
+        $this->consumedAt = $now;
+        $this->codeUsedAt = $now;
+    }
+
+    public function recordWrongCode(): void
+    {
+        $this->codeFailedAttempts++;
+    }
+
+    public function codeAttemptsLeft(): int
+    {
+        return max(0, self::MAX_CODE_ATTEMPTS - $this->codeFailedAttempts);
     }
 
     public function isConsumed(): bool

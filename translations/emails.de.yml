@@ -166,13 +166,14 @@ feature_request_declined:
             <p><strong>Kommentar vom Team:</strong> %adminComment%</p>
 
 sign_in_link:
-    subject: "Dein Anmeldelink für MySpeedPuzzling.com"
-    title: "Hier ist dein Anmeldelink"
+    subject: "%code% ist dein Anmeldecode für MySpeedPuzzling"
+    title: "Dein Anmeldecode"
     content: |
-        <p>Klicke auf den Button unten, um dich bei MySpeedPuzzling.com anzumelden — ganz ohne Passwort.</p>
+        <p>Gib diesen Code auf der MySpeedPuzzling-Seite ein, auf der du ihn angefordert hast:</p>
+    or_link: "Oder melde dich mit einem Tippen an:"
     button: "Anmelden"
-    expires: "Der Link funktioniert einmal und läuft nach %minutes% Minuten ab."
-    not_requested: "Du hast das nicht angefordert? Dann kannst du diese E-Mail einfach ignorieren — ohne den Link kann sich niemand anmelden."
+    expires: "Code und Link funktionieren zusammen nur einmal — was du zuerst benutzt, zählt. Beide laufen nach %minutes% Minuten ab."
+    not_requested: "Du hast das nicht angefordert? Dann kannst du diese E-Mail einfach ignorieren — ohne den Code oder den Link kann sich niemand anmelden."
 
 verify_email:
     subject: "Bestätige deine E-Mail-Adresse für MySpeedPuzzling.com"

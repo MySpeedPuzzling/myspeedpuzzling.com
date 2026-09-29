@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Log\LoggerInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Message\RequestSignInLink;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Security\SingleUseLoginLinkHandler;
 use SpeedPuzzling\Web\Services\AuthAuditRecorder;
+use SpeedPuzzling\Web\Services\SignInCodeHasher;
 use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
@@ -38,6 +40,7 @@ final readonly class RequestSignInLinkHandler
         private LoggerInterface $logger,
         private AuthAuditRecorder $authAuditRecorder,
         private int $signInLinkLifetimeSeconds,
+        private SignInCodeHasher $signInCodeHasher,
     ) {
     }
 
@@ -58,9 +61,17 @@ final readonly class RequestSignInLinkHandler
             return;
         }
 
+        // One mail, two ways in (auth UX redesign phase 2): the link for whichever
+        // browser opens it, the code for the browser that asked - an in-app
+        // browser (Instagram, Facebook) hands links to the phone's own browser
+        $requestId = $message->requestId ?? Uuid::uuid7();
+        $code = SignInCodeHasher::generate();
+
         $loginLinkDetails = $this->loginLinkHandler->createLoginLinkReturningTo(
             $userAccount,
             ReturnUrl::tryFrom($message->returnPath),
+            $requestId,
+            $this->signInCodeHasher->hash($requestId, $code),
         );
 
         $player = $this->playerRepository->findByUserId($userAccount->userId);
@@ -71,10 +82,12 @@ final readonly class RequestSignInLinkHandler
         $email = (new TemplatedEmail())
             ->to($userAccount->email)
             ->locale($locale)
-            ->subject($this->translator->trans('sign_in_link.subject', domain: 'emails', locale: $locale))
+            // The code in the subject: readable in the notification, no app switch
+            ->subject($this->translator->trans('sign_in_link.subject', ['%code%' => $code], domain: 'emails', locale: $locale))
             ->htmlTemplate('emails/sign_in_link.html.twig')
             ->context([
                 'signInUrl' => $loginLinkDetails->getUrl(),
+                'code' => $code,
                 'expiresInMinutes' => intdiv($this->signInLinkLifetimeSeconds, 60),
             ]);
         $email->getHeaders()->addTextHeader('X-Transport', 'transactional');

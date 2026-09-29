@@ -3167,19 +3167,19 @@ auth:
         or: "nebo"
         new_here: "Jste na MySpeedPuzzling noví?"
         submitting: "Přihlašujeme…"
-        link_instead: "Raději mi pošlete přihlašovací odkaz"
+        link_instead: "Raději mi pošlete přihlašovací kód"
     failure_helper:
         title: "E-mail a heslo k sobě nesedí."
         vault_tip: "Pokud vám heslo uložil správce hesel, vyhledejte v něm „speedpuzzling“ — starší záznamy mohou být uložené pod jinou webovou adresou."
-        throttled: "Příliš mnoho pokusů. Počkejte pár minut, nebo si nechte poslat přihlašovací odkaz e-mailem."
-        link: "Poslat přihlašovací odkaz"
+        throttled: "Příliš mnoho pokusů. Počkejte pár minut, nebo si nechte poslat přihlašovací kód e-mailem."
+        link: "Poslat přihlašovací kód"
     sign_in_link:
-        title: "Přihlašovací odkaz e-mailem"
-        intro: "Pošleme vám e-mailem odkaz, kterým se přihlásíte — bez hesla."
-        submit: "Poslat mi přihlašovací odkaz e-mailem"
+        title: "Přihlašovací kód e-mailem"
+        intro: "Pošleme vám e-mailem kód a odkaz. Přihlásíte se kterýmkoli z nich — bez hesla."
+        submit: "Poslat mi kód"
         email_required: "Zadejte svou e-mailovou adresu."
-        too_many_requests: "Odkazů jste si vyžádali několik za sebou. Počkejte pár minut — ten poslední, co jsme poslali, pořád platí."
-        failed: "Přihlašovací odkaz se nepodařilo odeslat. Zkuste to prosím za chvíli znovu."
+        too_many_requests: "Kódů jste si vyžádali několik za sebou. Počkejte pár minut — ten poslední, co jsme poslali, pořád platí."
+        failed: "Přihlašovací e-mail se nepodařilo odeslat. Zkuste to prosím za chvíli znovu."
         invalid_link: "Tento přihlašovací odkaz už neplatí — mohl vypršet nebo už byl použit. Níže si vyžádejte nový."
         check_title: "Přihlašujeme vás…"
         check_intro: "Chviličku — právě vás přihlašujeme. Pokud se během několika sekund nic nestane, stiskněte tlačítko."
@@ -3201,12 +3201,12 @@ auth:
         password_hint: "Alespoň %minimum% znaků."
         submit: "Vytvořit účet"
         have_account: "Už máte účet?"
-        email_already_registered: "K této e-mailové adrese už účet existuje. Přihlaste se — nebo použijte „Poslat mi přihlašovací odkaz e-mailem“, pokud si heslo nemůžete vybavit."
+        email_already_registered: "Tato e-mailová adresa už má účet. Přihlaste se — a pokud si nevybavíte heslo, použijte „Raději mi pošlete přihlašovací kód“."
         too_many_attempts: "Příliš mnoho pokusů o registraci z tohoto místa. Zkuste to prosím později."
         failed: "Váš účet se nepodařilo vytvořit. Zkuste to prosím za chvíli znovu."
         name_optional: "Vaše jméno (nepovinné)"
         submitting: "Zakládáme účet…"
-        email_taken: "K tomuto e-mailu už účet existuje. <a href=\"%sign_in_url%\">Přihlaste se</a>, nebo si <a href=\"%link_url%\">nechte poslat přihlašovací odkaz</a>."
+        email_taken: "Tento e-mail už má účet. <a href=\"%sign_in_url%\">Přihlaste se</a> nebo si <a href=\"%link_url%\">nechte poslat přihlašovací kód</a>."
     welcome:
         title: "Vítejte na MySpeedPuzzling!"
         verification_sent: "Na adresu %email% jsme poslali potvrzovací odkaz. Otevřete ho a potvrďte, že je adresa vaše."
@@ -3248,7 +3248,7 @@ auth:
             headline: "Tento odkaz pro obnovu hesla nefunguje"
             message: "Možná už byl použit, nebo ho nahradil novější odkaz pro obnovu hesla. Níže si vyžádejte nový."
         just_get_in: "Chcete se jen dostat dovnitř?"
-        get_link_instead: "Pošlete si přihlašovací odkaz"
+        get_link_instead: "Pošlete si přihlašovací kód"
         submitting: "Ukládáme…"
         request_new: "Poslat mi nový odkaz"
     social:
@@ -3296,6 +3296,11 @@ auth:
         resent: "Poslali jsme vám nový odkaz."
         sending: "Odesíláme…"
         email_invalid: "Zadejte platnou e-mailovou adresu, např. jmeno@example.com."
+        code_sent_to: "Šestimístný kód a přihlašovací odkaz jsme poslali na"
+        code_next_step: "Nebo klepněte na odkaz v e-mailu. Kód i odkaz fungují jednou a platí %minutes% minut."
+        resend_code: "Poslat nový kód"
+        resend_code_wait: "Poslat nový kód (%time%)"
+        resent_code: "Poslali jsme vám nový kód. Ten starý už tady nefunguje."
     in_app:
         title: "Jste v prohlížeči aplikace %app%"
         google: "Přihlášení přes Google tady nefunguje."
@@ -3304,6 +3309,16 @@ auth:
         open_android: "Otevřít v Chromu"
         copy: "Zkopírovat odkaz"
         copied: "Odkaz zkopírován"
+    sign_in_code:
+        label: "Zadejte šestimístný kód z e-mailu"
+        wrong: "Tenhle kód nesedí. Zbývá %count% pokus.|Tenhle kód nesedí. Zbývají %count% pokusy.|Tenhle kód nesedí. Zbývá %count% pokusů."
+        malformed: "Zadejte šest číslic z e-mailu."
+        throttled: "Příliš mnoho pokusů. Počkejte pár minut, nebo použijte odkaz z e-mailu."
+        locked_out: "Příliš mnoho pokusů — tenhle kód už nefunguje. Použijte odkaz z e-mailu, nebo si vyžádejte nový kód."
+        expired: "Platnost kódu vypršela. Níže si vyžádejte nový."
+        used: "Tenhle kód nebo odkaz ze stejného e-mailu už byl použit. Níže si vyžádejte nový."
+        no_pending: "Tento přihlašovací kód už tady neplatí. Níže si vyžádejte nový."
+        failed: "To se nepovedlo. Zkuste to prosím znovu."
 
 newsletter:
     footer:
@@ -3379,6 +3394,8 @@ account_activity:
         oauth_identity_linked: "Propojení způsobu přihlášení"
         oauth_identity_unlinked: "Odpojení způsobu přihlášení"
         account_deletion_requested: "Žádost o smazání účtu"
+        sign_in_code_used: "Přihlášení kódem z e-mailu"
+        sign_in_code_failed: "Zadán špatný přihlašovací kód"
 
 account_deletion:
     confirm:

@@ -10,6 +10,8 @@ use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
+use SpeedPuzzling\Web\Security\SignInCodeAuthenticator;
+use SpeedPuzzling\Web\Security\SignInCodeRejected;
 use SpeedPuzzling\Web\Security\SocialLoginAuthenticator;
 use SpeedPuzzling\Web\Security\SocialLoginFailed;
 use SpeedPuzzling\Web\Services\AuthAuditRecorder;
@@ -86,6 +88,7 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
 
         $eventType = match (true) {
             $signInLinkUsed => AuthAuditEventType::SignInLinkUsed,
+            $authenticator instanceof SignInCodeAuthenticator => AuthAuditEventType::SignInCodeUsed,
             $authenticator instanceof SocialLoginAuthenticator => AuthAuditEventType::OauthLogin,
             default => AuthAuditEventType::LoginSuccess,
         };
@@ -112,18 +115,26 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
             !$authenticator instanceof LoginFormAuthenticator
             && !$authenticator instanceof LoginLinkAuthenticator
             && !$authenticator instanceof SocialLoginAuthenticator
+            && !$authenticator instanceof SignInCodeAuthenticator
         ) {
             return;
         }
 
         $request = $event->getRequest();
         $exception = $event->getException();
-        // Social failures name their internal reason (a fixed machine code, no
-        // personal data) - the visitor-facing copy is deliberately vaguer
-        $reasonCode = $exception instanceof SocialLoginFailed ? $exception->reason->value : null;
-        $email = $request->hasSession()
-            ? $request->getSession()->get(SecurityRequestAttributes::LAST_USERNAME)
-            : null;
+        // Social and sign-in code failures name their internal reason (a fixed
+        // machine code, no personal data, never the typed code) - the
+        // visitor-facing copy is deliberately vaguer
+        $reasonCode = match (true) {
+            $exception instanceof SocialLoginFailed => $exception->reason->value,
+            $exception instanceof SignInCodeRejected => $exception->outcome->value,
+            default => null,
+        };
+        $email = match (true) {
+            $exception instanceof SignInCodeRejected => $exception->email,
+            $request->hasSession() => $request->getSession()->get(SecurityRequestAttributes::LAST_USERNAME),
+            default => null,
+        };
 
         // Info, not warning: a mistyped password is not a problem to be alerted about
         // (warnings become Sentry issues). Every failure is in auth_audit_log below.
@@ -136,7 +147,9 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
         ]);
 
         $this->authAuditRecorder->record(new RecordAuthAuditEvent(
-            eventType: AuthAuditEventType::LoginFailure,
+            eventType: $authenticator instanceof SignInCodeAuthenticator
+                ? AuthAuditEventType::SignInCodeFailed
+                : AuthAuditEventType::LoginFailure,
             email: is_string($email) ? $email : null,
             authenticator: self::authenticatorLabel($authenticator),
             ipAddress: $request->getClientIp(),
@@ -174,6 +187,7 @@ final readonly class AuthenticationAuditSubscriber implements EventSubscriberInt
         return match (true) {
             $authenticator instanceof LoginFormAuthenticator => 'form',
             $authenticator instanceof LoginLinkAuthenticator => 'login_link',
+            $authenticator instanceof SignInCodeAuthenticator => 'sign_in_code',
             $authenticator instanceof SocialLoginAuthenticator => $authenticator->provider()->authenticatorLabel(),
             default => strtolower(substr(strrchr($authenticator::class, '\\') ?: $authenticator::class, 1)),
         };

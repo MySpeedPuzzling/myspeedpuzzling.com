@@ -166,13 +166,14 @@ feature_request_declined:
             <p><strong>Comentario del equipo:</strong> %adminComment%</p>
 
 sign_in_link:
-    subject: "Tu enlace de acceso para MySpeedPuzzling.com"
-    title: "Aquí tienes tu enlace de acceso"
+    subject: "%code% es tu código de acceso a MySpeedPuzzling"
+    title: "Tu código de acceso"
     content: |
-        <p>Haz clic en el botón de abajo para iniciar sesión en MySpeedPuzzling.com, sin necesidad de contraseña.</p>
+        <p>Introduce este código en la página de MySpeedPuzzling donde lo pediste:</p>
+    or_link: "O inicia sesión con un toque:"
     button: "Iniciar sesión"
-    expires: "El enlace funciona una sola vez y caduca en %minutes% minutos."
-    not_requested: "¿No lo has solicitado? Puedes ignorar este correo sin problema: nadie puede iniciar sesión sin el enlace."
+    expires: "El código y el enlace sirven una sola vez, juntos: vale el que uses primero. Ambos caducan en %minutes% minutos."
+    not_requested: "¿No lo has solicitado? Puedes ignorar este correo sin problema: nadie puede iniciar sesión sin el código o el enlace."
 
 verify_email:
     subject: "Confirma tu dirección de correo electrónico para MySpeedPuzzling.com"

@@ -4,11 +4,12 @@
    the big webmails, and a new mail once the first had time to arrive.
 
    Embedded, not included: the `next_step` block is where the sign-in page
-   will get its code input (phase 2) without redesigning the screen.
+   puts its 6-digit code input (phase 2).
 
    Parameters: sent_to (translated "We sent ... to"), email, resent (bool),
    resent_message, webmail (WebmailProvider|null), change_href, resend_action,
-   resend_csrf_id, resend_label, return_path (optional). #}
+   resend_csrf_id, resend_label, resend_wait_label (optional), return_path
+   (optional). #}
 {{ include('_auth_back_link.html.twig', {href: back_href|default(path('login'))}) }}
 
 <h1 class="auth-title">{{ 'auth.check_email.title'|trans }}</h1>
@@ -40,7 +41,7 @@
 
     {# Posts the same address again; the rate limit behind it is the real limit,
        the countdown only keeps an impatient tap from spending it #}
-    <form action="{{ resend_action }}" method="post" data-controller="resend-countdown" data-resend-countdown-seconds-value="45" data-resend-countdown-waiting-value="{{ 'auth.check_email.resend_wait'|trans }}">
+    <form action="{{ resend_action }}" method="post" data-controller="resend-countdown" data-resend-countdown-seconds-value="45" data-resend-countdown-waiting-value="{{ resend_wait_label|default('auth.check_email.resend_wait'|trans) }}">
         <input type="hidden" name="_token" value="{{ csrf_token(resend_csrf_id) }}">
         <input type="hidden" name="email" value="{{ email }}">
         <input type="hidden" name="resend" value="1">

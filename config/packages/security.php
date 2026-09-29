@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Security\OAuth2UserProvider;
 use SpeedPuzzling\Web\Security\PatAuthenticator;
 use SpeedPuzzling\Web\Security\PatUser;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
+use SpeedPuzzling\Web\Security\SignInCodeAuthenticator;
 use SpeedPuzzling\Web\Security\UserAccountProvider;
 use SpeedPuzzling\Web\Value\OAuth2Scope;
 use Symfony\Component\Security\Core\Authorization\Voter\AuthenticatedVoter;
@@ -97,6 +98,9 @@ return App::config([
                     GoogleLoginAuthenticator::class,
                     FacebookLoginAuthenticator::class,
                     AppleLoginAuthenticator::class,
+                    // The 6-digit code from the sign-in e-mail: claims only
+                    // POST /login-link/code (auth UX redesign phase 2)
+                    SignInCodeAuthenticator::class,
                 ],
                 // Magic sign-in link (D6): the rescue for anyone without a usable
                 // password - forgotten, or filed by a password manager under the old

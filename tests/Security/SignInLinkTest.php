@@ -244,7 +244,7 @@ final class SignInLinkTest extends WebTestCase
         self::assertSame($screens[0], $screens[1]);
     }
 
-    public function testCheckYourEmailScreenOffersTheWebmailAndWorksOnlyOnce(): void
+    public function testCheckYourEmailScreenOffersTheWebmailAndSurvivesAReload(): void
     {
         $browser = self::createClient();
 
@@ -256,9 +256,13 @@ final class SignInLinkTest extends WebTestCase
         self::assertSame('_blank', $webmail->attr('target'));
         self::assertStringContainsString('noopener', (string) $webmail->attr('rel'));
 
-        // The address came in a flash, not the URL: a reload has nothing to show
-        $browser->request('GET', '/login-link/sent');
-        self::assertResponseRedirects('/login-link', 303);
+        // The address is never in the URL; a reload (switching to the mail app for
+        // the code may cause one) shows the pending sign-in again, without the
+        // one-off "we sent a new one" line
+        $crawler = $browser->request('GET', '/login-link/sent');
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('input[name="code"]'));
+        self::assertCount(0, $crawler->filter('.alert-success'));
     }
 
     public function testDirectVisitToTheSentScreenGoesBackToTheForm(): void
@@ -281,7 +285,7 @@ final class SignInLinkTest extends WebTestCase
         self::assertCount(1, self::getMailerMessages());
 
         $crawler = $browser->followRedirect();
-        self::assertSame('We sent you a new link.', trim($crawler->filter('.alert-success[role="status"]')->text()));
+        self::assertSame('We sent a new code. The old one no longer works here.', trim($crawler->filter('.alert-success[role="status"]')->text()));
     }
 
     public function testEmptyOrInvalidAddressIsAnsweredWith422AndAFieldError(): void

@@ -272,3 +272,35 @@
 .auth-illustration img {
     max-width: 420px;
 }
+
+// The 6-digit code (phase 2): big, spaced, tabular digits - easy to compare
+// against the mail at a glance. letter-spacing only looks spaced; the value
+// stays six digits.
+.auth-page .auth-code-input {
+    min-height: 3.5rem;
+    padding-inline: 1rem;
+    font-family: $font-family-monospace;
+    font-size: 1.75rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: .5em;
+    // The last digit's spacing would push the text off-centre
+    text-indent: .5em;
+    text-align: center;
+
+    // Bootstrap's invalid icon would sit on top of the last digit
+    &.is-invalid {
+        padding-right: 1rem;
+        background-image: none;
+    }
+}
+
+// Desktop: the form and the illustration as one centred group, instead of
+// the form hugging the left edge and the picture the right one. Phones never
+// see the illustration, so nothing changes there.
+.auth-frame {
+    @include media-breakpoint-up(md) {
+        max-width: 60rem;
+        margin-inline: auto;
+    }
+}

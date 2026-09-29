@@ -166,13 +166,14 @@ feature_request_declined:
             <p><strong>Comment from the team:</strong> %adminComment%</p>
 
 sign_in_link:
-    subject: "Your sign-in link for MySpeedPuzzling.com"
-    title: "Here is your sign-in link"
+    subject: "%code% is your MySpeedPuzzling sign-in code"
+    title: "Your sign-in code"
     content: |
-        <p>Click the button below to sign in to MySpeedPuzzling.com — no password needed.</p>
+        <p>Enter this code on the MySpeedPuzzling page where you asked for it:</p>
+    or_link: "Or sign in with one tap:"
     button: "Sign in"
-    expires: "The link works once and expires in %minutes% minutes."
-    not_requested: "Did not request this? You can safely ignore this email — nobody can sign in without the link."
+    expires: "The code and the link work once, together: whichever you use first. Both expire in %minutes% minutes."
+    not_requested: "Did not request this? You can safely ignore this email — nobody can sign in without the code or the link."
 
 verify_email:
     subject: "Confirm your email address for MySpeedPuzzling.com"

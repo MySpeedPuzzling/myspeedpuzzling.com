@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Security;
 use LogicException;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\LoginLinkRequest;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\LoginLinkRequestRepository;
@@ -37,6 +38,10 @@ use Symfony\Component\Security\Http\LoginLink\LoginLinkHandlerInterface;
  *      form. The window is measured from the FIRST use and never slides, so the
  *      replay exposure D18 closes is reopened for that minute only.
  *
+ * The same row carries the 6-digit code of the mail (auth UX redesign phase 2,
+ * SignInCodeAuthenticator): link and code are one sign-in. A code that signed
+ * in sets codeUsedAt, and the grace window above then does not apply.
+ *
  * Symfony's own `max_uses` option is not used: it needs a PSR-6 pool
  * (ExpiredSignatureStorage is final), which would put auth state in a cache
  * instead of the database and cannot express "issued by us" at all.
@@ -57,31 +62,67 @@ final readonly class SingleUseLoginLinkHandler implements LoginLinkHandlerInterf
         private LoginLinkRequestRepository $loginLinkRequestRepository,
         private ClockInterface $clock,
         private int $signInLinkReuseGraceSeconds,
+        private int $signInLinkLifetimeSeconds,
     ) {
     }
 
     public function createLoginLink(UserInterface $user, null|Request $request = null, null|int $lifetime = null): LoginLinkDetails
     {
-        return $this->issue($user, $request, $lifetime, null);
+        return $this->issue($user, $request, $lifetime, null, Uuid::uuid7(), null);
     }
 
     /**
      * Like createLoginLink(), and remembers where the visitor was headed. The
      * destination is booked with the link's row, not appended to the URL: the
      * signed link stays exactly what Symfony signed.
+     *
+     * The request id is the caller's (the browser that asked keeps it to check
+     * the 6-digit code against), and so is the code's hash (SignInCodeHasher,
+     * salted with that id).
      */
-    public function createLoginLinkReturningTo(UserInterface $user, null|ReturnUrl $returnUrl): LoginLinkDetails
-    {
-        return $this->issue($user, null, null, $returnUrl);
+    public function createLoginLinkReturningTo(
+        UserInterface $user,
+        null|ReturnUrl $returnUrl,
+        UuidInterface $requestId,
+        null|string $codeHash = null,
+    ): LoginLinkDetails {
+        return $this->issue($user, null, null, $returnUrl, $requestId, $codeHash);
     }
 
-    private function issue(UserInterface $user, null|Request $request, null|int $lifetime, null|ReturnUrl $returnUrl): LoginLinkDetails
-    {
+    private function issue(
+        UserInterface $user,
+        null|Request $request,
+        null|int $lifetime,
+        null|ReturnUrl $returnUrl,
+        UuidInterface $requestId,
+        null|string $codeHash,
+    ): LoginLinkDetails {
         if (!$user instanceof UserAccount) {
             throw new LogicException('Sign-in links can only be issued for native user accounts.');
         }
 
+        // A Symfony login link is a pure function of the account and its expiry
+        // second, so two requests in the same second got the same link - and the
+        // second row hit the unique hash (a "Send a new code" double tap). Every
+        // request needs its own row now (its own code), so the colliding link
+        // expires a second earlier instead.
         $loginLinkDetails = $this->inner->createLoginLink($user, $request, $lifetime);
+
+        for ($shift = 1; $shift <= 5; $shift++) {
+            $existing = $this->loginLinkRequestRepository->findByHashedToken(
+                LoginLinkRequest::hashToken($this->extractSignatureHash($loginLinkDetails->getUrl())),
+            );
+
+            if ($existing === null) {
+                break;
+            }
+
+            $loginLinkDetails = $this->inner->createLoginLink(
+                $user,
+                $request,
+                ($lifetime ?? $this->signInLinkLifetimeSeconds) - $shift,
+            );
+        }
 
         $now = $this->clock->now();
 
@@ -92,12 +133,13 @@ final readonly class SingleUseLoginLinkHandler implements LoginLinkHandlerInterf
 
         $this->loginLinkRequestRepository->save(
             new LoginLinkRequest(
-                Uuid::uuid7(),
+                $requestId,
                 $user,
                 LoginLinkRequest::hashToken($this->extractSignatureHash($loginLinkDetails->getUrl())),
                 $now,
                 $loginLinkDetails->getExpiresAt(),
                 $returnUrl !== null && strlen($returnUrl->path) <= self::MAX_RETURN_PATH_LENGTH ? $returnUrl->path : null,
+                $codeHash,
             ),
         );
 

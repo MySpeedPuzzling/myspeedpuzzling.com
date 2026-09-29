@@ -59,7 +59,7 @@ final class PuzzleListInsightsTest extends WebTestCase
             self::assertGreaterThan(0, $crawler->filter('[data-difficulty-tier]')->count());
         }
 
-        self::assertCount($hasFilters ? 6 : 0, $crawler->filter('input[data-collection-filter-target="difficultyTier"]'));
+        self::assertCount($hasFilters ? 7 : 0, $crawler->filter('input[data-collection-filter-target="difficultyTier"]'));
     }
 
     public function testWishlistAndUnsolvedPagesGetTiersAndChips(): void
@@ -87,9 +87,9 @@ final class PuzzleListInsightsTest extends WebTestCase
             $this->assertResponseIsSuccessful();
 
             foreach ($puzzleIds as $puzzleId) {
-                self::assertCount(1, $crawler->filter(sprintf('[data-puzzle-id="%s"][data-difficulty-tier="0"]', $puzzleId)), "$url: never solved = no tier yet");
+                self::assertCount(1, $crawler->filter(sprintf('[data-puzzle-id="%s"][data-difficulty-tier="0"]', $puzzleId)), "$url: never solved = not rated yet");
             }
-            self::assertCount(6, $crawler->filter('input[data-collection-filter-target="difficultyTier"]'), $url);
+            self::assertCount(7, $crawler->filter('input[data-collection-filter-target="difficultyTier"]'), $url);
             self::assertCount(0, $this->icons($crawler, 'diff-locked'), $url);
         }
     }

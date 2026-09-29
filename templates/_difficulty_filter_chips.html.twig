@@ -20,6 +20,17 @@
                     </label>
                 </div>
             {% endfor %}
+            {# Not rated yet: items carry data-difficulty-tier="0" #}
+            <div class="form-check form-option form-check-inline mb-0">
+                <input type="checkbox" class="form-check-input" id="list-difficulty-0"
+                       value="0"
+                       data-collection-filter-target="difficultyTier"
+                       data-action="change->collection-filter#filter">
+                <label for="list-difficulty-0" class="form-option-label d-inline-flex align-items-center gap-1">
+                    {{ difficulty_icon(null, false, 16) }}
+                    {{ 'puzzle_intelligence.difficulty.tiers.unknown'|trans }}
+                </label>
+            </div>
         </div>
     </div>
 {% endif %}

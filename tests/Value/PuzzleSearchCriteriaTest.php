@@ -97,4 +97,13 @@ final class PuzzleSearchCriteriaTest extends TestCase
         self::assertSame('cat', $asGuest->search);
         self::assertArrayNotHasKey('list', $asGuest->toQueryParameters());
     }
+
+    public function testNotRatedYetIsAMembersOnlyDifficultyValue(): void
+    {
+        $member = PuzzleSearchCriteria::fromUserInput(null, null, null, null, ['0', '3', '9', '-1', 'x'], 'most-solved', true);
+        self::assertSame([PuzzleSearchCriteria::UNRATED_DIFFICULTY, 3], $member->difficultyTiers);
+
+        $nonMember = PuzzleSearchCriteria::fromUserInput(null, null, null, null, ['0'], 'most-solved', false);
+        self::assertSame([], $nonMember->difficultyTiers);
+    }
 }

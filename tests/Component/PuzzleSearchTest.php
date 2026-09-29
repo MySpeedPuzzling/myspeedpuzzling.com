@@ -89,6 +89,18 @@ final class PuzzleSearchTest extends WebTestCase
         self::assertCount(0, $crawler->filter('#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01));
     }
 
+    public function testMemberFiltersNotRatedYet(): void
+    {
+        $client = self::createClient();
+        $component = $this->search($client, PlayerFixture::PLAYER_WITH_STRIPE, ['difficultyTiers' => ['0'], 'search' => 'Puzzle']);
+
+        $crawler = new Crawler($component->refresh()->render()->toString());
+
+        self::assertNotNull($crawler->filter('#difficulty-0')->attr('checked'));
+        self::assertSame('/difficulty-icons-sprite.svg#diff-unknown', $crawler->filter('label[for="difficulty-0"] use')->attr('href'));
+        self::assertCount(1, $crawler->filter('#puzzle-list-item-' . PuzzleFixture::PUZZLE_9000));
+    }
+
     public function testSomebodyElsesCollectionIsDropped(): void
     {
         $client = self::createClient();

@@ -457,7 +457,7 @@ final class PuzzleSearch
      */
     public function getDifficultyTierOptions(): array
     {
-        return array_map(
+        $options = array_map(
             static fn (DifficultyTier $tier): array => [
                 'value' => $tier->value,
                 'label' => $tier->translationKey(),
@@ -465,6 +465,14 @@ final class PuzzleSearch
             ],
             DifficultyTier::cases(),
         );
+
+        $options[] = [
+            'value' => PuzzleSearchCriteria::UNRATED_DIFFICULTY,
+            'label' => 'puzzle_intelligence.difficulty.tiers.unknown',
+            'icon' => 'diff-unknown',
+        ];
+
+        return $options;
     }
 
     /**

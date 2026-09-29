@@ -29,6 +29,12 @@ final readonly class PuzzleSearchCriteria
     public const array PREMIUM_SORTS = ['easiest', 'hardest'];
 
     /**
+     * Difficulty "tier" for puzzles that are not rated yet (no tier computed) -
+     * filterable next to the six DifficultyTier values.
+     */
+    public const int UNRATED_DIFFICULTY = 0;
+
+    /**
      * @param list<int> $difficultyTiers
      */
     private function __construct(
@@ -170,8 +176,9 @@ final readonly class PuzzleSearchCriteria
     }
 
     /**
-     * Values may come from the client, so anything non-numeric (including
-     * tampered payloads with nested structures) is dropped, not crashed on.
+     * Values may come from the client, so anything that is not a tier or the
+     * "not rated yet" value (including tampered payloads with nested
+     * structures) is dropped, not crashed on.
      *
      * @param array<mixed> $difficultyTiers
      *
@@ -182,8 +189,14 @@ final readonly class PuzzleSearchCriteria
         $tiers = [];
 
         foreach ($difficultyTiers as $tier) {
-            if (is_numeric($tier)) {
-                $tiers[] = (int) $tier;
+            if (is_numeric($tier) === false) {
+                continue;
+            }
+
+            $tier = (int) $tier;
+
+            if ($tier === self::UNRATED_DIFFICULTY || DifficultyTier::tryFrom($tier) !== null) {
+                $tiers[] = $tier;
             }
         }
 

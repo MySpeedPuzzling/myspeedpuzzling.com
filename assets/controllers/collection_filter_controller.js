@@ -169,7 +169,7 @@ export default class extends Controller {
             }
         }
 
-        // Difficulty tier filter: "0" (not enough data yet) matches no tier, as on the puzzle database.
+        // Difficulty tier filter: "0" = not rated yet, which has its own chip, as on the puzzle database.
         // An item without the attribute (re-rendered by a turbo stream) is never hidden by it.
         if (difficultyTiers.size > 0 && item.dataset.difficultyTier !== undefined && !difficultyTiers.has(item.dataset.difficultyTier)) {
             return false;

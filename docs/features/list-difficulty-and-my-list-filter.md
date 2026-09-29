@@ -9,8 +9,9 @@ System and custom collections, wishlist, unsolved, solved, sell/swap (with the c
 
 - Every item shows the **difficulty icon** next to the piece count and **"Completed N×"** (community solve count).
 - Members get the **difficulty chips** (`_difficulty_filter_chips.html.twig`) - filtering is client-side
-  (the pages load their whole list); items carry `data-difficulty-tier` (`0` = not enough data yet, hidden
-  while any chip is active, same as the `IN(...)` on the puzzle database).
+  (the pages load their whole list); items carry `data-difficulty-tier`. `0` = not rated yet, which has its own
+  "Not rated yet" chip (`diff-unknown` icon) here and on the puzzle database
+  (`PuzzleSearchCriteria::UNRATED_DIFFICULTY` → `pd.difficulty_tier IS NULL` in `SearchPuzzle::difficultyFilter()`).
 - Non-members and guests: locked icon opening `#membersExclusiveModal`, no chips, no `data-difficulty-tier`.
 - **The viewer's membership decides**, never the list owner's.
 - Data: `ResolvePuzzleListInsights::forViewer()` → `GetPuzzleListInsights::forPuzzles()` = **one query per page**

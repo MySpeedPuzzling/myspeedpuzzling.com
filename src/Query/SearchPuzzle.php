@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Results\AutocompletePuzzle;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Value\PiecesRange;
+use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
 use SpeedPuzzling\Web\Value\PuzzleSearchList;
 use SpeedPuzzling\Web\Value\PuzzleSearchListKind;
 
@@ -41,13 +42,7 @@ readonly final class SearchPuzzle
             throw new ManufacturerNotFound();
         }
 
-        $difficultyJoin = '';
-        $difficultyCondition = '';
-
-        if ($difficultyTiers !== []) {
-            $difficultyJoin = 'LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = puzzle.id';
-            $difficultyCondition = 'AND pd.difficulty_tier IN(:difficultyTiers)';
-        }
+        [$difficultyJoin, $difficultyCondition, $ratedTiers] = self::difficultyFilter($difficultyTiers);
 
         [$listCondition, $listParams] = self::listFilter($list, $listPlayerId);
 
@@ -92,8 +87,8 @@ SQL;
             'tag' => ArrayParameterType::STRING,
         ];
 
-        if ($difficultyTiers !== []) {
-            $params['difficultyTiers'] = $difficultyTiers;
+        if ($ratedTiers !== []) {
+            $params['difficultyTiers'] = $ratedTiers;
             $types['difficultyTiers'] = ArrayParameterType::INTEGER;
         }
 
@@ -134,13 +129,7 @@ SQL;
             $sortBy = 'most-solved';
         }
 
-        $difficultyJoin = '';
-        $difficultyCondition = '';
-
-        if ($difficultyTiers !== []) {
-            $difficultyJoin = 'LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = puzzle.id';
-            $difficultyCondition = 'AND pd.difficulty_tier IN(:difficultyTiers)';
-        }
+        [$difficultyJoin, $difficultyCondition, $ratedTiers] = self::difficultyFilter($difficultyTiers);
 
         [$listCondition, $listParams] = self::listFilter($list, $listPlayerId);
 
@@ -281,8 +270,8 @@ SQL;
             'tag' => ArrayParameterType::STRING,
         ];
 
-        if ($difficultyTiers !== []) {
-            $params['difficultyTiers'] = $difficultyTiers;
+        if ($ratedTiers !== []) {
+            $params['difficultyTiers'] = $ratedTiers;
             $types['difficultyTiers'] = ArrayParameterType::INTEGER;
         }
 
@@ -320,6 +309,42 @@ SQL;
 
             return PuzzleOverview::fromDatabaseRow($row);
         }, $data);
+    }
+
+    /**
+     * Tiers plus PuzzleSearchCriteria::UNRATED_DIFFICULTY for puzzles without a tier yet
+     * (no puzzle_difficulty row, or one with too little data for a tier).
+     *
+     * @param list<int> $difficultyTiers
+     *
+     * @return array{string, string, list<int>} join, condition, the real tiers to bind
+     */
+    private static function difficultyFilter(array $difficultyTiers): array
+    {
+        if ($difficultyTiers === []) {
+            return ['', '', []];
+        }
+
+        $ratedTiers = array_values(array_filter(
+            $difficultyTiers,
+            static fn (int $tier): bool => $tier !== PuzzleSearchCriteria::UNRATED_DIFFICULTY,
+        ));
+
+        $conditions = [];
+
+        if ($ratedTiers !== []) {
+            $conditions[] = 'pd.difficulty_tier IN(:difficultyTiers)';
+        }
+
+        if (count($ratedTiers) !== count($difficultyTiers)) {
+            $conditions[] = 'pd.difficulty_tier IS NULL';
+        }
+
+        return [
+            'LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = puzzle.id',
+            'AND (' . implode(' OR ', $conditions) . ')',
+            $ratedTiers,
+        ];
     }
 
     /**

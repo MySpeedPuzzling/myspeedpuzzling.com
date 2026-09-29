@@ -29,9 +29,10 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class EventDetailController extends AbstractController
 {
-    // An event entered without rounds lists the puzzles people logged times for - a perpetual online
-    // event collects hundreds, the most logged ones are enough
-    private const int SOLVED_PUZZLES_LIMIT = 48;
+    // An event entered without rounds lists the puzzles people logged times for. A championship has
+    // at most ~20 of them; a perpetual online event collects hundreds - the most logged ones are enough,
+    // the page must not turn into a catalogue above the participants
+    private const int SOLVED_PUZZLES_LIMIT = 24;
 
     public function __construct(
         readonly private GetCompetitionEvents $getCompetitionEvents,

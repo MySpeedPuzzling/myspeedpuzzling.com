@@ -111,22 +111,21 @@
     {% endif %}
 
     {# The puzzles of every edition, newest edition first - round puzzles and the edition's tagged puzzles,
-       secret ones left out until their round starts (GetCompetitionPuzzles) #}
+       secret ones left out until their round starts (GetCompetitionPuzzles). Every edition is folded: over a
+       hundred puzzles must not push how to take part and the FAQ below out of reach, one tap opens a year. #}
     {% set editions_with_puzzles = editions|filter(edition => edition_puzzles[edition.id] is defined) %}
     {% if editions_with_puzzles|length > 0 %}
         <h2 class="h4 mt-4" id="wjpc-puzzles">{{ 'wjpc_hub.puzzles.heading'|trans }}</h2>
         <p>{{ 'wjpc_hub.puzzles.intro'|trans }}</p>
 
         {% for edition in editions_with_puzzles %}
-            <section class="mb-4" data-wjpc-edition-puzzles="{{ edition.id }}">
-                <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-2">
-                    <h3 class="h5 mb-0">{{ 'wjpc_hub.puzzles.edition_heading'|trans({'%edition%': edition.shortcut ?? edition.name}) }}</h3>
-                    {% if edition.slug %}
-                        <a class="small" href="{{ path('event_detail', {slug: edition.slug}) }}">{{ 'wjpc_hub.editions.event_link'|trans }}</a>
-                    {% endif %}
-                </div>
+            <details class="border-bottom py-2" data-wjpc-edition-puzzles="{{ edition.id }}">
+                <summary class="text-primary" style="cursor: pointer;">
+                    <h3 class="d-inline h6 mb-0 text-primary">{{ 'wjpc_hub.puzzles.edition_heading'|trans({'%edition%': edition.shortcut ?? edition.name}) }}</h3>
+                    <span class="small text-muted ms-1">({{ edition_puzzles[edition.id]|length }})</span>
+                </summary>
 
-                <div class="row g-2">
+                <div class="row g-2 mt-1">
                     {% for puzzle in edition_puzzles[edition.id] %}
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="card card-body shadow-sm p-2 h-100">
@@ -167,7 +166,11 @@
                         </div>
                     {% endfor %}
                 </div>
-            </section>
+
+                {% if edition.slug %}
+                    <a class="small d-inline-block mt-2" href="{{ path('event_detail', {slug: edition.slug}) }}">{{ 'wjpc_hub.editions.event_link'|trans }}</a>
+                {% endif %}
+            </details>
         {% endfor %}
     {% endif %}
 

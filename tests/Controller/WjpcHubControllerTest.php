@@ -110,6 +110,9 @@ final class WjpcHubControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $section = $crawler->filter(sprintf('[data-wjpc-edition-puzzles="%s"]', CompetitionFixture::COMPETITION_WJPC_2024));
         self::assertCount(1, $section);
+        // Folded: over a hundred puzzles must not push how to take part and the FAQ out of reach
+        self::assertSame('details', $section->nodeName());
+        self::assertNull($section->attr('open'));
         self::assertStringContainsString('WJPC24 puzzles', $section->filter('h3')->text());
         self::assertCount(1, $section->filter('a[href="/en/events/wjpc-2024"]'));
 

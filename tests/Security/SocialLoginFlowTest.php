@@ -15,7 +15,7 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Events\OauthIdentityLinked;
 use SpeedPuzzling\Web\Security\SocialLoginFailed;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
+use SpeedPuzzling\Web\Tests\ConfiguresSocialLoginProviders;
 use SpeedPuzzling\Web\Tests\TestDouble\AppleIdTokenFactory;
 use SpeedPuzzling\Web\Tests\TestDouble\SocialLoginHttpMock;
 use SpeedPuzzling\Web\Value\OauthProvider;
@@ -38,17 +38,13 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class SocialLoginFlowTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
+    use ConfiguresSocialLoginProviders;
 
     /**
-     * One message for every account-dependent refusal - admin-only denial,
-     * admin-only registration stop and refused auto-link must read the same,
-     * byte for byte, or the difference tells a stranger something.
+     * The generic message of a refused auto-link: naming the reason would
+     * tell a stranger which sign-in methods the account has.
      */
     private const string NOT_POSSIBLE_GOOGLE = "We couldn't sign you in with Google. Please sign in with your e-mail or password, then connect Google in your profile settings.";
-
-    /** @var array<string, string|false> */
-    private array $originalStringEnv = [];
 
     protected function setUp(): void
     {
@@ -57,27 +53,14 @@ final class SocialLoginFlowTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $this->restoreFeatureFlagEnv();
-
-        foreach ($this->originalStringEnv as $name => $original) {
-            if ($original === false) {
-                unset($_ENV[$name], $_SERVER[$name]);
-
-                continue;
-            }
-
-            $_ENV[$name] = $original;
-            $_SERVER[$name] = $original;
-        }
-
-        $this->originalStringEnv = [];
+        $this->restoreSocialLoginEnv();
 
         parent::tearDown();
     }
 
     public function testGoogleRule1KnownIdentityLogsIn(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -116,7 +99,7 @@ final class SocialLoginFlowTest extends WebTestCase
      */
     public function testReturnUrlSurvivesTheOauthRoundTrip(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -134,7 +117,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testOffSiteReturnUrlNeverEntersTheOauthState(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -155,7 +138,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testGoogleRule2VerifiedEmailAutoLinksAndLogsIn(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -192,7 +175,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testGoogleRule3UnverifiedEmailIsRefused(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -226,7 +209,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testGoogleRule4ShowsInterstitialAndConfirmationCreatesAccount(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -281,83 +264,9 @@ final class SocialLoginFlowTest extends WebTestCase
         self::assertSame('Rule Four', $playerName);
     }
 
-    public function testAdminOnlyStageDeniesNonAdminWithGenericFailure(): void
-    {
-        // Provider on, SOCIAL_LOGIN_ADMIN_ONLY stays at the repo default (ON)
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_GOOGLE_ENABLED', true);
-        $browser = self::createClient();
-
-        $suffix = bin2hex(random_bytes(4));
-        $userAccount = $this->seedAccount($browser, "adminonly+{$suffix}@example.com", password: 'hash', isAdmin: false);
-        $this->seedIdentity($browser, $userAccount, OauthProvider::Google, "g-adminonly-{$suffix}");
-
-        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
-
-        $this->queueGoogleExchange("g-adminonly-{$suffix}", "adminonly+{$suffix}@example.com", emailVerified: true);
-        $userAgent = 'adminonly-' . $suffix;
-        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code", server: ['HTTP_USER_AGENT' => $userAgent]);
-
-        self::assertSame(self::NOT_POSSIBLE_GOOGLE, $this->followToLoginError($browser));
-        $this->assertFailureAudited($browser, $userAgent, 'admin_only_denied');
-        $this->assertNotLoggedIn($browser);
-
-        $connection = $browser->getContainer()->get(Connection::class);
-        $lastUsedAt = $connection->fetchOne(
-            'SELECT last_used_at FROM oauth_identity WHERE provider_user_id = :sub',
-            ['sub' => "g-adminonly-{$suffix}"],
-        );
-        self::assertNull($lastUsedAt, 'A denied login must not touch the identity');
-    }
-
-    public function testAdminOnlyStageAllowsAdmins(): void
-    {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_GOOGLE_ENABLED', true);
-        $browser = self::createClient();
-
-        $suffix = bin2hex(random_bytes(4));
-        $userAccount = $this->seedAccount($browser, "adminyes+{$suffix}@example.com", password: 'hash', isAdmin: true);
-        $this->seedIdentity($browser, $userAccount, OauthProvider::Google, "g-adminyes-{$suffix}");
-
-        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
-
-        $this->queueGoogleExchange("g-adminyes-{$suffix}", "adminyes+{$suffix}@example.com", emailVerified: true);
-        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
-
-        self::assertResponseRedirects();
-        self::assertStringContainsString('my-profile', (string) $browser->getResponse()->headers->get('Location'));
-        $this->assertLoggedIn($browser);
-    }
-
-    public function testAdminOnlyStageDisablesRegistrationEntirely(): void
-    {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_GOOGLE_ENABLED', true);
-        $browser = self::createClient();
-
-        $suffix = bin2hex(random_bytes(4));
-
-        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
-
-        $this->queueGoogleExchange("g-noreg-{$suffix}", "noreg+{$suffix}@example.com", emailVerified: true);
-        $userAgent = 'noreg-' . $suffix;
-        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code", server: ['HTTP_USER_AGENT' => $userAgent]);
-
-        // Generic failure, no interstitial - the feature must not reveal itself
-        self::assertSame(self::NOT_POSSIBLE_GOOGLE, $this->followToLoginError($browser));
-        $this->assertFailureAudited($browser, $userAgent, 'admin_only_registration_disabled');
-        $this->assertNotLoggedIn($browser);
-
-        $connection = $browser->getContainer()->get(Connection::class);
-        $accountCount = self::countRows(
-            $connection,
-            'SELECT COUNT(*) FROM user_account WHERE email = :email',
-            ['email' => "noreg+{$suffix}@example.com"],
-        );
-        self::assertSame(0, $accountCount);
-    }
-
     public function testDisabledProviderIs404(): void
     {
-        // Repo defaults: every provider flag OFF
+        // Repo defaults: no credentials configured, Facebook flag OFF
         $browser = self::createClient();
 
         $browser->request('GET', '/login/social/google');
@@ -370,9 +279,36 @@ final class SocialLoginFlowTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testProviderWithIncompleteCredentialsIs404(): void
+    {
+        $this->enableSocialLoginProvider(OauthProvider::Google, OauthProvider::Apple);
+        $this->overrideSocialLoginEnv('GOOGLE_CLIENT_SECRET', '');
+        $this->overrideSocialLoginEnv('APPLE_PRIVATE_KEY', '');
+        $browser = self::createClient();
+
+        $browser->request('GET', '/login/social/google');
+        self::assertResponseStatusCodeSame(404);
+
+        $browser->request('GET', '/login/social/apple');
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testFacebookStaysOffWhileItsFlagIsOffEvenWithCredentials(): void
+    {
+        $this->enableSocialLoginProvider(OauthProvider::Facebook);
+        $this->overrideSocialLoginEnv('SOCIAL_LOGIN_FACEBOOK_ENABLED', '0');
+        $browser = self::createClient();
+
+        $browser->request('GET', '/login/social/facebook');
+        self::assertResponseStatusCodeSame(404);
+
+        $browser->request('GET', '/login/social/facebook/callback?state=abc&code=x');
+        self::assertResponseStatusCodeSame(404);
+    }
+
     public function testUnknownStateRedirectsToLoginWithExpiredFlag(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $browser->request('GET', '/login/social/google/callback?state=' . str_repeat('ab', 16) . '&code=x');
@@ -382,8 +318,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testFacebookDeniedEmailPermissionIsRefused(): void
     {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_FACEBOOK_ENABLED', true);
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
+        $this->enableSocialLoginProvider(OauthProvider::Facebook);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -406,7 +341,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testConnectFromSettingsLinksDifferentEmailProviderAccount(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -479,9 +414,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testAppleFormPostCallbackRule4CapturesTheOneShotName(): void
     {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_APPLE_ENABLED', true);
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
-        $this->overrideAppleCredentials();
+        $this->enableSocialLoginProvider(OauthProvider::Apple);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -537,7 +470,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testRule2IsRefusedWhenTheExistingAccountIsUnverified(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -620,7 +553,7 @@ final class SocialLoginFlowTest extends WebTestCase
      */
     public function testRule4WithExplicitlyUnverifiedEmailCreatesUnverifiedAccountAndSendsVerification(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -653,7 +586,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testRule4WithTrustedEmailSendsNoVerificationAndRemembersTheUser(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -677,7 +610,7 @@ final class SocialLoginFlowTest extends WebTestCase
      */
     public function testForgedConnectCompletedByAnotherSignedInAccountLinksNothing(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -709,7 +642,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testFinishTokenIsSingleUse(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -732,7 +665,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testRule2AutoLinkQueuesTheSecurityNotice(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -754,7 +687,7 @@ final class SocialLoginFlowTest extends WebTestCase
      */
     public function testInterstitialSignInKeepsTheProviderProfileAndConnectsIt(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -789,7 +722,7 @@ final class SocialLoginFlowTest extends WebTestCase
      */
     public function testInterstitialFinishUrlOpenedInAnotherBrowserLinksNothing(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -809,7 +742,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testInterstitialLinksToTheFaqAboutDuplicateAccounts(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -825,11 +758,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testOneAccountCanSignInWithAllThreeProviders(): void
     {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_GOOGLE_ENABLED', true);
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_FACEBOOK_ENABLED', true);
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_APPLE_ENABLED', true);
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
-        $this->overrideAppleCredentials();
+        $this->enableSocialLoginProvider(OauthProvider::Google, OauthProvider::Facebook, OauthProvider::Apple);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -893,7 +822,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testCancelAtGoogleShowsFriendlyMessage(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $state = $this->startFlow($browser, 'google', 'accounts.google.com');
@@ -923,7 +852,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testOtherProviderErrorShowsTryAgainMessage(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $state = $this->startFlow($browser, 'google', 'accounts.google.com');
@@ -939,7 +868,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testMissingCodeShowsTryAgainMessage(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $state = $this->startFlow($browser, 'google', 'accounts.google.com');
@@ -955,7 +884,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testFailedCodeExchangeShowsTryAgainMessage(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $state = $this->startFlow($browser, 'google', 'accounts.google.com');
@@ -974,7 +903,7 @@ final class SocialLoginFlowTest extends WebTestCase
     {
         // A login-intent state minted for Google, replayed at Apple's callback:
         // supports() only peeks at the intent, authenticate() rejects the mismatch
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $this->enableApplePublicly();
         $browser = self::createClient();
 
@@ -994,7 +923,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testRefusedAutoLinkShowsTheSameGenericMessage(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -1016,7 +945,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testRule3RefusalRecordsItsReasonCode(): void
     {
-        $this->enableGooglePublicly();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -1102,9 +1031,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     private function enableApplePublicly(): void
     {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_APPLE_ENABLED', true);
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
-        $this->overrideAppleCredentials();
+        $this->enableSocialLoginProvider(OauthProvider::Apple);
     }
 
     /**
@@ -1215,31 +1142,6 @@ final class SocialLoginFlowTest extends WebTestCase
         );
     }
 
-    private function enableGooglePublicly(): void
-    {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_GOOGLE_ENABLED', true);
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
-    }
-
-    private function overrideAppleCredentials(): void
-    {
-        $this->overrideStringEnv('APPLE_CLIENT_ID', AppleIdTokenFactory::CLIENT_ID);
-        $this->overrideStringEnv('APPLE_TEAM_ID', 'TESTTEAM01');
-        $this->overrideStringEnv('APPLE_KEY_ID', 'TESTKEY001');
-        $this->overrideStringEnv('APPLE_PRIVATE_KEY', AppleIdTokenFactory::clientSecretKeyPem());
-    }
-
-    private function overrideStringEnv(string $name, string $value): void
-    {
-        if (!array_key_exists($name, $this->originalStringEnv)) {
-            $original = $_ENV[$name] ?? false;
-            $this->originalStringEnv[$name] = is_string($original) ? $original : false;
-        }
-
-        $_ENV[$name] = $value;
-        $_SERVER[$name] = $value;
-    }
-
     private function startFlow(KernelBrowser $browser, string $provider, string $expectedHost, null|string $returnUrl = null): string
     {
         $browser->request(
@@ -1295,7 +1197,7 @@ final class SocialLoginFlowTest extends WebTestCase
      * Seeded accounts are verified by default, like every account that existed
      * when the 2026-09-29 backfill ran; pass false for a fresh, unconfirmed one.
      */
-    private function seedAccount(KernelBrowser $browser, string $email, null|string $password, bool $isAdmin = false, bool $emailVerified = true): UserAccount
+    private function seedAccount(KernelBrowser $browser, string $email, null|string $password, bool $emailVerified = true): UserAccount
     {
         $userId = 'msp|' . Uuid::uuid7()->toString();
 
@@ -1310,7 +1212,6 @@ final class SocialLoginFlowTest extends WebTestCase
         }
 
         $player = new Player(Uuid::uuid7(), 'SL' . bin2hex(random_bytes(3)), $userId, null, new DateTimeImmutable());
-        $player->isAdmin = $isAdmin;
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($userAccount);

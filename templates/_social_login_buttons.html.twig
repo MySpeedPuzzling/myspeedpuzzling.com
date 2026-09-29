@@ -2,25 +2,25 @@
    sign-in lands where a password sign-in would. The start route validates it
    before it enters the (server-side, single-use) OAuth state payload. #}
 {% set returnParams = safe_return_url(app.request.query.get('return')) is null ? {} : {'return': safe_return_url(app.request.query.get('return'))} %}
-{# Social sign-in buttons (auth hardening PR 2). While SOCIAL_LOGIN_ADMIN_ONLY
-   is on they render for NOBODY - the hosting pages serve every visitor the
-   same markup and admins test via the direct /login/social/{provider} URLs.
+{# Social sign-in buttons (auth hardening PR 2). Which ones render depends on
+   configuration only (SocialLoginSettings), never on the visitor - every
+   visitor of the hosting pages gets the same markup.
    The buttons themselves (provider branding) live in _social_provider_button. #}
-{% if not social_login_admin_only and (social_login_google_enabled or social_login_apple_enabled or social_login_facebook_enabled) %}
+{% if social_login.isAnyEnabled() %}
     <div class="text-center my-3 text-muted fs-sm">{{ 'auth.social.or_continue_with'|trans }}</div>
 
     <div class="d-grid gap-2">
-        {% if social_login_google_enabled %}
+        {% if social_login.isProviderEnabled('google') %}
             {{ include('_social_provider_button.html.twig', {provider: 'google', href: path('social_login_start', {provider: 'google'}|merge(returnParams)), full_width: true}) }}
         {% endif %}
 
-        {% if social_login_apple_enabled %}
+        {% if social_login.isProviderEnabled('apple') %}
             {{ include('_social_provider_button.html.twig', {provider: 'apple', href: path('social_login_start', {provider: 'apple'}|merge(returnParams)), full_width: true}) }}
         {% endif %}
 
         {# Facebook Login is the only Meta sign-in open to us (Instagram's login
            API is business-only and shares no email), hence the Instagram hint. #}
-        {% if social_login_facebook_enabled %}
+        {% if social_login.isProviderEnabled('facebook') %}
             <div>
                 {{ include('_social_provider_button.html.twig', {provider: 'facebook', href: path('social_login_start', {provider: 'facebook'}|merge(returnParams)), full_width: true}) }}
                 <div class="text-muted text-center fs-xs mt-1">{{ 'auth.social.facebook_hint'|trans }}</div>

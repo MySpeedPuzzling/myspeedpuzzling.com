@@ -6,8 +6,9 @@ namespace SpeedPuzzling\Web\Tests\Security;
 
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginProviders;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
+use SpeedPuzzling\Web\Tests\ConfiguresSocialLoginProviders;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -19,11 +20,11 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class FacebookAuthorizationUrlTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
+    use ConfiguresSocialLoginProviders;
 
     protected function tearDown(): void
     {
-        $this->restoreFeatureFlagEnv();
+        $this->restoreSocialLoginEnv();
 
         parent::tearDown();
     }
@@ -54,8 +55,7 @@ final class FacebookAuthorizationUrlTest extends WebTestCase
 
     public function testOtherProvidersGetNoFacebookOnlyParameters(): void
     {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_GOOGLE_ENABLED', true);
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $browser->request('GET', '/login/social/google');
@@ -66,8 +66,7 @@ final class FacebookAuthorizationUrlTest extends WebTestCase
 
     private function clientWithFacebookEnabled(): KernelBrowser
     {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_FACEBOOK_ENABLED', true);
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
+        $this->enableSocialLoginProvider(OauthProvider::Facebook);
 
         return self::createClient();
     }

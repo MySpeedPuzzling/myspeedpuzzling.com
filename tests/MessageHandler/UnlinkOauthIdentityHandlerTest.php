@@ -13,7 +13,6 @@ use SpeedPuzzling\Web\Exceptions\CannotUnlinkLastSignInMethod;
 use SpeedPuzzling\Web\Exceptions\OauthIdentityNotFound;
 use SpeedPuzzling\Web\Message\UnlinkOauthIdentity;
 use SpeedPuzzling\Web\Repository\OauthIdentityRepository;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -21,28 +20,17 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 final class UnlinkOauthIdentityHandlerTest extends KernelTestCase
 {
-    use OverridesFeatureFlagEnv;
-
     private MessageBusInterface $messageBus;
     private OauthIdentityRepository $oauthIdentityRepository;
     private EntityManagerInterface $entityManager;
 
     protected function setUp(): void
     {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
-
         self::bootKernel();
         $container = self::getContainer();
         $this->messageBus = $container->get(MessageBusInterface::class);
         $this->oauthIdentityRepository = $container->get(OauthIdentityRepository::class);
         $this->entityManager = $container->get(EntityManagerInterface::class);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
     }
 
     public function testUnlinksWhenAccountHasPassword(): void

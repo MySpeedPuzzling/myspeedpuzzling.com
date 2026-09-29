@@ -7,6 +7,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use SpeedPuzzling\Web\Query\GetConversations;
 use SpeedPuzzling\Web\Query\GetNotifications;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
 
 return App::config([
     'twig' => [
@@ -21,13 +22,10 @@ return App::config([
             'get_conversations' => '@' . GetConversations::class,
             'mercure_public_url' => '%env(MERCURE_PUBLIC_URL)%',
             'images_base_url' => '%env(NGINX_PROXY_BASE_URL)%',
-            // Social login (auth hardening PR 2). While admin_only is ON the
-            // login/register buttons render for NOBODY - those pages are
-            // anonymously cached and must stay uniform (#164).
-            'social_login_admin_only' => '%socialLoginAdminOnly%',
-            'social_login_google_enabled' => '%socialLoginGoogleEnabled%',
-            'social_login_facebook_enabled' => '%socialLoginFacebookEnabled%',
-            'social_login_apple_enabled' => '%socialLoginAppleEnabled%',
+            // Social login (auth hardening PR 2): which provider buttons render.
+            // Depends on configuration only, never on the visitor, so every
+            // visitor of /login and /register gets the same buttons.
+            'social_login' => '@' . SocialLoginSettings::class,
             // Pairs & teams picker rollout - see docs/features/feature_flags.md
             'pairs_teams_picker_public' => '%pairsTeamsPickerPublic%',
         ],

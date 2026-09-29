@@ -11,12 +11,10 @@ use SpeedPuzzling\Web\Entity\OauthIdentity;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\EmailAlreadyRegistered;
 use SpeedPuzzling\Web\Exceptions\OauthIdentityAlreadyLinked;
-use SpeedPuzzling\Web\Exceptions\SocialLoginRestrictedToAdmins;
 use SpeedPuzzling\Web\Message\RegisterWithOauthIdentity;
 use SpeedPuzzling\Web\Repository\OauthIdentityRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -25,8 +23,6 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 final class RegisterWithOauthIdentityHandlerTest extends KernelTestCase
 {
-    use OverridesFeatureFlagEnv;
-
     private MessageBusInterface $messageBus;
     private UserAccountRepository $userAccountRepository;
     private PlayerRepository $playerRepository;
@@ -35,10 +31,6 @@ final class RegisterWithOauthIdentityHandlerTest extends KernelTestCase
 
     protected function setUp(): void
     {
-        // The repo baseline ships admin-only ON; these tests cover the public
-        // stage, the admin-only refusal overrides back explicitly
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
-
         self::bootKernel();
         $container = self::getContainer();
         $this->messageBus = $container->get(MessageBusInterface::class);
@@ -46,13 +38,6 @@ final class RegisterWithOauthIdentityHandlerTest extends KernelTestCase
         $this->playerRepository = $container->get(PlayerRepository::class);
         $this->oauthIdentityRepository = $container->get(OauthIdentityRepository::class);
         $this->entityManager = $container->get(EntityManagerInterface::class);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
     }
 
     public function testRegistrationCreatesAccountPlayerAndIdentityTogether(): void
@@ -152,27 +137,6 @@ final class RegisterWithOauthIdentityHandlerTest extends KernelTestCase
         } catch (HandlerFailedException $e) {
             self::assertInstanceOf(OauthIdentityAlreadyLinked::class, $e->getPrevious());
         }
-    }
-
-    public function testRegistrationIsRefusedEntirelyDuringAdminOnlyStage(): void
-    {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', true);
-
-        try {
-            $this->register(new RegisterWithOauthIdentity(
-                provider: OauthProvider::Google,
-                providerUserId: 'google-reg-5',
-                email: 'social.five@example.com',
-                emailVerified: true,
-                name: null,
-                locale: null,
-            ));
-            self::fail('Expected SocialLoginRestrictedToAdmins was not thrown');
-        } catch (HandlerFailedException $e) {
-            self::assertInstanceOf(SocialLoginRestrictedToAdmins::class, $e->getPrevious());
-        }
-
-        self::assertNull($this->userAccountRepository->findByEmail('social.five@example.com'));
     }
 
     private function register(RegisterWithOauthIdentity $message): string

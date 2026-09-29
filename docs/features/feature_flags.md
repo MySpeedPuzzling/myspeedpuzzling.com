@@ -23,28 +23,21 @@ The free trial (`docs/features/free-trial/README.md`) shipped dark behind it for
   - `templates/_solving_time_form.html.twig` — picker vs. old rows (`_group_puzzler_input.html.twig` + `add_copuzzler_controller.js`)
 - **Remove when:** the picker has been live without trouble for a couple of weeks — then delete `templates/_group_puzzler_input.html.twig`, `assets/controllers/add_copuzzler_controller.js`, the `favorite_players` template variable of both controllers, `forms.choose_from_favorites` / `puzzle_add.teamplayer` / `puzzle_add.add_puzzler` / `puzzle_add.group_puzzling` / `puzzle_add.player_code_info` translations, and the flag itself
 
-## Social Login — per-provider flags (`SOCIAL_LOGIN_GOOGLE_ENABLED`, `SOCIAL_LOGIN_FACEBOOK_ENABLED`, `SOCIAL_LOGIN_APPLE_ENABLED`)
+## Retired: Google/Apple social login flags + admin-only stage (removed 2026-09-29)
 
-- **Feature:** Google/Apple/Facebook sign-in (auth hardening PR 2, `docs/features/auth-hardening/README.md`)
-- **Flag:** env vars → parameters `socialLoginGoogleEnabled`/`socialLoginFacebookEnabled`/`socialLoginAppleEnabled` (`config/services.php`), read through the `SocialLoginSettings` service and exposed as Twig globals `social_login_*_enabled` (`config/packages/twig.php`). Twig globals — keep them resolvable in `.env` (see the operational note at the top).
-- **Default:** OFF (code ships dark; credentials empty in the repo). Each flips independently via Infisical once its provider console setup (Google Cloud / Meta developers / Apple Developer) is done.
-- **Gated files:**
-  - `src/Security/{Google,Facebook,Apple}LoginAuthenticator.php` — `supports()` refuses callbacks for a disabled provider (via `SocialLoginSettings`)
-  - `src/Controller/SocialLoginStartController.php`, `SocialConnectController.php`, `SocialLoginCallbackController.php` — 404 for a disabled provider. The link finish route (`SocialLinkFinishController`) is not flag-gated itself: it only consumes a profile a gated callback/interstitial parked
+`SOCIAL_LOGIN_ADMIN_ONLY`, `SOCIAL_LOGIN_GOOGLE_ENABLED` and `SOCIAL_LOGIN_APPLE_ENABLED` were deleted at the public launch of Google + Apple sign-in (both verified end to end in production, Jan's call). There is no admin-only stage any more: the buttons render on `/login` + `/register` for everyone, rule-4 registration via the `/register/social` interstitial is on, and every signed-in player gets the "Connected sign-in methods" card. Google and Apple are now available **iff their credentials are configured** (`SocialLoginSettings::isEnabled()` — Google: `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`; Apple: `APPLE_CLIENT_ID` + `APPLE_TEAM_ID` + `APPLE_KEY_ID` + `APPLE_PRIVATE_KEY`), so local dev and tests without credentials show no button and 404 the provider's routes. Emptying a provider's credentials is the kill switch. A box `.env` / Infisical that still sets the old flags is harmless - nothing reads them.
+
+## Social Login — Facebook (`SOCIAL_LOGIN_FACEBOOK_ENABLED`)
+
+- **Feature:** Facebook sign-in (auth hardening PR 2, `docs/features/auth-hardening/README.md`)
+- **Flag:** env var `SOCIAL_LOGIN_FACEBOOK_ENABLED` → parameter `socialLoginFacebookEnabled` (`config/services.php`), read only through `SocialLoginSettings::isEnabled()` — Facebook is available iff the flag is ON **and** `FACEBOOK_APP_ID` + `FACEBOOK_APP_SECRET` are set. Templates ask the Twig global `social_login` (the `SocialLoginSettings` service): `social_login.isProviderEnabled('facebook')`. Keep the flag resolvable in `.env` (see the operational note at the top).
+- **Default:** OFF. While the Meta app is unpublished (development mode) only its admins/testers can sign in, so the button would fail for everybody else.
+- **Gated files** (the same ones gate Google/Apple by credentials):
+  - `src/Security/SocialLoginAuthenticator.php` — `supports()` refuses callbacks for an unavailable provider
+  - `src/Controller/SocialLoginStartController.php`, `SocialConnectController.php`, `SocialLoginCallbackController.php` — 404 for an unavailable provider. The link finish route (`SocialLinkFinishController`) is not gated itself: it only consumes a profile a gated callback/interstitial parked
   - `templates/_social_login_buttons.html.twig` — per-provider button rendering on `/login` + `/register`
-  - `templates/edit-profile.html.twig` — per-provider connect buttons; the whole "Connected sign-in methods" card hides when no provider is enabled. Unlink is deliberately NOT flag-gated (`UnlinkSocialIdentityController`) — a linked identity must stay removable after its provider is switched off
-- **Remove when:** never (operational kill switches per provider), unless a provider is retired
-
-## Social Login — admin-only rollout (`SOCIAL_LOGIN_ADMIN_ONLY`)
-
-- **Feature:** staged rollout of social login (auth hardening PR 2)
-- **Flag:** env var `SOCIAL_LOGIN_ADMIN_ONLY` → parameter `socialLoginAdminOnly`, read through `SocialLoginSettings` + Twig global `social_login_admin_only`
-- **Default:** **ON** — even with a provider enabled, social login stays invisible to the public until flipped to `0` after end-to-end verification in production. While ON:
-  - `/login` and `/register` render **no social buttons for anyone** (`templates/_social_login_buttons.html.twig`) — those pages must stay uniform for every visitor; admins test via the direct `/login/social/{provider}` URLs
-  - the callback denies non-admin accounts with a generic failure (`SocialLoginAdminOnlyGuard`, used by `SocialAccountResolver` and the link/unlink handlers — admin = `player.isAdmin`, same source as `AdminAccessVoter`)
-  - rule-4 registration is disabled entirely (`RegisterWithOauthIdentityHandler` throws, the resolver never parks a profile, `SocialRegisterConfirmController` and the interstitial's "sign in and connect" `SocialRegisterSignInController` 404)
-  - the edit-profile "Connected sign-in methods" card renders only for `is_granted('ADMIN_ACCESS')`
-- **Remove when:** social login is verified publicly live and stable (~a few weeks after public launch)
+  - `templates/edit-profile.html.twig` — per-provider connect buttons; the whole "Connected sign-in methods" card hides when no provider is available. Unlink is deliberately NOT gated (`UnlinkSocialIdentityController`) — a linked identity must stay removable after its provider is switched off. The Apple server-to-server webhook is not gated either
+- **Remove when:** the Meta app is published (business verification / App Review done) and Facebook sign-in works for a non-admin account — then delete the flag and let Facebook follow the credentials rule like Google and Apple
 
 ## Competition Table Layout (admin-only)
 

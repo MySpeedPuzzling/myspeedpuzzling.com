@@ -195,12 +195,8 @@
                 {% endif %}
             </div>
 
-            {# Connected sign-in methods (auth hardening PR 2, settled D13 UI).
-               While admin-only the whole section exists for admins alone; this
-               page is per-user rendered (never shared-cached), so the
-               conditional is safe here unlike on /login. #}
-            {% set social_any_enabled = social_login_google_enabled or social_login_apple_enabled or social_login_facebook_enabled %}
-            {% if social_any_enabled and (not social_login_admin_only or is_granted('ADMIN_ACCESS')) %}
+            {# Connected sign-in methods (auth hardening PR 2, settled D13 UI) #}
+            {% if social_login.isAnyEnabled() %}
                 <div class="card card-body shadow-lg my-3">
                     <h3 class="h5">{{ 'edit_profile.social.title'|trans }}</h3>
                     <p class="text-muted fs-sm mb-2">{{ 'edit_profile.social.description'|trans }}</p>
@@ -208,7 +204,7 @@
                     {% set just_connected_providers = app.flashes(constant('SpeedPuzzling\\Web\\Controller\\EditProfileController::JUST_CONNECTED_FLASH')) %}
 
                     {# One list of every provider: connected ones first (even when
-                       their flag has since been switched off - they can still be
+                       their provider has since been switched off - they can still be
                        disconnected), then the enabled ones not connected yet with
                        their branded "Continue with" button (the same partial as on
                        /login). Badges reuse the buttons' logo artwork. #}
@@ -253,10 +249,9 @@
                            no provider-email match required - linking here is exactly
                            how a different-email provider account avoids becoming a
                            duplicate MySpeedPuzzling account #}
-                        {% set social_provider_enabled = {google: social_login_google_enabled, apple: social_login_apple_enabled, facebook: social_login_facebook_enabled} %}
                         {% set provider_names = {google: 'Google', apple: 'Apple', facebook: 'Facebook'} %}
-                        {% for provider, enabled in social_provider_enabled %}
-                            {% if enabled and provider not in connected_providers %}
+                        {% for provider in ['google', 'apple', 'facebook'] %}
+                            {% if social_login.isProviderEnabled(provider) and provider not in connected_providers %}
                                 <li class="social-identity">
                                     <span class="social-identity-badge social-identity-badge-{{ provider }}">
                                         {{- include('_social_provider_logo.html.twig', {provider: provider, class: 'social-identity-logo'}) -}}

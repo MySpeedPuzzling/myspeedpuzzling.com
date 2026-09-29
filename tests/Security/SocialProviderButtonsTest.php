@@ -11,7 +11,7 @@ use SpeedPuzzling\Web\Entity\OauthIdentity;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
+use SpeedPuzzling\Web\Tests\ConfiguresSocialLoginProviders;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -27,11 +27,11 @@ use Symfony\Component\DomCrawler\Crawler;
  */
 final class SocialProviderButtonsTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
+    use ConfiguresSocialLoginProviders;
 
     protected function tearDown(): void
     {
-        $this->restoreFeatureFlagEnv();
+        $this->restoreSocialLoginEnv();
 
         parent::tearDown();
     }
@@ -105,6 +105,63 @@ final class SocialProviderButtonsTest extends WebTestCase
         self::assertStringContainsString('also for Instagram users', $rows->eq(2)->text());
     }
 
+    /**
+     * Public launch (2026-09-29): Google and Apple are offered to every
+     * anonymous visitor as soon as their credentials are configured - no
+     * admin-only stage - while Facebook waits for its flag.
+     */
+    public function testAnonymousVisitorsSeeConfiguredGoogleAndAppleOnLoginAndRegister(): void
+    {
+        $this->enableSocialLoginProvider(OauthProvider::Google, OauthProvider::Apple, OauthProvider::Facebook);
+        $this->overrideSocialLoginEnv('SOCIAL_LOGIN_FACEBOOK_ENABLED', '0');
+        $browser = self::createClient();
+
+        foreach (['/login', '/register'] as $path) {
+            $crawler = $browser->request('GET', $path);
+            self::assertResponseIsSuccessful();
+
+            self::assertCount(1, $crawler->filter('a.btn-google-signin[href^="/login/social/google"]'), $path);
+            self::assertCount(1, $crawler->filter('a.btn-apple-signin[href^="/login/social/apple"]'), $path);
+            self::assertCount(0, $crawler->filter('a.btn-facebook-signin'), $path . ': Facebook stays hidden while its flag is off');
+            self::assertStringNotContainsString('also for Instagram users', $crawler->text());
+
+            // The buttons depend on configuration only, and the auth pages are
+            // never shared-cached anyway
+            self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+        }
+    }
+
+    public function testNoButtonsWhenNoProviderIsConfigured(): void
+    {
+        $this->disableSocialLoginProvider(OauthProvider::Google, OauthProvider::Apple, OauthProvider::Facebook);
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/login');
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('a.btn-google-signin, a.btn-apple-signin, a.btn-facebook-signin'));
+        self::assertCount(0, $crawler->filter('a[href^="/login/social/"]'));
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', '/en/edit-profile');
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('a[href^="/account/social/"]'));
+    }
+
+    public function testEveryLoggedInPlayerGetsTheConnectedSignInMethodsCard(): void
+    {
+        $this->enableSocialLoginProvider(OauthProvider::Google, OauthProvider::Apple);
+        $browser = self::createClient();
+        // A regular (non-admin) player - the admin-only stage is gone
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/edit-profile');
+        self::assertResponseIsSuccessful();
+
+        self::assertCount(1, $crawler->filter('a[href="/account/social/google/connect"]'));
+        self::assertCount(1, $crawler->filter('a[href="/account/social/apple/connect"]'));
+        self::assertCount(0, $crawler->filter('a[href="/account/social/facebook/connect"]'));
+    }
+
     private function assertBrandedButtons(Crawler $crawler, string $hrefPrefix): void
     {
         $google = $crawler->filter(sprintf('a.btn-google-signin[href^="%sgoogle"]', $hrefPrefix));
@@ -134,9 +191,6 @@ final class SocialProviderButtonsTest extends WebTestCase
 
     private function enableAllProvidersPublicly(): void
     {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_GOOGLE_ENABLED', true);
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_APPLE_ENABLED', true);
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_FACEBOOK_ENABLED', true);
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
+        $this->enableSocialLoginProvider(OauthProvider::Google, OauthProvider::Apple, OauthProvider::Facebook);
     }
 }

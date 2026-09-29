@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\EmailAlreadyRegistered;
 use SpeedPuzzling\Web\Exceptions\OauthIdentityAlreadyLinked;
-use SpeedPuzzling\Web\Exceptions\SocialLoginRestrictedToAdmins;
 use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Message\RegisterWithOauthIdentity;
 use SpeedPuzzling\Web\Repository\OauthIdentityRepository;
@@ -20,7 +19,6 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Services\AuthAuditRecorder;
 use SpeedPuzzling\Web\Services\GenerateUniquePlayerCode;
-use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
 use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -40,7 +38,6 @@ final readonly class RegisterWithOauthIdentityHandler
         private PlayerRepository $playerRepository,
         private OauthIdentityRepository $oauthIdentityRepository,
         private GenerateUniquePlayerCode $generateUniquePlayerCode,
-        private SocialLoginSettings $socialLoginSettings,
         private ClockInterface $clock,
         private AuthAuditRecorder $authAuditRecorder,
     ) {
@@ -49,20 +46,12 @@ final readonly class RegisterWithOauthIdentityHandler
     /**
      * @return string the new account's user_id - the caller logs the user in with it
      *
-     * @throws SocialLoginRestrictedToAdmins
      * @throws EmailAlreadyRegistered
      * @throws OauthIdentityAlreadyLinked
      * @throws CouldNotGenerateUniqueCode
      */
     public function __invoke(RegisterWithOauthIdentity $message): string
     {
-        // Rule-4 registration is disabled entirely during the admin-only stage:
-        // a not-yet-existing account has no player to be admin (plan §Feature
-        // flags + admin-only rollout stage)
-        if ($this->socialLoginSettings->isAdminOnly()) {
-            throw new SocialLoginRestrictedToAdmins();
-        }
-
         if ($this->oauthIdentityRepository->findByProviderUserId($message->provider, $message->providerUserId) !== null) {
             throw new OauthIdentityAlreadyLinked();
         }

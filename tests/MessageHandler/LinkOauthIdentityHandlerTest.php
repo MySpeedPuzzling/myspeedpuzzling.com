@@ -8,14 +8,11 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\OauthIdentity;
-use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\OauthIdentityAlreadyLinked;
-use SpeedPuzzling\Web\Exceptions\SocialLoginRestrictedToAdmins;
 use SpeedPuzzling\Web\Exceptions\UserAccountNotFound;
 use SpeedPuzzling\Web\Message\LinkOauthIdentity;
 use SpeedPuzzling\Web\Repository\OauthIdentityRepository;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -24,28 +21,17 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 final class LinkOauthIdentityHandlerTest extends KernelTestCase
 {
-    use OverridesFeatureFlagEnv;
-
     private MessageBusInterface $messageBus;
     private OauthIdentityRepository $oauthIdentityRepository;
     private EntityManagerInterface $entityManager;
 
     protected function setUp(): void
     {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
-
         self::bootKernel();
         $container = self::getContainer();
         $this->messageBus = $container->get(MessageBusInterface::class);
         $this->oauthIdentityRepository = $container->get(OauthIdentityRepository::class);
         $this->entityManager = $container->get(EntityManagerInterface::class);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
     }
 
     public function testLinksIdentityWithoutAnyEmailMatchRequirement(): void
@@ -130,38 +116,6 @@ final class LinkOauthIdentityHandlerTest extends KernelTestCase
         ), UserAccountNotFound::class);
     }
 
-    public function testAdminOnlyStageRefusesNonAdmins(): void
-    {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', true);
-
-        $this->createUserAccount('msp|link7', 'link.seven@example.com');
-        $this->createPlayer('msp|link7', 'lnk7', isAdmin: false);
-
-        $this->expectLinkRejected(new LinkOauthIdentity(
-            userId: 'msp|link7',
-            provider: OauthProvider::Google,
-            providerUserId: 'google-link-7',
-            emailAtLink: null,
-        ), SocialLoginRestrictedToAdmins::class);
-    }
-
-    public function testAdminOnlyStageAllowsAdmins(): void
-    {
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', true);
-
-        $this->createUserAccount('msp|link8', 'link.eight@example.com');
-        $this->createPlayer('msp|link8', 'lnk8', isAdmin: true);
-
-        $this->messageBus->dispatch(new LinkOauthIdentity(
-            userId: 'msp|link8',
-            provider: OauthProvider::Google,
-            providerUserId: 'google-link-8',
-            emailAtLink: null,
-        ));
-
-        self::assertNotNull($this->oauthIdentityRepository->findByProviderUserId(OauthProvider::Google, 'google-link-8'));
-    }
-
     /**
      * @param class-string<\Throwable> $expectedException
      */
@@ -189,15 +143,6 @@ final class LinkOauthIdentityHandlerTest extends KernelTestCase
         $this->entityManager->flush();
 
         return $userAccount;
-    }
-
-    private function createPlayer(string $userId, string $code, bool $isAdmin): void
-    {
-        $player = new Player(Uuid::uuid7(), $code, $userId, null, new DateTimeImmutable());
-        $player->isAdmin = $isAdmin;
-
-        $this->entityManager->persist($player);
-        $this->entityManager->flush();
     }
 
     private function createOauthIdentity(UserAccount $userAccount, OauthProvider $provider, string $providerUserId): void

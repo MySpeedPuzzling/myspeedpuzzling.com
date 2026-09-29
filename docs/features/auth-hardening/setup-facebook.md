@@ -1,6 +1,6 @@
 # Social login setup — Facebook (Meta)
 
-Exact click-path for "Continue with Facebook" in today's (2026) **use-case based** Meta developer dashboard, plus the secrets hand-off and the go-live checklist. The code is done and deployed dark (auth hardening PR 2 #175, hardening 2026-09-29).
+Exact click-path for "Continue with Facebook" in today's (2026) **use-case based** Meta developer dashboard, plus the secrets hand-off and the go-live checklist. The code is done and deployed dark (auth hardening PR 2 #175, hardening 2026-09-29). Google and Apple went public on 2026-09-29 and lost their flags together with the admin-only stage; **Facebook keeps `SOCIAL_LOGIN_FACEBOOK_ENABLED` until the Meta app is published** - and since there is no admin-only stage any more, turning the flag on is the public launch.
 
 ## Read this first
 
@@ -21,7 +21,7 @@ Exact click-path for "Continue with Facebook" in today's (2026) **use-case based
 | Data deletion instructions URL | `https://myspeedpuzzling.com/en/data-deletion` (`DataDeletionController`) |
 | Contact e-mail | `jan@myspeedpuzzling.com` |
 | App icon | square PNG **1024 × 1024** (the repo has only a 512 px icon - export the logo at 1024) |
-| Env vars the app reads | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `SOCIAL_LOGIN_FACEBOOK_ENABLED` (+ global `SOCIAL_LOGIN_ADMIN_ONLY`) - see `config/services.php` |
+| Env vars the app reads | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `SOCIAL_LOGIN_FACEBOOK_ENABLED` - Facebook is available iff the flag is on **and** both credentials are set (`SocialLoginSettings`) |
 | Local dev | nothing to set up: while an app is in Development mode Meta allows `localhost` redirect URIs automatically |
 
 ## 1. Create the app (Jan, ~10 min)
@@ -104,26 +104,27 @@ Left menu **Publish** (older layouts: the *App mode* toggle Development → Live
 
 What the agent then does (procedure: memory `reference_production_access.md`, "Infisical admin from the box"):
 
-1. Writes `FACEBOOK_APP_ID` and `FACEBOOK_APP_SECRET` to Infisical project **myspeedpuzzling**, environment **prod**, path `/` - **before** any flag changes.
-2. Sets `SOCIAL_LOGIN_FACEBOOK_ENABLED=1` in the same place. **`SOCIAL_LOGIN_ADMIN_ONLY` stays `1`.**
+1. Writes `FACEBOOK_APP_ID` and `FACEBOOK_APP_SECRET` to Infisical project **myspeedpuzzling**, environment **prod**, path `/` - **before** the flag changes.
+2. **Only once the Meta app is published (§4)** sets `SOCIAL_LOGIN_FACEBOOK_ENABLED=1` in the same place - that is the public launch, the button shows for everybody right away. While the app is still in development mode the flag stays `0`: only the app's admins/testers could sign in, everybody else would hit a Facebook error.
 3. Queues a deploy (`/srv/deploy/queue/myspeedpuzzling.<epoch>.<rand>.job`, `app=myspeedpuzzling` / `tag=main`) so `dump_secrets` renders the new `.env`, and checks the web container sees the values.
 4. The file can stay as your local copy or be deleted once Infisical holds the values (Jan's call).
 
-## 7. Admin test checklist (flag on, admin-only)
+## 7. Test checklist (right after the flag flip)
 
-While admin-only, no button is shown to anybody (not even admins on /login); admins use the direct URLs. Sign in as an admin account.
+The buttons are public from the flip on, so run this straight away. Sign in with your own account.
+
+0. **Buttons**: `/login` and `/register` show "Continue with Facebook" with the Meta/Instagram hint.
 
 1. **Connect from settings**: Edit profile → *Connected sign-in methods* → **Continue with Facebook** → Facebook consent → back on edit profile with "Connected!". The Facebook row appears; you get the "new sign-in method linked" notice e-mail.
-2. **Sign in**: sign out, open `https://myspeedpuzzling.com/login/social/facebook` → you are signed in to the same admin account.
-3. **Declined e-mail, then retry**: Disconnect Facebook again (step 5), and in Facebook → Settings → *Apps and websites* remove MySpeedPuzzling so the consent dialog shows. Open `/login/social/facebook`, click **Edit access**, untick *Email address*, continue → back on /login with an error. (While admin-only it is the *generic* failure - the new-account path is closed before the e-mail is checked; the specific "did not share an email address… try again and allow access" text shows after the public flip.) Now start `/login/social/facebook` again → **Facebook asks for the e-mail again** - that is the point of `auth_type=rerequest`. Allow it → you are signed in (the Facebook e-mail equals your verified admin e-mail → auto-link) or, if the e-mails differ, you get "sign in with your password first, then connect". Repeat the decline once more after the public flip to see the specific message.
+2. **Sign in**: sign out, open `https://myspeedpuzzling.com/login/social/facebook` → you are signed in to the same account.
+3. **Declined e-mail, then retry**: Disconnect Facebook again (step 5), and in Facebook → Settings → *Apps and websites* remove MySpeedPuzzling so the consent dialog shows. Open `/login/social/facebook`, click **Edit access**, untick *Email address*, continue → back on /login with "Facebook did not share an email address… try again and allow access". Now start `/login/social/facebook` again → **Facebook asks for the e-mail again** - that is the point of `auth_type=rerequest`. Allow it → you are signed in (the Facebook e-mail equals your verified e-mail → auto-link) or, if the e-mails differ, you get "sign in with your password first, then connect".
 4. **Cancel**: start `/login/social/facebook` and press **Cancel** / close on Facebook → back on /login with a generic "sign-in failed", nothing created. Same from settings → "Connection cancelled — nothing changed."
 5. **Disconnect**: Edit profile → Disconnect Facebook (only possible when the account has a password or another method).
-6. Reconnect from settings (step 1) so the admin account ends the test linked; the app-scoped ID stays the same across removals, so it is the same identity.
+6. Reconnect from settings (step 1) so your account ends the test linked; the app-scoped ID stays the same across removals, so it is the same identity.
 
-## 8. Public flip
+## 8. After the flip
 
-1. Agent sets `SOCIAL_LOGIN_ADMIN_ONLY=0` in Infisical + redeploys. **This flag is shared by all providers** - every provider with its `SOCIAL_LOGIN_*_ENABLED=1` goes public at the same moment, so only flip once Google/Apple (if enabled) passed their checklists too.
-2. Check `/login` and `/register` show "Continue with Facebook" with the Meta/Instagram hint, and sign in with a non-admin Facebook account end-to-end (new account via the "Create a new account?" page).
+Sign in with a Facebook account that is new to MySpeedPuzzling end-to-end (new account via the "Create a new account?" page). Once Facebook has been stable for a while, ask Claude to remove the flag (`docs/features/feature_flags.md`) so Facebook follows the credentials rule like Google and Apple.
 
 **Rollback**: `SOCIAL_LOGIN_FACEBOOK_ENABLED=0` in Infisical + redeploy. Buttons disappear, start/callback routes 404; linked identities stay in the database and work again when the flag returns. Players with no password can still sign in with the e-mailed sign-in link.
 

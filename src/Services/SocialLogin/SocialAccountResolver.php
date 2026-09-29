@@ -7,14 +7,12 @@ namespace SpeedPuzzling\Web\Services\SocialLogin;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\UserAccount;
-use SpeedPuzzling\Web\Exceptions\SocialLoginRestrictedToAdmins;
 use SpeedPuzzling\Web\Message\LinkOauthIdentity;
 use SpeedPuzzling\Web\Message\MarkOauthIdentityUsed;
 use SpeedPuzzling\Web\Repository\OauthIdentityRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Security\SocialLoginFailed;
 use SpeedPuzzling\Web\Security\SocialRegistrationRequired;
-use SpeedPuzzling\Web\Value\OauthProvider;
 use SpeedPuzzling\Web\Value\SocialLoginFailureReason;
 use SpeedPuzzling\Web\Value\SocialUserProfile;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -33,8 +31,6 @@ final readonly class SocialAccountResolver
     public function __construct(
         private OauthIdentityRepository $oauthIdentityRepository,
         private UserAccountRepository $userAccountRepository,
-        private SocialLoginSettings $settings,
-        private SocialLoginAdminOnlyGuard $adminOnlyGuard,
         private SocialLoginStateStore $stateStore,
         private MessageBusInterface $messageBus,
         private LoggerInterface $logger,
@@ -58,7 +54,6 @@ final readonly class SocialAccountResolver
 
         if ($oauthIdentity !== null) {
             $userAccount = $oauthIdentity->userAccount;
-            $this->assertAdminAllowed($userAccount->userId, $provider);
 
             $this->messageBus->dispatch(new MarkOauthIdentityUsed($provider, $profile->providerUserId));
 
@@ -87,8 +82,6 @@ final readonly class SocialAccountResolver
 
                 // Rule 2: provider-verified email matches a verified account ->
                 // auto-link + log in (the owner gets a security notice mail)
-                $this->assertAdminAllowed($userAccount->userId, $provider);
-
                 try {
                     $this->messageBus->dispatch(new LinkOauthIdentity(
                         userId: $userAccount->userId,
@@ -115,28 +108,12 @@ final readonly class SocialAccountResolver
             }
         }
 
-        // Rule 4: no match. Registration is disabled entirely while admin-only
-        // (an account that does not exist yet has no player to be admin).
-        if ($this->settings->isAdminOnly()) {
-            throw new SocialLoginFailed(SocialLoginFailureReason::AdminOnlyRegistrationDisabled, $provider);
-        }
-
+        // Rule 4: no match -> registration via the interstitial
         if ($profile->email === null) {
             throw new SocialLoginFailed(SocialLoginFailureReason::NoEmail, $provider);
         }
 
         // Never silent creation - park the profile and let the interstitial ask
         throw new SocialRegistrationRequired($this->stateStore->parkRegistration($profile, $locale));
-    }
-
-    private function assertAdminAllowed(string $userId, OauthProvider $provider): void
-    {
-        try {
-            $this->adminOnlyGuard->assertAllowedFor($userId);
-        } catch (SocialLoginRestrictedToAdmins) {
-            // Generic on purpose: while admin-only, the feature must not reveal
-            // itself to non-admin accounts
-            throw new SocialLoginFailed(SocialLoginFailureReason::AdminOnlyDenied, $provider);
-        }
     }
 }

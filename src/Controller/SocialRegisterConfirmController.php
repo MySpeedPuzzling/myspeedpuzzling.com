@@ -15,14 +15,12 @@ use SpeedPuzzling\Web\Security\AppleLoginAuthenticator;
 use SpeedPuzzling\Web\Security\FacebookLoginAuthenticator;
 use SpeedPuzzling\Web\Security\GoogleLoginAuthenticator;
 use SpeedPuzzling\Web\Security\UserAccountProvider;
-use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginStateStore;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
@@ -44,7 +42,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class SocialRegisterConfirmController extends AbstractController
 {
     public function __construct(
-        private readonly SocialLoginSettings $socialLoginSettings,
         private readonly SocialLoginStateStore $stateStore,
         private readonly MessageBusInterface $messageBus,
         private readonly Security $security,
@@ -62,12 +59,6 @@ final class SocialRegisterConfirmController extends AbstractController
     )]
     public function __invoke(Request $request): Response
     {
-        // Rule 4 is disabled entirely during the admin-only stage - this page
-        // included (nothing can have parked a profile anyway)
-        if ($this->socialLoginSettings->isAdminOnly()) {
-            throw new NotFoundHttpException();
-        }
-
         if ($this->getUser() !== null) {
             return $this->redirectToRoute('my_profile');
         }

@@ -8,14 +8,12 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\OauthIdentity;
 use SpeedPuzzling\Web\Exceptions\OauthIdentityAlreadyLinked;
-use SpeedPuzzling\Web\Exceptions\SocialLoginRestrictedToAdmins;
 use SpeedPuzzling\Web\Exceptions\UserAccountNotFound;
 use SpeedPuzzling\Web\Message\LinkOauthIdentity;
 use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Repository\OauthIdentityRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Services\AuthAuditRecorder;
-use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginAdminOnlyGuard;
 use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -25,7 +23,6 @@ final readonly class LinkOauthIdentityHandler
     public function __construct(
         private UserAccountRepository $userAccountRepository,
         private OauthIdentityRepository $oauthIdentityRepository,
-        private SocialLoginAdminOnlyGuard $adminOnlyGuard,
         private ClockInterface $clock,
         private AuthAuditRecorder $authAuditRecorder,
     ) {
@@ -33,7 +30,6 @@ final readonly class LinkOauthIdentityHandler
 
     /**
      * @throws UserAccountNotFound
-     * @throws SocialLoginRestrictedToAdmins
      * @throws OauthIdentityAlreadyLinked
      */
     public function __invoke(LinkOauthIdentity $message): void
@@ -43,8 +39,6 @@ final readonly class LinkOauthIdentityHandler
         if ($userAccount === null) {
             throw new UserAccountNotFound();
         }
-
-        $this->adminOnlyGuard->assertAllowedFor($message->userId);
 
         // The unique (provider, provider_user_id) constraint would catch this at
         // flush, but the advisory check turns a benign double-submit or an

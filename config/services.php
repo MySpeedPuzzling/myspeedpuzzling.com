@@ -88,14 +88,10 @@ return static function (ContainerConfigurator $configurator): void {
     // Pairs & teams picker rollout (docs/features/feature_flags.md): admins only until flipped to 1.
     $parameters->set('pairsTeamsPickerPublic', '%env(bool:PAIRS_TEAMS_PICKER_PUBLIC)%');
 
-    // Social login flags (auth hardening PR 2, docs/features/feature_flags.md).
-    // One flag per provider so each flips independently as its console setup
-    // completes; SOCIAL_LOGIN_ADMIN_ONLY keeps everything invisible to the
-    // public until the whole feature is verified end-to-end in production.
-    $parameters->set('socialLoginAdminOnly', '%env(bool:SOCIAL_LOGIN_ADMIN_ONLY)%');
-    $parameters->set('socialLoginGoogleEnabled', '%env(bool:SOCIAL_LOGIN_GOOGLE_ENABLED)%');
+    // Social login (auth hardening PR 2): Google and Apple are available iff
+    // their credentials are configured (SocialLoginSettings). Facebook keeps a
+    // flag until the Meta app is published (docs/features/feature_flags.md).
     $parameters->set('socialLoginFacebookEnabled', '%env(bool:SOCIAL_LOGIN_FACEBOOK_ENABLED)%');
-    $parameters->set('socialLoginAppleEnabled', '%env(bool:SOCIAL_LOGIN_APPLE_ENABLED)%');
 
     $services = $configurator->services();
 
@@ -113,10 +109,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$signInLinkLifetimeSeconds', '%signInLinkLifetimeSeconds%')
         ->bind('$signInLinkReuseGraceSeconds', '%signInLinkReuseGraceSeconds%')
         ->bind('$pairsTeamsPickerPublic', '%pairsTeamsPickerPublic%')
-        ->bind('$socialLoginAdminOnly', '%socialLoginAdminOnly%')
-        ->bind('$socialLoginGoogleEnabled', '%socialLoginGoogleEnabled%')
         ->bind('$socialLoginFacebookEnabled', '%socialLoginFacebookEnabled%')
-        ->bind('$socialLoginAppleEnabled', '%socialLoginAppleEnabled%')
         ->bind('$googleClientId', '%env(trim:string:GOOGLE_CLIENT_ID)%')
         ->bind('$googleClientSecret', '%env(trim:string:GOOGLE_CLIENT_SECRET)%')
         ->bind('$facebookAppId', '%env(trim:string:FACEBOOK_APP_ID)%')

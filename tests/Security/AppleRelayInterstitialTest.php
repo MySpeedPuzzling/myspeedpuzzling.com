@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Security;
 
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
+use SpeedPuzzling\Web\Tests\ConfiguresSocialLoginProviders;
 use SpeedPuzzling\Web\Tests\TestDouble\AppleIdTokenFactory;
 use SpeedPuzzling\Web\Tests\TestDouble\SocialLoginHttpMock;
+use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -18,39 +19,18 @@ use Symfony\Component\DomCrawler\Crawler;
  */
 final class AppleRelayInterstitialTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    /** @var array<string, string|false> */
-    private array $originalStringEnv = [];
+    use ConfiguresSocialLoginProviders;
 
     protected function setUp(): void
     {
         SocialLoginHttpMock::reset();
 
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_APPLE_ENABLED', true);
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
-        $this->overrideStringEnv('APPLE_CLIENT_ID', AppleIdTokenFactory::CLIENT_ID);
-        $this->overrideStringEnv('APPLE_TEAM_ID', 'TESTTEAM01');
-        $this->overrideStringEnv('APPLE_KEY_ID', 'TESTKEY001');
-        $this->overrideStringEnv('APPLE_PRIVATE_KEY', AppleIdTokenFactory::clientSecretKeyPem());
+        $this->enableSocialLoginProvider(OauthProvider::Apple);
     }
 
     protected function tearDown(): void
     {
-        $this->restoreFeatureFlagEnv();
-
-        foreach ($this->originalStringEnv as $name => $original) {
-            if ($original === false) {
-                unset($_ENV[$name], $_SERVER[$name]);
-
-                continue;
-            }
-
-            $_ENV[$name] = $original;
-            $_SERVER[$name] = $original;
-        }
-
-        $this->originalStringEnv = [];
+        $this->restoreSocialLoginEnv();
 
         parent::tearDown();
     }
@@ -142,16 +122,5 @@ final class AppleRelayInterstitialTest extends WebTestCase
         self::assertStringContainsString('I already have an account', $primary->text());
         self::assertCount(0, $crawler->filter('form[action$="/register/social"] button.btn-primary'));
         self::assertCount(1, $crawler->filter('form[action$="/register/social"] button.btn-outline-secondary'));
-    }
-
-    private function overrideStringEnv(string $name, string $value): void
-    {
-        if (!array_key_exists($name, $this->originalStringEnv)) {
-            $original = $_ENV[$name] ?? false;
-            $this->originalStringEnv[$name] = is_string($original) ? $original : false;
-        }
-
-        $_ENV[$name] = $value;
-        $_SERVER[$name] = $value;
     }
 }

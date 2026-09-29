@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Entity\UserAccount;
-use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginProviders;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginStateStore;
@@ -48,11 +47,6 @@ final class SocialConnectController extends AbstractController
         $oauthProvider = OauthProvider::tryFrom($provider);
 
         if ($oauthProvider === null || $this->socialLoginSettings->isEnabled($oauthProvider) === false) {
-            throw new NotFoundHttpException();
-        }
-
-        // Admin-only stage: 404, not 403 - the feature must not reveal itself
-        if ($this->socialLoginSettings->isAdminOnly() && $this->isGranted(AdminAccessVoter::ADMIN_ACCESS) === false) {
             throw new NotFoundHttpException();
         }
 

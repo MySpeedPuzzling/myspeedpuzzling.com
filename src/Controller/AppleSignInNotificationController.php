@@ -20,8 +20,9 @@ use Symfony\Component\Routing\Attribute\Route;
  * Server-to-server: no session, no cookies, no CSRF (the `stateless` firewall
  * covers the path) - the token's Apple signature is the authentication.
  *
- * Deliberately independent of SOCIAL_LOGIN_APPLE_ENABLED: an Apple ID deleted
- * while the flag is off must still lose its identity.
+ * Deliberately independent of whether Apple sign-in is available
+ * (SocialLoginSettings): an Apple ID deleted while it is switched off must
+ * still lose its identity.
  */
 final class AppleSignInNotificationController extends AbstractController
 {

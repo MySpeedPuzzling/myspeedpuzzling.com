@@ -1,6 +1,6 @@
 # Social login setup — Google
 
-The exact click-path for "Continue with Google", from an empty Google Cloud account to the public launch. The code is done and deployed dark (auth hardening PR #175 + hardening 2026-09-29); what is left is the Google console, the secrets hand-off and the flag flips.
+The exact click-path for "Continue with Google", from an empty Google Cloud account to the public launch. **Status: live for everyone since 2026-09-29.** There is no flag and no admin-only stage any more: Google sign-in is available exactly when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are both set, so the moment the secrets reach production the button is public. This guide stays as the reference for re-creating the client or rotating the secret.
 
 Click-path checked against Google's documentation on 2026-09-29 (Google Auth Platform: **Branding**, **Audience**, **Data access**, **Clients**). Google renames things now and then; if a label differs, the section names above are the stable part.
 
@@ -17,7 +17,7 @@ Click-path checked against Google's documentation on 2026-09-29 (Google Auth Pla
 | Scopes | `openid`, `email`, `profile` — nothing else (all non-sensitive: no Google app review) |
 | Production redirect URI | `https://myspeedpuzzling.com/login/social/google/callback` |
 | Local dev redirect URI | `http://localhost:8080/login/social/google/callback` (other port if you run the stack with `WEB_PORT=…`) |
-| Env vars the app reads | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SOCIAL_LOGIN_GOOGLE_ENABLED`, `SOCIAL_LOGIN_ADMIN_ONLY` |
+| Env vars the app reads | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (both set = Google available) |
 
 The one redirect URI serves both sign-in and connecting Google in settings — the app tells them apart by its own state, so Google needs no second URI. It has no language prefix (`/en/…`) and no trailing slash.
 
@@ -104,7 +104,6 @@ Keeps the production secret off your laptop. Same page → **+ Create client** �
 ```
 GOOGLE_CLIENT_ID=…
 GOOGLE_CLIENT_SECRET=…
-SOCIAL_LOGIN_GOOGLE_ENABLED=1
 ```
 
 ## 8. Hand the secrets to Claude
@@ -119,42 +118,33 @@ Never paste the secret into a chat.
    ```
 
    (One `KEY=value` per line, no quotes, no spaces around `=`; the app trims stray whitespace anyway. `chmod 600` the file.)
-2. Tell Claude: "Google secrets are in ~/.msp-secrets/social-login.env, put them in Infisical and enable Google admin-only."
+2. Tell Claude: "Google secrets are in ~/.msp-secrets/social-login.env, put them in Infisical."
 
 What the agent then does (procedure: memory `reference_production_access.md`, "Infisical admin from the box"):
 
-1. Pipes the two values over ssh stdin to the box and, with the box admin login, writes `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to Infisical project **myspeedpuzzling**, environment **prod**, path `/` — **before** any flag changes.
-2. Sets `SOCIAL_LOGIN_GOOGLE_ENABLED=1` there. Leaves `SOCIAL_LOGIN_ADMIN_ONLY=1` (repo default; if Infisical holds it, it must stay `1`).
-3. Logs out of Infisical on the box, queues a deploy (`/srv/deploy/queue/…job`, `tag=main`) so `dump_secrets` renders the new `.env` and web/api restart.
-4. Confirms the running web container sees non-empty values (checks lengths, never prints the secret).
+1. Pipes the two values over ssh stdin to the box and, with the box admin login, writes `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to Infisical project **myspeedpuzzling**, environment **prod**, path `/`.
+2. Logs out of Infisical on the box, queues a deploy (`/srv/deploy/queue/…job`, `tag=main`) so `dump_secrets` renders the new `.env` and web/api restart — **this is the go-live**, the button is public from then on.
+3. Confirms the running web container sees non-empty values (checks lengths, never prints the secret).
 
 Once that is confirmed you may delete the two lines from `~/.msp-secrets/social-login.env` (Infisical is the source of truth from then on).
 
-## 9. Admin-only test checklist (production)
+## 9. Test checklist (production)
 
-While `SOCIAL_LOGIN_ADMIN_ONLY=1` the public sees nothing; only admins can use Google, via settings or the direct URL.
-
-1. **Nothing public yet**: open `https://myspeedpuzzling.com/login` in a private window → no Google button.
-2. **Connect from settings**: signed in as your admin → **Edit profile** → card **Connected sign-in methods** → white **Continue with Google** button with the coloured G → pick your Google account → back on edit profile with "Connected!" and Google in the list. This works even when the Google address differs from your MySpeedPuzzling e-mail.
+1. **Button is there**: open `https://myspeedpuzzling.com/login` and `/register` in a private window → the white "Continue with Google" button.
+2. **Connect from settings**: signed in → **Edit profile** → card **Connected sign-in methods** → white **Continue with Google** button with the coloured G → pick your Google account → back on edit profile with "Connected!" and Google in the list. This works even when the Google address differs from your MySpeedPuzzling e-mail.
 3. **Security notice e-mail**: your MySpeedPuzzling address receives "Google sign-in was connected to your MySpeedPuzzling account" within a minute or two.
 4. **Sign in via Google**: sign out → open `https://myspeedpuzzling.com/login/social/google` directly → choose the same Google account → you are signed in.
 5. **Recent activity**: `https://myspeedpuzzling.com/en/account/recent-activity` shows "Sign-in method connected" and "Signed in with a connected account"; the settings card shows the last-used date.
 6. **Cancel at consent**: sign out → open `/login/social/google` → on Google's account chooser/consent click **Cancel** (or close with Back) → you are back on the sign-in page, not signed in, nothing created. Also once from settings: **Continue with Google** → cancel → "Connection cancelled — nothing changed."
 7. **Existing account with an unverified e-mail (rule 3)**: needs a second Google account you own (e.g. a spare Gmail). In a private window register a normal MySpeedPuzzling account with that Gmail address and **do not** click the verification link in the e-mail. Sign out → `/login/social/google` → pick that Google account → you must see "There is already an account with this email address, but that address has not been verified yet. … please sign in to that account first …, then connect Google in your profile settings …" and stay signed out. Afterwards delete that test account (Edit profile → Delete my account).
-8. **Non-admin is refused**: with a Google account whose e-mail matches a verified *non-admin* account → generic sign-in failure, nothing linked. A Google account that matches no account at all → also refused (sign-ups are off in the admin-only stage).
+8. **Sign-up with a fresh Google account**: a Google account that matches no MySpeedPuzzling account → confirmation page "Create a new account with …?" → account created and signed in.
 9. **Disconnect**: settings → disconnect Google → it disappears; reconnect it again if you want to keep it.
 
 Anything wrong → rollback below, tell Claude what you saw (and the time, so the logs can be found).
 
-## 10. Public launch
-
-1. `SOCIAL_LOGIN_ADMIN_ONLY` is **one switch for all providers**: setting it to `0` makes *every enabled* provider public. So flip it only when every provider with `SOCIAL_LOGIN_*_ENABLED=1` has passed its checklist (or disable the ones that have not).
-2. Claude sets `SOCIAL_LOGIN_ADMIN_ONLY=0` in Infisical and redeploys.
-3. Check `/login` and `/register` in a private window: the white "Continue with Google" button is there (the pages are cached for up to 60 s, so give it a minute). One sign-up with a fresh Google account → confirmation page "Create a new account with …?" → account created and signed in.
-
 ## Rollback
 
-Set `SOCIAL_LOGIN_GOOGLE_ENABLED=0` in Infisical and redeploy. The button, the start route and the callback all go away at once. Linked identities stay in the database and work again when the flag returns; players who only ever used Google can still get in with the e-mailed sign-in link or by resetting a password. Rolling back only the public stage = `SOCIAL_LOGIN_ADMIN_ONLY=1`.
+Empty `GOOGLE_CLIENT_ID` (or the secret) in Infisical and redeploy. The button, the start route and the callback all go away at once. Linked identities stay in the database and work again when the credentials return; players who only ever used Google can still get in with the e-mailed sign-in link or by resetting a password.
 
 ## Gotchas
 

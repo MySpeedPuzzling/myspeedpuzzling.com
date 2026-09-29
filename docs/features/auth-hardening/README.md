@@ -134,7 +134,7 @@ Note: the auth-migration README's post-launch-candidates line mentions `knpunive
   5. Explicit linking from settings (user already authenticated) → create the identity row for the **logged-in** account, no provider-email match required — ownership is already proven. The unique `(provider, provider_user_id)` constraint guarantees one identity never attaches to two accounts; the unique `(user_account_id, provider)` constraint (2026-09-29) keeps it to one identity per provider per account. The callback never links by itself — see §Hardening 2026-09-29, "Connect binding".
 - **Invariant (settled):** every account keeps ≥1 sign-in method — `password IS NOT NULL OR ≥1 oauth_identity` — enforced in **both** the unlink handler and the remove-password handler ("set a password before disconnecting your last sign-in method"). This also protects Apple-private-relay users whose relay email can die after unlink.
 - **Anti-enumeration (settled):** login errors stay generic regardless of which methods an account has (never "this account uses Google").
-- **Failure messages (2026-09-29):** every social sign-in failure throws `SocialLoginFailed` (a `CustomUserMessageAuthenticationException`) carrying a `SocialLoginFailureReason`, so /login never shows Symfony's raw "An authentication exception occurred." (seen in prod after unlink + Apple sign-in during admin-only). Copy (`security` domain, all 6 locales) distinguishes only what is safe: cancelled at the provider (`access_denied`, Apple `user_cancelled_authorize`) · state missing/expired/replayed ("took too long or was opened twice") · any other provider error / missing code / failed code exchange ("didn't work, try again") · rule 3 and no-email keep their messages. Admin-only denial, admin-only registration stop and refused auto-link share **one byte-identical message** ("We couldn't sign you in with {provider}… then connect {provider} in your profile settings"). The real reason goes to `auth_audit_log.metadata` of the `login_failure` row as `{"reason": "…SocialLoginFailed", "code": "<reason>"}` (codes: `state_invalid`, `provider_cancelled`, `provider_error`, `code_missing`, `code_exchange_failed`, `admin_only_denied`, `admin_only_registration_disabled`, `auto_link_refused`, `account_email_unverified`, `provider_email_unverified`, `no_email`) and to the info-level "Login failed." log line (`reason_code`). Log levels: expected cases stay info; code exchange stays error, refused auto-link stays warning. Tests: `SocialLoginFlowTest`.
+- **Failure messages (2026-09-29):** every social sign-in failure throws `SocialLoginFailed` (a `CustomUserMessageAuthenticationException`) carrying a `SocialLoginFailureReason`, so /login never shows Symfony's raw "An authentication exception occurred." (seen in prod after unlink + Apple sign-in during admin-only). Copy (`security` domain, all 6 locales) distinguishes only what is safe: cancelled at the provider (`access_denied`, Apple `user_cancelled_authorize`) · state missing/expired/replayed ("took too long or was opened twice") · any other provider error / missing code / failed code exchange ("didn't work, try again") · rule 3 and no-email keep their messages. Refused auto-link (and, until the public launch the same day, the admin-only denial and admin-only registration stop) gets **one generic message** ("We couldn't sign you in with {provider}… then connect {provider} in your profile settings"). The real reason goes to `auth_audit_log.metadata` of the `login_failure` row as `{"reason": "…SocialLoginFailed", "code": "<reason>"}` (codes: `state_invalid`, `provider_cancelled`, `provider_error`, `code_missing`, `code_exchange_failed`, `auto_link_refused`, `account_email_unverified`, `provider_email_unverified`, `no_email`; the admin-only codes `admin_only_denied` / `admin_only_registration_disabled` were retired with the admin-only stage and only appear in older rows) and to the info-level "Login failed." log line (`reason_code`). Log levels: expected cases stay info; code exchange stays error, refused auto-link stays warning. Tests: `SocialLoginFlowTest`.
 - Audit: every path emits the Workstream A events.
 
 ### Linking vs merging (scope clarification, Jan 2026-07-31)
@@ -176,7 +176,7 @@ Deliberately not done (see `docs/TODO.md`): Gmail dot/plus normalisation of prov
 
 **Apple go-live prep (2026-09-29)** — full runbook in [`setup-apple.md`](setup-apple.md):
 - *Relay-aware interstitial.* When the parked profile `usesPrivateRelay()` (the `is_private_email` claim, or an `@privaterelay.appleid.com` address), `/register/social` renders `_social_register_relay.html.twig`: Apple hides the address, so no existing account can be found → "I already have an account" (sign in, then Apple is connected) is the primary button, "create my account" secondary. Strings `auth.social.relay.*` in all 6 locales. The flag survives parking because the cache stores the serialized `SocialUserProfile` object (`AppleRelayInterstitialTest`).
-- *Server-to-server notifications.* `POST /webhook/apple-sign-in` (stateless firewall) → `AppleServerNotificationVerifier` (RS256 against Apple's JWKS, cached in `social_login_state_cache`, refetch only for an unknown `kid` and at most every 5 min; `aud` = `APPLE_APP_ID` — the primary App ID these tokens carry — or `APPLE_CLIENT_ID`) → `ProcessAppleSignInEvent`. `account-delete(d)` always removes the identity (warning when it was the last sign-in method); `consent-revoked` removes it unless it is the last method (kept: re-consent returns the same `sub`, so rule 1 avoids a duplicate account); `email-disabled/enabled` info log only. Removals write `oauth_identity_unlinked` audit rows with `source: apple_server_notification`. Works regardless of `SOCIAL_LOGIN_APPLE_ENABLED`.
+- *Server-to-server notifications.* `POST /webhook/apple-sign-in` (stateless firewall) → `AppleServerNotificationVerifier` (RS256 against Apple's JWKS, cached in `social_login_state_cache`, refetch only for an unknown `kid` and at most every 5 min; `aud` = `APPLE_APP_ID` — the primary App ID these tokens carry — or `APPLE_CLIENT_ID`) → `ProcessAppleSignInEvent`. `account-delete(d)` always removes the identity (warning when it was the last sign-in method); `consent-revoked` removes it unless it is the last method (kept: re-consent returns the same `sub`, so rule 1 avoids a duplicate account); `email-disabled/enabled` info log only. Removals write `oauth_identity_unlinked` audit rows with `source: apple_server_notification`. Works regardless of whether Apple sign-in is available.
 - *Relay e-mail sources.* Every sending domain must be registered with Apple (`mail.`, `notify.`, `news.` + apex) — list and SPF/DKIM status in `setup-apple.md` §4.
 
 ### Provider gotchas (read before implementing)
@@ -198,28 +198,26 @@ Deliberately not done (see `docs/TODO.md`): Gmail dot/plus normalisation of prov
 - **"Connected sign-in methods"** settings section (the settled name): list linked providers, link/unlink, **and set-password** for social-only accounts (opens the email+password door; the password-reset flow works too since the email is verified).
 - Translations: EN only.
 
-### Feature flags + admin-only rollout stage (Jan 2026-07-31)
+### Public launch 2026-09-29 (Google + Apple) — flags retired
 
-One flag per provider: `SOCIAL_LOGIN_GOOGLE_ENABLED`, `SOCIAL_LOGIN_APPLE_ENABLED`, `SOCIAL_LOGIN_FACEBOOK_ENABLED` (default `0` in repo `.env`; button rendering + start route + authenticator acceptance all gated). Allows shipping code dark and flipping per provider as Jan finishes each console setup.
+Social login shipped dark (2026-07-31) behind one flag per provider (`SOCIAL_LOGIN_{GOOGLE,APPLE,FACEBOOK}_ENABLED`) plus an admin-only stage (`SOCIAL_LOGIN_ADMIN_ONLY`: no buttons for anyone, callbacks denying non-admins, rule 4 disabled, the settings card for admins only). Google and Apple were verified end to end in production on 2026-09-29 and **launched publicly the same day** (Jan's call): the admin-only stage and the Google/Apple flags were deleted, not just flipped (`docs/features/feature_flags.md` §Retired).
 
-**Plus `SOCIAL_LOGIN_ADMIN_ONLY` (default `1`)** — even with a provider enabled, social login stays invisible to the public until Jan flips this to `0` after verifying everything end-to-end in production. Admin = `player.isAdmin` via the existing `AdminAccessVoter` (`is_granted('ADMIN_ACCESS')`). While admin-only:
+What rules now (`SocialLoginSettings::isEnabled()` is the one door):
 
-- **`/login` and `/register` render NO social buttons for anyone.** Two reasons: the viewer is anonymous (admin status unknowable), and those pages are anonymously cached (`public, s-maxage=60`, PR #164) — per-viewer conditional rendering would poison the shared cache. Rendering nothing keeps the cache uniform.
-- **Admins test the logged-out login flow via direct URL** (`/login/social/google`). The start route stays reachable for anonymous visitors; enforcement happens in the **callback**, where identity is finally known: if the resolved account's player is not an admin → generic authentication failure (no hint the feature exists). Rule 4 (new-account creation) is **fully disabled** in admin-only mode.
-- **Edit-profile "Connected sign-in methods" section renders only for `is_granted('ADMIN_ACCESS')`** (logged-in page, not publicly cached — safe), and the link/unlink handlers enforce the same check server-side.
-
-Flip `SOCIAL_LOGIN_ADMIN_ONLY=0` → public launch. **Update `docs/features/feature_flags.md`** for all four flags (project rule).
+- **Google / Apple are available iff their credentials are configured** (Google: client id + secret; Apple: client id, team id, key id, private key). Local dev and tests have none, so no button renders and the start/callback/connect routes 404. Emptying a provider's credentials in Infisical is the kill switch.
+- **Facebook** additionally needs `SOCIAL_LOGIN_FACEBOOK_ENABLED` until the Meta app is published (it is in development mode: only its admins/testers can sign in).
+- Buttons on `/login` + `/register` for every visitor; the markup depends on configuration only, never on the viewer (both pages are `no-store` anyway, `NativeAuthPageSubscriber`).
+- Rule-4 registration via the `/register/social` interstitial is open to everyone; the "Connected sign-in methods" card shows for every signed-in player while any provider is available.
+- Unlink and the Apple server-to-server webhook were never gated and stay that way.
 
 ### Env vars (all empty-default in repo `.env`; prod via Infisical)
 
 ```
-SOCIAL_LOGIN_ADMIN_ONLY=1
-SOCIAL_LOGIN_GOOGLE_ENABLED=0
 GOOGLE_CLIENT_ID= / GOOGLE_CLIENT_SECRET=
 SOCIAL_LOGIN_FACEBOOK_ENABLED=0
 FACEBOOK_APP_ID= / FACEBOOK_APP_SECRET=
-SOCIAL_LOGIN_APPLE_ENABLED=0
 APPLE_CLIENT_ID= / APPLE_TEAM_ID= / APPLE_KEY_ID= / APPLE_PRIVATE_KEY=
+APPLE_APP_ID=
 ```
 
 ---
@@ -267,10 +265,10 @@ Two PRs, in order:
 - Google Cloud console: OAuth consent screen + web credentials; redirect URIs for prod + dev
 - Meta developers: app, Live mode, privacy policy URL
 - Apple Developer: Services ID, domain verification, `.p8` key, **register `mail.myspeedpuzzling.com` for private-relay email**
-- Infisical: all secrets; flip flags per provider when ready; verify each provider end-to-end as admin, then `SOCIAL_LOGIN_ADMIN_ONLY=0` = public launch
+- Infisical: all secrets (a provider goes live the moment its credentials are there — Facebook also needs its flag); verify each provider end-to-end. Done for Google + Apple, public since 2026-09-29
 - Add prune cron on the box
 
-Shared facts baked into the guides: one redirect URI per provider (`https://myspeedpuzzling.com/login/social/{provider}/callback` — link flows reuse it via the state payload's intent), Apple is untestable on localhost (verify in production behind the admin-only flag), rollback per provider = flip its flag to `0`.
+Shared facts baked into the guides: one redirect URI per provider (`https://myspeedpuzzling.com/login/social/{provider}/callback` — link flows reuse it via the state payload's intent), Apple is untestable on localhost (verify in production), rollback per provider = empty its credentials (Facebook: flip its flag to `0`).
 
 ## Explicitly out of scope (revisit later)
 

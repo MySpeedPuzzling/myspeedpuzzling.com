@@ -2,7 +2,9 @@
 
 Exact setup for "Sign in with Apple" (auth hardening PR 2 #175, hardening 2026-09-29, Apple go-live prep 2026-09-29). The code is done and deployed dark; this guide is the Apple Developer portal, the secret hand-off and the rollout. Prerequisite: the paid Apple Developer Program membership (you have it).
 
-**Apple cannot be tested on localhost.** Apple only accepts https return URLs on a registered domain. Verify it in production while `SOCIAL_LOGIN_ADMIN_ONLY=1` (the default): only admins can use it and nobody else sees a button.
+**Status: live for everyone since 2026-09-29.** There is no flag and no admin-only stage any more: Apple sign-in is available exactly when all four Apple credentials (`APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`) are set.
+
+**Apple cannot be tested on localhost.** Apple only accepts https return URLs on a registered domain, so it is verified in production - and the moment the credentials reach production, the button is public.
 
 Click paths checked against Apple's help pages on 2026-09-29 ([Services ID for the web](https://developer.apple.com/help/account/capabilities/configure-sign-in-with-apple-for-the-web), [server-to-server notifications](https://developer.apple.com/help/account/capabilities/enabling-server-to-server-notifications), [private email relay](https://developer.apple.com/help/account/capabilities/configure-private-email-relay-service)). Apple renames buttons from time to time; the structure stays the same.
 
@@ -115,33 +117,29 @@ Keep the secrets **outside every git repository**, in `~/.msp-secrets/` (never c
 Then tell Claude "Apple secrets are in ~/.msp-secrets". An agent then:
 1. reads the `.p8` and prepares its whole content (including the `-----BEGIN/END PRIVATE KEY-----` lines) as `APPLE_PRIVATE_KEY`, **on one line with a literal `\n` for each line break**. The production `.env` is a Docker env file, and those cannot hold values that span several lines; `AppleProviderWithInlineKey` turns the `\n` back into line breaks;
 2. writes `APPLE_APP_ID`, `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY` to Infisical project **myspeedpuzzling**, environment **prod** (procedure: memory `reference_production_access.md`, "Infisical admin from the box");
-3. only after that sets `SOCIAL_LOGIN_APPLE_ENABLED=1` and leaves `SOCIAL_LOGIN_ADMIN_ONLY=1`;
-4. queues a redeploy so `dump_secrets` renders the new `.env`.
+3. queues a redeploy - **this is the go-live**: with all four credentials set, the Apple button shows on /login and /register for everybody so `dump_secrets` renders the new `.env`.
 
 The env var names the app reads are `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` and `APPLE_APP_ID` (`config/services.php`). `APPLE_APP_ID` is only used to check the audience of server-to-server notifications: those carry the App ID, not the Services ID.
 
-## 6. Admin-only test in production (checklist)
+## 6. Test in production (checklist)
 
-Signed in to Apple as yourself (an admin player), in a private window:
+Signed in to Apple as yourself, in a private window:
 
-1. **Real e-mail → automatic link.** Open `https://myspeedpuzzling.com/login/social/apple`, choose **Share My Email** with the address of your existing MySpeedPuzzling admin account. Expected: you are signed straight into that account (rule 2, verified address) and a "Apple sign-in was connected" security mail arrives.
+1. **Real e-mail → automatic link.** Open `https://myspeedpuzzling.com/login/social/apple`, choose **Share My Email** with the address of your existing MySpeedPuzzling account. Expected: you are signed straight into that account (rule 2, verified address) and a "Apple sign-in was connected" security mail arrives.
 2. **Disconnect.** Edit profile → Connected sign-in methods → Apple → **Disconnect**. It disappears from the list.
 3. **Fresh first authorization.** Apple sends name and e-mail only the first time. To get a first time again: <https://account.apple.com> → **Sign-In and Security** → **Sign in with Apple** → MySpeedPuzzling → **Stop using Sign in with Apple** (on an iPhone: Settings → your name → Sign in with Apple). This also sends us a `consent-revoked` notification. It changes nothing (Apple is already disconnected), but it proves the endpoint is reachable: ask Claude to check that Traefik logged a `POST /webhook/apple-sign-in` answered 200, not 400.
 4. **Connect with Hide My Email.** Edit profile → Continue with Apple (Connected sign-in methods) → choose **Hide My Email**. It connects to your account.
 5. **Relay delivery, from every sender.** Send one test mail to that `…@privaterelay.appleid.com` address from each of `robot@mail.`, `notify@notify.` and `newsletter@news.myspeedpuzzling.com`. Ask Claude to do it from the box, or use a Listmonk test campaign for the newsletter. All three must arrive in your real inbox. Open one and check the headers: `Authentication-Results` should show `spf=pass` and `dkim=pass header.d=<the sending subdomain>`.
 6. **Cancel.** Start `/login/social/apple` and cancel at Apple. You land back on the login page, still signed out, and nothing changes.
 
-Everything green → the public flip.
+## 7. Fresh-Apple-ID test
 
-## 7. Public flip and fresh-Apple-ID test
-
-1. Tell Claude to set `SOCIAL_LOGIN_ADMIN_ONLY=0` (this is the public launch of *all* enabled providers, so coordinate with Google/Facebook) and redeploy.
-2. With an Apple ID that has **never** been used with MySpeedPuzzling (a family member's, or a new one), open `/login/social/apple` and choose **Hide My Email**. Expected:
+1. With an Apple ID that has **never** been used with MySpeedPuzzling (a family member's, or a new one), open `/login/social/apple` and choose **Hide My Email**. Expected:
    - the page **"Do you already have a MySpeedPuzzling account?"** explains that Apple hides the address, with **"I already have an account"** as the big primary button;
    - **"I'm new here — create my account"** creates the account, and the player name is the name Apple sent (first authorization only).
-3. Repeat with an Apple ID that is new to us but **shares** a real address: the normal "Create a new account?" page appears.
+2. Repeat with an Apple ID that is new to us but **shares** a real address: the normal "Create a new account?" page appears.
 
-**Rollback at any time:** `SOCIAL_LOGIN_APPLE_ENABLED=0` + redeploy. The button disappears and Apple callbacks are refused. Linked identities stay in the database and work again after re-enabling. Server-to-server notifications keep being processed even with the flag off, so a deleted Apple ID still loses its identity.
+**Rollback at any time:** empty `APPLE_CLIENT_ID` (or any of the four credentials) in Infisical + redeploy. The button disappears and Apple routes 404. Linked identities stay in the database and work again once the credentials return. Server-to-server notifications keep being processed meanwhile (they need only `APPLE_APP_ID`/`APPLE_CLIENT_ID` for the audience check - keep `APPLE_APP_ID` set), so a deleted Apple ID still loses its identity.
 
 ## Server-to-server notifications (what the endpoint does)
 

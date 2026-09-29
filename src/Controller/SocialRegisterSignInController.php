@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\EventSubscriber\NativeAuthPageSubscriber;
-use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginStateStore;
 use SpeedPuzzling\Web\Value\ParkedSocialLink;
 use SpeedPuzzling\Web\Value\ReturnUrl;
@@ -13,7 +12,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -41,7 +39,6 @@ final class SocialRegisterSignInController extends AbstractController
     private const int COOKIE_LIFETIME_SECONDS = 600;
 
     public function __construct(
-        private readonly SocialLoginSettings $socialLoginSettings,
         private readonly SocialLoginStateStore $stateStore,
         private readonly TranslatorInterface $translator,
     ) {
@@ -55,11 +52,6 @@ final class SocialRegisterSignInController extends AbstractController
     )]
     public function __invoke(Request $request): Response
     {
-        // Rule 4 (and so this page) does not exist during the admin-only stage
-        if ($this->socialLoginSettings->isAdminOnly()) {
-            throw new NotFoundHttpException();
-        }
-
         if ($this->getUser() !== null) {
             return $this->redirectToRoute('my_profile');
         }

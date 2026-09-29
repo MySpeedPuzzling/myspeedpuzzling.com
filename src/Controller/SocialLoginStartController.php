@@ -24,10 +24,6 @@ use Symfony\Component\Routing\Attribute\Route;
  * the server-side store and redirects to the provider's consent screen.
  * Deliberately session-free for anonymous visitors (#164) - everything the
  * callback needs lives in the cache-backed state payload.
- *
- * Stays reachable while SOCIAL_LOGIN_ADMIN_ONLY is on: admins test the
- * logged-out flow via this direct URL (no buttons render anywhere), and
- * enforcement happens in the callback where identity is finally known.
  */
 final class SocialLoginStartController extends AbstractController
 {

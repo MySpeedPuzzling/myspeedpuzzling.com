@@ -6,10 +6,10 @@ namespace SpeedPuzzling\Web\Tests\Security;
 
 use GuzzleHttp\Psr7\Response as HttpResponse;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
-use SpeedPuzzling\Web\Tests\TestDouble\AppleIdTokenFactory;
+use SpeedPuzzling\Web\Tests\ConfiguresSocialLoginProviders;
 use SpeedPuzzling\Web\Tests\TestDouble\SocialLoginHttpMock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -25,10 +25,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class SocialLoginPkceTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    /** @var array<string, string|false> */
-    private array $originalStringEnv = [];
+    use ConfiguresSocialLoginProviders;
 
     protected function setUp(): void
     {
@@ -37,27 +34,14 @@ final class SocialLoginPkceTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $this->restoreFeatureFlagEnv();
-
-        foreach ($this->originalStringEnv as $name => $original) {
-            if ($original === false) {
-                unset($_ENV[$name], $_SERVER[$name]);
-
-                continue;
-            }
-
-            $_ENV[$name] = $original;
-            $_SERVER[$name] = $original;
-        }
-
-        $this->originalStringEnv = [];
+        $this->restoreSocialLoginEnv();
 
         parent::tearDown();
     }
 
     public function testGoogleLoginSendsS256ChallengeAndTheMatchingVerifier(): void
     {
-        $this->enableProvider('SOCIAL_LOGIN_GOOGLE_ENABLED');
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $browser->request('GET', '/login/social/google');
@@ -79,7 +63,7 @@ final class SocialLoginPkceTest extends WebTestCase
 
     public function testGoogleConnectFromSettingsRunsPkceToo(): void
     {
-        $this->enableProvider('SOCIAL_LOGIN_GOOGLE_ENABLED');
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
@@ -101,7 +85,7 @@ final class SocialLoginPkceTest extends WebTestCase
 
     public function testEveryFlowGetsItsOwnChallenge(): void
     {
-        $this->enableProvider('SOCIAL_LOGIN_GOOGLE_ENABLED');
+        $this->enableSocialLoginProvider(OauthProvider::Google);
         $browser = self::createClient();
 
         $browser->request('GET', '/login/social/google');
@@ -117,7 +101,7 @@ final class SocialLoginPkceTest extends WebTestCase
 
     public function testFacebookRunsWithoutPkce(): void
     {
-        $this->enableProvider('SOCIAL_LOGIN_FACEBOOK_ENABLED');
+        $this->enableSocialLoginProvider(OauthProvider::Facebook);
         $browser = self::createClient();
 
         $browser->request('GET', '/login/social/facebook');
@@ -129,11 +113,7 @@ final class SocialLoginPkceTest extends WebTestCase
 
     public function testAppleRunsWithoutPkce(): void
     {
-        $this->enableProvider('SOCIAL_LOGIN_APPLE_ENABLED');
-        $this->overrideStringEnv('APPLE_CLIENT_ID', AppleIdTokenFactory::CLIENT_ID);
-        $this->overrideStringEnv('APPLE_TEAM_ID', 'TESTTEAM01');
-        $this->overrideStringEnv('APPLE_KEY_ID', 'TESTKEY001');
-        $this->overrideStringEnv('APPLE_PRIVATE_KEY', AppleIdTokenFactory::clientSecretKeyPem());
+        $this->enableSocialLoginProvider(OauthProvider::Apple);
         $browser = self::createClient();
 
         $browser->request('GET', '/login/social/apple');
@@ -162,12 +142,6 @@ final class SocialLoginPkceTest extends WebTestCase
             rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '='),
             'The verifier must hash to the challenge sent on the consent URL',
         );
-    }
-
-    private function enableProvider(string $flag): void
-    {
-        $this->overrideFeatureFlagEnv($flag, true);
-        $this->overrideFeatureFlagEnv('SOCIAL_LOGIN_ADMIN_ONLY', false);
     }
 
     /**
@@ -205,16 +179,5 @@ final class SocialLoginPkceTest extends WebTestCase
     private static function jsonResponse(array $payload): HttpResponse
     {
         return new HttpResponse(200, ['Content-Type' => 'application/json'], json_encode($payload, JSON_THROW_ON_ERROR));
-    }
-
-    private function overrideStringEnv(string $name, string $value): void
-    {
-        if (!array_key_exists($name, $this->originalStringEnv)) {
-            $original = $_ENV[$name] ?? false;
-            $this->originalStringEnv[$name] = is_string($original) ? $original : false;
-        }
-
-        $_ENV[$name] = $value;
-        $_SERVER[$name] = $value;
     }
 }

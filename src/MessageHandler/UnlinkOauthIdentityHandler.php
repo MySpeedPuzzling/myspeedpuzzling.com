@@ -6,14 +6,12 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use SpeedPuzzling\Web\Exceptions\CannotUnlinkLastSignInMethod;
 use SpeedPuzzling\Web\Exceptions\OauthIdentityNotFound;
-use SpeedPuzzling\Web\Exceptions\SocialLoginRestrictedToAdmins;
 use SpeedPuzzling\Web\Exceptions\UserAccountNotFound;
 use SpeedPuzzling\Web\Message\RecordAuthAuditEvent;
 use SpeedPuzzling\Web\Message\UnlinkOauthIdentity;
 use SpeedPuzzling\Web\Repository\OauthIdentityRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Services\AuthAuditRecorder;
-use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginAdminOnlyGuard;
 use SpeedPuzzling\Web\Value\AuthAuditEventType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -23,14 +21,12 @@ final readonly class UnlinkOauthIdentityHandler
     public function __construct(
         private UserAccountRepository $userAccountRepository,
         private OauthIdentityRepository $oauthIdentityRepository,
-        private SocialLoginAdminOnlyGuard $adminOnlyGuard,
         private AuthAuditRecorder $authAuditRecorder,
     ) {
     }
 
     /**
      * @throws UserAccountNotFound
-     * @throws SocialLoginRestrictedToAdmins
      * @throws OauthIdentityNotFound
      * @throws CannotUnlinkLastSignInMethod
      */
@@ -41,8 +37,6 @@ final readonly class UnlinkOauthIdentityHandler
         if ($userAccount === null) {
             throw new UserAccountNotFound();
         }
-
-        $this->adminOnlyGuard->assertAllowedFor($message->userId);
 
         $oauthIdentity = $this->oauthIdentityRepository->findForUserAccount($userAccount, $message->provider);
 

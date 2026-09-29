@@ -10,11 +10,11 @@ namespace SpeedPuzzling\Web\Value;
  * is what the visitor reads on /login (a `security` domain translation key,
  * the English sentence itself - see translations/security.*.yml).
  *
- * Only what is safe to reveal gets its own copy. The three account-dependent
- * refusals (admin-only denial, admin-only registration stop, refused auto-link)
- * share ONE message on purpose: telling them apart would reveal whether an
- * account exists, which sign-in methods it has, or that the feature is
- * admin-only.
+ * Only what is safe to reveal gets its own copy. A refused auto-link gets the
+ * generic "not possible" message on purpose: naming the reason would reveal
+ * which sign-in methods the account has. (The admin-only codes
+ * `admin_only_denied` / `admin_only_registration_disabled` left with the
+ * admin-only stage on 2026-09-29; older audit rows may still carry them.)
  */
 enum SocialLoginFailureReason: string
 {
@@ -40,8 +40,6 @@ enum SocialLoginFailureReason: string
     case ProviderError = 'provider_error';
     case CodeMissing = 'code_missing';
     case CodeExchangeFailed = 'code_exchange_failed';
-    case AdminOnlyDenied = 'admin_only_denied';
-    case AdminOnlyRegistrationDisabled = 'admin_only_registration_disabled';
     case AutoLinkRefused = 'auto_link_refused';
     case AccountEmailUnverified = 'account_email_unverified';
     case ProviderEmailUnverified = 'provider_email_unverified';
@@ -53,7 +51,7 @@ enum SocialLoginFailureReason: string
             self::StateInvalid => self::MESSAGE_STATE_INVALID,
             self::ProviderCancelled => self::MESSAGE_CANCELLED,
             self::ProviderError, self::CodeMissing, self::CodeExchangeFailed => self::MESSAGE_PROVIDER_FAILED,
-            self::AdminOnlyDenied, self::AdminOnlyRegistrationDisabled, self::AutoLinkRefused => self::MESSAGE_NOT_POSSIBLE,
+            self::AutoLinkRefused => self::MESSAGE_NOT_POSSIBLE,
             self::AccountEmailUnverified => self::MESSAGE_ACCOUNT_EMAIL_UNVERIFIED,
             self::ProviderEmailUnverified => self::MESSAGE_PROVIDER_EMAIL_UNVERIFIED,
             self::NoEmail => self::MESSAGE_NO_EMAIL,

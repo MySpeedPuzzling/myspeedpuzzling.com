@@ -101,6 +101,91 @@ final class SignInCodeTest extends WebTestCase
         self::assertContains('sign_in_code_used', $events);
     }
 
+    /**
+     * Production 2026-09-30: iOS filled the code from Mail and the form went out
+     * twice with the same pre-login session cookie. The second POST found nothing
+     * pending and showed "no longer valid" although the first had signed in.
+     */
+    public function testASecondSubmitOfTheSameCodeLandsWhereTheFirstDid(): void
+    {
+        $browser = self::createClient();
+        $email = $this->seedAccount($browser, 'msp|code14', 'code.fourteen');
+
+        $this->requestSignIn($browser, $email, ['return' => '/en/puzzle']);
+        $code = $this->codeFrom($this->lastMail());
+        $browser->followRedirect();
+
+        // Both submits leave before the first answer arrives: same cookies
+        $cookiesBeforeSignIn = $browser->getCookieJar()->all();
+
+        $this->submitCode($browser, $code, '/en/puzzle');
+        self::assertResponseRedirects('/en/puzzle', 303);
+
+        $browser->getCookieJar()->clear();
+
+        foreach ($cookiesBeforeSignIn as $cookie) {
+            $browser->getCookieJar()->set($cookie);
+        }
+
+        $this->submitCode($browser, $code, '/en/puzzle');
+        self::assertResponseRedirects('/en/puzzle', 303);
+        // No failure: the fresh remember-me cookie must survive the duplicate
+        foreach ($browser->getResponse()->headers->getCookies() as $cookie) {
+            self::assertNotSame('REMEMBERME', $cookie->getName());
+        }
+
+        $events = $this->auditEvents($browser, $email);
+        self::assertContains('sign_in_code_used', $events);
+        self::assertNotContains('sign_in_code_failed', $events);
+
+        // Another browser without that marker still gets the ordinary answer
+        $this->inAnotherBrowser($browser, function () use ($browser, $code): void {
+            $this->submitCode($browser, $code, '/en/puzzle');
+
+            self::assertResponseRedirects('/login-link?return=/en/puzzle', 303);
+            self::assertNull($browser->getContainer()->get(TokenStorageInterface::class)->getToken());
+        });
+    }
+
+    public function testASubmitAfterTheSignInHasLandedRedirectsToo(): void
+    {
+        $browser = self::createClient();
+        $email = $this->seedAccount($browser, 'msp|code15', 'code.fifteen');
+
+        $this->requestSignIn($browser, $email, ['return' => '/en/puzzle']);
+        $code = $this->codeFrom($this->lastMail());
+        $browser->followRedirect();
+
+        $this->submitCode($browser, $code, '/en/puzzle');
+        self::assertResponseRedirects('/en/puzzle', 303);
+
+        // The straggler carries the new, signed-in cookies
+        $this->submitCode($browser, $code, '/en/puzzle');
+        self::assertResponseRedirects('/en/puzzle', 303);
+        self::assertNotNull($browser->getCookieJar()->get('REMEMBERME'));
+        self::assertNotContains('sign_in_code_failed', $this->auditEvents($browser, $email));
+    }
+
+    public function testEmailOnlyPagesOfferEmailsNotPasswords(): void
+    {
+        $browser = self::createClient();
+
+        // iOS offers saved passwords for autocomplete="username" - there is no password here
+        foreach (['/login-link', '/password-reset'] as $page) {
+            $crawler = $browser->request('GET', $page);
+            self::assertResponseIsSuccessful();
+            self::assertSame('email', $crawler->filter('input[name="email"]')->attr('autocomplete'), $page);
+            self::assertCount(0, $crawler->filter('input[autocomplete="username"], input[autocomplete="current-password"], input[type="password"]'), $page);
+        }
+
+        $email = $this->seedAccount($browser, 'msp|code16', 'code.sixteen');
+        $this->requestSignIn($browser, $email);
+        $crawler = $browser->followRedirect();
+
+        self::assertCount(1, $crawler->filter('input[autocomplete="one-time-code"]'));
+        self::assertCount(0, $crawler->filter('input[autocomplete="username"], input[autocomplete="current-password"], input[type="password"]'));
+    }
+
     public function testWrongCodesCountDownThenKillTheCodeButNotTheLink(): void
     {
         $browser = self::createClient();

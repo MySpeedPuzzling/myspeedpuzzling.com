@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\EventSubscriber\NativeAuthPageSubscriber;
 use SpeedPuzzling\Web\Security\SignInCodeAuthenticator;
 use SpeedPuzzling\Web\Security\SignInCodeRejected;
+use SpeedPuzzling\Web\Services\SignInCodeCompletion;
 use SpeedPuzzling\Web\Services\SignInCodePending;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 use SpeedPuzzling\Web\Value\SignInCodeOutcome;
@@ -23,6 +25,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * here (it answers 303 itself). This controller only answers a failure: the
  * same screen again with 422 and what went wrong, or - when this browser has no
  * sign-in pending any more - back to the request form.
+ *
+ * Except a duplicate submit of a code that has just signed this browser in
+ * (iOS autofill + our auto-submit, SignInCodeCompletion): the authenticator
+ * steps aside and this answers with the same 303 the first submit got.
  */
 final class SignInCodeController extends AbstractController
 {
@@ -30,6 +36,8 @@ final class SignInCodeController extends AbstractController
         private readonly SignInCodePending $signInCodePending,
         private readonly TranslatorInterface $translator,
         private readonly int $signInLinkLifetimeSeconds,
+        private readonly SignInCodeCompletion $signInCodeCompletion,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -43,6 +51,19 @@ final class SignInCodeController extends AbstractController
     {
         $returnUrl = ReturnUrl::tryFrom($request->request->getString('return'));
         $failure = $request->attributes->get(SignInCodeAuthenticator::FAILURE_ATTRIBUTE);
+
+        if ($failure === null && $this->signInCodePending->get($request) === null) {
+            // The authenticator stepped aside: a duplicate of a submit that signed in
+            $target = $this->signInCodeCompletion->recall($request)
+                ?? ($this->getUser() !== null ? $returnUrl->path ?? $this->generateUrl('my_profile') : null);
+
+            if ($target !== null) {
+                $this->logger->info('Sign-in code submitted again after it signed in (duplicate_submit)');
+
+                return $this->redirect($target, Response::HTTP_SEE_OTHER);
+            }
+        }
+
         $rejected = $failure instanceof SignInCodeRejected ? $failure : null;
         $outcome = $rejected?->outcome;
         $email = $rejected !== null ? $rejected->email : $this->signInCodePending->get($request)['email'] ?? null;

@@ -769,6 +769,21 @@ phone". A typed code signs in the browser that asked for it.
   bug, reachable with a double tap). `SingleUseLoginLinkHandler` now shifts the colliding link's
   expiry by a second.
 
+**Double submit fix (2026-09-30, production):** iOS filled the code from Mail and the form went
+out twice with the same pre-login session cookie - the first POST signed in (`sign_in_code_used`),
+the second found nothing pending (`sign_in_code_failed`/`no_pending_request`), showed "no longer
+valid" and its `LoginFailureEvent` cleared the fresh remember-me cookie. Now: (1)
+`sign_in_code_controller.js` lets one submission out (cancels later `submit` events before Turbo
+sees them, input `readonly`, button disabled, `aria-busy`; unlocked on a failed `turbo:submit-end`);
+(2) a success remembers its redirect for 60 s in `sign_in_code_completion_cache`, keyed by a hash
+of the session id the request came with (`SignInCodeCompletion`) - that id is destroyed by the
+session migration and only this browser holds it. With nothing pending and either that marker or
+an authenticated token, `SignInCodeAuthenticator::supports()` steps aside and `SignInCodeController`
+answers the same 303 (info log `duplicate_submit`, no failure row). The marker never signs anybody
+in. (3) E-mail-only pages (`/login-link`, `/password-reset`) use `autocomplete="email"`, not
+`username`, so iOS offers addresses instead of saved passwords; `username` stays on forms with a
+password.
+
 **Desktop polish (same release):** `_auth_layout.html.twig` centres the form + illustration as one
 group (`.auth-frame`, max 60rem from md up) instead of form hard left / picture hard right at
 1280px; mobile unchanged.

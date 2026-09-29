@@ -27,7 +27,7 @@
             {% endif %}
 
             {% if code_available %}
-                <form action="{{ path('sign_in_code') }}" method="post" novalidate class="auth-code-form" data-controller="sign-in-code" data-action="submit->last-sign-in#remember" data-last-sign-in-method="link">
+                <form action="{{ path('sign_in_code') }}" method="post" novalidate class="auth-code-form" data-controller="sign-in-code" data-action="submit->sign-in-code#submit submit->last-sign-in#remember" data-last-sign-in-method="link">
                     <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Security\\SignInCodeAuthenticator::CSRF_TOKEN_ID')) }}">
                     {% if return_path %}
                         <input type="hidden" name="return" value="{{ return_path }}">
@@ -57,7 +57,7 @@
                         <div class="invalid-feedback d-block" id="sign-in-code-error">{{ code_error }}</div>
                     {% endif %}
 
-                    <button type="submit" class="btn btn-primary w-100 mt-3" data-turbo-submits-with="{{ 'auth.login.submitting'|trans }}">
+                    <button type="submit" class="btn btn-primary w-100 mt-3" data-sign-in-code-target="button" data-turbo-submits-with="{{ 'auth.login.submitting'|trans }}">
                         {{ 'auth.login.submit'|trans }}
                     </button>
                 </form>

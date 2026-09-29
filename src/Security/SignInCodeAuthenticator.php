@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Security;
 use SpeedPuzzling\Web\Entity\LoginLinkRequest;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Message\VerifySignInCode;
+use SpeedPuzzling\Web\Services\SignInCodeCompletion;
 use SpeedPuzzling\Web\Services\SignInCodeHasher;
 use SpeedPuzzling\Web\Services\SignInCodePending;
 use SpeedPuzzling\Web\Value\SignInCodeCheck;
@@ -16,6 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
@@ -59,12 +61,31 @@ final class SignInCodeAuthenticator extends AbstractAuthenticator
         private readonly LoginLinkSuccessHandler $loginLinkSuccessHandler,
         private readonly RateLimiterFactoryInterface $signInCodeEmailLimiter,
         private readonly RateLimiterFactoryInterface $signInCodeIpLimiter,
+        private readonly SignInCodeCompletion $signInCodeCompletion,
+        private readonly TokenStorageInterface $tokenStorage,
     ) {
     }
 
     public function supports(Request $request): bool
     {
-        return $request->isMethod('POST') && $request->attributes->get('_route') === self::ROUTE;
+        if (!$request->isMethod('POST') || $request->attributes->get('_route') !== self::ROUTE) {
+            return false;
+        }
+
+        if ($this->signInCodePending->get($request) !== null) {
+            return true;
+        }
+
+        // Nothing pending, but this browser has just signed in (a duplicate submit,
+        // SignInCodeCompletion): not ours - SignInCodeController redirects. Failing
+        // here would log a false failure and clear the fresh remember-me cookie
+        return !$this->isDuplicateSubmit($request);
+    }
+
+    private function isDuplicateSubmit(Request $request): bool
+    {
+        return $this->tokenStorage->getToken()?->getUser() instanceof UserAccount
+            || $this->signInCodeCompletion->recall($request) !== null;
     }
 
     public function authenticate(Request $request): Passport
@@ -134,6 +155,13 @@ final class SignInCodeAuthenticator extends AbstractAuthenticator
     {
         $response = $this->loginLinkSuccessHandler->onAuthenticationSuccess($request, $token);
         $response->setStatusCode(Response::HTTP_SEE_OTHER);
+
+        $target = $response->headers->get('Location');
+
+        if ($target !== null) {
+            // A second submit of the same code, already on its way, lands here too
+            $this->signInCodeCompletion->remember($request, $target);
+        }
 
         return $response;
     }

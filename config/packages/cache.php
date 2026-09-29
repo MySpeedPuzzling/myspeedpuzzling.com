@@ -28,6 +28,12 @@ return App::config([
                 // manual pairing flow. Cache rather than a table: they live ten
                 // minutes, self-expire, and the lasting record of who linked when
                 // is the wjpf_identity row, not the code.
+                // "This browser just signed in with its code" for 60 s, so a
+                // duplicate submit of the same code redirects instead of failing
+                // (SignInCodeCompletion) - the session it came with is gone
+                'sign_in_code_completion_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
                 'wjpf_pairing_code_cache' => [
                     'adapters' => ['cache.app'],
                 ],

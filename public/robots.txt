@@ -13,7 +13,10 @@ Disallow: /internal-api
 # assets, /-/asset-load-failure and /-/stale-document only answer POST.
 Disallow: /-/
 
+# Live components are served at /{_locale}/_components for every locale,
+# Czech included (config/routes/ux_live_component.php).
 Disallow: /_components
+Disallow: /cs/_components
 Disallow: /en/_components
 Disallow: /es/_components
 Disallow: /fr/_components

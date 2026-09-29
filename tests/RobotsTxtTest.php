@@ -64,6 +64,25 @@ final class RobotsTxtTest extends KernelTestCase
         self::assertFalse($this->isAllowed($path), sprintf('robots.txt must disallow %s', $path));
     }
 
+    /**
+     * Live components answer at /{_locale}/_components/... for every locale - Czech has a prefix there too,
+     * unlike its pages.
+     */
+    public function testLiveComponentsAreDisallowedInEveryLocale(): void
+    {
+        $router = $this->router();
+
+        foreach (self::LOCALES as $locale) {
+            $path = $router->generate('ux_live_component', [
+                '_locale' => $locale,
+                '_live_component' => 'PuzzleTimes',
+                'props' => '{"puzzleId":"' . self::SAMPLE_ID . '"}',
+            ]);
+
+            self::assertFalse($this->isAllowed($path), sprintf('robots.txt must disallow %s', $path));
+        }
+    }
+
     public function testSignInIsDisallowed(): void
     {
         $router = $this->router();
@@ -93,6 +112,12 @@ final class RobotsTxtTest extends KernelTestCase
             'collection detail' => ['collection_detail', ['collectionId' => self::SAMPLE_ID]],
             // Entry point of the QR codes printed from the modal - must keep working for crawlers too
             'printed QR code' => ['puzzle_detail_qr', ['puzzleId' => self::SAMPLE_ID]],
+            // The catalogue pages the footer, breadcrumbs and cards link to
+            'brand hub' => ['brand_puzzles', ['slug' => 'ravensburger']],
+            'brand × pieces page' => ['brand_pieces_puzzles', ['slug' => 'ravensburger', 'pieces' => '500']],
+            'pieces hub' => ['pieces_puzzles', ['pieces' => '750']],
+            'brand directory' => ['puzzle_brands', []],
+            'event' => ['event_detail', ['slug' => 'world-jigsaw-puzzle-championship-2025']],
         ];
     }
 

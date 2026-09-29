@@ -239,7 +239,7 @@ final class EditionDetailControllerTest extends WebTestCase
         $this->assertSelectorExists('meta[name="robots"][content="noindex, nofollow"]');
     }
 
-    public function testEditionJsonLdNamesTheSeriesAndUsesTheOriginalLogo(): void
+    public function testEditionJsonLdNamesTheSeriesAndUsesTheStrippedMediumLogo(): void
     {
         $browser = self::createClient();
         self::getContainer()->get(Connection::class)->executeStatement(
@@ -257,7 +257,8 @@ final class EditionDetailControllerTest extends WebTestCase
         self::assertIsArray($event);
         self::assertSame('Euro Jigsaw Jam · EJJ #68 — February 2026', $event['name'] ?? null);
         self::assertIsString($event['image'] ?? null);
-        self::assertStringEndsWith('/original/ejj-logo.png', $event['image']);
+        // The 400 px stripped preset, never the uploaded original (may carry EXIF/GPS)
+        self::assertStringEndsWith('/preset:puzzle_medium/plain/ejj-logo.png', $event['image']);
     }
 
     /**

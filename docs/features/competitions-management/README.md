@@ -149,7 +149,7 @@ Every round with a slug has a public results page — `/en/events/{slug}/results
 - **Sitemap**: `sitemap-events.xml` lists every edition that passes `IsCompetitionPubliclyVisible` (editions are never approved individually).
 - **Puzzles on the standalone event page**: tagged puzzles; else the puzzles of its rounds (`GetCompetitionPuzzles::roundPuzzleOverviews`, round hide rules applied); else the puzzles people logged times for there, most logged first, max 24 (`solvedPuzzleOverviews`) - same cards as tagged puzzles.
 - **Results by round** (standalone event page): one compact row of small round buttons in the event header (not a section of its own - the puzzle cards link their round too): rounds with a slug and ≥ 1 result, only on a publicly visible event — round results pages of a non-public event answer 404, so nothing links to them.
-- **Indexing**: unapproved/rejected events and series, and editions failing `IsCompetitionPubliclyVisible`, render `noindex, nofollow`. Event/series JSON-LD `image` is the uploaded logo original (`uploaded_asset`), not a thumbnail.
+- **Indexing**: unapproved/rejected events and series, and editions failing `IsCompetitionPubliclyVisible`, render `noindex, nofollow`. Event/edition/series JSON-LD `image` is the 400 px `puzzle_medium` preset (metadata stripped) instead of the 200 px thumbnail - never the uploaded original, which may carry EXIF/GPS (see `docs/TODO.md`, Image storage).
 - **WJPC hub** lists every edition's tagged + round puzzles with public solo median/fastest (`GetCompetitionPuzzles::forCompetitions`, publicly visible competitions only), each edition folded in a `<details>` so ~140 puzzles do not push "how to take part" and the FAQ out of reach.
 
 ## Round Management

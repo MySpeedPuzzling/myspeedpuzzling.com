@@ -29,8 +29,9 @@
     "description": {{ series.description|json_encode|raw }}
     {%- endif %}
     {%- if series.logo %},
-    {# The uploaded original - Google wants event images at least 720 px wide, the thumbnails are 200-400 px #}
-    "image": {{ uploaded_asset(series.logo)|json_encode|raw }}
+    {# The largest metadata-stripped preset (400 px) - never the uploaded original, older uploads may still
+       carry EXIF/GPS. Switch to a larger stripped preset once it exists (docs/TODO.md, Image storage) #}
+    "image": {{ series.logo|thumbnail('puzzle_medium')|json_encode|raw }}
     {%- endif %}
     {%- if not series.isOnline and series.location %},
     "location": {

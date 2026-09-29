@@ -71,8 +71,9 @@
     }
     {%- endif %}
     {%- if edition_image %},
-    {# The uploaded original - Google wants event images at least 720 px wide, the thumbnails are 200-400 px #}
-    "image": {{ uploaded_asset(edition_image)|json_encode|raw }}
+    {# The largest metadata-stripped preset (400 px) - never the uploaded original, older uploads may still
+       carry EXIF/GPS. Switch to a larger stripped preset once it exists (docs/TODO.md, Image storage) #}
+    "image": {{ edition_image|thumbnail('puzzle_medium')|json_encode|raw }}
     {%- endif %}
     {%- if event.description %},
     "description": {{ event.description|json_encode|raw }}

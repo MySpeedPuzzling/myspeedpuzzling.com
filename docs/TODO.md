@@ -60,8 +60,9 @@ raw scan on the box in `/root/bucket-scan.csv` + `/root/db-image-refs.tsv`.
       + local `compose.yml`). Until it exists the image sitemap and puzzle `og:image` stay on the 400 px
       `puzzle_medium` - never the raw originals (`/original/…`): pre-2026 uploads ≤ 2,000 px still carry EXIF,
       possibly GPS; the puzzle page's gallery link to the original has the same exposure. Then switch
-      `SitemapImagesController` and the og:image to it - see
-      [`features/seo/implementation-plan-2026-10.md`](features/seo/implementation-plan-2026-10.md) (WS-I)
+      `SitemapImagesController`, the og:image and the event/edition/series JSON-LD `image` (Google wants
+      event images ≥ 720 px wide) to it - see
+      [`features/seo/implementation-plan-2026-10.md`](features/seo/implementation-plan-2026-10.md) (WS-I, WS-G)
 
 ## Multiscan
 

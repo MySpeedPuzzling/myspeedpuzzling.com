@@ -60,8 +60,9 @@
     </li>
 {% endif %}
 
+{# nofollow: the modal URL only means something inside the modal frame (robots.txt disallows it) #}
 <li>
-    <a class="dropdown-item" href="{{ path('puzzle_qr_code_modal', {puzzleId: puzzle_id}) }}" data-turbo-frame="modal-frame">
+    <a class="dropdown-item" rel="nofollow" href="{{ path('puzzle_qr_code_modal', {puzzleId: puzzle_id}) }}" data-turbo-frame="modal-frame">
         <i class="bi bi-qr-code me-1"></i> {{ 'qr_code.button'|trans }}
     </a>
 </li>

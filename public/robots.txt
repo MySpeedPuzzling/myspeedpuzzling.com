@@ -140,6 +140,42 @@ Disallow: /ja/コレクションを作成
 Disallow: /ja/borrow
 Disallow: /ja/貸借設定を編集
 
+# Crawl waste found in Search Console (docs/features/seo/research-2026-09.md
+# §5 T2/T3). The QR modal, comment and statistics pages also answer noindex,
+# nofollow and the links to them are rel="nofollow". tests/RobotsTxtTest.php
+# checks these rules against the routes, so a renamed path fails CI instead of
+# silently reopening.
+
+# QR code modal: a Turbo Frame fragment, anything else is 301'd to the puzzle.
+# The printed-QR entry points (/p/..., /skladam-puzzle/..., ...) stay open.
+Disallow: /puzzle/*/qr-kod
+Disallow: /en/puzzle/*/qr-code
+Disallow: /es/puzzle/*/codigo-qr
+Disallow: /ja/puzzle/*/qr-code
+Disallow: /fr/puzzle/*/code-qr
+Disallow: /de/puzzle/*/qr-code
+Disallow: /puzzle/*/qr-code.png
+
+# Editing a collection item's comment: owner only, 302 to /login for crawlers.
+Disallow: /upravit-komentar-kolekce
+Disallow: /en/edit-collection-item-comment
+Disallow: /es/editar-comentario-coleccion
+Disallow: /ja/コレクションコメント編集
+Disallow: /fr/modifier-commentaire-collection
+Disallow: /de/sammlungs-kommentar-bearbeiten
+
+# Player statistics: every ?month=&year= period is its own noindex URL.
+Disallow: /statistiky-hrace
+Disallow: /en/player-statistics
+Disallow: /es/estadisticas-jugador
+Disallow: /ja/プレイヤー統計
+Disallow: /fr/statistiques-joueur
+Disallow: /de/spieler-statistiken
+
+# Sign-in (noindex, nofollow): every protected URL a crawler follows redirects
+# to its own /login?return=... Also covers /login-link and /login/social.
+Disallow: /login
+
 # --- SEO/backlink crawlers: no value to us, meaningful crawl load. ---
 
 User-agent: AhrefsBot

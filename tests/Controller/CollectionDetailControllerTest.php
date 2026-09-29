@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\CollectionDisplayMode;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class CollectionDetailControllerTest extends WebTestCase
@@ -36,6 +37,75 @@ final class CollectionDetailControllerTest extends WebTestCase
         $browser->request('GET', '/en/collection/' . CollectionFixture::COLLECTION_PUBLIC);
 
         $this->assertResponseIsSuccessful();
+    }
+
+    /**
+     * The item dropdown of a collection page renders for every viewer; its "edit comment" link
+     * must not - anybody but the owner only ever got a 404 (other players) or a redirect to
+     * /login (guests - Googlebot followed thousands of them).
+     */
+    public function testOnlyTheOwnerGetsTheCommentEditLink(): void
+    {
+        $pages = [
+            '/en/collection/' . CollectionFixture::COLLECTION_PUBLIC,
+            '/en/puzzle-collection/' . PlayerFixture::PLAYER_WITH_STRIPE,
+        ];
+        $items = '[id^="library-collection-"]';
+        $editLinks = 'a[href^="/en/edit-collection-item-comment/"]';
+
+        // Guest - crawlers included
+        $browser = self::createClient();
+        foreach ($pages as $page) {
+            $crawler = $browser->request('GET', $page);
+            $this->assertResponseIsSuccessful();
+            self::assertGreaterThan(0, $crawler->filter($items)->count(), $page);
+            self::assertCount(0, $crawler->filter($editLinks), $page);
+        }
+
+        // Another player
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        foreach ($pages as $page) {
+            $crawler = $browser->request('GET', $page);
+            $this->assertResponseIsSuccessful();
+            self::assertGreaterThan(0, $crawler->filter($items)->count(), $page);
+            self::assertCount(0, $crawler->filter($editLinks), $page);
+        }
+
+        // The owner: one per item, nofollow
+        self::ensureKernelShutdown();
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        foreach ($pages as $page) {
+            $crawler = $browser->request('GET', $page);
+            $this->assertResponseIsSuccessful();
+            $links = $crawler->filter($editLinks);
+            self::assertCount($crawler->filter($items)->count(), $links, $page);
+            self::assertSame(array_fill(0, $links->count(), 'nofollow'), $links->each(static fn (Crawler $link): null|string => $link->attr('rel')), $page);
+        }
+    }
+
+    /**
+     * A card the owner changes from the collection page comes back as a Turbo Stream, rendered
+     * without the collection - the edit link must survive it.
+     */
+    public function testCommentEditLinkSurvivesTheOwnersStreamUpdate(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $browser->request('POST', '/en/wishlist/' . PuzzleFixture::PUZZLE_500_02 . '/add', [
+            'context' => 'collection-detail',
+            'collection_id' => CollectionFixture::COLLECTION_PUBLIC,
+        ], server: [
+            'HTTP_ACCEPT' => 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml',
+        ]);
+
+        $this->assertResponseIsSuccessful();
+        $stream = new Crawler((string) $browser->getResponse()->getContent());
+        $card = new Crawler((string) $stream->filter('turbo-stream[action="replace"][target="library-collection-' . PuzzleFixture::PUZZLE_500_02 . '"] template')->html());
+        $link = $card->filter('a[href^="/en/edit-collection-item-comment/"]');
+        self::assertCount(1, $link);
+        self::assertSame('nofollow', $link->attr('rel'));
     }
 
     public function testOwnCollectionPagesLinkToThePuzzlePicker(): void

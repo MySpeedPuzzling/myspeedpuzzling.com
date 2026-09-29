@@ -1,6 +1,8 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ 'collections.edit_comment.meta.title'|trans({'%name%': collectionItem.puzzle.name}) }}{% endblock %}
+{# The owner's edit form: nothing to index or follow (robots.txt disallows the path too) #}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" />

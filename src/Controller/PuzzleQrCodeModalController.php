@@ -35,12 +35,20 @@ final class PuzzleQrCodeModalController extends AbstractController
         $qrImageUrl = $this->generateUrl('puzzle_qr_code_image', ['puzzleId' => $puzzleId]);
 
         if ($request->headers->get('Turbo-Frame') === 'modal-frame') {
-            return $this->render('puzzle/qr_code_modal.html.twig', [
+            $response = $this->render('puzzle/qr_code_modal.html.twig', [
                 'puzzle' => $puzzle,
                 'qr_image_url' => $qrImageUrl,
             ]);
+
+            // A fragment of the puzzle page, never a page of its own (robots.txt disallows the path too)
+            $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
+
+            return $response;
         }
 
-        return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+        // Only the puzzle dropdown asks for the modal (inside the modal frame). Anything else - a crawler
+        // following the link, a link opened in a new tab - belongs on the puzzle page itself. Permanent,
+        // so crawlers stop coming back: this URL used to be ~7% of all Googlebot requests, as 302s.
+        return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId], Response::HTTP_MOVED_PERMANENTLY);
     }
 }

@@ -22,7 +22,7 @@
             <p class="fs-sm text-muted mb-3">{{ 'onboarding.checklist.all_set_text'|trans }}</p>
 
             <div class="d-grid d-sm-flex gap-2">
-                <a class="btn btn-primary btn-sm" href="{{ path('player_statistics', {'playerId': logged_user.profile.playerId}) }}">{{ 'onboarding.checklist.all_set_statistics'|trans }}</a>
+                <a class="btn btn-primary btn-sm" rel="nofollow" href="{{ path('player_statistics', {'playerId': logged_user.profile.playerId}) }}">{{ 'onboarding.checklist.all_set_statistics'|trans }}</a>
                 <a class="btn btn-outline-primary btn-sm" href="{{ path('ladder') }}">{{ 'onboarding.checklist.all_set_ladder'|trans }}</a>
                 <a class="btn btn-outline-primary btn-sm" href="{{ path('puzzles') }}">{{ 'onboarding.checklist.all_set_puzzles'|trans }}</a>
             </div>

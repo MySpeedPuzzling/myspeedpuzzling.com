@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 
 final class PlayerStatisticsControllerTest extends WebTestCase
 {
@@ -29,6 +30,41 @@ final class PlayerStatisticsControllerTest extends WebTestCase
         $browser->request('GET', '/en/player-statistics/' . PlayerFixture::PLAYER_REGULAR);
 
         $this->assertResponseIsSuccessful();
+    }
+
+    /**
+     * Every ?month=&year= period used to be crawled as its own noindex URL (a crawl trap):
+     * the page is noindex, nofollow and every link to a statistics page is rel="nofollow".
+     */
+    public function testPageIsNoindexNofollowAndSoAreLinksToIt(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/player-statistics/' . PlayerFixture::PLAYER_REGULAR . '?month=6&year=2024');
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame('noindex, nofollow', $crawler->filter('meta[name="robots"]')->attr('content'));
+
+        // The period dropdown (all time, years, months) and the player header
+        $links = $crawler->filter('a[href^="/en/player-statistics/"]');
+        self::assertGreaterThan(3, $links->count());
+        self::assertSame(array_fill(0, $links->count(), 'nofollow'), $links->each(static fn (Crawler $link): null|string => $link->attr('rel')));
+    }
+
+    public function testMenuLinkToOwnStatisticsIsNofollow(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR);
+
+        $this->assertResponseIsSuccessful();
+
+        // The signed-in user menu and the player header
+        $links = $crawler->filter('a[href="/en/player-statistics/' . PlayerFixture::PLAYER_REGULAR . '"]');
+        self::assertGreaterThanOrEqual(2, $links->count());
+        self::assertSame(array_fill(0, $links->count(), 'nofollow'), $links->each(static fn (Crawler $link): null|string => $link->attr('rel')));
     }
 
     public function testNonsensicalYearRedirectsToCanonicalUrl(): void

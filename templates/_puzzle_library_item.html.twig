@@ -64,6 +64,11 @@
 {# Determine if should show solving actions in dropdown #}
 {% set show_solving_actions = page_context in ['collection', 'unsolved'] %}
 
+{# Owner-only items of a collection page. collections/detail.html.twig opens the dropdown for every
+   viewer (isOwnProfile: true), so ask the collection who owns it. Turbo-stream re-renders pass no
+   collection - they only ever answer the owner's own action, with isOwnProfile: true. #}
+{% set is_collection_owner = page_context == 'collection' and (collection|default(null) is null ? isOwnProfile : (logged_user.profile is not null and logged_user.profile.playerId == collection.playerId)) %}
+
 {# The viewer's own history on this puzzle (collection pages, "My times" display mode) #}
 {% set show_my_times = page_context == 'collection' and my_times is defined %}
 {% set my_time = show_my_times ? (my_times[item.puzzleId] ?? null) : null %}
@@ -273,11 +278,13 @@
 
                                 {# Context-specific menu items #}
                                 {% if page_context == 'collection' %}
-                                    <li>
-                                        <a class="dropdown-item" href="{{ path('edit_collection_item_comment', {collectionItemId: item.collectionItemId}) }}">
-                                            <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
-                                        </a>
-                                    </li>
+                                    {% if is_collection_owner %}
+                                        <li>
+                                            <a class="dropdown-item" rel="nofollow" href="{{ path('edit_collection_item_comment', {collectionItemId: item.collectionItemId}) }}">
+                                                <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
+                                            </a>
+                                        </li>
+                                    {% endif %}
                                 {% elseif page_context == 'lend-borrow-lent' %}
                                     {% if item.currentHolderId %}
                                         <li>

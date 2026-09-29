@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\TagFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -190,6 +191,34 @@ final class GetCompetitionPuzzlesTest extends KernelTestCase
         );
 
         self::assertSame([PuzzleFixture::PUZZLE_1000_02], $ids);
+    }
+
+    public function testSolvedPuzzleOverviewsKeepSecretRoundPuzzlesSecret(): void
+    {
+        // Somebody linked times on the round's secret puzzles to the event before the round started
+        $linkedTimes = [
+            PuzzleSolvingTimeFixture::TIME_01 => CompetitionApiFixture::PUZZLE_HIDDEN_ENTIRELY,
+            PuzzleSolvingTimeFixture::TIME_02 => CompetitionApiFixture::PUZZLE_HIDDEN_IMAGE,
+            PuzzleSolvingTimeFixture::TIME_03 => CompetitionApiFixture::PUZZLE_VISIBLE,
+        ];
+
+        foreach ($linkedTimes as $timeId => $puzzleId) {
+            $this->database->executeStatement(
+                'UPDATE puzzle_solving_time SET puzzle_id = :puzzleId, competition_id = :competitionId WHERE id = :timeId',
+                ['puzzleId' => $puzzleId, 'competitionId' => CompetitionApiFixture::COMPETITION_API, 'timeId' => $timeId],
+            );
+        }
+
+        $overviews = [];
+        foreach ($this->query->solvedPuzzleOverviews(CompetitionApiFixture::COMPETITION_API, 10) as $puzzle) {
+            $overviews[$puzzle->puzzleId] = $puzzle;
+        }
+
+        self::assertArrayNotHasKey(CompetitionApiFixture::PUZZLE_HIDDEN_ENTIRELY, $overviews);
+        self::assertArrayHasKey(CompetitionApiFixture::PUZZLE_HIDDEN_IMAGE, $overviews);
+        self::assertNull($overviews[CompetitionApiFixture::PUZZLE_HIDDEN_IMAGE]->puzzleImage);
+        self::assertArrayHasKey(CompetitionApiFixture::PUZZLE_VISIBLE, $overviews);
+        self::assertSame(CompetitionApiFixture::IMAGE_VISIBLE, $overviews[CompetitionApiFixture::PUZZLE_VISIBLE]->puzzleImage);
     }
 
     private function tag(string $tagId, string $puzzleId): void

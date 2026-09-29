@@ -56,6 +56,11 @@ raw scan on the box in `/root/bucket-scan.csv` + `/root/db-image-refs.tsv`.
       #213 - see [`features/account-deletion.md`](features/account-deletion.md); a deleted account's files now go automatically)
 - [ ] Optional: downscale the 84 pre-`ImageOptimizer` originals above 30 MP to 2,000 px like today's uploads
       (`2-oversized-originals-over-30mp.csv`); not needed for serving since the limit covers them
+- [ ] A large imgproxy preset (e.g. `puzzle_large=rs:fit:1200:1200`: WebP, metadata stripped; lily.srv `IMGPROXY_PRESETS`
+      + local `compose.yml`). Until it exists the image sitemap lists the raw originals (`/original/…`, EXIF kept on
+      pre-2026 uploads ≤ 2,000 px) and puzzle `og:image` stays the 400 px `puzzle_medium`; then switch
+      `SitemapImagesController::largestIndexableImage()` and the og:image to it - see
+      [`features/seo/implementation-plan-2026-10.md`](features/seo/implementation-plan-2026-10.md) (WS-I)
 
 ## Multiscan
 

@@ -23,7 +23,7 @@ final class SitemapPlayersController extends AbstractController
     {
         $entries = [];
 
-        foreach ($this->getPlayerIdsForSitemap->allPublic() as $playerId) {
+        foreach ($this->getPlayerIdsForSitemap->publicWithResults() as $playerId) {
             array_push($entries, ...$this->localizedEntries('player_profile', [
                 'playerId' => $playerId,
             ]));

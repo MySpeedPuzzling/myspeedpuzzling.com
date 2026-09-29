@@ -63,21 +63,24 @@ SQL;
     }
 
     /**
-     * Approved series editions for route edition_detail.
+     * Publicly visible series editions for route edition_detail - the rule the edition page itself follows
+     * (IsCompetitionPubliclyVisible): the series approved and not rejected, the edition not rejected.
+     * Editions are never approved individually, their own approved_at stays NULL.
      *
      * @return list<array{series_slug: string, edition_slug: string}>
      */
     public function editionSlugPairs(): array
     {
+        $visibility = IsCompetitionPubliclyVisible::SQL_CONDITION;
+
         $query = <<<SQL
-SELECT s.slug AS series_slug, c.slug AS edition_slug
+SELECT cs.slug AS series_slug, c.slug AS edition_slug
 FROM competition c
-JOIN competition_series s ON s.id = c.series_id
-WHERE c.approved_at IS NOT NULL
-    AND c.rejected_at IS NULL
+JOIN competition_series cs ON cs.id = c.series_id
+WHERE {$visibility}
     AND c.slug IS NOT NULL
-    AND s.slug IS NOT NULL
-ORDER BY s.slug, c.slug
+    AND cs.slug IS NOT NULL
+ORDER BY cs.slug, c.slug
 SQL;
 
         /** @var list<array{series_slug: string, edition_slug: string}> $rows */

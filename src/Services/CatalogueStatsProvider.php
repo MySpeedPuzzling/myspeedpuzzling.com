@@ -26,6 +26,8 @@ readonly final class CatalogueStatsProvider
 {
     private const int CACHE_TTL = 21600; // 6 hours
 
+    public const int MOST_POPULAR_BRANDS = 12;
+
     public function __construct(
         private GetBrandHub $getBrandHub,
         private GetPiecesHub $getPiecesHub,
@@ -66,6 +68,29 @@ readonly final class CatalogueStatsProvider
             $item->expiresAfter(self::CACHE_TTL);
 
             return $this->getBrandDirectory->indexableBrands();
+        });
+
+        return $entries;
+    }
+
+    /**
+     * The directory's brands with the most recorded solves - its "most popular"
+     * block and the "Browse by brand" links of the puzzle database. Cached on
+     * their own, so a page that needs only these never loads the ~800 entries
+     * of the whole directory.
+     *
+     * @return list<BrandDirectoryEntry>
+     */
+    public function mostPopularBrands(): array
+    {
+        /** @var list<BrandDirectoryEntry> $entries */
+        $entries = $this->cache->get('most_popular_brands_v1', function (ItemInterface $item): array {
+            $item->expiresAfter(self::CACHE_TTL);
+
+            $brands = $this->brandDirectory();
+            usort($brands, static fn (BrandDirectoryEntry $a, BrandDirectoryEntry $b): int => [$b->solvesCount, $a->brandName] <=> [$a->solvesCount, $b->brandName]);
+
+            return array_slice($brands, 0, self::MOST_POPULAR_BRANDS);
         });
 
         return $entries;

@@ -48,7 +48,9 @@
   "speed_puzzling_leaderboard": "Classement Speed Puzzling"
   "speed_puzzling_players": "Joueurs Speed Puzzling"
   "latest_puzzle_times": "Derniers temps de puzzle"
-  "750_piece_puzzles": "Puzzles 750 pièces"
+  "brand_puzzles": "Puzzles %brand%"
+  "pieces_puzzles": "Puzzles %pieces% pièces"
+  "wjpc_edition": "WJPC %year%"
   "puzzle_add": "Ajouter puzzle"
   "puzzle_tracker_app": "Application Puzzle Tracker"
   "guides": "Guides du speed puzzling"
@@ -265,6 +267,9 @@
     "description": "Parcourez des milliers de puzzles par marque, nombre de pièces et difficulté. Découvrez les vrais temps d'assemblage de puzzleurs du monde entier et suivez vos propres résultats."
   "title": "Base de données de puzzles"
   "missing_puzzle_info": "Si vous ne trouvez pas un puzzle ici, cela signifie que personne ne l'a encore résolu et qu'il n'est pas dans notre base de données. De nouveaux puzzles peuvent être saisis lors de l'ajout de temps."
+  "browse":
+    "by_brand": "Parcourir par marque"
+    "by_size": "Parcourir par nombre de pièces"
 "puzzle_times":
   "my_attempts":
     "my_time": "Mon temps :"
@@ -876,9 +881,11 @@
     "no_solo_times": "Aucun temps en solo pour l'instant – <a href=\"%add_url%\" rel=\"nofollow\">enregistrez le vôtre</a> et soyez le premier au classement solo."
   "breadcrumb":
     "database": "Base de données de puzzles"
+    "pieces": "%pieces% pièces"
   "related":
     "title": "Plus de puzzles %brand%"
     "view_all": "Voir tous les puzzles %brand%"
+    "title_pieces": "Plus de puzzles %brand% %pieces% pièces"
 "puzzlers":
   "meta":
     "title": "Speed puzzleurs du monde entier"
@@ -1772,6 +1779,7 @@
     "title": "Presque terminé !"
 "puzzler_offers":
   "badge": "%count% offres"
+  "badge_from": "{1}%count% offre dès %price%|]1,Inf[%count% offres dès %price%"
   "title": "Offres de puzzlers"
   "meta":
     "description": "%count% puzzlers proposent %brand% %puzzle% à la vente ou à l'échange"
@@ -3229,6 +3237,9 @@ edition:
     "previous": "Page précédente"
     "next": "Page suivante"
   "range": "Puzzles %from% à %to% sur %total%, les plus assemblés d'abord"
+  "guide":
+    "how_long": "Combien de temps faut-il pour un puzzle de %pieces% pièces ? (en anglais)"
+    "average_time": "Temps moyen selon le nombre de pièces (en anglais)"
 
 "wjpc_hub":
   "meta":

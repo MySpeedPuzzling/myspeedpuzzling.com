@@ -46,7 +46,9 @@
   "speed_puzzling_leaderboard": "Speed Puzzling Žebříček"
   "speed_puzzling_players": "Speed Puzzling Hráči"
   "latest_puzzle_times": "Nejnovější Časy Puzzlí"
-  "750_piece_puzzles": "750 Dílkové Puzzle"
+  "brand_puzzles": "Puzzle %brand%"
+  "pieces_puzzles": "Puzzle %pieces% dílků"
+  "wjpc_edition": "WJPC %year%"
   "puzzle_add": "Přidat puzzle"
   "puzzle_tracker_app": "Puzzle tracker aplikace"
   "guides": "Průvodce speed puzzlingem"
@@ -263,6 +265,9 @@
     "description": "Procházej tisíce puzzle podle značky, počtu dílků a obtížnosti. Podívej se na skutečné časy skládání puzzlerů z celého světa a zaznamenávej vlastní výsledky."
   "title": "Databáze puzzle"
   "missing_puzzle_info": "Pokud zde puzzle nenajdete, znamená to, že je nikdo ještě neskládal a nejsou v naší databázi. Nové puzzle lze zadat při přidávání času."
+  "browse":
+    "by_brand": "Procházet podle značky"
+    "by_size": "Procházet podle počtu dílků"
 "puzzle_times":
   "my_attempts":
     "my_time": "Můj čas:"
@@ -893,9 +898,11 @@
     "no_solo_times": "Zatím žádné sólo časy – <a href=\"%add_url%\" rel=\"nofollow\">zapiš ten svůj</a> a buď první v sólo žebříčku."
   "breadcrumb":
     "database": "Databáze puzzle"
+    "pieces": "%pieces% dílků"
   "related":
     "title": "Další puzzle %brand%"
     "view_all": "Zobrazit všechny puzzle %brand%"
+    "title_pieces": "Další puzzle %brand% %pieces% dílků"
 "puzzlers":
   "meta":
     "title": "Speed puzzleři z celého světa"
@@ -1586,6 +1593,7 @@
   "title_other": "Nesložené puzzle uživatele %name%"
 "puzzler_offers":
   "badge": "%count% nabídek"
+  "badge_from": "{1}%count% nabídka od %price%|[2,4]%count% nabídky od %price%|[5,Inf[%count% nabídek od %price%"
   "title": "Nabídky puzzlerů"
   "meta":
     "description": "%count% puzzlerů nabízí %brand% %puzzle% k prodeji nebo výměně"
@@ -3225,6 +3233,9 @@ qr_code:
     "previous": "Předchozí strana"
     "next": "Další strana"
   "range": "Puzzle %from%–%to% z %total%, nejskládanější jako první"
+  "guide":
+    "how_long": "Jak dlouho se skládá puzzle s %pieces% dílky? (v angličtině)"
+    "average_time": "Průměrná doba skládání podle počtu dílků (v angličtině)"
 
 "wjpc_hub":
   "meta":

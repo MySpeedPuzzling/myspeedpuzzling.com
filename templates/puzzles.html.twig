@@ -24,7 +24,7 @@
     </div>
 
     {# Default view renders server-side: page one comes from the app cache
-       (initial_puzzles_v2), so the synchronous render is cheap and ships
+       (initial_puzzles_v3), so the synchronous render is cheap and ships
        crawlable puzzle links + content in the initial HTML. Filtered/search
        deep links keep loading="defer" for a fast first paint - those states
        are noindexed or canonicalized to the clean URL anyway. #}
@@ -33,5 +33,26 @@
     {% else %}
         <twig:PuzzleSearch />
     {% endif %}
+
+    {# Plain links into the catalogue pages - the most solved brands, the A–Z directory and every pieces hub
+       (docs/features/seo/implementation-plan-2026-10.md, WS-F2). Under the list: the search comes first. #}
+    <section class="puzzle-catalogue-browse mt-5 pt-3 border-top">
+        <h2 class="h6 text-muted mb-2">{{ 'puzzle_overview.browse.by_brand'|trans }}</h2>
+        <p class="mb-3">
+            {% for brand in popular_brands %}
+                <a class="badge bg-primary badge-shadow rounded-pill text-white link-light" href="{{ path('brand_puzzles', {slug: brand.slug}) }}">{{ brand.brandName }}</a>
+            {% endfor %}
+            <a class="small text-nowrap ms-1" href="{{ path('puzzle_brands') }}">{{ 'brand_directory.all_brands_link'|trans }}</a>
+        </p>
+
+        <h2 class="h6 text-muted mb-2">{{ 'puzzle_overview.browse.by_size'|trans }}</h2>
+        <p class="mb-0">
+            {% for pieces in allowed_pieces %}
+                <a class="badge bg-primary badge-shadow rounded-pill text-white link-light" href="{{ path('pieces_puzzles', {pieces: pieces}) }}">{{ 'pieces_count'|trans({'%count%': pieces})|raw }}</a>
+            {% endfor %}
+            {# The guides are English-only - the label says so in every other language #}
+            <a class="small ms-1" href="{{ path('guide_average_puzzle_time') }}" hreflang="en">{{ 'catalogue.guide.average_time'|trans }}</a>
+        </p>
+    </section>
 
 {% endblock %}

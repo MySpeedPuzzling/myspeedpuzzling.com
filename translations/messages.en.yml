@@ -49,7 +49,9 @@ footer:
     speed_puzzling_leaderboard: "Speed Puzzling Leaderboard"
     speed_puzzling_players: "Speed Puzzling Players"
     latest_puzzle_times: "Latest Puzzle Times"
-    750_piece_puzzles: "750 Piece Puzzles"
+    brand_puzzles: "%brand% Puzzles"
+    pieces_puzzles: "%pieces% Piece Puzzles"
+    wjpc_edition: "WJPC %year%"
     puzzle_add: "Add puzzle"
     puzzle_tracker_app: "Puzzle Tracker App"
     guides: "Speed Puzzling Guides"
@@ -288,6 +290,9 @@ puzzle_overview:
         description: "Browse thousands of jigsaw puzzles by brand, piece count and difficulty. See real solve times from speed puzzlers worldwide and track your own results."
     title: "Jigsaw Puzzle Database"
     missing_puzzle_info: "If you can't find a puzzle here, it means no one has solved it yet and it's not in our database. New puzzles can be entered when adding time."
+    browse:
+        by_brand: "Browse by brand"
+        by_size: "Browse by piece count"
 
 puzzle_times:
     my_attempts:
@@ -1055,9 +1060,11 @@ puzzle_detail:
         no_solo_times: "No solo times yet – <a href=\"%add_url%\" rel=\"nofollow\">log yours</a> and be the first on the solo leaderboard."
     breadcrumb:
         database: "Jigsaw Puzzle Database"
+        pieces: "%pieces% pieces"
     related:
         title: "More %brand% puzzles"
         view_all: "View all %brand% puzzles"
+        title_pieces: "More %brand% %pieces%-piece puzzles"
 
 puzzlers:
     meta:
@@ -2078,6 +2085,7 @@ sell_swap_list:
 
 puzzler_offers:
     badge: "%count% offers"
+    badge_from: "{1}%count% offer from %price%|]1,Inf[%count% offers from %price%"
     title: "Puzzler Offers"
     meta:
         description: "%count% puzzlers are offering %brand% %puzzle% for sale or swap"
@@ -3449,6 +3457,9 @@ catalogue:
         previous: "Previous page"
         next: "Next page"
     range: "Puzzles %from%–%to% of %total%, most solved first"
+    guide:
+        how_long: "How long does a %pieces%-piece puzzle take?"
+        average_time: "Average puzzle time by piece count"
 
 guides:
     breadcrumb:

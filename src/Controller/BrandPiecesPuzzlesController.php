@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Results\BrandPiecesHubStats;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\CatalogueStatsProvider;
+use SpeedPuzzling\Web\Services\PuzzleTimeGuides;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CataloguePagination;
 use SpeedPuzzling\Web\Value\PiecesRange;
@@ -38,6 +39,7 @@ final class BrandPiecesPuzzlesController extends AbstractController
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private PuzzleTimeGuides $puzzleTimeGuides,
     ) {
     }
 
@@ -132,6 +134,8 @@ final class BrandPiecesPuzzlesController extends AbstractController
             'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList($puzzleIds),
             'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId),
             'ranking' => $loggedPlayer !== null ? $this->getRanking->allForPlayer($loggedPlayer->playerId) : [],
+            // "How long does a {N}-piece puzzle take?" - only while that guide is live
+            'guide_path' => $pagination->isFirstPage() ? ($this->puzzleTimeGuides->paths()[$pieces] ?? null) : null,
         ]);
     }
 }

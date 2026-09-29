@@ -48,7 +48,9 @@
   "speed_puzzling_leaderboard": "Ranking Speed Puzzling"
   "speed_puzzling_players": "Jugadores Speed Puzzling"
   "latest_puzzle_times": "Últimos Tiempos Puzzle"
-  "750_piece_puzzles": "Puzzles 750 Piezas"
+  "brand_puzzles": "Puzzles %brand%"
+  "pieces_puzzles": "Puzzles de %pieces% piezas"
+  "wjpc_edition": "WJPC %year%"
   "puzzle_add": "Agregar puzzle"
   "puzzle_tracker_app": "Aplicación Puzzle Tracker"
   "guides": "Guías de speed puzzling"
@@ -264,6 +266,9 @@
     "description": "Explora miles de puzzles por marca, número de piezas y dificultad. Ve tiempos reales de puzzleros de todo el mundo y registra tus propios resultados."
   "title": "Base de datos de puzzles"
   "missing_puzzle_info": "Si no puedes encontrar un rompecabezas aquí, significa que nadie lo ha resuelto aún y no está en nuestra base de datos. Se pueden ingresar nuevos rompecabezas al añadir tiempo."
+  "browse":
+    "by_brand": "Explorar por marca"
+    "by_size": "Explorar por número de piezas"
 "puzzle_times":
   "my_attempts":
     "my_time": "Mi tiempo:"
@@ -619,9 +624,11 @@
     "no_solo_times": "Aún no hay tiempos en solitario: <a href=\"%add_url%\" rel=\"nofollow\">registra el tuyo</a> y sé el primero en la clasificación individual."
   "breadcrumb":
     "database": "Base de datos de puzzles"
+    "pieces": "%pieces% piezas"
   "related":
     "title": "Más puzzles %brand%"
     "view_all": "Ver todos los puzzles %brand%"
+    "title_pieces": "Más puzzles %brand% de %pieces% piezas"
 "export":
   "page_title": "Exportar Datos"
   "heading": "Exporta Tus Datos"
@@ -1771,6 +1778,7 @@
     "title": "¡Ya casi!"
 "puzzler_offers":
   "badge": "%count% ofertas"
+  "badge_from": "{1}%count% oferta desde %price%|]1,Inf[%count% ofertas desde %price%"
   "title": "Ofertas de puzzlers"
   "meta":
     "description": "%count% puzzlers ofrecen %brand% %puzzle% para venta o intercambio"
@@ -3227,6 +3235,9 @@ fair_use_policy:
     "previous": "Página anterior"
     "next": "Página siguiente"
   "range": "Puzzles %from%–%to% de %total%, los más armados primero"
+  "guide":
+    "how_long": "¿Cuánto se tarda en montar un puzzle de %pieces% piezas? (en inglés)"
+    "average_time": "Tiempo medio por número de piezas (en inglés)"
 
 "wjpc_hub":
   "meta":

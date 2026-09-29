@@ -28,6 +28,48 @@
     {% set puzzle_meta_description = 'puzzle_detail.meta.description'|trans(puzzle_meta_parameters) %}
 {% endif %}
 
+{# The catalogue pages above this puzzle (PuzzleCatalogueLinks): the breadcrumb, the piece count in the header and
+   the related puzzles all link the same ones. The brand × pieces page only when it is indexable, otherwise the
+   pieces hub of every brand; an odd piece count has neither. #}
+{% if catalogue_links.linksBrandPiecesPage %}
+    {% set pieces_page = {
+        url: path('brand_pieces_puzzles', {slug: catalogue_links.brandSlug, pieces: puzzle.piecesCount}),
+        name: 'brand_pieces_hub.title'|trans({'%brand%': puzzle.manufacturerName, '%pieces%': puzzle.piecesCount}),
+        label: 'puzzle_detail.breadcrumb.pieces'|trans({'%pieces%': puzzle.piecesCount}),
+    } %}
+{% elseif catalogue_links.linksPiecesHub %}
+    {% set pieces_page = {
+        url: path('pieces_puzzles', {pieces: puzzle.piecesCount}),
+        name: 'brand_hub.pieces_link'|trans({'%pieces%': puzzle.piecesCount}),
+        label: 'brand_hub.pieces_link'|trans({'%pieces%': puzzle.piecesCount}),
+    } %}
+{% else %}
+    {% set pieces_page = null %}
+{% endif %}
+
+{# name = BreadcrumbList JSON-LD, label = the visible line, which stays short: the brand precedes the piece count #}
+{% set breadcrumb = [{
+    name: 'puzzle_detail.breadcrumb.database'|trans,
+    label: 'puzzle_detail.breadcrumb.database'|trans,
+    url: path('puzzles'),
+}] %}
+{% if catalogue_links.linksBrandHub %}
+    {% set breadcrumb = breadcrumb|merge([{
+        name: puzzle.manufacturerName,
+        label: puzzle.manufacturerName,
+        url: path('brand_puzzles', {slug: catalogue_links.brandSlug}),
+    }]) %}
+{% endif %}
+{% if pieces_page is not null %}
+    {% set breadcrumb = breadcrumb|merge([pieces_page]) %}
+{% endif %}
+{# Without a brand level the brand stays in the puzzle's own name #}
+{% set breadcrumb = breadcrumb|merge([{
+    name: catalogue_links.linksBrandHub ? puzzle.puzzleName : puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName,
+    label: puzzle.puzzleName,
+    url: null,
+}]) %}
+
 {% block title %}{{ 'puzzle_detail.meta.title'|trans({ '%brand%': puzzle.manufacturerName, '%name%': puzzle.puzzleName, '%pieces%': puzzle.piecesCount }) }}{% endblock %}
 {% block meta_description %}{{ puzzle_meta_description }}{% endblock %}
 {% block og_image %}{% if puzzle.puzzleImage is not null %}{{ absolute_url(puzzle.puzzleImage|thumbnail('puzzle_medium')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
@@ -55,10 +97,11 @@
         {% if puzzle.puzzleImage is not null and not is_image_hidden %}
         "image": {{ absolute_url(puzzle.puzzleImage|thumbnail('puzzle_medium'))|json_encode|raw }},
         {% endif %}
-        {% if puzzle.puzzleEan is not null and puzzle.puzzleEan matches '/^\\d{13}$/' %}
+        {# The codes stay out while the image is embargoed, as everywhere else on the page #}
+        {% if puzzle.puzzleEan is not null and puzzle.puzzleEan matches '/^\\d{13}$/' and not is_image_hidden %}
         "gtin13": {{ puzzle.puzzleEan|json_encode|raw }},
         {% endif %}
-        {% if puzzle.puzzleIdentificationNumber is not null %}
+        {% if puzzle.puzzleIdentificationNumber is not null and not is_image_hidden %}
         "sku": {{ puzzle.puzzleIdentificationNumber|json_encode|raw }},
         "mpn": {{ puzzle.puzzleIdentificationNumber|json_encode|raw }},
         {% endif %}
@@ -91,17 +134,15 @@
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         "itemListElement": [
+            {% for level in breadcrumb %}
             {
                 "@type": "ListItem",
-                "position": 1,
-                "name": {{ 'puzzle_detail.breadcrumb.database'|trans|json_encode|raw }},
-                "item": {{ url('puzzles')|json_encode|raw }}
-            },
-            {
-                "@type": "ListItem",
-                "position": 2,
-                "name": {{ (puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName)|json_encode|raw }}
-            }
+                "position": {{ loop.index }},
+                "name": {{ level.name|json_encode|raw }}{% if level.url is not null %},
+                "item": {{ absolute_url(level.url)|json_encode|raw }}{% endif %}
+
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
         ]
     }
     </script>
@@ -111,6 +152,25 @@
     <div data-nosnippet>
         {{ include('_return_back_button.html.twig') }}
     </div>
+
+    {# One short line that never wraps - the top of the page stays the puzzle itself. Long names end in an ellipsis,
+       below sm the database is just an icon and below md the puzzle's own name is left out (the H1 says it right
+       underneath). The BreadcrumbList JSON-LD above carries the same levels. #}
+    <nav aria-label="breadcrumb" class="puzzle-breadcrumb mb-1">
+        <ol class="breadcrumb flex-nowrap mb-0" style="font-size: 0.8rem;">
+            {% for level in breadcrumb %}
+                {% if loop.first %}
+                    <li class="breadcrumb-item flex-shrink-0">
+                        <a href="{{ level.url }}" aria-label="{{ level.label }}" title="{{ level.label }}"><i class="bi bi-puzzle d-sm-none" aria-hidden="true"></i><span class="d-none d-sm-inline">{{ level.label }}</span></a>
+                    </li>
+                {% elseif loop.last %}
+                    <li class="breadcrumb-item active text-truncate d-none d-md-block" style="min-width: 0;" aria-current="page">{{ level.label }}</li>
+                {% else %}
+                    <li class="breadcrumb-item text-truncate" style="min-width: 0;"><a href="{{ level.url }}">{{ level.label }}</a></li>
+                {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
 
     <div class="position-relative">
 
@@ -138,9 +198,19 @@
                         {% if offers_count > 0 %}
                             {% set puzzleDetailReturnUrl = path('puzzle_detail', {puzzleId: puzzle.puzzleId, return: app.request.query.get('return'), return_title: app.request.query.get('return_title')}) %}
                             <a href="{{ path('marketplace_puzzle', {puzzleId: puzzle.puzzleId, return: puzzleDetailReturnUrl, return_title: puzzle.puzzleName}) }}"
-                               class="mt-1 badge bg-danger badge-shadow rounded-pill text-white link-light">
+                               class="puzzle-offers-badge mt-1 badge bg-danger badge-shadow rounded-pill text-white link-light">
                                 <i class="bi bi-shop me-1"></i>
-                                {{ 'puzzler_offers.badge'|trans({'%count%': offers_count}) }}
+                                {% if lowest_offer_prices is not empty %}
+                                    {# The cheapest priced offer - the prices of the Product structured data, visible
+                                       on the page. Never compared across currencies: one price per currency. #}
+                                    {% set offer_prices = [] %}
+                                    {% for currency, price in lowest_offer_prices %}
+                                        {% set offer_prices = offer_prices|merge([price|format_currency(currency, {fraction_digit: price == price|round ? 0 : 2}, app.request.locale)]) %}
+                                    {% endfor %}
+                                    {{ 'puzzler_offers.badge_from'|trans({'%count%': offers_count, '%price%': offer_prices|join(' / ')}) }}
+                                {% else %}
+                                    {{ 'puzzler_offers.badge'|trans({'%count%': offers_count}) }}
+                                {% endif %}
                             </a>
                         {% endif %}
                         {% if has_pending_proposals %}
@@ -167,7 +237,12 @@
                         {% else %}
                             <svg class="diff-icon" width="24" height="24" style="color: var(--diff-locked); cursor: pointer;" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
                         {% endif %}
-                        <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
+                        {% if pieces_page is not null %}
+                            {# Looks like the plain text it was; leads to the same page as the breadcrumb #}
+                            <a class="text-reset" href="{{ pieces_page.url }}" title="{{ pieces_page.name }}"><small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small></a>
+                        {% else %}
+                            <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
+                        {% endif %}
                     </span>
                 </div>
                 <div>
@@ -177,7 +252,8 @@
                         {% else %}
                             {{ puzzle.manufacturerName }}
                         {% endif %}
-                        {% if puzzle.puzzleIdentificationNumber is not null %}
+                        {# Like the EAN: a secret puzzle's product number would give it away while its image is embargoed #}
+                        {% if puzzle.puzzleIdentificationNumber is not null and not is_image_hidden %}
                             <br class="d-none d-md-block"><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
                         {% endif %}
                     </div>
@@ -249,32 +325,47 @@
 
     <twig:PuzzleTimes puzzleId="{{ puzzle.puzzleId }}" piecesCount="{{ puzzle.piecesCount }}" />
 
-    {% if related_puzzles|length >= 2 %}
-        <div class="mt-4">
-            <h2 class="h5">{{ 'puzzle_detail.related.title'|trans({'%brand%': puzzle.manufacturerName}) }}</h2>
+    {# Same brand and piece count (GetRelatedPuzzles): the three most solved plus three picked for this page, so the
+       links reach the whole catalogue; the whole brand when the combination is too small #}
+    {% if related.puzzles|length >= 2 %}
+        <div class="puzzle-related mt-4">
+            <h2 class="h5">
+                {% if related.samePiecesCount %}
+                    {{ 'puzzle_detail.related.title_pieces'|trans({'%brand%': puzzle.manufacturerName, '%pieces%': puzzle.piecesCount}) }}
+                {% else %}
+                    {{ 'puzzle_detail.related.title'|trans({'%brand%': puzzle.manufacturerName}) }}
+                {% endif %}
+            </h2>
 
             <div class="row g-2 g-md-3">
-                {% for related in related_puzzles %}
+                {% for related_puzzle in related.puzzles %}
                     <div class="col-6 col-md-4 col-lg-2">
-                        <a class="card card-body shadow p-2 h-100 text-decoration-none text-center" href="{{ path('puzzle_detail', {puzzleId: related.puzzleId}) }}">
+                        <a class="card card-body shadow p-2 h-100 text-decoration-none text-center" href="{{ path('puzzle_detail', {puzzleId: related_puzzle.puzzleId}) }}">
                             <img
                                 class="rounded-2 mx-auto d-block"
                                 style="max-width: 100%; object-fit: contain;"
                                 loading="lazy"
-                                alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ related.puzzleName}) }}"
-                                src="{{ related.puzzleImage|puzzle_image('puzzle_small') }}"
-                                {{ puzzle_image_dimensions(related.puzzleImageRatio, 90) }}
+                                alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ related_puzzle.puzzleName}) }}"
+                                src="{{ related_puzzle.puzzleImage|puzzle_image('puzzle_small') }}"
+                                {{ puzzle_image_dimensions(related_puzzle.puzzleImageRatio, 90) }}
                             >
-                            <span class="fs-sm text-decoration-underline low-line-height d-block mt-1">{{ related.puzzleName }}</span>
-                            <small class="text-muted">{{ 'pieces_count'|trans({ '%count%': related.piecesCount })|raw }}</small>
+                            <span class="fs-sm text-decoration-underline low-line-height d-block mt-1">{{ related_puzzle.puzzleName }}</span>
+                            {# Every card shares the heading's piece count - only the brand-wide fallback names it #}
+                            {% if not related.samePiecesCount %}
+                                <small class="text-muted">{{ 'pieces_count'|trans({ '%count%': related_puzzle.piecesCount })|raw }}</small>
+                            {% endif %}
                         </a>
                     </div>
                 {% endfor %}
             </div>
 
-            {% if puzzle.manufacturerSlug is not null %}
+            {% if related.samePiecesCount and catalogue_links.linksBrandPiecesPage %}
                 <p class="mt-2 mb-0">
-                    <a href="{{ path('brand_puzzles', {slug: puzzle.manufacturerSlug}) }}">{{ 'puzzle_detail.related.view_all'|trans({'%brand%': puzzle.manufacturerName}) }}</a>
+                    <a href="{{ pieces_page.url }}">{{ 'brand_pieces_hub.all_puzzles'|trans({'%brand%': puzzle.manufacturerName, '%pieces%': puzzle.piecesCount}) }}</a>
+                </p>
+            {% elseif catalogue_links.linksBrandHub %}
+                <p class="mt-2 mb-0">
+                    <a href="{{ path('brand_puzzles', {slug: catalogue_links.brandSlug}) }}">{{ 'puzzle_detail.related.view_all'|trans({'%brand%': puzzle.manufacturerName}) }}</a>
                 </p>
             {% endif %}
         </div>

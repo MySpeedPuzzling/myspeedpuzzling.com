@@ -104,7 +104,13 @@
             </div>
         </div>
 
-        <p class="text-muted small mb-3">{{ 'brand_hub.stats.provenance'|trans({'%solves%': stats.solvesCount}) }}</p>
+        <p class="text-muted small mb-3">
+            {{ 'brand_hub.stats.provenance'|trans({'%solves%': stats.solvesCount}) }}
+            {% if guide_path is not null %}
+                {# The size's "how long" guide, while it is live (PuzzleTimeGuides) - English-only #}
+                <span class="mx-1">·</span><a href="{{ guide_path }}" hreflang="en">{{ 'catalogue.guide.how_long'|trans({'%pieces%': stats.piecesCount}) }}</a>
+            {% endif %}
+        </p>
 
         {% if stats.topBrands|length > 0 %}
             <h2 class="h5">{{ 'pieces_hub.top_brands'|trans({'%pieces%': stats.piecesCount}) }}</h2>

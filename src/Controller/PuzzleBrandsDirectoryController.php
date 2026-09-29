@@ -16,8 +16,6 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class PuzzleBrandsDirectoryController extends AbstractController
 {
-    private const int MOST_POPULAR_LIMIT = 12;
-
     public function __construct(
         readonly private CatalogueStatsProvider $catalogueStatsProvider,
     ) {
@@ -49,14 +47,11 @@ final class PuzzleBrandsDirectoryController extends AbstractController
         // A–Z first, brands starting with anything else at the end
         uksort($brandsByLetter, static fn (string $a, string $b): int => [$a === BrandDirectoryEntry::OTHER_LETTER, $a] <=> [$b === BrandDirectoryEntry::OTHER_LETTER, $b]);
 
-        $mostPopular = $brands;
-        usort($mostPopular, static fn (BrandDirectoryEntry $a, BrandDirectoryEntry $b): int => [$b->solvesCount, $a->brandName] <=> [$a->solvesCount, $b->brandName]);
-
         return $this->render('puzzle/brands_directory.html.twig', [
             'brands_count' => count($brands),
             'puzzles_count' => array_sum(array_map(static fn (BrandDirectoryEntry $brand): int => $brand->puzzlesCount, $brands)),
             'brands_by_letter' => $brandsByLetter,
-            'most_popular' => array_slice($mostPopular, 0, self::MOST_POPULAR_LIMIT),
+            'most_popular' => $this->catalogueStatsProvider->mostPopularBrands(),
         ]);
     }
 }

@@ -46,7 +46,9 @@
   "speed_puzzling_leaderboard": "Speed Puzzling Bestenliste"
   "speed_puzzling_players": "Speed Puzzling Spieler"
   "latest_puzzle_times": "Neueste Puzzle-Zeiten"
-  "750_piece_puzzles": "750-teilige Puzzles"
+  "brand_puzzles": "%brand% Puzzles"
+  "pieces_puzzles": "%pieces%-teilige Puzzles"
+  "wjpc_edition": "WJPC %year%"
   "puzzle_add": "Puzzle hinzufügen"
   "puzzle_tracker_app": "Puzzle Tracker App"
   "guides": "Speed Puzzle Guides"
@@ -262,6 +264,9 @@
     "description": "Durchstöbern Sie Tausende Puzzles nach Marke, Teilezahl und Schwierigkeit. Sehen Sie echte Legezeiten von Speed Puzzlern weltweit und verfolgen Sie Ihre eigenen Ergebnisse."
   "title": "Puzzle-Datenbank"
   "missing_puzzle_info": "Wenn Sie hier ein Puzzle nicht finden können, bedeutet das, dass es noch niemand gelöst hat und es nicht in unserer Datenbank ist. Neue Puzzles können beim Hinzufügen der Zeit eingegeben werden."
+  "browse":
+    "by_brand": "Nach Marke stöbern"
+    "by_size": "Nach Teilezahl stöbern"
 "puzzle_times":
   "my_attempts":
     "my_time": "Meine Zeit:"
@@ -873,9 +878,11 @@
     "no_solo_times": "Noch keine Solozeiten – <a href=\"%add_url%\" rel=\"nofollow\">tragen Sie Ihre ein</a> und führen Sie die Solo-Rangliste an."
   "breadcrumb":
     "database": "Puzzle-Datenbank"
+    "pieces": "%pieces% Teile"
   "related":
     "title": "Weitere %brand% Puzzles"
     "view_all": "Alle %brand% Puzzles anzeigen"
+    "title_pieces": "Weitere %brand% Puzzles mit %pieces% Teilen"
 "puzzlers":
   "meta":
     "title": "Speed Puzzler weltweit"
@@ -1771,6 +1778,7 @@
     "title": "Fast geschafft!"
 "puzzler_offers":
   "badge": "%count% Angebote"
+  "badge_from": "{1}%count% Angebot ab %price%|]1,Inf[%count% Angebote ab %price%"
   "title": "Puzzler-Angebote"
   "meta":
     "description": "%count% Puzzler bieten %brand% %puzzle% zum Verkauf oder Tausch an"
@@ -3227,6 +3235,9 @@ qr_code:
     "previous": "Vorherige Seite"
     "next": "Nächste Seite"
   "range": "Puzzles %from%–%to% von %total%, meistgelegte zuerst"
+  "guide":
+    "how_long": "Wie lange dauert ein Puzzle mit %pieces% Teilen? (auf Englisch)"
+    "average_time": "Durchschnittliche Puzzlezeit nach Teilezahl (auf Englisch)"
 
 "wjpc_hub":
   "meta":

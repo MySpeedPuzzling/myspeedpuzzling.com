@@ -48,7 +48,9 @@
   "speed_puzzling_leaderboard": "スピードパズリングリーダーボード"
   "speed_puzzling_players": "スピードパズリングプレイヤー"
   "latest_puzzle_times": "最新のパズルタイム"
-  "750_piece_puzzles": "750ピースパズル"
+  "brand_puzzles": "%brand%のパズル"
+  "pieces_puzzles": "%pieces%ピースパズル"
+  "wjpc_edition": "WJPC %year%"
   "puzzle_add": "パズル追加"
   "puzzle_tracker_app": "パズルトラッカーアプリ"
   "guides": "スピードパズルガイド"
@@ -264,6 +266,9 @@
     "description": "ブランド・ピース数・難易度で数千種類のジグソーパズルを検索。世界中のスピードパズラーの実際の完成タイムを見て、自分の記録も残しましょう。"
   "title": "ジグソーパズルデータベース"
   "missing_puzzle_info": "ここにパズルが見つからない場合、まだ誰も解いておらず、データベースにありません。新しいパズルはタイム追加時に入力できます。"
+  "browse":
+    "by_brand": "ブランドから探す"
+    "by_size": "ピース数から探す"
 "puzzle_times":
   "my_attempts":
     "my_time": "マイタイム:"
@@ -1028,9 +1033,11 @@
     "no_solo_times": "まだソロの完成タイムがありません。<a href=\"%add_url%\" rel=\"nofollow\">あなたのタイムを記録して</a>、ソロランキングに一番乗りしましょう。"
   "breadcrumb":
     "database": "ジグソーパズルデータベース"
+    "pieces": "%pieces%ピース"
   "related":
     "title": "その他の%brand%パズル"
     "view_all": "%brand%のパズルをすべて見る"
+    "title_pieces": "その他の%brand% %pieces%ピースパズル"
 "players_per_country":
   "meta":
     "title": "%country%のスピードパズラー – ランキングとタイム"
@@ -1762,6 +1769,7 @@
     "title": "もう少しです！"
 "puzzler_offers":
   "badge": "%count%件のオファー"
+  "badge_from": "%count%件のオファー（%price%〜）"
   "title": "パズラーのオファー"
   "meta":
     "description": "%count%人のパズラーが%brand% %puzzle%の販売または交換を提供しています"
@@ -3218,6 +3226,9 @@ qr_code:
     "previous": "前のページ"
     "next": "次のページ"
   "range": "全%total%個中%from%〜%to%個目（完成数の多い順）"
+  "guide":
+    "how_long": "%pieces%ピースのパズルにかかる時間は？（英語）"
+    "average_time": "ピース数別の平均完成タイム（英語）"
 
 "wjpc_hub":
   "meta":

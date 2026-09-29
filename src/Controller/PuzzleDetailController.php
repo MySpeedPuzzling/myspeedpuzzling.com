@@ -16,6 +16,9 @@ use SpeedPuzzling\Web\Query\GetRelatedPuzzles;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
+use SpeedPuzzling\Web\Results\PuzzleCatalogueLinks;
+use SpeedPuzzling\Web\Results\PuzzleMarketplaceOffer;
+use SpeedPuzzling\Web\Services\CatalogueStatsProvider;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -41,6 +44,7 @@ final class PuzzleDetailController extends AbstractController
         readonly private GetPlayerPrediction $getPlayerPrediction,
         readonly private GetRelatedPuzzles $getRelatedPuzzles,
         readonly private GetPuzzleSummary $getPuzzleSummary,
+        readonly private CatalogueStatsProvider $catalogueStatsProvider,
     ) {
     }
 
@@ -88,6 +92,15 @@ final class PuzzleDetailController extends AbstractController
             $timePrediction = $this->getPlayerPrediction->forPuzzle($loggedPlayer->playerId, $puzzleId);
         }
 
+        // Only a brand × pieces page can be at stake, and the brand hub stats
+        // (which tell whether it is indexable) are cached per brand for 6 hours
+        $brandHub = null;
+        if ($puzzle->manufacturerSlug !== null && in_array($puzzle->piecesCount, PiecesPuzzlesController::ALLOWED_PIECES, true)) {
+            $brandHub = $this->catalogueStatsProvider->brandHub($puzzle->manufacturerSlug);
+        }
+
+        $marketplaceOffers = $this->getSellSwapListItems->marketplaceOffersByPuzzleId($puzzleId);
+
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
             'puzzle_statuses' => $puzzleStatuses,
@@ -95,13 +108,15 @@ final class PuzzleDetailController extends AbstractController
             'puzzle_collections' => $puzzleCollections,
             'logged_player' => $loggedPlayer,
             'offers_count' => $this->getSellSwapListItems->countByPuzzleId($puzzleId),
-            'marketplace_offers' => $this->getSellSwapListItems->marketplaceOffersByPuzzleId($puzzleId),
+            'marketplace_offers' => $marketplaceOffers,
+            'lowest_offer_prices' => PuzzleMarketplaceOffer::lowestPricePerCurrency($marketplaceOffers),
             'has_pending_proposals' => $this->getPendingPuzzleProposals->hasPendingForPuzzle($puzzleId),
             'is_image_hidden' => $isImageHidden,
             'puzzle_difficulty' => $puzzleDifficulty,
             'time_prediction' => $timePrediction,
-            'related_puzzles' => $this->getRelatedPuzzles->byManufacturer($puzzle->manufacturerId, $puzzleId, 6),
+            'related' => $this->getRelatedPuzzles->forPuzzle($puzzle->manufacturerId, $puzzle->piecesCount, $puzzleId),
             'puzzle_summary' => $this->getPuzzleSummary->forPuzzle($puzzleId),
+            'catalogue_links' => PuzzleCatalogueLinks::forPuzzle($puzzle, $brandHub),
         ]);
     }
 }

@@ -11,8 +11,11 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleRedirect;
+use SpeedPuzzling\Web\Tests\CatalogueTestData;
+use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\SellSwapListItemFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\TagFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -21,6 +24,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class PuzzleDetailControllerTest extends WebTestCase
 {
+    use CatalogueTestData;
+
     /**
      * The blurred members-only teaser used to hold these invented values; Google indexed them as facts about
      * every puzzle and showed them as the search snippet.
@@ -471,6 +476,324 @@ final class PuzzleDetailControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/puzzle/' . PuzzleFixture::PUZZLE_1000_01);
         $this->assertResponseIsSuccessful();
         self::assertStringContainsString('Použito na soutěži WJPC 2024.', $crawler->filter('section.puzzle-summary')->text());
+    }
+
+    public function testBreadcrumbLeadsThroughTheIndexableBrandPiecesPage(): void
+    {
+        $browser = self::createClient();
+        self::clearCatalogueStatsCache($browser->getContainer());
+
+        // Ravensburger 500 pieces is an indexable combination: 8 visible puzzles, solved
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
+
+        $this->assertResponseIsSuccessful();
+        self::assertJsonLdIsValid($crawler);
+
+        // The visible line is short - the brand precedes the piece count
+        self::assertSame([
+            ['Jigsaw Puzzle Database', '/en/puzzle'],
+            ['Ravensburger', '/en/puzzle/brand/ravensburger'],
+            ["500 pieces", '/en/puzzle/brand/ravensburger/500-pieces'],
+            ['Puzzle 1', null],
+        ], self::visibleBreadcrumb($crawler));
+
+        self::assertSame([
+            ['Jigsaw Puzzle Database', 'http://localhost/en/puzzle'],
+            ['Ravensburger', 'http://localhost/en/puzzle/brand/ravensburger'],
+            ['Ravensburger 500-Piece Puzzles', 'http://localhost/en/puzzle/brand/ravensburger/500-pieces'],
+            ['Puzzle 1', null],
+        ], self::breadcrumbJsonLd($crawler));
+
+        // The piece count in the header leads to the same page and still looks like the plain text it was
+        $piecesLink = $crawler->filter('#main-content a.text-reset[href="/en/puzzle/brand/ravensburger/500-pieces"]');
+        self::assertCount(1, $piecesLink);
+        self::assertSame("500\u{a0}pieces", $piecesLink->text());
+    }
+
+    public function testBreadcrumbFallsBackToThePiecesHubWhenTheCombinationIsNotIndexable(): void
+    {
+        $browser = self::createClient();
+        self::clearCatalogueStatsCache($browser->getContainer());
+
+        // Trefl has two 500-piece puzzles: its brand × pieces page is noindex, so the 500-piece hub of all brands
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_04);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame([
+            ['Jigsaw Puzzle Database', '/en/puzzle'],
+            ['Trefl', '/en/puzzle/brand/trefl'],
+            ['500 piece puzzles', '/en/puzzle/500-pieces'],
+            ['Puzzle 4', null],
+        ], self::visibleBreadcrumb($crawler));
+        self::assertSame(
+            ['Jigsaw Puzzle Database', 'Trefl', '500 piece puzzles', 'Puzzle 4'],
+            array_column(self::breadcrumbJsonLd($crawler), 0),
+        );
+
+        self::assertCount(1, $crawler->filter('#main-content a.text-reset[href="/en/puzzle/500-pieces"]'));
+        self::assertCount(0, $crawler->filter('#main-content a[href="/en/puzzle/brand/trefl/500-pieces"]'));
+    }
+
+    public function testOddPieceCountHasNoPiecesLevel(): void
+    {
+        $browser = self::createClient();
+
+        // 4000 pieces has no hub - neither of all brands nor of Ravensburger
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_4000);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame([
+            ['Jigsaw Puzzle Database', '/en/puzzle'],
+            ['Ravensburger', '/en/puzzle/brand/ravensburger'],
+            ['Puzzle 16', null],
+        ], self::visibleBreadcrumb($crawler));
+        self::assertCount(3, self::breadcrumbJsonLd($crawler));
+
+        // The piece count stays plain text
+        $piecesCount = $crawler->filter('#main-content small.fw-bold')->reduce(
+            static fn (Crawler $count): bool => $count->text() === "4000\u{a0}pieces",
+        );
+        self::assertCount(1, $piecesCount);
+        self::assertNull($piecesCount->closest('a'));
+    }
+
+    public function testBrandWithoutSlugHasNoBrandLevel(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE manufacturer SET slug = NULL WHERE id = :brandId',
+            ['brandId' => ManufacturerFixture::MANUFACTURER_TREFL],
+        );
+
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_02);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame([
+            ['Jigsaw Puzzle Database', '/en/puzzle'],
+            ['1000 piece puzzles', '/en/puzzle/1000-pieces'],
+            ['Puzzle 7', null],
+        ], self::visibleBreadcrumb($crawler));
+
+        // Without its own level the brand stays in the puzzle's name
+        self::assertSame(
+            ['Jigsaw Puzzle Database', '1000 piece puzzles', 'Trefl Puzzle 7'],
+            array_column(self::breadcrumbJsonLd($crawler), 0),
+        );
+        self::assertCount(0, $crawler->filter('#main-content a[href^="/en/puzzle/brand/"]'));
+    }
+
+    public function testEmbargoedPuzzleKeepsItsProductNumberOutOfThePage(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement(
+            "UPDATE puzzle SET ean = '4005556000017', identification_number = 'EMBARGO-1' WHERE id = :puzzleId",
+            ['puzzleId' => PuzzleFixture::PUZZLE_HIDDEN_IMAGE],
+        );
+        // A marketplace offer brings in the Product structured data
+        $database->executeStatement(
+            "INSERT INTO sell_swap_list_item (id, listing_type, price, condition, added_at, published_on_marketplace, reserved, player_id, puzzle_id)
+             VALUES (:id, 'sell', 10, 'normal', now(), true, false, :playerId, :puzzleId)",
+            ['id' => Uuid::uuid7()->toString(), 'playerId' => PlayerFixture::PLAYER_WITH_STRIPE, 'puzzleId' => PuzzleFixture::PUZZLE_HIDDEN_IMAGE],
+        );
+
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_HIDDEN_IMAGE);
+
+        $this->assertResponseIsSuccessful();
+        $html = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString('EMBARGO-1', $html);
+        self::assertStringNotContainsString('4005556000017', $html);
+
+        $product = self::productJsonLd($crawler);
+        self::assertArrayNotHasKey('sku', $product);
+        self::assertArrayNotHasKey('mpn', $product);
+        self::assertArrayNotHasKey('gtin13', $product);
+
+        // A puzzle without an embargo shows its product number
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
+        self::assertStringContainsString('RB-500-001', $crawler->filter('#main-content .manufacturer-name')->text());
+        self::assertSame('RB-500-001', self::productJsonLd($crawler)['sku']);
+    }
+
+    public function testOffersBadgeShowsTheLowestPrice(): void
+    {
+        $browser = self::createClient();
+
+        // PUZZLE_500_01: one offer on the marketplace, £25 (the other one of the fixtures is not published)
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame('1 offer from £25', $crawler->filter('a.puzzle-offers-badge')->text());
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE sell_swap_list_item SET price = 12.5 WHERE id = :id',
+            ['id' => SellSwapListItemFixture::SELLSWAP_01],
+        );
+
+        // Pence stay, and it is the price of the Product structured data
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
+        self::assertSame('1 offer from £12.50', $crawler->filter('a.puzzle-offers-badge')->text());
+        /** @var list<array{price: float, priceCurrency: string}> $offers */
+        $offers = self::productJsonLd($crawler)['offers'];
+        self::assertSame([12.5, 'GBP'], [$offers[0]['price'], $offers[0]['priceCurrency']]);
+
+        // Every language formats money its own way
+        $crawler = $browser->request('GET', '/puzzle/' . PuzzleFixture::PUZZLE_500_01);
+        self::assertSame('1 nabídka od 12,50 £', self::normalizedSpaces($crawler->filter('a.puzzle-offers-badge')->text()));
+    }
+
+    public function testOffersBadgeWithoutAPriceStaysAsItWas(): void
+    {
+        $browser = self::createClient();
+
+        // PUZZLE_500_02: one swap offer, no price
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_02);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame('1 offers', $crawler->filter('a.puzzle-offers-badge')->text());
+    }
+
+    public function testRelatedPuzzlesShareTheBrandAndPieceCount(): void
+    {
+        $browser = self::createClient();
+        self::clearCatalogueStatsCache($browser->getContainer());
+
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
+
+        $this->assertResponseIsSuccessful();
+        $related = $crawler->filter('.puzzle-related');
+        self::assertSame('More Ravensburger 500-piece puzzles', $related->filter('h2')->text());
+
+        // Puzzle 2, Puzzle 3 and Intel Test Puzzle A are the most solved, Intel Test Puzzle B the only other solved one
+        self::assertSame(
+            [
+                '/en/puzzle/' . PuzzleFixture::PUZZLE_500_02,
+                '/en/puzzle/' . PuzzleFixture::PUZZLE_500_03,
+                '/en/puzzle/018d0008-0000-0000-0000-000000000001',
+                '/en/puzzle/018d0008-0000-0000-0000-000000000002',
+            ],
+            $related->filter('a.card')->extract(['href']),
+        );
+        // The heading names the piece count, the cards do not repeat it
+        self::assertStringNotContainsString('pieces', $related->filter('.row')->text());
+
+        $allLink = $related->filter('p a');
+        self::assertSame('All Ravensburger 500-piece puzzles', $allLink->text());
+        self::assertSame('/en/puzzle/brand/ravensburger/500-pieces', $allLink->attr('href'));
+    }
+
+    public function testRelatedPuzzlesFallBackToTheWholeBrand(): void
+    {
+        $browser = self::createClient();
+        self::clearCatalogueStatsCache($browser->getContainer());
+
+        // Trefl has one other 1000-piece puzzle - too few for the module
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_04);
+
+        $this->assertResponseIsSuccessful();
+        $related = $crawler->filter('.puzzle-related');
+        self::assertSame('More Trefl puzzles', $related->filter('h2')->text());
+        self::assertSame(
+            ["1000\u{a0}pieces", "500\u{a0}pieces", "1500\u{a0}pieces"],
+            $related->filter('a.card small')->each(static fn (Crawler $pieces): string => $pieces->text()),
+        );
+
+        $allLink = $related->filter('p a');
+        self::assertSame('View all Trefl puzzles', $allLink->text());
+        self::assertSame('/en/puzzle/brand/trefl', $allLink->attr('href'));
+    }
+
+    /**
+     * The breadcrumb, the related puzzles and the offers badge are translated in every locale.
+     */
+    #[DataProvider('locales')]
+    public function testBreadcrumbRelatedPuzzlesAndOffersAreTranslated(string $locale): void
+    {
+        $browser = self::createClient();
+        self::clearCatalogueStatsCache($browser->getContainer());
+        $urlGenerator = self::getContainer()->get(UrlGeneratorInterface::class);
+
+        foreach ([PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_1000_04] as $puzzleId) {
+            $crawler = $browser->request('GET', $urlGenerator->generate('puzzle_detail', ['puzzleId' => $puzzleId, '_locale' => $locale]));
+            $this->assertResponseIsSuccessful();
+
+            $texts = [
+                $crawler->filter('nav.puzzle-breadcrumb')->text(),
+                $crawler->filter('.puzzle-related h2')->text(),
+                $crawler->filter('.puzzle-related p a')->text(),
+                ...$crawler->filter('a.puzzle-offers-badge')->each(static fn (Crawler $badge): string => $badge->text()),
+            ];
+
+            foreach ($texts as $text) {
+                self::assertStringNotContainsString('%', $text);
+                self::assertDoesNotMatchRegularExpression('/(puzzle_detail|puzzler_offers|brand_pieces_hub|brand_hub)\./', $text);
+            }
+        }
+    }
+
+    /**
+     * @return Generator<string, array{string}>
+     */
+    public static function locales(): Generator
+    {
+        foreach (['cs', 'en', 'es', 'ja', 'fr', 'de'] as $locale) {
+            yield $locale => [$locale];
+        }
+    }
+
+    /**
+     * @return list<array{string, null|string}> Label and link of every level of the visible breadcrumb
+     */
+    private static function visibleBreadcrumb(Crawler $crawler): array
+    {
+        return $crawler->filter('nav.puzzle-breadcrumb li')->each(static function (Crawler $level): array {
+            $link = $level->filter('a');
+
+            return [$level->text(), $link->count() > 0 ? $link->attr('href') : null];
+        });
+    }
+
+    /**
+     * @return list<array{string, null|string}> Name and URL of every level of the BreadcrumbList JSON-LD
+     */
+    private static function breadcrumbJsonLd(Crawler $crawler): array
+    {
+        foreach ($crawler->filter('script[type="application/ld+json"]') as $script) {
+            $data = json_decode((string) $script->textContent, true, flags: JSON_THROW_ON_ERROR);
+
+            if (!is_array($data) || ($data['@type'] ?? null) !== 'BreadcrumbList') {
+                continue;
+            }
+
+            /** @var list<array{position: int, name: string, item?: string}> $items */
+            $items = $data['itemListElement'];
+            self::assertSame(range(1, count($items)), array_column($items, 'position'));
+
+            return array_map(static fn (array $item): array => [$item['name'], $item['item'] ?? null], $items);
+        }
+
+        self::fail('The page has no BreadcrumbList JSON-LD');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function productJsonLd(Crawler $crawler): array
+    {
+        $product = $crawler->filter('script[type="application/ld+json"]')->reduce(
+            static fn (Crawler $script): bool => str_contains($script->text(), '"Product"'),
+        );
+        self::assertCount(1, $product);
+
+        /** @var array<string, mixed> $data */
+        $data = json_decode($product->text(), true, flags: JSON_THROW_ON_ERROR);
+
+        return $data;
+    }
+
+    private static function normalizedSpaces(string $text): string
+    {
+        return str_replace(["\u{a0}", "\u{202f}"], ' ', $text);
     }
 
     private function setSoloStatistics(string $puzzleId, int $count, int $medianSeconds, int $fastestSeconds): void

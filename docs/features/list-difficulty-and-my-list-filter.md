@@ -38,7 +38,7 @@ Single select (`tomselect-sync` with pre-rendered, per-viewer options - never th
 - Encoding: `PuzzleSearchList` + `PuzzleSearchListKind`. Gating in `PuzzleSearchCriteria::fromUserInput()`
   (guests lose any list, non-members the member lists); the component also drops a collection that is not the
   viewer's so the select never hides an active filter.
-- A list makes `isDefault()` false, so the shared `initial_puzzles_v2` cache is never served for it; the guest
+- A list makes `isDefault()` false, so the shared `initial_puzzles_v3` cache is never served for it; the guest
   default view costs exactly what it did. `toQueryParameters()` carries it, so "load more" keeps it.
 - SQL: `SearchPuzzle::listFilter()` - one `AND puzzle.id IN (...)` semi-join used by the count and the page query.
   Measured on a production copy (2026-09-29): solved for the heaviest solver (2,328 times) 18 ms, unsolved for the

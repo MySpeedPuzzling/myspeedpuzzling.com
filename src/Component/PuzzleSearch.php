@@ -486,7 +486,8 @@ final class PuzzleSearch
      */
     private function getInitialPuzzlesFromCache(): array
     {
-        return $this->cache->get('initial_puzzles_v2', function (ItemInterface $item): array {
+        // v3: the puzzles carry their brand's slug (the cards link the brand hub)
+        return $this->cache->get('initial_puzzles_v3', function (ItemInterface $item): array {
             $item->expiresAfter(3600);
             $pieces = PiecesRange::fromFilter(PiecesFilter::fromUserInput(null));
 

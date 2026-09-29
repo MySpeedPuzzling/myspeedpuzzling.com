@@ -16,13 +16,18 @@ use Doctrine\DBAL\ParameterType;
 trait LeaderboardSeeding
 {
     /**
-     * One solo time per new player; solver n (1-based) solves in $firstSeconds + n seconds,
-     * so on a puzzle without other times solver n ranks n-th.
+     * One solo time per new player; solver n (1-based) solves in $firstSeconds + n * $secondsBetween
+     * seconds, so on a puzzle without other times solver n ranks n-th. The times were finished a day ago.
      *
      * @return list<string> the new players' ids, fastest first
      */
-    protected function seedSoloSolvers(string $puzzleId, int $count, int $firstSeconds = 5000, bool $firstAttempt = false): array
-    {
+    protected function seedSoloSolvers(
+        string $puzzleId,
+        int $count,
+        int $firstSeconds = 5000,
+        bool $firstAttempt = false,
+        int $secondsBetween = 1,
+    ): array {
         $database = self::getContainer()->get(Connection::class);
 
         $database->executeStatement(
@@ -38,12 +43,23 @@ SQL,
         $database->executeStatement(
             <<<SQL
 INSERT INTO puzzle_solving_time (id, player_id, puzzle_id, seconds_to_solve, tracked_at, finished_at, verified, first_attempt)
-SELECT gen_random_uuid(), player.id, :puzzleId, :firstSeconds + n, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', true, :firstAttempt
+SELECT gen_random_uuid(), player.id, :puzzleId, :firstSeconds + n * :secondsBetween, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', true, :firstAttempt
 FROM generate_series(1, :count) AS n
 INNER JOIN player ON player.code = 'leaderboard' || n
 SQL,
-            ['puzzleId' => $puzzleId, 'count' => $count, 'firstSeconds' => $firstSeconds, 'firstAttempt' => $firstAttempt],
-            ['count' => ParameterType::INTEGER, 'firstSeconds' => ParameterType::INTEGER, 'firstAttempt' => ParameterType::BOOLEAN],
+            [
+                'puzzleId' => $puzzleId,
+                'count' => $count,
+                'firstSeconds' => $firstSeconds,
+                'secondsBetween' => $secondsBetween,
+                'firstAttempt' => $firstAttempt,
+            ],
+            [
+                'count' => ParameterType::INTEGER,
+                'firstSeconds' => ParameterType::INTEGER,
+                'secondsBetween' => ParameterType::INTEGER,
+                'firstAttempt' => ParameterType::BOOLEAN,
+            ],
         );
 
         /** @var list<string> $playerIds */
@@ -59,5 +75,20 @@ SQL,
         );
 
         return $playerIds;
+    }
+
+    /**
+     * A solo time of an existing player - finished two days ago, so it leads any seeded solver with the same time
+     */
+    protected function seedSoloTime(string $puzzleId, string $playerId, int $seconds): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            <<<SQL
+INSERT INTO puzzle_solving_time (id, player_id, puzzle_id, seconds_to_solve, tracked_at, finished_at, verified, first_attempt)
+VALUES (gen_random_uuid(), :playerId, :puzzleId, :seconds, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days', true, false)
+SQL,
+            ['playerId' => $playerId, 'puzzleId' => $puzzleId, 'seconds' => $seconds],
+            ['seconds' => ParameterType::INTEGER],
+        );
     }
 }

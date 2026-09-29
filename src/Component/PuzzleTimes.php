@@ -31,6 +31,20 @@ final class PuzzleTimes
      */
     public const int DEFAULT_LIMIT = 100;
 
+    /**
+     * Rows shown above and below the viewer's own row when it lies beyond the top rows - so they always see
+     * where they stand and who is right around them (docs/features/puzzle-leaderboard-chart.md)
+     */
+    public const int NEIGHBOURS = 2;
+
+    /**
+     * The position line names the gap to the nearest of these ranks above the viewer ("… from the top 500")
+     */
+    private const array RANK_MILESTONES = [1, 3, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000];
+
+    // Below this many rows a percentage says little ("faster than 50 %" of three people)
+    private const int PERCENTILE_MIN_ROWS = 10;
+
     #[LiveProp]
     public null|string $puzzleId = null;
 
@@ -60,7 +74,16 @@ final class PuzzleTimes
     #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
     public null|string $country = null;
 
+    // Same rank as the viewer's row shows: a time equal to the row above shares its rank
     public null|int $myRank = null;
+
+    // Share of the other rows that are slower than the viewer, rounded down - null when too few rows to say
+    public null|int $myPercentile = null;
+
+    // The nearest milestone rank above the viewer (RANK_MILESTONES) and how far behind its time they are
+    public null|int $myTargetRank = null;
+    public null|int $myTargetGap = null;
+
     public null|int $averageTime = null;
     public null|int $medianTime = null;
     public null|int $myTime = null;
@@ -86,14 +109,21 @@ final class PuzzleTimes
     public array $ranks = [];
 
     /**
-     * The rows the table renders: the first $limit rows of $times, keys preserved, plus the
-     * viewer's own row when it lies beyond them ($ownRowBeyondLimit)
+     * The rows the table renders, in leaderboard order, keys preserved: the first $limit rows of $times plus the
+     * viewer's own row with NEIGHBOURS rows on either side
      *
      * @var array<string, array<PuzzleSolver|PuzzleSolversGroup>>
      */
     public array $visibleTimes = [];
 
-    // The viewer's row is appended after the visible rows, behind a "⋯" row, so "Jump to me" always has a target
+    /**
+     * How many rows are left out right above a visible row - the table shows a "⋯" row there
+     *
+     * @var array<string, int>
+     */
+    public array $gapsBefore = [];
+
+    // The viewer's row lies beyond the top rows and is shown with its neighbours, so "Jump to me" always has a target
     public bool $ownRowBeyondLimit = false;
 
     /** @var array<PuzzleSolver|PuzzleSolversGroup> */
@@ -288,36 +318,14 @@ final class PuzzleTimes
             );
         }
 
-        $myRank = null;
-        $myTime = null;
         $totalTime = 0;
         $allTimes = [];
 
-        $i = 0;
         foreach ($this->times as $groupedSolver) {
-            $i++;
-            $result = $groupedSolver[0];
-
-            $totalTime += $result->time;
-            $allTimes[] = $result->time;
-
-            if ($result instanceof PuzzleSolver) {
-                if ($myRank === null && $result->playerId === $loggedPlayerId) {
-                    $myRank = $i;
-                    $myTime = $result->time;
-                }
-            }
-
-            if ($result instanceof PuzzleSolversGroup) {
-                if ($myRank === null && $result->containsPlayer($loggedPlayerId) === true) {
-                    $myRank = $i;
-                    $myTime = $result->time;
-                }
-            }
+            $totalTime += $groupedSolver[0]->time;
+            $allTimes[] = $groupedSolver[0]->time;
         }
 
-        $this->myRank = $myRank;
-        $this->myTime = $myTime;
         $count = count($this->times);
         $this->averageTime = (int) ($totalTime / max(1, $count));
 
@@ -440,16 +448,91 @@ final class PuzzleTimes
             $previousTime = $time;
         }
 
-        $this->visibleTimes = array_slice($this->times, 0, $this->limit, preserve_keys: true);
-        $this->ownRowBeyondLimit = false;
+        $rowKeys = array_keys($this->times);
+        $myPosition = $this->myRowKey !== null ? array_search($this->myRowKey, $rowKeys, true) : false;
 
-        if (
-            $this->myRowKey !== null
-            && isset($this->times[$this->myRowKey])
-            && isset($this->visibleTimes[$this->myRowKey]) === false
-        ) {
-            $this->visibleTimes[$this->myRowKey] = $this->times[$this->myRowKey];
-            $this->ownRowBeyondLimit = true;
+        /** @var array<int, true> $visiblePositions */
+        $visiblePositions = [];
+
+        for ($position = 0; $position < min($this->limit, count($rowKeys)); $position++) {
+            $visiblePositions[$position] = true;
+        }
+
+        if (is_int($myPosition)) {
+            $lastNeighbour = min(count($rowKeys) - 1, $myPosition + self::NEIGHBOURS);
+
+            for ($position = max(0, $myPosition - self::NEIGHBOURS); $position <= $lastNeighbour; $position++) {
+                $visiblePositions[$position] = true;
+            }
+        }
+
+        ksort($visiblePositions);
+
+        $this->visibleTimes = [];
+        $this->gapsBefore = [];
+        $previousPosition = -1;
+
+        foreach (array_keys($visiblePositions) as $position) {
+            $rowKey = $rowKeys[$position];
+
+            if ($position > $previousPosition + 1) {
+                $this->gapsBefore[$rowKey] = $position - $previousPosition - 1;
+            }
+
+            $this->visibleTimes[$rowKey] = $this->times[$rowKey];
+            $previousPosition = $position;
+        }
+
+        $this->ownRowBeyondLimit = is_int($myPosition) && $myPosition >= $this->limit;
+
+        $this->describeViewerPosition();
+    }
+
+    /**
+     * The viewer's position line: "Rank 612 of 1718 · faster than 64 % of puzzlers · 00:04:12 from the top 500"
+     */
+    private function describeViewerPosition(): void
+    {
+        $this->myRank = null;
+        $this->myTime = null;
+        $this->myPercentile = null;
+        $this->myTargetRank = null;
+        $this->myTargetGap = null;
+
+        if ($this->myRowKey === null || isset($this->ranks[$this->myRowKey]) === false) {
+            return;
+        }
+
+        $this->myRank = $this->ranks[$this->myRowKey];
+        $this->myTime = $myTime = $this->times[$this->myRowKey][0]->time;
+
+        if ($this->myRank === 1 || $myTime === null) {
+            return;
+        }
+
+        $times = [];
+
+        foreach ($this->times as $grouped) {
+            $times[] = $grouped[0]->time;
+        }
+
+        $total = count($times);
+
+        if ($total >= self::PERCENTILE_MIN_ROWS) {
+            $slower = count(array_filter($times, static fn (null|int $time): bool => $time !== null && $time > $myTime));
+            $percentile = intdiv(100 * $slower, $total - 1);
+            $this->myPercentile = $percentile > 0 ? $percentile : null;
+        }
+
+        foreach (array_reverse(self::RANK_MILESTONES) as $milestone) {
+            $milestoneTime = $times[$milestone - 1] ?? null;
+
+            if ($milestone < $this->myRank && $milestoneTime !== null) {
+                $this->myTargetRank = $milestone;
+                $this->myTargetGap = $myTime - $milestoneTime;
+
+                return;
+            }
         }
     }
 

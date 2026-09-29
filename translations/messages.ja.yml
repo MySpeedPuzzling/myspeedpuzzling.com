@@ -278,9 +278,28 @@
     "rank": "%total% 中 %rank% 位"
     "jump_to_me": "自分へジャンプ"
     "show_all": "自分の全タイム (%count%)"
+    "faster_than":
+      "solo": "パズラーの%percent%%より速い"
+      "duo": "ペアの%percent%%より速い"
+      "group": "チームの%percent%%より速い"
+    "behind_fastest": "最速まであと%time%"
+    "behind_top": "トップ%rank%まであと%time%"
   "leaderboard":
     "show_more": "さらに%count%件表示"
     "show_all": "すべて表示 (%count%)"
+    "hidden_rows": "あと%count%件"
+  "chart":
+    "noun":
+      "solo": "パズラー"
+      "duo": "ペア"
+      "group": "チーム"
+    "median": "中央値"
+    "you": "あなた"
+    "summary":
+      "solo": "%count%人のパズラーのタイム、中央値 %median%。"
+      "duo": "%count%組のペアのタイム、中央値 %median%。"
+      "group": "%count%チームのタイム、中央値 %median%。"
+    "summary_you": "あなたのタイム: %time%。"
 "stopwatch":
   "meta":
     "title": "ストップウォッチ"

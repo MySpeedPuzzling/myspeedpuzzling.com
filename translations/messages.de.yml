@@ -276,9 +276,28 @@
     "rank": "Rang %rank% von %total%"
     "jump_to_me": "Zu mir springen"
     "show_all": "Alle meine Zeiten (%count%)"
+    "faster_than":
+      "solo": "schneller als %percent%% der Puzzler"
+      "duo": "schneller als %percent%% der Paare"
+      "group": "schneller als %percent%% der Teams"
+    "behind_fastest": "%time% hinter der schnellsten Zeit"
+    "behind_top": "%time% bis zu den Top %rank%"
   "leaderboard":
     "show_more": "%count% weitere anzeigen"
     "show_all": "Alle anzeigen (%count%)"
+    "hidden_rows": "%count% weitere"
+  "chart":
+    "noun":
+      "solo": "Puzzler"
+      "duo": "Paare"
+      "group": "Teams"
+    "median": "Median"
+    "you": "Sie"
+    "summary":
+      "solo": "Zeiten von %count% Puzzler, Median %median%.|Zeiten von %count% Puzzlern, Median %median%."
+      "duo": "Zeiten von %count% Paar, Median %median%.|Zeiten von %count% Paaren, Median %median%."
+      "group": "Zeiten von %count% Team, Median %median%.|Zeiten von %count% Teams, Median %median%."
+    "summary_you": "Ihre Zeit: %time%."
 "stopwatch":
   "meta":
     "title": "Stoppuhr"

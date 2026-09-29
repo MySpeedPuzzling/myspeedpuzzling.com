@@ -303,9 +303,28 @@ puzzle_times:
         rank: "Rank %rank% of %total%"
         jump_to_me: "Jump to me"
         show_all: "All my times (%count%)"
+        faster_than:
+            solo: "faster than %percent%% of puzzlers"
+            duo: "faster than %percent%% of pairs"
+            group: "faster than %percent%% of teams"
+        behind_fastest: "%time% behind the fastest"
+        behind_top: "%time% from the top %rank%"
     leaderboard:
         show_more: "Show %count% more"
         show_all: "Show all (%count%)"
+        hidden_rows: "%count% more"
+    chart:
+        noun:
+            solo: "Puzzlers"
+            duo: "Pairs"
+            group: "Teams"
+        median: "Median"
+        you: "You"
+        summary:
+            solo: "Times of %count% puzzler, median %median%.|Times of %count% puzzlers, median %median%."
+            duo: "Times of %count% pair, median %median%.|Times of %count% pairs, median %median%."
+            group: "Times of %count% team, median %median%.|Times of %count% teams, median %median%."
+        summary_you: "Your time: %time%."
 
 stopwatch:
     meta:

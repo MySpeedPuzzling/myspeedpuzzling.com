@@ -279,9 +279,28 @@
     "rank": "Classement %rank% sur %total%"
     "jump_to_me": "Aller à moi"
     "show_all": "Tous mes temps (%count%)"
+    "faster_than":
+      "solo": "plus rapide que %percent%% des puzzlers"
+      "duo": "plus rapide que %percent%% des duos"
+      "group": "plus rapide que %percent%% des équipes"
+    "behind_fastest": "%time% derrière le plus rapide"
+    "behind_top": "à %time% du top %rank%"
   "leaderboard":
     "show_more": "Afficher %count% de plus"
     "show_all": "Tout afficher (%count%)"
+    "hidden_rows": "%count% de plus"
+  "chart":
+    "noun":
+      "solo": "Puzzlers"
+      "duo": "Duos"
+      "group": "Équipes"
+    "median": "Médiane"
+    "you": "Vous"
+    "summary":
+      "solo": "Temps de %count% puzzler, médiane %median%.|Temps de %count% puzzlers, médiane %median%."
+      "duo": "Temps de %count% duo, médiane %median%.|Temps de %count% duos, médiane %median%."
+      "group": "Temps de %count% équipe, médiane %median%.|Temps de %count% équipes, médiane %median%."
+    "summary_you": "Votre temps : %time%."
 "stopwatch":
   "meta":
     "title": "Chronomètre"

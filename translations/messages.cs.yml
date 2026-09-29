@@ -277,9 +277,28 @@
     "rank": "Pořadí %rank% z %total%"
     "jump_to_me": "Skočit na mě"
     "show_all": "Všechny moje časy (%count%)"
+    "faster_than":
+      "solo": "rychlejší než %percent%% puzzlerů"
+      "duo": "rychlejší než %percent%% dvojic"
+      "group": "rychlejší než %percent%% týmů"
+    "behind_fastest": "%time% za nejrychlejším"
+    "behind_top": "%time% do top %rank%"
   "leaderboard":
     "show_more": "Zobrazit další %count%|Zobrazit další %count%|Zobrazit dalších %count%"
     "show_all": "Zobrazit všechny (%count%)"
+    "hidden_rows": "další %count%|další %count%|dalších %count%"
+  "chart":
+    "noun":
+      "solo": "Puzzleři"
+      "duo": "Dvojice"
+      "group": "Týmy"
+    "median": "Medián"
+    "you": "Ty"
+    "summary":
+      "solo": "Časy %count% puzzlera, medián %median%.|Časy %count% puzzlerů, medián %median%.|Časy %count% puzzlerů, medián %median%."
+      "duo": "Časy %count% dvojice, medián %median%.|Časy %count% dvojic, medián %median%.|Časy %count% dvojic, medián %median%."
+      "group": "Časy %count% týmu, medián %median%.|Časy %count% týmů, medián %median%.|Časy %count% týmů, medián %median%."
+    "summary_you": "Tvůj čas: %time%."
 "stopwatch":
   "meta":
     "title": "Stopky"

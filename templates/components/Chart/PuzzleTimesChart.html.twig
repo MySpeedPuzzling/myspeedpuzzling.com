@@ -1,21 +1,30 @@
-{% if computed.chart.data['labels']|length > 1 %}
+{% if this.results|length > 1 %}
     <div class="card card-body p-2 my-3 shadow">
         {% if title %}
             <h2 class="fs-6 text-center text-md-start mb-2">{{ title }}</h2>
         {% endif %}
 
         {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-            <div style="height: 180px;" data-controller="time-chart" class="position-relative">
-                {{ render_chart(computed.chart) }}
+            {# Median and "You" markers in both views (docs/features/puzzle-leaderboard-chart.md) #}
+            {% if this.distribution %}
+                {# Longer leaderboards: how the times are distributed #}
+                <div style="height: 200px;" data-controller="leaderboard-chart" class="position-relative" data-testid="leaderboard-distribution">
+                    {{ render_chart(computed.chart, {role: 'img', 'aria-label': computed.summary}) }}
+                </div>
+            {% else %}
+                {# A bar per row; time-chart keeps its zoom and time tooltips #}
+                <div style="height: 180px;" data-controller="time-chart leaderboard-chart" class="position-relative" data-testid="leaderboard-individual">
+                    {{ render_chart(computed.chart, {role: 'img', 'aria-label': computed.summary}) }}
 
-                <button
-                    class="d-none position-absolute btn btn-sm btn-outline-primary shadow zoom-reset"
-                    data-action="time-chart#resetZoom"
-                    data-time-chart-target="zoomButton"
-                >
-                    <i class="bi-zoom-out"></i>
-                </button>
-            </div>
+                    <button
+                        class="d-none position-absolute btn btn-sm btn-outline-primary shadow zoom-reset"
+                        data-action="time-chart#resetZoom"
+                        data-time-chart-target="zoomButton"
+                    >
+                        <i class="bi-zoom-out"></i>
+                    </button>
+                </div>
+            {% endif %}
         {% else %}
             <div class="puzzle-detail-chart-placeholder text-center">
                 <button

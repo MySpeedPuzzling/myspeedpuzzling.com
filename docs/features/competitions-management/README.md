@@ -142,6 +142,15 @@ The "Competition / event" picker on the add-time form (`PuzzleAddFormType`, rout
 
 Every round with a slug has a public results page — `/en/events/{slug}/results/{roundSlug}` for standalone events, `/en/series/{seriesSlug}/{editionSlug}/results/{roundSlug}` for editions. A solving time's round follows from its competition + puzzle + solo/duo/team; it is stored in `puzzle_solving_time.competition_round_id` and kept current automatically. Full design, decisions and the WJPC 2026 data: [round-results.md](round-results.md).
 
+## Event pages: titles, puzzles, indexing (SEO, 2026-09-30)
+
+- **Titles** (`Value\EventTitle`, used by the event, edition and round results pages): the full name, never shortened; an edition gets its series in front unless its name mentions it (`Piece-off · #21 - May 2026`); the year follows unless the name already carries a standalone 19xx/20xx year. Once the event is over — `date_to ?? date_from` before today, by calendar day — the title says Results (`events.meta.event_detail_title_results`, word order per locale). Editions without own dates are dated by their rounds. Round results: `{event} – {round} Results`. The H1 stays the organiser's name.
+- **Meta descriptions**: past events quote the number of results (`CountCompetitionResults`, not suspicious); upcoming ones keep date + location.
+- **Puzzles on the standalone event page**: tagged puzzles; else the puzzles of its rounds (`GetCompetitionPuzzles::roundPuzzleOverviews`, round hide rules applied); else the puzzles people logged times for there, most logged first, max 48 (`solvedPuzzleOverviews`).
+- **Results by round** (standalone event page): rounds with a slug and ≥ 1 result, only on a publicly visible event — round results pages of a non-public event answer 404, so nothing links to them.
+- **Indexing**: unapproved/rejected events and series, and editions failing `IsCompetitionPubliclyVisible`, render `noindex, nofollow`. Event/series JSON-LD `image` is the uploaded logo original (`uploaded_asset`), not a thumbnail.
+- **WJPC hub** lists every edition's tagged + round puzzles with public solo median/fastest (`GetCompetitionPuzzles::forCompetitions`, publicly visible competitions only).
+
 ## Round Management
 
 A competition has multiple **rounds**, each with:

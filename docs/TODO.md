@@ -10,7 +10,7 @@ Shipped 2026-09-29 (flags still dark). Design: [`features/auth-hardening/README.
 
 - [ ] Apple server-to-server notifications endpoint (`email-disabled`, `consent-revoked`, `account-delete`) - today a revoked Apple ID or a dead relay address goes unnoticed
 - [ ] Use `SocialUserProfile::$isPrivateRelay` in the UI (interstitial copy for Apple "Hide My Email" addresses)
-- [ ] Translate the interstitial strings `auth.social.confirm.sign_in_and_connect` / `duplicate_accounts_help` (English-only by decision; other locales fall back) and re-translate `auth.social.confirm.have_account` in cs/de/es/fr/ja - the English copy now says the provider is connected automatically
+- [x] Translate the interstitial strings `auth.social.confirm.sign_in_and_connect` / `duplicate_accounts_help` and re-translate `auth.social.confirm.have_account` in cs/de/es/fr/ja (2026-09-29)
 - [ ] Deliberately NOT done: Gmail dot/plus normalisation of provider emails when matching accounts (rule 2/3 compare the canonicalised address as-is)
 - [ ] True account merge (two accounts, two players) stays a manual admin operation - write the runbook when the first request comes in
 

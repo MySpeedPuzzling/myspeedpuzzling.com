@@ -30,7 +30,11 @@ final readonly class SocialAccountResolver
 {
     // Error messages double as translation keys in the `security` domain,
     // rendered on the login page - same pattern as LoginFormAuthenticator
-    public const string ERROR_SIGN_IN_AND_CONNECT = 'An account with this email address already exists. Sign in with your password first, then connect %provider% in your profile settings.';
+    // Rule 3, split by which side has not verified the address. The account side
+    // is only named when the provider vouched for the address, i.e. to someone who
+    // demonstrably owns that mailbox.
+    public const string ERROR_ACCOUNT_EMAIL_UNVERIFIED = 'There is already an account with this email address, but that address has not been verified yet. To be sure we connect the right accounts, please sign in to that account first (with your password or an emailed sign-in link), then connect %provider% in your profile settings under Connected sign-in methods.';
+    public const string ERROR_PROVIDER_EMAIL_UNVERIFIED = 'There is already an account with this email address, but %provider% has not confirmed that the address belongs to you. To be sure we connect the right accounts, please sign in to that account first (with your password or an emailed sign-in link), then connect %provider% in your profile settings under Connected sign-in methods.';
     // Facebook re-asks for a declined email permission (auth_type=rerequest,
     // SocialLoginProviders::authorizationOptions()), so "try again" really helps
     public const string ERROR_NO_EMAIL = '%provider% did not share an email address with us, so we cannot sign you in this way. Please try again and allow access to your email address when %provider% asks - or sign in another way.';
@@ -82,7 +86,9 @@ final readonly class SocialAccountResolver
                 // (account-takeover guards, decision 2026-09-29).
                 if ($profile->emailVerified === false || $userAccount->emailVerifiedAt === null) {
                     throw new CustomUserMessageAuthenticationException(
-                        self::ERROR_SIGN_IN_AND_CONNECT,
+                        $profile->emailVerified
+                            ? self::ERROR_ACCOUNT_EMAIL_UNVERIFIED
+                            : self::ERROR_PROVIDER_EMAIL_UNVERIFIED,
                         ['%provider%' => $provider->displayName()],
                     );
                 }

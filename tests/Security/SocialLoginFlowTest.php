@@ -198,9 +198,10 @@ final class SocialLoginFlowTest extends WebTestCase
 
         $crawler = $browser->followRedirect();
         self::assertStringContainsString(
-            'Sign in with your password first, then connect Google in your profile settings.',
+            'Google has not confirmed that the address belongs to you.',
             $crawler->text(),
         );
+        self::assertStringContainsString('then connect Google in your profile settings', $crawler->text());
 
         $connection = $browser->getContainer()->get(Connection::class);
         $identityCount = self::countRows(
@@ -525,7 +526,8 @@ final class SocialLoginFlowTest extends WebTestCase
 
         self::assertResponseRedirects('/login');
         $crawler = $browser->followRedirect();
-        self::assertStringContainsString('Sign in with your password first, then connect Google', $crawler->text());
+        self::assertStringContainsString('but that address has not been verified yet', $crawler->text());
+        self::assertStringContainsString('then connect Google in your profile settings', $crawler->text());
 
         self::assertSame(0, $this->identityCount($browser, "g-unverified-{$suffix}"));
         $this->assertNotLoggedIn($browser);
@@ -555,7 +557,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
         self::assertResponseRedirects('/login');
         $crawler = $browser->followRedirect();
-        self::assertStringContainsString('Sign in with your password first, then connect Apple', $crawler->text());
+        self::assertStringContainsString('Apple has not confirmed that the address belongs to you.', $crawler->text());
 
         self::assertSame(0, $this->identityCount($browser, "apple-false-{$suffix}"));
     }

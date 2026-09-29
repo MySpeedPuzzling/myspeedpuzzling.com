@@ -797,7 +797,7 @@ faq:
         description: "Speed puzzling FAQ covering how to track puzzle times, compete with others, and improve your solving skills. Get started today!"
     title: "Frequently Asked Questions"
     intro_block: |
-        <p>Your feedback is very important to us and we appreciate it greatly! If you have anything you'd like to tell us, please write to us at <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> (or at <a href="mailto:j.mikes@me.com">j.mikes@me.com</a> for technical matters) or on <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank">Instagram</a>.</p>
+        <p>Your feedback is very important to us and we appreciate it greatly! If you have anything you'd like to tell us, please write to us at <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> (or at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a> for technical matters – signing in, your account or your data) or on <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank">Instagram</a>.</p>
         <p>All our source codes are open-source and public on <a href="https://github.com/MySpeedPuzzling">GitHub SpeedPuzzling</a>. We adhere to the philosophy of "sharing is caring" and strive to share everything about myspeedpuzzling.com openly.</p>
 
     question_fair_play: "How do you know I'm not cheating when entering times?"
@@ -1450,41 +1450,49 @@ privacy_policy:
     content: |
         <h1>Privacy Policy</h1>
         <p>The purpose of this document is to inform you about how we handle your personal data on MySpeedPuzzling.com. We greatly value your trust and privacy.</p>
-        <h2>1. Public Name</h2>
+        <h2>1. Who is responsible for your data</h2>
+        <p>The controller of your personal data is the operator of MySpeedPuzzling.com:</p>
+        <ul>
+            <li><strong>Simona Mikešová</strong> (sole proprietor)</li>
+            <li>Františka Formana 237/31, 700 30 Ostrava, Czech Republic</li>
+            <li>ID No.: 06868878</li>
+        </ul>
+        <p>For anything concerning your personal data, your account, signing in or technical problems, write to <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>. If possible, write from the e-mail address of your account, so we can tell it is really you.</p>
+        <h2>2. Public Name</h2>
         <p>When registering on MySpeedPuzzling.com, you can choose a <strong>public name</strong> – it can be a nickname, abbreviation, or initials. This name is displayed to all visitors of the website. Please be cautious when choosing a name if you wish to remain more anonymous.</p>
-        <h2>2. Email</h2>
+        <h2>3. Email</h2>
         <ul>
             <li>You provide your email address for logging in and communicating with the platform administrators.</li>
-            <li><strong>The email address is not public</strong> – it does not appear anywhere in your profile and is not accessible to third parties.</li>
-            <li>Your email is stored in an encrypted database, and only the application authors have access to it.</li>
-            <li>We do not share your email address with any other entities.</li>
+            <li><strong>The email address is not public</strong> – it does not appear anywhere in your profile and other players cannot see it.</li>
+            <li>We never sell your e-mail address or pass it on for anyone else's marketing. Only the service providers who help us run the platform (see section 13) work with it, and – if you have an account with the World Jigsaw Puzzle Federation – we use it to pair the two accounts (see section 11).</li>
             <li>When you create an account with an e-mail address and password, we send you a one-off message with a link to confirm that the address really belongs to you. Apart from that, we only send e-mails your account needs (such as sign-in links, password resets or the confirmation of an account deletion) and the messages you have chosen to receive in your settings.</li>
         </ul>
-        <h2>3. Password</h2>
+        <h2>4. Password</h2>
         <ul>
-            <li>Your password is stored in our database only as a <strong>hash</strong> – this is an irreversible encryption, so no administrator or developer can discover its original form.</li>
+            <li>Your password is stored in our database only as a <strong>hash</strong> – a one-way transformation, so no administrator or developer can discover its original form.</li>
             <li>When you log in, the information you enter is compared against the hash stored in the database.</li>
             <li>For security reasons, we never email the original password; if necessary, you can reset it using the “Forgot Password” process.</li>
         </ul>
-        <h2>4. Optional Public Information</h2>
+        <h2>5. Optional Public Information</h2>
         <p>Users have the option to provide additional <strong>public information</strong> on their profile (e.g., city, country, social media links, description, avatar) for better community interaction.</p>
         <ul>
-            <li>This information is visible to all visitors and is <strong>not considered sensitive</strong> personal data.</li>
+            <li>This information is visible to all visitors, so please only fill in what you are happy to share publicly.</li>
             <li>You will be notified that this information is public when filling it in.</li>
-            <li>Nevertheless, this data is also stored in our encrypted database.</li>
+            <li>The same applies to your solving times, collections and other content you publish on the platform. If you make your profile private, only you and the players you choose can see it.</li>
         </ul>
-        <h2>5. Payment Information</h2>
+        <h2>6. Payment Information</h2>
         <ul>
             <li>The MySpeedPuzzling.com platform <strong>does not collect any data about payment methods</strong> – all payments are processed exclusively through the partner company Stripe.</li>
             <li>We never have access to your payment card details, bank account information, or any other financial data.</li>
+            <li>Stripe keeps the records of your payments (payments, invoices and receipts) for as long as accounting and tax law requires – even after you delete your account.</li>
         </ul>
-        <h2>6. Security and Privacy</h2>
+        <h2>7. Security</h2>
         <ul>
             <li>The security of our users is our priority – servers and databases are protected against unauthorized access, data leaks, and other cyber threats.</li>
-            <li>Your personal data (e.g., email or optional profile information) is always encrypted, and only the application authors can access it.</li>
+            <li>All communication with the website is encrypted (HTTPS), and only the people who run the platform have access to the database.</li>
             <li>We uphold all standard security measures and continually work to improve our security.</li>
         </ul>
-        <h2>7. Signing in with Google, Facebook (Meta) and Apple</h2>
+        <h2>8. Signing in with Google, Facebook (Meta) and Apple</h2>
         <p>Instead of a password, you can sign in with your Google, Facebook or Apple account. If you use Instagram, you can sign in through the Facebook account connected to it in Meta Accounts Center. These sign-in methods are entirely optional – you can always sign in with your e-mail address and password, or with a sign-in link sent by e-mail, instead.</p>
         <h3 class="h5">What we receive from the provider</h3>
         <ul>
@@ -1521,17 +1529,68 @@ privacy_policy:
             <li>Meta (Meta Platforms Ireland Limited): <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">facebook.com/privacy/policy</a></li>
             <li>Apple (Apple Distribution International Limited): <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener">apple.com/legal/privacy</a></li>
         </ul>
-        <h2>8. Sign-in security log</h2>
+        <h2>9. Sign-in security log</h2>
         <p>To protect your account, we keep a log of security-related events: successful and failed sign-ins, sign-outs, requests for sign-in and password reset links, changes of password and e-mail address, registration, connecting and disconnecting Google, Facebook or Apple, and requests to delete the account.</p>
         <ul>
             <li>Each record contains the type of event, when it happened, the sign-in method used, the e-mail address concerned, the IP address and the identification of your browser and device (the so-called user agent).</li>
             <li>We use it to detect and investigate unauthorised access to accounts, and to show you your own history – you can review it at any time on the <strong>Recent account activity</strong> page in your profile settings.</li>
             <li>The legal basis is our legitimate interest in keeping your account and the whole platform secure (Art. 6(1)(f) GDPR).</li>
-            <li>Records are deleted automatically after 24 months; those belonging to your account are deleted immediately together with the account.</li>
+            <li>Records are deleted automatically after 24 months; those belonging to your account are deleted immediately together with the account. Records that are not linked to any account (for example a sign-in attempt with an address that has no account here) are only deleted after the 24 months.</li>
         </ul>
-        <h2>9. Deleting your data</h2>
+        <h2>10. Newsletter</h2>
+        <p>If you subscribe to our newsletter (in your settings, or with the form in the footer, which asks you to confirm the subscription by e-mail), we use your e-mail address and preferred language to send it. The legal basis is your consent (Art. 6(1)(a) GDPR). You can unsubscribe at any time with the link in every newsletter or in your settings; we then stop sending it straight away. The subscriber list runs on our own server.</p>
+        <h2>11. Pairing with the World Jigsaw Puzzle Federation</h2>
+        <p>The World Jigsaw Puzzle Federation (WJPF, worldjigsawpuzzle.org) runs the international player database used for official competitions. To find out whether you also have a WJPF player account, we send the WJPF your e-mail address. If they have a player account with the same address, both sides store the other's player identifier, so both platforms know the two accounts belong to the same player. You can also connect the accounts yourself from your WJPF account.</p>
+        <h2>12. Usage statistics, logs and error reports</h2>
+        <ul>
+            <li><strong>Activity:</strong> we record on which days you were active on the site while signed in, to understand how the platform is used. These records are deleted after 24 months, or immediately together with your account.</li>
+            <li><strong>Server logs:</strong> our servers log technical information about requests (such as the IP address, the address of the page and the browser identification) to keep the service running and secure. The logs are deleted after 30 days.</li>
+            <li><strong>Error reports:</strong> when something goes wrong, the details of the error – which may include the IP address, your account identifier and the data of the request that failed – are sent to Sentry, a service that helps us find and fix bugs.</li>
+            <li><strong>Google Analytics:</strong> we use Google Analytics to see how many people visit the website and which pages they use. It only loads after you interact with the page and stores cookies in your browser (see section 14). You can block it with an ad or tracking blocker or with Google's <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">opt-out browser add-on</a>.</li>
+        </ul>
+        <p>The legal basis for the activity records, server logs and error reports is our legitimate interest in running a secure, working service and understanding how it is used (Art. 6(1)(f) GDPR).</p>
+        <h2>13. Who processes data for us</h2>
+        <p>We do not sell personal data. To run the platform, we use these service providers, who process data only on our behalf and according to our instructions:</p>
+        <ul>
+            <li><strong>Hetzner Online GmbH</strong> (Germany) – servers, database and storage of uploaded images, in data centres in the EU,</li>
+            <li><strong>Seznam.cz, a.s.</strong> (Czech Republic) – delivery of our e-mails,</li>
+            <li><strong>Stripe</strong> (Stripe Payments Europe, Limited, Ireland) – payments for membership,</li>
+            <li><strong>Functional Software, Inc. (Sentry)</strong> (USA) – error reports,</li>
+            <li><strong>Google Ireland Limited</strong> (Google Analytics) – website traffic statistics,</li>
+            <li><strong>Cloudflare, Inc.</strong> (USA) – fast delivery of images (img.myspeedpuzzling.com).</li>
+        </ul>
+        <p>Google, Meta and Apple (when you sign in with them) and the World Jigsaw Puzzle Federation (when you pair your accounts) process data as independent controllers. If you allow a third-party application to access your account through our API, it receives the data you approved in that request; you can revoke the access at any time in your profile settings.</p>
+        <h2>14. Cookies</h2>
+        <p>We use cookies and similar storage in your browser for these purposes:</p>
+        <ul>
+            <li><strong>Necessary cookies</strong> keep you signed in (for up to 30 days since your last visit), protect forms against abuse and help us tell real visitors from bots. The website cannot work without them.</li>
+            <li><strong>Referral cookie:</strong> if you open a link with a player's referral code, we remember that code for 30 days, so the player gets credit if you become a member.</li>
+            <li><strong>Google Analytics cookies</strong> (<code>_ga</code>, <code>_ga_*</code>) count visits; they are stored for up to 2 years.</li>
+        </ul>
+        <p>You can delete or block cookies in your browser settings at any time; blocking the necessary ones will stop signing in from working.</p>
+        <h2>15. Transfers outside the EU</h2>
+        <p>Some providers (Sentry, Cloudflare, and Stripe or Google within their groups) may process data in the USA. Such transfers rely on the EU–US Data Privacy Framework or on the European Commission's standard contractual clauses.</p>
+        <h2>16. How long we keep your data</h2>
+        <ul>
+            <li>Your account and everything in it are kept for as long as you have the account.</li>
+            <li>When you delete your account, your personal data is deleted immediately (details on the page <a href="%data_deletion_link%">How to delete your data</a>). We keep nothing about you after that – the only exception are the records of your payments (payments, invoices and receipts), which Stripe keeps for as long as accounting and tax law requires.</li>
+            <li>Our backups are overwritten within 7 days, so deleted data also disappears from them by then.</li>
+            <li>The time limits for the security log, activity records and server logs are given in sections 9 and 12.</li>
+        </ul>
+        <h2>17. Your rights</h2>
+        <p>Under the GDPR, you have the right to:</p>
+        <ul>
+            <li>access your personal data and get a copy of it – you can export your solving times yourself in your profile settings,</li>
+            <li>have inaccurate data corrected – most of it you can edit yourself in <a href="%edit_profile_link%">Edit profile</a>,</li>
+            <li>have your data deleted – you can delete your account yourself at any time,</li>
+            <li>restrict processing, and receive your data in a portable format,</li>
+            <li>object to processing based on our legitimate interest,</li>
+            <li>withdraw your consent (for example to the newsletter) at any time – this does not affect processing that took place before.</li>
+        </ul>
+        <p>To exercise any of these rights, write to <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>. If you believe we are handling your data unlawfully, you can also lodge a complaint with the supervisory authority – in the Czech Republic that is the Office for Personal Data Protection (Úřad pro ochranu osobních údajů, <a href="https://uoou.gov.cz" target="_blank" rel="noopener">uoou.gov.cz</a>).</p>
+        <h2>18. Deleting your data</h2>
         <p>You can delete your account, including your personal data, yourself at any time. Step-by-step instructions are on the page <a href="%data_deletion_link%">How to delete your data</a>.</p>
-        <p>If you have any questions about personal data protection or if you are unsure whether something is sufficiently clear, please contact us at <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</p>
+        <p>If you have any questions about personal data protection or if you are unsure whether something is sufficiently clear, please contact us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
         <p><em><small>Last updated: 29 September 2026</small></em></p>
 
 data_deletion:
@@ -1557,11 +1616,12 @@ data_deletion:
             <li>your solo solving times, collections, wishlist, puzzles offered for sale or swap, badges, stopwatches and notifications,</li>
             <li>your membership (an active subscription is cancelled) and your newsletter subscription.</li>
         </ul>
-        <p>Some things are shared with other players, so they stay for them – but they are no longer linked to any account and only show the name you used, as plain text: pair and team times solved together with other registered players, conversations and marketplace transactions including ratings, and feature requests with their comments. Puzzles you added to the catalogue stay in it, with no link to you. In our log of sent e-mails, your address is replaced with an irreversible hash.</p>
-        <p>Stripe, which processes our payments, keeps records of past payments under its own privacy policy.</p>
-        <h2>3. Only disconnect Google, Facebook or Apple</h2>
+        <p>Some things are shared with other players, so they stay for them – but they are no longer linked to any account and only show the name you used, as plain text: pair and team times solved together with other registered players, conversations and marketplace transactions including ratings, and feature requests with their comments. Puzzles you added to the catalogue stay in it, with no link to you. In our log of sent e-mails, your address is replaced with a one-way hash.</p>
+        <h2>3. What we keep</h2>
+        <p>Nothing about you – with one exception: the records of your payments (payments, invoices and receipts). Stripe, which processes our payments, keeps them for as long as accounting and tax law requires. Our backups are overwritten within 7 days, so the deleted data disappears from them by then too.</p>
+        <h2>4. Only disconnect Google, Facebook or Apple</h2>
         <p>If you want to keep your account and just stop signing in with Google, Facebook or Apple, open <a href="%edit_profile_link%">Edit profile</a> → <strong>Connected sign-in methods</strong> and click <strong>Disconnect</strong> next to the provider. The stored link (the identifier from the provider, the e-mail address at the time of connecting, and when it was connected and last used) is deleted immediately. If it is your only way to sign in, add a password first so you don't lock yourself out.</p>
-        <h2>4. Remove MySpeedPuzzling on the provider's side</h2>
+        <h2>5. Remove MySpeedPuzzling on the provider's side</h2>
         <p>Disconnecting on our side does not change anything in your Google, Facebook or Apple account. To withdraw our access there too, remove MySpeedPuzzling in the provider's settings:</p>
         <ul>
             <li><strong>Facebook:</strong> Settings &amp; privacy → Settings → Apps and websites</li>
@@ -1569,8 +1629,8 @@ data_deletion:
             <li><strong>Apple:</strong> on iPhone or iPad, Settings → your name (Apple Account) → Sign-In &amp; Security → Sign in with Apple; on the web at <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
         </ul>
         <p>Removing the app on the provider's side does not delete your MySpeedPuzzling account – for that, follow step 1.</p>
-        <h2>5. Need help?</h2>
-        <p>If you can no longer sign in, or you would rather we deleted your data for you, write to us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, ideally from your account's e-mail address. We will take care of it within one month at the latest – usually much sooner.</p>
+        <h2>6. Can't sign in?</h2>
+        <p>You need to be signed in to delete your account. Forgotten your password, or no longer use Google, Facebook or Apple? On the sign-in page you can have a sign-in link sent to your account's e-mail address. If that doesn't help either, write to us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, ideally from your account's e-mail address, and we will help you get back into your account.</p>
         <p>You can read more about how we handle personal data in our <a href="%privacy_link%">Privacy Policy</a>.</p>
 
 countdown:

@@ -29,6 +29,22 @@ route, all 6 locales, in the footer + sitemap, linked from the privacy policy) �
 it is also the "User data deletion" URL given to Meta for Facebook login. Keep it
 in sync when the flow or `DeletePlayerHandler` changes what is deleted.
 
+**The public promise** (privacy policy §16 + `/data-deletion` §3, 2026-09-29): there is
+no manual deletion any more — the account is closed by its owner, immediately, and
+nothing about the person is kept except Stripe's payment records (payments, invoices,
+receipts; accounting/tax law). Shared content stays for the other players, unlinked,
+showing the name as plain text. Things that technically still remain and are *not*
+spelled out on the public pages (keep this list honest when changing `DeletePlayerHandler`):
+
+- the avatar file in object storage — GitHub issue #213 (bug, the promise stands),
+- `auth_audit_log` rows **not** linked to the account (e.g. failed sign-ins typed with
+  the address) — pruned after 24 months like everything else in that table,
+- `email_audit_log.recipient_email` as a sha256 of the address (one-way, but not
+  anonymous for someone who already knows the address),
+- `puzzle_moderation_decision` (moderators only): decider id/name/code copied on purpose,
+- WJPF keeps our player UUID in their database (their write is permanent),
+- database backups (7 days) and Loki logs (30 days), Sentry events (Sentry's retention).
+
 Expired / invalid links get their own outcome page ("nothing has been deleted,
 request a new link from your profile settings").
 

@@ -655,7 +655,7 @@
     "title": "Speed Puzzling FAQ – Verfolgen & Konkurrieren"
     "description": "Speed Puzzling FAQ zu Themen wie Puzzle-Zeiten verfolgen, mit anderen konkurrieren und Ihre Lösungsfähigkeiten verbessern. Starten Sie heute!"
   "title": "Häufig gestellte Fragen"
-  "intro_block": "<p>Ihr Feedback ist uns sehr wichtig und wir schätzen es sehr! Wenn Sie uns etwas mitteilen möchten, schreiben Sie uns bitte an <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a> (oder an <a href=\"mailto:j.mikes@me.com\">j.mikes@me.com</a> für technische Angelegenheiten) oder auf <a href=\"https://www.instagram.com/myspeedpuzzling/\" target=\"_blank\">Instagram</a>.</p>\n<p>Alle unsere Quellcodes sind Open-Source und öffentlich auf <a href=\"https://github.com/MySpeedPuzzling\">GitHub SpeedPuzzling</a>. Wir folgen der Philosophie \"Teilen ist Fürsorge\" und bemühen uns, alles über myspeedpuzzling.com offen zu teilen.</p>\n"
+  "intro_block": "<p>Ihr Feedback ist uns sehr wichtig und wir schätzen es sehr! Wenn Sie uns etwas mitteilen möchten, schreiben Sie uns bitte an <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a> (oder an <a href=\"mailto:jan@myspeedpuzzling.com\">jan@myspeedpuzzling.com</a> für technische Angelegenheiten – Anmeldung, Ihr Konto oder Ihre Daten) oder auf <a href=\"https://www.instagram.com/myspeedpuzzling/\" target=\"_blank\">Instagram</a>.</p>\n<p>Alle unsere Quellcodes sind Open-Source und öffentlich auf <a href=\"https://github.com/MySpeedPuzzling\">GitHub SpeedPuzzling</a>. Wir folgen der Philosophie \"Teilen ist Fürsorge\" und bemühen uns, alles über myspeedpuzzling.com offen zu teilen.</p>\n"
   "question_fair_play": "Woher wissen Sie, dass ich nicht beim Eingeben der Zeiten betrüge?"
   "answer_fair_play": "<p>Ehrlich gesagt - wir werden es wahrscheinlich nicht wissen. In der öffentlichen Bestenliste, wo Puzzler selbst Zeiten eingeben, verlassen wir uns auf die Ehrlichkeit und Integrität jedes einzelnen Puzzlers. Würden Sie wirklich ein unehrlich eingegebenes Ergebnis genießen?</p>\n<p>Wir nehmen an, dass andere Puzzler, wie wir auch, hauptsächlich aus Freude puzzeln, und die Zeiten aus dieser Art des Zusammensetzens sind indikativ für eine grobe Vorstellung davon, wie wir uns mit anderen vergleichen und bei einem Wettbewerb abschneiden werden. Sagen Sie mir, würde es nicht verdächtig aussehen, wenn ich 20 Minuten auf der Plattform hätte, aber 3 Stunden bei einem Wettbewerb bräuchte?</p>\n<p>In Zukunft planen wir auch bewertete Ligen, wo eine Zeitverifikation erforderlich sein könnte, zum Beispiel durch Videoaufzeichnung.</p>\n<p class=\"text-danger mb-0\"><small>Da unsere Community\
     \ Finalisten der Puzzle-Weltmeisterschaft einschließt, die Spitzenplätze erreicht haben, können wir ihre Zeiten als Referenz nehmen. Verdächtige Zeiten werden überwacht und bei erwiesenem Betrug gnadenlos gelöscht. Bei wiederholtem Betrug wird der Zugang des Spielers zur Plattform eingeschränkt.</small></p>\n"
@@ -1172,41 +1172,49 @@
   "content": |
     <h1>Datenschutzerklärung</h1>
     <p>Der Zweck dieses Dokuments ist es, Sie darüber zu informieren, wie wir Ihre personenbezogenen Daten auf MySpeedPuzzling.com handhaben. Wir schätzen Ihr Vertrauen und Ihre Privatsphäre sehr.</p>
-    <h2>1. Öffentlicher Name</h2>
+    <h2>1. Wer für Ihre Daten verantwortlich ist</h2>
+    <p>Verantwortlich für Ihre personenbezogenen Daten ist die Betreiberin von MySpeedPuzzling.com:</p>
+    <ul>
+        <li><strong>Simona Mikešová</strong> (Einzelunternehmerin)</li>
+        <li>Františka Formana 237/31, 700 30 Ostrava, Tschechische Republik</li>
+        <li>ID-Nr. (IČO): 06868878</li>
+    </ul>
+    <p>Bei allen Fragen zu Ihren personenbezogenen Daten, Ihrem Konto, der Anmeldung oder technischen Problemen schreiben Sie an <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>. Schreiben Sie nach Möglichkeit von der E-Mail-Adresse Ihres Kontos, damit wir erkennen, dass Sie es wirklich sind.</p>
+    <h2>2. Öffentlicher Name</h2>
     <p>Bei der Registrierung auf MySpeedPuzzling.com können Sie einen <strong>öffentlichen Namen</strong> wählen - das kann ein Spitzname, eine Abkürzung oder Initialen sein. Dieser Name wird allen Besuchern der Website angezeigt. Bitte seien Sie vorsichtig bei der Namenswahl, wenn Sie anonymer bleiben möchten.</p>
-    <h2>2. E-Mail</h2>
+    <h2>3. E-Mail</h2>
     <ul>
         <li>Sie geben Ihre E-Mail-Adresse für die Anmeldung und Kommunikation mit den Plattform-Administratoren an.</li>
-        <li><strong>Die E-Mail-Adresse ist nicht öffentlich</strong> - sie erscheint nirgendwo in Ihrem Profil und ist für Dritte nicht zugänglich.</li>
-        <li>Ihre E-Mail wird in einer verschlüsselten Datenbank gespeichert, und nur die Anwendungsautoren haben Zugang dazu.</li>
-        <li>Wir teilen Ihre E-Mail-Adresse nicht mit anderen Unternehmen.</li>
+        <li><strong>Die E-Mail-Adresse ist nicht öffentlich</strong> - sie erscheint nirgendwo in Ihrem Profil, und andere Spieler können sie nicht sehen.</li>
+        <li>Wir verkaufen Ihre E-Mail-Adresse niemals und geben sie auch nicht für Werbezwecke anderer weiter. Mit ihr arbeiten nur die Dienstleister, die uns beim Betrieb der Plattform helfen (siehe Abschnitt 13), und – falls Sie ein Konto bei der World Jigsaw Puzzle Federation haben – wir nutzen sie, um die beiden Konten zu verknüpfen (siehe Abschnitt 11).</li>
         <li>Wenn Sie ein Konto mit E-Mail-Adresse und Passwort anlegen, schicken wir Ihnen einmalig eine Nachricht mit einem Link, mit dem Sie bestätigen, dass die Adresse wirklich Ihnen gehört. Ansonsten senden wir Ihnen nur E-Mails, die Ihr Konto benötigt (z. B. Anmeldelinks, das Zurücksetzen des Passworts oder die Bestätigung einer Kontolöschung), sowie Nachrichten, die Sie in Ihren Einstellungen selbst aktiviert haben.</li>
     </ul>
-    <h2>3. Passwort</h2>
+    <h2>4. Passwort</h2>
     <ul>
-        <li>Ihr Passwort wird in unserer Datenbank nur als <strong>Hash</strong> gespeichert - das ist eine irreversible Verschlüsselung, sodass kein Administrator oder Entwickler seine ursprüngliche Form entdecken kann.</li>
+        <li>Ihr Passwort wird in unserer Datenbank nur als <strong>Hash</strong> gespeichert - das ist eine nicht umkehrbare Umwandlung, sodass kein Administrator oder Entwickler seine ursprüngliche Form herausfinden kann.</li>
         <li>Wenn Sie sich anmelden, werden die eingegebenen Informationen mit dem in der Datenbank gespeicherten Hash verglichen.</li>
         <li>Aus Sicherheitsgründen senden wir niemals das ursprüngliche Passwort per E-Mail; bei Bedarf können Sie es über den "Passwort vergessen"-Prozess zurücksetzen.</li>
     </ul>
-    <h2>4. Optionale öffentliche Informationen</h2>
+    <h2>5. Optionale öffentliche Informationen</h2>
     <p>Benutzer haben die Möglichkeit, zusätzliche <strong>öffentliche Informationen</strong> in ihrem Profil anzugeben (z.B. Stadt, Land, Social-Media-Links, Beschreibung, Avatar) für bessere Community-Interaktion.</p>
     <ul>
-        <li>Diese Informationen sind für alle Besucher sichtbar und werden <strong>nicht als sensible</strong> personenbezogene Daten betrachtet.</li>
+        <li>Diese Informationen sind für alle Besucher sichtbar – geben Sie also bitte nur an, was Sie gern öffentlich teilen.</li>
         <li>Sie werden benachrichtigt, dass diese Informationen öffentlich sind, wenn Sie sie ausfüllen.</li>
-        <li>Dennoch werden diese Daten auch in unserer verschlüsselten Datenbank gespeichert.</li>
+        <li>Dasselbe gilt für Ihre Legezeiten, Sammlungen und andere Inhalte, die Sie auf der Plattform veröffentlichen. Wenn Sie Ihr Profil auf privat stellen, sehen es nur Sie und die Spieler, die Sie auswählen.</li>
     </ul>
-    <h2>5. Zahlungsinformationen</h2>
+    <h2>6. Zahlungsinformationen</h2>
     <ul>
         <li>Die MySpeedPuzzling.com Plattform <strong>sammelt keine Daten über Zahlungsmethoden</strong> - alle Zahlungen werden ausschließlich über das Partnerunternehmen Stripe abgewickelt.</li>
         <li>Wir haben niemals Zugang zu Ihren Zahlungskarten-Details, Bankkontoinformationen oder anderen Finanzdaten.</li>
+        <li>Stripe bewahrt die Aufzeichnungen über Ihre Zahlungen (Zahlungen, Rechnungen und Belege) so lange auf, wie es das Buchhaltungs- und Steuerrecht verlangt – auch nachdem Sie Ihr Konto gelöscht haben.</li>
     </ul>
-    <h2>6. Sicherheit und Privatsphäre</h2>
+    <h2>7. Sicherheit</h2>
     <ul>
         <li>Die Sicherheit unserer Benutzer hat Priorität - Server und Datenbanken sind gegen unbefugten Zugang, Datenlecks und andere Cyber-Bedrohungen geschützt.</li>
-        <li>Ihre personenbezogenen Daten (z.B. E-Mail oder optionale Profilinformationen) sind immer verschlüsselt, und nur die Anwendungsautoren können darauf zugreifen.</li>
+        <li>Die gesamte Kommunikation mit der Website ist verschlüsselt (HTTPS), und Zugriff auf die Datenbank haben nur die Personen, die die Plattform betreiben.</li>
         <li>Wir halten alle Standard-Sicherheitsmaßnahmen ein und arbeiten kontinuierlich daran, unsere Sicherheit zu verbessern.</li>
     </ul>
-    <h2>7. Anmeldung mit Google, Facebook (Meta) und Apple</h2>
+    <h2>8. Anmeldung mit Google, Facebook (Meta) und Apple</h2>
     <p>Statt mit einem Passwort können Sie sich mit Ihrem Google-, Facebook- oder Apple-Konto anmelden. Wenn Sie Instagram nutzen, können Sie sich über das Facebook-Konto anmelden, das in der Meta-Kontenübersicht mit Instagram verknüpft ist. Diese Anmeldemethoden sind völlig freiwillig – Sie können sich jederzeit auch mit E-Mail-Adresse und Passwort oder über einen per E-Mail gesendeten Anmeldelink anmelden.</p>
     <h3 class="h5">Was wir vom Anbieter erhalten</h3>
     <ul>
@@ -1243,18 +1251,70 @@
         <li>Meta (Meta Platforms Ireland Limited): <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">facebook.com/privacy/policy</a></li>
         <li>Apple (Apple Distribution International Limited): <a href="https://www.apple.com/de/legal/privacy/" target="_blank" rel="noopener">apple.com/legal/privacy</a></li>
     </ul>
-    <h2>8. Sicherheitsprotokoll der Anmeldungen</h2>
+    <h2>9. Sicherheitsprotokoll der Anmeldungen</h2>
     <p>Zum Schutz Ihres Kontos protokollieren wir sicherheitsrelevante Ereignisse: erfolgreiche und fehlgeschlagene Anmeldungen, Abmeldungen, Anfragen nach Anmelde- oder Passwort-Reset-Links, Änderungen von Passwort und E-Mail-Adresse, die Registrierung, das Verknüpfen und Trennen von Google, Facebook oder Apple sowie Anträge auf Löschung des Kontos.</p>
     <ul>
         <li>Jeder Eintrag enthält die Art des Ereignisses, den Zeitpunkt, die verwendete Anmeldemethode, die betroffene E-Mail-Adresse, die IP-Adresse und die Kennung Ihres Browsers und Geräts (den sogenannten User-Agent).</li>
         <li>Wir nutzen das Protokoll, um unbefugte Zugriffe auf Konten zu erkennen und aufzuklären, und um Ihnen Ihren eigenen Verlauf zu zeigen – Sie können ihn jederzeit auf der Seite <strong>Letzte Kontoaktivitäten</strong> in Ihren Profileinstellungen einsehen.</li>
         <li>Rechtsgrundlage ist unser berechtigtes Interesse an der Sicherheit Ihres Kontos und der gesamten Plattform (Art. 6 Abs. 1 lit. f DSGVO).</li>
-        <li>Einträge werden nach 24 Monaten automatisch gelöscht; die zu Ihrem Konto gehörenden Einträge werden sofort zusammen mit dem Konto gelöscht.</li>
+        <li>Einträge werden nach 24 Monaten automatisch gelöscht; die zu Ihrem Konto gehörenden Einträge werden sofort zusammen mit dem Konto gelöscht. Einträge, die mit keinem Konto verknüpft sind (zum Beispiel ein Anmeldeversuch mit einer Adresse, zu der es hier kein Konto gibt), werden erst nach Ablauf der 24 Monate gelöscht.</li>
     </ul>
-    <h2>9. Löschung Ihrer Daten</h2>
+    <h2>10. Newsletter</h2>
+    <p>Wenn Sie unseren Newsletter abonnieren (in Ihren Einstellungen oder über das Formular in der Fußzeile, bei dem Sie das Abonnement per E-Mail bestätigen), verwenden wir Ihre E-Mail-Adresse und Ihre bevorzugte Sprache, um ihn Ihnen zu senden. Rechtsgrundlage ist Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Sie können sich jederzeit über den Link in jedem Newsletter oder in Ihren Einstellungen abmelden; wir stellen den Versand dann sofort ein. Die Abonnentenliste läuft auf unserem eigenen Server.</p>
+    <h2>11. Verknüpfung mit der World Jigsaw Puzzle Federation</h2>
+    <p>Die World Jigsaw Puzzle Federation (WJPF, worldjigsawpuzzle.org) betreibt die internationale Spielerdatenbank für offizielle Wettbewerbe. Um herauszufinden, ob Sie auch ein Spielerkonto bei der WJPF haben, senden wir der WJPF Ihre E-Mail-Adresse. Gibt es dort ein Spielerkonto mit derselben Adresse, speichern beide Seiten die Spielerkennung der jeweils anderen, sodass beide Plattformen wissen, dass die beiden Konten demselben Spieler gehören. Sie können die Konten auch selbst von Ihrem WJPF-Konto aus verknüpfen.</p>
+    <h2>12. Nutzungsstatistiken, Protokolle und Fehlerberichte</h2>
+    <ul>
+        <li><strong>Aktivität:</strong> Wir erfassen, an welchen Tagen Sie angemeldet auf der Website aktiv waren, um zu verstehen, wie die Plattform genutzt wird. Diese Einträge werden nach 24 Monaten gelöscht oder sofort zusammen mit Ihrem Konto.</li>
+        <li><strong>Serverprotokolle:</strong> Unsere Server protokollieren technische Angaben zu Anfragen (etwa die IP-Adresse, die Adresse der Seite und die Browserkennung), um den Dienst am Laufen und sicher zu halten. Die Protokolle werden nach 30 Tagen gelöscht.</li>
+        <li><strong>Fehlerberichte:</strong> Wenn etwas schiefgeht, werden die Details des Fehlers – die die IP-Adresse, Ihre Kontokennung und die Daten der fehlgeschlagenen Anfrage enthalten können – an Sentry gesendet, einen Dienst, der uns hilft, Fehler zu finden und zu beheben.</li>
+        <li><strong>Google Analytics:</strong> Wir verwenden Google Analytics, um zu sehen, wie viele Menschen die Website besuchen und welche Seiten sie nutzen. Es wird erst geladen, nachdem Sie mit der Seite interagiert haben, und speichert Cookies in Ihrem Browser (siehe Abschnitt 14). Sie können es mit einem Werbe- oder Tracking-Blocker oder mit dem <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">Browser-Add-on zur Deaktivierung</a> von Google blockieren.</li>
+    </ul>
+    <p>Rechtsgrundlage für die Aktivitätseinträge, Serverprotokolle und Fehlerberichte ist unser berechtigtes Interesse an einem sicheren, funktionierenden Dienst und daran zu verstehen, wie er genutzt wird (Art. 6 Abs. 1 lit. f DSGVO).</p>
+    <h2>13. Wer Daten für uns verarbeitet</h2>
+    <p>Wir verkaufen keine personenbezogenen Daten. Für den Betrieb der Plattform nutzen wir diese Dienstleister, die Daten nur in unserem Auftrag und nach unseren Weisungen verarbeiten:</p>
+    <ul>
+        <li><strong>Hetzner Online GmbH</strong> (Deutschland) – Server, Datenbank und Speicherung hochgeladener Bilder, in Rechenzentren in der EU,</li>
+        <li><strong>Seznam.cz, a.s.</strong> (Tschechische Republik) – Zustellung unserer E-Mails,</li>
+        <li><strong>Stripe</strong> (Stripe Payments Europe, Limited, Irland) – Zahlungen für die Mitgliedschaft,</li>
+        <li><strong>Functional Software, Inc. (Sentry)</strong> (USA) – Fehlerberichte,</li>
+        <li><strong>Google Ireland Limited</strong> (Google Analytics) – Besucherstatistiken der Website,</li>
+        <li><strong>Cloudflare, Inc.</strong> (USA) – schnelle Auslieferung von Bildern (img.myspeedpuzzling.com).</li>
+    </ul>
+    <p>Google, Meta und Apple (wenn Sie sich über sie anmelden) sowie die World Jigsaw Puzzle Federation (wenn Sie Ihre Konten verknüpfen) verarbeiten Daten als eigenständige Verantwortliche. Wenn Sie einer Drittanwendung über unsere API Zugriff auf Ihr Konto gewähren, erhält sie die Daten, die Sie in dieser Anfrage freigegeben haben; den Zugriff können Sie jederzeit in Ihren Profileinstellungen widerrufen.</p>
+    <h2>14. Cookies</h2>
+    <p>Wir verwenden Cookies und ähnliche Speichermöglichkeiten in Ihrem Browser für folgende Zwecke:</p>
+    <ul>
+        <li><strong>Notwendige Cookies</strong> halten Sie angemeldet (bis zu 30 Tage seit Ihrem letzten Besuch), schützen Formulare vor Missbrauch und helfen uns, echte Besucher von Bots zu unterscheiden. Ohne sie funktioniert die Website nicht.</li>
+        <li><strong>Empfehlungs-Cookie:</strong> Wenn Sie einen Link mit dem Empfehlungscode eines Spielers öffnen, merken wir uns diesen Code 30 Tage lang, damit der Spieler die Empfehlung gutgeschrieben bekommt, falls Sie Mitglied werden.</li>
+        <li><strong>Google-Analytics-Cookies</strong> (<code>_ga</code>, <code>_ga_*</code>) zählen Besuche; sie werden bis zu 2 Jahre gespeichert.</li>
+    </ul>
+    <p>Sie können Cookies jederzeit in den Einstellungen Ihres Browsers löschen oder blockieren; wenn Sie die notwendigen blockieren, funktioniert die Anmeldung nicht mehr.</p>
+    <h2>15. Übermittlungen außerhalb der EU</h2>
+    <p>Einige Dienstleister (Sentry, Cloudflare sowie Stripe oder Google innerhalb ihrer Unternehmensgruppen) können Daten in den USA verarbeiten. Solche Übermittlungen stützen sich auf das EU-US Data Privacy Framework oder auf die Standardvertragsklauseln der Europäischen Kommission.</p>
+    <h2>16. Wie lange wir Ihre Daten aufbewahren</h2>
+    <ul>
+        <li>Ihr Konto und alles darin bewahren wir auf, solange Sie das Konto haben.</li>
+        <li>Wenn Sie Ihr Konto löschen, werden Ihre personenbezogenen Daten sofort gelöscht (Einzelheiten auf der Seite <a href="%data_deletion_link%">So löschen Sie Ihre Daten</a>). Danach bewahren wir nichts über Sie auf – die einzige Ausnahme sind die Aufzeichnungen über Ihre Zahlungen (Zahlungen, Rechnungen und Belege), die Stripe so lange aufbewahrt, wie es das Buchhaltungs- und Steuerrecht verlangt.</li>
+        <li>Unsere Backups werden innerhalb von 7 Tagen überschrieben, sodass gelöschte Daten bis dahin auch aus ihnen verschwinden.</li>
+        <li>Die Fristen für das Sicherheitsprotokoll, die Aktivitätseinträge und die Serverprotokolle finden Sie in den Abschnitten 9 und 12.</li>
+    </ul>
+    <h2>17. Ihre Rechte</h2>
+    <p>Nach der DSGVO haben Sie das Recht,</p>
+    <ul>
+        <li>Auskunft über Ihre personenbezogenen Daten und eine Kopie davon zu erhalten – Ihre Legezeiten können Sie in Ihren Profileinstellungen selbst exportieren,</li>
+        <li>unrichtige Daten berichtigen zu lassen – das meiste können Sie unter <a href="%edit_profile_link%">Profil bearbeiten</a> selbst ändern,</li>
+        <li>Ihre Daten löschen zu lassen – Ihr Konto können Sie jederzeit selbst löschen,</li>
+        <li>die Einschränkung der Verarbeitung zu verlangen und Ihre Daten in einem übertragbaren Format zu erhalten,</li>
+        <li>einer Verarbeitung, die auf unserem berechtigten Interesse beruht, zu widersprechen,</li>
+        <li>Ihre Einwilligung (zum Beispiel zum Newsletter) jederzeit zu widerrufen – das berührt nicht die Verarbeitung, die bis dahin stattgefunden hat.</li>
+    </ul>
+    <p>Um eines dieser Rechte auszuüben, schreiben Sie an <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>. Wenn Sie der Meinung sind, dass wir Ihre Daten rechtswidrig verarbeiten, können Sie sich auch bei der Aufsichtsbehörde beschweren – in der Tschechischen Republik ist das das Amt für den Schutz personenbezogener Daten (Úřad pro ochranu osobních údajů, <a href="https://uoou.gov.cz" target="_blank" rel="noopener">uoou.gov.cz</a>).</p>
+    <h2>18. Löschung Ihrer Daten</h2>
     <p>Sie können Ihr Konto samt Ihren personenbezogenen Daten jederzeit selbst löschen. Eine Schritt-für-Schritt-Anleitung finden Sie auf der Seite <a href="%data_deletion_link%">So löschen Sie Ihre Daten</a>.</p>
-    <p>Wenn Sie Fragen zum Schutz personenbezogener Daten haben oder unsicher sind, ob etwas ausreichend klar ist, kontaktieren Sie uns bitte unter <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</p>
+    <p>Wenn Sie Fragen zum Schutz personenbezogener Daten haben oder unsicher sind, ob etwas ausreichend klar ist, kontaktieren Sie uns bitte unter <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
     <p><em><small>Zuletzt aktualisiert: 29. September 2026</small></em></p>
+
 "data_deletion":
   "meta":
     "title": "So löschen Sie Ihre Daten"
@@ -1279,10 +1339,11 @@
         <li>Ihre Mitgliedschaft (ein laufendes Abonnement wird gekündigt) und Ihr Newsletter-Abonnement.</li>
     </ul>
     <p>Manches teilen Sie mit anderen Spielern, deshalb bleibt es für diese erhalten – es ist dann aber mit keinem Konto mehr verknüpft und zeigt nur noch den von Ihnen verwendeten Namen als reinen Text: Paar- und Teamzeiten, die Sie zusammen mit anderen registrierten Spielern gelegt haben, Unterhaltungen und Marktplatz-Transaktionen einschließlich Bewertungen sowie Feature-Vorschläge mit ihren Kommentaren. Puzzles, die Sie dem Katalog hinzugefügt haben, bleiben dort, jedoch ohne Bezug zu Ihnen. In unserem Protokoll versendeter E-Mails wird Ihre Adresse durch einen nicht umkehrbaren Hashwert ersetzt.</p>
-    <p>Stripe, das unsere Zahlungen abwickelt, bewahrt Aufzeichnungen über frühere Zahlungen gemäß seiner eigenen Datenschutzerklärung auf.</p>
-    <h2>3. Nur Google, Facebook oder Apple trennen</h2>
+    <h2>3. Was wir aufbewahren</h2>
+    <p>Nichts über Sie – mit einer Ausnahme: die Aufzeichnungen über Ihre Zahlungen (Zahlungen, Rechnungen und Belege). Stripe, das unsere Zahlungen abwickelt, bewahrt sie so lange auf, wie es das Buchhaltungs- und Steuerrecht verlangt. Unsere Backups werden innerhalb von 7 Tagen überschrieben, sodass die gelöschten Daten bis dahin auch aus ihnen verschwinden.</p>
+    <h2>4. Nur Google, Facebook oder Apple trennen</h2>
     <p>Wenn Sie Ihr Konto behalten und sich nur nicht mehr über Google, Facebook oder Apple anmelden möchten, öffnen Sie <a href="%edit_profile_link%">Profil bearbeiten</a> → <strong>Verbundene Anmeldemethoden</strong> und klicken Sie beim Anbieter auf <strong>Trennen</strong>. Die gespeicherte Verknüpfung (die Kennung des Anbieters, die E-Mail-Adresse zum Zeitpunkt der Verknüpfung sowie wann sie angelegt und zuletzt genutzt wurde) wird sofort gelöscht. Ist das Ihre einzige Anmeldemöglichkeit, legen Sie zuerst ein Passwort fest, damit Sie sich nicht aussperren.</p>
-    <h2>4. MySpeedPuzzling beim Anbieter entfernen</h2>
+    <h2>5. MySpeedPuzzling beim Anbieter entfernen</h2>
     <p>Das Trennen bei uns ändert nichts an Ihrem Google-, Facebook- oder Apple-Konto. Um uns auch dort den Zugriff zu entziehen, entfernen Sie MySpeedPuzzling in den Einstellungen des Anbieters:</p>
     <ul>
         <li><strong>Facebook:</strong> Einstellungen und Privatsphäre → Einstellungen → Apps und Websites</li>
@@ -1290,9 +1351,10 @@
         <li><strong>Apple:</strong> auf dem iPhone oder iPad unter Einstellungen → Ihr Name (Apple Account) → Anmelden und Sicherheit → Mit Apple anmelden; im Web unter <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
     </ul>
     <p>Wenn Sie die App beim Anbieter entfernen, wird Ihr MySpeedPuzzling-Konto nicht gelöscht – dafür folgen Sie Schritt 1.</p>
-    <h2>5. Brauchen Sie Hilfe?</h2>
-    <p>Wenn Sie sich nicht mehr anmelden können oder möchten, dass wir Ihre Daten für Sie löschen, schreiben Sie uns an <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, am besten von der E-Mail-Adresse Ihres Kontos. Wir kümmern uns spätestens innerhalb eines Monats darum – meist deutlich schneller.</p>
+    <h2>6. Sie können sich nicht anmelden?</h2>
+    <p>Um Ihr Konto zu löschen, müssen Sie angemeldet sein. Sie haben Ihr Passwort vergessen oder nutzen Google, Facebook oder Apple nicht mehr? Auf der Anmeldeseite können Sie sich einen Anmeldelink an die E-Mail-Adresse Ihres Kontos schicken lassen. Hilft auch das nicht, schreiben Sie uns an <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, am besten von der E-Mail-Adresse Ihres Kontos, und wir helfen Ihnen, wieder in Ihr Konto zu kommen.</p>
     <p>Mehr darüber, wie wir mit personenbezogenen Daten umgehen, lesen Sie in unserer <a href="%privacy_link%">Datenschutzerklärung</a>.</p>
+
 "countdown":
   "days": "Tage"
   "hours": "Stunden"
@@ -3190,7 +3252,9 @@ auth:
             title: "Neues Konto erstellen?"
             question: "Sie haben sich mit %provider% als %email% angemeldet, und noch kein MySpeedPuzzling-Konto verwendet diese E-Mail-Adresse. Neues Konto erstellen?"
             create: "Mein Konto erstellen"
-            have_account: "Sie haben bereits ein MySpeedPuzzling-Konto mit einer anderen E-Mail-Adresse? Melden Sie sich zuerst dort an und verbinden Sie %provider% dann in Ihren Profileinstellungen – sonst hätten Sie am Ende zwei getrennte Konten."
+            have_account: "Sie haben bereits ein MySpeedPuzzling-Konto mit einer anderen E-Mail-Adresse? Melden Sie sich dort an, und wir verbinden %provider% sofort damit – sonst hätten Sie am Ende zwei getrennte Konten."
+            sign_in_and_connect: "Anmelden und %provider% verbinden"
+            duplicate_accounts_help: "Versehentlich zwei Konten angelegt? <a href=\"%faqUrl%\">So gehen Sie vor</a>."
             expired: "Diese Registrierungsbestätigung ist abgelaufen. Bitte versuchen Sie erneut, sich anzumelden."
             created: "Willkommen! Ihr Konto ist bereit und Sie sind angemeldet."
     account_set_password:

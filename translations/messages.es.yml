@@ -798,7 +798,7 @@
     "title": "Speed Puzzling FAQ – Registra y compite"
     "description": "FAQ speed puzzling sobre cómo registrar tiempos puzzle, competir con otros y mejorar habilidades. ¡Empieza hoy!"
   "title": "Preguntas frecuentes"
-  "intro_block": "<p>¡Tus comentarios son muy importantes para nosotros y los apreciamos mucho! Si tienes algo que te gustaría decirnos, por favor escríbenos a <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a> (o a <a href=\"mailto:j.mikes@me.com\">j.mikes@me.com</a> para asuntos técnicos) o en <a href=\"https://www.instagram.com/myspeedpuzzling/\" target=\"_blank\">Instagram</a>.</p>\n<p>Todos nuestros códigos fuente son de código abierto y públicos en <a href=\"https://github.com/MySpeedPuzzling\">GitHub SpeedPuzzling</a>. Nos adherimos a la filosofía de \"compartir es cuidar\" y nos esforzamos por compartir todo sobre myspeedpuzzling.com abiertamente.</p>\n"
+  "intro_block": "<p>¡Tus comentarios son muy importantes para nosotros y los apreciamos mucho! Si tienes algo que te gustaría decirnos, por favor escríbenos a <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a> (o a <a href=\"mailto:jan@myspeedpuzzling.com\">jan@myspeedpuzzling.com</a> para asuntos técnicos: el inicio de sesión, tu cuenta o tus datos) o en <a href=\"https://www.instagram.com/myspeedpuzzling/\" target=\"_blank\">Instagram</a>.</p>\n<p>Todos nuestros códigos fuente son de código abierto y públicos en <a href=\"https://github.com/MySpeedPuzzling\">GitHub SpeedPuzzling</a>. Nos adherimos a la filosofía de \"compartir es cuidar\" y nos esforzamos por compartir todo sobre myspeedpuzzling.com abiertamente.</p>\n"
   "question_fair_play": "¿Cómo sabes que no estoy haciendo trampa al ingresar tiempos?"
   "answer_fair_play": "<p>Honestamente - probablemente no lo sabremos. En la tabla de clasificación pública, donde los puzzleros ingresan tiempos ellos mismos, confiamos en la honestidad e integridad de cada puzzlero individual. ¿Realmente disfrutarías un resultado ingresado deshonestamente?</p>\n<p>Asumimos que, como nosotros, otros puzzleros arman principalmente por el placer de hacerlo, y los tiempos de este tipo de armado son indicativos para una idea aproximada de cómo nos comparamos con otros y cómo nos mediremos durante alguna competencia. Dime, ¿no se vería sospechoso si tuviera un tiempo de 20 minutos en la plataforma pero tomé 3 horas durante una competencia?</p>\n<p>En el futuro, también planeamos ligas clasificadas, donde la verificación de tiempo podría ser requerida, por ejemplo, a través de grabación de video.</p>\n<p class=\"text-danger mb-0\"><small>Dado que nuestra comunidad incluye finalistas\
     \ del Campeonato Mundial de Rompecabezas, que han quedado en la cima, podemos tomar sus tiempos como referencia. Los tiempos sospechosos serán monitoreados y si se prueba fraude, serán despiadadamente eliminados. En caso de trampas repetidas, el acceso del jugador a la plataforma será restringido.</small></p>\n"
@@ -1193,41 +1193,49 @@
   "content": |
     <h1>Política de Privacidad</h1>
     <p>El propósito de este documento es informarte sobre cómo manejamos tus datos personales en MySpeedPuzzling.com. Valoramos mucho tu confianza y privacidad.</p>
-    <h2>1. Nombre Público</h2>
+    <h2>1. Quién es responsable de tus datos</h2>
+    <p>La responsable del tratamiento de tus datos personales es la operadora de MySpeedPuzzling.com:</p>
+    <ul>
+        <li><strong>Simona Mikešová</strong> (empresaria individual, autónoma)</li>
+        <li>Františka Formana 237/31, 700 30 Ostrava, República Checa</li>
+        <li>N.º de identificación (IČO): 06868878</li>
+    </ul>
+    <p>Para cualquier asunto relacionado con tus datos personales, tu cuenta, el inicio de sesión o problemas técnicos, escribe a <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>. Si es posible, escríbenos desde la dirección de correo de tu cuenta, para que podamos comprobar que eres realmente tú.</p>
+    <h2>2. Nombre Público</h2>
     <p>Al registrarte en MySpeedPuzzling.com, puedes elegir un <strong>nombre público</strong> – puede ser un apodo, abreviación o iniciales. Este nombre se muestra a todos los visitantes del sitio web. Por favor ten cuidado al elegir un nombre si deseas mantenerte más anónimo.</p>
-    <h2>2. Email</h2>
+    <h2>3. Email</h2>
     <ul>
         <li>Proporcionas tu dirección de email para iniciar sesión y comunicarte con los administradores de la plataforma.</li>
-        <li><strong>La dirección de email no es pública</strong> – no aparece en ningún lugar de tu perfil y no es accesible para terceros.</li>
-        <li>Tu email se almacena en una base de datos encriptada, y solo los autores de la aplicación tienen acceso a él.</li>
-        <li>No compartimos tu dirección de email con ninguna otra entidad.</li>
+        <li><strong>La dirección de email no es pública</strong> – no aparece en ningún lugar de tu perfil y los demás jugadores no pueden verla.</li>
+        <li>Nunca vendemos tu dirección de correo ni la cedemos para fines de marketing de terceros. Solo trabajan con ella los proveedores de servicios que nos ayudan a gestionar la plataforma (ver sección 13) y, si tienes una cuenta en la World Jigsaw Puzzle Federation, la usamos para vincular ambas cuentas (ver sección 11).</li>
         <li>Cuando creas una cuenta con correo electrónico y contraseña, te enviamos un único mensaje con un enlace para confirmar que la dirección es realmente tuya. Aparte de eso, solo te enviamos los correos que tu cuenta necesita (por ejemplo, enlaces de inicio de sesión, el restablecimiento de la contraseña o la confirmación de la eliminación de la cuenta) y los mensajes que tú mismo has activado en la configuración.</li>
     </ul>
-    <h2>3. Contraseña</h2>
+    <h2>4. Contraseña</h2>
     <ul>
-        <li>Tu contraseña se almacena en nuestra base de datos solo como un <strong>hash</strong> – esta es una encriptación irreversible, por lo que ningún administrador o desarrollador puede descubrir su forma original.</li>
+        <li>Tu contraseña se almacena en nuestra base de datos solo como un <strong>hash</strong> – una transformación irreversible, por lo que ningún administrador o desarrollador puede descubrir su forma original.</li>
         <li>Cuando inicias sesión, la información que ingresas se compara contra el hash almacenado en la base de datos.</li>
         <li>Por razones de seguridad, nunca enviamos por email la contraseña original; si es necesario, puedes restablecerla usando el proceso "Olvidé mi Contraseña".</li>
     </ul>
-    <h2>4. Información Pública Opcional</h2>
+    <h2>5. Información Pública Opcional</h2>
     <p>Los usuarios tienen la opción de proporcionar <strong>información pública</strong> adicional en su perfil (ej., ciudad, país, enlaces de redes sociales, descripción, avatar) para una mejor interacción comunitaria.</p>
     <ul>
-        <li>Esta información es visible para todos los visitantes y <strong>no se considera</strong> datos personales sensibles.</li>
+        <li>Esta información es visible para todos los visitantes, así que rellena solo lo que no te importe compartir públicamente.</li>
         <li>Serás notificado de que esta información es pública al completarla.</li>
-        <li>Sin embargo, estos datos también se almacenan en nuestra base de datos encriptada.</li>
+        <li>Lo mismo se aplica a tus tiempos, colecciones y demás contenido que publiques en la plataforma. Si haces tu perfil privado, solo lo verán tú y los jugadores que elijas.</li>
     </ul>
-    <h2>5. Información de Pago</h2>
+    <h2>6. Información de Pago</h2>
     <ul>
         <li>La plataforma MySpeedPuzzling.com <strong>no recolecta ningún dato sobre métodos de pago</strong> – todos los pagos son procesados exclusivamente a través de la compañía asociada Stripe.</li>
         <li>Nunca tenemos acceso a los detalles de tu tarjeta de pago, información de cuenta bancaria o cualquier otro dato financiero.</li>
+        <li>Stripe conserva los registros de tus pagos (pagos, facturas y recibos) durante el tiempo que exige la normativa contable y fiscal, incluso después de que elimines tu cuenta.</li>
     </ul>
-    <h2>6. Seguridad y Privacidad</h2>
+    <h2>7. Seguridad</h2>
     <ul>
         <li>La seguridad de nuestros usuarios es nuestra prioridad – los servidores y bases de datos están protegidos contra acceso no autorizado, filtraciones de datos y otras amenazas cibernéticas.</li>
-        <li>Tus datos personales (ej., email o información de perfil opcional) siempre están encriptados, y solo los autores de la aplicación pueden acceder a ellos.</li>
+        <li>Toda la comunicación con el sitio web está cifrada (HTTPS) y solo las personas que gestionan la plataforma tienen acceso a la base de datos.</li>
         <li>Mantenemos todas las medidas de seguridad estándar y trabajamos continuamente para mejorar nuestra seguridad.</li>
     </ul>
-    <h2>7. Inicio de sesión con Google, Facebook (Meta) y Apple</h2>
+    <h2>8. Inicio de sesión con Google, Facebook (Meta) y Apple</h2>
     <p>En lugar de usar una contraseña, puedes iniciar sesión con tu cuenta de Google, Facebook o Apple. Si usas Instagram, puedes iniciar sesión a través de la cuenta de Facebook vinculada a ella en el Centro de cuentas de Meta. Estos métodos de inicio de sesión son totalmente opcionales: siempre puedes entrar con tu correo electrónico y contraseña, o con un enlace de inicio de sesión que te enviamos por correo.</p>
     <h3 class="h5">Qué recibimos del proveedor</h3>
     <ul>
@@ -1264,18 +1272,70 @@
         <li>Meta (Meta Platforms Ireland Limited): <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">facebook.com/privacy/policy</a></li>
         <li>Apple (Apple Distribution International Limited): <a href="https://www.apple.com/es/legal/privacy/" target="_blank" rel="noopener">apple.com/legal/privacy</a></li>
     </ul>
-    <h2>8. Registro de seguridad de inicios de sesión</h2>
+    <h2>9. Registro de seguridad de inicios de sesión</h2>
     <p>Para proteger tu cuenta, registramos los eventos relacionados con la seguridad: inicios de sesión correctos y fallidos, cierres de sesión, solicitudes de enlaces de inicio de sesión o de restablecimiento de contraseña, cambios de contraseña y de dirección de correo, el registro, la vinculación y desvinculación de Google, Facebook o Apple, y las solicitudes de eliminación de la cuenta.</p>
     <ul>
         <li>Cada registro contiene el tipo de evento, cuándo ocurrió, el método de inicio de sesión utilizado, la dirección de correo afectada, la dirección IP y la identificación de tu navegador y dispositivo (el llamado user agent).</li>
         <li>Lo usamos para detectar e investigar accesos no autorizados a las cuentas y para mostrarte tu propio historial: puedes consultarlo en cualquier momento en la página <strong>Actividad reciente de la cuenta</strong>, en la configuración de tu perfil.</li>
         <li>La base jurídica es nuestro interés legítimo en mantener segura tu cuenta y toda la plataforma (art. 6.1.f del RGPD).</li>
-        <li>Los registros se eliminan automáticamente a los 24 meses; los que pertenecen a tu cuenta se eliminan de inmediato junto con ella.</li>
+        <li>Los registros se eliminan automáticamente a los 24 meses; los que pertenecen a tu cuenta se eliminan de inmediato junto con ella. Los registros que no están vinculados a ninguna cuenta (por ejemplo, un intento de inicio de sesión con una dirección que no tiene cuenta aquí) solo se eliminan al cumplirse esos 24 meses.</li>
     </ul>
-    <h2>9. Eliminación de tus datos</h2>
+    <h2>10. Boletín</h2>
+    <p>Si te suscribes a nuestro boletín (en tu configuración o con el formulario del pie de página, que te pide confirmar la suscripción por correo), usamos tu dirección de correo y tu idioma preferido para enviártelo. La base jurídica es tu consentimiento (art. 6.1.a del RGPD). Puedes darte de baja en cualquier momento con el enlace que incluye cada boletín o en tu configuración; dejamos de enviártelo de inmediato. La lista de suscriptores funciona en nuestro propio servidor.</p>
+    <h2>11. Vinculación con la World Jigsaw Puzzle Federation</h2>
+    <p>La World Jigsaw Puzzle Federation (WJPF, worldjigsawpuzzle.org) gestiona la base de datos internacional de jugadores que se usa en las competiciones oficiales. Para averiguar si también tienes una cuenta de jugador en la WJPF, le enviamos tu dirección de correo. Si tienen una cuenta de jugador con la misma dirección, ambas partes guardan el identificador de jugador de la otra, de modo que las dos plataformas saben que ambas cuentas pertenecen al mismo jugador. También puedes vincular las cuentas tú mismo desde tu cuenta de la WJPF.</p>
+    <h2>12. Estadísticas de uso, registros y informes de errores</h2>
+    <ul>
+        <li><strong>Actividad:</strong> registramos qué días has estado activo en el sitio con la sesión iniciada, para entender cómo se usa la plataforma. Estos registros se eliminan a los 24 meses, o de inmediato junto con tu cuenta.</li>
+        <li><strong>Registros del servidor:</strong> nuestros servidores registran información técnica sobre las solicitudes (como la dirección IP, la dirección de la página y la identificación del navegador) para mantener el servicio en funcionamiento y seguro. Estos registros se eliminan a los 30 días.</li>
+        <li><strong>Informes de errores:</strong> cuando algo falla, los detalles del error (que pueden incluir la dirección IP, el identificador de tu cuenta y los datos de la solicitud fallida) se envían a Sentry, un servicio que nos ayuda a encontrar y corregir fallos.</li>
+        <li><strong>Google Analytics:</strong> usamos Google Analytics para saber cuántas personas visitan el sitio web y qué páginas usan. Solo se carga cuando interactúas con la página y guarda cookies en tu navegador (ver sección 14). Puedes bloquearlo con un bloqueador de anuncios o de rastreo, o con el <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">complemento de inhabilitación para navegadores</a> de Google.</li>
+    </ul>
+    <p>La base jurídica de los registros de actividad, los registros del servidor y los informes de errores es nuestro interés legítimo en ofrecer un servicio seguro y que funcione, y en entender cómo se usa (art. 6.1.f del RGPD).</p>
+    <h2>13. Quién trata datos por encargo nuestro</h2>
+    <p>No vendemos datos personales. Para gestionar la plataforma usamos estos proveedores de servicios, que tratan los datos solo por encargo nuestro y siguiendo nuestras instrucciones:</p>
+    <ul>
+        <li><strong>Hetzner Online GmbH</strong> (Alemania): servidores, base de datos y almacenamiento de las imágenes subidas, en centros de datos de la UE,</li>
+        <li><strong>Seznam.cz, a.s.</strong> (República Checa): envío de nuestros correos electrónicos,</li>
+        <li><strong>Stripe</strong> (Stripe Payments Europe, Limited, Irlanda): pagos de la membresía,</li>
+        <li><strong>Functional Software, Inc. (Sentry)</strong> (EE. UU.): informes de errores,</li>
+        <li><strong>Google Ireland Limited</strong> (Google Analytics): estadísticas de tráfico del sitio web,</li>
+        <li><strong>Cloudflare, Inc.</strong> (EE. UU.): entrega rápida de imágenes (img.myspeedpuzzling.com).</li>
+    </ul>
+    <p>Google, Meta y Apple (cuando inicias sesión con ellos) y la World Jigsaw Puzzle Federation (cuando vinculas tus cuentas) tratan los datos como responsables independientes. Si permites que una aplicación de terceros acceda a tu cuenta a través de nuestra API, recibe los datos que aprobaste en esa solicitud; puedes revocar el acceso en cualquier momento en la configuración de tu perfil.</p>
+    <h2>14. Cookies</h2>
+    <p>Usamos cookies y almacenamiento similar en tu navegador con estos fines:</p>
+    <ul>
+        <li><strong>Cookies necesarias:</strong> mantienen tu sesión iniciada (hasta 30 días desde tu última visita), protegen los formularios contra abusos y nos ayudan a distinguir a los visitantes reales de los bots. El sitio web no puede funcionar sin ellas.</li>
+        <li><strong>Cookie de recomendación:</strong> si abres un enlace con el código de recomendación de un jugador, recordamos ese código durante 30 días para que el jugador reciba el mérito si te haces miembro.</li>
+        <li><strong>Cookies de Google Analytics</strong> (<code>_ga</code>, <code>_ga_*</code>): cuentan las visitas y se guardan hasta 2 años.</li>
+    </ul>
+    <p>Puedes eliminar o bloquear las cookies en cualquier momento en la configuración de tu navegador; si bloqueas las necesarias, dejará de funcionar el inicio de sesión.</p>
+    <h2>15. Transferencias fuera de la UE</h2>
+    <p>Algunos proveedores (Sentry, Cloudflare y, dentro de sus grupos, Stripe o Google) pueden tratar datos en EE. UU. Estas transferencias se basan en el Marco de Privacidad de Datos UE-EE. UU. o en las cláusulas contractuales tipo de la Comisión Europea.</p>
+    <h2>16. Cuánto tiempo conservamos tus datos</h2>
+    <ul>
+        <li>Tu cuenta y todo su contenido se conservan mientras tengas la cuenta.</li>
+        <li>Cuando eliminas tu cuenta, tus datos personales se eliminan de inmediato (detalles en la página <a href="%data_deletion_link%">Cómo eliminar tus datos</a>). Después no conservamos nada sobre ti; la única excepción son los registros de tus pagos (pagos, facturas y recibos), que Stripe conserva durante el tiempo que exige la normativa contable y fiscal.</li>
+        <li>Nuestras copias de seguridad se sobrescriben en un plazo de 7 días, así que para entonces los datos eliminados también desaparecen de ellas.</li>
+        <li>Los plazos del registro de seguridad, de los registros de actividad y de los registros del servidor se indican en las secciones 9 y 12.</li>
+    </ul>
+    <h2>17. Tus derechos</h2>
+    <p>Según el RGPD, tienes derecho a:</p>
+    <ul>
+        <li>acceder a tus datos personales y obtener una copia; tus tiempos puedes exportarlos tú mismo en la configuración de tu perfil,</li>
+        <li>que se corrijan los datos inexactos; la mayoría puedes editarlos tú mismo en <a href="%edit_profile_link%">Editar perfil</a>,</li>
+        <li>que se eliminen tus datos; puedes eliminar tu cuenta tú mismo en cualquier momento,</li>
+        <li>limitar el tratamiento y recibir tus datos en un formato portátil,</li>
+        <li>oponerte al tratamiento basado en nuestro interés legítimo,</li>
+        <li>retirar tu consentimiento (por ejemplo, al boletín) en cualquier momento, sin que ello afecte al tratamiento realizado antes.</li>
+    </ul>
+    <p>Para ejercer cualquiera de estos derechos, escribe a <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>. Si crees que tratamos tus datos de forma ilícita, también puedes presentar una reclamación ante la autoridad de control; en la República Checa es la Oficina para la Protección de Datos Personales (Úřad pro ochranu osobních údajů, <a href="https://uoou.gov.cz" target="_blank" rel="noopener">uoou.gov.cz</a>).</p>
+    <h2>18. Eliminación de tus datos</h2>
     <p>Puedes eliminar tu cuenta, junto con tus datos personales, tú mismo y en cualquier momento. Encontrarás las instrucciones paso a paso en la página <a href="%data_deletion_link%">Cómo eliminar tus datos</a>.</p>
-    <p>Si tienes alguna pregunta sobre la protección de datos personales o si no estás seguro de si algo está suficientemente claro, por favor contáctanos en <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</p>
+    <p>Si tienes alguna pregunta sobre la protección de datos personales o si no estás seguro de si algo está suficientemente claro, por favor contáctanos en <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
     <p><em><small>Última actualización: 29 de septiembre de 2026</small></em></p>
+
 "data_deletion":
   "meta":
     "title": "Cómo eliminar tus datos"
@@ -1300,10 +1360,11 @@
         <li>tu membresía (una suscripción activa se cancela) y tu suscripción al boletín.</li>
     </ul>
     <p>Algunas cosas las compartes con otros jugadores, así que se conservan para ellos, pero ya no están vinculadas a ninguna cuenta y solo muestran, como texto sin enlace, el nombre que usabas: los tiempos en pareja y en equipo resueltos junto con otros jugadores registrados, las conversaciones y las transacciones del mercado, incluidas las valoraciones, y las sugerencias con sus comentarios. Los puzles que añadiste al catálogo permanecen en él, sin ningún vínculo contigo. En nuestro registro de correos enviados, tu dirección se sustituye por un hash irreversible.</p>
-    <p>Stripe, que procesa nuestros pagos, conserva los registros de los pagos anteriores conforme a su propia política de privacidad.</p>
-    <h2>3. Desconectar solo Google, Facebook o Apple</h2>
+    <h2>3. Qué conservamos</h2>
+    <p>Nada sobre ti, con una única excepción: los registros de tus pagos (pagos, facturas y recibos). Stripe, que procesa nuestros pagos, los conserva durante el tiempo que exige la normativa contable y fiscal. Nuestras copias de seguridad se sobrescriben en un plazo de 7 días, así que para entonces los datos eliminados también desaparecen de ellas.</p>
+    <h2>4. Desconectar solo Google, Facebook o Apple</h2>
     <p>Si quieres conservar tu cuenta y solo dejar de iniciar sesión con Google, Facebook o Apple, abre <a href="%edit_profile_link%">Editar perfil</a> → <strong>Métodos de inicio de sesión conectados</strong> y haz clic en <strong>Desconectar</strong> junto al proveedor. El vínculo guardado (el identificador del proveedor, la dirección de correo en el momento de la vinculación y cuándo se vinculó y se usó por última vez) se elimina de inmediato. Si es tu única forma de iniciar sesión, añade primero una contraseña para no quedarte sin acceso.</p>
-    <h2>4. Quitar MySpeedPuzzling en el proveedor</h2>
+    <h2>5. Quitar MySpeedPuzzling en el proveedor</h2>
     <p>Desconectar el proveedor en nuestra web no cambia nada en tu cuenta de Google, Facebook o Apple. Para retirarnos también el acceso allí, elimina MySpeedPuzzling en la configuración del proveedor:</p>
     <ul>
         <li><strong>Facebook:</strong> Configuración y privacidad → Configuración → Aplicaciones y sitios web</li>
@@ -1311,9 +1372,10 @@
         <li><strong>Apple:</strong> en el iPhone o iPad, Ajustes → tu nombre (Cuenta de Apple) → Inicio de sesión y seguridad → Iniciar sesión con Apple; en la web, en <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
     </ul>
     <p>Quitar la aplicación en el proveedor no elimina tu cuenta de MySpeedPuzzling; para eso, sigue el paso 1.</p>
-    <h2>5. ¿Necesitas ayuda?</h2>
-    <p>Si ya no puedes iniciar sesión o prefieres que eliminemos tus datos por ti, escríbenos a <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, a ser posible desde la dirección de correo de tu cuenta. Nos encargaremos en el plazo máximo de un mes, normalmente mucho antes.</p>
+    <h2>6. ¿No puedes iniciar sesión?</h2>
+    <p>Para eliminar tu cuenta tienes que haber iniciado sesión. ¿Has olvidado tu contraseña o ya no usas Google, Facebook o Apple? En la página de inicio de sesión puedes pedir que te enviemos un enlace de inicio de sesión a la dirección de correo de tu cuenta. Si eso tampoco funciona, escríbenos a <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, a ser posible desde la dirección de correo de tu cuenta, y te ayudaremos a recuperar el acceso.</p>
     <p>Puedes leer más sobre cómo tratamos los datos personales en nuestra <a href="%privacy_link%">Política de privacidad</a>.</p>
+
 "countdown":
   "days": "días"
   "hours": "horas"
@@ -3190,7 +3252,9 @@ fair_use_policy:
       "title": "¿Crear una cuenta nueva?"
       "question": "Has iniciado sesión con %provider% como %email%, y todavía ninguna cuenta de MySpeedPuzzling usa esta dirección de correo electrónico. ¿Crear una cuenta nueva?"
       "create": "Crear mi cuenta"
-      "have_account": "¿Ya tienes una cuenta de MySpeedPuzzling con otra dirección de correo electrónico? Inicia sesión en ella primero y luego conecta %provider% en la configuración de tu perfil; de lo contrario, acabarías con dos cuentas separadas."
+      "have_account": "¿Ya tienes una cuenta de MySpeedPuzzling con otra dirección de correo electrónico? Inicia sesión en ella y conectaremos %provider% a esa cuenta al momento; de lo contrario, acabarías con dos cuentas separadas."
+      "sign_in_and_connect": "Iniciar sesión y conectar %provider%"
+      "duplicate_accounts_help": "¿Has acabado con dos cuentas por error? <a href=\"%faqUrl%\">Te explicamos qué hacer</a>."
       "expired": "Esa confirmación de registro ha caducado. Por favor, intenta iniciar sesión de nuevo."
       "created": "¡Bienvenido! Tu cuenta ya está lista y has iniciado sesión."
   "account_set_password":

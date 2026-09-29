@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Tests\TestDouble;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
 /**
@@ -20,9 +22,29 @@ final class SocialLoginHttpMock
 {
     private static null|MockHandler $handler = null;
 
+    /** @var list<RequestInterface> */
+    private static array $sentRequests = [];
+
     public static function client(): Client
     {
-        return new Client(['handler' => HandlerStack::create(self::mockHandler())]);
+        $stack = HandlerStack::create(self::mockHandler());
+        $stack->push(Middleware::mapRequest(static function (RequestInterface $request): RequestInterface {
+            self::$sentRequests[] = $request;
+
+            return $request;
+        }));
+
+        return new Client(['handler' => $stack]);
+    }
+
+    /**
+     * Every request the providers sent since the last reset(), oldest first.
+     *
+     * @return list<RequestInterface>
+     */
+    public static function sentRequests(): array
+    {
+        return self::$sentRequests;
     }
 
     public static function queue(ResponseInterface ...$responses): void
@@ -35,6 +57,7 @@ final class SocialLoginHttpMock
     public static function reset(): void
     {
         self::$handler = new MockHandler();
+        self::$sentRequests = [];
     }
 
     private static function mockHandler(): MockHandler

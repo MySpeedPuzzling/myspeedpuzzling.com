@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Services\SocialLogin;
 use GuzzleHttp\ClientInterface;
 use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Provider\Facebook;
-use League\OAuth2\Client\Provider\Google;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -79,12 +78,12 @@ final readonly class SocialLoginProviders
         $collaborators = ['httpClient' => $this->httpClient];
 
         return match ($provider) {
-            OauthProvider::Google => new Google([
+            // PKCE (S256) on top of the client secret - the subclass is what
+            // turns it on, the league Google provider ignores a pkceMethod option
+            OauthProvider::Google => new GoogleProviderWithPkce([
                 'clientId' => $this->googleClientId,
                 'clientSecret' => $this->googleClientSecret,
                 'redirectUri' => $redirectUri,
-                // PKCE on top of the client secret (plan: "Google: standard OIDC; use PKCE")
-                'pkceMethod' => AbstractProvider::PKCE_METHOD_S256,
             ], $collaborators),
             OauthProvider::Facebook => new Facebook([
                 'clientId' => $this->facebookAppId,

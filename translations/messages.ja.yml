@@ -115,7 +115,7 @@
 "live_event_strip": "開催中：%event% – 記録を追加・結果をチェック"
 "round_results":
   "meta":
-    "title": "%round% – %event% の結果"
+    "title": "%event% – %round% 結果"
     "description": "%event% の %round% の結果 – このラウンドのパズルを解いたスピードパズラーをタイム順に掲載しています。"
   "heading_suffix": "結果"
   "link": "結果"
@@ -599,14 +599,16 @@
   "meta":
     "title": "スピードパズル大会・イベント"
     "description": "世界のスピードパズル大会・イベントカレンダー — 日程、参加登録、パズル、参加者、結果。会場開催もオンラインも。"
-    "event_detail_title": "%name% %year% – スピードパズル大会"
-    "event_detail_title_no_year": "%name% – スピードパズル大会"
+    "event_detail_title_results": "%event% 結果"
     "event_detail_description": "%name% — %date%に%location%で開催のスピードパズル大会。パズル、参加者、結果はMySpeedPuzzlingで。"
     "event_detail_description_online": "%name% — %date%開催のオンラインスピードパズル大会。パズル、参加者、結果はMySpeedPuzzlingで。"
     "event_detail_description_online_no_date": "%name% — オンラインスピードパズル大会。パズル、参加者、結果はMySpeedPuzzlingで。"
     "event_detail_description_no_date": "%name% — %location%で開催のスピードパズル大会。パズル、参加者、結果はMySpeedPuzzlingで。"
     "event_detail_description_no_location": "%name% — %date%開催のスピードパズル大会。パズル、参加者、結果はMySpeedPuzzlingで。"
     "event_detail_description_fallback": "%name% — スピードパズル大会。パズル、参加者、結果はMySpeedPuzzlingで。"
+    "event_detail_description_past": "%name%の結果：パズラーが記録したタイム%results%件と、大会のパズル・参加者を掲載。%date%に%location%で開催されたスピードパズル大会。"
+    "event_detail_description_past_online": "%name%の結果：パズラーが記録したタイム%results%件と、大会のパズル・参加者を掲載。%date%に開催されたオンラインスピードパズル大会。"
+    "event_detail_description_past_no_location": "%name%の結果：パズラーが記録したタイム%results%件と、大会のパズル・参加者を掲載。%date%に開催されたスピードパズル大会。"
   "live": "現在開催中"
   "upcoming": "今後のイベント"
   "past": "過去のイベント"
@@ -3043,9 +3045,9 @@ qr_code:
   "meta":
     "title": "%name% – スピードパズルシリーズ"
     "description": "%name%：このスピードパズル大会の全エディション — 今後の日程、過去の結果、パズル、参加者。"
-    "edition_title": "%name% – 結果とパズル"
-    "edition_description": "%name%の結果 — %series%スピードパズル大会（%date%）。ラウンド、パズル、参加者のタイム。"
-    "edition_description_no_date": "%name%の結果 — %series%スピードパズル大会。ラウンド、パズル、参加者のタイム。"
+    "edition_description": "%name% — %series%のスピードパズル大会（%date%）。ラウンド、パズル、参加者、結果はMySpeedPuzzlingで。"
+    "edition_description_no_date": "%name% — %series%のスピードパズル大会。ラウンド、パズル、参加者、結果はMySpeedPuzzlingで。"
+    "edition_description_past": "%name%の結果：パズラーが記録したタイム%results%件と、ラウンド・パズル・参加者を掲載。%date%に開催された%series%のスピードパズル大会。"
   "manage": "シリーズ管理"
   "edit_series": "シリーズを編集"
   "add_edition": "エディションを追加"
@@ -3219,7 +3221,7 @@ qr_code:
 "wjpc_hub":
   "meta":
     "title": "世界ジグソーパズル選手権（WJPC）"
-    "description": "世界ジグソーパズル選手権（WJPC）の開催日程・結果・2019年からの歴史を紹介。スペイン・バリャドリードで開催される大会への参加方法や各年のイベントページもまとめています。"
+    "description": "世界ジグソーパズル選手権（WJPC）の開催日程・結果・使用パズル・2019年からの歴史を紹介。スペイン・バリャドリードで開催される大会への参加方法や各年のイベントページもまとめています。"
   "intro": "世界ジグソーパズル選手権（World Jigsaw Puzzle Championship、WJPC）は、スピードパズル最大のイベントです。毎年、世界中のパズラーが同一のパズルをいかに速く完成させるかを競います。このページでは、WJPCの全大会の日程・開催地・結果と、参加方法をまとめています。"
   "what_is":
     "heading": "世界ジグソーパズル選手権とは？"
@@ -3234,6 +3236,13 @@ qr_code:
     "dates": "日程"
     "event_link": "イベントと結果"
     "empty": "WJPCのイベントページは準備中です。それまでは<a href=\"%events_link%\">イベントカレンダー</a>で他の大会をご覧ください。"
+  "puzzles":
+    "heading": "歴代世界ジグソーパズル選手権の使用パズル"
+    "intro": "世界ジグソーパズル選手権で使われたパズルを、大会ごとに新しい順で紹介します。パズラーがMySpeedPuzzlingに記録したソロタイムの中央値と最速タイムも掲載。パズルを開くと全ランキングを確認できます。"
+    "edition_heading": "%edition%の使用パズル"
+    "fastest_pair": "ペア最速:"
+    "fastest_team": "チーム最速:"
+    "no_times": "まだタイムがありません"
   "participate":
     "heading": "WJPCへの参加方法"
     "p1": "14歳以上なら誰でも登録できます。予選や最低レベルの条件はなく、初心者も世界チャンピオンと同じ会場で競います。登録はWorld Jigsaw Puzzle Federationの公式サイト<a href=\"%official_link%\" target=\"_blank\" rel=\"noopener\">worldjigsawpuzzle.org</a>で、通常は大会の数か月前に受付が始まり、参加費には競技用パズルが含まれます。各カテゴリーの定員には限りがあるため、早めの登録がおすすめです。"

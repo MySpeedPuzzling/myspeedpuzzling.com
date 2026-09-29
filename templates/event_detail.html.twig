@@ -1,10 +1,12 @@
 {% extends 'base.html.twig' %}
 
+{# The full event name - never shortened, it is what people search - plus the year when the name has none;
+   "Results" once the event is over (see EventTitle) #}
 {% block title %}
-    {%- if event.name matches '/\\d{4}/' or event.dateFrom is null -%}
-        {{- 'events.meta.event_detail_title_no_year'|trans({'%name%': event.name}) -}}
+    {%- if event_title.isPast -%}
+        {{- 'events.meta.event_detail_title_results'|trans({'%event%': event_title.label}) -}}
     {%- else -%}
-        {{- 'events.meta.event_detail_title'|trans({'%name%': event.name, '%year%': event.dateFrom|date('Y')}) -}}
+        {{- event_title.label -}}
     {%- endif -%}
 {% endblock %}
 
@@ -18,7 +20,22 @@
 {% endblock %}
 
 {% block meta_description %}
-    {%- if event.isOnline and event.dateFrom -%}
+    {%- if event_title.isPast and results_count > 0 -%}
+        {%- set past_description_params = {
+            '%count%': results_count,
+            '%results%': results_count|format_number,
+            '%name%': event.name,
+            '%date%': event_title.startsAt|format_date('long'),
+            '%location%': event.location ?? '',
+        } -%}
+        {%- if event.isOnline -%}
+            {{- 'events.meta.event_detail_description_past_online'|trans(past_description_params) -}}
+        {%- elseif event.location -%}
+            {{- 'events.meta.event_detail_description_past'|trans(past_description_params) -}}
+        {%- else -%}
+            {{- 'events.meta.event_detail_description_past_no_location'|trans(past_description_params) -}}
+        {%- endif -%}
+    {%- elseif event.isOnline and event.dateFrom -%}
         {{- 'events.meta.event_detail_description_online'|trans({'%name%': event.name, '%date%': event.dateFrom|format_date('long')}) -}}
     {%- elseif event.isOnline -%}
         {{- 'events.meta.event_detail_description_online_no_date'|trans({'%name%': event.name}) -}}
@@ -67,7 +84,8 @@
     }
     {%- endif %}
     {%- if event.logo %},
-    "image": {{ event.logo|thumbnail('puzzle_small')|json_encode|raw }}
+    {# The uploaded original - Google wants event images at least 720 px wide, the thumbnails are 200-400 px #}
+    "image": {{ uploaded_asset(event.logo)|json_encode|raw }}
     {%- endif %}
     {# description is a Google-recommended Event property - always emit,
        falling back to the same text as the meta description. organizer is

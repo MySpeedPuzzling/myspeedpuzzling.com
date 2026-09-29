@@ -113,7 +113,7 @@
 "live_event_strip": "Živě: %event% – přidejte čas a sledujte výsledky"
 "round_results":
   "meta":
-    "title": "%round% – %event% – výsledky"
+    "title": "%event% – %round% – výsledky"
     "description": "Výsledky kola %round% na události %event% – speed puzzleři, kteří složili puzzle tohoto kola, seřazení podle času."
   "heading_suffix": "výsledky"
   "link": "Výsledky"
@@ -506,14 +506,16 @@
   "meta":
     "title": "Speed puzzling závody a události"
     "description": "Celosvětový kalendář speed puzzling závodů a událostí — termíny, registrace, puzzle, účastníci a výsledky, naživo i online."
-    "event_detail_title": "%name% %year% – Speed puzzling závod"
-    "event_detail_title_no_year": "%name% – Speed puzzling závod"
+    "event_detail_title_results": "%event% – výsledky"
     "event_detail_description": "%name% — speed puzzling závod %date%, %location%. Puzzle, účastníci a výsledky na MySpeedPuzzling."
     "event_detail_description_online": "%name% — online speed puzzling závod %date%. Puzzle, účastníci a výsledky na MySpeedPuzzling."
     "event_detail_description_online_no_date": "%name% — online speed puzzling závod. Puzzle, účastníci a výsledky na MySpeedPuzzling."
     "event_detail_description_no_date": "%name% — speed puzzling závod, %location%. Puzzle, účastníci a výsledky na MySpeedPuzzling."
     "event_detail_description_no_location": "%name% — speed puzzling závod %date%. Puzzle, účastníci a výsledky na MySpeedPuzzling."
     "event_detail_description_fallback": "%name% — speed puzzling závod. Puzzle, účastníci a výsledky na MySpeedPuzzling."
+    "event_detail_description_past": "Výsledky %name%: %results% zapsaný čas, soutěžní puzzle a účastníci. Speed puzzling závod %date%, %location%.|Výsledky %name%: %results% zapsané časy, soutěžní puzzle a účastníci. Speed puzzling závod %date%, %location%.|Výsledky %name%: %results% zapsaných časů, soutěžní puzzle a účastníci. Speed puzzling závod %date%, %location%."
+    "event_detail_description_past_online": "Výsledky %name%: %results% zapsaný čas, soutěžní puzzle a účastníci. Online speed puzzling závod %date%.|Výsledky %name%: %results% zapsané časy, soutěžní puzzle a účastníci. Online speed puzzling závod %date%.|Výsledky %name%: %results% zapsaných časů, soutěžní puzzle a účastníci. Online speed puzzling závod %date%."
+    "event_detail_description_past_no_location": "Výsledky %name%: %results% zapsaný čas, soutěžní puzzle a účastníci. Speed puzzling závod %date%.|Výsledky %name%: %results% zapsané časy, soutěžní puzzle a účastníci. Speed puzzling závod %date%.|Výsledky %name%: %results% zapsaných časů, soutěžní puzzle a účastníci. Speed puzzling závod %date%."
   "live": "Právě probíhající"
   "upcoming": "Nadcházející"
   "past": "Proběhlé"
@@ -3050,9 +3052,9 @@ qr_code:
   "meta":
     "title": "%name% – Speed puzzling série"
     "description": "%name%: všechny edice tohoto speed puzzling závodu — nadcházející termíny, minulé výsledky, puzzle a účastníci."
-    "edition_title": "%name% – Výsledky a puzzle"
-    "edition_description": "Výsledky %name% — speed puzzling závod série %series%, %date%. Kola, puzzle a časy účastníků."
-    "edition_description_no_date": "Výsledky %name% — speed puzzling závod série %series%. Kola, puzzle a časy účastníků."
+    "edition_description": "%name% — speed puzzling závod série %series%, %date%. Kola, puzzle, účastníci a výsledky na MySpeedPuzzling."
+    "edition_description_no_date": "%name% — speed puzzling závod série %series%. Kola, puzzle, účastníci a výsledky na MySpeedPuzzling."
+    "edition_description_past": "Výsledky %name%: %results% zapsaný čas, kola, puzzle a účastníci. Speed puzzling závod série %series%, %date%.|Výsledky %name%: %results% zapsané časy, kola, puzzle a účastníci. Speed puzzling závod série %series%, %date%.|Výsledky %name%: %results% zapsaných časů, kola, puzzle a účastníci. Speed puzzling závod série %series%, %date%."
   "manage": "Spravovat sérii"
   "edit_series": "Upravit sérii"
   "add_edition": "Přidat edici"
@@ -3226,7 +3228,7 @@ qr_code:
 "wjpc_hub":
   "meta":
     "title": "Mistrovství světa ve skládání puzzle"
-    "description": "Mistrovství světa ve skládání puzzle (WJPC): termíny, výsledky a historie všech ročníků od roku 2019 i jak se zúčastnit ve španělském Valladolidu."
+    "description": "Mistrovství světa ve skládání puzzle (WJPC): termíny, výsledky, puzzle a historie všech ročníků od roku 2019 i jak se zúčastnit ve španělském Valladolidu."
   "intro": "Mistrovství světa ve skládání puzzle (World Jigsaw Puzzle Championship, WJPC) je největší událost soutěžního skládání puzzle — každoroční světový šampionát ve speed puzzlingu, na kterém skládači z celého světa závodí, kdo nejrychleji složí totožné puzzle. Na této stránce najdete všechny ročníky WJPC s termíny, místem konání a výsledky, a také návod, jak se zúčastnit."
   "what_is":
     "heading": "Co je World Jigsaw Puzzle Championship?"
@@ -3241,6 +3243,13 @@ qr_code:
     "dates": "Termín"
     "event_link": "Event a výsledky"
     "empty": "Stránky eventů WJPC připravujeme. Mezitím můžete procházet všechny soutěže ve skládání puzzle v našem <a href=\"%events_link%\">kalendáři eventů</a>."
+  "puzzles":
+    "heading": "Puzzle ze všech ročníků mistrovství světa"
+    "intro": "Všechna puzzle, která se skládala na mistrovství světa ve skládání puzzle, ročník po ročníku od nejnovějšího — s mediánem a nejrychlejším sólo časem, které puzzleři zapsali na MySpeedPuzzling. Otevřete puzzle a uvidíte celý žebříček."
+    "edition_heading": "Puzzle z %edition%"
+    "fastest_pair": "Nejrychlejší dvojice:"
+    "fastest_team": "Nejrychlejší tým:"
+    "no_times": "Zatím bez časů"
   "participate":
     "heading": "Jak se zúčastnit WJPC"
     "p1": "Registrovat se může každý od 14 let — není potřeba žádná kvalifikace ani minimální úroveň, takže nováčci soutěží u stejných stolů jako mistři světa. Registrace se otevírá na oficiálním webu World Jigsaw Puzzle Federation <a href=\"%official_link%\" target=\"_blank\" rel=\"noopener\">worldjigsawpuzzle.org</a>, obvykle několik měsíců před šampionátem, a startovné zahrnuje soutěžní puzzle. Kapacita kategorií je omezená, vyplatí se proto registrovat včas."

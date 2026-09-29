@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -112,6 +114,66 @@ final class RoundResultsControllerTest extends WebTestCase
         $browser->request('GET', '/en/series/euro-jigsaw-jam-series/ejj-68-february-2026/results/main-round');
 
         $this->assertResponseIsSuccessful();
+    }
+
+    public function testTitleLeadsWithTheEvent(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', self::QUALIFICATION_URL);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame('WJPC 2024 – Qualification Round Results – MySpeedPuzzling', $crawler->filter('title')->text());
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function provideLocalizedTitles(): iterable
+    {
+        yield 'cs' => ['/eventy/wjpc-2024/vysledky/qualification-round', 'WJPC 2024 – Qualification Round – výsledky – MySpeedPuzzling'];
+        yield 'de' => ['/de/veranstaltungen/wjpc-2024/ergebnisse/qualification-round', 'WJPC 2024 – Qualification Round Ergebnisse – MySpeedPuzzling'];
+        yield 'es' => ['/es/eventos/wjpc-2024/resultados/qualification-round', 'WJPC 2024 – Resultados Qualification Round – MySpeedPuzzling'];
+        yield 'fr' => ['/fr/evenements/wjpc-2024/resultats/qualification-round', 'WJPC 2024 – Résultats Qualification Round – MySpeedPuzzling'];
+        yield 'ja' => ['/ja/イベント/wjpc-2024/results/qualification-round', 'WJPC 2024 – Qualification Round 結果 – MySpeedPuzzling'];
+    }
+
+    #[DataProvider('provideLocalizedTitles')]
+    public function testTitleIsLocalized(string $url, string $expectedTitle): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', $url);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame($expectedTitle, $crawler->filter('title')->text());
+    }
+
+    public function testEditionRoundTitleNamesTheSeries(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE competition_round SET name = 'Main Round' WHERE id = :id",
+            ['id' => CompetitionSeriesFixture::ROUND_EJJ_68],
+        );
+
+        $crawler = $browser->request('GET', '/en/series/euro-jigsaw-jam-series/ejj-68-february-2026/results/main-round');
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame('Euro Jigsaw Jam · EJJ #68 — February 2026 – Main Round Results – MySpeedPuzzling', $crawler->filter('title')->text());
+    }
+
+    public function testRoundNamedLikeItsEditionIsNamedOnce(): void
+    {
+        $browser = self::createClient();
+
+        // The fixture's only EJJ #68 round is called "EJJ #68 — February 2026" too
+        $crawler = $browser->request('GET', '/en/series/euro-jigsaw-jam-series/ejj-68-february-2026/results/main-round');
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame('Euro Jigsaw Jam · EJJ #68 — February 2026 Results – MySpeedPuzzling', $crawler->filter('title')->text());
+        // The page heading is untouched
+        $this->assertSelectorTextContains('h1', 'EJJ #68 — February 2026');
     }
 
     public function testEditionReachedThroughTheEventRouteRedirects(): void

@@ -113,7 +113,7 @@
 "live_event_strip": "Jetzt live: %event% – Zeit eintragen & Ergebnisse"
 "round_results":
   "meta":
-    "title": "%round% – %event% Ergebnisse"
+    "title": "%event% – %round% Ergebnisse"
     "description": "Ergebnisse von %round% bei %event% – die Speed Puzzler, die das Puzzle der Runde gelegt haben, nach Zeit sortiert."
   "heading_suffix": "Ergebnisse"
   "link": "Ergebnisse"
@@ -486,14 +486,16 @@
   "meta":
     "title": "Speed Puzzle Wettbewerbe & Events"
     "description": "Weltweiter Kalender für Speed Puzzle Wettbewerbe und Events — Termine, Anmeldung, Puzzles, Teilnehmer und Ergebnisse, vor Ort und online."
-    "event_detail_title": "%name% %year% – Speed Puzzle Wettbewerb"
-    "event_detail_title_no_year": "%name% – Speed Puzzle Wettbewerb"
+    "event_detail_title_results": "%event% Ergebnisse"
     "event_detail_description": "%name% — Speed Puzzle Wettbewerb am %date% in %location%. Puzzles, Teilnehmer und Ergebnisse auf MySpeedPuzzling."
     "event_detail_description_online": "%name% — Online Speed Puzzle Wettbewerb am %date%. Puzzles, Teilnehmer und Ergebnisse auf MySpeedPuzzling."
     "event_detail_description_online_no_date": "%name% — Online Speed Puzzle Wettbewerb. Puzzles, Teilnehmer und Ergebnisse auf MySpeedPuzzling."
     "event_detail_description_no_date": "%name% — Speed Puzzle Wettbewerb in %location%. Puzzles, Teilnehmer und Ergebnisse auf MySpeedPuzzling."
     "event_detail_description_no_location": "%name% — Speed Puzzle Wettbewerb am %date%. Puzzles, Teilnehmer und Ergebnisse auf MySpeedPuzzling."
     "event_detail_description_fallback": "%name% — Speed Puzzle Wettbewerb. Puzzles, Teilnehmer und Ergebnisse auf MySpeedPuzzling."
+    "event_detail_description_past": "Ergebnisse von %name%: %results% von Puzzlern eingetragene Zeit, dazu die Wettkampf-Puzzles und Teilnehmer. Speed Puzzle Wettbewerb am %date% in %location%.|Ergebnisse von %name%: %results% von Puzzlern eingetragene Zeiten, dazu die Wettkampf-Puzzles und Teilnehmer. Speed Puzzle Wettbewerb am %date% in %location%."
+    "event_detail_description_past_online": "Ergebnisse von %name%: %results% von Puzzlern eingetragene Zeit, dazu die Wettkampf-Puzzles und Teilnehmer. Online Speed Puzzle Wettbewerb am %date%.|Ergebnisse von %name%: %results% von Puzzlern eingetragene Zeiten, dazu die Wettkampf-Puzzles und Teilnehmer. Online Speed Puzzle Wettbewerb am %date%."
+    "event_detail_description_past_no_location": "Ergebnisse von %name%: %results% von Puzzlern eingetragene Zeit, dazu die Wettkampf-Puzzles und Teilnehmer. Speed Puzzle Wettbewerb am %date%.|Ergebnisse von %name%: %results% von Puzzlern eingetragene Zeiten, dazu die Wettkampf-Puzzles und Teilnehmer. Speed Puzzle Wettbewerb am %date%."
   "live": "Findet gerade statt"
   "upcoming": "Kommend"
   "past": "Vergangene Veranstaltungen"
@@ -3052,9 +3054,9 @@ qr_code:
   "meta":
     "title": "%name% – Speed Puzzle Serie"
     "description": "%name%: alle Ausgaben dieses Speed Puzzle Wettbewerbs — kommende Termine, vergangene Ergebnisse, Puzzles und Teilnehmer."
-    "edition_title": "%name% – Ergebnisse & Puzzles"
-    "edition_description": "%name% Ergebnisse — %series% Speed Puzzle Wettbewerb, %date%. Runden, Puzzles und Teilnehmerzeiten."
-    "edition_description_no_date": "%name% Ergebnisse — %series% Speed Puzzle Wettbewerb. Runden, Puzzles und Teilnehmerzeiten."
+    "edition_description": "%name% — %series% Speed Puzzle Wettbewerb am %date%. Runden, Puzzles, Teilnehmer und Ergebnisse auf MySpeedPuzzling."
+    "edition_description_no_date": "%name% — %series% Speed Puzzle Wettbewerb. Runden, Puzzles, Teilnehmer und Ergebnisse auf MySpeedPuzzling."
+    "edition_description_past": "Ergebnisse von %name%: %results% von Puzzlern eingetragene Zeit, dazu Runden, Puzzles und Teilnehmer. %series% Speed Puzzle Wettbewerb am %date%.|Ergebnisse von %name%: %results% von Puzzlern eingetragene Zeiten, dazu Runden, Puzzles und Teilnehmer. %series% Speed Puzzle Wettbewerb am %date%."
   "manage": "Serie verwalten"
   "edit_series": "Serie bearbeiten"
   "add_edition": "Ausgabe hinzufügen"
@@ -3228,7 +3230,7 @@ qr_code:
 "wjpc_hub":
   "meta":
     "title": "Puzzle Weltmeisterschaft (WJPC)"
-    "description": "Puzzle Weltmeisterschaft (WJPC): Termine, Ergebnisse und Geschichte aller Ausgaben seit 2019 – und wie du bei der Speed Puzzle WM in Valladolid mitmachst."
+    "description": "Puzzle Weltmeisterschaft (WJPC): Termine, Ergebnisse, Puzzles und Geschichte aller Ausgaben seit 2019 – und wie du bei der Speed Puzzle WM in Valladolid mitmachst."
   "intro": "Die World Jigsaw Puzzle Championship (WJPC) ist die Puzzle Weltmeisterschaft und das größte Event im Speed Puzzling: Jedes Jahr treten Puzzler aus aller Welt an, um identische Puzzles in der schnellsten Zeit zu legen. Auf dieser Seite findest du alle Ausgaben der Speed Puzzle WM mit Terminen, Austragungsort und Ergebnissen – und erfährst, wie du teilnehmen kannst."
   "what_is":
     "heading": "Was ist die World Jigsaw Puzzle Championship?"
@@ -3243,6 +3245,13 @@ qr_code:
     "dates": "Termin"
     "event_link": "Event & Ergebnisse"
     "empty": "Die WJPC-Eventseiten sind in Vorbereitung. Stöbere in der Zwischenzeit in unserem <a href=\"%events_link%\">Veranstaltungskalender</a>."
+  "puzzles":
+    "heading": "Alle Puzzles der Puzzle Weltmeisterschaft"
+    "intro": "Alle Puzzles, die bei der Puzzle Weltmeisterschaft gelegt wurden – Ausgabe für Ausgabe, die neueste zuerst, mit der Median- und der schnellsten Solo-Zeit, die Puzzler auf MySpeedPuzzling eingetragen haben. Öffne ein Puzzle, um die komplette Rangliste zu sehen."
+    "edition_heading": "Puzzles der %edition%"
+    "fastest_pair": "Schnellstes Paar:"
+    "fastest_team": "Schnellstes Team:"
+    "no_times": "Noch keine Zeiten"
   "participate":
     "heading": "Wie kann ich an der WJPC teilnehmen?"
     "p1": "Mitmachen kann jede Person ab 14 Jahren – es gibt keine Qualifikation und kein Mindestniveau, Neulinge puzzeln also an denselben Tischen wie Weltmeister. Die Anmeldung öffnet auf der offiziellen Website der World Jigsaw Puzzle Federation, <a href=\"%official_link%\" target=\"_blank\" rel=\"noopener\">worldjigsawpuzzle.org</a>, in der Regel mehrere Monate vor der WM; die Startgebühr enthält die Wettkampf-Puzzles. Die Plätze pro Kategorie sind begrenzt – frühes Anmelden lohnt sich."

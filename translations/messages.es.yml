@@ -115,7 +115,7 @@
 "live_event_strip": "En directo: %event% – Añade y consulta resultados"
 "round_results":
   "meta":
-    "title": "%round% – resultados de %event%"
+    "title": "%event% – Resultados %round%"
     "description": "Resultados de %round% en %event% – los speed puzzleros que resolvieron el puzzle de la ronda, ordenados por tiempo."
   "heading_suffix": "resultados"
   "link": "Resultados"
@@ -654,14 +654,16 @@
   "meta":
     "title": "Campeonatos y concursos de puzzles"
     "description": "Calendario mundial de campeonatos y concursos de speed puzzling — fechas, inscripción, puzzles, participantes y resultados, presenciales y online."
-    "event_detail_title": "%name% %year% – Concurso de Speed Puzzling"
-    "event_detail_title_no_year": "%name% – Concurso de Speed Puzzling"
+    "event_detail_title_results": "Resultados %event%"
     "event_detail_description": "%name% — concurso de speed puzzling el %date% en %location%. Puzzles, participantes y resultados en MySpeedPuzzling."
     "event_detail_description_online": "%name% — concurso de speed puzzling online el %date%. Puzzles, participantes y resultados en MySpeedPuzzling."
     "event_detail_description_online_no_date": "%name% — concurso de speed puzzling online. Puzzles, participantes y resultados en MySpeedPuzzling."
     "event_detail_description_no_date": "%name% — concurso de speed puzzling en %location%. Puzzles, participantes y resultados en MySpeedPuzzling."
     "event_detail_description_no_location": "%name% — concurso de speed puzzling el %date%. Puzzles, participantes y resultados en MySpeedPuzzling."
     "event_detail_description_fallback": "%name% — concurso de speed puzzling. Puzzles, participantes y resultados en MySpeedPuzzling."
+    "event_detail_description_past": "Resultados de %name%: %results% tiempo registrado por los puzzleros, además de los puzzles de la competición y los participantes. Concurso de speed puzzling celebrado el %date% en %location%.|Resultados de %name%: %results% tiempos registrados por los puzzleros, además de los puzzles de la competición y los participantes. Concurso de speed puzzling celebrado el %date% en %location%."
+    "event_detail_description_past_online": "Resultados de %name%: %results% tiempo registrado por los puzzleros, además de los puzzles de la competición y los participantes. Concurso de speed puzzling online celebrado el %date%.|Resultados de %name%: %results% tiempos registrados por los puzzleros, además de los puzzles de la competición y los participantes. Concurso de speed puzzling online celebrado el %date%."
+    "event_detail_description_past_no_location": "Resultados de %name%: %results% tiempo registrado por los puzzleros, además de los puzzles de la competición y los participantes. Concurso de speed puzzling celebrado el %date%.|Resultados de %name%: %results% tiempos registrados por los puzzleros, además de los puzzles de la competición y los participantes. Concurso de speed puzzling celebrado el %date%."
   "live": "Ocurriendo ahora mismo"
   "upcoming": "Próximos"
   "past": "Eventos pasados"
@@ -3052,9 +3054,9 @@ fair_use_policy:
   "meta":
     "title": "%name% – Serie de speed puzzling"
     "description": "%name%: todas las ediciones de este concurso de speed puzzling — próximas fechas, resultados pasados, puzzles y participantes."
-    "edition_title": "%name% – Resultados y puzzles"
-    "edition_description": "Resultados de %name% — concurso de speed puzzling %series%, %date%. Rondas, puzzles y tiempos de participantes."
-    "edition_description_no_date": "Resultados de %name% — concurso de speed puzzling %series%. Rondas, puzzles y tiempos de participantes."
+    "edition_description": "%name% — concurso de speed puzzling %series% el %date%. Rondas, puzzles, participantes y resultados en MySpeedPuzzling."
+    "edition_description_no_date": "%name% — concurso de speed puzzling %series%. Rondas, puzzles, participantes y resultados en MySpeedPuzzling."
+    "edition_description_past": "Resultados de %name%: %results% tiempo registrado por los puzzleros, además de las rondas, los puzzles y los participantes. Concurso de speed puzzling %series% celebrado el %date%.|Resultados de %name%: %results% tiempos registrados por los puzzleros, además de las rondas, los puzzles y los participantes. Concurso de speed puzzling %series% celebrado el %date%."
   "manage": "Gestionar serie"
   "edit_series": "Editar serie"
   "add_edition": "Añadir edición"
@@ -3228,7 +3230,7 @@ fair_use_policy:
 "wjpc_hub":
   "meta":
     "title": "Campeonato Mundial de Puzzles (WJPC)"
-    "description": "Campeonato Mundial de Puzzles (WJPC): fechas, resultados e historia de todas las ediciones desde 2019, y cómo participar en Valladolid, España."
+    "description": "Campeonato Mundial de Puzzles (WJPC): fechas, resultados, puzzles e historia de todas las ediciones desde 2019, y cómo participar en Valladolid, España."
   "intro": "El Campeonato Mundial de Puzzles (World Jigsaw Puzzle Championship, WJPC) es el mayor evento del puzzle de velocidad: cada año, puzzlers de todo el mundo compiten por montar puzzles idénticos en el menor tiempo posible. Esta página reúne todas las ediciones del WJPC con sus fechas, sedes y resultados, y explica cómo participar."
   "what_is":
     "heading": "¿Qué es el Campeonato Mundial de Puzzles?"
@@ -3243,6 +3245,13 @@ fair_use_policy:
     "dates": "Fechas"
     "event_link": "Evento y resultados"
     "empty": "Las páginas de los eventos del WJPC están en preparación. Mientras tanto, puedes explorar todas las competiciones en nuestro <a href=\"%events_link%\">calendario de eventos</a>."
+  "puzzles":
+    "heading": "Todos los puzzles del Campeonato Mundial de Puzzles"
+    "intro": "Todos los puzzles que se han montado en el Campeonato Mundial de Puzzles, edición a edición y empezando por la más reciente, con la mediana y el tiempo individual más rápido que los puzzleros han registrado en MySpeedPuzzling. Abre un puzzle para ver su clasificación completa."
+    "edition_heading": "Puzzles del %edition%"
+    "fastest_pair": "Pareja más rápida:"
+    "fastest_team": "Equipo más rápido:"
+    "no_times": "Aún sin tiempos"
   "participate":
     "heading": "Cómo participar en el WJPC"
     "p1": "Cualquier persona a partir de 14 años puede inscribirse: no hay requisitos de clasificación ni nivel mínimo, así que los principiantes compiten en las mismas mesas que los campeones del mundo. Las inscripciones se abren en la web oficial de la World Jigsaw Puzzle Federation, <a href=\"%official_link%\" target=\"_blank\" rel=\"noopener\">worldjigsawpuzzle.org</a>, normalmente varios meses antes del campeonato, y la cuota incluye los puzzles de competición. Las plazas por categoría son limitadas, por lo que conviene inscribirse pronto."

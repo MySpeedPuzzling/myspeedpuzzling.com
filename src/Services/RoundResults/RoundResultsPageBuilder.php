@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\RoundResultsPage;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\EventTitle;
 
 /**
  * Everything the round result page shows - shared by the standalone event route and the series edition
@@ -31,17 +32,19 @@ readonly final class RoundResultsPageBuilder
     }
 
     /**
+     * @param null|string $seriesName the series of an edition - the page titles name it with the edition
      * @throws CompetitionRoundNotFound
      */
-    public function build(string $competitionId, string $roundSlug): RoundResultsPage
+    public function build(string $competitionId, string $roundSlug, null|string $seriesName = null): RoundResultsPage
     {
         // Results of a competition nobody can pick in the add-time form are not public either
         if ($this->isCompetitionPubliclyVisible->check($competitionId) === false) {
             throw new CompetitionRoundNotFound();
         }
 
+        $allRounds = $this->getEditionRounds->forCompetition($competitionId);
         $rounds = array_values(array_filter(
-            $this->getEditionRounds->forCompetition($competitionId),
+            $allRounds,
             static fn (EditionRoundDetail $round): bool => $round->slug !== null,
         ));
 
@@ -60,10 +63,12 @@ readonly final class RoundResultsPageBuilder
         $round = $rounds[$position];
         $event = $this->getCompetitionEvents->byId($competitionId);
         $viewer = $this->retrieveLoggedUserProfile->getProfile();
-        $hasStarted = $round->startsAt <= $this->clock->now();
+        $now = $this->clock->now();
+        $hasStarted = $round->startsAt <= $now;
 
         return new RoundResultsPage(
             event: $event,
+            eventTitle: EventTitle::forCompetition($event, $seriesName, $allRounds, $now),
             round: $round,
             rounds: $rounds,
             previousRound: $rounds[$position - 1] ?? null,

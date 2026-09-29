@@ -33,7 +33,7 @@ final class EditionRoundResultsController extends AbstractController
     {
         $competition = $this->competitionRepository->getBySeriesAndEditionSlug($seriesSlug, $editionSlug);
 
-        $page = $this->roundResultsPageBuilder->build($competition->id->toString(), $roundSlug);
+        $page = $this->roundResultsPageBuilder->build($competition->id->toString(), $roundSlug, $competition->series?->name);
 
         return $this->render('round_results.html.twig', [
             'page' => $page,

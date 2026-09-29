@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\TagFixture;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 
 final class WjpcHubControllerTest extends WebTestCase
 {
@@ -88,6 +94,76 @@ final class WjpcHubControllerTest extends WebTestCase
 
         self::assertContains('BreadcrumbList', $types, 'Page should contain BreadcrumbList JSON-LD');
         self::assertContains('ItemList', $types, 'Page should contain ItemList JSON-LD');
+    }
+
+    public function testListsThePuzzlesOfEachEdition(): void
+    {
+        $browser = self::createClient();
+        // A puzzle only carrying the edition's tag counts too
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'INSERT INTO tag_puzzle (tag_id, puzzle_id) VALUES (:tagId, :puzzleId)',
+            ['tagId' => TagFixture::TAG_WJPC, 'puzzleId' => PuzzleFixture::PUZZLE_500_03],
+        );
+
+        $crawler = $browser->request('GET', '/en/world-jigsaw-puzzle-championship');
+
+        $this->assertResponseIsSuccessful();
+        $section = $crawler->filter(sprintf('[data-wjpc-edition-puzzles="%s"]', CompetitionFixture::COMPETITION_WJPC_2024));
+        self::assertCount(1, $section);
+        self::assertStringContainsString('WJPC24 puzzles', $section->filter('h3')->text());
+        self::assertCount(1, $section->filter('a[href="/en/events/wjpc-2024"]'));
+
+        // Round puzzles in schedule order (qualification, then final), the tag-only puzzle last
+        $linkedPuzzles = array_values(array_unique($section->filter('a[href^="/en/puzzle/"]')->each(
+            static fn (Crawler $link): string => (string) $link->attr('href'),
+        )));
+        self::assertCount(5, $linkedPuzzles);
+        self::assertEqualsCanonicalizing(
+            ['/en/puzzle/' . PuzzleFixture::PUZZLE_500_01, '/en/puzzle/' . PuzzleFixture::PUZZLE_500_02],
+            array_slice($linkedPuzzles, 0, 2),
+        );
+        self::assertEqualsCanonicalizing(
+            ['/en/puzzle/' . PuzzleFixture::PUZZLE_1000_01, '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_02],
+            array_slice($linkedPuzzles, 2, 2),
+        );
+        self::assertSame('/en/puzzle/' . PuzzleFixture::PUZZLE_500_03, $linkedPuzzles[4]);
+
+        // Public solo median and fastest time of a solved puzzle
+        self::assertStringContainsString('Median:', $section->text());
+        self::assertStringContainsString('Fastest:', $section->text());
+    }
+
+    public function testSecretRoundPuzzleIsNotListedBeforeItsRoundStarts(): void
+    {
+        $browser = self::createClient();
+        // The qualification round starts in 30 days
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE competition_round_puzzle SET hide_until_round_starts = true, hide_mode = 'entirely' WHERE round_id = :roundId AND puzzle_id = :puzzleId",
+            ['roundId' => CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, 'puzzleId' => PuzzleFixture::PUZZLE_500_02],
+        );
+
+        $crawler = $browser->request('GET', '/en/world-jigsaw-puzzle-championship');
+
+        $this->assertResponseIsSuccessful();
+        $section = $crawler->filter(sprintf('[data-wjpc-edition-puzzles="%s"]', CompetitionFixture::COMPETITION_WJPC_2024));
+        // Its round-mate without the flag is listed, the secret puzzle is not
+        self::assertGreaterThan(0, $section->filter(sprintf('a[href="/en/puzzle/%s"]', PuzzleFixture::PUZZLE_500_01))->count());
+        self::assertCount(0, $section->filter(sprintf('a[href="/en/puzzle/%s"]', PuzzleFixture::PUZZLE_500_02)));
+    }
+
+    public function testEditionWithoutPuzzlesHasNoPuzzleSection(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'DELETE FROM competition_round_puzzle WHERE round_id IN (:qualification, :final)',
+            ['qualification' => CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, 'final' => CompetitionRoundFixture::ROUND_WJPC_FINAL],
+        );
+
+        $browser->request('GET', '/en/world-jigsaw-puzzle-championship');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorNotExists('[data-wjpc-edition-puzzles]');
+        $this->assertSelectorNotExists('#wjpc-puzzles');
     }
 
     public function testEditionsTableLinksToEventPages(): void

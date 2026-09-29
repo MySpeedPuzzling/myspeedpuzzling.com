@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Query\GetCompetitionPuzzles;
 use SpeedPuzzling\Web\Query\GetWjpcEvents;
 use SpeedPuzzling\Web\Results\CompetitionEvent;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -13,12 +14,13 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Evergreen SEO hub for the World Jigsaw Puzzle Championship (WJPC).
- * Static content page linking down to per-year event pages.
+ * Static content page linking down to per-year event pages and to the puzzles of every edition.
  */
 final class WjpcHubController extends AbstractController
 {
     public function __construct(
         readonly private GetWjpcEvents $getWjpcEvents,
+        readonly private GetCompetitionPuzzles $getCompetitionPuzzles,
         readonly private ClockInterface $clock,
     ) {
     }
@@ -41,6 +43,10 @@ final class WjpcHubController extends AbstractController
         return $this->render('wjpc_hub.html.twig', [
             'editions' => $editions,
             'next_edition' => $this->findNextEdition($editions),
+            'edition_puzzles' => $this->getCompetitionPuzzles->forCompetitions(array_map(
+                static fn (CompetitionEvent $edition): string => $edition->id,
+                $editions,
+            )),
         ]);
     }
 

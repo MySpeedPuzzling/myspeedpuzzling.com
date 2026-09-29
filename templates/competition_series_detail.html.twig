@@ -2,6 +2,15 @@
 
 {% block title %}{{ 'series.meta.title'|trans({'%name%': series.name}) }}{% endblock %}
 
+{% block robots %}
+    {# Unapproved/rejected series are publicly reachable at their slug URL - keep them out of the index #}
+    {% if series.approvedAt is null or series.rejectedAt is not null %}
+        <meta name="robots" content="noindex, nofollow">
+    {% else %}
+        {{ parent() }}
+    {% endif %}
+{% endblock %}
+
 {% block meta_description %}
     {{- 'series.meta.description'|trans({'%name%': series.name}) -}}
 {% endblock %}
@@ -20,7 +29,8 @@
     "description": {{ series.description|json_encode|raw }}
     {%- endif %}
     {%- if series.logo %},
-    "image": {{ series.logo|thumbnail('puzzle_small')|json_encode|raw }}
+    {# The uploaded original - Google wants event images at least 720 px wide, the thumbnails are 200-400 px #}
+    "image": {{ uploaded_asset(series.logo)|json_encode|raw }}
     {%- endif %}
     {%- if not series.isOnline and series.location %},
     "location": {

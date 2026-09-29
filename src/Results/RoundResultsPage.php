@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\EventTitle;
+
 readonly final class RoundResultsPage
 {
     /**
@@ -12,6 +14,8 @@ readonly final class RoundResultsPage
      */
     public function __construct(
         public CompetitionEvent $event,
+        // How the page title names the event - full name, with the series of an edition and the year
+        public EventTitle $eventTitle,
         public EditionRoundDetail $round,
         public array $rounds,
         public null|EditionRoundDetail $previousRound,

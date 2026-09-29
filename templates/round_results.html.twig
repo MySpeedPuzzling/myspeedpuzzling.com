@@ -5,9 +5,17 @@
 {% set round = page.round %}
 {% set event = page.event %}
 
-{% block title %}{{ 'round_results.meta.title'|trans({'%round%': round.name, '%event%': event.name}) }}{% endblock %}
+{# Leads with the event - its full name, with the series of an edition and the year (see EventTitle) - then the round #}
+{% block title %}
+    {%- if round.name|lower == event.name|lower -%}
+        {# A single-round edition often names its round like itself - say it once #}
+        {{- 'events.meta.event_detail_title_results'|trans({'%event%': page.eventTitle.label}) -}}
+    {%- else -%}
+        {{- 'round_results.meta.title'|trans({'%event%': page.eventTitle.label, '%round%': round.name}) -}}
+    {%- endif -%}
+{% endblock %}
 
-{% block meta_description %}{{ 'round_results.meta.description'|trans({'%round%': round.name, '%event%': event.name}) }}{% endblock %}
+{% block meta_description %}{{ 'round_results.meta.description'|trans({'%round%': round.name, '%event%': page.eventTitle.label}) }}{% endblock %}
 
 {% block content %}
     {{ include('_return_back_button.html.twig', {fallbackUrl: event_url, fallbackTitle: event.name}) }}

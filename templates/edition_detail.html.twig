@@ -1,10 +1,35 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'series.meta.edition_title'|trans({'%name%': event.name}) }}{% endblock %}
+{# The full name - the series in front unless the edition's name mentions it - plus the year when the name
+   has none; "Results" once the edition is over (see EventTitle) #}
+{% block title %}
+    {%- if event_title.isPast -%}
+        {{- 'events.meta.event_detail_title_results'|trans({'%event%': event_title.label}) -}}
+    {%- else -%}
+        {{- event_title.label -}}
+    {%- endif -%}
+{% endblock %}
+
+{% block robots %}
+    {# An edition of an unapproved or rejected series (or a rejected edition) is reachable at its URL - keep it out of the index #}
+    {% if not is_publicly_visible %}
+        <meta name="robots" content="noindex, nofollow">
+    {% else %}
+        {{ parent() }}
+    {% endif %}
+{% endblock %}
 
 {% block meta_description %}
-    {%- if event.dateFrom -%}
-        {{- 'series.meta.edition_description'|trans({'%name%': event.name, '%series%': series.name, '%date%': event.dateFrom|format_date('long')}) -}}
+    {%- if event_title.isPast and results_count > 0 -%}
+        {{- 'series.meta.edition_description_past'|trans({
+            '%count%': results_count,
+            '%results%': results_count|format_number,
+            '%name%': event.name,
+            '%series%': series.name,
+            '%date%': event_title.startsAt|format_date('long'),
+        }) -}}
+    {%- elseif event_title.startsAt -%}
+        {{- 'series.meta.edition_description'|trans({'%name%': event.name, '%series%': series.name, '%date%': event_title.startsAt|format_date('long')}) -}}
     {%- else -%}
         {{- 'series.meta.edition_description_no_date'|trans({'%name%': event.name, '%series%': series.name}) -}}
     {%- endif -%}
@@ -12,14 +37,14 @@
 
 {% block json_ld %}
 {{ parent() }}
-{% if series.approvedAt is not null and series.rejectedAt is null and event.dateFrom is not null and series.slug is not null and event.slug is not null %}
+{% if is_publicly_visible and event.dateFrom is not null and series.slug is not null and event.slug is not null %}
 {% set edition_url = url('edition_detail', {'seriesSlug': series.slug, 'editionSlug': event.slug}) %}
 {% set edition_image = event.logo ?? series.logo %}
 <script type="application/ld+json">
 {
     "@context": "https://schema.org",
     "@type": "Event",
-    "name": {{ event.name|json_encode|raw }},
+    "name": {{ event_title.name|json_encode|raw }},
     "url": {{ edition_url|json_encode|raw }},
     "startDate": {{ event.dateFrom|date('Y-m-d')|json_encode|raw }},
     "eventStatus": "https://schema.org/EventScheduled",
@@ -46,7 +71,8 @@
     }
     {%- endif %}
     {%- if edition_image %},
-    "image": {{ edition_image|thumbnail('puzzle_small')|json_encode|raw }}
+    {# The uploaded original - Google wants event images at least 720 px wide, the thumbnails are 200-400 px #}
+    "image": {{ uploaded_asset(edition_image)|json_encode|raw }}
     {%- endif %}
     {%- if event.description %},
     "description": {{ event.description|json_encode|raw }}

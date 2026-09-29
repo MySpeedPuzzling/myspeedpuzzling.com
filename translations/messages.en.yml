@@ -120,7 +120,7 @@ live_event_strip: "Now live: %event% – Add & see results"
 
 round_results:
     meta:
-        title: "%round% – %event% results"
+        title: "%event% – %round% Results"
         description: "Results of %round% at %event% – the speed puzzlers who solved the round's puzzle, ranked by time."
     heading_suffix: "results"
     link: "Results"
@@ -542,14 +542,16 @@ events:
     meta:
         title: "Speed Puzzling Competitions & Events"
         description: "Worldwide calendar of speed puzzling competitions and events — dates, registration, puzzles, participants and results, in person and online."
-        event_detail_title: "%name% %year% – Speed Puzzling Competition"
-        event_detail_title_no_year: "%name% – Speed Puzzling Competition"
+        event_detail_title_results: "%event% Results"
         event_detail_description: "%name% — speed puzzling competition on %date% in %location%. Puzzles, participants and results on MySpeedPuzzling."
         event_detail_description_online: "%name% — online speed puzzling competition on %date%. Puzzles, participants and results on MySpeedPuzzling."
         event_detail_description_online_no_date: "%name% — online speed puzzling competition. Puzzles, participants and results on MySpeedPuzzling."
         event_detail_description_no_date: "%name% — speed puzzling competition in %location%. Puzzles, participants and results on MySpeedPuzzling."
         event_detail_description_no_location: "%name% — speed puzzling competition on %date%. Puzzles, participants and results on MySpeedPuzzling."
         event_detail_description_fallback: "%name% — speed puzzling competition. Puzzles, participants and results on MySpeedPuzzling."
+        event_detail_description_past: "%name% results: %results% time added by puzzlers, plus the competition puzzles and participants. Speed puzzling competition held on %date% in %location%.|%name% results: %results% times added by puzzlers, plus the competition puzzles and participants. Speed puzzling competition held on %date% in %location%."
+        event_detail_description_past_online: "%name% results: %results% time added by puzzlers, plus the competition puzzles and participants. Online speed puzzling competition held on %date%.|%name% results: %results% times added by puzzlers, plus the competition puzzles and participants. Online speed puzzling competition held on %date%."
+        event_detail_description_past_no_location: "%name% results: %results% time added by puzzlers, plus the competition puzzles and participants. Speed puzzling competition held on %date%.|%name% results: %results% times added by puzzlers, plus the competition puzzles and participants. Speed puzzling competition held on %date%."
     live: "Happening right now"
     upcoming: "Upcoming"
     past: "Past events"
@@ -3267,9 +3269,9 @@ series:
     meta:
         title: "%name% – Speed Puzzling Series"
         description: "%name%: all editions of this speed puzzling competition — upcoming dates, past results, puzzles and participants."
-        edition_title: "%name% – Results & Puzzles"
-        edition_description: "%name% results — %series% speed puzzling competition, %date%. Rounds, puzzles and participant times."
-        edition_description_no_date: "%name% results — %series% speed puzzling competition. Rounds, puzzles and participant times."
+        edition_description: "%name% — %series% speed puzzling competition on %date%. Rounds, puzzles, participants and results on MySpeedPuzzling."
+        edition_description_no_date: "%name% — %series% speed puzzling competition. Rounds, puzzles, participants and results on MySpeedPuzzling."
+        edition_description_past: "%name% results: %results% time added by puzzlers, plus the rounds, puzzles and participants. %series% speed puzzling competition held on %date%.|%name% results: %results% times added by puzzlers, plus the rounds, puzzles and participants. %series% speed puzzling competition held on %date%."
     manage: "Manage Series"
     edit_series: "Edit Series"
     add_edition: "Add Edition"
@@ -3498,7 +3500,7 @@ guides:
 wjpc_hub:
     meta:
         title: "World Jigsaw Puzzle Championship (WJPC)"
-        description: "World Jigsaw Puzzle Championship (WJPC): dates, results and history of every edition since 2019, plus how to take part in Valladolid, Spain."
+        description: "World Jigsaw Puzzle Championship (WJPC): dates, results, puzzles and history of every edition since 2019, plus how to take part in Valladolid, Spain."
     intro: "The World Jigsaw Puzzle Championship (WJPC) is the biggest event in competitive jigsaw puzzling — an annual speed puzzling world championship where puzzlers from all over the world race to assemble identical puzzles in the fastest time. This page collects every WJPC edition with dates, locations and results, and explains how to take part."
     what_is:
         heading: "What is the World Jigsaw Puzzle Championship?"
@@ -3513,6 +3515,13 @@ wjpc_hub:
         dates: "Dates"
         event_link: "Event & results"
         empty: "WJPC event pages are being prepared. In the meantime, you can browse all speed puzzling competitions in our <a href=\"%events_link%\">events calendar</a>."
+    puzzles:
+        heading: "Puzzles of every World Jigsaw Puzzle Championship"
+        intro: "Every puzzle solved at the World Jigsaw Puzzle Championship, edition by edition and newest first — with the median and fastest solo times puzzlers have logged on MySpeedPuzzling. Open a puzzle to see its full leaderboard."
+        edition_heading: "%edition% puzzles"
+        fastest_pair: "Fastest pair:"
+        fastest_team: "Fastest team:"
+        no_times: "No times yet"
     participate:
         heading: "How to participate in the WJPC"
         p1: "Anyone aged 14 or older can register — there is no qualification requirement and no minimum level, so first-timers compete at the same tables as world champions. Registration opens on the official website of the World Jigsaw Puzzle Federation, <a href=\"%official_link%\" target=\"_blank\" rel=\"noopener\">worldjigsawpuzzle.org</a>, typically several months before the championship, and the entry fee includes the competition puzzles. Capacity in each category is limited, so it pays to register early."

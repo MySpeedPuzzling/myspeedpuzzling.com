@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Competition;
+use SpeedPuzzling\Web\Query\CountCompetitionResults;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
@@ -18,6 +19,7 @@ use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\EventTitle;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -35,6 +37,7 @@ final class EventDetailController extends AbstractController
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
+        readonly private CountCompetitionResults $countCompetitionResults,
         readonly private ClockInterface $clock,
     ) {
     }
@@ -68,13 +71,16 @@ final class EventDetailController extends AbstractController
             $puzzles = $this->getPuzzleOverview->byTagId($competitionEvent->tagId);
         }
 
+        $rounds = $this->getEditionRounds->forCompetition($competition->id->toString());
+        $eventTitle = EventTitle::forCompetition($competitionEvent, null, $rounds, $this->clock->now());
+
         // Which round each puzzle was solved in. The query already applies the round's hide rules,
         // so a puzzle hidden until its round starts gets no round badge either.
         /** @var array<string, list<EditionRoundDetail>> $puzzleRounds */
         $puzzleRounds = [];
         /** @var array<string, string> $roundResultsUrls */
         $roundResultsUrls = [];
-        foreach ($this->getEditionRounds->forCompetition($competition->id->toString()) as $round) {
+        foreach ($rounds as $round) {
             foreach ($round->puzzles as $roundPuzzle) {
                 $puzzleRounds[$roundPuzzle->puzzleId][] = $round;
             }
@@ -127,6 +133,9 @@ final class EventDetailController extends AbstractController
 
         return $this->render('event_detail.html.twig', [
             'event' => $competitionEvent,
+            'event_title' => $eventTitle,
+            // Only a past event's meta description quotes the number of results
+            'results_count' => $eventTitle->isPast ? $this->countCompetitionResults->forCompetition($competitionEvent->id) : 0,
             'puzzles' => $puzzles,
             'puzzle_rounds' => $puzzleRounds,
             'round_results_urls' => $roundResultsUrls,

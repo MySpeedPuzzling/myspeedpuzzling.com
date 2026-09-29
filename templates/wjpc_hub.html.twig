@@ -110,6 +110,67 @@
         <p>{{ 'wjpc_hub.editions.empty'|trans({'%events_link%': path('events')})|raw }}</p>
     {% endif %}
 
+    {# The puzzles of every edition, newest edition first - round puzzles and the edition's tagged puzzles,
+       secret ones left out until their round starts (GetCompetitionPuzzles) #}
+    {% set editions_with_puzzles = editions|filter(edition => edition_puzzles[edition.id] is defined) %}
+    {% if editions_with_puzzles|length > 0 %}
+        <h2 class="h4 mt-4" id="wjpc-puzzles">{{ 'wjpc_hub.puzzles.heading'|trans }}</h2>
+        <p>{{ 'wjpc_hub.puzzles.intro'|trans }}</p>
+
+        {% for edition in editions_with_puzzles %}
+            <section class="mb-4" data-wjpc-edition-puzzles="{{ edition.id }}">
+                <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-2">
+                    <h3 class="h5 mb-0">{{ 'wjpc_hub.puzzles.edition_heading'|trans({'%edition%': edition.shortcut ?? edition.name}) }}</h3>
+                    {% if edition.slug %}
+                        <a class="small" href="{{ path('event_detail', {slug: edition.slug}) }}">{{ 'wjpc_hub.editions.event_link'|trans }}</a>
+                    {% endif %}
+                </div>
+
+                <div class="row g-2">
+                    {% for puzzle in edition_puzzles[edition.id] %}
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="card card-body shadow-sm p-2 h-100">
+                                <div class="d-flex align-items-center">
+                                    <a class="flex-shrink-0" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                        {{ lazy_puzzle_image(
+                                            puzzle.puzzleImage,
+                                            'puzzle_small',
+                                            'puzzle_img_alt'|trans({'%puzzle%': (puzzle.manufacturerName ?? '') ~ ' ' ~ puzzle.puzzleName}),
+                                            999,
+                                            60,
+                                            'rounded-2',
+                                            60,
+                                            puzzle.puzzleImageRatio
+                                        ) }}
+                                    </a>
+
+                                    <div class="ps-2 small lh-sm">
+                                        <a class="text-decoration-underline fw-medium" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.puzzleName }}</a>
+                                        <div class="text-muted mt-1">
+                                            {% if puzzle.manufacturerName %}{{ puzzle.manufacturerName }} &middot; {% endif %}{{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }}
+                                        </div>
+                                        <div class="mt-1">
+                                            {% if puzzle.soloSolvesCount > 0 and puzzle.medianTimeSolo is not null and puzzle.fastestTimeSolo is not null %}
+                                                {{ 'median_time'|trans }} <span class="text-nowrap">{{ puzzle.medianTimeSolo|puzzlingTime }}</span>
+                                                &middot; {{ 'fastest_time'|trans }} <span class="text-nowrap">{{ puzzle.fastestTimeSolo|puzzlingTime }}</span>
+                                            {% elseif puzzle.fastestTimeDuo is not null %}
+                                                {{ 'wjpc_hub.puzzles.fastest_pair'|trans }} <span class="text-nowrap">{{ puzzle.fastestTimeDuo|puzzlingTime }}</span>
+                                            {% elseif puzzle.fastestTimeTeam is not null %}
+                                                {{ 'wjpc_hub.puzzles.fastest_team'|trans }} <span class="text-nowrap">{{ puzzle.fastestTimeTeam|puzzlingTime }}</span>
+                                            {% else %}
+                                                <span class="text-muted">{{ 'wjpc_hub.puzzles.no_times'|trans }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endfor %}
+    {% endif %}
+
     <h2 class="h4 mt-4">{{ 'wjpc_hub.participate.heading'|trans }}</h2>
     <p>{{ 'wjpc_hub.participate.p1'|trans({'%official_link%': 'https://worldjigsawpuzzle.org?utm_source=myspeedpuzzling'})|raw }}</p>
     <p>{{ 'wjpc_hub.participate.p2'|trans({'%events_link%': path('events')})|raw }}</p>

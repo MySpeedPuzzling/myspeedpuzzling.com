@@ -3,13 +3,17 @@
 {% set currentLadder = app.request.attributes.get('_route') %}
 {% set type = currentLadder starts with 'ladder_solo' ? 'solo' : (currentLadder starts with 'ladder_pairs' ? 'pairs' : 'groups') %}
 {% set pieces = currentLadder matches '/1000/' ? 1000 : 500 %}
-{% set category_label = ('ladder.' ~ (type == 'solo' ? 'solo' : type == 'pairs' ? 'duo' : 'team'))|trans %}
+{# The country in the page's language ("Tschechien" on /de/) - intl knows every CountryCode case #}
+{% set country_label = active_country ? active_country.name|upper|country_name : null %}
+{# Titles answer the "fastest {N}-piece puzzle" / "record" searches these tables are the answer to #}
+{% set records_key = 'ladder.meta.records.' ~ type ~ (active_country ? '.title_country' : '.title') %}
+{% set records_title = records_key|trans({'%pieces%': pieces, '%country%': country_label}) %}
 
-{% block title %}{{ 'ladder.meta.title_per_pieces'|trans({'%pieces%': pieces, '%category%': category_label}) }}{% endblock %}
-{% block meta_description %}{{ 'ladder.meta.description_per_pieces'|trans({'%pieces%': pieces, '%category%': category_label}) }}{% endblock %}
+{% block title %}{{ records_title }}{% endblock %}
+{% block meta_description %}{{ ('ladder.meta.records.' ~ type ~ (active_country ? '.description_country' : '.description'))|trans({'%pieces%': pieces, '%country%': country_label}) }}{% endblock %}
 
 {% block content %}
-    <h1 class="mb-4">{{ 'ladder.meta.title_per_pieces'|trans({'%pieces%': pieces, '%category%': category_label}) }} <span class="h3"><span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span></span></h1>
+    <h1 class="mb-4">{{ records_title }} <span class="h3"><span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span></span></h1>
 
     {{ include('_ladder_dropdown.html.twig') }}
 

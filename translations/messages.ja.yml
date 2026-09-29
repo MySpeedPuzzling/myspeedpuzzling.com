@@ -194,8 +194,22 @@
   "meta":
     "title": "スピードパズルランキング – 最速タイム"
     "description": "世界のスピードパズルランキング：ピース数別・ソロ・ペア・グループのジグソーパズル最速タイム。あなたは何位？"
-    "title_per_pieces": "%pieces%ピースパズルランキング – %category%"
-    "description_per_pieces": "%pieces%ピースパズルの%category%最速タイム トップ100。世界のトップパズラーとあなたのタイムを比べてみましょう。"
+    "records":
+      "solo":
+        "title": "%pieces%ピースパズル最速タイム – ソロ記録"
+        "title_country": "%pieces%ピースパズル最速タイム – ソロ記録（%country%）"
+        "description": "%pieces%ピースのジグソーパズルを1人で完成させる最速タイムは？スピードパズルのソロ記録トップ100をチェックして、あなたのタイムと比べてみましょう。"
+        "description_country": "%country%：%pieces%ピースパズルのソロ最速タイム。国内記録トップ100を、新しいタイムが登録されるたびに更新しています。"
+      "pairs":
+        "title": "%pieces%ピースパズル最速タイム – ペア記録"
+        "title_country": "%pieces%ピースパズル最速タイム – ペア記録（%country%）"
+        "description": "2人で%pieces%ピースのジグソーパズルを完成させる最速タイムは？スピードパズルのペア記録トップ100をチェックして、あなたたちのタイムと比べてみましょう。"
+        "description_country": "%country%：%pieces%ピースパズルのペア最速タイム。国内記録トップ100を、新しいタイムが登録されるたびに更新しています。"
+      "groups":
+        "title": "%pieces%ピースパズル最速タイム – チーム記録"
+        "title_country": "%pieces%ピースパズル最速タイム – チーム記録（%country%）"
+        "description": "チームで%pieces%ピースのジグソーパズルを完成させる最速タイムは？スピードパズルのチーム記録トップ100をチェックして、あなたのチームのタイムと比べてみましょう。"
+        "description_country": "%country%：%pieces%ピースパズルのチーム最速タイム。国内記録トップ100を、新しいタイムが登録されるたびに更新しています。"
   "overview": "概要"
   "recent_activity": "最近追加されたタイム"
   "solo": "ソロ"

@@ -2,9 +2,8 @@
 
 <div class="dropdown d-inline-block">
     <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-        {% if currentLadder starts with 'ladder' %}
-            {{ 'ladder.overview'|trans }}
-        {% elseif currentLadder starts with 'ladder_solo_500_pieces' %}
+        {# Every ladder route starts with "ladder", so the overview is the fallback, not the first test #}
+        {% if currentLadder starts with 'ladder_solo_500_pieces' %}
             {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
         {% elseif currentLadder starts with 'ladder_solo_1000_pieces' %}
             {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
@@ -16,6 +15,8 @@
             {{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
         {% elseif currentLadder starts with 'ladder_groups_1000_pieces' %}
             {{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
+        {% else %}
+            {{ 'ladder.overview'|trans }}
         {% endif %}
     </button>
     <div class="dropdown-menu">

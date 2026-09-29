@@ -216,8 +216,22 @@ ladder:
     meta:
         title: "Speed Puzzling Leaderboard – Fastest Times"
         description: "Global speed puzzling leaderboard: the fastest jigsaw puzzle solve times ranked by pieces, solo, pairs and groups. Where do you rank?"
-        title_per_pieces: "%pieces%-Piece Puzzle Leaderboard – %category%"
-        description_per_pieces: "Top 100 fastest %category% speed puzzling times for %pieces%-piece jigsaw puzzles. Compare your solve time with the world's best."
+        records:
+            solo:
+                title: "Fastest %pieces%-Piece Puzzle Times – Solo Records"
+                title_country: "Fastest %pieces%-Piece Puzzle Times – Solo Records (%country%)"
+                description: "What's the fastest time to solve a %pieces%-piece jigsaw puzzle alone? See the top 100 solo speed puzzling records and compare your own time."
+                description_country: "%country%: the fastest solo %pieces%-piece jigsaw puzzle times – the top 100 national records, updated with every new time."
+            pairs:
+                title: "Fastest %pieces%-Piece Puzzle Times – Pair Records"
+                title_country: "Fastest %pieces%-Piece Puzzle Times – Pair Records (%country%)"
+                description: "How fast can two people solve a %pieces%-piece jigsaw puzzle? See the top 100 pair speed puzzling records and compare your duo's time."
+                description_country: "%country%: the fastest %pieces%-piece jigsaw puzzle times by pairs – the top 100 national records, updated with every new time."
+            groups:
+                title: "Fastest %pieces%-Piece Puzzle Times – Team Records"
+                title_country: "Fastest %pieces%-Piece Puzzle Times – Team Records (%country%)"
+                description: "How fast can a team solve a %pieces%-piece jigsaw puzzle? See the top 100 team speed puzzling records and compare your team's time."
+                description_country: "%country%: the fastest %pieces%-piece jigsaw puzzle times by teams – the top 100 national records, updated with every new time."
     overview: "Overview"
     recent_activity: "Recently Added Times"
     solo: "Solo"

@@ -4,7 +4,11 @@
 {% block meta_description %}{{ 'ladder.meta.description'|trans }}{% endblock %}
 
 {% block content %}
-    <h1><span class="me-3">{{ 'ladder.title'|trans }}</span> {{ include('_ladder_dropdown.html.twig') }}</h1>
+    {# The category dropdown sits next to the heading, not inside it: every menu item used to end up in the H1 text #}
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+        <h1 class="mb-0">{{ 'ladder.title'|trans }}</h1>
+        {{ include('_ladder_dropdown.html.twig') }}
+    </div>
 
     <div class="alert alert-primary small d-flex justify-content-between align-items-center mb-4" role="alert">
         <div>

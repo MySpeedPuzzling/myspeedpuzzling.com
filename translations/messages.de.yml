@@ -192,8 +192,22 @@
   "meta":
     "title": "Speed Puzzle Bestenliste – Schnellste Zeiten"
     "description": "Die weltweite Speed Puzzle Bestenliste: die schnellsten Puzzle-Legezeiten nach Teilezahl, solo, zu zweit und in Gruppen. Wo stehen Sie?"
-    "title_per_pieces": "Puzzle-Bestenliste %pieces% Teile – %category%"
-    "description_per_pieces": "Die Top 100 schnellsten %category% Speed Puzzle Zeiten für Puzzles mit %pieces% Teilen. Vergleichen Sie Ihre Zeit mit den Besten der Welt."
+    "records":
+      "solo":
+        "title": "Schnellste Zeiten für %pieces%-Teile-Puzzles – Solo-Rekorde"
+        "title_country": "Schnellste Zeiten für %pieces%-Teile-Puzzles – Solo-Rekorde (%country%)"
+        "description": "Wie schnell lässt sich ein %pieces%-Teile-Puzzle allein legen? Die Top 100 Solo-Rekorde im Speed Puzzling – vergleichen Sie Ihre eigene Zeit."
+        "description_country": "%country%: die schnellsten Solo-Zeiten für %pieces%-Teile-Puzzles – die Top 100 nationalen Rekorde, bei jeder neuen Zeit aktualisiert."
+      "pairs":
+        "title": "Schnellste Zeiten für %pieces%-Teile-Puzzles – Paar-Rekorde"
+        "title_country": "Schnellste Zeiten für %pieces%-Teile-Puzzles – Paar-Rekorde (%country%)"
+        "description": "Wie schnell legen zwei Personen ein %pieces%-Teile-Puzzle? Die Top 100 Paar-Rekorde im Speed Puzzling – vergleichen Sie die Zeit Ihres Duos."
+        "description_country": "%country%: die schnellsten Paar-Zeiten für %pieces%-Teile-Puzzles – die Top 100 nationalen Rekorde, bei jeder neuen Zeit aktualisiert."
+      "groups":
+        "title": "Schnellste Zeiten für %pieces%-Teile-Puzzles – Team-Rekorde"
+        "title_country": "Schnellste Zeiten für %pieces%-Teile-Puzzles – Team-Rekorde (%country%)"
+        "description": "Wie schnell legt ein Team ein %pieces%-Teile-Puzzle? Die Top 100 Team-Rekorde im Speed Puzzling – vergleichen Sie die Zeit Ihres Teams."
+        "description_country": "%country%: die schnellsten Team-Zeiten für %pieces%-Teile-Puzzles – die Top 100 nationalen Rekorde, bei jeder neuen Zeit aktualisiert."
   "overview": "Übersicht"
   "recent_activity": "Kürzlich hinzugefügte Zeiten"
   "solo": "Solo"

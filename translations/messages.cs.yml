@@ -193,8 +193,22 @@
   "meta":
     "title": "Speed puzzling žebříček – Nejrychlejší časy"
     "description": "Světový speed puzzling žebříček: nejrychlejší časy skládání puzzle podle počtu dílků, sólo, ve dvojicích i týmech. Kde se umístíš ty?"
-    "title_per_pieces": "Žebříček puzzle %pieces% dílků – %category%"
-    "description_per_pieces": "Top 100 nejrychlejších časů %category% ve skládání puzzle o %pieces% dílcích. Porovnej svůj čas s nejlepšími na světě."
+    "records":
+      "solo":
+        "title": "Nejrychlejší časy puzzle %pieces% dílků – rekordy jednotlivců"
+        "title_country": "Nejrychlejší časy puzzle %pieces% dílků – rekordy jednotlivců (%country%)"
+        "description": "Jaký je nejrychlejší čas složení puzzle o %pieces% dílcích? Top 100 rekordů jednotlivců ve speed puzzlingu – porovnej s nimi svůj čas."
+        "description_country": "%country%: nejrychlejší časy jednotlivců v puzzle o %pieces% dílcích – top 100 národních rekordů, aktualizovaných s každým novým časem."
+      "pairs":
+        "title": "Nejrychlejší časy puzzle %pieces% dílků – rekordy dvojic"
+        "title_country": "Nejrychlejší časy puzzle %pieces% dílků – rekordy dvojic (%country%)"
+        "description": "Jak rychle zvládnou dva lidé složit puzzle o %pieces% dílcích? Top 100 rekordů dvojic ve speed puzzlingu – porovnej s nimi čas vaší dvojice."
+        "description_country": "%country%: nejrychlejší časy dvojic v puzzle o %pieces% dílcích – top 100 národních rekordů, aktualizovaných s každým novým časem."
+      "groups":
+        "title": "Nejrychlejší časy puzzle %pieces% dílků – rekordy týmů"
+        "title_country": "Nejrychlejší časy puzzle %pieces% dílků – rekordy týmů (%country%)"
+        "description": "Jak rychle zvládne tým složit puzzle o %pieces% dílcích? Top 100 týmových rekordů ve speed puzzlingu – porovnej s nimi čas svého týmu."
+        "description_country": "%country%: nejrychlejší časy týmů v puzzle o %pieces% dílcích – top 100 národních rekordů, aktualizovaných s každým novým časem."
   "overview": "Přehled"
   "recent_activity": "Poslední přidané časy"
   "solo": "Solo"

@@ -194,8 +194,22 @@
   "meta":
     "title": "Ranking de Speed Puzzling – Tiempos más rápidos"
     "description": "El ranking mundial de speed puzzling: los tiempos más rápidos armando puzzles contrarreloj por número de piezas, en solitario, en pareja y en grupo. ¿Dónde quedas tú?"
-    "title_per_pieces": "Ranking de puzzles de %pieces% piezas – %category%"
-    "description_per_pieces": "El top 100 de los tiempos %category% más rápidos de speed puzzling para puzzles de %pieces% piezas. Compara tu tiempo con los mejores del mundo."
+    "records":
+      "solo":
+        "title": "Tiempos más rápidos en puzzles de %pieces% piezas – Récords individuales"
+        "title_country": "Tiempos más rápidos en puzzles de %pieces% piezas – Récords individuales (%country%)"
+        "description": "¿Cuál es el récord para armar un puzzle de %pieces% piezas en solitario? Descubre el top 100 de tiempos individuales de speed puzzling y compara el tuyo."
+        "description_country": "%country%: los tiempos individuales más rápidos en puzzles de %pieces% piezas, el top 100 de récords nacionales, actualizado con cada nuevo tiempo."
+      "pairs":
+        "title": "Tiempos más rápidos en puzzles de %pieces% piezas – Récords en pareja"
+        "title_country": "Tiempos más rápidos en puzzles de %pieces% piezas – Récords en pareja (%country%)"
+        "description": "¿Qué tan rápido pueden dos personas armar un puzzle de %pieces% piezas? Descubre el top 100 de récords en pareja de speed puzzling y compara el de tu dúo."
+        "description_country": "%country%: los tiempos en pareja más rápidos en puzzles de %pieces% piezas, el top 100 de récords nacionales, actualizado con cada nuevo tiempo."
+      "groups":
+        "title": "Tiempos más rápidos en puzzles de %pieces% piezas – Récords por equipos"
+        "title_country": "Tiempos más rápidos en puzzles de %pieces% piezas – Récords por equipos (%country%)"
+        "description": "¿Qué tan rápido puede un equipo armar un puzzle de %pieces% piezas? Descubre el top 100 de récords por equipos de speed puzzling y compara el de tu equipo."
+        "description_country": "%country%: los tiempos por equipos más rápidos en puzzles de %pieces% piezas, el top 100 de récords nacionales, actualizado con cada nuevo tiempo."
   "overview": "Resumen"
   "recent_activity": "Tiempos Añadidos Recientemente"
   "solo": "Solo"

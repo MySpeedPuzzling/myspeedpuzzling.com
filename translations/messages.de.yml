@@ -3248,7 +3248,7 @@ qr_code:
     "empty": "Die WJPC-Eventseiten sind in Vorbereitung. Stöbere in der Zwischenzeit in unserem <a href=\"%events_link%\">Veranstaltungskalender</a>."
   "puzzles":
     "heading": "Alle Puzzles der Puzzle Weltmeisterschaft"
-    "intro": "Alle Puzzles, die bei der Puzzle Weltmeisterschaft gelegt wurden – Ausgabe für Ausgabe, die neueste zuerst, mit der Median- und der schnellsten Solo-Zeit, die Puzzler auf MySpeedPuzzling eingetragen haben. Öffne ein Puzzle, um die komplette Rangliste zu sehen."
+    "intro": "Alle Puzzles, die bei der Puzzle Weltmeisterschaft gelegt wurden – Ausgabe für Ausgabe, die neueste zuerst, mit Median und Bestzeit der Solo-Zeiten, die Puzzler auf MySpeedPuzzling eingetragen haben. Öffne ein Puzzle, um die komplette Rangliste zu sehen."
     "edition_heading": "Puzzles der %edition%"
     "fastest_pair": "Schnellstes Paar:"
     "fastest_team": "Schnellstes Team:"

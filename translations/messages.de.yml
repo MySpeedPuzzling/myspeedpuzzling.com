@@ -3184,6 +3184,7 @@ auth:
     social:
         or_continue_with: "oder weiter mit"
         continue_with: "Weiter mit %provider%"
+        facebook_hint: "Meta-Konto - auch für Instagram-Nutzer"
         attempt_expired: "Dieser Anmeldeversuch ist abgelaufen oder wurde bereits verwendet. Bitte versuchen Sie es erneut."
         confirm:
             title: "Neues Konto erstellen?"

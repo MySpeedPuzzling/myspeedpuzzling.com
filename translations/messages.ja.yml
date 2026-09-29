@@ -3175,6 +3175,7 @@ qr_code:
   "social":
     "or_continue_with": "または次の方法で続ける"
     "continue_with": "%provider%で続ける"
+    "facebook_hint": "Metaアカウント - Instagramユーザーもこちら"
     "attempt_expired": "このサインインの試行は期限切れか、すでに使用されています。もう一度お試しください。"
     "confirm":
       "title": "新しいアカウントを作成しますか？"

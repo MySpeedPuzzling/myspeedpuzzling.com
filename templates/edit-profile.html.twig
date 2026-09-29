@@ -265,6 +265,9 @@
                             </a>
                         {% endif %}
                     </div>
+                    {% if social_login_facebook_enabled and 'facebook' not in connected_providers %}
+                        <div class="text-muted fs-xs mt-1">Facebook: {{ 'auth.social.facebook_hint'|trans }}</div>
+                    {% endif %}
                 </div>
             {% endif %}
 

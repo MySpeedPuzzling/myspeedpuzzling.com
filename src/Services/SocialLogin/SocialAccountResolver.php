@@ -31,7 +31,9 @@ final readonly class SocialAccountResolver
     // Error messages double as translation keys in the `security` domain,
     // rendered on the login page - same pattern as LoginFormAuthenticator
     public const string ERROR_SIGN_IN_AND_CONNECT = 'An account with this email address already exists. Sign in with your password first, then connect %provider% in your profile settings.';
-    public const string ERROR_NO_EMAIL = '%provider% did not share an email address with us, so we cannot sign you in this way. Please sign in another way.';
+    // Facebook re-asks for a declined email permission (auth_type=rerequest,
+    // SocialLoginProviders::authorizationOptions()), so "try again" really helps
+    public const string ERROR_NO_EMAIL = '%provider% did not share an email address with us, so we cannot sign you in this way. Please try again and allow access to your email address when %provider% asks - or sign in another way.';
 
     public function __construct(
         private OauthIdentityRepository $oauthIdentityRepository,

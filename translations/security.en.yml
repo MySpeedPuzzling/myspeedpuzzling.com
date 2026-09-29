@@ -7,4 +7,4 @@
 # provider email matching an existing account) deliberately names the way out;
 # everything else stays on Symfony's generic message (anti-enumeration).
 "An account with this email address already exists. Sign in with your password first, then connect %provider% in your profile settings.": "An account with this email address already exists. Sign in with your password first, then connect %provider% in your profile settings."
-"%provider% did not share an email address with us, so we cannot sign you in this way. Please sign in another way.": "%provider% did not share an email address with us, so we cannot sign you in this way. Please sign in another way."
+"%provider% did not share an email address with us, so we cannot sign you in this way. Please try again and allow access to your email address when %provider% asks - or sign in another way.": "%provider% did not share an email address with us, so we cannot sign you in this way. Please try again and allow access to your email address when %provider% asks - or sign in another way."

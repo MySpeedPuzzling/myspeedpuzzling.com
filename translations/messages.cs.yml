@@ -3182,6 +3182,7 @@ auth:
     social:
         or_continue_with: "nebo pokračujte přes"
         continue_with: "Pokračovat přes %provider%"
+        facebook_hint: "Účet Meta - i pro uživatele Instagramu"
         attempt_expired: "Tento pokus o přihlášení vypršel nebo už byl použit. Zkuste to prosím znovu."
         confirm:
             title: "Vytvořit nový účet?"

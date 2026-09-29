@@ -182,7 +182,7 @@ Deliberately not done (see `docs/TODO.md`): Gmail dot/plus normalisation of prov
 
 **Google** (easiest — do first): standard OIDC; verify `email_verified`; use PKCE.
 
-**Facebook**: `public_profile` + `email` permissions need no App Review; the app must be switched to Live mode. Some users deny the email permission → treat like unverified email (refuse with the "use email sign-in link" message). App must have a privacy policy URL configured.
+**Facebook**: `public_profile` + `email` permissions need no App Review; the app must be switched to Live mode. Some users deny the email permission → treat like unverified email (refuse with the "use email sign-in link" message). App must have a privacy policy URL configured. Both start routes send `auth_type=rerequest` (`SocialLoginProviders::authorizationOptions()`) so a retry re-asks for a once-declined email; Graph API pinned to `v26.0` (safe until July 2028 at the earliest). Console click-path + go-live checklist: `setup-facebook.md`.
 
 ### UI
 

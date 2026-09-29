@@ -3184,6 +3184,7 @@ fair_use_policy:
   "social":
     "or_continue_with": "o continúa con"
     "continue_with": "Continuar con %provider%"
+    "facebook_hint": "Cuenta de Meta - también para usuarios de Instagram"
     "attempt_expired": "Ese intento de inicio de sesión ha caducado o ya se ha usado. Por favor, inténtalo de nuevo."
     "confirm":
       "title": "¿Crear una cuenta nueva?"

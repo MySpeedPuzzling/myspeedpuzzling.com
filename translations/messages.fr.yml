@@ -3186,6 +3186,7 @@ edition:
   "social":
     "or_continue_with": "ou continuer avec"
     "continue_with": "Continuer avec %provider%"
+    "facebook_hint": "Compte Meta - aussi pour les utilisateurs d'Instagram"
     "attempt_expired": "Cette tentative de connexion a expiré ou a déjà été utilisée. Veuillez réessayer."
     "confirm":
       "title": "Créer un nouveau compte ?"

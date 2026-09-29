@@ -59,7 +59,9 @@ final class SocialLoginStartController extends AbstractController
         }
 
         $leagueProvider = $this->socialLoginProviders->create($oauthProvider);
-        $authorizationUrl = $leagueProvider->getAuthorizationUrl();
+        $authorizationUrl = $leagueProvider->getAuthorizationUrl(
+            $this->socialLoginProviders->authorizationOptions($oauthProvider),
+        );
 
         $this->stateStore->storeState($leagueProvider->getState(), new OauthFlowState(
             provider: $oauthProvider,

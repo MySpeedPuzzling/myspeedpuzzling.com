@@ -1,73 +1,136 @@
 # Social login setup — Facebook (Meta)
 
-Step-by-step console setup for "Continue with Facebook" (auth hardening PR 2, #175). Code side is done and deployed dark; this guide covers the Meta developer console and Infisical.
+Exact click-path for "Continue with Facebook" in today's (2026) **use-case based** Meta developer dashboard, plus the secrets hand-off and the go-live checklist. The code is done and deployed dark (auth hardening PR 2 #175, hardening 2026-09-29).
 
-**Do this one second**, after Google.
+## Read this first
 
-One thing up front: **Instagram sign-in does not exist anymore** — Meta shut down the Instagram Basic Display API in December 2024 and Instagram has no identity provider. Facebook Login is Meta's offering. The MySpeedPuzzling Instagram page cannot be used for auth; the **Facebook page** is useful though — link it to the app (and to a Meta Business portfolio if asked) for trust and as the app's public face.
+- **Instagram sign-in does not exist for us.** The Instagram Basic Display API was shut down in December 2024; "Instagram Login" is for business/creator accounts only and returns no e-mail. Facebook Login is Meta's consumer sign-in, so the button says **"Continue with Facebook"** with a small hint *"Meta account - also for Instagram users"*.
+- **Create the app once and never recreate it.** Facebook gives every user an *app-scoped* ID - a different number per app. We store that ID (`oauth_identity.provider_user_id`); a new app = new IDs = every Facebook-linked player loses their sign-in. Rotating the **secret** is harmless; deleting/recreating the **app** is not.
+- Permissions we ask for: `public_profile` + `email` only. Both are usable by everyone without App Review.
+- We trust the e-mail Facebook gives us (Graph only returns confirmed addresses). A user who unticks the e-mail permission is refused with "…did not share an email address… try again and allow access". Because we send `auth_type=rerequest`, trying again **does** show the e-mail question again (without it Facebook never re-asks).
+- Graph API version: `v26.0` (`SocialLoginProviders::FACEBOOK_GRAPH_API_VERSION`). Released 2026-07-29; Meta keeps each version at least 2 years, so it is safe until **July 2028 at the earliest** (the exact date appears on <https://developers.facebook.com/docs/graph-api/changelog/versions/> once v27 ships). Meta e-mails the app admins before a version expires — then bump the constant (one line).
 
 ## Values you will need
 
 | What | Value |
 |---|---|
-| Production redirect URI | `https://myspeedpuzzling.com/login/social/facebook/callback` |
-| Local dev | works automatically while the app is in Development Mode — Meta exempts `localhost` from the redirect allowlist there |
-| Permissions the app requests | `public_profile`, `email` (both default-access — **no App Review needed**) |
+| Valid OAuth Redirect URI | `https://myspeedpuzzling.com/login/social/facebook/callback` (route `social_login_callback`; login *and* "connect from settings" both come back here) |
+| App domain | `myspeedpuzzling.com` |
 | Privacy policy URL | `https://myspeedpuzzling.com/en/privacy-policy` |
-| Terms URL | `https://myspeedpuzzling.com/en/terms-of-service` |
-| Env vars (Infisical) | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `SOCIAL_LOGIN_FACEBOOK_ENABLED` |
+| Terms of Service URL | `https://myspeedpuzzling.com/en/terms-of-service` |
+| Data deletion instructions URL | `https://myspeedpuzzling.com/en/data-deletion` (`DataDeletionController`) |
+| Contact e-mail | `jan@myspeedpuzzling.com` |
+| App icon | square PNG **1024 × 1024** (the repo has only a 512 px icon - export the logo at 1024) |
+| Env vars the app reads | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `SOCIAL_LOGIN_FACEBOOK_ENABLED` (+ global `SOCIAL_LOGIN_ADMIN_ONLY`) - see `config/services.php` |
+| Local dev | nothing to set up: while an app is in Development mode Meta allows `localhost` redirect URIs automatically |
 
-## 1. Create the app
+## 1. Create the app (Jan, ~10 min)
 
-1. Open <https://developers.facebook.com/apps/> (log in with the account that admins the MySpeedPuzzling Facebook page).
-2. **Create app**. Meta's wizard changes wording every year; the thing to pick is the **"Authenticate and request data from users with Facebook Login"** use case (older UIs call this a *Consumer* app type). Avoid the business-asset/marketing use cases.
-3. App name `MySpeedPuzzling`, contact email. If the wizard offers to connect a **business portfolio**, connecting the one that owns the Facebook page is fine (and helps credibility); it is not required for `email` + `public_profile`.
+1. Open <https://developers.facebook.com/apps/>, logged in as the Facebook account that is admin of the MySpeedPuzzling Facebook page. If asked, register as a developer (phone/e-mail confirmation).
+2. Click **Create app**. The wizard has five steps:
+   1. **App details** - App name `MySpeedPuzzling`, App contact email `jan@myspeedpuzzling.com` → **Next**.
+   2. **Use cases** - tick **"Authenticate and request data from users with Facebook Login"** (filter "All" if you do not see it). Nothing else. → **Next**.
+      Do *not* pick "Facebook Login for Business" or any Pages/Marketing/Instagram use case.
+   3. **Business** - choose **"I don't want to connect a business portfolio yet."** → **Next**. (Connecting the portfolio that owns the Facebook page is also fine; not needed for our two permissions.)
+   4. **Requirements** - informational → **Next**.
+   5. **Overview** - check and click **Create app** (asks for your Facebook password).
+3. You land on the app **Dashboard**. The app is now in **Development** mode (unpublished) - only people with a role on the app can sign in. That is fine for now.
 
-## 2. Basic settings
+## 2. Use case → permissions + redirect URI
 
-**App settings → Basic**:
+Left menu **Use cases** → on the "Authenticate and request data from users with Facebook Login" row click **Customize**.
 
+**Permissions** tab:
+
+- `public_profile` - already added.
+- `email` - click **Add**. Both rows must end up added (status "Ready for testing"; "Advanced access" once Live). If the access level column shows *Standard access*, switch it to **Advanced access** - consumer apps are pre-approved for these two.
+
+**Settings** tab (label may read *Go to settings* / *Facebook Login settings*), section **Client OAuth settings**:
+
+| Setting | Value |
+|---|---|
+| Client OAuth login | **Yes** |
+| Web OAuth login | **Yes** |
+| Enforce HTTPS | **Yes** |
+| Force Web OAuth reauthentication | No |
+| Embedded browser OAuth login | No |
+| Use Strict Mode for redirect URIs | **Yes** (if the toggle is shown; newer apps have it always on) |
+| Valid OAuth Redirect URIs | `https://myspeedpuzzling.com/login/social/facebook/callback` - exactly this, nothing else |
+| Login from Devices | No |
+| Login with the JavaScript SDK | No (we use the server-side redirect flow) |
+
+Click **Save changes** at the bottom. (There is a "Redirect URI Validator" box on the same page - paste the URL there to double-check it says valid.)
+
+## 3. App settings → Basic
+
+Left menu **App settings → Basic**:
+
+- **App ID** - shown at the top (a number). You will copy it in §6.
+- **App secret** - `●●●●●●` → **Show** asks for your Facebook password again. You will copy it in §6.
+- **Display name**: `MySpeedPuzzling`
 - **App domains**: `myspeedpuzzling.com`
-- **Privacy policy URL** and **Terms of service URL**: the two links above (both are required before the app can go Live)
-- **User data deletion**: choose *Data deletion instructions URL* and point it at `https://myspeedpuzzling.com/en/data-deletion` (`DataDeletionController`, all 6 locales: self-service deletion steps, what goes, disconnecting a provider, removing the app on Facebook's side, contact e-mail; users delete themselves in profile settings — full GDPR wipe including the linked identity)
-- **App icon** (1024×1024) + **Category** (e.g. *Entertainment* or *Lifestyle*)
-- **Website**: add platform *Website* with `https://myspeedpuzzling.com` if the console asks for a platform
+- **Contact email**: `jan@myspeedpuzzling.com`
+- **Privacy policy URL**: `https://myspeedpuzzling.com/en/privacy-policy`
+- **Terms of Service URL**: `https://myspeedpuzzling.com/en/terms-of-service`
+- **User data deletion**: in the dropdown pick **Data deletion instructions URL** and enter `https://myspeedpuzzling.com/en/data-deletion`
+- **App icon (1024 x 1024)**: upload the icon.
+- **Category**: *Entertainment* (or *Lifestyle*).
+- Bottom of the page: **+ Add platform** → **Website** → Site URL `https://myspeedpuzzling.com/` (only if the page asks for a platform).
 
-## 3. Facebook Login settings
+**Save changes.**
 
-**Products → Facebook Login → Settings** (add the product first if the use-case wizard did not):
+## 4. Publish (go Live)
 
-- Client OAuth login: **ON**
-- Web OAuth login: **ON**
-- Enforce HTTPS: **ON**
-- **Valid OAuth Redirect URIs**: `https://myspeedpuzzling.com/login/social/facebook/callback`
-- Everything else (embedded browser, device login, deauthorize callback) stays off/empty.
+Left menu **Publish** (older layouts: the *App mode* toggle Development → Live at the top). The page lists what is still missing - normally only the §3 fields. When everything is ticked, click **Publish**.
 
-## 4. Permissions
+- **Business verification is not expected** for `email` + `public_profile`. If Meta nevertheless insists on it before publishing (Meta's docs say advanced access "may" need a verified business), **stop and tell Claude** - that is a decision (MySpeedPuzzling business documents), not a click.
+- Being Live does *not* turn anything on in MySpeedPuzzling - the feature flag does (§7).
 
-Nothing to do: `public_profile` and `email` have default access and skip App Review entirely. You can confirm under **App Review → Permissions and features** — both should show as available/granted automatically.
+## 5. Keep it healthy (yearly)
 
-## 5. Go Live
+- **Data Use Checkup**: once a year Meta e-mails the app admins and shows a banner under **Required actions** in the dashboard. Answer it (we use `email` + `public_profile` to create/sign in the account; no data shared with third parties). If it is ignored, Meta restricts the app → Facebook sign-in stops working.
+- **Graph API version expiry**: when Meta e-mails that `v26.0` is expiring, ask Claude to bump `SocialLoginProviders::FACEBOOK_GRAPH_API_VERSION`.
+- Keep a second admin on the app (**App roles → Roles → Add people**) so the app is not lost with one Facebook account.
 
-Flip the **App Mode** toggle (top bar) from Development to **Live**. The console will refuse until §2 is complete (privacy policy + data deletion). Business verification is **not** required for these permissions.
+## 6. Secrets hand-off (Jan → Claude)
 
-## 6. Secrets + flag flip (Infisical)
+1. In **App settings → Basic** copy the **App ID** and (after **Show** + password) the **App secret**.
+2. Put them into `~/.msp-secrets/social-login.env` - a plain `KEY=value` file **outside any git repository** (create the folder if it does not exist; never commit it, never paste the values into chat):
+   ```
+   FACEBOOK_APP_ID=1234567890123456
+   FACEBOOK_APP_SECRET=0123456789abcdef0123456789abcdef
+   ```
+3. Tell Claude "Facebook secrets are in ~/.msp-secrets/social-login.env".
 
-1. **App settings → Basic**: copy **App ID** and **App secret** (Show → re-enter password).
-2. Infisical: `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, then `SOCIAL_LOGIN_FACEBOOK_ENABLED=1`. Leave `SOCIAL_LOGIN_ADMIN_ONLY=1`.
-3. Redeploy/restart web.
+What the agent then does (procedure: memory `reference_production_access.md`, "Infisical admin from the box"):
 
-## 7. Admin-only verification checklist
+1. Writes `FACEBOOK_APP_ID` and `FACEBOOK_APP_SECRET` to Infisical project **myspeedpuzzling**, environment **prod**, path `/` - **before** any flag changes.
+2. Sets `SOCIAL_LOGIN_FACEBOOK_ENABLED=1` in the same place. **`SOCIAL_LOGIN_ADMIN_ONLY` stays `1`.**
+3. Queues a deploy (`/srv/deploy/queue/myspeedpuzzling.<epoch>.<rand>.job`, `app=myspeedpuzzling` / `tag=main`) so `dump_secrets` renders the new `.env`, and checks the web container sees the values.
+4. The file can stay as your local copy or be deleted once Infisical holds the values (Jan's call).
 
-Same drill as Google (see `setup-google.md` §5), with the direct URL `https://myspeedpuzzling.com/login/social/facebook`. Facebook-specific extras to verify:
+## 7. Admin test checklist (flag on, admin-only)
 
-- On the consent dialog, use **"Edit access"** and *uncheck* the email permission once → MySpeedPuzzling must refuse with the "did not share an email address" message. That is expected product behavior, not a bug.
-- Connect from settings with a Facebook account whose email differs from the admin account email (rule 5 — must link fine).
+While admin-only, no button is shown to anybody (not even admins on /login); admins use the direct URLs. Sign in as an admin account.
+
+1. **Connect from settings**: Edit profile → *Connected sign-in methods* → **Connect Facebook** → Facebook consent → back on edit profile with "Connected!". The Facebook row appears; you get the "new sign-in method linked" notice e-mail.
+2. **Sign in**: sign out, open `https://myspeedpuzzling.com/login/social/facebook` → you are signed in to the same admin account.
+3. **Declined e-mail, then retry**: Disconnect Facebook again (step 5), and in Facebook → Settings → *Apps and websites* remove MySpeedPuzzling so the consent dialog shows. Open `/login/social/facebook`, click **Edit access**, untick *Email address*, continue → back on /login with an error. (While admin-only it is the *generic* failure - the new-account path is closed before the e-mail is checked; the specific "did not share an email address… try again and allow access" text shows after the public flip.) Now start `/login/social/facebook` again → **Facebook asks for the e-mail again** - that is the point of `auth_type=rerequest`. Allow it → you are signed in (the Facebook e-mail equals your verified admin e-mail → auto-link) or, if the e-mails differ, you get "sign in with your password first, then connect". Repeat the decline once more after the public flip to see the specific message.
+4. **Cancel**: start `/login/social/facebook` and press **Cancel** / close on Facebook → back on /login with a generic "sign-in failed", nothing created. Same from settings → "Connection cancelled — nothing changed."
+5. **Disconnect**: Edit profile → Disconnect Facebook (only possible when the account has a password or another method).
+6. Reconnect from settings (step 1) so the admin account ends the test linked; the app-scoped ID stays the same across removals, so it is the same identity.
+
+## 8. Public flip
+
+1. Agent sets `SOCIAL_LOGIN_ADMIN_ONLY=0` in Infisical + redeploys. **This flag is shared by all providers** - every provider with its `SOCIAL_LOGIN_*_ENABLED=1` goes public at the same moment, so only flip once Google/Apple (if enabled) passed their checklists too.
+2. Check `/login` and `/register` show "Continue with Facebook" with the Meta/Instagram hint, and sign in with a non-admin Facebook account end-to-end (new account via the "Create a new account?" page).
+
+**Rollback**: `SOCIAL_LOGIN_FACEBOOK_ENABLED=0` in Infisical + redeploy. Buttons disappear, start/callback routes 404; linked identities stay in the database and work again when the flag returns. Players with no password can still sign in with the e-mailed sign-in link.
 
 ## Gotchas
 
-- The Graph API version is pinned to `v23.0` in `src/Services/SocialLogin/SocialLoginProviders.php`. Meta retires versions after ~2 years; when the deprecation emails arrive, bump the constant there — one-line change.
-- Some users legitimately have **no** email on their Facebook account (phone-only signups) — they get the same "did not share an email" refusal. The rescue is the normal email sign-in link.
-- The app secret is shown only after password re-auth; it can be reset in the console (rotating it = update Infisical + restart, old sessions stay valid — the secret is only used server-side for the code exchange).
+- Some Facebook accounts have **no e-mail at all** (phone-only sign-ups). They get the "did not share an email" refusal every time; the rescue is the normal e-mail sign-in link or a Google/Apple account.
+- A redirect URI mismatch shows Facebook's "URL blocked" page — the URI in §2 must match byte for byte (https, no trailing slash, no locale prefix).
+- The secret is used only server-side for the code exchange. Rotating it (App settings → Basic → **Reset**) = update Infisical + redeploy; signed-in players are not affected.
 
-Docs: <https://developers.facebook.com/docs/facebook-login/web>, permission reference: <https://developers.facebook.com/docs/permissions>.
+Docs: [Manually build a login flow](https://developers.facebook.com/docs/facebook-login/guides/advanced/manual-flow/) (incl. `auth_type=rerequest`), [Create an app](https://developers.facebook.com/docs/development/create-an-app/), [Access levels](https://developers.facebook.com/docs/graph-api/overview/access-levels/), [Graph API versions](https://developers.facebook.com/docs/graph-api/changelog/versions/).

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Query;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\CountCompetitionResults;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -42,5 +43,38 @@ final class CountCompetitionResultsTest extends KernelTestCase
     public function testInvalidIdCountsNothing(): void
     {
         self::assertSame(0, $this->query->forCompetition('not-a-uuid'));
+        self::assertSame([], $this->query->perRound('not-a-uuid'));
+    }
+
+    public function testCountsPerRound(): void
+    {
+        self::assertSame(
+            [CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION => 3, CompetitionRoundFixture::ROUND_WJPC_FINAL => 2],
+            self::sorted($this->query->perRound(CompetitionFixture::COMPETITION_WJPC_2024)),
+        );
+    }
+
+    public function testRoundsWithoutResultsAreLeftOut(): void
+    {
+        $this->database->executeStatement(
+            'UPDATE puzzle_solving_time SET suspicious = true WHERE competition_round_id = :roundId',
+            ['roundId' => CompetitionRoundFixture::ROUND_WJPC_FINAL],
+        );
+
+        self::assertSame(
+            [CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION => 3],
+            $this->query->perRound(CompetitionFixture::COMPETITION_WJPC_2024),
+        );
+    }
+
+    /**
+     * @param array<string, int> $counts
+     * @return array<string, int>
+     */
+    private static function sorted(array $counts): array
+    {
+        ksort($counts);
+
+        return $counts;
     }
 }

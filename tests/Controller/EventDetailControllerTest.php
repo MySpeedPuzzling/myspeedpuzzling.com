@@ -299,6 +299,89 @@ final class EventDetailControllerTest extends WebTestCase
         self::assertStringEndsWith('/original/api-reveal-logo.png', $event['image']);
     }
 
+    public function testEventWithoutTaggedPuzzlesListsThePuzzlesOfItsRounds(): void
+    {
+        $browser = self::createClient();
+
+        // No fixture puzzle carries the WJPC tag - the qualification and final rounds have two puzzles each
+        $crawler = $browser->request('GET', '/en/events/wjpc-2024');
+
+        $this->assertResponseIsSuccessful();
+        $order = $crawler->filter('[id^="puzzle-list-item-"]')->each(
+            static fn (Crawler $item): string => (string) $item->attr('id'),
+        );
+        self::assertCount(4, $order);
+        // Latest round first, as for tagged puzzles
+        self::assertEqualsCanonicalizing(
+            ['puzzle-list-item-' . PuzzleFixture::PUZZLE_1000_01, 'puzzle-list-item-' . PuzzleFixture::PUZZLE_1000_02],
+            array_slice($order, 0, 2),
+        );
+        self::assertEqualsCanonicalizing(
+            ['puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01, 'puzzle-list-item-' . PuzzleFixture::PUZZLE_500_02],
+            array_slice($order, 2, 2),
+        );
+        $this->assertSelectorTextContains('#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01, 'Qualification Round');
+        $this->assertSelectorTextNotContains('main', 'No puzzles here');
+    }
+
+    public function testEventWithoutAnyPuzzlesSaysSo(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/en/events/unapproved-puzzle-event');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorNotExists('[id^="puzzle-list-item-"]');
+        $this->assertSelectorTextContains('main', 'No puzzles here');
+    }
+
+    public function testResultsByRoundLinksEveryRoundWithResults(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/events/wjpc-2024');
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame(
+            ['/en/events/wjpc-2024/results/qualification-round', '/en/events/wjpc-2024/results/final-round'],
+            $crawler->filter('[data-event-round-results] a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
+        );
+        $this->assertSelectorTextContains('[data-event-round-results] a', 'Qualification Round');
+    }
+
+    public function testRoundWithoutResultsIsNotListed(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE puzzle_solving_time SET competition_round_id = NULL WHERE competition_round_id = :roundId',
+            ['roundId' => CompetitionRoundFixture::ROUND_WJPC_FINAL],
+        );
+
+        $crawler = $browser->request('GET', '/en/events/wjpc-2024');
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame(
+            ['/en/events/wjpc-2024/results/qualification-round'],
+            $crawler->filter('[data-event-round-results] a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
+        );
+    }
+
+    public function testEventThatIsNotPublicLinksNoRoundResults(): void
+    {
+        $browser = self::createClient();
+        // Its round results pages answer 404
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE competition SET approved_at = NULL WHERE id = :id',
+            ['id' => CompetitionFixture::COMPETITION_WJPC_2024],
+        );
+
+        $browser->request('GET', '/en/events/wjpc-2024');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorNotExists('[data-event-round-results]');
+        $this->assertSelectorNotExists('a[href^="/en/events/wjpc-2024/results/"]');
+    }
+
     private static function addTimeLinkSelector(string $competitionId): string
     {
         return sprintf('a[href$="?competition=%s"]', $competitionId);

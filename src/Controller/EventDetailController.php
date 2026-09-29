@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Query\CountCompetitionResults;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
+use SpeedPuzzling\Web\Query\GetCompetitionPuzzles;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -30,6 +31,7 @@ final class EventDetailController extends AbstractController
 {
     public function __construct(
         readonly private GetCompetitionEvents $getCompetitionEvents,
+        readonly private GetCompetitionPuzzles $getCompetitionPuzzles,
         readonly private GetCompetitionParticipants $getCompetitionParticipants,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
@@ -64,15 +66,22 @@ final class EventDetailController extends AbstractController
             ], Response::HTTP_MOVED_PERMANENTLY);
         }
 
-        $competitionEvent = $this->getCompetitionEvents->byId($competition->id->toString());
+        $competitionId = $competition->id->toString();
+        $competitionEvent = $this->getCompetitionEvents->byId($competitionId);
+        $rounds = $this->getEditionRounds->forCompetition($competitionId);
+        $eventTitle = EventTitle::forCompetition($competitionEvent, null, $rounds, $this->clock->now());
+        $isPubliclyVisible = $this->isCompetitionPubliclyVisible->check($competitionId);
+
         $puzzles = [];
 
         if ($competitionEvent->tagId !== null) {
             $puzzles = $this->getPuzzleOverview->byTagId($competitionEvent->tagId);
         }
 
-        $rounds = $this->getEditionRounds->forCompetition($competition->id->toString());
-        $eventTitle = EventTitle::forCompetition($competitionEvent, null, $rounds, $this->clock->now());
+        // Many organisers never tag their puzzles: then the puzzles of the event's rounds
+        if ($puzzles === []) {
+            $puzzles = $this->getCompetitionPuzzles->roundPuzzleOverviews($competitionId);
+        }
 
         // Which round each puzzle was solved in. The query already applies the round's hide rules,
         // so a puzzle hidden until its round starts gets no round badge either.
@@ -85,13 +94,21 @@ final class EventDetailController extends AbstractController
                 $puzzleRounds[$roundPuzzle->puzzleId][] = $round;
             }
 
-            if ($round->slug !== null) {
+            // Round results pages of an event that is not public answer 404 - no links to them
+            if ($round->slug !== null && $isPubliclyVisible) {
                 $roundResultsUrls[$round->id] = $this->generateUrl('event_round_results', [
                     'slug' => $competition->slug,
                     'roundSlug' => $round->slug,
                 ]);
             }
         }
+
+        // "Results by round": the rounds whose results page has something to show, in schedule order
+        $resultsPerRound = $roundResultsUrls !== [] ? $this->countCompetitionResults->perRound($competitionId) : [];
+        $resultRounds = array_values(array_filter(
+            $rounds,
+            static fn (EditionRoundDetail $round): bool => isset($roundResultsUrls[$round->id]) && ($resultsPerRound[$round->id] ?? 0) > 0,
+        ));
 
         // Latest round first - during a multi-day event the round just played is what visitors look
         // for. Rounds come sorted by start, so the last one is a puzzle's most recent use; puzzles
@@ -120,7 +137,7 @@ final class EventDetailController extends AbstractController
         $playerConnections = [];
         if ($loggedPlayer !== null) {
             $playerConnections = $this->getCompetitionParticipants->getPlayerConnections(
-                $competition->id->toString(),
+                $competitionId,
                 $loggedPlayer->playerId,
             );
         }
@@ -129,16 +146,17 @@ final class EventDetailController extends AbstractController
         // add-time picker offers it) and it has already started — no times for an upcoming event.
         $canAddTime = $loggedPlayer !== null
             && $competitionEvent->startsAfter($this->clock->now()) === false
-            && $this->isCompetitionPubliclyVisible->check($competitionEvent->id);
+            && $isPubliclyVisible;
 
         return $this->render('event_detail.html.twig', [
             'event' => $competitionEvent,
             'event_title' => $eventTitle,
             // Only a past event's meta description quotes the number of results
-            'results_count' => $eventTitle->isPast ? $this->countCompetitionResults->forCompetition($competitionEvent->id) : 0,
+            'results_count' => $eventTitle->isPast ? $this->countCompetitionResults->forCompetition($competitionId) : 0,
             'puzzles' => $puzzles,
             'puzzle_rounds' => $puzzleRounds,
             'round_results_urls' => $roundResultsUrls,
+            'result_rounds' => $resultRounds,
             'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList(array_map(
                 static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId,
                 $puzzles,
@@ -147,7 +165,7 @@ final class EventDetailController extends AbstractController
             'is_going' => count($playerConnections) > 0,
             // "Change" only makes sense while the organizer's list still has someone to switch to
             'can_change_participant' => count($playerConnections) > 0
-                && $this->getCompetitionParticipants->hasNotConnectedParticipants($competition->id->toString()),
+                && $this->getCompetitionParticipants->hasNotConnectedParticipants($competitionId),
             'can_add_time' => $canAddTime,
         ]);
     }

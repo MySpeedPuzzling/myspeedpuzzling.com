@@ -160,6 +160,23 @@
         </div>
     </div>
 
+    {# Rounds whose results page has something to show - the same round links the edition page lists #}
+    {% if result_rounds|length > 0 %}
+        <h2 class="h5 mt-4 mb-3">{{ 'events.results_by_round'|trans }}</h2>
+        <div class="list-group" data-event-round-results>
+            {% for round in result_rounds %}
+                <a class="list-group-item list-group-item-action d-flex flex-wrap align-items-center gap-2" href="{{ round_results_urls[round.id] }}">
+                    <span class="badge" style="background-color: {{ round.color }}; color: {{ round.textColor }};">{{ round.name }}</span>
+                    {% if round.category.value != 'solo' %}
+                        <span class="badge bg-secondary">{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
+                    {% endif %}
+                    <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i') }}</small>
+                    <span class="ms-auto text-nowrap"><i class="bi bi-trophy me-1"></i>{{ 'round_results.link'|trans }}</span>
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
 
     {% if puzzles|length > 0 %}

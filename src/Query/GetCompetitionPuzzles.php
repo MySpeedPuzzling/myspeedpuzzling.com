@@ -6,9 +6,11 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\CompetitionPuzzle;
+use SpeedPuzzling\Web\Results\PuzzleOverview;
 
 /**
  * The puzzles used at competitions - the ones carrying the competition's tag and the ones attached to
@@ -165,5 +167,128 @@ SQL;
         }
 
         return $puzzles;
+    }
+
+    /**
+     * The puzzles of one competition's rounds, each once, in schedule order - for an event page whose
+     * event has no tagged puzzles.
+     *
+     * @return list<PuzzleOverview>
+     */
+    public function roundPuzzleOverviews(string $competitionId): array
+    {
+        if (Uuid::isValid($competitionId) === false) {
+            return [];
+        }
+
+        $columns = self::puzzleOverviewColumns('round_puzzle.image_hidden');
+
+        $query = <<<SQL
+WITH round_puzzle AS (
+    SELECT
+        crp.puzzle_id,
+        MIN(cr.starts_at) AS first_round_starts_at,
+        BOOL_OR(
+            crp.hide_until_round_starts
+            AND cr.starts_at + INTERVAL '10 minutes' > :now::timestamp
+            AND COALESCE(crp.hide_mode, 'entirely') = 'entirely'
+        ) AS hidden_entirely,
+        BOOL_OR(
+            crp.hide_until_round_starts
+            AND cr.starts_at + INTERVAL '10 minutes' > :now::timestamp
+        ) AS image_hidden
+    FROM competition_round cr
+    INNER JOIN competition_round_puzzle crp ON crp.round_id = cr.id
+    WHERE cr.competition_id = :competitionId
+    GROUP BY crp.puzzle_id
+)
+SELECT
+{$columns}
+FROM round_puzzle
+INNER JOIN puzzle ON puzzle.id = round_puzzle.puzzle_id
+INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+LEFT JOIN puzzle_statistics ON puzzle_statistics.puzzle_id = puzzle.id
+WHERE round_puzzle.hidden_entirely = false
+    AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
+ORDER BY round_puzzle.first_round_starts_at, puzzle.name
+SQL;
+
+        return $this->puzzleOverviews($query, ['competitionId' => $competitionId], []);
+    }
+
+    /**
+     * The columns PuzzleOverview::fromDatabaseRow() reads, from `puzzle` joined with manufacturer and
+     * puzzle_statistics; $imageHiddenExpression is the caller's extra rule that drops the image.
+     */
+    private static function puzzleOverviewColumns(string $imageHiddenExpression): string
+    {
+        $imageHidden = "{$imageHiddenExpression} OR (puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp)";
+
+        return <<<SQL
+    puzzle.id AS puzzle_id,
+    puzzle.name AS puzzle_name,
+    CASE WHEN {$imageHidden} THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN {$imageHidden} THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
+    puzzle.hide_image_until,
+    puzzle.hide_until,
+    puzzle.alternative_name AS puzzle_alternative_name,
+    puzzle.pieces_count,
+    puzzle.is_available,
+    puzzle.approved AS puzzle_approved,
+    manufacturer.id AS manufacturer_id,
+    manufacturer.name AS manufacturer_name,
+    manufacturer.slug AS manufacturer_slug,
+    puzzle.ean AS puzzle_ean,
+    puzzle.identification_number AS puzzle_identification_number,
+    COALESCE(puzzle_statistics.solved_times_count, 0) AS solved_times,
+    puzzle_statistics.average_time_solo,
+    puzzle_statistics.fastest_time_solo,
+    puzzle_statistics.average_time_duo,
+    puzzle_statistics.fastest_time_duo,
+    puzzle_statistics.average_time_team,
+    puzzle_statistics.fastest_time_team
+SQL;
+    }
+
+    /**
+     * @param array<string, int|string> $parameters
+     * @param array<string, ParameterType> $types
+     * @return list<PuzzleOverview>
+     */
+    private function puzzleOverviews(string $query, array $parameters, array $types): array
+    {
+        $rows = $this->database
+            ->executeQuery($query, $parameters + ['now' => $this->clock->now()->format('Y-m-d H:i:s')], $types)
+            ->fetchAllAssociative();
+
+        return array_map(static function (array $row): PuzzleOverview {
+            /**
+             * @var array{
+             *     puzzle_id: string,
+             *     puzzle_name: string,
+             *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
+             *     puzzle_alternative_name: null|string,
+             *     puzzle_approved: bool,
+             *     manufacturer_id: string,
+             *     manufacturer_name: string,
+             *     manufacturer_slug: null|string,
+             *     pieces_count: int,
+             *     average_time_solo: null|string,
+             *     fastest_time_solo: null|int,
+             *     average_time_duo: null|string,
+             *     fastest_time_duo: null|int,
+             *     average_time_team: null|string,
+             *     fastest_time_team: null|int,
+             *     solved_times: int,
+             *     is_available: bool,
+             *     puzzle_ean: null|string,
+             *     puzzle_identification_number: null|string,
+             *     hide_image_until: null|string,
+             *     hide_until: null|string,
+             * } $row
+             */
+            return PuzzleOverview::fromDatabaseRow($row);
+        }, $rows);
     }
 }

@@ -560,6 +560,7 @@ events:
     registration_link: "Register"
     recurring: "Recurring events"
     competition_puzzles: "Competition puzzles"
+    results_by_round: "Results by round"
     no_puzzle_text: No puzzles here… yet! Stay tuned
     upcoming_editions: "Upcoming editions"
     past_editions: "Past editions"

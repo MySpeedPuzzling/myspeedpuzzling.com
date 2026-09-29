@@ -3344,6 +3344,8 @@ auth:
         used: "Tenhle kód nebo odkaz ze stejného e-mailu už byl použit. Níže si vyžádejte nový."
         no_pending: "Tento přihlašovací kód už tady neplatí. Níže si vyžádejte nový."
         failed: "To se nepovedlo. Zkuste to prosím znovu."
+        submit: "Ověřit kód"
+        submitting: "Ověřuji…"
 
 newsletter:
     footer:

@@ -967,6 +967,9 @@
 
                     <div class="col-sm-6 mt-4 mt-sm-0">
                         <div class="text-center text-sm-end">
+                            {# Auth pages empty it: its e-mail field is the only other text input
+                               there, and iOS Password AutoFill reads the page as a login form #}
+                            {% block footer_newsletter %}
                             <div class="mx-auto me-sm-0 mb-4" style="max-width: 430px;">
                                 <h2 class="h5 mb-1">{{ 'newsletter.footer.title'|trans }}</h2>
                                 <p class="fs-sm text-muted mb-2">{{ 'newsletter.footer.pitch'|trans }}</p>
@@ -990,6 +993,7 @@
                                     </p>
                                 {% endif %}
                             </div>
+                            {% endblock %}
 
                             <div class="fs-xs text-muted">
                                 <p class="fs-md mb-2">

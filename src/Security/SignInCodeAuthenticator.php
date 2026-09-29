@@ -34,7 +34,7 @@ use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPasspor
  * phase 2), in the browser that asked for it (SignInCodePending) - the in-app
  * browser case, where tapping the link would sign in the phone's own browser.
  *
- * Claims exactly one request: POST /login-link/code. Symfony's RememberMeListener
+ * Claims exactly one request: POST /verify-code. Symfony's RememberMeListener
  * clears the remember-me cookie on every LoginFailureEvent, so an authenticator
  * on `main` must never fail on anything else.
  *

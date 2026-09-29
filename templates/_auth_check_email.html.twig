@@ -28,8 +28,13 @@
 <div class="auth-next-step">
     {% block next_step %}{% endblock %}
 
+    {# Desktop only, and secondary: on a phone this opens the webmail in a new
+       browser tab, not the mail app, and iOS offers the 6-digit code from
+       Apple Mail/Messages, never from webmail - the button would only pull the
+       player away from the code field. "Verify code" stays the one primary
+       action; .auth-webmail-link hides on coarse pointers (_auth.scss). #}
     {% if webmail %}
-        <a class="btn btn-primary w-100 mt-3" href="{{ webmail.inboxUrl }}" target="_blank" rel="noopener">
+        <a class="btn btn-outline-primary w-100 mt-3 auth-webmail-link" href="{{ webmail.inboxUrl }}" target="_blank" rel="noopener">
             {{ 'auth.check_email.open_webmail'|trans({'%provider%': webmail.name}) }}
             <i class="bi bi-box-arrow-up-right ms-2" aria-hidden="true"></i>
         </a>

@@ -3346,6 +3346,8 @@ fair_use_policy:
     "used": "Este código, o el enlace del mismo correo, ya se ha usado. Pide uno nuevo abajo."
     "no_pending": "Ese código de acceso ya no es válido aquí. Pide uno nuevo abajo."
     "failed": "No ha funcionado. Inténtalo de nuevo."
+    "submit": "Verificar código"
+    "submitting": "Verificando…"
 
 newsletter:
     footer:

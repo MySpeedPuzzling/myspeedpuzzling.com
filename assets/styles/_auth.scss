@@ -248,6 +248,14 @@
     background-color: $gray-100;
 }
 
+// "Open Gmail" is a desktop shortcut: on phones it opens the webmail in a
+// browser tab (not the app) and pulls the player away from the code field
+@media (pointer: coarse) {
+    .auth-webmail-link {
+        display: none !important;
+    }
+}
+
 .auth-resend {
     margin-top: 1.5rem;
     padding-top: 1.25rem;

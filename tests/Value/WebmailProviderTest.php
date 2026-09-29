@@ -21,8 +21,6 @@ final class WebmailProviderTest extends TestCase
         yield ['jane@hotmail.co.uk', 'Outlook', 'https://outlook.live.com/mail/'];
         yield ['jane@live.fr', 'Outlook', 'https://outlook.live.com/mail/'];
         yield ['jane@yahoo.com.br', 'Yahoo Mail', 'https://mail.yahoo.com/'];
-        yield ['jane@icloud.com', 'iCloud Mail', 'https://www.icloud.com/mail'];
-        yield ['jane@me.com', 'iCloud Mail', 'https://www.icloud.com/mail'];
         yield ['jana@seznam.cz', 'Seznam Email', 'https://email.seznam.cz/'];
         yield ['jana@email.cz', 'Seznam Email', 'https://email.seznam.cz/'];
     }
@@ -46,5 +44,15 @@ final class WebmailProviderTest extends TestCase
         self::assertNull(WebmailProvider::fromEmail('jane@mail.live.example.org'));
         self::assertNull(WebmailProvider::fromEmail('jane@gmail.com.evil.example'));
         self::assertNull(WebmailProvider::fromEmail('not-an-address'));
+    }
+
+    /**
+     * iCloud users read mail in the iPhone Mail app - icloud.com/mail is no use to them
+     */
+    public function testICloudGetsNoButton(): void
+    {
+        self::assertNull(WebmailProvider::fromEmail('jane@icloud.com'));
+        self::assertNull(WebmailProvider::fromEmail('jane@me.com'));
+        self::assertNull(WebmailProvider::fromEmail('jane@mac.com'));
     }
 }

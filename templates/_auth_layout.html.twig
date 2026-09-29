@@ -10,6 +10,11 @@
 
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
+{# No newsletter e-mail field in the footer: a sign-in page must hold no text
+   input but its own, or iOS Password AutoFill offers the saved login over the
+   one-time code (sign_in_link_sent.html.twig) #}
+{% block footer_newsletter %}{% endblock %}
+
 {% block content %}
     <div class="row pb-2 auth-frame" data-controller="auth-email-handoff last-sign-in">
         <div class="col-md-7 col-lg-6">

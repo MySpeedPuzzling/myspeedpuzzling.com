@@ -99,7 +99,7 @@ return App::config([
                     FacebookLoginAuthenticator::class,
                     AppleLoginAuthenticator::class,
                     // The 6-digit code from the sign-in e-mail: claims only
-                    // POST /login-link/code (auth UX redesign phase 2)
+                    // POST /verify-code (auth UX redesign phase 2)
                     SignInCodeAuthenticator::class,
                 ],
                 // Magic sign-in link (D6): the rescue for anyone without a usable

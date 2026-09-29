@@ -3613,6 +3613,8 @@ auth:
         used: "This code, or the link from the same email, has already been used. Request a new one below."
         no_pending: "That sign-in code is no longer valid here. Request a new one below."
         failed: "That did not work. Please try again."
+        submit: "Verify code"
+        submitting: "Verifying…"
 
 newsletter:
     footer:

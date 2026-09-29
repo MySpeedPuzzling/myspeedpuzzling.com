@@ -20,7 +20,14 @@
            open the phone's own browser. One input, not six boxes (paste, autofill
            and screen readers all need one field). Works without JS; the
            sign-in-code controller only cleans pasted text and submits on the
-           sixth digit. #}
+           sixth digit.
+
+           Nothing here may look like a login form to iOS Password AutoFill,
+           which otherwise pops "Sign in with password for <address>?" (fill
+           username) on load instead of offering only the code: no autofocus
+           (the sheet opens on focus; the controller focuses for mouse users
+           only), no "login"/"sign-in" in the action URL, the field id or the
+           button text, and no other text input in the form. #}
         {% block next_step %}
             {% if alert %}
                 <div class="alert alert-warning" role="alert">{{ alert }}</div>
@@ -33,11 +40,11 @@
                         <input type="hidden" name="return" value="{{ return_path }}">
                     {% endif %}
 
-                    <label class="form-label" for="sign-in-code">{{ 'auth.sign_in_code.label'|trans }}</label>
+                    <label class="form-label" for="one-time-code">{{ 'auth.sign_in_code.label'|trans }}</label>
                     <input
                         class="form-control auth-code-input{{ code_error ? ' is-invalid' : '' }}"
                         type="text"
-                        id="sign-in-code"
+                        id="one-time-code"
                         name="code"
                         inputmode="numeric"
                         autocomplete="one-time-code"
@@ -48,17 +55,16 @@
                         autocorrect="off"
                         spellcheck="false"
                         required
-                        autofocus
                         data-sign-in-code-target="input"
                         data-action="input->sign-in-code#input paste->sign-in-code#paste"
-                        {% if code_error %}aria-invalid="true" aria-describedby="sign-in-code-error"{% endif %}
+                        {% if code_error %}aria-invalid="true" aria-describedby="one-time-code-error"{% endif %}
                     >
                     {% if code_error %}
-                        <div class="invalid-feedback d-block" id="sign-in-code-error">{{ code_error }}</div>
+                        <div class="invalid-feedback d-block" id="one-time-code-error">{{ code_error }}</div>
                     {% endif %}
 
-                    <button type="submit" class="btn btn-primary w-100 mt-3" data-sign-in-code-target="button" data-turbo-submits-with="{{ 'auth.login.submitting'|trans }}">
-                        {{ 'auth.login.submit'|trans }}
+                    <button type="submit" class="btn btn-primary w-100 mt-3" data-sign-in-code-target="button" data-turbo-submits-with="{{ 'auth.sign_in_code.submitting'|trans }}">
+                        {{ 'auth.sign_in_code.submit'|trans }}
                     </button>
                 </form>
 

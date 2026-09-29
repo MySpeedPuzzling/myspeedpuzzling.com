@@ -19,7 +19,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * POST /login-link/code - the 6-digit code form on "Check your email".
+ * POST /verify-code - the 6-digit code form on "Check your email".
  *
  * SignInCodeAuthenticator does the work on the firewall; a success never gets
  * here (it answers 303 itself). This controller only answers a failure: the
@@ -42,7 +42,7 @@ final class SignInCodeController extends AbstractController
     }
 
     #[Route(
-        path: '/login-link/code',
+        path: '/verify-code',
         name: SignInCodeAuthenticator::ROUTE,
         defaults: [NativeAuthPageSubscriber::ROUTE_DEFAULT => true],
         methods: ['POST'],

@@ -57,14 +57,24 @@ final class SignInCodeTest extends WebTestCase
         $this->requestSignIn($browser, $email);
         $crawler = $browser->followRedirect();
 
-        $input = $crawler->filter('form[action="/login-link/code"] input[name="code"]');
+        $input = $crawler->filter('form[action="/verify-code"] input[name="code"]');
         self::assertCount(1, $input);
         self::assertSame('numeric', $input->attr('inputmode'));
         self::assertSame('one-time-code', $input->attr('autocomplete'));
         self::assertSame('[0-9]*', $input->attr('pattern'));
         self::assertSame('6', $input->attr('maxlength'));
         self::assertSame('go', $input->attr('enterkeyhint'));
-        self::assertSame('sign-in-code', $crawler->filter('form[action="/login-link/code"]')->attr('data-controller'));
+        self::assertSame('sign-in-code', $crawler->filter('form[action="/verify-code"]')->attr('data-controller'));
+
+        // iOS Password AutoFill must not take this for a login form (it popped
+        // "fill username" on load): no autofocus, no login wording, no other
+        // text input, nothing asking for a username or password on the page
+        self::assertNull($input->attr('autofocus'));
+        self::assertSame('one-time-code', $input->attr('id'));
+        self::assertSame('Verify code', trim($crawler->filter('form[action="/verify-code"] button[type="submit"]')->text()));
+        self::assertSame('Verifying…', $crawler->filter('form[action="/verify-code"] button[type="submit"]')->attr('data-turbo-submits-with'));
+        self::assertCount(1, $crawler->filter('form[action="/verify-code"] input:not([type="hidden"])'));
+        self::assertCount(0, $crawler->filter('[autofocus], input[type="password"], input[type="email"], [autocomplete~="username"], [autocomplete~="email"], [autocomplete~="current-password"]'));
 
         // Switching to the mail app may reload the page (in-app browsers do):
         // the screen stays while the sign-in is pending
@@ -203,7 +213,7 @@ final class SignInCodeTest extends WebTestCase
             // Turbo Drive drops a 200 answer to a form POST
             self::assertResponseStatusCodeSame(422);
             $expected = $left === 1 ? "That code isn't right. 1 try left." : sprintf("That code isn't right. %d tries left.", $left);
-            self::assertSame($expected, trim($crawler->filter('#sign-in-code-error')->text()));
+            self::assertSame($expected, trim($crawler->filter('#one-time-code-error')->text()));
             self::assertSame('true', $crawler->filter('input[name="code"]')->attr('aria-invalid'));
         }
 
@@ -365,7 +375,7 @@ final class SignInCodeTest extends WebTestCase
         $crawler = $this->submitCode($browser, '123456');
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSame("That code isn't right. 4 tries left.", trim($crawler->filter('#sign-in-code-error')->text()));
+        self::assertSame("That code isn't right. 4 tries left.", trim($crawler->filter('#one-time-code-error')->text()));
     }
 
     public function testSomethingThatIsNotSixDigitsCostsNoTry(): void
@@ -380,7 +390,7 @@ final class SignInCodeTest extends WebTestCase
             $crawler = $this->submitCode($browser, $input);
 
             self::assertResponseStatusCodeSame(422);
-            self::assertSame('Enter the 6 digits from the email.', trim($crawler->filter('#sign-in-code-error')->text()));
+            self::assertSame('Enter the 6 digits from the email.', trim($crawler->filter('#one-time-code-error')->text()));
         }
 
         self::assertSame(0, $this->loginLinkRequestFor($browser, $email)->codeFailedAttempts);
@@ -407,7 +417,7 @@ final class SignInCodeTest extends WebTestCase
         $crawler = $this->submitCode($browser, $code, clientIp: sprintf('203.0.113.%d', random_int(1, 254)));
 
         self::assertResponseStatusCodeSame(422);
-        self::assertStringContainsString('Too many tries', $crawler->filter('#sign-in-code-error')->text());
+        self::assertStringContainsString('Too many tries', $crawler->filter('#one-time-code-error')->text());
         self::assertNull($browser->getContainer()->get(TokenStorageInterface::class)->getToken());
         self::assertFalse($this->loginLinkRequestFor($browser, $email)->isConsumed());
     }
@@ -451,7 +461,7 @@ final class SignInCodeTest extends WebTestCase
             $parameters['return'] = $return;
         }
 
-        return $browser->request('POST', '/login-link/code', $parameters, [], ['HTTP_ORIGIN' => 'http://localhost']);
+        return $browser->request('POST', '/verify-code', $parameters, [], ['HTTP_ORIGIN' => 'http://localhost']);
     }
 
     /**

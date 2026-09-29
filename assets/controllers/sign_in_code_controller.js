@@ -29,6 +29,13 @@ export default class extends Controller {
         this.submitting = false;
         this.onSubmitEnd = this.submitEnd.bind(this);
         this.element.addEventListener('turbo:submit-end', this.onSubmitEnd);
+
+        // No autofocus attribute: on iPhones focusing the field on load pops
+        // the iCloud Passwords "fill username" sheet instead of the code
+        // suggestion. Mouse/trackpad users still land in the field.
+        if (window.matchMedia && window.matchMedia('(pointer: fine)').matches) {
+            this.inputTarget.focus({ preventScroll: true });
+        }
     }
 
     disconnect() {

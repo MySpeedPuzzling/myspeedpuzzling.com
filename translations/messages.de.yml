@@ -3346,6 +3346,8 @@ auth:
         used: "Dieser Code oder der Link aus derselben E-Mail wurde schon benutzt. Fordern Sie unten einen neuen an."
         no_pending: "Dieser Anmeldecode gilt hier nicht mehr. Fordern Sie unten einen neuen an."
         failed: "Das hat nicht geklappt. Bitte versuchen Sie es noch einmal."
+        submit: "Code bestätigen"
+        submitting: "Wird geprüft…"
 
 newsletter:
     footer:

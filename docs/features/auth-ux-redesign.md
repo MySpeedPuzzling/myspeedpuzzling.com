@@ -387,7 +387,10 @@ button (noise); `autofocus`.
 - If the flash is gone (reload, direct visit) → 303 to `/login-link`.
 - Code input: `type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}"
   maxlength="6"` (accept pasted "123 456" — strip whitespace server-side), `enterkeyhint="go"`,
-  `autofocus` (single task page), label "Code". **One input, not six boxes**: six boxes break paste,
+  **no `autofocus`** (2026-09-30: on iOS focusing it on load popped the iCloud Passwords "fill
+  username" sheet; `sign_in_code_controller.js` focuses it for fine pointers only), id
+  `one-time-code`, button "Verify code", POST `/verify-code` - nothing on the form says
+  login/sign-in, so WebKit does not treat it as a login form; label "Code". **One input, not six boxes**: six boxes break paste,
   autofill and screen readers (SC 3.3.8 requires paste). Auto-submit when 6 digits are pasted/filled
   is fine; typing must not auto-submit mid-correction — submit on the 6th digit only when the
   previous value was shorter than 5 (i.e. paste/autofill).
@@ -396,7 +399,8 @@ button (noise); `autofocus`.
   Send yourself a new code." (Limit in the handler, not only the IP limiter.)
 - "Open Gmail" button: shown only for `gmail.com`/`googlemail.com` → `https://mail.google.com/`,
   `outlook.com/hotmail.*/live.*` → `https://outlook.live.com/mail/`, `yahoo.*` →
-  `https://mail.yahoo.com/`, `icloud.com/me.com/mac.com` → `https://www.icloud.com/mail`; covers
+  `https://mail.yahoo.com/`, Seznam → `https://email.seznam.cz/` (iCloud dropped 2026-09-30: those
+  users read mail in the iPhone Mail app, icloud.com/mail is no use to them); covers
   ~84 % of our users. On phones these universal links open the mail app when installed. No button
   for other domains (we'd guess wrong). `target="_blank" rel="noopener"`.
 - Resend: POSTs the flashed address again (hidden field) to `/login-link`; the button is disabled
@@ -643,7 +647,7 @@ in logs. Server-side values (`last_email`, the flashed address) win over it.
 
 ### 6.3 Routes
 
-New: `GET /login-link/sent` (`sign_in_link_sent`), `POST /login-link/code` (`sign_in_code`),
+New: `GET /login-link/sent` (`sign_in_link_sent`), `POST /verify-code` (`sign_in_code`),
 `GET /password-reset/sent` (`password_reset_sent`). All with the `_auth_page` default
 (locale negotiation + `no-store`). **Route order**: `/password-reset/sent` must be declared before
 `/password-reset/{token}` or get a requirement that excludes it (`sent` matches
@@ -749,7 +753,7 @@ phone". A typed code signs in the browser that asked for it.
 | Storage | Same `login_link_request` row (one request = one sign-in): `code_hash` = HMAC-SHA256(`kernel.secret`, row id + code) - the row id is the per-request salt, `code_failed_attempts`, `code_used_at`. Constant-time compare (`hash_equals`). |
 | Binding to the browser | `SignInLinkController` picks the request id (`RequestSignInLink::$requestId`) and `SignInCodePending` keeps it in the session (plus the address, expiry = link lifetime) - never in a URL. The session already exists on this path (the flash). Unknown addresses get a pending id no row will ever carry, so screen, countdown and failure look identical (D8). A new request replaces the pending one ("The old one no longer works here" - the older mail's *link* still works). |
 | Screen | `/login-link/sent` renders while a sign-in is pending - also after a reload (in-app browsers may reload when the visitor switches to the mail app); first view still reads the flash for the "we sent a new one" line. Code form in the `next_step` block: one input, `inputmode=numeric`, `autocomplete=one-time-code`, `pattern=[0-9]*`, `maxlength=6`, `enterkeyhint=go`, autofocus, 28px monospace with letter-spacing. `sign_in_code_controller.js`: keeps digits of a paste ("123 456" before maxlength cuts it), drops non-digits, submits on the 6th digit (never the same six twice in a row). Works without JS (server strips spaces/dashes/nbsp). |
-| Authentication | `SignInCodeAuthenticator` on `main`, `supports()` = exactly `POST /login-link/code` (route `sign_in_code`) - it never fails on anything else, so the remember-me cookie of other requests is safe. Order: pending sign-in in this session -> CSRF (stateless id `sign_in_code`) -> six digits -> limiters -> `VerifySignInCode` (handler locks the row `FOR UPDATE`, counts, consumes, *reports* a `SignInCodeCheck` instead of throwing so the attempt counter commits). Success = normal login (session migration, always-on `RememberMeBadge`, `LoginSuccessEvent`), landing shared with the link (`LoginLinkSuccessHandler`: legacy set-password prompt, booked `?return=`, profile), 303. Failure -> `SignInCodeController` re-renders the screen with **422**. |
+| Authentication | `SignInCodeAuthenticator` on `main`, `supports()` = exactly `POST /verify-code` (route `sign_in_code`) - it never fails on anything else, so the remember-me cookie of other requests is safe. Order: pending sign-in in this session -> CSRF (stateless id `sign_in_code`) -> six digits -> limiters -> `VerifySignInCode` (handler locks the row `FOR UPDATE`, counts, consumes, *reports* a `SignInCodeCheck` instead of throwing so the attempt counter commits). Success = normal login (session migration, always-on `RememberMeBadge`, `LoginSuccessEvent`), landing shared with the link (`LoginLinkSuccessHandler`: legacy set-password prompt, booked `?return=`, profile), 303. Failure -> `SignInCodeController` re-renders the screen with **422**. |
 | Limits | 5 wrong codes per issued code (`LoginLinkRequest::MAX_CODE_ATTEMPTS`), then the **code** dies and the **link keeps working** - guessing digits teaches nothing about the link's signature, and whoever holds the mail should still get in with one tap; killing the link would only punish the person who mistyped. On top: `sign_in_code_email` 10 / 15 min per address (so fresh codes don't buy fresh guesses), `sign_in_code_ip` 30 / 15 min. With 3 requests / 15 min per address that is <= 10 guesses per 10^6 codes per window. |
 | One sign-in per request | Link used -> `consumed_at` set -> code says "already been used". Code used -> `consumed_at` + `code_used_at` -> `consumeIfOpen()` refuses the link even inside the 60 s scanner grace window. |
 | Messages | Wrong: "That code isn't right. N tries left." (plural forms per locale), 5th: "Too many tries — this code no longer works. Use the link in the email, or request a new code.", limiter: "Too many tries. Wait a few minutes, or use the link in the email.", expired / used alerts, not six digits: "Enter the 6 digits from the email." (costs no try). Nothing pending (other browser, used, locked) -> 303 to `/login-link` with "That sign-in code is no longer valid here." |

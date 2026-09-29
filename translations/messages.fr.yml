@@ -3348,6 +3348,8 @@ edition:
     "used": "Ce code, ou le lien du même e-mail, a déjà été utilisé. Demandez-en un nouveau ci-dessous."
     "no_pending": "Ce code de connexion n'est plus valable ici. Demandez-en un nouveau ci-dessous."
     "failed": "Cela n'a pas fonctionné. Veuillez réessayer."
+    "submit": "Vérifier le code"
+    "submitting": "Vérification…"
 
 newsletter:
     footer:

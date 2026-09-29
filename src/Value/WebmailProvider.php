@@ -37,7 +37,6 @@ final readonly class WebmailProvider
             self::isAnyTld($domain, 'live') => new self('Outlook', 'https://outlook.live.com/mail/'),
             $domain === 'ymail.com',
             self::isAnyTld($domain, 'yahoo') => new self('Yahoo Mail', 'https://mail.yahoo.com/'),
-            in_array($domain, ['icloud.com', 'me.com', 'mac.com'], true) => new self('iCloud Mail', 'https://www.icloud.com/mail'),
             // The largest Czech webmail - a big share of MySpeedPuzzling's players
             in_array($domain, ['seznam.cz', 'email.cz', 'post.cz', 'spoluzaci.cz'], true) => new self('Seznam Email', 'https://email.seznam.cz/'),
             default => null,

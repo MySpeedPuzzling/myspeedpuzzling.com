@@ -244,6 +244,18 @@ final class SignInLinkTest extends WebTestCase
         self::assertSame($screens[0], $screens[1]);
     }
 
+    public function testCheckYourEmailScreenHasNoWebmailButtonForICloud(): void
+    {
+        $browser = self::createClient();
+
+        $this->requestSignInLink($browser, sprintf('someone.%s@icloud.com', bin2hex(random_bytes(4))));
+        $crawler = $browser->followRedirect();
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('a[href*="icloud.com"]'));
+        self::assertCount(0, $crawler->filter('main a[target="_blank"]'));
+    }
+
     public function testCheckYourEmailScreenOffersTheWebmailAndSurvivesAReload(): void
     {
         $browser = self::createClient();
@@ -255,6 +267,12 @@ final class SignInLinkTest extends WebTestCase
         self::assertCount(1, $webmail);
         self::assertSame('_blank', $webmail->attr('target'));
         self::assertStringContainsString('noopener', (string) $webmail->attr('rel'));
+        // Desktop-only (hidden on coarse pointers by CSS) and secondary: the code
+        // form keeps the one primary action
+        $classes = explode(' ', (string) $webmail->attr('class'));
+        self::assertContains('auth-webmail-link', $classes);
+        self::assertContains('btn-outline-primary', $classes);
+        self::assertNotContains('btn-primary', $classes);
 
         // The address is never in the URL; a reload (switching to the mail app for
         // the code may cause one) shows the pending sign-in again, without the

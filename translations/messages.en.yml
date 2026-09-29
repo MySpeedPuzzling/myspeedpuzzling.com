@@ -3341,7 +3341,9 @@ brand_hub:
     meta:
         title: "%brand% Puzzles – Solve Times & Difficulty"
         description: "%brand% jigsaw puzzles on MySpeedPuzzling: %count% puzzles with real solve times from speed puzzlers — median times, difficulty and most-solved picks."
+        paged_description: "All %count% %brand% jigsaw puzzles with real solve times from speed puzzlers, most solved first – page %page% of %pages%."
     title: "%brand% Puzzles – Solve Times & Difficulty"
+    paged_title: "%brand% Puzzles – Page %page%"
     stats:
         puzzles: "Puzzles in database"
         solves: "Recorded solves"
@@ -3349,18 +3351,53 @@ brand_hub:
         provenance: "Based on %solves% recorded solves."
     median_by_pieces: "Median solo time by piece count"
     pieces_link: "%pieces% piece puzzles"
-    most_solved: "Most solved %brand% puzzles"
-    view_all: "View all %brand% puzzles"
+    by_pieces: "%brand% puzzles by piece count"
+    all_puzzles: "All %brand% puzzles"
 
 pieces_hub:
     meta:
         title: "%pieces% Piece Puzzles – Real Solve Times"
         description: "How long does a %pieces% piece jigsaw puzzle take? Median solo time %median% from %solves% recorded solves. Browse %count% puzzles with real times."
         description_no_median: "%pieces% piece jigsaw puzzles on MySpeedPuzzling: %count% puzzles with real solve times from speed puzzlers worldwide."
+        paged_description: "All %count% %pieces% piece jigsaw puzzles with real solve times from speed puzzlers, most solved first – page %page% of %pages%."
     title: "%pieces% Piece Puzzles – Real Solve Times"
+    paged_title: "%pieces% Piece Puzzles – Page %page%"
     top_brands: "Popular %pieces% piece puzzle brands"
-    most_solved: "Most solved %pieces% piece puzzles"
-    view_all: "View all %pieces% piece puzzles"
+    all_puzzles: "All %pieces% piece puzzles"
+
+brand_pieces_hub:
+    meta:
+        title: "%brand% %pieces% Piece Puzzles – Solve Times"
+        description: "%brand% %pieces% piece jigsaw puzzles: %count% puzzles, %solves% recorded solves and a median solo time of %median%. Browse every one with real solve times from speed puzzlers."
+        description_no_median: "%brand% %pieces% piece jigsaw puzzles on MySpeedPuzzling: %count% puzzles with real solve times from speed puzzlers."
+        paged_description: "All %count% %brand% %pieces% piece jigsaw puzzles with real solve times, most solved first – page %page% of %pages%."
+    title: "%brand% %pieces%-Piece Puzzles"
+    paged_title: "%brand% %pieces%-Piece Puzzles – Page %page%"
+    all_puzzles: "All %brand% %pieces%-piece puzzles"
+    other_pieces: "More %brand% puzzles by piece count"
+    links:
+        brand_hub: "All %brand% puzzles"
+        pieces_hub: "%pieces% piece puzzles of every brand"
+
+brand_directory:
+    meta:
+        title: "Jigsaw Puzzle Brands A–Z – Solve Times"
+        description: "%brands% jigsaw puzzle brands from A to Z with %puzzles% puzzles and real solve times from speed puzzlers. Find every puzzle of your favourite brand."
+    title: "Jigsaw Puzzle Brands A–Z"
+    intro: "%brands% puzzle brands with %puzzles% puzzles in total and real solve times from speed puzzlers. Pick a brand to browse all of its puzzles – the number shows how many we have."
+    most_popular: "Most popular brands"
+    letters: "Brands by first letter"
+    other_letter: "0–9 & other"
+    puzzles_count: "{1}%formatted_count% puzzle|]1,Inf[%formatted_count% puzzles"
+    all_brands_link: "All puzzle brands A–Z"
+
+catalogue:
+    pagination:
+        label: "Pages of the puzzle list"
+        page: "Page %page%"
+        previous: "Previous page"
+        next: "Next page"
+    range: "Puzzles %from%–%to% of %total%, most solved first"
 
 guides:
     breadcrumb:

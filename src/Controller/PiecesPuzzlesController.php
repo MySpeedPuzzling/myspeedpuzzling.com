@@ -4,21 +4,26 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Query\GetCataloguePuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
-use SpeedPuzzling\Web\Query\GetPiecesHub;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
-use SpeedPuzzling\Web\Results\PiecesHubStats;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Services\CatalogueStatsProvider;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\CataloguePagination;
+use SpeedPuzzling\Web\Value\PiecesRange;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Cache\CacheInterface;
-use Symfony\Contracts\Cache\ItemInterface;
 
+/**
+ * Pieces hub: every puzzle with the piece count across numbered pages (page 1
+ * at the hub's URL, pages 2+ at a /page/{n} path segment - see CataloguePagination).
+ */
 final class PiecesPuzzlesController extends AbstractController
 {
     /**
@@ -27,22 +32,21 @@ final class PiecesPuzzlesController extends AbstractController
      * retail counts plus speed-puzzling staples (49/54/99); oddball counts
      * that also passed the threshold (e.g. 631, 636, 759, 504) are single
      * product artifacts and deliberately excluded. Any other value 404s.
+     * The brand × pieces pages use the same list.
      *
      * @var list<int>
      */
     public const array ALLOWED_PIECES = [49, 54, 99, 100, 150, 200, 250, 300, 350, 500, 750, 1000, 1500, 2000, 3000];
 
-    private const int GRID_LIMIT = 24;
-
     public function __construct(
-        readonly private GetPiecesHub $getPiecesHub,
+        readonly private CatalogueStatsProvider $catalogueStatsProvider,
+        readonly private GetCataloguePuzzles $getCataloguePuzzles,
         readonly private GetTags $getTags,
         readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private CacheInterface $cache,
     ) {
     }
 
@@ -61,20 +65,51 @@ final class PiecesPuzzlesController extends AbstractController
         // (e.g. /en/puzzle/1000-pieces would otherwise match puzzle_detail).
         priority: 10,
     )]
-    public function __invoke(int $pieces): Response
+    #[Route(
+        path: [
+            'cs' => '/puzzle/{pieces}-dilku/strana/{page}',
+            'en' => '/en/puzzle/{pieces}-pieces/page/{page}',
+            'es' => '/es/puzzles/{pieces}-piezas/pagina/{page}',
+            'ja' => '/ja/パズル/{pieces}ピース/ページ/{page}',
+            'fr' => '/fr/puzzle/{pieces}-pieces/page/{page}',
+            'de' => '/de/puzzle/{pieces}-teile/seite/{page}',
+        ],
+        name: 'pieces_puzzles_page',
+        requirements: ['pieces' => '\d{2,5}', 'page' => '[1-9]\d{0,4}'],
+        priority: 10,
+    )]
+    public function __invoke(Request $request, int $pieces, int $page = 1): Response
     {
         if (in_array($pieces, self::ALLOWED_PIECES, true) === false) {
             throw $this->createNotFoundException();
         }
 
-        // Stats are the same for every visitor - cache them per piece count.
-        $stats = $this->cache->get('pieces_hub_stats_' . $pieces, function (ItemInterface $item) use ($pieces): PiecesHubStats {
-            $item->expiresAfter(21600); // 6 hours
+        if ($page === 1 && $request->attributes->get('_route') === 'pieces_puzzles_page') {
+            return $this->redirectToRoute('pieces_puzzles', [
+                'pieces' => $pieces,
+                '_locale' => $request->getLocale(),
+            ], Response::HTTP_MOVED_PERMANENTLY);
+        }
 
-            return $this->getPiecesHub->stats($pieces);
-        });
+        $piecesRange = PiecesRange::between($pieces, $pieces);
 
-        $puzzles = $this->getPiecesHub->mostSolvedPuzzles($pieces, self::GRID_LIMIT);
+        $pagination = new CataloguePagination(
+            page: $page,
+            totalItems: $this->getCataloguePuzzles->count(null, $piecesRange),
+        );
+
+        if ($pagination->exists() === false) {
+            throw $this->createNotFoundException();
+        }
+
+        $stats = $this->catalogueStatsProvider->piecesHub($pieces);
+
+        $puzzles = $this->getCataloguePuzzles->page(
+            brandId: null,
+            pieces: $piecesRange,
+            offset: $pagination->offset(),
+            limit: $pagination->perPage,
+        );
 
         $puzzleIds = array_map(
             static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId,
@@ -85,28 +120,13 @@ final class PiecesPuzzlesController extends AbstractController
 
         return $this->render('puzzle/pieces_hub.html.twig', [
             'stats' => $stats,
+            'pagination' => $pagination,
             'puzzles' => $puzzles,
             'tags' => $this->getTags->allGroupedPerPuzzle($puzzleIds),
             'offer_counts' => $this->getSellSwapListItems->countByPuzzleIds($puzzleIds),
             'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList($puzzleIds),
             'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId),
             'ranking' => $loggedPlayer !== null ? $this->getRanking->allForPlayer($loggedPlayer->playerId) : [],
-            'listing_pieces_param' => self::listingPiecesParameter($pieces),
         ]);
-    }
-
-    /**
-     * Maps an exact piece count to the closest bucket understood by the
-     * puzzle listing's `pieces` query parameter (PiecesFilter).
-     */
-    private static function listingPiecesParameter(int $pieces): string
-    {
-        return match (true) {
-            $pieces === 500 => '500',
-            $pieces === 1000 => '1000',
-            $pieces < 500 => '1-499',
-            $pieces < 1000 => '501-999',
-            default => '1001+',
-        };
     }
 }

@@ -1,0 +1,47 @@
+{# Crawlable numbered pagination of the catalogue pages (CataloguePagination).
+   Plain <a href> links: page 1 is the base route, pages 2+ the paged route
+   with a /page/{n} path segment, so every page is its own canonical URL.
+
+   Parameters:
+   - pagination: CataloguePagination
+   - route: the base route (page 1)
+   - page_route: the paged route (pages 2+)
+   - route_params: parameters of both routes except the page #}
+{% macro page_href(page, route, page_route, route_params) -%}
+    {{ page == 1 ? path(route, route_params) : path(page_route, route_params|merge({page: page})) }}
+{%- endmacro %}
+{% import _self as pager %}
+
+{% if pagination.totalPages > 1 %}
+    <nav class="catalogue-pagination mt-4" aria-label="{{ 'catalogue.pagination.label'|trans }}">
+        <ul class="pagination flex-wrap justify-content-center">
+            {% if pagination.hasPreviousPage %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ pager.page_href(pagination.previousPage, route, page_route, route_params) }}" rel="prev" aria-label="{{ 'catalogue.pagination.previous'|trans }}">
+                        <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                    </a>
+                </li>
+            {% endif %}
+
+            {% for page in pagination.links %}
+                {% if page is null %}
+                    <li class="page-item disabled" aria-hidden="true"><span class="page-link page-link-static">…</span></li>
+                {% elseif page == pagination.page %}
+                    <li class="page-item active" aria-current="page"><span class="page-link">{{ page }}</span></li>
+                {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ pager.page_href(page, route, page_route, route_params) }}" aria-label="{{ 'catalogue.pagination.page'|trans({'%page%': page}) }}">{{ page }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.hasNextPage %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ pager.page_href(pagination.nextPage, route, page_route, route_params) }}" rel="next" aria-label="{{ 'catalogue.pagination.next'|trans }}">
+                        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endif %}

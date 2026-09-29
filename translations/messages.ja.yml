@@ -3114,7 +3114,9 @@ qr_code:
   "meta":
     "title": "%brand%のパズル – 完成タイムと難易度"
     "description": "MySpeedPuzzlingの%brand%ジグソーパズル：%count%個のパズルとスピードパズラーの実際の完成タイム — タイム中央値、難易度、人気パズル。"
+    "paged_description": "%brand%のジグソーパズル全%count%個を、スピードパズラーの実際の完成タイム付きで完成数の多い順に掲載（%pages%ページ中%page%ページ目）。"
   "title": "%brand%のパズル – 完成タイムと難易度"
+  "paged_title": "%brand%のパズル – %page%ページ目"
   "stats":
     "puzzles": "データベース内のパズル数"
     "solves": "記録された完成数"
@@ -3122,17 +3124,49 @@ qr_code:
     "provenance": "%solves%件の記録に基づいています。"
   "median_by_pieces": "ピース数別ソロタイム中央値"
   "pieces_link": "%pieces%ピースパズル"
-  "most_solved": "最も組み立てられた%brand%パズル"
-  "view_all": "%brand%のパズルをすべて見る"
+  "by_pieces": "ピース数別の%brand%パズル"
+  "all_puzzles": "%brand%のパズル一覧"
 "pieces_hub":
   "meta":
     "title": "%pieces%ピースパズル – 実際の完成タイム"
     "description": "%pieces%ピースのジグソーパズルはどのくらい時間がかかる？記録された%solves%件のソロタイム中央値は%median%。実際のタイム付き%count%個のパズルをチェック。"
     "description_no_median": "MySpeedPuzzlingの%pieces%ピースジグソーパズル：世界中のスピードパズラーの実際の完成タイム付き%count%個のパズル。"
+    "paged_description": "%pieces%ピースのジグソーパズル全%count%個を、スピードパズラーの実際の完成タイム付きで完成数の多い順に掲載（%pages%ページ中%page%ページ目）。"
   "title": "%pieces%ピースパズル – 実際の完成タイム"
+  "paged_title": "%pieces%ピースパズル – %page%ページ目"
   "top_brands": "人気の%pieces%ピースパズルブランド"
-  "most_solved": "最も組み立てられた%pieces%ピースパズル"
-  "view_all": "%pieces%ピースパズルをすべて見る"
+  "all_puzzles": "%pieces%ピースパズル一覧"
+"brand_pieces_hub":
+  "meta":
+    "title": "%brand% %pieces%ピースパズル – 完成タイム"
+    "description": "%brand%の%pieces%ピースジグソーパズル：%count%個のパズル、%solves%件の記録、ソロタイム中央値は%median%。スピードパズラーの実際の完成タイム付きですべてチェック。"
+    "description_no_median": "MySpeedPuzzlingの%brand% %pieces%ピースジグソーパズル：スピードパズラーの実際の完成タイム付き%count%個のパズル。"
+    "paged_description": "%brand%の%pieces%ピースジグソーパズル全%count%個を、実際の完成タイム付きで完成数の多い順に掲載（%pages%ページ中%page%ページ目）。"
+  "title": "%brand% %pieces%ピースパズル"
+  "paged_title": "%brand% %pieces%ピースパズル – %page%ページ目"
+  "all_puzzles": "%brand% %pieces%ピースパズル一覧"
+  "other_pieces": "ほかのピース数の%brand%パズル"
+  "links":
+    "brand_hub": "%brand%のパズル一覧"
+    "pieces_hub": "全ブランドの%pieces%ピースパズル"
+"brand_directory":
+  "meta":
+    "title": "ジグソーパズルブランド一覧（A〜Z） – 完成タイム"
+    "description": "A〜Z順のジグソーパズルブランド%brands%件、%puzzles%個のパズルとスピードパズラーの実際の完成タイム。お気に入りのブランドのパズルをすべてチェック。"
+  "title": "ジグソーパズルブランド一覧（A〜Z）"
+  "intro": "パズルブランド%brands%件、合計%puzzles%個のパズルとスピードパズラーの実際の完成タイム。ブランドを選ぶと、そのブランドのパズルをすべて見られます。数字は登録されているパズルの数です。"
+  "most_popular": "人気のブランド"
+  "letters": "頭文字でブランドを探す"
+  "other_letter": "0–9・その他"
+  "puzzles_count": "%formatted_count%個"
+  "all_brands_link": "パズルブランド一覧（A〜Z）"
+"catalogue":
+  "pagination":
+    "label": "パズル一覧のページ"
+    "page": "%page%ページ目"
+    "previous": "前のページ"
+    "next": "次のページ"
+  "range": "全%total%個中%from%〜%to%個目（完成数の多い順）"
 
 "wjpc_hub":
   "meta":

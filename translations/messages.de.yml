@@ -3123,7 +3123,9 @@ qr_code:
   "meta":
     "title": "%brand% Puzzles – Legezeiten & Schwierigkeit"
     "description": "%brand% Puzzles auf MySpeedPuzzling: %count% Puzzles mit echten Legezeiten von Speed Puzzlern — mediane Zeiten, Schwierigkeit und meistgelegte Puzzles."
+    "paged_description": "Alle %count% %brand% Puzzles mit echten Legezeiten von Speed Puzzlern, meistgelegte zuerst – Seite %page% von %pages%."
   "title": "%brand% Puzzles – Legezeiten & Schwierigkeit"
+  "paged_title": "%brand% Puzzles – Seite %page%"
   "stats":
     "puzzles": "Puzzles in der Datenbank"
     "solves": "Erfasste Ergebnisse"
@@ -3131,17 +3133,49 @@ qr_code:
     "provenance": "Basierend auf %solves% erfassten Ergebnissen."
   "median_by_pieces": "Mediane Solo-Zeit nach Teileanzahl"
   "pieces_link": "%pieces%-teilige Puzzles"
-  "most_solved": "Meistgelegte %brand% Puzzles"
-  "view_all": "Alle %brand% Puzzles anzeigen"
+  "by_pieces": "%brand% Puzzles nach Teileanzahl"
+  "all_puzzles": "Alle %brand% Puzzles"
 "pieces_hub":
   "meta":
     "title": "%pieces%-teilige Puzzles – Echte Legezeiten"
     "description": "Wie lange dauert ein Puzzle mit %pieces% Teilen? Mediane Solo-Zeit %median% aus %solves% erfassten Ergebnissen. Entdecke %count% Puzzles mit echten Zeiten."
     "description_no_median": "%pieces%-teilige Puzzles auf MySpeedPuzzling: %count% Puzzles mit echten Legezeiten von Speed Puzzlern aus aller Welt."
+    "paged_description": "Alle %count% Puzzles mit %pieces% Teilen und echten Legezeiten von Speed Puzzlern, meistgelegte zuerst – Seite %page% von %pages%."
   "title": "%pieces%-teilige Puzzles – Echte Legezeiten"
+  "paged_title": "%pieces%-teilige Puzzles – Seite %page%"
   "top_brands": "Beliebte Marken für %pieces%-teilige Puzzles"
-  "most_solved": "Meistgelegte %pieces%-teilige Puzzles"
-  "view_all": "Alle %pieces%-teiligen Puzzles anzeigen"
+  "all_puzzles": "Alle %pieces%-teiligen Puzzles"
+"brand_pieces_hub":
+  "meta":
+    "title": "%brand% Puzzle %pieces% Teile – Legezeiten"
+    "description": "%brand% Puzzles mit %pieces% Teilen: %count% Puzzles, %solves% erfasste Ergebnisse und eine mediane Solo-Zeit von %median%. Alle Puzzles mit echten Legezeiten von Speed Puzzlern."
+    "description_no_median": "%brand% Puzzles mit %pieces% Teilen auf MySpeedPuzzling: %count% Puzzles mit echten Legezeiten von Speed Puzzlern."
+    "paged_description": "Alle %count% %brand% Puzzles mit %pieces% Teilen und echten Legezeiten, meistgelegte zuerst – Seite %page% von %pages%."
+  "title": "%brand% Puzzles mit %pieces% Teilen"
+  "paged_title": "%brand% Puzzles mit %pieces% Teilen – Seite %page%"
+  "all_puzzles": "Alle %brand% Puzzles mit %pieces% Teilen"
+  "other_pieces": "Weitere %brand% Puzzles nach Teileanzahl"
+  "links":
+    "brand_hub": "Alle %brand% Puzzles"
+    "pieces_hub": "%pieces%-teilige Puzzles aller Marken"
+"brand_directory":
+  "meta":
+    "title": "Puzzle-Marken von A bis Z – Legezeiten"
+    "description": "%brands% Puzzle-Marken von A bis Z mit %puzzles% Puzzles und echten Legezeiten von Speed Puzzlern. Finde alle Puzzles deiner Lieblingsmarke."
+  "title": "Puzzle-Marken von A bis Z"
+  "intro": "%brands% Puzzle-Marken mit insgesamt %puzzles% Puzzles und echten Legezeiten von Speed Puzzlern. Wähle eine Marke und entdecke alle ihre Puzzles – die Zahl zeigt, wie viele wir haben."
+  "most_popular": "Beliebteste Marken"
+  "letters": "Marken nach Anfangsbuchstaben"
+  "other_letter": "0–9 & andere"
+  "puzzles_count": "{1}%formatted_count% Puzzle|]1,Inf[%formatted_count% Puzzles"
+  "all_brands_link": "Alle Puzzle-Marken A–Z"
+"catalogue":
+  "pagination":
+    "label": "Seiten der Puzzleliste"
+    "page": "Seite %page%"
+    "previous": "Vorherige Seite"
+    "next": "Nächste Seite"
+  "range": "Puzzles %from%–%to% von %total%, meistgelegte zuerst"
 
 "wjpc_hub":
   "meta":

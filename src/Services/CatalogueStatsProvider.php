@@ -1,0 +1,73 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Services;
+
+use SpeedPuzzling\Web\Query\GetBrandDirectory;
+use SpeedPuzzling\Web\Query\GetBrandHub;
+use SpeedPuzzling\Web\Query\GetPiecesHub;
+use SpeedPuzzling\Web\Results\BrandDirectoryEntry;
+use SpeedPuzzling\Web\Results\BrandHubStats;
+use SpeedPuzzling\Web\Results\PiecesHubStats;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
+
+/**
+ * Stats of the catalogue pages (brand hubs, pieces hubs, brand × pieces pages,
+ * the brand directory) are the same for every visitor and expensive to compute
+ * for the big brands - they are cached for 6 hours.
+ *
+ * The keys carry a version: the cached value is a serialized result object,
+ * so a change of its shape needs a new key (an old entry would unserialize
+ * with uninitialized properties during the blue-green overlap).
+ */
+readonly final class CatalogueStatsProvider
+{
+    private const int CACHE_TTL = 21600; // 6 hours
+
+    public function __construct(
+        private GetBrandHub $getBrandHub,
+        private GetPiecesHub $getPiecesHub,
+        private GetBrandDirectory $getBrandDirectory,
+        private CacheInterface $cache,
+    ) {
+    }
+
+    /**
+     * Brand hub stats incl. its brand × pieces pages. An unknown slug throws
+     * ManufacturerNotFound (404) inside the callback, so misses are never cached.
+     */
+    public function brandHub(string $slug): BrandHubStats
+    {
+        return $this->cache->get('brand_hub_stats_v2_' . $slug, function (ItemInterface $item) use ($slug): BrandHubStats {
+            $item->expiresAfter(self::CACHE_TTL);
+
+            return $this->getBrandHub->bySlug($slug);
+        });
+    }
+
+    public function piecesHub(int $piecesCount): PiecesHubStats
+    {
+        return $this->cache->get('pieces_hub_stats_v2_' . $piecesCount, function (ItemInterface $item) use ($piecesCount): PiecesHubStats {
+            $item->expiresAfter(self::CACHE_TTL);
+
+            return $this->getPiecesHub->stats($piecesCount);
+        });
+    }
+
+    /**
+     * @return list<BrandDirectoryEntry>
+     */
+    public function brandDirectory(): array
+    {
+        /** @var list<BrandDirectoryEntry> $entries */
+        $entries = $this->cache->get('brand_directory_v1', function (ItemInterface $item): array {
+            $item->expiresAfter(self::CACHE_TTL);
+
+            return $this->getBrandDirectory->indexableBrands();
+        });
+
+        return $entries;
+    }
+}

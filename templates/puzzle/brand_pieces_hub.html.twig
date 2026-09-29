@@ -1,0 +1,191 @@
+{% extends 'base.html.twig' %}
+
+{# Brand × piece count. Page 1 carries the stats; pages 2+ (/page/{n}) are
+   the rest of the list with their own title - same indexability as page 1. #}
+{% set is_first_page = pagination.isFirstPage %}
+
+{% set combination_name = 'brand_pieces_hub.title'|trans({'%brand%': brand.brandName, '%pieces%': stats.piecesCount}) %}
+
+{% set brand_pieces_title = is_first_page
+    ? 'brand_pieces_hub.meta.title'|trans({'%brand%': brand.brandName, '%pieces%': stats.piecesCount})
+    : 'brand_pieces_hub.paged_title'|trans({'%brand%': brand.brandName, '%pieces%': stats.piecesCount, '%page%': pagination.page})
+%}
+
+{% if is_first_page == false %}
+    {% set brand_pieces_meta_description = 'brand_pieces_hub.meta.paged_description'|trans({
+        '%brand%': brand.brandName,
+        '%pieces%': stats.piecesCount,
+        '%count%': pagination.totalItems|format_number,
+        '%page%': pagination.page,
+        '%pages%': pagination.totalPages,
+    }) %}
+{% elseif stats.medianSeconds is not null %}
+    {% set brand_pieces_meta_description = 'brand_pieces_hub.meta.description'|trans({
+        '%brand%': brand.brandName,
+        '%pieces%': stats.piecesCount,
+        '%count%': stats.puzzlesCount|format_number,
+        '%solves%': stats.solvesCount|format_number,
+        '%median%': stats.medianSeconds|compactTime,
+    }) %}
+{% else %}
+    {% set brand_pieces_meta_description = 'brand_pieces_hub.meta.description_no_median'|trans({
+        '%brand%': brand.brandName,
+        '%pieces%': stats.piecesCount,
+        '%count%': stats.puzzlesCount|format_number,
+    }) %}
+{% endif %}
+
+{% block title %}{{ brand_pieces_title }}{% endblock %}
+{% block meta_description %}{{ brand_pieces_meta_description }}{% endblock %}
+{% block robots %}
+    {% if indexable %}
+        <meta name="robots" content="index, follow">
+    {% else %}
+        {# Thin-page guardrail: brand hub not indexable, too few puzzles or no recorded solves #}
+        <meta name="robots" content="noindex, follow">
+    {% endif %}
+{% endblock %}
+
+{% block json_ld %}
+    {{ parent() }}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": {{ 'puzzle_detail.breadcrumb.database'|trans|json_encode|raw }},
+                "item": {{ url('puzzles')|json_encode|raw }}
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": {{ brand.brandName|json_encode|raw }},
+                "item": {{ url('brand_puzzles', {slug: brand.slug})|json_encode|raw }}
+            },
+            {% if is_first_page %}
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": {{ combination_name|json_encode|raw }}
+            }
+            {% else %}
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": {{ combination_name|json_encode|raw }},
+                "item": {{ url('brand_pieces_puzzles', {slug: brand.slug, pieces: stats.piecesCount})|json_encode|raw }}
+            },
+            {
+                "@type": "ListItem",
+                "position": 4,
+                "name": {{ 'catalogue.pagination.page'|trans({'%page%': pagination.page})|json_encode|raw }}
+            }
+            {% endif %}
+        ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": {{ brand_pieces_title|json_encode|raw }},
+        "description": {{ brand_pieces_meta_description|json_encode|raw }},
+        "url": {{ (is_first_page ? url('brand_pieces_puzzles', {slug: brand.slug, pieces: stats.piecesCount}) : url('brand_pieces_puzzles_page', {slug: brand.slug, pieces: stats.piecesCount, page: pagination.page}))|json_encode|raw }},
+        "about": {
+            "@type": "Brand",
+            "name": {{ brand.brandName|json_encode|raw }}
+        }
+    }
+    </script>
+{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: is_first_page
+        ? [
+            {label: 'puzzle_detail.breadcrumb.database'|trans, url: path('puzzles')},
+            {label: brand.brandName, url: path('brand_puzzles', {slug: brand.slug})},
+            {label: combination_name},
+        ]
+        : [
+            {label: 'puzzle_detail.breadcrumb.database'|trans, url: path('puzzles')},
+            {label: brand.brandName, url: path('brand_puzzles', {slug: brand.slug})},
+            {label: combination_name, url: path('brand_pieces_puzzles', {slug: brand.slug, pieces: stats.piecesCount})},
+            {label: 'catalogue.pagination.page'|trans({'%page%': pagination.page})},
+        ]
+    }) }}
+
+    <h1 class="mb-2">{{ is_first_page ? combination_name : brand_pieces_title }}</h1>
+
+    {% if is_first_page %}
+        <div class="row g-2 mb-2">
+            <div class="col-4">
+                <div class="card card-body shadow p-2 text-center h-100">
+                    <div class="fs-4 fw-bold">{{ stats.puzzlesCount }}</div>
+                    <small class="text-muted">{{ 'brand_hub.stats.puzzles'|trans }}</small>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card card-body shadow p-2 text-center h-100">
+                    <div class="fs-4 fw-bold">{{ stats.solvesCount }}</div>
+                    <small class="text-muted">{{ 'brand_hub.stats.solves'|trans }}</small>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card card-body shadow p-2 text-center h-100">
+                    <div class="fs-4 fw-bold">{{ stats.medianSeconds is not null ? stats.medianSeconds|compactTime : '–' }}</div>
+                    <small class="text-muted">{{ 'brand_hub.stats.median_time'|trans }}</small>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-muted small mb-3">{{ 'brand_hub.stats.provenance'|trans({'%solves%': stats.solvesCount}) }}</p>
+
+        <p class="mb-3">
+            <a href="{{ path('brand_puzzles', {slug: brand.slug}) }}">{{ 'brand_pieces_hub.links.brand_hub'|trans({'%brand%': brand.brandName}) }}</a>
+            <span class="text-muted mx-1">·</span>
+            <a href="{{ path('pieces_puzzles', {pieces: stats.piecesCount}) }}">{{ 'brand_pieces_hub.links.pieces_hub'|trans({'%pieces%': stats.piecesCount}) }}</a>
+        </p>
+
+        {% set other_pieces_pages = brand.piecesPages|filter(pieces_page => pieces_page.piecesCount != stats.piecesCount) %}
+        {% if other_pieces_pages|length > 0 %}
+            <h2 class="h5">{{ 'brand_pieces_hub.other_pieces'|trans({'%brand%': brand.brandName}) }}</h2>
+            <p class="mb-3">
+                {% for pieces_page in other_pieces_pages %}
+                    <a class="badge bg-primary badge-shadow rounded-pill text-white link-light" href="{{ path('brand_pieces_puzzles', {slug: brand.slug, pieces: pieces_page.piecesCount}) }}">{{ 'pieces_count'|trans({'%count%': pieces_page.piecesCount})|raw }}</a>
+                {% endfor %}
+            </p>
+        {% endif %}
+    {% endif %}
+
+    {% if puzzles|length > 0 %}
+        {% if is_first_page %}
+            <h2 class="h5 mb-1">{{ 'brand_pieces_hub.all_puzzles'|trans({'%brand%': brand.brandName, '%pieces%': stats.piecesCount}) }}</h2>
+        {% endif %}
+        <p class="text-muted small mb-2">{{ 'catalogue.range'|trans({
+            '%from%': pagination.firstItem|format_number,
+            '%to%': pagination.lastItem|format_number,
+            '%total%': pagination.totalItems|format_number,
+        }) }}</p>
+        <div class="row g-2 g-md-3">
+            {{ include('puzzle/_search_result_items.html.twig', {
+                'puzzles': puzzles,
+                'search': null,
+                'puzzle_statuses': puzzle_statuses,
+                'ranking': ranking,
+                'tags': tags,
+                'difficulty_data': difficulty_data,
+                'offer_counts': offer_counts,
+            }) }}
+        </div>
+    {% endif %}
+
+    {{ include('puzzle/_pagination.html.twig', {
+        pagination: pagination,
+        route: 'brand_pieces_puzzles',
+        page_route: 'brand_pieces_puzzles_page',
+        route_params: {slug: brand.slug, pieces: stats.piecesCount},
+    }) }}
+{% endblock %}

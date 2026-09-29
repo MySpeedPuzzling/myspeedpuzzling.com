@@ -3121,7 +3121,9 @@ qr_code:
   "meta":
     "title": "Puzzle %brand% – Časy skládání a obtížnost"
     "description": "Puzzle %brand% na MySpeedPuzzling: %count% puzzlí se skutečnými časy skládání od speed puzzlerů — mediány časů, obtížnost a nejskládanější kousky."
+    "paged_description": "Všech %count% puzzlí %brand% se skutečnými časy skládání od speed puzzlerů, nejskládanější jako první – strana %page% z %pages%."
   "title": "Puzzle %brand% – Časy skládání a obtížnost"
+  "paged_title": "Puzzle %brand% – strana %page%"
   "stats":
     "puzzles": "Puzzlí v databázi"
     "solves": "Zaznamenaných složení"
@@ -3129,17 +3131,49 @@ qr_code:
     "provenance": "Na základě %solves% zaznamenaných složení."
   "median_by_pieces": "Medián sólo času podle počtu dílků"
   "pieces_link": "Puzzle %pieces% dílků"
-  "most_solved": "Nejskládanější puzzle %brand%"
-  "view_all": "Zobrazit všechny puzzle %brand%"
+  "by_pieces": "Puzzle %brand% podle počtu dílků"
+  "all_puzzles": "Všechna puzzle %brand%"
 "pieces_hub":
   "meta":
     "title": "Puzzle %pieces% dílků – Skutečné časy skládání"
     "description": "Jak dlouho trvá poskládat puzzle o %pieces% dílcích? Medián sólo času %median% z %solves% zaznamenaných složení. Prohlédni si %count% puzzlí se skutečnými časy."
     "description_no_median": "Puzzle %pieces% dílků na MySpeedPuzzling: %count% puzzlí se skutečnými časy skládání od speed puzzlerů z celého světa."
+    "paged_description": "Všech %count% puzzlí o %pieces% dílcích se skutečnými časy skládání od speed puzzlerů, nejskládanější jako první – strana %page% z %pages%."
   "title": "Puzzle %pieces% dílků – Skutečné časy skládání"
+  "paged_title": "Puzzle %pieces% dílků – strana %page%"
   "top_brands": "Oblíbené značky puzzlí %pieces% dílků"
-  "most_solved": "Nejskládanější puzzle %pieces% dílků"
-  "view_all": "Zobrazit všechny puzzle %pieces% dílků"
+  "all_puzzles": "Všechna puzzle %pieces% dílků"
+"brand_pieces_hub":
+  "meta":
+    "title": "Puzzle %brand% %pieces% dílků – Časy skládání"
+    "description": "Puzzle %brand% o %pieces% dílcích: %count% puzzlí, %solves% zaznamenaných složení a medián sólo času %median%. Prohlédni si všechna se skutečnými časy skládání od speed puzzlerů."
+    "description_no_median": "Puzzle %brand% o %pieces% dílcích na MySpeedPuzzling: %count% puzzlí se skutečnými časy skládání od speed puzzlerů."
+    "paged_description": "Všech %count% puzzlí %brand% o %pieces% dílcích se skutečnými časy skládání, nejskládanější jako první – strana %page% z %pages%."
+  "title": "Puzzle %brand% %pieces% dílků"
+  "paged_title": "Puzzle %brand% %pieces% dílků – strana %page%"
+  "all_puzzles": "Všechna puzzle %brand% %pieces% dílků"
+  "other_pieces": "Další puzzle %brand% podle počtu dílků"
+  "links":
+    "brand_hub": "Všechna puzzle %brand%"
+    "pieces_hub": "Puzzle %pieces% dílků všech značek"
+"brand_directory":
+  "meta":
+    "title": "Značky puzzlí od A do Z – Časy skládání"
+    "description": "%brands% značek puzzlí od A do Z – celkem %puzzles% puzzlí se skutečnými časy skládání od speed puzzlerů. Najdi všechna puzzle své oblíbené značky."
+  "title": "Značky puzzlí od A do Z"
+  "intro": "%brands% značek puzzlí, celkem %puzzles% puzzlí se skutečnými časy skládání od speed puzzlerů. Vyber značku a projdi všechna její puzzle – číslo udává, kolik jich u nás je."
+  "most_popular": "Nejoblíbenější značky"
+  "letters": "Značky podle počátečního písmene"
+  "other_letter": "0–9 a další"
+  "puzzles_count": "{1}%formatted_count% puzzle|{2,3,4}%formatted_count% puzzle|]4,Inf[%formatted_count% puzzlí"
+  "all_brands_link": "Všechny značky puzzlí A–Z"
+"catalogue":
+  "pagination":
+    "label": "Stránky seznamu puzzlí"
+    "page": "Strana %page%"
+    "previous": "Předchozí strana"
+    "next": "Další strana"
+  "range": "Puzzle %from%–%to% z %total%, nejskládanější jako první"
 
 "wjpc_hub":
   "meta":

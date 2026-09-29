@@ -1,0 +1,89 @@
+{% extends 'base.html.twig' %}
+
+{% set directory_meta_description = 'brand_directory.meta.description'|trans({
+    '%brands%': brands_count|format_number,
+    '%puzzles%': puzzles_count|format_number,
+}) %}
+
+{% block title %}{{ 'brand_directory.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ directory_meta_description }}{% endblock %}
+
+{% block json_ld %}
+    {{ parent() }}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": {{ 'puzzle_detail.breadcrumb.database'|trans|json_encode|raw }},
+                "item": {{ url('puzzles')|json_encode|raw }}
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": {{ 'brand_directory.title'|trans|json_encode|raw }}
+            }
+        ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": {{ 'brand_directory.meta.title'|trans|json_encode|raw }},
+        "description": {{ directory_meta_description|json_encode|raw }},
+        "url": {{ url('puzzle_brands')|json_encode|raw }}
+    }
+    </script>
+{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'puzzle_detail.breadcrumb.database'|trans, url: path('puzzles')},
+        {label: 'brand_directory.title'|trans},
+    ]}) }}
+
+    <h1 class="mb-2">{{ 'brand_directory.title'|trans }}</h1>
+    <p class="mb-3">{{ 'brand_directory.intro'|trans({
+        '%brands%': brands_count|format_number,
+        '%puzzles%': puzzles_count|format_number,
+    }) }}</p>
+
+    {% if most_popular|length > 0 %}
+        <h2 class="h5">{{ 'brand_directory.most_popular'|trans }}</h2>
+        <p class="mb-3">
+            {% for brand in most_popular %}
+                <a class="badge bg-primary badge-shadow rounded-pill text-white link-light" href="{{ path('brand_puzzles', {slug: brand.slug}) }}">{{ brand.brandName }}</a>
+            {% endfor %}
+        </p>
+    {% endif %}
+
+    {% if brands_by_letter|length > 0 %}
+        <nav class="mb-3" aria-label="{{ 'brand_directory.letters'|trans }}">
+            <ul class="list-inline mb-0">
+                {% for letter in brands_by_letter|keys %}
+                    <li class="list-inline-item me-1 mb-1">
+                        <a class="btn btn-xs btn-outline-secondary" href="#brands-{{ letter == '#' ? 'other' : letter|lower }}">{{ letter == '#' ? 'brand_directory.other_letter'|trans : letter }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </nav>
+
+        {% for letter, brands in brands_by_letter %}
+            <section class="mb-3" id="brands-{{ letter == '#' ? 'other' : letter|lower }}">
+                <h2 class="h5 border-bottom pb-1">{{ letter == '#' ? 'brand_directory.other_letter'|trans : letter }}</h2>
+                <ul class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 list-unstyled g-1 mb-0">
+                    {% for brand in brands %}
+                        <li class="col">
+                            <a href="{{ path('brand_puzzles', {slug: brand.slug}) }}">{{ brand.brandName }}</a>
+                            <small class="text-muted">({{ 'brand_directory.puzzles_count'|trans({'%count%': brand.puzzlesCount, '%formatted_count%': brand.puzzlesCount|format_number}) }})</small>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endfor %}
+    {% endif %}
+{% endblock %}

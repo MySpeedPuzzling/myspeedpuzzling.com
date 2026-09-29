@@ -3125,7 +3125,9 @@ edition:
   "meta":
     "title": "Puzzles %brand% – Temps et difficulté"
     "description": "Puzzles %brand% sur MySpeedPuzzling : %count% puzzles avec de vrais temps d'assemblage de speed puzzleurs — temps médians, difficulté et puzzles les plus assemblés."
+    "paged_description": "Les %count% puzzles %brand% avec de vrais temps d'assemblage de speed puzzleurs, les plus assemblés d'abord – page %page% sur %pages%."
   "title": "Puzzles %brand% – Temps et difficulté"
+  "paged_title": "Puzzles %brand% – Page %page%"
   "stats":
     "puzzles": "Puzzles dans la base"
     "solves": "Assemblages enregistrés"
@@ -3133,17 +3135,49 @@ edition:
     "provenance": "Basé sur %solves% assemblages enregistrés."
   "median_by_pieces": "Temps médian en solo par nombre de pièces"
   "pieces_link": "Puzzles %pieces% pièces"
-  "most_solved": "Puzzles %brand% les plus assemblés"
-  "view_all": "Voir tous les puzzles %brand%"
+  "by_pieces": "Puzzles %brand% par nombre de pièces"
+  "all_puzzles": "Tous les puzzles %brand%"
 "pieces_hub":
   "meta":
     "title": "Puzzles %pieces% pièces – Vrais temps d'assemblage"
     "description": "Combien de temps faut-il pour un puzzle de %pieces% pièces ? Temps médian en solo %median% sur %solves% assemblages enregistrés. Parcourez %count% puzzles avec de vrais temps."
     "description_no_median": "Puzzles de %pieces% pièces sur MySpeedPuzzling : %count% puzzles avec de vrais temps d'assemblage de speed puzzleurs du monde entier."
+    "paged_description": "Les %count% puzzles de %pieces% pièces avec de vrais temps d'assemblage de speed puzzleurs, les plus assemblés d'abord – page %page% sur %pages%."
   "title": "Puzzles %pieces% pièces – Vrais temps d'assemblage"
+  "paged_title": "Puzzles %pieces% pièces – Page %page%"
   "top_brands": "Marques populaires de puzzles %pieces% pièces"
-  "most_solved": "Puzzles %pieces% pièces les plus assemblés"
-  "view_all": "Voir tous les puzzles %pieces% pièces"
+  "all_puzzles": "Tous les puzzles %pieces% pièces"
+"brand_pieces_hub":
+  "meta":
+    "title": "Puzzles %brand% %pieces% pièces – Temps d'assemblage"
+    "description": "Puzzles %brand% de %pieces% pièces : %count% puzzles, %solves% assemblages enregistrés et un temps médian en solo de %median%. Tous avec de vrais temps de speed puzzleurs."
+    "description_no_median": "Puzzles %brand% de %pieces% pièces sur MySpeedPuzzling : %count% puzzles avec de vrais temps d'assemblage de speed puzzleurs."
+    "paged_description": "Les %count% puzzles %brand% de %pieces% pièces avec de vrais temps d'assemblage, les plus assemblés d'abord – page %page% sur %pages%."
+  "title": "Puzzles %brand% %pieces% pièces"
+  "paged_title": "Puzzles %brand% %pieces% pièces – Page %page%"
+  "all_puzzles": "Tous les puzzles %brand% %pieces% pièces"
+  "other_pieces": "Autres puzzles %brand% par nombre de pièces"
+  "links":
+    "brand_hub": "Tous les puzzles %brand%"
+    "pieces_hub": "Puzzles %pieces% pièces de toutes les marques"
+"brand_directory":
+  "meta":
+    "title": "Marques de puzzles de A à Z – Temps d'assemblage"
+    "description": "%brands% marques de puzzles de A à Z avec %puzzles% puzzles et de vrais temps d'assemblage de speed puzzleurs. Trouvez tous les puzzles de votre marque préférée."
+  "title": "Marques de puzzles de A à Z"
+  "intro": "%brands% marques de puzzles, %puzzles% puzzles au total avec de vrais temps d'assemblage de speed puzzleurs. Choisissez une marque pour parcourir tous ses puzzles – le nombre indique combien nous en avons."
+  "most_popular": "Marques les plus populaires"
+  "letters": "Marques par première lettre"
+  "other_letter": "0–9 et autres"
+  "puzzles_count": "{0,1}%formatted_count% puzzle|]1,Inf[%formatted_count% puzzles"
+  "all_brands_link": "Toutes les marques de puzzles A–Z"
+"catalogue":
+  "pagination":
+    "label": "Pages de la liste de puzzles"
+    "page": "Page %page%"
+    "previous": "Page précédente"
+    "next": "Page suivante"
+  "range": "Puzzles %from% à %to% sur %total%, les plus assemblés d'abord"
 
 "wjpc_hub":
   "meta":

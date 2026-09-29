@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Controller\PiecesPuzzlesController;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Results\BrandHubStats;
+use SpeedPuzzling\Web\Results\BrandPiecesHubStats;
 use SpeedPuzzling\Web\Results\PiecesMedian;
 
 readonly final class GetBrandHub
@@ -17,6 +20,8 @@ readonly final class GetBrandHub
      * many solo solves.
      */
     private const int MIN_SOLVES_PER_PIECES_BUCKET = 10;
+
+    private const int MAX_PIECES_MEDIANS = 8;
 
     public function __construct(
         private Connection $database,
@@ -93,37 +98,51 @@ SQL;
             ])
             ->fetchAssociative();
 
-        $piecesMediansQuery = <<<SQL
+        // One pass over the brand's solves per piece count feeds both the
+        // "median by piece count" list and the brand × pieces pages.
+        $solvesPerPiecesQuery = <<<SQL
 SELECT
     puzzle.pieces_count,
     COUNT(*) AS solves_count,
-    percentile_cont(0.5) WITHIN GROUP (ORDER BY pst.seconds_to_solve) AS median_seconds
+    COUNT(*) FILTER (WHERE pst.puzzlers_count = 1) AS solo_solves_count,
+    percentile_cont(0.5) WITHIN GROUP (ORDER BY pst.seconds_to_solve)
+        FILTER (WHERE pst.puzzlers_count = 1) AS median_seconds
 FROM puzzle_solving_time pst
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 WHERE puzzle.manufacturer_id = :brandId
     AND pst.seconds_to_solve IS NOT NULL
-    AND pst.puzzlers_count = 1
 GROUP BY puzzle.pieces_count
-HAVING COUNT(*) >= :minSolves
-ORDER BY COUNT(*) DESC
-LIMIT 8
 SQL;
 
-        /** @var list<array{pieces_count: int, solves_count: int, median_seconds: float|string}> $piecesRows */
-        $piecesRows = $this->database
-            ->executeQuery($piecesMediansQuery, [
+        /** @var list<array{pieces_count: int, solves_count: int, solo_solves_count: int, median_seconds: null|float|string}> $solvesPerPieces */
+        $solvesPerPieces = $this->database
+            ->executeQuery($solvesPerPiecesQuery, [
                 'brandId' => $brand['brand_id'],
-                'minSolves' => self::MIN_SOLVES_PER_PIECES_BUCKET,
             ])
             ->fetchAllAssociative();
 
-        $piecesMedians = array_map(static function (array $row): PiecesMedian {
-            return new PiecesMedian(
-                piecesCount: $row['pieces_count'],
-                solvesCount: $row['solves_count'],
-                medianSeconds: (int) round((float) $row['median_seconds']),
-            );
-        }, $piecesRows);
+        $piecesPagesQuery = <<<SQL
+SELECT
+    puzzle.pieces_count,
+    COUNT(*) AS puzzles_count
+FROM puzzle
+WHERE puzzle.manufacturer_id = :brandId
+    AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
+    AND puzzle.pieces_count IN (:allowedPieces)
+GROUP BY puzzle.pieces_count
+ORDER BY puzzle.pieces_count
+SQL;
+
+        /** @var list<array{pieces_count: int, puzzles_count: int}> $puzzlesPerPieces */
+        $puzzlesPerPieces = $this->database
+            ->executeQuery($piecesPagesQuery, [
+                'brandId' => $brand['brand_id'],
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+                'allowedPieces' => PiecesPuzzlesController::ALLOWED_PIECES,
+            ], [
+                'allowedPieces' => ArrayParameterType::INTEGER,
+            ])
+            ->fetchAllAssociative();
 
         return new BrandHubStats(
             brandId: $brand['brand_id'],
@@ -132,8 +151,60 @@ SQL;
             approved: $brand['brand_approved'],
             puzzlesCount: $puzzlesCount,
             solvesCount: $solvesRow['solves_count'],
-            medianSeconds: $solvesRow['median_seconds'] !== null ? (int) round((float) $solvesRow['median_seconds']) : null,
-            piecesMedians: $piecesMedians,
+            medianSeconds: self::roundedSeconds($solvesRow['median_seconds']),
+            piecesMedians: self::piecesMedians($solvesPerPieces),
+            piecesPages: self::piecesPages($puzzlesPerPieces, $solvesPerPieces),
         );
+    }
+
+    /**
+     * The most-solved piece counts (by solo solves) whose median is backed by
+     * at least MIN_SOLVES_PER_PIECES_BUCKET solo solves.
+     *
+     * @param list<array{pieces_count: int, solves_count: int, solo_solves_count: int, median_seconds: null|float|string}> $solvesPerPieces
+     * @return list<PiecesMedian>
+     */
+    private static function piecesMedians(array $solvesPerPieces): array
+    {
+        $buckets = array_values(array_filter(
+            $solvesPerPieces,
+            static fn (array $row): bool => $row['solo_solves_count'] >= self::MIN_SOLVES_PER_PIECES_BUCKET,
+        ));
+
+        usort($buckets, static fn (array $a, array $b): int => [$b['solo_solves_count'], $a['pieces_count']] <=> [$a['solo_solves_count'], $b['pieces_count']]);
+
+        return array_map(static function (array $row): PiecesMedian {
+            return new PiecesMedian(
+                piecesCount: $row['pieces_count'],
+                solvesCount: $row['solo_solves_count'],
+                medianSeconds: (int) self::roundedSeconds($row['median_seconds']),
+            );
+        }, array_slice($buckets, 0, self::MAX_PIECES_MEDIANS));
+    }
+
+    /**
+     * @param list<array{pieces_count: int, puzzles_count: int}> $puzzlesPerPieces
+     * @param list<array{pieces_count: int, solves_count: int, solo_solves_count: int, median_seconds: null|float|string}> $solvesPerPieces
+     * @return list<BrandPiecesHubStats>
+     */
+    private static function piecesPages(array $puzzlesPerPieces, array $solvesPerPieces): array
+    {
+        $solvesByPieces = array_column($solvesPerPieces, null, 'pieces_count');
+
+        return array_map(static function (array $row) use ($solvesByPieces): BrandPiecesHubStats {
+            $solves = $solvesByPieces[$row['pieces_count']] ?? null;
+
+            return new BrandPiecesHubStats(
+                piecesCount: $row['pieces_count'],
+                puzzlesCount: $row['puzzles_count'],
+                solvesCount: $solves !== null ? $solves['solves_count'] : 0,
+                medianSeconds: $solves !== null ? self::roundedSeconds($solves['median_seconds']) : null,
+            );
+        }, $puzzlesPerPieces);
+    }
+
+    private static function roundedSeconds(null|float|string $seconds): null|int
+    {
+        return $seconds !== null ? (int) round((float) $seconds) : null;
     }
 }

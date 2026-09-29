@@ -4,38 +4,37 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Query\GetCataloguePuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
-use SpeedPuzzling\Web\Query\GetBrandHub;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
-use SpeedPuzzling\Web\Query\SearchPuzzle;
-use SpeedPuzzling\Web\Results\BrandHubStats;
-use SpeedPuzzling\Web\Results\PiecesFilter;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Services\CatalogueStatsProvider;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\CataloguePagination;
 use SpeedPuzzling\Web\Value\PiecesRange;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Cache\CacheInterface;
-use Symfony\Contracts\Cache\ItemInterface;
 
+/**
+ * Brand hub: every puzzle of the brand across numbered pages (page 1 at the
+ * brand's URL, pages 2+ at a /page/{n} path segment - see CataloguePagination).
+ */
 final class BrandPuzzlesController extends AbstractController
 {
-    private const int GRID_LIMIT = 24;
-
     public function __construct(
-        readonly private GetBrandHub $getBrandHub,
-        readonly private SearchPuzzle $searchPuzzle,
+        readonly private CatalogueStatsProvider $catalogueStatsProvider,
+        readonly private GetCataloguePuzzles $getCataloguePuzzles,
         readonly private GetTags $getTags,
         readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private CacheInterface $cache,
     ) {
     }
 
@@ -53,25 +52,45 @@ final class BrandPuzzlesController extends AbstractController
         // Must win over puzzle_detail's catch-all {puzzleId} segment.
         priority: 10,
     )]
-    public function __invoke(string $slug): Response
+    #[Route(
+        path: [
+            'cs' => '/puzzle/znacka/{slug}/strana/{page}',
+            'en' => '/en/puzzle/brand/{slug}/page/{page}',
+            'es' => '/es/puzzles/marca/{slug}/pagina/{page}',
+            'ja' => '/ja/パズル/ブランド/{slug}/ページ/{page}',
+            'fr' => '/fr/puzzle/marque/{slug}/page/{page}',
+            'de' => '/de/puzzle/marke/{slug}/seite/{page}',
+        ],
+        name: 'brand_puzzles_page',
+        requirements: ['slug' => '[a-z0-9\-]+', 'page' => '[1-9]\d{0,4}'],
+        priority: 10,
+    )]
+    public function __invoke(Request $request, string $slug, int $page = 1): Response
     {
-        // Stats are the same for every visitor - cache them per slug. An
-        // unknown slug throws ManufacturerNotFound (404) inside the callback,
-        // which also prevents caching of misses.
-        $stats = $this->cache->get('brand_hub_stats_' . $slug, function (ItemInterface $item) use ($slug): BrandHubStats {
-            $item->expiresAfter(21600); // 6 hours
+        if ($page === 1 && $request->attributes->get('_route') === 'brand_puzzles_page') {
+            return $this->redirectToRoute('brand_puzzles', [
+                'slug' => $slug,
+                '_locale' => $request->getLocale(),
+            ], Response::HTTP_MOVED_PERMANENTLY);
+        }
 
-            return $this->getBrandHub->bySlug($slug);
-        });
+        // Unknown slug: ManufacturerNotFound (404)
+        $stats = $this->catalogueStatsProvider->brandHub($slug);
 
-        $puzzles = $this->searchPuzzle->byUserInput(
+        $pagination = new CataloguePagination(
+            page: $page,
+            totalItems: $this->getCataloguePuzzles->count($stats->brandId, PiecesRange::any()),
+        );
+
+        if ($pagination->exists() === false) {
+            throw $this->createNotFoundException();
+        }
+
+        $puzzles = $this->getCataloguePuzzles->page(
             brandId: $stats->brandId,
-            search: null,
-            pieces: PiecesRange::fromFilter(PiecesFilter::Any),
-            tag: null,
-            sortBy: 'most-solved',
-            offset: 0,
-            limit: self::GRID_LIMIT,
+            pieces: PiecesRange::any(),
+            offset: $pagination->offset(),
+            limit: $pagination->perPage,
         );
 
         $puzzleIds = array_map(
@@ -83,6 +102,7 @@ final class BrandPuzzlesController extends AbstractController
 
         return $this->render('puzzle/brand_hub.html.twig', [
             'stats' => $stats,
+            'pagination' => $pagination,
             'puzzles' => $puzzles,
             'tags' => $this->getTags->allGroupedPerPuzzle($puzzleIds),
             'offer_counts' => $this->getSellSwapListItems->countByPuzzleIds($puzzleIds),

@@ -3123,7 +3123,9 @@ fair_use_policy:
   "meta":
     "title": "Puzzles %brand% – Tiempos y dificultad"
     "description": "Puzzles %brand% en MySpeedPuzzling: %count% puzzles con tiempos reales de speed puzzleros — tiempos medianos, dificultad y los más armados."
+    "paged_description": "Los %count% puzzles %brand% con tiempos reales de speed puzzleros, los más armados primero – página %page% de %pages%."
   "title": "Puzzles %brand% – Tiempos y dificultad"
+  "paged_title": "Puzzles %brand% – Página %page%"
   "stats":
     "puzzles": "Puzzles en la base de datos"
     "solves": "Resoluciones registradas"
@@ -3131,17 +3133,49 @@ fair_use_policy:
     "provenance": "Basado en %solves% resoluciones registradas."
   "median_by_pieces": "Tiempo mediano en solo por número de piezas"
   "pieces_link": "Puzzles de %pieces% piezas"
-  "most_solved": "Puzzles %brand% más armados"
-  "view_all": "Ver todos los puzzles %brand%"
+  "by_pieces": "Puzzles %brand% por número de piezas"
+  "all_puzzles": "Todos los puzzles %brand%"
 "pieces_hub":
   "meta":
     "title": "Puzzles de %pieces% piezas – Tiempos reales"
     "description": "¿Cuánto se tarda en armar un puzzle de %pieces% piezas? Tiempo mediano en solo %median% de %solves% resoluciones registradas. Explora %count% puzzles con tiempos reales."
     "description_no_median": "Puzzles de %pieces% piezas en MySpeedPuzzling: %count% puzzles con tiempos reales de speed puzzleros de todo el mundo."
+    "paged_description": "Los %count% puzzles de %pieces% piezas con tiempos reales de speed puzzleros, los más armados primero – página %page% de %pages%."
   "title": "Puzzles de %pieces% piezas – Tiempos reales"
+  "paged_title": "Puzzles de %pieces% piezas – Página %page%"
   "top_brands": "Marcas populares de puzzles de %pieces% piezas"
-  "most_solved": "Puzzles de %pieces% piezas más armados"
-  "view_all": "Ver todos los puzzles de %pieces% piezas"
+  "all_puzzles": "Todos los puzzles de %pieces% piezas"
+"brand_pieces_hub":
+  "meta":
+    "title": "Puzzles %brand% de %pieces% piezas – Tiempos reales"
+    "description": "Puzzles %brand% de %pieces% piezas: %count% puzzles, %solves% resoluciones registradas y un tiempo mediano en solo de %median%. Todos con tiempos reales de speed puzzleros."
+    "description_no_median": "Puzzles %brand% de %pieces% piezas en MySpeedPuzzling: %count% puzzles con tiempos reales de speed puzzleros."
+    "paged_description": "Los %count% puzzles %brand% de %pieces% piezas con tiempos reales, los más armados primero – página %page% de %pages%."
+  "title": "Puzzles %brand% de %pieces% piezas"
+  "paged_title": "Puzzles %brand% de %pieces% piezas – Página %page%"
+  "all_puzzles": "Todos los puzzles %brand% de %pieces% piezas"
+  "other_pieces": "Más puzzles %brand% por número de piezas"
+  "links":
+    "brand_hub": "Todos los puzzles %brand%"
+    "pieces_hub": "Puzzles de %pieces% piezas de todas las marcas"
+"brand_directory":
+  "meta":
+    "title": "Marcas de puzzles de la A a la Z – Tiempos reales"
+    "description": "%brands% marcas de puzzles de la A a la Z con %puzzles% puzzles y tiempos reales de speed puzzleros. Encuentra todos los puzzles de tu marca favorita."
+  "title": "Marcas de puzzles de la A a la Z"
+  "intro": "%brands% marcas de puzzles con %puzzles% puzzles en total y tiempos reales de speed puzzleros. Elige una marca para ver todos sus puzzles; el número indica cuántos tenemos."
+  "most_popular": "Marcas más populares"
+  "letters": "Marcas por letra inicial"
+  "other_letter": "0–9 y otras"
+  "puzzles_count": "{1}%formatted_count% puzzle|]1,Inf[%formatted_count% puzzles"
+  "all_brands_link": "Todas las marcas de puzzles A–Z"
+"catalogue":
+  "pagination":
+    "label": "Páginas de la lista de puzzles"
+    "page": "Página %page%"
+    "previous": "Página anterior"
+    "next": "Página siguiente"
+  "range": "Puzzles %from%–%to% de %total%, los más armados primero"
 
 "wjpc_hub":
   "meta":

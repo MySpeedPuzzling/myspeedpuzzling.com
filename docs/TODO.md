@@ -134,8 +134,15 @@ Full scan of the bucket against every DB image column; fixes shipped in lily.srv
 images-cache re-resolves imgproxy on Docker DNS). Lists in `~/Downloads/msp-image-audit-2026-09-22/` on Jan's Mac,
 raw scan on the box in `/root/bucket-scan.csv` + `/root/db-image-refs.tsv`.
 
-- [ ] Result share images (`players/<id>/results/<id>.png`, 800×800): 490k objects ≈ 420 GB, one per solving time, never
-      pruned, regenerated on demand by `GetResultImage` - a lifecycle rule or a prune cron (e.g. older than 30 days)
+- [ ] Result share images (`players/<id>/results/<id>.png`, 800×800): 490k objects ≈ 420 GB, one per solving time,
+      **never deleted** - `GetResultImage` only redraws a card older than a month *when it is requested*, a card nobody
+      opens again stays forever. ~5 % of them (≈ 23k, 141 in a 3,000 sample) still carry the finished photo's EXIF/GPS
+      from before 2026-09-30 (new cards are clean), reachable via `/original/<key>` - the key is built from public ids.
+      Agreed plan (Jan, 2026-09-30: later): 1) delete all existing cards (bulk DeleteObjects, minutes; each one is
+      redrawn cleanly on its next request); 2) store new cards under their own prefix `results/<playerId>/<timeId>.png`
+      (+ `-hidden`); 3) bucket lifecycle rule: expire `results/` after 35 days (Hetzner supports it - the API answers
+      `NoSuchLifecycleConfiguration`, i.e. none set yet; a prefix filter cannot match the middle segment of today's
+      `players/<id>/results/`, hence step 2). No cron needed afterwards.
 - [ ] Handlers never delete the previous object when a puzzle image / finished photo / logo is replaced or the time is
       deleted - 6,862 orphans ≈ 16 GB today (`3-orphaned-objects-not-referenced.csv`); delete the old key in the handler
 - [ ] One-off: delete the existing orphans after a spot check (avatars: `myspeedpuzzling:storage:delete-orphaned-avatars`,
@@ -150,7 +157,7 @@ raw scan on the box in `/root/bucket-scan.csv` + `/root/db-image-refs.tsv`.
       admin review pages still do on purpose
 - [x] Stored originals with EXIF/GPS - stripped 2026-09-30: `/original/<key>` serves the raw file to anyone who
       knows the key (it is in every thumbnail URL), and 21,658 of 112,548 originals carried a GPS position. Lossless
-      strip job [`tools/image-metadata-strip/`](../tools/image-metadata-strip/strip.py): 66,710 objects stripped
+      strip job (scripts removed afterwards, in git history at `ad0ddbf2`, `tools/image-metadata-strip/`): 66,710 objects stripped
       under the same keys + 308 already clean, every one verified (stored checksum, pixel compare of backup vs
       object, rendering of 3,002 keys through imgproxy). Work dir `/root/msp-exif-2026-09-30/` on the box
 - [x] Backups deleted 2026-09-30 after the full verification plus an independent spot check (Jan: "check all photos
@@ -158,8 +165,6 @@ raw scan on the box in `/root/bucket-scan.csv` + `/root/db-image-refs.tsv`.
 - [ ] Cloudflare prefix purge of `img.myspeedpuzzling.com/original/` + `img.myspeedpuzzling.com/puzzle/` - Jan, in the
       dashboard (Caching → Configuration → Custom Purge → Prefix); the Cloudflare MCP token cannot purge. Until then
       Cloudflare may serve old copies of originals it had cached (`cdn.*` and imgproxy renders are clean)
-- [ ] Result share PNGs still carry the photo's EXIF/GPS (141 GPS in a 3,000 sample of 490k; new ones are clean
-      since 2026-09-30): strip them with `strip.py --list-containing /results/`, or prune them (item above)
 - [ ] `puzzle_small`/`puzzle_medium` of a HEIC source are drawn from its embedded ~320 px thumbnail
       (`IMGPROXY_ENFORCE_THUMBNAIL=true`) - `puzzle_medium` (`el:1`) upscales it to 400 px; `eth:0` there too?
 

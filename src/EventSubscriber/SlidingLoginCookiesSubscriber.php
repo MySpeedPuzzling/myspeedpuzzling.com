@@ -35,9 +35,9 @@ use Symfony\Component\Security\Http\RememberMe\ResponseListener;
  *
  * Both are minted in the same instant at login with the same 30-day lifetime, so
  * they expired together exactly 30 days later and took the visitor's login with
- * them. The server-side session row, which does slide (PdoSessionHandler rewrites
- * its expiry on every request), could not save anyone: the browser had already
- * stopped sending the id.
+ * them. The server-side session row, which does slide (PostgresSessionHandler
+ * rewrites its expiry at least once an hour while the visitor is active), could not
+ * save anyone: the browser had already stopped sending the id.
  *
  * Cache safety: this only ever adds cookies to responses for a request that
  * already carried a session cookie, which is precisely the case

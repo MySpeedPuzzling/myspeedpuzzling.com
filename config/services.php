@@ -18,12 +18,14 @@ use SpeedPuzzling\Web\Doctrine\RegexSchemaAssetFilter;
 use SpeedPuzzling\Web\Services\Api\ApiDtoNormalizer;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
+use SpeedPuzzling\Web\Services\Session\PostgresSessionHandler;
 use SpeedPuzzling\Web\Services\Storage\FailoverS3Adapter;
 use SpeedPuzzling\Web\Services\Storage\ObjectStorageHttpClientFactory;
 use SpeedPuzzling\Web\Services\Storage\UploadSpool;
 use SpeedPuzzling\Web\Services\Storage\UploadSpoolProcessor;
 use SpeedPuzzling\Web\Services\StripeWebhookHandler;
 use Stripe\StripeClient;
+use Symfony\Bridge\Doctrine\SchemaListener\PdoSessionHandlerSchemaListener;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
 
@@ -70,7 +72,7 @@ return static function (ContainerConfigurator $configurator): void {
     // places that have to agree, because a visitor is signed out the moment the
     // shortest of them lapses: the session cookie and the server-side row
     // (config/packages/framework.php), the remember-me cookie
-    // (config/packages/security.php), and the PdoSessionHandler row TTL below.
+    // (config/packages/security.php), and the PostgresSessionHandler row TTL below.
     $parameters->set('loginLifetimeSeconds', 2592000);
 
     // Failed S3 uploads are spooled here and re-uploaded by the
@@ -123,23 +125,16 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$wjpfApiUrl', '%wjpfApiUrl%')
         ->bind('$wjpfApiToken', '%wjpfApiToken%');
 
-    $services->set(PdoSessionHandler::class)
-        ->args([
-            env('DATABASE_URL'),
-            [
-                // Disable session locking to allow concurrent requests (Live Components, AJAX)
-                // Without this, concurrent requests for the same session block each other
-                'lock_mode' => PdoSessionHandler::LOCK_NONE,
-                // Explicit, because the fallback is ini_get('session.gc_maxlifetime').
-                // That ini is only correct while NativeSessionStorage::setOptions() gets
-                // to apply it - it returns early if headers are already sent or a session
-                // is active, and this app runs FrankenPHP workers. Were that ever to
-                // happen, every row written on that request would silently get php.ini's
-                // default (commonly 1440 = 24 minutes) and those visitors would be
-                // genuinely signed out. Naming the TTL here removes the dependency.
-                'ttl' => '%loginLifetimeSeconds%',
-            ],
-        ]);
+    // The `sessions` table keeps the layout Symfony's PdoSessionHandler defines, and
+    // that handler's schema listener is what keeps it in Doctrine's schema (without
+    // it doctrine:schema:validate fails and migrations:diff drops the table).
+    // DoctrineBundle's own listener only looks at session.handler, which is now
+    // PostgresSessionHandler, so this one is handed a PdoSessionHandler that exists
+    // only to describe the table - it never serves a request, and connects only
+    // when a schema command asks it to.
+    $services->set('app.sessions_table_schema_listener', PdoSessionHandlerSchemaListener::class)
+        ->args([inline_service(PdoSessionHandler::class)->args([env('DATABASE_URL')])])
+        ->tag('doctrine.event_listener', ['event' => 'postGenerateSchema']);
 
     $services->set(PsrLogMessageProcessor::class)
         ->tag('monolog.processor');
@@ -173,6 +168,16 @@ return static function (ContainerConfigurator $configurator): void {
             // value object built by PuzzleResponseFactory::insightsFor(), not a service
             __DIR__ . '/../src/Services/Api/PuzzleInsightsBatch.php',
         ]);
+
+    // framework.session.handler_id. After the Services load, which would otherwise
+    // redefine it. The row TTL is explicit on purpose: the fallback of Symfony's own
+    // handlers, ini_get('session.gc_maxlifetime'), is only right while
+    // NativeSessionStorage::setOptions() gets to apply it, which it skips once headers
+    // are sent or a session is active - in FrankenPHP workers that could silently
+    // shrink the rows to php.ini's 24 minutes.
+    $services->set(PostgresSessionHandler::class)
+        ->arg('$lifetimeSeconds', param('loginLifetimeSeconds'));
+
     $services->load('SpeedPuzzling\\Web\\Query\\', __DIR__ . '/../src/Query/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\Security\\', __DIR__ . '/../src/Security/**/{*.php}')
         ->exclude([

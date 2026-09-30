@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
+use SpeedPuzzling\Web\Services\Session\PostgresSessionHandler;
 
 return App::config([
     'framework' => [
@@ -12,7 +12,15 @@ return App::config([
         'http_method_override' => false,
         'csrf_protection' => true,
         'session' => [
-            'handler_id' => PdoSessionHandler::class,
+            'handler_id' => PostgresSessionHandler::class,
+            // The metadata bag stamps "last used" into the session data. With the
+            // default 0 it did so on every request, so every request rewrote the
+            // row. Now it re-stamps at most once an hour, and a request writes the
+            // row only when something in the session changed or that hour is up -
+            // which is also what keeps the row's 30-day expiry sliding
+            // (PostgresSessionHandler::updateTimestamp()). Nothing in the app
+            // reads "last used".
+            'metadata_update_threshold' => 3600,
             'cookie_secure' => 'auto',
             'cookie_samesite' => 'lax',
             // 30 days, matching remember_me (config/packages/security.php) so the

@@ -170,9 +170,8 @@ function createCustomIndexes(): void
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_identification_number_trgm ON puzzle USING GIN (identification_number gin_trgm_ops)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_ean_trgm ON puzzle USING GIN (ean gin_trgm_ops)');
 
-    // Query optimization composite indexes (Version20260102230000)
+    // Query optimization composite indexes (Version20260102230000; custom_pst_tracked_at_type dropped in Version20260930163200)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_player_puzzle_type ON puzzle_solving_time (player_id, puzzle_id, puzzling_type)');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_tracked_at_type ON puzzle_solving_time (tracked_at, puzzling_type)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_type_time_valid ON puzzle_solving_time (puzzling_type, seconds_to_solve) WHERE seconds_to_solve IS NOT NULL AND suspicious = false');
     $pdo->exec("CREATE INDEX IF NOT EXISTS custom_pst_team_puzzlers_gin ON puzzle_solving_time USING GIN ((team::jsonb->'puzzlers') jsonb_path_ops) WHERE team IS NOT NULL");
 
@@ -189,6 +188,11 @@ function createCustomIndexes(): void
     // Followers lookup on player favorites (Version20260918171659)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_player_favorite_players_gin ON player USING GIN ((favorite_players::jsonb))');
 
+    // Unread notifications badge (Version20260930163000)
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_notification_unread ON notification (player_id) WHERE read_at IS NULL');
+
+    // Player search (Version20260930163100)
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_player_search_trgm ON player USING GIN (LOWER(name) gin_trgm_ops, LOWER(code) gin_trgm_ops, LOWER(immutable_unaccent(name)) gin_trgm_ops, LOWER(immutable_unaccent(code)) gin_trgm_ops)');
 }
 
 /**

@@ -4,6 +4,29 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Database indexes (2026-09-30 review)
+
+Registry and how the numbers were taken: [`database-indexes.md`](database-indexes.md). Shipped: `custom_notification_unread`,
+`custom_player_search_trgm`, two unused `puzzle_solving_time` indexes dropped. What an index could not fix radically:
+
+- [ ] After the deploy: `pg_stat_user_indexes.idx_scan` of `custom_notification_unread` and `custom_player_search_trgm`
+      is growing, and the `pg_stat_statements` mean of the unread count and the player search dropped
+- [ ] `GetRanking::allForPlayer()` (profile ranking) is the web statement with the most total time: 114-128 ms mean, ~13k
+      calls a day, 0.3-0.7 s for players with 100+ puzzles on production. A covering `(puzzle_id, player_id,
+      seconds_to_solve)` index only gets 1.7-1.9x - the aggregate and the two window functions over every player's
+      best time on those puzzles are the cost. Rewrite to "players with a better best time + 1" per puzzle, or cache
+- [ ] `MostActiveSoloPlayers` this/last month: 64-80 ms, ~2.4k calls a day. A `finished_at` index only gets 1.6x
+      (the joins to player and puzzle and the aggregate remain) - cache it for a few minutes instead
+- [ ] Notifications page (`GetNotifications::forPlayer()`): 112 ms mean, 58k buffers a call for players with thousands
+      of notifications - every branch reads all of them before `LIMIT 200`; limit inside the branches first
+- [ ] `SearchPuzzle::byUserInput()`: 53 ms mean, ~13.5k calls a day. A term of 3+ characters is index-served (0.5-12 ms
+      locally); the mean comes from calls without a term (library pages, filters, API: ~110 ms locally - `ILIKE '%%'`
+      and the `match_score` CASE with the non-inlinable `immutable_unaccent()` run on all 41k puzzles) and 1-2
+      characters (~70 ms). Skip the search conditions when the term is empty; plain `unaccent()` for short terms
+      (as `SearchPlayers` does)
+- [ ] Two hand-made indexes exist only on production (`custom_puzzlers_gin`, `custom_seconds_to_solve_order_asc`, both
+      used): put them into a migration + `tests/bootstrap.php` with the query they serve, or drop them
+
 ## Speed check of the autumn SEO round
 
 Measured 2026-09-30: [`features/seo/performance-2026-10.md`](features/seo/performance-2026-10.md).

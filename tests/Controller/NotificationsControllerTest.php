@@ -100,7 +100,8 @@ final class NotificationsControllerTest extends WebTestCase
 
         foreach ($queriesByConnection as $queries) {
             foreach ($queries as $query) {
-                if (str_contains($query['sql'], 'FROM notification') && str_contains($query['sql'], 'COUNT(id)')) {
+                // GetNotifications::countUnreadForPlayer() - COUNT(*), answered by an index-only scan
+                if (str_contains($query['sql'], 'FROM notification') && str_contains($query['sql'], 'COUNT(*)')) {
                     $count++;
                 }
             }

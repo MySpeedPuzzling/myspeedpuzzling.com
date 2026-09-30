@@ -33,6 +33,12 @@ readonly final class SearchPlayers
         // country. Players on their allow list find them like anybody else.
         $isPrivate = $this->privateProfileAccess->sqlIsPrivate('player');
 
+        // A search of 3+ characters is answered by the trigram index custom_player_search_trgm, which
+        // holds the IMMUTABLE wrapper immutable_unaccent() - the WHERE has to use the same expressions
+        // (docs/database-indexes.md). 1-2 characters give no trigram to look up: those scan the table,
+        // where plain unaccent() is about twice as fast per row as the wrapper. Same rows either way.
+        $unaccent = mb_strlen($search) >= 3 ? 'immutable_unaccent' : 'unaccent';
+
         $query = <<<SQL
 SELECT
     id AS player_id,
@@ -64,7 +70,7 @@ SELECT
 FROM player
 WHERE (
     LOWER(name) LIKE LOWER(:searchFullLikeQuery) OR LOWER(code) LIKE LOWER(:searchFullLikeQuery)
-    OR LOWER(unaccent(name)) LIKE LOWER(unaccent(:searchFullLikeQuery)) OR LOWER(unaccent(code)) LIKE LOWER(unaccent(:searchFullLikeQuery))
+    OR LOWER({$unaccent}(name)) LIKE LOWER(unaccent(:searchFullLikeQuery)) OR LOWER({$unaccent}(code)) LIKE LOWER(unaccent(:searchFullLikeQuery))
 )
     AND ({$isPrivate} = false OR LOWER(code) = LOWER(:searchQuery))
     {$notHidden}

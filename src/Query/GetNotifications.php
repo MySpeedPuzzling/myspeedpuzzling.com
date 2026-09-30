@@ -20,13 +20,17 @@ readonly final class GetNotifications
     ) {
     }
 
+    /**
+     * The bell on every page. custom_notification_unread (player_id WHERE read_at IS NULL) answers it
+     * with an index-only scan - COUNT(*), not COUNT(id): the id is not in that index.
+     */
     public function countUnreadForPlayer(string $playerId): int
     {
         $notHidden = $this->unreadNotHidden();
 
         $query = <<<SQL
 SELECT
-    COUNT(id)
+    COUNT(*)
 FROM notification
 WHERE player_id = :playerId
     AND read_at IS NULL

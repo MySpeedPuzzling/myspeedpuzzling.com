@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\TestingViewer;
 use SpeedPuzzling\Web\Value\Puzzler;
+use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetNotificationsTest extends KernelTestCase
@@ -138,6 +139,40 @@ final class GetNotificationsTest extends KernelTestCase
         );
     }
 
+    public function testUnreadCountLeavesReadNotificationsOut(): void
+    {
+        $before = $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $this->notify(PlayerFixture::PLAYER_WITH_FAVORITES, 'SubscribedPlayerAddedTime', 'target_solving_time_id', PuzzleSolvingTimeFixture::TIME_12);
+        $this->notify(PlayerFixture::PLAYER_WITH_FAVORITES, 'SubscribedPlayerAddedTime', 'target_solving_time_id', PuzzleSolvingTimeFixture::TIME_12, read: true);
+
+        self::assertSame($before + 1, $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES));
+
+        $this->database->executeStatement('UPDATE notification SET read_at = NOW() WHERE player_id = :player', ['player' => PlayerFixture::PLAYER_WITH_FAVORITES]);
+
+        self::assertSame(0, $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES));
+    }
+
+    public function testUnreadCountCanUseTheUnreadIndex(): void
+    {
+        /** @var DebugDataHolder $debugDataHolder */
+        $debugDataHolder = self::getContainer()->get('doctrine.debug_data_holder');
+        $debugDataHolder->reset();
+
+        $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        /** @var list<array{sql: string, params: array<mixed>}> $executed */
+        $executed = $debugDataHolder->getData()['default'] ?? [];
+        self::assertCount(1, $executed);
+
+        // The test database is tiny, so the planner would scan it anyway - only prove the index is usable
+        $this->database->executeStatement('SET LOCAL enable_seqscan = off');
+        /** @var list<string> $plan */
+        $plan = $this->database->fetchFirstColumn('EXPLAIN ' . $executed[0]['sql'], array_values($executed[0]['params']));
+
+        self::assertStringContainsString('custom_notification_unread', implode("\n", $plan));
+    }
+
     /**
      * @param array<PlayerNotification> $notifications
      * @return list<null|string>
@@ -150,10 +185,12 @@ final class GetNotificationsTest extends KernelTestCase
         ));
     }
 
-    private function notify(string $playerId, string $type, string $targetColumn, string $targetId): void
+    private function notify(string $playerId, string $type, string $targetColumn, string $targetId, bool $read = false): void
     {
+        $readAt = $read ? 'NOW()' : 'NULL';
+
         $this->database->executeStatement(
-            "INSERT INTO notification (id, player_id, type, notified_at, {$targetColumn}) VALUES (:id, :player, :type, NOW(), :target)",
+            "INSERT INTO notification (id, player_id, type, notified_at, read_at, {$targetColumn}) VALUES (:id, :player, :type, NOW(), {$readAt}, :target)",
             ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'type' => $type, 'target' => $targetId],
         );
     }

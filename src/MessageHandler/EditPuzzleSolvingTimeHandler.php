@@ -12,12 +12,15 @@ use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
+use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
+use SpeedPuzzling\Web\Services\FirstTry\FirstTryAssessor;
+use SpeedPuzzling\Web\Value\FirstTryEntry;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\SolvingTimePredictor;
@@ -43,6 +46,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         private SolvingTimeRoundResolver $roundResolver,
         private PuzzlingTeamResolver $puzzlingTeamResolver,
         private SolvingTimePredictor $solvingTimePredictor,
+        private FirstTryAssessor $firstTryAssessor,
     ) {
     }
 
@@ -51,6 +55,8 @@ readonly final class EditPuzzleSolvingTimeHandler
      * @throws CanNotModifyOtherPlayersTime
      * @throws CouldNotGenerateUniqueCode
      * @throws CanNotAssembleEmptyGroup
+     * @throws SuspiciousPpm
+     * @throws FirstTryAlreadyTaken
      */
     public function __invoke(EditPuzzleSolvingTime $message): void
     {
@@ -86,6 +92,27 @@ readonly final class EditPuzzleSolvingTimeHandler
         }
 
         $finishedAt = $this->mistypedYearNormalizer->normalizeFinishedAt($message->finishedAt);
+
+        // Before anything is written: the form checks the same, this catches races and the API
+        $unmarkFirstTryOf = [];
+
+        if ($message->firstAttempt) {
+            $firstTry = $this->firstTryAssessor->assess(new FirstTryEntry(
+                actorPlayerId: $currentPlayer->id->toString(),
+                puzzleId: $solvingTime->puzzle->id->toString(),
+                memberPlayerIds: FirstTryEntry::memberIdsOf($solvingTime->player->id->toString(), $group),
+                solvedAt: $finishedAt ?? $solvingTime->trackedAt,
+                editedTimeId: $solvingTime->id->toString(),
+                previouslyFirstAttempt: $solvingTime->firstAttempt,
+                previousMemberPlayerIds: $solvingTime->memberPlayerIds(),
+            ));
+
+            if ($firstTry->blocks($message->firstTryResolution)) {
+                throw new FirstTryAlreadyTaken($firstTry);
+            }
+
+            $unmarkFirstTryOf = $firstTry->timeIdsToUnmark($message->firstTryResolution);
+        }
 
         $seconds = null;
         if ($message->time !== null) {
@@ -144,6 +171,11 @@ readonly final class EditPuzzleSolvingTimeHandler
         // Several people can now change one result, so the others get told who did
         if (count($membersBeforeEdit) > 1 || $solvingTime->team !== null) {
             $solvingTime->recordGroupEdit($currentPlayer, $membersBeforeEdit);
+        }
+
+        // The first try moved here
+        foreach ($unmarkFirstTryOf as $timeId) {
+            $this->puzzleSolvingTimeRepository->get($timeId)->unmarkFirstAttempt($currentPlayer);
         }
 
         // After modify(): the round depends on the competition and on solo/duo/team, both final only now

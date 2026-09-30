@@ -86,7 +86,6 @@ final class PuzzleAddControllerTest extends WebTestCase
             'timeMinutes' => '7',
             'timeSeconds' => '0',
             'finishedAt' => '12.07.2026',
-            'firstAttempt' => '1',
             'collection' => '__system_collection__',
         ];
 
@@ -308,7 +307,6 @@ final class PuzzleAddControllerTest extends WebTestCase
             'timeMinutes' => '7',
             'timeSeconds' => '0',
             'finishedAt' => '12.07.2026',
-            'firstAttempt' => '1',
             'competition' => $competitionId,
             'collection' => '__system_collection__',
         ];

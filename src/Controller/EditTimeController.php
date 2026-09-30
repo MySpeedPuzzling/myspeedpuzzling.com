@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
+use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\FormType\EditPuzzleSolvingTimeFormType;
@@ -17,8 +18,11 @@ use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
+use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
+use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\EditTimeReturnContext;
+use SpeedPuzzling\Web\Value\FirstTryResolution;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -44,6 +48,8 @@ final class EditTimeController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private CoPuzzlerPicker $coPuzzlerPicker,
+        readonly private FirstTryFormCheck $firstTryFormCheck,
+        readonly private FormPhotoStash $formPhotoStash,
     ) {
     }
 
@@ -118,12 +124,28 @@ final class EditTimeController extends AbstractController
             // keep offering the linked competition even when it is not publicly selectable
             'current_competition_id' => $solvedPuzzle->competitionId,
         ]);
+        // A photo kept from a refused submit goes back into its empty file input first (FormPhotoStash)
+        $restoredPhotos = $this->formPhotoStash->restore($request, $editTimeForm, $player->playerId);
         $editTimeForm->handleRequest($request);
+        $this->formPhotoStash->reportLost($editTimeForm, $restoredPhotos);
 
         // The co-puzzler inputs live outside the Symfony form, so an empty one has to invalidate the form
         // explicitly - that is what makes render() answer 422 instead of a 200 Turbo Drive discards
         if ($isGroupPuzzlersValid === false && $editTimeForm->isSubmitted()) {
             $editTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_player')));
+        }
+
+        // docs/features/first-try-integrity.md
+        $firstTryResolution = FirstTryResolution::tryFrom($request->request->getString('first_try_resolution')) ?? FirstTryResolution::None;
+        $firstTry = null;
+
+        // Also when the form opens: an old duplicate gets its pointer to the conflicts page right away
+        if ($data->firstAttempt) {
+            $firstTry = $this->firstTryFormCheck->forEditedResult($player->playerId, $solvedPuzzle, $groupPlayers, $data->finishedAt);
+
+            if ($editTimeForm->isSubmitted() && $firstTry->blocks($firstTryResolution)) {
+                $editTimeForm->addError(new FormError($this->translator->trans('first_try.form_error')));
+            }
         }
 
         if ($editTimeForm->isSubmitted() && $editTimeForm->isValid()) {
@@ -133,8 +155,10 @@ final class EditTimeController extends AbstractController
 
             try {
                 $this->messageBus->dispatch(
-                    EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data, $request->request->getString('team_name')),
+                    EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data, $request->request->getString('team_name'), $firstTryResolution),
                 );
+
+                $this->formPhotoStash->forget($restoredPhotos, $player->playerId);
 
                 $this->addFlash('success', $this->translator->trans('flashes.time_edited'));
 
@@ -148,7 +172,11 @@ final class EditTimeController extends AbstractController
             } catch (HandlerFailedException $exception) {
                 $realException = $exception->getPrevious();
 
-                if ($realException instanceof CanNotAssembleEmptyGroup) {
+                if ($realException instanceof FirstTryAlreadyTaken) {
+                    // Somebody saved a first try in the meantime - the notice explains what the handler saw
+                    $editTimeForm->addError(new FormError($this->translator->trans('first_try.form_error')));
+                    $firstTry = $realException->assessment;
+                } elseif ($realException instanceof CanNotAssembleEmptyGroup) {
                     $editTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_error')));
                 } elseif ($realException instanceof SuspiciousPpm) {
                     $editTimeForm->addError(new FormError($this->translator->trans('forms.too_high_ppm')));
@@ -187,6 +215,9 @@ final class EditTimeController extends AbstractController
             'return_context' => $context->value,
             'return_url' => $this->resolveReturnUrl($context, $solvedPuzzle),
             'return_title' => $this->resolveReturnTitle($context, $solvedPuzzle),
+            'first_try' => $firstTry,
+            'first_try_resolution' => $firstTryResolution->value,
+            'kept_photos' => $this->formPhotoStash->keep($editTimeForm, $restoredPhotos, $player->playerId),
         ];
 
         if ($isModalRequest) {

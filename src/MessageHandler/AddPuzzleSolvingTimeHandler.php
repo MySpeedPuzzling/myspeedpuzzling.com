@@ -13,12 +13,16 @@ use SpeedPuzzling\Web\Entity\PuzzlingTeam;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
+use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
+use SpeedPuzzling\Web\Services\FirstTry\FirstTryAssessor;
+use SpeedPuzzling\Web\Value\FirstTryEntry;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\SolvingTimePredictor;
@@ -46,6 +50,8 @@ readonly final class AddPuzzleSolvingTimeHandler
         private SolvingTimeRoundResolver $roundResolver,
         private PuzzlingTeamResolver $puzzlingTeamResolver,
         private SolvingTimePredictor $solvingTimePredictor,
+        private FirstTryAssessor $firstTryAssessor,
+        private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
     ) {
     }
 
@@ -53,6 +59,7 @@ readonly final class AddPuzzleSolvingTimeHandler
      * @throws CouldNotGenerateUniqueCode
      * @throws CanNotAssembleEmptyGroup
      * @throws SuspiciousPpm
+     * @throws FirstTryAlreadyTaken
      */
     public function __invoke(AddPuzzleSolvingTime $message): void
     {
@@ -91,6 +98,24 @@ readonly final class AddPuzzleSolvingTimeHandler
 
         if ($group !== null) {
             $puzzlersCount = count($group->puzzlers);
+        }
+
+        // Before anything is written: the form checks the same, this catches races and the API
+        $unmarkFirstTryOf = [];
+
+        if ($message->firstAttempt) {
+            $firstTry = $this->firstTryAssessor->assess(new FirstTryEntry(
+                actorPlayerId: $player->id->toString(),
+                puzzleId: $message->puzzleId,
+                memberPlayerIds: FirstTryEntry::memberIdsOf($player->id->toString(), $group),
+                solvedAt: $finishedAt,
+            ));
+
+            if ($firstTry->blocks($message->firstTryResolution)) {
+                throw new FirstTryAlreadyTaken($firstTry);
+            }
+
+            $unmarkFirstTryOf = $firstTry->timeIdsToUnmark($message->firstTryResolution);
         }
 
         $ppm = $solvingTime->calculatePpm($puzzle->piecesCount, $puzzlersCount);
@@ -146,5 +171,10 @@ readonly final class AddPuzzleSolvingTimeHandler
         $this->solvingTimePredictor->predictAddedTime($solvingTime);
 
         $this->entityManager->persist($solvingTime);
+
+        // The first try moved here
+        foreach ($unmarkFirstTryOf as $timeId) {
+            $this->puzzleSolvingTimeRepository->get($timeId)->unmarkFirstAttempt($player);
+        }
     }
 }

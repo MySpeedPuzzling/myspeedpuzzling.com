@@ -206,7 +206,7 @@ final class GetRoundResultsTest extends KernelTestCase
             finishedPuzzlesPhoto: null,
             groupPlayers: [],
             finishedAt: null,
-            firstAttempt: true,
+            firstAttempt: false,
             unboxed: false,
         ));
 

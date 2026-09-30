@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Query\GetFirstTryTimes;
 use SpeedPuzzling\Web\Query\GetAffiliateSupporters;
 use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
@@ -31,6 +32,7 @@ final class PlayerProfileController extends AbstractController
         readonly private HasExistingConversation $hasExistingConversation,
         readonly private GetAffiliateSupporters $getAffiliateSupporters,
         readonly private GetGettingStartedProgress $getGettingStartedProgress,
+        readonly private GetFirstTryTimes $getFirstTryTimes,
     ) {
     }
 
@@ -65,7 +67,11 @@ final class PlayerProfileController extends AbstractController
         // A newcomer's own profile is mostly empty - the same "Getting started" card as on the Hub
         // gives it somewhere to go (docs/features/getting-started-guide.md)
         $gettingStarted = null;
+        $firstTryConflicts = 0;
         if ($loggedProfile !== null && $loggedProfile->playerId === $player->playerId) {
+            // docs/features/first-try-integrity.md - only the owner pays for it
+            $firstTryConflicts = $this->getFirstTryTimes->conflictCountOf($player->playerId);
+
             $progress = $this->getGettingStartedProgress->forPlayer($loggedProfile);
 
             if ($progress->shouldBeShown() && $progress->isComplete() === false) {
@@ -75,6 +81,7 @@ final class PlayerProfileController extends AbstractController
 
         return $this->render('player_profile.html.twig', [
             'getting_started' => $gettingStarted,
+            'first_try_conflicts' => $firstTryConflicts,
             'player' => $player,
             'ranking' => $this->getRanking->allForPlayer($player->playerId),
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),

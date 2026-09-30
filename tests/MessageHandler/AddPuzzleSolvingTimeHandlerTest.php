@@ -42,7 +42,7 @@ final class AddPuzzleSolvingTimeHandlerTest extends KernelTestCase
         $this->messageBus->dispatch(new AddPuzzleSolvingTime(
             timeId: $timeId,
             userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
-            puzzleId: PuzzleFixture::PUZZLE_1500_01,
+            puzzleId: PuzzleFixture::PUZZLE_1500_02,
             competitionId: null,
             time: '01:00:00',
             comment: 'Relaxed Sunday session',
@@ -65,7 +65,7 @@ final class AddPuzzleSolvingTimeHandlerTest extends KernelTestCase
         self::assertTrue((bool) $row['first_attempt']);
         self::assertFalse((bool) $row['unboxed']);
         self::assertSame(PlayerFixture::PLAYER_REGULAR, $row['player_id']);
-        self::assertSame(PuzzleFixture::PUZZLE_1500_01, $row['puzzle_id']);
+        self::assertSame(PuzzleFixture::PUZZLE_1500_02, $row['puzzle_id']);
         self::assertNull($row['team']);
     }
 
@@ -77,7 +77,7 @@ final class AddPuzzleSolvingTimeHandlerTest extends KernelTestCase
         $this->messageBus->dispatch(new AddPuzzleSolvingTime(
             timeId: $timeId,
             userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
-            puzzleId: PuzzleFixture::PUZZLE_1500_01,
+            puzzleId: PuzzleFixture::PUZZLE_1500_02,
             competitionId: null,
             time: '01:00:00',
             comment: null,
@@ -201,7 +201,7 @@ final class AddPuzzleSolvingTimeHandlerTest extends KernelTestCase
         $this->messageBus->dispatch(new AddPuzzleSolvingTime(
             timeId: $timeId,
             userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
-            puzzleId: PuzzleFixture::PUZZLE_1500_01,
+            puzzleId: PuzzleFixture::PUZZLE_1500_02,
             competitionId: null,
             time: '01:00:00',
             comment: null,

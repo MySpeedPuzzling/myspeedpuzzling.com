@@ -4,6 +4,18 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Speed check of the autumn SEO round
+
+Measured 2026-09-30: [`features/seo/performance-2026-10.md`](features/seo/performance-2026-10.md).
+
+- [ ] Decide on JIT for web requests: `PGOPTIONS='-c jit=off'` on the web + api containers (lily.srv), or
+      `ALTER DATABASE speedpuzzling SET jit = off` - it cost 34 ms of the 83 ms London Postcard pairs query, and a query
+      estimated above 500k pays another 150-400 ms (numbers in the doc)
+- [ ] After the deploy: Sentry p95 of `GET puzzle_detail` for the biggest boards (London / New York Postcard),
+      `GET ladder`, `GET ladder_solo_500_pieces`, `GET sitemap_players`, and the brand hubs for signed-in players
+- [ ] Tracker page: take `GetStatistics::globally()` (a sum over all solving times on every request) from the
+      homepage's 60 s snapshot (`HomepageStatistics`)
+
 ## Prediction history
 
 Design: [`features/puzzle-intelligence/prediction-history.md`](features/puzzle-intelligence/prediction-history.md) (2026-09-30).

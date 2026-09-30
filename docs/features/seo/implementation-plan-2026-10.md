@@ -372,3 +372,4 @@ docker run --rm --network speedpuzzlingcz_default -v <wt>:/app -v <main>/vendor:
 - Check production HTML in Chrome: no fake strings, the summary paragraph, robots.txt, the new pages, row count on a big puzzle.
 - Watch GSC per `research-2026-09.md` §9.
 - Mark #141 done once the breadcrumb ships.
+- Speed check of every page and query of this round on production-sized data, with fixes: `performance-2026-10.md`.

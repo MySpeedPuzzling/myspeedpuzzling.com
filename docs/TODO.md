@@ -4,6 +4,15 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## FrankenPHP worker restarts (found 2026-09-30, session research)
+
+- [ ] The `max_requests 500` guard against memory leaks probably never fires: FrankenPHP 1.12.7 resets its request
+      counter every time the Symfony worker script restarts, and that script restarts every 500 requests too (locally,
+      both limits at 10: 100 requests → 0 thread restarts; script limit 1000 → 9). If the guard matters, set
+      `FRANKENPHP_LOOP_MAX` above `max_requests`. Never pair it with a persistent PDO connection: FrankenPHP does not
+      close those on a thread restart (reproduced: 2 threads, 9 restarts, 11 connections left) - the session handler
+      deliberately uses the worker's Doctrine connection instead.
+
 ## Insights recalculation writes only what changed
 
 Shipped 2026-09-30: [`features/puzzle-intelligence/README.md`](features/puzzle-intelligence/README.md) §"Writes: only what changed".
@@ -166,9 +175,9 @@ raw scan on the box in `/root/bucket-scan.csv` + `/root/db-image-refs.tsv`.
       object, rendering of 3,002 keys through imgproxy). Work dir `/root/msp-exif-2026-09-30/` on the box
 - [x] Backups deleted 2026-09-30 after the full verification plus an independent spot check (Jan: "check all photos
       are ok, then delete the backup") - no rollback any more; the per-object audit CSVs went too (camera/date details)
-- [ ] Cloudflare prefix purge of `img.myspeedpuzzling.com/original/` + `img.myspeedpuzzling.com/puzzle/` - Jan, in the
-      dashboard (Caching → Configuration → Custom Purge → Prefix); the Cloudflare MCP token cannot purge. Until then
-      Cloudflare may serve old copies of originals it had cached (`cdn.*` and imgproxy renders are clean)
+- [x] ~~Cloudflare prefix purge of `img.myspeedpuzzling.com/original/` + `img.myspeedpuzzling.com/puzzle/`~~ - skipped
+      (Jan, 2026-09-30): old cached copies expire on their own (1-year TTL, rarely requested files are evicted much
+      sooner, and no public page links an original any more); `cdn.*` and every imgproxy render are clean
 - [ ] `puzzle_small`/`puzzle_medium` of a HEIC source are drawn from its embedded ~320 px thumbnail
       (`IMGPROXY_ENFORCE_THUMBNAIL=true`) - `puzzle_medium` (`el:1`) upscales it to 400 px; `eth:0` there too?
 

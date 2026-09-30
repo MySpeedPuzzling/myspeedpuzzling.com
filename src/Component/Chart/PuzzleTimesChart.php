@@ -27,6 +27,8 @@ final class PuzzleTimesChart
     public const int INDIVIDUAL_BARS_MAX = 50;
 
     private const string COLOR_VIEWER = 'rgba(254, 64, 66, 1)';
+    // The outline of the viewer's bar in the distribution: a lighter tone of the You line (Jan, 2026-09-30)
+    private const string COLOR_VIEWER_OUTLINE = 'rgba(254, 110, 112, 1)';
     private const string COLOR_FIRST_ATTEMPT = 'rgba(105, 179, 254, 0.6)';
     private const string COLOR_FIRST_ATTEMPT_TAIL = 'rgba(105, 179, 254, 0.3)';
     private const string COLOR_OTHER = 'rgba(254, 105, 106, 0.6)';
@@ -198,7 +200,7 @@ final class PuzzleTimesChart
                     'tooltips' => $tooltips,
                     // The viewer's bar is outlined, not filled, so its split stays readable
                     'highlight' => $histogram->viewerBin !== null
-                        ? ['index' => $histogram->viewerBin, 'color' => self::COLOR_VIEWER]
+                        ? ['index' => $histogram->viewerBin, 'color' => self::COLOR_VIEWER_OUTLINE]
                         : null,
                 ],
             ],

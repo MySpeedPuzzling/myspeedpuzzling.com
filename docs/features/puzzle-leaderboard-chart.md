@@ -95,6 +95,11 @@ Times are right-skewed: London Postcard (500 pcs) – fastest 19:02, median 53:2
   **Median** line, solid **You** line at the viewer's exact time; the viewer's bar is outlined in red (see the first-try split
   below). Labels point away from each other when the lines are close and never leave the chart. Tooltips name the bar's range
   ("00:45:00 – 00:50:00"), the count and its first-try split.
+- **That controller loads eagerly, never lazily.** It hands the plugin to Chart.js in `chartjs:pre-connect`, which the lazy
+  Chart.js controller fires once, when it builds the chart. As a lazy chunk it lost that race on some page loads (typically the
+  first puzzle page after a deploy) and the chart came without Median, You and outline - reported 2026-09-30.
+  `tests/StimulusControllerLoadingTest.php` keeps every `chartjs:pre-connect` listener eager. No comment in a controller may
+  even mention the stimulus-bridge directive: its loader evaluates any comment that does, and the build fails.
 - Accessibility: the canvas is `role="img"` with an `aria-label` summary ("Times of 1718 puzzlers, median 00:53:25. Your time: …").
 - Payload on London Postcard: leaderboard chart JSON 118,441 → 3,921 bytes; whole member page 1.12 MB → 0.50 MB.
 
@@ -165,7 +170,8 @@ Jan: the distribution "loses track of the first tries detailed info", and people
   **repeats** (red); the folded tails use lighter versions of both. `LeaderboardHistogramBuilder::build()` takes the first-try
   times as a third argument and counts them per bar (`LeaderboardHistogramBin::$firstAttempts`).
 - The viewer's bar keeps the red "You" line and gets a **red outline** instead of the solid red fill – a solid fill would hide
-  its own split (checked on the screenshots: the outline reads clearly on a phone too).
+  its own split. The outline is a 1 px hairline in a lighter red than the You line (Jan, 2026-09-30), so it marks the bar
+  without competing with the line.
 - A small legend under the chart ("1st try" – the site's existing word – / "Repeat"), only when the bars show both
   colours.
 - One tooltip per bar: range + total + split, e.g. "00:45:00 – 00:50:00 · 211 puzzlers · 46 first tries · 165 repeats"; a part

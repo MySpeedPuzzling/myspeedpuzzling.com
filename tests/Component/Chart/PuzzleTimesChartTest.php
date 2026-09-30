@@ -22,6 +22,7 @@ use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 final class PuzzleTimesChartTest extends KernelTestCase
 {
     private const string VIEWER_COLOR = 'rgba(254, 64, 66, 1)';
+    private const string VIEWER_OUTLINE_COLOR = 'rgba(254, 110, 112, 1)';
 
     public function testUpToTheLimitEveryRowIsItsOwnBar(): void
     {
@@ -106,7 +107,7 @@ final class PuzzleTimesChartTest extends KernelTestCase
         // The viewer's bar is outlined, not filled red, and it is the bar the "You" marker points into
         $viewerPosition = $markers[1]['position'];
         self::assertIsFloat($viewerPosition);
-        self::assertSame(['index' => (int) floor($viewerPosition), 'color' => self::VIEWER_COLOR], self::pluginOptions($options)['highlight']);
+        self::assertSame(['index' => (int) floor($viewerPosition), 'color' => self::VIEWER_OUTLINE_COLOR], self::pluginOptions($options)['highlight']);
 
         foreach ([0, 1] as $dataset) {
             self::assertIsArray($data['datasets']);

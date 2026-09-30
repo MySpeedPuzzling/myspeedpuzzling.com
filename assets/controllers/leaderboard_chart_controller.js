@@ -1,8 +1,13 @@
-/* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
 
 /**
  * Markers on the puzzle leaderboard chart (docs/features/puzzle-leaderboard-chart.md).
+ *
+ * Eager on purpose, never lazy-loaded: the plugin is handed over in `chartjs:pre-connect`, which the lazily loaded
+ * Chart.js controller on the canvas fires once, when it builds the chart. A lazy chunk of this controller could
+ * arrive after that, and the chart then showed no Median, no You and no outline (2026-09-30, the first puzzle page after
+ * a deploy). Eager, it connects in the initial scan, before the Chart.js chunk has even loaded. Guarded by
+ * tests/StimulusControllerLoadingTest.php.
  *
  * The server sends plain Chart.js JSON with `options.plugins.leaderboardMarkers.markers`; this controller adds what JSON
  * cannot carry - an inline plugin drawing them. Three kinds:
@@ -157,11 +162,12 @@ function drawHighlight(chart, highlight) {
         return;
     }
 
+    // A hairline, lighter than the You line: it marks the bar without competing with the line
     const ctx = chart.ctx;
     ctx.strokeStyle = highlight.color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1;
     ctx.setLineDash([]);
-    ctx.strokeRect(left, top, right - left, bottom - top);
+    ctx.strokeRect(Math.round(left) + 0.5, Math.round(top) + 0.5, Math.round(right - left) - 1, Math.round(bottom - top) - 1);
 }
 
 const markersPlugin = {

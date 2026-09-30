@@ -8,6 +8,12 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Value\SkillTier;
 
+/**
+ * Recomputes every insights table from scratch, but writes only what changed: a row whose
+ * values come out exactly as stored is not touched (no new row version, no WAL), so its
+ * computed_at is the moment its values last changed, not the last run. Rows a run no longer
+ * produces are deleted by key. See docs/features/puzzle-intelligence/README.md, "Writes".
+ */
 readonly final class PuzzleIntelligenceRecalculator
 {
     /** @var list<int> Piece counts for which player skills are computed */
@@ -17,6 +23,9 @@ readonly final class PuzzleIntelligenceRecalculator
     public const array RATING_PIECES_COUNTS = [500];
 
     private const int BATCH_SIZE = 200;
+
+    /** @var array<string, string> Unique key of player_baseline, player_skill and player_elo, column => SQL type */
+    private const array PLAYER_PIECES_KEY = ['player_id' => 'uuid', 'pieces_count' => 'integer'];
 
     public function __construct(
         private Connection $connection,
@@ -95,6 +104,7 @@ readonly final class PuzzleIntelligenceRecalculator
         $pieceCounts = $this->getDistinctPieceCounts();
         $directCount = 0;
         $buffer = [];
+        $producedKeys = [];
 
         foreach ($players as $playerId) {
             foreach ($pieceCounts as $piecesCount) {
@@ -109,6 +119,7 @@ readonly final class PuzzleIntelligenceRecalculator
                         'baseline_type' => 'direct',
                         'computed_at' => $now->format('Y-m-d H:i:s'),
                     ];
+                    $producedKeys[] = ['player_id' => $playerId, 'pieces_count' => $piecesCount];
                     $directCount++;
 
                     if (count($buffer) >= self::BATCH_SIZE) {
@@ -126,10 +137,7 @@ readonly final class PuzzleIntelligenceRecalculator
         $this->baselineCalculator->clearPreloadedData();
 
         // Clean up stale direct baselines so gap detection works correctly
-        $this->connection->executeStatement(
-            "DELETE FROM player_baseline WHERE baseline_type = 'direct' AND computed_at < :now",
-            ['now' => $now->format('Y-m-d H:i:s')],
-        );
+        $this->deleteRowsNotProduced('player_baseline', self::PLAYER_PIECES_KEY, $producedKeys, $now, "baseline_type = 'direct'");
 
         // Pass 2: Compute global scaling exponent + interpolated/extrapolated baselines
         $scalingExponent = $this->baselineCalculator->computeScalingExponent();
@@ -171,6 +179,7 @@ readonly final class PuzzleIntelligenceRecalculator
                 'baseline_type' => $baselineType,
                 'computed_at' => $now->format('Y-m-d H:i:s'),
             ];
+            $producedKeys[] = ['player_id' => $playerId, 'pieces_count' => $targetPieces];
             $interpolatedCount++;
 
             if (count($buffer) >= self::BATCH_SIZE) {
@@ -184,10 +193,7 @@ readonly final class PuzzleIntelligenceRecalculator
         }
 
         // Clean up all stale baselines (direct cleanup already happened above, this catches interpolated/extrapolated)
-        $this->connection->executeStatement(
-            'DELETE FROM player_baseline WHERE computed_at < :now',
-            ['now' => $now->format('Y-m-d H:i:s')],
-        );
+        $this->deleteRowsNotProduced('player_baseline', self::PLAYER_PIECES_KEY, $producedKeys, $now);
 
         return [
             'direct' => $directCount,
@@ -323,6 +329,7 @@ readonly final class PuzzleIntelligenceRecalculator
         // Two-pass approach: compute all scores first, then percentiles from in-memory data.
         $players = $this->getPlayersWithSolves($specificPlayer);
         $count = 0;
+        $producedKeys = [];
 
         foreach (self::SKILL_PIECES_COUNTS as $piecesCount) {
             if ($specificPlayer === null) {
@@ -377,6 +384,7 @@ readonly final class PuzzleIntelligenceRecalculator
                     'qualifying_puzzles_count' => $result['qualifying_puzzles_count'],
                     'computed_at' => $now->format('Y-m-d H:i:s'),
                 ];
+                $producedKeys[] = ['player_id' => $playerId, 'pieces_count' => $piecesCount];
                 $count++;
 
                 if (count($buffer) >= self::BATCH_SIZE) {
@@ -390,11 +398,8 @@ readonly final class PuzzleIntelligenceRecalculator
             }
         }
 
-        // Clean up: remove entries not updated in this run (players who no longer qualify)
-        $this->connection->executeStatement(
-            'DELETE FROM player_skill WHERE computed_at < :now',
-            ['now' => $now->format('Y-m-d H:i:s')],
-        );
+        // Clean up: remove entries not produced in this run (players who no longer qualify)
+        $this->deleteRowsNotProduced('player_skill', self::PLAYER_PIECES_KEY, $producedKeys, $now);
 
         // Clean up skill data for piece counts no longer computed
         $this->connection->executeStatement(
@@ -409,9 +414,10 @@ readonly final class PuzzleIntelligenceRecalculator
     {
         // v2: Upsert-only approach — no DELETE before recompute.
         // Data is always present during recalculation (zero downtime).
-        // Stale entries are cleaned up at the end using computed_at timestamp.
+        // Stale entries are cleaned up at the end: the rows this run did not produce.
         $players = $this->getPublicPlayersWithSolves($specificPlayer);
         $count = 0;
+        $producedKeys = [];
 
         foreach (self::RATING_PIECES_COUNTS as $piecesCount) {
             $this->ratingCalculator->precomputePuzzleRankings($piecesCount);
@@ -432,6 +438,7 @@ readonly final class PuzzleIntelligenceRecalculator
                         'elo_rating' => $playerRating,
                         'computed_at' => $now->format('Y-m-d H:i:s'),
                     ];
+                    $producedKeys[] = ['player_id' => $playerId, 'pieces_count' => $piecesCount];
                     $count++;
 
                     if (count($buffer) >= self::BATCH_SIZE) {
@@ -448,11 +455,8 @@ readonly final class PuzzleIntelligenceRecalculator
             $this->ratingCalculator->clearCache();
         }
 
-        // Clean up: remove entries not updated in this run (players who no longer qualify)
-        $this->connection->executeStatement(
-            'DELETE FROM player_elo WHERE computed_at < :now',
-            ['now' => $now->format('Y-m-d H:i:s')],
-        );
+        // Clean up: remove entries not produced in this run (players who no longer qualify)
+        $this->deleteRowsNotProduced('player_elo', self::PLAYER_PIECES_KEY, $producedKeys, $now);
 
         // Clean up rating data for piece counts no longer computed
         $this->connection->executeStatement(
@@ -468,6 +472,12 @@ readonly final class PuzzleIntelligenceRecalculator
         return $count;
     }
 
+    /**
+     * One row per player, piece count and month, holding the latest values of that month. The
+     * first run of a month inserts the month's rows; later runs update only the rows whose values
+     * changed since (the stored row is compared in the SELECT, so an unchanged one is not even
+     * locked). Same rows, same values as when every run rewrote all of them.
+     */
     private function recordSkillHistory(\DateTimeImmutable $now): int
     {
         $monthStart = new \DateTimeImmutable($now->format('Y-m-01'));
@@ -478,12 +488,18 @@ readonly final class PuzzleIntelligenceRecalculator
                 gen_random_uuid(),
                 pb.player_id,
                 pb.pieces_count,
-                :month,
+                CAST(:month AS timestamp),
                 pb.baseline_seconds,
                 ps.skill_tier,
                 ps.skill_percentile
             FROM player_baseline pb
             LEFT JOIN player_skill ps ON ps.player_id = pb.player_id AND ps.pieces_count = pb.pieces_count
+            LEFT JOIN player_skill_history stored ON stored.player_id = pb.player_id
+                AND stored.pieces_count = pb.pieces_count
+                AND stored.month = CAST(:month AS timestamp)
+            WHERE stored.id IS NULL
+                OR (stored.baseline_seconds, stored.skill_tier, stored.skill_percentile)
+                    IS DISTINCT FROM (pb.baseline_seconds, ps.skill_tier, ps.skill_percentile)
             ON CONFLICT (player_id, pieces_count, month) DO UPDATE SET
                 baseline_seconds = EXCLUDED.baseline_seconds,
                 skill_tier = EXCLUDED.skill_tier,
@@ -500,6 +516,12 @@ readonly final class PuzzleIntelligenceRecalculator
         return (int) $count;
     }
 
+    /**
+     * One row per player, piece count and day, holding the latest values of that day. As with
+     * the skill history, the first run of a day inserts the day's rows and later runs update
+     * only the rows whose values changed; computed_at of a row is when its values were last
+     * written, no longer the last run of the day.
+     */
     private function recordRatingSnapshots(\DateTimeImmutable $now): int
     {
         $snapshotDate = $now->format('Y-m-d');
@@ -509,20 +531,39 @@ readonly final class PuzzleIntelligenceRecalculator
             INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, skill_score, skill_tier, skill_percentile, elo_rating, elo_rank, baseline_seconds, baseline_type, computed_at)
             SELECT
                 gen_random_uuid(),
-                pb.player_id,
-                pb.pieces_count,
-                :snapshotDate::timestamp,
-                ps.skill_score,
-                ps.skill_tier,
-                ps.skill_percentile,
-                pe.elo_rating,
-                (SELECT COUNT(*) FROM player_elo pe2 INNER JOIN player p2 ON p2.id = pe2.player_id WHERE pe2.pieces_count = pb.pieces_count AND p2.is_private = false AND pe2.elo_rating >= pe.elo_rating),
-                pb.baseline_seconds,
-                pb.baseline_type,
-                :now
-            FROM player_baseline pb
-            LEFT JOIN player_skill ps ON ps.player_id = pb.player_id AND ps.pieces_count = pb.pieces_count
-            LEFT JOIN player_elo pe ON pe.player_id = pb.player_id AND pe.pieces_count = pb.pieces_count
+                fresh.player_id,
+                fresh.pieces_count,
+                fresh.snapshot_date,
+                fresh.skill_score,
+                fresh.skill_tier,
+                fresh.skill_percentile,
+                fresh.elo_rating,
+                fresh.elo_rank,
+                fresh.baseline_seconds,
+                fresh.baseline_type,
+                CAST(:now AS timestamp)
+            FROM (
+                SELECT
+                    pb.player_id,
+                    pb.pieces_count,
+                    CAST(:snapshotDate AS timestamp) AS snapshot_date,
+                    ps.skill_score,
+                    ps.skill_tier,
+                    ps.skill_percentile,
+                    pe.elo_rating,
+                    (SELECT COUNT(*) FROM player_elo pe2 INNER JOIN player p2 ON p2.id = pe2.player_id WHERE pe2.pieces_count = pb.pieces_count AND p2.is_private = false AND pe2.elo_rating >= pe.elo_rating) AS elo_rank,
+                    pb.baseline_seconds,
+                    pb.baseline_type
+                FROM player_baseline pb
+                LEFT JOIN player_skill ps ON ps.player_id = pb.player_id AND ps.pieces_count = pb.pieces_count
+                LEFT JOIN player_elo pe ON pe.player_id = pb.player_id AND pe.pieces_count = pb.pieces_count
+            ) fresh
+            LEFT JOIN player_rating_snapshot stored ON stored.player_id = fresh.player_id
+                AND stored.pieces_count = fresh.pieces_count
+                AND stored.snapshot_date = fresh.snapshot_date
+            WHERE stored.id IS NULL
+                OR (stored.skill_score, stored.skill_tier, stored.skill_percentile, stored.elo_rating, stored.elo_rank, stored.baseline_seconds, stored.baseline_type)
+                    IS DISTINCT FROM (fresh.skill_score, fresh.skill_tier, fresh.skill_percentile, fresh.elo_rating, fresh.elo_rank, fresh.baseline_seconds, fresh.baseline_type)
             ON CONFLICT (player_id, pieces_count, snapshot_date) DO UPDATE SET
                 skill_score = EXCLUDED.skill_score,
                 skill_tier = EXCLUDED.skill_tier,
@@ -558,6 +599,7 @@ readonly final class PuzzleIntelligenceRecalculator
         if ($specificPlayer === null) {
             $pieceCounts = $this->getDistinctPieceCounts();
             $buffer = [];
+            $producedKeys = [];
 
             foreach ($pieceCounts as $piecesCount) {
                 $ratios = $this->improvementRatioCalculator->computeGlobalRatios($piecesCount);
@@ -571,6 +613,7 @@ readonly final class PuzzleIntelligenceRecalculator
                         'sample_size' => $ratio['sample_size'],
                         'computed_at' => $now->format('Y-m-d H:i:s'),
                     ];
+                    $producedKeys[] = ['pieces_count' => $piecesCount, 'from_attempt' => $ratio['from_attempt'], 'gap_bucket' => $ratio['gap_bucket']];
                     $count++;
 
                     if (count($buffer) >= self::BATCH_SIZE) {
@@ -584,15 +627,18 @@ readonly final class PuzzleIntelligenceRecalculator
                 $this->flushGlobalImprovementRatioBuffer($buffer);
             }
 
-            $this->connection->executeStatement(
-                'DELETE FROM global_improvement_ratio WHERE computed_at < :now',
-                ['now' => $now->format('Y-m-d H:i:s')],
+            $this->deleteRowsNotProduced(
+                'global_improvement_ratio',
+                ['pieces_count' => 'integer', 'from_attempt' => 'integer', 'gap_bucket' => 'varchar'],
+                $producedKeys,
+                $now,
             );
         }
 
         // Player ratios: per player (cross-piece-count)
         $players = $this->getPlayersWithSolves($specificPlayer);
         $buffer = [];
+        $producedKeys = [];
 
         foreach ($players as $playerId) {
             $ratios = $this->improvementRatioCalculator->calculateForPlayer($playerId);
@@ -605,6 +651,7 @@ readonly final class PuzzleIntelligenceRecalculator
                     'sample_size' => $ratio['sample_size'],
                     'computed_at' => $now->format('Y-m-d H:i:s'),
                 ];
+                $producedKeys[] = ['player_id' => $playerId, 'from_attempt' => $ratio['from_attempt']];
                 $count++;
 
                 if (count($buffer) >= self::BATCH_SIZE) {
@@ -620,9 +667,11 @@ readonly final class PuzzleIntelligenceRecalculator
 
         $this->improvementRatioCalculator->clearPreloadedData();
 
-        $this->connection->executeStatement(
-            'DELETE FROM player_improvement_ratio WHERE computed_at < :now',
-            ['now' => $now->format('Y-m-d H:i:s')],
+        $this->deleteRowsNotProduced(
+            'player_improvement_ratio',
+            ['player_id' => 'uuid', 'from_attempt' => 'integer'],
+            $producedKeys,
+            $now,
         );
 
         return $count;
@@ -633,21 +682,12 @@ readonly final class PuzzleIntelligenceRecalculator
      */
     private function flushGlobalImprovementRatioBuffer(array $rows): void
     {
-        if ($rows === []) {
-            return;
-        }
-
-        $columns = ['pieces_count', 'from_attempt', 'gap_bucket', 'median_ratio', 'sample_size', 'computed_at'];
-        $values = $this->buildValuesClause($rows, $columns, 'gen_random_uuid()');
-
-        $this->connection->executeStatement("
-            INSERT INTO global_improvement_ratio (id, pieces_count, from_attempt, gap_bucket, median_ratio, sample_size, computed_at)
-            VALUES {$values['sql']}
-            ON CONFLICT (pieces_count, from_attempt, gap_bucket) DO UPDATE SET
-                median_ratio = EXCLUDED.median_ratio,
-                sample_size = EXCLUDED.sample_size,
-                computed_at = EXCLUDED.computed_at
-        ", $values['params']);
+        $this->writeChangedRows(
+            'global_improvement_ratio',
+            ['pieces_count' => 'integer', 'from_attempt' => 'integer', 'gap_bucket' => 'varchar'],
+            ['median_ratio' => 'double precision', 'sample_size' => 'integer'],
+            $rows,
+        );
     }
 
     /**
@@ -655,21 +695,12 @@ readonly final class PuzzleIntelligenceRecalculator
      */
     private function flushPlayerImprovementRatioBuffer(array $rows): void
     {
-        if ($rows === []) {
-            return;
-        }
-
-        $columns = ['player_id', 'from_attempt', 'median_ratio', 'sample_size', 'computed_at'];
-        $values = $this->buildValuesClause($rows, $columns, 'gen_random_uuid()');
-
-        $this->connection->executeStatement("
-            INSERT INTO player_improvement_ratio (id, player_id, from_attempt, median_ratio, sample_size, computed_at)
-            VALUES {$values['sql']}
-            ON CONFLICT (player_id, from_attempt) DO UPDATE SET
-                median_ratio = EXCLUDED.median_ratio,
-                sample_size = EXCLUDED.sample_size,
-                computed_at = EXCLUDED.computed_at
-        ", $values['params']);
+        $this->writeChangedRows(
+            'player_improvement_ratio',
+            ['player_id' => 'uuid', 'from_attempt' => 'integer'],
+            ['median_ratio' => 'double precision', 'sample_size' => 'integer'],
+            $rows,
+        );
     }
 
     /**
@@ -746,35 +777,125 @@ readonly final class PuzzleIntelligenceRecalculator
     }
 
     /**
-     * @param list<array<string, mixed>> $rows
-     * @param list<string> $columns
-     * @return array{sql: string, params: array<string, mixed>}
+     * Inserts the rows that are new and updates the ones whose values differ from the stored row -
+     * and nothing else.
+     *
+     * Every run recomputes every row, and nearly all of them come out exactly as stored; the plain
+     * upsert used to write a new version of each of them anyway, on every run. Here the stored row
+     * is joined and compared in the SELECT, so an unchanged row never reaches ON CONFLICT: it is not
+     * written, not even locked, and its computed_at stays the moment its values last changed. The
+     * fresh values are cast to the column types before the comparison, i.e. compared exactly as a
+     * rewrite would have stored them.
+     *
+     * ON CONFLICT stays for a row inserted after the SELECT's snapshot (the incremental handler,
+     * concurrently): it is overwritten, as before.
+     *
+     * @param array<string, string> $keyColumns the unique key, column => SQL type
+     * @param array<string, string> $valueColumns column => SQL type; compared, and written together with computed_at
+     * @param list<array<string, mixed>> $rows every key and value column plus computed_at
      */
-    private function buildValuesClause(array $rows, array $columns, null|string $idExpression = null): array
+    private function writeChangedRows(string $table, array $keyColumns, array $valueColumns, array $rows, bool $generateId = true): void
     {
+        if ($rows === []) {
+            return;
+        }
+
+        $columnTypes = [...$keyColumns, ...$valueColumns, 'computed_at' => 'timestamp'];
+        $columns = array_keys($columnTypes);
+        $keys = array_keys($keyColumns);
+        $compared = array_keys($valueColumns);
+
         $valuesClauses = [];
         $params = [];
 
         foreach ($rows as $i => $row) {
             $placeholders = [];
 
-            if ($idExpression !== null) {
-                $placeholders[] = $idExpression;
-            }
-
-            foreach ($columns as $col) {
-                $paramName = "r{$i}_{$col}";
-                $placeholders[] = ":{$paramName}";
-                $params[$paramName] = $row[$col];
+            foreach ($columnTypes as $column => $type) {
+                $placeholders[] = "CAST(:r{$i}_{$column} AS {$type})";
+                $params["r{$i}_{$column}"] = $row[$column];
             }
 
             $valuesClauses[] = '(' . implode(', ', $placeholders) . ')';
         }
 
-        return [
-            'sql' => implode(', ', $valuesClauses),
-            'params' => $params,
-        ];
+        $insertColumns = implode(', ', $generateId ? ['id', ...$columns] : $columns);
+        $selectColumns = ($generateId ? 'gen_random_uuid(), ' : '') . self::qualifiedColumns('fresh', $columns);
+        $values = implode(', ', $valuesClauses);
+        $valueAliases = implode(', ', $columns);
+        $keyMatch = implode(' AND ', array_map(static fn (string $key): string => "stored.{$key} = fresh.{$key}", $keys));
+        $storedValues = self::qualifiedColumns('stored', $compared);
+        $freshValues = self::qualifiedColumns('fresh', $compared);
+        $conflictKey = implode(', ', $keys);
+        $updates = implode(', ', array_map(static fn (string $column): string => "{$column} = EXCLUDED.{$column}", [...$compared, 'computed_at']));
+
+        $this->connection->executeStatement("
+            INSERT INTO {$table} ({$insertColumns})
+            SELECT {$selectColumns}
+            FROM (VALUES {$values}) AS fresh ({$valueAliases})
+            LEFT JOIN {$table} stored ON {$keyMatch}
+            WHERE stored.{$keys[0]} IS NULL
+                OR ({$storedValues}) IS DISTINCT FROM ({$freshValues})
+            ON CONFLICT ({$conflictKey}) DO UPDATE SET {$updates}
+        ", $params);
+    }
+
+    /**
+     * Deletes the rows of $table this run did not produce.
+     *
+     * This used to be `computed_at < :now`, which worked while every produced row was rewritten
+     * with :now. Unchanged rows now keep their older computed_at, so the key decides. The
+     * computed_at condition stays for what it protected before: a row written after this run
+     * started (the incremental handler stamps its own, later time) is kept, as it always was.
+     *
+     * @param array<string, string> $keyColumns the unique key, column => SQL type
+     * @param list<array<string, int|string>> $producedKeys the key of every row this run produced
+     */
+    private function deleteRowsNotProduced(string $table, array $keyColumns, array $producedKeys, \DateTimeImmutable $now, string $condition = 'TRUE'): void
+    {
+        $unnestArguments = [];
+        $keyMatch = [];
+        $params = ['now' => $now->format('Y-m-d H:i:s')];
+
+        foreach ($keyColumns as $column => $type) {
+            $unnestArguments[] = "CAST(:produced_{$column} AS {$type}[])";
+            $keyMatch[] = "produced.{$column} = stale.{$column}";
+            $params["produced_{$column}"] = $this->postgresArrayLiteral(array_column($producedKeys, $column));
+        }
+
+        $unnest = implode(', ', $unnestArguments);
+        $producedColumns = implode(', ', array_keys($keyColumns));
+        $isProduced = implode(' AND ', $keyMatch);
+
+        $this->connection->executeStatement("
+            DELETE FROM {$table} stale
+            WHERE stale.computed_at < :now
+                AND {$condition}
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM unnest({$unnest}) AS produced ({$producedColumns})
+                    WHERE {$isProduced}
+                )
+        ", $params);
+    }
+
+    /**
+     * @param list<string> $columns
+     */
+    private static function qualifiedColumns(string $alias, array $columns): string
+    {
+        return implode(', ', array_map(static fn (string $column): string => "{$alias}.{$column}", $columns));
+    }
+
+    /**
+     * @param array<int|string> $values
+     */
+    private function postgresArrayLiteral(array $values): string
+    {
+        return '{' . implode(',', array_map(
+            static fn (int|string $value): string => '"' . addcslashes((string) $value, '"\\') . '"',
+            $values,
+        )) . '}';
     }
 
     /**
@@ -782,22 +903,12 @@ readonly final class PuzzleIntelligenceRecalculator
      */
     private function flushBaselineBuffer(array $rows): void
     {
-        if ($rows === []) {
-            return;
-        }
-
-        $columns = ['player_id', 'pieces_count', 'baseline_seconds', 'qualifying_solves_count', 'baseline_type', 'computed_at'];
-        $values = $this->buildValuesClause($rows, $columns, 'gen_random_uuid()');
-
-        $this->connection->executeStatement("
-            INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, baseline_type, computed_at)
-            VALUES {$values['sql']}
-            ON CONFLICT (player_id, pieces_count) DO UPDATE SET
-                baseline_seconds = EXCLUDED.baseline_seconds,
-                qualifying_solves_count = EXCLUDED.qualifying_solves_count,
-                baseline_type = EXCLUDED.baseline_type,
-                computed_at = EXCLUDED.computed_at
-        ", $values['params']);
+        $this->writeChangedRows(
+            'player_baseline',
+            self::PLAYER_PIECES_KEY,
+            ['baseline_seconds' => 'integer', 'qualifying_solves_count' => 'integer', 'baseline_type' => 'varchar'],
+            $rows,
+        );
     }
 
     /**
@@ -805,25 +916,21 @@ readonly final class PuzzleIntelligenceRecalculator
      */
     private function flushDifficultyBuffer(array $rows): void
     {
-        if ($rows === []) {
-            return;
-        }
-
-        $columns = ['puzzle_id', 'difficulty_score', 'difficulty_tier', 'confidence', 'sample_size', 'indices_p25', 'indices_p75', 'computed_at'];
-        $values = $this->buildValuesClause($rows, $columns);
-
-        $this->connection->executeStatement("
-            INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, indices_p25, indices_p75, computed_at)
-            VALUES {$values['sql']}
-            ON CONFLICT (puzzle_id) DO UPDATE SET
-                difficulty_score = EXCLUDED.difficulty_score,
-                difficulty_tier = EXCLUDED.difficulty_tier,
-                confidence = EXCLUDED.confidence,
-                sample_size = EXCLUDED.sample_size,
-                indices_p25 = EXCLUDED.indices_p25,
-                indices_p75 = EXCLUDED.indices_p75,
-                computed_at = EXCLUDED.computed_at
-        ", $values['params']);
+        // puzzle_id is the primary key, no generated id. Derived metrics are not compared: the next step writes them.
+        $this->writeChangedRows(
+            'puzzle_difficulty',
+            ['puzzle_id' => 'uuid'],
+            [
+                'difficulty_score' => 'double precision',
+                'difficulty_tier' => 'integer',
+                'confidence' => 'varchar',
+                'sample_size' => 'integer',
+                'indices_p25' => 'double precision',
+                'indices_p75' => 'double precision',
+            ],
+            $rows,
+            generateId: false,
+        );
     }
 
     /**
@@ -850,6 +957,7 @@ readonly final class PuzzleIntelligenceRecalculator
 
         $valuesClause = implode(', ', $valuesClauses);
 
+        // Only the puzzles whose metrics differ: an unchanged row is neither written nor locked
         $this->connection->executeStatement("
             UPDATE puzzle_difficulty AS pd SET
                 memorability_score = v.memorability_score,
@@ -859,6 +967,8 @@ readonly final class PuzzleIntelligenceRecalculator
                 improvement_ceiling_score = v.improvement_ceiling_score
             FROM (VALUES {$valuesClause}) AS v(puzzle_id, memorability_score, skill_sensitivity_score, predictability_score, box_dependence_score, improvement_ceiling_score)
             WHERE pd.puzzle_id = v.puzzle_id
+                AND (pd.memorability_score, pd.skill_sensitivity_score, pd.predictability_score, pd.box_dependence_score, pd.improvement_ceiling_score)
+                    IS DISTINCT FROM (v.memorability_score, v.skill_sensitivity_score, v.predictability_score, v.box_dependence_score, v.improvement_ceiling_score)
         ", $params);
     }
 
@@ -867,24 +977,18 @@ readonly final class PuzzleIntelligenceRecalculator
      */
     private function flushSkillBuffer(array $rows): void
     {
-        if ($rows === []) {
-            return;
-        }
-
-        $columns = ['player_id', 'pieces_count', 'skill_score', 'skill_tier', 'skill_percentile', 'confidence', 'qualifying_puzzles_count', 'computed_at'];
-        $values = $this->buildValuesClause($rows, $columns, 'gen_random_uuid()');
-
-        $this->connection->executeStatement("
-            INSERT INTO player_skill (id, player_id, pieces_count, skill_score, skill_tier, skill_percentile, confidence, qualifying_puzzles_count, computed_at)
-            VALUES {$values['sql']}
-            ON CONFLICT (player_id, pieces_count) DO UPDATE SET
-                skill_score = EXCLUDED.skill_score,
-                skill_tier = EXCLUDED.skill_tier,
-                skill_percentile = EXCLUDED.skill_percentile,
-                confidence = EXCLUDED.confidence,
-                qualifying_puzzles_count = EXCLUDED.qualifying_puzzles_count,
-                computed_at = EXCLUDED.computed_at
-        ", $values['params']);
+        $this->writeChangedRows(
+            'player_skill',
+            self::PLAYER_PIECES_KEY,
+            [
+                'skill_score' => 'double precision',
+                'skill_tier' => 'integer',
+                'skill_percentile' => 'double precision',
+                'confidence' => 'varchar',
+                'qualifying_puzzles_count' => 'integer',
+            ],
+            $rows,
+        );
     }
 
     /**
@@ -892,19 +996,6 @@ readonly final class PuzzleIntelligenceRecalculator
      */
     private function flushRatingBuffer(array $rows): void
     {
-        if ($rows === []) {
-            return;
-        }
-
-        $columns = ['player_id', 'pieces_count', 'elo_rating', 'computed_at'];
-        $values = $this->buildValuesClause($rows, $columns, 'gen_random_uuid()');
-
-        $this->connection->executeStatement("
-            INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at)
-            VALUES {$values['sql']}
-            ON CONFLICT (player_id, pieces_count) DO UPDATE SET
-                elo_rating = EXCLUDED.elo_rating,
-                computed_at = EXCLUDED.computed_at
-        ", $values['params']);
+        $this->writeChangedRows('player_elo', self::PLAYER_PIECES_KEY, ['elo_rating' => 'double precision'], $rows);
     }
 }

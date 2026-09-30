@@ -4,6 +4,24 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Insights recalculation writes only what changed
+
+Shipped 2026-09-30: [`features/puzzle-intelligence/README.md`](features/puzzle-intelligence/README.md) §"Writes: only what changed".
+
+- [ ] After the deploy: WAL per day on lily and `n_tup_upd` of the eight insights tables, against the 2026-09-30
+      research (~13 GB/day, 43 % of all WAL, ~111k row updates per run)
+- [ ] `player_rating_snapshot` has no reader, grows by 17.5k rows a day (575 MB on the 2026-09-25 copy) and is now most
+      of the recalculation's WAL (2.2 GB on a replayed day): the first run of every day inserts 17.5k rows into four
+      indexes of a 2.7M-row table (82-151 MB), and every run updates the snapshots of the players whose rating or skill
+      moved. Decide: keep as is, one row per day written once, room for HOT updates (fillfactor), or drop the table
+- [ ] `ImprovementRatioCalculator` orders a player's solves of one puzzle by `COALESCE(finished_at, tracked_at),
+      tracked_at` only, so equal timestamps come back in plan order and a few "4+" ratios differ between any two runs
+      (now: rewritten, before: invisible). `pst.id` as the last tie-breaker (also `buildTransitionsCte()` and
+      `PredictionReconstructor`) makes it deterministic, changing those few ratios once
+- [ ] `myspeedpuzzling:recalculate-puzzle-intelligence --player=UUID` removes every other player's baselines, skills,
+      ratings and improvement ratios (and so most difficulty scores) until the next full run - its cleanups delete what
+      the run did not produce, as they did before 2026-09-30. Scope the cleanups to that player, or drop the option
+
 ## Database indexes (2026-09-30 review)
 
 Registry and how the numbers were taken: [`database-indexes.md`](database-indexes.md). Shipped: `custom_notification_unread`,

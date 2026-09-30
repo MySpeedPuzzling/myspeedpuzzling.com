@@ -605,3 +605,58 @@ After initial migration, run the command to populate all data:
 ```
 docker compose exec web php bin/console myspeedpuzzling:recalculate-puzzle-intelligence
 ```
+
+### Writes: only what changed (2026-09-30)
+
+Every run still recomputes everything, but writes only the rows whose values differ from what is stored. Until
+2026-09-30 every run rewrote every row: ~105k row versions and ~175-270 MB of WAL per run, ~13 GB a day, 43 % of the
+database's WAL - disk wear, not page latency.
+
+- **Upserts** (`PuzzleIntelligenceRecalculator::writeChangedRows()`, the derived-metrics update, the history and
+  snapshot statements) join the stored row in the `SELECT` and pass on only new rows and rows where a value
+  `IS DISTINCT FROM` the stored one. An unchanged row never reaches `ON CONFLICT`: not written, not even locked
+  (`ON CONFLICT ... DO UPDATE ... WHERE` would still lock, and so log, every row). The fresh values are cast to the
+  column types before the comparison, so "equal" means a rewrite would have stored exactly the same value.
+- **`computed_at`** is the moment the row's values last changed, no longer the last run. On `puzzle_difficulty` it
+  moves with the difficulty columns only - the derived metrics never set it (neither before). Nothing reads it but
+  the cleanups below; checked 2026-09-30: queries, templates, API, the incremental handler and the tests (one test
+  uses it as a "was this row touched" marker). Should a "last recalculated" time ever be needed, it belongs in one
+  place, not in every row.
+- **Stale rows** are deleted by key: a row this run did not produce, unless its `computed_at` is not older than the
+  run's start. Exactly what `computed_at < :now` removed while every produced row was rewritten with `:now`; a row
+  written after the start (the incremental handler stamps its own clock) stays, as it always did. The cleanups of
+  piece counts without skills/ratings and of private players' ratings are unchanged; `puzzle_difficulty`, the skill
+  history and the snapshots are never deleted. `--player` produces one player's rows only, so - as before - it
+  removes every other player's baselines, skills, ratings and improvement ratios until the next full run.
+- **History and snapshots** keep one row per player, piece count and month (`player_skill_history`) or day
+  (`player_rating_snapshot`), holding the latest values of that period. The first run of the period inserts the rows,
+  later runs update the changed ones: the same rows with the same values as before. A snapshot's `computed_at` is when
+  its values were last written, not the last run of the day. Nothing reads the snapshots; the history's only reader
+  (`GetPlayerSkillHistory`) is not wired into any page at the moment.
+- **Concurrency** is as before: every statement commits on its own at the same point of the run, readers see the same
+  values meanwhile (a rewrite with equal values was invisible to them), and far fewer rows are locked. The one
+  difference is a millisecond race: when the incremental handler updates a row between a batch statement's snapshot
+  and its write, and the batch's value equals the one it saw, the handler's newer value now stays until the next run
+  instead of being overwritten.
+
+Measured 2026-09-30 on the production copy (data to 2026-09-25 16:29), old and new code on identical copies with the
+same frozen clock, Postgres 16 with production's WAL settings (lz4 compression, full-page writes) and a checkpoint
+before every run, as production checkpoints every 5 minutes and the cron runs every 15:
+
+| Run | Old: WAL / rows written | New: WAL / rows written |
+|-----|------|------|
+| Any run of the old code (19 measured) | 173-185 MB / ~104,600 | |
+| Next cron slot after the copy's last production run (13 minutes of production changes) | 185 MB / 104,623 | 81 MB / 14,901 |
+| Nothing changed since the previous run | 175 MB / 104,623 | 0 MB / 0 |
+| 13 replayed 15-minute windows of real solves (2026-09-25 13:00-16:15) | 174-176 MB / ~104,620 each | 27-56 MB / 5,500-13,100 each |
+| First run of a day 7 hours after the previous run (inserts the day's 17,479 snapshots) / of a month (+ 17,479 history rows) | 173 / 174 MB | 151 / 161 MB |
+| A replayed day: 96 runs over the copy's last 24 hours of solves | ~16.4 GB / ~10 M (96 x 175 MB, every run is alike) | 2.2 GB / 0.82 M (median run 21 MB, largest 82 MB: 00:02, the day's first) |
+
+Run time is unchanged, ~11 s in the steady state: history 0.25 s -> 0.02 s, snapshots 2.4 s -> 1.7 s, the difficulty
+upsert 1.2 s -> 1.6 s (the join with the stored rows). Table contents after every compared run were identical, byte
+for byte, apart from `id` and `computed_at` - with parallel query off, because `ImprovementRatioCalculator` orders
+solves of one player and puzzle with equal timestamps as they come, so with parallel plans a few "4+" ratios differ
+between any two runs, old code against old code too (`docs/TODO.md`). What still costs WAL are real changes: ratings
+decay a little whenever a solve in a portfolio passes its time of day and move with every new solve on a popular
+puzzle, skill percentiles shift with them, and every changed snapshot is an update into four indexes of a 2.7M-row
+table - most of the remaining WAL.

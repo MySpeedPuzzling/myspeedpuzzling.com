@@ -353,6 +353,9 @@ final class DeletePlayerHandler
             ->setParameter('p', $playerId)->execute();
         $em->createQuery('UPDATE ' . ModerationAction::class . ' m SET m.targetPlayer = NULL WHERE m.targetPlayer = :p')
             ->setParameter('p', $playerId)->execute();
+        // The acting admin/moderator - the action stays on record without them (the FK is ON DELETE SET NULL too)
+        $em->createQuery('UPDATE ' . ModerationAction::class . ' m SET m.admin = NULL WHERE m.admin = :p')
+            ->setParameter('p', $playerId)->execute();
     }
 
     private function anonymizeSoldSwappedItems(Player $player, string $playerName): void

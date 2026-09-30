@@ -76,7 +76,7 @@
                                                 {{ action.actionType.value|replace({'_': ' '})|capitalize }}
                                             </span>
                                         </td>
-                                        <td>{{ action.adminName }}</td>
+                                        <td>{% if action.adminName is not null %}{{ action.adminName }}{% else %}<span class="text-muted">Deleted user</span>{% endif %}</td>
                                         <td>{{ action.reason|default('-') }}</td>
                                         <td>{{ action.performedAt|ago }}</td>
                                         <td>

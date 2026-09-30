@@ -88,6 +88,33 @@ Mirrors `ResetPasswordRequest` (split token, D8/D18 rationale in
 `DeletePlayer` / `DeletePlayerHandler` remain the single place that knows how to
 anonymise/remove a player's data (files included, see below).
 
+## Moderation records of a deleted admin / moderator
+
+Admins and moderators can delete their own account like anyone else. What they
+*did* stays on record, just no longer linked to them - every "who acted" column is
+nullable and nulled (the other players' side of the story must not disappear with
+the person who moderated it):
+
+| Record | Column | On deletion |
+|---|---|---|
+| `moderation_action` (warn / mute / ban / listing removed) | `admin_id` | `ON DELETE SET NULL` + nulled by the handler; admin history shows "Deleted user" |
+| `conversation_report`, `feature_request_comment_report` | `resolved_by_id` | nulled by the handler; report detail shows "Deleted user" |
+| `puzzle_change_request`, `puzzle_merge_request`, `oauth2_client_request` | `reviewed_by_id` | `ON DELETE SET NULL` (the "by …" is simply left out) |
+| `puzzle` | `approved_by_id` | `ON DELETE SET NULL` |
+| `puzzle_merge_audit` | `performed_by_id` | `ON DELETE SET NULL` |
+| `competition`, `competition_series` | `approved_by_player_id`, `rejected_by_player_id` | nulled by the handler |
+| `puzzle_moderation_decision` | - | no FK by design: decider id/name/code are a copy and stay |
+
+A player's *own* change requests (`puzzle_change_request.reporter_id`) cascade
+with them; the decisions about them live on in `puzzle_moderation_decision`.
+Moderator appointments are a column on the player (`moderator_since`) and go with it.
+
+**When adding a column that references `player`:** pick `onDelete: 'CASCADE'`
+(the row is the player's own data) or `nullable` + `onDelete: 'SET NULL'` (the row
+belongs to someone else / is an audit record). A plain FK blocks every deletion of a
+player it points to - that is how `moderation_action.admin_id` made admins
+undeletable until 2026-09-30 (`DeletePlayerHandlerTest::testDeletingAnAdminKeepsTheirModerationActionsWithoutThem`).
+
 ## Files in object storage (#213)
 
 The privacy policy promises that nothing but Stripe's payment records survives an

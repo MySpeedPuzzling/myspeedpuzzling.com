@@ -6,12 +6,15 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\ModerationAction;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\DeletePlayer;
+use SpeedPuzzling\Web\Query\GetModerationActions;
+use SpeedPuzzling\Web\Tests\DataFixtures\ModerationActionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
@@ -238,5 +241,27 @@ final class DeletePlayerHandlerTest extends KernelTestCase
 
         self::assertIsString($favorites);
         self::assertStringNotContainsString(PlayerFixture::PLAYER_REGULAR, $favorites);
+    }
+
+    public function testDeletingAnAdminKeepsTheirModerationActionsWithoutThem(): void
+    {
+        // PLAYER_ADMIN performed both fixture moderation actions - the FK used to block the deletion
+        $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_ADMIN));
+        $this->entityManager->clear();
+
+        self::assertNull($this->entityManager->find(Player::class, PlayerFixture::PLAYER_ADMIN));
+
+        foreach ([ModerationActionFixture::ACTION_WARNING, ModerationActionFixture::ACTION_EXPIRED_MUTE] as $actionId) {
+            $action = $this->entityManager->find(ModerationAction::class, $actionId);
+
+            self::assertNotNull($action, 'The moderation record must survive the deletion of the admin');
+            self::assertNull($action->admin);
+            self::assertNotNull($action->targetPlayer);
+        }
+
+        $history = self::getContainer()->get(GetModerationActions::class)->forPlayer(PlayerFixture::PLAYER_REGULAR);
+
+        self::assertCount(1, $history);
+        self::assertNull($history[0]->adminName);
     }
 }

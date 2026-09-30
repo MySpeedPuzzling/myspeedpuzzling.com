@@ -14,7 +14,8 @@ readonly final class ModerationActionView
         public ModerationActionType $actionType,
         public string $targetPlayerName,
         public string $targetPlayerId,
-        public string $adminName,
+        /** Null when the admin who acted has deleted their account */
+        public null|string $adminName,
         public null|string $reason,
         public DateTimeImmutable $performedAt,
         public null|DateTimeImmutable $expiresAt = null,

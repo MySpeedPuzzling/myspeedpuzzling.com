@@ -56,7 +56,7 @@
                                 <strong>Resolved:</strong> {{ report.resolvedAt|ago }}
                             </div>
                             <div class="col-sm-6">
-                                <strong>Resolved by:</strong> {{ report.resolvedByName }}
+                                <strong>Resolved by:</strong> {% if report.resolvedByName is not null %}{{ report.resolvedByName }}{% else %}<span class="text-muted">Deleted user</span>{% endif %}
                             </div>
                         </div>
                         {% if report.adminNote %}

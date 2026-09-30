@@ -30,10 +30,11 @@ class ModerationAction
         #[ManyToOne]
         #[JoinColumn(nullable: true)]
         public null|Player $targetPlayer,
+        // Null once the acting admin/moderator deleted their account - the action itself stays on record
         #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $admin,
+        #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+        public null|Player $admin,
         #[Immutable]
         #[Column(type: Types::STRING, enumType: ModerationActionType::class)]
         public ModerationActionType $actionType,

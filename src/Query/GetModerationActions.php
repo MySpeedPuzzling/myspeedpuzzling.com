@@ -35,7 +35,7 @@ SELECT
     ma.expires_at
 FROM moderation_action ma
 JOIN player tp ON ma.target_player_id = tp.id
-JOIN player ap ON ma.admin_id = ap.id
+LEFT JOIN player ap ON ma.admin_id = ap.id
 WHERE ma.target_player_id = :playerId
 ORDER BY ma.performed_at DESC
 SQL;
@@ -61,7 +61,7 @@ SELECT
     ma.expires_at
 FROM moderation_action ma
 JOIN player tp ON ma.target_player_id = tp.id
-JOIN player ap ON ma.admin_id = ap.id
+LEFT JOIN player ap ON ma.admin_id = ap.id
 WHERE ma.target_player_id = :playerId
     AND ma.action_type = :actionType
     AND (ma.expires_at IS NULL OR ma.expires_at > :now::timestamp)
@@ -106,7 +106,7 @@ SQL;
             actionType: ModerationActionType::from($row['action_type']),
             targetPlayerName: $row['target_player_name'] ?? 'Unknown',
             targetPlayerId: $row['target_player_id'],
-            adminName: $row['admin_name'] ?? 'Unknown',
+            adminName: $row['admin_name'],
             reason: $row['reason'],
             performedAt: new DateTimeImmutable($row['performed_at']),
             expiresAt: $row['expires_at'] !== null ? new DateTimeImmutable($row['expires_at']) : null,

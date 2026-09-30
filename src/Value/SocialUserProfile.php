@@ -17,11 +17,10 @@ namespace SpeedPuzzling\Web\Value;
  *   as a boolean or as the string "true"/"false"; only true/"true" count. An
  *   email Apple explicitly marks unverified is kept (rule 4 still registers
  *   the account, unverified, and asks for confirmation) but never auto-links.
- * - Microsoft: Microsoft documents the `email` claim as "not guaranteed to be
- *   correct", so it counts as verified only on Microsoft's own consumer
- *   mailbox domains (MicrosoftConsumerMailDomains - there the account IS the
- *   mailbox); any other address is unverified (never auto-links, rule 4 asks
- *   for confirmation).
+ * - Microsoft: an email that is present is trusted, like Facebook's - only
+ *   personal accounts (consumers tenant) get through MicrosoftIdTokenVerifier,
+ *   and Microsoft account sign-up confirms an external address with a code
+ *   (owner decision 2026-09-30, microsoft-plan.md §D3).
  *
  * `emailVerified` drives both the auto-link decision (rule 2 vs 3) and whether
  * a rule-4 account starts verified.

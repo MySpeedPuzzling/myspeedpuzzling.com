@@ -84,7 +84,7 @@ app reachable if your personal login ever has a problem, and it is the account t
 ## 5. Token configuration (optional, for the test)
 
 Skip it. (The plan considered the `xms_edov` optional claim to widen e-mail trust one day; the code does not read
-it — trust is the Microsoft-mailbox domain list, plan §1 D3.)
+it — every personal account's e-mail is trusted, plan §1 D3.)
 
 ## 6. Branding & properties
 
@@ -189,17 +189,14 @@ production smoke test (items 1, 2, 4, 5) right after the deploy.
 5. **Recent activity** (`/en/account/recent-activity`): "Sign-in method connected" + "Signed in with a connected
    account".
 6. **Cancel:** on Microsoft's consent screen click **Cancel** → back on the sign-in page, nothing created.
-7. **Auto-link (rule 2):** an `@outlook.com`/`@hotmail.*` Microsoft account whose address matches an existing, verified
-   MySpeedPuzzling account → signed straight into that account + notice e-mail.
-8. **Not auto-linked (rule 3):** a Microsoft account whose user name is a **Gmail** (or other non-Microsoft) address
-   that matches an existing account → "Microsoft has not confirmed the address … sign in first, then connect" and
-   you stay signed out.
-9. **New account (rule 4):** a Microsoft account matching nothing → "Create a new account with …?" → confirm → signed
-   in; a Gmail-based Microsoft account gets the e-mail verification mail as well. ("Trusted" = the exact domain list in
-   `MicrosoftConsumerMailDomains` — `outlook.com`, `hotmail.*`, `live.*`, `msn.com`, … MX-verified; `outlook.cz` /
-   `hotmail.cz` are *not* Outlook.com mailboxes and count as unconfirmed.)
-10. **Work account refused:** try a work/school address → Microsoft itself says it can't be used here.
-11. **Disconnect** in settings → gone; reconnect if you want to keep it.
+7. **Auto-link (rule 2):** a personal Microsoft account whose address matches an existing, verified MySpeedPuzzling
+   account → signed straight into that account + notice e-mail. Any address counts: `@outlook.com`/`@hotmail.*` as well
+   as a Microsoft account whose user name is a **Gmail** or **iCloud** (`@me.com`, `@icloud.com`) address — every
+   personal Microsoft account's e-mail is trusted (decision 2026-09-30, `microsoft-plan.md` §D3).
+8. **New account (rule 4):** a Microsoft account matching nothing → "Create a new account with …?" → confirm → signed
+   in, the account is already verified — **no** e-mail verification mail, whatever the address's domain.
+9. **Work account refused:** try a work/school address → Microsoft itself says it can't be used here.
+10. **Disconnect** in settings → gone; reconnect if you want to keep it.
 
 To re-test the consent screen: remove the app at <https://account.live.com/consent/Manage> (Edit → Remove these
 permissions).

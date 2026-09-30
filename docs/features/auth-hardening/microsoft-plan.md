@@ -1,7 +1,7 @@
 # Plan: "Continue with Microsoft"
 
 Status: **implemented 2026-09-30, shipped dark** (no credentials in production yet). Owner decisions on the open
-questions (2026-09-30): consumers only; launch "unverified"; e-mail trust only for Microsoft's consumer mailbox domains;
+questions (2026-09-30): consumers only; launch "unverified"; e-mail trust only for Microsoft's consumer mailbox domains (changed 2026-09-30 after the production test: every personal account's e-mail is trusted, §D3);
 identity = `oid`; 24-month secret + `MICROSOFT_CLIENT_SECRET_EXPIRES_AT`; **order Google, Microsoft, Apple, Facebook**
 (overrides D10); house wording "Continue with Microsoft"; no flag; the publisher-domain file is served from
 `MICROSOFT_CLIENT_ID` by a controller. Deviations from this plan: the expiry reminder runs at the end of a request
@@ -25,7 +25,7 @@ with nothing to remember.
 |---|---|---|
 | D1 | Tenant / endpoint | **`/consumers` only** (personal Microsoft accounts); app registered as "Personal accounts only". No work/school accounts. |
 | D2 | Which claim is the identity | **`oid`** of the consumer tenant (stable across app registrations), `sub` kept as a fallback check. Never the e-mail. |
-| D3 | E-mail trust | Trusted (rule 2 may auto-link) **only for Microsoft-owned consumer mailbox domains** (allowlist); any other address on a Microsoft account (e.g. a Gmail used as MSA username) counts as **unverified** → rule 3 refuses auto-link, rule 4 creates an unverified account + verification mail. |
+| D3 | E-mail trust | **Every personal Microsoft account's e-mail is trusted, like Facebook's** (owner decision 2026-09-30, see §D3): `emailVerified` = e-mail present. The consumers-tenant (`tid`) check stays; work/school accounts stay rejected. *Originally:* trusted only on an allowlist of Microsoft-owned mailbox domains — superseded, allowlist removed. |
 | D4 | Library | **No new provider package.** league `GenericProvider` (already installed, honours `pkceMethod`) + our own id_token check against Microsoft's JWKS with `firebase/php-jwt` (already used by `AppleServerNotificationVerifier`). Reject `stevenmaguire/oauth2-microsoft` (dead Live API) and `thenetworg/oauth2-azure` (see §Library). |
 | D5 | PKCE | **Yes, S256** (via GenericProvider's `pkceMethod` option — the one place league honours it). |
 | D6 | Scopes | `openid profile email` — no `offline_access`, no Graph `User.Read`. |
@@ -87,6 +87,16 @@ app could correlate the same `oid`) is irrelevant for us — we never share it.
 Still: **never delete the app registration** — also written in the setup guide.
 
 ### D3 — e-mail trust
+
+> **Decision 2026-09-30 (owner) — supersedes the recommendation below.** Trust the e-mail of **every** personal
+> Microsoft account, exactly like Facebook: `emailVerified = email present` (and the id_token passed the consumers
+> `tid`/`iss` check). Reason: MySpeedPuzzling is a community site; Microsoft account sign-up verifies an external
+> e-mail (Gmail, iCloud, …) with a code; consumers-only tokens rule out nOAuth (a work tenant can't mint a token with
+> somebody else's address). Trigger: testing in production with an Apple-domain Microsoft account (`@me.com`) that
+> matched its own verified MySpeedPuzzling account got the rule-3 refusal. Consequences: rule 2 auto-links any
+> address on a personal Microsoft account (+ notice mail), rule 4 creates the account **verified** without a
+> verification mail, rule 3 no longer happens for Microsoft. `MicrosoftConsumerMailDomains` (the allowlist) and its
+> test are deleted. Identity stays keyed on `oid`. The original analysis is kept below for the record.
 
 The house policy is "trust the provider e-mail unless the provider says it is unverified" (README §Hardening). Microsoft
 *does* say so, globally: the claim "isn't guaranteed to be correct". A personal Microsoft account can be created with
@@ -217,7 +227,6 @@ failure messages) is provider-agnostic and needs nothing.
 | `src/Value/OauthProvider.php` | `case Microsoft = 'microsoft'`; `displayName()` → `'Microsoft'`. No migration: `oauth_identity.provider` is a string column. |
 | `src/Services/SocialLogin/SocialLoginProviders.php` | constructor args `$microsoftClientId`, `$microsoftClientSecret`; `create()` → `GenericProvider` (§2); `authorizationOptions()` → `['prompt' => 'select_account']`; `microsoftClientId()` getter for the audience check. |
 | `src/Services/SocialLogin/MicrosoftIdTokenVerifier.php` (new) + optional `CachedJwks` extraction | §2. |
-| `src/Services/SocialLogin/MicrosoftConsumerMailDomains.php` (new, or a constant on the verifier) | allowlist for D3. |
 | `src/Services/SocialLogin/SocialProfileFetcher.php` | `Microsoft` branch before `getResourceOwner()` (like Apple): read `id_token` from the token values, verify, map. |
 | `src/Security/MicrosoftLoginAuthenticator.php` (new) | 10-line subclass like `GoogleLoginAuthenticator`. |
 | `config/packages/security.php` | append it to `custom_authenticators` on `main`. |
@@ -241,10 +250,10 @@ failure messages) is provider-agnostic and needs nothing.
 - `SocialLoginFlowTest` (mocked Guzzle like the Google cases; the id_token is signed in-test with a throwaway RSA key
   whose JWK is served by the mocked JWKS response):
   - rule 1: known `oid` logs in (and a **different `sub` with the same `oid`** still logs in — pins D2);
-  - rule 2: `@outlook.com` e-mail matching a verified account → auto-link + notice mail;
-  - rule 3: `@gmail.com` e-mail on a Microsoft account matching an account → refused, "not confirmed" message;
-  - rule 4: unknown `@hotmail.cz` → interstitial → account created **verified**; unknown `@gmail.com` → created
-    **unverified** + verification mail;
+  - rule 2: `@outlook.com`, `@gmail.com` and `@icloud.com` e-mails matching a verified account → auto-link + notice
+    mail (since the 2026-09-30 D3 decision; rule 3 no longer happens for Microsoft);
+  - rule 4: unknown `@hotmail.co.uk` or `@gmail.com` → interstitial → account created **verified**, no verification
+    mail;
   - no `email` claim → `no_email`;
   - `access_denied` → cancelled message.
 - `MicrosoftIdTokenVerifierTest`: wrong `aud`, wrong `iss`, work-tenant `tid`, expired, unknown `kid` → refetch once,
@@ -333,6 +342,7 @@ UI/translations/legal ½ day, tests ½ day. Owner: ~1 h of console work, plus th
    Microsoft-only flag?
 6. **E-mail trust:** OK with trusting only Microsoft-owned mailbox domains (Gmail-as-Microsoft-account users can't
    auto-link and must connect from settings), or treat every Microsoft e-mail as trusted like Facebook?
+   **Answered 2026-09-30: trust every personal Microsoft account's e-mail, like Facebook (§D3).**
 7. **Secret lifetime:** 24 months (fewer rotations) or Microsoft's recommended ≤ 12 months?
 
 ## Sources

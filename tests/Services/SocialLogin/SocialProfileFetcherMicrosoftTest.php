@@ -17,7 +17,7 @@ use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * Microsoft profile mapping (identity = oid, email trust by mailbox domain)
+ * Microsoft profile mapping (identity = oid, every personal-account email trusted)
  * and the expired-client-secret outage signal.
  */
 final class SocialProfileFetcherMicrosoftTest extends KernelTestCase
@@ -70,13 +70,23 @@ final class SocialProfileFetcherMicrosoftTest extends KernelTestCase
         self::assertFalse($profile->isPrivateRelay);
     }
 
-    public function testNonMicrosoftMailboxIsUnverified(): void
+    public function testExternalMailboxOfPersonalAccountIsVerified(): void
     {
         MicrosoftIdTokenFactory::queueTokenExchange(['email' => 'player@gmail.com']);
 
         $profile = $this->fetcher->fetch(OauthProvider::Microsoft, 'code', 'verifier');
 
         self::assertSame('player@gmail.com', $profile->email);
+        self::assertTrue($profile->emailVerified);
+    }
+
+    public function testMissingEmailIsUnverified(): void
+    {
+        MicrosoftIdTokenFactory::queueTokenExchange(['email' => null]);
+
+        $profile = $this->fetcher->fetch(OauthProvider::Microsoft, 'code', 'verifier');
+
+        self::assertNull($profile->email);
         self::assertFalse($profile->emailVerified);
     }
 

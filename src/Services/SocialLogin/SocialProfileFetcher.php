@@ -114,10 +114,10 @@ final readonly class SocialProfileFetcher
      * Microsoft: identity comes from the id_token of the token response
      * (verified by MicrosoftIdTokenVerifier) - no userinfo call, no Graph.
      * Keyed on `oid`, never `sub` or the email (microsoft-plan.md §D2). The
-     * email is trusted only on Microsoft's own consumer mailbox domains
-     * (§D3): anything else - a Gmail used as a Microsoft account user name -
-     * is unverified, so rule 3 never auto-links it and rule 4 asks the new
-     * account to confirm it.
+     * email of every personal Microsoft account is trusted, like Facebook's
+     * (§D3, owner decision 2026-09-30): the verifier only accepts tokens of
+     * the consumers tenant (no work/school accounts, so no nOAuth), and
+     * Microsoft account sign-up confirms an external address with a code.
      *
      * @throws \UnexpectedValueException the token is not one Microsoft issued to us
      */
@@ -130,7 +130,7 @@ final readonly class SocialProfileFetcher
             provider: OauthProvider::Microsoft,
             providerUserId: $claims['oid'],
             email: $email,
-            emailVerified: $email !== null && MicrosoftConsumerMailDomains::contains($email),
+            emailVerified: $email !== null,
             name: $claims['name'],
         );
     }

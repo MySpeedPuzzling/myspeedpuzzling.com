@@ -21,15 +21,15 @@ use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
-use Symfony\Component\Mime\Email;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /**
  * "Continue with Microsoft" end to end against mocked Microsoft HTTP
  * (docs/features/auth-hardening/microsoft-plan.md): /consumers endpoints,
  * PKCE S256, an id_token really signed and verified against a mocked JWKS,
- * identity keyed on `oid`, and email trust limited to Microsoft's own
- * consumer mailbox domains.
+ * identity keyed on `oid`, and the email of every personal account trusted
+ * (consumers tenant only).
  */
 final class MicrosoftLoginFlowTest extends WebTestCase
 {
@@ -142,25 +142,35 @@ final class MicrosoftLoginFlowTest extends WebTestCase
     }
 
     /**
-     * A Gmail address used as a Microsoft account's user name: Microsoft does
-     * not guarantee it, so it never auto-links (the nOAuth-style takeover).
+     * An external address (Gmail, iCloud) used as a personal Microsoft
+     * account's user name is trusted too: Microsoft account sign-up confirms
+     * it with a code, and only consumers-tenant tokens get this far
+     * (owner decision 2026-09-30, microsoft-plan.md §D3).
+     *
+     * @return iterable<string, array{string}>
      */
-    public function testRule3GmailBasedMicrosoftAccountIsRefused(): void
+    public static function externalMailboxDomains(): iterable
+    {
+        yield 'gmail' => ['gmail.com'];
+        yield 'icloud' => ['icloud.com'];
+    }
+
+    #[DataProvider('externalMailboxDomains')]
+    public function testRule2ExternalAddressAutoLinksAndQueuesTheNotice(string $domain): void
     {
         $browser = $this->microsoftBrowser();
 
         $suffix = bin2hex(random_bytes(4));
-        $email = "ms-rule3+{$suffix}@gmail.com";
-        $this->seedAccount($browser, $email);
+        $email = "ms-rule2x+{$suffix}@{$domain}";
+        $userAccount = $this->seedAccount($browser, $email);
         $oid = "00000000-0000-0000-0003-{$suffix}0000";
 
         $this->signInWith($browser, ['oid' => $oid, 'email' => $email]);
 
-        self::assertResponseRedirects('/login');
-        $crawler = $browser->followRedirect();
-        self::assertStringContainsString('Microsoft has not confirmed that the address belongs to you.', $crawler->text());
-        self::assertSame(0, $this->identityCount($browser, $oid));
-        $this->assertNotLoggedIn($browser);
+        self::assertResponseRedirects();
+        $this->assertLinkNoticeQueued($browser, $userAccount);
+        $this->assertSignedInAs($browser, $userAccount);
+        self::assertSame(1, $this->identityCount($browser, $oid));
     }
 
     public function testRule4ConsumerMailboxCreatesAVerifiedAccount(): void
@@ -185,7 +195,7 @@ final class MicrosoftLoginFlowTest extends WebTestCase
         self::assertResponseRedirects();
         self::assertStringContainsString('/welcome', (string) $browser->getResponse()->headers->get('Location'));
 
-        self::assertCount(0, self::getMailerMessages(), 'A Microsoft consumer mailbox needs no confirmation');
+        self::assertCount(0, self::getMailerMessages(), 'A Microsoft account e-mail needs no confirmation');
 
         $connection = $browser->getContainer()->get(Connection::class);
 
@@ -206,12 +216,12 @@ final class MicrosoftLoginFlowTest extends WebTestCase
         ));
     }
 
-    public function testRule4OtherAddressCreatesAnUnverifiedAccountAndSendsVerification(): void
+    public function testRule4ExternalAddressCreatesAVerifiedAccountWithoutVerificationMail(): void
     {
         $browser = $this->microsoftBrowser();
 
         $suffix = bin2hex(random_bytes(4));
-        $email = "ms-rule4u+{$suffix}@gmail.com";
+        $email = "ms-rule4x+{$suffix}@gmail.com";
 
         $this->signInWith($browser, ['oid' => "00000000-0000-0000-0005-{$suffix}0000", 'email' => $email]);
 
@@ -222,13 +232,8 @@ final class MicrosoftLoginFlowTest extends WebTestCase
         $browser->request('POST', '/register/social', ['token' => $query['token'] ?? '']);
         self::assertResponseRedirects();
 
-        $messages = self::getMailerMessages();
-        self::assertCount(1, $messages);
-        self::assertInstanceOf(Email::class, $messages[0]);
-        self::assertSame($email, $messages[0]->getTo()[0]->getAddress());
-        self::assertStringContainsString('/verify-email?token=', (string) $messages[0]->getHtmlBody());
-
-        self::assertNull($browser->getContainer()->get(Connection::class)->fetchOne(
+        self::assertCount(0, self::getMailerMessages(), 'A Microsoft account e-mail needs no confirmation');
+        self::assertNotNull($browser->getContainer()->get(Connection::class)->fetchOne(
             'SELECT email_verified_at FROM user_account WHERE email = :email',
             ['email' => $email],
         ));
@@ -299,7 +304,7 @@ final class MicrosoftLoginFlowTest extends WebTestCase
         $state = $query['state'] ?? null;
         self::assertIsString($state);
 
-        // Rule 5: even an address Microsoft does not vouch for links here
+        // Rule 5: the signed-in account links whatever address Microsoft sends
         $oid = "00000000-0000-0000-0008-{$suffix}0000";
         MicrosoftIdTokenFactory::queueTokenExchange(['oid' => $oid, 'email' => "other+{$suffix}@gmail.com"]);
         $browser->request('GET', "/login/social/microsoft/callback?state={$state}&code=fake-code");

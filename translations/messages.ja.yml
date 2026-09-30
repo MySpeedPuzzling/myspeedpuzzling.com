@@ -300,6 +300,13 @@
       "duo": "%count%組のペアのタイム、中央値 %median%。"
       "group": "%count%チームのタイム、中央値 %median%。"
     "summary_you": "あなたのタイム: %time%。"
+    "legend_repeat": "2回目以降"
+    "count":
+      "solo": "%count%人"
+      "duo": "%count%組"
+      "group": "%count%チーム"
+    "first_attempts_count": "初回 %count%"
+    "repeats_count": "2回目以降 %count%"
 "stopwatch":
   "meta":
     "title": "ストップウォッチ"

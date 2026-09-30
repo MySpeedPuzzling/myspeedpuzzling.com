@@ -9,8 +9,9 @@ import { Controller } from '@hotwired/stimulus';
  * - `vertical` (distribution): a line at `position` in bar units - bar i spans [i, i + 1), so 3.5 is the middle of the fourth bar,
  * - `horizontal` (a bar per row): a line at the y value `value`, labelled at its left end,
  * - `bar` (a bar per row): a label above bar `index`.
- * On the distribution it also titles each tooltip with the bar's time range (`ranges`); the bar-per-row chart keeps the
- * time-chart controller's tooltips and zoom.
+ * `highlight` outlines one stacked bar (the viewer's). On the distribution it also titles each tooltip with the bar's time
+ * range (`ranges`) and, for the first try / repeat split, gives each bar one line (`tooltips`); the bar-per-row chart keeps
+ * the time-chart controller's tooltips and zoom.
  */
 const LABEL_FONT_SIZE = 11;
 
@@ -126,13 +127,50 @@ function drawHorizontalMarker(chart, marker, occupied) {
     drawLabel(ctx, marker, align === 'left' ? left : area.right - 4, y - 3, align, occupied);
 }
 
+// An outline around every segment of one stacked bar - the viewer's, so its split stays readable
+function drawHighlight(chart, highlight) {
+    if (!highlight || typeof highlight.index !== 'number') {
+        return;
+    }
+
+    let left = Infinity;
+    let right = -Infinity;
+    let top = Infinity;
+    let bottom = -Infinity;
+
+    chart.data.datasets.forEach((dataset, datasetIndex) => {
+        const meta = chart.getDatasetMeta(datasetIndex);
+        const element = meta.hidden ? null : meta.data[highlight.index];
+
+        if (!element) {
+            return;
+        }
+
+        const { x, y, base, width } = element.getProps(['x', 'y', 'base', 'width'], true);
+        left = Math.min(left, x - width / 2);
+        right = Math.max(right, x + width / 2);
+        top = Math.min(top, y, base);
+        bottom = Math.max(bottom, y, base);
+    });
+
+    if (!Number.isFinite(left) || bottom - top < 1) {
+        return;
+    }
+
+    const ctx = chart.ctx;
+    ctx.strokeStyle = highlight.color;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.strokeRect(left, top, right - left, bottom - top);
+}
+
 const markersPlugin = {
     id: 'leaderboardMarkers',
 
     afterDatasetsDraw(chart) {
         const config = chart.config.options?.plugins?.leaderboardMarkers;
 
-        if (!config || !Array.isArray(config.markers) || config.markers.length === 0) {
+        if (!config || !Array.isArray(config.markers)) {
             return;
         }
 
@@ -141,6 +179,7 @@ const markersPlugin = {
         const occupied = [];
 
         ctx.save();
+        drawHighlight(chart, config.highlight);
         ctx.font = `600 ${LABEL_FONT_SIZE}px ${fontFamily}`;
         ctx.textBaseline = 'bottom';
 
@@ -187,7 +226,8 @@ export default class extends Controller {
         }
 
         options.plugins.tooltip = options.plugins.tooltip || {};
-        options.plugins.tooltip.callbacks = {
+
+        const callbacks = {
             ...(options.plugins.tooltip.callbacks || {}),
             title(items) {
                 if (items.length === 0) {
@@ -199,5 +239,18 @@ export default class extends Controller {
                 return ranges && ranges[items[0].dataIndex] ? ranges[items[0].dataIndex] : items[0].label;
             },
         };
+
+        // Stacked bars: one line per bar with the total and the split, "132 puzzlers · 97 first tries · 35 repeats"
+        if (Array.isArray(markers.tooltips)) {
+            callbacks.label = (context) => {
+                const tooltips = context.chart.config.options?.plugins?.leaderboardMarkers?.tooltips;
+
+                return tooltips && tooltips[context.dataIndex] ? tooltips[context.dataIndex] : '';
+            };
+            options.plugins.tooltip.filter = (item) => item.datasetIndex === 0;
+            options.plugins.tooltip.displayColors = false;
+        }
+
+        options.plugins.tooltip.callbacks = callbacks;
     }
 }

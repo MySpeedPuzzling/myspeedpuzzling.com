@@ -11,6 +11,16 @@
                 <div style="height: 200px;" data-controller="leaderboard-chart" class="position-relative" data-testid="leaderboard-distribution">
                     {{ render_chart(computed.chart, {role: 'img', 'aria-label': computed.summary}) }}
                 </div>
+                {% if computed.legend is not empty %}
+                    <div class="d-flex justify-content-center gap-3 fs-xs text-muted mt-1" data-testid="leaderboard-legend">
+                        {% for item in computed.legend %}
+                            <span class="d-inline-flex align-items-center gap-1">
+                                <span class="d-inline-block rounded-1" style="width: 10px; height: 10px; background: {{ item.color }};"></span>
+                                {{ item.label }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             {% else %}
                 {# A bar per row; time-chart keeps its zoom and time tooltips #}
                 <div style="height: 180px;" data-controller="time-chart leaderboard-chart" class="position-relative" data-testid="leaderboard-individual">

@@ -92,8 +92,9 @@ Times are right-skewed: London Postcard (500 pcs) – fastest 19:02, median 53:2
 - Built from the **whole filtered leaderboard**, never from the 100 rows the table shows - see "What feeds the chart" below.
   Pairs and teams count pairs and teams ("Pairs" on the axis).
 - Markers drawn by a tiny inline Chart.js plugin in `leaderboard_chart_controller.js` (no new npm dependency): dashed
-  **Median** line, solid **You** line at the viewer's exact time; the viewer's bar is solid red. Labels point away from each other
-  when the lines are close and never leave the chart. Tooltips name the bar's range ("00:45:00 – 00:50:00") and the count.
+  **Median** line, solid **You** line at the viewer's exact time; the viewer's bar is outlined in red (see the first-try split
+  below). Labels point away from each other when the lines are close and never leave the chart. Tooltips name the bar's range
+  ("00:45:00 – 00:50:00"), the count and its first-try split.
 - Accessibility: the canvas is `role="img"` with an `aria-label` summary ("Times of 1718 puzzlers, median 00:53:25. Your time: …").
 - Payload on London Postcard: leaderboard chart JSON 118,441 → 3,921 bytes; whole member page 1.12 MB → 0.50 MB.
 
@@ -153,14 +154,34 @@ private-profile cases next to it).
 3. **±2 neighbours** – kept; the gap row now says how many rows it hides ("⋯ 497 more") and runs "Show more" when tapped.
 4. **"faster than X %"** stays everywhere: "Top 97 %" would be ambiguous (faster than 97 %, or the slowest 3 %?).
 5. **Median + You on the bar-per-row chart** – yes: horizontal dashed median, "You" above the viewer's bar, same summary.
-6. **First attempts / repeats split in the distribution** – variant built for Jan to look at, pending his decision.
+6. **First attempts / repeats split in the distribution** – Jan asked to see it, then: "i love the first tries in histogram,
+   that is great - ship the split". Shipped; see below.
+
+## First tries / repeats in the distribution
+
+Jan: the distribution "loses track of the first tries detailed info", and people use first tries a lot.
+
+- Each bar stacks the rows whose shown time is a **1st try** (blue, the same colour as in the bar-per-row chart) under the
+  **repeats** (red); the folded tails use lighter versions of both. `LeaderboardHistogramBuilder::build()` takes the first-try
+  times as a third argument and counts them per bar (`LeaderboardHistogramBin::$firstAttempts`).
+- The viewer's bar keeps the red "You" line and gets a **red outline** instead of the solid red fill – a solid fill would hide
+  its own split (checked on the screenshots: the outline reads clearly on a phone too).
+- A small legend under the chart ("1st try" – the site's existing word – / "Repeat"), only when the bars show both
+  colours.
+- One tooltip per bar: range + total + split, e.g. "00:45:00 – 00:50:00 · 211 puzzlers · 46 first tries · 165 repeats"; a part
+  that would be 0 is left out.
+- With the "1st tries only" filter every bar is a first try, so the chart is single-coloured and has no legend.
+- What it shows on real boards: London Postcard's fast end is almost all repeats (people who trained on it), while a newer
+  155-solver puzzle is mostly first tries.
 
 ## Tests
 
 - `tests/Services/LeaderboardHistogramBuilderTest.php` – empty, one solver, identical times, nice widths and aligned starts,
-  slow and fast outliers folded, even-count median, monster puzzles, randomised skewed boards (bar limit, no row lost).
+  slow and fast outliers folded, even-count median, monster puzzles, randomised skewed boards (bar limit, no row lost),
+  first tries counted per bar tails included.
 - `tests/Component/Chart/PuzzleTimesChartTest.php` – 50 vs 51 rows, labels/ranges/markers/nouns, viewer bar, pairs; the
-  bar-per-row chart's median line, "You" label, top padding and summary.
+  bar-per-row chart's median line, "You" label, top padding and summary; the variant's split per bar, tooltip lines, lighter
+  tails, outline instead of a red fill, stacked options, legend only when both colours are there.
 - `tests/Component/PuzzleTimesDistributionChartTest.php` – members get the distribution; every filter (first attempts,
   unboxed, country, favourites, my pairs) feeds the chart and the switch counts filtered rows; hidden private profiles stay out;
   non-members get no chart data.

@@ -298,6 +298,13 @@
       "duo": "Zeiten von %count% Paar, Median %median%.|Zeiten von %count% Paaren, Median %median%."
       "group": "Zeiten von %count% Team, Median %median%.|Zeiten von %count% Teams, Median %median%."
     "summary_you": "Ihre Zeit: %time%."
+    "legend_repeat": "Wiederholung"
+    "count":
+      "solo": "%count% Puzzler"
+      "duo": "%count% Paar|%count% Paare"
+      "group": "%count% Team|%count% Teams"
+    "first_attempts_count": "%count% erster Versuch|%count% erste Versuche"
+    "repeats_count": "%count% Wiederholung|%count% Wiederholungen"
 "stopwatch":
   "meta":
     "title": "Stoppuhr"

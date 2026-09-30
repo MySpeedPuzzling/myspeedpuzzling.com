@@ -90,6 +90,11 @@ final class PuzzleTimesDistributionChartTest extends WebTestCase
 
         $component = $this->mount($client);
 
+        // Before the filter the bars hold 60 first tries and 20 repeats, and the legend tells the two colours apart
+        if ($filter === 'onlyFirstTries') {
+            self::assertCount(1, $component->render()->crawler()->filter('[data-testid="leaderboard-legend"]'));
+        }
+
         if ($filter !== '') {
             $component->set($filter, $value);
         }
@@ -99,6 +104,12 @@ final class PuzzleTimesDistributionChartTest extends WebTestCase
 
         $data = self::chartData($crawler);
         self::assertSame($rows, $chart === 'leaderboard-distribution' ? array_sum($data['counts']) : count($data['labels']));
+
+        // First tries only: every bar is a first try - a single colour, so no legend
+        if ($filter === 'onlyFirstTries') {
+            self::assertSame(0, array_sum($data['repeats']));
+            self::assertCount(0, $crawler->filter('[data-testid="leaderboard-legend"]'));
+        }
     }
 
     public function testMyPairsOnlyFeedsThePairChart(): void
@@ -187,7 +198,9 @@ final class PuzzleTimesDistributionChartTest extends WebTestCase
     }
 
     /**
-     * @return array{labels: array<mixed>, counts: array<int>}
+     * Per bar: every dataset added up (the distribution stacks first tries on repeats), and the repeats alone
+     *
+     * @return array{labels: array<mixed>, counts: array<int>, repeats: array<int>}
      */
     private static function chartData(Crawler $crawler): array
     {
@@ -202,12 +215,24 @@ final class PuzzleTimesDistributionChartTest extends WebTestCase
         self::assertIsArray($chart['data']);
         self::assertIsArray($chart['data']['labels']);
         self::assertIsArray($chart['data']['datasets']);
-        self::assertIsArray($chart['data']['datasets'][0]);
-        self::assertIsArray($chart['data']['datasets'][0]['data']);
 
-        /** @var array<int> $counts */
-        $counts = $chart['data']['datasets'][0]['data'];
+        $counts = [];
+        $repeats = [];
 
-        return ['labels' => $chart['data']['labels'], 'counts' => $counts];
+        foreach ($chart['data']['datasets'] as $index => $dataset) {
+            self::assertIsArray($dataset);
+            self::assertIsArray($dataset['data']);
+
+            foreach ($dataset['data'] as $bar => $value) {
+                self::assertIsInt($value);
+                $counts[$bar] = ($counts[$bar] ?? 0) + $value;
+
+                if ($index === 1) {
+                    $repeats[$bar] = $value;
+                }
+            }
+        }
+
+        return ['labels' => $chart['data']['labels'], 'counts' => $counts, 'repeats' => $repeats];
     }
 }

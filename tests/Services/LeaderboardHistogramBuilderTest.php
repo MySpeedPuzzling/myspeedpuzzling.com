@@ -107,6 +107,34 @@ final class LeaderboardHistogramBuilderTest extends TestCase
         self::assertEqualsWithDelta(1 + 490 / 60, $histogram->medianPosition, 0.0001);
     }
 
+    public function testFirstAttemptsAreCountedPerBarTailsIncluded(): void
+    {
+        // 100 solvers between 50 and 67 minutes plus a 10-hour one; the ten fastest and the 10-hour one were first attempts
+        $times = [...range(3000, 3990, 10), 36000];
+        $firstAttemptTimes = [...range(3000, 3090, 10), 36000];
+
+        $histogram = new LeaderboardHistogramBuilder()->build($times, firstAttemptTimes: $firstAttemptTimes);
+
+        // 60 s bars: 3000-3059 holds six first attempts, 3060-3119 the other four
+        self::assertSame(6, $histogram->bins[0]->firstAttempts);
+        self::assertSame(0, $histogram->bins[0]->repeats());
+        self::assertSame(4, $histogram->bins[1]->firstAttempts);
+        self::assertSame(2, $histogram->bins[1]->repeats());
+        self::assertSame(1, $histogram->bins[17]->firstAttempts);
+        self::assertNull($histogram->bins[17]->to);
+        self::assertSame(11, array_sum(array_map(static fn ($bin): int => $bin->firstAttempts, $histogram->bins)));
+    }
+
+    public function testWithoutFirstAttemptTimesEveryRowIsARepeat(): void
+    {
+        $histogram = new LeaderboardHistogramBuilder()->build([100, 200, 300]);
+
+        foreach ($histogram->bins as $bin) {
+            self::assertSame(0, $bin->firstAttempts);
+            self::assertSame($bin->count, $bin->repeats());
+        }
+    }
+
     public function testMedianOfAnEvenCountIsTheAverageOfTheMiddleTwo(): void
     {
         $histogram = new LeaderboardHistogramBuilder()->build([400, 100, 300, 200]);

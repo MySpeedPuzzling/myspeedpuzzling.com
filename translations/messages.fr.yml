@@ -301,6 +301,13 @@
       "duo": "Temps de %count% duo, médiane %median%.|Temps de %count% duos, médiane %median%."
       "group": "Temps de %count% équipe, médiane %median%.|Temps de %count% équipes, médiane %median%."
     "summary_you": "Votre temps : %time%."
+    "legend_repeat": "Répétition"
+    "count":
+      "solo": "%count% puzzler|%count% puzzlers"
+      "duo": "%count% duo|%count% duos"
+      "group": "%count% équipe|%count% équipes"
+    "first_attempts_count": "%count% première tentative|%count% premières tentatives"
+    "repeats_count": "%count% répétition|%count% répétitions"
 "stopwatch":
   "meta":
     "title": "Chronomètre"

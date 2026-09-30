@@ -30,8 +30,9 @@ readonly final class LeaderboardHistogramBuilder
     /**
      * @param array<int> $times one time (seconds) per leaderboard row, in any order
      * @param null|int $viewerTime the time of the viewer's own row, if they have one
+     * @param array<int> $firstAttemptTimes the times, out of $times, of the rows whose time is a first attempt
      */
-    public function build(array $times, null|int $viewerTime = null): LeaderboardHistogram
+    public function build(array $times, null|int $viewerTime = null, array $firstAttemptTimes = []): LeaderboardHistogram
     {
         $times = array_values($times);
         sort($times);
@@ -73,39 +74,46 @@ readonly final class LeaderboardHistogramBuilder
         $start = intdiv($coreMin, $width) * $width;
         $end = (intdiv($coreMax, $width) + 1) * $width;
 
-        $counts = array_fill(0, intdiv($end - $start, $width), 0);
-        $faster = 0;
-        $slower = 0;
+        $coreBins = intdiv($end - $start, $width);
+
+        // -1 the faster tail, 0 ... $coreBins - 1 the bars in between, $coreBins the slower tail
+        $slot = static fn (int $time): int => match (true) {
+            $time < $start => -1,
+            $time >= $end => $coreBins,
+            default => intdiv($time - $start, $width),
+        };
+
+        $counts = array_fill(-1, $coreBins + 2, 0);
+        $firstAttempts = array_fill(-1, $coreBins + 2, 0);
 
         foreach ($times as $time) {
-            if ($time < $start) {
-                $faster++;
-            } elseif ($time >= $end) {
-                $slower++;
-            } else {
-                $counts[intdiv($time - $start, $width)]++;
-            }
+            $counts[$slot($time)]++;
+        }
+
+        foreach ($firstAttemptTimes as $time) {
+            $firstAttempts[$slot($time)]++;
         }
 
         $bins = [];
 
-        if ($faster > 0) {
-            $bins[] = new LeaderboardHistogramBin(from: null, to: $start, count: $faster);
+        if ($counts[-1] > 0) {
+            $bins[] = new LeaderboardHistogramBin(from: null, to: $start, count: $counts[-1], firstAttempts: $firstAttempts[-1]);
         }
 
-        foreach ($counts as $index => $count) {
+        for ($index = 0; $index < $coreBins; $index++) {
             $bins[] = new LeaderboardHistogramBin(
                 from: $start + $index * $width,
                 to: $start + ($index + 1) * $width,
-                count: $count,
+                count: $counts[$index],
+                firstAttempts: $firstAttempts[$index],
             );
         }
 
-        if ($slower > 0) {
-            $bins[] = new LeaderboardHistogramBin(from: $end, to: null, count: $slower);
+        if ($counts[$coreBins] > 0) {
+            $bins[] = new LeaderboardHistogramBin(from: $end, to: null, count: $counts[$coreBins], firstAttempts: $firstAttempts[$coreBins]);
         }
 
-        $offset = $faster > 0 ? 1 : 0;
+        $offset = $counts[-1] > 0 ? 1 : 0;
         $lastIndex = count($bins) - 1;
 
         $position = static function (int $time) use ($start, $end, $width, $offset, $lastIndex): float {

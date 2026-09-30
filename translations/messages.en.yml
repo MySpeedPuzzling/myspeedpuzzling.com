@@ -325,6 +325,13 @@ puzzle_times:
             duo: "Times of %count% pair, median %median%.|Times of %count% pairs, median %median%."
             group: "Times of %count% team, median %median%.|Times of %count% teams, median %median%."
         summary_you: "Your time: %time%."
+        legend_repeat: "Repeat"
+        count:
+            solo: "%count% puzzler|%count% puzzlers"
+            duo: "%count% pair|%count% pairs"
+            group: "%count% team|%count% teams"
+        first_attempts_count: "%count% first try|%count% first tries"
+        repeats_count: "%count% repeat|%count% repeats"
 
 stopwatch:
     meta:

@@ -14,7 +14,14 @@ readonly final class LeaderboardHistogramBin
         public null|int $from,
         public null|int $to,
         public int $count,
+        // Of $count, the rows whose time is a first attempt
+        public int $firstAttempts = 0,
     ) {
+    }
+
+    public function repeats(): int
+    {
+        return $this->count - $this->firstAttempts;
     }
 
     public function isFoldedTail(): bool

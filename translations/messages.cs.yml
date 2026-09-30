@@ -299,6 +299,13 @@
       "duo": "Časy %count% dvojice, medián %median%.|Časy %count% dvojic, medián %median%.|Časy %count% dvojic, medián %median%."
       "group": "Časy %count% týmu, medián %median%.|Časy %count% týmů, medián %median%.|Časy %count% týmů, medián %median%."
     "summary_you": "Tvůj čas: %time%."
+    "legend_repeat": "Opakování"
+    "count":
+      "solo": "%count% puzzler|%count% puzzleři|%count% puzzlerů"
+      "duo": "%count% dvojice|%count% dvojice|%count% dvojic"
+      "group": "%count% tým|%count% týmy|%count% týmů"
+    "first_attempts_count": "%count% první pokus|%count% první pokusy|%count% prvních pokusů"
+    "repeats_count": "%count% opakování"
 "stopwatch":
   "meta":
     "title": "Stopky"

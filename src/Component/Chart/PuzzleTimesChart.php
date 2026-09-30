@@ -28,6 +28,7 @@ final class PuzzleTimesChart
 
     private const string COLOR_VIEWER = 'rgba(254, 64, 66, 1)';
     private const string COLOR_FIRST_ATTEMPT = 'rgba(105, 179, 254, 0.6)';
+    private const string COLOR_FIRST_ATTEMPT_TAIL = 'rgba(105, 179, 254, 0.3)';
     private const string COLOR_OTHER = 'rgba(254, 105, 106, 0.6)';
     private const string COLOR_FOLDED_TAIL = 'rgba(254, 105, 106, 0.3)';
     private const string COLOR_MEDIAN = '#4b566b';
@@ -83,24 +84,53 @@ final class PuzzleTimesChart
         return $summary;
     }
 
+    /**
+     * The distribution's two colours, for the legend under it - none when the bars show only one of them, e.g. with
+     * "1st tries only" every bar is blue
+     *
+     * @return list<array{label: string, color: string}>
+     */
+    public function getLegend(): array
+    {
+        $firstAttempts = 0;
+        $repeats = 0;
+
+        foreach ($this->histogram()->bins as $bin) {
+            $firstAttempts += $bin->firstAttempts;
+            $repeats += $bin->repeats();
+        }
+
+        if ($firstAttempts === 0 || $repeats === 0) {
+            return [];
+        }
+
+        return [
+            ['label' => $this->translator->trans('first_attempt'), 'color' => self::COLOR_FIRST_ATTEMPT],
+            ['label' => $this->translator->trans('puzzle_times.chart.legend_repeat'), 'color' => self::COLOR_OTHER],
+        ];
+    }
+
     private function distributionChart(): Chart
     {
         $histogram = $this->histogram();
         $labels = [];
         $ranges = [];
-        $counts = [];
-        $colors = [];
+        $tooltips = [];
+        $firstAttempts = [];
+        $repeats = [];
+        $firstAttemptColors = [];
+        $repeatColors = [];
 
-        foreach ($histogram->bins as $index => $bin) {
+        // Each bar splits into first attempts (blue, like the bar-per-row chart) and repeats; the folded tails are lighter
+        foreach ($histogram->bins as $bin) {
             [$label, $range] = $this->binLabels($bin);
             $labels[] = $label;
             $ranges[] = $range;
-            $counts[] = $bin->count;
-            $colors[] = match (true) {
-                $index === $histogram->viewerBin => self::COLOR_VIEWER,
-                $bin->isFoldedTail() => self::COLOR_FOLDED_TAIL,
-                default => self::COLOR_OTHER,
-            };
+            $tooltips[] = $this->binTooltip($bin);
+            $firstAttempts[] = $bin->firstAttempts;
+            $repeats[] = $bin->repeats();
+            $firstAttemptColors[] = $bin->isFoldedTail() ? self::COLOR_FIRST_ATTEMPT_TAIL : self::COLOR_FIRST_ATTEMPT;
+            $repeatColors[] = $bin->isFoldedTail() ? self::COLOR_FOLDED_TAIL : self::COLOR_OTHER;
         }
 
         // Drawn by the leaderboard-chart Stimulus controller, positioned in bar units
@@ -127,18 +157,14 @@ final class PuzzleTimesChart
         }
 
         $noun = $this->translator->trans('puzzle_times.chart.noun.' . $this->categoryKey());
+        $bar = ['barPercentage' => 1.0, 'categoryPercentage' => 0.92, 'stack' => 'rows'];
 
         $chart = $this->chartBuilder->createChart(Chart::TYPE_BAR);
         $chart->setData([
             'labels' => $labels,
             'datasets' => [
-                [
-                    'label' => $noun,
-                    'data' => $counts,
-                    'backgroundColor' => $colors,
-                    'barPercentage' => 1.0,
-                    'categoryPercentage' => 0.92,
-                ],
+                ['label' => $this->translator->trans('first_attempt'), 'data' => $firstAttempts, 'backgroundColor' => $firstAttemptColors] + $bar,
+                ['label' => $this->translator->trans('puzzle_times.chart.legend_repeat'), 'data' => $repeats, 'backgroundColor' => $repeatColors] + $bar,
             ],
         ]);
 
@@ -148,27 +174,55 @@ final class PuzzleTimesChart
                 // Room for the marker labels above the bars
                 'padding' => ['top' => 18],
             ],
+            // One tooltip per bar, wherever on it the pointer is
+            'interaction' => ['mode' => 'index', 'intersect' => false],
             'scales' => [
                 'x' => [
+                    'stacked' => true,
                     'grid' => ['display' => false],
                     'ticks' => ['maxRotation' => 0, 'autoSkipPadding' => 12],
                 ],
                 'y' => [
+                    'stacked' => true,
                     'beginAtZero' => true,
                     'ticks' => ['precision' => 0],
                     'title' => ['display' => true, 'text' => $noun],
                 ],
             ],
             'plugins' => [
+                // The legend is HTML under the chart
                 'legend' => ['display' => false],
                 'leaderboardMarkers' => [
                     'markers' => $markers,
                     'ranges' => $ranges,
+                    'tooltips' => $tooltips,
+                    // The viewer's bar is outlined, not filled, so its split stays readable
+                    'highlight' => $histogram->viewerBin !== null
+                        ? ['index' => $histogram->viewerBin, 'color' => self::COLOR_VIEWER]
+                        : null,
                 ],
             ],
         ]);
 
         return $chart;
+    }
+
+    /**
+     * "132 puzzlers · 97 first tries · 35 repeats" - a part that would be 0 is left out
+     */
+    private function binTooltip(LeaderboardHistogramBin $bin): string
+    {
+        $parts = [$this->translator->trans('puzzle_times.chart.count.' . $this->categoryKey(), ['%count%' => $bin->count])];
+
+        if ($bin->firstAttempts > 0) {
+            $parts[] = $this->translator->trans('puzzle_times.chart.first_attempts_count', ['%count%' => $bin->firstAttempts]);
+        }
+
+        if ($bin->repeats() > 0) {
+            $parts[] = $this->translator->trans('puzzle_times.chart.repeats_count', ['%count%' => $bin->repeats()]);
+        }
+
+        return implode(' · ', $parts);
     }
 
     private function individualChart(): Chart
@@ -301,6 +355,7 @@ final class PuzzleTimesChart
         }
 
         $times = [];
+        $firstAttemptTimes = [];
         $viewerTime = null;
 
         foreach ($this->results as $groupedResult) {
@@ -312,13 +367,18 @@ final class PuzzleTimesChart
 
             $times[] = $result->time;
 
+            // The row's shown time decides, as it does for the blue bars of the bar-per-row chart
+            if ($result->firstAttempt === true) {
+                $firstAttemptTimes[] = $result->time;
+            }
+
             // Rows are sorted by time: the first one of the viewer's is their best
             if ($viewerTime === null && $this->isViewer($result)) {
                 $viewerTime = $result->time;
             }
         }
 
-        return $this->histogram = $this->histogramBuilder->build($times, $viewerTime);
+        return $this->histogram = $this->histogramBuilder->build($times, $viewerTime, $firstAttemptTimes);
     }
 
     private function isViewer(PuzzleSolver|PuzzleSolversGroup $result): bool

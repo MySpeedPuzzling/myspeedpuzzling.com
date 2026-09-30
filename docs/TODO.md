@@ -4,6 +4,19 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Prediction history
+
+Design: [`features/puzzle-intelligence/prediction-history.md`](features/puzzle-intelligence/prediction-history.md) (2026-09-30).
+First delivery = store + backfill only; everything below is the UI that comes after it.
+
+- [ ] Build it: columns + live recording + backfill command + daily cron (rollout steps in the design doc)
+- [ ] Recap page and API `POST /api/v1/me/solving-times` read the stored prediction instead of recomputing it
+      afterwards (today they see the new time in the baseline/difficulty and use later solves as "prior attempts")
+- [ ] Per-time outcome in the player's history (puzzle page "my times", profile): range, "12 % faster than predicted", inside/outside the range, members-only, respects the predictions opt-out
+- [ ] Mark `reconstructed` predictions in the UI ("reconstructed from your earlier solves") vs `live`
+- [ ] Player-level accuracy: how often inside the range, average beat, trend over time (Insights section)
+- [ ] Ideas for later: "beat the prediction" streaks/badges, API fields on result rows (additive: `prediction`, `faster_than_predicted_percent`)
+
 ## SEO site-wide links (WS-F2)
 
 Shipped with WS-F2 of [`features/seo/implementation-plan-2026-10.md`](features/seo/implementation-plan-2026-10.md).

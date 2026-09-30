@@ -380,6 +380,8 @@ effective_ratio = player_ratio × gap_correction
 
 Personalized estimate for how long a puzzle will take a specific player.
 
+Storing the prediction on every solving time (history + backfill): [`prediction-history.md`](prediction-history.md).
+
 ### Prediction Hierarchy
 
 | Prior Solves (N) | Method |

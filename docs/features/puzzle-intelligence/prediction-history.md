@@ -1,7 +1,6 @@
 # Prediction history - storing the prediction on every solving time
 
-Status: **built 2026-09-30** (store on add/edit + backfill command; backfill run and daily cron pending - see
-§Rollout). The UI comes later - see [`../../TODO.md`](../../TODO.md) §"Prediction history".
+Status: **live 2026-09-30** - stored on add/edit, production backfilled (393,074 times), self-healing cron 4x a day. The UI comes later - see [`../../TODO.md`](../../TODO.md) §"Prediction history".
 
 ## Goal
 
@@ -242,9 +241,14 @@ no-leak tests were mutation-checked (they fail when the "before" rule is removed
 1. ✅ Migration `Version20260930130108` + entity + value objects + invalidation.
 2. ✅ `GetPlayerPrediction` `$before`, `SolvingTimePredictor`, add/edit handlers, recap + API read the stored value.
 3. ✅ Calculators refactored into pure methods, `PredictionReconstructor`, message, handler, command, guard tests.
-4. Deploy, measure `--player=<heaviest>` first, then run the backfill once on the box (nohup), check counts:
+4. ✅ 2026-09-30: heaviest player 35 s; full run 27 min, 0 failures (run with `-e SENTRY_DSN=` - the first attempt was
+   OOM-killed by Sentry console tracing, command excluded since 7581129d). Counts:
    `SELECT puzzling_type, predictable, prediction_source, count(*) FROM puzzle_solving_time GROUP BY 1, 2, 3` - no solo row with a time may stay NULL.
-5. Add the daily cron to lily.srv (`apps/myspeedpuzzling/cron.d`).
+5. ✅ Cron `34 1,7,13,19 * * *` Prague in lily.srv (c32e756), Sentry monitor `backfill-solving-time-predictions`.
+
+First calibration numbers (2026-09-30, all stored predictions): personal 151,574 - 74.2 % inside the range, median
+-0.3 % faster; statistical 191,679 - 32.1 % inside the p25-p75 range, median 9.8 % faster than predicted. The
+statistical model looks biased slow on first attempts and its range too narrow - see TODO before building the UI.
 
 ## Tests
 

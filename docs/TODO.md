@@ -24,10 +24,12 @@ First delivery = store + backfill; the UI comes after it.
 - [x] Build it: columns + live recording on add/edit + backfill command (2026-09-30)
 - [x] Recap page and API `POST /api/v1/me/solving-times` read the stored prediction (fallback to computing it only
       while a back-dated time is still pending)
-- [ ] After deploy: `myspeedpuzzling:backfill-solving-time-predictions --player=<the 2,346-times player>` to measure,
-      then the full run on the box (nohup), then the counts query from the design doc §Rollout
-- [ ] Daily cron `myspeedpuzzling:backfill-solving-time-predictions` in lily.srv (`apps/myspeedpuzzling/cron.d`) -
-      heals rows from old blue-green containers, failed live predictions, `DeletePlayer` group changes
+- [x] Backfill on production 2026-09-30: 393,074 times of 6,977 players in 27 min (first attempt OOM-killed by Sentry
+      console tracing - command excluded since 7581129d)
+- [x] Cron `34 1,7,13,19 * * *` Prague in lily.srv (c32e756), Sentry monitor `backfill-solving-time-predictions`
+- [ ] Calibration check (first numbers after the backfill): personal predictions 74 % inside their range, median
+      -0.3 % (well centred); statistical only 32 % inside the p25-p75 range (a calibrated IQR holds ~50 %) and players
+      are a median 9.8 % faster than predicted - look into it before the UI shows "faster than expected" on first solves
 - [ ] Per-time outcome in the player's history (puzzle page "my times", profile): range, "12 % faster than predicted", inside/outside the range, members-only, hidden for players who opted out of predictions (stored anyway), decide for unboxed/suspicious times
 - [ ] Mark `reconstructed` predictions in the UI ("reconstructed from your earlier solves") vs `live`
 - [ ] Player-level accuracy: how often inside the range, average beat, trend over time (Insights section)

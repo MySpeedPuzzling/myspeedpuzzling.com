@@ -15,6 +15,24 @@ use SpeedPuzzling\Web\Value\SkillTier;
 
 readonly final class GetPuzzleSolvers
 {
+    /**
+     * One row per member of a pair / team time, in the snapshot's order.
+     *
+     * The members go through unnest() rather than straight out of json_array_elements(): the planner
+     * estimates any json_array_elements() call at 100 rows, unnest() at 10. With 100 members per time, the
+     * pairs board of London Postcard (541 times) was estimated at 216k, above jit_above_cost (100k), and
+     * production JIT-compiled the query on every page view (34 ms of its 83 ms) and scanned every pair time
+     * of every puzzle for it; estimated at 18k it runs in 20 ms (docs/features/seo/performance-2026-10.md).
+     * Same rows, same order: the array keeps the snapshot's order and WITH ORDINALITY numbers it.
+     */
+    private const string GROUP_MEMBERS = <<<SQL
+LATERAL unnest(ARRAY(
+        SELECT puzzler.value
+        FROM json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS puzzler(value, position)
+        ORDER BY puzzler.position
+    )) WITH ORDINALITY AS player_elem(player, ordinality)
+SQL;
+
     public function __construct(
         private Connection $database,
         private PrivateProfileAccess $privateProfileAccess,
@@ -122,6 +140,7 @@ SQL;
         }
 
         $notHidden = $this->hiddenPlayers->sqlExcludeTeam('pst.team');
+        $groupMembers = self::GROUP_MEMBERS;
 
         $query = <<<SQL
 SELECT
@@ -158,7 +177,7 @@ FROM
     puzzle_solving_time pst
     LEFT JOIN competition ON competition.id = pst.competition_id
     LEFT JOIN competition_series cs ON cs.id = competition.series_id,
-    LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
+    {$groupMembers}
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
     LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id
 WHERE
@@ -217,6 +236,7 @@ SQL;
         }
 
         $notHidden = $this->hiddenPlayers->sqlExcludeTeam('pst.team');
+        $groupMembers = self::GROUP_MEMBERS;
 
         $query = <<<SQL
 SELECT
@@ -253,7 +273,7 @@ FROM
     puzzle_solving_time pst
     LEFT JOIN competition ON competition.id = pst.competition_id
     LEFT JOIN competition_series cs ON cs.id = competition.series_id,
-    LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
+    {$groupMembers}
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
     LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id
 WHERE

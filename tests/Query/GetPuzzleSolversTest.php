@@ -7,8 +7,10 @@ namespace SpeedPuzzling\Web\Tests\Query;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Value\Puzzler;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetPuzzleSolversTest extends KernelTestCase
@@ -141,6 +143,45 @@ final class GetPuzzleSolversTest extends KernelTestCase
         self::assertNull($standalone->competitionSeriesName);
         self::assertNull($standalone->competitionSeriesShortcut);
         self::assertNull($standalone->competitionSeriesSlug);
+    }
+
+    public function testGroupMembersKeepTheSnapshotOrderWithGuestsAndCurrentNames(): void
+    {
+        // TIME_12 becomes a team of four with a guest in the middle: the members come back in the snapshot's order,
+        // registered ones under their current profile name, the guest under the snapshot's name
+        $this->database->executeStatement(
+            "UPDATE puzzle_solving_time SET puzzling_type = 'team', puzzlers_count = 4, team = :team WHERE id = :timeId",
+            [
+                'timeId' => PuzzleSolvingTimeFixture::TIME_12,
+                'team' => json_encode([
+                    'team_id' => null,
+                    'puzzlers' => [
+                        ['player_id' => PlayerFixture::PLAYER_WITH_STRIPE, 'player_name' => 'Name in the snapshot'],
+                        ['player_id' => null, 'player_name' => 'Guest Gina'],
+                        ['player_id' => PlayerFixture::PLAYER_REGULAR, 'player_name' => 'John Doe'],
+                        ['player_id' => PlayerFixture::PLAYER_ADMIN, 'player_name' => 'Admin User'],
+                    ],
+                ], JSON_THROW_ON_ERROR),
+            ],
+        );
+
+        $team = null;
+        foreach ($this->query->teamByPuzzleId(PuzzleFixture::PUZZLE_1000_01) as $group) {
+            if ($group->timeId === PuzzleSolvingTimeFixture::TIME_12) {
+                $team = $group;
+            }
+        }
+
+        self::assertNotNull($team);
+        self::assertSame(
+            [PlayerFixture::PLAYER_WITH_STRIPE, null, PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_ADMIN],
+            array_map(static fn (Puzzler $puzzler): null|string => $puzzler->playerId, $team->players),
+        );
+        self::assertSame(
+            [PlayerFixture::PLAYER_WITH_STRIPE_NAME, 'Guest Gina', PlayerFixture::PLAYER_REGULAR_NAME, 'Admin User'],
+            array_map(static fn (Puzzler $puzzler): null|string => $puzzler->playerName, $team->players),
+        );
+        self::assertEmpty($this->query->duoByPuzzleId(PuzzleFixture::PUZZLE_1000_01), 'The time left the pairs board');
     }
 
     public function testDuoByPuzzleIdExposesSeriesOfEdition(): void

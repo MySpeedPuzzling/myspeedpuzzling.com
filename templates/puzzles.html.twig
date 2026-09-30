@@ -56,7 +56,7 @@
                 <a class="badge bg-primary badge-shadow rounded-pill text-white link-light" href="{{ path('pieces_puzzles', {pieces: pieces}) }}">{{ 'pieces_count'|trans({'%count%': pieces})|raw }}</a>
             {% endfor %}
             {# The guides are English-only - the label says so in every other language #}
-            <a class="small ms-1" href="{{ path('guide_average_puzzle_time') }}" hreflang="en">{{ 'catalogue.guide.average_time'|trans }}</a>
+            <a class="small text-nowrap ms-1" href="{{ path('guide_average_puzzle_time') }}" hreflang="en">{{ 'catalogue.guide.average_time'|trans }}</a>
         </p>
     </section>
 

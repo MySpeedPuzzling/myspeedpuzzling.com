@@ -36,18 +36,21 @@
         url: path('brand_pieces_puzzles', {slug: catalogue_links.brandSlug, pieces: puzzle.piecesCount}),
         name: 'brand_pieces_hub.title'|trans({'%brand%': puzzle.manufacturerName, '%pieces%': puzzle.piecesCount}),
         label: 'puzzle_detail.breadcrumb.pieces'|trans({'%pieces%': puzzle.piecesCount}),
+        fixed: true,
     } %}
 {% elseif catalogue_links.linksPiecesHub %}
     {% set pieces_page = {
         url: path('pieces_puzzles', {pieces: puzzle.piecesCount}),
         name: 'brand_hub.pieces_link'|trans({'%pieces%': puzzle.piecesCount}),
         label: 'brand_hub.pieces_link'|trans({'%pieces%': puzzle.piecesCount}),
+        fixed: true,
     } %}
 {% else %}
     {% set pieces_page = null %}
 {% endif %}
 
-{# name = BreadcrumbList JSON-LD, label = the visible line, which stays short: the brand precedes the piece count #}
+{# name = BreadcrumbList JSON-LD, label = the visible line, which stays short: the brand precedes the piece count.
+   fixed = a short level that never gives way - a long brand or puzzle name is cut instead. #}
 {% set breadcrumb = [{
     name: 'puzzle_detail.breadcrumb.database'|trans,
     label: 'puzzle_detail.breadcrumb.database'|trans,
@@ -166,7 +169,7 @@
                 {% elseif loop.last %}
                     <li class="breadcrumb-item active text-truncate d-none d-md-block" style="min-width: 0;" aria-current="page">{{ level.label }}</li>
                 {% else %}
-                    <li class="breadcrumb-item text-truncate" style="min-width: 0;"><a href="{{ level.url }}">{{ level.label }}</a></li>
+                    <li class="breadcrumb-item {{ (level.fixed ?? false) ? 'flex-shrink-0' : 'text-truncate' }}" style="min-width: 0;"><a href="{{ level.url }}">{{ level.label }}</a></li>
                 {% endif %}
             {% endfor %}
         </ol>

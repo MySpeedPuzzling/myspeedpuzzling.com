@@ -350,6 +350,7 @@
         <meta property="og:type" content="{% block og_type %}website{% endblock %}">
         <meta property="og:image" content="{% block og_image %}{{ absolute_url(asset('img/speedpuzzling-logo.png')) }}{% endblock %}">
         <meta property="og:url" content="{{ canonicalUrl }}">
+        {% if facebook_app_id is not empty %}<meta property="fb:app_id" content="{{ facebook_app_id }}">{% endif %}
         <meta property="og:site_name" content="MySpeedPuzzling">
         <meta property="og:locale" content="{{ ogLocales[app.request.locale]|default('en_US') }}">
         {% for ogLocaleKey, ogLocaleValue in ogLocales %}

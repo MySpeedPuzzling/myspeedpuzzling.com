@@ -26,6 +26,8 @@ return App::config([
             // Depends on configuration only, never on the visitor, so every
             // visitor of /login and /register gets the same buttons.
             'social_login' => '@' . SocialLoginSettings::class,
+            // Meta app id for the fb:app_id Open Graph tag (empty = tag omitted)
+            'facebook_app_id' => '%env(trim:string:FACEBOOK_APP_ID)%',
             // Pairs & teams picker rollout - see docs/features/feature_flags.md
             'pairs_teams_picker_public' => '%pairsTeamsPickerPublic%',
         ],

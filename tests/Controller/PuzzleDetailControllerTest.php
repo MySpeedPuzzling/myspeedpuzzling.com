@@ -390,8 +390,8 @@ final class PuzzleDetailControllerTest extends WebTestCase
         $description = 'Ravensburger Puzzle 1 (500 pieces): median solo time 1h 2min, fastest 27min 46s from 12 solves. Compare your time on MySpeedPuzzling.';
         self::assertSame($description, $this->metaDescription($crawler));
 
-        // The H1 stays as it was ("500&nbsp;pieces")
-        self::assertSame("Ravensburger Puzzle 1 (500\u{a0}pieces)", $crawler->filter('h1')->text());
+        // The H1 carries no brand (breadcrumb + brand link already show it), "500&nbsp;pieces" stays
+        self::assertSame("Puzzle 1 (500\u{a0}pieces)", $crawler->filter('h1')->text());
 
         // PUZZLE_500_01 has marketplace offers: the Product JSON-LD describes it with the meta description
         $product = $crawler->filter('script[type="application/ld+json"]')->reduce(

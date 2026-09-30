@@ -61,9 +61,12 @@ final class StartFreeTrialHandlerTest extends KernelTestCase
         self::assertNotNull($profile->freeTrialEndsAt);
 
         $result = $container->get(GetPlayerMembership::class)->byId(PlayerFixture::PLAYER_REGULAR);
+        // Read after the start: the handler takes its own "now" a moment after $now, and if a second ticked
+        // over in between, the rest measured from $now would be 10 days + 1 s - rounded up to 11 (CI flake)
+        $afterStart = $container->get(ClockInterface::class)->now();
 
-        self::assertTrue($result->isInFreeTrial($now));
-        self::assertSame(FreeTrial::DAYS, $result->freeTrialDaysLeft($now));
+        self::assertTrue($result->isInFreeTrial($afterStart));
+        self::assertSame(FreeTrial::DAYS, $result->freeTrialDaysLeft($afterStart));
     }
 
     public function testTrialCannotBeStartedTwice(): void

@@ -11,8 +11,9 @@ First delivery = store + backfill only; everything below is the UI that comes af
 
 - [ ] Build it: columns + live recording + backfill command + daily cron (rollout steps in the design doc)
 - [ ] Recap page and API `POST /api/v1/me/solving-times` read the stored prediction instead of recomputing it
-      afterwards (today they see the new time in the baseline/difficulty and use later solves as "prior attempts")
-- [ ] Per-time outcome in the player's history (puzzle page "my times", profile): range, "12 % faster than predicted", inside/outside the range, members-only, respects the predictions opt-out
+      afterwards (today they see the new time in the baseline/difficulty and use later solves as "prior attempts") -
+      part of the first delivery, it is a correctness fix
+- [ ] Per-time outcome in the player's history (puzzle page "my times", profile): range, "12 % faster than predicted", inside/outside the range, members-only, hidden for players who opted out of predictions (stored anyway), decide for unboxed/suspicious times
 - [ ] Mark `reconstructed` predictions in the UI ("reconstructed from your earlier solves") vs `live`
 - [ ] Player-level accuracy: how often inside the range, average beat, trend over time (Insights section)
 - [ ] Ideas for later: "beat the prediction" streaks/badges, API fields on result rows (additive: `prediction`, `faster_than_predicted_percent`)

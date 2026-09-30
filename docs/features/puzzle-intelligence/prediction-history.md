@@ -56,7 +56,7 @@ rows, and old blue-green containers keep inserting without them):
 
 | Column | Type | Meaning |
 |---|---|---|
-| `prediction_status` | varchar | `predicted` / `insufficient_data` / `not_applicable`; **NULL = not evaluated yet** |
+| `predictable` | bool | `true` = predicted, `false` = could not be predicted (not enough data then); **NULL = not evaluated** |
 | `prediction_method` | varchar | `personal` / `statistical` (only when predicted) |
 | `predicted_seconds` | int | the point prediction |
 | `predicted_range_low_seconds` | int | range from |
@@ -64,15 +64,19 @@ rows, and old blue-green containers keep inserting without them):
 | `predicted_attempt_number` | smallint | personal only: which attempt was predicted (`personalSolveCount + 1`) |
 | `prediction_source` | varchar | `live` / `reconstructed` |
 | `prediction_computed_at` | timestamp | when it was stored |
+| `prediction_model_version` | smallint | `TimePredictionCalculator::MODEL_VERSION` at that time - accuracy statistics must never mix two models silently |
 
-Why a tri-state status instead of a `could_be_predicted` bool: NULL must stay free to mean *not evaluated yet* -
-that is what makes the backfill resumable and lets the cron heal anything that slipped through. The bool is
-`prediction_status = 'predicted'`.
+Three states, one column:
 
-- `not_applicable` = duo/team time, or no `seconds_to_solve` (relax tracking without a time).
-- `insufficient_data` = solo with a time, but no prior attempt **and** (no baseline for the piece count **or**
-  the puzzle's difficulty was below 5 indices). If the UI wants to say *why*, a `prediction_missing_reason` can be
-  added later - not needed now.
+- `true` - the columns below are filled.
+- `false` - a solo time with a known time, but no prior attempt **and** (no baseline for the piece count **or**
+  fewer than 5 difficulty indices for the puzzle) at that moment. Expected for plenty of old times - early solves
+  of a player, puzzles nobody had solved yet.
+- `NULL` - not evaluated. Two kinds: **not predictable by definition** (duo/team, no `seconds_to_solve` - relax
+  tracking, unfinished competition results with `pieces_placed`) which stay NULL forever and are never picked up,
+  because the UI can tell them apart by `puzzling_type` / `seconds_to_solve` alone; and **pending** solo times with
+  a time, which the backfill/cron picks up. An error while predicting leaves the row NULL (retried on the next run
+  once fixed) - it never becomes `false`, `false` is reserved for "the data was not there".
 - Unboxed and suspicious solo times **are** predicted and stored (the recap shows a prediction for them too). They
   stay excluded as *inputs*, exactly like today. The UI decides whether to show the outcome for them.
 
@@ -89,10 +93,10 @@ pending row" is one sequential scan per run.
 
 ### PHP side
 
-- Enums `SolvingTimePredictionStatus`, `TimePredictionMethod`, `TimePredictionSource` in `src/Value/`.
+- Enums `TimePredictionMethod`, `TimePredictionSource` in `src/Value/`.
 - Readonly value object `SolvingTimePrediction` with named constructors `predicted(TimePredictionResult, source, computedAt)`,
-  `insufficientData(source, computedAt)`, `notApplicable(source, computedAt)`.
-- `PuzzleSolvingTime` gets the eight properties (flat columns, the project has no embeddables) changed only through
+  `notPredictable(source, computedAt)`.
+- `PuzzleSolvingTime` gets the nine properties (flat columns, the project has no embeddables) changed only through
   two named methods:
   - `recordPrediction(SolvingTimePrediction $prediction): void` - **records no domain event**. Important: a
     `PuzzleSolvingTimeModified` per row would run the incremental insights recalculation 450k times in the backfill.
@@ -107,9 +111,9 @@ pending row" is one sequential scan per run.
 
 New service `SolvingTimePredictor::predict(PuzzleSolvingTime $time): null|SolvingTimePrediction`:
 
-1. not solo or no seconds → `notApplicable`;
+1. not solo or no seconds → null (nothing to record, the row stays NULL);
 2. otherwise `GetPlayerPrediction::forPuzzle($playerId, $puzzleId, excludeTimeId: $id, before: SolveMoment)` →
-   `predicted` or, when it returns null, `insufficientData`;
+   `predicted` or, when it returns null, `notPredictable`;
 3. any `Throwable` → log **warning** with `'exception' => $e` and return null (status stays NULL, the cron fills
    it). Storing a prediction must never cost the player their time.
 
@@ -124,13 +128,18 @@ Call sites:
 | Handler | When |
 |---|---|
 | `AddPuzzleSolvingTimeHandler` | after `new PuzzleSolvingTime(...)`, before `persist()` - the new row is not flushed yet and the sync `PuzzleSolved` recalculation has not run, so the insights tables are still "before this solve" |
-| `AddPuzzleTrackingHandler` | same (always `not_applicable` today - relax tracking has no seconds - but record it so no row stays NULL) |
 | `EditPuzzleSolvingTimeHandler` | after `modify()`, only if the entity forgot its prediction |
 | API `CreateSolvingTimeProcessor` | dispatches `AddPuzzleSolvingTime`, nothing extra |
 
-Cost per add: the same 2-4 small indexed queries the recap already runs. One behavioural detail to accept: for a
-back-dated add the statistical prediction uses today's tables (which may include solves after that date). The
-personal part is exact. Good enough for `live`; it is still strictly better than what the recap shows today.
+Cost per add: the same 2-4 small indexed queries the recap already runs.
+
+**Back-dated adds are not predicted live.** 27 % of all times are entered more than a day after the solve
+(143,598 rows). For them today's tables would leak everything that happened after the solve date - including the
+player's own later solves in the baseline and the ratios. So: when the solve date is before the tracking day
+minus one, the handler records nothing and dispatches `BackfillSolvingTimePredictions($playerId)` **async** - the
+very same message the backfill uses - and the row gets a `reconstructed` prediction a few seconds later. The same
+applies to an edit that moved the solve date. `live` therefore always means "solved today or yesterday, predicted
+from the state the site had right then".
 
 ## Backfill
 
@@ -139,7 +148,7 @@ personal part is exact. Good enough for `live`; it is still strictly better than
 `myspeedpuzzling:backfill-solving-time-predictions [--player=<uuid>] [--limit=<players>]`
 
 - The command only lists players and dispatches; the logic is in the handler (tests test the handler).
-- `GetPlayersWithPendingPredictions` → `SELECT DISTINCT player_id FROM puzzle_solving_time WHERE prediction_status IS NULL ORDER BY player_id`.
+- `GetPlayersWithPendingPredictions` → `SELECT DISTINCT player_id FROM puzzle_solving_time WHERE predictable IS NULL AND puzzling_type = 'solo' AND seconds_to_solve IS NOT NULL ORDER BY player_id` (the handler loads with the same condition).
 - For each player: `dispatch(new BackfillSolvingTimePredictions($playerId))`. The message implements
   `RequiresFreshEntityManagerState`, so `ClearEntityManagerMiddleware` clears the entity manager *before* each
   player - the identity map never grows past one player's times (worst case 2,346 entities in one flush, which is
@@ -152,11 +161,13 @@ personal part is exact. Good enough for `live`; it is still strictly better than
   during a blue-green deploy, a live prediction that failed, a `DeletePlayer` group change that turned a team time
   into a solo one. Cheap self-healing instead of edge-case code in every handler.
 
-Optional later: `--recompute-reconstructed` (bulk `UPDATE … SET prediction_status = NULL WHERE prediction_source =
+Optional later: `--recompute-reconstructed` (bulk `UPDATE … SET predictable = NULL WHERE prediction_source =
 'reconstructed'`, a genuine bulk operation that says so in a comment) if the model changes and we want to
 re-reconstruct. `live` rows are never recomputed - they are history.
 
 ### Handler `BackfillSolvingTimePredictionsHandler`
+
+Runs sync from the command and async from the add/edit handlers (back-dated times).
 
 Loads the player's pending times as **objects** (`PuzzleSolvingTimeRepository::findWithPendingPrediction($playerId)`),
 computes, calls `recordPrediction(...)` with source `reconstructed`; the `doctrine_transaction` middleware flushes.
@@ -174,6 +185,14 @@ The inputs are loaded **once per player** and everything else is PHP (`Predictio
 | Player baseline for the piece count | the player's first attempts dated before the solve, weights relative to the solve date (not `now`), ≥ 5 → direct, else interpolated/extrapolated from the other piece counts' *as-of* direct baselines | exact |
 | Scaling exponent (extrapolation) | today's value, 1 query, memoised | approximation |
 | Puzzle difficulty | 1 query per player: first attempts of *other* players on the puzzles this player solved, with their index `seconds / baseline` and the solve date; per time the indices dated before the solve (≥ 5, ceiling 5.0) → median, p25, p75 | the indices use **today's** baselines of those players (the live model does that too) |
+
+**"First attempt" as of the solve.** Baseline and difficulty pick a player's first attempt of a puzzle as
+"`first_attempt = true` first, else the oldest". Reconstructed, that choice is made **only among solves dated
+before the solve being predicted** - otherwise a later solve flagged `first_attempt` would pull the future in.
+
+**Global ratio snapshots are cached**, not only memoised: a month's snapshot goes into a Symfony cache pool with a
+24 h TTL. The messenger worker resets services after every message, so an in-memory memo would reload ~150k
+transition rows for every async back-dated add; the command benefits from the memo, the worker from the cache.
 
 The two approximations are documented and small; the one thing that matters - **nothing from the solve itself or
 after it leaks in** - holds. Personal predictions (150k) are exact apart from the monthly global ratio.
@@ -207,24 +226,38 @@ loop in the command while the handler reports a full chunk) - not before it is m
 3. Refactor the calculators into pure methods (no behaviour change, existing insights tests are the gate), add
    `PredictionReconstructor`, message, handler, command, the "as of now" guard test.
 4. Deploy, run the backfill once on the box (nohup), check counts:
-   `SELECT prediction_status, prediction_source, count(*) FROM puzzle_solving_time GROUP BY 1, 2`.
+   `SELECT puzzling_type, predictable, prediction_source, count(*) FROM puzzle_solving_time GROUP BY 1, 2, 3` - no solo row with a time may stay NULL.
 5. Add the daily cron to lily.srv (`apps/myspeedpuzzling/cron.d`).
 
 ## Tests
 
 - `GetPlayerPrediction` with `$before`: later solves ignored, same-day order by `tracked_at`, gap from the solve date.
-- `AddPuzzleSolvingTimeHandler`: predicted (personal + statistical), insufficient data, team → not applicable; a
-  throwing predictor still saves the time with NULL status.
+- `AddPuzzleSolvingTimeHandler`: predicted (personal + statistical), not predictable, team → NULL; a
+  throwing predictor still saves the time with NULL.
 - `EditPuzzleSolvingTimeHandler`: date / type / time-presence change → recomputed; seconds-only change → kept.
 - `BackfillSolvingTimePredictionsHandler`: fills only NULL rows, leaves `live` rows alone, records no domain
   events, second run is a no-op, a super-fast later solve does not change an earlier reconstructed prediction.
 - Guard test "reconstruction as of now == live tables".
 
-## Open decisions (recommendation first)
+## Decisions (Jan, 2026-09-30)
 
-1. **Players who opted out of predictions** (`player.time_predictions_opted_out`): store anyway, display respects
-   the opt-out. Turning predictions back on then shows a full history. (Alternative: skip → `not_applicable`.)
-2. **Non-members**: store for everybody, the UI gates like all insights. Nothing to decide at write time.
-3. **Unboxed / suspicious**: stored as predicted (above); the UI may hide the outcome for them.
-4. **Outcome stored or derived**: derived (above). Only if a future page needs to sort millions of rows by it,
-   add a column then.
+1. **Players who opted out of predictions**: backfilled and recorded like everybody else, the UI does not show them.
+2. **Non-members**: stored for everybody, the UI gates like all insights.
+3. **Unboxed / suspicious**: stored, the UI decides later whether to show the outcome.
+4. **Outcome**: derived on read, not stored.
+5. **`predictable` bool** (nullable) instead of a status enum - "not applicable" is readable from `puzzling_type`
+   and `seconds_to_solve`, so it does not need its own value.
+
+## Review 2026-09-30 - gaps found and how the design closes them
+
+| Gap | Resolution |
+|---|---|
+| Back-dated adds (27 % of times) would be predicted from today's tables → future leaks in | not predicted live; async reconstruction via the backfill message (§Live recording) |
+| A later solve flagged `first_attempt` would become the "first attempt" of an earlier reconstruction | first-attempt choice limited to solves before the one predicted (§Backfill) |
+| The messenger worker resets services per message → the global-ratio memo would reload 150k rows per async message | monthly snapshots in a cache pool, 24 h TTL |
+| Tuning the model later mixes old and new predictions in accuracy statistics | `prediction_model_version` column |
+| An error while predicting could be mistaken for "not enough data" | errors leave NULL (retried), only missing data writes `false` |
+| Recap page + API POST keep showing their recomputed (leaky) prediction, which will differ from the stored one | switch both to the stored value as part of the first delivery - it is a correctness fix, not UI work (TODO) |
+| A time added or deleted *earlier* in the history does not update predictions stored for later solves | accepted: stored predictions are frozen history - `live` by definition, `reconstructed` by choice (`--recompute-reconstructed` exists for model changes) |
+| Puzzle piece count changed after the solve, duplicate merges | accepted: reconstruction uses today's piece count; merges keep predictions (same puzzle) |
+| Test DB cache holds the old schema | `rm tests/.database.cache` after the migration |

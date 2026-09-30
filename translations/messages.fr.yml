@@ -1596,6 +1596,7 @@
   "remove_puzzle": "Retirer de la collection"
   "select_collection_help": "Choisissez une collection ou laissez vide pour ajouter à votre Collection de Puzzles par défaut"
   "system_name": "Collection de Puzzles"
+  "in_your_collection": "Dans votre collection"
   "title": "Bibliothèque de puzzles"
   "title_other": "Bibliothèque de puzzles de %name%"
   "visibility":

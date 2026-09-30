@@ -40,9 +40,8 @@ final class CollectionDetailControllerTest extends WebTestCase
     }
 
     /**
-     * The item dropdown of a collection page renders for every viewer; its "edit comment" link
-     * must not - anybody but the owner only ever got a 404 (other players) or a redirect to
-     * /login (guests - Googlebot followed thousands of them).
+     * The "edit comment" link is the owner's - anybody else only ever got a 404 (other players) or a
+     * redirect to /login (guests - Googlebot followed thousands of them).
      */
     public function testOnlyTheOwnerGetsTheCommentEditLink(): void
     {
@@ -82,6 +81,101 @@ final class CollectionDetailControllerTest extends WebTestCase
             self::assertCount($crawler->filter($items)->count(), $links, $page);
             self::assertSame(array_fill(0, $links->count(), 'nofollow'), $links->each(static fn (Crawler $link): null|string => $link->attr('rel')), $page);
         }
+    }
+
+    /**
+     * The item menu holds the owner's actions on the owner's lists - shown to anybody else it offered
+     * them the owner's list states and buttons that did nothing. A signed-in visitor gets a heart for
+     * their own wishlist instead; a guest gets neither.
+     */
+    public function testOnlyTheOwnerGetsTheItemMenuAVisitorTheirOwnWishlistHeart(): void
+    {
+        $pages = [
+            '/en/collection/' . CollectionFixture::COLLECTION_PUBLIC,
+            '/en/puzzle-collection/' . PlayerFixture::PLAYER_WITH_STRIPE,
+        ];
+        $items = '[id^="library-collection-"]';
+        $menus = '[id^="library-collection-"] .dropdown-toggle';
+        $hearts = '[id^="library-collection-"] .puzzle-wishlist-toggle';
+
+        // Guest - crawlers included
+        $browser = self::createClient();
+        foreach ($pages as $page) {
+            $crawler = $browser->request('GET', $page);
+            $this->assertResponseIsSuccessful();
+            self::assertGreaterThan(0, $crawler->filter($items)->count(), $page);
+            self::assertCount(0, $crawler->filter($menus), $page);
+            self::assertCount(0, $crawler->filter($hearts), $page);
+        }
+
+        // Another player: their own heart on every card, never the owner's menu
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        foreach ($pages as $page) {
+            $crawler = $browser->request('GET', $page);
+            $this->assertResponseIsSuccessful();
+            self::assertCount(0, $crawler->filter($menus), $page);
+            self::assertCount($crawler->filter($items)->count(), $crawler->filter($hearts), $page);
+
+            $crawler->filter($hearts . ' form')->each(static function (Crawler $form) use ($page): void {
+                self::assertSame('wishlist-toggle', $form->filter('input[name="context"]')->attr('value'), $page);
+                self::assertMatchesRegularExpression('#^/en/(wishlist/[0-9a-f-]+/add|remove-from-wish-list/[0-9a-f-]+)$#', (string) $form->attr('action'), $page);
+            });
+        }
+
+        // The owner: the menu on every card, no heart
+        self::ensureKernelShutdown();
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        foreach ($pages as $page) {
+            $crawler = $browser->request('GET', $page);
+            $this->assertResponseIsSuccessful();
+            self::assertCount($crawler->filter($items)->count(), $crawler->filter($menus), $page);
+            self::assertCount(0, $crawler->filter($hearts), $page);
+        }
+    }
+
+    public function testTheHeartTogglesTheVisitorsOwnWishlist(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $streamHeaders = ['HTTP_ACCEPT' => 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml'];
+
+        $crawler = $browser->request('GET', '/en/collection/' . CollectionFixture::COLLECTION_PUBLIC);
+        $this->assertResponseIsSuccessful();
+        $addForm = $crawler->filter('.puzzle-wishlist-toggle form[action$="/add"]')->first();
+        self::assertCount(1, $addForm, 'the visitor wishes for none of the collection yet');
+        $heartId = (string) $addForm->ancestors()->filter('.puzzle-wishlist-toggle')->attr('id');
+        $puzzleId = substr($heartId, strlen('wishlist-toggle-'));
+
+        // Add: the heart fills, nothing else on the page changes
+        $browser->request('POST', (string) $addForm->attr('action'), [
+            'context' => 'wishlist-toggle',
+            'removeOnCollectionAdd' => '1',
+        ], server: $streamHeaders);
+        $this->assertResponseIsSuccessful();
+        $heart = self::replacedHeart($browser, $heartId);
+        self::assertSame('/en/remove-from-wish-list/' . $puzzleId, $heart->filter('form')->attr('action'));
+        self::assertSame('true', $heart->filter('button')->attr('aria-pressed'));
+
+        // It is the visitor's wishlist that holds it now
+        $crawler = $browser->request('GET', '/en/collection/' . CollectionFixture::COLLECTION_PUBLIC);
+        self::assertCount(1, $crawler->filter('#' . $heartId . ' form[action="/en/remove-from-wish-list/' . $puzzleId . '"]'));
+
+        // Remove: back to the empty heart
+        $browser->request('POST', '/en/remove-from-wish-list/' . $puzzleId, ['context' => 'wishlist-toggle'], server: $streamHeaders);
+        $this->assertResponseIsSuccessful();
+        $heart = self::replacedHeart($browser, $heartId);
+        self::assertSame('/en/wishlist/' . $puzzleId . '/add', $heart->filter('form')->attr('action'));
+        self::assertSame('false', $heart->filter('button')->attr('aria-pressed'));
+    }
+
+    private static function replacedHeart(KernelBrowser $browser, string $heartId): Crawler
+    {
+        $stream = new Crawler((string) $browser->getResponse()->getContent());
+        $replacement = $stream->filter('turbo-stream[action="replace"][target="' . $heartId . '"] template');
+        self::assertCount(1, $replacement);
+
+        return new Crawler((string) $replacement->html());
     }
 
     /**

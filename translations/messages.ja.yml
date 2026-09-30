@@ -1586,6 +1586,7 @@
   "remove_puzzle": "コレクションから削除"
   "select_collection_help": "コレクションを選択するか、空のままでデフォルトのパズルコレクションに追加します"
   "system_name": "パズルコレクション"
+  "in_your_collection": "コレクションに追加済み"
   "title": "パズルライブラリ"
   "title_other": "%name%のパズルライブラリ"
   "visibility":

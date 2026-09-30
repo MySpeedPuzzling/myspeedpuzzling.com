@@ -1,0 +1,34 @@
+{#
+    A signed-in visitor's own wishlist, one tap, on a card of somebody else's list - in place of the owner's item
+    menu, which only the owner gets (_puzzle_library_item.html.twig). Replaced as a whole by the wishlist stream
+    (context "wishlist-toggle"). A puzzle already in the visitor's collection or borrowed by them cannot be wished
+    for (as in wishlist/_dropdown_action.html.twig): it says so instead.
+
+    Required variables: puzzle_id, puzzle_statuses (the visitor's own UserPuzzleStatuses)
+#}
+<div id="wishlist-toggle-{{ puzzle_id }}" class="puzzle-wishlist-toggle">
+    {% if puzzle_id in puzzle_statuses.wishlist %}
+        <form action="{{ path('remove_puzzle_from_wish_list', {puzzleId: puzzle_id}) }}" method="post" data-turbo="true">
+            <input type="hidden" name="context" value="wishlist-toggle">
+            <button type="submit" class="btn btn-outline-primary shadow btn-xs" aria-pressed="true"
+                    title="{{ 'wish_list.remove.button'|trans }}" aria-label="{{ 'wish_list.remove.button'|trans }}">
+                <i class="bi bi-heart-fill" aria-hidden="true"></i>
+            </button>
+        </form>
+    {% elseif puzzle_id in puzzle_statuses.collection or puzzle_id in puzzle_statuses.borrowed %}
+        <span class="d-inline-block px-1 text-success" title="{{ 'collections.in_your_collection'|trans }}">
+            <i class="bi bi-bookmark-check-fill" aria-hidden="true"></i>
+            <span class="visually-hidden">{{ 'collections.in_your_collection'|trans }}</span>
+        </span>
+    {% else %}
+        <form action="{{ path('wishlist_add', {puzzleId: puzzle_id}) }}" method="post" data-turbo="true">
+            {# The same default as the "Add to wish list" dialog #}
+            <input type="hidden" name="removeOnCollectionAdd" value="1">
+            <input type="hidden" name="context" value="wishlist-toggle">
+            <button type="submit" class="btn btn-outline-primary shadow btn-xs" aria-pressed="false"
+                    title="{{ 'wish_list.add.button'|trans }}" aria-label="{{ 'wish_list.add.button'|trans }}">
+                <i class="bi bi-heart" aria-hidden="true"></i>
+            </button>
+        </form>
+    {% endif %}
+</div>

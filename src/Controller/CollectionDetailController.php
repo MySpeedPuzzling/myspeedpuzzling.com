@@ -95,7 +95,12 @@ final class CollectionDetailController extends AbstractController
             'collection' => $collectionOverview,
             'items' => $items,
             'player' => $player,
+            // The owner's lists: the badges on every card, and the owner's own menu
             'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($player->playerId),
+            // A signed-in visitor's own lists: the wishlist heart that stands in for the owner's menu
+            'viewer_puzzle_statuses' => $loggedPlayerProfile !== null && $loggedPlayerProfile->playerId !== $player->playerId
+                ? $this->getUserPuzzleStatuses->byPlayerId($loggedPlayerProfile->playerId)
+                : null,
             'system_collection_id' => Collection::SYSTEM_ID,
             ...$display->templateParameters(),
             ...$this->resolvePuzzleListInsights->forViewer($loggedPlayerProfile, array_column($items, 'puzzleId'))->templateParameters(),

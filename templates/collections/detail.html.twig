@@ -193,7 +193,8 @@
                     collection: collection,
                     puzzle_statuses: puzzle_statuses,
                     logged_user: logged_user,
-                    isOwnProfile: true,
+                    isOwnProfile: logged_user.profile is not null and logged_user.profile.playerId == collection.playerId,
+                    viewer_puzzle_statuses: viewer_puzzle_statuses,
                     source_collection_id: collection.collectionId ?? '__system_collection__',
                     currentCollectionId: collection.collectionId ?? '__system_collection__',
                 }) }}

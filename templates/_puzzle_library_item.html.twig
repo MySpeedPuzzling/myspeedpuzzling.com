@@ -11,7 +11,10 @@
 
     Optional parameters (context-specific):
     - collection: Collection object (required for 'collection' context)
-    - isOwnProfile: boolean (default: false) - whether user is viewing their own profile
+    - isOwnProfile: boolean (default: false) - whether user is viewing their own profile; only then the item
+      menu renders (it holds the owner's actions and the owner's list states)
+    - viewer_puzzle_statuses: UserPuzzleStatuses of a signed-in visitor (collection pages of somebody else):
+      their own wishlist heart in place of the owner's menu (puzzle/_wishlist_toggle.html.twig)
     - settings: SellSwapListSettings object (for 'sell-swap' context, currency display)
     - source_collection_id: For collection move action (collection context)
     - currentCollectionId: Current collection being viewed (collection context)
@@ -63,11 +66,6 @@
 
 {# Determine if should show solving actions in dropdown #}
 {% set show_solving_actions = page_context in ['collection', 'unsolved'] %}
-
-{# Owner-only items of a collection page. collections/detail.html.twig opens the dropdown for every
-   viewer (isOwnProfile: true), so ask the collection who owns it. Turbo-stream re-renders pass no
-   collection - they only ever answer the owner's own action, with isOwnProfile: true. #}
-{% set is_collection_owner = page_context == 'collection' and (collection|default(null) is null ? isOwnProfile : (logged_user.profile is not null and logged_user.profile.playerId == collection.playerId)) %}
 
 {# The viewer's own history on this puzzle (collection pages, "My times" display mode) #}
 {% set show_my_times = page_context == 'collection' and my_times is defined %}
@@ -254,7 +252,9 @@
                     </div>
 
                     {# Dropdown menu #}
-                    {% if isOwnProfile or (logged_user.profile is not null and page_context == 'collection' and logged_user.profile.playerId == collection.playerId) %}
+                    {# The owner's actions on the owner's own lists - never shown to anybody else (it would offer them the
+                       owner's list states and buttons that do nothing). A signed-in visitor gets their own wishlist heart. #}
+                    {% if isOwnProfile %}
                         <div class="dropdown">
                             <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
                                     type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed">
@@ -278,13 +278,11 @@
 
                                 {# Context-specific menu items #}
                                 {% if page_context == 'collection' %}
-                                    {% if is_collection_owner %}
-                                        <li>
-                                            <a class="dropdown-item" rel="nofollow" href="{{ path('edit_collection_item_comment', {collectionItemId: item.collectionItemId}) }}">
-                                                <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
-                                            </a>
-                                        </li>
-                                    {% endif %}
+                                    <li>
+                                        <a class="dropdown-item" rel="nofollow" href="{{ path('edit_collection_item_comment', {collectionItemId: item.collectionItemId}) }}">
+                                            <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
+                                        </a>
+                                    </li>
                                 {% elseif page_context == 'lend-borrow-lent' %}
                                     {% if item.currentHolderId %}
                                         <li>
@@ -380,6 +378,11 @@
                                 {% endif %}
                             </ul>
                         </div>
+                    {% elseif viewer_puzzle_statuses|default(null) is not null %}
+                        {{ include('puzzle/_wishlist_toggle.html.twig', {
+                            puzzle_id: item.puzzleId,
+                            puzzle_statuses: viewer_puzzle_statuses,
+                        }) }}
                     {% endif %}
                 </div>
 

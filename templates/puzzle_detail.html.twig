@@ -158,13 +158,14 @@
 
     {# One short line that never wraps - the top of the page stays the puzzle itself. Long names end in an ellipsis,
        below sm the database is just an icon and below md the puzzle's own name is left out (the H1 says it right
-       underneath). The BreadcrumbList JSON-LD above carries the same levels. #}
-    <nav aria-label="breadcrumb" class="puzzle-breadcrumb mb-1">
-        <ol class="breadcrumb flex-nowrap mb-0" style="font-size: 0.8rem;">
+       underneath). The BreadcrumbList JSON-LD above carries the same levels. The icon stands alone, so it sits on the
+       text's baseline without the theme's gap for a following label. #}
+    <nav aria-label="breadcrumb" class="puzzle-breadcrumb mb-2">
+        <ol class="breadcrumb flex-nowrap align-items-baseline mb-0" style="font-size: 0.8rem;">
             {% for level in breadcrumb %}
                 {% if loop.first %}
                     <li class="breadcrumb-item flex-shrink-0">
-                        <a href="{{ level.url }}" aria-label="{{ level.label }}" title="{{ level.label }}"><i class="bi bi-puzzle d-sm-none" aria-hidden="true"></i><span class="d-none d-sm-inline">{{ level.label }}</span></a>
+                        <a href="{{ level.url }}" aria-label="{{ level.label }}" title="{{ level.label }}"><i class="bi bi-puzzle d-sm-none align-baseline me-0" aria-hidden="true"></i><span class="d-none d-sm-inline">{{ level.label }}</span></a>
                     </li>
                 {% elseif loop.last %}
                     <li class="breadcrumb-item active text-truncate d-none d-md-block" style="min-width: 0;" aria-current="page">{{ level.label }}</li>

@@ -79,30 +79,15 @@ SQL;
 
         // Solves count includes every recorded time (solo/duo/team); the
         // median is computed over solo solves only so group times do not
-        // skew it.
+        // skew it. One pass over the brand's solves gives the rows per piece
+        // count (the "median by piece count" list, the brand × pieces pages)
+        // and, through the empty grouping set, the brand's total - a row that
+        // comes even without a single solve. For Ravensburger (60 % of all
+        // solves) that is half the time of two passes.
         $solvesQuery = <<<SQL
 SELECT
-    COUNT(*) AS solves_count,
-    percentile_cont(0.5) WITHIN GROUP (ORDER BY pst.seconds_to_solve)
-        FILTER (WHERE pst.puzzlers_count = 1) AS median_seconds
-FROM puzzle_solving_time pst
-INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
-WHERE puzzle.manufacturer_id = :brandId
-    AND pst.seconds_to_solve IS NOT NULL
-SQL;
-
-        /** @var array{solves_count: int, median_seconds: null|float|string} $solvesRow */
-        $solvesRow = (array) $this->database
-            ->executeQuery($solvesQuery, [
-                'brandId' => $brand['brand_id'],
-            ])
-            ->fetchAssociative();
-
-        // One pass over the brand's solves per piece count feeds both the
-        // "median by piece count" list and the brand × pieces pages.
-        $solvesPerPiecesQuery = <<<SQL
-SELECT
     puzzle.pieces_count,
+    GROUPING(puzzle.pieces_count) = 1 AS is_brand_total,
     COUNT(*) AS solves_count,
     COUNT(*) FILTER (WHERE pst.puzzlers_count = 1) AS solo_solves_count,
     percentile_cont(0.5) WITHIN GROUP (ORDER BY pst.seconds_to_solve)
@@ -111,15 +96,35 @@ FROM puzzle_solving_time pst
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 WHERE puzzle.manufacturer_id = :brandId
     AND pst.seconds_to_solve IS NOT NULL
-GROUP BY puzzle.pieces_count
+GROUP BY GROUPING SETS ((puzzle.pieces_count), ())
 SQL;
 
-        /** @var list<array{pieces_count: int, solves_count: int, solo_solves_count: int, median_seconds: null|float|string}> $solvesPerPieces */
-        $solvesPerPieces = $this->database
-            ->executeQuery($solvesPerPiecesQuery, [
+        /** @var list<array{pieces_count: null|int, is_brand_total: bool, solves_count: int, solo_solves_count: int, median_seconds: null|float|string}> $solvesRows */
+        $solvesRows = $this->database
+            ->executeQuery($solvesQuery, [
                 'brandId' => $brand['brand_id'],
             ])
             ->fetchAllAssociative();
+
+        $solvesRow = ['solves_count' => 0, 'median_seconds' => null];
+        $solvesPerPieces = [];
+
+        foreach ($solvesRows as $row) {
+            if ($row['is_brand_total']) {
+                $solvesRow = $row;
+
+                continue;
+            }
+
+            assert($row['pieces_count'] !== null);
+
+            $solvesPerPieces[] = [
+                'pieces_count' => $row['pieces_count'],
+                'solves_count' => $row['solves_count'],
+                'solo_solves_count' => $row['solo_solves_count'],
+                'median_seconds' => $row['median_seconds'],
+            ];
+        }
 
         $piecesPagesQuery = <<<SQL
 SELECT

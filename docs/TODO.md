@@ -148,15 +148,18 @@ raw scan on the box in `/root/bucket-scan.csv` + `/root/db-image-refs.tsv`.
       sitemap, the puzzle `og:image` + Product JSON-LD, the event/edition/series JSON-LD `image` and the photo
       links (puzzle page, own finished photos) - no public page links a raw original (`/original/…`) any more;
       admin review pages still do on purpose
-- [ ] Stored originals with EXIF/GPS: the links are gone and uploads are stripped since 2026-09-30
-      (`ImageOptimizer` + `ImageMetadata`, also the result share PNG), but `/original/<key>` still serves the raw
-      file to anyone who knows the key (it is in every thumbnail URL). Audit 2026-09-30: 20,492 of 106,421
-      referenced originals carry a GPS position, 62,504 identifying metadata; result PNGs too (141 GPS in a
-      3,000 sample of 490k). Lossless strip job + 19-object pilot (pixel-identical) in
-      [`tools/image-metadata-strip/`](../tools/image-metadata-strip/strip.py), work dir + backups
-      `/root/msp-exif-2026-09-30/` on the box. Open: the full run (~67k objects, ~217 GB of backups, ~1 h), then a
-      Cloudflare prefix purge of `img.myspeedpuzzling.com/original/` + `/puzzle/`; the result PNGs (strip with
-      `--list-containing /results/`, or prune them - see the item above)
+- [x] Stored originals with EXIF/GPS - stripped 2026-09-30: `/original/<key>` serves the raw file to anyone who
+      knows the key (it is in every thumbnail URL), and 21,658 of 112,548 originals carried a GPS position. Lossless
+      strip job [`tools/image-metadata-strip/`](../tools/image-metadata-strip/strip.py): 66,710 objects stripped
+      under the same keys + 308 already clean, every one verified (stored checksum, pixel compare of backup vs
+      object, rendering of 3,002 keys through imgproxy). Work dir `/root/msp-exif-2026-09-30/` on the box
+- [x] Backups deleted 2026-09-30 after the full verification plus an independent spot check (Jan: "check all photos
+      are ok, then delete the backup") - no rollback any more; the per-object audit CSVs went too (camera/date details)
+- [ ] Cloudflare prefix purge of `img.myspeedpuzzling.com/original/` + `img.myspeedpuzzling.com/puzzle/` - Jan, in the
+      dashboard (Caching → Configuration → Custom Purge → Prefix); the Cloudflare MCP token cannot purge. Until then
+      Cloudflare may serve old copies of originals it had cached (`cdn.*` and imgproxy renders are clean)
+- [ ] Result share PNGs still carry the photo's EXIF/GPS (141 GPS in a 3,000 sample of 490k; new ones are clean
+      since 2026-09-30): strip them with `strip.py --list-containing /results/`, or prune them (item above)
 - [ ] `puzzle_small`/`puzzle_medium` of a HEIC source are drawn from its embedded ~320 px thumbnail
       (`IMGPROXY_ENFORCE_THUMBNAIL=true`) - `puzzle_medium` (`el:1`) upscales it to 400 px; `eth:0` there too?
 

@@ -148,7 +148,9 @@ def process(run, s3, key):
         row.update(status='error', detail='short read')
         return run.record(row)
 
-    ext = os.path.splitext(key)[1][:8] or '.bin'
+    # No extension: ExifTool refuses to write a PNG stored as "...jpeg" (it happens) when the name
+    # disagrees with the content; without one it goes by the content alone
+    ext = '.bin'
     work = os.path.join(run.dir, 'work', f'{threading.get_ident()}{ext}')
     orig = work + '.orig' + ext
     try:

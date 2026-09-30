@@ -13,9 +13,11 @@ Policy (what must go vs what may stay):
             EXIF thumbnail (IFD1), XMP (except the bare toolkit marker), IPTC/Photoshop records,
             comments, MPF secondary images and other JPEG trailers, PNG text chunks with content.
 """
+import atexit
 import json
 import os
 import re
+import shutil
 import subprocess
 import threading
 
@@ -48,14 +50,22 @@ def s3_client(max_pool=64):
     )
 
 
+_instances = []
+
+
 class ExifTool:
     """One long-running exiftool (-stay_open); not thread-safe - one instance per thread."""
 
     def __init__(self):
+        command = ['perl', EXIFTOOL, '-stay_open', 'True', '-@', '-']
+        # An exiftool -stay_open whose parent died polls its closed stdin forever (133 piled up on
+        # 2026-09-30): on Linux it gets SIGTERM when the thread that started it goes away
+        if shutil.which('setpriv'):
+            command = ['setpriv', '--pdeathsig', 'TERM'] + command
         self.proc = subprocess.Popen(
-            ['perl', EXIFTOOL, '-stay_open', 'True', '-@', '-'],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
         )
+        _instances.append(self)
 
     def run(self, args):
         """Runs one exiftool command; returns its stdout (text)."""
@@ -97,6 +107,13 @@ class ExifTool:
             self.proc.kill()
 
 
+def close_all():
+    for instance in _instances:
+        instance.close()
+
+
+atexit.register(close_all)
+
 _local = threading.local()
 
 
@@ -113,6 +130,9 @@ def exiftool():
 EXIF_TECHNICAL = {
     'IFD0:Orientation', 'IFD0:XResolution', 'IFD0:YResolution', 'IFD0:ResolutionUnit',
     'IFD0:YCbCrPositioning',
+    # the encoding program ("Google", "Adobe Photoshop 25.0") - removed with the rest when ExifTool can,
+    # left alone when it is all there is (e.g. a zTXt raw profile ExifTool cannot rewrite)
+    'IFD0:Software',
     'ExifIFD:ColorSpace', 'ExifIFD:ExifImageWidth', 'ExifIFD:ExifImageHeight', 'ExifIFD:ExifVersion',
     'ExifIFD:ComponentsConfiguration', 'ExifIFD:FlashpixVersion',
     'InteropIFD:InteropIndex', 'InteropIFD:InteropVersion',
@@ -129,10 +149,17 @@ PNG_TECHNICAL = {
     'HistogramData', 'OriginalImageWidth', 'OriginalImageHeight',
     # iOS screenshots: the iDOT chunk (offsets for parallel decoding) - exiftool cannot drop it
     'AppleDataOffsets',
+    # ImageMagick's vpAg chunk
+    'VirtualPageUnits',
 }
 XMP_TECHNICAL = {'XMP-x:XMPToolkit'}
-# Apple HDR: the gain-map auxiliary image of a HEIC carries its own XMP (version/headroom only)
-XMP_TECHNICAL_GROUPS = {'XMP-HDRGainMap'}
+# iPhone HEIC auxiliary images (HDR gain map, depth map, portrait / segmentation mattes) carry their
+# own XMP: versions, headroom, gain-map ranges, pixel formats, depth quality, lens calibration, the
+# portrait blur settings. ExifTool cannot remove it from the auxiliary items; none of it says anything
+# about who, where or when.
+XMP_TECHNICAL_GROUPS = {'XMP-HDRGainMap', 'XMP-hdrgm', 'XMP-apdi', 'XMP-portraitEffectsMatte',
+                        'XMP-semanticSegmentationMatte', 'XMP-depthData', 'XMP-depthBlurEffect',
+                        'XMP-portraitLightingEffect'}
 IPTC_TECHNICAL = {'CodedCharacterSet', 'ApplicationRecordVersion', 'EnvelopeRecordVersion'}
 # Family-0 groups that only ever describe the file or its decoding.
 STRUCTURAL_GROUPS = {'SourceFile', 'ExifTool', 'File', 'JFIF', 'Adobe', 'ICC_Profile', 'Composite',
@@ -174,6 +201,9 @@ def classify(tags):
             continue
         if g0 != 'Composite' and GPS_TAG.match(tag) and _nonzero(value):
             gps = True
+        # An empty tag says nothing (e.g. blank Artist / Copyright written by an editor)
+        if isinstance(value, str) and value.strip() == '':
+            continue
         if g0 == 'ICC_Profile':
             has_icc = True
         if g0 == 'EXIF':
@@ -214,6 +244,16 @@ def classify(tags):
                 private.append('File:Comment')
             continue
         if g0 in STRUCTURAL_GROUPS:
+            continue
+        # JPEG APP14 "Adobe": the colour transform a decoder needs (ExifTool keeps it on purpose)
+        if g0 == 'APP14' and g1 == 'Adobe':
+            continue
+        # iPhone HEIC: Apple's HDR tone-mapping plist (gains, histogram percentiles) that ExifTool
+        # cannot remove - allowed only while every value is a number, a flag or binary data
+        if g0 == 'PLIST':
+            if isinstance(value, str) and not value.startswith('(Binary data') \
+                    and value not in ('True', 'False') and not re.fullmatch(r'-?[0-9.eE+-]+', value):
+                private.append(f'PLIST:{tag}')
             continue
         # MPF (secondary images), Photoshop, FlashPix, unknown APPn segments, JUMBF/C2PA, trailers ...
         private.append(f'{g0}:{g1}')

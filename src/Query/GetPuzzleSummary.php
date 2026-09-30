@@ -13,7 +13,7 @@ use SpeedPuzzling\Web\Results\CompetitionReference;
 use SpeedPuzzling\Web\Results\PuzzleSummary;
 
 /**
- * The public facts of a puzzle page's summary paragraph and meta description, in one query: the precomputed
+ * The public facts of a puzzle page's "About this puzzle" section and meta description, in one query: the precomputed
  * puzzle_statistics row (a primary key lookup) plus the competitions the puzzle was used at.
  *
  * "Used at" is the union of the competitions (or whole series) the puzzle's tags belong to and the competitions
@@ -48,8 +48,10 @@ SELECT
     ps.median_time_solo,
     ps.fastest_time_solo,
     COALESCE(ps.solved_times_duo_count, 0) AS duo_count,
+    ps.median_time_duo,
     ps.fastest_time_duo,
     COALESCE(ps.solved_times_team_count, 0) AS team_count,
+    ps.median_time_team,
     ps.fastest_time_team,
     (
         SELECT COALESCE(json_agg(used ORDER BY used.is_series, used.date_from NULLS LAST, used.name), '[]'::json)
@@ -104,8 +106,10 @@ SQL;
          *     median_time_solo: null|int|string,
          *     fastest_time_solo: null|int|string,
          *     duo_count: int|string,
+         *     median_time_duo: null|int|string,
          *     fastest_time_duo: null|int|string,
          *     team_count: int|string,
+         *     median_time_team: null|int|string,
          *     fastest_time_team: null|int|string,
          *     used_at: string,
          * } $row
@@ -138,8 +142,10 @@ SQL;
             medianTimeSolo: self::nullableInt($row['median_time_solo']),
             fastestTimeSolo: self::nullableInt($row['fastest_time_solo']),
             duoSolvesCount: (int) $row['duo_count'],
+            medianTimeDuo: self::nullableInt($row['median_time_duo']),
             fastestTimeDuo: self::nullableInt($row['fastest_time_duo']),
             teamSolvesCount: (int) $row['team_count'],
+            medianTimeTeam: self::nullableInt($row['median_time_team']),
             fastestTimeTeam: self::nullableInt($row['fastest_time_team']),
             usedAt: array_map(
                 static fn (array $competition): CompetitionReference => new CompetitionReference(

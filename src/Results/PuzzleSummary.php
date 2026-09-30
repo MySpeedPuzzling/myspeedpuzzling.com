@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 /**
- * Public facts behind the summary paragraph and the meta description of a puzzle page
+ * Public facts behind the "About this puzzle" section and the meta description of a puzzle page
  * (docs/features/seo/implementation-plan-2026-10.md, WS-A). Never Puzzle Insights: those are members-only.
  *
  * Counts are solves (every logged solve, timed or not, as in puzzle_statistics), not puzzlers - the leaderboard
- * counts players and keeps each one's best time, so the two numbers differ by definition. The median is the
- * one puzzle_statistics keeps: of each solo puzzler's best time.
+ * counts players and keeps each one's best time, so the two numbers differ by definition. The medians are the
+ * ones puzzle_statistics keeps.
  */
 readonly final class PuzzleSummary
 {
@@ -22,8 +22,10 @@ readonly final class PuzzleSummary
         public null|int $medianTimeSolo,
         public null|int $fastestTimeSolo,
         public int $duoSolvesCount,
+        public null|int $medianTimeDuo,
         public null|int $fastestTimeDuo,
         public int $teamSolvesCount,
+        public null|int $medianTimeTeam,
         public null|int $fastestTimeTeam,
         public array $usedAt,
     ) {
@@ -36,8 +38,10 @@ readonly final class PuzzleSummary
             medianTimeSolo: null,
             fastestTimeSolo: null,
             duoSolvesCount: 0,
+            medianTimeDuo: null,
             fastestTimeDuo: null,
             teamSolvesCount: 0,
+            medianTimeTeam: null,
             fastestTimeTeam: null,
             usedAt: [],
         );

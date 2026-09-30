@@ -84,6 +84,31 @@ final class GetFastestPlayersTest extends KernelTestCase
         );
     }
 
+    public function testEqualBestTimesOfAPlayerShowTheEarliest(): void
+    {
+        /** @var list<string> $tied */
+        $tied = $this->database->fetchFirstColumn(
+            "SELECT pst.id
+             FROM puzzle_solving_time pst
+             INNER JOIN puzzle p ON p.id = pst.puzzle_id
+             WHERE pst.player_id = :playerId AND p.pieces_count = 500 AND pst.puzzling_type = 'solo' AND pst.seconds_to_solve = 1700
+             ORDER BY COALESCE(pst.finished_at, pst.tracked_at), pst.id",
+            ['playerId' => PlayerFixture::PLAYER_REGULAR],
+        );
+        self::assertCount(2, $tied, 'Premise: John solved two 500-piece puzzles in 1700 s, his best');
+
+        $johnsRow = null;
+        foreach ($this->query->perPiecesCount(500, 20, null) as $result) {
+            if ($result->playerId === PlayerFixture::PLAYER_REGULAR) {
+                $johnsRow = $result;
+            }
+        }
+
+        self::assertNotNull($johnsRow);
+        self::assertSame(1700, $johnsRow->time);
+        self::assertSame($tied[0], $johnsRow->timeId);
+    }
+
     public function testPerPiecesCountRespectsLimit(): void
     {
         $results = $this->query->perPiecesCount(500, 3, null);

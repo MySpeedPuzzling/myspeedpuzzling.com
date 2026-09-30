@@ -26,36 +26,44 @@ readonly final class GetFastestPlayers
     public function perPiecesCount(int $piecesCount, int $limit, null|CountryCode $countryCode): array
     {
         $notHidden = $this->hiddenPlayers->sqlExclude('pst.player_id');
+        $countryCondition = $countryCode !== null ? 'AND pl.country = :countryCode' : '';
 
+        // Each player's best time by a hash aggregate, then the fastest `limit` players, then one time
+        // with that best per player. It used to be DISTINCT ON (player) over every solo time of the
+        // piece count, which sorted all of them first: 300-380 ms for 500 pieces (340k times) on the
+        // production copy, now 55-80 ms (docs/features/seo/performance-2026-10.md). Same players and
+        // times; ties, which used to fall arbitrarily, now go to the lower player id at the cut-off and
+        // to the earliest of a player's equal best times.
         $query = <<<SQL
-WITH FastestTimes AS (
-    SELECT puzzle_solving_time_id
-    FROM (
-        SELECT DISTINCT ON (pst.player_id)
-            pst.id AS puzzle_solving_time_id,
-            pst.seconds_to_solve
-        FROM puzzle_solving_time pst
-        INNER JOIN puzzle p ON p.id = pst.puzzle_id
-        INNER JOIN player pl ON pl.id = pst.player_id
-        WHERE pst.puzzling_type = 'solo'
-          AND p.pieces_count = :piecesCount
-          AND pst.seconds_to_solve > 0
-          AND pl.is_private = false
-          AND pst.suspicious = false
-          {$notHidden}
-SQL;
-
-        if ($countryCode != null) {
-            $query .= <<<SQL
-    AND pl.country = :countryCode
-SQL;
-        }
-
-        $query .= <<<SQL
-        ORDER BY pst.player_id, pst.seconds_to_solve ASC
-    )
-    ORDER BY seconds_to_solve ASC
+WITH BestTimes AS (
+    SELECT
+        pst.player_id,
+        MIN(pst.seconds_to_solve) AS best_seconds
+    FROM puzzle_solving_time pst
+    INNER JOIN puzzle p ON p.id = pst.puzzle_id
+    INNER JOIN player pl ON pl.id = pst.player_id
+    WHERE pst.puzzling_type = 'solo'
+      AND p.pieces_count = :piecesCount
+      AND pst.seconds_to_solve > 0
+      AND pl.is_private = false
+      AND pst.suspicious = false
+      {$notHidden}
+      {$countryCondition}
+    GROUP BY pst.player_id
+    ORDER BY best_seconds ASC, pst.player_id
     LIMIT :limit
+),
+FastestTimes AS (
+    SELECT DISTINCT ON (pst.player_id)
+        pst.id AS puzzle_solving_time_id
+    FROM BestTimes
+    INNER JOIN puzzle_solving_time pst ON pst.player_id = BestTimes.player_id
+        AND pst.seconds_to_solve = BestTimes.best_seconds
+    INNER JOIN puzzle p ON p.id = pst.puzzle_id
+    WHERE pst.puzzling_type = 'solo'
+      AND p.pieces_count = :piecesCount
+      AND pst.suspicious = false
+    ORDER BY pst.player_id, COALESCE(pst.finished_at, pst.tracked_at), pst.id
 )
 SELECT
     puzzle.id AS puzzle_id,

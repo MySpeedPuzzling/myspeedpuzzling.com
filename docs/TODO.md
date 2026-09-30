@@ -4,6 +4,16 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## SEO site-wide links (WS-F2)
+
+Shipped with WS-F2 of [`features/seo/implementation-plan-2026-10.md`](features/seo/implementation-plan-2026-10.md).
+
+- [ ] The footer "Popular searches" are hand-picked, hardcoded links (5 brand × pieces pages, 4 brand hubs, the WJPC
+      2022-2026 event slugs, the hardest 1000-piece list) - all checked live on the production copy 2026-09-30.
+      Renaming one of those brand or event slugs breaks a link on every guest page; revisit the picks yearly (new WJPC)
+- [ ] The "how long" guides are English-only: their links on the pieces hubs, brand × pieces pages, `/puzzle` and in
+      the footer say "(in English)" in the other five languages - drop that when the guides get localised (plan, open decisions)
+
 ## Sign-in / sign-up UX redesign
 
 Phase 1 shipped 2026-09-29: [`features/auth-ux-redesign.md`](features/auth-ux-redesign.md) §8. Phase 2 (6-digit code) shipped 2026-09-29: §9.

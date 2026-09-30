@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Controller\PiecesPuzzlesController;
 use SpeedPuzzling\Web\Results\DifficultyRankingBrand;
 use SpeedPuzzling\Web\Results\DifficultyRankingsAvailability;
 use SpeedPuzzling\Web\Tests\CatalogueTestData;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\TagFixture;
 use SpeedPuzzling\Web\Tests\PinsSolveTimeDistributions;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -193,6 +196,15 @@ final class CatalogueCrossLinksTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/puzzle/500-dilku');
         self::assertContains('/puzzle/znacka/ravensburger', self::cardBrandLinks($crawler));
+
+        // An event page listing its tagged puzzles
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'INSERT INTO tag_puzzle (tag_id, puzzle_id) VALUES (:tagId, :puzzleId)',
+            ['tagId' => TagFixture::TAG_WJPC, 'puzzleId' => PuzzleFixture::PUZZLE_500_01],
+        );
+        $crawler = $browser->request('GET', '/en/events/wjpc-2024');
+        $this->assertResponseIsSuccessful();
+        self::assertSame(['/en/puzzle/brand/ravensburger'], self::cardBrandLinks($crawler));
     }
 
     /**

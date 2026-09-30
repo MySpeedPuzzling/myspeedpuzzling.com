@@ -569,11 +569,8 @@ final class PuzzleDetailControllerTest extends WebTestCase
         self::assertCount(3, self::breadcrumbJsonLd($crawler));
 
         // The piece count stays plain text
-        $piecesCount = $crawler->filter('#main-content small.fw-bold')->reduce(
-            static fn (Crawler $count): bool => $count->text() === "4000\u{a0}pieces",
-        );
-        self::assertCount(1, $piecesCount);
-        self::assertNull($piecesCount->closest('a'));
+        self::assertSame("Puzzle 16 (4000\u{a0}pieces)", $crawler->filter('h1')->text());
+        self::assertCount(0, $crawler->filter('h1 a'));
     }
 
     public function testBrandWithoutSlugHasNoBrandLevel(): void

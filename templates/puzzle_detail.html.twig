@@ -196,7 +196,17 @@
 
             <div class="flex-wrap flex-grow-1 d-md-flex flex-sm-grow-0 me-1 me-sm-3 me-md-4">
                 <div class="me-md-4">
-                    <h1 class="h4 mb-0">{{ puzzle.puzzleName }} <span class="text-muted fw-normal">({{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }})</span></h1>
+                    {# The piece count links to the same page as the breadcrumb #}
+                    <h1 class="h4 mb-0">
+                        {{ puzzle.puzzleName }}
+                        <span class="fs-base text-muted fw-normal text-nowrap">(
+                            {%- if pieces_page is not null -%}
+                                <a class="text-reset" href="{{ pieces_page.url }}" title="{{ pieces_page.name }}">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</a>
+                            {%- else -%}
+                                {{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}
+                            {%- endif -%}
+                        )</span>
+                    </h1>
                     <div class="mb-1" id="puzzle-badges-{{ puzzle.puzzleId }}">
                         {{ include('puzzle/_badges.html.twig', {
                             puzzle_id: puzzle.puzzleId,
@@ -232,25 +242,24 @@
                         {% endif %}
                     </div>
 
-                    <span class="d-inline-flex align-items-center gap-1 mt-2">
-                        {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                    {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                        <span class="d-inline-flex align-items-center gap-1 mt-2">
                             {% if puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is not null %}
                                 {% set dt_name = puzzle_difficulty.difficultyTier.name|lower %}
                                 {% set dt_icon_map = {'veryeasy':'diff-very-easy','easy':'diff-easy','average':'diff-average','challenging':'diff-challenging','hard':'diff-hard','veryhard':'diff-very-hard'} %}
                                 <svg class="diff-icon" width="24" height="24" style="color: var(--{{ dt_icon_map[dt_name] ?? 'diff-unknown' }})"><use href="/difficulty-icons-sprite.svg#{{ dt_icon_map[dt_name] ?? 'diff-unknown' }}"/></svg>
+                                <small class="fw-bold">{{ puzzle_difficulty.difficultyTier.translationKey|trans }}</small>
                             {% else %}
                                 <svg class="diff-icon" width="24" height="24" style="color: var(--diff-unknown)"><use href="/difficulty-icons-sprite.svg#diff-unknown"/></svg>
+                                <small class="fw-bold text-muted">{{ 'puzzle_intelligence.difficulty.not_enough_data'|trans }}</small>
                             {% endif %}
-                        {% else %}
-                            <svg class="diff-icon" width="24" height="24" style="color: var(--diff-locked); cursor: pointer;" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
-                        {% endif %}
-                        {% if pieces_page is not null %}
-                            {# Looks like the plain text it was; leads to the same page as the breadcrumb #}
-                            <a class="text-reset" href="{{ pieces_page.url }}" title="{{ pieces_page.name }}"><small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small></a>
-                        {% else %}
-                            <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
-                        {% endif %}
-                    </span>
+                        </span>
+                    {% else %}
+                        <span class="d-inline-flex align-items-center gap-1 mt-2" role="button" title="{{ 'difficulty_ranking.difficulty_locked'|trans }}" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                            <svg class="diff-icon" width="24" height="24" style="color: var(--diff-locked)"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
+                            <small class="fw-bold">{{ 'puzzle_intelligence.difficulty.tier_label'|trans }}</small>
+                        </span>
+                    {% endif %}
                 </div>
                 <div>
                     <div class="fs-sm manufacturer-name">

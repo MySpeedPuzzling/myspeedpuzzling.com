@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\EventSubscriber;
 
+use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
@@ -111,6 +112,20 @@ final readonly class NativeAuthPageSubscriber implements EventSubscriberInterfac
                 self::LOCALE_COOKIE,
                 $rememberLocale,
                 expire: time() + 365 * 24 * 60 * 60,
+                path: '/',
+                secure: $request->isSecure(),
+                httpOnly: true,
+                sameSite: Cookie::SAMESITE_LAX,
+            ));
+        }
+
+        // Meta App Review preview (SocialLoginSettings): carry ?facebook_preview=1
+        // to the next pages the reviewer opens. Removed with the Facebook flag.
+        if ($request->query->get(SocialLoginSettings::FACEBOOK_PREVIEW_QUERY) === '1') {
+            $response->headers->setCookie(Cookie::create(
+                SocialLoginSettings::FACEBOOK_PREVIEW_COOKIE,
+                '1',
+                expire: time() + 24 * 60 * 60,
                 path: '/',
                 secure: $request->isSecure(),
                 httpOnly: true,

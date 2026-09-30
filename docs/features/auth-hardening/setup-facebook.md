@@ -86,6 +86,17 @@ Left menu **Publish** (older layouts: the *App mode* toggle Development → Live
 - **Business verification is not expected** for `email` + `public_profile`. If Meta nevertheless insists on it before publishing (Meta's docs say advanced access "may" need a verified business), **stop and tell Claude** - that is a decision (MySpeedPuzzling business documents), not a click.
 - Being Live does *not* turn anything on in MySpeedPuzzling - the feature flag shows the buttons (§6).
 
+## 4a. App Review - reviewer URL
+
+If Meta asks for App Review (or a screencast) before publishing, the reviewer has to see and click "Continue with Facebook" while `SOCIAL_LOGIN_FACEBOOK_ENABLED` is still `0`. Give them:
+
+- **URL:** `https://myspeedpuzzling.com/login?facebook_preview=1` (`/login` has no locale prefix - `/en/login` does not exist)
+- The parameter shows the Facebook button (only when `FACEBOOK_APP_ID`/`FACEBOOK_APP_SECRET` are set in production) and sets a 1-day `msp_fb_preview` cookie, so the button stays on `/register` and, after signing in, *Edit profile → Connected sign-in methods → Facebook* shows the connect row too.
+- The reviewer must be able to sign in with Facebook while the app is unpublished: add the reviewer/test account under **App roles → Roles** (tester), or use the test user Meta's review form offers.
+- Suggested reviewer steps: open the URL → **Continue with Facebook** → consent (`public_profile`, `email`) → back on MySpeedPuzzling signed in (new account via "Create a new account?") → Edit profile → *Connected sign-in methods* shows Facebook with Disconnect.
+
+The preview is removed together with the flag (`docs/features/feature_flags.md`).
+
 ## 5. Keep it healthy (yearly)
 
 - **Data Use Checkup**: once a year Meta e-mails the app admins and shows a banner under **Required actions** in the dashboard. Answer it (we use `email` + `public_profile` to create/sign in the account; no data shared with third parties). If it is ignored, Meta restricts the app → Facebook sign-in stops working.

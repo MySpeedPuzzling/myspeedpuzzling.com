@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\SocialLogin;
 
 use SpeedPuzzling\Web\Value\OauthProvider;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Which social sign-in providers are available and which are shown, behind
@@ -23,10 +24,25 @@ use SpeedPuzzling\Web\Value\OauthProvider;
  * The answer depends on configuration only - never on the visitor - so
  * /login and /register show every visitor the same buttons (those pages are
  * `no-store` anyway, NativeAuthPageSubscriber, so nothing shares a copy).
+ * The one exception is the Facebook review preview below.
+ *
+ * Facebook review preview - exists ONLY for Meta App Review: the reviewer must
+ * see and click "Continue with Facebook" while the flag still hides it. A
+ * request with `?facebook_preview=1`, or carrying the `msp_fb_preview` cookie
+ * (set for a day by NativeAuthPageSubscriber on auth pages that got the query
+ * parameter, so it survives login -> register -> edit profile), shows
+ * Facebook as if the flag were on - still only when its credentials are
+ * configured. Remove it together with the flag once the Meta app is published
+ * (docs/features/feature_flags.md).
  */
 final readonly class SocialLoginSettings
 {
+    public const string FACEBOOK_PREVIEW_QUERY = 'facebook_preview';
+
+    public const string FACEBOOK_PREVIEW_COOKIE = 'msp_fb_preview';
+
     public function __construct(
+        private RequestStack $requestStack,
         private bool $socialLoginFacebookEnabled,
         private string $googleClientId,
         private string $googleClientSecret,
@@ -57,7 +73,24 @@ final readonly class SocialLoginSettings
             return false;
         }
 
-        return $provider !== OauthProvider::Facebook || $this->socialLoginFacebookEnabled;
+        return $provider !== OauthProvider::Facebook
+            || $this->socialLoginFacebookEnabled
+            || $this->isFacebookPreviewRequested();
+    }
+
+    /**
+     * Meta App Review preview, see the class comment - removed with the flag.
+     */
+    public function isFacebookPreviewRequested(): bool
+    {
+        $request = $this->requestStack->getMainRequest();
+
+        if ($request === null) {
+            return false;
+        }
+
+        return $request->query->get(self::FACEBOOK_PREVIEW_QUERY) === '1'
+            || $request->cookies->get(self::FACEBOOK_PREVIEW_COOKIE) === '1';
     }
 
     /**

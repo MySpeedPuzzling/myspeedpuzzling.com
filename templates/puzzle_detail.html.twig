@@ -201,7 +201,7 @@
                         {{ puzzle.puzzleName }}
                         <span class="fs-base text-muted fw-normal text-nowrap">(
                             {%- if pieces_page is not null -%}
-                                <a class="text-reset" href="{{ pieces_page.url }}" title="{{ pieces_page.name }}">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</a>
+                                <a class="text-reset text-decoration-none" href="{{ pieces_page.url }}" title="{{ pieces_page.name }}">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</a>
                             {%- else -%}
                                 {{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}
                             {%- endif -%}

@@ -4389,10 +4389,8 @@ first_try:
         own_pair: "Ihr Paar-Ergebnis mit %names% vom %date%"
         own_team: "Ihr Team-Ergebnis mit %names% vom %date%"
         teammate_hold: "%name% hat für dieses Puzzle bereits einen ersten Versuch (%date%)."
-        someone_hold: "Jemand aus Ihrer Gruppe hat für dieses Puzzle bereits einen ersten Versuch."
         own_earlier: "Sie haben dieses Puzzle schon früher gelöst, am %date%."
         teammate_earlier: "%name% hat dieses Puzzle schon früher gelöst, am %date%."
-        someone_earlier: "Jemand aus Ihrer Gruppe hat dieses Puzzle schon früher gelöst."
     page:
         title: "Konflikte bei ersten Versuchen"
         intro: "Ein Puzzle kann nur einmal Ihr erster Versuch sein. Hier sind die Puzzles, bei denen mehrere Ihrer Ergebnisse als erster Versuch markiert sind – wählen Sie das, das es wirklich war."

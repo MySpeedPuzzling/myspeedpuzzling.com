@@ -17,8 +17,6 @@ readonly final class FirstTryNoticeLine
     public const string OWN = 'own';
     // A registered teammate the viewer may see: named, with the date
     public const string TEAMMATE = 'teammate';
-    // A private or blocked teammate: no name, no date
-    public const string SOMEONE = 'someone';
 
     /**
      * @param list<string> $with the other people of the viewer's own result, as the viewer may call them

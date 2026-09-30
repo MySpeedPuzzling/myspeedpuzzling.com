@@ -13,7 +13,8 @@ mix) and 1,268 first tries logged a day after an earlier solve of the same playe
   of. "Person" = registered player: guests are a name, not someone we can tell apart, and are left out of every rule.
 - **A pair/team result is a first try only if it is everybody's first try** - so a result is refused the tag when
   *anybody* in it already holds a first try of the puzzle.
-- **Hard block**: someone in the result already has another result of the puzzle marked as a first try.
+- **Hard block**: someone in the result the player may see (see Privacy) already has another result of the puzzle
+  marked as a first try.
   - The player is on every such result (their own solo, or a pair/team they are a member of) → they may
     **"Make this result my first try"**: the tag moves - the new result gets it, the old ones lose it, in the same save.
   - Any such result belongs only to a teammate → the only way on is saving without the tag. Nobody changes another
@@ -71,13 +72,18 @@ Rendered by `_notice.html.twig` from the assessment and the chosen resolution:
 
 ## Privacy
 
-A blocked (`HiddenPlayers`) or private-to-the-viewer (`PrivateProfileAccess::sqlIsPrivate()`) person still counts for
-every rule, but is never named nor dated: "Someone in your group already has a first try of this puzzle." In the
-player's *own* results (the notice's "Your pair result with …", the conflicts page) such a co-puzzler shows as
-"a puzzler" - neither name nor code (in a pair/team result somebody else tracked, the viewer never typed that code).
+**Hidden people are left out completely.** A teammate hidden from the player - private without the player on their
+allow list (`PrivateProfileAccess::sqlIsPrivate()`, a block in either direction outranks the list) or blocked by
+the player (`HiddenPlayers`) - is ignored by the assessment: their first tries and earlier solves neither block nor
+warn, and nothing about them reaches the player - no line, no refusal, no API message (a refusal alone would tell
+one bit). The rule still holds for them: if the save gives them a second first try, it shows up on **their own**
+conflicts page and banner, where only they resolve it. Visible teammates are named with dates - their results are
+public anyway.
 
-Accepted trade-off: adding someone by `#code` to the form still tells the player *whether* somebody in the group
-holds a first try (or solved it before) - one bit, masked, no name, no date. Refusing the save needs it.
+In the player's *own* results (the notice's "Your pair result with …", the conflicts page) a hidden co-puzzler shows
+as "a puzzler" - neither name nor code. A result the player took part in always counts, whoever else is in it.
+
+Without a signed-in viewer (kernel tests, cron) nobody is hidden and everybody counts.
 
 ## Conflicts page + banner
 

@@ -143,31 +143,53 @@ final class FirstTryAssessorTest extends KernelTestCase
         self::assertFalse($this->assess(PlayerFixture::PLAYER_WITH_STRIPE, [PlayerFixture::PLAYER_WITH_STRIPE], daysAgo: 1)->isOlderThanHolds());
     }
 
-    public function testAPrivateTeammateIsNeitherNamedNorDated(): void
+    public function testAPrivateTeammateIsLeftOutCompletely(): void
     {
+        // Not even a refusal may tell the viewer anything about them - their own conflicts page shows the duplicate
+        $this->scenario->add(PlayerFixture::PLAYER_PRIVATE_USER_ID, daysAgo: 20);
         $this->scenario->add(PlayerFixture::PLAYER_PRIVATE_USER_ID, daysAgo: 10, firstTry: true);
         TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
 
         $assessment = $this->assess(PlayerFixture::PLAYER_WITH_STRIPE, [PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_PRIVATE]);
 
-        self::assertTrue($assessment->blocks(FirstTryResolution::None), 'A private teammate still counts');
-        self::assertCount(1, $assessment->holdLines);
-        self::assertSame(FirstTryNoticeLine::SOMEONE, $assessment->holdLines[0]->kind);
-        self::assertNull($assessment->holdLines[0]->date);
-        self::assertNull($assessment->holdLines[0]->person);
+        self::assertTrue($assessment->isEmpty());
+        self::assertFalse($assessment->blocks(FirstTryResolution::None));
     }
 
-    public function testABlockedTeammateIsNeitherNamedNorDated(): void
+    public function testAPrivateTeammateWhoAllowsTheViewerCounts(): void
     {
-        $this->scenario->add(FirstTryScenario::ADMIN_USER_ID, daysAgo: 10);
+        // PrivateProfileViewerFixture: PLAYER_PRIVATE lets PLAYER_WITH_FAVORITES see them
+        $this->scenario->add(PlayerFixture::PLAYER_PRIVATE_USER_ID, daysAgo: 10, firstTry: true);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $assessment = $this->assess(PlayerFixture::PLAYER_WITH_FAVORITES, [PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_PRIVATE]);
+
+        self::assertTrue($assessment->blocks(FirstTryResolution::None));
+        self::assertSame(FirstTryNoticeLine::TEAMMATE, $assessment->holdLines[0]->kind);
+        self::assertSame('Jane Smith', $assessment->holdLines[0]->person?->name);
+    }
+
+    public function testABlockedTeammateIsLeftOutCompletely(): void
+    {
+        $this->scenario->add(FirstTryScenario::ADMIN_USER_ID, daysAgo: 12);
+        $this->scenario->add(FirstTryScenario::ADMIN_USER_ID, daysAgo: 10, firstTry: true);
         $this->scenario->block(PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_ADMIN);
         TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
 
         $assessment = $this->assess(PlayerFixture::PLAYER_WITH_STRIPE, [PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_ADMIN]);
 
-        self::assertCount(1, $assessment->earlierLines);
-        self::assertSame(FirstTryNoticeLine::SOMEONE, $assessment->earlierLines[0]->kind);
-        self::assertNull($assessment->earlierLines[0]->date);
+        self::assertTrue($assessment->isEmpty());
+    }
+
+    public function testTheViewersOwnPairResultWithAHiddenPartnerStillCounts(): void
+    {
+        $pair = $this->scenario->add(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['#player2'], daysAgo: 10, firstTry: true);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $assessment = $this->assess(PlayerFixture::PLAYER_WITH_STRIPE, [PlayerFixture::PLAYER_WITH_STRIPE]);
+
+        self::assertSame([$pair], $assessment->timeIdsToUnmark(FirstTryResolution::MoveHere));
+        self::assertSame([''], $assessment->holdLines[0]->with, 'The partner is "a puzzler", never named');
     }
 
     public function testAnEditLeavesItselfOut(): void

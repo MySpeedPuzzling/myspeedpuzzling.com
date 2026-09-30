@@ -54,7 +54,7 @@ final class FirstTryPagesTest extends WebTestCase
         self::assertSame('', $browser->getResponse()->getContent());
     }
 
-    public function testTheLiveCheckNeverNamesAPrivateTeammate(): void
+    public function testTheLiveCheckSaysNothingAboutAPrivateTeammate(): void
     {
         $browser = self::createClient();
         $browser->disableReboot();
@@ -63,9 +63,7 @@ final class FirstTryPagesTest extends WebTestCase
 
         $browser->request('GET', '/en/first-try-check?puzzle=' . FirstTryScenario::PUZZLE . '&group_players[]=%23player2');
 
-        $html = (string) $browser->getResponse()->getContent();
-        self::assertStringContainsString('Someone in your group already has a first try', $html);
-        self::assertStringNotContainsString('Jane', $html);
+        self::assertSame('', $browser->getResponse()->getContent(), 'Nothing at all about a private teammate');
     }
 
     public function testTheLiveCheckNeedsASignedInPlayer(): void

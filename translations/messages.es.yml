@@ -4389,10 +4389,8 @@ first_try:
         own_pair: "Tu resultado en pareja con %names% del %date%"
         own_team: "Tu resultado en equipo con %names% del %date%"
         teammate_hold: "%name% ya tiene un primer intento de este rompecabezas (%date%)."
-        someone_hold: "Alguien de tu grupo ya tiene un primer intento de este rompecabezas."
         own_earlier: "Ya armaste este rompecabezas antes, el %date%."
         teammate_earlier: "%name% ya armó este rompecabezas antes, el %date%."
-        someone_earlier: "Alguien de tu grupo ya armó este rompecabezas antes."
     page:
         title: "Conflictos de primeros intentos"
         intro: "Un rompecabezas solo puede ser tu primer intento una vez. Aquí están los rompecabezas en los que más de uno de tus resultados está marcado como primer intento – elige el que realmente lo fue."

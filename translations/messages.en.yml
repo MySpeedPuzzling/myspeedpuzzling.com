@@ -4660,10 +4660,8 @@ first_try:
         own_pair: "Your pair result with %names% from %date%"
         own_team: "Your team result with %names% from %date%"
         teammate_hold: "%name% already has a first try of this puzzle (%date%)."
-        someone_hold: "Someone in your group already has a first try of this puzzle."
         own_earlier: "You solved this puzzle before, on %date%."
         teammate_earlier: "%name% solved this puzzle before, on %date%."
-        someone_earlier: "Someone in your group solved this puzzle before."
     page:
         title: "First-try conflicts"
         intro: "A puzzle can be your first try only once. Here are the puzzles where more than one of your results is marked as a first try – pick the one that really was."

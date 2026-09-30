@@ -4380,10 +4380,8 @@ first_try:
         own_pair: "%date%の%names%とのペア記録"
         own_team: "%date%の%names%とのチーム記録"
         teammate_hold: "%name%はこのパズルの初回をすでに持っています（%date%）。"
-        someone_hold: "グループの誰かがこのパズルの初回をすでに持っています。"
         own_earlier: "%date%にこのパズルをすでに組み立てています。"
         teammate_earlier: "%name%は%date%にこのパズルをすでに組み立てています。"
-        someone_earlier: "グループの誰かがこのパズルを以前に組み立てています。"
     page:
         title: "初回の重複"
         intro: "パズルの初回は1回だけです。複数の記録が初回としてマークされているパズルの一覧です。本当の初回を選んでください。"

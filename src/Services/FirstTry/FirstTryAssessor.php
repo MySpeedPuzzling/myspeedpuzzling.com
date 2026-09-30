@@ -32,6 +32,24 @@ readonly final class FirstTryAssessor
 
         $times = $this->getFirstTryTimes->ofPlayersOnPuzzle($entry->puzzleId, $members, $entry->editedTimeId);
 
+        // A teammate hidden from the viewer (private without the viewer on their allow list, or blocked) is left
+        // out completely: nothing about them may reach the viewer, not even a refusal. Their own conflicts page
+        // shows them whatever duplicate this save creates
+        $visibleMembers = $this->visibleMembers($times, $members, $viewer);
+        $times = array_values(array_filter(
+            $times,
+            static function (FirstTryTime $time) use ($visibleMembers): bool {
+                foreach ($visibleMembers as $member) {
+                    if ($time->involves($member)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            },
+        ));
+        $members = $visibleMembers;
+
         $holds = array_values(array_filter($times, static fn(FirstTryTime $time): bool => $time->firstAttempt));
         $viewerCanMove = $holds !== [];
 
@@ -49,6 +67,28 @@ readonly final class FirstTryAssessor
             tolerated: $this->isTolerated($entry, $members),
             solvedAt: $solvedAt,
         );
+    }
+
+    /**
+     * @param list<FirstTryTime> $times
+     * @param list<string> $members
+     * @return list<string>
+     */
+    private function visibleMembers(array $times, array $members, string $viewer): array
+    {
+        $hidden = [];
+
+        foreach ($times as $time) {
+            foreach ($time->people as $person) {
+                $id = $person->playerId !== null ? strtolower($person->playerId) : null;
+
+                if ($id !== null && $id !== $viewer && $person->masked) {
+                    $hidden[$id] = true;
+                }
+            }
+        }
+
+        return array_values(array_filter($members, static fn(string $member): bool => isset($hidden[$member]) === false));
     }
 
     /**
@@ -73,7 +113,6 @@ readonly final class FirstTryAssessor
     private function holdLines(array $holds, array $members, string $viewer): array
     {
         $lines = [];
-        $someone = false;
         $named = [];
 
         foreach ($holds as $hold) {
@@ -93,12 +132,6 @@ readonly final class FirstTryAssessor
                     continue;
                 }
 
-                if ($person->masked) {
-                    $someone = true;
-
-                    continue;
-                }
-
                 // One line per teammate: their first try is the point, not how many of them there are
                 if (isset($named[strtolower($person->playerId)])) {
                     continue;
@@ -112,10 +145,6 @@ readonly final class FirstTryAssessor
                     person: $person,
                 );
             }
-        }
-
-        if ($someone) {
-            $lines[] = new FirstTryNoticeLine(kind: FirstTryNoticeLine::SOMEONE, date: null);
         }
 
         return $lines;
@@ -134,7 +163,6 @@ readonly final class FirstTryAssessor
         $day = $solvedAt->format('Y-m-d');
         $seen = [];
         $lines = [];
-        $someone = false;
 
         foreach ($times as $time) {
             if ($time->firstAttempt || $time->solvedDay() >= $day) {
@@ -152,16 +180,10 @@ readonly final class FirstTryAssessor
 
                 if ($id === $viewer) {
                     $lines[] = new FirstTryNoticeLine(kind: FirstTryNoticeLine::OWN, date: $time->solvedAt, time: $time);
-                } elseif ($person->masked) {
-                    $someone = true;
                 } else {
                     $lines[] = new FirstTryNoticeLine(kind: FirstTryNoticeLine::TEAMMATE, date: $time->solvedAt, time: $time, person: $person);
                 }
             }
-        }
-
-        if ($someone) {
-            $lines[] = new FirstTryNoticeLine(kind: FirstTryNoticeLine::SOMEONE, date: null);
         }
 
         return $lines;

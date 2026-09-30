@@ -44,7 +44,7 @@
                 <p class="mb-1">{{ 'first_try.tolerated.body'|trans }}</p>
                 <ul class="mb-2 ps-3">
                     {% for line in assessment.holdLines %}
-                        <li>{{ line.kind == 'own' ? _self.own_result(line) : (line.kind == 'teammate' ? 'first_try.line.teammate_hold'|trans({'%name%': line.person.name, '%date%': line.date|date('d.m.Y')}) : 'first_try.line.someone_hold'|trans) }}</li>
+                        <li>{{ line.kind == 'own' ? _self.own_result(line) : 'first_try.line.teammate_hold'|trans({'%name%': line.person.name, '%date%': line.date|date('d.m.Y')}) }}</li>
                     {% endfor %}
                 </ul>
                 <div class="d-flex flex-wrap gap-2 align-items-center">
@@ -86,10 +86,8 @@
                     {% for line in assessment.holdLines %}
                         {% if line.kind == 'own' %}
                             <li>{{ _self.own_result(line) }}</li>
-                        {% elseif line.kind == 'teammate' %}
-                            <li>{{ 'first_try.line.teammate_hold'|trans({'%name%': line.person.name, '%date%': line.date|date('d.m.Y')}) }}</li>
                         {% else %}
-                            <li>{{ 'first_try.line.someone_hold'|trans }}</li>
+                            <li>{{ 'first_try.line.teammate_hold'|trans({'%name%': line.person.name, '%date%': line.date|date('d.m.Y')}) }}</li>
                         {% endif %}
                     {% endfor %}
                 </ul>
@@ -108,10 +106,8 @@
                     {% for line in assessment.earlierLines %}
                         {% if line.kind == 'own' %}
                             <li>{{ 'first_try.line.own_earlier'|trans({'%date%': line.date|date('d.m.Y')}) }}</li>
-                        {% elseif line.kind == 'teammate' %}
-                            <li>{{ 'first_try.line.teammate_earlier'|trans({'%name%': line.person.name, '%date%': line.date|date('d.m.Y')}) }}</li>
                         {% else %}
-                            <li>{{ 'first_try.line.someone_earlier'|trans }}</li>
+                            <li>{{ 'first_try.line.teammate_earlier'|trans({'%name%': line.person.name, '%date%': line.date|date('d.m.Y')}) }}</li>
                         {% endif %}
                     {% endfor %}
                 </ul>

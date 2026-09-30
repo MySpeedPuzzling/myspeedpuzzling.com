@@ -4387,10 +4387,8 @@ first_try:
         own_pair: "Tvůj výsledek ve dvojici (%names%) z %date%"
         own_team: "Tvůj týmový výsledek (%names%) z %date%"
         teammate_hold: "%name% už má u těchto puzzlí první pokus (%date%)."
-        someone_hold: "Někdo z tvé skupiny už má u těchto puzzlí první pokus."
         own_earlier: "Tyto puzzle jsi už skládal/a dříve, %date%."
         teammate_earlier: "%name% tyto puzzle skládal/a už dříve, %date%."
-        someone_earlier: "Někdo z tvé skupiny tyto puzzle skládal už dříve."
     page:
         title: "Konflikty prvních pokusů"
         intro: "Jedny puzzle můžou být tvým prvním pokusem jen jednou. Tady jsou puzzle, u kterých je jako první pokus označeno víc tvých výsledků – vyber ten, který to opravdu byl."

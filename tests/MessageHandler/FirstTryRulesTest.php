@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\FirstTryScenario;
+use SpeedPuzzling\Web\Tests\TestingViewer;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Envelope;
@@ -98,6 +99,18 @@ final class FirstTryRulesTest extends KernelTestCase
 
         self::assertFalse($this->scenario->exists($timeId));
         self::assertTrue($this->scenario->isFirstTry($theirs));
+    }
+
+    public function testAHiddenTeammatesFirstTryDoesNotRefuseTheSaveButShowsUpOnTheirConflicts(): void
+    {
+        $this->scenario->add(PlayerFixture::PLAYER_PRIVATE_USER_ID, daysAgo: 10, firstTry: true);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
+        $timeId = Uuid::uuid7()->toString();
+
+        $this->addFirstTry($timeId, PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['#player2']);
+
+        self::assertTrue($this->scenario->isFirstTry($timeId));
+        self::assertCount(2, self::getContainer()->get(GetFirstTryTimes::class)->markedTimeIdsOf(PlayerFixture::PLAYER_PRIVATE, FirstTryScenario::PUZZLE));
     }
 
     public function testAnEarlierSolveWithoutTheTagDoesNotBlock(): void

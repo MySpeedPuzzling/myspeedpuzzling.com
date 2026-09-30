@@ -54,10 +54,10 @@ final class SitemapImagesController extends AbstractController
                     'puzzleId' => $puzzle['id'],
                 ], UrlGeneratorInterface::ABSOLUTE_URL),
                 'lastmod' => $puzzle['lastmod'],
-                // The imgproxy thumbnail, never the uploaded original: originals from before Feb 2026
-                // can still carry EXIF (incl. location) - imgproxy strips metadata. Switch to a larger
-                // stripped preset once one exists (docs/TODO.md, "Image storage").
-                'image' => $this->imageThumbnail->thumbnailUrl($puzzle['image'], 'puzzle_medium'),
+                // The large imgproxy preset (1200 px JPEG, what Google Images wants), never the uploaded
+                // original: originals from before Feb 2026 can still carry EXIF (incl. location) -
+                // imgproxy strips metadata.
+                'image' => $this->imageThumbnail->thumbnailUrl($puzzle['image'], 'puzzle_large'),
             ];
         }
 

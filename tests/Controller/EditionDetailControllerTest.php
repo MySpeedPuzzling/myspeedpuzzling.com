@@ -257,8 +257,8 @@ final class EditionDetailControllerTest extends WebTestCase
         self::assertIsArray($event);
         self::assertSame('Euro Jigsaw Jam · EJJ #68 — February 2026', $event['name'] ?? null);
         self::assertIsString($event['image'] ?? null);
-        // The 400 px stripped preset, never the uploaded original (may carry EXIF/GPS)
-        self::assertStringEndsWith('/preset:puzzle_medium/plain/ejj-logo.png', $event['image']);
+        // The large stripped preset, never the uploaded original (may carry EXIF/GPS)
+        self::assertStringEndsWith('/preset:puzzle_large/plain/ejj-logo.png', $event['image']);
     }
 
     /**

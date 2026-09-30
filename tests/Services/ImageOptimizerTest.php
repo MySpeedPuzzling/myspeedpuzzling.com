@@ -8,6 +8,7 @@ use Imagick;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
+use SpeedPuzzling\Web\Tests\ImagesWithMetadata;
 
 final class ImageOptimizerTest extends TestCase
 {
@@ -108,6 +109,196 @@ final class ImageOptimizerTest extends TestCase
         } finally {
             unlink($path);
         }
+    }
+
+    public function testPhotoThatFitsLosesItsGpsCameraAndCommentButKeepsItsColourProfile(): void
+    {
+        $path = $this->file(ImagesWithMetadata::jpeg(400, 300), 'jpg');
+        $before = $this->exif($path);
+        self::assertArrayHasKey('GPSLatitude', $before, 'the test photo carries a GPS position');
+        self::assertSame(ImagesWithMetadata::CAMERA, $before['Make'] ?? null);
+
+        try {
+            $this->optimizer->optimize($path);
+
+            $after = $this->exif($path);
+            self::assertArrayNotHasKey('GPSLatitude', $after);
+            self::assertArrayNotHasKey('Make', $after);
+
+            $imagick = new Imagick($path);
+            self::assertSame(['icc'], $imagick->getImageProfiles('*', false));
+            self::assertSame(ImagesWithMetadata::colourProfile(), $imagick->getImageProfiles('icc')['icc'] ?? null);
+            self::assertSame([], $imagick->getImageProperties('comment', false));
+            self::assertSame([400, 300], [$imagick->getImageWidth(), $imagick->getImageHeight()]);
+            // Written again at the photo's own quality - it looks and weighs the same
+            self::assertSame(92, $imagick->getImageCompressionQuality());
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function testOrientationIsAppliedToThePixelsBeforeItIsDropped(): void
+    {
+        // 200x100 stored, EXIF orientation 6 = shown rotated 90° clockwise: the red top-left corner ends up top-right
+        $path = $this->file(ImagesWithMetadata::jpeg(200, 100, orientation: 6), 'jpg');
+
+        try {
+            $this->optimizer->optimize($path);
+
+            $imagick = new Imagick($path);
+            self::assertSame([100, 200], [$imagick->getImageWidth(), $imagick->getImageHeight()]);
+            self::assertContains($imagick->getImageOrientation(), [Imagick::ORIENTATION_UNDEFINED, Imagick::ORIENTATION_TOPLEFT]);
+            self::assertArrayNotHasKey('Orientation', $this->exif($path));
+            self::assertRed($imagick, 95, 5);
+            self::assertNotRed($imagick, 5, 5);
+            self::assertEqualsWithDelta(0.5, $this->optimizer->getImageRatio($path), 0.001);
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function testPhotoWithoutMetadataThatFitsIsStoredAsUploaded(): void
+    {
+        // 1200 px: ImageMagick 6 used to decode it at 2x under the JPEG size hint and store it upscaled to 2000 px
+        $upload = ImagesWithMetadata::jpeg(1200, 900, exif: false, comment: null, colourProfile: false);
+        $path = $this->file($upload, 'jpg');
+
+        try {
+            $this->optimizer->optimize($path);
+
+            self::assertSame($upload, file_get_contents($path));
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function testPhotoWithMetadataThatFitsKeepsItsSize(): void
+    {
+        $path = $this->file(ImagesWithMetadata::jpeg(1200, 900), 'jpg');
+
+        try {
+            $this->optimizer->optimize($path);
+
+            $imagick = new Imagick($path);
+            self::assertSame([1200, 900], [$imagick->getImageWidth(), $imagick->getImageHeight()]);
+            self::assertArrayNotHasKey('GPSLatitude', $this->exif($path));
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function testDownscaledPhotoLosesItsGpsAndKeepsItsColourProfile(): void
+    {
+        $path = $this->file(ImagesWithMetadata::jpeg(2400, 1200), 'jpg');
+
+        try {
+            $this->optimizer->optimize($path);
+
+            $imagick = new Imagick($path);
+            self::assertSame([2000, 1000], [$imagick->getImageWidth(), $imagick->getImageHeight()]);
+            self::assertSame(['icc'], $imagick->getImageProfiles('*', false));
+            self::assertArrayNotHasKey('GPSLatitude', $this->exif($path));
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function testPngLosesItsExifAndTextChunksWithoutAPixelChanging(): void
+    {
+        $upload = ImagesWithMetadata::png(300, 200);
+        self::assertContains('eXIf', ImagesWithMetadata::pngChunkTypes($upload));
+        $path = $this->file($upload, 'png');
+        $pixelsBefore = (new Imagick($path))->getImageSignature();
+
+        try {
+            $this->optimizer->optimize($path);
+
+            $stored = (string) file_get_contents($path);
+            self::assertSame([], array_values(array_intersect(
+                ImagesWithMetadata::pngChunkTypes($stored),
+                ['eXIf', 'tEXt', 'zTXt', 'iTXt', 'tIME'],
+            )));
+            self::assertStringNotContainsString(ImagesWithMetadata::CAMERA, $stored);
+            self::assertSame($pixelsBefore, (new Imagick($path))->getImageSignature());
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function testLosslessWebpLosesItsExifAndStaysLossless(): void
+    {
+        $upload = ImagesWithMetadata::losslessWebp(300, 200);
+        self::assertContains('EXIF', ImagesWithMetadata::webpChunkTypes($upload));
+        $path = $this->file($upload, 'webp');
+        $pixelsBefore = (new Imagick($path))->getImageSignature();
+
+        try {
+            $this->optimizer->optimize($path);
+
+            $stored = (string) file_get_contents($path);
+            $chunks = ImagesWithMetadata::webpChunkTypes($stored);
+            self::assertNotContains('EXIF', $chunks);
+            self::assertNotContains('XMP ', $chunks);
+            self::assertContains('VP8L', $chunks, 'still lossless');
+            self::assertSame($pixelsBefore, (new Imagick($path))->getImageSignature());
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function testAnimationThatFitsIsKeptAsUploaded(): void
+    {
+        $animation = new Imagick();
+
+        foreach (['red', 'blue'] as $colour) {
+            $frame = new Imagick();
+            $frame->newImage(40, 30, $colour);
+            $frame->setImageFormat('gif');
+            $animation->addImage($frame);
+        }
+
+        $animation->commentImage('frame comment');
+        $upload = $animation->getImagesBlob();
+        $path = $this->file($upload, 'gif');
+
+        try {
+            $this->optimizer->optimize($path);
+
+            self::assertSame($upload, file_get_contents($path));
+        } finally {
+            unlink($path);
+        }
+    }
+
+    private function file(string $content, string $extension): string
+    {
+        $path = tempnam(sys_get_temp_dir(), 'test_img_') . '.' . $extension;
+        file_put_contents($path, $content);
+
+        return $path;
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    private function exif(string $path): array
+    {
+        $data = @exif_read_data($path);
+
+        return is_array($data) ? $data : [];
+    }
+
+    private static function assertRed(Imagick $imagick, int $x, int $y): void
+    {
+        $pixel = $imagick->getImagePixelColor($x, $y)->getColor();
+        self::assertGreaterThan(200, $pixel['r'], "pixel $x,$y is red");
+        self::assertLessThan(60, $pixel['g'], "pixel $x,$y is red");
+    }
+
+    private static function assertNotRed(Imagick $imagick, int $x, int $y): void
+    {
+        $pixel = $imagick->getImagePixelColor($x, $y)->getColor();
+        self::assertFalse($pixel['r'] > 200 && $pixel['g'] < 60, "pixel $x,$y is not red");
     }
 
     private function createTestImage(int $width, int $height, null|int $exifOrientation = null): string

@@ -75,7 +75,9 @@
 
 {% block title %}{{ 'puzzle_detail.meta.title'|trans({ '%brand%': puzzle.manufacturerName, '%name%': puzzle.puzzleName, '%pieces%': puzzle.piecesCount }) }}{% endblock %}
 {% block meta_description %}{{ puzzle_meta_description }}{% endblock %}
-{% block og_image %}{% if puzzle.puzzleImage is not null %}{{ absolute_url(puzzle.puzzleImage|thumbnail('puzzle_medium')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
+{# puzzle_large: 1200 px JPEG with metadata stripped - link previews show a large card, and it is never
+   the uploaded original (older uploads may still carry EXIF/GPS) #}
+{% block og_image %}{% if puzzle.puzzleImage is not null %}{{ absolute_url(puzzle.puzzleImage|thumbnail('puzzle_large')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
 {% block robots %}
     {% if is_image_hidden %}
         <meta name="robots" content="noindex, nofollow">
@@ -98,7 +100,7 @@
             "name": {{ puzzle.manufacturerName|json_encode|raw }}
         },
         {% if puzzle.puzzleImage is not null and not is_image_hidden %}
-        "image": {{ absolute_url(puzzle.puzzleImage|thumbnail('puzzle_medium'))|json_encode|raw }},
+        "image": {{ absolute_url(puzzle.puzzleImage|thumbnail('puzzle_large'))|json_encode|raw }},
         {% endif %}
         {# The codes stay out while the image is embargoed, as everywhere else on the page #}
         {% if puzzle.puzzleEan is not null and puzzle.puzzleEan matches '/^\\d{13}$/' and not is_image_hidden %}
@@ -182,7 +184,8 @@
             <div class="flex-shrink-0 puzzle-detail-image text-center me-2 me-md-3">
                 <div class="gallery">
                     {% if puzzle.puzzleImage is not null %}
-                        <a class="gallery-item gallery-item-inline-block" href="{{ uploaded_asset(puzzle.puzzleImage) }}">
+                        {# The large stripped preset, not the uploaded original (older uploads may carry EXIF/GPS) #}
+                        <a class="gallery-item gallery-item-inline-block" href="{{ puzzle.puzzleImage|thumbnail('puzzle_large') }}">
                             <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 110) }} fetchpriority="high">
                         </a>
                     {% else %}

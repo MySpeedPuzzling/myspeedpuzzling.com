@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\SellSwapListItemFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\TagFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -631,6 +632,28 @@ final class PuzzleDetailControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
         self::assertStringContainsString('RB-500-001', $crawler->filter('#main-content .manufacturer-name')->text());
         self::assertSame('RB-500-001', self::productJsonLd($crawler)['sku']);
+    }
+
+    public function testPhotoLinkAndSharedImagesUseTheLargeStrippedPresetNeverTheOriginal(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE puzzle SET image = :image WHERE id = :puzzleId',
+            ['image' => 'box-with-exif.jpg', 'puzzleId' => PuzzleFixture::PUZZLE_500_01],
+        );
+
+        // PUZZLE_500_01 has a marketplace offer, so the page carries Product structured data as well
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
+
+        $this->assertResponseIsSuccessful();
+        // Link previews, structured data and the "open photo" link get the 1200 px preset with the metadata
+        // stripped - the uploaded original can still carry EXIF, including the GPS position
+        $largeImage = self::getContainer()->get(ImageThumbnailTwigExtension::class)->thumbnailUrl('box-with-exif.jpg', 'puzzle_large');
+        self::assertSame($largeImage, $crawler->filter('meta[property="og:image"]')->attr('content'));
+        self::assertSame($largeImage, $crawler->filter('meta[name="twitter:image"]')->attr('content'));
+        self::assertSame($largeImage, self::productJsonLd($crawler)['image']);
+        self::assertSame($largeImage, $crawler->filter('.puzzle-detail-image a.gallery-item')->attr('href'));
+        self::assertStringNotContainsString('/original/box-with-exif.jpg', (string) $browser->getResponse()->getContent());
     }
 
     public function testOffersBadgeShowsTheLowestPrice(): void

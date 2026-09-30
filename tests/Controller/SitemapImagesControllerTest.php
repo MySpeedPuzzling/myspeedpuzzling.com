@@ -13,7 +13,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class SitemapImagesControllerTest extends WebTestCase
 {
-    public function testListsEachPhotoOnceOnTheEnglishPageWithTheStrippedThumbnail(): void
+    public function testListsEachPhotoOnceOnTheEnglishPageWithTheLargeStrippedImage(): void
     {
         $browser = self::createClient();
         $this->setImage(PuzzleFixture::PUZZLE_500_01, 'box-photo.jpg');
@@ -21,13 +21,14 @@ final class SitemapImagesControllerTest extends WebTestCase
         $content = $this->fetchImageSitemap($browser);
 
         $englishUrl = $this->absoluteUrl('en', PuzzleFixture::PUZZLE_500_01);
-        $thumbnail = self::getContainer()->get(ImageThumbnailTwigExtension::class)->thumbnailUrl('box-photo.jpg', 'puzzle_medium');
+        $largeImage = self::getContainer()->get(ImageThumbnailTwigExtension::class)->thumbnailUrl('box-photo.jpg', 'puzzle_large');
 
         self::assertStringContainsString(
             sprintf('<url><loc>%s</loc>', $englishUrl),
             $content,
         );
-        self::assertStringContainsString(sprintf('<image:loc>%s</image:loc>', $thumbnail), $content);
+        // The 1200 px stripped preset (Google Images wants ~1200 px)
+        self::assertStringContainsString(sprintf('<image:loc>%s</image:loc>', $largeImage), $content);
 
         // Never the uploaded original: pre-2026 originals can still carry EXIF location data
         self::assertStringNotContainsString('/original/box-photo.jpg', $content);

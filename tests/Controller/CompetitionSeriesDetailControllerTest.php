@@ -71,7 +71,7 @@ final class CompetitionSeriesDetailControllerTest extends WebTestCase
 
         self::assertCount(1, $images, 'The series page emits one EventSeries JSON-LD');
         self::assertIsString($images[0]);
-        // The 400 px stripped preset, never the uploaded original (may carry EXIF/GPS)
-        self::assertStringEndsWith('/preset:puzzle_medium/plain/ejj-logo.png', $images[0]);
+        // The large stripped preset, never the uploaded original (may carry EXIF/GPS)
+        self::assertStringEndsWith('/preset:puzzle_large/plain/ejj-logo.png', $images[0]);
     }
 }

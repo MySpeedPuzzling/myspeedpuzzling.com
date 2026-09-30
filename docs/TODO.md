@@ -96,13 +96,23 @@ raw scan on the box in `/root/bucket-scan.csv` + `/root/db-image-refs.tsv`.
       #213 - see [`features/account-deletion.md`](features/account-deletion.md); a deleted account's files now go automatically)
 - [ ] Optional: downscale the 84 pre-`ImageOptimizer` originals above 30 MP to 2,000 px like today's uploads
       (`2-oversized-originals-over-30mp.csv`); not needed for serving since the limit covers them
-- [ ] A large imgproxy preset (e.g. `puzzle_large=rs:fit:1200:1200`: WebP, metadata stripped; lily.srv `IMGPROXY_PRESETS`
-      + local `compose.yml`). Until it exists the image sitemap and puzzle `og:image` stay on the 400 px
-      `puzzle_medium` - never the raw originals (`/original/…`): pre-2026 uploads ≤ 2,000 px still carry EXIF,
-      possibly GPS; the puzzle page's gallery link to the original has the same exposure. Then switch
-      `SitemapImagesController`, the og:image and the event/edition/series JSON-LD `image` (Google wants
-      event images ≥ 720 px wide) to it - see
-      [`features/seo/implementation-plan-2026-10.md`](features/seo/implementation-plan-2026-10.md) (WS-I, WS-G)
+- [x] A large imgproxy preset - shipped 2026-09-30: `puzzle_large=rs:fit:1200:1200/eth:0/f:jpg` (lily.srv
+      `IMGPROXY_PRESETS` + local `compose.yml`; JPEG pinned so every link previewer takes it and the bytes never
+      depend on `Accept`, `eth:0` = the full HEIC instead of its embedded ~320 px thumbnail). Used by the image
+      sitemap, the puzzle `og:image` + Product JSON-LD, the event/edition/series JSON-LD `image` and the photo
+      links (puzzle page, own finished photos) - no public page links a raw original (`/original/…`) any more;
+      admin review pages still do on purpose
+- [ ] Stored originals with EXIF/GPS: the links are gone and uploads are stripped since 2026-09-30
+      (`ImageOptimizer` + `ImageMetadata`, also the result share PNG), but `/original/<key>` still serves the raw
+      file to anyone who knows the key (it is in every thumbnail URL). Audit 2026-09-30: 20,492 of 106,421
+      referenced originals carry a GPS position, 62,504 identifying metadata; result PNGs too (141 GPS in a
+      3,000 sample of 490k). Lossless strip job + 19-object pilot (pixel-identical) in
+      [`tools/image-metadata-strip/`](../tools/image-metadata-strip/strip.py), work dir + backups
+      `/root/msp-exif-2026-09-30/` on the box. Open: the full run (~67k objects, ~217 GB of backups, ~1 h), then a
+      Cloudflare prefix purge of `img.myspeedpuzzling.com/original/` + `/puzzle/`; the result PNGs (strip with
+      `--list-containing /results/`, or prune them - see the item above)
+- [ ] `puzzle_small`/`puzzle_medium` of a HEIC source are drawn from its embedded ~320 px thumbnail
+      (`IMGPROXY_ENFORCE_THUMBNAIL=true`) - `puzzle_medium` (`el:1`) upscales it to 400 px; `eth:0` there too?
 
 ## Multiscan
 

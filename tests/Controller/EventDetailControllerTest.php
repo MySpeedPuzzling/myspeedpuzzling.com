@@ -289,7 +289,7 @@ final class EventDetailControllerTest extends WebTestCase
         self::assertStringStartsWith('Czech National Championship 2024 — speed puzzling competition on ', self::metaDescription($crawler));
     }
 
-    public function testEventJsonLdImageIsTheStrippedMediumLogo(): void
+    public function testEventJsonLdImageIsTheStrippedLargeLogo(): void
     {
         $browser = self::createClient();
 
@@ -299,8 +299,8 @@ final class EventDetailControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $event = self::jsonLdOfType((string) $browser->getResponse()->getContent(), 'Event');
         self::assertIsString($event['image'] ?? null);
-        // The 400 px stripped preset, never the uploaded original (may carry EXIF/GPS)
-        self::assertStringEndsWith('/preset:puzzle_medium/plain/api-reveal-logo.png', $event['image']);
+        // The large stripped preset, never the uploaded original (may carry EXIF/GPS)
+        self::assertStringEndsWith('/preset:puzzle_large/plain/api-reveal-logo.png', $event['image']);
     }
 
     public function testEventWithoutTaggedPuzzlesListsThePuzzlesOfItsRounds(): void

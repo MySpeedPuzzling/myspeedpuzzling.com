@@ -100,7 +100,11 @@ services:
             IMGPROXY_AUTO_AVIF: "true"
             IMGPROXY_AUTO_WEBP: "true"
             IMGPROXY_BASE_URL: "s3://puzzle/"
-            IMGPROXY_PRESETS: "puzzle_small=rs:fit:200:200,puzzle_medium=rs:fit:400:400/el:1,avatar=rs:fit:300:300"
+            # Same presets as production (lily.srv apps/myspeedpuzzling/compose.yaml). puzzle_large = the
+            # 1200 px, metadata-stripped image for og:image, JSON-LD, the image sitemap and the photo link:
+            # JPEG pinned (every link previewer takes it, not all take WebP), eth:0 = the full HEIC/AVIF
+            # instead of its embedded ~320 px thumbnail
+            IMGPROXY_PRESETS: "puzzle_small=rs:fit:200:200,puzzle_medium=rs:fit:400:400/el:1,avatar=rs:fit:300:300,puzzle_large=rs:fit:1200:1200/eth:0/f:jpg"
             IMGPROXY_JPEG_QUALITY: "88"
             IMGPROXY_WEBP_QUALITY: "82"
             IMGPROXY_AVIF_QUALITY: "65"

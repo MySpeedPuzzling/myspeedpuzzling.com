@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use Imagick;
 use Intervention\Image\Geometry\Factories\RectangleFactory;
 use Intervention\Image\ImageManager;
 use Intervention\Image\MediaType;
@@ -175,6 +176,11 @@ readonly final class GetResultImage
             })
             ->insert($logo, 10, 10, 'bottom-left');
 
+        // The share image is drawn over the player's photo and would otherwise carry its EXIF - GPS
+        // position included - into a public PNG (the PNG encoder ignores Intervention's strip option)
+        $native = $image->core()->native();
+        assert($native instanceof Imagick);
+        ImageMetadata::strip($native);
 
         $fileContent = (string) $image->encodeUsingMediaType(MediaType::IMAGE_PNG, quality: 100);
 

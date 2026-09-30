@@ -16,7 +16,9 @@ readonly final class GetPlayerIdsForSitemap
     /**
      * Public (non-private) player profiles with a name for route player_profile - only those with at
      * least one result on them, solo or as a member of a pair / team (what the profile lists). A
-     * profile without a single time is an empty page. 60-190 ms on the production copy.
+     * profile without a single time is an empty page. Group membership comes from puzzling_team_member,
+     * not the `team` JSON snapshot - a correlated JSON containment check re-scanned every group time per
+     * player and ran for minutes on production (Sentry WEB-CW); this runs in ~110 ms there.
      *
      * @return array<string>
      */
@@ -36,9 +38,9 @@ WHERE player.is_private = false
         )
         OR EXISTS (
             SELECT 1
-            FROM puzzle_solving_time
-            WHERE puzzle_solving_time.team IS NOT NULL
-                AND (puzzle_solving_time.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', player.id))
+            FROM puzzling_team_member
+            INNER JOIN puzzle_solving_time ON puzzle_solving_time.puzzling_team_id = puzzling_team_member.team_id
+            WHERE puzzling_team_member.player_id = player.id
         )
     )
 ORDER BY player.id

@@ -34,9 +34,14 @@
         <twig:PuzzleSearch />
     {% endif %}
 
-    {# Plain links into the catalogue pages - the most solved brands, the A–Z directory and every pieces hub
-       (docs/features/seo/implementation-plan-2026-10.md, WS-F2). Under the list: the search comes first. #}
+    {# The database in numbers, then plain links into the catalogue pages - the most solved brands, the A–Z
+       directory and every pieces hub (docs/features/seo/implementation-plan-2026-10.md, WS-F2). Under the list:
+       the search comes first. #}
     <section class="puzzle-catalogue-browse mt-5 pt-3 border-top">
+        <div class="mb-4">
+            {{ include('_catalogue_numbers.html.twig', {catalogue: catalogue, variant: 'compact'}) }}
+        </div>
+
         <h2 class="h6 text-muted mb-2">{{ 'puzzle_overview.browse.by_brand'|trans }}</h2>
         <p class="mb-3">
             {% for brand in popular_brands %}

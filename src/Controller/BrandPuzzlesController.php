@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\CatalogueStatsProvider;
+use SpeedPuzzling\Web\Services\PuzzleDifficultyRankings;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CataloguePagination;
 use SpeedPuzzling\Web\Value\PiecesRange;
@@ -35,6 +36,7 @@ final class BrandPuzzlesController extends AbstractController
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private PuzzleDifficultyRankings $puzzleDifficultyRankings,
     ) {
     }
 
@@ -110,6 +112,8 @@ final class BrandPuzzlesController extends AbstractController
             'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId),
             'ranking' => $loggedPlayer !== null ? $this->getRanking->allForPlayer($loggedPlayer->playerId) : [],
             'allowed_pieces' => PiecesPuzzlesController::ALLOWED_PIECES,
+            // Under the list: the brand's hardest / easiest lists when it has them (cached)
+            'has_brand_difficulty_lists' => $this->puzzleDifficultyRankings->availability()->brand($stats->slug) !== null,
         ]);
     }
 }

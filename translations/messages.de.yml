@@ -3238,6 +3238,11 @@ qr_code:
   "guide":
     "how_long": "Wie lange dauert ein Puzzle mit %pieces% Teilen? (auf Englisch)"
     "average_time": "Durchschnittliche Puzzlezeit nach Teilezahl (auf Englisch)"
+  "difficulty":
+    "hardest_pieces": "Schwierigste %pieces%-teilige Puzzles"
+    "easiest_pieces": "Leichteste %pieces%-teilige Puzzles"
+    "hardest_brand": "Schwierigste %brand% Puzzles"
+    "easiest_brand": "Leichteste %brand% Puzzles"
 
 "wjpc_hub":
   "meta":

@@ -1,0 +1,34 @@
+{#
+    One small line under the list of a catalogue page (pieces hub, brand hub, brand × pieces): the size's "how long"
+    guide and the hardest / easiest lists, whichever exist (docs/features/seo/implementation-plan-2026-10.md, WS-F2).
+    Below the list on purpose - the top of these pages stays the puzzles.
+
+    Expects: guide_pieces (null|int: the "how long" guide of this size is live, guide_path its URL),
+             difficulty_pieces (null|int: that piece count has hardest / easiest lists),
+             difficulty_brand (null|{name, slug}: that brand has them).
+#}
+{% set more_links = [] %}
+{% if guide_pieces is not null %}
+    {# The guides are English-only - the label says so in every other language #}
+    {% set more_links = more_links|merge([{label: 'catalogue.guide.how_long'|trans({'%pieces%': guide_pieces}), url: guide_path, hreflang: 'en'}]) %}
+{% endif %}
+{% if difficulty_pieces is not null %}
+    {% set more_links = more_links|merge([
+        {label: 'catalogue.difficulty.hardest_pieces'|trans({'%pieces%': difficulty_pieces}), url: path('pieces_hardest_puzzles', {pieces: difficulty_pieces})},
+        {label: 'catalogue.difficulty.easiest_pieces'|trans({'%pieces%': difficulty_pieces}), url: path('pieces_easiest_puzzles', {pieces: difficulty_pieces})},
+    ]) %}
+{% endif %}
+{% if difficulty_brand is not null %}
+    {% set more_links = more_links|merge([
+        {label: 'catalogue.difficulty.hardest_brand'|trans({'%brand%': difficulty_brand.name}), url: path('brand_hardest_puzzles', {slug: difficulty_brand.slug})},
+        {label: 'catalogue.difficulty.easiest_brand'|trans({'%brand%': difficulty_brand.name}), url: path('brand_easiest_puzzles', {slug: difficulty_brand.slug})},
+    ]) %}
+{% endif %}
+
+{% if more_links is not empty %}
+    <p class="catalogue-more-links small text-muted mt-3 mb-0">
+        {% for link in more_links %}
+            <a href="{{ link.url }}"{% if link.hreflang ?? null %} hreflang="{{ link.hreflang }}"{% endif %}>{{ link.label }}</a>{% if not loop.last %}<span class="mx-1">·</span>{% endif %}
+        {% endfor %}
+    </p>
+{% endif %}

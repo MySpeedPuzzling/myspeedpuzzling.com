@@ -3459,7 +3459,12 @@ catalogue:
     range: "Puzzles %from%–%to% of %total%, most solved first"
     guide:
         how_long: "How long does a %pieces%-piece puzzle take?"
-        average_time: "Average puzzle time by piece count"
+        average_time: "Puzzle solve times by piece count"
+    difficulty:
+        hardest_pieces: "Hardest %pieces%-piece puzzles"
+        easiest_pieces: "Easiest %pieces%-piece puzzles"
+        hardest_brand: "Hardest %brand% puzzles"
+        easiest_brand: "Easiest %brand% puzzles"
 
 guides:
     breadcrumb:

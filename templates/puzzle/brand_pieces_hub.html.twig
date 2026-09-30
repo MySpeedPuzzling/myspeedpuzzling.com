@@ -147,11 +147,6 @@
             <a href="{{ path('brand_puzzles', {slug: brand.slug}) }}">{{ 'brand_pieces_hub.links.brand_hub'|trans({'%brand%': brand.brandName}) }}</a>
             <span class="text-muted mx-1">·</span>
             <a href="{{ path('pieces_puzzles', {pieces: stats.piecesCount}) }}">{{ 'brand_pieces_hub.links.pieces_hub'|trans({'%pieces%': stats.piecesCount}) }}</a>
-            {% if guide_path is not null %}
-                {# The size's "how long" guide, while it is live (PuzzleTimeGuides) - English-only #}
-                <span class="text-muted mx-1">·</span>
-                <a href="{{ guide_path }}" hreflang="en">{{ 'catalogue.guide.how_long'|trans({'%pieces%': stats.piecesCount}) }}</a>
-            {% endif %}
         </p>
 
         {% set other_pieces_pages = brand.piecesPages|filter(pieces_page => pieces_page.piecesCount != stats.piecesCount) %}
@@ -192,5 +187,12 @@
         route: 'brand_pieces_puzzles',
         page_route: 'brand_pieces_puzzles_page',
         route_params: {slug: brand.slug, pieces: stats.piecesCount},
+    }) }}
+
+    {{ include('puzzle/_catalogue_more_links.html.twig', {
+        guide_pieces: guide_path is not null ? stats.piecesCount : null,
+        guide_path: guide_path,
+        difficulty_pieces: has_pieces_difficulty_lists ? stats.piecesCount : null,
+        difficulty_brand: has_brand_difficulty_lists ? {name: brand.brandName, slug: brand.slug} : null,
     }) }}
 {% endblock %}

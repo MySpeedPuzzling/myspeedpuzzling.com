@@ -3240,6 +3240,11 @@ edition:
   "guide":
     "how_long": "Combien de temps faut-il pour un puzzle de %pieces% pièces ? (en anglais)"
     "average_time": "Temps moyen selon le nombre de pièces (en anglais)"
+  "difficulty":
+    "hardest_pieces": "Puzzles de %pieces% pièces les plus difficiles"
+    "easiest_pieces": "Puzzles de %pieces% pièces les plus faciles"
+    "hardest_brand": "Puzzles %brand% les plus difficiles"
+    "easiest_brand": "Puzzles %brand% les plus faciles"
 
 "wjpc_hub":
   "meta":

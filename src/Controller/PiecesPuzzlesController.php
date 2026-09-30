@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\CatalogueStatsProvider;
+use SpeedPuzzling\Web\Services\PuzzleDifficultyRankings;
 use SpeedPuzzling\Web\Services\PuzzleTimeGuides;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CataloguePagination;
@@ -49,6 +50,7 @@ final class PiecesPuzzlesController extends AbstractController
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private PuzzleTimeGuides $puzzleTimeGuides,
+        readonly private PuzzleDifficultyRankings $puzzleDifficultyRankings,
     ) {
     }
 
@@ -129,8 +131,10 @@ final class PiecesPuzzlesController extends AbstractController
             'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList($puzzleIds),
             'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId),
             'ranking' => $loggedPlayer !== null ? $this->getRanking->allForPlayer($loggedPlayer->playerId) : [],
-            // "How long does a {N}-piece puzzle take?" - only while that guide is live
-            'guide_path' => $pagination->isFirstPage() ? ($this->puzzleTimeGuides->paths()[$pieces] ?? null) : null,
+            // Under the list: "How long does a {N}-piece puzzle take?" while that guide is live,
+            // the hardest / easiest lists when the piece count has them (both cached)
+            'guide_path' => $this->puzzleTimeGuides->paths()[$pieces] ?? null,
+            'has_pieces_difficulty_lists' => $this->puzzleDifficultyRankings->availability()->ratedPuzzlesForPieces($pieces) !== null,
         ]);
     }
 }

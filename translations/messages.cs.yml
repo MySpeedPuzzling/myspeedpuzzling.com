@@ -3236,6 +3236,11 @@ qr_code:
   "guide":
     "how_long": "Jak dlouho se skládá puzzle s %pieces% dílky? (v angličtině)"
     "average_time": "Průměrná doba skládání podle počtu dílků (v angličtině)"
+  "difficulty":
+    "hardest_pieces": "Nejtěžší puzzle s %pieces% dílky"
+    "easiest_pieces": "Nejlehčí puzzle s %pieces% dílky"
+    "hardest_brand": "Nejtěžší puzzle %brand%"
+    "easiest_brand": "Nejlehčí puzzle %brand%"
 
 "wjpc_hub":
   "meta":

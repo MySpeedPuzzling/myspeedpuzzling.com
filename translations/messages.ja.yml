@@ -3229,6 +3229,11 @@ qr_code:
   "guide":
     "how_long": "%pieces%ピースのパズルにかかる時間は？（英語）"
     "average_time": "ピース数別の平均完成タイム（英語）"
+  "difficulty":
+    "hardest_pieces": "難しい%pieces%ピースパズル"
+    "easiest_pieces": "簡単な%pieces%ピースパズル"
+    "hardest_brand": "%brand%の難しいパズル"
+    "easiest_brand": "%brand%の簡単なパズル"
 
 "wjpc_hub":
   "meta":

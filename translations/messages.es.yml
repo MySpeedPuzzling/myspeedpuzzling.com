@@ -3238,6 +3238,11 @@ fair_use_policy:
   "guide":
     "how_long": "¿Cuánto se tarda en montar un puzzle de %pieces% piezas? (en inglés)"
     "average_time": "Tiempo medio por número de piezas (en inglés)"
+  "difficulty":
+    "hardest_pieces": "Puzzles de %pieces% piezas más difíciles"
+    "easiest_pieces": "Puzzles de %pieces% piezas más fáciles"
+    "hardest_brand": "Puzzles %brand% más difíciles"
+    "easiest_brand": "Puzzles %brand% más fáciles"
 
 "wjpc_hub":
   "meta":

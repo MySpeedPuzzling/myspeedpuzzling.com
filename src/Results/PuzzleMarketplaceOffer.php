@@ -21,7 +21,7 @@ readonly final class PuzzleMarketplaceOffer
      * different currencies are never compared with each other; the currency most
      * offers use comes first (then alphabetically).
      *
-     * @param list<self> $offers
+     * @param array<self> $offers
      * @return array<string, float> currency => lowest price
      */
     public static function lowestPricePerCurrency(array $offers): array

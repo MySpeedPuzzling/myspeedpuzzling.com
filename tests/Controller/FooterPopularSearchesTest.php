@@ -50,17 +50,18 @@ final class FooterPopularSearchesTest extends WebTestCase
             $urlGenerator->generate('players', ['_locale' => 'en']),
             $urlGenerator->generate('recent_activity', ['_locale' => 'en']),
             '/en/guides/how-long-does-a-1000-piece-puzzle-take',
+            '/en/puzzle/1000-pieces/hardest',
             '/en/guides/average-puzzle-time-by-piece-count',
         ], $links->extract(['href']));
 
         $labels = $links->each(static fn (Crawler $link): string => $link->text());
-        foreach (['Ravensburger 500-Piece Puzzles', 'Cobble Hill Puzzles', 'All puzzle brands A–Z', '750 Piece Puzzles', 'WJPC 2026', 'How long does a 1000-piece puzzle take?', 'Average puzzle time by piece count'] as $label) {
+        foreach (['Ravensburger 500-Piece Puzzles', 'Cobble Hill Puzzles', 'All puzzle brands A–Z', '750 Piece Puzzles', 'WJPC 2026', 'How long does a 1000-piece puzzle take?', 'Hardest 1000-piece puzzles', 'Puzzle solve times by piece count'] as $label) {
             self::assertContains($label, $labels);
         }
         self::assertStringNotContainsString('BOTYP', $crawler->filter('footer')->text());
 
         // Nothing on the page links a filter URL any more
-        foreach ($crawler->filter('a[href]')->extract(['href']) as $href) {
+        foreach ($crawler->filter('a[href]')->each(static fn (Crawler $link): string => (string) $link->attr('href')) as $href) {
             self::assertDoesNotMatchRegularExpression('/[?&](brand|tag|pieces)=/', $href);
         }
     }
@@ -101,7 +102,7 @@ final class FooterPopularSearchesTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $links = $crawler->filter('footer ul.footer-popular-searches a');
-        self::assertCount(21, $links);
+        self::assertCount(22, $links);
 
         foreach ($links->each(static fn (Crawler $link): string => $link->text()) as $label) {
             self::assertStringNotContainsString('%', $label);

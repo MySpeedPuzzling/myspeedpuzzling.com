@@ -184,4 +184,11 @@
         page_route: 'brand_puzzles_page',
         route_params: {slug: stats.slug},
     }) }}
+
+    {{ include('puzzle/_catalogue_more_links.html.twig', {
+        guide_pieces: null,
+        guide_path: null,
+        difficulty_pieces: null,
+        difficulty_brand: has_brand_difficulty_lists ? {name: stats.brandName, slug: stats.slug} : null,
+    }) }}
 {% endblock %}

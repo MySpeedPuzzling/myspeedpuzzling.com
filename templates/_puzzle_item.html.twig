@@ -52,7 +52,7 @@
 
                     <div class="fs-sm manufacturer-name ps-md-2">
                         {# The brand hub - not on that very hub (link_brand: false), where every card would link the page itself #}
-                        {% if puzzle.manufacturerSlug is not null and link_brand|default(true) %}
+                        {% if puzzle.manufacturerSlug is not null and (link_brand ?? true) %}
                             <a data-turbo-frame="_top" href="{{ path('brand_puzzles', {slug: puzzle.manufacturerSlug}) }}">{{ puzzle.manufacturerName }}</a>
                         {% else %}
                             {{ puzzle.manufacturerName }}

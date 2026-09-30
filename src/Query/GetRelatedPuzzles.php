@@ -129,7 +129,10 @@ SQL;
              *     same_pieces: bool,
              * } $row
              */
+            // The same on every row: whether the combination was big enough
             $samePiecesCount = $row['same_pieces'];
+            unset($row['same_pieces']);
+
             $puzzles[] = RelatedPuzzle::fromDatabaseRow($row);
         }
 

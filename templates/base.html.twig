@@ -1056,12 +1056,14 @@
                                 url: path('event_detail', {slug: 'world-jigsaw-puzzle-championship-' ~ year}),
                             }]) %}
                         {% endfor %}
-                        {# The guides are English-only - their labels say so in every other language #}
+                        {# The guides are English-only - their labels say so in every other language. The hardest
+                           1000-piece list had 230 rated puzzles on the production copy (2026-09-30), it needs 50. #}
                         {% set popular_searches = popular_searches|merge([
                             {label: 'footer.speed_puzzling_leaderboard'|trans, url: path('ladder')},
                             {label: 'footer.speed_puzzling_players'|trans, url: path('players')},
                             {label: 'footer.latest_puzzle_times'|trans, url: path('recent_activity')},
                             {label: 'catalogue.guide.how_long'|trans({'%pieces%': 1000}), url: path('guide_puzzle_time_by_pieces'), hreflang: 'en'},
+                            {label: 'catalogue.difficulty.hardest_pieces'|trans({'%pieces%': 1000}), url: path('pieces_hardest_puzzles', {pieces: 1000})},
                             {label: 'catalogue.guide.average_time'|trans, url: path('guide_average_puzzle_time'), hreflang: 'en'},
                         ]) %}
 

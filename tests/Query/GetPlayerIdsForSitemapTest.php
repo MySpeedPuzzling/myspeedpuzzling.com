@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Query;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetPlayerIdsForSitemap;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetPlayerIdsForSitemapTest extends KernelTestCase
@@ -92,6 +93,19 @@ final class GetPlayerIdsForSitemapTest extends KernelTestCase
         $lastmods = array_column($rows, 'lastmod', 'id');
 
         self::assertSame($latest, $lastmods[PlayerFixture::PLAYER_WITH_FAVORITES]);
+    }
+
+    public function testLastmodCountsPairAndTeamResultsToo(): void
+    {
+        // John's pair time becomes his latest result, and his partner the one who tracked it
+        $this->database->executeStatement(
+            "UPDATE puzzle_solving_time SET player_id = :partner, tracked_at = '2030-01-02 10:00:00' WHERE id = :timeId",
+            ['partner' => PlayerFixture::PLAYER_PRIVATE, 'timeId' => PuzzleSolvingTimeFixture::TIME_12],
+        );
+
+        $lastmods = array_column($this->query->publicWithResultsPage(limit: 10_000, offset: 0), 'lastmod', 'id');
+
+        self::assertSame('2030-01-02', $lastmods[PlayerFixture::PLAYER_REGULAR]);
     }
 
     /**

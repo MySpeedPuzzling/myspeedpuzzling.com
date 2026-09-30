@@ -63,8 +63,14 @@ SQL;
 
     /**
      * `lastmod` is the day the player's latest result (own or in a pair / team) was logged - the
-     * profile lists every result. The page of players is cut first and only its rows are looked up,
-     * ~230 ms per sitemap file (1 666 players) on the production copy, whatever the offset.
+     * profile lists every result. The page of players is cut first, then the latest result of its
+     * players is aggregated once for own times and once for pair / team times: 20-160 ms per sitemap
+     * file (1 666 players) on the production copy, the first file the slowest.
+     *
+     * Not as two correlated MAX() subqueries per player: same work, but the planner estimated that
+     * shape at ~460k for the first file, just under jit_inline_above_cost (500k) - production
+     * JIT-compiled it on every fetch, and past 500k inlining + optimisation would have added ~170 ms.
+     * This shape is estimated at ~40k (docs/features/seo/performance-2026-10.md).
      *
      * @return list<array{id: string, lastmod: null|string}>
      */
@@ -73,28 +79,32 @@ SQL;
         $condition = self::PUBLIC_WITH_RESULTS;
 
         $query = <<<SQL
-SELECT
-    page.id,
-    to_char(GREATEST(
-        (
-            SELECT MAX(puzzle_solving_time.tracked_at)
-            FROM puzzle_solving_time
-            WHERE puzzle_solving_time.player_id = page.id
-        ),
-        (
-            SELECT MAX(puzzle_solving_time.tracked_at)
-            FROM puzzling_team_member
-            INNER JOIN puzzle_solving_time ON puzzle_solving_time.puzzling_team_id = puzzling_team_member.team_id
-            WHERE puzzling_team_member.player_id = page.id
-        )
-    ), 'YYYY-MM-DD') AS lastmod
-FROM (
+WITH page AS (
     SELECT player.id
     FROM player
     WHERE {$condition}
     ORDER BY player.id
     LIMIT :limit OFFSET :offset
-) page
+),
+own_results AS (
+    SELECT puzzle_solving_time.player_id, MAX(puzzle_solving_time.tracked_at) AS last_tracked_at
+    FROM puzzle_solving_time
+    WHERE puzzle_solving_time.player_id IN (SELECT page.id FROM page)
+    GROUP BY puzzle_solving_time.player_id
+),
+group_results AS (
+    SELECT puzzling_team_member.player_id, MAX(puzzle_solving_time.tracked_at) AS last_tracked_at
+    FROM puzzling_team_member
+    INNER JOIN puzzle_solving_time ON puzzle_solving_time.puzzling_team_id = puzzling_team_member.team_id
+    WHERE puzzling_team_member.player_id IN (SELECT page.id FROM page)
+    GROUP BY puzzling_team_member.player_id
+)
+SELECT
+    page.id,
+    to_char(GREATEST(own_results.last_tracked_at, group_results.last_tracked_at), 'YYYY-MM-DD') AS lastmod
+FROM page
+LEFT JOIN own_results ON own_results.player_id = page.id
+LEFT JOIN group_results ON group_results.player_id = page.id
 ORDER BY page.id
 SQL;
 

@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetSolvingTimePrediction;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
@@ -16,6 +17,7 @@ use SpeedPuzzling\Web\Services\Api\ApiTokenOwner;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -59,22 +61,31 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
 
         $finishedAt = $data->finishedAt !== null ? new DateTimeImmutable($data->finishedAt) : null;
 
-        $this->messageBus->dispatch(
-            new AddPuzzleSolvingTime(
-                timeId: $timeId,
-                userId: $userId,
-                puzzleId: $data->puzzleId,
-                competitionId: null,
-                time: $data->time,
-                comment: $data->comment,
-                finishedPuzzlesPhoto: null,
-                groupPlayers: $data->groupPlayers,
-                finishedAt: $finishedAt,
-                firstAttempt: $data->firstAttempt,
-                unboxed: $data->unboxed,
-                roundId: $data->roundId,
-            ),
-        );
+        try {
+            $this->messageBus->dispatch(
+                new AddPuzzleSolvingTime(
+                    timeId: $timeId,
+                    userId: $userId,
+                    puzzleId: $data->puzzleId,
+                    competitionId: null,
+                    time: $data->time,
+                    comment: $data->comment,
+                    finishedPuzzlesPhoto: null,
+                    groupPlayers: $data->groupPlayers,
+                    finishedAt: $finishedAt,
+                    firstAttempt: $data->firstAttempt,
+                    unboxed: $data->unboxed,
+                    roundId: $data->roundId,
+                ),
+            );
+        } catch (HandlerFailedException $exception) {
+            // The handler decides the first-try rules (docs/features/first-try-integrity.md)
+            if ($exception->getPrevious() instanceof FirstTryAlreadyTaken) {
+                throw FirstTryConflictResponse::from($exception->getPrevious(), $user->getPlayer()->id->toString());
+            }
+
+            throw $exception;
+        }
 
         // The same parser the handler stores from (SolvingTime::fromUserInput);
         // the input regex guarantees the HH:MM:SS / MM:SS shape it asserts.

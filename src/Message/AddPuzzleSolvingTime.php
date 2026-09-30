@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\FirstTryResolution;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class AddPuzzleSolvingTime
@@ -26,6 +27,8 @@ readonly final class AddPuzzleSolvingTime
         public null|string $roundId = null,
         // Names the pair/team of $groupPlayers when it has no name yet
         public null|string $teamName = null,
+        // Answer to a first try the group already has (docs/features/first-try-integrity.md)
+        public FirstTryResolution $firstTryResolution = FirstTryResolution::None,
     ) {
     }
 }

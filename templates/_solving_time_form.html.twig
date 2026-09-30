@@ -8,7 +8,10 @@
 
     {% set form_start_options = {
         'attr': {
-            'data-controller': 'submit-prevention ppm-validator',
+            'data-controller': 'submit-prevention ppm-validator first-try-check',
+            'data-first-try-check-url-value': path('first_try_check'),
+            'data-first-try-check-puzzle-value': active_puzzle is defined and active_puzzle is not null ? active_puzzle.puzzleId : '',
+            'data-first-try-check-time-value': solved_puzzle is defined ? solved_puzzle.timeId : '',
             'data-submit-prevention-compress-images-value': 'true',
             'data-submit-prevention-compressing-text-value': 'forms.compressing_images'|trans,
             'data-submit-prevention-saving-text-value': 'forms.saving'|trans,
@@ -32,7 +35,7 @@
 
         {# Hidden mode field - controlled by Stimulus (only for add form) #}
         {% if solving_time_form.mode is defined %}
-            {{ form_widget(solving_time_form.mode, {'attr': {'data-puzzle-add-form-target': 'modeInput', 'data-ppm-validator-target': 'modeInput', 'class': 'd-none'}}) }}
+            {{ form_widget(solving_time_form.mode, {'attr': {'data-puzzle-add-form-target': 'modeInput', 'data-ppm-validator-target': 'modeInput', 'data-first-try-check-target': 'mode', 'class': 'd-none'}}) }}
         {% endif %}
 
         <div class="row pb-4"
@@ -84,7 +87,7 @@
 
                         {{ form_row(solving_time_form.brand, {'attr': {'data-time-form-autocomplete-target': 'brand'}}) }}
 
-                        {{ form_row(solving_time_form.puzzle, {'attr': {'data-time-form-autocomplete-target': 'puzzle'}}) }}
+                        {{ form_row(solving_time_form.puzzle, {'attr': {'data-time-form-autocomplete-target': 'puzzle', 'data-first-try-check-target': 'puzzle'}}) }}
 
                         <div data-time-form-autocomplete-target="newPuzzle" class="{{ hide_new_puzzle|default(false) ? 'd-none' }}">
                             <p>
@@ -144,11 +147,17 @@
                                 </div>
                             </div>
 
-                            <div class="file-drop-area">
-                                <div class="file-drop-icon ci-cloud-upload"></div>
-                                <span class="file-drop-message">{{ 'forms.drop_file'|trans }}</span>
+                            {% set kept_photo = kept_photos.puzzlePhoto ?? null %}
+                            <div class="file-drop-area" {{ include('photo_stash/_kept_photo_attributes.html.twig', {photo: kept_photo}) }}>
+                                {% if kept_photo is not null %}
+                                    <div class="file-drop-icon">{{ include('photo_stash/_kept_photo_preview.html.twig', {photo: kept_photo}) }}</div>
+                                {% else %}
+                                    <div class="file-drop-icon ci-cloud-upload"></div>
+                                {% endif %}
+                                <span class="file-drop-message" data-kept-photo-target="message">{{ kept_photo is not null ? kept_photo.fileName : 'forms.drop_file'|trans }}</span>
                                 {{ form_widget(solving_time_form.puzzlePhoto, {'attr': {'class': 'file-drop-input'}}) }}
                                 <button type="button" class="file-drop-btn btn btn-outline-primary btn-sm">{{ 'forms.choose_file'|trans }}</button>
+                                {{ include('photo_stash/_kept_photo_input.html.twig', {photo: kept_photo, field: 'puzzlePhoto'}) }}
                             </div>
                         </div>
                     </div>
@@ -194,7 +203,7 @@
                         <div class="col-sm mb-3" data-puzzle-add-form-target="dateFieldSection">
                             {{ form_label(solving_time_form.finishedAt, null, {'label_attr': {'data-puzzle-add-form-target': 'dateLabel'}}) }}
                             <div class="input-group">
-                                {{ form_widget(solving_time_form.finishedAt, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y", "maxDate": "today"}'}}) }}
+                                {{ form_widget(solving_time_form.finishedAt, {'attr': {'data-first-try-check-target': 'date', 'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y", "maxDate": "today"}'}}) }}
                                 <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
                             </div>
                             {{ form_help(solving_time_form.finishedAt) }}
@@ -210,7 +219,15 @@
 
                     {# First attempt - Speed Puzzling only #}
                     <div class="form-switch" data-puzzle-add-form-target="firstAttemptSection">
-                        {{ form_row(solving_time_form.firstAttempt) }}
+                        {{ form_row(solving_time_form.firstAttempt, {'attr': {'data-first-try-check-target': 'checkbox'}}) }}
+
+                        {# docs/features/first-try-integrity.md - filled by first-try-check, or by a refused submit #}
+                        <input type="hidden" name="first_try_resolution" value="{{ first_try_resolution|default('') }}" data-first-try-check-target="resolution">
+                        <div data-first-try-check-target="notice" aria-live="polite">
+                            {%- if first_try|default(null) is not null -%}
+                                {{ include('first_try/_notice.html.twig', {assessment: first_try, resolution: first_try_resolution|default('')}) }}
+                            {%- endif -%}
+                        </div>
                     </div>
 
                     {# Unboxed - Speed Puzzling only #}
@@ -271,19 +288,23 @@
                     {{ form_label(solving_time_form.finishedPuzzlesPhoto) }}
                     {{ form_errors(solving_time_form.finishedPuzzlesPhoto) }}
 
-                    <div class="file-drop-area">
+                    {% set kept_photo = kept_photos.finishedPuzzlesPhoto ?? null %}
+                    <div class="file-drop-area" {{ include('photo_stash/_kept_photo_attributes.html.twig', {photo: kept_photo}) }}>
                         <div class="file-drop-icon">
-                            {% if solved_puzzle is defined and solved_puzzle.finishedPuzzlePhoto is not null%}
+                            {% if kept_photo is not null %}
+                                {{ include('photo_stash/_kept_photo_preview.html.twig', {photo: kept_photo}) }}
+                            {% elseif solved_puzzle is defined and solved_puzzle.finishedPuzzlePhoto is not null%}
                                 <div class="file-drop-preview img-thumbnail rounded">
                                     <img class="rounded-2" style="max-width: 200px;max-height: 200px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle.manufacturerName ~ ' ' ~ solved_puzzle.puzzleName}) }}" src="{{ solved_puzzle.finishedPuzzlePhoto|thumbnail('puzzle_medium') }}">
                                 </div>
                             {% endif %}
-                            <i class="ci-cloud-upload"></i>
+                            {% if kept_photo is null %}<i class="ci-cloud-upload"></i>{% endif %}
                         </div>
 
-                        <span class="file-drop-message">{{ 'forms.drop_file'|trans }}</span>
+                        <span class="file-drop-message" data-kept-photo-target="message">{{ kept_photo is not null ? kept_photo.fileName : 'forms.drop_file'|trans }}</span>
                         {{ form_widget(solving_time_form.finishedPuzzlesPhoto, {'attr': {'class': 'file-drop-input'}}) }}
                         <button type="button" class="file-drop-btn btn btn-outline-primary btn-sm">{{ 'forms.choose_file'|trans }}</button>
+                        {{ include('photo_stash/_kept_photo_input.html.twig', {photo: kept_photo, field: 'finishedPuzzlesPhoto'}) }}
                     </div>
                 </div>
 

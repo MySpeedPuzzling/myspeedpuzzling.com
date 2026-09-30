@@ -1,0 +1,117 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'first_try.page.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{%- macro result_label(time, player_id) -%}
+    {%- set others = time.peopleExcept(player_id) -%}
+    {%- set names = others|map(person => person.label() ?: 'first_try.a_puzzler'|trans)|join(', ') -%}
+    {%- if others is empty -%}
+        {{ 'first_try.page.solo'|trans }}
+    {%- elseif others|length == 1 -%}
+        {{ 'first_try.page.pair_with'|trans({'%names%': names}) }}
+    {%- else -%}
+        {{ 'first_try.page.team_with'|trans({'%names%': names}) }}
+    {%- endif -%}
+{%- endmacro -%}
+
+{%- macro puzzle_heading(puzzle) -%}
+    <div class="d-flex align-items-center gap-2 mb-2">
+        {% if puzzle.image is not null %}
+            <img class="rounded-2" style="width: 56px; height: 56px; object-fit: cover;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.name}) }}" src="{{ puzzle.image|thumbnail('puzzle_small') }}">
+        {% endif %}
+        <div class="low-line-height">
+            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="h6 mb-0">{{ puzzle.name }}</a><br>
+            <small class="text-muted">{{ puzzle.manufacturerName|upper }} · {{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }}</small>
+        </div>
+    </div>
+{%- endmacro -%}
+
+{% block content %}
+{% include '_return_back_button.html.twig' with {fallbackUrl: path('my_profile'), fallbackTitle: 'menu.my_profile'|trans} %}
+
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\FirstTry\\FirstTryConflictsController::CSRF_TOKEN_ID')) %}
+
+<h1 class="h3 mb-2"><i class="bi bi-1-circle me-2"></i>{{ 'first_try.page.title'|trans }}</h1>
+<p class="text-muted">{{ 'first_try.page.intro'|trans }}</p>
+
+{% if conflicts is empty %}
+    <div class="alert alert-success fs-sm" data-testid="first-try-no-conflicts">
+        <i class="bi bi-check-circle me-1"></i>{{ 'first_try.page.empty'|trans }}
+    </div>
+{% endif %}
+
+{% for conflict in conflicts %}
+    <div class="card card-body shadow-sm mb-3" data-testid="first-try-conflict">
+        {{ _self.puzzle_heading(conflict.puzzle) }}
+
+        <p class="fs-sm mb-2">{{ 'first_try.page.question'|trans({'%count%': conflict.times|length}) }}</p>
+
+        <form method="post" action="{{ path('first_try_conflict_resolve', {puzzleId: conflict.puzzle.puzzleId}) }}">
+            <input type="hidden" name="_token" value="{{ csrf }}">
+
+            {% for time in conflict.times %}
+                <label class="d-flex align-items-start gap-2 border rounded-3 p-2 mb-2 fs-sm" style="cursor: pointer;">
+                    <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="keep" value="{{ time.timeId }}" required {{ time.timeId == conflict.suggestedTimeId ? 'checked' }}>
+                    <span>
+                        <strong>{{ time.solvedAt|date('d.m.Y') }}</strong>
+                        {% if time.secondsToSolve is not null %}· {{ time.secondsToSolve|puzzlingTime }}{% endif %}
+                        · {{ _self.result_label(time, player_id) }}
+                        <span class="badge rounded-pill bg-info ms-1">{{ 'first_attempt'|trans }}</span>
+                        {% if time.timeId == conflict.suggestedTimeId %}
+                            <span class="d-block text-muted small">{{ 'first_try.page.oldest_hint'|trans }}</span>
+                        {% endif %}
+                    </span>
+                </label>
+            {% endfor %}
+
+            <label class="d-flex align-items-start gap-2 border rounded-3 p-2 mb-2 fs-sm" style="cursor: pointer;">
+                <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="keep" value="none" required>
+                <span>{{ 'first_try.page.none'|trans }}</span>
+            </label>
+
+            {% if conflict.earlierUnmarkedSolvedAt is not null %}
+                <p class="fs-sm text-muted mb-2" data-testid="first-try-earlier-unmarked">
+                    <i class="bi bi-info-circle me-1"></i>{{ 'first_try.page.earlier_unmarked'|trans({'%date%': conflict.earlierUnmarkedSolvedAt|date('d.m.Y')}) }}
+                </p>
+            {% endif %}
+
+            {% if conflict.times|filter(time => time.isGroup)|length > 0 %}
+                <p class="fs-sm text-muted mb-2">{{ 'first_try.page.group_note'|trans }}</p>
+            {% endif %}
+
+            <button type="submit" class="btn btn-primary btn-sm">{{ 'first_try.page.save'|trans }}</button>
+        </form>
+    </div>
+{% endfor %}
+
+{% if late_first_tries is not empty %}
+    <details class="mt-4 mb-4" data-testid="first-try-late">
+        <summary class="text-muted fs-sm mb-2">{{ 'first_try.page.late_title'|trans({'%count%': late_first_tries|length}) }}</summary>
+        <p class="fs-sm text-muted">{{ 'first_try.page.late_intro'|trans }}</p>
+
+        {% for late in late_first_tries %}
+            <div class="card card-body mb-2 py-2">
+                {{ _self.puzzle_heading(late.puzzle) }}
+                <p class="fs-sm mb-2">
+                    <strong>{{ late.time.solvedAt|date('d.m.Y') }}</strong>
+                    {% if late.time.secondsToSolve is not null %}· {{ late.time.secondsToSolve|puzzlingTime }}{% endif %}
+                    · {{ _self.result_label(late.time, player_id) }}
+                    <span class="badge rounded-pill bg-info ms-1">{{ 'first_attempt'|trans }}</span><br>
+                    <span class="text-muted">{{ 'first_try.page.late_row'|trans({'%date%': late.earlierSolvedAt|date('d.m.Y')}) }}</span>
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <form method="post" action="{{ path('first_try_late_remove', {timeId: late.time.timeId}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <button type="submit" class="btn btn-outline-primary btn-sm">{{ 'first_try.page.late_remove'|trans }}</button>
+                    </form>
+                    <form method="post" action="{{ path('first_try_late_keep', {timeId: late.time.timeId}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <button type="submit" class="btn btn-link btn-sm text-muted">{{ 'first_try.page.late_keep'|trans }}</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    </details>
+{% endif %}
+{% endblock %}

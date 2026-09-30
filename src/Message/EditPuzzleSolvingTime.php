@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
+use SpeedPuzzling\Web\Value\FirstTryResolution;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -25,13 +26,15 @@ readonly final class EditPuzzleSolvingTime
         public bool $unboxed,
         // Names the pair/team of $groupPlayers when it has no name yet
         public null|string $teamName = null,
+        // Answer to a first try the group already has (docs/features/first-try-integrity.md)
+        public FirstTryResolution $firstTryResolution = FirstTryResolution::None,
     ) {
     }
 
     /**
      * @param array<string> $groupPlayers
      */
-    public static function fromFormData(string $userId, string $timeId, array $groupPlayers, EditPuzzleSolvingTimeFormData $formData, null|string $teamName = null): self
+    public static function fromFormData(string $userId, string $timeId, array $groupPlayers, EditPuzzleSolvingTimeFormData $formData, null|string $teamName = null, FirstTryResolution $firstTryResolution = FirstTryResolution::None): self
     {
         return new self(
             currentUserId: $userId,
@@ -45,6 +48,7 @@ readonly final class EditPuzzleSolvingTime
             firstAttempt: $formData->firstAttempt,
             unboxed: $formData->unboxed,
             teamName: $teamName,
+            firstTryResolution: $firstTryResolution,
         );
     }
 }

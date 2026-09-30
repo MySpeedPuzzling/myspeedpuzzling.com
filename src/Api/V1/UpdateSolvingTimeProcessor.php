@@ -8,11 +8,13 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
+use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Security\ApiUser;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -63,20 +65,29 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
         // Carry the current link through; the round link is never touched by modify().
         $competitionId = $solvingTime->competition?->id->toString();
 
-        $this->messageBus->dispatch(
-            new EditPuzzleSolvingTime(
-                currentUserId: $userId,
-                puzzleSolvingTimeId: $timeId,
-                competitionId: $competitionId,
-                time: $data->time,
-                comment: $data->comment,
-                groupPlayers: $data->groupPlayers,
-                finishedAt: $finishedAt,
-                finishedPuzzlesPhoto: null,
-                firstAttempt: $data->firstAttempt,
-                unboxed: $data->unboxed,
-            ),
-        );
+        try {
+            $this->messageBus->dispatch(
+                new EditPuzzleSolvingTime(
+                    currentUserId: $userId,
+                    puzzleSolvingTimeId: $timeId,
+                    competitionId: $competitionId,
+                    time: $data->time,
+                    comment: $data->comment,
+                    groupPlayers: $data->groupPlayers,
+                    finishedAt: $finishedAt,
+                    finishedPuzzlesPhoto: null,
+                    firstAttempt: $data->firstAttempt,
+                    unboxed: $data->unboxed,
+                ),
+            );
+        } catch (HandlerFailedException $exception) {
+            // The handler decides the first-try rules (docs/features/first-try-integrity.md)
+            if ($exception->getPrevious() instanceof FirstTryAlreadyTaken) {
+                throw FirstTryConflictResponse::from($exception->getPrevious(), $player->id->toString());
+            }
+
+            throw $exception;
+        }
 
         return new SolvingTimeResponse(
             timeId: $timeId,

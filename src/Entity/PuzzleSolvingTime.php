@@ -195,6 +195,28 @@ class PuzzleSolvingTime implements EntityWithEvents
         );
     }
 
+    /**
+     * Takes the first-try tag off (docs/features/first-try-integrity.md). Statistics and insights follow the
+     * PuzzleSolvingTimeModified event; the stored prediction stays - it is what was predicted back then, and
+     * the tag of this very result is not among its inputs. Everybody else of a pair/team is told who did it.
+     */
+    public function unmarkFirstAttempt(Player $by): void
+    {
+        if ($this->firstAttempt === false) {
+            return;
+        }
+
+        $this->firstAttempt = false;
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+
+        if ($this->team !== null) {
+            $this->recordGroupEdit($by, $this->memberPlayerIds());
+        }
+    }
+
     public function changeCompetitionRound(null|CompetitionRound $competitionRound): void
     {
         $this->competitionRound = $competitionRound;

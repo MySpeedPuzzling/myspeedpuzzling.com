@@ -1,0 +1,7 @@
+<div class="file-drop-preview img-thumbnail rounded" data-kept-photo-target="preview">
+    {% if photo.hasPreview %}
+        <img class="rounded-2" style="max-width: 200px; max-height: 200px;" alt="{{ photo.fileName }}" src="{{ path('photo_stash_preview', {token: photo.token}) }}">
+    {% else %}
+        <i class="bi bi-image fs-1 text-muted"></i>
+    {% endif %}
+</div>

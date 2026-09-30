@@ -1,0 +1,121 @@
+{#
+    The first-try notice of the add/edit time form (docs/features/first-try-integrity.md).
+    Rendered by a refused submit and by the live check (FirstTryCheckController) alike.
+    assessment: FirstTryAssessment, resolution: '' | 'move'
+#}
+{%- macro own_result(line) -%}
+    {%- set date = line.date|date('d.m.Y') -%}
+    {%- set names = line.with|map(name => name ?: 'first_try.a_puzzler'|trans)|join(', ') -%}
+    {%- set time = line.time.secondsToSolve is not null ? ' (' ~ line.time.secondsToSolve|puzzlingTime ~ ')' : '' -%}
+    {%- if line.with is empty -%}
+        {{ 'first_try.line.own_solo'|trans({'%date%': date}) }}{{ time }}
+    {%- elseif line.with|length == 1 -%}
+        {{ 'first_try.line.own_pair'|trans({'%date%': date, '%names%': names}) }}{{ time }}
+    {%- else -%}
+        {{ 'first_try.line.own_team'|trans({'%date%': date, '%names%': names}) }}{{ time }}
+    {%- endif -%}
+{%- endmacro -%}
+
+{% if assessment is not null and not assessment.isEmpty %}
+    {% set moving = assessment.hasHolds and assessment.viewerCanMove and resolution == 'move' %}
+    {% set blocking = assessment.hasHolds and not assessment.tolerated and not moving %}
+
+    <div class="first-try-notice mt-2 mb-3">
+        {% if moving %}
+            {# C - the player chose to move the tag here #}
+            <div class="alert alert-success small mb-2" role="status">
+                <p class="fw-semibold mb-1"><i class="bi bi-arrow-left-right me-1"></i>{{ 'first_try.moving.title'|trans }}</p>
+                <p class="mb-1">{{ 'first_try.moving.body'|trans }}</p>
+                <ul class="mb-2 ps-3">
+                    {% for line in assessment.holdLines %}
+                        <li>{{ _self.own_result(line) }}</li>
+                    {% endfor %}
+                </ul>
+                {% if not assessment.isOlderThanHolds %}
+                    <p class="mb-2">{{ 'first_try.moving.newer'|trans({'%date%': assessment.solvedAt|date('d.m.Y')}) }}</p>
+                {% endif %}
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="first-try-check#undo">
+                    {{ 'first_try.action.undo'|trans }}
+                </button>
+            </div>
+        {% elseif assessment.hasHolds and assessment.tolerated %}
+            {# E - an old duplicate, edited without adding anybody: fine to save #}
+            <div class="alert alert-info small mb-2" role="status">
+                <p class="mb-1">{{ 'first_try.tolerated.body'|trans }}</p>
+                <ul class="mb-2 ps-3">
+                    {% for line in assessment.holdLines %}
+                        <li>{{ line.kind == 'own' ? _self.own_result(line) : 'first_try.line.teammate_hold'|trans({'%name%': line.person.name, '%date%': line.date|date('d.m.Y')}) }}</li>
+                    {% endfor %}
+                </ul>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    {% if assessment.viewerCanMove %}
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-action="first-try-check#move">
+                            {{ 'first_try.action.move'|trans }}
+                        </button>
+                    {% endif %}
+                    <a href="{{ path('first_try_conflicts') }}" class="small" data-turbo-frame="_top">{{ 'first_try.tolerated.review'|trans }}</a>
+                </div>
+            </div>
+        {% elseif blocking and assessment.viewerCanMove %}
+            {# A - the player's own first try is elsewhere: move it here, or save without #}
+            <div class="alert alert-warning small mb-2" role="alert">
+                <p class="fw-semibold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>{{ 'first_try.own.title'|trans }}</p>
+                <p class="mb-1">{{ 'first_try.own.body'|trans }}</p>
+                <ul class="mb-2 ps-3">
+                    {% for line in assessment.holdLines %}
+                        <li>{{ _self.own_result(line) }}</li>
+                    {% endfor %}
+                </ul>
+                {% if assessment.isOlderThanHolds %}
+                    <p class="mb-2">{{ 'first_try.own.older'|trans({'%date%': assessment.solvedAt|date('d.m.Y')}) }}</p>
+                {% endif %}
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-sm btn-primary" data-action="first-try-check#move">
+                        {{ 'first_try.action.move'|trans }}
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-action="first-try-check#untick">
+                        {{ 'first_try.action.untick'|trans }}
+                    </button>
+                </div>
+            </div>
+        {% elseif blocking %}
+            {# B - somebody else of the group has their first try already #}
+            <div class="alert alert-warning small mb-2" role="alert">
+                <p class="fw-semibold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>{{ 'first_try.group.title'|trans }}</p>
+                <ul class="mb-2 ps-3">
+                    {% for line in assessment.holdLines %}
+                        {% if line.kind == 'own' %}
+                            <li>{{ _self.own_result(line) }}</li>
+                        {% else %}
+                            <li>{{ 'first_try.line.teammate_hold'|trans({'%name%': line.person.name, '%date%': line.date|date('d.m.Y')}) }}</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+                <p class="mb-2">{{ 'first_try.group.body'|trans }}</p>
+                <button type="button" class="btn btn-sm btn-primary" data-action="first-try-check#untick">
+                    {{ 'first_try.action.untick'|trans }}
+                </button>
+            </div>
+        {% endif %}
+
+        {% if assessment.earlierLines is not empty and not blocking %}
+            {# D - somebody solved it before, without the tag: only a heads-up #}
+            <div class="alert alert-secondary small mb-2" role="status">
+                <p class="fw-semibold mb-1"><i class="bi bi-info-circle me-1"></i>{{ 'first_try.earlier.title'|trans }}</p>
+                <ul class="mb-2 ps-3">
+                    {% for line in assessment.earlierLines %}
+                        {% if line.kind == 'own' %}
+                            <li>{{ 'first_try.line.own_earlier'|trans({'%date%': line.date|date('d.m.Y')}) }}</li>
+                        {% else %}
+                            <li>{{ 'first_try.line.teammate_earlier'|trans({'%name%': line.person.name, '%date%': line.date|date('d.m.Y')}) }}</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+                <p class="mb-2">{{ 'first_try.earlier.body'|trans }}</p>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="first-try-check#untick">
+                    {{ 'first_try.action.untick'|trans }}
+                </button>
+            </div>
+        {% endif %}
+    </div>
+{% endif %}

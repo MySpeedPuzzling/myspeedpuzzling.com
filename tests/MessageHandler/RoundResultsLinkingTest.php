@@ -191,7 +191,7 @@ final class RoundResultsLinkingTest extends KernelTestCase
             finishedPuzzlesPhoto: null,
             groupPlayers: $groupPlayers,
             finishedAt: null,
-            firstAttempt: true,
+            firstAttempt: false,
             unboxed: false,
         ));
 

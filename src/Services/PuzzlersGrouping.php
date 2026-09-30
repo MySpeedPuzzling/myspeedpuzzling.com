@@ -58,6 +58,28 @@ readonly final class PuzzlersGrouping
         return new PuzzlersGroup(null, $puzzlers);
     }
 
+    /**
+     * The registered players among the co-puzzler inputs, read exactly like assembleGroup() reads them -
+     * for checks that must not create anything (the first-try rules).
+     *
+     * @param array<string> $teamPlayers
+     * @return list<string>
+     */
+    public function registeredPlayerIds(array $teamPlayers): array
+    {
+        $ids = [];
+
+        foreach (array_unique($teamPlayers) as $playerCodeOrName) {
+            $puzzler = $this->getPuzzlerFromUserInput($playerCodeOrName);
+
+            if ($puzzler->playerId !== null) {
+                $ids[] = $puzzler->playerId;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
     private function getPuzzlerFromUserInput(string $playerCodeOrName): Puzzler
     {
         $isRegisteredPlayer = str_starts_with($playerCodeOrName, '#');

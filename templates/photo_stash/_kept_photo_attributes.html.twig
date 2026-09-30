@@ -1,0 +1,4 @@
+{#- On the .file-drop-area of a photo kept from a refused submit (FormPhotoStash) -#}
+{%- if photo is not null -%}
+data-controller="kept-photo" data-kept-photo-drop-text-value="{{ 'forms.drop_file'|trans }}"
+{%- endif -%}

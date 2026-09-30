@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
+use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\FormData\PuzzleAddFormData;
 use SpeedPuzzling\Web\FormType\PuzzleAddFormType;
@@ -25,7 +26,11 @@ use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
+use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
+use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\FirstTryAssessment;
+use SpeedPuzzling\Web\Value\FirstTryResolution;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -54,6 +59,8 @@ final class PuzzleAddController extends AbstractController
         readonly private LoggerInterface $logger,
         readonly private GetPlayerCollections $getPlayerCollections,
         readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
+        readonly private FirstTryFormCheck $firstTryFormCheck,
+        readonly private FormPhotoStash $formPhotoStash,
     ) {
     }
 
@@ -203,7 +210,10 @@ final class PuzzleAddController extends AbstractController
             'collections' => $collections,
             'has_active_membership' => $hasActiveMembership,
         ]);
+        // A photo kept from a refused submit goes back into its empty file input first (FormPhotoStash)
+        $restoredPhotos = $this->formPhotoStash->restore($request, $addTimeForm, $userProfile->playerId);
         $addTimeForm->handleRequest($request);
+        $this->formPhotoStash->reportLost($addTimeForm, $restoredPhotos);
 
         // The co-puzzler inputs live outside the Symfony form, so an empty one has to invalidate the form
         // explicitly - that is what makes render() answer 422. As a skipped `if` it answered 200 with a
@@ -211,6 +221,25 @@ final class PuzzleAddController extends AbstractController
         // Collection mode hides the co-puzzlers (their inputs are still posted) and never uses them.
         if ($isGroupPuzzlersValid === false && $addTimeForm->isSubmitted() && $data->mode !== PuzzleAddMode::Collection) {
             $addTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_player')));
+        }
+
+        // Checked before anything is dispatched - a refused first try must not leave a new puzzle behind.
+        // A new puzzle cannot have one yet (docs/features/first-try-integrity.md)
+        $firstTryResolution = FirstTryResolution::tryFrom($request->request->getString('first_try_resolution')) ?? FirstTryResolution::None;
+        $firstTry = null;
+
+        if (
+            $addTimeForm->isSubmitted()
+            && $data->mode === PuzzleAddMode::SpeedPuzzling
+            && $data->firstAttempt
+            && is_string($data->puzzle)
+            && Uuid::isValid($data->puzzle)
+        ) {
+            $firstTry = $this->firstTryFormCheck->forNewResult($userProfile->playerId, $data->puzzle, $groupPlayers, $data->finishedAt);
+
+            if ($firstTry->blocks($firstTryResolution)) {
+                $addTimeForm->addError(new FormError($this->translator->trans('first_try.form_error')));
+            }
         }
 
         if ($addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
@@ -262,18 +291,17 @@ final class PuzzleAddController extends AbstractController
 
             // Step 2: Mode-specific handling
             try {
-                switch ($mode) {
-                    case PuzzleAddMode::SpeedPuzzling:
-                        return $this->handleSpeedPuzzling($data, $userId, $groupPlayers, $activeStopwatch, $stopwatchId, $teamName);
+                $response = match ($mode) {
+                    PuzzleAddMode::SpeedPuzzling => $this->handleSpeedPuzzling($data, $userId, $groupPlayers, $activeStopwatch, $stopwatchId, $teamName, $firstTryResolution),
+                    PuzzleAddMode::Relax => $this->handleRelax($data, $userId, $groupPlayers, $teamName),
+                    PuzzleAddMode::Collection => $this->handleCollection($data, $userProfile->playerId),
+                };
 
-                    case PuzzleAddMode::Relax:
-                        return $this->handleRelax($data, $userId, $groupPlayers, $teamName);
+                $this->formPhotoStash->forget($restoredPhotos, $userProfile->playerId);
 
-                    case PuzzleAddMode::Collection:
-                        return $this->handleCollection($data, $userProfile->playerId);
-                }
+                return $response;
             } catch (HandlerFailedException $exception) {
-                $this->handleException($exception, $addTimeForm);
+                $firstTry = $this->handleException($exception, $addTimeForm) ?? $firstTry;
             }
         }
 
@@ -292,6 +320,9 @@ final class PuzzleAddController extends AbstractController
             'initial_mode' => $initialMode,
             'has_active_membership' => $hasActiveMembership,
             'system_collection_id' => Collection::SYSTEM_ID,
+            'first_try' => $firstTry,
+            'first_try_resolution' => $firstTryResolution->value,
+            'kept_photos' => $this->formPhotoStash->keep($addTimeForm, $restoredPhotos, $userProfile->playerId),
         ]);
     }
 
@@ -305,6 +336,7 @@ final class PuzzleAddController extends AbstractController
         mixed $activeStopwatch,
         null|string $stopwatchId,
         string $teamName,
+        FirstTryResolution $firstTryResolution,
     ): Response {
         $timeId = Uuid::uuid7();
 
@@ -327,6 +359,7 @@ final class PuzzleAddController extends AbstractController
                 firstAttempt: $data->firstAttempt,
                 unboxed: $data->unboxed,
                 teamName: $teamName,
+                firstTryResolution: $firstTryResolution,
             ),
         );
 
@@ -433,9 +466,16 @@ final class PuzzleAddController extends AbstractController
     /**
      * @param FormInterface<PuzzleAddFormData> $form
      */
-    private function handleException(HandlerFailedException $exception, FormInterface $form): void
+    private function handleException(HandlerFailedException $exception, FormInterface $form): null|FirstTryAssessment
     {
         $realException = $exception->getPrevious();
+
+        if ($realException instanceof FirstTryAlreadyTaken) {
+            // Somebody saved a first try in the meantime - the notice explains what the handler saw
+            $form->addError(new FormError($this->translator->trans('first_try.form_error')));
+
+            return $realException->assessment;
+        }
 
         if ($realException instanceof CanNotAssembleEmptyGroup) {
             $form->addError(new FormError($this->translator->trans('forms.empty_group_error')));
@@ -448,5 +488,7 @@ final class PuzzleAddController extends AbstractController
                 'exception' => $exception,
             ]);
         }
+
+        return null;
     }
 }

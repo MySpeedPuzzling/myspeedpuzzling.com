@@ -4,6 +4,17 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## First-try integrity (#217)
+
+Shipped: [`features/first-try-integrity.md`](features/first-try-integrity.md).
+
+- [ ] Hub banner for players with first-try conflicts (the profile banner is the first step, rolled out gradually)
+- [ ] Remind about unresolved first-try conflicts in the digest e-mail
+- [ ] A few weeks after the deploy: how many of the 3,170 duplicate pairs (2026-09-30) got resolved - decide whether
+      the rest needs another nudge
+- [ ] Object-storage lifecycle rule for `tmp-uploads/` (24 h) as a second safety net next to the
+      `myspeedpuzzling:prune-photo-stash` cron, if Hetzner Object Storage supports one
+
 ## FrankenPHP worker restarts (found 2026-09-30, session research)
 
 - [ ] The `max_requests 500` guard against memory leaks probably never fires: FrankenPHP 1.12.7 resets its request

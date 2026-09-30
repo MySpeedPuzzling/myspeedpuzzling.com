@@ -9,10 +9,15 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Value\SolveMoment;
 
 /**
  * Time prediction of one player on one puzzle. Fetches the inputs and hands the
  * math to TimePredictionCalculator (shared with the bulk GetPlayerPredictions).
+ *
+ * With $before it predicts one particular solve: only the solves before it count as
+ * earlier attempts and the gap is measured to it instead of to now. The insights
+ * tables are read as they are - see SolvingTimePredictor for when that is right.
  */
 readonly final class GetPlayerPrediction
 {
@@ -23,9 +28,13 @@ readonly final class GetPlayerPrediction
     ) {
     }
 
-    public function forPuzzle(string $playerId, string $puzzleId, null|string $excludeTimeId = null): null|TimePredictionResult
-    {
-        $personalPrediction = $this->personalPrediction($playerId, $puzzleId, $excludeTimeId);
+    public function forPuzzle(
+        string $playerId,
+        string $puzzleId,
+        null|string $excludeTimeId = null,
+        null|SolveMoment $before = null,
+    ): null|TimePredictionResult {
+        $personalPrediction = $this->personalPrediction($playerId, $puzzleId, $excludeTimeId, $before);
 
         if ($personalPrediction !== null) {
             return $personalPrediction;
@@ -34,9 +43,12 @@ readonly final class GetPlayerPrediction
         return $this->statisticalPrediction($playerId, $puzzleId);
     }
 
-    private function personalPrediction(string $playerId, string $puzzleId, null|string $excludeTimeId = null): null|TimePredictionResult
+    private function personalPrediction(string $playerId, string $puzzleId, null|string $excludeTimeId, null|SolveMoment $before): null|TimePredictionResult
     {
         $excludeFilter = $excludeTimeId !== null ? 'AND pst.id != :excludeTimeId' : '';
+        $beforeFilter = $before !== null
+            ? 'AND (COALESCE(pst.finished_at, pst.tracked_at), pst.tracked_at) < (CAST(:solvedAt AS timestamp), CAST(:trackedAt AS timestamp))'
+            : '';
 
         $query = <<<SQL
 SELECT pst.seconds_to_solve, COALESCE(pst.finished_at, pst.tracked_at) AS solved_at
@@ -48,6 +60,7 @@ WHERE pst.player_id = :playerId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.unboxed = false
     {$excludeFilter}
+    {$beforeFilter}
 ORDER BY COALESCE(pst.finished_at, pst.tracked_at) ASC, pst.tracked_at ASC
 SQL;
 
@@ -58,6 +71,11 @@ SQL;
 
         if ($excludeTimeId !== null) {
             $params['excludeTimeId'] = $excludeTimeId;
+        }
+
+        if ($before !== null) {
+            $params['solvedAt'] = $before->solvedAt->format('Y-m-d H:i:s');
+            $params['trackedAt'] = $before->trackedAt->format('Y-m-d H:i:s');
         }
 
         /** @var list<array{seconds_to_solve: int|string, solved_at: string}> $rows */
@@ -88,7 +106,7 @@ SQL;
 
         $transition = TimePredictionCalculator::transitionFor($count);
         $gapBucket = TimePredictionCalculator::classifyGap(
-            TimePredictionCalculator::gapDays($this->clock->now(), $lastSolvedAt),
+            TimePredictionCalculator::gapDays($before->solvedAt ?? $this->clock->now(), $lastSolvedAt),
         );
 
         $playerRatio = $this->getPlayerRatio($playerId, $transition);

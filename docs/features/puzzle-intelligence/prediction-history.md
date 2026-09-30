@@ -1,8 +1,7 @@
 # Prediction history - storing the prediction on every solving time
 
-Status: **design, not built** (2026-09-30). Scope of the first delivery: store the prediction when a time is
-added or edited + a one-time (re-runnable) backfill. The UI comes later - see [`../../TODO.md`](../../TODO.md)
-§"Prediction history".
+Status: **built 2026-09-30** (store on add/edit + backfill command; backfill run and daily cron pending - see
+§Rollout). The UI comes later - see [`../../TODO.md`](../../TODO.md) §"Prediction history".
 
 ## Goal
 
@@ -43,8 +42,8 @@ Two sources, stored so the UI can say which one it is:
 
 | Source | When | Model state used |
 |---|---|---|
-| `live` | the time is added (or edited in a way that invalidates the prediction) | the insights tables as they are at that moment, before the new time reaches them; prior attempts limited by the rule above |
-| `reconstructed` | backfill (and the self-healing cron) | today's model fed only with data that existed before the solve (details in §Backfill) |
+| `live` | the time is added for today or yesterday | the insights tables as they are at that moment, before the new time reaches them; prior attempts limited by the rule above |
+| `reconstructed` | backfill, the self-healing cron, back-dated adds, edits that invalidated the prediction | today's model fed only with data that existed before the solve (details in §Backfill) |
 
 `live` is "what the site would have told you"; `reconstructed` is "what today's model would have told you with
 what it knew back then". Both are honest - they just must not be mixed silently.
@@ -62,6 +61,7 @@ rows, and old blue-green containers keep inserting without them):
 | `predicted_range_low_seconds` | int | range from |
 | `predicted_range_high_seconds` | int | range to |
 | `predicted_attempt_number` | smallint | personal only: which attempt was predicted (`personalSolveCount + 1`) |
+| `prediction_last_time_seconds` | int | personal only: the attempt before it (the API's `last_time_seconds`) |
 | `prediction_source` | varchar | `live` / `reconstructed` |
 | `prediction_computed_at` | timestamp | when it was stored |
 | `prediction_model_version` | smallint | `TimePredictionCalculator::MODEL_VERSION` at that time - accuracy statistics must never mix two models silently |
@@ -93,14 +93,17 @@ pending row" is one sequential scan per run.
 
 ### PHP side
 
-- Enums `TimePredictionMethod`, `TimePredictionSource` in `src/Value/`.
-- Readonly value object `SolvingTimePrediction` with named constructors `predicted(TimePredictionResult, source, computedAt)`,
-  `notPredictable(source, computedAt)`.
-- `PuzzleSolvingTime` gets the nine properties (flat columns, the project has no embeddables) changed only through
-  two named methods:
-  - `recordPrediction(SolvingTimePrediction $prediction): void` - **records no domain event**. Important: a
-    `PuzzleSolvingTimeModified` per row would run the incremental insights recalculation 450k times in the backfill.
-  - `forgetPrediction(): void` (private use) - back to NULL = "evaluate again".
+- Enums `TimePredictionMethod`, `TimePredictionSource`, value objects `SolveMoment`, `SolvingTimePrediction`
+  (`predicted(TimePredictionResult, source)` / `notPredictable(source)`, carries the model version) and
+  `PredictionInputSolve` (the reconstructor's input rows) in `src/Value/`.
+- `PuzzleSolvingTime` gets the ten properties (flat columns, `#[Immutable(PRIVATE_WRITE_SCOPE)]`) changed only
+  through named methods:
+  - `recordPrediction(SolvingTimePrediction $prediction, DateTimeImmutable $computedAt)` - **records no domain
+    event**: a `PuzzleSolvingTimeModified` per row would run the incremental insights recalculation 450k times in
+    the backfill (pinned by `BackfillSolvingTimePredictionsHandlerTest::testRecordsNoDomainEvents`).
+  - private `forgetPrediction()` - back to NULL = "evaluate again".
+  - `isPredictionPending()` - solo, with seconds, not evaluated.
+- Reading: `GetSolvingTimePrediction::byTimeId()` (null = not evaluated).
 - The entity invalidates by itself: `modify()` calls `forgetPrediction()` when the puzzling type, the solve date
   (`finished_at`) or "has a time" (`seconds` null ↔ set) changed; `replaceTeam()` / `transferOwnership()` when the
   puzzling type or the owner changed. Changing only the seconds, comment, photo, competition, first-attempt flag
@@ -109,13 +112,30 @@ pending row" is one sequential scan per run.
 
 ## Live recording
 
-New service `SolvingTimePredictor::predict(PuzzleSolvingTime $time): null|SolvingTimePrediction`:
+`SolvingTimePredictor::predictAddedTime(PuzzleSolvingTime $time)` (called by `AddPuzzleSolvingTimeHandler`
+right before `persist()`):
 
-1. not solo or no seconds → null (nothing to record, the row stays NULL);
-2. otherwise `GetPlayerPrediction::forPuzzle($playerId, $puzzleId, excludeTimeId: $id, before: SolveMoment)` →
-   `predicted` or, when it returns null, `notPredictable`;
-3. any `Throwable` → log **warning** with `'exception' => $e` and return null (status stays NULL, the cron fills
-   it). Storing a prediction must never cost the player their time.
+1. not pending (group, no seconds) → nothing;
+2. solved before yesterday → nothing now, the player's reconstruction is queued (see below);
+3. otherwise `GetPlayerPrediction::forPuzzle($playerId, $puzzleId, excludeTimeId: $id, before: SolveMoment)` →
+   `predicted` or, when it returns null, `notPredictable`, source `live`;
+4. the reads run in a **savepoint**: a failing statement would otherwise abort the handler's transaction. Any
+   `Throwable` → rollback to the savepoint, **warning** with `'exception' => $e`, row left NULL, reconstruction
+   queued. Storing a prediction never costs the player their time (pinned by a test that renames a table).
+
+`SolvingTimePredictor::reconstructIfPending()` (called by `EditPuzzleSolvingTimeHandler` after `modify()`) queues
+the reconstruction when the edit made the time pending, **naming the time** (`reevaluateTimeIds`): a
+reconstruction of the player that was already running may have written a prediction for the time's old data,
+and a named time is re-evaluated even when it is no longer NULL. The handler loads its rows `FOR UPDATE`, so two
+reconstructions of one player never interleave and an edit waits until the running one has committed. **Edits
+are never predicted live**: the edited time is already inside the insights tables itself.
+
+Queueing = `BackfillSolvingTimePredictions($playerId, $reevaluateTimeIds)` with `DispatchAfterCurrentBusStamp`
+(the time must be committed first) and `TransportNamesStamp(['async'])` - the message is unrouted, so the command
+handles it synchronously and only these dispatches go through the worker. The message deliberately does **not**
+implement `RequiresFreshEntityManagerState`: that middleware would clear the entity manager in the middle of the
+add/edit web request (it runs on sending too). The command clears after every player, the worker after every
+message (`DoctrineClearEntityManagerWorkerSubscriber`).
 
 `GetPlayerPrediction` gets an optional `null|SolveMoment $before` (value object: `solvedAt` + `trackedAt`):
 
@@ -128,18 +148,18 @@ Call sites:
 | Handler | When |
 |---|---|
 | `AddPuzzleSolvingTimeHandler` | after `new PuzzleSolvingTime(...)`, before `persist()` - the new row is not flushed yet and the sync `PuzzleSolved` recalculation has not run, so the insights tables are still "before this solve" |
-| `EditPuzzleSolvingTimeHandler` | after `modify()`, only if the entity forgot its prediction |
-| API `CreateSolvingTimeProcessor` | dispatches `AddPuzzleSolvingTime`, nothing extra |
+| `EditPuzzleSolvingTimeHandler` | after `modify()`: queues the reconstruction if pending |
+| Recap page, API `CreateSolvingTimeProcessor` | `GetSolvingTimePrediction::resultForTime()`: the stored prediction; while pending (back-dated) computed now with `$before` - personal part exact, baseline/difficulty of today |
 
-Cost per add: the same 2-4 small indexed queries the recap already runs.
+Cost per solo add: a savepoint pair + the 2-5 small indexed queries the recap used to run (the API query budget
+test counts them as `LIVE_PREDICTION_RECORDING`).
 
 **Back-dated adds are not predicted live.** 27 % of all times are entered more than a day after the solve
 (143,598 rows). For them today's tables would leak everything that happened after the solve date - including the
 player's own later solves in the baseline and the ratios. So: when the solve date is before the tracking day
 minus one, the handler records nothing and dispatches `BackfillSolvingTimePredictions($playerId)` **async** - the
-very same message the backfill uses - and the row gets a `reconstructed` prediction a few seconds later. The same
-applies to an edit that moved the solve date. `live` therefore always means "solved today or yesterday, predicted
-from the state the site had right then".
+very same message the backfill uses - and the row gets a `reconstructed` prediction a few seconds later.
+`live` therefore always means "solved today or yesterday, predicted from the state the site had right then".
 
 ## Backfill
 
@@ -149,11 +169,9 @@ from the state the site had right then".
 
 - The command only lists players and dispatches; the logic is in the handler (tests test the handler).
 - `GetPlayersWithPendingPredictions` → `SELECT DISTINCT player_id FROM puzzle_solving_time WHERE predictable IS NULL AND puzzling_type = 'solo' AND seconds_to_solve IS NOT NULL ORDER BY player_id` (the handler loads with the same condition).
-- For each player: `dispatch(new BackfillSolvingTimePredictions($playerId))`. The message implements
-  `RequiresFreshEntityManagerState`, so `ClearEntityManagerMiddleware` clears the entity manager *before* each
-  player - the identity map never grows past one player's times (worst case 2,346 entities in one flush, which is
-  fine for the unit of work). Belt and braces like `SyncWjpfIdentitiesConsoleCommand`: the command also calls
-  `$entityManager->clear()` + `gc_collect_cycles()` every 50 players and prints memory in the progress bar.
+- For each player: `dispatch(new BackfillSolvingTimePredictions($playerId))`, then `$entityManager->clear()` -
+  the identity map never grows past one player's times (worst case 2,346 entities in one flush) - and
+  `gc_collect_cycles()` every 50 players; the progress bar prints memory.
 - Per-player `try/catch`, warning in the output, abort after 10 consecutive failures.
 - **Resumable and idempotent**: only NULL rows are touched, `live` rows never. Kill it any time, run it again.
 - Run on the box detached (`nohup … exec -T web php bin/console …`). Allowed to run for hours.
@@ -169,75 +187,80 @@ re-reconstruct. `live` rows are never recomputed - they are history.
 
 Runs sync from the command and async from the add/edit handlers (back-dated times).
 
-Loads the player's pending times as **objects** (`PuzzleSolvingTimeRepository::findWithPendingPrediction($playerId)`),
+Loads the player's pending times as **objects** (`PuzzleSolvingTimeRepository::findWithPendingPredictionOfPlayer()`),
 computes, calls `recordPrediction(...)` with source `reconstructed`; the `doctrine_transaction` middleware flushes.
-No DQL `UPDATE`, no domain events.
+No DQL `UPDATE`, no domain events. Returns how many times it evaluated (the command sums it).
 
 The inputs are loaded **once per player** and everything else is PHP (`PredictionReconstructor`, a service with
 `ResetInterface` for the memoised global data):
 
 | Input | How | Fidelity |
 |---|---|---|
-| Player's times | 1 query: all their times (id, puzzle, pieces, seconds, solved_at, tracked_at, type, suspicious, unboxed, first_attempt) ordered by the solve tuple | exact |
+| Player's times | 1 query: all their solo times with seconds, ordered by the solve tuple, timestamps as epoch floats | exact |
 | Prior attempts, gap | filtered in PHP per time | exact |
 | Player improvement ratio | the player's own transitions dated before the solve, same median + min 3 samples (reuse `ImprovementRatioCalculator`'s in-PHP transition code) | exact |
-| Global improvement ratios | all transitions preloaded once per process (~150k rows), a snapshot per calendar month computed lazily and memoised ("data before the 1st of the solve month") | month granularity |
+| Global improvement ratios | `ImprovementRatioCalculator::globalRatiosBefore()`: the batch's transition SQL with a cutoff, one query per calendar month ("transitions whose later attempt was before the 1st of the solve month"), memoised + cached | month granularity |
 | Player baseline for the piece count | the player's first attempts dated before the solve, weights relative to the solve date (not `now`), ≥ 5 → direct, else interpolated/extrapolated from the other piece counts' *as-of* direct baselines | exact |
 | Scaling exponent (extrapolation) | today's value, 1 query, memoised | approximation |
-| Puzzle difficulty | 1 query per player: first attempts of *other* players on the puzzles this player solved, with their index `seconds / baseline` and the solve date; per time the indices dated before the solve (≥ 5, ceiling 5.0) → median, p25, p75 | the indices use **today's** baselines of those players (the live model does that too) |
+| Puzzle difficulty | 1 query per player (chunks of 1000 puzzles), only for puzzles with a statistical target: every qualifying solve on them with its solver's baseline; per time each solver's first attempt before the solve → `PuzzleDifficultyCalculator::calculateFromSolves()` | the indices use **today's** baselines of those players (the live model does that too) |
 
 **"First attempt" as of the solve.** Baseline and difficulty pick a player's first attempt of a puzzle as
 "`first_attempt = true` first, else the oldest". Reconstructed, that choice is made **only among solves dated
 before the solve being predicted** - otherwise a later solve flagged `first_attempt` would pull the future in.
 
-**Global ratio snapshots are cached**, not only memoised: a month's snapshot goes into a Symfony cache pool with a
-24 h TTL. The messenger worker resets services after every message, so an in-memory memo would reload ~150k
-transition rows for every async back-dated add; the command benefits from the memo, the worker from the cache.
+**Global ratio snapshots are cached**, not only memoised: a month's snapshot goes into the
+`global_improvement_ratio_snapshot_cache` pool with a 7-day TTL (a snapshot ends before the 1st of a month, only
+back-dated solves still change it). The messenger worker resets services after every message, so an in-memory memo
+alone would rerun the query (~0.6 s each on the production copy) for every async back-dated add.
 
 The two approximations are documented and small; the one thing that matters - **nothing from the solve itself or
 after it leaks in** - holds. Personal predictions (150k) are exact apart from the monthly global ratio.
 
-The pure pieces must be extracted, not copied, so live and reconstructed use one model:
+The pure pieces are extracted, not copied, so live and reconstructed use one model:
 
-- `PlayerBaselineCalculator`: the weighted-median-with-decay over a list of solves and a reference date becomes a
-  public pure method (`calculateForPlayer()` keeps working on top of it).
-- `PuzzleIntelligenceRecalculator`: the bracketing interpolate/extrapolate choice (Pass 2) moves into a pure method
-  on `PlayerBaselineCalculator`.
-- `PuzzleDifficultyCalculator`: median/percentile over an index list becomes public and pure.
-- `ImprovementRatioCalculator`: global and player medians from a transition list become public and pure.
+- `PlayerBaselineCalculator::weightedBaselineSeconds($solves, $now)` (under `calculateForPlayer()`) and
+  `gapBaseline()` (the interpolate/extrapolate choice, now also used by `PuzzleIntelligenceRecalculator` Pass 2).
+- `PuzzleDifficultyCalculator::calculateFromSolves()` (under `calculateForPuzzle()`).
+- `ImprovementRatioCalculator::transition()` (one step, used by the batch preload too),
+  `playerRatiosFromTransitions()` (under the batch path) and `globalRatiosBefore()` (pinned equal to the batch
+  ratios when nothing is cut off).
 - `TimePredictionCalculator` is already pure and is used as is.
 
-Guard test: reconstructing "as of now" for a fixture player must equal `GetPlayerPrediction` on the live tables.
-If someone changes the model in one place only, that test fails.
+Guard tests (`PredictionReconstructorTest`): reconstructing "as of now" equals `GetPlayerPrediction` on freshly
+recalculated tables, personal and statistical - if someone changes the model in one place only, they fail. The
+no-leak tests were mutation-checked (they fail when the "before" rule is removed).
 
-### Performance estimate
+### Performance (measured 2026-09-30 on the local production copy)
 
-Per player: 2 queries (the heaviest player's difficulty query reads ~150k rows, most players a few hundred) + PHP
-that is O(n²) per piece count in the worst case (2,346 times → a few million cheap operations) + one flush.
-Expect roughly 20-60 minutes for all 7,339 players; measure first with `--player=<heaviest>` on a local copy. If
-the heaviest players turn out slow, chunk the message (`BackfillSolvingTimePredictions($playerId, max: 500)` and
-loop in the command while the handler reports a full chunk) - not before it is measured.
+- Heaviest player (2,292 solo times): 25 s, 317 MB peak - most of it the ~38 month snapshots (~0.6 s each), paid
+  once per process/week.
+- `--limit=300`: 300 players, 50,229 times, 2 min 25 s, no failure → the full ~440k times ≈ 20-30 minutes.
+- Run it with `php -d memory_limit=1G`. No chunking needed.
 
 ## Rollout
 
-1. Migration (generated) + entity + enums + value object + `forgetPrediction()` invariants.
-2. `GetPlayerPrediction` `$before` parameter, `SolvingTimePredictor`, the three handlers. Deploy - from now on
-   every new time carries a `live` prediction.
-3. Refactor the calculators into pure methods (no behaviour change, existing insights tests are the gate), add
-   `PredictionReconstructor`, message, handler, command, the "as of now" guard test.
-4. Deploy, run the backfill once on the box (nohup), check counts:
+1. ✅ Migration `Version20260930130108` + entity + value objects + invalidation.
+2. ✅ `GetPlayerPrediction` `$before`, `SolvingTimePredictor`, add/edit handlers, recap + API read the stored value.
+3. ✅ Calculators refactored into pure methods, `PredictionReconstructor`, message, handler, command, guard tests.
+4. Deploy, measure `--player=<heaviest>` first, then run the backfill once on the box (nohup), check counts:
    `SELECT puzzling_type, predictable, prediction_source, count(*) FROM puzzle_solving_time GROUP BY 1, 2, 3` - no solo row with a time may stay NULL.
 5. Add the daily cron to lily.srv (`apps/myspeedpuzzling/cron.d`).
 
 ## Tests
 
-- `GetPlayerPrediction` with `$before`: later solves ignored, same-day order by `tracked_at`, gap from the solve date.
-- `AddPuzzleSolvingTimeHandler`: predicted (personal + statistical), not predictable, team → NULL; a
-  throwing predictor still saves the time with NULL.
-- `EditPuzzleSolvingTimeHandler`: date / type / time-presence change → recomputed; seconds-only change → kept.
-- `BackfillSolvingTimePredictionsHandler`: fills only NULL rows, leaves `live` rows alone, records no domain
-  events, second run is a no-op, a super-fast later solve does not change an earlier reconstructed prediction.
-- Guard test "reconstruction as of now == live tables".
+- `tests/Entity/PuzzleSolvingTimePredictionTest` - what is recorded, what forgets it (date, solo/group, time
+  presence, owner) and what keeps it (seconds, comment, flags).
+- `tests/Query/GetPlayerPredictionTest` - `$before`: later solves ignored, same-day order by `tracked_at`.
+- `tests/MessageHandler/SolvingTimePredictionRecordingTest` - live personal = what the puzzle page showed before,
+  not predictable, group untouched, yesterday live, back-dated queued, failing read keeps the time, edits.
+- `tests/Services/PuzzleIntelligence/PredictionReconstructorTest` - the two "as of now == live" guards, no leak
+  from later solves (personal, statistical, later `first_attempt` flag), same-day order, unboxed = predicted but
+  no input, first solve of a piece count = not predictable.
+- `tests/MessageHandler/BackfillSolvingTimePredictionsHandlerTest` - only pending rows, never a live one, no domain
+  events, second run no-op, every fixture player backfillable.
+- `tests/Services/PuzzleIntelligence/ImprovementRatioCalculatorTest` - `globalRatiosBefore()` = batch ratios.
+- `CreateSolvingTimePredictionEndpointTest` - budgets include the live recording; the statistical case now needs
+  5 difficulty indices *before* the solve (it passed before only because the new time counted itself).
 
 ## Decisions (Jan, 2026-09-30)
 
@@ -261,3 +284,15 @@ loop in the command while the handler reports a full chunk) - not before it is m
 | A time added or deleted *earlier* in the history does not update predictions stored for later solves | accepted: stored predictions are frozen history - `live` by definition, `reconstructed` by choice (`--recompute-reconstructed` exists for model changes) |
 | Puzzle piece count changed after the solve, duplicate merges | accepted: reconstruction uses today's piece count; merges keep predictions (same puzzle) |
 | Test DB cache holds the old schema | `rm tests/.database.cache` after the migration |
+
+### Code review 2026-09-30 (after building)
+
+| Finding | Outcome |
+|---|---|
+| Recap/API fallback for a pending time ignored the solve's moment | fixed: `resultForTime()` passes `$before` |
+| A running reconstruction could write a prediction for data an edit had just changed, and the edit's own message then skipped the time | fixed: edits name their time (`reevaluateTimeIds`), rows are locked `FOR UPDATE` |
+| Date-only edit form re-saving an API time of day counted as a move | fixed: the invalidation compares days |
+| `RequiresFreshEntityManagerState` on the message cleared the entity manager inside the add/edit web request | fixed: marker removed, the command clears itself (guarded by a test) |
+| Month snapshots re-queried daily | TTL 7 days |
+| 7 extra queries per solo add, also for non-members | accepted: the savepoint is the price of "never lose the time", the reads are the ones the recap used to run |
+| A merge keeps the stored prediction although the attempt history changes | accepted (decided above: frozen history) |

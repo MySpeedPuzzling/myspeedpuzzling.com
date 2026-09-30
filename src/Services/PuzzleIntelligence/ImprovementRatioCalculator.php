@@ -73,22 +73,16 @@ final class ImprovementRatioCalculator implements ResetInterface
             // Consecutive attempt — compute transition
             $attemptNum++;
 
-            if ($prevSeconds > 0) {
-                $ratio = $seconds / $prevSeconds;
+            $transition = self::transition(
+                $prevSeconds,
+                $seconds,
+                $attemptNum - 1,
+                (strtotime($solvedAt) - strtotime($prevSolvedAt)) / 86400.0,
+            );
 
-                if ($ratio >= 0.1 && $ratio <= 5.0) {
-                    $gapDays = (strtotime($solvedAt) - strtotime($prevSolvedAt)) / 86400.0;
-                    $fromAttempt = min($attemptNum - 1, 4);
-
-                    $transition = [
-                        'from_attempt' => $fromAttempt,
-                        'ratio' => $ratio,
-                        'gap_days' => $gapDays,
-                    ];
-
-                    $playerCache[$playerId][] = $transition;
-                    $piecesCache[$prevPiecesCount][] = $transition;
-                }
+            if ($transition !== null) {
+                $playerCache[$playerId][] = $transition;
+                $piecesCache[$prevPiecesCount][] = $transition;
             }
 
             $prevSeconds = $seconds;
@@ -98,6 +92,109 @@ final class ImprovementRatioCalculator implements ResetInterface
 
         $this->playerTransitionsCache = $playerCache;
         $this->piecesCountTransitionsCache = $piecesCache;
+    }
+
+    /**
+     * One improvement step between two consecutive attempts of a player on a puzzle, or null when
+     * the ratio is implausible (outside 0.1-5.0). Shared with PredictionReconstructor.
+     *
+     * @return null|array{from_attempt: int, ratio: float, gap_days: float}
+     */
+    public static function transition(int $previousSeconds, int $seconds, int $previousAttemptNumber, float $gapDays): null|array
+    {
+        if ($previousSeconds <= 0) {
+            return null;
+        }
+
+        $ratio = $seconds / $previousSeconds;
+
+        if ($ratio < 0.1 || $ratio > 5.0) {
+            return null;
+        }
+
+        return [
+            'from_attempt' => min($previousAttemptNumber, TimePredictionCalculator::MAX_TRANSITION),
+            'ratio' => $ratio,
+            'gap_days' => $gapDays,
+        ];
+    }
+
+    /**
+     * A player's ratio per transition - only transitions with at least 3 samples.
+     * Shared with PredictionReconstructor, which passes the transitions before a past solve.
+     *
+     * @param list<array{from_attempt: int, ratio: float, gap_days: float}> $transitions
+     * @return list<array{from_attempt: int, median_ratio: float, sample_size: int}>
+     */
+    public function playerRatiosFromTransitions(array $transitions): array
+    {
+        $groups = [];
+
+        foreach ($transitions as $t) {
+            $groups[$t['from_attempt']][] = $t['ratio'];
+        }
+
+        $results = [];
+
+        foreach ($groups as $fromAttempt => $ratios) {
+            if (count($ratios) < self::MINIMUM_PLAYER_SAMPLES) {
+                continue;
+            }
+
+            $results[] = [
+                'from_attempt' => $fromAttempt,
+                'median_ratio' => round(self::computeMedian($ratios), 6),
+                'sample_size' => count($ratios),
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
+     * Global ratios of every piece count from the transitions whose later attempt was solved
+     * before $before - what global_improvement_ratio would have held back then. Buckets are the
+     * gap buckets plus "all". Used by PredictionReconstructor.
+     *
+     * @return array<int, array<int, array<string, float>>> pieces_count => from_attempt => gap bucket => median ratio
+     */
+    public function globalRatiosBefore(\DateTimeImmutable $before): array
+    {
+        $transitionsCte = self::buildTransitionsCte(withCutoff: true);
+
+        $sql = $transitionsCte . <<<'SQL'
+            SELECT
+                pieces_count,
+                from_attempt,
+                CASE
+                    WHEN gap_days < 30 THEN 'lt30d'
+                    WHEN gap_days < 90 THEN '1_3m'
+                    WHEN gap_days < 365 THEN '3_12m'
+                    ELSE 'gt12m'
+                END AS gap_bucket,
+                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ratio) AS median_ratio
+            FROM transitions
+            GROUP BY pieces_count, from_attempt, 3
+            UNION ALL
+            SELECT
+                pieces_count,
+                from_attempt,
+                'all' AS gap_bucket,
+                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ratio) AS median_ratio
+            FROM transitions
+            GROUP BY pieces_count, from_attempt
+            SQL;
+
+        /** @var list<array{pieces_count: int|string, from_attempt: int|string, gap_bucket: string, median_ratio: float|string}> $rows */
+        $rows = $this->connection->fetchAllAssociative($sql, ['before' => $before->format('Y-m-d H:i:s')]);
+
+        $ratios = [];
+
+        foreach ($rows as $row) {
+            $ratios[(int) $row['pieces_count']][(int) $row['from_attempt']][$row['gap_bucket']] = round((float) $row['median_ratio'], 6);
+        }
+
+        return $ratios;
     }
 
     public function clearPreloadedData(): void
@@ -260,34 +357,7 @@ final class ImprovementRatioCalculator implements ResetInterface
      */
     private function calculateForPlayerFromCache(string $playerId): array
     {
-        $transitions = $this->playerTransitionsCache[$playerId] ?? [];
-
-        if ($transitions === []) {
-            return [];
-        }
-
-        // Group by from_attempt
-        $groups = [];
-
-        foreach ($transitions as $t) {
-            $groups[$t['from_attempt']][] = $t['ratio'];
-        }
-
-        $results = [];
-
-        foreach ($groups as $fromAttempt => $ratios) {
-            if (count($ratios) < self::MINIMUM_PLAYER_SAMPLES) {
-                continue;
-            }
-
-            $results[] = [
-                'from_attempt' => $fromAttempt,
-                'median_ratio' => round(self::computeMedian($ratios), 6),
-                'sample_size' => count($ratios),
-            ];
-        }
-
-        return $results;
+        return $this->playerRatiosFromTransitions($this->playerTransitionsCache[$playerId] ?? []);
     }
 
     /**
@@ -361,9 +431,11 @@ final class ImprovementRatioCalculator implements ResetInterface
         return $results;
     }
 
-    private static function buildTransitionsCte(): string
+    private static function buildTransitionsCte(bool $withCutoff = false): string
     {
-        return <<<'SQL'
+        $cutoff = $withCutoff ? 'AND n2.solved_at < CAST(:before AS timestamp)' : '';
+
+        return <<<SQL
             WITH numbered_solves AS (
                 SELECT
                     pst.player_id,
@@ -396,6 +468,7 @@ final class ImprovementRatioCalculator implements ResetInterface
                     AND n2.attempt_num = n1.attempt_num + 1
                 WHERE n1.seconds_to_solve > 0
                     AND n2.seconds_to_solve::float / n1.seconds_to_solve BETWEEN 0.1 AND 5.0
+                    {$cutoff}
             )
             SQL;
     }

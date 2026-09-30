@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\SolvingTimePredictor;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use SpeedPuzzling\Web\Value\SolvingTime;
@@ -41,6 +42,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         private LoggerInterface $logger,
         private SolvingTimeRoundResolver $roundResolver,
         private PuzzlingTeamResolver $puzzlingTeamResolver,
+        private SolvingTimePredictor $solvingTimePredictor,
     ) {
     }
 
@@ -146,5 +148,8 @@ readonly final class EditPuzzleSolvingTimeHandler
 
         // After modify(): the round depends on the competition and on solo/duo/team, both final only now
         $solvingTime->changeCompetitionRound($this->roundResolver->resolve($solvingTime));
+
+        // modify() forgets the prediction when the date, solo/group or the presence of a time changed
+        $this->solvingTimePredictor->reconstructIfPending($solvingTime);
     }
 }

@@ -105,8 +105,9 @@ final class NotifyWhenPuzzleSolvedTest extends KernelTestCase
         self::assertCount(26, $this->notificationsOf($timeId));
         self::assertCount(1, $notificationInserts, 'All followers are notified by a single INSERT');
         // 53 queries before the fan-out became one INSERT (one per follower + loading the follower entities);
-        // one of the 28 asks who blocks the solver
-        self::assertLessThanOrEqual(28, count($queries), implode("\n", $queries));
+        // one of them asks who blocks the solver, 6 record the solve's prediction (a savepoint pair + the 4 reads
+        // of a personal prediction - prediction history, SolvingTimePredictor)
+        self::assertLessThanOrEqual(34, count($queries), implode("\n", $queries));
     }
 
     public function testTeamMemberFollowedTwiceIsNotifiedOnceAndPrivateMembersNotifyNobody(): void

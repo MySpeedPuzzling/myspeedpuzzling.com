@@ -91,26 +91,88 @@ final class PlayerBaselineCalculator implements ResetInterface
             return null;
         }
 
-        $now = $this->clock->now();
-        $weightedSolves = [];
-
-        foreach ($solves as $solve) {
-            $finishedAt = new \DateTimeImmutable($solve['solve_date']);
-            $ageInMonths = $this->calculateAgeInMonths($finishedAt, $now);
-            $effectiveAge = max(0.0, $ageInMonths - self::DECAY_PLATEAU_MONTHS);
-            $weight = exp(-$effectiveAge / self::DECAY_HALF_LIFE_MONTHS);
-
-            $weightedSolves[] = [
+        $baselineSeconds = $this->weightedBaselineSeconds(
+            array_map(static fn (array $solve): array => [
                 'seconds' => (int) $solve['seconds_to_solve'],
-                'weight' => $weight,
-            ];
-        }
-
-        $baselineSeconds = $this->computeWeightedMedian($weightedSolves);
+                'solved_at' => new \DateTimeImmutable($solve['solve_date']),
+            ], $solves),
+            $this->clock->now(),
+        );
 
         return [
             'baseline_seconds' => $baselineSeconds,
-            'qualifying_count' => count($weightedSolves),
+            'qualifying_count' => count($solves),
+        ];
+    }
+
+    /**
+     * Direct baseline from first-attempt solves as seen at $now: weighted median, older solves
+     * decaying after a plateau. Shared with PredictionReconstructor, which passes the moment of a
+     * past solve as $now. Callers check MINIMUM_SOLVE_COUNT.
+     *
+     * @param non-empty-list<array{seconds: int, solved_at: \DateTimeImmutable}> $solves
+     */
+    public function weightedBaselineSeconds(array $solves, \DateTimeImmutable $now): int
+    {
+        $weightedSolves = [];
+
+        foreach ($solves as $solve) {
+            $ageInMonths = $this->calculateAgeInMonths($solve['solved_at'], $now);
+            $effectiveAge = max(0.0, $ageInMonths - self::DECAY_PLATEAU_MONTHS);
+
+            $weightedSolves[] = [
+                'seconds' => $solve['seconds'],
+                'weight' => exp(-$effectiveAge / self::DECAY_HALF_LIFE_MONTHS),
+            ];
+        }
+
+        return $this->computeWeightedMedian($weightedSolves);
+    }
+
+    /**
+     * Baseline for a piece count without a direct one: interpolated between the two direct
+     * baselines around it, else extrapolated from the closest one with the scaling exponent.
+     *
+     * @param array<int, int> $directBaselines pieces_count => baseline_seconds, sorted by pieces count
+     * @return null|array{baseline_seconds: int, baseline_type: 'interpolated'|'extrapolated'}
+     */
+    public function gapBaseline(int $targetPieces, array $directBaselines, float $scalingExponent): null|array
+    {
+        if ($directBaselines === []) {
+            return null;
+        }
+
+        $lower = null;
+        $upper = null;
+
+        // Find bracketing baselines
+        foreach (array_keys($directBaselines) as $pc) {
+            if ($pc < $targetPieces) {
+                $lower = $pc;
+            }
+
+            if ($pc > $targetPieces && $upper === null) {
+                $upper = $pc;
+            }
+        }
+
+        if ($lower !== null && $upper !== null) {
+            return [
+                'baseline_seconds' => $this->interpolateBaseline($targetPieces, $lower, $directBaselines[$lower], $upper, $directBaselines[$upper]),
+                'baseline_type' => 'interpolated',
+            ];
+        }
+
+        // Extrapolated: use closest baseline + scaling exponent
+        $closestPc = $lower ?? $upper;
+
+        if ($closestPc === null) {
+            return null;
+        }
+
+        return [
+            'baseline_seconds' => $this->extrapolateBaseline($targetPieces, $closestPc, $directBaselines[$closestPc], $scalingExponent),
+            'baseline_type' => 'extrapolated',
         ];
     }
 

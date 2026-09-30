@@ -50,6 +50,13 @@ return App::config([
                 'difficulty_rankings_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // Global improvement ratios as they were at the start of a month
+                // (PredictionReconstructor) - recomputing one takes a second or two
+                // over every repeat solve, and the messenger worker resets the
+                // in-memory copy after each message. 7-day TTL.
+                'global_improvement_ratio_snapshot_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
             ],
         ],
     ],

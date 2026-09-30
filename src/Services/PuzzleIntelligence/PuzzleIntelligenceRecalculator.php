@@ -154,44 +154,14 @@ readonly final class PuzzleIntelligenceRecalculator
                 continue;
             }
 
-            $pieceCounts = array_keys($directBaselines);
-            $lower = null;
-            $upper = null;
+            $gapBaseline = $this->baselineCalculator->gapBaseline($targetPieces, $directBaselines, $scalingExponent);
 
-            // Find bracketing baselines
-            foreach ($pieceCounts as $pc) {
-                if ($pc < $targetPieces) {
-                    $lower = $pc;
-                }
-
-                if ($pc > $targetPieces && $upper === null) {
-                    $upper = $pc;
-                }
+            if ($gapBaseline === null) {
+                continue;
             }
 
-            if ($lower !== null && $upper !== null) {
-                // Interpolated: two brackets exist
-                $baseline = $this->baselineCalculator->interpolateBaseline(
-                    $targetPieces,
-                    $lower,
-                    $directBaselines[$lower],
-                    $upper,
-                    $directBaselines[$upper],
-                );
-                $baselineType = 'interpolated';
-            } else {
-                // Extrapolated: use closest baseline + scaling exponent
-                $closestPc = $lower ?? $upper;
-                assert($closestPc !== null);
-
-                $baseline = $this->baselineCalculator->extrapolateBaseline(
-                    $targetPieces,
-                    $closestPc,
-                    $directBaselines[$closestPc],
-                    $scalingExponent,
-                );
-                $baselineType = 'extrapolated';
-            }
+            $baseline = $gapBaseline['baseline_seconds'];
+            $baselineType = $gapBaseline['baseline_type'];
 
             $buffer[] = [
                 'player_id' => $playerId,

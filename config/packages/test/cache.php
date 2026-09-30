@@ -16,7 +16,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 // known snapshot by writing it into this pool, and nothing it computes from a
 // test's rolled-back rows may outlive that test's kernel - so it lives in memory.
 // Same for the hardest / easiest puzzle lists, built from the rated puzzles a
-// test seeds and DAMA rolls back.
+// test seeds and DAMA rolls back, and for the global improvement ratio snapshots.
 return App::config([
     'framework' => [
         'cache' => [
@@ -26,6 +26,9 @@ return App::config([
                     'adapters' => ['cache.adapter.array'],
                 ],
                 'difficulty_rankings_cache' => [
+                    'adapters' => ['cache.adapter.array'],
+                ],
+                'global_improvement_ratio_snapshot_cache' => [
                     'adapters' => ['cache.adapter.array'],
                 ],
             ],

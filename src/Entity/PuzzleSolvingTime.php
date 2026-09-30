@@ -23,6 +23,9 @@ use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\PuzzlingType;
+use SpeedPuzzling\Web\Value\SolvingTimePrediction;
+use SpeedPuzzling\Web\Value\TimePredictionMethod;
+use SpeedPuzzling\Web\Value\TimePredictionSource;
 
 #[Entity]
 #[Index(columns: ['tracked_at'])]
@@ -38,6 +41,51 @@ class PuzzleSolvingTime implements EntityWithEvents
 
     #[Column(options: ['default' => PuzzlingType::Solo->value])]
     public PuzzlingType $puzzlingType;
+
+    // What we predicted for this solve at that moment (docs/features/puzzle-intelligence/prediction-history.md).
+    // true = predicted, false = the data was not there, null = not evaluated: duo/team and times without seconds
+    // stay null for good, a solo time with seconds is pending until the backfill or a live add fills it.
+    // Changed only through recordPrediction() / forgetPrediction()
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|bool $predictable = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, nullable: true, enumType: TimePredictionMethod::class)]
+    public null|TimePredictionMethod $predictionMethod = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $predictedSeconds = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $predictedRangeLowSeconds = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $predictedRangeHighSeconds = null;
+
+    // Personal predictions only: which attempt was predicted, and the time of the attempt before it
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::SMALLINT, nullable: true)]
+    public null|int $predictedAttemptNumber = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $predictionLastTimeSeconds = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, nullable: true, enumType: TimePredictionSource::class)]
+    public null|TimePredictionSource $predictionSource = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $predictionComputedAt = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::SMALLINT, nullable: true)]
+    public null|int $predictionModelVersion = null;
 
     public function __construct(
         #[Id]
@@ -152,6 +200,40 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->competitionRound = $competitionRound;
     }
 
+    /**
+     * Only a solo time with seconds is ever predicted. Records no domain event on purpose: the backfill
+     * writes ~450k of these, and PuzzleSolvingTimeModified would recalculate the insights for each one.
+     */
+    public function recordPrediction(SolvingTimePrediction $prediction, DateTimeImmutable $computedAt): void
+    {
+        $result = $prediction->result;
+
+        $this->predictable = $prediction->isPredictable();
+        $this->predictionMethod = match (true) {
+            $result === null => null,
+            $result->isPersonalized => TimePredictionMethod::Personal,
+            default => TimePredictionMethod::Statistical,
+        };
+        $this->predictedSeconds = $result?->predictedSeconds;
+        $this->predictedRangeLowSeconds = $result?->rangeLowSeconds;
+        $this->predictedRangeHighSeconds = $result?->rangeHighSeconds;
+        $this->predictedAttemptNumber = $result?->isPersonalized === true ? $result->predictedAttemptNumber : null;
+        $this->predictionLastTimeSeconds = $result?->isPersonalized === true ? $result->lastTimeSeconds : null;
+        $this->predictionSource = $prediction->source;
+        $this->predictionComputedAt = $computedAt;
+        $this->predictionModelVersion = $prediction->modelVersion;
+    }
+
+    /**
+     * Solo with seconds and not evaluated yet - what the live add, the edit and the backfill pick up.
+     */
+    public function isPredictionPending(): bool
+    {
+        return $this->predictable === null
+            && $this->puzzlingType === PuzzlingType::Solo
+            && $this->secondsToSolve !== null;
+    }
+
     public function modify(
         null|int $seconds,
         null|string $comment,
@@ -163,6 +245,10 @@ class PuzzleSolvingTime implements EntityWithEvents
         null|Competition $competition,
         null|PuzzlingTeam $puzzlingTeam,
     ): void {
+        $puzzlingTypeBefore = $this->puzzlingType;
+        $finishedAtBefore = $this->finishedAt;
+        $hadSecondsBefore = $this->secondsToSolve !== null;
+
         $this->secondsToSolve = $seconds;
         $this->comment = $comment;
         $this->team = $puzzlersGroup;
@@ -175,6 +261,18 @@ class PuzzleSolvingTime implements EntityWithEvents
 
         $this->puzzlersCount = $this->calculatePuzzlersCount();
         $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
+
+        // The prediction stays when only the seconds changed - the outcome follows them. It is
+        // forgotten when what it predicted changed: another day in the history, solo <-> group,
+        // a time appearing or disappearing. Days, not seconds: the edit form is date-only, so
+        // re-saving a time that came with a time of day (API) must not count as a move
+        if (
+            $puzzlingTypeBefore !== $this->puzzlingType
+            || $finishedAtBefore?->format('Y-m-d') !== $finishedAt?->format('Y-m-d')
+            || $hadSecondsBefore !== ($seconds !== null)
+        ) {
+            $this->forgetPrediction();
+        }
 
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
@@ -196,13 +294,36 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->team = $newTeam;
         $this->puzzlersCount = $this->calculatePuzzlersCount();
         $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
+
+        // Someone else's time now - the daily backfill evaluates it again
+        $this->forgetPrediction();
     }
 
     public function replaceTeam(null|PuzzlersGroup $newTeam): void
     {
+        $puzzlingTypeBefore = $this->puzzlingType;
+
         $this->team = $newTeam;
         $this->puzzlersCount = $this->calculatePuzzlersCount();
         $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
+
+        if ($puzzlingTypeBefore !== $this->puzzlingType) {
+            $this->forgetPrediction();
+        }
+    }
+
+    private function forgetPrediction(): void
+    {
+        $this->predictable = null;
+        $this->predictionMethod = null;
+        $this->predictedSeconds = null;
+        $this->predictedRangeLowSeconds = null;
+        $this->predictedRangeHighSeconds = null;
+        $this->predictedAttemptNumber = null;
+        $this->predictionLastTimeSeconds = null;
+        $this->predictionSource = null;
+        $this->predictionComputedAt = null;
+        $this->predictionModelVersion = null;
     }
 
     private function calculatePuzzlersCount(): int

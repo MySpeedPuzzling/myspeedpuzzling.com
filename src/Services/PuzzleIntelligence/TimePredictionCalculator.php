@@ -20,6 +20,13 @@ use SpeedPuzzling\Web\Results\TimePredictionResult;
  */
 final readonly class TimePredictionCalculator
 {
+    /**
+     * Stored with every solving-time prediction. Bump it whenever a change here (or in the inputs:
+     * baselines, difficulty, improvement ratios) changes what gets predicted, so accuracy
+     * statistics never mix two models silently.
+     */
+    public const int MODEL_VERSION = 1;
+
     public const float DEFAULT_IMPROVEMENT_RATIO = 0.90;
 
     public const int MAX_TRANSITION = 4;

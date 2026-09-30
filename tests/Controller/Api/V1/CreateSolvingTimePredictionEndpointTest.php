@@ -40,8 +40,10 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * (repeat solves recompute improvement ratios, subscribers get notification rows).
  * The WRITE_PATH_* constants are the request-only counts of each scenario measured
  * 2026-08-19 with the prediction switched off (PAT authentication included), so the
- * ceilings pin only what this feature adds: owner profile 1 + prediction <= 5 for an
- * eligible request, owner profile 1 at most otherwise, nothing for a group time.
+ * ceilings pin only what this feature adds: owner profile + the stored prediction for an
+ * eligible request, owner profile at most otherwise, nothing for a group time. Since
+ * prediction history (2026-09-30) every solo create also records its live prediction in
+ * the handler - for everybody, members or not - which LIVE_PREDICTION_RECORDING covers.
  *
  * @phpstan-type Prediction array{predicted_seconds: null|int, range_low_seconds: null|int, range_high_seconds: null|int, is_personalized: bool, personal_solve_count: null|int, predicted_attempt_number: null|int, last_time_seconds: null|int}
  * @phpstan-type SolvingTimeResponse array{time_id: string, puzzle_id: string, time_seconds: null|int, finished_at: null|string, first_attempt: bool, unboxed: bool, comment: null|string, round_id: null|string}
@@ -74,8 +76,14 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
      */
     private const int OWNER_PROFILE_QUERIES = 2;
 
-    /** GetPlayerPrediction::forPuzzle - personal: solves, pieces, player ratio, global ratio (+ the "all" bucket); statistical: solves + 1 */
-    private const int PREDICTION_QUERIES_MAX = 5;
+    /**
+     * SolvingTimePredictor in the add handler: a savepoint pair + GetPlayerPrediction::forPuzzle (personal:
+     * solves, pieces, player ratio, global ratios; statistical: solves + 1)
+     */
+    private const int LIVE_PREDICTION_RECORDING = 2 + 5;
+
+    /** GetSolvingTimePrediction::byTimeId - the response reads what the handler stored */
+    private const int STORED_PREDICTION_QUERIES = 1;
 
     /**
      * The member has one earlier solo solve of the puzzle: the prediction is the
@@ -94,7 +102,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertQueryCountAtMost(
             $browser,
-            self::WRITE_PATH_MEMBER_SOLO_500_01 + self::OWNER_PROFILE_QUERIES + self::PREDICTION_QUERIES_MAX,
+            self::WRITE_PATH_MEMBER_SOLO_500_01 + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES + self::STORED_PREDICTION_QUERIES,
             'Member solo create with a personal prediction (PAT)',
         );
         $response = $this->decode($browser);
@@ -122,9 +130,10 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
     /**
      * No earlier solve of this puzzle, but a 500-piece baseline and a scored puzzle:
      * the statistical (baseline x difficulty) prediction applied before the solve.
-     * The create's own synchronous recalculation rewrites the puzzle's difficulty
-     * row from the actual solves, so the puzzle is made scorable by seeding four
-     * other players' first attempts (5 indices with the new one = scored, "low").
+     * "Before" is strict: the puzzle needs 5 difficulty indices *without* the new time
+     * (until 2026-09-30 the response was computed after the create's recalculation had
+     * already counted the new time, so four seeded solvers were enough). Only four other
+     * fixture players have a 500-piece baseline, so a fifth solver is created with one.
      */
     public function testMemberWithoutHistoryGetsTheStatisticalPrediction(): void
     {
@@ -136,6 +145,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
             PlayerFixture::PLAYER_PRIVATE => 1650,
             PlayerFixture::PLAYER_ADMIN => 2050,
             PlayerFixture::PLAYER_WITH_FAVORITES => 2950,
+            $this->seedPlayerWith500PieceBaseline($browser, 2400) => 2300,
             ] as $playerId => $seconds
         ) {
             $this->seedSoloSolve($browser, $playerId, PuzzleFixture::PUZZLE_500_04, $seconds);
@@ -149,7 +159,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertQueryCountAtMost(
             $browser,
-            self::WRITE_PATH_MEMBER_SOLO_500_04 + self::OWNER_PROFILE_QUERIES + self::PREDICTION_QUERIES_MAX,
+            self::WRITE_PATH_MEMBER_SOLO_500_04 + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES + self::STORED_PREDICTION_QUERIES,
             'Member solo create with a statistical prediction (PAT)',
         );
         $response = $this->decode($browser);
@@ -183,7 +193,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertQueryCountAtMost(
             $browser,
-            self::WRITE_PATH_NON_MEMBER_SOLO_500_02 + self::OWNER_PROFILE_QUERIES,
+            self::WRITE_PATH_NON_MEMBER_SOLO_500_02 + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES,
             'Non-member solo create (PAT)',
         );
         $response = $this->decode($browser);
@@ -228,7 +238,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertQueryCountAtMost(
             $browser,
-            self::WRITE_PATH_MEMBER_SOLO_500_01 + self::OWNER_PROFILE_QUERIES,
+            self::WRITE_PATH_MEMBER_SOLO_500_01 + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES,
             'Opted-out member solo create (PAT)',
         );
         $response = $this->decode($browser);
@@ -378,6 +388,26 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         ));
         $entityManager->flush();
         $entityManager->clear();
+    }
+
+    private function seedPlayerWith500PieceBaseline(KernelBrowser $browser, int $baselineSeconds): string
+    {
+        $entityManager = $this->entityManager($browser);
+        $player = new Player(Uuid::uuid7(), 'pred' . bin2hex(random_bytes(3)), null, null, new DateTimeImmutable());
+        $entityManager->persist($player);
+        $entityManager->flush();
+        $entityManager->clear();
+
+        /** @var ContainerInterface $container */
+        $container = $browser->getContainer();
+        /** @var Connection $database */
+        $database = $container->get(Connection::class);
+        $database->executeStatement(
+            "INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, baseline_type, computed_at) VALUES (:id, :playerId, 500, :baseline, 5, 'direct', NOW())",
+            ['id' => Uuid::uuid7()->toString(), 'playerId' => $player->id->toString(), 'baseline' => $baselineSeconds],
+        );
+
+        return $player->id->toString();
     }
 
     private function optOutOfTimePredictions(KernelBrowser $browser, string $playerId): void

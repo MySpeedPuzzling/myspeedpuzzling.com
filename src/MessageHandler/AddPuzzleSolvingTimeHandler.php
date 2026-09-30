@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\SolvingTimePredictor;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use SpeedPuzzling\Web\Value\SolvingTime;
@@ -44,6 +45,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private LoggerInterface $logger,
         private SolvingTimeRoundResolver $roundResolver,
         private PuzzlingTeamResolver $puzzlingTeamResolver,
+        private SolvingTimePredictor $solvingTimePredictor,
     ) {
     }
 
@@ -139,6 +141,9 @@ readonly final class AddPuzzleSolvingTimeHandler
         }
 
         $solvingTime->changeCompetitionRound($this->roundResolver->resolve($solvingTime));
+
+        // Before persist: the insights tables do not know this solve yet
+        $this->solvingTimePredictor->predictAddedTime($solvingTime);
 
         $this->entityManager->persist($solvingTime);
     }

@@ -19,12 +19,15 @@ Measured 2026-09-30: [`features/seo/performance-2026-10.md`](features/seo/perfor
 ## Prediction history
 
 Design: [`features/puzzle-intelligence/prediction-history.md`](features/puzzle-intelligence/prediction-history.md) (2026-09-30).
-First delivery = store + backfill only; everything below is the UI that comes after it.
+First delivery = store + backfill; the UI comes after it.
 
-- [ ] Build it: columns + live recording + backfill command + daily cron (rollout steps in the design doc)
-- [ ] Recap page and API `POST /api/v1/me/solving-times` read the stored prediction instead of recomputing it
-      afterwards (today they see the new time in the baseline/difficulty and use later solves as "prior attempts") -
-      part of the first delivery, it is a correctness fix
+- [x] Build it: columns + live recording on add/edit + backfill command (2026-09-30)
+- [x] Recap page and API `POST /api/v1/me/solving-times` read the stored prediction (fallback to computing it only
+      while a back-dated time is still pending)
+- [ ] After deploy: `myspeedpuzzling:backfill-solving-time-predictions --player=<the 2,346-times player>` to measure,
+      then the full run on the box (nohup), then the counts query from the design doc §Rollout
+- [ ] Daily cron `myspeedpuzzling:backfill-solving-time-predictions` in lily.srv (`apps/myspeedpuzzling/cron.d`) -
+      heals rows from old blue-green containers, failed live predictions, `DeletePlayer` group changes
 - [ ] Per-time outcome in the player's history (puzzle page "my times", profile): range, "12 % faster than predicted", inside/outside the range, members-only, hidden for players who opted out of predictions (stored anyway), decide for unboxed/suspicious times
 - [ ] Mark `reconstructed` predictions in the UI ("reconstructed from your earlier solves") vs `live`
 - [ ] Player-level accuracy: how often inside the range, average beat, trend over time (Insights section)

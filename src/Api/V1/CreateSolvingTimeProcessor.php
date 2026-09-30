@@ -9,7 +9,7 @@ use ApiPlatform\State\ProcessorInterface;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
-use SpeedPuzzling\Web\Query\GetPlayerPrediction;
+use SpeedPuzzling\Web\Query\GetSolvingTimePrediction;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\ApiUser;
 use SpeedPuzzling\Web\Services\Api\ApiTokenOwner;
@@ -28,7 +28,7 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
         private MessageBusInterface $messageBus,
         private CompetitionRoundRepository $competitionRoundRepository,
         private ApiTokenOwner $tokenOwner,
-        private GetPlayerPrediction $getPlayerPrediction,
+        private GetSolvingTimePrediction $getSolvingTimePrediction,
     ) {
     }
 
@@ -121,8 +121,7 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
             return null;
         }
 
-        return TimePredictionResponse::fromResult(
-            $this->getPlayerPrediction->forPuzzle($profile->playerId, $data->puzzleId, excludeTimeId: $timeId),
-        );
+        // Stored by the add handler before the new time reached the insights tables
+        return TimePredictionResponse::fromResult($this->getSolvingTimePrediction->resultForTime($timeId));
     }
 }

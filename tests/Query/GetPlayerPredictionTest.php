@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Value\SolveMoment;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -218,6 +219,74 @@ final class GetPlayerPredictionTest extends KernelTestCase
         self::assertEquals(
             $calculator->personal($times, 0.85),
             $this->query->forPuzzle(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_02),
+        );
+    }
+
+    /**
+     * Predicting one particular solve: only the solves before it are earlier attempts. PLAYER_REGULAR
+     * solved PUZZLE_500_02 three times (TIME_06 2200 s, TIME_07 1900 s, TIME_08 1700 s) - the prediction
+     * for TIME_07 knows only TIME_06, even though TIME_08 exists.
+     */
+    public function testBeforeIgnoresLaterSolves(): void
+    {
+        $result = $this->query->forPuzzle(
+            PlayerFixture::PLAYER_REGULAR,
+            PuzzleFixture::PUZZLE_500_02,
+            excludeTimeId: PuzzleSolvingTimeFixture::TIME_07,
+            before: $this->momentOf(PuzzleSolvingTimeFixture::TIME_07),
+        );
+
+        self::assertNotNull($result);
+        self::assertTrue($result->isPersonalized);
+        self::assertSame(1, $result->personalSolveCount);
+        self::assertSame(2, $result->predictedAttemptNumber);
+        self::assertSame(2200, $result->lastTimeSeconds);
+    }
+
+    public function testBeforeTheFirstSolveThereIsNoPersonalPrediction(): void
+    {
+        $result = $this->query->forPuzzle(
+            PlayerFixture::PLAYER_REGULAR,
+            PuzzleFixture::PUZZLE_500_02,
+            excludeTimeId: PuzzleSolvingTimeFixture::TIME_06,
+            before: $this->momentOf(PuzzleSolvingTimeFixture::TIME_06),
+        );
+
+        self::assertTrue($result === null || $result->isPersonalized === false);
+    }
+
+    /**
+     * Same-day solves share finished_at (a date) - tracked_at decides. PLAYER_ADMIN solved PUZZLE_1000_01
+     * 21 days ago (TIME_17, 3900 s) and three times 5 days ago at 09:00, 13:00, 18:00 (5200, 4600, 4000 s):
+     * the 13:00 solve knows the 21-day-old one and the 09:00 one.
+     */
+    public function testBeforeOrdersSameDaySolvesByTrackedAt(): void
+    {
+        $result = $this->query->forPuzzle(
+            PlayerFixture::PLAYER_ADMIN,
+            PuzzleFixture::PUZZLE_1000_01,
+            excludeTimeId: PuzzleSolvingTimeFixture::TIME_48_SAME_DAY_MEDIUM,
+            before: $this->momentOf(PuzzleSolvingTimeFixture::TIME_48_SAME_DAY_MEDIUM),
+        );
+
+        self::assertNotNull($result);
+        self::assertTrue($result->isPersonalized);
+        self::assertSame(2, $result->personalSolveCount);
+        self::assertSame(5200, $result->lastTimeSeconds);
+    }
+
+    private function momentOf(string $timeId): SolveMoment
+    {
+        /** @var Connection $connection */
+        $connection = self::getContainer()->get(Connection::class);
+
+        /** @var array{finished_at: null|string, tracked_at: string}|false $row */
+        $row = $connection->fetchAssociative('SELECT finished_at, tracked_at FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]);
+        self::assertNotFalse($row);
+
+        return SolveMoment::of(
+            $row['finished_at'] !== null ? new DateTimeImmutable($row['finished_at']) : null,
+            new DateTimeImmutable($row['tracked_at']),
         );
     }
 }

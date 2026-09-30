@@ -85,7 +85,26 @@ final class PuzzleDifficultyCalculator implements ResetInterface
      */
     public function calculateForPuzzle(string $puzzleId): array
     {
-        $indices = $this->computeDifficultyIndices($puzzleId);
+        return $this->calculateFromSolves($this->fetchFirstAttemptsWithBaselines($puzzleId));
+    }
+
+    /**
+     * Difficulty from the first attempts of a puzzle (one per player) and those players' baselines.
+     * Shared with PredictionReconstructor, which passes only the first attempts before a past solve.
+     *
+     * @param list<array{seconds_to_solve: int|string, baseline_seconds: int|string}> $solves
+     * @return array{
+     *     difficulty_score: float|null,
+     *     difficulty_tier: DifficultyTier|null,
+     *     confidence: MetricConfidence,
+     *     sample_size: int,
+     *     indices_p25: float|null,
+     *     indices_p75: float|null,
+     * }
+     */
+    public function calculateFromSolves(array $solves): array
+    {
+        $indices = $this->computeDifficultyIndices($solves);
 
         if (count($indices) < self::MINIMUM_INDICES) {
             return [
@@ -114,45 +133,53 @@ final class PuzzleDifficultyCalculator implements ResetInterface
     }
 
     /**
-     * Compute difficulty indices for all qualifying solves of a puzzle.
-     * Each qualifying player contributes exactly one index (their first attempt).
+     * First attempt of every qualifying player of a puzzle, with the player's baseline.
      *
-     * @return list<float>
+     * @return list<array{seconds_to_solve: int|string, baseline_seconds: int|string}>
      */
-    private function computeDifficultyIndices(string $puzzleId): array
+    private function fetchFirstAttemptsWithBaselines(string $puzzleId): array
     {
         if ($this->indicesCache !== null) {
-            $rows = $this->indicesCache[$puzzleId] ?? [];
-        } else {
-            $sql = "
-                WITH first_attempts AS (
-                    SELECT DISTINCT ON (pst.player_id)
-                        pst.player_id,
-                        pst.seconds_to_solve
-                    FROM puzzle_solving_time pst
-                    WHERE pst.puzzle_id = :puzzleId
-                        AND pst.puzzling_type = 'solo'
-                        AND pst.suspicious = false
-                        AND pst.seconds_to_solve IS NOT NULL
-                        AND pst.unboxed = false
-                    ORDER BY pst.player_id,
-                        pst.first_attempt DESC,
-                        COALESCE(pst.finished_at, pst.tracked_at) ASC
-                )
-                SELECT
-                    fa.seconds_to_solve,
-                    pb.baseline_seconds
-                FROM first_attempts fa
-                JOIN player_baseline pb ON pb.player_id = fa.player_id
-                JOIN puzzle p ON p.id = :puzzleId AND pb.pieces_count = p.pieces_count
-            ";
-
-            /** @var list<array{seconds_to_solve: int|string, baseline_seconds: int|string}> $rows */
-            $rows = $this->connection->fetchAllAssociative($sql, [
-                'puzzleId' => $puzzleId,
-            ]);
+            return $this->indicesCache[$puzzleId] ?? [];
         }
 
+        $sql = "
+            WITH first_attempts AS (
+                SELECT DISTINCT ON (pst.player_id)
+                    pst.player_id,
+                    pst.seconds_to_solve
+                FROM puzzle_solving_time pst
+                WHERE pst.puzzle_id = :puzzleId
+                    AND pst.puzzling_type = 'solo'
+                    AND pst.suspicious = false
+                    AND pst.seconds_to_solve IS NOT NULL
+                    AND pst.unboxed = false
+                ORDER BY pst.player_id,
+                    pst.first_attempt DESC,
+                    COALESCE(pst.finished_at, pst.tracked_at) ASC
+            )
+            SELECT
+                fa.seconds_to_solve,
+                pb.baseline_seconds
+            FROM first_attempts fa
+            JOIN player_baseline pb ON pb.player_id = fa.player_id
+            JOIN puzzle p ON p.id = :puzzleId AND pb.pieces_count = p.pieces_count
+        ";
+
+        /** @var list<array{seconds_to_solve: int|string, baseline_seconds: int|string}> */
+        return $this->connection->fetchAllAssociative($sql, [
+            'puzzleId' => $puzzleId,
+        ]);
+    }
+
+    /**
+     * Each qualifying player contributes exactly one index (their first attempt).
+     *
+     * @param list<array{seconds_to_solve: int|string, baseline_seconds: int|string}> $rows
+     * @return list<float>
+     */
+    private function computeDifficultyIndices(array $rows): array
+    {
         $indices = [];
 
         foreach ($rows as $row) {

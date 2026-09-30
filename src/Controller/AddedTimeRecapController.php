@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Symfony\Component\Security\Core\User\UserInterface;
-use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerRatingRanking;
 use SpeedPuzzling\Web\Query\GetPlayerSkill;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetSolvingTimePrediction;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspRatingCalculator;
@@ -27,11 +27,11 @@ final class AddedTimeRecapController extends AbstractController
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
-        readonly private GetPlayerPrediction $getPlayerPrediction,
         readonly private GetRanking $getRanking,
         readonly private GetPlayerSkill $getPlayerSkill,
         readonly private GetPlayerRatingRanking $getPlayerRatingRanking,
         readonly private MspRatingCalculator $mspRatingCalculator,
+        readonly private GetSolvingTimePrediction $getSolvingTimePrediction,
     ) {
     }
 
@@ -65,7 +65,9 @@ final class AddedTimeRecapController extends AbstractController
         $ratingProgress = null;
 
         if ($isSolo && $solvingPuzzle->time !== null && !$player->timePredictionsOptedOut) {
-            $timePrediction = $this->getPlayerPrediction->forPuzzle($solvingPuzzle->playerId, $solvingPuzzle->puzzleId, excludeTimeId: $timeId);
+            // What was predicted for this solve, stored when it was added - computing it now would see the
+            // new time already folded into the baseline and difficulty
+            $timePrediction = $this->getSolvingTimePrediction->resultForTime($timeId);
         }
 
         if ($isSolo && $solvingPuzzle->time !== null && !$player->rankingOptedOut) {

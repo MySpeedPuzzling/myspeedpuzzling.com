@@ -15,7 +15,7 @@
 
 {% set return_path = safe_return_url(app.request.query.get('return')) %}
 {% set return_params = return_path is null ? {} : {'return': return_path} %}
-{% set any_provider = social_login.isAnyEnabled() %}
+{% set any_provider = social_login.isAnyShown() %}
 {% set email_open = not any_provider or form.vars.submitted or app.request.query.get('method') == 'email' %}
 
 {% block auth_content %}

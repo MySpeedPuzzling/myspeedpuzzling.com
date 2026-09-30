@@ -1,6 +1,6 @@
 # Social login setup — Facebook (Meta)
 
-Exact click-path for "Continue with Facebook" in today's (2026) **use-case based** Meta developer dashboard, plus the secrets hand-off and the go-live checklist. The code is done and deployed dark (auth hardening PR 2 #175, hardening 2026-09-29). Google and Apple went public on 2026-09-29 and lost their flags together with the admin-only stage; **Facebook keeps `SOCIAL_LOGIN_FACEBOOK_ENABLED` until the Meta app is published** - and since there is no admin-only stage any more, turning the flag on is the public launch.
+Exact click-path for "Continue with Facebook" in today's (2026) **use-case based** Meta developer dashboard, plus the secrets hand-off and the go-live checklist. The code is done and deployed dark (auth hardening PR 2 #175, hardening 2026-09-29). Google and Apple went public on 2026-09-29 and lost their flags together with the admin-only stage; **Facebook keeps `SOCIAL_LOGIN_FACEBOOK_ENABLED` until the Meta app is published** - since 2026-09-30 it only controls whether the Facebook **buttons** are shown; with credentials configured the routes work regardless, so the app's admins/testers can test by direct URL while the app is unpublished (§7). Turning the flag on is the public launch.
 
 ## Read this first
 
@@ -21,7 +21,7 @@ Exact click-path for "Continue with Facebook" in today's (2026) **use-case based
 | Data deletion instructions URL | `https://myspeedpuzzling.com/en/data-deletion` (`DataDeletionController`) |
 | Contact e-mail | `jan@myspeedpuzzling.com` |
 | App icon | square PNG **1024 × 1024** (the repo has only a 512 px icon - export the logo at 1024) |
-| Env vars the app reads | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `SOCIAL_LOGIN_FACEBOOK_ENABLED` - Facebook is available iff the flag is on **and** both credentials are set (`SocialLoginSettings`) |
+| Env vars the app reads | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `SOCIAL_LOGIN_FACEBOOK_ENABLED` - Facebook works iff both credentials are set (`SocialLoginSettings::isAvailable()`); the flag only shows its buttons (`isShown()`) |
 | Local dev | nothing to set up: while an app is in Development mode Meta allows `localhost` redirect URIs automatically |
 
 ## 1. Create the app (Jan, ~10 min)
@@ -84,7 +84,7 @@ Left menu **App settings → Basic**:
 Left menu **Publish** (older layouts: the *App mode* toggle Development → Live at the top). The page lists what is still missing - normally only the §3 fields. When everything is ticked, click **Publish**.
 
 - **Business verification is not expected** for `email` + `public_profile`. If Meta nevertheless insists on it before publishing (Meta's docs say advanced access "may" need a verified business), **stop and tell Claude** - that is a decision (MySpeedPuzzling business documents), not a click.
-- Being Live does *not* turn anything on in MySpeedPuzzling - the feature flag does (§7).
+- Being Live does *not* turn anything on in MySpeedPuzzling - the feature flag shows the buttons (§6).
 
 ## 5. Keep it healthy (yearly)
 
@@ -109,13 +109,20 @@ What the agent then does (procedure: memory `reference_production_access.md`, "I
 3. Queues a deploy (`/srv/deploy/queue/myspeedpuzzling.<epoch>.<rand>.job`, `app=myspeedpuzzling` / `tag=main`) so `dump_secrets` renders the new `.env`, and checks the web container sees the values.
 4. The file can stay as your local copy or be deleted once Infisical holds the values (Jan's call).
 
-## 7. Test checklist (right after the flag flip)
+## 7. Test checklist
 
-The buttons are public from the flip on, so run this straight away. Sign in with your own account.
+**Before the flip (app unpublished, flag `0`, credentials in production):** no Facebook button anywhere, but the routes work by direct URL for the Meta app's admins/testers - run steps 1-6 with these URLs instead of buttons:
+
+- Sign in: `https://myspeedpuzzling.com/login/social/facebook`
+- Connect (while signed in): `https://myspeedpuzzling.com/account/social/facebook/connect`
+
+A Facebook account that is not an admin/tester of the app gets a Facebook error - expected until the app is published. Once connected, your Facebook row (with Disconnect) shows in Edit profile regardless of the flag.
+
+**Right after the flip:** the buttons are public, so run the list again straight away. Sign in with your own account.
 
 0. **Buttons**: `/login` and `/register` show "Continue with Facebook" with the Meta/Instagram hint.
 
-1. **Connect from settings**: Edit profile → *Connected sign-in methods* → **Continue with Facebook** → Facebook consent → back on edit profile with "Connected!". The Facebook row appears; you get the "new sign-in method linked" notice e-mail.
+1. **Connect from settings**: Edit profile → *Connected sign-in methods* → **Continue with Facebook** (before the flip: open `/account/social/facebook/connect`) → Facebook consent → back on edit profile with "Connected!". The Facebook row appears; you get the "new sign-in method linked" notice e-mail.
 2. **Sign in**: sign out, open `https://myspeedpuzzling.com/login/social/facebook` → you are signed in to the same account.
 3. **Declined e-mail, then retry**: Disconnect Facebook again (step 5), and in Facebook → Settings → *Apps and websites* remove MySpeedPuzzling so the consent dialog shows. Open `/login/social/facebook`, click **Edit access**, untick *Email address*, continue → back on /login with "Facebook did not share an email address… try again and allow access". Now start `/login/social/facebook` again → **Facebook asks for the e-mail again** - that is the point of `auth_type=rerequest`. Allow it → you are signed in (the Facebook e-mail equals your verified e-mail → auto-link) or, if the e-mails differ, you get "sign in with your password first, then connect".
 4. **Cancel**: start `/login/social/facebook` and press **Cancel** / close on Facebook → back on /login with a generic "sign-in failed", nothing created. Same from settings → "Connection cancelled — nothing changed."
@@ -126,7 +133,7 @@ The buttons are public from the flip on, so run this straight away. Sign in with
 
 Sign in with a Facebook account that is new to MySpeedPuzzling end-to-end (new account via the "Create a new account?" page). Once Facebook has been stable for a while, ask Claude to remove the flag (`docs/features/feature_flags.md`) so Facebook follows the credentials rule like Google and Apple.
 
-**Rollback**: `SOCIAL_LOGIN_FACEBOOK_ENABLED=0` in Infisical + redeploy. Buttons disappear, start/callback routes 404; linked identities stay in the database and work again when the flag returns. Players with no password can still sign in with the e-mailed sign-in link.
+**Rollback**: `SOCIAL_LOGIN_FACEBOOK_ENABLED=0` in Infisical + redeploy hides the buttons (routes keep working by direct URL, linked players keep their row). To switch Facebook off entirely, empty `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET`: start/connect/callback routes 404; linked identities stay in the database and work again when the credentials return. Players with no password can still sign in with the e-mailed sign-in link.
 
 ## Gotchas
 

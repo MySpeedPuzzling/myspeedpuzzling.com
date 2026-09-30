@@ -68,7 +68,7 @@ abstract class SocialLoginAuthenticator extends AbstractAuthenticator
             return false;
         }
 
-        if ($this->settings->isEnabled($this->provider()) === false) {
+        if ($this->settings->isAvailable($this->provider()) === false) {
             return false;
         }
 

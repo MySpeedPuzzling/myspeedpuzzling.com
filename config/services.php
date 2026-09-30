@@ -89,8 +89,9 @@ return static function (ContainerConfigurator $configurator): void {
     $parameters->set('pairsTeamsPickerPublic', '%env(bool:PAIRS_TEAMS_PICKER_PUBLIC)%');
 
     // Social login (auth hardening PR 2): Google, Microsoft and Apple are available iff
-    // their credentials are configured (SocialLoginSettings). Facebook keeps a
-    // flag until the Meta app is published (docs/features/feature_flags.md).
+    // their credentials are configured (SocialLoginSettings). Facebook's flag only
+    // hides its buttons until the Meta app is published - its routes work whenever
+    // its credentials are set (docs/features/feature_flags.md).
     $parameters->set('socialLoginFacebookEnabled', '%env(bool:SOCIAL_LOGIN_FACEBOOK_ENABLED)%');
 
     $services = $configurator->services();

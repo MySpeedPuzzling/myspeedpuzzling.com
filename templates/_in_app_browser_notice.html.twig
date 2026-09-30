@@ -13,7 +13,7 @@
             <i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ 'auth.in_app.title'|trans({'%app%': in_app.app}) }}
         </p>
         <p class="mb-2">
-            {% if social_login.isProviderEnabled('google') %}{{ 'auth.in_app.google'|trans }} {% endif %}{{ 'auth.in_app.open_elsewhere'|trans }}
+            {% if social_login.isProviderShown('google') %}{{ 'auth.in_app.google'|trans }} {% endif %}{{ 'auth.in_app.open_elsewhere'|trans }}
         </p>
 
         {% if in_app.ios %}

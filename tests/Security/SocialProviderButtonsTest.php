@@ -135,12 +135,12 @@ final class SocialProviderButtonsTest extends WebTestCase
     /**
      * Public launch (2026-09-29): Google and Apple are offered to every
      * anonymous visitor as soon as their credentials are configured - no
-     * admin-only stage - while Facebook waits for its flag.
+     * admin-only stage - while Facebook's buttons wait for its flag.
      */
     public function testAnonymousVisitorsSeeConfiguredGoogleAndAppleOnLoginAndRegister(): void
     {
         $this->enableSocialLoginProvider(OauthProvider::Google, OauthProvider::Apple, OauthProvider::Facebook);
-        $this->overrideSocialLoginEnv('SOCIAL_LOGIN_FACEBOOK_ENABLED', '0');
+        $this->hideFacebookButtons();
         $browser = self::createClient();
 
         foreach (['/login', '/register'] as $path) {
@@ -156,6 +156,65 @@ final class SocialProviderButtonsTest extends WebTestCase
             // never shared-cached anyway
             self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
         }
+    }
+
+    /**
+     * SOCIAL_LOGIN_FACEBOOK_ENABLED = "Facebook buttons shown": with it off,
+     * settings offer no Facebook connect button either (its routes still work
+     * by direct URL, SocialLoginFlowTest).
+     */
+    public function testSettingsOfferNoFacebookConnectWhileItsButtonsAreHidden(): void
+    {
+        $this->enableSocialLoginProvider(OauthProvider::Google, OauthProvider::Facebook);
+        $this->hideFacebookButtons();
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/edit-profile');
+        self::assertResponseIsSuccessful();
+
+        self::assertCount(1, $crawler->filter('a[href="/account/social/google/connect"]'));
+        self::assertCount(0, $crawler->filter('a[href="/account/social/facebook/connect"]'));
+        self::assertCount(0, $crawler->filter('.social-identity-badge-facebook'));
+    }
+
+    /**
+     * A player who already linked Facebook keeps seeing (and can disconnect)
+     * that row even while Facebook's buttons are hidden - also when Facebook
+     * is the only configured provider.
+     */
+    public function testLinkedFacebookStaysVisibleWhileItsButtonsAreHidden(): void
+    {
+        $this->disableSocialLoginProvider(OauthProvider::Google, OauthProvider::Microsoft, OauthProvider::Apple);
+        $this->enableSocialLoginProvider(OauthProvider::Facebook);
+        $this->hideFacebookButtons();
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $container = $browser->getContainer();
+        $player = $container->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR);
+        assert($player->userId !== null);
+        $userAccount = $container->get(UserAccountRepository::class)->findByUserId($player->userId);
+        assert($userAccount !== null);
+        $entityManager = $container->get(EntityManagerInterface::class);
+        $entityManager->persist(new OauthIdentity(
+            id: Uuid::uuid7(),
+            userAccount: $userAccount,
+            provider: OauthProvider::Facebook,
+            providerUserId: 'facebook-hidden-list-test',
+            emailAtLink: 'hidden-list@facebook.example.com',
+            linkedAt: new DateTimeImmutable('2026-09-20 10:00:00'),
+        ));
+        $entityManager->flush();
+
+        $crawler = $browser->request('GET', '/en/edit-profile');
+        self::assertResponseIsSuccessful();
+
+        $rows = $crawler->filter('.social-identity-list > li.social-identity');
+        self::assertCount(1, $rows);
+        self::assertCount(1, $rows->eq(0)->filter('.social-identity-badge-facebook'));
+        self::assertCount(1, $rows->eq(0)->filter('form[action="/account/social/facebook/disconnect"]'));
+        self::assertCount(0, $crawler->filter('a[href="/account/social/facebook/connect"]'));
     }
 
     public function testNoButtonsWhenNoProviderIsConfigured(): void

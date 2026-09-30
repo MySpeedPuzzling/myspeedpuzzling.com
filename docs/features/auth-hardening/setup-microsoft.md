@@ -1,7 +1,7 @@
 # Social login setup — Microsoft
 
 **The code shipped 2026-09-30, dark:** Microsoft is available iff `MICROSOFT_CLIENT_ID` and `MICROSOFT_CLIENT_SECRET`
-are both set (`SocialLoginSettings::isEnabled()`, no feature flag) — production has neither yet, so nothing is visible
+are both set (`SocialLoginSettings::isAvailable()`, no feature flag) — production has neither yet, so nothing is visible
 until the values reach Infisical. Plan and decisions: [`microsoft-plan.md`](microsoft-plan.md). Written against
 Microsoft's documentation of 2026-09-29 (Microsoft Entra admin center: **Entra ID → App registrations**). Microsoft renames menu
 items now and then; if a label differs, the section names (Authentication, Certificates & secrets, API permissions,

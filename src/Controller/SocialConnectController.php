@@ -46,7 +46,7 @@ final class SocialConnectController extends AbstractController
     {
         $oauthProvider = OauthProvider::tryFrom($provider);
 
-        if ($oauthProvider === null || $this->socialLoginSettings->isEnabled($oauthProvider) === false) {
+        if ($oauthProvider === null || $this->socialLoginSettings->isAvailable($oauthProvider) === false) {
             throw new NotFoundHttpException();
         }
 

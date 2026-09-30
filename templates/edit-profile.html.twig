@@ -195,8 +195,10 @@
                 {% endif %}
             </div>
 
-            {# Connected sign-in methods (auth hardening PR 2, settled D13 UI) #}
-            {% if social_login.isAnyEnabled() %}
+            {# Connected sign-in methods (auth hardening PR 2, settled D13 UI) -
+               also whenever the player has a linked identity, even one whose
+               buttons are not shown (Facebook before its flag) #}
+            {% if social_login.isAnyShown() or connected_oauth_identities is not empty %}
                 <div class="card card-body shadow-lg my-3">
                     <h3 class="h5">{{ 'edit_profile.social.title'|trans }}</h3>
                     <p class="text-muted fs-sm mb-2">{{ 'edit_profile.social.description'|trans }}</p>
@@ -204,8 +206,8 @@
                     {% set just_connected_providers = app.flashes(constant('SpeedPuzzling\\Web\\Controller\\EditProfileController::JUST_CONNECTED_FLASH')) %}
 
                     {# One list of every provider: connected ones first (even when
-                       their provider has since been switched off - they can still be
-                       disconnected), then the enabled ones not connected yet with
+                       their provider has since been switched off or hidden - they can
+                       still be disconnected), then the shown ones not connected yet with
                        their branded "Continue with" button (the same partial as on
                        /login). Badges reuse the buttons' logo artwork. #}
                     {% set connected_providers = connected_oauth_identities|map(identity => identity.provider.value) %}
@@ -251,7 +253,7 @@
                            duplicate MySpeedPuzzling account #}
                         {% set provider_names = {google: 'Google', microsoft: 'Microsoft', apple: 'Apple', facebook: 'Facebook'} %}
                         {% for provider in ['google', 'microsoft', 'apple', 'facebook'] %}
-                            {% if social_login.isProviderEnabled(provider) and provider not in connected_providers %}
+                            {% if social_login.isProviderShown(provider) and provider not in connected_providers %}
                                 <li class="social-identity">
                                     <span class="social-identity-badge social-identity-badge-{{ provider }}">
                                         {{- include('_social_provider_logo.html.twig', {provider: provider, class: 'social-identity-logo'}) -}}

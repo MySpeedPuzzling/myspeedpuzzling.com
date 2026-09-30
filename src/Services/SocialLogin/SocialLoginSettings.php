@@ -7,14 +7,18 @@ namespace SpeedPuzzling\Web\Services\SocialLogin;
 use SpeedPuzzling\Web\Value\OauthProvider;
 
 /**
- * Which social sign-in providers are available, behind one door, so every
- * gate - button rendering, start routes, authenticators, callbacks - asks the
- * same question the same way.
+ * Which social sign-in providers are available and which are shown, behind
+ * one door, so every gate asks the same question the same way.
  *
- * A provider is available iff its credentials are configured (local dev and
- * test without credentials render no button and 404 its routes). Facebook
- * additionally needs its SOCIAL_LOGIN_FACEBOOK_ENABLED flag until the Meta app
- * is published (docs/features/feature_flags.md).
+ * - isAvailable(): the provider's credentials are configured. Asked by
+ *   everything that makes the provider WORK - start routes, the connect
+ *   route, the callback, the authenticators. Local dev and test without
+ *   credentials 404 the provider's routes.
+ * - isShown(): available, and its buttons may be offered. Asked by templates
+ *   (Twig global `social_login`: isProviderShown(), isAnyShown()). Facebook's
+ *   buttons additionally need SOCIAL_LOGIN_FACEBOOK_ENABLED until the Meta app
+ *   is published - its routes work without it, for testing by direct URL
+ *   (docs/features/feature_flags.md).
  *
  * The answer depends on configuration only - never on the visitor - so
  * /login and /register show every visitor the same buttons (those pages are
@@ -37,31 +41,39 @@ final readonly class SocialLoginSettings
     ) {
     }
 
-    public function isEnabled(OauthProvider $provider): bool
+    public function isAvailable(OauthProvider $provider): bool
     {
         return match ($provider) {
             OauthProvider::Google => self::allConfigured($this->googleClientId, $this->googleClientSecret),
             OauthProvider::Microsoft => self::allConfigured($this->microsoftClientId, $this->microsoftClientSecret),
-            OauthProvider::Facebook => $this->socialLoginFacebookEnabled
-                && self::allConfigured($this->facebookAppId, $this->facebookAppSecret),
+            OauthProvider::Facebook => self::allConfigured($this->facebookAppId, $this->facebookAppSecret),
             OauthProvider::Apple => self::allConfigured($this->appleClientId, $this->appleTeamId, $this->appleKeyId, $this->applePrivateKey),
         };
     }
 
+    public function isShown(OauthProvider $provider): bool
+    {
+        if ($this->isAvailable($provider) === false) {
+            return false;
+        }
+
+        return $provider !== OauthProvider::Facebook || $this->socialLoginFacebookEnabled;
+    }
+
     /**
-     * Twig-friendly variant: `social_login.isProviderEnabled('google')`.
+     * Twig-friendly variant: `social_login.isProviderShown('google')`.
      */
-    public function isProviderEnabled(string $provider): bool
+    public function isProviderShown(string $provider): bool
     {
         $oauthProvider = OauthProvider::tryFrom($provider);
 
-        return $oauthProvider !== null && $this->isEnabled($oauthProvider);
+        return $oauthProvider !== null && $this->isShown($oauthProvider);
     }
 
-    public function isAnyEnabled(): bool
+    public function isAnyShown(): bool
     {
         foreach (OauthProvider::cases() as $provider) {
-            if ($this->isEnabled($provider)) {
+            if ($this->isShown($provider)) {
                 return true;
             }
         }

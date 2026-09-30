@@ -293,16 +293,53 @@ final class SocialLoginFlowTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testFacebookStaysOffWhileItsFlagIsOffEvenWithCredentials(): void
+    /**
+     * SOCIAL_LOGIN_FACEBOOK_ENABLED only hides Facebook's buttons (the Meta
+     * app is unpublished): with credentials configured every Facebook route
+     * works, so it can be tested by direct URL.
+     */
+    public function testFacebookWorksByDirectUrlWhileItsButtonsAreHidden(): void
     {
         $this->enableSocialLoginProvider(OauthProvider::Facebook);
-        $this->overrideSocialLoginEnv('SOCIAL_LOGIN_FACEBOOK_ENABLED', '0');
+        $this->hideFacebookButtons();
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+
+        // Sign in: start route + callback through the authenticator
+        $userAccount = $this->seedAccount($browser, "fbhidden+{$suffix}@example.com", password: 'hash');
+        $this->seedIdentity($browser, $userAccount, OauthProvider::Facebook, "fb-hidden-{$suffix}");
+
+        $state = $this->startFlow($browser, 'facebook', 'facebook.com');
+        $this->queueFacebookExchange("fb-hidden-{$suffix}", "fbhidden+{$suffix}@example.com");
+        $browser->request('GET', "/login/social/facebook/callback?state={$state}&code=fake-code");
+        $this->assertSignedInAs($browser, $userAccount);
+
+        // Connect from settings: connect start route + link-flow callback
+        $other = $this->seedAccount($browser, "fbconnect+{$suffix}@example.com", password: 'hash');
+        $browser->loginUser($other, 'main');
+
+        $browser->request('GET', '/account/social/facebook/connect');
+        $state = $this->stateFromLocation($browser, 'facebook.com');
+        $this->queueFacebookExchange("fb-connect-{$suffix}", "fbconnect+{$suffix}@facebook.example.com");
+        $browser->request('GET', "/login/social/facebook/callback?state={$state}&code=fake-code");
+        $this->assertFinishConnects($browser);
+    }
+
+    public function testFacebookWithoutCredentialsIs404RegardlessOfItsFlag(): void
+    {
+        $this->disableSocialLoginProvider(OauthProvider::Facebook);
+        $this->overrideSocialLoginEnv('SOCIAL_LOGIN_FACEBOOK_ENABLED', '1');
         $browser = self::createClient();
 
         $browser->request('GET', '/login/social/facebook');
         self::assertResponseStatusCodeSame(404);
 
         $browser->request('GET', '/login/social/facebook/callback?state=abc&code=x');
+        self::assertResponseStatusCodeSame(404);
+
+        $browser->loginUser($this->seedAccount($browser, 'fbnocreds+' . bin2hex(random_bytes(4)) . '@example.com', password: 'hash'), 'main');
+        $browser->request('GET', '/account/social/facebook/connect');
         self::assertResponseStatusCodeSame(404);
     }
 

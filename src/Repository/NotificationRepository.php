@@ -116,6 +116,12 @@ readonly final class NotificationRepository
         return (int) $count > 0;
     }
 
+    /**
+     * A bulk UPDATE on purpose: the most active players hold 10-20k notifications, loading them one by one to
+     * flip a flag is not an option. Only the unread ones: rewriting every row on each visit kept the real read
+     * time of none of them and was a quarter of all row updates on production - about 3M a day, 45 % of the WAL,
+     * a 20 ms commit per visit (docs in lily.srv: myspeedpuzzling-postgres-tuning-2026-09-30.md).
+     */
     public function markNotificationAsReadForPlayer(string $playerId): void
     {
         $qb = $this->entityManager->createQueryBuilder();
@@ -123,6 +129,7 @@ readonly final class NotificationRepository
         $qb->update(Notification::class, 'n')
             ->set('n.readAt', ':time')
             ->where('n.player = :playerId')
+            ->andWhere('n.readAt IS NULL')
             ->setParameter('time', $this->clock->now())
             ->setParameter('playerId', $playerId)
             ->getQuery()

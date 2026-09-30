@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Query\GetPlayerBestSoloTimes;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
-use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -31,7 +31,7 @@ final class PuzzleSearchItemsController extends AbstractController
     public function __construct(
         readonly private SearchPuzzle $searchPuzzle,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
-        readonly private GetRanking $getRanking,
+        readonly private GetPlayerBestSoloTimes $getPlayerBestSoloTimes,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetTags $getTags,
         readonly private GetSellSwapListItems $getSellSwapListItems,
@@ -94,16 +94,16 @@ final class PuzzleSearchItemsController extends AbstractController
 
         $puzzleIds = array_map(static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId, $puzzles);
 
-        $userRanking = [];
-        if ($playerProfile !== null) {
-            $userRanking = $this->getRanking->allForPlayer($playerProfile->playerId);
-        }
+        // The viewer's best time on these puzzles - not a rank on every puzzle they ever solved
+        $myTimes = $playerProfile !== null
+            ? $this->getPlayerBestSoloTimes->forPuzzles($playerProfile->playerId, $puzzleIds)
+            : [];
 
         $html = $this->renderView('puzzle/_search_result_items.html.twig', [
             'puzzles' => $puzzles,
             'search' => $criteria->search,
             'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($playerProfile?->playerId),
-            'ranking' => $userRanking,
+            'my_times' => $myTimes,
             'tags' => $this->getTags->allGroupedPerPuzzle($puzzleIds),
             'offer_counts' => $this->getSellSwapListItems->countByPuzzleIds($puzzleIds),
             'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList($puzzleIds),

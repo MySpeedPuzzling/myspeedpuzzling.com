@@ -68,8 +68,8 @@
                         <small class="pe-0 pe-md-2">{{ 'puzzle_solved_times'|trans({'%count%': puzzle.solvedTimes})|capitalize|raw }}</small>
 
                         <br class="d-none d-md-block">
-                        {% if ranking[puzzle.puzzleId] is defined %}
-                            <small><i class="ci-user"></i> {{ ranking[puzzle.puzzleId].time|puzzlingTime }}</small>
+                        {% if my_times[puzzle.puzzleId] is defined %}
+                            <small><i class="ci-user"></i> {{ my_times[puzzle.puzzleId]|puzzlingTime }}</small>
                         {% endif %}
                     </div>
 

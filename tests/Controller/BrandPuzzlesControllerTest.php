@@ -4,19 +4,25 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use DOMElement;
 use SpeedPuzzling\Web\Query\GetCataloguePuzzles;
+use SpeedPuzzling\Web\Query\GetRanking;
+use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use SpeedPuzzling\Web\Tests\CatalogueTestData;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\CataloguePagination;
 use SpeedPuzzling\Web\Value\PiecesRange;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DomCrawler\Crawler;
 
 final class BrandPuzzlesControllerTest extends WebTestCase
 {
     use CatalogueTestData;
+    use QueryCountAssertions;
 
     protected function tearDown(): void
     {
@@ -49,6 +55,47 @@ final class BrandPuzzlesControllerTest extends WebTestCase
         $browser->request('GET', '/en/puzzle/brand/ravensburger');
 
         $this->assertResponseIsSuccessful();
+    }
+
+    public function testSignedInPlayerSeesTheirBestTimeOnTheListedPuzzlesWithoutBeingRanked(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $this->startCountingQueries($browser);
+
+        $crawler = $browser->request('GET', '/en/puzzle/brand/ravensburger');
+
+        $this->assertResponseIsSuccessful();
+
+        // The same times the cards used to take from the player's ranking
+        $ranking = self::getContainer()->get(GetRanking::class)->allForPlayer(PlayerFixture::PLAYER_REGULAR);
+        $formatter = new PuzzlingTimeFormatter();
+        $shown = 0;
+
+        foreach ($crawler->filter('[id^="puzzle-list-item-"]') as $card) {
+            self::assertInstanceOf(DOMElement::class, $card);
+            $puzzleId = substr($card->getAttribute('id'), strlen('puzzle-list-item-'));
+            $myTime = (new Crawler($card))->filter('.puzzle-times-info .ci-user');
+
+            if (isset($ranking[$puzzleId]) === false) {
+                self::assertCount(0, $myTime, $puzzleId);
+
+                continue;
+            }
+
+            self::assertCount(1, $myTime, $puzzleId);
+            self::assertStringContainsString($formatter->formatTime($ranking[$puzzleId]->time), $myTime->ancestors()->first()->text());
+            $shown++;
+        }
+
+        self::assertGreaterThan(0, $shown, 'Premise: John solved some of the listed puzzles');
+
+        // A best time needs no rank against everybody on every puzzle John ever solved
+        self::assertSame([], array_values(array_filter(
+            $this->executedSql($browser),
+            static fn (string $sql): bool => str_contains($sql, 'PlayerPuzzles'),
+        )));
     }
 
     public function testBrandWithEnoughDataIsIndexable(): void

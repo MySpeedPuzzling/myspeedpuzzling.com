@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetCataloguePuzzles;
+use SpeedPuzzling\Web\Query\GetPlayerBestSoloTimes;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
-use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -34,7 +34,7 @@ final class BrandPuzzlesController extends AbstractController
         readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
-        readonly private GetRanking $getRanking,
+        readonly private GetPlayerBestSoloTimes $getPlayerBestSoloTimes,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private PuzzleDifficultyRankings $puzzleDifficultyRankings,
     ) {
@@ -110,7 +110,8 @@ final class BrandPuzzlesController extends AbstractController
             'offer_counts' => $this->getSellSwapListItems->countByPuzzleIds($puzzleIds),
             'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList($puzzleIds),
             'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId),
-            'ranking' => $loggedPlayer !== null ? $this->getRanking->allForPlayer($loggedPlayer->playerId) : [],
+            // The viewer's best time on the listed puzzles - not a rank on every puzzle they ever solved
+            'my_times' => $loggedPlayer !== null ? $this->getPlayerBestSoloTimes->forPuzzles($loggedPlayer->playerId, $puzzleIds) : [],
             'allowed_pieces' => PiecesPuzzlesController::ALLOWED_PIECES,
             // Under the list: the brand's hardest / easiest lists when it has them (cached)
             'has_brand_difficulty_lists' => $this->puzzleDifficultyRankings->availability()->brand($stats->slug) !== null,

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetCataloguePuzzles;
+use SpeedPuzzling\Web\Query\GetPlayerBestSoloTimes;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
-use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -47,7 +47,7 @@ final class PiecesPuzzlesController extends AbstractController
         readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
-        readonly private GetRanking $getRanking,
+        readonly private GetPlayerBestSoloTimes $getPlayerBestSoloTimes,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private PuzzleTimeGuides $puzzleTimeGuides,
         readonly private PuzzleDifficultyRankings $puzzleDifficultyRankings,
@@ -130,7 +130,8 @@ final class PiecesPuzzlesController extends AbstractController
             'offer_counts' => $this->getSellSwapListItems->countByPuzzleIds($puzzleIds),
             'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList($puzzleIds),
             'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId),
-            'ranking' => $loggedPlayer !== null ? $this->getRanking->allForPlayer($loggedPlayer->playerId) : [],
+            // The viewer's best time on the listed puzzles - not a rank on every puzzle they ever solved
+            'my_times' => $loggedPlayer !== null ? $this->getPlayerBestSoloTimes->forPuzzles($loggedPlayer->playerId, $puzzleIds) : [],
             // Under the list: "How long does a {N}-piece puzzle take?" while that guide is live,
             // the hardest / easiest lists when the piece count has them (both cached)
             'guide_path' => $this->puzzleTimeGuides->paths()[$pieces] ?? null,

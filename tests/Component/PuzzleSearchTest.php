@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Component;
 
 use SpeedPuzzling\Web\Component\PuzzleSearch;
+use SpeedPuzzling\Web\Query\GetRanking;
+use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -109,6 +111,29 @@ final class PuzzleSearchTest extends WebTestCase
         $component->render();
 
         self::assertNull($this->listOf($component));
+    }
+
+    public function testSignedInPlayerSeesTheirBestTimeWithoutBeingRanked(): void
+    {
+        $client = self::createClient();
+        $component = $this->search($client, PlayerFixture::PLAYER_REGULAR, ['search' => 'Puzzle']);
+        $component->render();
+
+        $this->startCountingQueries($client);
+        $crawler = new Crawler($component->refresh()->render()->toString());
+
+        // The same times the cards used to take from the player's ranking
+        $ranking = self::getContainer()->get(GetRanking::class)->allForPlayer(PlayerFixture::PLAYER_REGULAR);
+        self::assertArrayHasKey(PuzzleFixture::PUZZLE_500_01, $ranking, 'Premise: John solved Puzzle 1');
+
+        $myTime = $crawler->filter('#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01 . ' .puzzle-times-info');
+        self::assertCount(1, $myTime->filter('.ci-user'));
+        self::assertStringContainsString((new PuzzlingTimeFormatter())->formatTime($ranking[PuzzleFixture::PUZZLE_500_01]->time), $myTime->text());
+
+        self::assertSame([], array_values(array_filter(
+            $this->executedSql($client),
+            static fn (string $sql): bool => str_contains($sql, 'PlayerPuzzles'),
+        )), 'A best time needs no rank against everybody on every puzzle John ever solved');
     }
 
     public function testListCostsNoExtraQueriesAndGuestsPayNothing(): void

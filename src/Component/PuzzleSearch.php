@@ -4,16 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use SpeedPuzzling\Web\Query\GetPlayerBestSoloTimes;
 use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
-use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Results\PiecesFilter;
-use SpeedPuzzling\Web\Results\PlayerRanking;
 use SpeedPuzzling\Web\Results\PuzzleDifficultyResult;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\PuzzleTag;
@@ -88,8 +87,12 @@ final class PuzzleSearch
 
     private UserPuzzleStatuses $puzzleStatuses;
 
-    /** @var array<string, PlayerRanking> */
-    private array $userRanking = [];
+    /**
+     * The viewer's best solo time per listed puzzle, in seconds
+     *
+     * @var array<string, int>
+     */
+    private array $myTimes = [];
 
     /** @var array<string, array<PuzzleTag>> */
     private array $tags = [];
@@ -108,7 +111,7 @@ final class PuzzleSearch
     public function __construct(
         private readonly SearchPuzzle $searchPuzzle,
         private readonly GetUserPuzzleStatuses $getUserPuzzleStatuses,
-        private readonly GetRanking $getRanking,
+        private readonly GetPlayerBestSoloTimes $getPlayerBestSoloTimes,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly GetTags $getTags,
         private readonly PuzzleFilterOptions $puzzleFilterOptions,
@@ -281,11 +284,13 @@ final class PuzzleSearch
 
         $this->puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($playerProfile?->playerId);
 
-        if ($playerProfile !== null) {
-            $this->userRanking = $this->getRanking->allForPlayer($playerProfile->playerId);
-        } else {
-            $this->userRanking = [];
-        }
+        // Not a rank on every puzzle the viewer ever solved - the cards show their best time only
+        $this->myTimes = $playerProfile !== null
+            ? $this->getPlayerBestSoloTimes->forPuzzles($playerProfile->playerId, array_map(
+                static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId,
+                $this->puzzles,
+            ))
+            : [];
     }
 
     private function loadPuzzleMetadata(): void
@@ -324,11 +329,11 @@ final class PuzzleSearch
     }
 
     /**
-     * @return array<string, PlayerRanking>
+     * @return array<string, int>
      */
-    public function getUserRanking(): array
+    public function getMyTimes(): array
     {
-        return $this->userRanking;
+        return $this->myTimes;
     }
 
     /**

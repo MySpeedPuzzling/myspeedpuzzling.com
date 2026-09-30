@@ -13,9 +13,7 @@ use SpeedPuzzling\Web\Value\OauthProvider;
  * env back afterwards - call restoreSocialLoginEnv() in tearDown().
  *
  * A provider is available iff its credentials are configured, see
- * SocialLoginSettings. Enabling Facebook also turns SOCIAL_LOGIN_FACEBOOK_ENABLED
- * on (its buttons shown); hideFacebookButtons() turns it off again. The
- * repo's .env leaves every credential empty, so by default no provider is
+ * SocialLoginSettings. The repo's .env leaves every credential empty, so by default no provider is
  * available in tests.
  */
 trait ConfiguresSocialLoginProviders
@@ -29,16 +27,7 @@ trait ConfiguresSocialLoginProviders
             foreach (self::socialLoginTestCredentials($provider) as $name => $value) {
                 $this->overrideSocialLoginEnv($name, $value);
             }
-
-            if ($provider === OauthProvider::Facebook) {
-                $this->overrideSocialLoginEnv('SOCIAL_LOGIN_FACEBOOK_ENABLED', '1');
-            }
         }
-    }
-
-    private function hideFacebookButtons(): void
-    {
-        $this->overrideSocialLoginEnv('SOCIAL_LOGIN_FACEBOOK_ENABLED', '0');
     }
 
     private function disableSocialLoginProvider(OauthProvider ...$providers): void

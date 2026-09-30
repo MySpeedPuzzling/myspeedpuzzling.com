@@ -5,45 +5,24 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\SocialLogin;
 
 use SpeedPuzzling\Web\Value\OauthProvider;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Which social sign-in providers are available and which are shown, behind
- * one door, so every gate asks the same question the same way.
+ * Which social sign-in providers are available, behind one door, so every
+ * gate asks the same question the same way.
  *
- * - isAvailable(): the provider's credentials are configured. Asked by
- *   everything that makes the provider WORK - start routes, the connect
- *   route, the callback, the authenticators. Local dev and test without
- *   credentials 404 the provider's routes.
- * - isShown(): available, and its buttons may be offered. Asked by templates
- *   (Twig global `social_login`: isProviderShown(), isAnyShown()). Facebook's
- *   buttons additionally need SOCIAL_LOGIN_FACEBOOK_ENABLED until the Meta app
- *   is published - its routes work without it, for testing by direct URL
- *   (docs/features/feature_flags.md).
+ * A provider is available iff its credentials are configured. Asked by
+ * everything that makes the provider work - start routes, the connect route,
+ * the callback, the authenticators - and by templates for its buttons (Twig
+ * global `social_login`: isProviderAvailable(), isAnyAvailable()). Local dev
+ * and test without credentials show no button and 404 the provider's routes.
  *
  * The answer depends on configuration only - never on the visitor - so
  * /login and /register show every visitor the same buttons (those pages are
  * `no-store` anyway, NativeAuthPageSubscriber, so nothing shares a copy).
- * The one exception is the Facebook review preview below.
- *
- * Facebook review preview - exists ONLY for Meta App Review: the reviewer must
- * see and click "Continue with Facebook" while the flag still hides it. A
- * request with `?facebook_preview=1`, or carrying the `msp_fb_preview` cookie
- * (set for a day by NativeAuthPageSubscriber on auth pages that got the query
- * parameter, so it survives login -> register -> edit profile), shows
- * Facebook as if the flag were on - still only when its credentials are
- * configured. Remove it together with the flag once the Meta app is published
- * (docs/features/feature_flags.md).
  */
 final readonly class SocialLoginSettings
 {
-    public const string FACEBOOK_PREVIEW_QUERY = 'facebook_preview';
-
-    public const string FACEBOOK_PREVIEW_COOKIE = 'msp_fb_preview';
-
     public function __construct(
-        private RequestStack $requestStack,
-        private bool $socialLoginFacebookEnabled,
         private string $googleClientId,
         private string $googleClientSecret,
         private string $facebookAppId,
@@ -67,46 +46,20 @@ final readonly class SocialLoginSettings
         };
     }
 
-    public function isShown(OauthProvider $provider): bool
-    {
-        if ($this->isAvailable($provider) === false) {
-            return false;
-        }
-
-        return $provider !== OauthProvider::Facebook
-            || $this->socialLoginFacebookEnabled
-            || $this->isFacebookPreviewRequested();
-    }
-
     /**
-     * Meta App Review preview, see the class comment - removed with the flag.
+     * Twig-friendly variant: `social_login.isProviderAvailable('google')`.
      */
-    public function isFacebookPreviewRequested(): bool
-    {
-        $request = $this->requestStack->getMainRequest();
-
-        if ($request === null) {
-            return false;
-        }
-
-        return $request->query->get(self::FACEBOOK_PREVIEW_QUERY) === '1'
-            || $request->cookies->get(self::FACEBOOK_PREVIEW_COOKIE) === '1';
-    }
-
-    /**
-     * Twig-friendly variant: `social_login.isProviderShown('google')`.
-     */
-    public function isProviderShown(string $provider): bool
+    public function isProviderAvailable(string $provider): bool
     {
         $oauthProvider = OauthProvider::tryFrom($provider);
 
-        return $oauthProvider !== null && $this->isShown($oauthProvider);
+        return $oauthProvider !== null && $this->isAvailable($oauthProvider);
     }
 
-    public function isAnyShown(): bool
+    public function isAnyAvailable(): bool
     {
         foreach (OauthProvider::cases() as $provider) {
-            if ($this->isShown($provider)) {
+            if ($this->isAvailable($provider)) {
                 return true;
             }
         }

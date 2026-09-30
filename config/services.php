@@ -88,12 +88,6 @@ return static function (ContainerConfigurator $configurator): void {
     // Pairs & teams picker rollout (docs/features/feature_flags.md): admins only until flipped to 1.
     $parameters->set('pairsTeamsPickerPublic', '%env(bool:PAIRS_TEAMS_PICKER_PUBLIC)%');
 
-    // Social login (auth hardening PR 2): Google, Microsoft and Apple are available iff
-    // their credentials are configured (SocialLoginSettings). Facebook's flag only
-    // hides its buttons until the Meta app is published - its routes work whenever
-    // its credentials are set (docs/features/feature_flags.md).
-    $parameters->set('socialLoginFacebookEnabled', '%env(bool:SOCIAL_LOGIN_FACEBOOK_ENABLED)%');
-
     $services = $configurator->services();
 
     $services->defaults()
@@ -111,7 +105,6 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$signInLinkReuseGraceSeconds', '%signInLinkReuseGraceSeconds%')
         ->bind('$kernelSecret', '%kernel.secret%')
         ->bind('$pairsTeamsPickerPublic', '%pairsTeamsPickerPublic%')
-        ->bind('$socialLoginFacebookEnabled', '%socialLoginFacebookEnabled%')
         ->bind('$googleClientId', '%env(trim:string:GOOGLE_CLIENT_ID)%')
         ->bind('$googleClientSecret', '%env(trim:string:GOOGLE_CLIENT_SECRET)%')
         ->bind('$facebookAppId', '%env(trim:string:FACEBOOK_APP_ID)%')

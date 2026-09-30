@@ -207,19 +207,18 @@ Deliberately not done (see `docs/TODO.md`): Gmail dot/plus normalisation of prov
 
 Social login shipped dark (2026-07-31) behind one flag per provider (`SOCIAL_LOGIN_{GOOGLE,APPLE,FACEBOOK}_ENABLED`) plus an admin-only stage (`SOCIAL_LOGIN_ADMIN_ONLY`: no buttons for anyone, callbacks denying non-admins, rule 4 disabled, the settings card for admins only). Google and Apple were verified end to end in production on 2026-09-29 and **launched publicly the same day** (Jan's call): the admin-only stage and the Google/Apple flags were deleted, not just flipped (`docs/features/feature_flags.md` §Retired).
 
-What rules now (`SocialLoginSettings` is the one door: `isAvailable()` for routes/authenticators, `isShown()` for buttons):
+What rules now (`SocialLoginSettings` is the one door: `isAvailable()` for routes/authenticators and - via the Twig global `social_login` (`isProviderAvailable()`, `isAnyAvailable()`) - for buttons):
 
-- **Google / Microsoft / Apple are available iff their credentials are configured** (Google and Microsoft: client id + secret; Apple: client id, team id, key id, private key). Local dev and tests have none, so no button renders and the start/callback/connect routes 404. Emptying a provider's credentials in Infisical is the kill switch.
-- **Facebook** follows the same credentials rule for its routes (start, connect, callback, authenticator), but its **buttons** are shown only with `SOCIAL_LOGIN_FACEBOOK_ENABLED` until the Meta app is published (it is in development mode: only its admins/testers can sign in). Since 2026-09-30 the flag is visibility only, so admins/testers test by direct URL: `/login/social/facebook` (sign in) and `/account/social/facebook/connect` (connect, signed in). A player with Facebook already linked sees that row (with Disconnect) regardless of the flag.
+- **Google / Microsoft / Apple / Facebook are available iff their credentials are configured** (Google and Microsoft: client id + secret; Facebook: app id + secret; Apple: client id, team id, key id, private key). Local dev and tests have none, so no button renders and the start/callback/connect routes 404. Emptying a provider's credentials in Infisical is the kill switch.
+- **Facebook** had its own flag (`SOCIAL_LOGIN_FACEBOOK_ENABLED`, buttons only) plus a Meta App Review preview until the Meta app was approved in App Review and published on 2026-09-30 - both removed that day (`docs/features/feature_flags.md` §Retired). A player with a linked identity sees that row (with Disconnect) even when its provider is not configured.
 - Buttons on `/login` + `/register` for every visitor; the markup depends on configuration only, never on the viewer (both pages are `no-store` anyway, `NativeAuthPageSubscriber`).
-- Rule-4 registration via the `/register/social` interstitial is open to everyone; the "Connected sign-in methods" card shows for every signed-in player while any provider is shown, or when the player has a linked identity.
+- Rule-4 registration via the `/register/social` interstitial is open to everyone; the "Connected sign-in methods" card shows for every signed-in player while any provider is available, or when the player has a linked identity.
 - Unlink and the Apple server-to-server webhook were never gated and stay that way.
 
 ### Env vars (all empty-default in repo `.env`; prod via Infisical)
 
 ```
 GOOGLE_CLIENT_ID= / GOOGLE_CLIENT_SECRET=
-SOCIAL_LOGIN_FACEBOOK_ENABLED=0
 FACEBOOK_APP_ID= / FACEBOOK_APP_SECRET=
 APPLE_CLIENT_ID= / APPLE_TEAM_ID= / APPLE_KEY_ID= / APPLE_PRIVATE_KEY=
 APPLE_APP_ID=
@@ -272,10 +271,10 @@ Two PRs, in order:
 - Google Cloud console: OAuth consent screen + web credentials; redirect URIs for prod + dev
 - Meta developers: app, Live mode, privacy policy URL
 - Apple Developer: Services ID, domain verification, `.p8` key, **register `mail.myspeedpuzzling.com` for private-relay email**
-- Infisical: all secrets (a provider goes live the moment its credentials are there — Facebook's buttons also need its flag; its routes work by direct URL without it); verify each provider end-to-end. Done for Google + Apple, public since 2026-09-29
+- Infisical: all secrets (a provider goes live the moment its credentials are there); verify each provider end-to-end. Done for Google + Apple, public since 2026-09-29; Facebook public since 2026-09-30 (Meta app published)
 - Add prune cron on the box
 
-Shared facts baked into the guides: one redirect URI per provider (`https://myspeedpuzzling.com/login/social/{provider}/callback` — link flows reuse it via the state payload's intent), Apple is untestable on localhost (verify in production), rollback per provider = empty its credentials (Facebook: flip its flag to `0` to hide the buttons; empty its credentials to switch it off).
+Shared facts baked into the guides: one redirect URI per provider (`https://myspeedpuzzling.com/login/social/{provider}/callback` — link flows reuse it via the state payload's intent), Apple is untestable on localhost (verify in production), rollback per provider = empty its credentials.
 
 ## Explicitly out of scope (revisit later)
 

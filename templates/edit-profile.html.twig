@@ -197,8 +197,8 @@
 
             {# Connected sign-in methods (auth hardening PR 2, settled D13 UI) -
                also whenever the player has a linked identity, even one whose
-               buttons are not shown (Facebook before its flag) #}
-            {% if social_login.isAnyShown() or connected_oauth_identities is not empty %}
+               provider is not configured any more #}
+            {% if social_login.isAnyAvailable() or connected_oauth_identities is not empty %}
                 <div class="card card-body shadow-lg my-3">
                     <h3 class="h5">{{ 'edit_profile.social.title'|trans }}</h3>
                     <p class="text-muted fs-sm mb-2">{{ 'edit_profile.social.description'|trans }}</p>
@@ -253,7 +253,7 @@
                            duplicate MySpeedPuzzling account #}
                         {% set provider_names = {google: 'Google', microsoft: 'Microsoft', apple: 'Apple', facebook: 'Facebook'} %}
                         {% for provider in ['google', 'microsoft', 'apple', 'facebook'] %}
-                            {% if social_login.isProviderShown(provider) and provider not in connected_providers %}
+                            {% if social_login.isProviderAvailable(provider) and provider not in connected_providers %}
                                 <li class="social-identity">
                                     <span class="social-identity-badge social-identity-badge-{{ provider }}">
                                         {{- include('_social_provider_logo.html.twig', {provider: provider, class: 'social-identity-logo'}) -}}

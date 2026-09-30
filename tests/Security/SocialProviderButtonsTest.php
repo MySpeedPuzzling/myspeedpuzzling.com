@@ -133,14 +133,14 @@ final class SocialProviderButtonsTest extends WebTestCase
     }
 
     /**
-     * Public launch (2026-09-29): Google and Apple are offered to every
-     * anonymous visitor as soon as their credentials are configured - no
-     * admin-only stage - while Facebook's buttons wait for its flag.
+     * Every provider is offered to every anonymous visitor as soon as its
+     * credentials are configured - Google and Apple since 2026-09-29,
+     * Facebook since the Meta app was published (2026-09-30).
      */
-    public function testAnonymousVisitorsSeeConfiguredGoogleAndAppleOnLoginAndRegister(): void
+    public function testAnonymousVisitorsSeeConfiguredProvidersOnLoginAndRegister(): void
     {
         $this->enableSocialLoginProvider(OauthProvider::Google, OauthProvider::Apple, OauthProvider::Facebook);
-        $this->hideFacebookButtons();
+        $this->disableSocialLoginProvider(OauthProvider::Microsoft);
         $browser = self::createClient();
 
         foreach (['/login', '/register'] as $path) {
@@ -149,8 +149,9 @@ final class SocialProviderButtonsTest extends WebTestCase
 
             self::assertCount(1, $crawler->filter('a.btn-google-signin[href^="/login/social/google"]'), $path);
             self::assertCount(1, $crawler->filter('a.btn-apple-signin[href^="/login/social/apple"]'), $path);
-            self::assertCount(0, $crawler->filter('a.btn-facebook-signin'), $path . ': Facebook stays hidden while its flag is off');
-            self::assertStringNotContainsString('also for Instagram users', $crawler->text());
+            self::assertCount(1, $crawler->filter('a.btn-facebook-signin[href^="/login/social/facebook"]'), $path);
+            self::assertCount(0, $crawler->filter('a.btn-microsoft-signin'), $path . ': Microsoft is not configured');
+            self::assertStringContainsString('also for Instagram users', $crawler->text());
 
             // The buttons depend on configuration only, and the auth pages are
             // never shared-cached anyway
@@ -159,17 +160,24 @@ final class SocialProviderButtonsTest extends WebTestCase
     }
 
     /**
-     * SOCIAL_LOGIN_FACEBOOK_ENABLED = "Facebook buttons shown": with it off,
-     * settings offer no Facebook connect button either (its routes still work
-     * by direct URL, SocialLoginFlowTest).
+     * Facebook follows the credentials rule like everybody else: without
+     * FACEBOOK_APP_ID + FACEBOOK_APP_SECRET no Facebook button anywhere.
      */
-    public function testSettingsOfferNoFacebookConnectWhileItsButtonsAreHidden(): void
+    public function testFacebookIsHiddenEverywhereWithoutItsCredentials(): void
     {
-        $this->enableSocialLoginProvider(OauthProvider::Google, OauthProvider::Facebook);
-        $this->hideFacebookButtons();
+        $this->enableSocialLoginProvider(OauthProvider::Google);
+        $this->disableSocialLoginProvider(OauthProvider::Facebook);
         $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
+        foreach (['/login', '/register'] as $path) {
+            $crawler = $browser->request('GET', $path);
+            self::assertResponseIsSuccessful();
+            self::assertCount(1, $crawler->filter('a.btn-google-signin'), $path);
+            self::assertCount(0, $crawler->filter('a.btn-facebook-signin'), $path);
+            self::assertStringNotContainsString('also for Instagram users', $crawler->text());
+        }
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
         $crawler = $browser->request('GET', '/en/edit-profile');
         self::assertResponseIsSuccessful();
 
@@ -178,16 +186,26 @@ final class SocialProviderButtonsTest extends WebTestCase
         self::assertCount(0, $crawler->filter('.social-identity-badge-facebook'));
     }
 
+    public function testFacebookConnectIsOfferedInSettingsWhenConfigured(): void
+    {
+        $this->enableSocialLoginProvider(OauthProvider::Facebook);
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/edit-profile');
+        self::assertResponseIsSuccessful();
+
+        self::assertCount(1, $crawler->filter('a.btn-facebook-signin[href="/account/social/facebook/connect"]'));
+    }
+
     /**
      * A player who already linked Facebook keeps seeing (and can disconnect)
-     * that row even while Facebook's buttons are hidden - also when Facebook
-     * is the only configured provider.
+     * that row even when Facebook's credentials are gone and no provider is
+     * configured at all.
      */
-    public function testLinkedFacebookStaysVisibleWhileItsButtonsAreHidden(): void
+    public function testLinkedFacebookStaysVisibleWhenFacebookIsNotConfigured(): void
     {
-        $this->disableSocialLoginProvider(OauthProvider::Google, OauthProvider::Microsoft, OauthProvider::Apple);
-        $this->enableSocialLoginProvider(OauthProvider::Facebook);
-        $this->hideFacebookButtons();
+        $this->disableSocialLoginProvider(OauthProvider::Google, OauthProvider::Microsoft, OauthProvider::Apple, OauthProvider::Facebook);
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 

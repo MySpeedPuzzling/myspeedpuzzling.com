@@ -64,7 +64,7 @@ Shipped with #214. Design: [`features/list-difficulty-and-my-list-filter.md`](fe
 
 ## Social login hardening
 
-Shipped 2026-09-29 (flags still dark). Design: [`features/auth-hardening/README.md`](features/auth-hardening/README.md) §Hardening 2026-09-29.
+Shipped 2026-09-29; Google + Apple public 2026-09-29, Facebook 2026-09-30 (Meta app published, flag removed). Design: [`features/auth-hardening/README.md`](features/auth-hardening/README.md) §Hardening 2026-09-29.
 
 - [ ] Stripe mails to Apple relay addresses: Stripe customers carry the account e-mail, so receipts to `@privaterelay.appleid.com` come from Stripe's domain and are likely dropped by the relay - Stripe custom e-mail domain + register it with Apple, or accept ([`setup-apple.md`](features/auth-hardening/setup-apple.md) §Open questions)
 - [x] Translate the interstitial strings `auth.social.confirm.sign_in_and_connect` / `duplicate_accounts_help` and re-translate `auth.social.confirm.have_account` in cs/de/es/fr/ja (2026-09-29)

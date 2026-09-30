@@ -266,7 +266,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
     public function testDisabledProviderIs404(): void
     {
-        // Repo defaults: no credentials configured, Facebook flag OFF
+        // Repo defaults: no credentials configured
         $browser = self::createClient();
 
         $browser->request('GET', '/login/social/google');
@@ -294,14 +294,12 @@ final class SocialLoginFlowTest extends WebTestCase
     }
 
     /**
-     * SOCIAL_LOGIN_FACEBOOK_ENABLED only hides Facebook's buttons (the Meta
-     * app is unpublished): with credentials configured every Facebook route
-     * works, so it can be tested by direct URL.
+     * With its credentials configured every Facebook route works: sign in
+     * (start + callback through the authenticator) and connect from settings.
      */
-    public function testFacebookWorksByDirectUrlWhileItsButtonsAreHidden(): void
+    public function testFacebookSignInAndConnectWorkWhenConfigured(): void
     {
         $this->enableSocialLoginProvider(OauthProvider::Facebook);
-        $this->hideFacebookButtons();
         $browser = self::createClient();
 
         $suffix = bin2hex(random_bytes(4));
@@ -326,10 +324,9 @@ final class SocialLoginFlowTest extends WebTestCase
         $this->assertFinishConnects($browser);
     }
 
-    public function testFacebookWithoutCredentialsIs404RegardlessOfItsFlag(): void
+    public function testFacebookWithoutCredentialsIs404(): void
     {
         $this->disableSocialLoginProvider(OauthProvider::Facebook);
-        $this->overrideSocialLoginEnv('SOCIAL_LOGIN_FACEBOOK_ENABLED', '1');
         $browser = self::createClient();
 
         $browser->request('GET', '/login/social/facebook');

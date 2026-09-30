@@ -19,13 +19,13 @@
 {% set returnParams = safe_return_url(app.request.query.get('return')) is null ? {} : {'return': safe_return_url(app.request.query.get('return'))} %}
 {% set in_app = in_app_browser() %}
 
-{% if social_login.isAnyShown() %}
+{% if social_login.isAnyAvailable() %}
     {% if divider_before|default(null) %}
         <div class="auth-divider">{{ divider_before }}</div>
     {% endif %}
 
     <div class="auth-social">
-        {% if social_login.isProviderShown('google') %}
+        {% if social_login.isProviderAvailable('google') %}
             {% if in_app is not null %}
                 {{ include('_social_provider_button.html.twig', {provider: 'google', href: '#in-app-browser-notice', full_width: true, last_used: last_used|default(false), describedby: 'in-app-browser-notice'}) }}
             {% else %}
@@ -35,20 +35,20 @@
 
         {# Personal Microsoft accounts only - many Hotmail/Outlook users do not
            know their mailbox is a "Microsoft account", hence the hint #}
-        {% if social_login.isProviderShown('microsoft') %}
+        {% if social_login.isProviderAvailable('microsoft') %}
             <div>
                 {{ include('_social_provider_button.html.twig', {provider: 'microsoft', href: path('social_login_start', {provider: 'microsoft'}|merge(returnParams)), full_width: true, last_used: last_used|default(false)}) }}
                 <div class="text-muted text-center fs-xs mt-1">{{ 'auth.social.microsoft_hint'|trans }}</div>
             </div>
         {% endif %}
 
-        {% if social_login.isProviderShown('apple') %}
+        {% if social_login.isProviderAvailable('apple') %}
             {{ include('_social_provider_button.html.twig', {provider: 'apple', href: path('social_login_start', {provider: 'apple'}|merge(returnParams)), full_width: true, last_used: last_used|default(false)}) }}
         {% endif %}
 
         {# Facebook Login is the only Meta sign-in open to us (Instagram's login
            API is business-only and shares no email), hence the Instagram hint. #}
-        {% if social_login.isProviderShown('facebook') %}
+        {% if social_login.isProviderAvailable('facebook') %}
             <div>
                 {{ include('_social_provider_button.html.twig', {provider: 'facebook', href: path('social_login_start', {provider: 'facebook'}|merge(returnParams)), full_width: true, last_used: last_used|default(false)}) }}
                 <div class="text-muted text-center fs-xs mt-1">{{ 'auth.social.facebook_hint'|trans }}</div>

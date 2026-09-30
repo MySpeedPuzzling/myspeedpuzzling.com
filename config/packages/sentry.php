@@ -31,6 +31,9 @@ return App::config([
                 'excluded_commands' => [
                     'messenger:consume',
                     'myspeedpuzzling:recalculate-puzzle-intelligence',
+                    // One transaction for the whole run collects a span per query across thousands of
+                    // players - it OOM-killed the first production backfill (2026-09-30)
+                    'myspeedpuzzling:backfill-solving-time-predictions',
                 ],
             ],
             'dbal' => [

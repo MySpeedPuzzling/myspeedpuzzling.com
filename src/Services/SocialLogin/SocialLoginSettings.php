@@ -32,6 +32,8 @@ final readonly class SocialLoginSettings
         private string $appleTeamId,
         private string $appleKeyId,
         private string $applePrivateKey,
+        private string $microsoftClientId,
+        private string $microsoftClientSecret,
     ) {
     }
 
@@ -39,6 +41,7 @@ final readonly class SocialLoginSettings
     {
         return match ($provider) {
             OauthProvider::Google => self::allConfigured($this->googleClientId, $this->googleClientSecret),
+            OauthProvider::Microsoft => self::allConfigured($this->microsoftClientId, $this->microsoftClientSecret),
             OauthProvider::Facebook => $this->socialLoginFacebookEnabled
                 && self::allConfigured($this->facebookAppId, $this->facebookAppSecret),
             OauthProvider::Apple => self::allConfigured($this->appleClientId, $this->appleTeamId, $this->appleKeyId, $this->applePrivateKey),

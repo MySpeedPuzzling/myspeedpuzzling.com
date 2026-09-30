@@ -9,6 +9,7 @@ use League\OAuth2\Client\Provider\FacebookUser;
 use League\OAuth2\Client\Provider\GoogleUser;
 use League\OAuth2\Client\Token\AccessToken;
 use League\OAuth2\Client\Token\AppleAccessToken;
+use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use SpeedPuzzling\Web\Value\SocialUserProfile;
 
@@ -21,8 +22,16 @@ final readonly class SocialProfileFetcher
 {
     private const string APPLE_ISSUER = 'https://appleid.apple.com';
 
+    /**
+     * Microsoft's token endpoint answers `invalid_client` with this code in
+     * `error_description` once the client secret has expired.
+     */
+    private const string MICROSOFT_EXPIRED_SECRET_CODE = 'AADSTS7000222';
+
     public function __construct(
         private SocialLoginProviders $providers,
+        private MicrosoftIdTokenVerifier $microsoftIdTokenVerifier,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -45,11 +54,28 @@ final readonly class SocialProfileFetcher
             $leagueProvider->setPkceCode($pkceVerifier);
         }
 
-        $accessToken = $leagueProvider->getAccessToken('authorization_code', ['code' => $code]);
+        try {
+            $accessToken = $leagueProvider->getAccessToken('authorization_code', ['code' => $code]);
+        } catch (IdentityProviderException $exception) {
+            if ($provider === OauthProvider::Microsoft && self::isExpiredMicrosoftSecret($exception)) {
+                // An outage, not a user problem: every Microsoft sign-in fails
+                // until the secret is rotated (setup-microsoft.md, "Rotating the secret")
+                $this->logger->error('Microsoft client secret expired - rotate MICROSOFT_CLIENT_SECRET.', [
+                    'exception' => $exception,
+                ]);
+            }
+
+            throw $exception;
+        }
+
         assert($accessToken instanceof AccessToken);
 
         if ($provider === OauthProvider::Apple) {
             return $this->appleProfile($accessToken, $appleUserPayload);
+        }
+
+        if ($provider === OauthProvider::Microsoft) {
+            return $this->microsoftProfile($accessToken);
         }
 
         $resourceOwner = $leagueProvider->getResourceOwner($accessToken);
@@ -82,6 +108,39 @@ final readonly class SocialProfileFetcher
             emailVerified: $email !== null,
             name: $resourceOwner->getName(),
         );
+    }
+
+    /**
+     * Microsoft: identity comes from the id_token of the token response
+     * (verified by MicrosoftIdTokenVerifier) - no userinfo call, no Graph.
+     * Keyed on `oid`, never `sub` or the email (microsoft-plan.md §D2). The
+     * email is trusted only on Microsoft's own consumer mailbox domains
+     * (§D3): anything else - a Gmail used as a Microsoft account user name -
+     * is unverified, so rule 3 never auto-links it and rule 4 asks the new
+     * account to confirm it.
+     *
+     * @throws \UnexpectedValueException the token is not one Microsoft issued to us
+     */
+    private function microsoftProfile(AccessToken $accessToken): SocialUserProfile
+    {
+        $claims = $this->microsoftIdTokenVerifier->verify($accessToken->getValues()['id_token'] ?? null);
+        $email = $claims['email'];
+
+        return new SocialUserProfile(
+            provider: OauthProvider::Microsoft,
+            providerUserId: $claims['oid'],
+            email: $email,
+            emailVerified: $email !== null && MicrosoftConsumerMailDomains::contains($email),
+            name: $claims['name'],
+        );
+    }
+
+    private static function isExpiredMicrosoftSecret(IdentityProviderException $exception): bool
+    {
+        $body = $exception->getResponseBody();
+        $description = is_array($body) ? ($body['error_description'] ?? null) : $body;
+
+        return is_string($description) && str_contains($description, self::MICROSOFT_EXPIRED_SECRET_CODE);
     }
 
     /**

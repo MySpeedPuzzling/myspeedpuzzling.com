@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Value;
 
 /**
- * What a provider proved about the visitor, normalized across Google, Apple
- * and Facebook. Trust policy (2026-09-29): the provider email is trusted
+ * What a provider proved about the visitor, normalized across Google,
+ * Microsoft, Apple and Facebook. Trust policy (2026-09-29): the provider email is trusted
  * unless the provider explicitly marks it unverified. `emailVerified` is what
  * that policy concluded, per provider (SocialProfileFetcher):
  *
@@ -17,6 +17,11 @@ namespace SpeedPuzzling\Web\Value;
  *   as a boolean or as the string "true"/"false"; only true/"true" count. An
  *   email Apple explicitly marks unverified is kept (rule 4 still registers
  *   the account, unverified, and asks for confirmation) but never auto-links.
+ * - Microsoft: Microsoft documents the `email` claim as "not guaranteed to be
+ *   correct", so it counts as verified only on Microsoft's own consumer
+ *   mailbox domains (MicrosoftConsumerMailDomains - there the account IS the
+ *   mailbox); any other address is unverified (never auto-links, rule 4 asks
+ *   for confirmation).
  *
  * `emailVerified` drives both the auto-link decision (rule 2 vs 3) and whether
  * a rule-4 account starts verified.

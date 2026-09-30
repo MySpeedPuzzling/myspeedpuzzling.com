@@ -40,6 +40,8 @@ final class SocialLoginHttpMock
     /**
      * Every request the providers sent since the last reset(), oldest first.
      *
+     * @phpstan-impure
+     *
      * @return list<RequestInterface>
      */
     public static function sentRequests(): array

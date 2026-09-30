@@ -707,15 +707,15 @@
   "answer_how_long_1000_pieces": "<p class=\"mb-0\">D'après les assemblages en solo enregistrés sur MySpeedPuzzling, le temps médian pour un puzzle de 1000 pièces est d'environ %median_1000%. Les speed puzzleurs terminent régulièrement en moins de %fast_1000%, et les plus rapides bien en dessous. Consultez les <a href=\"%times_guide_link%\">statistiques complètes par nombre de pièces</a> (en anglais) pour les médianes, percentiles et records.</p>\n"
   "question_how_competitions_work": "Comment fonctionnent les concours de speed puzzling ?"
   "answer_how_competitions_work": "<p class=\"mb-0\">Dans la plupart des concours de puzzle, tous les participants assemblent le même puzzle en même temps — celui qui termine en premier, ou à qui il reste le moins de pièces à la fin du temps imparti, gagne. Il existe des catégories solo, duo et équipe, des rencontres locales au World Jigsaw Puzzle Championship, ainsi que des concours en ligne. Parcourez notre <a href=\"%events_link%\">calendrier des événements</a> pour trouver un concours près de chez vous.</p>\n"
-  "question_duplicate_accounts": "J'ai créé un deuxième compte par erreur (par exemple en me connectant avec Google, Facebook ou Apple) – que faire ?"
+  "question_duplicate_accounts": "J'ai créé un deuxième compte par erreur (par exemple en me connectant avec Google, Microsoft, Apple ou Facebook) – que faire ?"
   "answer_duplicate_accounts": |
-    <p>Cela peut arriver si vous vous connectez avec Google, Facebook ou Apple en utilisant une adresse e-mail différente de celle de votre compte MySpeedPuzzling (par exemple une adresse créée avec « Masquer mon adresse e-mail » d'Apple). Nous n'avons alors aucun moyen de savoir que c'est vous, et un nouveau compte distinct est créé.</p>
-    <p><strong>Comment l'éviter :</strong> connectez-vous d'abord à votre compte existant (avec votre e-mail et votre mot de passe, ou avec un lien de connexion), ouvrez <a href="%edit_profile_link%">Modifier le profil</a> et associez le fournisseur dans <strong>Méthodes de connexion associées</strong>. Ensuite, la connexion avec Google, Facebook ou Apple vous mènera directement à votre compte – même si le fournisseur utilise une autre adresse e-mail.</p>
+    <p>Cela peut arriver si vous vous connectez avec Google, Microsoft, Apple ou Facebook en utilisant une adresse e-mail différente de celle de votre compte MySpeedPuzzling (par exemple une adresse créée avec « Masquer mon adresse e-mail » d'Apple). Nous n'avons alors aucun moyen de savoir que c'est vous, et un nouveau compte distinct est créé.</p>
+    <p><strong>Comment l'éviter :</strong> connectez-vous d'abord à votre compte existant (avec votre e-mail et votre mot de passe, ou avec un lien de connexion), ouvrez <a href="%edit_profile_link%">Modifier le profil</a> et associez le fournisseur dans <strong>Méthodes de connexion associées</strong>. Ensuite, la connexion avec Google, Microsoft, Apple ou Facebook vous mènera directement à votre compte – même si le fournisseur utilise une autre adresse e-mail.</p>
     <p class="mb-0"><strong>Si c'est déjà arrivé :</strong> pas d'inquiétude, rien n'est perdu. Écrivez-nous à <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a> en indiquant les adresses e-mail (ou les codes joueur) des deux comptes et celui que vous souhaitez conserver. Un administrateur fusionnera les comptes manuellement.</p>
   "question_instagram_sign_in": "Puis-je me connecter avec Instagram ?"
   "answer_instagram_sign_in": |
     <p>Pas directement – mais si votre compte Instagram est associé à un compte Facebook dans l'Espace Comptes de Meta, choisissez simplement <strong>Continuer avec Facebook</strong> et connectez-vous avec ce compte Facebook.</p>
-    <p class="mb-0">Vous n'avez pas de compte Facebook ? Connectez-vous avec Google, avec Apple ou avec votre adresse e-mail.</p>
+    <p class="mb-0">Vous n'avez pas de compte Facebook ? Connectez-vous avec Google, avec Microsoft, avec Apple ou avec votre adresse e-mail.</p>
   "question_shared_computer": "Je me suis connecté sur un ordinateur partagé ou public – que faire ?"
   "answer_shared_computer": "<p class=\"mb-0\">Déconnectez-vous une fois terminé : ouvrez le menu de votre profil et choisissez <strong>Se déconnecter</strong>. Sinon, vous restez connecté sur cet ordinateur pendant 30 jours.</p>"
 "profile":
@@ -811,7 +811,7 @@
   "recent_activity_button": "Voir l'activité récente"
   "social":
     "title": "Méthodes de connexion associées"
-    "description": "Connectez-vous à ce même compte avec Google, Apple ou Facebook. Associer un fournisseur ici le relie à ce compte — même s'il utilise une adresse e-mail différente."
+    "description": "Connectez-vous à ce même compte avec Google, Microsoft, Apple ou Facebook. Associer un fournisseur ici le relie à ce compte — même s'il utilise une adresse e-mail différente."
     "connect": "Associer %provider%"
     "disconnect": "Dissocier"
     "disconnected": "%provider% dissocié."
@@ -1291,12 +1291,12 @@
         <li>Toutes les communications avec le site web sont chiffrées (HTTPS), et seules les personnes qui exploitent la plateforme ont accès à la base de données.</li>
         <li>Nous respectons toutes les mesures de sécurité standard et travaillons continuellement à améliorer notre sécurité.</li>
     </ul>
-    <h2>8. Connexion avec Google, Facebook (Meta) et Apple</h2>
-    <p>Au lieu d'utiliser un mot de passe, vous pouvez vous connecter avec votre compte Google, Facebook ou Apple. Si vous utilisez Instagram, vous pouvez vous connecter via le compte Facebook qui y est associé dans l'Espace Comptes de Meta. Ces modes de connexion sont entièrement facultatifs : vous pouvez toujours vous connecter avec votre adresse e-mail et votre mot de passe, ou avec un lien de connexion envoyé par e-mail.</p>
+    <h2>8. Connexion avec Google, Microsoft, Apple et Facebook (Meta)</h2>
+    <p>Au lieu d'utiliser un mot de passe, vous pouvez vous connecter avec votre compte Google, Microsoft, Apple ou Facebook. Si vous utilisez Instagram, vous pouvez vous connecter via le compte Facebook qui y est associé dans l'Espace Comptes de Meta. Ces modes de connexion sont entièrement facultatifs : vous pouvez toujours vous connecter avec votre adresse e-mail et votre mot de passe, ou avec un lien de connexion envoyé par e-mail.</p>
     <h3 class="h5">Ce que nous recevons du fournisseur</h3>
     <ul>
         <li>un identifiant unique de votre compte chez ce fournisseur – une suite de caractères qui, à elle seule, ne dit rien de vous,</li>
-        <li>votre adresse e-mail, si vous acceptez de la partager – Apple vous permet de masquer votre véritable adresse et de nous communiquer à la place une adresse de relais privée (…@privaterelay.appleid.com), qui vous transmet nos messages,</li>
+        <li>votre adresse e-mail, si vous acceptez de la partager – Apple vous permet de masquer votre véritable adresse et de nous communiquer à la place une adresse de relais privée (…@privaterelay.appleid.com), qui vous transmet nos messages; une adresse e-mail Microsoft qui n'est pas une boîte Outlook.com, Hotmail, Live ou MSN est considérée comme non confirmée – nous ne l'utilisons jamais pour rattacher automatiquement un compte existant, et un nouveau compte créé avec elle reçoit un e-mail de confirmation,</li>
         <li>votre nom – nous l'utilisons uniquement pour préremplir le nom public d'un compte nouvellement créé, et vous pouvez le modifier à tout moment (Apple ne transmet le nom que lors de la toute première connexion).</li>
     </ul>
     <p>Un fournisseur peut également envoyer des informations de profil de base, comme une photo de profil. Nous ne les utilisons pas et ne les conservons pas.</p>
@@ -1308,7 +1308,7 @@
     </ul>
     <h3 class="h5">Ce que nous ne recevons jamais</h3>
     <ul>
-        <li>Nous ne voyons jamais votre mot de passe Google, Facebook ou Apple.</li>
+        <li>Nous ne voyons jamais votre mot de passe Google, Microsoft, Apple ou Facebook.</li>
         <li>Nous n'avons aucun accès à vos publications, photos, amis, contacts, messages ni à quoi que ce soit d'autre dans votre compte chez le fournisseur, et nous ne publions jamais rien en votre nom.</li>
         <li>Nous ne conservons pas les jetons d'accès émis par le fournisseur – ils servent une seule fois, lors de la connexion, à lire les informations ci-dessus, puis sont supprimés.</li>
     </ul>
@@ -1319,17 +1319,19 @@
     <ul>
         <li><strong>Facebook :</strong> Paramètres et confidentialité → Paramètres → Applications et sites web</li>
         <li><strong>Google :</strong> <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">myaccount.google.com</a> → Sécurité → Vos connexions à des applications et services tiers</li>
+        <li><strong>Microsoft :</strong> <a href="https://account.live.com/consent/Manage" target="_blank" rel="noopener">account.live.com/consent/Manage</a> → Applications et services auxquels vous avez donné accès → MySpeedPuzzling → Modifier → Supprimer ces autorisations</li>
         <li><strong>Apple :</strong> sur iPhone ou iPad, Réglages → votre nom (compte Apple) → Connexion et sécurité → Se connecter avec Apple ; sur le web, sur <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
     </ul>
     <h3 class="h5">Les fournisseurs sont des responsables de traitement indépendants</h3>
-    <p>Lorsque vous vous connectez avec Google, Facebook ou Apple, ces sociétés traitent vos données en tant que responsables de traitement indépendants, selon leurs propres conditions et politiques de confidentialité, sur lesquelles nous n'avons aucune influence :</p>
+    <p>Lorsque vous vous connectez avec Google, Microsoft, Apple ou Facebook, ces sociétés traitent vos données en tant que responsables de traitement indépendants, selon leurs propres conditions et politiques de confidentialité, sur lesquelles nous n'avons aucune influence :</p>
     <ul>
         <li>Google (Google Ireland Limited) : <a href="https://policies.google.com/privacy?hl=fr" target="_blank" rel="noopener">policies.google.com/privacy</a></li>
+        <li>Microsoft (Microsoft Ireland Operations Limited) : <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener">privacy.microsoft.com/privacystatement</a></li>
         <li>Meta (Meta Platforms Ireland Limited) : <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">facebook.com/privacy/policy</a></li>
         <li>Apple (Apple Distribution International Limited) : <a href="https://www.apple.com/fr/legal/privacy/" target="_blank" rel="noopener">apple.com/legal/privacy</a></li>
     </ul>
     <h2>9. Journal de sécurité des connexions</h2>
-    <p>Pour protéger votre compte, nous enregistrons les événements liés à sa sécurité : connexions réussies et échouées, déconnexions, demandes de liens de connexion ou de réinitialisation du mot de passe, changements de mot de passe et d'adresse e-mail, inscription, association et dissociation de Google, Facebook ou Apple, ainsi que les demandes de suppression du compte.</p>
+    <p>Pour protéger votre compte, nous enregistrons les événements liés à sa sécurité : connexions réussies et échouées, déconnexions, demandes de liens de connexion ou de réinitialisation du mot de passe, changements de mot de passe et d'adresse e-mail, inscription, association et dissociation de Google, Microsoft, Apple ou Facebook, ainsi que les demandes de suppression du compte.</p>
     <ul>
         <li>Chaque entrée contient le type d'événement, sa date et son heure, le mode de connexion utilisé, l'adresse e-mail concernée, l'adresse IP et l'identification de votre navigateur et de votre appareil (le « user agent »).</li>
         <li>Nous l'utilisons pour détecter les accès non autorisés aux comptes et enquêter à leur sujet, ainsi que pour vous montrer votre propre historique – vous pouvez le consulter à tout moment sur la page <strong>Activité récente du compte</strong>, dans les paramètres de votre profil.</li>
@@ -1358,7 +1360,7 @@
         <li><strong>Google Ireland Limited</strong> (Google Analytics) – statistiques de fréquentation du site,</li>
         <li><strong>Cloudflare, Inc.</strong> (États-Unis) – diffusion rapide des images (img.myspeedpuzzling.com).</li>
     </ul>
-    <p>Google, Meta et Apple (lorsque vous vous connectez avec eux) ainsi que la World Jigsaw Puzzle Federation (lorsque vous associez vos comptes) traitent les données en tant que responsables de traitement indépendants. Si vous autorisez une application tierce à accéder à votre compte via notre API, elle reçoit les données que vous avez approuvées dans cette demande ; vous pouvez révoquer cet accès à tout moment dans les paramètres de votre profil.</p>
+    <p>Google, Microsoft, Apple et Meta (lorsque vous vous connectez avec eux) ainsi que la World Jigsaw Puzzle Federation (lorsque vous associez vos comptes) traitent les données en tant que responsables de traitement indépendants. Si vous autorisez une application tierce à accéder à votre compte via notre API, elle reçoit les données que vous avez approuvées dans cette demande ; vous pouvez révoquer cet accès à tout moment dans les paramètres de votre profil.</p>
     <h2>14. Cookies</h2>
     <p>Nous utilisons des cookies et des technologies de stockage similaires dans votre navigateur aux fins suivantes :</p>
     <ul>
@@ -1390,15 +1392,15 @@
     <h2>18. Suppression de vos données</h2>
     <p>Vous pouvez supprimer vous-même votre compte, y compris vos données personnelles, à tout moment. Vous trouverez les instructions détaillées sur la page <a href="%data_deletion_link%">Comment supprimer vos données</a>.</p>
     <p>Si vous avez des questions sur la protection des données personnelles ou si vous n'êtes pas sûr que quelque chose soit suffisamment clair, veuillez nous contacter à <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
-    <p><em><small>Dernière mise à jour : 29 septembre 2026</small></em></p>
+    <p><em><small>Dernière mise à jour : 30 septembre 2026</small></em></p>
 
 "data_deletion":
   "meta":
     "title": "Comment supprimer vos données"
-    "description": "Comment supprimer votre compte MySpeedPuzzling et vos données personnelles, dissocier Google, Facebook ou Apple et retirer l'application chez le fournisseur."
+    "description": "Comment supprimer votre compte MySpeedPuzzling et vos données personnelles, dissocier Google, Microsoft, Apple ou Facebook et retirer l'application chez le fournisseur."
   "content": |
     <h1>Comment supprimer vos données</h1>
-    <p>Vous pouvez supprimer vous-même votre compte MySpeedPuzzling, y compris vos données personnelles – à tout moment et en quelques clics. Cette page explique comment faire, ce qui est supprimé exactement et que faire si vous souhaitez seulement dissocier Google, Facebook ou Apple.</p>
+    <p>Vous pouvez supprimer vous-même votre compte MySpeedPuzzling, y compris vos données personnelles – à tout moment et en quelques clics. Cette page explique comment faire, ce qui est supprimé exactement et que faire si vous souhaitez seulement dissocier Google, Microsoft, Apple ou Facebook.</p>
     <h2>1. Supprimer votre compte</h2>
     <ol>
         <li>Connectez-vous et ouvrez <a href="%edit_profile_link%">Modifier le profil</a> (dans le menu utilisateur).</li>
@@ -1410,7 +1412,7 @@
     <p>Votre compte est supprimé immédiatement. Il n'y a ni délai d'attente ni retour en arrière possible.</p>
     <h2>2. Ce qui est supprimé</h2>
     <ul>
-        <li>votre compte : l'adresse e-mail de connexion, le mot de passe, les méthodes de connexion associées (Google, Facebook, Apple) et le journal de sécurité des connexions,</li>
+        <li>votre compte : l'adresse e-mail de connexion, le mot de passe, les méthodes de connexion associées (Google, Microsoft, Apple, Facebook) et le journal de sécurité des connexions,</li>
         <li>votre profil de joueur avec toutes ses informations,</li>
         <li>vos temps en solo, vos collections, votre liste de souhaits, les puzzles proposés à la vente ou à l'échange, vos badges, chronomètres et notifications,</li>
         <li>votre adhésion (un abonnement actif est résilié) et votre inscription à la newsletter.</li>
@@ -1418,18 +1420,19 @@
     <p>Certaines choses sont partagées avec d'autres joueurs et restent donc visibles pour eux – mais elles ne sont plus liées à aucun compte et n'affichent plus que le nom que vous utilisiez, en simple texte : les temps en duo et en équipe réalisés avec d'autres joueurs inscrits, les conversations et les transactions de la place de marché, y compris les évaluations, ainsi que les suggestions et leurs commentaires. Les puzzles que vous avez ajoutés au catalogue y restent, sans aucun lien avec vous. Dans notre journal des e-mails envoyés, votre adresse est remplacée par une empreinte (hash) à sens unique.</p>
     <h2>3. Ce que nous conservons</h2>
     <p>Rien qui vous concerne – à une seule exception près : l'historique de vos paiements (paiements, factures et reçus). Stripe, qui traite nos paiements, le conserve aussi longtemps que l'exige la législation comptable et fiscale. Nos sauvegardes sont écrasées en 7 jours ; les données supprimées en disparaissent donc aussi dans ce délai.</p>
-    <h2>4. Dissocier uniquement Google, Facebook ou Apple</h2>
-    <p>Si vous souhaitez garder votre compte et simplement ne plus vous connecter avec Google, Facebook ou Apple, ouvrez <a href="%edit_profile_link%">Modifier le profil</a> → <strong>Méthodes de connexion associées</strong> et cliquez sur <strong>Dissocier</strong> à côté du fournisseur. L'association enregistrée (l'identifiant du fournisseur, l'adresse e-mail au moment de l'association, ainsi que les dates d'association et de dernière utilisation) est supprimée immédiatement. S'il s'agit de votre seul moyen de connexion, ajoutez d'abord un mot de passe pour ne pas perdre l'accès à votre compte.</p>
+    <h2>4. Dissocier uniquement Google, Microsoft, Apple ou Facebook</h2>
+    <p>Si vous souhaitez garder votre compte et simplement ne plus vous connecter avec Google, Microsoft, Apple ou Facebook, ouvrez <a href="%edit_profile_link%">Modifier le profil</a> → <strong>Méthodes de connexion associées</strong> et cliquez sur <strong>Dissocier</strong> à côté du fournisseur. L'association enregistrée (l'identifiant du fournisseur, l'adresse e-mail au moment de l'association, ainsi que les dates d'association et de dernière utilisation) est supprimée immédiatement. S'il s'agit de votre seul moyen de connexion, ajoutez d'abord un mot de passe pour ne pas perdre l'accès à votre compte.</p>
     <h2>5. Retirer MySpeedPuzzling chez le fournisseur</h2>
-    <p>La dissociation sur notre site ne change rien à votre compte Google, Facebook ou Apple. Pour nous retirer également l'accès de ce côté, supprimez MySpeedPuzzling dans les paramètres du fournisseur :</p>
+    <p>La dissociation sur notre site ne change rien à votre compte Google, Microsoft, Apple ou Facebook. Pour nous retirer également l'accès de ce côté, supprimez MySpeedPuzzling dans les paramètres du fournisseur :</p>
     <ul>
         <li><strong>Facebook :</strong> Paramètres et confidentialité → Paramètres → Applications et sites web</li>
         <li><strong>Google :</strong> <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">myaccount.google.com</a> → Sécurité → Vos connexions à des applications et services tiers</li>
+        <li><strong>Microsoft :</strong> <a href="https://account.live.com/consent/Manage" target="_blank" rel="noopener">account.live.com/consent/Manage</a> → Applications et services auxquels vous avez donné accès → MySpeedPuzzling → Modifier → Supprimer ces autorisations</li>
         <li><strong>Apple :</strong> sur iPhone ou iPad, Réglages → votre nom (compte Apple) → Connexion et sécurité → Se connecter avec Apple ; sur le web, sur <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
     </ul>
     <p>Retirer l'application chez le fournisseur ne supprime pas votre compte MySpeedPuzzling – pour cela, suivez l'étape 1.</p>
     <h2>6. Vous n'arrivez pas à vous connecter ?</h2>
-    <p>Vous devez être connecté pour supprimer votre compte. Vous avez oublié votre mot de passe, ou vous n'utilisez plus Google, Facebook ou Apple ? Sur la page de connexion, vous pouvez vous faire envoyer un lien de connexion à l'adresse e-mail de votre compte. Si cela ne suffit pas, écrivez-nous à <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, de préférence depuis l'adresse e-mail de votre compte, et nous vous aiderons à retrouver l'accès à votre compte.</p>
+    <p>Vous devez être connecté pour supprimer votre compte. Vous avez oublié votre mot de passe, ou vous n'utilisez plus Google, Microsoft, Apple ou Facebook ? Sur la page de connexion, vous pouvez vous faire envoyer un lien de connexion à l'adresse e-mail de votre compte. Si cela ne suffit pas, écrivez-nous à <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, de préférence depuis l'adresse e-mail de votre compte, et nous vous aiderons à retrouver l'accès à votre compte.</p>
     <p>Pour en savoir plus sur la manière dont nous traitons les données personnelles, consultez notre <a href="%privacy_link%">Politique de confidentialité</a>.</p>
 
 "countdown":
@@ -3390,6 +3393,7 @@ edition:
     "request_new": "Recevoir un nouveau lien"
   "social":
     "continue_with": "Continuer avec %provider%"
+    "microsoft_hint": "Compte Outlook.com, Hotmail, Live ou Xbox"
     "facebook_hint": "Compte Meta - aussi pour les utilisateurs d'Instagram"
     "attempt_expired": "Cette tentative de connexion a expiré ou a déjà été utilisée. Veuillez réessayer."
     "relay":

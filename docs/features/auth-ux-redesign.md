@@ -86,7 +86,8 @@ Related: [auth-hardening/README.md](auth-hardening/README.md) (linking rules 1�
    (<https://developers.google.com/identity/branding-guidelines>). Apple HIG: no smaller than other
    sign-in buttons, visible without scrolling, titles *Sign in / Sign up / Continue with Apple*
    (<https://developer.apple.com/design/human-interface-guidelines/sign-in-with-apple>). Already
-   implemented in `_social_provider_button.html.twig` — keep.
+   implemented in `_social_provider_button.html.twig` — keep. Provider order (2026-09-30, with
+   Microsoft added): **Google, Microsoft, Apple, Facebook** on `/login`, `/register` and in settings.
 10. **Don't send people into a dead end we can predict.** Google refuses OAuth inside embedded
     webviews (`403 disallowed_useragent`, fully enforced since 2023-07-24:
     <https://developers.googleblog.com/upcoming-security-changes-to-googles-oauth-20-authorization-endpoint-in-embedded-webviews/>).

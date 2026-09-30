@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Message\SendEmailVerificationLink;
 use SpeedPuzzling\Web\Security\AppleLoginAuthenticator;
 use SpeedPuzzling\Web\Security\FacebookLoginAuthenticator;
 use SpeedPuzzling\Web\Security\GoogleLoginAuthenticator;
+use SpeedPuzzling\Web\Security\MicrosoftLoginAuthenticator;
 use SpeedPuzzling\Web\Security\UserAccountProvider;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginStateStore;
 use SpeedPuzzling\Web\Value\OauthProvider;
@@ -144,6 +145,7 @@ final class SocialRegisterConfirmController extends AbstractController
             $this->userAccountProvider->loadUserByIdentifier($userId),
             authenticatorName: match ($parked->profile->provider) {
                 OauthProvider::Google => GoogleLoginAuthenticator::class,
+                OauthProvider::Microsoft => MicrosoftLoginAuthenticator::class,
                 OauthProvider::Facebook => FacebookLoginAuthenticator::class,
                 OauthProvider::Apple => AppleLoginAuthenticator::class,
             },

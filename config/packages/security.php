@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Security\FacebookLoginAuthenticator;
 use SpeedPuzzling\Web\Security\GoogleLoginAuthenticator;
 use SpeedPuzzling\Web\Security\InternalApiAuthenticator;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
+use SpeedPuzzling\Web\Security\MicrosoftLoginAuthenticator;
 use SpeedPuzzling\Web\Security\LoginLinkFailureHandler;
 use SpeedPuzzling\Web\Security\LoginLinkSuccessHandler;
 use SpeedPuzzling\Web\Security\OAuth2User;
@@ -96,6 +97,7 @@ return App::config([
                 'custom_authenticators' => [
                     LoginFormAuthenticator::class,
                     GoogleLoginAuthenticator::class,
+                    MicrosoftLoginAuthenticator::class,
                     FacebookLoginAuthenticator::class,
                     AppleLoginAuthenticator::class,
                     // The 6-digit code from the sign-in e-mail: claims only

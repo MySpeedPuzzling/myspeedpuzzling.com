@@ -88,7 +88,7 @@ return static function (ContainerConfigurator $configurator): void {
     // Pairs & teams picker rollout (docs/features/feature_flags.md): admins only until flipped to 1.
     $parameters->set('pairsTeamsPickerPublic', '%env(bool:PAIRS_TEAMS_PICKER_PUBLIC)%');
 
-    // Social login (auth hardening PR 2): Google and Apple are available iff
+    // Social login (auth hardening PR 2): Google, Microsoft and Apple are available iff
     // their credentials are configured (SocialLoginSettings). Facebook keeps a
     // flag until the Meta app is published (docs/features/feature_flags.md).
     $parameters->set('socialLoginFacebookEnabled', '%env(bool:SOCIAL_LOGIN_FACEBOOK_ENABLED)%');
@@ -120,6 +120,9 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$appleKeyId', '%env(trim:string:APPLE_KEY_ID)%')
         ->bind('$applePrivateKey', '%env(trim:string:APPLE_PRIVATE_KEY)%')
         ->bind('$appleAppId', '%env(trim:string:APPLE_APP_ID)%')
+        ->bind('$microsoftClientId', '%env(trim:string:MICROSOFT_CLIENT_ID)%')
+        ->bind('$microsoftClientSecret', '%env(trim:string:MICROSOFT_CLIENT_SECRET)%')
+        ->bind('$microsoftClientSecretExpiresAt', '%env(trim:string:MICROSOFT_CLIENT_SECRET_EXPIRES_AT)%')
         ->bind('$listmonkApiUrl', '%listmonkApiUrl%')
         ->bind('$listmonkApiUser', '%listmonkApiUser%')
         ->bind('$listmonkApiToken', '%listmonkApiToken%')
@@ -303,8 +306,8 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(\SpeedPuzzling\Web\Services\SocialLogin\SocialLoginProviders::class)
         ->arg('$httpClient', service('social_login.http_client'));
 
-    // Fetches Apple's JWKS through the same (test-mockable) client
-    $services->set(\SpeedPuzzling\Web\Services\SocialLogin\AppleServerNotificationVerifier::class)
+    // Fetches Apple's and Microsoft's JWKS through the same (test-mockable) client
+    $services->set(\SpeedPuzzling\Web\Services\SocialLogin\CachedJwks::class)
         ->arg('$httpClient', service('social_login.http_client'));
 
     // The deprecated Sentry\Monolog\Handler (removed in sentry/sentry 5.0) was split

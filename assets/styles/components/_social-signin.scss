@@ -1,5 +1,5 @@
 //
-// Social sign-in buttons (Google, Apple, Facebook)
+// Social sign-in buttons (Google, Microsoft, Apple, Facebook)
 // --------------------------------------------------
 //
 // Each button follows its PROVIDER's branding, not the site's button styles,
@@ -61,6 +61,42 @@
   width: 20px;
   height: 20px;
   margin-right: 10px;
+
+  .btn-sm & {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+  }
+}
+
+
+// Microsoft - light theme of the "Sign in with Microsoft" branding guidelines
+// (learn.microsoft.com howto-add-branding-in-apps, checked 2026-09-29): fill
+// #FFFFFF, 1px #8C8C8C border, text #5E5E5E, the four-square logo
+// unmodified, Segoe UI Semibold when the device has it (never downloaded).
+// Wording stays the house "Continue with Microsoft" (microsoft-plan.md §4).
+
+.btn-microsoft-signin {
+  @extend %social-signin-base;
+  --#{$prefix}btn-color: #5e5e5e;
+  --#{$prefix}btn-bg: #fff;
+  --#{$prefix}btn-border-color: #8c8c8c;
+  --#{$prefix}btn-hover-color: #5e5e5e;
+  --#{$prefix}btn-hover-bg: #f3f3f3;
+  --#{$prefix}btn-hover-border-color: #8c8c8c;
+  --#{$prefix}btn-active-color: #5e5e5e;
+  --#{$prefix}btn-active-bg: #eaeaea;
+  --#{$prefix}btn-active-border-color: #8c8c8c;
+  --#{$prefix}btn-focus-shadow-rgb: 140, 140, 140;
+  font-family: 'Segoe UI', $font-family-sans-serif;
+  font-weight: 600;
+}
+
+.btn-microsoft-signin-logo {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
 
   .btn-sm & {
     width: 18px;
@@ -176,6 +212,17 @@
 .social-identity-badge-google {
   background: #fff;
   border: 1px solid #dadce0;
+
+  .social-identity-logo {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+// Microsoft's four squares on white, like its button
+.social-identity-badge-microsoft {
+  background: #fff;
+  border: 1px solid #8c8c8c;
 
   .social-identity-logo {
     width: 1.25rem;

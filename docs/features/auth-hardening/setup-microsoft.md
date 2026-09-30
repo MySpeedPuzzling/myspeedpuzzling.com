@@ -1,8 +1,9 @@
-# Social login setup — Microsoft (DRAFT)
+# Social login setup — Microsoft
 
-**Draft (2026-09-29): the code does not exist yet.** Plan and decisions: [`microsoft-plan.md`](microsoft-plan.md). Steps
-marked *(after the code ships)* only make sense once the Microsoft PR is merged. Written against Microsoft's
-documentation of 2026-09-29 (Microsoft Entra admin center: **Entra ID → App registrations**). Microsoft renames menu
+**The code shipped 2026-09-30, dark:** Microsoft is available iff `MICROSOFT_CLIENT_ID` and `MICROSOFT_CLIENT_SECRET`
+are both set (`SocialLoginSettings::isEnabled()`, no feature flag) — production has neither yet, so nothing is visible
+until the values reach Infisical. Plan and decisions: [`microsoft-plan.md`](microsoft-plan.md). Written against
+Microsoft's documentation of 2026-09-29 (Microsoft Entra admin center: **Entra ID → App registrations**). Microsoft renames menu
 items now and then; if a label differs, the section names (Authentication, Certificates & secrets, API permissions,
 Branding & properties) are the stable part.
 
@@ -82,9 +83,8 @@ app reachable if your personal login ever has a problem, and it is the account t
 
 ## 5. Token configuration (optional, for the test)
 
-**Token configuration → Add optional claim → ID** → tick `xms_edov` → **Add** (accept adding the `email` permission
-if asked). The app logs whether Microsoft sends it for personal accounts; see plan §1 D3. Skipping this changes
-nothing in behaviour.
+Skip it. (The plan considered the `xms_edov` optional claim to widen e-mail trust one day; the code does not read
+it — trust is the Microsoft-mailbox domain list, plan §1 D3.)
 
 ## 6. Branding & properties
 
@@ -104,8 +104,13 @@ nothing in behaviour.
    {"associatedApplications": [{"applicationId": "<Application (client) ID from step 2>"}]}
    ```
 
-   Give Claude the client id; it adds the file to the repo and deploys (it must be served as `application/json` and
-   pass the bot-blocker). Then click **Verify and save domain**.
+   **Nothing to add to the repo:** the app serves this file itself from `MICROSOFT_CLIENT_ID`
+   (`MicrosoftIdentityAssociationController`, `application/json`, 404 while the variable is empty). So the order is:
+   finish steps 7–10 first (production client id in Infisical + deployed), check
+   `curl -s https://myspeedpuzzling.com/.well-known/microsoft-identity-association.json` shows your client id, then
+   click **Verify and save domain**. The bot-blocker lets this exact path through unconditionally (Microsoft's
+   verifier is a server-side fetch from Azure with an unknown User-Agent — bot-blocker commit `7effa7c`, live after
+   `docker compose pull bot-blocker && docker compose up -d bot-blocker` on the box). The file may stay forever.
 
 **About "unverified":** Microsoft's consent screen will say *unverified* next to the app name. Removing it needs
 *publisher verification* (Partner Center business account + an app registered by a work account in a tenant with
@@ -129,12 +134,19 @@ Lost it? Create another secret, use that one, delete the unused one.
 Repeat steps 2–7 as `MySpeedPuzzling Local` with redirect URI
 `http://localhost:8080/login/social/microsoft/callback` (Microsoft allows `http` for `localhost`; add
 `http://localhost:<port>/…` too if you run the stack with `WEB_PORT=…`). Skip step 6's publisher domain (not needed
-locally). Secret expiry: 90 days is plenty. Put its values in your local `.env.local` only:
+locally). Secret expiry: 90 days is plenty.
+
+Hand the local values over as `MICROSOFT_LOCAL_CLIENT_ID` / `MICROSOFT_LOCAL_CLIENT_SECRET` in
+`~/.msp-secrets/social-login.env` (step 10). Locally they go into the checkout's `.env.local` under the **normal**
+names — the app only ever reads `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET`:
 
 ```
-MICROSOFT_CLIENT_ID=…
-MICROSOFT_CLIENT_SECRET=…
+MICROSOFT_CLIENT_ID=<MICROSOFT_LOCAL_CLIENT_ID>
+MICROSOFT_CLIENT_SECRET=<MICROSOFT_LOCAL_CLIENT_SECRET>
 ```
+
+Then `docker compose restart web` (FrankenPHP workers read env at boot). The Microsoft button appears on
+`http://localhost:8080/login`. Leave `MICROSOFT_CLIENT_SECRET_EXPIRES_AT` out locally.
 
 ## 9. Owners
 
@@ -156,7 +168,7 @@ Never paste the secret into a chat.
 2. Tell Claude: "Microsoft secrets are in ~/.msp-secrets/social-login.env — test locally first, then put them in
    Infisical." (Local test uses the `MySpeedPuzzling Local` values from step 8.)
 
-What the agent then does *(after the code ships)*: writes the three values to Infisical project **myspeedpuzzling**,
+What the agent then does: writes the three values to Infisical project **myspeedpuzzling**,
 environment **prod**, path `/` over ssh stdin (procedure: memory `reference_production_access.md`, "Infisical admin from
 the box"), queues a deploy, confirms the web container sees non-empty values (lengths only), adds the rotation reminder
 to `docs/TODO.md`. **From that deploy on, the Microsoft button is public** — there is no admin-only stage (plan §7).
@@ -167,7 +179,8 @@ Run it on **localhost** first (dev registration, Mailpit at `localhost:8025` for
 production smoke test (items 1, 2, 4, 5) right after the deploy.
 
 1. **Button:** `/login` and `/register` in a private window → white "Continue with Microsoft" button with the
-   four-colour squares and the small "Outlook.com, Hotmail, Live or Xbox account" line.
+   four-colour squares and the small "Outlook.com, Hotmail, Live or Xbox account" line; order Google, Microsoft,
+   Apple, Facebook (on `/register` after "Continue with email").
 2. **Connect from settings:** Edit profile → **Connected sign-in methods** → **Continue with Microsoft** → Microsoft
    account picker → consent screen (shows "MySpeedPuzzling", *unverified*, and the requested permissions) → **Accept**
    → back on edit profile with "Connected!".
@@ -182,7 +195,9 @@ production smoke test (items 1, 2, 4, 5) right after the deploy.
    that matches an existing account → "Microsoft has not confirmed the address … sign in first, then connect" and
    you stay signed out.
 9. **New account (rule 4):** a Microsoft account matching nothing → "Create a new account with …?" → confirm → signed
-   in; a Gmail-based Microsoft account gets the e-mail verification mail as well.
+   in; a Gmail-based Microsoft account gets the e-mail verification mail as well. ("Trusted" = the exact domain list in
+   `MicrosoftConsumerMailDomains` — `outlook.com`, `hotmail.*`, `live.*`, `msn.com`, … MX-verified; `outlook.cz` /
+   `hotmail.cz` are *not* Outlook.com mailboxes and count as unconfirmed.)
 10. **Work account refused:** try a work/school address → Microsoft itself says it can't be used here.
 11. **Disconnect** in settings → gone; reconnect if you want to keep it.
 
@@ -197,14 +212,17 @@ players can still get in with the e-mailed sign-in link or a password reset.
 
 ## Secret rotation (every ≤ 24 months)
 
-The app warns in Sentry 30 days before `MICROSOFT_CLIENT_SECRET_EXPIRES_AT`. Then:
+The app warns in Sentry from 30 days before `MICROSOFT_CLIENT_SECRET_EXPIRES_AT` (a warning at most once a day,
+logged by `MicrosoftClientSecretExpiryCheck` at the end of a request — no cron), and logs an error daily once the date
+has passed; a malformed date is reported the same way. Then:
 
 1. **Certificates & secrets → New client secret** (description `prod YYYY-MM`) — the old one keeps working meanwhile.
 2. Put the new value + new expiry date in `~/.msp-secrets/social-login.env`, ask Claude to update Infisical and deploy.
 3. After a successful Microsoft sign-in in production, **delete the old secret** in the portal.
 
-If it expired anyway: every Microsoft sign-in fails (`AADSTS7000222` in the logs) until steps 1–2 are done; nobody is
-locked out for good.
+If it expired anyway: every Microsoft sign-in fails — Sentry shows the error "Microsoft client secret expired - rotate
+MICROSOFT_CLIENT_SECRET" (`AADSTS7000222`) — until steps 1–2 are done; nobody is locked out for good (sign-in link,
+password reset).
 
 ## Gotchas
 

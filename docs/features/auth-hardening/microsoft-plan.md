@@ -1,6 +1,12 @@
 # Plan: "Continue with Microsoft"
 
-Status: **plan only, nothing implemented** (2026-09-29). Owner approved planning it; passkeys are deferred (2FA stays
+Status: **implemented 2026-09-30, shipped dark** (no credentials in production yet). Owner decisions on the open
+questions (2026-09-30): consumers only; launch "unverified"; e-mail trust only for Microsoft's consumer mailbox domains;
+identity = `oid`; 24-month secret + `MICROSOFT_CLIENT_SECRET_EXPIRES_AT`; **order Google, Microsoft, Apple, Facebook**
+(overrides D10); house wording "Continue with Microsoft"; no flag; the publisher-domain file is served from
+`MICROSOFT_CLIENT_ID` by a controller. Deviations from this plan: the expiry reminder runs at the end of a request
+(cache-guarded, once per day) instead of a cron command; `xms_edov` is not requested or logged. What shipped is
+described in [`README.md`](README.md) (Workstream B, "Microsoft"). Originally planned 2026-09-29. Owner approved planning it; passkeys are deferred (2FA stays
 delegated to the social providers). Design authority for everything not repeated here: [`README.md`](README.md)
 (Workstream B, the five linking rules, §Hardening 2026-09-29). Console click-path for the owner:
 [`setup-microsoft.md`](setup-microsoft.md).

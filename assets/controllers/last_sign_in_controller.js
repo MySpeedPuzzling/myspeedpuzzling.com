@@ -2,7 +2,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 const STORAGE_KEY = 'msp.lastSignIn';
-const METHODS = ['google', 'apple', 'facebook', 'password', 'link'];
+const METHODS = ['google', 'microsoft', 'apple', 'facebook', 'password', 'link'];
 
 /**
  * "Last used" on the sign-in method this device used last - the answer to

@@ -835,15 +835,15 @@
   "answer_how_long_1000_pieces": "<p class=\"mb-0\">MySpeedPuzzlingに記録されたソロの完成記録によると、1000ピースのジグソーパズルのタイム中央値は約%median_1000%です。スピードパズラーは%fast_1000%以内で完成させることも多く、最速の人はさらに速いです。中央値、パーセンタイル、記録については<a href=\"%times_guide_link%\">ピース数別の統計</a>（英語）をご覧ください。</p>\n"
   "question_how_competitions_work": "スピードパズルの大会はどのように行われますか？"
   "answer_how_competitions_work": "<p class=\"mb-0\">ほとんどの大会では、全参加者が同じパズルを同時に組み立てます — 最初に完成させた人、または制限時間終了時に残りピースが最も少ない人が勝ちです。ソロ、ペア、チームのカテゴリーがあり、地域の集まりから世界ジグソーパズル選手権（World Jigsaw Puzzle Championship）まで、オンライン大会もあります。<a href=\"%events_link%\">イベントカレンダー</a>で近くの大会を見つけましょう。</p>\n"
-  "question_duplicate_accounts": "うっかり2つ目のアカウントを作ってしまいました（Google・Facebook・Appleでサインインしたときなど）。どうすればいいですか？"
+  "question_duplicate_accounts": "うっかり2つ目のアカウントを作ってしまいました（Google・Microsoft・Apple・Facebookでサインインしたときなど）。どうすればいいですか？"
   "answer_duplicate_accounts": |
-    <p>MySpeedPuzzlingのアカウントとは別のメールアドレス（たとえばAppleの「メールを非公開」で作られたアドレス）でGoogle・Facebook・Appleにサインインすると、このようなことが起こります。その場合、当サイトにはあなたご本人だと判断する手段がないため、別の新しいアカウントが作成されてしまいます。</p>
-    <p><strong>防ぐには：</strong>まず既存のアカウントに（メールアドレスとパスワード、またはサインイン用リンクで）サインインし、<a href="%edit_profile_link%">プロフィール編集</a>の<strong>接続済みのサインイン方法</strong>でプロバイダーを接続してください。以降は、プロバイダー側のメールアドレスが異なっていても、Google・Facebook・Appleでのサインインで直接あなたのアカウントに入れます。</p>
+    <p>MySpeedPuzzlingのアカウントとは別のメールアドレス（たとえばAppleの「メールを非公開」で作られたアドレス）でGoogle・Microsoft・Apple・Facebookにサインインすると、このようなことが起こります。その場合、当サイトにはあなたご本人だと判断する手段がないため、別の新しいアカウントが作成されてしまいます。</p>
+    <p><strong>防ぐには：</strong>まず既存のアカウントに（メールアドレスとパスワード、またはサインイン用リンクで）サインインし、<a href="%edit_profile_link%">プロフィール編集</a>の<strong>接続済みのサインイン方法</strong>でプロバイダーを接続してください。以降は、プロバイダー側のメールアドレスが異なっていても、Google・Microsoft・Apple・Facebookでのサインインで直接あなたのアカウントに入れます。</p>
     <p class="mb-0"><strong>すでに作ってしまった場合：</strong>ご安心ください、何も失われません。両方のアカウントのメールアドレス（またはプレイヤーコード）と、どちらを残したいかを添えて <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a> までご連絡ください。管理者が手動でアカウントを統合します。</p>
   "question_instagram_sign_in": "Instagramでサインインできますか？"
   "answer_instagram_sign_in": |
     <p>直接はできません。ただし、InstagramアカウントがMetaアカウントセンターでFacebookアカウントとリンクされていれば、<strong>Facebookで続ける</strong>を選んで、そのFacebookアカウントでサインインできます。</p>
-    <p class="mb-0">Facebookアカウントをお持ちでない場合は、Google、Apple、またはメールアドレスでサインインしてください。</p>
+    <p class="mb-0">Facebookアカウントをお持ちでない場合は、Google、Microsoft、Apple、またはメールアドレスでサインインしてください。</p>
   "question_shared_computer": "共用・公共のパソコンでサインインしました。どうすればいいですか？"
   "answer_shared_computer": "<p class=\"mb-0\">使い終わったらサインアウトしてください。プロフィールのメニューを開き、<strong>ログアウト</strong>を選びます。そのままにすると、そのパソコンで30日間サインインしたままになります。</p>"
 "recent_activity":
@@ -963,7 +963,7 @@
   "recent_activity_button": "最近のアクティビティを表示"
   "social":
     "title": "接続済みのサインイン方法"
-    "description": "Google、Apple、Facebookでもこの同じアカウントにサインインできます。ここでプロバイダーを接続すると、たとえ別のメールアドレスを使用していても、このアカウントに紐づけられます。"
+    "description": "Google、Microsoft、Apple、Facebookでもこの同じアカウントにサインインできます。ここでプロバイダーを接続すると、たとえ別のメールアドレスを使用していても、このアカウントに紐づけられます。"
     "connect": "%provider%を接続"
     "disconnect": "接続を解除"
     "disconnected": "%provider%の接続を解除しました。"
@@ -1285,12 +1285,12 @@
         <li>ウェブサイトとの通信はすべて暗号化（HTTPS）されており、データベースにアクセスできるのはプラットフォームを運営する者だけです。</li>
         <li>すべての標準的なセキュリティ対策を維持し、セキュリティの改善に継続的に取り組んでいます。</li>
     </ul>
-    <h2>8. Google・Facebook（Meta）・Appleでのサインイン</h2>
-    <p>パスワードの代わりに、Google、Facebook、またはAppleのアカウントでサインインできます。Instagramをお使いの場合は、MetaアカウントセンターでリンクされているFacebookアカウントを通じてサインインできます。これらのサインイン方法の利用は完全に任意です。メールアドレスとパスワード、またはメールでお送りするサインイン用リンクでいつでもサインインできます。</p>
+    <h2>8. Google・Microsoft・Apple・Facebook（Meta）でのサインイン</h2>
+    <p>パスワードの代わりに、Google、Microsoft、Apple、またはFacebookのアカウントでサインインできます。Instagramをお使いの場合は、MetaアカウントセンターでリンクされているFacebookアカウントを通じてサインインできます。これらのサインイン方法の利用は完全に任意です。メールアドレスとパスワード、またはメールでお送りするサインイン用リンクでいつでもサインインできます。</p>
     <h3 class="h5">プロバイダーから受け取る情報</h3>
     <ul>
         <li>そのプロバイダーにおけるあなたのアカウントの固有ID（それ単体ではあなたについて何もわからない文字列）</li>
-        <li>共有に同意された場合はメールアドレス（Appleでは実際のアドレスを非公開にし、代わりに当サイトからのメッセージを転送するプライベートリレーアドレス（…@privaterelay.appleid.com）を提供することもできます）</li>
+        <li>共有に同意された場合はメールアドレス（Appleでは実際のアドレスを非公開にし、代わりに当サイトからのメッセージを転送するプライベートリレーアドレス（…@privaterelay.appleid.com）を提供することもできます）（Microsoftのメールアドレスが Outlook.com・Hotmail・Live・MSN のメールボックスでない場合は未確認として扱われ、既存のアカウントに自動で接続されることはなく、そのアドレスで新規作成したアカウントには確認メールをお送りします）</li>
         <li>お名前（新しく作成されるアカウントの公開名を事前入力するためだけに使用し、いつでも変更できます。Appleは初回のサインイン時にのみ名前を送信します）</li>
     </ul>
     <p>プロバイダーからプロフィール写真などの基本的なプロフィール情報が送られてくる場合もありますが、当サイトではそれらを使用も保存もしません。</p>
@@ -1302,7 +1302,7 @@
     </ul>
     <h3 class="h5">受け取らない情報</h3>
     <ul>
-        <li>Google、Facebook、Appleのパスワードを当サイトが目にすることはありません。</li>
+        <li>Google、Microsoft、Apple、Facebookのパスワードを当サイトが目にすることはありません。</li>
         <li>プロバイダーのアカウント内の投稿、写真、友達、連絡先、メッセージ、その他のコンテンツにはアクセスできず、あなたに代わって何かを投稿することも一切ありません。</li>
         <li>プロバイダーが発行するアクセストークンは保存しません。サインイン時に上記の情報を読み取るために一度だけ使用し、その後破棄します。</li>
     </ul>
@@ -1313,17 +1313,19 @@
     <ul>
         <li><strong>Facebook:</strong> 設定とプライバシー → 設定 → アプリとウェブサイト</li>
         <li><strong>Google:</strong> <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">myaccount.google.com</a> → セキュリティ → サードパーティのアプリとサービスとの接続</li>
+        <li><strong>Microsoft:</strong> <a href="https://account.live.com/consent/Manage" target="_blank" rel="noopener">account.live.com/consent/Manage</a> → アクセスを許可したアプリとサービス → MySpeedPuzzling → 編集 → これらのアクセス許可を削除する</li>
         <li><strong>Apple:</strong> iPhoneまたはiPadで 設定 → ユーザ名（Apple Account）→ サインインとセキュリティ → Appleでサインイン、またはウェブの <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
     </ul>
     <h3 class="h5">プロバイダーは独立した管理者です</h3>
-    <p>Google、Facebook、Appleでサインインする場合、これらの企業は独立した管理者として、それぞれの規約とプライバシーポリシーに基づいてあなたのデータを処理します。当サイトはその内容に関与できません。</p>
+    <p>Google、Microsoft、Apple、Facebookでサインインする場合、これらの企業は独立した管理者として、それぞれの規約とプライバシーポリシーに基づいてあなたのデータを処理します。当サイトはその内容に関与できません。</p>
     <ul>
         <li>Google（Google Ireland Limited）: <a href="https://policies.google.com/privacy?hl=ja" target="_blank" rel="noopener">policies.google.com/privacy</a></li>
+        <li>Microsoft（Microsoft Ireland Operations Limited）: <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener">privacy.microsoft.com/privacystatement</a></li>
         <li>Meta（Meta Platforms Ireland Limited）: <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">facebook.com/privacy/policy</a></li>
         <li>Apple（Apple Distribution International Limited）: <a href="https://www.apple.com/jp/legal/privacy/" target="_blank" rel="noopener">apple.com/legal/privacy</a></li>
     </ul>
     <h2>9. サインインのセキュリティログ</h2>
-    <p>アカウントを保護するため、セキュリティに関わるイベントを記録しています。対象は、サインインの成功と失敗、サインアウト、サインイン用リンクやパスワード再設定リンクのリクエスト、パスワードとメールアドレスの変更、アカウント登録、Google・Facebook・Appleの連携と解除、そしてアカウント削除のリクエストです。</p>
+    <p>アカウントを保護するため、セキュリティに関わるイベントを記録しています。対象は、サインインの成功と失敗、サインアウト、サインイン用リンクやパスワード再設定リンクのリクエスト、パスワードとメールアドレスの変更、アカウント登録、Google・Microsoft・Apple・Facebookの連携と解除、そしてアカウント削除のリクエストです。</p>
     <ul>
         <li>各記録には、イベントの種類、発生日時、使用されたサインイン方法、対象のメールアドレス、IPアドレス、ブラウザーとデバイスの識別情報（ユーザーエージェント）が含まれます。</li>
         <li>このログは、アカウントへの不正アクセスを検知・調査するため、そしてあなた自身に履歴をお見せするために使用します。履歴はプロフィール設定の<strong>最近のアカウントアクティビティ</strong>ページでいつでも確認できます。</li>
@@ -1352,7 +1354,7 @@
         <li><strong>Google Ireland Limited</strong>（Googleアナリティクス） - ウェブサイトのアクセス統計</li>
         <li><strong>Cloudflare, Inc.</strong>（米国） - 画像の高速配信（img.myspeedpuzzling.com）</li>
     </ul>
-    <p>Google、Meta、Apple（これらでサインインする場合）および世界ジグソーパズル連盟（アカウントを連携する場合）は、独立した管理者としてデータを処理します。当サイトのAPIを通じて第三者のアプリケーションにアカウントへのアクセスを許可した場合、そのアプリケーションは許可されたデータを受け取ります。このアクセスは、プロフィール設定からいつでも取り消せます。</p>
+    <p>Google、Microsoft、Apple、Meta（これらでサインインする場合）および世界ジグソーパズル連盟（アカウントを連携する場合）は、独立した管理者としてデータを処理します。当サイトのAPIを通じて第三者のアプリケーションにアカウントへのアクセスを許可した場合、そのアプリケーションは許可されたデータを受け取ります。このアクセスは、プロフィール設定からいつでも取り消せます。</p>
     <h2>14. Cookie</h2>
     <p>ブラウザーのCookieおよび同様の保存領域を、以下の目的で使用しています。</p>
     <ul>
@@ -1384,15 +1386,15 @@
     <h2>18. データの削除</h2>
     <p>アカウントは個人データも含めて、いつでもご自身で削除できます。詳しい手順は<a href="%data_deletion_link%">データの削除方法</a>のページをご覧ください。</p>
     <p>個人データ保護について質問がある場合や、何かが十分に明確でないと思われる場合は、<a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>までお問い合わせください。</p>
-    <p><em><small>最終更新: 2026年9月29日</small></em></p>
+    <p><em><small>最終更新: 2026年9月30日</small></em></p>
 
 "data_deletion":
   "meta":
     "title": "データの削除方法"
-    "description": "MySpeedPuzzlingのアカウントと個人データの削除方法、Google・Facebook・Appleの接続解除、プロバイダー側でのアプリの削除方法をご案内します。"
+    "description": "MySpeedPuzzlingのアカウントと個人データの削除方法、Google・Microsoft・Apple・Facebookの接続解除、プロバイダー側でのアプリの削除方法をご案内します。"
   "content": |
     <h1>データの削除方法</h1>
-    <p>MySpeedPuzzlingのアカウントは、個人データも含めてご自身で削除できます。いつでも、数回クリックするだけです。このページでは、削除の手順、具体的に何が削除されるのか、そしてGoogle・Facebook・Appleの接続だけを解除したい場合の方法をご説明します。</p>
+    <p>MySpeedPuzzlingのアカウントは、個人データも含めてご自身で削除できます。いつでも、数回クリックするだけです。このページでは、削除の手順、具体的に何が削除されるのか、そしてGoogle・Microsoft・Apple・Facebookの接続だけを解除したい場合の方法をご説明します。</p>
     <h2>1. アカウントを削除する</h2>
     <ol>
         <li>サインインして、<a href="%edit_profile_link%">プロフィール編集</a>を開きます（ユーザーメニューにあります）。</li>
@@ -1404,7 +1406,7 @@
     <p>アカウントはただちに削除されます。猶予期間はなく、元に戻すこともできません。</p>
     <h2>2. 削除されるもの</h2>
     <ul>
-        <li>アカウント：サインイン用のメールアドレス、パスワード、接続済みのサインイン方法（Google、Facebook、Apple）、サインインのセキュリティログ</li>
+        <li>アカウント：サインイン用のメールアドレス、パスワード、接続済みのサインイン方法（Google、Microsoft、Apple、Facebook）、サインインのセキュリティログ</li>
         <li>プレイヤープロフィールとそのすべての情報</li>
         <li>ソロのタイム記録、コレクション、ウィッシュリスト、販売・交換に出しているパズル、バッジ、ストップウォッチ、通知</li>
         <li>メンバーシップ（有効なサブスクリプションは解約されます）とニュースレターの購読</li>
@@ -1412,18 +1414,19 @@
     <p>ほかのプレイヤーと共有しているものは、その人たちのために残ります。ただし、どのアカウントにも紐づかなくなり、あなたが使っていた名前がリンクなしのテキストとして表示されるだけになります。対象は、ほかの登録プレイヤーと一緒に完成させたペア・チームのタイム、会話やマーケットプレイスでの取引（評価を含む）、機能リクエストとそのコメントです。あなたがカタログに追加したパズルはカタログに残りますが、あなたとの紐づけはなくなります。送信済みメールの記録では、あなたのメールアドレスは一方向のハッシュ値に置き換えられます。</p>
     <h2>3. 保持されるもの</h2>
     <p>あなたに関するデータは何も残りません。唯一の例外は支払いの記録（支払い、請求書、領収書）です。当サイトの決済を処理するStripeが、会計法および税法で定められた期間これを保管します。バックアップは7日以内に上書きされるため、削除されたデータもその時点までにバックアップから消去されます。</p>
-    <h2>4. Google・Facebook・Appleの接続だけを解除する</h2>
-    <p>アカウントは残したまま、Google・Facebook・Appleでのサインインだけをやめたい場合は、<a href="%edit_profile_link%">プロフィール編集</a> → <strong>接続済みのサインイン方法</strong>を開き、該当するプロバイダーの<strong>接続を解除</strong>をクリックしてください。保存されている連携情報（プロバイダーのID、連携時点のメールアドレス、連携日時と最終利用日時）はただちに削除されます。それが唯一のサインイン方法になっている場合は、アカウントに入れなくならないよう、先にパスワードを設定してください。</p>
+    <h2>4. Google・Microsoft・Apple・Facebookの接続だけを解除する</h2>
+    <p>アカウントは残したまま、Google・Microsoft・Apple・Facebookでのサインインだけをやめたい場合は、<a href="%edit_profile_link%">プロフィール編集</a> → <strong>接続済みのサインイン方法</strong>を開き、該当するプロバイダーの<strong>接続を解除</strong>をクリックしてください。保存されている連携情報（プロバイダーのID、連携時点のメールアドレス、連携日時と最終利用日時）はただちに削除されます。それが唯一のサインイン方法になっている場合は、アカウントに入れなくならないよう、先にパスワードを設定してください。</p>
     <h2>5. プロバイダー側でMySpeedPuzzlingを削除する</h2>
-    <p>当サイトで接続を解除しても、Google・Facebook・Appleのアカウントには何の変化もありません。プロバイダー側でも当サイトのアクセス権を取り消したい場合は、各プロバイダーの設定でMySpeedPuzzlingを削除してください。</p>
+    <p>当サイトで接続を解除しても、Google・Microsoft・Apple・Facebookのアカウントには何の変化もありません。プロバイダー側でも当サイトのアクセス権を取り消したい場合は、各プロバイダーの設定でMySpeedPuzzlingを削除してください。</p>
     <ul>
         <li><strong>Facebook:</strong> 設定とプライバシー → 設定 → アプリとウェブサイト</li>
         <li><strong>Google:</strong> <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">myaccount.google.com</a> → セキュリティ → サードパーティのアプリとサービスとの接続</li>
+        <li><strong>Microsoft:</strong> <a href="https://account.live.com/consent/Manage" target="_blank" rel="noopener">account.live.com/consent/Manage</a> → アクセスを許可したアプリとサービス → MySpeedPuzzling → 編集 → これらのアクセス許可を削除する</li>
         <li><strong>Apple:</strong> iPhoneまたはiPadで 設定 → ユーザ名（Apple Account）→ サインインとセキュリティ → Appleでサインイン、またはウェブの <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
     </ul>
     <p>プロバイダー側でアプリを削除しても、MySpeedPuzzlingのアカウントは削除されません。アカウントを削除するには、手順1に従ってください。</p>
     <h2>6. サインインできない場合</h2>
-    <p>アカウントを削除するには、サインインしている必要があります。パスワードを忘れた場合や、Google・Facebook・Appleをもう使っていない場合は、サインインページでアカウントのメールアドレス宛にサインイン用リンクを送ることができます。それでも解決しない場合は、できればアカウントのメールアドレスから <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a> までご連絡ください。アカウントに再びサインインできるようお手伝いします。</p>
+    <p>アカウントを削除するには、サインインしている必要があります。パスワードを忘れた場合や、Google・Microsoft・Apple・Facebookをもう使っていない場合は、サインインページでアカウントのメールアドレス宛にサインイン用リンクを送ることができます。それでも解決しない場合は、できればアカウントのメールアドレスから <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a> までご連絡ください。アカウントに再びサインインできるようお手伝いします。</p>
     <p>個人データの取り扱いについて詳しくは、<a href="%privacy_link%">プライバシーポリシー</a>をご覧ください。</p>
 
 "countdown":
@@ -3379,6 +3382,7 @@ qr_code:
     "request_new": "新しいリンクを受け取る"
   "social":
     "continue_with": "%provider%で続ける"
+    "microsoft_hint": "Outlook.com、Hotmail、Live、Xboxのアカウント"
     "facebook_hint": "Metaアカウント - Instagramユーザーもこちら"
     "attempt_expired": "このサインインの試行は期限切れか、すでに使用されています。もう一度お試しください。"
     "relay":

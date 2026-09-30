@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\SocialLogin;
 
-use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
-use GuzzleHttp\ClientInterface;
-use Psr\Cache\CacheItemPoolInterface;
-use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\InvalidAppleServerNotification;
+use SpeedPuzzling\Web\Exceptions\JwksUnavailable;
 use SpeedPuzzling\Web\Value\AppleSignInEvent;
 use SpeedPuzzling\Web\Value\AppleSignInEventType;
 
@@ -22,23 +19,18 @@ use SpeedPuzzling\Web\Value\AppleSignInEventType;
  * read.
  *
  * The endpoint is public, so every cheap check runs before Apple's JWKS is
- * fetched, and the JWKS is cached: refetched only for a key id we have not
- * seen, and then at most once per REFETCH_INTERVAL_SECONDS - a flood of forged
- * tokens can never turn into a flood of requests to Apple (which would put the
- * login callback, fetching the same keys, at risk).
+ * fetched, and the JWKS is cached (CachedJwks): refetched only for a key id we
+ * have not seen, and then at most once per CachedJwks::REFETCH_INTERVAL_SECONDS
+ * - a flood of forged tokens can never turn into a flood of requests to Apple.
  */
 final readonly class AppleServerNotificationVerifier
 {
     public const string JWKS_CACHE_KEY = 'apple_sign_in_jwks';
     private const string APPLE_ISSUER = 'https://appleid.apple.com';
     private const string JWKS_URL = 'https://appleid.apple.com/auth/keys';
-    private const int REFETCH_INTERVAL_SECONDS = 300;
-    private const int JWKS_TTL_SECONDS = 86400;
 
     public function __construct(
-        private ClientInterface $httpClient,
-        private CacheItemPoolInterface $socialLoginStateCache,
-        private ClockInterface $clock,
+        private CachedJwks $jwks,
         private string $appleClientId,
         private string $appleAppId,
     ) {
@@ -143,57 +135,11 @@ final readonly class AppleServerNotificationVerifier
      */
     private function appleKeys(string $keyId): array
     {
-        $item = $this->socialLoginStateCache->getItem(self::JWKS_CACHE_KEY);
-        $cached = $item->isHit() ? $item->get() : null;
-        $now = $this->clock->now()->getTimestamp();
-
-        if (is_array($cached) && is_array($cached['jwks'] ?? null) && is_int($cached['fetchedAt'] ?? null)) {
-            /** @var array<string, mixed> $cachedJwks */
-            $cachedJwks = $cached['jwks'];
-            $keys = self::parseKeys($cachedJwks);
-
-            if (isset($keys[$keyId]) || $now - $cached['fetchedAt'] < self::REFETCH_INTERVAL_SECONDS) {
-                return $keys;
-            }
-        }
-
         try {
-            $response = $this->httpClient->request('GET', self::JWKS_URL, ['timeout' => 5]);
-            $jwks = json_decode((string) $response->getBody(), associative: true, flags: JSON_THROW_ON_ERROR);
-        } catch (\Throwable $exception) {
+            return $this->jwks->rs256Keys(self::JWKS_CACHE_KEY, self::JWKS_URL, $keyId);
+        } catch (JwksUnavailable $exception) {
             throw new InvalidAppleServerNotification('Could not fetch Apple keys.', previous: $exception);
         }
-
-        if (!is_array($jwks)) {
-            throw new InvalidAppleServerNotification('Apple keys are not a JWKS.');
-        }
-
-        /** @var array<string, mixed> $jwks */
-        $keys = self::parseKeys($jwks);
-
-        $item->set(['jwks' => $jwks, 'fetchedAt' => $now]);
-        $item->expiresAfter(self::JWKS_TTL_SECONDS);
-        $this->socialLoginStateCache->save($item);
-
-        return $keys;
-    }
-
-    /**
-     * RS256 pinned: a key Apple publishes without `alg` still only verifies
-     * RS256, and JWT::decode refuses a header alg that differs from the key's.
-     *
-     * @param array<string, mixed> $jwks
-     * @return array<string, Key>
-     */
-    private static function parseKeys(array $jwks): array
-    {
-        try {
-            $keys = JWK::parseKeySet($jwks, 'RS256');
-        } catch (\Throwable $exception) {
-            throw new InvalidAppleServerNotification('Apple keys are not a JWKS.', previous: $exception);
-        }
-
-        return array_filter($keys, static fn (Key $key): bool => $key->getAlgorithm() === 'RS256');
     }
 
     private static function event(mixed $events): AppleSignInEvent

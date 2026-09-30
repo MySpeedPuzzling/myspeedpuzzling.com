@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Value;
 enum OauthProvider: string
 {
     case Google = 'google';
+    case Microsoft = 'microsoft';
     case Apple = 'apple';
     case Facebook = 'facebook';
 
@@ -25,6 +26,7 @@ enum OauthProvider: string
     {
         return match ($this) {
             self::Google => 'Google',
+            self::Microsoft => 'Microsoft',
             self::Apple => 'Apple',
             self::Facebook => 'Facebook',
         };

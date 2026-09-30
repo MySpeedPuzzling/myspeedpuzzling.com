@@ -19,10 +19,11 @@ use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * Every social button follows its provider's brand rules (a condition of
- * using Google's, Apple's and Meta's sign-in) and is drawn by ONE partial, so
- * /login and the settings connect buttons look the same: Google's light
- * button with the four-colour G, Apple's black button with Apple's own logo
- * artwork, Meta's round logo on Facebook Blue. Never a monochrome icon font
+ * using Google's, Microsoft's, Apple's and Meta's sign-in) and is drawn by
+ * ONE partial, so /login and the settings connect buttons look the same:
+ * Google's light button with the four-colour G, Microsoft's light button with
+ * the four squares, Apple's black button with Apple's own logo artwork, Meta's
+ * round logo on Facebook Blue. Never a monochrome icon font
  * glyph in the site's colours.
  */
 final class SocialProviderButtonsTest extends WebTestCase
@@ -46,6 +47,29 @@ final class SocialProviderButtonsTest extends WebTestCase
 
         $this->assertBrandedButtons($crawler, '/login/social/');
         self::assertStringContainsString('also for Instagram users', $crawler->text());
+        self::assertStringContainsString('Outlook.com, Hotmail, Live or Xbox account', $crawler->text());
+    }
+
+    /**
+     * Owner decision 2026-09-30: Google, Microsoft, Apple, Facebook - on
+     * /login (under the email form), on /register (after "Continue with
+     * email") and in settings.
+     */
+    public function testProvidersAreInTheSameOrderEverywhere(): void
+    {
+        $this->enableAllProvidersPublicly();
+        $browser = self::createClient();
+
+        foreach (['/login', '/register'] as $path) {
+            $browser->request('GET', $path);
+            self::assertResponseIsSuccessful();
+            $this->assertProviderOrder((string) $browser->getResponse()->getContent(), $path);
+        }
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('GET', '/en/edit-profile');
+        self::assertResponseIsSuccessful();
+        $this->assertProviderOrder((string) $browser->getResponse()->getContent(), 'settings');
     }
 
     public function testSettingsConnectButtonsAreTheSameBrandedButtons(): void
@@ -87,7 +111,7 @@ final class SocialProviderButtonsTest extends WebTestCase
         self::assertResponseIsSuccessful();
 
         $rows = $crawler->filter('.social-identity-list > li.social-identity');
-        self::assertCount(3, $rows);
+        self::assertCount(4, $rows);
 
         // Connected first: Apple's own logo artwork in the badge, email, Disconnect with CSRF
         $apple = $rows->eq(0);
@@ -100,9 +124,12 @@ final class SocialProviderButtonsTest extends WebTestCase
         // Then the not connected ones, each with its branded connect button
         self::assertCount(1, $rows->eq(1)->filter('.social-identity-badge-google svg.social-identity-logo path[fill="#4285F4"]'));
         self::assertCount(1, $rows->eq(1)->filter('a.btn-google-signin[href^="/account/social/google"]'));
-        self::assertCount(1, $rows->eq(2)->filter('.social-identity-badge-facebook svg.social-identity-logo'));
-        self::assertCount(1, $rows->eq(2)->filter('a.btn-facebook-signin[href^="/account/social/facebook"]'));
-        self::assertStringContainsString('also for Instagram users', $rows->eq(2)->text());
+        self::assertCount(1, $rows->eq(2)->filter('.social-identity-badge-microsoft svg.social-identity-logo rect[fill="#F25022"]'));
+        self::assertCount(1, $rows->eq(2)->filter('a.btn-microsoft-signin[href^="/account/social/microsoft"]'));
+        self::assertStringContainsString('Outlook.com, Hotmail, Live or Xbox account', $rows->eq(2)->text());
+        self::assertCount(1, $rows->eq(3)->filter('.social-identity-badge-facebook svg.social-identity-logo'));
+        self::assertCount(1, $rows->eq(3)->filter('a.btn-facebook-signin[href^="/account/social/facebook"]'));
+        self::assertStringContainsString('also for Instagram users', $rows->eq(3)->text());
     }
 
     /**
@@ -133,12 +160,12 @@ final class SocialProviderButtonsTest extends WebTestCase
 
     public function testNoButtonsWhenNoProviderIsConfigured(): void
     {
-        $this->disableSocialLoginProvider(OauthProvider::Google, OauthProvider::Apple, OauthProvider::Facebook);
+        $this->disableSocialLoginProvider(OauthProvider::Google, OauthProvider::Microsoft, OauthProvider::Apple, OauthProvider::Facebook);
         $browser = self::createClient();
 
         $crawler = $browser->request('GET', '/login');
         self::assertResponseIsSuccessful();
-        self::assertCount(0, $crawler->filter('a.btn-google-signin, a.btn-apple-signin, a.btn-facebook-signin'));
+        self::assertCount(0, $crawler->filter('a.btn-google-signin, a.btn-microsoft-signin, a.btn-apple-signin, a.btn-facebook-signin'));
         self::assertCount(0, $crawler->filter('a[href^="/login/social/"]'));
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
@@ -179,12 +206,21 @@ final class SocialProviderButtonsTest extends WebTestCase
         // Apple's "Left-aligned - Medium" artwork, uncropped
         self::assertSame('0 0 31 44', $apple->filter('svg.btn-apple-signin-logo')->attr('viewBox'));
 
+        $microsoft = $crawler->filter(sprintf('a.btn-microsoft-signin[href^="%smicrosoft"]', $hrefPrefix));
+        self::assertCount(1, $microsoft);
+        self::assertSame('Continue with Microsoft', self::buttonLabel($microsoft));
+        // Microsoft's four squares, unmodified
+        $squares = $microsoft->filter('svg.btn-microsoft-signin-logo rect')->each(
+            static fn (Crawler $rect): string => (string) $rect->attr('fill'),
+        );
+        self::assertSame(['#F25022', '#7FBA00', '#00A4EF', '#FFB900'], $squares);
+
         $facebook = $crawler->filter(sprintf('a.btn-facebook-signin[href^="%sfacebook"]', $hrefPrefix));
         self::assertCount(1, $facebook);
         self::assertSame('Continue with Facebook', self::buttonLabel($facebook));
         self::assertCount(1, $facebook->filter('svg.btn-facebook-signin-logo'));
 
-        foreach ([$google, $apple, $facebook] as $button) {
+        foreach ([$google, $microsoft, $apple, $facebook] as $button) {
             self::assertStringNotContainsString('btn-outline', (string) $button->attr('class'));
         }
     }
@@ -200,8 +236,20 @@ final class SocialProviderButtonsTest extends WebTestCase
         return trim(str_replace($badge->count() > 0 ? $badge->text() : '', '', $button->text()));
     }
 
+    private function assertProviderOrder(string $html, string $where): void
+    {
+        $previous = -1;
+
+        foreach (['google', 'microsoft', 'apple', 'facebook'] as $provider) {
+            $position = strpos($html, 'btn-' . $provider . '-signin');
+            self::assertNotFalse($position, "{$where}: {$provider} button missing");
+            self::assertGreaterThan($previous, $position, "{$where}: {$provider} is out of order");
+            $previous = $position;
+        }
+    }
+
     private function enableAllProvidersPublicly(): void
     {
-        $this->enableSocialLoginProvider(OauthProvider::Google, OauthProvider::Apple, OauthProvider::Facebook);
+        $this->enableSocialLoginProvider(OauthProvider::Google, OauthProvider::Microsoft, OauthProvider::Apple, OauthProvider::Facebook);
     }
 }

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\SocialLogin;
 use GuzzleHttp\ClientInterface;
 use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Provider\Facebook;
+use League\OAuth2\Client\Provider\GenericProvider;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -16,7 +17,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * social routes): the Apple provider throws on empty credentials, and the env
  * vars stay empty until each provider console setup is done.
  *
- * All three share ONE redirect URI per provider - the login callback route.
+ * All of them share ONE redirect URI per provider - the login callback route.
  * Link flows (rule 5) travel through the same callback and are told apart by
  * the intent in the server-side state payload, so the provider consoles need
  * exactly one return URL each.
@@ -24,6 +25,13 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 final readonly class SocialLoginProviders
 {
     public const string FACEBOOK_GRAPH_API_VERSION = 'v26.0';
+
+    /**
+     * Personal Microsoft accounts only (microsoft-plan.md §D1): the /consumers
+     * v2.0 endpoints are fixed, so no discovery document is ever fetched.
+     */
+    public const string MICROSOFT_AUTHORIZE_URL = 'https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize';
+    public const string MICROSOFT_TOKEN_URL = 'https://login.microsoftonline.com/consumers/oauth2/v2.0/token';
 
     public function __construct(
         private ClientInterface $httpClient,
@@ -36,6 +44,8 @@ final readonly class SocialLoginProviders
         private string $appleTeamId,
         private string $appleKeyId,
         private string $applePrivateKey,
+        private string $microsoftClientId,
+        private string $microsoftClientSecret,
     ) {
     }
 
@@ -57,12 +67,18 @@ final readonly class SocialLoginProviders
      * without an email we cannot sign them up. `auth_type=rerequest` makes
      * every attempt ask again (Meta docs, "Manually Build a Login Flow").
      *
+     * Microsoft: `prompt=select_account` - someone with several Microsoft
+     * accounts (a personal and a family one is common) always gets the
+     * account picker instead of being signed in silently with whichever one
+     * the browser remembers.
+     *
      * @return array<string, string>
      */
     public function authorizationOptions(OauthProvider $provider): array
     {
         return match ($provider) {
             OauthProvider::Facebook => ['auth_type' => 'rerequest'],
+            OauthProvider::Microsoft => ['prompt' => 'select_account'],
             default => [],
         };
     }
@@ -84,6 +100,22 @@ final readonly class SocialLoginProviders
                 'clientId' => $this->googleClientId,
                 'clientSecret' => $this->googleClientSecret,
                 'redirectUri' => $redirectUri,
+            ], $collaborators),
+            // No provider package (microsoft-plan.md §2): GenericProvider is the
+            // one league class that honours `pkceMethod`, and the token
+            // endpoint returns the id_token we verify ourselves
+            // (MicrosoftIdTokenVerifier) - the userinfo URL is required by the
+            // class but never called.
+            OauthProvider::Microsoft => new GenericProvider([
+                'clientId' => $this->microsoftClientId,
+                'clientSecret' => $this->microsoftClientSecret,
+                'redirectUri' => $redirectUri,
+                'urlAuthorize' => self::MICROSOFT_AUTHORIZE_URL,
+                'urlAccessToken' => self::MICROSOFT_TOKEN_URL,
+                'urlResourceOwnerDetails' => 'https://graph.microsoft.com/oidc/userinfo',
+                'scopes' => ['openid', 'profile', 'email'],
+                'scopeSeparator' => ' ',
+                'pkceMethod' => GenericProvider::PKCE_METHOD_S256,
             ], $collaborators),
             OauthProvider::Facebook => new Facebook([
                 'clientId' => $this->facebookAppId,

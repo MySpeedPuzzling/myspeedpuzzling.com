@@ -34,6 +34,7 @@
         "doctrine/doctrine-bundle": "^3.1",
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.0",
+        "firebase/php-jwt": "^7.1",
         "guzzlehttp/guzzle": "^7.15.1",
         "intervention/image-symfony": "^4.0",
         "jetbrains/phpstorm-attributes": "^1.0",

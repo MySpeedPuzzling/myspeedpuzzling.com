@@ -249,8 +249,8 @@
                            no provider-email match required - linking here is exactly
                            how a different-email provider account avoids becoming a
                            duplicate MySpeedPuzzling account #}
-                        {% set provider_names = {google: 'Google', apple: 'Apple', facebook: 'Facebook'} %}
-                        {% for provider in ['google', 'apple', 'facebook'] %}
+                        {% set provider_names = {google: 'Google', microsoft: 'Microsoft', apple: 'Apple', facebook: 'Facebook'} %}
+                        {% for provider in ['google', 'microsoft', 'apple', 'facebook'] %}
                             {% if social_login.isProviderEnabled(provider) and provider not in connected_providers %}
                                 <li class="social-identity">
                                     <span class="social-identity-badge social-identity-badge-{{ provider }}">
@@ -260,8 +260,8 @@
                                         <strong class="d-block">{{ provider_names[provider] }}</strong>
                                         <div class="fs-xs text-muted mt-1">
                                             {{ 'edit_profile.social.not_connected'|trans -}}
-                                            {% if provider == 'facebook' %}
-                                                <span class="mx-1">&middot;</span>{{ 'auth.social.facebook_hint'|trans }}
+                                            {% if provider in ['microsoft', 'facebook'] %}
+                                                <span class="mx-1">&middot;</span>{{ ('auth.social.' ~ provider ~ '_hint')|trans }}
                                             {% endif %}
                                         </div>
                                     </div>

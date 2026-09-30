@@ -7,14 +7,16 @@
 
    Wording is "Continue with {provider}" everywhere, the connect buttons in
    settings too: Apple allows only Sign in / Sign up / Continue with Apple,
-   Google and Meta list "Continue with" among theirs.
+   Google and Meta list "Continue with" among theirs. Microsoft lists only
+   "Sign in with Microsoft" - a known, deliberate deviation for one house
+   wording (microsoft-plan.md §4).
 
-   Parameters: provider ('google'|'apple'|'facebook'), href, size ('sm' or empty),
+   Parameters: provider ('google'|'microsoft'|'apple'|'facebook'), href, size ('sm' or empty),
    full_width (bool), last_used (bool - on the sign-in pages: remember the choice
    on this device and carry the hidden "Last used" tag, last_sign_in_controller),
    describedby (optional id of an element that explains the button, e.g. the
    in-app browser notice). #}
-{% set provider_name = {google: 'Google', apple: 'Apple', facebook: 'Facebook'}[provider] %}
+{% set provider_name = {google: 'Google', microsoft: 'Microsoft', apple: 'Apple', facebook: 'Facebook'}[provider] %}
 <a class="btn btn-{{ provider }}-signin{{ size|default('') == 'sm' ? ' btn-sm' : '' }}{{ full_width|default(false) ? ' w-100' : '' }}" href="{{ href }}" data-turbo="false"
     {%- if last_used|default(false) %} data-last-sign-in-method="{{ provider }}" data-action="last-sign-in#remember"{% endif %}
     {%- if describedby|default(null) is not null %} aria-describedby="{{ describedby }}"{% endif %}>

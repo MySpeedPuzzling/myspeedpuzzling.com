@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests;
 
 use SpeedPuzzling\Web\Tests\TestDouble\AppleIdTokenFactory;
+use SpeedPuzzling\Web\Tests\TestDouble\MicrosoftIdTokenFactory;
 use SpeedPuzzling\Web\Value\OauthProvider;
 
 /**
@@ -79,6 +80,11 @@ trait ConfiguresSocialLoginProviders
             OauthProvider::Google => [
                 'GOOGLE_CLIENT_ID' => 'test-google-client-id',
                 'GOOGLE_CLIENT_SECRET' => 'test-google-client-secret',
+            ],
+            // The id_token audience must match what MicrosoftIdTokenFactory signs
+            OauthProvider::Microsoft => [
+                'MICROSOFT_CLIENT_ID' => MicrosoftIdTokenFactory::CLIENT_ID,
+                'MICROSOFT_CLIENT_SECRET' => 'test-microsoft-client-secret',
             ],
             OauthProvider::Facebook => [
                 'FACEBOOK_APP_ID' => 'test-facebook-app-id',

@@ -724,15 +724,15 @@
   "answer_how_long_1000_pieces": "<p class=\"mb-0\">Podle sólo skládání zaznamenaných na MySpeedPuzzling je medián času u puzzle o 1000 dílcích přibližně %median_1000%. Speed puzzleři běžně skládají pod %fast_1000% a ti nejrychlejší jsou ještě výrazně rychlejší. Kompletní <a href=\"%times_guide_link%\">statistiky podle počtu dílků</a> (v angličtině) nabízejí mediány, percentily i rekordy.</p>\n"
   "question_how_competitions_work": "Jak fungují speed puzzling závody?"
   "answer_how_competitions_work": "<p class=\"mb-0\">Ve většině závodů skládají všichni účastníci stejné puzzle ve stejný čas — vyhrává ten, kdo je složí první, nebo komu po vypršení limitu zbývá nejméně dílků. Existují kategorie sólo, dvojice i týmy, od místních setkání až po mistrovství světa World Jigsaw Puzzle Championship, a také online soutěže. Projděte si náš <a href=\"%events_link%\">kalendář eventů</a> a najděte závod ve svém okolí.</p>\n"
-  "question_duplicate_accounts": "Omylem jsem si založil/a druhý účet (např. přihlášením přes Google, Facebook nebo Apple) – co teď?"
+  "question_duplicate_accounts": "Omylem jsem si založil/a druhý účet (např. přihlášením přes Google, Microsoft, Apple nebo Facebook) – co teď?"
   "answer_duplicate_accounts": |
-    <p>To se může stát, když se přes Google, Facebook nebo Apple přihlásíte s jinou e-mailovou adresou, než jakou používá váš účet na MySpeedPuzzling (třeba s adresou z funkce Apple „Skrýt můj e-mail“). Nemáme pak jak poznat, že jste to vy, a proto vznikne nový, samostatný účet.</p>
-    <p><strong>Jak tomu předejít:</strong> nejdřív se přihlaste ke svému stávajícímu účtu (e-mailem a heslem nebo odkazem pro přihlášení), otevřete <a href="%edit_profile_link%">Upravit profil</a> a v sekci <strong>Propojené způsoby přihlášení</strong> poskytovatele propojte. Od té chvíle vás přihlášení přes Google, Facebook nebo Apple dovede rovnou do vašeho účtu – i když poskytovatel používá jinou e-mailovou adresu.</p>
+    <p>To se může stát, když se přes Google, Microsoft, Apple nebo Facebook přihlásíte s jinou e-mailovou adresou, než jakou používá váš účet na MySpeedPuzzling (třeba s adresou z funkce Apple „Skrýt můj e-mail“). Nemáme pak jak poznat, že jste to vy, a proto vznikne nový, samostatný účet.</p>
+    <p><strong>Jak tomu předejít:</strong> nejdřív se přihlaste ke svému stávajícímu účtu (e-mailem a heslem nebo odkazem pro přihlášení), otevřete <a href="%edit_profile_link%">Upravit profil</a> a v sekci <strong>Propojené způsoby přihlášení</strong> poskytovatele propojte. Od té chvíle vás přihlášení přes Google, Microsoft, Apple nebo Facebook dovede rovnou do vašeho účtu – i když poskytovatel používá jinou e-mailovou adresu.</p>
     <p class="mb-0"><strong>Když už se to stalo:</strong> nic se neztratilo. Napište nám na <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, uveďte e-mailové adresy (nebo hráčské kódy) obou účtů a který z nich si chcete ponechat. Administrátor vám účty ručně sloučí.</p>
   "question_instagram_sign_in": "Můžu se přihlásit přes Instagram?"
   "answer_instagram_sign_in": |
     <p>Přímo ne – pokud ale máte instagramový účet propojený s účtem na Facebooku v Centru účtů Meta, stačí zvolit <strong>Pokračovat přes Facebook</strong> a přihlásit se tímto facebookovým účtem.</p>
-    <p class="mb-0">Nemáte účet na Facebooku? Přihlaste se přes Google, Apple nebo svou e-mailovou adresou.</p>
+    <p class="mb-0">Nemáte účet na Facebooku? Přihlaste se přes Google, Microsoft, Apple nebo svou e-mailovou adresou.</p>
   "question_shared_computer": "Přihlásil/a jsem se na sdíleném nebo veřejném počítači – co mám udělat?"
   "answer_shared_computer": "<p class=\"mb-0\">Až skončíte, odhlaste se: otevřete nabídku pod svým profilem a zvolte <strong>Odhlásit se</strong>. Jinak na tom počítači zůstanete přihlášeni 30 dní.</p>"
 "profile":
@@ -828,7 +828,7 @@
   "recent_activity_button": "Zobrazit nedávnou aktivitu"
   "social":
     "title": "Propojené způsoby přihlášení"
-    "description": "Přihlašujte se ke stejnému účtu přes Google, Apple nebo Facebook. Propojením poskytovatele zde ho navážete na tento účet — i když používá jinou e-mailovou adresu."
+    "description": "Přihlašujte se ke stejnému účtu přes Google, Microsoft, Apple nebo Facebook. Propojením poskytovatele zde ho navážete na tento účet — i když používá jinou e-mailovou adresu."
     "connect": "Propojit %provider%"
     "disconnect": "Odpojit"
     "disconnected": "%provider% je odpojený."
@@ -1287,12 +1287,12 @@
         <li>Veškerá komunikace s webem je šifrovaná (HTTPS) a k databázi mají přístup jen lidé, kteří platformu provozují.</li>
         <li>Zachováváme všechny běžné bezpečnostní standardy a na zabezpečení neustále pracujeme.</li>
     </ul>
-    <h2>8. Přihlášení přes Google, Facebook (Meta) a Apple</h2>
-    <p>Místo hesla se můžete přihlásit svým účtem Google, Facebook nebo Apple. Pokud používáte Instagram, můžete se přihlásit přes facebookový účet, který je s ním propojený v Centru účtů Meta. Tyto způsoby přihlášení jsou zcela dobrovolné – vždy se můžete přihlásit i e-mailem a heslem, případně odkazem, který vám pošleme e-mailem.</p>
+    <h2>8. Přihlášení přes Google, Microsoft, Apple a Facebook (Meta)</h2>
+    <p>Místo hesla se můžete přihlásit svým účtem Google, Microsoft, Apple nebo Facebook. Pokud používáte Instagram, můžete se přihlásit přes facebookový účet, který je s ním propojený v Centru účtů Meta. Tyto způsoby přihlášení jsou zcela dobrovolné – vždy se můžete přihlásit i e-mailem a heslem, případně odkazem, který vám pošleme e-mailem.</p>
     <h3 class="h5">Co od poskytovatele dostáváme</h3>
     <ul>
         <li>jedinečný identifikátor vašeho účtu u daného poskytovatele – řetězec znaků, který sám o sobě o vás nic neprozrazuje,</li>
-        <li>vaši e-mailovou adresu, pokud s jejím sdílením souhlasíte – Apple vám umožňuje skutečnou adresu skrýt a poskytnout nám místo ní soukromou přeposílací adresu (…@privaterelay.appleid.com), přes kterou vám naše zprávy doručí,</li>
+        <li>vaši e-mailovou adresu, pokud s jejím sdílením souhlasíte – Apple vám umožňuje skutečnou adresu skrýt a poskytnout nám místo ní soukromou přeposílací adresu (…@privaterelay.appleid.com), přes kterou vám naše zprávy doručí; e-mailová adresa od Microsoftu, která nepatří ke schránce Outlook.com, Hotmail, Live ani MSN, se považuje za nepotvrzenou – nikdy ji nepoužijeme k automatickému propojení se stávajícím účtem a nově založený účet s ní dostane potvrzovací e-mail,</li>
         <li>vaše jméno – použijeme ho jen k předvyplnění veřejného jména nově založeného účtu a kdykoli si ho můžete změnit (Apple jméno posílá pouze při úplně prvním přihlášení).</li>
     </ul>
     <p>Poskytovatel nám může poslat i základní profilové údaje, například profilovou fotku. Ty nepoužíváme ani neukládáme.</p>
@@ -1304,7 +1304,7 @@
     </ul>
     <h3 class="h5">Co nikdy nedostáváme</h3>
     <ul>
-        <li>Vaše heslo ke Googlu, Facebooku ani Applu nikdy neuvidíme.</li>
+        <li>Vaše heslo ke Googlu, Microsoftu, Applu ani Facebooku nikdy neuvidíme.</li>
         <li>Nemáme přístup k vašim příspěvkům, fotkám, přátelům, kontaktům, zprávám ani k ničemu dalšímu ve vašem účtu u poskytovatele a nikdy za vás nic nezveřejňujeme.</li>
         <li>Přístupové tokeny, které poskytovatel vydá, neuchováváme – při přihlášení se jednou použijí k načtení výše uvedených údajů a poté se zahodí.</li>
     </ul>
@@ -1315,17 +1315,19 @@
     <ul>
         <li><strong>Facebook:</strong> Nastavení a soukromí → Nastavení → Aplikace a weby</li>
         <li><strong>Google:</strong> <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">myaccount.google.com</a> → Zabezpečení → Vaše propojení s aplikacemi a službami třetích stran</li>
+        <li><strong>Microsoft:</strong> <a href="https://account.live.com/consent/Manage" target="_blank" rel="noopener">account.live.com/consent/Manage</a> → Aplikace a služby, kterým jste udělili přístup → MySpeedPuzzling → Upravit → Odebrat tato oprávnění</li>
         <li><strong>Apple:</strong> na iPhonu nebo iPadu Nastavení → vaše jméno (Apple účet) → Přihlašování a zabezpečení → Přihlašování přes Apple; na webu na <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
     </ul>
     <h3 class="h5">Poskytovatelé jsou samostatní správci</h3>
-    <p>Když se přihlásíte přes Google, Facebook nebo Apple, zpracovávají tyto společnosti vaše údaje jako samostatní správci, podle vlastních podmínek a zásad ochrany osobních údajů, které nemůžeme ovlivnit:</p>
+    <p>Když se přihlásíte přes Google, Microsoft, Apple nebo Facebook, zpracovávají tyto společnosti vaše údaje jako samostatní správci, podle vlastních podmínek a zásad ochrany osobních údajů, které nemůžeme ovlivnit:</p>
     <ul>
         <li>Google (Google Ireland Limited): <a href="https://policies.google.com/privacy?hl=cs" target="_blank" rel="noopener">policies.google.com/privacy</a></li>
+        <li>Microsoft (Microsoft Ireland Operations Limited): <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener">privacy.microsoft.com/privacystatement</a></li>
         <li>Meta (Meta Platforms Ireland Limited): <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">facebook.com/privacy/policy</a></li>
         <li>Apple (Apple Distribution International Limited): <a href="https://www.apple.com/cz/legal/privacy/" target="_blank" rel="noopener">apple.com/legal/privacy</a></li>
     </ul>
     <h2>9. Bezpečnostní záznam přihlášení</h2>
-    <p>Abychom ochránili váš účet, zaznamenáváme události, které souvisejí s jeho zabezpečením: úspěšná i neúspěšná přihlášení, odhlášení, žádosti o odkaz pro přihlášení nebo pro obnovení hesla, změny hesla a e-mailové adresy, registraci, propojení a odpojení účtu Google, Facebook nebo Apple a žádosti o smazání účtu.</p>
+    <p>Abychom ochránili váš účet, zaznamenáváme události, které souvisejí s jeho zabezpečením: úspěšná i neúspěšná přihlášení, odhlášení, žádosti o odkaz pro přihlášení nebo pro obnovení hesla, změny hesla a e-mailové adresy, registraci, propojení a odpojení účtu Google, Microsoft, Apple nebo Facebook a žádosti o smazání účtu.</p>
     <ul>
         <li>Každý záznam obsahuje druh události, kdy nastala, použitý způsob přihlášení, dotčenou e-mailovou adresu, IP adresu a identifikaci vašeho prohlížeče a zařízení (tzv. user agent).</li>
         <li>Záznam nám slouží k odhalení a prošetření neoprávněného přístupu k účtům a vám k přehledu o vlastní historii – kdykoli si ji můžete prohlédnout na stránce <strong>Nedávná aktivita na účtu</strong> v nastavení profilu.</li>
@@ -1354,7 +1356,7 @@
         <li><strong>Google Ireland Limited</strong> (Google Analytics) – statistiky návštěvnosti webu,</li>
         <li><strong>Cloudflare, Inc.</strong> (USA) – rychlé doručování obrázků (img.myspeedpuzzling.com).</li>
     </ul>
-    <p>Google, Meta a Apple (když se přes ně přihlašujete) a Světová federace skládání puzzle (když si propojíte účty) zpracovávají údaje jako samostatní správci. Pokud přes naše API povolíte přístup ke svému účtu aplikaci třetí strany, dostane údaje, které jste v té žádosti schválili; přístup jí můžete kdykoli odebrat v nastavení profilu.</p>
+    <p>Google, Microsoft, Apple a Meta (když se přes ně přihlašujete) a Světová federace skládání puzzle (když si propojíte účty) zpracovávají údaje jako samostatní správci. Pokud přes naše API povolíte přístup ke svému účtu aplikaci třetí strany, dostane údaje, které jste v té žádosti schválili; přístup jí můžete kdykoli odebrat v nastavení profilu.</p>
     <h2>14. Cookies</h2>
     <p>Cookies a podobné úložiště ve vašem prohlížeči používáme k těmto účelům:</p>
     <ul>
@@ -1386,15 +1388,15 @@
     <h2>18. Smazání vašich údajů</h2>
     <p>Svůj účet včetně osobních údajů můžete kdykoli smazat sami. Podrobný postup najdete na stránce <a href="%data_deletion_link%">Jak smazat svá data</a>.</p>
     <p>Pokud máte jakékoliv dotazy k ochraně osobních údajů nebo si nejste jisti, zda je něco dostatečně srozumitelné, kontaktujte nás na <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
-    <p><em><small>Poslední aktualizace: 29. září 2026</small></em></p>
+    <p><em><small>Poslední aktualizace: 30. září 2026</small></em></p>
 
 "data_deletion":
   "meta":
     "title": "Jak smazat svá data"
-    "description": "Jak smazat účet na MySpeedPuzzling i s osobními údaji, jak odpojit Google, Facebook nebo Apple a jak aplikaci odebrat na straně poskytovatele."
+    "description": "Jak smazat účet na MySpeedPuzzling i s osobními údaji, jak odpojit Google, Microsoft, Apple nebo Facebook a jak aplikaci odebrat na straně poskytovatele."
   "content": |
     <h1>Jak smazat svá data</h1>
-    <p>Svůj účet na MySpeedPuzzling můžete i s osobními údaji smazat sami – kdykoli a na pár kliknutí. Na této stránce najdete postup, co přesně se smaže a co dělat, když chcete jen odpojit Google, Facebook nebo Apple.</p>
+    <p>Svůj účet na MySpeedPuzzling můžete i s osobními údaji smazat sami – kdykoli a na pár kliknutí. Na této stránce najdete postup, co přesně se smaže a co dělat, když chcete jen odpojit Google, Microsoft, Apple nebo Facebook.</p>
     <h2>1. Smazání účtu</h2>
     <ol>
         <li>Přihlaste se a otevřete <a href="%edit_profile_link%">Upravit profil</a> (najdete v uživatelském menu).</li>
@@ -1406,7 +1408,7 @@
     <p>Účet se smaže okamžitě. Neexistuje žádná ochranná lhůta a cesta zpět už není.</p>
     <h2>2. Co se smaže</h2>
     <ul>
-        <li>váš účet: přihlašovací e-mail, heslo, propojené způsoby přihlášení (Google, Facebook, Apple) a bezpečnostní záznam přihlášení,</li>
+        <li>váš účet: přihlašovací e-mail, heslo, propojené způsoby přihlášení (Google, Microsoft, Apple, Facebook) a bezpečnostní záznam přihlášení,</li>
         <li>váš hráčský profil se všemi údaji,</li>
         <li>vaše sólo časy skládání, sbírky, seznam přání, puzzle nabízená k prodeji či výměně, odznaky, stopky a notifikace,</li>
         <li>vaše členství (aktivní předplatné se zruší) a odběr newsletteru.</li>
@@ -1414,18 +1416,19 @@
     <p>Některé věci sdílíte s dalšími hráči, a proto jim zůstanou – už ale nejsou propojené s žádným účtem a zobrazuje se u nich jen jméno, které jste používali, jako prostý text. Jde o časy dvojic a týmů složené společně s dalšími registrovanými hráči, konverzace a obchody na tržišti včetně hodnocení a návrhy funkcí s komentáři. Puzzle, která jste přidali do katalogu, v něm zůstanou, ale bez vazby na vás. V záznamu odeslaných e-mailů se vaše adresa nahradí jednosměrným otiskem (hashem).</p>
     <h2>3. Co si ponecháváme</h2>
     <p>Nic, co by se vás týkalo – s jedinou výjimkou: záznamy o vašich platbách (platby, faktury a účtenky). Uchovává je Stripe, který pro nás zpracovává platby, a to po dobu, kterou vyžadují účetní a daňové předpisy. Naše zálohy se do 7 dní přepíšou, takže smazané údaje z nich do té doby zmizí také.</p>
-    <h2>4. Jen odpojení Googlu, Facebooku nebo Applu</h2>
-    <p>Pokud si chcete účet ponechat a jen se přestat přihlašovat přes Google, Facebook nebo Apple, otevřete <a href="%edit_profile_link%">Upravit profil</a> → <strong>Propojené způsoby přihlášení</strong> a u poskytovatele klikněte na <strong>Odpojit</strong>. Uložené propojení (identifikátor od poskytovatele, e-mail z okamžiku propojení a údaj o tom, kdy jste účet propojili a naposledy použili) se okamžitě smaže. Pokud je to váš jediný způsob přihlášení, nastavte si nejdřív heslo, ať se nezamknete mimo svůj účet.</p>
+    <h2>4. Jen odpojení Googlu, Microsoftu, Applu nebo Facebooku</h2>
+    <p>Pokud si chcete účet ponechat a jen se přestat přihlašovat přes Google, Microsoft, Apple nebo Facebook, otevřete <a href="%edit_profile_link%">Upravit profil</a> → <strong>Propojené způsoby přihlášení</strong> a u poskytovatele klikněte na <strong>Odpojit</strong>. Uložené propojení (identifikátor od poskytovatele, e-mail z okamžiku propojení a údaj o tom, kdy jste účet propojili a naposledy použili) se okamžitě smaže. Pokud je to váš jediný způsob přihlášení, nastavte si nejdřív heslo, ať se nezamknete mimo svůj účet.</p>
     <h2>5. Odebrání MySpeedPuzzling na straně poskytovatele</h2>
-    <p>Odpojení u nás na vašem účtu Google, Facebook nebo Apple nic nemění. Chcete-li nám odebrat přístup i tam, odeberte MySpeedPuzzling v nastavení poskytovatele:</p>
+    <p>Odpojení u nás na vašem účtu Google, Microsoft, Apple nebo Facebook nic nemění. Chcete-li nám odebrat přístup i tam, odeberte MySpeedPuzzling v nastavení poskytovatele:</p>
     <ul>
         <li><strong>Facebook:</strong> Nastavení a soukromí → Nastavení → Aplikace a weby</li>
         <li><strong>Google:</strong> <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">myaccount.google.com</a> → Zabezpečení → Vaše propojení s aplikacemi a službami třetích stran</li>
+        <li><strong>Microsoft:</strong> <a href="https://account.live.com/consent/Manage" target="_blank" rel="noopener">account.live.com/consent/Manage</a> → Aplikace a služby, kterým jste udělili přístup → MySpeedPuzzling → Upravit → Odebrat tato oprávnění</li>
         <li><strong>Apple:</strong> na iPhonu nebo iPadu Nastavení → vaše jméno (Apple účet) → Přihlašování a zabezpečení → Přihlašování přes Apple; na webu na <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
     </ul>
     <p>Odebráním aplikace u poskytovatele se váš účet na MySpeedPuzzling nesmaže – k tomu slouží postup v bodě 1.</p>
     <h2>6. Nemůžete se přihlásit?</h2>
-    <p>Ke smazání účtu musíte být přihlášení. Zapomněli jste heslo, nebo už nepoužíváte Google, Facebook či Apple? Na přihlašovací stránce si můžete nechat poslat odkaz pro přihlášení na e-mailovou adresu svého účtu. Pokud nepomůže ani to, napište nám na <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, ideálně z e-mailové adresy vašeho účtu, a pomůžeme vám se do účtu znovu dostat.</p>
+    <p>Ke smazání účtu musíte být přihlášení. Zapomněli jste heslo, nebo už nepoužíváte Google, Microsoft, Apple či Facebook? Na přihlašovací stránce si můžete nechat poslat odkaz pro přihlášení na e-mailovou adresu svého účtu. Pokud nepomůže ani to, napište nám na <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, ideálně z e-mailové adresy vašeho účtu, a pomůžeme vám se do účtu znovu dostat.</p>
     <p>Více o tom, jak nakládáme s osobními údaji, najdete v <a href="%privacy_link%">Zásadách ochrany osobních údajů</a>.</p>
 
 "countdown":
@@ -3386,6 +3389,7 @@ auth:
         request_new: "Poslat mi nový odkaz"
     social:
         continue_with: "Pokračovat přes %provider%"
+        microsoft_hint: "Účet Outlook.com, Hotmail, Live nebo Xbox"
         facebook_hint: "Účet Meta - i pro uživatele Instagramu"
         attempt_expired: "Tento pokus o přihlášení vypršel nebo už byl použit. Zkuste to prosím znovu."
         relay:

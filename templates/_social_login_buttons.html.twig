@@ -33,6 +33,15 @@
             {% endif %}
         {% endif %}
 
+        {# Personal Microsoft accounts only - many Hotmail/Outlook users do not
+           know their mailbox is a "Microsoft account", hence the hint #}
+        {% if social_login.isProviderEnabled('microsoft') %}
+            <div>
+                {{ include('_social_provider_button.html.twig', {provider: 'microsoft', href: path('social_login_start', {provider: 'microsoft'}|merge(returnParams)), full_width: true, last_used: last_used|default(false)}) }}
+                <div class="text-muted text-center fs-xs mt-1">{{ 'auth.social.microsoft_hint'|trans }}</div>
+            </div>
+        {% endif %}
+
         {% if social_login.isProviderEnabled('apple') %}
             {{ include('_social_provider_button.html.twig', {provider: 'apple', href: path('social_login_start', {provider: 'apple'}|merge(returnParams)), full_width: true, last_used: last_used|default(false)}) }}
         {% endif %}

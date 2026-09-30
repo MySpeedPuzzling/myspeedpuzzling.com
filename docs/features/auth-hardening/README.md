@@ -9,6 +9,7 @@ Status: **planned** (scope confirmed by Jan 2026-07-31). Follow-up to the Auth0 
 | DB-persisted auth audit log | **YES** — foundation |
 | User-facing "recent activity" page | **YES** |
 | Social login: Google, Apple, Facebook | **YES** (all three) |
+| Social login: Microsoft (personal accounts) | **YES** — added 2026-09-30, see [`microsoft-plan.md`](microsoft-plan.md) |
 | Instagram login | **NO — not technically possible.** Meta shut down the Instagram Basic Display API (Dec 2024); Instagram has no OIDC identity provider. Facebook Login is Meta's offering. |
 | Admin per-user login history view | Not now (future — trivial once audit log exists) |
 | New-device alert emails | Not now |
@@ -191,11 +192,13 @@ Deliberately not done (see `docs/TODO.md`): Gmail dot/plus normalisation of prov
 
 **Google** (easiest — do first): standard OIDC; verify `email_verified`; PKCE S256 on top of the client secret. It lives in `GoogleProviderWithPkce` (overrides `getPkceMethod()`): league/oauth2-client honours a `pkceMethod` constructor option only in `GenericProvider`, so until 2026-09-29 the option was silently ignored and no `code_challenge` was sent. The verifier is minted by `getAuthorizationUrl()`, stored in `OauthFlowState::$pkceVerifier` and sent back as `code_verifier` by `SocialProfileFetcher`; pinned by `SocialLoginPkceTest`. **Facebook and Apple run without PKCE**: Meta documents it only for its OIDC flow (`openid` scope + nonce), not the classic Graph login we use; Apple's web flow does not document it.
 
+**Microsoft** (shipped dark 2026-09-30, plan + decisions: [`microsoft-plan.md`](microsoft-plan.md), console guide: [`setup-microsoft.md`](setup-microsoft.md)): **personal accounts only** — the `/consumers` v2.0 endpoints are constants in `SocialLoginProviders`, league `GenericProvider` (no provider package; the one league class that honours `pkceMethod`) with **PKCE S256**, scopes `openid profile email`, `prompt=select_account`. The token response's `id_token` is verified by `MicrosoftIdTokenVerifier` (RS256 against the consumers JWKS via `CachedJwks` — the fetch/cache/refetch-throttle shared with `AppleServerNotificationVerifier` —, `aud` = client id, `iss` + `tid` = the consumers tenant `9188040d-6c67-4c5b-b112-36a304b66dad`, `exp` required, 60 s leeway); no userinfo/Graph call. **Identity = `oid`** (stable across app registrations; `sub` is pairwise per registration, only required to be present). **E-mail trust:** verified only on the exact MX-checked list of Outlook.com consumer domains (`MicrosoftConsumerMailDomains`); any other address (e.g. a Gmail used as Microsoft account name) is unverified → rule 3 refuses, rule 4 creates the account unverified + verification mail. An expired client secret (`AADSTS7000222`) is logged at error by `SocialProfileFetcher`; `MICROSOFT_CLIENT_SECRET_EXPIRES_AT` drives `MicrosoftClientSecretExpiryCheck` (kernel.terminate, warning ≤ once/day from 30 days before, error once expired — no cron). `/.well-known/microsoft-identity-association.json` (publisher domain) is served from `MICROSOFT_CLIENT_ID` by `MicrosoftIdentityAssociationController` (404 when empty); the bot-blocker lets that exact path through. Tests: `MicrosoftLoginFlowTest`, `MicrosoftIdTokenVerifierTest`, `SocialProfileFetcherMicrosoftTest`, `MicrosoftConsumerMailDomainsTest`, `MicrosoftClientSecretExpiryCheckTest`, `MicrosoftIdentityAssociationControllerTest`.
+
 **Facebook**: `public_profile` + `email` permissions need no App Review; the app must be switched to Live mode. Some users deny the email permission → treat like unverified email (refuse with the "use email sign-in link" message). App must have a privacy policy URL configured. Both start routes send `auth_type=rerequest` (`SocialLoginProviders::authorizationOptions()`) so a retry re-asks for a once-declined email; Graph API pinned to `v26.0` (safe until July 2028 at the earliest). Console click-path + go-live checklist: `setup-facebook.md`.
 
 ### UI
 
-- Buttons on `/login` and `/register` above/below the form **and** the connect buttons in settings come from ONE partial, `templates/_social_provider_button.html.twig`, styled by `assets/styles/components/_social-signin.scss`: each follows its **provider's** branding, not the site's (Google light theme + four-colour G; Apple black with Apple's own "Left-aligned" logo artwork from Apple Design Resources, as tall as the button; Meta round logo on #1877F2). Wording "Continue with Google/Apple/Facebook" everywhere, settings included — Apple permits only Sign in / Sign up / Continue with Apple. Logos inlined, no image CDNs, no font downloads. Pinned by `tests/Security/SocialProviderButtonsTest.php`. Known deviation: Apple wants the title at 43 % of the button height; we keep the site's button text size so all three buttons match.
+- Buttons on `/login` and `/register` above/below the form **and** the connect buttons in settings come from ONE partial, `templates/_social_provider_button.html.twig`, styled by `assets/styles/components/_social-signin.scss`: each follows its **provider's** branding, not the site's (Google light theme + four-colour G; Microsoft light theme — white, `#8C8C8C` border, `#5E5E5E` text, the unmodified four-square logo, hint "Outlook.com, Hotmail, Live or Xbox account"; Apple black with Apple's own "Left-aligned" logo artwork from Apple Design Resources, as tall as the button; Meta round logo on #1877F2). Wording "Continue with Google/Microsoft/Apple/Facebook" everywhere, settings included — Apple permits only Sign in / Sign up / Continue with Apple (Microsoft lists only "Sign in with Microsoft": a known deviation for one house wording). **Order everywhere: Google, Microsoft, Apple, Facebook** (owner decision 2026-09-30; on `/register` after "Continue with email"). Logos inlined, no image CDNs, no font downloads. Pinned by `tests/Security/SocialProviderButtonsTest.php`. Known deviation: Apple wants the title at 43 % of the button height; we keep the site's button text size so all three buttons match.
 - **"Connected sign-in methods"** settings section (the settled name): list linked providers, link/unlink, **and set-password** for social-only accounts (opens the email+password door; the password-reset flow works too since the email is verified).
 - Translations: all 6 locales (auth UI rule D17).
 - Page layout, copy and states of every sign-in / sign-up screen: [`../auth-ux-redesign.md`](../auth-ux-redesign.md) (phase 1 shipped 2026-09-29; phase 2 = the 6-digit code in the sign-in e-mail, shipped 2026-09-29 - `SignInCodeAuthenticator` on `main`, claims only `POST /verify-code`).
@@ -206,7 +209,7 @@ Social login shipped dark (2026-07-31) behind one flag per provider (`SOCIAL_LOG
 
 What rules now (`SocialLoginSettings::isEnabled()` is the one door):
 
-- **Google / Apple are available iff their credentials are configured** (Google: client id + secret; Apple: client id, team id, key id, private key). Local dev and tests have none, so no button renders and the start/callback/connect routes 404. Emptying a provider's credentials in Infisical is the kill switch.
+- **Google / Microsoft / Apple are available iff their credentials are configured** (Google and Microsoft: client id + secret; Apple: client id, team id, key id, private key). Local dev and tests have none, so no button renders and the start/callback/connect routes 404. Emptying a provider's credentials in Infisical is the kill switch.
 - **Facebook** additionally needs `SOCIAL_LOGIN_FACEBOOK_ENABLED` until the Meta app is published (it is in development mode: only its admins/testers can sign in).
 - Buttons on `/login` + `/register` for every visitor; the markup depends on configuration only, never on the viewer (both pages are `no-store` anyway, `NativeAuthPageSubscriber`).
 - Rule-4 registration via the `/register/social` interstitial is open to everyone; the "Connected sign-in methods" card shows for every signed-in player while any provider is available.
@@ -220,6 +223,8 @@ SOCIAL_LOGIN_FACEBOOK_ENABLED=0
 FACEBOOK_APP_ID= / FACEBOOK_APP_SECRET=
 APPLE_CLIENT_ID= / APPLE_TEAM_ID= / APPLE_KEY_ID= / APPLE_PRIVATE_KEY=
 APPLE_APP_ID=
+MICROSOFT_CLIENT_ID= / MICROSOFT_CLIENT_SECRET=
+MICROSOFT_CLIENT_SECRET_EXPIRES_AT=   # YYYY-MM-DD, drives the rotation reminder
 ```
 
 ---
@@ -263,7 +268,7 @@ Two PRs, in order:
 5. Login/register buttons + "Connected sign-in methods" settings UI: connect buttons (rule 5 — works with a different provider email), unlink with invariant, set-password for null-password accounts **reusing the existing `SetAccountPassword` message** (shown only when `password === null`)
 6. `feature_flags.md`, CLAUDE.md feature pointer, fixtures if needed
 
-**Jan's manual tasks** (not for the implementing agent) — **step-by-step guides: [`setup-google.md`](setup-google.md), [`setup-facebook.md`](setup-facebook.md), [`setup-apple.md`](setup-apple.md)** (do them in that order):
+**Jan's manual tasks** (not for the implementing agent) — **step-by-step guides: [`setup-google.md`](setup-google.md), [`setup-facebook.md`](setup-facebook.md), [`setup-apple.md`](setup-apple.md), [`setup-microsoft.md`](setup-microsoft.md)** (do them in that order):
 - Google Cloud console: OAuth consent screen + web credentials; redirect URIs for prod + dev
 - Meta developers: app, Live mode, privacy policy URL
 - Apple Developer: Services ID, domain verification, `.p8` key, **register `mail.myspeedpuzzling.com` for private-relay email**

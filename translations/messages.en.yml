@@ -882,15 +882,15 @@ faq:
     answer_how_competitions_work: |
         <p class="mb-0">In most competitions everyone assembles the same puzzle at the same time — whoever finishes first, or has the fewest pieces left when time runs out, wins. There are solo, pairs and team categories, from local meetups to the World Jigsaw Puzzle Championship, plus online contests. Browse our <a href="%events_link%">events calendar</a> to find a competition near you.</p>
 
-    question_duplicate_accounts: "I accidentally created a second account (e.g. by signing in with Google, Facebook or Apple) – what now?"
+    question_duplicate_accounts: "I accidentally created a second account (e.g. by signing in with Google, Microsoft, Apple or Facebook) – what now?"
     answer_duplicate_accounts: |
-        <p>This can happen when you sign in with Google, Facebook or Apple under a different e-mail address than the one your MySpeedPuzzling account uses (for example Apple's "Hide My Email" address). We then have no way of knowing it is you, so a new, separate account is created.</p>
-        <p><strong>How to avoid it:</strong> sign in to your existing account first (with your e-mail and password, or a sign-in link), open <a href="%edit_profile_link%">Edit profile</a> and connect the provider under <strong>Connected sign-in methods</strong>. From then on, signing in with Google, Facebook or Apple takes you straight to your account – even if the provider uses a different e-mail address.</p>
+        <p>This can happen when you sign in with Google, Microsoft, Apple or Facebook under a different e-mail address than the one your MySpeedPuzzling account uses (for example Apple's "Hide My Email" address). We then have no way of knowing it is you, so a new, separate account is created.</p>
+        <p><strong>How to avoid it:</strong> sign in to your existing account first (with your e-mail and password, or a sign-in link), open <a href="%edit_profile_link%">Edit profile</a> and connect the provider under <strong>Connected sign-in methods</strong>. From then on, signing in with Google, Microsoft, Apple or Facebook takes you straight to your account – even if the provider uses a different e-mail address.</p>
         <p class="mb-0"><strong>If it has already happened:</strong> don't worry, nothing is lost. Write to us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a> with the e-mail addresses (or player codes) of both accounts and tell us which one you want to keep. An administrator will merge the accounts for you manually.</p>
     question_instagram_sign_in: "Can I sign in with Instagram?"
     answer_instagram_sign_in: |
         <p>Not directly – but if your Instagram account is connected to a Facebook account in Meta Accounts Center, just use <strong>Continue with Facebook</strong> and sign in with that Facebook account.</p>
-        <p class="mb-0">Don't have a Facebook account? Sign in with Google, Apple or your e-mail address instead.</p>
+        <p class="mb-0">Don't have a Facebook account? Sign in with Google, Microsoft, Apple or your e-mail address instead.</p>
     question_shared_computer: "I signed in on a shared or public computer – what should I do?"
     answer_shared_computer: "<p class=\"mb-0\">Sign out when you are done: open the menu under your profile and choose <strong>Log out</strong>. Otherwise you stay signed in on that computer for 30 days.</p>"
 
@@ -989,7 +989,7 @@ edit_profile:
     recent_activity_button: "View recent activity"
     social:
         title: "Connected sign-in methods"
-        description: "Sign in to this same account with Google, Apple or Facebook. Connecting a provider here links it to this account — even when it uses a different email address."
+        description: "Sign in to this same account with Google, Microsoft, Apple or Facebook. Connecting a provider here links it to this account — even when it uses a different email address."
         connect: "Connect %provider%"
         disconnect: "Disconnect"
         disconnected: "%provider% disconnected."
@@ -1547,12 +1547,12 @@ privacy_policy:
             <li>All communication with the website is encrypted (HTTPS), and only the people who run the platform have access to the database.</li>
             <li>We uphold all standard security measures and continually work to improve our security.</li>
         </ul>
-        <h2>8. Signing in with Google, Facebook (Meta) and Apple</h2>
-        <p>Instead of a password, you can sign in with your Google, Facebook or Apple account. If you use Instagram, you can sign in through the Facebook account connected to it in Meta Accounts Center. These sign-in methods are entirely optional – you can always sign in with your e-mail address and password, or with a sign-in link sent by e-mail, instead.</p>
+        <h2>8. Signing in with Google, Microsoft, Apple and Facebook (Meta)</h2>
+        <p>Instead of a password, you can sign in with your Google, Microsoft, Apple or Facebook account. If you use Instagram, you can sign in through the Facebook account connected to it in Meta Accounts Center. These sign-in methods are entirely optional – you can always sign in with your e-mail address and password, or with a sign-in link sent by e-mail, instead.</p>
         <h3 class="h5">What we receive from the provider</h3>
         <ul>
             <li>a unique identifier of your account with that provider – a string of characters that says nothing about you on its own,</li>
-            <li>your e-mail address, if you agree to share it – Apple lets you hide your real address and give us a private relay address (…@privaterelay.appleid.com) instead, which forwards our messages to you,</li>
+            <li>your e-mail address, if you agree to share it – Apple lets you hide your real address and give us a private relay address (…@privaterelay.appleid.com) instead, which forwards our messages to you; an e-mail address from Microsoft that is not an Outlook.com, Hotmail, Live or MSN mailbox is treated as unconfirmed – we never use it to connect to an existing account automatically, and a new account created with it gets a confirmation e-mail,</li>
             <li>your name – we only use it to pre-fill the public name of a newly created account, and you can change it at any time (Apple sends the name only the very first time you sign in).</li>
         </ul>
         <p>A provider may also send basic profile details, such as a profile picture. We neither use nor store them.</p>
@@ -1564,7 +1564,7 @@ privacy_policy:
         </ul>
         <h3 class="h5">What we never get</h3>
         <ul>
-            <li>We never see your Google, Facebook or Apple password.</li>
+            <li>We never see your Google, Microsoft, Apple or Facebook password.</li>
             <li>We have no access to your posts, photos, friends, contacts, messages or anything else in your account with the provider, and we never post anything on your behalf.</li>
             <li>We do not keep the access tokens issued by the provider – they are used once during sign-in to read the details above, and then discarded.</li>
         </ul>
@@ -1575,17 +1575,19 @@ privacy_policy:
         <ul>
             <li><strong>Facebook:</strong> Settings &amp; privacy → Settings → Apps and websites</li>
             <li><strong>Google:</strong> <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">myaccount.google.com</a> → Security → Your connections to third-party apps &amp; services</li>
+            <li><strong>Microsoft:</strong> <a href="https://account.live.com/consent/Manage" target="_blank" rel="noopener">account.live.com/consent/Manage</a> → Apps and services you've given access → MySpeedPuzzling → Edit → Remove these permissions</li>
             <li><strong>Apple:</strong> on iPhone or iPad, Settings → your name (Apple Account) → Sign-In &amp; Security → Sign in with Apple; on the web at <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
         </ul>
         <h3 class="h5">The providers are independent controllers</h3>
-        <p>When you sign in with Google, Facebook or Apple, these companies process your data as independent controllers, under their own terms and privacy policies, which we have no influence over:</p>
+        <p>When you sign in with Google, Microsoft, Apple or Facebook, these companies process your data as independent controllers, under their own terms and privacy policies, which we have no influence over:</p>
         <ul>
             <li>Google (Google Ireland Limited): <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></li>
+            <li>Microsoft (Microsoft Ireland Operations Limited): <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener">privacy.microsoft.com/privacystatement</a></li>
             <li>Meta (Meta Platforms Ireland Limited): <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">facebook.com/privacy/policy</a></li>
             <li>Apple (Apple Distribution International Limited): <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener">apple.com/legal/privacy</a></li>
         </ul>
         <h2>9. Sign-in security log</h2>
-        <p>To protect your account, we keep a log of security-related events: successful and failed sign-ins, sign-outs, requests for sign-in and password reset links, changes of password and e-mail address, registration, connecting and disconnecting Google, Facebook or Apple, and requests to delete the account.</p>
+        <p>To protect your account, we keep a log of security-related events: successful and failed sign-ins, sign-outs, requests for sign-in and password reset links, changes of password and e-mail address, registration, connecting and disconnecting Google, Microsoft, Apple or Facebook, and requests to delete the account.</p>
         <ul>
             <li>Each record contains the type of event, when it happened, the sign-in method used, the e-mail address concerned, the IP address and the identification of your browser and device (the so-called user agent).</li>
             <li>We use it to detect and investigate unauthorised access to accounts, and to show you your own history – you can review it at any time on the <strong>Recent account activity</strong> page in your profile settings.</li>
@@ -1614,7 +1616,7 @@ privacy_policy:
             <li><strong>Google Ireland Limited</strong> (Google Analytics) – website traffic statistics,</li>
             <li><strong>Cloudflare, Inc.</strong> (USA) – fast delivery of images (img.myspeedpuzzling.com).</li>
         </ul>
-        <p>Google, Meta and Apple (when you sign in with them) and the World Jigsaw Puzzle Federation (when you pair your accounts) process data as independent controllers. If you allow a third-party application to access your account through our API, it receives the data you approved in that request; you can revoke the access at any time in your profile settings.</p>
+        <p>Google, Microsoft, Apple and Meta (when you sign in with them) and the World Jigsaw Puzzle Federation (when you pair your accounts) process data as independent controllers. If you allow a third-party application to access your account through our API, it receives the data you approved in that request; you can revoke the access at any time in your profile settings.</p>
         <h2>14. Cookies</h2>
         <p>We use cookies and similar storage in your browser for these purposes:</p>
         <ul>
@@ -1646,15 +1648,15 @@ privacy_policy:
         <h2>18. Deleting your data</h2>
         <p>You can delete your account, including your personal data, yourself at any time. Step-by-step instructions are on the page <a href="%data_deletion_link%">How to delete your data</a>.</p>
         <p>If you have any questions about personal data protection or if you are unsure whether something is sufficiently clear, please contact us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
-        <p><em><small>Last updated: 29 September 2026</small></em></p>
+        <p><em><small>Last updated: 30 September 2026</small></em></p>
 
 data_deletion:
     meta:
         title: "How to delete your data"
-        description: "How to delete your MySpeedPuzzling account and personal data, disconnect Google, Facebook or Apple, and remove the app on the provider's side."
+        description: "How to delete your MySpeedPuzzling account and personal data, disconnect Google, Microsoft, Apple or Facebook, and remove the app on the provider's side."
     content: |
         <h1>How to delete your data</h1>
-        <p>You can delete your MySpeedPuzzling account, including your personal data, yourself – at any time and in just a few clicks. This page explains how, what exactly gets deleted, and what to do if you only want to disconnect Google, Facebook or Apple.</p>
+        <p>You can delete your MySpeedPuzzling account, including your personal data, yourself – at any time and in just a few clicks. This page explains how, what exactly gets deleted, and what to do if you only want to disconnect Google, Microsoft, Apple or Facebook.</p>
         <h2>1. Delete your account</h2>
         <ol>
             <li>Sign in and open <a href="%edit_profile_link%">Edit profile</a> (you'll find it in the user menu).</li>
@@ -1666,7 +1668,7 @@ data_deletion:
         <p>Your account is deleted immediately. There is no waiting period and no way back.</p>
         <h2>2. What gets deleted</h2>
         <ul>
-            <li>your account: the sign-in e-mail address, the password, connected sign-in methods (Google, Facebook, Apple) and the sign-in security log,</li>
+            <li>your account: the sign-in e-mail address, the password, connected sign-in methods (Google, Microsoft, Apple, Facebook) and the sign-in security log,</li>
             <li>your player profile with all its details,</li>
             <li>your solo solving times, collections, wishlist, puzzles offered for sale or swap, badges, stopwatches and notifications,</li>
             <li>your membership (an active subscription is cancelled) and your newsletter subscription.</li>
@@ -1674,18 +1676,19 @@ data_deletion:
         <p>Some things are shared with other players, so they stay for them – but they are no longer linked to any account and only show the name you used, as plain text: pair and team times solved together with other registered players, conversations and marketplace transactions including ratings, and feature requests with their comments. Puzzles you added to the catalogue stay in it, with no link to you. In our log of sent e-mails, your address is replaced with a one-way hash.</p>
         <h2>3. What we keep</h2>
         <p>Nothing about you – with one exception: the records of your payments (payments, invoices and receipts). Stripe, which processes our payments, keeps them for as long as accounting and tax law requires. Our backups are overwritten within 7 days, so the deleted data disappears from them by then too.</p>
-        <h2>4. Only disconnect Google, Facebook or Apple</h2>
-        <p>If you want to keep your account and just stop signing in with Google, Facebook or Apple, open <a href="%edit_profile_link%">Edit profile</a> → <strong>Connected sign-in methods</strong> and click <strong>Disconnect</strong> next to the provider. The stored link (the identifier from the provider, the e-mail address at the time of connecting, and when it was connected and last used) is deleted immediately. If it is your only way to sign in, add a password first so you don't lock yourself out.</p>
+        <h2>4. Only disconnect Google, Microsoft, Apple or Facebook</h2>
+        <p>If you want to keep your account and just stop signing in with Google, Microsoft, Apple or Facebook, open <a href="%edit_profile_link%">Edit profile</a> → <strong>Connected sign-in methods</strong> and click <strong>Disconnect</strong> next to the provider. The stored link (the identifier from the provider, the e-mail address at the time of connecting, and when it was connected and last used) is deleted immediately. If it is your only way to sign in, add a password first so you don't lock yourself out.</p>
         <h2>5. Remove MySpeedPuzzling on the provider's side</h2>
-        <p>Disconnecting on our side does not change anything in your Google, Facebook or Apple account. To withdraw our access there too, remove MySpeedPuzzling in the provider's settings:</p>
+        <p>Disconnecting on our side does not change anything in your Google, Microsoft, Apple or Facebook account. To withdraw our access there too, remove MySpeedPuzzling in the provider's settings:</p>
         <ul>
             <li><strong>Facebook:</strong> Settings &amp; privacy → Settings → Apps and websites</li>
             <li><strong>Google:</strong> <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">myaccount.google.com</a> → Security → Your connections to third-party apps &amp; services</li>
+            <li><strong>Microsoft:</strong> <a href="https://account.live.com/consent/Manage" target="_blank" rel="noopener">account.live.com/consent/Manage</a> → Apps and services you've given access → MySpeedPuzzling → Edit → Remove these permissions</li>
             <li><strong>Apple:</strong> on iPhone or iPad, Settings → your name (Apple Account) → Sign-In &amp; Security → Sign in with Apple; on the web at <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a></li>
         </ul>
         <p>Removing the app on the provider's side does not delete your MySpeedPuzzling account – for that, follow step 1.</p>
         <h2>6. Can't sign in?</h2>
-        <p>You need to be signed in to delete your account. Forgotten your password, or no longer use Google, Facebook or Apple? On the sign-in page you can have a sign-in link sent to your account's e-mail address. If that doesn't help either, write to us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, ideally from your account's e-mail address, and we will help you get back into your account.</p>
+        <p>You need to be signed in to delete your account. Forgotten your password, or no longer use Google, Microsoft, Apple or Facebook? On the sign-in page you can have a sign-in link sent to your account's e-mail address. If that doesn't help either, write to us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>, ideally from your account's e-mail address, and we will help you get back into your account.</p>
         <p>You can read more about how we handle personal data in our <a href="%privacy_link%">Privacy Policy</a>.</p>
 
 countdown:
@@ -3658,6 +3661,7 @@ auth:
         request_new: "Email me a new link"
     social:
         continue_with: "Continue with %provider%"
+        microsoft_hint: "Outlook.com, Hotmail, Live or Xbox account"
         facebook_hint: "Meta account - also for Instagram users"
         attempt_expired: "That sign-in attempt expired or was already used. Please try again."
         relay:

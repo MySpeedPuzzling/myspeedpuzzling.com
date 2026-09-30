@@ -199,7 +199,7 @@ Pairs: 500 has 46.9k solves (44.7 min), 1000 has 5.3k (1h46). Teams: 500 has 4k 
 
 ## WS-E — Outreach list (item 9, docs only)
 
-Deliverable: `docs/features/seo/outreach.md`. Research uses organisations' **public** contact pages or channels only, never private people's data. **Nothing is sent**; Jan sends.
+Deliverable: the outreach list - **kept out of this public repository** (Jan, 2026-09-30: it names who we contact and how; Jan keeps it privately). Research uses organisations' **public** contact pages or channels only, never private people's data. **Nothing is sent**; Jan sends.
 
 Sections:
 1. **Results partners:** organisers whose events and results live on MSP, national associations, WJPF.

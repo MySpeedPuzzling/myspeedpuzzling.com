@@ -25,7 +25,7 @@ final class SitemapControllerTest extends WebTestCase
         self::assertStringContainsString('/sitemap-puzzles-1.xml', $content);
         self::assertStringContainsString('/sitemap-marketplace.xml', $content);
         self::assertStringContainsString('/sitemap-events.xml', $content);
-        self::assertStringContainsString('/sitemap-players.xml', $content);
+        self::assertStringContainsString('/sitemap-players-1.xml', $content);
         self::assertStringContainsString('/sitemap-feature-requests.xml', $content);
         self::assertStringContainsString('/sitemap-countries.xml', $content);
     }
@@ -67,7 +67,7 @@ final class SitemapControllerTest extends WebTestCase
             '/sitemap-puzzles-1.xml',
             '/sitemap-marketplace.xml',
             '/sitemap-events.xml',
-            '/sitemap-players.xml',
+            '/sitemap-players-1.xml',
             '/sitemap-feature-requests.xml',
             '/sitemap-countries.xml',
         ];

@@ -24,7 +24,7 @@ final class GetPlayerIdsForSitemapTest extends KernelTestCase
 
     public function testListsPublicNamedPlayersWithResults(): void
     {
-        $playerIds = $this->query->publicWithResults();
+        $playerIds = $this->playerIds();
 
         self::assertContains(PlayerFixture::PLAYER_REGULAR, $playerIds);
         self::assertContains(PlayerFixture::PLAYER_WITH_FAVORITES, $playerIds);
@@ -38,7 +38,7 @@ final class GetPlayerIdsForSitemapTest extends KernelTestCase
         // Hand all of Michael's own times to somebody else
         $this->moveOwnTimes(from: PlayerFixture::PLAYER_WITH_FAVORITES, to: PlayerFixture::PLAYER_ADMIN);
 
-        $playerIds = $this->query->publicWithResults();
+        $playerIds = $this->playerIds();
 
         self::assertNotContains(PlayerFixture::PLAYER_WITH_FAVORITES, $playerIds);
         self::assertContains(PlayerFixture::PLAYER_ADMIN, $playerIds);
@@ -51,7 +51,7 @@ final class GetPlayerIdsForSitemapTest extends KernelTestCase
         // John keeps only his memberships in pair / team results
         $this->moveOwnTimes(from: PlayerFixture::PLAYER_REGULAR, to: PlayerFixture::PLAYER_ADMIN);
 
-        self::assertContains(PlayerFixture::PLAYER_REGULAR, $this->query->publicWithResults());
+        self::assertContains(PlayerFixture::PLAYER_REGULAR, $this->playerIds());
     }
 
     public function testPlayerWithoutANameIsLeftOut(): void
@@ -61,7 +61,45 @@ final class GetPlayerIdsForSitemapTest extends KernelTestCase
             ['id' => PlayerFixture::PLAYER_REGULAR],
         );
 
-        self::assertNotContains(PlayerFixture::PLAYER_REGULAR, $this->query->publicWithResults());
+        self::assertNotContains(PlayerFixture::PLAYER_REGULAR, $this->playerIds());
+    }
+
+    public function testCountMatchesTheListedPlayers(): void
+    {
+        self::assertSame(count($this->playerIds()), $this->query->countPublicWithResults());
+    }
+
+    public function testPagesSplitTheListInOrder(): void
+    {
+        $all = $this->playerIds();
+        self::assertGreaterThan(2, count($all), 'Premise: enough players to split');
+
+        $firstPage = array_column($this->query->publicWithResultsPage(limit: 2, offset: 0), 'id');
+        $secondPage = array_column($this->query->publicWithResultsPage(limit: 2, offset: 2), 'id');
+
+        self::assertSame(array_slice($all, 0, 2), $firstPage);
+        self::assertSame(array_slice($all, 2, 2), $secondPage);
+    }
+
+    public function testLastmodIsTheDayOfTheLatestResult(): void
+    {
+        $latest = $this->database->fetchOne(
+            "SELECT to_char(MAX(tracked_at), 'YYYY-MM-DD') FROM puzzle_solving_time WHERE player_id = :id",
+            ['id' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+
+        $rows = $this->query->publicWithResultsPage(limit: 10_000, offset: 0);
+        $lastmods = array_column($rows, 'lastmod', 'id');
+
+        self::assertSame($latest, $lastmods[PlayerFixture::PLAYER_WITH_FAVORITES]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function playerIds(): array
+    {
+        return array_column($this->query->publicWithResultsPage(limit: 10_000, offset: 0), 'id');
     }
 
     private function moveOwnTimes(string $from, string $to): void

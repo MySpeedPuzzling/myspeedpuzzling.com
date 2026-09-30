@@ -29,7 +29,7 @@ final class SitemapPlayersControllerTest extends WebTestCase
             ['from' => PlayerFixture::PLAYER_WITH_FAVORITES, 'to' => PlayerFixture::PLAYER_ADMIN],
         );
 
-        $browser->request('GET', '/sitemap-players.xml');
+        $browser->request('GET', '/sitemap-players-1.xml');
 
         $this->assertResponseIsSuccessful();
         $content = (string) $browser->getResponse()->getContent();
@@ -38,7 +38,17 @@ final class SitemapPlayersControllerTest extends WebTestCase
             self::assertStringContainsString($prefix . PlayerFixture::PLAYER_REGULAR . '</loc>', $content);
         }
 
+        self::assertMatchesRegularExpression('~/en/player-profile/' . PlayerFixture::PLAYER_REGULAR . '</loc><lastmod>\d{4}-\d{2}-\d{2}</lastmod>~', $content);
         self::assertStringNotContainsString(PlayerFixture::PLAYER_WITH_FAVORITES, $content);
         self::assertStringNotContainsString(PlayerFixture::PLAYER_PRIVATE, $content);
+    }
+
+    public function testPageBeyondTheLastIsNotFound(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/sitemap-players-999.xml');
+
+        $this->assertResponseStatusCodeSame(404);
     }
 }

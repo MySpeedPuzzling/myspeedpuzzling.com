@@ -13,20 +13,39 @@ final class SitemapPlayersController extends AbstractController
 {
     use SitemapResponseTrait;
 
+    /**
+     * Same chunking as the puzzle sitemaps: 10 000 <url> entries per file,
+     * one entry per locale: intdiv(10 000, 6 locales) = 1 666 players/file.
+     */
+    public const int PLAYERS_PER_PAGE = 1_666;
+
     public function __construct(
         readonly private GetPlayerIdsForSitemap $getPlayerIdsForSitemap,
     ) {
     }
 
-    #[Route(path: '/sitemap-players.xml', name: 'sitemap_players')]
-    public function __invoke(): Response
+    #[Route(
+        path: '/sitemap-players-{page}.xml',
+        name: 'sitemap_players',
+        requirements: ['page' => '[1-9]\d*'],
+    )]
+    public function __invoke(int $page): Response
     {
+        $players = $this->getPlayerIdsForSitemap->publicWithResultsPage(
+            limit: self::PLAYERS_PER_PAGE,
+            offset: ($page - 1) * self::PLAYERS_PER_PAGE,
+        );
+
+        if ($players === [] && $page > 1) {
+            throw $this->createNotFoundException();
+        }
+
         $entries = [];
 
-        foreach ($this->getPlayerIdsForSitemap->publicWithResults() as $playerId) {
+        foreach ($players as $player) {
             array_push($entries, ...$this->localizedEntries('player_profile', [
-                'playerId' => $playerId,
-            ]));
+                'playerId' => $player['id'],
+            ], $player['lastmod']));
         }
 
         return $this->urlsetResponse($entries);

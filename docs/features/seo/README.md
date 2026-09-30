@@ -61,7 +61,7 @@ The branch currently ships an SEO regression on the site's most important page:
 
 ### 1.2 Sitemap overhaul (currently a single 43.5 MB file, 67 s to serve, 87% of the 50 MB hard limit)
 `src/Controller/SitemapController.php`, `templates/sitemap.xml.twig`:
-- Convert to a **sitemap index** at `/sitemap.xml` → child sitemaps: `sitemap-static.xml`, `sitemap-puzzles-{n}.xml` (~10k URLs/file), `sitemap-marketplace.xml`, `sitemap-events.xml`, `sitemap-players.xml`, `sitemap-feature-requests.xml`.
+- Convert to a **sitemap index** at `/sitemap.xml` → child sitemaps: `sitemap-static.xml`, `sitemap-puzzles-{n}.xml` (~10k URLs/file), `sitemap-marketplace.xml`, `sitemap-events.xml`, `sitemap-players-{n}.xml` (same 10k URLs/file chunking, `lastmod` = latest result), `sitemap-feature-requests.xml`.
 - **Emit one `<url>` per locale** (today only the Czech URL is ever listed as `<loc>` — all EN pages, the primary target, are absent). Remove `xhtml:link` alternates from the sitemap entirely (hreflang stays page-level only — single delivery method, per ground rule 6); this offsets the 6× entry growth.
 - Add `<lastmod>` (puzzles have timestamps), Twig whitespace control (`{%- -%}`), gzip.
 - Remove: the bare `/` entry (it's a 302), `homepage_crossroads` redirect entry, `contact` (until rebuilt, see 2.6), zero-player `players_per_country` entries (emit only countries with ≥1 player; `GetPlayersPerCountry::count()` exists).

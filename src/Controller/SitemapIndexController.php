@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Query\GetPlayerIdsForSitemap;
 use SpeedPuzzling\Web\Query\GetPuzzleIdsForSitemap;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,6 +17,7 @@ final class SitemapIndexController extends AbstractController
 
     public function __construct(
         readonly private GetPuzzleIdsForSitemap $getPuzzleIdsForSitemap,
+        readonly private GetPlayerIdsForSitemap $getPlayerIdsForSitemap,
     ) {
     }
 
@@ -46,7 +48,17 @@ final class SitemapIndexController extends AbstractController
             ], UrlGeneratorInterface::ABSOLUTE_URL);
         }
 
-        foreach (['sitemap_marketplace', 'sitemap_events', 'sitemap_players', 'sitemap_feature_requests', 'sitemap_countries', 'sitemap_brands', 'sitemap_guides'] as $route) {
+        $playerPages = max(1, (int) ceil(
+            $this->getPlayerIdsForSitemap->countPublicWithResults() / SitemapPlayersController::PLAYERS_PER_PAGE,
+        ));
+
+        for ($page = 1; $page <= $playerPages; $page++) {
+            $sitemaps[] = $this->generateUrl('sitemap_players', [
+                'page' => $page,
+            ], UrlGeneratorInterface::ABSOLUTE_URL);
+        }
+
+        foreach (['sitemap_marketplace', 'sitemap_events', 'sitemap_feature_requests', 'sitemap_countries', 'sitemap_brands', 'sitemap_guides'] as $route) {
             $sitemaps[] = $this->generateUrl($route, [], UrlGeneratorInterface::ABSOLUTE_URL);
         }
 

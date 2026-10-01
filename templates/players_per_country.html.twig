@@ -13,14 +13,6 @@
     {% endif %}
 
     {% for player in players %}
-        <div class="pb-1">
-            <a href="{{ path('player_profile', {playerId: player.playerId}) }}">
-                {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}
-                    <i class="ci-star-filled text-warning"></i>
-                {% endif %}
-                {{ player.playerName ?? ('#' ~ player.playerCode|upper) }}
-                <code class="text-muted">#{{ player.playerCode|upper }}</code>
-            </a>
-        </div>
+        {{ include('_player_list_item.html.twig', {player: player}) }}
     {% endfor %}
 {% endblock %}

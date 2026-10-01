@@ -142,13 +142,14 @@
         {# Row 3: Seller + Rating #}
         <div class="mt-auto d-flex align-items-center pt-1">
             <a href="{{ path('sell_swap_list_detail', {playerId: item.sellerId, return: marketplaceReturnUrl|default(path('marketplace')), return_title: 'marketplace.title'|trans}) }}" class="d-flex align-items-center min-width-0 text-primary text-decoration-underline">
-                {% if item.sellerAvatar %}
-                    <img src="{{ item.sellerAvatar|thumbnail('puzzle_small') }}" alt="" class="rounded-circle me-1 flex-shrink-0" style="width: 20px; height: 20px; object-fit: cover;">
-                {% endif %}
-                <small class="text-truncate">{{ item.sellerName ?? item.sellerCode }}</small>
-                {% if item.sellerCountry %}
-                    <small class="fi fi-{{ item.sellerCountry }} shadow-custom ms-1 flex-shrink-0"></small>
-                {% endif %}
+                {{ include('_player_avatar.html.twig', {
+                    player_id: item.sellerId,
+                    name: item.sellerName ?? item.sellerCode,
+                    avatar: item.sellerAvatar,
+                    country_code: item.sellerCountry,
+                    size: 'xs',
+                }) }}
+                <small class="text-truncate ms-2">{{ item.sellerName ?? item.sellerCode }}</small>
             </a>
             {% if item.sellerRatingCount is defined and item.sellerRatingCount > 0 %}
                 <a href="{{ path('player_ratings', {playerId: item.sellerId}) }}" class="btn btn-outline-warning btn-sm ms-1 flex-shrink-0 py-0 px-1" style="font-size: 0.7rem;" title="{{ item.sellerAverageRating|number_format(1) }} ({{ item.sellerRatingCount }})" data-turbo="true" data-turbo-frame="modal-frame">

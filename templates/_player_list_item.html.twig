@@ -1,0 +1,20 @@
+{#
+    A player in a plain list (puzzlers page, players of a country): the ranking rows' player block (avatar with the flag,
+    name) + the player code, optionally a count in front (most popular players).
+
+    Inputs:
+      - player: PlayerIdentification / MostFavoritePlayer (playerId, playerName, playerCode, playerCountry, playerAvatar)
+      - count (int, optional): pill in front of the player
+      - highlight_query (string, optional): marks the searched text in the name
+#}
+<div class="player-list-item">
+    {% if count is defined %}
+        <span class="badge rounded-pill bg-warning player-list-count">{{ count }}</span>
+    {% endif %}
+    {{ include('_leaderboard_player.html.twig', {
+        player: player,
+        show_tier: false,
+        highlight_query: highlight_query|default(null),
+    }) }}
+    <code class="player-list-code">#{{ player.playerCode|upper }}</code>
+</div>

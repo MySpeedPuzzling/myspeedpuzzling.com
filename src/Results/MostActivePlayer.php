@@ -17,6 +17,7 @@ readonly final class MostActivePlayer
         public int $totalPiecesCount,
         public null|int $totalSeconds,
         public bool $isPrivate,
+        public null|string $playerAvatar = null,
     ) {
     }
 
@@ -30,6 +31,7 @@ readonly final class MostActivePlayer
      *     total_pieces_count: int,
      *     total_seconds: null|int,
      *     is_private: bool,
+     *     player_avatar?: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -45,6 +47,7 @@ readonly final class MostActivePlayer
             totalPiecesCount: $row['total_pieces_count'],
             totalSeconds: $row['total_seconds'],
             isPrivate: $row['is_private'],
+            playerAvatar: $row['player_avatar'] ?? null,
         );
     }
 }

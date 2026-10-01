@@ -10,6 +10,7 @@
       - links_turbo_frame (string, optional): data-turbo-frame of the profile link - "_top" inside a modal
       - profile_params (map, optional): extra query parameters of the profile link (e.g. ?return=)
       - show_tier (bool, optional, default true): the skill tier icon - off where the data has no tier
+      - highlight_query (string, optional): marks the searched text in the name (search results)
 
     The name truncates with an ellipsis instead of widening the table - the row must never scroll sideways.
 #}
@@ -20,21 +21,14 @@
 {%- set country_name = player.playerCountry is null ? null : (player.playerCountry.value ?? null) -%}
 {%- set name = player.playerName ?? ('#' ~ player.playerCode) -%}
 <span class="lb-player{{ small|default(false) ? ' lb-player-sm' }}">
-    <span class="lb-avatar">
-        {%- if hidden -%}
-            <span class="lb-avatar-img lb-avatar-private"><i class="bi bi-incognito"></i></span>
-        {%- elseif player.playerAvatar ?? null -%}
-            <img class="lb-avatar-img" src="{{ player.playerAvatar|thumbnail('puzzle_small') }}" alt="" loading="lazy" decoding="async">
-        {%- else -%}
-            {# The tint follows the id, so a player keeps their colour on every page #}
-            <span class="lb-avatar-img lb-avatar-initial lb-tint-{{ player.playerId is not null ? player.playerId|last : 'guest' }}" aria-hidden="true">
-                {{- name|trim('#')|first|upper -}}
-            </span>
-        {%- endif -%}
-        {%- if not hidden and country_code is not null -%}
-            <span class="lb-flag fi fi-{{ country_code|lower }}"{% if country_name %} title="{{ country_name }}"{% endif %}></span>
-        {%- endif -%}
-    </span>
+    {{- include('_player_avatar.html.twig', {
+        player_id: player.playerId,
+        name: name,
+        avatar: player.playerAvatar ?? null,
+        country_code: country_code,
+        country_name: country_name,
+        hidden: hidden,
+    }) -}}
 
     {%- if hidden -%}
         <span class="lb-name text-muted">{{ 'secret_puzzler_name'|trans }}</span>
@@ -49,7 +43,7 @@
             {%- if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers -%}
                 <i class="ci-star-filled text-warning me-1"></i>
             {%- endif -%}
-            {{- name -}}
+            {{- highlight_query is defined and highlight_query ? highlight(name, highlight_query) : name -}}
         </a>
     {%- else -%}
         <span class="lb-name lb-name-guest">{{ name }}</span>

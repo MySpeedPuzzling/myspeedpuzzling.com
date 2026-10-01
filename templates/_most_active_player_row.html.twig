@@ -1,0 +1,26 @@
+{#
+    One row of a "most active players" table (hub, players pages) - the ranking row design (_leaderboard.scss):
+    rank · player (avatar, flag) · how many puzzles, pieces and time.
+
+    Inputs:
+      - player: MostActivePlayer
+      - rank (int)
+      - hidden (bool): beyond the "show more" limit
+#}
+{% set is_own_row = logged_user.profile is not null and player.playerId is same as logged_user.profile.playerId %}
+<tr class="{{ is_own_row ? 'table-active-player' }} {{ hidden ? 'd-none' }}">
+    <td class="rank"><span class="lb-rank">{{ rank }}</span></td>
+    <td class="lb-solver">
+        {{ include('_leaderboard_player.html.twig', {player: player, show_tier: false}) }}
+    </td>
+    <td class="lb-time">
+        <span class="lb-time-value" title="{{ 'solo_solved'|trans }}">{{ player.solvedPuzzlesCount }}×</span>
+        <span class="lb-gap">{{ 'pieces_count'|trans({'%count%': player.totalPiecesCount|format_number([], 'decimal', 'default', 'cs')})|raw }}</span>
+        {% if player.totalSeconds is not null %}
+            <span class="lb-gap">
+                {%- if player.totalSeconds|daysElapsed > 0 %}{{ player.totalSeconds|daysElapsed }}d {% endif -%}
+                {{ player.totalSeconds|hoursElapsed(false) }}h {{ player.totalSeconds|minutesElapsed }}m
+            </span>
+        {% endif %}
+    </td>
+</tr>

@@ -552,3 +552,54 @@ a.lb-name,
         }
     }
 }
+
+// Plain player lists (puzzlers page, players of a country): avatar with the flag · name · #CODE
+.player-list-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 4px 0;
+
+    .lb-player {
+        flex: 0 1 auto;
+    }
+
+    a.lb-name {
+        color: #111;
+        font-weight: 500;
+    }
+}
+
+.player-list-code {
+    flex-shrink: 0;
+    font-size: .75rem;
+    color: #8a909c;
+}
+
+.player-list-count {
+    flex-shrink: 0;
+    // Three digits wide, so the avatars line up under each other
+    width: 3.4em;
+    text-align: center;
+    font-family: $font-family-monospace;
+}
+
+// Extra small avatar (marketplace cards)
+.lb-avatar.lb-avatar-xs {
+    width: 20px;
+    height: 20px;
+    margin-right: 0;
+
+    .lb-avatar-img {
+        font-size: .625rem;
+    }
+
+    .lb-flag.fi {
+        right: -5px;
+        bottom: -3px;
+        width: 11px;
+        height: 8px;
+        line-height: 8px;
+    }
+}

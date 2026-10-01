@@ -40,7 +40,8 @@ SELECT
     fav.id AS player_id,
     CASE WHEN {$isPrivate} THEN NULL ELSE fav.name END AS player_name,
     fav.code AS player_code,
-    CASE WHEN {$isPrivate} THEN NULL ELSE fav.country END AS player_country
+    CASE WHEN {$isPrivate} THEN NULL ELSE fav.country END AS player_country,
+    CASE WHEN {$isPrivate} THEN NULL ELSE fav.avatar END AS player_avatar
 FROM player
 CROSS JOIN LATERAL json_array_elements_text(player.favorite_players::json) AS fav_player_id
 JOIN player fav ON fav.id = fav_player_id::uuid
@@ -60,6 +61,7 @@ SQL;
              *     player_code: string,
              *     player_name: null|string,
              *     player_country: null|string,
+             *     player_avatar: null|string,
              * } $row
              */
 
@@ -79,7 +81,8 @@ SELECT
     fav_player.id AS player_id, 
     fav_player.name AS player_name, 
     fav_player.code AS player_code, 
-    fav_player.country AS player_country, 
+    fav_player.country AS player_country,
+    fav_player.avatar AS player_avatar,
     COUNT(fav_player.id) AS favorite_count
 FROM player
 CROSS JOIN LATERAL JSON_ARRAY_ELEMENTS_TEXT(player.favorite_players) AS fav_player_id
@@ -102,6 +105,7 @@ SQL;
              *     player_code: string,
              *     player_name: null|string,
              *     player_country: null|string,
+             *     player_avatar: null|string,
              *     favorite_count: int,
              * } $row
              */

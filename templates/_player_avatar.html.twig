@@ -1,0 +1,28 @@
+{#
+    A player's avatar with the country flag on its corner - the photo, else the initial on a tint picked by the last hex
+    digit of the player id (a player keeps their colour on every page), incognito for a hidden private player.
+    Used by _leaderboard_player.html.twig and wherever a name stands next to an avatar (marketplace cards).
+
+    Inputs:
+      - player_id (null|string): null for a guest of a pair/team
+      - name (string): for the initial
+      - avatar (null|string): uploaded avatar path
+      - country_code (null|string), country_name (null|string, optional)
+      - hidden (bool, optional): private player the viewer may not see
+      - size (string, optional): '' (28 px), 'sm' (22 px), 'xs' (20 px)
+#}
+{%- set hidden = hidden|default(false) -%}
+<span class="lb-avatar{{ size|default('') ? ' lb-avatar-' ~ size }}">
+    {%- if hidden -%}
+        <span class="lb-avatar-img lb-avatar-private"><i class="bi bi-incognito"></i></span>
+    {%- elseif avatar -%}
+        <img class="lb-avatar-img" src="{{ avatar|thumbnail('puzzle_small') }}" alt="" loading="lazy" decoding="async">
+    {%- else -%}
+        <span class="lb-avatar-img lb-avatar-initial lb-tint-{{ player_id is not null ? player_id|last : 'guest' }}" aria-hidden="true">
+            {{- name|trim('#')|first|upper -}}
+        </span>
+    {%- endif -%}
+    {%- if not hidden and country_code -%}
+        <span class="lb-flag fi fi-{{ country_code|lower }}"{% if country_name|default(null) %} title="{{ country_name }}"{% endif %}></span>
+    {%- endif -%}
+</span>

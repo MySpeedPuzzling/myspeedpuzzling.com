@@ -34,45 +34,11 @@
     </ul>
 
     <div data-controller="show-more-recent-activity">
-        <div class="table-responsive custom-table-wrapper">
-            <table class="table table-striped table-hover mb-0">
+        <div class="custom-table-wrapper lb-wrapper">
+            <table class="table custom-table table-hover lb-table mb-0">
                 <tbody>
                     {% for most_active_player in this.players %}
-                        <tr class="{{ logged_user.profile is not null and most_active_player.playerId is same as logged_user.profile.playerId ? 'table-active-player' }} {{ this.showLimit > 0 and loop.index > this.showLimit ? 'd-none' }}">
-                            <td class="rank">{{ loop.index }}.</td>
-                            <td class="player-name">
-                                {% if most_active_player.isPrivate %}
-                                    <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
-                                    <i class="bi bi-incognito text-muted"></i>
-                                {% else %}
-                                    <a href="{{ path('player_profile', {playerId: most_active_player.playerId}) }}">
-                                        {{ most_active_player.playerName }}
-                                        {% if logged_user.profile is not null and most_active_player.playerId in logged_user.profile.favoritePlayers %}
-                                            <i class="ci-star-filled text-warning"></i>
-                                        {% endif %}
-                                    </a>
-                                    {% if most_active_player.playerCountry is not null %}
-                                        <small class="shadow-custom fi fi-{{ most_active_player.playerCountry.name }}"></small>
-                                    {% endif %}
-                                {% endif %}
-                            </td>
-                            <td class="text-end">
-                                <small>{{ 'solo_solved'|trans }}</small> {{ most_active_player.solvedPuzzlesCount }}&times;<br>
-
-                                <small class="text-muted">
-                                    {{ 'pieces_count'|trans({'%count%': most_active_player.totalPiecesCount|format_number([], 'decimal', 'default', 'cs')})|raw }}
-                                    {% if most_active_player.totalSeconds is not null %}
-                                        <br>
-                                        {% if most_active_player.totalSeconds|daysElapsed > 0 %}
-                                            {{ most_active_player.totalSeconds|daysElapsed }}d
-                                        {% endif %}
-                                        {{ most_active_player.totalSeconds|hoursElapsed(false) }}h
-                                        {{ most_active_player.totalSeconds|minutesElapsed }}m
-                                        {{ most_active_player.totalSeconds|secondsElapsed }}s
-                                    {% endif %}
-                                </small>
-                            </td>
-                        </tr>
+                        {{ include('_most_active_player_row.html.twig', {player: most_active_player, rank: loop.index, hidden: this.showLimit > 0 and loop.index > this.showLimit}) }}
                     {% endfor %}
                 </tbody>
             </table>
@@ -106,24 +72,24 @@
             </li>
         </ul>
 
-        <div class="table-responsive custom-table-wrapper">
-            <table class="table table-striped table-hover mb-0 placeholder-glow">
+        {# Same row shape as _most_active_player_row.html.twig, so the swap does not shift the page #}
+        <div class="custom-table-wrapper lb-wrapper">
+            <table class="table custom-table lb-table mb-0 placeholder-glow">
                 <tbody>
                     {% set rowCount = props.showLimit > 0 ? props.showLimit : props.limit|default(4) %}
                     {% for i in 1..rowCount %}
                         <tr>
-                            <td class="rank">{{ i }}.</td>
-                            <td class="player-name">
-                                <span class="placeholder" style="width: 120px;"></span>
-                                <small class="placeholder ms-1" style="width: 18px; height: 14px;"></small>
+                            <td class="rank"><span class="lb-rank">{{ i }}</span></td>
+                            <td class="lb-solver">
+                                <span class="lb-player">
+                                    <span class="lb-avatar"><span class="lb-avatar-img lb-tint-guest"></span></span>
+                                    <span class="placeholder" style="width: 120px;"></span>
+                                </span>
                             </td>
-                            <td class="text-end">
-                                <small><span class="placeholder placeholder-sm" style="width: 45px;"></span></small>
-                                <span class="placeholder" style="width: 30px;"></span><br>
-                                <small class="text-muted">
-                                    <span class="placeholder placeholder-sm" style="width: 70px;"></span><br>
-                                    <span class="placeholder placeholder-sm" style="width: 85px;"></span>
-                                </small>
+                            <td class="lb-time">
+                                <span class="lb-time-value"><span class="placeholder" style="width: 32px;"></span></span>
+                                <span class="lb-gap"><span class="placeholder placeholder-sm" style="width: 70px;"></span></span>
+                                <span class="lb-gap"><span class="placeholder placeholder-sm" style="width: 50px;"></span></span>
                             </td>
                         </tr>
                     {% endfor %}

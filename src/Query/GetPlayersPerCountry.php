@@ -94,7 +94,8 @@ SELECT
     id AS player_id,
     name AS player_name,
     code AS player_code,
-    country AS player_country
+    country AS player_country,
+    avatar AS player_avatar
 FROM player
 WHERE player.country = :countryCode
     AND player.is_private = false
@@ -115,6 +116,7 @@ SQL;
              *     player_code: string,
              *     player_name: null|string,
              *     player_country: null|string,
+             *     player_avatar: null|string,
              * } $row
              */
 

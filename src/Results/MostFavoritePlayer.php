@@ -14,6 +14,7 @@ readonly final class MostFavoritePlayer
         public null|string $playerName,
         public null|CountryCode $playerCountry,
         public int $favoriteCount,
+        public null|string $playerAvatar = null,
     ) {
     }
 
@@ -24,6 +25,7 @@ readonly final class MostFavoritePlayer
      *     player_name: null|string,
      *     player_country: null|string,
      *     favorite_count: int,
+     *     player_avatar?: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -34,6 +36,7 @@ readonly final class MostFavoritePlayer
             playerName: $row['player_name'],
             playerCountry: CountryCode::fromCode($row['player_country']),
             favoriteCount: $row['favorite_count'],
+            playerAvatar: $row['player_avatar'] ?? null,
         );
     }
 }

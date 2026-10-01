@@ -302,13 +302,157 @@ a.lb-name,
 
 }
 
-// Player profile results: the time is the row's link to the result detail, it keeps looking like the time
-.custom-table-wrapper .table a.result-detail-link {
+// Player profile results (templates/_player_solvings.html.twig) - the leaderboard's building blocks, one row per puzzle:
+// image · puzzle with its tags (takes the rest, truncates) · time. Never scrolls sideways.
+.ps-wrapper {
+    overflow: hidden;
+}
+
+.ps-table {
+    width: 100%;
+
+    > :not(caption) > * > * {
+        padding-top: .5rem;
+        padding-bottom: .5rem;
+        vertical-align: top;
+    }
+
+    td.ps-image {
+        width: 1%;
+        padding-left: 10px;
+        padding-right: 0;
+        text-align: center;
+    }
+
+    td.ps-info {
+        width: 100%;
+        max-width: 0;
+        padding-left: 10px;
+    }
+
+    td.ps-time {
+        width: 1%;
+        padding-left: 8px;
+        padding-right: 10px;
+        text-align: right;
+        white-space: nowrap;
+    }
+}
+
+.ps-photo {
+    margin-top: 4px;
+
+    img {
+        width: 40px;
+        height: 40px;
+        object-fit: cover;
+    }
+}
+
+.custom-table-wrapper .table a.ps-puzzle-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-weight: 600;
+    line-height: 1.25;
     color: #111;
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.ps-puzzle-meta {
+    margin-top: 1px;
+    font-size: .75rem;
+    line-height: 1.3;
+    color: #6c727f;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ps-members {
+    margin-top: 2px;
+
+    .lb-player {
+        height: 24px;
+    }
+}
+
+.ps-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 3px;
+    margin-top: 4px;
+
+    // The badges partial brings its own row - here it joins the tags row
+    .lb-badges {
+        display: contents;
+    }
+
+    .pr-chip {
+        font-size: .6875rem;
+        padding: 1px 7px;
+    }
+}
+
+.ps-share {
+    padding: 1px 8px;
+    font-size: .6875rem;
+    line-height: 1.5;
+    border-radius: 999px;
+}
+
+.custom-table-wrapper .table a.ps-time-value {
+    display: block;
+    font-family: $font-family-monospace;
+    font-weight: 600;
+    color: #111;
+    letter-spacing: -.02em;
     text-decoration: none;
 
     &:hover,
     &:focus-visible {
         text-decoration: underline;
+    }
+}
+
+.ps-date,
+.ps-ppm {
+    display: block;
+    font-size: .75rem;
+    line-height: 1.35;
+    color: #6c727f;
+}
+
+.ps-date {
+    font-family: $font-family-monospace;
+    letter-spacing: -.02em;
+}
+
+.ps-time .btn {
+    margin-top: 2px;
+}
+
+@media (max-width: 379.98px) {
+    .ps-table {
+        font-size: .875rem;
+
+        td.ps-image {
+            padding-left: 8px;
+        }
+
+        td.ps-info {
+            padding-left: 8px;
+        }
+
+        td.ps-time {
+            padding-left: 6px;
+            padding-right: 8px;
+        }
     }
 }

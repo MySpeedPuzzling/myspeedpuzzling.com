@@ -103,14 +103,14 @@ which would stack a second Bootstrap modal on top of this one.
 
 - **The puzzle is the modal header** (`_puzzle.html.twig`: image, name = the modal title, brand · pieces); the full
   page shows the same block under its h1. Tighter header/body padding on phones.
-- Body head in two columns: whose results with the **best time under the name** (left), "Rank N of M" + 🏆/↑ gap
-  chips stacked on the right.
+- Body head in two columns: whose results with "Rank N of M" under the name (left), the best time with its 🏆/↑ gap
+  chips under it (right).
 - Members' chart is 150 px (50 px lower than elsewhere) with flat, thinned-out dates and two dashed reference lines:
-  **fastest on the puzzle** (gold, `standing.leaderTime`) and the puzzle's **median** (grey, `standing.medianTime` -
+  **fastest on the puzzle** (black, `standing.leaderTime`) and the puzzle's **median** (grey, `standing.medianTime` -
   median of every subject's best time from the same aggregate query, equal to the leaderboard's median, guarded by the
   parity test). `PlayerPuzzleTimesChart` takes `height`, `medianTime`, `fastestTime`; each reference dataset carries a
   `referenceCaption` ("Median 00:53:28") that `time_chart_controller.js` writes onto the chart right at its line
-  (above it, below when there is no room) - no legend under the chart; the tooltip ignores the reference lines.
+  (above it, below when there is no room; no backing, the line's colour) - no legend under the chart; the tooltip ignores the reference lines.
   Non-members get a placeholder of the same height linking to the membership page.
 - Attempts: no heading; each line = date (dark, monospace) + `#N` (order solved, #1 = first, small grey) …… time
   (dark, ★ for the best), then PPM …… ↩ change vs the previous attempt, ★ gap to the best. Compact spacing on phones.

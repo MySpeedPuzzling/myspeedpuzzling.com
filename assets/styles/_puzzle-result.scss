@@ -91,8 +91,14 @@ a.pr-team-link {
     }
 }
 
+.pr-rank {
+    margin-top: 6px;
+}
+
+// Best time on the right, its gaps under it
 .pr-best {
-    margin-top: 4px;
+    flex: 0 0 auto;
+    text-align: right;
     line-height: 1;
 }
 
@@ -106,6 +112,7 @@ a.pr-team-link {
 }
 
 .pr-best-time {
+    display: block;
     font-family: $font-family-monospace;
     font-size: 1.75rem;
     font-weight: 700;
@@ -114,13 +121,12 @@ a.pr-team-link {
     letter-spacing: -.02em;
 }
 
-// Rank and gaps, one under another, right-aligned
 .pr-chips {
     display: flex;
-    flex: 0 0 auto;
-    flex-direction: column;
-    align-items: flex-end;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 4px;
+    margin-top: 6px;
 }
 
 .pr-chip {

@@ -18,8 +18,8 @@
 {%- set links_turbo_frame = '_top' -%}
 
 <div class="puzzle-result" style="min-width: 0;">
-    {# Whose results with their best time (left), where it stands on the leaderboard (right). The puzzle is in the
-       modal header (_modal.html.twig) or above this on the full page (_puzzle.html.twig) #}
+    {# Whose results with their rank (left), the best time with its gaps (right). The puzzle is in the modal header
+       (_modal.html.twig) or above this on the full page (_puzzle.html.twig) #}
     <div class="pr-head mb-3">
         <div class="pr-subject">
             {% if result.isGroup %}
@@ -35,28 +35,32 @@
                 {{ include('_leaderboard_player.html.twig', {player: result.player}) }}
             {% endif %}
 
-            {% if best is not null %}
-                <div class="pr-best">
-                    <span class="pr-best-label">{{ 'puzzle_result.best_time'|trans }}</span>
-                    <span class="pr-best-time">{{ best.time|puzzlingTime }}</span>
+            {% if standing is not null %}
+                <div class="pr-rank">
+                    <span class="pr-chip pr-chip-rank">
+                        {{ 'puzzle_result.rank'|trans({'%rank%': standing.rank, '%total%': standing.total}) }}
+                    </span>
                 </div>
             {% endif %}
         </div>
 
-        {% if standing is not null %}
-            <div class="pr-chips">
-                <span class="pr-chip pr-chip-rank">
-                    {{ 'puzzle_result.rank'|trans({'%rank%': standing.rank, '%total%': standing.total}) }}
-                </span>
-                {% if standing.gapToLeader is not null %}
-                    <span class="pr-chip" title="{{ 'puzzle_times.leaderboard.gap_to_fastest'|trans }}">
-                        <i class="bi bi-trophy"></i>{{ standing.gapToLeader|gapTime }}
-                    </span>
-                {% endif %}
-                {% if standing.gapToNextFaster is not null %}
-                    <span class="pr-chip" title="{{ 'puzzle_times.leaderboard.gap_to_faster'|trans }}">
-                        <i class="bi bi-arrow-up"></i>{{ standing.gapToNextFaster|gapTime }}
-                    </span>
+        {% if best is not null %}
+            <div class="pr-best">
+                <span class="pr-best-label">{{ 'puzzle_result.best_time'|trans }}</span>
+                <span class="pr-best-time">{{ best.time|puzzlingTime }}</span>
+                {% if standing is not null and (standing.gapToLeader is not null or standing.gapToNextFaster is not null) %}
+                    <div class="pr-chips">
+                        {% if standing.gapToLeader is not null %}
+                            <span class="pr-chip" title="{{ 'puzzle_times.leaderboard.gap_to_fastest'|trans }}">
+                                <i class="bi bi-trophy"></i>{{ standing.gapToLeader|gapTime }}
+                            </span>
+                        {% endif %}
+                        {% if standing.gapToNextFaster is not null %}
+                            <span class="pr-chip" title="{{ 'puzzle_times.leaderboard.gap_to_faster'|trans }}">
+                                <i class="bi bi-arrow-up"></i>{{ standing.gapToNextFaster|gapTime }}
+                            </span>
+                        {% endif %}
+                    </div>
                 {% endif %}
             </div>
         {% endif %}

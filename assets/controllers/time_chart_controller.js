@@ -2,8 +2,8 @@ import { Controller } from '@hotwired/stimulus';
 
 /*
  * Writes the caption of a reference line (a dataset with `referenceCaption`, e.g. "Median 00:53:28" from
- * PlayerPuzzleTimesChart) just above its line at the left of the plot, on a light backing so a crossing
- * data line never makes it unreadable. Below the line when there is no room above it.
+ * PlayerPuzzleTimesChart) just above its line at the left of the plot, in the line's colour.
+ * Below the line when there is no room above it.
  */
 const referenceCaptionsPlugin = {
     id: 'referenceCaptions',
@@ -25,14 +25,11 @@ const referenceCaptionsPlugin = {
 
             ctx.save();
             ctx.font = '600 10px system-ui, -apple-system, "Segoe UI", sans-serif';
-            const width = ctx.measureText(dataset.referenceCaption).width;
             const height = 13;
             const x = chartArea.left + 4;
             const above = lineY - height - 2 >= chartArea.top;
             const y = above ? lineY - height - 2 : lineY + 3;
 
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-            ctx.fillRect(x - 2, y, width + 4, height);
             ctx.fillStyle = dataset.borderColor;
             ctx.textBaseline = 'top';
             ctx.fillText(dataset.referenceCaption, x, y + 2);

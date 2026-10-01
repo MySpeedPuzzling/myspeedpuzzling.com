@@ -19,7 +19,7 @@ final class PlayerPuzzleTimesChart
 {
     public const string MEDIAN_COLOR = '#8a909c';
 
-    public const string FASTEST_COLOR = '#d4a017';
+    public const string FASTEST_COLOR = '#111111';
 
     public null|string $playerId = null;
 

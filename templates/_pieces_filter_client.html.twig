@@ -20,14 +20,16 @@
         </div>
     {% endfor %}
     <div class="d-flex align-items-center gap-1">
-        <input type="number" class="form-control form-control-sm pieces-filter-bound"
-               data-collection-filter-target="piecesMin" data-action="input->collection-filter#customPieces"
-               min="1" inputmode="numeric"
+        <input type="text" class="form-control form-control-sm pieces-filter-bound"
+               data-collection-filter-target="piecesMin" data-controller="digits-only"
+               data-action="input->digits-only#sanitize input->collection-filter#customPieces"
+               inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off"
                placeholder="{{ 'pieces_filter.from'|trans }}" aria-label="{{ 'pieces_filter.from_label'|trans }}">
         <span class="text-muted" aria-hidden="true">–</span>
-        <input type="number" class="form-control form-control-sm pieces-filter-bound"
-               data-collection-filter-target="piecesMax" data-action="input->collection-filter#customPieces"
-               min="1" inputmode="numeric"
+        <input type="text" class="form-control form-control-sm pieces-filter-bound"
+               data-collection-filter-target="piecesMax" data-controller="digits-only"
+               data-action="input->digits-only#sanitize input->collection-filter#customPieces"
+               inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off"
                placeholder="{{ 'pieces_filter.to'|trans }}" aria-label="{{ 'pieces_filter.to_label'|trans }}">
     </div>
 </div>

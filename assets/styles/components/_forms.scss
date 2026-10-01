@@ -312,8 +312,10 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 // Custom from-to of the piece-count filter (_pieces_filter_*.html.twig):
-// as tall as the chips next to it, wide enough for "100000"
+// as tall as the chips next to it, just wide enough for "100000"
+// (text inputs, so no spinner to make room for)
 .pieces-filter-bound {
-  width: 5.5rem;
+  width: 4.25rem;
   height: $form-option-size;
+  padding-inline: .5rem;
 }

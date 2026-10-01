@@ -6,7 +6,6 @@ namespace SpeedPuzzling\Web\Component;
 
 use SpeedPuzzling\Web\Query\SearchPlayers;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
-use SpeedPuzzling\Web\Results\PiecesFilter;
 use SpeedPuzzling\Web\Results\PlayerIdentification;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Value\PiecesRange;
@@ -67,7 +66,7 @@ final class GlobalSearch
         $this->puzzle = $this->searchPuzzle->byUserInput(
             brandId: null,
             search: $query,
-            pieces: PiecesRange::fromFilter(PiecesFilter::Any),
+            pieces: PiecesRange::any(),
             tag: null,
             limit: 15,
         );

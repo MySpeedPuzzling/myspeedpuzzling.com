@@ -58,16 +58,19 @@
                     </div>
                 {% endif %}
 
-                {# Pieces count range filter #}
+                {# Pieces count filter #}
                 <div class="mb-3">
-                    <select data-model="piecesCountRange" class="form-select form-select-sm">
-                        <option value="">{{ 'filters.all_pieces'|trans }}</option>
-                        {% for range in this.availablePiecesRanges %}
-                            <option value="{{ range.value }}" {{ this.piecesCountRange == range.value ? 'selected' }}>
-                                {{ range.label }} {{ 'pieces'|trans }}
-                            </option>
-                        {% endfor %}
-                    </select>
+                    <small class="text-muted d-block mb-1">{{ 'pieces_filter.label'|trans }}</small>
+                    {{ include('_pieces_filter_live.html.twig', {
+                        id_prefix: 'profile-pieces',
+                        pieces_model: 'piecesCountRange',
+                        min_model: 'piecesMin',
+                        max_model: 'piecesMax',
+                        current: this.piecesCountRange,
+                        min_value: this.piecesMin,
+                        max_value: this.piecesMax,
+                        presets: this.availablePiecePresets,
+                    }) }}
                 </div>
 
                 {# Text search #}

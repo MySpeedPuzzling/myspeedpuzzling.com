@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Value;
 
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Results\PiecesFilter;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -86,7 +85,7 @@ final readonly class PuzzleSearchCriteria
         return new self(
             brandId: self::normalizeUuid($brandId),
             search: $search === '' ? null : $search,
-            pieces: $pieces !== null ? PiecesFilter::tryFrom($pieces)?->value : null,
+            pieces: PiecesRange::parse($pieces)?->toParam(),
             tagId: self::normalizeUuid($tagId),
             difficultyTiers: self::normalizeDifficultyTiers($difficultyTiers),
             sortBy: $sortBy,
@@ -124,6 +123,11 @@ final readonly class PuzzleSearchCriteria
             && $this->difficultyTiers === []
             && $this->sortBy === 'most-solved'
             && $this->list === null;
+    }
+
+    public function piecesRange(): PiecesRange
+    {
+        return PiecesRange::parse($this->pieces) ?? PiecesRange::any();
     }
 
     /**

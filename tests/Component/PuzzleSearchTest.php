@@ -178,6 +178,76 @@ final class PuzzleSearchTest extends WebTestCase
         return $this->executedSql($client);
     }
 
+    public function testChipFiltersByExactPieceCountAndFillsTheBounds(): void
+    {
+        $client = self::createClient();
+        $component = $this->search($client, null);
+        $component->set('pieces', '300');
+
+        $puzzleSearch = $this->puzzleSearchOf($component);
+        self::assertSame(300, $puzzleSearch->piecesMin);
+        self::assertSame(300, $puzzleSearch->piecesMax);
+        self::assertNotSame([], $puzzleSearch->puzzles);
+
+        foreach ($puzzleSearch->puzzles as $puzzle) {
+            self::assertSame(300, $puzzle->piecesCount);
+        }
+    }
+
+    public function testTypedBoundsComposeTheFilter(): void
+    {
+        $client = self::createClient();
+        $component = $this->search($client, null);
+
+        $component->set('piecesMin', 1500);
+        $puzzleSearch = $this->puzzleSearchOf($component);
+        self::assertSame('1500-', $puzzleSearch->pieces);
+        self::assertNotSame([], $puzzleSearch->puzzles);
+
+        foreach ($puzzleSearch->puzzles as $puzzle) {
+            self::assertGreaterThanOrEqual(1500, $puzzle->piecesCount);
+        }
+
+        // "From" above "to" is put in order rather than matching nothing
+        $component->set('piecesMax', 1000);
+        $puzzleSearch = $this->puzzleSearchOf($component);
+        self::assertSame('1000-1500', $puzzleSearch->pieces);
+        self::assertSame(1000, $puzzleSearch->piecesMin);
+        self::assertSame(1500, $puzzleSearch->piecesMax);
+
+        $component->set('piecesMin', null);
+        $component->set('piecesMax', null);
+        self::assertNull($this->puzzleSearchOf($component)->pieces);
+    }
+
+    public function testLegacyBucketLinkKeepsFiltering(): void
+    {
+        $client = self::createClient();
+        $component = $this->search($client, null, ['pieces' => '1001+']);
+        $component->refresh();
+
+        $puzzleSearch = $this->puzzleSearchOf($component);
+        self::assertSame('1001-', $puzzleSearch->pieces);
+        self::assertSame(1001, $puzzleSearch->piecesMin);
+        self::assertNull($puzzleSearch->piecesMax);
+
+        foreach ($puzzleSearch->puzzles as $puzzle) {
+            self::assertGreaterThan(1000, $puzzle->piecesCount);
+        }
+    }
+
+    /**
+     * The instance rebuilt from the props of the last response, with its puzzles loaded as a render would
+     */
+    private function puzzleSearchOf(TestLiveComponent $component): PuzzleSearch
+    {
+        $puzzleSearch = $component->component();
+        self::assertInstanceOf(PuzzleSearch::class, $puzzleSearch);
+        $puzzleSearch->loadData();
+
+        return $puzzleSearch;
+    }
+
     private function listOf(TestLiveComponent $component): null|string
     {
         $puzzleSearch = $component->component();

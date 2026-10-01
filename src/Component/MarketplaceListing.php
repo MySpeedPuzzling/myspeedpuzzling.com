@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\HintType;
 use SpeedPuzzling\Web\Value\ListingType;
+use SpeedPuzzling\Web\Value\PiecesRange;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -23,6 +24,7 @@ use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\Attribute\PreReRender;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
+use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 #[AsLiveComponent]
 final class MarketplaceListing
@@ -42,6 +44,13 @@ final class MarketplaceListing
 
     #[LiveProp(writable: true, url: true)]
     public null|int $piecesMax = null;
+
+    /**
+     * The piece-count chip (a PiecesRange param) - only a way to set the two
+     * bounds above, which stay the source of truth (and the URL).
+     */
+    #[LiveProp(writable: true, onUpdated: 'onPiecesUpdated')]
+    public null|string $pieces = null;
 
     #[LiveProp(writable: true, url: true)]
     public string $listingType = '';
@@ -101,9 +110,26 @@ final class MarketplaceListing
     ) {
     }
 
+    public function onPiecesUpdated(): void
+    {
+        $range = PiecesRange::parse($this->pieces);
+        $this->piecesMin = $range?->minPieces;
+        $this->piecesMax = $range?->maxPieces;
+    }
+
+    #[PostMount]
+    public function normalizePieces(): void
+    {
+        $range = PiecesRange::fromBounds($this->piecesMin, $this->piecesMax);
+        $this->piecesMin = $range?->minPieces;
+        $this->piecesMax = $range?->maxPieces;
+        $this->pieces = $range?->toParam();
+    }
+
     #[PreReRender]
     public function preReRender(): void
     {
+        $this->normalizePieces();
         $this->cachedItems = null;
         $this->cachedCount = null;
         $this->filteredPuzzleOverviewLoaded = false;

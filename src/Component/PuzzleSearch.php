@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Results\CollectionOverview;
-use SpeedPuzzling\Web\Results\PiecesFilter;
 use SpeedPuzzling\Web\Results\PuzzleDifficultyResult;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\PuzzleTag;
@@ -54,6 +53,17 @@ final class PuzzleSearch
 
     #[LiveProp(writable: true, url: true)]
     public null|string $pieces = null;
+
+    /**
+     * The custom from-to inputs. `pieces` stays the single source of truth:
+     * typing composes it (onPiecesBoundsUpdated), every render derives the
+     * bounds back from it, so a chip click refills the inputs.
+     */
+    #[LiveProp(writable: true, onUpdated: 'onPiecesBoundsUpdated')]
+    public null|int $piecesMin = null;
+
+    #[LiveProp(writable: true, onUpdated: 'onPiecesBoundsUpdated')]
+    public null|int $piecesMax = null;
 
     #[LiveProp(writable: true, url: new UrlMapping(as: 'tag'))]
     public null|string $tagId = null;
@@ -124,6 +134,11 @@ final class PuzzleSearch
         $this->criteria = PuzzleSearchCriteria::fromUserInput(null, null, null, null, [], 'most-solved', false);
     }
 
+    public function onPiecesBoundsUpdated(): void
+    {
+        $this->pieces = PiecesRange::fromBounds($this->piecesMin, $this->piecesMax)?->toParam();
+    }
+
     #[LiveAction]
     public function changeSortBy(#[LiveArg] string $sort): void
     {
@@ -189,6 +204,9 @@ final class PuzzleSearch
         $this->brandId = $this->criteria->brandId;
         $this->search = $this->criteria->search;
         $this->pieces = $this->criteria->pieces;
+        $piecesRange = $this->criteria->piecesRange();
+        $this->piecesMin = $piecesRange->minPieces;
+        $this->piecesMax = $piecesRange->maxPieces;
         $this->tagId = $this->criteria->tagId;
         $this->difficultyTiers = array_map(strval(...), $this->criteria->difficultyTiers);
         $this->sortBy = $this->criteria->sortBy;
@@ -250,7 +268,7 @@ final class PuzzleSearch
         }
 
         $playerId = $this->retrieveLoggedUserProfile->getProfile()?->playerId;
-        $piecesFilter = PiecesRange::fromFilter(PiecesFilter::fromUserInput($this->criteria->pieces));
+        $piecesFilter = $this->criteria->piecesRange();
 
         $this->totalCount = $this->searchPuzzle->countByUserInput(
             $this->criteria->brandId,
@@ -494,7 +512,7 @@ final class PuzzleSearch
         // v3: the puzzles carry their brand's slug (the cards link the brand hub)
         return $this->cache->get('initial_puzzles_v3', function (ItemInterface $item): array {
             $item->expiresAfter(3600);
-            $pieces = PiecesRange::fromFilter(PiecesFilter::fromUserInput(null));
+            $pieces = PiecesRange::any();
 
             $puzzles = $this->searchPuzzle->byUserInput(null, null, $pieces, null, 'most-solved', 0);
             $puzzleIds = array_map(static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId, $puzzles);

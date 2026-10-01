@@ -414,7 +414,7 @@
                                 aria-label="{{ 'puzzle_times.leaderboard.result_detail'|trans({'%time%': best.time|puzzlingTime}) }}"
                             >{{ best.time|puzzlingTime }}</a>
                             {%~ if this.leaderTime is not null and best.time > this.leaderTime %}
-                                <span class="lb-gap" title="{{ 'puzzle_times.leaderboard.gap_to_fastest'|trans }}"><i class="bi bi-trophy"></i>{{ (best.time - this.leaderTime)|gapTime }}</span>
+                                <span class="lb-gap" title="{{ 'puzzle_times.leaderboard.gap_to_fastest'|trans }}"><i class="bi bi-1-circle"></i>{{ (best.time - this.leaderTime)|gapTime }}</span>
                             {%~ endif %}
                             {%~ if this.gapsToFaster[timeId] is defined %}
                                 <span class="lb-gap" title="{{ 'puzzle_times.leaderboard.gap_to_faster'|trans }}"><i class="bi bi-arrow-up"></i>{{ this.gapsToFaster[timeId]|gapTime }}</span>

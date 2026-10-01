@@ -40,7 +40,7 @@
                 <div class="pr-chips">
                     {% if standing.gapToLeader is not null %}
                         <span class="pr-chip" title="{{ 'puzzle_times.leaderboard.gap_to_fastest'|trans }}">
-                            <i class="bi bi-trophy"></i>{{ standing.gapToLeader|gapTime }}
+                            <i class="bi bi-1-circle"></i>{{ standing.gapToLeader|gapTime }}
                         </span>
                     {% endif %}
                     {% if standing.gapToNextFaster is not null %}

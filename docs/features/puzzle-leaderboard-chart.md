@@ -193,7 +193,7 @@ One row = rank · player · time, and **the table never scrolls sideways** (320 
   icon, name - `_leaderboard_player.html.twig`. Pair/team members stack, one 28 px line each.
 - Under the name (`_leaderboard_time_badges.html.twig`): pair/team page pill, "Solved N×" pill (from 2 attempts),
   1st try, unboxed, event - truncated, wrapping only when needed. Date and PPM are not in the row any more.
-- Time column: time + its **gap to the fastest time** (🏆, `PuzzleTimes::$leaderTime`) and **to the closest faster
+- Time column: time + its **gap to the fastest time** (①, `bi-1-circle` - a trophy read as "competition", user feedback 2026-10-02; `PuzzleTimes::$leaderTime`) and **to the closest faster
   time** (↑, `PuzzleTimes::$gapsToFaster`, only when that is not the fastest one - rank 2 shows one gap); `gapTime`
   filter: `+00:07`, `+12:05`, `+01:02:05`.
 - **A row opens the result detail** (date, PPM, every attempt with its deltas, the members' chart) in the global

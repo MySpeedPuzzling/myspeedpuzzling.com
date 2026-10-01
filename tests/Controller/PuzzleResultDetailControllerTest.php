@@ -94,7 +94,7 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
         $text = $crawler->text();
         self::assertStringContainsString('00:28:20', $text);
         self::assertStringContainsString('Rank 2 of 4', $text);
-        self::assertStringContainsString('+05:50', $crawler->filter('.bi-trophy')->closest('span')?->text() ?? '');
+        self::assertStringContainsString('+05:50', $crawler->filter('.bi-1-circle')->closest('span')?->text() ?? '');
         self::assertCount(0, $crawler->filter('.bi-arrow-up'), 'The next faster time is the leader');
     }
 
@@ -106,7 +106,7 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
         $crawler = $this->modal($browser, $timeId);
 
         self::assertStringContainsString('Rank 3 of 4', $crawler->text());
-        self::assertStringContainsString('+10:50', $crawler->filter('.bi-trophy')->closest('span')?->text() ?? '');
+        self::assertStringContainsString('+10:50', $crawler->filter('.bi-1-circle')->closest('span')?->text() ?? '');
         self::assertStringContainsString('+05:00', $crawler->filter('.bi-arrow-up')->closest('span')?->text() ?? '');
     }
 
@@ -131,7 +131,7 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
         $crawler = $this->modal($browser, $otherPairTime);
         self::assertCount(1, $crawler->filter('li.pr-attempt'));
         self::assertStringContainsString('Rank 2 of 2', $crawler->text());
-        self::assertStringContainsString('+35:00', $crawler->filter('.bi-trophy')->closest('span')?->text() ?? '');
+        self::assertStringContainsString('+35:00', $crawler->filter('.bi-1-circle')->closest('span')?->text() ?? '');
     }
 
     public function testPrivatePlayerIsNotFoundForStrangersButShownToTheOwnerAndTheFriend(): void

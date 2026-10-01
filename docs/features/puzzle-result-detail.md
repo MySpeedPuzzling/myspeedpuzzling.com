@@ -63,7 +63,7 @@ Suspicious times (`suspicious = true`) are listed only for the subject itself (t
 
 ## Standing
 
-Free for everyone: "Rank N of M", 🏆 gap to the fastest, ↑ gap to the next faster time (only when that one is not
+Free for everyone: "Rank N of M", ① gap to the fastest (`bi-1-circle` - not a trophy, that one means events), ↑ gap to the next faster time (only when that one is not
 the leader's). It must equal what the puzzle leaderboard (`PuzzleTimes` + `PuzzlesSorter`, unfiltered) shows for the
 subject's row - `GetPuzzleResultDetailTest::testStandingEqualsTheLeaderboard` compares every row of the fixture boards.
 
@@ -102,7 +102,7 @@ which would stack a second Bootstrap modal on top of this one.
 ## Layout (2026-10-01, Jan's review)
 
 - **Pinned header** (`data-modal-scrollable`): the puzzle (`_puzzle.html.twig`: image, name = the modal title,
-  brand · pieces, ✕) and under it whose results with "Rank N of M" (left) and the best time with its 🏆/↑ gap chips
+  brand · pieces, ✕) and under it whose results with "Rank N of M" (left) and the best time with its ①/↑ gap chips
   (right) (`_head.html.twig`) never scroll away - only the chart and the attempts scroll. So no extra close button at
   the bottom is needed. The full page shows the same blocks under its h1.
 - **Phones: a sheet** (`data-modal-sheet`) - full width, near full height, a strip of the dimmed page above it keeps it

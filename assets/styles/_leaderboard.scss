@@ -456,3 +456,51 @@ a.lb-name,
         }
     }
 }
+
+// Ladders (templates/components/LadderTable.html.twig): the profile row with a rank in front
+.ps-table td.rank {
+    width: 1%;
+    padding-left: 8px;
+    padding-right: 0;
+    text-align: center;
+    white-space: nowrap;
+
+    .lb-rank {
+        line-height: 1.5;
+    }
+}
+
+.ps-table td.rank + td.ps-image {
+    padding-left: 8px;
+}
+
+.ps-members-lead {
+    margin-top: 0;
+}
+
+// The puzzle as context under the player (ladders): one line, truncated
+.ps-puzzle-line {
+    margin-top: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .75rem;
+    color: #6c727f;
+
+    a {
+        color: #4b5160 !important;
+        text-decoration: none !important;
+        font-weight: 500;
+
+        &:hover {
+            text-decoration: underline !important;
+        }
+    }
+}
+
+// Small phones: on a ladder the player's name needs the room more than the puzzle image (the puzzle stays named under it)
+@media (max-width: 379.98px) {
+    .ps-table td.rank + td.ps-image {
+        display: none;
+    }
+}

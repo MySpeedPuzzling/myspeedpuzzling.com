@@ -81,6 +81,7 @@ player_data AS (
                 'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
                 'player_code', p.code,
                 'player_country', p.country,
+                'player_avatar', p.avatar,
                 'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
                 'skill_tier', ps_member.skill_tier,
                 'ranking_opted_out', COALESCE(p.ranking_opted_out, false)

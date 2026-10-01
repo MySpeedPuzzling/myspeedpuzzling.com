@@ -201,6 +201,11 @@ One row = rank · player · time, and **the table never scrolls sideways** (320 
   a tap anywhere else on the row clicks it (`row_link_controller.js`). Nothing of it is in the page HTML.
   See `docs/features/puzzle-result-detail.md`.
 - Below 380 px: 1 px smaller names and times.
+- **The same row everywhere a ranking lists players** (shared `_leaderboard_player.html.twig`, `_leaderboard_time_badges`,
+  `.ps-*` / `.lb-*` in `_leaderboard.scss`): the MSP rating ladder (`MspRatingLadder`), the ladders `/en/ladder` and
+  `/en/ladder/{solo|pairs|groups}/{pieces}` (`LadderTable`: player first, puzzle as a line under it, the image hidden
+  below 380 px) and the player profile results (`_player_solvings`: image · puzzle name, brand · pieces, members,
+  rank chip + badges · time). Rows that are a time open the result detail; none of them scroll sideways at 320 px.
 
 ## Tests
 

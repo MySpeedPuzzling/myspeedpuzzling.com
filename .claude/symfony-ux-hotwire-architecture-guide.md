@@ -251,6 +251,16 @@ For content that is only shown (e.g. `puzzle_result_detail`, `player_ratings`):
 - Links to other pages inside the modal use `data-turbo-frame="_top"`.
 - **Never open a Bootstrap static modal (e.g. `#membersExclusiveModal`) from inside the dynamic modal** — two stacked Bootstrap modals fight over the backdrop and `modal-open`. Link to the page instead (e.g. `path('membership')`) with `data-turbo-frame="_top"`.
 
+### Layout and back button (opt-in attributes on the content's `[data-modal-size]` element)
+
+| Attribute | Effect |
+|---|---|
+| `data-modal-scrollable` | `modal-dialog-scrollable`: `.modal-header` (and footer) stay pinned, only `.modal-body` scrolls. Put what must stay visible — title, close button, the key numbers — in the header. The frame and the wrapper become `display: contents` so Bootstrap's flex column layout reaches header/body. |
+| `data-modal-sheet` | Phones (< 576 px): near full screen sheet, full width, a 12 px strip of the dimmed page stays visible above it and the top corners are rounded — it still reads as a layer over the page (iOS "page sheet"), not as a new page. Desktop keeps the centered dialog. |
+| `data-modal-history` | The open modal gets a history entry of its own: the back button / back gesture closes it instead of leaving the page. Turbo's history is **paused** while it is open (`Turbo.session.history.stop()`), because Turbo answers every pop with a restoration visit and `app.js` turns those into full page loads. Closing otherwise (✕, Escape, backdrop, stream) takes the entry back out with `history.back()`; a Turbo visit from inside the modal (`_top` link, refresh after a form) resumes Turbo's history first, which turns the entry into a normal one of the page (Back from the next page then shows this page twice - accepted). Used by the result detail; forms stay without it. |
+
+All three are read on every frame load, so content without them resets the dialog (e.g. the edit form opened from inside the result detail).
+
 ### Whole row opens the modal (`row_link_controller.js`)
 
 ```twig
@@ -1055,7 +1065,7 @@ When implementing a new feature:
 
 ### Modal Setup
 - [ ] Use the existing global modal (`#dynamic-modal-container` / `modal-frame` in `base.html.twig`, `dynamic_modal_controller.js`) — never add another one
-- [ ] Content root may set `data-modal-size` (`modal-sm` / `modal-lg` / `modal-xl`)
+- [ ] Content root may set `data-modal-size` (`modal-sm` / `modal-lg` / `modal-xl`) and opt into `data-modal-scrollable` / `data-modal-sheet` / `data-modal-history`
 - [ ] Content has a `.modal-title` (the dialog's accessible name) and a `data-bs-dismiss="modal"` close button
 - [ ] Close via empty-frame Turbo Stream (`_modal_close_stream.html.twig`) or the `modal:close` event
 - [ ] No Bootstrap static modal (`#membersExclusiveModal`, …) opened from inside the dynamic modal — link with `data-turbo-frame="_top"`

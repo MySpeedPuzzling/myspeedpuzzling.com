@@ -24,6 +24,10 @@
             {{ include('puzzle_result/_puzzle.html.twig', {result: result}) }}
         </div>
 
+        <div class="mb-3">
+            {{ include('puzzle_result/_head.html.twig', {result: result}) }}
+        </div>
+
         {{ include('puzzle_result/_body.html.twig', {result: result}) }}
     </div>
 {% endblock %}

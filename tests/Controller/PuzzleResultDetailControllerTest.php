@@ -60,6 +60,14 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
         // Every link out of the result leaves the modal
         $profileLink = $crawler->filter('a[href="/en/player-profile/' . PlayerFixture::PLAYER_REGULAR . '"]');
         self::assertSame('_top', $profileLink->attr('data-turbo-frame'));
+
+        // Pinned header with the puzzle, the player and the best time; a sheet on phones; back closes it
+        $root = $crawler->filter('[data-modal-size]');
+        foreach (['data-modal-scrollable', 'data-modal-sheet', 'data-modal-history'] as $attribute) {
+            self::assertNotNull($root->attr($attribute), $attribute);
+        }
+        self::assertCount(1, $crawler->filter('.modal-header .pr-puzzle'));
+        self::assertCount(1, $crawler->filter('.modal-header .pr-best-time'));
     }
 
     public function testSoloShowsOnlyThatPlayersAttemptsWithStanding(): void

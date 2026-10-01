@@ -101,10 +101,14 @@ which would stack a second Bootstrap modal on top of this one.
 
 ## Layout (2026-10-01, Jan's review)
 
-- **The puzzle is the modal header** (`_puzzle.html.twig`: image, name = the modal title, brand · pieces); the full
-  page shows the same block under its h1. Tighter header/body padding on phones.
-- Body head in two columns: whose results with "Rank N of M" under the name (left), the best time with its 🏆/↑ gap
-  chips under it (right).
+- **Pinned header** (`data-modal-scrollable`): the puzzle (`_puzzle.html.twig`: image, name = the modal title,
+  brand · pieces, ✕) and under it whose results with "Rank N of M" (left) and the best time with its 🏆/↑ gap chips
+  (right) (`_head.html.twig`) never scroll away - only the chart and the attempts scroll. So no extra close button at
+  the bottom is needed. The full page shows the same blocks under its h1.
+- **Phones: a sheet** (`data-modal-sheet`) - full width, near full height, a strip of the dimmed page above it keeps it
+  reading as a layer over the page. Desktop keeps the centered dialog.
+- **Back closes it** (`data-modal-history`) without reloading or losing the scroll position - see the hotwire guide
+  "Layout and back button".
 - Members' chart is 150 px (50 px lower than elsewhere) with flat, thinned-out dates and two dashed reference lines:
   **fastest on the puzzle** (black, `standing.leaderTime`) and the puzzle's **median** (grey, `standing.medianTime` -
   median of every subject's best time from the same aggregate query, equal to the leaderboard's median, guarded by the

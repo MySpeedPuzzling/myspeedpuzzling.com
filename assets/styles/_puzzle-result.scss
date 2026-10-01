@@ -49,10 +49,19 @@
     color: #6c727f;
 }
 
+// Pinned modal header: the puzzle with the close button, under it whose results with the best time
 .pr-modal-header {
-    gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
     padding-top: .75rem;
     padding-bottom: .75rem;
+}
+
+.pr-modal-header-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 
     .pr-puzzle {
         flex: 1 1 auto;
@@ -60,7 +69,7 @@
 
     .btn-close {
         flex-shrink: 0;
-        margin: 0 0 0 auto;
+        margin: 0;
     }
 }
 

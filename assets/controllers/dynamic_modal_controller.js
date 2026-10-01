@@ -36,6 +36,16 @@ const TITLE_ID = 'dynamic-modal-title';
  * A link with data-turbo-frame="_top" inside the modal is a normal Turbo Drive visit: the modal
  * stays visible until the new page renders, and since Turbo replaces the whole <body> (backdrop,
  * modal-open class and Bootstrap's inline body styles included), nothing is left behind.
+ *
+ * Layout, read from the content's [data-modal-size] element like the size:
+ * - data-modal-scrollable: header (and footer) stay pinned, only the body scrolls (modal-dialog-scrollable)
+ * - data-modal-sheet: on phones a near full screen sheet (a strip of the page stays visible above it)
+ *
+ * Back button / back gesture (data-modal-history on the same element): the open modal gets a history entry
+ * of its own, so "back" closes it instead of leaving the page. Turbo's history is paused meanwhile - Turbo
+ * answers every pop with a restoration visit, which app.js turns into a full page load. Closing the modal
+ * otherwise takes the entry back out; a Turbo visit from inside the modal resumes Turbo's history first,
+ * which turns the entry into a normal one of the page.
  */
 export default class extends Controller {
     static targets = ['frame', 'loading'];
@@ -54,6 +64,10 @@ export default class extends Controller {
     // so a request made meanwhile is queued and replayed when the transition ends
     transition = null;
     queued = null;
+
+    // The history entry of the open modal (data-modal-history)
+    historyEntry = false;
+    leavingHistoryEntry = false;
 
     connect() {
         // Disable focus trap to allow interaction with tom-select dropdowns
@@ -93,6 +107,9 @@ export default class extends Controller {
 
         // Clear frame content only after close animation finishes
         this.element.addEventListener('hidden.bs.modal', this.handleHidden);
+
+        window.addEventListener('popstate', this.handlePopState);
+        document.addEventListener('turbo:before-visit', this.handleBeforeVisit);
     }
 
     disconnect() {
@@ -110,6 +127,9 @@ export default class extends Controller {
         this.element.removeEventListener('shown.bs.modal', this.handleShown);
         this.element.removeEventListener('hide.bs.modal', this.handleHide);
         this.element.removeEventListener('hidden.bs.modal', this.handleHidden);
+        window.removeEventListener('popstate', this.handlePopState);
+        document.removeEventListener('turbo:before-visit', this.handleBeforeVisit);
+        this.releaseHistory();
     }
 
     handleDocumentClick = (event) => {
@@ -219,6 +239,7 @@ export default class extends Controller {
             return;
         }
 
+        this.claimHistory();
         this.focusDialog();
     };
 
@@ -246,7 +267,15 @@ export default class extends Controller {
 
         this.frameTarget.innerHTML = '';
         this.element.removeAttribute('aria-labelledby');
+        this.setLayout(null);
         this.stopLoading();
+
+        // Closed with the close button, Escape, the backdrop or a stream: take the modal's history entry back out
+        if (this.historyEntry) {
+            this.historyEntry = false;
+            this.leavingHistoryEntry = true;
+            history.back();
+        }
 
         // Return focus to whatever opened the modal (unless the page changed meanwhile)
         const trigger = this.trigger;
@@ -275,6 +304,7 @@ export default class extends Controller {
         }
 
         this.setSize(null);
+        this.setLayout(null);
         this.element.removeAttribute('aria-labelledby');
         this.element.setAttribute('aria-busy', 'true');
         this.loadingTarget.hidden = false;
@@ -301,9 +331,10 @@ export default class extends Controller {
             return;
         }
 
-        // Dynamic modal size: check first child for data-modal-size
+        // Dynamic modal size and layout: check first child for data-modal-size
         const sizeEl = this.frameTarget.querySelector('[data-modal-size]');
         this.setSize(sizeEl ? sizeEl.dataset.modalSize : null);
+        this.setLayout(sizeEl);
 
         // Name the dialog after the content's title
         const title = this.frameTarget.querySelector('.modal-title');
@@ -358,6 +389,68 @@ export default class extends Controller {
         dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
         if (size) {
             dialog.classList.add(size);
+        }
+    }
+
+    setLayout(contentRoot) {
+        const dialog = this.element.querySelector('.modal-dialog');
+        dialog.classList.toggle('modal-dialog-scrollable', contentRoot !== null && contentRoot.hasAttribute('data-modal-scrollable'));
+        dialog.classList.toggle('modal-sheet-sm-down', contentRoot !== null && contentRoot.hasAttribute('data-modal-sheet'));
+    }
+
+    handlePopState = () => {
+        // Our own history.back() after the modal was closed - Turbo listens again from here on
+        if (this.leavingHistoryEntry) {
+            this.leavingHistoryEntry = false;
+            this.resumeTurboHistory();
+            return;
+        }
+
+        // Back button / back gesture while the modal is open: the entry is gone already, just close
+        if (this.historyEntry) {
+            this.historyEntry = false;
+            this.resumeTurboHistory();
+            this.close();
+        }
+    };
+
+    handleBeforeVisit = () => {
+        // A link from inside the modal leaves the page: Turbo needs its history back for the new page,
+        // and starting it again replaces the modal's entry with a normal entry of this page
+        if (this.historyEntry) {
+            this.historyEntry = false;
+            this.resumeTurboHistory();
+        }
+    };
+
+    claimHistory() {
+        const contentRoot = this.frameTarget.querySelector('[data-modal-size]');
+
+        if (this.historyEntry || contentRoot === null || !contentRoot.hasAttribute('data-modal-history')) {
+            return;
+        }
+
+        const turboHistory = window.Turbo?.session?.history;
+        if (!turboHistory || typeof turboHistory.stop !== 'function') {
+            return;
+        }
+
+        turboHistory.stop();
+        history.pushState({ dynamicModal: true }, '', window.location.href);
+        this.historyEntry = true;
+    }
+
+    releaseHistory() {
+        if (this.historyEntry) {
+            this.historyEntry = false;
+            this.resumeTurboHistory();
+        }
+    }
+
+    resumeTurboHistory() {
+        const turboHistory = window.Turbo?.session?.history;
+        if (turboHistory && typeof turboHistory.start === 'function') {
+            turboHistory.start();
         }
     }
 

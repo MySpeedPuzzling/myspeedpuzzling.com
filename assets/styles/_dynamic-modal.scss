@@ -15,3 +15,36 @@
 [data-controller~="row-link"] {
     cursor: pointer;
 }
+
+// data-modal-scrollable: header pinned, body scrolls. The header and body sit inside <turbo-frame id="modal-frame">
+// and the content's wrapper <div data-modal-size>, so both step aside for Bootstrap's flex column layout
+#dynamic-modal-container .modal-dialog-scrollable {
+    #modal-frame,
+    #modal-frame > [data-modal-size] {
+        display: contents;
+    }
+
+    .modal-body {
+        overscroll-behavior: contain;
+    }
+}
+
+// data-modal-sheet: on phones a near full screen sheet - a strip of the dimmed page stays visible above it,
+// so it still reads as a layer over the page (iOS "page sheet"), not as a new page
+@media (max-width: 575.98px) {
+    #dynamic-modal-container .modal-dialog.modal-sheet-sm-down {
+        width: 100%;
+        max-width: none;
+        height: calc(100% - 12px);
+        min-height: 0;
+        margin: 12px 0 0;
+        align-items: stretch;
+
+        .modal-content {
+            height: 100%;
+            max-height: 100%;
+            border: 0;
+            border-radius: 16px 16px 0 0;
+        }
+    }
+}

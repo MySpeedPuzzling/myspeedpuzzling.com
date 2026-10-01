@@ -1,7 +1,18 @@
 {% set route = app.request.attributes.get('_route') %}
 
 <nav class="player-profile-header player-breadcrumb mt-n2 ms-n3 me-n3 mb-2 py-1 px-3">
+    {% set hidden_profile = player.isPrivate and (logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId) %}
     <span class="player-breadcrumb-name">
+        {# The same avatar as in every ranking (photo or initial, flag on its corner), larger to match the header #}
+        {{ include('_player_avatar.html.twig', {
+            player_id: player.playerId,
+            name: player.playerName ?? ('#' ~ player.code),
+            avatar: player.avatar,
+            country_code: player.countryCode ? player.countryCode.name : null,
+            country_name: player.countryCode ? player.countryCode.value : null,
+            hidden: hidden_profile,
+            size: 'lg',
+        }) }}
         {% if not player.isPrivate or (logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId) %}
             {% if logged_user.profile is not null and logged_user.profile.activeMembership and not player.rankingOptedOut %}
                 {% if this.primarySkill is not null %}
@@ -21,9 +32,6 @@
                 {{ player.playerName ?? ('#' ~ player.code|upper) }}
             {%- endif -%}
         </span>
-        {% if player.countryCode is not null %}
-            <span class="player-breadcrumb-flag shadow-custom fi fi-{{ player.countryCode.name }}"></span>
-        {% endif %}
         <code class="player-breadcrumb-code">#{{ player.code|upper }}</code>
     </span>
 

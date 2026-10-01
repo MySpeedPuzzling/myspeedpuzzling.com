@@ -5,6 +5,7 @@
       - player: PuzzleSolver or Puzzler (playerId, playerName, playerCode, playerCountry, playerAvatar, isPrivate,
                 skillTierName, rankingOptedOut); a guest of a pair/team has no playerId
       - small (bool, optional): smaller avatar, for the members of a pair/team
+      - links_turbo_frame (string, optional): data-turbo-frame of the profile link - "_top" inside a modal
 
     The name truncates with an ellipsis instead of widening the table - the row must never scroll sideways.
 #}
@@ -37,7 +38,7 @@
         {%- else -%}
             {{ skill_icon('locked', 16) }}
         {%- endif -%}
-        <a class="lb-name" href="{{ path('player_profile', {playerId: player.playerId}) }}">
+        <a class="lb-name" href="{{ path('player_profile', {playerId: player.playerId}) }}"{% if links_turbo_frame is defined %} data-turbo-frame="{{ links_turbo_frame }}"{% endif %}>
             {%- if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers -%}
                 <i class="ci-star-filled text-warning me-1"></i>
             {%- endif -%}

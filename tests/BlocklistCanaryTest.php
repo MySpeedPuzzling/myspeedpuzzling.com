@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
@@ -50,6 +51,31 @@ final class BlocklistCanaryTest extends WebTestCase
         $content = (string) $browser->getResponse()->getContent();
         self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
         self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+    }
+
+    /**
+     * A page about one player's results (docs/features/puzzle-result-detail.md) does not mask a blocked player -
+     * for the blocker it does not exist.
+     */
+    public function testResultDetailOfABlockedPlayerDoesNotExistForTheBlocker(): void
+    {
+        $browser = self::createClient();
+        // PLAYER_WITH_STRIPE's time on PUZZLE_500_02
+        $url = '/en/result/' . PuzzleSolvingTimeFixture::TIME_45_UNBOXED;
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED_NAME, (string) $browser->getResponse()->getContent());
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', $url);
+        self::assertResponseStatusCodeSame(404);
     }
 
     /**

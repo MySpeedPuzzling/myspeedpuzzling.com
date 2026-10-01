@@ -1,5 +1,5 @@
-// Puzzle detail leaderboard (templates/components/PuzzleTimes.html.twig, _leaderboard_player, _leaderboard_time_meta,
-// _leaderboard_time_badges, controllers/leaderboard_rows_controller.js)
+// Puzzle detail leaderboard (templates/components/PuzzleTimes.html.twig, _leaderboard_player, _leaderboard_time_badges);
+// a row opens the result detail modal through controllers/row_link_controller.js
 //
 // The table must never scroll sideways, at 320 px included: rank and time take their content's width, the player
 // column takes the rest (width: 100% + max-width: 0) and names truncate with an ellipsis inside it.
@@ -73,6 +73,23 @@ $lb-tints: (
     cursor: pointer;
 }
 
+// The time is the row's link to the result detail - it looks like the time, not like a link
+.custom-table-wrapper .table a.lb-detail-link {
+    color: #111;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
+    }
+}
+
+.lb-attempts-badge,
+.lb-team-badge {
+    background: #eef0f4;
+    color: #4b5160;
+}
+
 .lb-rank {
     display: block;
     min-width: 2ch;
@@ -81,33 +98,6 @@ $lb-tints: (
     font-weight: 600;
     line-height: $lb-line;
     color: #111;
-}
-
-// Chevron under the rank: the row's details (a tap anywhere on the row does the same)
-.lb-expand {
-    display: block;
-    width: 100%;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: #9aa0ab;
-    font-size: .625rem;
-    line-height: 1;
-
-    .bi {
-        display: inline-block;
-        transition: transform .15s ease;
-    }
-
-    &[aria-expanded="true"] .bi {
-        transform: rotate(180deg);
-    }
-
-    &:focus-visible {
-        outline: 2px solid $primary;
-        outline-offset: 2px;
-        border-radius: 2px;
-    }
 }
 
 .lb-time-value {
@@ -213,6 +203,8 @@ $lb-tints: (
     white-space: nowrap;
 }
 
+// The player partial is used outside the table too (result detail modal)
+a.lb-name,
 .custom-table-wrapper .table a.lb-name {
     color: #111;
     font-weight: 500;
@@ -253,7 +245,12 @@ $lb-tints: (
     display: flex;
     flex-wrap: wrap;
     gap: 3px;
-    margin: 1px 0 2px $lb-indent;
+    margin: 1px 0 2px;
+
+    // In a leaderboard row they sit under the name, not under the avatar
+    .lb-table & {
+        margin-left: $lb-indent;
+    }
 
     // _competition_badge starts with a <br> - a flex container ignores it
     br {
@@ -273,101 +270,6 @@ $lb-tints: (
         font-weight: 600;
         padding: .25em .55em;
         vertical-align: top;
-    }
-}
-
-// Details of a row, shown on tap
-.lb-table > tbody > .lb-row.lb-open > * {
-    border-bottom-color: transparent;
-}
-
-.lb-details > * {
-    background: #fafafb;
-    cursor: default;
-}
-
-.lb-table > tbody > .lb-details > * {
-    padding-top: 0;
-    border-bottom-color: transparent;
-}
-
-// The last details row of a row closes the group with the usual border again
-.lb-table > tbody > .lb-details:has(+ :not(.lb-details)) > *,
-.lb-table > tbody > .lb-details:last-child > * {
-    border-bottom-color: var(--cz-border-color, #e3e5ea);
-}
-
-.lb-table > tbody > .lb-details-heading > td {
-    padding-top: .25rem;
-    padding-bottom: 0;
-    padding-left: 10px + $lb-indent;
-    font-size: .6875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    color: #9aa0ab;
-}
-
-.lb-attempt {
-    .lb-time-value {
-        font-size: .875rem;
-        font-weight: 500;
-        line-height: 1.5rem;
-    }
-
-    .lb-meta {
-        line-height: 1.5rem;
-    }
-}
-
-.lb-meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    column-gap: 10px;
-    margin-left: $lb-indent;
-    font-size: .75rem;
-    line-height: 1.4;
-    color: #6c727f;
-
-    .bi {
-        font-size: .6875rem;
-        opacity: .8;
-    }
-
-    abbr {
-        text-decoration: none;
-        cursor: help;
-    }
-
-    .btn {
-        margin: -4px 0 -4px -6px !important;
-        font-size: .8125rem;
-    }
-}
-
-.lb-date {
-    font-family: $font-family-monospace;
-    letter-spacing: -.02em;
-}
-
-.custom-table-wrapper .table a.lb-team-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    max-width: 100%;
-    min-width: 0;
-    color: #6c727f;
-    text-decoration: none;
-
-    span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    &:hover span {
-        text-decoration: underline;
     }
 }
 
@@ -398,8 +300,15 @@ $lb-tints: (
         font-size: .8125rem;
     }
 
-    .lb-meta {
-        font-size: .6875rem;
-        column-gap: 8px;
+}
+
+// Player profile results: the time is the row's link to the result detail, it keeps looking like the time
+.custom-table-wrapper .table a.result-detail-link {
+    color: #111;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
     }
 }

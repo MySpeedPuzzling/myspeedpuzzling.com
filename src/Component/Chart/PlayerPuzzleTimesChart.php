@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component\Chart;
 
+use SpeedPuzzling\Web\Results\PuzzleResultAttempt;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
@@ -19,7 +20,7 @@ final class PlayerPuzzleTimesChart
     public bool $bare = false;
 
     /**
-     * @var array<SolvedPuzzle|PuzzleSolver|PuzzleSolversGroup>
+     * @var array<SolvedPuzzle|PuzzleSolver|PuzzleSolversGroup|PuzzleResultAttempt>
      */
     public array $results = [];
 

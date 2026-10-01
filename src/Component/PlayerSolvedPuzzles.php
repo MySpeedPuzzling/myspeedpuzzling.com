@@ -89,6 +89,11 @@ final class PlayerSolvedPuzzles
     /** @var array<array<SolvedPuzzle>> */
     public array $soloSolvedPuzzles = [];
 
+    // Distinct puzzles of the pair/team tabs - their rows are per puzzle AND pair/team, the tab counts puzzles
+    public int $duoPuzzlesCount = 0;
+
+    public int $teamPuzzlesCount = 0;
+
     /** @var array<PlayerRanking> */
     public array $ranking = [];
 
@@ -211,8 +216,11 @@ final class PlayerSolvedPuzzles
         $teamSolvedPuzzles = $this->applySorting($teamSolvedPuzzles);
 
         $this->soloSolvedPuzzles = $soloSolvedPuzzlesGrouped;
-        $this->duoSolvedPuzzles = $this->puzzlesSorter->groupPuzzles($duoSolvedPuzzles, withReordering: false);
-        $this->teamSolvedPuzzles = $this->puzzlesSorter->groupPuzzles($teamSolvedPuzzles, withReordering: false);
+        // One row per puzzle and pair/team: the row opens the result detail, which shows exactly those people
+        $this->duoSolvedPuzzles = $this->puzzlesSorter->groupPuzzlesByTeam($duoSolvedPuzzles);
+        $this->teamSolvedPuzzles = $this->puzzlesSorter->groupPuzzlesByTeam($teamSolvedPuzzles);
+        $this->duoPuzzlesCount = count(array_unique(array_map(static fn(SolvedPuzzle $puzzle): string => $puzzle->puzzleId, $duoSolvedPuzzles)));
+        $this->teamPuzzlesCount = count(array_unique(array_map(static fn(SolvedPuzzle $puzzle): string => $puzzle->puzzleId, $teamSolvedPuzzles)));
     }
 
     /**

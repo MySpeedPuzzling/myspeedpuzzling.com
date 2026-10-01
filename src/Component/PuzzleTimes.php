@@ -344,8 +344,13 @@ final class PuzzleTimes
 
         if ($count > 0) {
             sort($allTimes);
-            $this->leaderTime = $allTimes[0];
-            $this->gapsToFaster = $this->gapsToClosestFaster($allTimes);
+            // A group read model types its time as nullable, the leaderboard query only returns timed rows
+            $timed = array_values(array_filter($allTimes, static fn(null|int $time): bool => $time !== null));
+
+            if ($timed !== []) {
+                $this->leaderTime = $timed[0];
+                $this->gapsToFaster = $this->gapsToClosestFaster($timed);
+            }
             $mid = intdiv($count, 2);
             $this->medianTime = $count % 2 === 0
                 ? (int) (($allTimes[$mid - 1] + $allTimes[$mid]) / 2)

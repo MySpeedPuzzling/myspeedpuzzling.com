@@ -10,6 +10,7 @@
       edition is named like its series, e.g. competitions converted to a series), links to edition_detail —
       never to event_detail, an edition slug is only unique within its series.
     - Renders nothing when the time is not linked to any competition.
+    - links_turbo_frame (optional, may come from the including context): data-turbo-frame of the link - "_top" inside a modal
 #}
 {% if time.competitionName %}
     {% if time.competitionSeriesName %}
@@ -28,7 +29,7 @@
     {% endif %}
     <br>
     {% if href %}
-        <a href="{{ href }}">
+        <a href="{{ href }}"{% if links_turbo_frame is defined %} data-turbo-frame="{{ links_turbo_frame }}"{% endif %}>
     {% endif %}
     <span class="badge rounded-pill bg-primary"><i class="bi bi-trophy-fill"></i> {{ label }}</span>
     {% if href %}

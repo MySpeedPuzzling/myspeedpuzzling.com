@@ -1,0 +1,17 @@
+// Global dynamic modal (base.html.twig #dynamic-modal-container, controllers/dynamic_modal_controller.js)
+// and whole-row links (controllers/row_link_controller.js) that usually open it
+
+// Spinner placeholder shown while a slow modal response is loading
+.dynamic-modal-loading:not([hidden]) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 10rem;
+}
+
+// Added by row_link_controller.js on connect - the whole row/card is clickable
+// (the attribute selector too: a Live Component re-render resets the class attribute to the server's)
+.row-link,
+[data-controller~="row-link"] {
+    cursor: pointer;
+}

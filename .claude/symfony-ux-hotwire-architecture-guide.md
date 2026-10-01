@@ -152,141 +152,126 @@ This distinction is critical to understand:
 
 ## Pattern: Single Global Modal
 
+The app has exactly one Turbo-powered modal. Every "open in a modal" link and every modal form goes through it.
+
 ### Structure
 
 ```twig
-{# base.html.twig #}
-<div id="modal-container" 
-     class="hidden" 
-     data-controller="modal">
-    
-    <div class="modal-backdrop" data-action="click->modal#backdropClick"></div>
-    
-    <div class="modal-content">
-        <!-- THE ONLY TURBO FRAME NEEDED FOR MODALS -->
-        <turbo-frame id="modal-frame" data-modal-target="frame">
-        </turbo-frame>
+{# templates/base.html.twig (near the end of <body>) #}
+<div id="dynamic-modal-container"
+     class="modal fade"
+     tabindex="-1"
+     role="dialog"
+     aria-hidden="true"
+     data-controller="dynamic-modal">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            {# Spinner placeholder, shown only for slow responses #}
+            <div class="dynamic-modal-loading" data-dynamic-modal-target="loading" hidden>
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">{{ 'loading'|trans }}</span>
+                </div>
+            </div>
+            {# THE ONLY TURBO FRAME NEEDED FOR MODALS #}
+            <turbo-frame id="modal-frame" data-dynamic-modal-target="frame"></turbo-frame>
+        </div>
     </div>
 </div>
 ```
 
+It is a real Bootstrap modal (`.modal`, `.modal-dialog`, `.modal-content`) driven by `assets/controllers/dynamic_modal_controller.js`; styles for the spinner live in `assets/styles/_dynamic-modal.scss`.
+
 ### Triggering the Modal
 
-**Important:** Do NOT use `data-action="click->modal#open"` — it conflicts with Turbo's click handling. Instead, the Stimulus controller listens for `turbo:before-fetch-request` on the frame.
+**Important:** Do NOT use `data-action="click->...#open"` — it conflicts with Turbo's click handling. Just target the frame; the controller reacts to the frame's own Turbo events.
 
 ```twig
-{# Any page - just target the frame, no click action needed #}
 <a href="{{ path('item_edit', {id: item.id}) }}"
    data-turbo-frame="modal-frame">
     Edit
 </a>
 ```
 
-### Stimulus Modal Controller
+### What `dynamic_modal_controller.js` does
 
-```javascript
-// assets/controllers/modal_controller.js
-import { Controller } from "@hotwired/stimulus"
+| Event | Behaviour |
+|---|---|
+| `turbo:before-fetch-request` on the frame | Marks "open when content arrives", remembers the trigger (the clicked link/button, or `document.activeElement`), sets `aria-busy` on the dialog. If the modal is not open yet, starts a 150 ms timer: a slower response opens the modal with the **spinner** placeholder. Fast responses never flash it; form submissions inside an already open modal never show it. |
+| `turbo:frame-load` | Hides the spinner, applies `data-modal-size` (first `[data-modal-size]` element in the content: `modal-sm` / `modal-lg` / `modal-xl`), sets `aria-labelledby` to the content's `.modal-title` (gives it an id if needed) and shows the modal. Late content after the visitor already closed the modal is dropped. |
+| Frame loaded **empty** while opening from outside | The response was a full page, not modal content (prod error pages extend `base.html.twig` and so contain an empty `modal-frame`; a guest redirected to `/login`). The controller does a full Turbo visit to the frame URL so the visitor sees that page. |
+| `turbo:frame-missing` | Response without any `<turbo-frame id="modal-frame">` (dev exception page, bare 500): `preventDefault()`, close, `event.detail.visit(event.detail.response)` — the real page is shown instead of Turbo's "Content missing". |
+| `turbo:fetch-request-error` (network) | Closes the spinner-only modal; an open modal with a form stays (the visitor can submit again). |
+| Frame becomes empty while open (MutationObserver) | Closes the modal — this is how Turbo Stream responses close it. |
+| `modal:close` document event | Closes (`document.dispatchEvent(new CustomEvent('modal:close'))`, also used by `modal_static_controller.js`). |
+| Escape / backdrop click / `data-bs-dismiss="modal"` | Close (Bootstrap + a document keydown listener, because focus may be outside the dialog). Double closes are harmless. |
+| `hidden.bs.modal` | Clears the frame (only after the animation), returns focus to the trigger if it is still in the document. |
 
-export default class extends Controller {
-    static targets = ["frame"]
-    
-    connect() {
-        // Open modal when frame starts fetching content
-        this.frameTarget.addEventListener('turbo:before-fetch-request', () => {
-            this.open()
-        })
-        
-        // Watch for frame becoming empty (close trigger)
-        this.observer = new MutationObserver(() => {
-            if (this.frameTarget.innerHTML.trim() === '') {
-                this.close()
-            }
-        })
-        this.observer.observe(this.frameTarget, { childList: true })
-    }
-    
-    disconnect() {
-        this.observer?.disconnect()
-    }
-    
-    open() {
-        this.element.classList.remove('hidden')
-        document.body.classList.add('overflow-hidden')
-    }
-    
-    close() {
-        this.element.classList.add('hidden')
-        document.body.classList.remove('overflow-hidden')
-        this.frameTarget.innerHTML = ''
-    }
-    
-    // Close on backdrop click
-    backdropClick(event) {
-        if (event.target === event.currentTarget) {
-            this.close()
-        }
-    }
-    
-    // Close on Escape key (add data-action="keydown.esc@window->modal#closeOnEscape" to body)
-    closeOnEscape(event) {
-        this.close()
-    }
-}
-```
+Other details:
+
+- Bootstrap is created with `focus: false` (no focus trap) so tom-select dropdowns rendered outside the dialog work. The controller still moves focus to the dialog when it is shown (and back into it when a re-render replaced the focused element, e.g. a 422 form).
+- `show()`/`hide()` requested during the opposite Bootstrap transition are queued and replayed, so a quick Escape during the open animation or a new link during the close animation does not get lost.
+- A link inside the modal with `data-turbo-frame="_top"` is a normal Turbo Drive visit. The modal stays visible until the new page renders; Turbo replaces the whole `<body>`, so no backdrop, `modal-open` class or Bootstrap inline body style is left behind.
 
 ### Modal Content Response
 
-**Option A: Without Live Component (simpler)**
-
 ```twig
 {# item/_edit_modal.html.twig #}
 <turbo-frame id="modal-frame">
-    <div class="modal-header">
-        <h2>Edit {{ item.name }}</h2>
-        <button type="button" data-action="modal#close">&times;</button>
-    </div>
-    
-    <div class="modal-body">
-        {{ form_start(form, {
-            action: path('item_edit', {id: item.id}),
-            attr: {'data-turbo-frame': 'modal-frame'}
-        }) }}
-            {{ form_row(form.name) }}
-            {{ form_row(form.description) }}
-            
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-action="modal#close">Cancel</button>
-                <button type="submit" class="btn btn-primary">Save</button>
-            </div>
-        {{ form_end(form) }}
+    <div data-modal-size="modal-lg">  {# optional #}
+        <div class="modal-header">
+            <h5 class="modal-title">Edit {{ item.name }}</h5>  {# becomes the dialog's accessible name #}
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+        </div>
+
+        <div class="modal-body">
+            {{ form_start(form, {
+                action: path('item_edit', {id: item.id}),   {# ALWAYS explicit, see Gotchas §1 #}
+                attr: {'data-turbo-frame': 'modal-frame'}
+            }) }}
+                {{ form_row(form.name) }}
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            {{ form_end(form) }}
+        </div>
     </div>
 </turbo-frame>
 ```
 
-**Option B: With Live Component (real-time validation)**
+With a Live Component for real-time validation, put `{{ component('ItemEditForm', {item: item, formAction: path('item_edit', {id: item.id})}) }}` in the `modal-body` — the form still submits to the controller, never to a LiveAction.
+
+### Read-only modal (detail views)
+
+For content that is only shown (e.g. `puzzle_result_detail`, `player_ratings`):
+
+- One controller, two templates: render `_modal.html.twig` (wrapped in `<turbo-frame id="modal-frame">`) when `$request->headers->get('Turbo-Frame') === 'modal-frame'`, the full page (extends `base.html.twig`) otherwise — the link keeps working when opened in a new tab or shared.
+- Send `Vary: Turbo-Frame` (`$response->setVary('Turbo-Frame', false)`) so no cache serves the fragment as the page or the other way round.
+- Put `<meta name="robots" content="noindex">` on the full page when it only duplicates content that already lives elsewhere.
+- Links to other pages inside the modal use `data-turbo-frame="_top"`.
+- **Never open a Bootstrap static modal (e.g. `#membersExclusiveModal`) from inside the dynamic modal** — two stacked Bootstrap modals fight over the backdrop and `modal-open`. Link to the page instead (e.g. `path('membership')`) with `data-turbo-frame="_top"`.
+
+### Whole row opens the modal (`row_link_controller.js`)
 
 ```twig
-{# item/_edit_modal.html.twig #}
-<turbo-frame id="modal-frame">
-    <div class="modal-header">
-        <h2>Edit {{ item.name }}</h2>
-        <button type="button" data-action="modal#close">&times;</button>
-    </div>
-    
-    <div class="modal-body">
-        {# Live Component for real-time validation, but form submits to CONTROLLER #}
-        {{ component('ItemEditForm', {
-            item: item,
-            formAction: path('item_edit', {id: item.id})
-        }) }}
-    </div>
-</turbo-frame>
+<tr data-controller="row-link" data-action="click->row-link#open">
+    <td>…</td>
+    <td>
+        <a href="{{ path('puzzle_result_detail', {…}) }}"
+           data-row-link-target="link"
+           data-turbo-frame="modal-frame">…</a>
+    </td>
+</tr>
 ```
+
+- A click anywhere in the row that is not on an interactive element (`a, button, input, select, textarea, label, summary, [role=button], [data-row-link-ignore]`) and not the end of a text selection calls `link.click()` — Turbo handles the frame targeting as for a real link click.
+- Ctrl/Cmd/Shift click and middle click (`auxclick`, wired by the controller itself) open the href in a new tab.
+- The controller adds `.row-link` (`cursor: pointer`, `_dynamic-modal.scss`; `[data-controller~="row-link"]` too, because a Live Component re-render resets the class attribute).
+- Keyboard users tab to the real link — never add `tabindex` to the row.
 
 ### Closing the Modal
 
-The modal closes when the frame becomes empty. After successful action, return a stream that clears it:
+After a successful action, return a stream that clears the frame (`templates/_modal_close_stream.html.twig`):
 
 ```twig
 <turbo-stream action="update" target="modal-frame">
@@ -294,7 +279,7 @@ The modal closes when the frame becomes empty. After successful action, return a
 </turbo-stream>
 ```
 
-The Stimulus controller detects empty frame and hides the modal container.
+The controller sees the empty frame and hides the modal. From JavaScript, dispatch `modal:close` on `document`.
 
 ---
 
@@ -323,7 +308,7 @@ Same action (edit, delete) invoked from different pages (list, detail) requires 
         
         <p>Are you sure you want to delete this item?</p>
         
-        <button type="button" data-action="modal#close">Cancel</button>
+        <button type="button" data-bs-dismiss="modal">Cancel</button>
         <button type="submit">Delete</button>
     </form>
 </turbo-frame>
@@ -531,7 +516,7 @@ User fills form, clicks Submit
 <turbo-frame id="modal-frame">
     <div class="modal-header">
         <h2>Edit {{ item.name }}</h2>
-        <button type="button" data-action="modal#close">&times;</button>
+        <button type="button" data-bs-dismiss="modal">&times;</button>
     </div>
     
     <div class="modal-body">
@@ -544,7 +529,7 @@ User fills form, clicks Submit
             {{ form_row(form.price) }}
             
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-action="modal#close">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     Cancel
                 </button>
                 <button type="submit" class="btn btn-primary">
@@ -821,27 +806,18 @@ Instead, have the form submit to a Controller:
 ```
 ```
 
-### ❌ Don't: Listen for `turbo:frame-load` to Open Modal
+### ❌ Don't: Open the Modal Yourself
 
 ```javascript
-// WRONG - fires when frame is cleared too
-data-action="turbo:frame-load->modal#open"
+// WRONG - fights Turbo's click handling and opens before there is any content
+data-action="click->dynamic-modal#open"
 ```
 
-Instead, open on click and close when frame is empty:
+Just target the frame (`data-turbo-frame="modal-frame"`). `dynamic_modal_controller.js` opens on `turbo:frame-load` only after its own `turbo:before-fetch-request` marked a pending open (so a frame that is merely cleared never opens it), and closes when the frame becomes empty.
 
-```javascript
-// CORRECT
-open(event) {
-    this.containerTarget.classList.remove('hidden')
-}
+### ❌ Don't: Stack a Bootstrap Static Modal on the Dynamic Modal
 
-frameLoaded(event) {
-    if (this.frameTarget.innerHTML.trim() === '') {
-        this.close()
-    }
-}
-```
+`data-bs-toggle="modal" data-bs-target="#membersExclusiveModal"` inside modal content opens a second Bootstrap modal on top: two backdrops, a stuck `modal-open` body class after one closes. Link to the page with `data-turbo-frame="_top"` instead.
 
 ---
 
@@ -988,7 +964,7 @@ class ItemEditForm extends AbstractController
 <turbo-frame id="modal-frame">
     <div class="modal-header">
         <h2>Edit {{ item.name }}</h2>
-        <button type="button" data-action="modal#close">&times;</button>
+        <button type="button" data-bs-dismiss="modal">&times;</button>
     </div>
     
     {{ component('ItemEditForm', {
@@ -1067,7 +1043,8 @@ src/
 
 assets/
 └── controllers/
-    └── modal_controller.js           # Open/close modal
+    ├── dynamic_modal_controller.js   # Global Turbo modal (open/close, spinner, focus)
+    └── row_link_controller.js        # Whole row opens its primary link
 ```
 
 ---
@@ -1077,19 +1054,23 @@ assets/
 When implementing a new feature:
 
 ### Modal Setup
-- [ ] Single modal frame in `base.html.twig` with Stimulus controller
-- [ ] Modal controller listens to `turbo:before-fetch-request` to open
-- [ ] Modal controller uses MutationObserver to close when frame is empty
+- [ ] Use the existing global modal (`#dynamic-modal-container` / `modal-frame` in `base.html.twig`, `dynamic_modal_controller.js`) — never add another one
+- [ ] Content root may set `data-modal-size` (`modal-sm` / `modal-lg` / `modal-xl`)
+- [ ] Content has a `.modal-title` (the dialog's accessible name) and a `data-bs-dismiss="modal"` close button
+- [ ] Close via empty-frame Turbo Stream (`_modal_close_stream.html.twig`) or the `modal:close` event
+- [ ] No Bootstrap static modal (`#membersExclusiveModal`, …) opened from inside the dynamic modal — link with `data-turbo-frame="_top"`
 
 ### Links and Navigation
 - [ ] Links use `data-turbo-frame="modal-frame"` (no click action needed)
+- [ ] Whole clickable rows use `row-link` controller with the real link as `data-row-link-target="link"`
+- [ ] Links leaving the modal use `data-turbo-frame="_top"`
 - [ ] Context passed via query parameter: `path('route', {id: id, context: 'list'})`
 
 ### Controller Pattern
 - [ ] Single controller action handles both GET and POST
 - [ ] Controller detects `Turbo-Frame` header for request type
 - [ ] Returns modal template for Turbo Frame GET requests
-- [ ] Returns full page template for normal GET requests
+- [ ] Returns full page template for normal GET requests (read-only modals: `Vary: Turbo-Frame`, `noindex` when duplicate)
 - [ ] Returns Turbo Streams for successful Turbo Frame POST
 - [ ] Returns redirect for successful normal POST
 - [ ] Returns modal template with errors for invalid Turbo Frame POST

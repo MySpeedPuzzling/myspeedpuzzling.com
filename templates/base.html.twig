@@ -1142,9 +1142,17 @@
         <div id="dynamic-modal-container"
              class="modal fade"
              tabindex="-1"
+             role="dialog"
+             aria-hidden="true"
              data-controller="dynamic-modal">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
+                    {# Shown by dynamic_modal_controller.js when a response takes longer than 150 ms #}
+                    <div class="dynamic-modal-loading" data-dynamic-modal-target="loading" hidden>
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">{{ 'loading'|trans }}</span>
+                        </div>
+                    </div>
                     <turbo-frame id="modal-frame" data-dynamic-modal-target="frame">
                     </turbo-frame>
                 </div>

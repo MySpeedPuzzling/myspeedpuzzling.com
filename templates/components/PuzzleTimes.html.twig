@@ -342,8 +342,9 @@
         {% set hiddenRowsCount = this.hiddenRowsCount %}
 
         {# The table never scrolls sideways: the name column takes what rank and time leave and names truncate.
-           A row opens its details (date, PPM, the player's other times) on tap (docs/features/puzzle-leaderboard-chart.md) #}
-        <div class="custom-table-wrapper lb-wrapper mt-2 {{ hiddenRowsCount > 0 ? 'mb-3' : 'mb-5' }}" {{ stimulus_controller('leaderboard-rows') }}>
+           A row opens the result detail (date, PPM, every attempt, chart) in the modal, loaded on demand
+           (docs/features/puzzle-leaderboard-chart.md, docs/features/puzzle-result-detail.md) #}
+        <div class="custom-table-wrapper lb-wrapper mt-2 {{ hiddenRowsCount > 0 ? 'mb-3' : 'mb-5' }}">
             <table class="table custom-table table-hover lb-table mb-0">
                 <thead>
                 <tr>
@@ -382,19 +383,10 @@
                         id="{{ row_id }}"
                         style="scroll-margin-top: 120px;"
                         class="lb-row {{ is_own_row ? 'table-active-player' }}"
-                        data-action="click->leaderboard-rows#toggle"
+                        data-controller="row-link"
+                        data-action="click->row-link#open"
                     >
-                        <td class="rank">
-                            <span class="lb-rank">{{ this.ranks[timeId] }}</span>
-                            <button
-                                type="button"
-                                class="lb-expand"
-                                data-leaderboard-rows-toggle
-                                aria-expanded="false"
-                                aria-label="{{ 'puzzle_times.leaderboard.more_info'|trans }}"
-                                title="{{ 'puzzle_times.leaderboard.more_info'|trans }}"
-                            ><i class="bi bi-chevron-down"></i></button>
-                        </td>
+                        <td class="rank"><span class="lb-rank">{{ this.ranks[timeId] }}</span></td>
 
                         <td class="lb-solver">
                             {%~ if best.players is defined %}
@@ -404,11 +396,23 @@
                             {%~ else %}
                                 {{~ include('_leaderboard_player.html.twig', {player: best}) }}
                             {%~ endif %}
-                            {{~ include('_leaderboard_time_badges.html.twig', {time: best}) }}
+                            {{~ include('_leaderboard_time_badges.html.twig', {
+                                time: best,
+                                attempts: aggregated_solver|length,
+                                team_page_label: (this.category == 'duo' ? 'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans,
+                            }) }}
                         </td>
 
                         <td class="lb-time">
-                            <span class="lb-time-value">{{ best.time|puzzlingTime }}</span>
+                            {# The row's real link - keyboard and screen readers use it, a tap anywhere on the row clicks it #}
+                            <a
+                                class="lb-time-value lb-detail-link"
+                                href="{{ path('puzzle_result_detail', {timeId: best.timeId}) }}"
+                                data-row-link-target="link"
+                                data-turbo-frame="modal-frame"
+                                rel="nofollow"
+                                aria-label="{{ 'puzzle_times.leaderboard.result_detail'|trans({'%time%': best.time|puzzlingTime}) }}"
+                            >{{ best.time|puzzlingTime }}</a>
                             {%~ if this.leaderTime is not null and best.time > this.leaderTime %}
                                 <span class="lb-gap" title="{{ 'puzzle_times.leaderboard.gap_to_fastest'|trans }}"><i class="bi bi-trophy"></i>{{ (best.time - this.leaderTime)|gapTime }}</span>
                             {%~ endif %}
@@ -417,38 +421,6 @@
                             {%~ endif %}
                         </td>
                     </tr>
-
-                    {# Details, hidden until the row is tapped: this time's date and PPM, then the player's other times #}
-                    <tr class="lb-details" data-details-of="{{ row_id }}" hidden>
-                        <td></td>
-                        <td class="lb-solver" colspan="2">
-                            {{~ include('_leaderboard_time_meta.html.twig', {
-                                time: best,
-                                pieces: this.piecesCount,
-                                editable: is_own_row,
-                                team_page_label: (this.category == 'duo' ? 'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans,
-                            }) }}
-                        </td>
-                    </tr>
-                    {%~ if aggregated_solver|length > 1 %}
-                        <tr class="lb-details lb-details-heading" data-details-of="{{ row_id }}" hidden>
-                            <td></td>
-                            <td colspan="2">{{ 'puzzle_times.leaderboard.other_times'|trans({'%count%': aggregated_solver|length - 1}) }}</td>
-                        </tr>
-                        {%~ for solving_time in aggregated_solver|slice(1) %}
-                            <tr class="lb-details lb-attempt" data-details-of="{{ row_id }}" hidden>
-                                <td></td>
-                                <td class="lb-solver">
-                                    {{~ include('_leaderboard_time_meta.html.twig', {time: solving_time, pieces: this.piecesCount, editable: is_own_row}) }}
-                                    {{~ include('_leaderboard_time_badges.html.twig', {time: solving_time}) }}
-                                </td>
-                                <td class="lb-time">
-                                    <span class="lb-time-value">{{ solving_time.time|puzzlingTime }}</span>
-                                    <span class="lb-gap" title="{{ 'puzzle_times.leaderboard.gap_to_own_best'|trans }}"><i class="bi bi-star"></i>{{ (solving_time.time - best.time)|gapTime }}</span>
-                                </td>
-                            </tr>
-                        {%~ endfor %}
-                    {%~ endif %}
                 {%~ endfor %}
 
                 {% if this.times|length < 1 %}

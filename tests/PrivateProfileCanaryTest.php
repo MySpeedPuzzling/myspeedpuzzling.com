@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -71,6 +72,49 @@ final class PrivateProfileCanaryTest extends WebTestCase
         // A board everybody sees her row on, as a Hidden Puzzler - same position for every viewer
         yield 'ladder pairs 1000' => ['/en/ladder/pairs/1000-pieces'];
         yield 'puzzle library' => ['/en/puzzle-library/' . self::OWNER];
+    }
+
+    /**
+     * Result detail (docs/features/puzzle-result-detail.md) of her pair with a public player: everybody may open
+     * it, only the friend sees her name.
+     */
+    public function testResultDetailOfHerPairNamesHerForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/result/' . PuzzleSolvingTimeFixture::TIME_12;
+
+        self::assertStringNotContainsString(self::OWNER_NAME, $this->get($browser, $url), 'A guest is shown a private player.');
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            self::assertStringNotContainsString(self::OWNER_NAME, $this->get($browser, $url), "A signed-in stranger ({$who}) is shown a private player.");
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertStringContainsString(self::OWNER_NAME, $this->get($browser, $url));
+        self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+    }
+
+    /**
+     * Her own results do not exist for anybody she did not allow - a page about one player cannot be masked.
+     */
+    public function testResultDetailOfHerSoloTimeExistsForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/result/' . PuzzleSolvingTimeFixture::TIME_02;
+
+        $browser->request('GET', $url);
+        self::assertResponseStatusCodeSame(404);
+
+        foreach (self::STRANGERS as $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            $browser->request('GET', $url);
+            self::assertResponseStatusCodeSame(404);
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertStringContainsString(self::OWNER_NAME, $this->get($browser, $url));
+        self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
     }
 
     /**

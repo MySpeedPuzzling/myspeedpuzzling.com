@@ -209,14 +209,20 @@ a.pr-team-link {
 }
 
 .pr-deltas {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 2px 10px;
+    display: inline-grid;
+    // Fixed slots (wide enough for "+MM:SS" with its icon): ↩ change always left, ★ gap to the best always right
+    grid-template-columns: minmax(4.75em, auto) minmax(4.75em, auto);
+    column-gap: 10px;
+    justify-items: end;
 
     .bi {
         margin-right: 3px;
         font-size: .6875rem;
     }
+}
+
+.pr-delta {
+    white-space: nowrap;
 }
 
 @media (max-width: 575.98px) {

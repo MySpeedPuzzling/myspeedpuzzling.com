@@ -87,9 +87,11 @@
                             {% endif %}
                         </span>
 
+                        {# Two fixed slots, so every row lines up: the change against the previous attempt (left), the gap to
+                           the best (right) - an empty slot stays when a row has no value #}
                         <span class="pr-deltas">
-                            {% if attempt.deltaToPrevious is not null %}
-                                <span class="text-nowrap" title="{{ 'puzzle_result.change_to_previous'|trans }}">
+                            <span class="pr-delta"{% if attempt.deltaToPrevious is not null %} title="{{ 'puzzle_result.change_to_previous'|trans }}"{% endif %}>
+                                {%- if attempt.deltaToPrevious is not null -%}
                                     <i class="bi bi-arrow-return-left"></i>
                                     {%- if attempt.deltaToPrevious < 0 -%}
                                         <span class="text-success tabular-nums">-{{ attempt.deltaToPrevious|gapTime|slice(1) }}</span>
@@ -98,14 +100,13 @@
                                     {%- else -%}
                                         <span class="tabular-nums">{{ 0|gapTime }}</span>
                                     {%- endif -%}
-                                </span>
-                            {% endif %}
-                            {% if attempt.gapToBest is not null %}
-                                <span class="text-nowrap" title="{{ 'puzzle_result.gap_to_best'|trans }}">
+                                {%- endif -%}
+                            </span>
+                            <span class="pr-delta"{% if attempt.gapToBest is not null %} title="{{ 'puzzle_result.gap_to_best'|trans }}"{% endif %}>
+                                {%- if attempt.gapToBest is not null -%}
                                     <i class="bi bi-star"></i><span class="text-danger tabular-nums">{{ attempt.gapToBest|gapTime }}</span>
-                                </span>
-                            {% endif %}
-                        </span>
+                                {%- endif -%}
+                            </span>
                     </div>
                 {% endif %}
 

@@ -398,6 +398,7 @@
                             {%~ endif %}
                             {{~ include('_leaderboard_time_badges.html.twig', {
                                 time: best,
+                                show_date: true,
                                 attempts: aggregated_solver|length,
                                 team_page_label: (this.category == 'duo' ? 'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans,
                             }) }}

@@ -21,26 +21,28 @@
 
 <div class="puzzle-result" style="min-width: 0;">
     {# 4. Progress chart - members only #}
+    {# In a card like the chart on the puzzle page (the component's non-bare mode) #}
     {% if timed_attempts|length >= 2 %}
-        <div class="mb-3">
+        <div class="pr-chart">
             {% if is_member %}
                 <twig:Chart:PlayerPuzzleTimesChart
                     :results="timed_attempts"
-                    bare="true"
                     :height="150"
                     :medianTime="standing is not null ? standing.medianTime : null"
                     :fastestTime="standing is not null ? standing.leaderTime : null"
                 />
             {% else %}
-                <div class="player-chart-placeholder text-center">
-                    {# A link, not the #membersExclusiveModal button: no Bootstrap modal on top of this one #}
-                    <a class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm mt-5 shadow-custom"
-                       data-turbo-frame="_top"
-                       href="{{ path('membership') }}"
-                    >
-                        <i class="ci-locked me-1"></i>
-                        {{ 'membership.members_exclusive_button'|trans }}
-                    </a>
+                <div class="card card-body p-2 my-3 shadow">
+                    <div class="player-chart-placeholder text-center">
+                        {# A link, not the #membersExclusiveModal button: no Bootstrap modal on top of this one #}
+                        <a class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm mt-5 shadow-custom"
+                           data-turbo-frame="_top"
+                           href="{{ path('membership') }}"
+                        >
+                            <i class="ci-locked me-1"></i>
+                            {{ 'membership.members_exclusive_button'|trans }}
+                        </a>
+                    </div>
                 </div>
             {% endif %}
         </div>

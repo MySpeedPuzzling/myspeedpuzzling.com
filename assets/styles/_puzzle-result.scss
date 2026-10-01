@@ -251,3 +251,9 @@ a.pr-team-link {
         margin-top: 3.5rem !important;
     }
 }
+
+// The chart card sits right under the pinned header - its top margin is enough, less below before the attempts
+.pr-chart .card {
+    margin-top: 0 !important;
+    margin-bottom: .75rem !important;
+}

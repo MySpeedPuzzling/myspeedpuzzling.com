@@ -339,7 +339,6 @@ puzzle_times:
         gap_to_faster: "Behind the next faster time"
         result_detail: "Result detail: %time%"
         attempts: "Solved %count%×"
-        ppm: "Pieces per minute"
     chart:
         noun:
             solo: "Puzzlers"

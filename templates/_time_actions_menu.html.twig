@@ -1,0 +1,49 @@
+{#
+    ☰ menu on the corner of a result's puzzle image: share, edit, delete (delete only for whoever tracked the time).
+    Used by the recent activity and the player profile results.
+
+    Inputs:
+      - time_id (string)
+      - puzzle_name (string): title of the shared image
+      - can_delete (bool): the viewer tracked the time - group members may edit, deleting stays with the tracker
+      - edit_context (string, optional): opens the edit form in the modal and returns there afterwards
+        (EditTimeReturnContext: 'profile' / 'puzzle-detail'); without it the edit page is a normal link
+#}
+<div class="dropdown position-absolute ps-actions">
+    <button class="btn btn-outline-primary btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'edit'|trans }}">
+        <i class="ci-menu"></i>
+    </button>
+
+    <ul class="dropdown-menu">
+        <li>
+            <button
+                type="button"
+                data-controller="share-image"
+                data-share-image-title-value="{{ puzzle_name }}"
+                data-share-image-image-url-value="{{ path('result_image', {'timeId': time_id}) }}"
+                data-action="click->share-image#shareImageAsset"
+                class="dropdown-item"
+            >
+                <i class="ci-share me-2"></i> {{ 'share'|trans }}
+            </button>
+        </li>
+        <li>
+            {% if edit_context is defined %}
+                <a class="dropdown-item" href="{{ path('edit_time', {timeId: time_id, context: edit_context}) }}" data-turbo-frame="modal-frame">
+                    <i class="ci-edit me-2"></i> {{ 'edit'|trans }}
+                </a>
+            {% else %}
+                <a class="dropdown-item" href="{{ path('edit_time', {timeId: time_id}) }}">
+                    <i class="ci-edit me-2"></i> {{ 'edit'|trans }}
+                </a>
+            {% endif %}
+        </li>
+        {% if can_delete %}
+            <li>
+                <a class="dropdown-item text-danger" href="{{ path('delete_time', {timeId: time_id}) }}">
+                    <i class="ci-trash me-2"></i> {{ 'delete'|trans }}
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</div>

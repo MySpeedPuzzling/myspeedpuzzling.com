@@ -31,11 +31,23 @@
 
 // data-modal-sheet: on phones a near full screen sheet - a strip of the dimmed page stays visible above it,
 // so it still reads as a layer over the page (iOS "page sheet"), not as a new page
+//
+// iOS Safari sizes `position: fixed; height: 100%` by the viewport with the toolbar *expanded*: once the page was
+// scrolled and the toolbar collapsed, a strip at the bottom stayed uncovered and the dialog could scroll inside the
+// modal. The sheet is therefore sized by the dynamic viewport (dvh, 100% where unsupported) and the modal itself never
+// scrolls - only the sheet's body does.
 @media (max-width: 575.98px) {
+    #dynamic-modal-container:has(.modal-sheet-sm-down) {
+        height: 100%;
+        height: 100dvh;
+        overflow: hidden;
+    }
+
     #dynamic-modal-container .modal-dialog.modal-sheet-sm-down {
         width: 100%;
         max-width: none;
         height: calc(100% - 12px);
+        height: calc(100dvh - 12px);
         min-height: 0;
         margin: 12px 0 0;
         align-items: stretch;

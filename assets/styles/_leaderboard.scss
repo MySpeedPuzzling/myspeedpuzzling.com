@@ -257,19 +257,29 @@ a.lb-name,
         display: none;
     }
 
+    // A linked badge (event) sits in an <a>: both are flex boxes so it shares the line with the plain badges
     a {
+        display: inline-flex;
         max-width: 100%;
         text-decoration: none;
     }
 
     .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
         max-width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
         font-size: .6875rem;
         font-weight: 600;
+        line-height: 1.2;
         padding: .25em .55em;
-        vertical-align: top;
+
+        .bi {
+            line-height: 1;
+        }
     }
 }
 
@@ -400,13 +410,6 @@ a.lb-name,
     }
 }
 
-.ps-share {
-    padding: 1px 8px;
-    font-size: .6875rem;
-    line-height: 1.5;
-    border-radius: 999px;
-}
-
 .custom-table-wrapper .table a.ps-time-value {
     display: block;
     font-family: $font-family-monospace;
@@ -432,10 +435,6 @@ a.lb-name,
 .ps-date {
     font-family: $font-family-monospace;
     letter-spacing: -.02em;
-}
-
-.ps-time .btn {
-    margin-top: 2px;
 }
 
 @media (max-width: 379.98px) {
@@ -478,13 +477,24 @@ a.lb-name,
     margin-top: 0;
 }
 
-// The puzzle as context under the player (ladders, recent activity): one line, truncated
-.ps-puzzle-line {
-    margin-top: 4px;
+// The puzzle as context under the player (ladders, recent activity): its name on one line, pieces · brand under it
+.ps-puzzle-line,
+.ps-puzzle-sub {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.ps-puzzle-sub {
+    font-size: .6875rem;
+    line-height: 1.3;
+    color: #8a909c;
+}
+
+.ps-puzzle-line {
+    margin-top: 4px;
     font-size: .75rem;
+    line-height: 1.3;
     color: #6c727f;
 
     a {
@@ -523,4 +533,20 @@ a.lb-name,
 .ps-time .ps-date:not(time) {
     font-family: inherit;
     letter-spacing: 0;
+}
+
+// Phones: ranking tables run edge to edge - the container's 15 px side padding is better spent on names
+@media (max-width: 599.98px) {
+    .lb-wrapper,
+    .ps-wrapper {
+        margin-left: calc(var(--#{$prefix}gutter-x, #{$grid-gutter-width}) * -.5);
+        margin-right: calc(var(--#{$prefix}gutter-x, #{$grid-gutter-width}) * -.5);
+        border-radius: 0;
+        box-shadow: 0 1px 6px rgba(0, 0, 0, .12);
+
+        .table {
+            border-left: 0;
+            border-right: 0;
+        }
+    }
 }

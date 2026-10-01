@@ -23,7 +23,7 @@
             <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: result.puzzleId}) }}">{{ result.puzzleName }}</a>
         </{{ heading|default('div') }}>
         <div class="pr-puzzle-meta">
-            {{ result.manufacturerName }} · {{ 'pieces_count'|trans({'%count%': result.piecesCount})|raw }}
+            {{ 'pieces_count'|trans({'%count%': result.piecesCount})|raw }} · {{ result.manufacturerName }}
         </div>
     </div>
 </div>

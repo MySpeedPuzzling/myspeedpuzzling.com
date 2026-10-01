@@ -10,18 +10,30 @@
                 {% set is_owner = logged_user.profile is not null and logged_user.profile.playerId is same as puzzle.playerId %}
                 <tr class="{{ puzzle.suspicious ? 'table-warning' }}" data-controller="row-link" data-action="click->row-link#open">
                     <td class="ps-image">
-                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                            {{ lazy_puzzle_image(
-                                puzzle.puzzleImage,
-                                'puzzle_small',
-                                'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}),
-                                loop.index,
-                                60,
-                                'rounded-2',
-                                60,
-                                puzzle.puzzleImageRatio
-                            ) }}
-                        </a>
+                        <div class="position-relative">
+                            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                {{ lazy_puzzle_image(
+                                    puzzle.puzzleImage,
+                                    'puzzle_small',
+                                    'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}),
+                                    loop.index,
+                                    60,
+                                    'rounded-2',
+                                    60,
+                                    puzzle.puzzleImageRatio
+                                ) }}
+                            </a>
+
+                            {# Share / edit / delete, like in the recent activity - whoever tracked the time and every group member #}
+                            {% if logged_user.profile is not null and puzzle.isEditableBy(logged_user.profile.playerId) %}
+                                {{ include('_time_actions_menu.html.twig', {
+                                    time_id: puzzle.timeId,
+                                    puzzle_name: puzzle.puzzleName,
+                                    can_delete: puzzle.playerId is same as logged_user.profile.playerId,
+                                    edit_context: 'profile',
+                                }) }}
+                            {% endif %}
+                        </div>
 
                         {# The photo of the finished puzzle only for its owner - the large stripped preset, not the
                            uploaded original (older uploads may carry EXIF/GPS) #}
@@ -37,7 +49,7 @@
                     <td class="ps-info">
                         <a class="ps-puzzle-name" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.puzzleName }}</a>
                         <div class="ps-puzzle-meta">
-                            {{ puzzle.manufacturerName }} · {{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }}
+                            {{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }} · {{ puzzle.manufacturerName }}
                         </div>
 
                         {% if puzzle.players|length > 0 %}
@@ -68,18 +80,6 @@
                                 </span>
                             {% endif %}
 
-                            {% if is_owner %}
-                                <button
-                                    type="button"
-                                    data-controller="share-image"
-                                    data-share-image-title-value="{{ puzzle.puzzleName }}"
-                                    data-share-image-image-url-value="{{ path('result_image', {'timeId': puzzle.timeId}) }}"
-                                    data-action="click->share-image#shareImageAsset"
-                                    class="btn btn-outline-accent ps-share"
-                                >
-                                    <i class="ci-share"></i> {{ 'share'|trans }}
-                                </button>
-                            {% endif %}
                         </div>
                     </td>
 
@@ -112,10 +112,6 @@
                             </span>
                         {% endif %}
 
-                        {# Edit icon for whoever tracked the time and for every group member #}
-                        {% if logged_user.profile is not null and puzzle.isEditableBy(logged_user.profile.playerId) %}
-                            {{ include('_edit_time_button.html.twig', {timeId: puzzle.timeId, context: 'profile'}) }}
-                        {% endif %}
                     </td>
                 </tr>
             {% endfor %}

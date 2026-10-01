@@ -42,10 +42,11 @@
                             {% endif %}
                         </div>
 
+                        {# Every row of a ladder has the same piece count - the brand is enough #}
                         <div class="ps-puzzle-line">
                             <a href="{{ path('puzzle_detail', {puzzleId: solving_time.puzzleId}) }}">{{ solving_time.puzzleName }}</a>
-                            · {{ solving_time.manufacturerName }}
                         </div>
+                        <div class="ps-puzzle-sub">{{ solving_time.manufacturerName }}</div>
 
                         <div class="ps-tags">
                             {{ include('_leaderboard_time_badges.html.twig', {time: solving_time, attempts: solving_time.solvedTimes}) }}

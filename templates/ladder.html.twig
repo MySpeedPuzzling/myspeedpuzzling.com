@@ -20,7 +20,7 @@
     {{ include('_ladder_dropdown_countries.html.twig') }}
 
     <div class="row">
-        <div class="col">
+        <div class="col-12 col-md-6">
             <h2 class="h4 mt-4">{{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
             <twig:LadderTable type="solo" :piecesCount="500" :limit="10" :countryCode="active_country ? active_country.name : null" />
@@ -30,7 +30,7 @@
             </p>
         </div>
 
-        <div class="col">
+        <div class="col-12 col-md-6">
             <h2 class="h4 mt-4">{{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
             <twig:LadderTable type="solo" :piecesCount="1000" :limit="10" :countryCode="active_country ? active_country.name : null" />
@@ -42,7 +42,7 @@
     </div>
 
     <div class="row">
-        <div class="col">
+        <div class="col-12 col-md-6">
             <h2 class="h4 mt-4">{{ 'ladder.duo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
             <twig:LadderTable loading="lazy" type="pairs" :piecesCount="500" :limit="10" :countryCode="active_country ? active_country.name : null" />
@@ -52,7 +52,7 @@
             </p>
         </div>
 
-        <div class="col">
+        <div class="col-12 col-md-6">
             <h2 class="h4 mt-4">{{ 'ladder.duo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
             <twig:LadderTable loading="lazy" type="pairs" :piecesCount="1000" :limit="10" :countryCode="active_country ? active_country.name : null" />
@@ -64,7 +64,7 @@
     </div>
 
     <div class="row">
-        <div class="col">
+        <div class="col-12 col-md-6">
             <h2 class="h4 mt-4">{{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
             <twig:LadderTable loading="lazy" type="groups" :piecesCount="500" :limit="10" :countryCode="active_country ? active_country.name : null" />
@@ -74,7 +74,7 @@
             </p>
         </div>
 
-        <div class="col">
+        <div class="col-12 col-md-6">
             <h2 class="h4 mt-4">{{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
             <twig:LadderTable loading="lazy" type="groups" :piecesCount="1000" :limit="10" :countryCode="active_country ? active_country.name : null" />

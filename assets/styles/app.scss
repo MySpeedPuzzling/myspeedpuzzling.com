@@ -206,6 +206,33 @@ main {
     }
 }
 
+// Phones (below Bootstrap's `sm`): tables of times / results / players / puzzles run edge to edge - the container's side
+// padding (15 or 16 px, depending on the page) is better spent on content. Full bleed by the viewport, so it does not
+// depend on that padding; side borders and rounded corners go too, or they would leave a 1 px line at the screen edge.
+// `.custom-table-wrapper` gets it everywhere, plain result tables opt in with `.table-bleed` (on the card, if any).
+@media (max-width: 575.98px) {
+    .custom-table-wrapper,
+    .table-bleed {
+        margin-left: calc(50% - 50vw);
+        margin-right: calc(50% - 50vw);
+        border-radius: 0;
+    }
+
+    .custom-table-wrapper {
+        box-shadow: 0 1px 6px rgba(0, 0, 0, .12);
+
+        > .table {
+            border-left: 0;
+            border-right: 0;
+        }
+    }
+
+    .table-bleed.card {
+        border-left: 0;
+        border-right: 0;
+    }
+}
+
 .table-striped > tbody > tr:nth-of-type(odd) > * {
     background-color: #fdfdfd;
 }

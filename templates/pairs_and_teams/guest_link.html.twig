@@ -38,7 +38,7 @@
 
 {% if link_request.results is not empty %}
     <h2 class="h5">{{ 'pairs_and_teams.guest_link.results_title'|trans }} <span class="text-muted">({{ link_request.results|length }})</span></h2>
-    <div class="table-responsive mb-5">
+    <div class="table-responsive table-bleed mb-5">
         <table class="table table-sm align-middle fs-sm" data-testid="guest-link-results">
             <tbody>
                 {% for time in link_request.results %}

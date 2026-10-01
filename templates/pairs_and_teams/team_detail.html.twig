@@ -72,7 +72,7 @@
 {% if times is empty %}
     <p class="text-muted">{{ 'pairs_and_teams.not_used_yet'|trans }}</p>
 {% else %}
-    <div class="table-responsive mb-4">
+    <div class="table-responsive table-bleed mb-4">
         <table class="table table-sm align-middle fs-sm" data-testid="team-times">
             <tbody>
                 {% for time in times %}

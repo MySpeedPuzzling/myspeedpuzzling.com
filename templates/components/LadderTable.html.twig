@@ -40,7 +40,7 @@
                         <div class="ps-puzzle-sub">{{ solving_time.manufacturerName }}</div>
 
                         <div class="ps-tags">
-                            {{ include('_leaderboard_time_badges.html.twig', {time: solving_time, attempts: solving_time.solvedTimes}) }}
+                            {{ include('_leaderboard_time_badges.html.twig', {time: solving_time, attempts: solving_time.solvedTimes, skip_first_try: true}) }}
                         </div>
                     </td>
 
@@ -54,16 +54,19 @@
                             rel="nofollow"
                         >{{ solving_time.time|puzzlingTime }}</a>
 
-                        {% if solving_time.finishedAt is not null %}
-                            <time class="ps-date" datetime="{{ solving_time.finishedAt|date('Y-m-d') }}">{{ solving_time.finishedAt|date('d.m.Y') }}</time>
+                        {# Like the puzzle leaderboard: the date (with 1st try on the same line), then both gaps in two slots #}
+                        {{ include('_time_date_line.html.twig', {time: solving_time}) }}
+                        {% set gaps = this.gaps[loop.index0] %}
+                        {% if gaps.leader is not null %}
+                            <span class="lb-gaps">
+                                <span class="lb-gap" title="{{ 'puzzle_times.leaderboard.gap_to_fastest'|trans }}"><i class="bi bi-1-circle"></i>{{ gaps.leader|gapTime }}</span>
+                                <span class="lb-gap"{% if gaps.faster is not null %} title="{{ 'puzzle_times.leaderboard.gap_to_faster'|trans }}"{% endif %}>
+                                    {%- if gaps.faster is not null -%}
+                                        <i class="bi bi-arrow-up"></i>{{ gaps.faster|gapTime }}
+                                    {%- endif -%}
+                                </span>
+                            </span>
                         {% endif %}
-
-                        <span class="ps-ppm">
-                            PPM <span class="tabular-nums">{{ ppm(solving_time.time, solving_time.piecesCount) }}</span>
-                            {%- if solving_time.players is not null %}
-                                <br>{{ solving_time.players|length }}× <span class="tabular-nums">{{ ppm(solving_time.time, solving_time.piecesCount, solving_time.players|length) }}</span>
-                            {%- endif %}
-                        </span>
                     </td>
                 </tr>
             {% endfor %}

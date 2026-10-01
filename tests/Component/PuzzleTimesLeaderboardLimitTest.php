@@ -375,9 +375,10 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
      */
     private function gaps(Crawler $crawler, string $rowKey): array
     {
-        return $crawler->filter('#leaderboard-row-' . $rowKey . ' .lb-gap')->each(
+        // Two fixed slots per row - an empty one is not a gap
+        return array_values(array_filter($crawler->filter('#leaderboard-row-' . $rowKey . ' .lb-gap')->each(
             static fn (Crawler $gap): string => trim($gap->text()),
-        );
+        ), static fn (string $gap): bool => $gap !== ''));
     }
 
     /**

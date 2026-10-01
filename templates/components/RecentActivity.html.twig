@@ -75,12 +75,11 @@
                                 {%- endif -%}
                             </a>
 
-                            <span class="ps-date">{{ item.trackedAt|ago }}</span>
-
                             {# On a feed "1st try" says more at a glance than the PPM (that one is in the result detail) #}
-                            {% if item.firstAttempt %}
-                                <span class="badge rounded-pill bg-info ps-first-try">{{ 'first_attempt'|trans }}</span>
-                            {% endif %}
+                            <span class="lb-time-date">
+                                {{- item.trackedAt|ago -}}
+                                {%- if item.firstAttempt %} <span class="badge rounded-pill bg-info lb-first-try">{{ 'first_attempt'|trans }}</span>{% endif -%}
+                            </span>
 
                             {% if item.isSpeedMode and logged_user.profile is not null and item.playerId is not same as logged_user.profile.playerId %}
                                 {% set my_best_times = this.myBestTimes %}

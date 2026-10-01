@@ -10,7 +10,8 @@
 $lb-line: 28px;
 $lb-avatar: 28px;
 $lb-avatar-sm: 22px;
-$lb-indent: $lb-avatar + 8px;
+// Under the tier icon: avatar + its 2 px margin + the 3 px gap of .lb-player
+$lb-indent: $lb-avatar + 5px;
 
 // Tint of an avatar without a photo, picked by the last hex digit of the player id
 $lb-tints: (
@@ -132,7 +133,7 @@ $lb-tints: (
 .lb-player {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 3px;
     min-width: 0;
     height: $lb-line;
 
@@ -606,14 +607,13 @@ a.lb-name,
     }
 }
 
-// Recent activity: "1st try" under the time and the "… ago" line, instead of the PPM
-.ps-time .ps-first-try {
-    display: inline-block;
-    margin-top: 3px;
-    padding: .25em .55em;
-    font-size: .6875rem;
+// "1st try" on the date line under a time (leaderboard, ladders, recent activity) - no line of its own
+.lb-time-date .lb-first-try {
+    padding: .15em .5em;
+    font-size: .625rem;
     font-weight: 600;
     line-height: 1.2;
+    vertical-align: 1px;
 }
 
 // No photo: the country's square flag cropped to the avatar circle, with a hairline so light flags keep their edge
@@ -627,10 +627,27 @@ a.lb-name,
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08);
 }
 
-// Date of the best time at the start of the badge line (puzzle leaderboard)
-.lb-badges .lb-badge-date {
-    align-self: center;
-    margin-right: 3px;
+// Puzzle leaderboard time column: time, its date, then both gaps on one line in two fixed slots
+.lb-time-date {
+    display: block;
+    margin-top: -2px;
+    white-space: nowrap;
     font-size: .6875rem;
+    line-height: 1.3;
     color: #8a909c;
+    font-variant-numeric: tabular-nums;
+}
+
+.lb-gaps {
+    display: inline-grid;
+    // The gaps' own size, so the em of the slots measures their text (+MM:SS with its icon), not the time's
+    font-size: .6875rem;
+    grid-template-columns: minmax(4.4em, auto) minmax(4.4em, auto);
+    column-gap: 6px;
+    justify-items: end;
+
+    .lb-gap {
+        display: inline;
+        margin-top: 0;
+    }
 }

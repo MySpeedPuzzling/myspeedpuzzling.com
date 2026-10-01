@@ -1,0 +1,15 @@
+{#
+    The line under a time in a ranking: the date it was solved, with a small "1st try" pill on the same line - so the
+    first-try mark sits by the time without taking a line of its own (puzzle leaderboard, ladders).
+
+    Inputs:
+      - time: anything with finishedAt and firstAttempt
+#}
+{%- if time.finishedAt is not null or time.firstAttempt -%}
+    <span class="lb-time-date">
+        {%- if time.finishedAt is not null -%}
+            <time datetime="{{ time.finishedAt|date('Y-m-d') }}">{{ time.finishedAt|date('d.m.Y') }}</time>
+        {%- endif -%}
+        {%- if time.firstAttempt %} <span class="badge rounded-pill bg-info lb-first-try">{{ 'first_attempt'|trans }}</span>{% endif -%}
+    </span>
+{%- endif -%}

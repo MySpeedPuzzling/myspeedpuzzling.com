@@ -398,8 +398,8 @@
                             {%~ endif %}
                             {{~ include('_leaderboard_time_badges.html.twig', {
                                 time: best,
-                                show_date: true,
                                 attempts: aggregated_solver|length,
+                                skip_first_try: true,
                                 team_page_label: (this.category == 'duo' ? 'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans,
                             }) }}
                         </td>
@@ -414,11 +414,19 @@
                                 rel="nofollow"
                                 aria-label="{{ 'puzzle_times.leaderboard.result_detail'|trans({'%time%': best.time|puzzlingTime}) }}"
                             >{{ best.time|puzzlingTime }}</a>
-                            {%~ if this.leaderTime is not null and best.time > this.leaderTime %}
-                                <span class="lb-gap" title="{{ 'puzzle_times.leaderboard.gap_to_fastest'|trans }}"><i class="bi bi-1-circle"></i>{{ (best.time - this.leaderTime)|gapTime }}</span>
-                            {%~ endif %}
-                            {%~ if this.gapsToFaster[timeId] is defined %}
-                                <span class="lb-gap" title="{{ 'puzzle_times.leaderboard.gap_to_faster'|trans }}"><i class="bi bi-arrow-up"></i>{{ this.gapsToFaster[timeId]|gapTime }}</span>
+                            {{~ include('_time_date_line.html.twig', {time: best}) }}
+                            {# Gaps on one line in two fixed slots, so they line up down the table: to #1 (left), to the next faster
+                               time (right) - an empty slot stays; the fastest row has none #}
+                            {%~ set gap_to_leader = this.leaderTime is not null and best.time > this.leaderTime ? best.time - this.leaderTime : null %}
+                            {%~ if gap_to_leader is not null %}
+                                <span class="lb-gaps">
+                                    <span class="lb-gap" title="{{ 'puzzle_times.leaderboard.gap_to_fastest'|trans }}"><i class="bi bi-1-circle"></i>{{ gap_to_leader|gapTime }}</span>
+                                    <span class="lb-gap"{% if this.gapsToFaster[timeId] is defined %} title="{{ 'puzzle_times.leaderboard.gap_to_faster'|trans }}"{% endif %}>
+                                        {%- if this.gapsToFaster[timeId] is defined -%}
+                                            <i class="bi bi-arrow-up"></i>{{ this.gapsToFaster[timeId]|gapTime }}
+                                        {%- endif -%}
+                                    </span>
+                                </span>
                             {%~ endif %}
                         </td>
                     </tr>

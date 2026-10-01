@@ -1,11 +1,17 @@
-{% from 'puzzle_intelligence/_macros.html.twig' import skill_icon %}
 <div {{ attributes.defaults({'data-controller': 'show-more-recent-activity', 'data-poll': 'delay(120000)|$render'}) }}>
-    <div class="table-responsive custom-table-wrapper mt-4">
-        <table class="table table-striped custom-table table-hover mb-0">
+    {# Same row as the ladders and the profile results (_leaderboard_player, _leaderboard_time_badges, _leaderboard.scss):
+       image · who solved what · time - never scrolls sideways. A tap on the row opens the result detail (docs/features/puzzle-result-detail.md) #}
+    <div class="custom-table-wrapper ps-wrapper mt-4">
+        <table class="table table-hover ps-table mb-0">
             <tbody>
                 {% for item in this.items %}
-                    <tr class="{{ this.isOnProfile is same as false and logged_user.profile is not null and item.playerId is same as logged_user.profile.playerId ? 'table-active-player' }} {{ this.showLimit > 0 and loop.index > this.showLimit ? 'd-none' }}">
-                        <td class="text-center" style="width: 90px;">
+                    {% set is_own_row = this.isOnProfile is same as false and logged_user.profile is not null and (
+                        item.players is null
+                            ? item.playerId is same as logged_user.profile.playerId
+                            : logged_user.profile.playerId in item.players|map(member => member.playerId)
+                    ) %}
+                    <tr class="{{ is_own_row ? 'table-active-player' }} {{ this.showLimit > 0 and loop.index > this.showLimit ? 'd-none' }}" data-controller="row-link" data-action="click->row-link#open">
+                        <td class="ps-image">
                             <div class="position-relative">
                                 <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
                                     {{ lazy_puzzle_image(
@@ -13,20 +19,19 @@
                                         'puzzle_small',
                                         'puzzle_img_alt'|trans({'%puzzle%': item.manufacturerName ~ ' ' ~ item.puzzleName}),
                                         loop.index,
-                                        80,
+                                        60,
                                         'rounded-2',
-                                        null,
+                                        60,
                                         item.puzzleImageRatio
                                     ) }}
                                 </a>
 
                                 {% if logged_user.profile is not null and item.isEditableBy(logged_user.profile.playerId) %}
-                                    <div class="dropdown position-absolute" style="left: -5px;top : -5px;">
-                                        <button class="btn btn-outline-primary btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <div class="dropdown position-absolute ps-actions">
+                                        <button class="btn btn-outline-primary btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'edit'|trans }}">
                                             <i class="ci-menu"></i>
                                         </button>
 
-                                        <!-- Dropdown menu -->
                                         <ul class="dropdown-menu">
                                             <li>
                                                 <button
@@ -58,119 +63,68 @@
                             </div>
                         </td>
 
-                        <td class="d-none d-sm-table-cell">
-                            <a class="d-inline-block" style="line-height: 120%" href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
-                                <span style="color: #111;">
-                                    {{ item.manufacturerName }}<br>
-                                    <small>{{ 'pieces_count'|trans({ '%count%': item.piecesCount })|raw }}</small>
-                                </span><br>
-
-                                <small class="puzzle-title mt-2">
-                                    {{ item.puzzleName }}
-                                </small>
-                            </a>
-                        </td>
-
-                        <td class="player-name">
-                            <p class="mt-0 mb-1 d-sm-none">
-                                <small>{{ item.manufacturerName }}</small><br>
-                                <small>{{ 'pieces_count'|trans({ '%count%': item.piecesCount })|raw }}</small>
-                            </p>
-
-                            <p class="mb-0 low-line-height">
-                                {% if item.players is null %}
-                                    {% if this.isOnProfile is same as false %}
-                                        {% if item.isPrivate %}
-                                            <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
-                                            <i class="bi bi-incognito text-muted"></i>
-                                        {% else %}
-                                            {% if logged_user.profile is not null and logged_user.profile.activeMembership and not item.rankingOptedOut %}
-                                                {{ skill_icon(item.skillTierName ?? 'unknown', 16) }}
-                                            {% else %}
-                                                {{ skill_icon('locked', 16) }}
-                                            {% endif %}
-                                            <a class="player-name-item" href="{{ path('player_profile', {playerId: item.playerId}) }}">
-                                                <small>{{ item.playerName ?? ('#' ~ item.playerCode) }}</small>
-                                                {% if logged_user.profile is not null and item.playerId in logged_user.profile.favoritePlayers %}
-                                                    <i class="ci-star-filled text-warning"></i>
-                                                {% endif %}
-                                            </a>
-                                            {% if item.playerCountry is not null %}
-                                                <small class="shadow-custom fi fi-{{ item.playerCountry.name }}"></small>
-                                            {% endif %}
-                                        {% endif %}
+                        <td class="ps-info">
+                            {# The player leads, like on the ladders; on the player's own profile a solo time needs no
+                               name (it is theirs), so the puzzle leads there #}
+                            {% if this.isOnProfile and item.players is null %}
+                                <a class="ps-puzzle-name" href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">{{ item.puzzleName }}</a>
+                                <div class="ps-puzzle-meta">
+                                    {{ item.manufacturerName }} · {{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}
+                                </div>
+                            {% else %}
+                                <div class="ps-members ps-members-lead">
+                                    {% if item.players is null %}
+                                        {{ include('_leaderboard_player.html.twig', {player: item}) }}
+                                    {% else %}
+                                        {% for puzzle_solver in item.players %}
+                                            {{ include('_leaderboard_player.html.twig', {player: puzzle_solver, small: true}) }}
+                                        {% endfor %}
                                     {% endif %}
-                                {% else %}
-                                    {% for puzzle_solver in item.players %}
-                                        {% if not loop.first %}
-                                            <br>
-                                        {% endif %}
+                                </div>
 
-                                        {% if puzzle_solver.isPrivate %}
-                                            <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
-                                            <i class="bi bi-incognito text-muted"></i>
-                                        {% elseif puzzle_solver.playerId is not null %}
-                                            {% if logged_user.profile is not null and logged_user.profile.activeMembership and not puzzle_solver.rankingOptedOut %}
-                                                {{ skill_icon(puzzle_solver.skillTierName ?? 'unknown', 16) }}
-                                            {% else %}
-                                                {{ skill_icon('locked', 16) }}
-                                            {% endif %}
-                                            <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                                <small>{{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}</small>
-                                                {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
-                                                    <i class="ci-star-filled text-warning"></i>
-                                                {% endif %}
-                                            </a>
-                                            {% if puzzle_solver.playerCountry is not null %}
-                                                <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
-                                            {% endif %}
-                                        {% else %}
-                                            <small class="player-name-item">{{ puzzle_solver.playerName }}</small>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endif %}
-                            </p>
+                                <div class="ps-puzzle-line">
+                                    <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">{{ item.puzzleName }}</a>
+                                    · {{ item.manufacturerName }} · {{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}
+                                </div>
+                            {% endif %}
+
+                            <div class="ps-tags">
+                                {{ include('_leaderboard_time_badges.html.twig', {time: item}) }}
+                            </div>
                         </td>
 
-                        <td class="with-ppm text-end">
-                            <small style="line-height: 105%;">{{ item.trackedAt|ago }}</small><br>
+                        <td class="ps-time">
+                            {# The row's real link to the result detail - a tap anywhere else on the row clicks it #}
+                            <a
+                                class="ps-time-value"
+                                href="{{ path('puzzle_result_detail', {timeId: item.id}) }}"
+                                data-row-link-target="link"
+                                data-turbo-frame="modal-frame"
+                                rel="nofollow"
+                            >
+                                {%- if item.isSpeedMode -%}
+                                    {{ item.time|puzzlingTime }}
+                                {%- else -%}
+                                    <span class="badge rounded-pill bg-secondary"><i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}</span>
+                                {%- endif -%}
+                            </a>
+
+                            <span class="ps-date">{{ item.trackedAt|ago }}</span>
 
                             {% if item.isSpeedMode %}
-                                <span class="badge rounded-pill bg-secondary fs-sm">
-                                    <i class="bi bi-stopwatch"></i> {{ item.time|puzzlingTime }}
+                                <span class="ps-ppm">
+                                    PPM <span class="font-monospace">{{ ppm(item.time, item.piecesCount) }}</span>
+                                    {%- if item.players is not null %}
+                                        <br>{{ item.players|length }}× <span class="font-monospace">{{ ppm(item.time, item.piecesCount, item.players|length) }}</span>
+                                    {%- endif %}
                                 </span>
-
-                                <br>
-                                <small class="text-nowrap">
-                                    <span class="text-muted">PPM</span> {{ ppm(item.time, item.piecesCount) }}
-                                    {% if item.players is not null %}
-                                        <br>({{ item.players|length }}x {{ ppm(item.time, item.piecesCount, item.players|length) }})
-                                    {% endif %}
-                                </small>
 
                                 {% if logged_user.profile is not null and item.playerId is not same as logged_user.profile.playerId %}
                                     {% set my_best_times = this.myBestTimes %}
                                     {% if item.players is null and my_best_times[item.puzzleId] is defined %}
-                                        <br>
-                                        <small class="low-line-height d-inline-block">{{ 'my_time'|trans }} {{ my_best_times[item.puzzleId]|puzzlingTime }}</small>
+                                        <span class="ps-ppm">{{ 'my_time'|trans }} <span class="font-monospace">{{ my_best_times[item.puzzleId]|puzzlingTime }}</span></span>
                                     {% endif %}
                                 {% endif %}
-
-                                {% if item.firstAttempt %}
-                                    <br>
-                                    <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
-                                {% endif %}
-
-                                {% if item.unboxed %}
-                                    <br>
-                                    <span class="badge rounded-pill bg-warning"><i class="bi bi-eye-slash"></i> {{ 'unboxed'|trans }}</span>
-                                {% endif %}
-
-                                {{ include('_competition_badge.html.twig', {time: item}) }}
-                            {% else %}
-                                <span class="badge rounded-pill bg-secondary fs-sm">
-                                    <i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}
-                                </span>
                             {% endif %}
                         </td>
                     </tr>
@@ -185,42 +139,24 @@
 </div>
 
 {% macro placeholder(props) %}
-    <div class="table-responsive custom-table-wrapper mt-4">
-        <table class="table table-striped custom-table table-hover mb-0 placeholder-glow">
+    {# Same structure and row height as the rows above, so the swap does not shift the page #}
+    <div class="custom-table-wrapper ps-wrapper mt-4">
+        <table class="table ps-table mb-0 placeholder-glow">
             <tbody>
                 {% set rowCount = props.showLimit > 0 ? props.showLimit : props.limit|default(5) %}
                 {% for i in 1..rowCount %}
                     <tr>
-                        <td class="text-center" style="width: 90px;">
-                            <div class="position-relative">
-                                <span class="rounded-2 d-inline-block" style="width: 80px; height: 80px; background: #e9ecef;"></span>
-                            </div>
+                        <td class="ps-image">
+                            <span class="rounded-2 d-inline-block" style="width: 60px; height: 60px; background: #e9ecef;"></span>
                         </td>
-
-                        <td class="d-none d-sm-table-cell">
-                            <span class="d-inline-block" style="line-height: 120%;">
-                                <span style="color: #111;">
-                                    <span class="placeholder" style="width: 85px;"></span><br>
-                                    <small><span class="placeholder placeholder-sm" style="width: 55px;"></span></small>
-                                </span><br>
-                                <small class="puzzle-title mt-2"><span class="placeholder placeholder-sm" style="width: 110px;"></span></small>
-                            </span>
+                        <td class="ps-info">
+                            <div class="ps-members ps-members-lead"><span class="placeholder" style="width: 110px;"></span></div>
+                            <div class="ps-puzzle-line"><span class="placeholder placeholder-sm" style="width: 150px;"></span></div>
                         </td>
-
-                        <td class="player-name">
-                            <p class="mt-0 mb-1 d-sm-none">
-                                <small><span class="placeholder placeholder-sm" style="width: 65px;"></span></small><br>
-                                <small><span class="placeholder placeholder-sm" style="width: 45px;"></span></small>
-                            </p>
-                            <p class="mb-0 low-line-height">
-                                <small><span class="placeholder" style="width: 95px;"></span></small>
-                            </p>
-                        </td>
-
-                        <td class="with-ppm text-end">
-                            <small style="line-height: 105%;"><span class="placeholder placeholder-sm" style="width: 55px;"></span></small><br>
-                            <span class="placeholder placeholder" style="width: 75px;">&nbsp;</span><br>
-                            <small class="text-nowrap"><span class="placeholder placeholder-sm" style="width: 50px;"></span></small>
+                        <td class="ps-time">
+                            <span class="placeholder" style="width: 64px;"></span>
+                            <span class="ps-date"><span class="placeholder placeholder-sm" style="width: 50px;"></span></span>
+                            <span class="ps-ppm"><span class="placeholder placeholder-sm" style="width: 44px;"></span></span>
                         </td>
                     </tr>
                 {% endfor %}

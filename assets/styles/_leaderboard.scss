@@ -478,7 +478,7 @@ a.lb-name,
     margin-top: 0;
 }
 
-// The puzzle as context under the player (ladders): one line, truncated
+// The puzzle as context under the player (ladders, recent activity): one line, truncated
 .ps-puzzle-line {
     margin-top: 4px;
     overflow: hidden;
@@ -511,4 +511,16 @@ a.lb-name,
     > tbody > tr:nth-of-type(even):not(.table-active-player) > * {
         background-color: #f9fafb;
     }
+}
+
+// Recent activity: the owner's share / edit / delete menu sits on the image's corner
+.ps-actions {
+    top: -5px;
+    left: -5px;
+}
+
+// "2 hours ago" is not a date - no monospace
+.ps-time .ps-date:not(time) {
+    font-family: inherit;
+    letter-spacing: 0;
 }

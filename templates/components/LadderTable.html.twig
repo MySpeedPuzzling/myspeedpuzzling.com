@@ -6,7 +6,13 @@
         <table class="table table-hover ps-table mb-0">
             <tbody>
             {% for solving_time in this.items %}
-                <tr class="{{ logged_user.profile is not null and solving_time.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}" data-controller="row-link" data-action="click->row-link#open">
+                {# The viewer's own row - solo, or a pair/team they are a member of (not only the one who tracked it) #}
+                {% set is_own_row = logged_user.profile is not null and (
+                    solving_time.players is null
+                        ? solving_time.playerId is same as logged_user.profile.playerId
+                        : logged_user.profile.playerId in solving_time.players|map(member => member.playerId)
+                ) %}
+                <tr class="{{ is_own_row ? 'table-active-player' }}" data-controller="row-link" data-action="click->row-link#open">
                     <td class="rank"><span class="lb-rank">{{ loop.index }}</span></td>
 
                     <td class="ps-image">

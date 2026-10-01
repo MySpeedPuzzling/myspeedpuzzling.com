@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -30,6 +31,20 @@ final class LadderPerPiecesControllerTest extends WebTestCase
         $browser->request('GET', '/en/ladder/solo/500-pieces');
 
         $this->assertResponseIsSuccessful();
+    }
+
+    public function testPairRowIsHighlightedForAMemberWhoDidNotTrackTheTime(): void
+    {
+        // TIME_12 was tracked by PLAYER_REGULAR, PLAYER_PRIVATE solved it with them
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+
+        $crawler = $browser->request('GET', '/en/ladder/pairs/1000-pieces');
+
+        $this->assertResponseIsSuccessful();
+        $ownRows = $crawler->filter('tr.table-active-player');
+        self::assertGreaterThan(0, $ownRows->count());
+        self::assertStringContainsString('/en/result/' . PuzzleSolvingTimeFixture::TIME_12, (string) $ownRows->first()->filter('a.ps-time-value')->attr('href'));
     }
 
     /**

@@ -480,7 +480,7 @@ a.lb-name,
 
 // The puzzle as context under the player (ladders): one line, truncated
 .ps-puzzle-line {
-    margin-top: 1px;
+    margin-top: 4px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -502,5 +502,13 @@ a.lb-name,
 @media (max-width: 379.98px) {
     .ps-table td.rank + td.ps-image {
         display: none;
+    }
+}
+
+// A very faint tone on every other row of the ranking tables - the viewer's own row keeps its highlight
+.lb-table,
+.ps-table {
+    > tbody > tr:nth-of-type(even):not(.table-active-player) > * {
+        background-color: #f9fafb;
     }
 }

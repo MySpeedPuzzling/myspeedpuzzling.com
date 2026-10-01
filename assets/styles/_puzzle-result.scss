@@ -252,7 +252,12 @@ a.pr-team-link {
     }
 }
 
-// The chart card sits right under the pinned header - its top margin is enough, less below before the attempts
+// The chart card sits right under the pinned header: only the body's own small top padding between them (every width,
+// the desktop modal has more by default), less below before the attempts
+.pr-modal-body {
+    padding-top: .625rem;
+}
+
 .pr-chart .card {
     margin-top: 0 !important;
     margin-bottom: .75rem !important;

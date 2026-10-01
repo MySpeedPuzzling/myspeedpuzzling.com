@@ -271,8 +271,10 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
         $crawler = $this->mountSoloLeaderboard($client, PuzzleFixture::PUZZLE_500_01, 500)->render()->crawler();
 
         self::assertCount(0, $crawler->filter('#leaderboard-row-' . PlayerFixture::PLAYER_ADMIN . ' .lb-gap'));
-        // 2nd place: the closest faster time is the fastest one, one gap says it all
+        // 2nd place: the time above is the fastest one - one gap, as "the time above" (↑, right slot), no ①
         self::assertCount(1, $this->gaps($crawler, PlayerFixture::PLAYER_REGULAR));
+        self::assertCount(1, $crawler->filter('#leaderboard-row-' . PlayerFixture::PLAYER_REGULAR . ' .lb-gaps > .lb-gap:last-child .bi-arrow-up'));
+        self::assertCount(0, $crawler->filter('#leaderboard-row-' . PlayerFixture::PLAYER_REGULAR . ' .bi-1-circle'));
         // 3rd place: behind the fastest, then behind the 2nd place (00:34:10)
         self::assertSame(['+15:00', '+05:50'], $this->gaps($crawler, PlayerFixture::PLAYER_WITH_STRIPE));
     }

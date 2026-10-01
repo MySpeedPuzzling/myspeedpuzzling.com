@@ -1,0 +1,17 @@
+{#
+    The gaps under a time in a ranking, on one line in two fixed slots (puzzle leaderboard, ladders): ① to the fastest
+    time on the left, ↑ to the time above on the right. An empty slot is kept, so the gaps line up down the table.
+    When the time above is the fastest one (rank 2), the caller passes it as to_faster only - it is the time above.
+
+    Inputs:
+      - to_leader (null|int): seconds behind the fastest time
+      - to_faster (null|int): seconds behind the time above
+#}
+<span class="lb-gaps">
+    <span class="lb-gap"{% if to_leader is not null %} title="{{ 'puzzle_times.leaderboard.gap_to_fastest'|trans }}"{% endif %}>
+        {%- if to_leader is not null -%}<i class="bi bi-1-circle"></i>{{ to_leader|gapTime }}{%- endif -%}
+    </span>
+    <span class="lb-gap"{% if to_faster is not null %} title="{{ 'puzzle_times.leaderboard.gap_to_faster'|trans }}"{% endif %}>
+        {%- if to_faster is not null -%}<i class="bi bi-arrow-up"></i>{{ to_faster|gapTime }}{%- endif -%}
+    </span>
+</span>

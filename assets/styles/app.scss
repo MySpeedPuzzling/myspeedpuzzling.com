@@ -236,11 +236,11 @@ main {
     .custom-table-wrapper,
     .table-bleed {
         .table > :not(caption) > tr > :first-child {
-            padding-left: 12px;
+            padding-left: 15px;
         }
 
         .table > :not(caption) > tr > :last-child {
-            padding-right: 12px;
+            padding-right: 15px;
         }
     }
 }

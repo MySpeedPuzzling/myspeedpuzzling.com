@@ -58,14 +58,10 @@
                         {{ include('_time_date_line.html.twig', {time: solving_time}) }}
                         {% set gaps = this.gaps[loop.index0] %}
                         {% if gaps.leader is not null %}
-                            <span class="lb-gaps">
-                                <span class="lb-gap" title="{{ 'puzzle_times.leaderboard.gap_to_fastest'|trans }}"><i class="bi bi-1-circle"></i>{{ gaps.leader|gapTime }}</span>
-                                <span class="lb-gap"{% if gaps.faster is not null %} title="{{ 'puzzle_times.leaderboard.gap_to_faster'|trans }}"{% endif %}>
-                                    {%- if gaps.faster is not null -%}
-                                        <i class="bi bi-arrow-up"></i>{{ gaps.faster|gapTime }}
-                                    {%- endif -%}
-                                </span>
-                            </span>
+                            {{ include('_time_gaps.html.twig', {
+                                to_leader: gaps.faster is not null ? gaps.leader : null,
+                                to_faster: gaps.faster ?? gaps.leader,
+                            }) }}
                         {% endif %}
                     </td>
                 </tr>

@@ -231,6 +231,18 @@ main {
         border-left: 0;
         border-right: 0;
     }
+
+    // At the screen edge the outer cells need a bit more room than inside the container (and from scrollbars)
+    .custom-table-wrapper,
+    .table-bleed {
+        .table > :not(caption) > tr > :first-child {
+            padding-left: 12px;
+        }
+
+        .table > :not(caption) > tr > :last-child {
+            padding-right: 12px;
+        }
+    }
 }
 
 .table-striped > tbody > tr:nth-of-type(odd) > * {

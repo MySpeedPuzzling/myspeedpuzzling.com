@@ -5,7 +5,7 @@ import TomSelect from 'tom-select';
  * Collection Filter Controller
  *
  * A unified filter for collection/library items across all pages.
- * Features: text search, manufacturer dropdown, pieces count radio pills,
+ * Features: text search, manufacturer dropdown, piece-count chips + custom from-to,
  * difficulty tier chips (members), listing type filter, price range filter.
  *
  * All targets are optional - the controller gracefully handles missing elements.
@@ -15,7 +15,9 @@ export default class extends Controller {
         "item",              // Each filterable collection item
         "search",            // Text search input
         "manufacturer",      // Manufacturer select dropdown
-        "piecesRadio",       // Pieces count radio buttons
+        "piecesChip",        // Piece-count chips - data-min / data-max (empty = unbounded) fill the inputs below
+        "piecesMin",         // Custom piece-count "from" input - what the filter actually reads
+        "piecesMax",         // Custom piece-count "to" input
         "difficultyTier",    // Difficulty tier checkboxes (members) - items carry data-difficulty-tier
         "listingTypeSelect", // Listing type select dropdown (sell-swap)
         "priceMin",          // Price min input (sell-swap)
@@ -25,19 +27,6 @@ export default class extends Controller {
     ];
 
     static classes = ["hidden"];
-
-    // Pieces count ranges configuration
-    static ranges = [
-        { value: '0-499', min: 0, max: 499 },
-        { value: '500', min: 500, max: 500 },
-        { value: '501-999', min: 501, max: 999 },
-        { value: '1000', min: 1000, max: 1000 },
-        { value: '1001-1499', min: 1001, max: 1499 },
-        { value: '1500', min: 1500, max: 1500 },
-        { value: '1501-1999', min: 1501, max: 1999 },
-        { value: '2000', min: 2000, max: 2000 },
-        { value: '2001-', min: 2001, max: Infinity },
-    ];
 
     connect() {
         this.initializeFilters();
@@ -61,7 +50,7 @@ export default class extends Controller {
         this.populateManufacturers(manufacturerCounts);
 
         // Show only relevant piece count options
-        this.updatePiecesRadioVisibility(Array.from(pieceCounts));
+        this.updatePiecesChipVisibility(Array.from(pieceCounts));
     }
 
     populateManufacturers(manufacturerCounts) {
@@ -100,25 +89,54 @@ export default class extends Controller {
         }
     }
 
-    updatePiecesRadioVisibility(pieceCounts) {
-        if (!this.hasPiecesRadioTarget) return;
+    updatePiecesChipVisibility(pieceCounts) {
+        this.piecesChipTargets.forEach(chip => {
+            const range = this.chipRange(chip);
+            if (range.min === null && range.max === null) return; // "All" - always visible
 
-        this.piecesRadioTargets.forEach(radio => {
-            const rangeValue = radio.dataset.range;
-            if (!rangeValue) return; // "All" option - always visible
+            const hasMatch = pieceCounts.some(count => this.matchesPiecesRange(count, range));
 
-            const range = this.constructor.ranges.find(r => r.value === rangeValue);
-            if (!range) return;
-
-            const hasMatch = pieceCounts.some(count =>
-                count >= range.min && count <= range.max
-            );
-
-            const wrapper = radio.closest('.form-option');
+            const wrapper = chip.closest('.form-option');
             if (wrapper) {
                 wrapper.style.display = hasMatch ? '' : 'none';
             }
         });
+    }
+
+    pickPieces(event) {
+        const range = this.chipRange(event.currentTarget);
+
+        if (this.hasPiecesMinTarget) this.piecesMinTarget.value = range.min ?? '';
+        if (this.hasPiecesMaxTarget) this.piecesMaxTarget.value = range.max ?? '';
+
+        this.filter();
+    }
+
+    customPieces() {
+        this.syncActiveChip();
+        this.filter();
+    }
+
+    // Checks the chip equal to the typed range, none when it is a custom one
+    syncActiveChip() {
+        const range = this.getSelectedPiecesRange();
+
+        this.piecesChipTargets.forEach(chip => {
+            const chipRange = this.chipRange(chip);
+            chip.checked = chipRange.min === range.min && chipRange.max === range.max;
+        });
+    }
+
+    chipRange(chip) {
+        return {
+            min: this.parsePieces(chip.dataset.min),
+            max: this.parsePieces(chip.dataset.max),
+        };
+    }
+
+    parsePieces(value) {
+        const count = parseInt(value, 10);
+        return Number.isInteger(count) && count >= 1 ? count : null;
     }
 
     filter() {
@@ -162,11 +180,8 @@ export default class extends Controller {
         }
 
         // Pieces count filter
-        if (piecesRange) {
-            const piecesCount = parseInt(item.dataset.piecesCount, 10);
-            if (!this.matchesPiecesRange(piecesCount, piecesRange)) {
-                return false;
-            }
+        if (!this.matchesPiecesRange(parseInt(item.dataset.piecesCount, 10), piecesRange)) {
+            return false;
         }
 
         // Difficulty tier filter: "0" = not rated yet, which has its own chip, as on the puzzle database.
@@ -198,11 +213,16 @@ export default class extends Controller {
         return true;
     }
 
+    // Inclusive bounds, null = unbounded; swapped bounds are put in order
     getSelectedPiecesRange() {
-        if (!this.hasPiecesRadioTarget) return '';
+        let min = this.hasPiecesMinTarget ? this.parsePieces(this.piecesMinTarget.value) : null;
+        let max = this.hasPiecesMaxTarget ? this.parsePieces(this.piecesMaxTarget.value) : null;
 
-        const checked = this.piecesRadioTargets.find(radio => radio.checked);
-        return checked ? (checked.dataset.range || '') : '';
+        if (min !== null && max !== null && min > max) {
+            [min, max] = [max, min];
+        }
+
+        return { min, max };
     }
 
     getSelectedDifficultyTiers() {
@@ -221,13 +241,8 @@ export default class extends Controller {
         };
     }
 
-    matchesPiecesRange(count, rangeValue) {
-        if (!rangeValue) return true;
-
-        const range = this.constructor.ranges.find(r => r.value === rangeValue);
-        if (!range) return true;
-
-        return count >= range.min && count <= range.max;
+    matchesPiecesRange(count, range) {
+        return (range.min === null || count >= range.min) && (range.max === null || count <= range.max);
     }
 
     updateVisibleCount(count) {
@@ -257,12 +272,9 @@ export default class extends Controller {
         }
 
         // Reset pieces to "All"
-        if (this.hasPiecesRadioTarget) {
-            const allRadio = this.piecesRadioTargets.find(r => !r.dataset.range);
-            if (allRadio) {
-                allRadio.checked = true;
-            }
-        }
+        if (this.hasPiecesMinTarget) this.piecesMinTarget.value = '';
+        if (this.hasPiecesMaxTarget) this.piecesMaxTarget.value = '';
+        this.syncActiveChip();
 
         this.difficultyTierTargets.forEach(checkbox => {
             checkbox.checked = false;

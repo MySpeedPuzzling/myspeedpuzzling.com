@@ -68,17 +68,19 @@
                     </select>
                 </div>
             {% endif %}
+        </div>
 
-            <div class="col-sm-6 col-lg-4">
-                {% for option in ['', '1-499', '500', '501-999', '1000', '1001+'] %}
-                    {% set option_id = 'pieces-' ~ (option == '' ? 'any' : option|replace({'+': ''})) %}
-                    <div class="form-check form-option form-check-inline mb-2">
-                        <input type="radio" class="form-check-input" id="{{ option_id }}"
-                               data-model="pieces" name="pieces" value="{{ option }}"
-                               {{ (option == '' ? this.pieces is empty : this.pieces == option) ? 'checked' }}>
-                        <label for="{{ option_id }}" class="form-option-label">{{ option == '' ? 'all_pieces'|trans : option }}</label>
-                    </div>
-                {% endfor %}
+        <div class="row gx-2">
+            <div class="col-12 mb-2">
+                {{ include('_pieces_filter_live.html.twig', {
+                    id_prefix: 'pieces',
+                    pieces_model: 'pieces',
+                    min_model: 'piecesMin',
+                    max_model: 'piecesMax',
+                    current: this.pieces,
+                    min_value: this.piecesMin,
+                    max_value: this.piecesMax,
+                }) }}
             </div>
         </div>
 
@@ -214,11 +216,12 @@
                         <span class="placeholder rounded d-block" style="height: 38px;"></span>
                     </div>
                 {% endif %}
-                <div class="col-sm-6 col-lg-4 mb-2">
-                    <span class="placeholder rounded d-inline-block me-2" style="height: 30px; width: 60px;"></span>
-                    <span class="placeholder rounded d-inline-block me-2" style="height: 30px; width: 70px;"></span>
-                    <span class="placeholder rounded d-inline-block me-2" style="height: 30px; width: 60px;"></span>
-                    <span class="placeholder rounded d-inline-block" style="height: 30px; width: 80px;"></span>
+            </div>
+            <div class="row gx-2">
+                <div class="col-12 mb-2 d-flex flex-wrap gap-1">
+                    {% for width in [38, 60, 42, 42, 42, 42, 50, 50, 54, 88, 88] %}
+                        <span class="placeholder rounded d-inline-block" style="height: 32px; width: {{ width }}px;"></span>
+                    {% endfor %}
                 </div>
             </div>
         </div>

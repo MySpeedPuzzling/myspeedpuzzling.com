@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Results\PlayerRanking;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Value\PiecesRange;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -44,8 +45,15 @@ final class PlayerSolvedPuzzles
     #[LiveProp(writable: true)]
     public null|string $manufacturer = null;
 
+    // A PiecesRange param (chip or custom from-to), the single source of truth for the two bounds below
     #[LiveProp(writable: true)]
     public null|string $piecesCountRange = null;
+
+    #[LiveProp(writable: true, onUpdated: 'onPiecesBoundsUpdated')]
+    public null|int $piecesMin = null;
+
+    #[LiveProp(writable: true, onUpdated: 'onPiecesBoundsUpdated')]
+    public null|int $piecesMax = null;
 
     // Id of one pair/team: only what the player solved with exactly these people
     #[LiveProp(writable: true)]
@@ -108,6 +116,11 @@ final class PlayerSolvedPuzzles
         return $player !== null && $player->activeMembership;
     }
 
+    public function onPiecesBoundsUpdated(): void
+    {
+        $this->piecesCountRange = PiecesRange::fromBounds($this->piecesMin, $this->piecesMax)?->toParam();
+    }
+
     #[LiveAction]
     public function changeResultsCategory(#[LiveArg] string $category): void
     {
@@ -129,6 +142,8 @@ final class PlayerSolvedPuzzles
     {
         $this->manufacturer = null;
         $this->piecesCountRange = null;
+        $this->piecesMin = null;
+        $this->piecesMax = null;
         $this->searchQuery = null;
         $this->onlyRelax = false;
         $this->onlyFirstTries = false;
@@ -154,6 +169,11 @@ final class PlayerSolvedPuzzles
         if ($this->team !== null && Uuid::isValid($this->team) === false) {
             $this->team = null;
         }
+
+        $piecesRange = PiecesRange::parse($this->piecesCountRange);
+        $this->piecesCountRange = $piecesRange?->toParam();
+        $this->piecesMin = $piecesRange?->minPieces;
+        $this->piecesMax = $piecesRange?->maxPieces;
 
         if ($this->category !== 'solo') {
             $this->onlyFirstTries = false;
@@ -202,8 +222,9 @@ final class PlayerSolvedPuzzles
     private function applyFilters(array $puzzles): array
     {
         $isMember = $this->hasMembership();
+        $piecesRange = PiecesRange::parse($this->piecesCountRange);
 
-        return array_filter($puzzles, function (SolvedPuzzle $puzzle) use ($isMember): bool {
+        return array_filter($puzzles, function (SolvedPuzzle $puzzle) use ($isMember, $piecesRange): bool {
             // FREE FILTERS - available to everyone
 
             // Manufacturer filter
@@ -217,7 +238,7 @@ final class PlayerSolvedPuzzles
             }
 
             // Pieces count range filter
-            if ($this->piecesCountRange !== null && $this->piecesCountRange !== '' && $this->matchesPiecesRange($puzzle->piecesCount) === false) {
+            if ($piecesRange !== null && $piecesRange->contains($puzzle->piecesCount) === false) {
                 return false;
             }
 
@@ -246,24 +267,6 @@ final class PlayerSolvedPuzzles
 
             return true;
         });
-    }
-
-    private function matchesPiecesRange(int $piecesCount): bool
-    {
-        if ($this->piecesCountRange === null) {
-            return true;
-        }
-
-        return match ($this->piecesCountRange) {
-            '0-499' => $piecesCount < 500,
-            '500' => $piecesCount === 500,
-            '501-999' => $piecesCount > 500 && $piecesCount < 1000,
-            '1000' => $piecesCount === 1000,
-            '1001-1999' => $piecesCount > 1000 && $piecesCount < 2000,
-            '2000' => $piecesCount === 2000,
-            '2001+' => $piecesCount > 2000,
-            default => true,
-        };
     }
 
     private function matchesSearch(SolvedPuzzle $puzzle): bool
@@ -441,29 +444,26 @@ final class PlayerSolvedPuzzles
     }
 
     /**
-     * @return list<array{value: string, label: string, min: int, max: int}>
+     * Piece-count chips the player has at least one result for - plus the
+     * active one, so a selection never hides its own chip.
+     *
+     * @return list<PiecesRange>
      */
-    public function getAvailablePiecesRanges(): array
+    public function getAvailablePiecePresets(): array
     {
-        $ranges = [
-            ['value' => '0-499', 'label' => '< 500', 'min' => 0, 'max' => 499],
-            ['value' => '500', 'label' => '500', 'min' => 500, 'max' => 500],
-            ['value' => '501-999', 'label' => '501-999', 'min' => 501, 'max' => 999],
-            ['value' => '1000', 'label' => '1000', 'min' => 1000, 'max' => 1000],
-            ['value' => '1001-1999', 'label' => '1001-1999', 'min' => 1001, 'max' => 1999],
-            ['value' => '2000', 'label' => '2000', 'min' => 2000, 'max' => 2000],
-            ['value' => '2001+', 'label' => '2001+', 'min' => 2001, 'max' => PHP_INT_MAX],
-        ];
-
         $allPuzzles = array_merge($this->allSoloPuzzles, $this->allDuoPuzzles, $this->allTeamPuzzles);
 
-        // Filter to only show ranges that have puzzles
-        return array_values(array_filter($ranges, function (array $range) use ($allPuzzles): bool {
+        return array_values(array_filter(PiecesRange::presets(), function (PiecesRange $preset) use ($allPuzzles): bool {
+            if ($preset->toParam() === $this->piecesCountRange) {
+                return true;
+            }
+
             foreach ($allPuzzles as $puzzle) {
-                if ($puzzle->piecesCount >= $range['min'] && $puzzle->piecesCount <= $range['max']) {
+                if ($preset->contains($puzzle->piecesCount)) {
                     return true;
                 }
             }
+
             return false;
         }));
     }
@@ -478,7 +478,7 @@ final class PlayerSolvedPuzzles
             $count++;
         }
 
-        if ($this->piecesCountRange !== null && $this->piecesCountRange !== '') {
+        if ($this->piecesCountRange !== null) {
             $count++;
         }
 

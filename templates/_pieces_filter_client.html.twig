@@ -1,0 +1,33 @@
+{#
+    Piece-count filter for the client-side lists (collection_filter_controller):
+    quick-pick chips + custom from-to. A chip only fills the from-to inputs,
+    which are what the controller filters by.
+#}
+<div class="d-flex flex-wrap align-items-center gap-1">
+    <div class="form-check form-option form-check-inline mb-0">
+        <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-all" checked
+               data-collection-filter-target="piecesChip" data-min="" data-max=""
+               data-action="change->collection-filter#pickPieces">
+        <label class="form-option-label" for="pieces-all">{{ 'all_pieces'|trans }}</label>
+    </div>
+    {% for preset in pieces_presets() %}
+        {% set param = preset.toParam %}
+        <div class="form-check form-option form-check-inline mb-0">
+            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-{{ param }}"
+                   data-collection-filter-target="piecesChip" data-min="{{ preset.minPieces }}" data-max="{{ preset.maxPieces }}"
+                   data-action="change->collection-filter#pickPieces">
+            <label class="form-option-label" for="pieces-{{ param }}">{{ preset.label }}</label>
+        </div>
+    {% endfor %}
+    <div class="d-flex align-items-center gap-1">
+        <input type="number" class="form-control form-control-sm pieces-filter-bound"
+               data-collection-filter-target="piecesMin" data-action="input->collection-filter#customPieces"
+               min="1" inputmode="numeric"
+               placeholder="{{ 'pieces_filter.from'|trans }}" aria-label="{{ 'pieces_filter.from_label'|trans }}">
+        <span class="text-muted" aria-hidden="true">–</span>
+        <input type="number" class="form-control form-control-sm pieces-filter-bound"
+               data-collection-filter-target="piecesMax" data-action="input->collection-filter#customPieces"
+               min="1" inputmode="numeric"
+               placeholder="{{ 'pieces_filter.to'|trans }}" aria-label="{{ 'pieces_filter.to_label'|trans }}">
+    </div>
+</div>

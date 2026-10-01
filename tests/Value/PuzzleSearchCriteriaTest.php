@@ -106,4 +106,34 @@ final class PuzzleSearchCriteriaTest extends TestCase
         $nonMember = PuzzleSearchCriteria::fromUserInput(null, null, null, null, ['0'], 'most-solved', false);
         self::assertSame([], $nonMember->difficultyTiers);
     }
+
+    /**
+     * @return iterable<string, array{null|string, null|string}> input, canonical
+     */
+    public static function piecesParams(): iterable
+    {
+        yield 'chip' => ['300', '300'];
+        yield 'custom range' => ['250-420', '250-420'];
+        yield 'swapped range' => ['420-250', '250-420'];
+        yield 'at least' => ['2000-', '2000-'];
+        yield 'legacy bucket' => ['501-999', '501-999'];
+        yield 'legacy open end' => ['1001+', '1001-'];
+        yield 'invalid' => ['abc', null];
+        yield 'empty' => ['', null];
+        yield 'none' => [null, null];
+    }
+
+    #[DataProvider('piecesParams')]
+    public function testPiecesAreCanonicalized(null|string $input, null|string $canonical): void
+    {
+        $criteria = PuzzleSearchCriteria::fromUserInput(null, null, $input, null, [], 'most-solved', false);
+
+        self::assertSame($canonical, $criteria->pieces);
+        self::assertSame($canonical === null, $criteria->isDefault());
+        self::assertSame($canonical ?? '', $criteria->piecesRange()->toParam());
+
+        if ($canonical !== null) {
+            self::assertSame($canonical, $criteria->toQueryParameters()['pieces']);
+        }
+    }
 }

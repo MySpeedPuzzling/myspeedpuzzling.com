@@ -1,0 +1,40 @@
+{#
+    Piece-count filter for live components: quick-pick chips + custom from-to.
+    The chips write `pieces_model` (a PiecesRange param), the inputs write
+    `min_model` / `max_model`; the component keeps all three in sync.
+    The inputs update on change, not while typing: a half-typed "to" below
+    "from" would otherwise get swapped into the range mid-number.
+
+    Params: id_prefix, pieces_model, min_model, max_model,
+            current (canonical param or null), min_value, max_value,
+            presets (list<PiecesRange>, defaults to all of them)
+#}
+{% set presets = presets ?? pieces_presets() %}
+<div class="d-flex flex-wrap align-items-center gap-1">
+    <div class="form-check form-option form-check-inline mb-0">
+        <input type="radio" class="form-check-input" id="{{ id_prefix }}-any"
+               data-model="{{ pieces_model }}" name="{{ id_prefix }}" value=""
+               {{ current is empty ? 'checked' }}>
+        <label for="{{ id_prefix }}-any" class="form-option-label">{{ 'all_pieces'|trans }}</label>
+    </div>
+    {% for preset in presets %}
+        {% set param = preset.toParam %}
+        <div class="form-check form-option form-check-inline mb-0">
+            <input type="radio" class="form-check-input" id="{{ id_prefix }}-{{ param }}"
+                   data-model="{{ pieces_model }}" name="{{ id_prefix }}" value="{{ param }}"
+                   {{ current == param ? 'checked' }}>
+            <label for="{{ id_prefix }}-{{ param }}" class="form-option-label">{{ preset.label }}</label>
+        </div>
+    {% endfor %}
+    <div class="d-flex align-items-center gap-1">
+        <input type="number" class="form-control form-control-sm pieces-filter-bound"
+               data-model="on(change)|{{ min_model }}" value="{{ min_value }}"
+               min="1" max="{{ constant('SpeedPuzzling\\Web\\Value\\PiecesRange::MAX_PIECES') }}" inputmode="numeric"
+               placeholder="{{ 'pieces_filter.from'|trans }}" aria-label="{{ 'pieces_filter.from_label'|trans }}">
+        <span class="text-muted" aria-hidden="true">–</span>
+        <input type="number" class="form-control form-control-sm pieces-filter-bound"
+               data-model="on(change)|{{ max_model }}" value="{{ max_value }}"
+               min="1" max="{{ constant('SpeedPuzzling\\Web\\Value\\PiecesRange::MAX_PIECES') }}" inputmode="numeric"
+               placeholder="{{ 'pieces_filter.to'|trans }}" aria-label="{{ 'pieces_filter.to_label'|trans }}">
+    </div>
+</div>

@@ -37,29 +37,6 @@
                         </select>
                     </div>
 
-                    {# Pieces range #}
-                    <div class="col-6 col-md-3 col-lg-2">
-                        <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.pieces'|trans }}</small></label>
-                        <div class="d-flex gap-1">
-                            <input
-                                type="number"
-                                data-model="debounce(300)|piecesMin"
-                                class="form-control form-control-sm"
-                                value="{{ this.piecesMin }}"
-                                placeholder="{{ 'marketplace.min'|trans }}"
-                                min="0"
-                            >
-                            <input
-                                type="number"
-                                data-model="debounce(300)|piecesMax"
-                                class="form-control form-control-sm"
-                                value="{{ this.piecesMax }}"
-                                placeholder="{{ 'marketplace.max'|trans }}"
-                                min="0"
-                            >
-                        </div>
-                    </div>
-
                     {# Listing type #}
                     <div class="col-6 col-md-3 col-lg-1">
                         <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.type'|trans }}</small></label>
@@ -143,6 +120,20 @@
                             {% endif %}
                         </select>
                     </div>
+                </div>
+
+                {# Pieces #}
+                <div class="mt-2">
+                    <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.pieces'|trans }}</small></label>
+                    {{ include('_pieces_filter_live.html.twig', {
+                        id_prefix: 'marketplace-pieces',
+                        pieces_model: 'pieces',
+                        min_model: 'piecesMin',
+                        max_model: 'piecesMax',
+                        current: this.pieces,
+                        min_value: this.piecesMin,
+                        max_value: this.piecesMax,
+                    }) }}
                 </div>
 
                 <div class="mt-2 d-flex flex-wrap gap-3">

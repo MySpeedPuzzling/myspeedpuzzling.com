@@ -52,8 +52,6 @@ final readonly class PuzzlePickerCriteria
 
     public const int MAX_COLLECTIONS = 20;
 
-    public const int MAX_PIECES = 100000;
-
     public const int MAX_SOLVE_COUNT = 999;
 
     public const int MAX_SINCE_AMOUNT = 999;
@@ -906,39 +904,9 @@ final readonly class PuzzlePickerCriteria
      */
     private static function parsePiecesRange(string $value): null|array
     {
-        $value = trim($value);
+        $range = PiecesRange::parse($value);
 
-        if (preg_match('/^(\d{1,6})$/', $value, $matches) === 1) {
-            $count = (int) $matches[1];
-
-            return self::isValidPiecesCount($count) ? [$count, $count] : null;
-        }
-
-        if (preg_match('/^(\d{0,6})-(\d{0,6})$/', $value, $matches) !== 1) {
-            return null;
-        }
-
-        $min = $matches[1] !== '' ? (int) $matches[1] : null;
-        $max = $matches[2] !== '' ? (int) $matches[2] : null;
-
-        if ($min === null && $max === null) {
-            return null;
-        }
-
-        if (($min !== null && self::isValidPiecesCount($min) === false) || ($max !== null && self::isValidPiecesCount($max) === false)) {
-            return null;
-        }
-
-        if ($min !== null && $max !== null && $min > $max) {
-            [$min, $max] = [$max, $min];
-        }
-
-        return [$min, $max];
-    }
-
-    private static function isValidPiecesCount(int $count): bool
-    {
-        return $count >= 1 && $count <= self::MAX_PIECES;
+        return $range !== null ? [$range->minPieces, $range->maxPieces] : null;
     }
 
     /**

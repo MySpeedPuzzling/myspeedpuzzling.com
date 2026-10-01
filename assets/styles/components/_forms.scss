@@ -310,3 +310,10 @@ input[type="search"]::-webkit-search-results-decoration {
     border-color: darken($input-border-color, 7%);
   }
 }
+
+// Custom from-to of the piece-count filter (_pieces_filter_*.html.twig):
+// as tall as the chips next to it, wide enough for "100000"
+.pieces-filter-bound {
+  width: 5.5rem;
+  height: $form-option-size;
+}

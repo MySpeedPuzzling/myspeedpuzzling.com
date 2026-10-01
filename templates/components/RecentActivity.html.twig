@@ -88,16 +88,16 @@
 
                             {% if item.isSpeedMode %}
                                 <span class="ps-ppm">
-                                    PPM <span class="font-monospace">{{ ppm(item.time, item.piecesCount) }}</span>
+                                    PPM <span class="tabular-nums">{{ ppm(item.time, item.piecesCount) }}</span>
                                     {%- if item.players is not null %}
-                                        <br>{{ item.players|length }}× <span class="font-monospace">{{ ppm(item.time, item.piecesCount, item.players|length) }}</span>
+                                        <br>{{ item.players|length }}× <span class="tabular-nums">{{ ppm(item.time, item.piecesCount, item.players|length) }}</span>
                                     {%- endif %}
                                 </span>
 
                                 {% if logged_user.profile is not null and item.playerId is not same as logged_user.profile.playerId %}
                                     {% set my_best_times = this.myBestTimes %}
                                     {% if item.players is null and my_best_times[item.puzzleId] is defined %}
-                                        <span class="ps-ppm">{{ 'my_time'|trans }} <span class="font-monospace">{{ my_best_times[item.puzzleId]|puzzlingTime }}</span></span>
+                                        <span class="ps-ppm">{{ 'my_time'|trans }} <span class="tabular-nums">{{ my_best_times[item.puzzleId]|puzzlingTime }}</span></span>
                                     {% endif %}
                                 {% endif %}
                             {% endif %}

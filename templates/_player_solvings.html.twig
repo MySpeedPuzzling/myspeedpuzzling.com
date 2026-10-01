@@ -105,9 +105,9 @@
 
                         {% if puzzle.time is not null %}
                             <span class="ps-ppm">
-                                PPM <span class="font-monospace">{{ ppm(puzzle.time, puzzle.piecesCount) }}</span>
+                                PPM <span class="tabular-nums">{{ ppm(puzzle.time, puzzle.piecesCount) }}</span>
                                 {%- if puzzle.players is not null %}
-                                    <br>{{ puzzle.players|length }}× <span class="font-monospace">{{ ppm(puzzle.time, puzzle.piecesCount, puzzle.players|length) }}</span>
+                                    <br>{{ puzzle.players|length }}× <span class="tabular-nums">{{ ppm(puzzle.time, puzzle.piecesCount, puzzle.players|length) }}</span>
                                 {%- endif %}
                             </span>
                         {% endif %}

@@ -63,7 +63,7 @@
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body p-4">
-                            <div class="display-6 fw-bold text-primary mb-2 font-monospace">{{ global_statistics.solvedPuzzlesCount|number_format(0) }}</div>
+                            <div class="display-6 fw-bold text-primary mb-2 tabular-nums">{{ global_statistics.solvedPuzzlesCount|number_format(0) }}</div>
                             <p class="text-muted mb-0">{{ 'puzzle_tracker_app.community.times_logged'|trans }}</p>
                         </div>
                     </div>
@@ -71,7 +71,7 @@
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body p-4">
-                            <div class="display-6 fw-bold text-primary mb-2 font-monospace">{{ global_statistics.totalPieces|number_format(0) }}</div>
+                            <div class="display-6 fw-bold text-primary mb-2 tabular-nums">{{ global_statistics.totalPieces|number_format(0) }}</div>
                             <p class="text-muted mb-0">{{ 'puzzle_tracker_app.community.pieces_assembled'|trans }}</p>
                         </div>
                     </div>
@@ -79,7 +79,7 @@
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body p-4">
-                            <div class="display-6 fw-bold text-primary mb-2 font-monospace">{{ (global_statistics.totalSeconds / 3600)|number_format(0) }}</div>
+                            <div class="display-6 fw-bold text-primary mb-2 tabular-nums">{{ (global_statistics.totalSeconds / 3600)|number_format(0) }}</div>
                             <p class="text-muted mb-0">{{ 'puzzle_tracker_app.community.hours_puzzling'|trans }}</p>
                         </div>
                     </div>

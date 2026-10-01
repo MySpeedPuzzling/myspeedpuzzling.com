@@ -173,12 +173,12 @@
                             </td>
                             <td class="text-end">
                                 {% if result.status.value == 'unfinished' %}
-                                    <span class="font-monospace">{{ 'round_results.pieces_placed'|trans({'%placed%': result.piecesPlaced, '%total%': puzzle.piecesCount}) }}</span>
+                                    <span class="tabular-nums">{{ 'round_results.pieces_placed'|trans({'%placed%': result.piecesPlaced, '%total%': puzzle.piecesCount}) }}</span>
                                     {% if result.finishedLaterSeconds is not null %}
                                         <br><small class="text-muted">{{ 'round_results.finished_later'|trans({'%time%': result.finishedLaterSeconds|puzzlingTime}) }}</small>
                                     {% endif %}
                                 {% else %}
-                                    <span class="font-monospace">{{ result.seconds|puzzlingTime }}</span>
+                                    <span class="tabular-nums">{{ result.seconds|puzzlingTime }}</span>
                                 {% endif %}
                                 {% if result.finishedAt is not null %}
                                     <br><small class="text-muted">{{ result.finishedAt|date('d.m.Y') }}</small>

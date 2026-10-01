@@ -1135,6 +1135,12 @@ div[data-countdown-target] {
     font-variant-numeric: tabular-nums;
 }
 
+// Numbers that are read in columns or compared (times, ranks, dates, counts): Rubik's tabular figures make every digit
+// the same width, so they line up - without switching to a monospace font that differs on every device
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
 .player-chart-placeholder {
     height: 200px;
     background: url('../img/player-chart-placeholder.png') center center no-repeat;

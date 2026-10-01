@@ -43,7 +43,7 @@ final class RecentActivityTest extends WebTestCase
         $this->startCountingQueries($browser);
         $html = $component->render()->toString();
 
-        preg_match_all('~My time: <span class="font-monospace">(.+?)</span>~', $html, $matches);
+        preg_match_all('~My time: <span class="tabular-nums">(.+?)</span>~', $html, $matches);
         self::assertNotEmpty($matches[1], 'Fixtures must show at least one "My time" line');
         self::assertSame($this->expectedMyTimes($browser->getContainer()), $matches[1]);
 

@@ -68,9 +68,9 @@
                         {% endif %}
 
                         <span class="ps-ppm">
-                            PPM <span class="font-monospace">{{ ppm(solving_time.time, solving_time.piecesCount) }}</span>
+                            PPM <span class="tabular-nums">{{ ppm(solving_time.time, solving_time.piecesCount) }}</span>
                             {%- if solving_time.players is not null %}
-                                <br>{{ solving_time.players|length }}× <span class="font-monospace">{{ ppm(solving_time.time, solving_time.piecesCount, solving_time.players|length) }}</span>
+                                <br>{{ solving_time.players|length }}× <span class="tabular-nums">{{ ppm(solving_time.time, solving_time.piecesCount, solving_time.players|length) }}</span>
                             {%- endif %}
                         </span>
                     </td>

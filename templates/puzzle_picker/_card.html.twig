@@ -77,12 +77,12 @@
                 {% elseif suggestion.mySolveCountSolo == 1 %}
                     <div>
                         <span class="text-muted">{{ 'puzzle_times.my_attempts.my_time'|trans }}</span>
-                        <span class="font-monospace">{{ suggestion.myFastestSeconds|puzzlingTime }}</span>
+                        <span class="tabular-nums">{{ suggestion.myFastestSeconds|puzzlingTime }}</span>
                     </div>
                 {% else %}
                     <div>
                         <span class="text-muted">{{ 'puzzle_times.my_attempts.fastest_time'|trans }}</span>
-                        <span class="font-monospace">{{ suggestion.myFastestSeconds|puzzlingTime }}</span>
+                        <span class="tabular-nums">{{ suggestion.myFastestSeconds|puzzlingTime }}</span>
                         <i class="bi bi-star-fill text-warning ms-1"></i>
                     </div>
                     {% if suggestion.myLatestSeconds == suggestion.myFastestSeconds %}
@@ -90,12 +90,12 @@
                     {% else %}
                         <div>
                             <span class="text-muted">{{ 'puzzle_times.my_attempts.latest_time'|trans }}</span>
-                            <span class="font-monospace">{{ suggestion.myLatestSeconds|puzzlingTime }}</span>
+                            <span class="tabular-nums">{{ suggestion.myLatestSeconds|puzzlingTime }}</span>
                         </div>
                     {% endif %}
                     <div>
                         <span class="text-muted">{{ 'puzzle_picker.card.first_time'|trans }}</span>
-                        <span class="font-monospace">{{ suggestion.myFirstSeconds|puzzlingTime }}</span>
+                        <span class="tabular-nums">{{ suggestion.myFirstSeconds|puzzlingTime }}</span>
                     </div>
                 {% endif %}
             {% endif %}

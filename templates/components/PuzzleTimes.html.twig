@@ -44,7 +44,7 @@
                 {% if attemptsCount == 1 %}
                     <div>
                         <span class="text-muted">{{ 'puzzle_times.my_attempts.my_time'|trans }}</span>
-                        <span class="font-monospace">{{ myLast.time|puzzlingTime }}</span>
+                        <span class="tabular-nums">{{ myLast.time|puzzlingTime }}</span>
                         {% if myLast.isEditableBy(logged_user.profile.playerId) %}
                             {{ include('_edit_time_button.html.twig', {timeId: myLast.timeId, context: 'puzzle-detail'}) }}
                         {% endif %}
@@ -52,7 +52,7 @@
                 {% else %}
                     <div>
                         <span class="text-muted">{{ 'puzzle_times.my_attempts.latest_time'|trans }}</span>
-                        <span class="font-monospace">{{ myLast.time|puzzlingTime }}</span>
+                        <span class="tabular-nums">{{ myLast.time|puzzlingTime }}</span>
                         {% if myLast.finishedAt is not null %}
                             <span class="text-muted">({{ myLast.finishedAt|date('d.m.Y') }})</span>
                         {% endif %}
@@ -65,7 +65,7 @@
                     {% else %}
                         <div>
                             <span class="text-muted">{{ 'puzzle_times.my_attempts.fastest_time'|trans }}</span>
-                            <span class="font-monospace">{{ myBest.time|puzzlingTime }}</span>
+                            <span class="tabular-nums">{{ myBest.time|puzzlingTime }}</span>
                             {% if myBest.finishedAt is not null %}
                                 <span class="text-muted">({{ myBest.finishedAt|date('d.m.Y') }})</span>
                             {% endif %}
@@ -116,7 +116,7 @@
                                         <span>
                                             <i class="bi bi-calendar3 text-muted me-1"></i>
                                             {% if row.attempt.finishedAt is not null %}
-                                                <span class="font-monospace">{{ row.attempt.finishedAt|date('d.m.Y') }}</span>
+                                                <span class="tabular-nums">{{ row.attempt.finishedAt|date('d.m.Y') }}</span>
                                             {% else %}
                                                 <span class="text-muted">&mdash;</span>
                                             {% endif %}
@@ -126,7 +126,7 @@
                                                 <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.75rem;"></i>
                                             {% endif %}
                                             <i class="bi bi-stopwatch text-muted me-1"></i>
-                                            <span class="font-monospace">{{ row.attempt.time|puzzlingTime }}</span>
+                                            <span class="tabular-nums">{{ row.attempt.time|puzzlingTime }}</span>
                                             {% if row.attempt.isEditableBy(logged_user.profile.playerId) %}
                                                 {{ include('_edit_time_button.html.twig', {timeId: row.attempt.timeId, context: 'puzzle-detail'}) }}
                                             {% endif %}
@@ -143,11 +143,11 @@
                                                 <div>
                                                     <i class="bi bi-arrow-return-left text-muted me-1"></i>
                                                     {% if delta < 0 %}
-                                                        <span class="text-success font-monospace">-{{ (delta|abs)|puzzlingTime }}</span>
+                                                        <span class="text-success tabular-nums">-{{ (delta|abs)|puzzlingTime }}</span>
                                                     {% elseif delta > 0 %}
-                                                        <span class="text-danger font-monospace">+{{ delta|puzzlingTime }}</span>
+                                                        <span class="text-danger tabular-nums">+{{ delta|puzzlingTime }}</span>
                                                     {% else %}
-                                                        <span class="text-muted font-monospace">+00:00:00</span>
+                                                        <span class="text-muted tabular-nums">+00:00:00</span>
                                                     {% endif %}
                                                 </div>
                                             {% endif %}
@@ -156,7 +156,7 @@
                                                 {% set delta_best = row.attempt.time - myBest.time %}
                                                 <div>
                                                     <i class="bi bi-star text-muted me-1" style="font-size: 0.7rem;"></i>
-                                                    <span class="text-danger font-monospace">+{{ delta_best|puzzlingTime }}</span>
+                                                    <span class="text-danger tabular-nums">+{{ delta_best|puzzlingTime }}</span>
                                                 </div>
                                             {% endif %}
                                         </div>
@@ -193,7 +193,7 @@
                     <span class="d-inline-flex align-items-center gap-1">
                         <svg class="stat-icon" width="18" height="18"><use href="/stat-icons-sprite.svg#stat-med"/></svg>
                         {{ 'median_time'|trans }}
-                        <span class="font-monospace">{{ this.medianTime|puzzlingTime }}</span>
+                        <span class="tabular-nums">{{ this.medianTime|puzzlingTime }}</span>
                     </span>
                 {% endif %}
 
@@ -202,7 +202,7 @@
                     <span class="d-inline-flex align-items-center gap-1">
                         <svg class="stat-icon" width="18" height="18"><use href="/stat-icons-sprite.svg#stat-avg"/></svg>
                         {{ 'average_time'|trans }}
-                        <span class="font-monospace">{{ this.averageTime|puzzlingTime }}</span>
+                        <span class="tabular-nums">{{ this.averageTime|puzzlingTime }}</span>
                     </span>
                 {% endif %}
             {% endif %}

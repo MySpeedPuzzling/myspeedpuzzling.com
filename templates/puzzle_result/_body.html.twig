@@ -81,9 +81,9 @@
                 {% if attempt.time is not null %}
                     <div class="pr-attempt-meta">
                         <span>
-                            PPM <span class="font-monospace">{{ ppm(attempt.time, result.piecesCount) }}</span>
+                            PPM <span class="tabular-nums">{{ ppm(attempt.time, result.piecesCount) }}</span>
                             {% if result.isGroup %}
-                                <span class="text-nowrap">({{ members_count }}× <span class="font-monospace">{{ ppm(attempt.time, result.piecesCount, members_count) }}</span>)</span>
+                                <span class="text-nowrap">({{ members_count }}× <span class="tabular-nums">{{ ppm(attempt.time, result.piecesCount, members_count) }}</span>)</span>
                             {% endif %}
                         </span>
 
@@ -92,17 +92,17 @@
                                 <span class="text-nowrap" title="{{ 'puzzle_result.change_to_previous'|trans }}">
                                     <i class="bi bi-arrow-return-left"></i>
                                     {%- if attempt.deltaToPrevious < 0 -%}
-                                        <span class="text-success font-monospace">-{{ attempt.deltaToPrevious|gapTime|slice(1) }}</span>
+                                        <span class="text-success tabular-nums">-{{ attempt.deltaToPrevious|gapTime|slice(1) }}</span>
                                     {%- elseif attempt.deltaToPrevious > 0 -%}
-                                        <span class="text-danger font-monospace">{{ attempt.deltaToPrevious|gapTime }}</span>
+                                        <span class="text-danger tabular-nums">{{ attempt.deltaToPrevious|gapTime }}</span>
                                     {%- else -%}
-                                        <span class="font-monospace">{{ 0|gapTime }}</span>
+                                        <span class="tabular-nums">{{ 0|gapTime }}</span>
                                     {%- endif -%}
                                 </span>
                             {% endif %}
                             {% if attempt.gapToBest is not null %}
                                 <span class="text-nowrap" title="{{ 'puzzle_result.gap_to_best'|trans }}">
-                                    <i class="bi bi-star"></i><span class="text-danger font-monospace">{{ attempt.gapToBest|gapTime }}</span>
+                                    <i class="bi bi-star"></i><span class="text-danger tabular-nums">{{ attempt.gapToBest|gapTime }}</span>
                                 </span>
                             {% endif %}
                         </span>

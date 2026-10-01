@@ -16,6 +16,7 @@ readonly final class Puzzler
         public bool $isPrivate,
         public null|string $skillTierName = null,
         public bool $rankingOptedOut = false,
+        public null|string $playerAvatar = null,
     ) {
     }
 
@@ -29,6 +30,7 @@ readonly final class Puzzler
      *     is_private: null|bool,
      *     skill_tier?: null|int|string,
      *     ranking_opted_out?: null|bool,
+     *     player_avatar?: null|string,
      *     ...
      * } $row
      */
@@ -47,6 +49,7 @@ readonly final class Puzzler
             isPrivate: $row['is_private'] === null ? false : $row['is_private'],
             skillTierName: $skillTierName,
             rankingOptedOut: ($row['ranking_opted_out'] ?? null) === null ? false : (bool) $row['ranking_opted_out'],
+            playerAvatar: $row['player_avatar'] ?? null,
         );
     }
 
@@ -78,6 +81,7 @@ readonly final class Puzzler
          *     player_code?: null|string,
          *     skill_tier?: null|int|string,
          *     ranking_opted_out?: null|bool,
+         *     player_avatar?: null|string,
          *  }> $playersData */
         $playersData = Json::decode($json, true);
 
@@ -96,6 +100,7 @@ readonly final class Puzzler
                 isPrivate: $data['is_private'] ?? false,
                 skillTierName: $skillTierName,
                 rankingOptedOut: ($data['ranking_opted_out'] ?? null) === null ? false : (bool) $data['ranking_opted_out'],
+                playerAvatar: $data['player_avatar'] ?? null,
             );
         }, $playersData);
 

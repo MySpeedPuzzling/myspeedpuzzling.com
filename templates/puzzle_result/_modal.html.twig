@@ -1,0 +1,19 @@
+{#
+    Result detail in the global modal: the puzzle and whose results with the best time stay pinned in the header,
+    the chart and the attempts scroll - on phones it is a near full screen sheet. Back closes it (data-modal-history,
+    dynamic_modal_controller.js).
+#}
+<turbo-frame id="modal-frame">
+    <div data-modal-size="modal-lg" data-modal-scrollable data-modal-sheet data-modal-history>
+        <div class="modal-header pr-modal-header">
+            <div class="pr-modal-header-top">
+                {{ include('puzzle_result/_puzzle.html.twig', {result: result, heading: 'h5'}) }}
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'puzzle_result.close'|trans }}"></button>
+            </div>
+            {{ include('puzzle_result/_head.html.twig', {result: result}) }}
+        </div>
+        <div class="modal-body pr-modal-body">
+            {{ include('puzzle_result/_body.html.twig', {result: result}) }}
+        </div>
+    </div>
+</turbo-frame>

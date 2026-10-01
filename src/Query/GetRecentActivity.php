@@ -50,6 +50,7 @@ SELECT
     player.name AS player_name,
     player.code AS player_code,
     player.country AS player_country,
+    player.avatar AS player_avatar,
     puzzle.pieces_count,
     puzzle_solving_time.comment,
     manufacturer.name AS manufacturer_name,
@@ -76,6 +77,7 @@ SELECT
             'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
+            'player_avatar', p.avatar,
             'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_m.skill_tier,
             'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
@@ -172,6 +174,7 @@ SELECT
     player.name AS player_name,
     player.code AS player_code,
     player.country AS player_country,
+    player.avatar AS player_avatar,
     puzzle.pieces_count,
     puzzle_solving_time.comment,
     manufacturer.name AS manufacturer_name,
@@ -198,6 +201,7 @@ SELECT
             'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
+            'player_avatar', p.avatar,
             'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_m.skill_tier,
             'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
@@ -330,6 +334,7 @@ SELECT
     player.name AS player_name,
     player.code AS player_code,
     player.country AS player_country,
+    player.avatar AS player_avatar,
     puzzle.pieces_count,
     pst.comment,
     manufacturer.name AS manufacturer_name,
@@ -356,6 +361,7 @@ SELECT
             'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
+            'player_avatar', p.avatar,
             'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_m.skill_tier,
             'ranking_opted_out', COALESCE(p.ranking_opted_out, false)

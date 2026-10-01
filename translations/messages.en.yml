@@ -300,6 +300,22 @@ puzzle_overview:
         by_brand: "Browse by brand"
         by_size: "Browse by piece count"
 
+puzzle_result:
+    title: "Results on this puzzle"
+    meta_title: "Results on %puzzle%"
+    close: "Close"
+    team_page: "Team page"
+    best_time: "Best time"
+    rank: "Rank %rank% of %total%"
+    attempt_number: "Attempt no. %number%"
+    chart:
+        fastest: "Fastest"
+        median: "Median"
+    personal_best: "Personal best"
+    change_to_previous: "Change against the previous attempt"
+    gap_to_best: "Behind the personal best"
+    finished_photo: "Photo of the finished puzzle"
+
 puzzle_times:
     my_attempts:
         my_time: "My time:"
@@ -319,6 +335,10 @@ puzzle_times:
         show_more: "Show %count% more"
         show_all: "Show all (%count%)"
         hidden_rows: "%count% more"
+        gap_to_fastest: "Behind the fastest time"
+        gap_to_faster: "Behind the next faster time"
+        result_detail: "Result detail: %time%"
+        attempts: "Solved %count%×"
     chart:
         noun:
             solo: "Puzzlers"

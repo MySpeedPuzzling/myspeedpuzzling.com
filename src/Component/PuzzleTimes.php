@@ -135,6 +135,16 @@ final class PuzzleTimes
 
     public null|string $myRowKey = null;
 
+    // Fastest time of the filtered leaderboard - every other row shows its gap to it
+    public null|int $leaderTime = null;
+
+    /**
+     * Gap of a row to the closest faster time - only where that time is not the fastest one (the leader gap says it)
+     *
+     * @var array<string, int>
+     */
+    public array $gapsToFaster = [];
+
     /** @var array<string, int> */
     public array $availableCountries = [];
 
@@ -329,8 +339,18 @@ final class PuzzleTimes
         $count = count($this->times);
         $this->averageTime = (int) ($totalTime / max(1, $count));
 
+        $this->leaderTime = null;
+        $this->gapsToFaster = [];
+
         if ($count > 0) {
             sort($allTimes);
+            // A group read model types its time as nullable, the leaderboard query only returns timed rows
+            $timed = array_values(array_filter($allTimes, static fn(null|int $time): bool => $time !== null));
+
+            if ($timed !== []) {
+                $this->leaderTime = $timed[0];
+                $this->gapsToFaster = $this->gapsToClosestFaster($timed);
+            }
             $mid = intdiv($count, 2);
             $this->medianTime = $count % 2 === 0
                 ? (int) (($allTimes[$mid - 1] + $allTimes[$mid]) / 2)
@@ -419,6 +439,38 @@ final class PuzzleTimes
     public function getShowMoreCount(): int
     {
         return min(self::DEFAULT_LIMIT, $this->getHiddenRowsCount());
+    }
+
+    /**
+     * @param list<int> $sortedTimes
+     * @return array<string, int>
+     */
+    private function gapsToClosestFaster(array $sortedTimes): array
+    {
+        $leaderTime = $sortedTimes[0];
+
+        // Each distinct time -> the closest faster one; tied rows share it, nobody is faster in between
+        $closestFaster = [];
+        $previous = null;
+        foreach ($sortedTimes as $time) {
+            if ($time !== $previous) {
+                $closestFaster[$time] = $previous;
+                $previous = $time;
+            }
+        }
+
+        $gaps = [];
+        foreach ($this->times as $rowKey => $grouped) {
+            $time = $grouped[0]->time;
+            $faster = $time !== null ? ($closestFaster[$time] ?? null) : null;
+
+            // For rank 2 the closest faster time is the fastest one - the leader gap already says it
+            if ($time !== null && $faster !== null && $faster !== $leaderTime) {
+                $gaps[$rowKey] = $time - $faster;
+            }
+        }
+
+        return $gaps;
     }
 
     /**

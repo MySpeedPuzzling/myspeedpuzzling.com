@@ -4,6 +4,26 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Result detail modal + unified ranking rows (#222)
+
+Shipped: [`features/puzzle-result-detail.md`](features/puzzle-result-detail.md),
+[`features/puzzle-leaderboard-chart.md`](features/puzzle-leaderboard-chart.md) §"Row layout".
+
+- [ ] Translate the new `puzzle_result.*` and `puzzle_times.leaderboard.*` keys (English only so far) + the `loading`
+      spinner label (English only from before)
+- [ ] Real-device check after deploy: the phone sheet, iOS swipe-back and the Android back button closing the modal
+- [ ] Click through the signed-in edit-time and feedback modals after the `dynamic_modal_controller.js` rewrite
+- [ ] Editing a time from the result detail opened on the profile lands on the puzzle page afterwards, not back on the
+      profile (edit context `puzzle-detail`)
+- [ ] The modal's rank is always the unfiltered leaderboard rank - with a country / first-try filter on the puzzle
+      page it can differ from the row's rank
+- [ ] After a link out of the modal, the page shows up twice in history (Back from the next page, then once more on
+      the same page) - accepted trade-off of pausing Turbo's history, see the hotwire guide
+- [ ] Profile pair/team tabs count distinct puzzles while their rows are per puzzle *and* pair - "Pair (1)" can have 2
+      rows; decide whether the tab should count rows
+- [ ] Older, found on the way: the "≡" menu button in the puzzle header makes the page 345 px wide at 320-340 px;
+      `templates/puzzle/brand_hub.html.twig` uses `column-gap-*`, which Bootstrap 5.2 does not have (no-op)
+
 ## First-try integrity (#217)
 
 Shipped: [`features/first-try-integrity.md`](features/first-try-integrity.md).

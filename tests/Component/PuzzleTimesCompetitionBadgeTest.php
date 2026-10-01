@@ -19,9 +19,9 @@ final class PuzzleTimesCompetitionBadgeTest extends WebTestCase
 
     public function testEditionTimeLinksToEditionAndStandaloneTimeLinksToEvent(): void
     {
-        // PLAYER_REGULAR on PUZZLE_500_01: TIME_36 (1750 s, fastest) is pointed at an EJJ edition,
-        // TIME_09 (1850 s) stays on the standalone WJPC 2024 and is rendered in the "more times"
-        // list of the same leaderboard row.
+        // PLAYER_REGULAR on PUZZLE_500_01: TIME_36 (1750 s, fastest) is pointed at an EJJ edition and is the
+        // leaderboard row; TIME_09 (1850 s) stays on the standalone WJPC 2024 - the player's other times are
+        // listed in the result detail of that row, not in the leaderboard.
         $client = self::createClient();
         TestingLogin::asPlayer($client, PlayerFixture::PLAYER_REGULAR);
 
@@ -44,11 +44,14 @@ final class PuzzleTimesCompetitionBadgeTest extends WebTestCase
         self::assertStringContainsString('Euro Jigsaw Jam · EJJ #68 — February 2026', $html);
         self::assertStringContainsString('href="/en/series/euro-jigsaw-jam-series/ejj-68-february-2026"', $html);
 
-        // Standalone: unchanged shortcut badge linked to the event page.
-        self::assertStringContainsString('<i class="bi bi-trophy-fill"></i> WJPC24</span>', $html);
-        self::assertStringContainsString('href="/en/events/wjpc-2024"', $html);
-
         // An edition must never be linked through the bare-slug event route.
         self::assertStringNotContainsString('/en/events/ejj-68-february-2026', $html);
+
+        // Standalone: unchanged shortcut badge linked to the event page, in the row's result detail.
+        $client->request('GET', '/en/result/' . PuzzleSolvingTimeFixture::TIME_36);
+        $detail = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('<i class="bi bi-trophy-fill"></i> WJPC24</span>', $detail);
+        self::assertStringContainsString('href="/en/events/wjpc-2024"', $detail);
+        self::assertStringContainsString('href="/en/series/euro-jigsaw-jam-series/ejj-68-february-2026"', $detail);
     }
 }

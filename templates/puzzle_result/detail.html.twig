@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'puzzle_result.meta_title'|trans({'%puzzle%': result.puzzleName}) }}{% endblock %}
+
+{# One time's view of a puzzle: the puzzle page is the page to index #}
+{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+
+{% block canonical %}
+    <link rel="canonical" href="{{ url('puzzle_detail', {puzzleId: result.puzzleId}) }}">
+{% endblock %}
+
+{% block hreflang %}{% endblock %}
+
+{% block content %}
+    <div class="container py-3" style="max-width: 720px;">
+        {{ include('_return_back_button.html.twig', {
+            fallbackUrl: path('puzzle_detail', {puzzleId: result.puzzleId}),
+            fallbackTitle: result.puzzleName,
+        }) }}
+
+        <h1 class="h4 mb-3">{{ 'puzzle_result.title'|trans }}</h1>
+
+        <div class="mb-3">
+            {{ include('puzzle_result/_puzzle.html.twig', {result: result}) }}
+        </div>
+
+        <div class="mb-3">
+            {{ include('puzzle_result/_head.html.twig', {result: result}) }}
+        </div>
+
+        {{ include('puzzle_result/_body.html.twig', {result: result}) }}
+    </div>
+{% endblock %}

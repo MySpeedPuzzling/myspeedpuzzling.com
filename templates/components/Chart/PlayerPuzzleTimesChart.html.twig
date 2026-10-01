@@ -1,6 +1,6 @@
 {% if computed.chart.data['labels']|length > 1 %}
     {% if this.bare %}
-        <div style="height: 200px;" data-controller="time-chart" class="position-relative">
+        <div style="height: {{ this.height }}px;" data-controller="time-chart" class="position-relative">
             {{ render_chart(computed.chart) }}
 
             <button
@@ -13,7 +13,7 @@
         </div>
     {% else %}
         <div class="card card-body p-2 my-3 shadow">
-            <div style="height: 200px;" data-controller="time-chart" class="position-relative">
+            <div style="height: {{ this.height }}px;" data-controller="time-chart" class="position-relative">
                 {{ render_chart(computed.chart) }}
 
                 <button

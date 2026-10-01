@@ -180,6 +180,33 @@ Jan: the distribution "loses track of the first tries detailed info", and people
 - What it shows on real boards: London Postcard's fast end is almost all repeats (people who trained on it), while a newer
   155-solver puzzle is mostly first tries.
 
+## Row layout (2026-10-01)
+
+One row = rank · player · time, and **the table never scrolls sideways** (320 px included):
+
+- Rank and time cells take their content's width (`width: 1%; white-space: nowrap`), the player cell takes the rest
+  (`width: 100%; max-width: 0`) and names truncate with an ellipsis. No per-width media queries needed; the
+  measured worst case (40-char name, rank 5667, time 181:18:00) fits at 320 px.
+- Every cell is top-aligned on the 28 px avatar line, so rank (black, monospace, no dot), name and time share one line.
+- Player = avatar (photo, else the initial on a tint picked by the last hex digit of the player id; incognito
+  for a private player) with the **country flag on the avatar's corner** (costs the name no width), skill tier
+  icon, name - `_leaderboard_player.html.twig`. Pair/team members stack, one 28 px line each.
+- Under the name (`_leaderboard_time_badges.html.twig`): pair/team page pill, "Solved N×" pill (from 2 attempts),
+  1st try, unboxed, event - truncated, wrapping only when needed. Date and PPM are not in the row any more.
+- Time column: time + its **gap to the fastest time** (🏆, `PuzzleTimes::$leaderTime`) and **to the closest faster
+  time** (↑, `PuzzleTimes::$gapsToFaster`, only when that is not the fastest one - rank 2 shows one gap); `gapTime`
+  filter: `+00:07`, `+12:05`, `+01:02:05`.
+- **A row opens the result detail** (date, PPM, every attempt with its deltas, the members' chart) in the global
+  modal, loaded on demand - the time is the row's real link (`puzzle_result_detail`, `data-turbo-frame="modal-frame"`),
+  a tap anywhere else on the row clicks it (`row_link_controller.js`). Nothing of it is in the page HTML.
+  See `docs/features/puzzle-result-detail.md`.
+- Below 380 px: 1 px smaller names and times.
+- **The same row everywhere a ranking lists players** (shared `_leaderboard_player.html.twig`, `_leaderboard_time_badges`,
+  `.ps-*` / `.lb-*` in `_leaderboard.scss`): the MSP rating ladder (`MspRatingLadder`), the ladders `/en/ladder` and
+  `/en/ladder/{solo|pairs|groups}/{pieces}` (`LadderTable`: player first, puzzle as a line under it, the image hidden
+  below 380 px) and the player profile results (`_player_solvings`: image · puzzle name, brand · pieces, members,
+  rank chip + badges · time). Rows that are a time open the result detail; none of them scroll sideways at 320 px.
+
 ## Tests
 
 - `tests/Services/LeaderboardHistogramBuilderTest.php` – empty, one solver, identical times, nice widths and aligned starts,

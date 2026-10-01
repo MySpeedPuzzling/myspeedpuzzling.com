@@ -1,0 +1,57 @@
+{#
+    One player of a leaderboard row: avatar (country flag on its corner), skill tier icon, name.
+
+    Inputs:
+      - player: PuzzleSolver, Puzzler or PlayerRatingEntry (playerId, playerName, playerCode, playerCountry - a
+                CountryCode or a plain code, playerAvatar, isPrivate, skillTierName, rankingOptedOut - the last two
+                may be missing where the list never holds private / opted-out players); a guest of a pair/team has
+                no playerId
+      - small (bool, optional): smaller avatar, for the members of a pair/team
+      - links_turbo_frame (string, optional): data-turbo-frame of the profile link - "_top" inside a modal
+      - profile_params (map, optional): extra query parameters of the profile link (e.g. ?return=)
+      - show_tier (bool, optional, default true): the skill tier icon - off where the data has no tier
+
+    The name truncates with an ellipsis instead of widening the table - the row must never scroll sideways.
+#}
+{%- from 'puzzle_intelligence/_macros.html.twig' import skill_icon -%}
+{%- set is_viewer = logged_user.profile is not null and player.playerId is not null and player.playerId == logged_user.profile.playerId -%}
+{%- set hidden = (player.isPrivate ?? false) and not is_viewer -%}
+{%- set country_code = player.playerCountry is null ? null : (player.playerCountry.name ?? player.playerCountry) -%}
+{%- set country_name = player.playerCountry is null ? null : (player.playerCountry.value ?? null) -%}
+{%- set name = player.playerName ?? ('#' ~ player.playerCode) -%}
+<span class="lb-player{{ small|default(false) ? ' lb-player-sm' }}">
+    <span class="lb-avatar">
+        {%- if hidden -%}
+            <span class="lb-avatar-img lb-avatar-private"><i class="bi bi-incognito"></i></span>
+        {%- elseif player.playerAvatar ?? null -%}
+            <img class="lb-avatar-img" src="{{ player.playerAvatar|thumbnail('puzzle_small') }}" alt="" loading="lazy" decoding="async">
+        {%- else -%}
+            {# The tint follows the id, so a player keeps their colour on every page #}
+            <span class="lb-avatar-img lb-avatar-initial lb-tint-{{ player.playerId is not null ? player.playerId|last : 'guest' }}" aria-hidden="true">
+                {{- name|trim('#')|first|upper -}}
+            </span>
+        {%- endif -%}
+        {%- if not hidden and country_code is not null -%}
+            <span class="lb-flag fi fi-{{ country_code|lower }}"{% if country_name %} title="{{ country_name }}"{% endif %}></span>
+        {%- endif -%}
+    </span>
+
+    {%- if hidden -%}
+        <span class="lb-name text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+    {%- elseif player.playerId is not null -%}
+        {%- if show_tier is defined and not show_tier -%}
+        {%- elseif logged_user.profile is not null and logged_user.profile.activeMembership and not (player.rankingOptedOut ?? false) -%}
+            {{ skill_icon(player.skillTierName ?? 'unknown', 16) }}
+        {%- else -%}
+            {{ skill_icon('locked', 16) }}
+        {%- endif -%}
+        <a class="lb-name" href="{{ path('player_profile', {playerId: player.playerId}|merge(profile_params|default({}))) }}"{% if links_turbo_frame is defined %} data-turbo-frame="{{ links_turbo_frame }}"{% endif %}>
+            {%- if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers -%}
+                <i class="ci-star-filled text-warning me-1"></i>
+            {%- endif -%}
+            {{- name -}}
+        </a>
+    {%- else -%}
+        <span class="lb-name lb-name-guest">{{ name }}</span>
+    {%- endif -%}
+</span>

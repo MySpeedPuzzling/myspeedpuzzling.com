@@ -1,0 +1,133 @@
+{#
+    Result detail: every result of one player - or one exact pair/team - on one puzzle (docs/features/puzzle-result-detail.md).
+    Shared by the modal (_modal.html.twig) and the full page (detail.html.twig): the members' chart and every attempt.
+    Above it the puzzle (_puzzle.html.twig) and whose results with the best time (_head.html.twig) - pinned in the
+    modal header, so only this part scrolls.
+
+    Inputs:
+      - result: PuzzleResultDetail
+
+    Mobile first: nothing here may make the modal scroll sideways at 320 px - long names truncate or wrap.
+    Links that leave the result carry data-turbo-frame="_top", so they navigate the page instead of the modal frame.
+#}
+{%- set viewer_id = logged_user.profile is not null ? logged_user.profile.playerId : null -%}
+{%- set is_member = logged_user.profile is not null and logged_user.profile.activeMembership -%}
+{%- set best = result.bestAttempt -%}
+{%- set standing = result.standing -%}
+{%- set members_count = result.membersCount -%}
+{%- set timed_attempts = result.timedAttempts -%}
+{#- Read by the included _leaderboard_player / _competition_badge: their links must leave the modal frame -#}
+{%- set links_turbo_frame = '_top' -%}
+
+<div class="puzzle-result" style="min-width: 0;">
+    {# 4. Progress chart - members only #}
+    {% if timed_attempts|length >= 2 %}
+        <div class="mb-3">
+            {% if is_member %}
+                <twig:Chart:PlayerPuzzleTimesChart
+                    :results="timed_attempts"
+                    bare="true"
+                    :height="150"
+                    :medianTime="standing is not null ? standing.medianTime : null"
+                    :fastestTime="standing is not null ? standing.leaderTime : null"
+                />
+            {% else %}
+                <div class="player-chart-placeholder text-center">
+                    {# A link, not the #membersExclusiveModal button: no Bootstrap modal on top of this one #}
+                    <a class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm mt-5 shadow-custom"
+                       data-turbo-frame="_top"
+                       href="{{ path('membership') }}"
+                    >
+                        <i class="ci-locked me-1"></i>
+                        {{ 'membership.members_exclusive_button'|trans }}
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {# 5. Every attempt, newest first - numbered in the order they were solved (#1 = the first) #}
+    {% set attempts_count = result.attempts|length %}
+    <ul class="pr-attempts list-unstyled mb-0">
+        {% for attempt in result.attempts %}
+            {% set is_focus = attempt.timeId == result.focusTimeId %}
+            <li class="pr-attempt"{% if is_focus %} aria-current="true"{% endif %}>
+                <div class="pr-attempt-line">
+                    <span class="pr-attempt-date{{ is_focus ? ' fw-bold' }}">
+                        {{- (attempt.finishedAt ?? attempt.trackedAt)|date('d.m.Y') -}}
+                        <span class="pr-attempt-number" title="{{ 'puzzle_result.attempt_number'|trans({'%number%': attempts_count - loop.index0}) }}">#{{ attempts_count - loop.index0 }}</span>
+                    </span>
+
+                    <span class="text-nowrap">
+                        {% if attempt.time is not null %}
+                            {% if attempt.isBest %}
+                                <i class="bi bi-star-fill text-warning me-1" title="{{ 'puzzle_result.personal_best'|trans }}"></i>
+                            {% endif %}
+                            <span class="pr-attempt-time{{ attempt.isBest ? ' fw-bold' }}">{{ attempt.time|puzzlingTime }}</span>
+                        {% else %}
+                            <span class="badge rounded-pill bg-secondary text-dark">
+                                <i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}
+                            </span>
+                        {% endif %}
+
+                        {% if attempt.isEditableBy(viewer_id) %}
+                            {{ include('_edit_time_button.html.twig', {timeId: attempt.timeId, context: 'puzzle-detail'}) }}
+                        {% endif %}
+                    </span>
+                </div>
+
+                {% if attempt.time is not null %}
+                    <div class="pr-attempt-meta">
+                        <span>
+                            PPM <span class="font-monospace">{{ ppm(attempt.time, result.piecesCount) }}</span>
+                            {% if result.isGroup %}
+                                <span class="text-nowrap">({{ members_count }}× <span class="font-monospace">{{ ppm(attempt.time, result.piecesCount, members_count) }}</span>)</span>
+                            {% endif %}
+                        </span>
+
+                        <span class="pr-deltas">
+                            {% if attempt.deltaToPrevious is not null %}
+                                <span class="text-nowrap" title="{{ 'puzzle_result.change_to_previous'|trans }}">
+                                    <i class="bi bi-arrow-return-left"></i>
+                                    {%- if attempt.deltaToPrevious < 0 -%}
+                                        <span class="text-success font-monospace">-{{ attempt.deltaToPrevious|gapTime|slice(1) }}</span>
+                                    {%- elseif attempt.deltaToPrevious > 0 -%}
+                                        <span class="text-danger font-monospace">{{ attempt.deltaToPrevious|gapTime }}</span>
+                                    {%- else -%}
+                                        <span class="font-monospace">{{ 0|gapTime }}</span>
+                                    {%- endif -%}
+                                </span>
+                            {% endif %}
+                            {% if attempt.gapToBest is not null %}
+                                <span class="text-nowrap" title="{{ 'puzzle_result.gap_to_best'|trans }}">
+                                    <i class="bi bi-star"></i><span class="text-danger font-monospace">{{ attempt.gapToBest|gapTime }}</span>
+                                </span>
+                            {% endif %}
+                        </span>
+                    </div>
+                {% endif %}
+
+                {{ include('_leaderboard_time_badges.html.twig', {time: attempt}) }}
+
+                {% if attempt.suspicious %}
+                    <div class="lb-badges">
+                        <span class="badge rounded-pill bg-warning">
+                            <i class="bi bi-exclamation-triangle"></i> {{ 'badge.suspicious'|trans }}
+                        </span>
+                    </div>
+                {% endif %}
+
+                {% if attempt.comment %}
+                    <p class="fs-xs text-muted fst-italic text-break mb-0 mt-1">{{ attempt.comment }}</p>
+                {% endif %}
+
+                {# Like on the profile: the photo of the finished puzzle only for whoever may edit the time #}
+                {% if attempt.finishedPuzzlePhoto is not null and attempt.isEditableBy(viewer_id) %}
+                    <a class="d-inline-block mt-1" href="{{ attempt.finishedPuzzlePhoto|thumbnail('puzzle_large') }}" target="_blank" rel="noopener" data-turbo="false">
+                        <img class="rounded-2" style="max-width: 50px; max-height: 66px;" loading="lazy" alt="{{ 'puzzle_result.finished_photo'|trans }}" src="{{ attempt.finishedPuzzlePhoto|thumbnail('puzzle_small') }}">
+                    </a>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+</div>

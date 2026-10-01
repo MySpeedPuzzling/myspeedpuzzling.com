@@ -39,6 +39,7 @@ SELECT
     COALESCE(p.name, player_elem.player ->> 'player_name') AS player_name,
     p.country AS player_country,
     p.code AS player_code,
+    p.avatar AS player_avatar,
     {$this->privateProfileAccess->sqlIsPrivate('p')} AS is_private
 FROM puzzle_solving_time
 LEFT JOIN LATERAL
@@ -68,6 +69,7 @@ SQL;
              *     player_name: null|string,
              *     player_country: null|string,
              *     player_code: null|string,
+             *     player_avatar: null|string,
              *     is_private: null|bool,
              * } $row
              */

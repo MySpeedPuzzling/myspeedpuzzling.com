@@ -1,0 +1,250 @@
+// Result detail (templates/puzzle_result/_body.html.twig) - modal and full page, mobile first
+
+// Whose results on the left, the best time with its rank and gaps on the right
+.pr-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+// The puzzle - in the modal header, or above the body on the full page
+.pr-puzzle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.pr-puzzle-image {
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+.pr-puzzle-text {
+    min-width: 0;
+}
+
+.pr-puzzle-name {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    a {
+        color: #111;
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+.pr-puzzle-meta {
+    font-size: .75rem;
+    color: #6c727f;
+}
+
+// Pinned modal header: the puzzle with the close button, under it whose results with the best time
+.pr-modal-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding-top: .75rem;
+    padding-bottom: .75rem;
+}
+
+.pr-modal-header-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .pr-puzzle {
+        flex: 1 1 auto;
+    }
+
+    .btn-close {
+        flex-shrink: 0;
+        margin: 0;
+    }
+}
+
+.pr-subject {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.custom-table-wrapper .table a.pr-team-link,
+a.pr-team-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    margin-top: 2px;
+    font-size: .75rem;
+    color: #6c727f;
+    text-decoration: none;
+
+    span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &:hover span {
+        text-decoration: underline;
+    }
+}
+
+.pr-rank {
+    margin-top: 6px;
+}
+
+// Best time on the right, its gaps under it
+.pr-best {
+    flex: 0 0 auto;
+    text-align: right;
+    line-height: 1;
+}
+
+.pr-best-label {
+    display: block;
+    margin-bottom: 2px;
+    font-size: .625rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #8a909c;
+}
+
+.pr-best-time {
+    display: block;
+    font-family: $font-family-monospace;
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.05;
+    color: #111;
+    letter-spacing: -.02em;
+}
+
+.pr-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.pr-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #f1f2f6;
+    font-family: $font-family-monospace;
+    font-size: .75rem;
+    line-height: 1.4;
+    color: #4b5160;
+    white-space: nowrap;
+
+    .bi {
+        font-size: .6875rem;
+    }
+}
+
+.pr-chip-rank {
+    font-family: inherit;
+    font-weight: 600;
+    color: #111;
+}
+
+// Every attempt: date #N ......... time, then PPM ......... deltas
+.pr-attempt {
+    padding: .5rem 0;
+
+    & + & {
+        border-top: 1px solid #eceef2;
+    }
+}
+
+.pr-attempt-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.pr-attempt-date {
+    font-family: $font-family-monospace;
+    font-size: .875rem;
+    color: #222;
+}
+
+.pr-attempt-number {
+    margin-left: 6px;
+    font-size: .6875rem;
+    font-weight: 400;
+    color: #9aa0ab;
+}
+
+.pr-attempt-time {
+    font-family: $font-family-monospace;
+    color: #111;
+}
+
+.pr-attempt-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2px 8px;
+    margin-top: 1px;
+    font-size: .75rem;
+    color: #6c727f;
+}
+
+.pr-deltas {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+
+    .bi {
+        margin-right: 3px;
+        font-size: .6875rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .pr-modal-header {
+        padding: .625rem .875rem;
+    }
+
+    .pr-modal-body {
+        padding: .625rem .875rem;
+    }
+
+    .pr-best-time {
+        font-size: 1.5rem;
+    }
+
+    .pr-attempt {
+        padding: .3125rem 0;
+    }
+
+    .pr-attempt-meta {
+        margin-top: 0;
+        line-height: 1.3;
+    }
+}
+
+// The non-members' placeholder is as tall as the chart it stands in for
+.puzzle-result .player-chart-placeholder {
+    height: 150px;
+
+    .btn {
+        margin-top: 3.5rem !important;
+    }
+}

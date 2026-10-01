@@ -1,5 +1,43 @@
 import { Controller } from '@hotwired/stimulus';
 
+/*
+ * Writes the caption of a reference line (a dataset with `referenceCaption`, e.g. "Median 00:53:28" from
+ * PlayerPuzzleTimesChart) just above its line at the left of the plot, in the line's colour.
+ * Below the line when there is no room above it.
+ */
+const referenceCaptionsPlugin = {
+    id: 'referenceCaptions',
+    afterDatasetsDraw(chart) {
+        const { ctx, chartArea } = chart;
+
+        chart.data.datasets.forEach((dataset, index) => {
+            const meta = chart.getDatasetMeta(index);
+
+            if (!dataset.referenceCaption || meta.hidden || meta.data.length === 0) {
+                return;
+            }
+
+            const lineY = meta.data[0].y;
+
+            if (lineY < chartArea.top || lineY > chartArea.bottom) {
+                return;
+            }
+
+            ctx.save();
+            ctx.font = '600 10px system-ui, -apple-system, "Segoe UI", sans-serif';
+            const height = 13;
+            const x = chartArea.left + 4;
+            const above = lineY - height - 2 >= chartArea.top;
+            const y = above ? lineY - height - 2 : lineY + 3;
+
+            ctx.fillStyle = dataset.borderColor;
+            ctx.textBaseline = 'top';
+            ctx.fillText(dataset.referenceCaption, x, y + 2);
+            ctx.restore();
+        });
+    },
+};
+
 export default class extends Controller {
     static targets = ['zoomButton'];
 
@@ -22,6 +60,11 @@ export default class extends Controller {
         const config = event.detail.config;
 
         this.applyOptions(config.options);
+
+        // JSON cannot carry a plugin: reference lines (a dataset with `referenceCaption`) get their caption here
+        if ((config.data?.datasets || []).some((dataset) => dataset.referenceCaption)) {
+            config.plugins = [...(config.plugins || []), referenceCaptionsPlugin];
+        }
     }
 
     _onViewValueChanged(event) {
@@ -85,6 +128,9 @@ export default class extends Controller {
         if (!options.plugins.tooltip) {
             options.plugins.tooltip = {};
         }
+
+        // Reference lines are read from their caption, not from a tooltip on every point
+        options.plugins.tooltip.filter = (item) => !item.dataset.referenceCaption;
 
         options.plugins.tooltip.callbacks = {
             label: function (context) {

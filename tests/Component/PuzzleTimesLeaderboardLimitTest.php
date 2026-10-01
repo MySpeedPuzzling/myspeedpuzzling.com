@@ -39,7 +39,7 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
         $crawler = $this->mountSoloLeaderboard($client, PuzzleFixture::PUZZLE_500_01, 500, limit: 2)->render()->crawler();
 
         self::assertSame([PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_REGULAR], $this->rowKeys($crawler));
-        self::assertSame(['1.', '2.'], $this->ranks($crawler));
+        self::assertSame(['1', '2'], $this->ranks($crawler));
         self::assertCount(0, $crawler->filter('tr.leaderboard-gap'));
 
         // Tab count and median describe all 4 rows - the median of the 2 visible ones would be 00:24:35
@@ -74,7 +74,7 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
 
         $crawler = $component->call('showMore')->render()->crawler();
         self::assertSame(array_slice($solvers, 0, 200), $this->rowKeys($crawler));
-        self::assertSame('200.', $this->ranks($crawler)[199]);
+        self::assertSame('200', $this->ranks($crawler)[199]);
         self::assertSame('Show 50 more', $this->buttonText($crawler, 'showMore'));
         self::assertSame('Show all (250)', $this->buttonText($crawler, 'showAll'));
 
@@ -155,7 +155,7 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
             [...array_slice($solvers, 0, PuzzleTimes::DEFAULT_LIMIT), $solvers[148], $solvers[149], PlayerFixture::PLAYER_WITH_STRIPE, $solvers[150], $solvers[151]],
             $this->rowKeys($crawler),
         );
-        self::assertSame(['149.', '150.', '151.', '152.', '153.'], array_slice($this->ranks($crawler), -5));
+        self::assertSame(['149', '150', '151', '152', '153'], array_slice($this->ranks($crawler), -5));
 
         // One "⋯" row counting rows 101-148, right above the neighbourhood; the viewer's row stays the "Jump to me" target
         $gap = $crawler->filter('tr.leaderboard-gap');
@@ -264,6 +264,19 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
         self::assertSame('Rank 3 of 4 · 00:15:00 behind the fastest', $crawler->filter('[data-testid="my-position"]')->text());
     }
 
+    public function testRowsShowTheirGapsToTheFastestAndToTheNextFasterTime(): void
+    {
+        $client = self::createClient();
+
+        $crawler = $this->mountSoloLeaderboard($client, PuzzleFixture::PUZZLE_500_01, 500)->render()->crawler();
+
+        self::assertCount(0, $crawler->filter('#leaderboard-row-' . PlayerFixture::PLAYER_ADMIN . ' .lb-gap'));
+        // 2nd place: the closest faster time is the fastest one, one gap says it all
+        self::assertCount(1, $this->gaps($crawler, PlayerFixture::PLAYER_REGULAR));
+        // 3rd place: behind the fastest, then behind the 2nd place (00:34:10)
+        self::assertSame(['+15:00', '+05:50'], $this->gaps($crawler, PlayerFixture::PLAYER_WITH_STRIPE));
+    }
+
     public function testTiedTimesShareTheRankOfTheRowAbove(): void
     {
         $client = self::createClient();
@@ -276,7 +289,7 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
             [PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_REGULAR],
             $this->rowKeys($crawler),
         );
-        self::assertSame(['1.', '2.', '2.', '2.'], $this->ranks($crawler));
+        self::assertSame(['1', '2', '2', '2'], $this->ranks($crawler));
     }
 
     public function testNeighbourhoodKeepsTiedRanks(): void
@@ -293,7 +306,7 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
             [$solvers[147], $solvers[148], PlayerFixture::PLAYER_WITH_STRIPE, $solvers[149], $solvers[150]],
             array_slice($this->rowKeys($crawler), -5),
         );
-        self::assertSame(['148.', '149.', '150.', '150.', '152.'], array_slice($this->ranks($crawler), -5));
+        self::assertSame(['148', '149', '150', '150', '152'], array_slice($this->ranks($crawler), -5));
         self::assertStringStartsWith('Rank 150 of 251 ·', $crawler->filter('[data-testid="my-position"]')->text());
     }
 
@@ -354,6 +367,16 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
     {
         return $crawler->filter('tr[id^="leaderboard-row-"]')->each(
             static fn (Crawler $row): string => substr((string) $row->attr('id'), strlen('leaderboard-row-')),
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function gaps(Crawler $crawler, string $rowKey): array
+    {
+        return $crawler->filter('#leaderboard-row-' . $rowKey . ' .lb-gap')->each(
+            static fn (Crawler $gap): string => trim($gap->text()),
         );
     }
 

@@ -304,7 +304,7 @@
             {% if this.duoSolvedPuzzles|length == 0 %}disabled{% endif %}
         >
             <span class="users-icons duo"><i class="ci-user"></i><i class="ci-user"></i></span>
-            {{ 'ladder.duo'|trans }} ({{ this.duoSolvedPuzzles|length }})
+            {{ 'ladder.duo'|trans }} ({{ this.duoPuzzlesCount }})
         </button>
 
         <button
@@ -315,7 +315,7 @@
             {% if this.teamSolvedPuzzles|length == 0 %}disabled{% endif %}
         >
             <span class="users-icons team"><i class="ci-user"></i><i class="ci-user"></i><i class="ci-user"></i><i class="ci-user"></i></span>
-            {{ 'ladder.team'|trans }} ({{ this.teamSolvedPuzzles|length }})
+            {{ 'ladder.team'|trans }} ({{ this.teamPuzzlesCount }})
         </button>
     </div>
 

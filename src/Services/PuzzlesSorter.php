@@ -66,6 +66,24 @@ readonly final class PuzzlesSorter
     }
 
     /**
+     * Pair/team results grouped by puzzle AND the exact people (puzzling team), in the given order - one group is
+     * what the result detail of its first time shows (docs/features/puzzle-result-detail.md)
+     *
+     * @param array<SolvedPuzzle> $solvedPuzzles
+     * @return array<string, non-empty-array<SolvedPuzzle>>
+     */
+    public function groupPuzzlesByTeam(array $solvedPuzzles): array
+    {
+        $grouped = [];
+
+        foreach ($solvedPuzzles as $solvedPuzzle) {
+            $grouped[$solvedPuzzle->puzzleId . '|' . ($solvedPuzzle->teamId ?? $solvedPuzzle->timeId)][] = $solvedPuzzle;
+        }
+
+        return $grouped;
+    }
+
+    /**
      * @param array<SolvedPuzzle> $solvedPuzzles
      * @return array<string, non-empty-array<SolvedPuzzle>>
      */

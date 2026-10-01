@@ -1,0 +1,526 @@
+// Puzzle detail leaderboard (templates/components/PuzzleTimes.html.twig, _leaderboard_player, _leaderboard_time_badges);
+// a row opens the result detail modal through controllers/row_link_controller.js
+//
+// The table must never scroll sideways, at 320 px included: rank and time take their content's width, the player
+// column takes the rest (width: 100% + max-width: 0) and names truncate with an ellipsis inside it.
+// Every cell is top-aligned on a 28 px first line (the avatar), so rank, name and time share one baseline.
+// Rank, times, gaps and dates are monospace - the first step of unifying numbers across the rankings.
+
+$lb-line: 28px;
+$lb-avatar: 28px;
+$lb-avatar-sm: 22px;
+$lb-indent: $lb-avatar + 8px;
+
+// Tint of an avatar without a photo, picked by the last hex digit of the player id
+$lb-tints: (
+    (#fde2e2, #b4383a),
+    (#fdebd3, #9a550b),
+    (#e3f4dc, #3c7a2a),
+    (#d9f1f0, #1d6f6b),
+    (#dde9fb, #2d5ba3),
+    (#e7e2fb, #5842ad),
+    (#f8dff0, #9d3780),
+    (#ece7df, #6a5843),
+);
+
+.lb-wrapper {
+    // .table-responsive is gone on purpose: nothing in the table may be wider than the screen
+    overflow: hidden;
+}
+
+.lb-table {
+    width: 100%;
+    font-size: .9375rem;
+
+    > :not(caption) > * > * {
+        padding-top: .375rem;
+        padding-bottom: .375rem;
+        vertical-align: top;
+    }
+
+    thead th {
+        font-size: .8125rem;
+        font-weight: 600;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    td.rank,
+    .lb-rank-head {
+        width: 1%;
+        white-space: nowrap;
+        text-align: center;
+        padding-left: 8px;
+        padding-right: 0;
+    }
+
+    td.lb-solver {
+        width: 100%;
+        max-width: 0;
+        padding-left: 10px;
+    }
+
+    td.lb-time {
+        width: 1%;
+        white-space: nowrap;
+        text-align: right;
+        padding-left: 8px;
+        padding-right: 10px;
+    }
+}
+
+.lb-row {
+    cursor: pointer;
+}
+
+// The time is the row's link to the result detail - it looks like the time, not like a link
+.custom-table-wrapper .table a.lb-detail-link {
+    color: #111;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
+    }
+}
+
+.lb-attempts-badge,
+.lb-team-badge {
+    background: #eef0f4;
+    color: #4b5160;
+}
+
+.lb-rank {
+    display: block;
+    min-width: 2ch;
+    font-family: $font-family-monospace;
+    font-size: .8125rem;
+    font-weight: 600;
+    line-height: $lb-line;
+    color: #111;
+}
+
+.lb-time-value {
+    display: block;
+    font-family: $font-family-monospace;
+    font-weight: 600;
+    line-height: $lb-line;
+    color: #111;
+    letter-spacing: -.02em;
+}
+
+.lb-gap {
+    display: block;
+    margin-top: -2px;
+    font-family: $font-family-monospace;
+    font-size: .6875rem;
+    line-height: 1.3;
+    color: #8a909c;
+    letter-spacing: -.02em;
+
+    .bi {
+        margin-right: 3px;
+        font-size: .5625rem;
+        vertical-align: 1px;
+    }
+
+    & + & {
+        margin-top: 0;
+    }
+}
+
+// One player: avatar · tier · name, always one 28 px line - pair/team members stack line by line
+.lb-player {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    height: $lb-line;
+
+    .rank-icon {
+        flex-shrink: 0;
+    }
+}
+
+.lb-avatar {
+    position: relative;
+    flex-shrink: 0;
+    width: $lb-avatar;
+    height: $lb-avatar;
+    margin-right: 2px;
+}
+
+.lb-avatar-img {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    font-size: .8125rem;
+    font-weight: 600;
+    line-height: 1;
+    user-select: none;
+}
+
+.lb-avatar-private {
+    background: #eceef2;
+    color: #8a909c;
+}
+
+.lb-tint-guest {
+    background: #eceef2;
+    color: #6c727f;
+}
+
+@each $digit in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, a, b, c, d, e, f) {
+    $index: index((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, a, b, c, d, e, f), $digit);
+    $tint: nth($lb-tints, ($index - 1) % length($lb-tints) + 1);
+
+    .lb-tint-#{$digit} {
+        background: nth($tint, 1);
+        color: nth($tint, 2);
+    }
+}
+
+// The country flag sits on the avatar's corner - it costs the name no width
+.lb-flag.fi {
+    position: absolute;
+    right: -4px;
+    bottom: -2px;
+    width: 14px;
+    height: 10.5px;
+    line-height: 10.5px;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1.5px #fff, 0 1px 2px rgba(0, 0, 0, .25);
+}
+
+.lb-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+// The player partial is used outside the table too (result detail modal)
+a.lb-name,
+.custom-table-wrapper .table a.lb-name {
+    color: #111;
+    font-weight: 500;
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.lb-name-guest {
+    color: #4b5160;
+}
+
+.lb-player-sm {
+    font-size: .875rem;
+
+    .lb-avatar {
+        width: $lb-avatar-sm;
+        height: $lb-avatar-sm;
+        // Keeps the members' names in line with a solo row's name
+        margin-left: ($lb-avatar - $lb-avatar-sm) * .5;
+        margin-right: ($lb-avatar - $lb-avatar-sm) * .5 + 2px;
+    }
+
+    .lb-avatar-img {
+        font-size: .6875rem;
+    }
+
+    .lb-flag.fi {
+        width: 12px;
+        height: 9px;
+        line-height: 9px;
+    }
+}
+
+.lb-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin: 1px 0 2px;
+
+    // In a leaderboard row they sit under the name, not under the avatar
+    .lb-table & {
+        margin-left: $lb-indent;
+    }
+
+    // _competition_badge starts with a <br> - a flex container ignores it
+    br {
+        display: none;
+    }
+
+    a {
+        max-width: 100%;
+        text-decoration: none;
+    }
+
+    .badge {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: .6875rem;
+        font-weight: 600;
+        padding: .25em .55em;
+        vertical-align: top;
+    }
+}
+
+// Small phones: 1px less for names and times keeps more of the name visible
+@media (max-width: 379.98px) {
+    .lb-table {
+        font-size: .875rem;
+
+        td.rank {
+            padding-left: 6px;
+        }
+
+        td.lb-solver {
+            padding-left: 8px;
+        }
+
+        td.lb-time {
+            padding-left: 6px;
+            padding-right: 8px;
+        }
+    }
+
+    .lb-rank {
+        font-size: .75rem;
+    }
+
+    .lb-player-sm {
+        font-size: .8125rem;
+    }
+
+}
+
+// Player profile results (templates/_player_solvings.html.twig) - the leaderboard's building blocks, one row per puzzle:
+// image · puzzle with its tags (takes the rest, truncates) · time. Never scrolls sideways.
+.ps-wrapper {
+    overflow: hidden;
+}
+
+.ps-table {
+    width: 100%;
+
+    > :not(caption) > * > * {
+        padding-top: .5rem;
+        padding-bottom: .5rem;
+        vertical-align: top;
+    }
+
+    td.ps-image {
+        width: 1%;
+        padding-left: 10px;
+        padding-right: 0;
+        text-align: center;
+    }
+
+    td.ps-info {
+        width: 100%;
+        max-width: 0;
+        padding-left: 10px;
+    }
+
+    td.ps-time {
+        width: 1%;
+        padding-left: 8px;
+        padding-right: 10px;
+        text-align: right;
+        white-space: nowrap;
+    }
+}
+
+.ps-photo {
+    margin-top: 4px;
+
+    img {
+        width: 40px;
+        height: 40px;
+        object-fit: cover;
+    }
+}
+
+.custom-table-wrapper .table a.ps-puzzle-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #111;
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.ps-puzzle-meta {
+    margin-top: 1px;
+    font-size: .75rem;
+    line-height: 1.3;
+    color: #6c727f;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ps-members {
+    margin-top: 2px;
+
+    .lb-player {
+        height: 24px;
+    }
+}
+
+.ps-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 3px;
+    margin-top: 4px;
+
+    // The badges partial brings its own row - here it joins the tags row
+    .lb-badges {
+        display: contents;
+    }
+
+    .pr-chip {
+        font-size: .6875rem;
+        padding: 1px 7px;
+    }
+}
+
+.ps-share {
+    padding: 1px 8px;
+    font-size: .6875rem;
+    line-height: 1.5;
+    border-radius: 999px;
+}
+
+.custom-table-wrapper .table a.ps-time-value {
+    display: block;
+    font-family: $font-family-monospace;
+    font-weight: 600;
+    color: #111;
+    letter-spacing: -.02em;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
+    }
+}
+
+.ps-date,
+.ps-ppm {
+    display: block;
+    font-size: .75rem;
+    line-height: 1.35;
+    color: #6c727f;
+}
+
+.ps-date {
+    font-family: $font-family-monospace;
+    letter-spacing: -.02em;
+}
+
+.ps-time .btn {
+    margin-top: 2px;
+}
+
+@media (max-width: 379.98px) {
+    .ps-table {
+        font-size: .875rem;
+
+        td.ps-image {
+            padding-left: 8px;
+        }
+
+        td.ps-info {
+            padding-left: 8px;
+        }
+
+        td.ps-time {
+            padding-left: 6px;
+            padding-right: 8px;
+        }
+    }
+}
+
+// Ladders (templates/components/LadderTable.html.twig): the profile row with a rank in front
+.ps-table td.rank {
+    width: 1%;
+    padding-left: 8px;
+    padding-right: 0;
+    text-align: center;
+    white-space: nowrap;
+
+    .lb-rank {
+        line-height: 1.5;
+    }
+}
+
+.ps-table td.rank + td.ps-image {
+    padding-left: 8px;
+}
+
+.ps-members-lead {
+    margin-top: 0;
+}
+
+// The puzzle as context under the player (ladders, recent activity): one line, truncated
+.ps-puzzle-line {
+    margin-top: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .75rem;
+    color: #6c727f;
+
+    a {
+        color: #4b5160 !important;
+        text-decoration: none !important;
+        font-weight: 500;
+
+        &:hover {
+            text-decoration: underline !important;
+        }
+    }
+}
+
+// Small phones: on a ladder the player's name needs the room more than the puzzle image (the puzzle stays named under it)
+@media (max-width: 379.98px) {
+    .ps-table td.rank + td.ps-image {
+        display: none;
+    }
+}
+
+// A very faint tone on every other row of the ranking tables - the viewer's own row keeps its highlight
+.lb-table,
+.ps-table {
+    > tbody > tr:nth-of-type(even):not(.table-active-player) > * {
+        background-color: #f9fafb;
+    }
+}
+
+// Recent activity: the owner's share / edit / delete menu sits on the image's corner
+.ps-actions {
+    top: -5px;
+    left: -5px;
+}
+
+// "2 hours ago" is not a date - no monospace
+.ps-time .ps-date:not(time) {
+    font-family: inherit;
+    letter-spacing: 0;
+}

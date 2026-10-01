@@ -18,6 +18,20 @@ readonly final class PuzzlingTimeFormatter
         );
     }
 
+    /**
+     * Gap behind a faster time, in the leaderboard's own format without the empty hours: "+00:07", "+12:05", "+01:02:05"
+     */
+    public function gapTime(int $interval): string
+    {
+        $interval = abs($interval);
+
+        if ($interval < 3600) {
+            return sprintf('+%s:%s', $this->minutesElapsed($interval), $this->secondsElapsed($interval));
+        }
+
+        return '+' . $this->formatTime($interval);
+    }
+
     public function compactTime(int $interval): string
     {
         $interval = abs($interval);

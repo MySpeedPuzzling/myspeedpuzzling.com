@@ -44,6 +44,7 @@ readonly final class RecentActivityItem
         public null|string $competitionSeriesName = null,
         public null|string $competitionSeriesShortcut = null,
         public null|string $competitionSeriesSlug = null,
+        public null|string $playerAvatar = null,
     ) {
     }
 
@@ -79,6 +80,7 @@ readonly final class RecentActivityItem
      *     puzzle_identification_number: null|string,
      *     team_id?: null|string,
      *     players?: null|string|array<Puzzler>,
+     *     player_avatar?: null|string,
      *     first_attempt: bool,
      *     unboxed: bool,
      *     is_private?: bool,
@@ -139,6 +141,7 @@ readonly final class RecentActivityItem
             competitionSeriesSlug: $row['competition_series_slug'],
             skillTierName: $row['skill_tier_name'] ?? null,
             rankingOptedOut: $row['ranking_opted_out'] ?? false,
+            playerAvatar: $row['player_avatar'] ?? null,
         );
     }
 

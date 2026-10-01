@@ -535,16 +535,18 @@ a.lb-name,
     letter-spacing: 0;
 }
 
-// Phones: ranking tables run edge to edge - the container's 15 px side padding is better spent on names
+// Phones: ranking tables run edge to edge - the container's side padding (15 or 16 px, depending on the page) is
+// better spent on names. Full bleed by the viewport, so it does not depend on that padding; the side borders go too,
+// or they would leave a 1 px line at the screen edge.
 @media (max-width: 599.98px) {
-    .lb-wrapper,
-    .ps-wrapper {
-        margin-left: calc(var(--#{$prefix}gutter-x, #{$grid-gutter-width}) * -.5);
-        margin-right: calc(var(--#{$prefix}gutter-x, #{$grid-gutter-width}) * -.5);
+    .custom-table-wrapper.lb-wrapper,
+    .custom-table-wrapper.ps-wrapper {
+        margin-left: calc(50% - 50vw);
+        margin-right: calc(50% - 50vw);
         border-radius: 0;
         box-shadow: 0 1px 6px rgba(0, 0, 0, .12);
 
-        .table {
+        > .table {
             border-left: 0;
             border-right: 0;
         }

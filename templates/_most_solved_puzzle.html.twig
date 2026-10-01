@@ -8,16 +8,7 @@
                     <tr class="{{ show_limit is not null and loop.index > show_limit ? 'd-none' }}">
                         <td class="text-center">
                             <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
-                                {{ lazy_puzzle_image(
-                                    most_solved_puzzle.puzzleImage,
-                                    'puzzle_small',
-                                    'puzzle_img_alt'|trans({'%puzzle%': most_solved_puzzle.manufacturerName ~ ' ' ~ most_solved_puzzle.puzzleName}),
-                                    loop.index,
-                                    80,
-                                    'rounded-2',
-                                    null,
-                                    most_solved_puzzle.puzzleImageRatio
-                                ) }}
+                                {{ include('_puzzle_row_image.html.twig', {image: most_solved_puzzle.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': most_solved_puzzle.manufacturerName ~ ' ' ~ most_solved_puzzle.puzzleName}), position: loop.index, ratio: most_solved_puzzle.puzzleImageRatio}) }}
                             </a>
                         </td>
 

@@ -505,12 +505,6 @@ a.lb-name,
     }
 }
 
-// Small phones: on a ladder the player's name needs the room more than the puzzle image (the puzzle stays named under it)
-@media (max-width: 379.98px) {
-    .ps-table td.rank + td.ps-image {
-        display: none;
-    }
-}
 
 // A very faint tone on every other row of the ranking tables - the viewer's own row keeps its highlight
 .lb-table,
@@ -595,4 +589,29 @@ a.lb-name,
         height: 12px;
         line-height: 12px;
     }
+}
+
+// The puzzle image of a table row (_puzzle_row_image.html.twig): 80 px everywhere, 72 px on small phones. The lazy image
+// sets its box inline, hence !important.
+@media (max-width: 379.98px) {
+    .lazy-img-wrapper.puzzle-row-image {
+        width: 72px !important;
+        height: 72px !important;
+        max-width: 72px;
+        max-height: 72px;
+
+        img {
+            max-height: 72px !important;
+        }
+    }
+}
+
+// Recent activity: "1st try" under the time and the "… ago" line, instead of the PPM
+.ps-time .ps-first-try {
+    display: inline-block;
+    margin-top: 3px;
+    padding: .25em .55em;
+    font-size: .6875rem;
+    font-weight: 600;
+    line-height: 1.2;
 }

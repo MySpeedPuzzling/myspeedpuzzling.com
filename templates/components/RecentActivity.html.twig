@@ -14,16 +14,7 @@
                         <td class="ps-image">
                             <div class="position-relative">
                                 <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
-                                    {{ lazy_puzzle_image(
-                                        item.puzzleImage,
-                                        'puzzle_small',
-                                        'puzzle_img_alt'|trans({'%puzzle%': item.manufacturerName ~ ' ' ~ item.puzzleName}),
-                                        loop.index,
-                                        60,
-                                        'rounded-2',
-                                        60,
-                                        item.puzzleImageRatio
-                                    ) }}
+                                    {{ include('_puzzle_row_image.html.twig', {image: item.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': item.manufacturerName ~ ' ' ~ item.puzzleName}), position: loop.index, ratio: item.puzzleImageRatio}) }}
                                 </a>
 
                                 {% if logged_user.profile is not null and item.isEditableBy(logged_user.profile.playerId) %}
@@ -64,7 +55,7 @@
                             {% endif %}
 
                             <div class="ps-tags">
-                                {{ include('_leaderboard_time_badges.html.twig', {time: item}) }}
+                                {{ include('_leaderboard_time_badges.html.twig', {time: item, skip_first_try: true}) }}
                             </div>
                         </td>
 
@@ -86,19 +77,15 @@
 
                             <span class="ps-date">{{ item.trackedAt|ago }}</span>
 
-                            {% if item.isSpeedMode %}
-                                <span class="ps-ppm">
-                                    PPM <span class="tabular-nums">{{ ppm(item.time, item.piecesCount) }}</span>
-                                    {%- if item.players is not null %}
-                                        <br>{{ item.players|length }}× <span class="tabular-nums">{{ ppm(item.time, item.piecesCount, item.players|length) }}</span>
-                                    {%- endif %}
-                                </span>
+                            {# On a feed "1st try" says more at a glance than the PPM (that one is in the result detail) #}
+                            {% if item.firstAttempt %}
+                                <span class="badge rounded-pill bg-info ps-first-try">{{ 'first_attempt'|trans }}</span>
+                            {% endif %}
 
-                                {% if logged_user.profile is not null and item.playerId is not same as logged_user.profile.playerId %}
-                                    {% set my_best_times = this.myBestTimes %}
-                                    {% if item.players is null and my_best_times[item.puzzleId] is defined %}
-                                        <span class="ps-ppm">{{ 'my_time'|trans }} <span class="tabular-nums">{{ my_best_times[item.puzzleId]|puzzlingTime }}</span></span>
-                                    {% endif %}
+                            {% if item.isSpeedMode and logged_user.profile is not null and item.playerId is not same as logged_user.profile.playerId %}
+                                {% set my_best_times = this.myBestTimes %}
+                                {% if item.players is null and my_best_times[item.puzzleId] is defined %}
+                                    <span class="ps-ppm">{{ 'my_time'|trans }} <span class="tabular-nums">{{ my_best_times[item.puzzleId]|puzzlingTime }}</span></span>
                                 {% endif %}
                             {% endif %}
                         </td>

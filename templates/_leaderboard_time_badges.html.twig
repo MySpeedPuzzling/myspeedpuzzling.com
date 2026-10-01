@@ -5,10 +5,12 @@
       - time: PuzzleSolver or PuzzleSolversGroup
       - attempts (int, optional): how many times the player/pair/team solved the puzzle - a pill from 2 on
       - team_page_label (string, optional): links a pair/team time to its team page - the team's name when it has one
+      - skip_first_try (bool, optional): the caller shows "1st try" elsewhere (recent activity: next to the time)
 #}
 {%- set attempts = attempts|default(1) -%}
 {%- set team_link = team_page_label is defined and time.teamId is defined and time.teamId is not null -%}
-{%- if time.firstAttempt or time.unboxed or time.competitionName or attempts > 1 or team_link -%}
+{%- set show_first_try = time.firstAttempt and not (skip_first_try is defined and skip_first_try) -%}
+{%- if show_first_try or time.unboxed or time.competitionName or attempts > 1 or team_link -%}
     <div class="lb-badges">
         {%- if team_link -%}
             <a href="{{ path('puzzling_team_detail', {teamId: time.teamId}) }}" data-testid="team-link">
@@ -18,7 +20,7 @@
         {%- if attempts > 1 -%}
             <span class="badge rounded-pill lb-attempts-badge"><i class="bi bi-arrow-repeat"></i> {{ 'puzzle_times.leaderboard.attempts'|trans({'%count%': attempts}) }}</span>
         {%- endif -%}
-        {%- if time.firstAttempt -%}
+        {%- if show_first_try -%}
             <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
         {%- endif -%}
         {%- if time.unboxed -%}

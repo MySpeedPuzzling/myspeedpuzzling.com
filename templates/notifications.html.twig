@@ -42,14 +42,7 @@
                                 <td class="" style="width: 80px;">
                                     {% if notification.changeRequestPuzzleImage is not null %}
                                         <a href="{{ path('puzzle_detail', {puzzleId: notification.changeRequestPuzzleId}) }}">
-                                            {{ lazy_puzzle_image(
-                                                notification.changeRequestPuzzleImage,
-                                                'puzzle_small',
-                                                notification.changeRequestPuzzleName,
-                                                loop.index,
-                                                60,
-                                                'rounded-2'
-                                            ) }}
+                                            {{ include('_puzzle_row_image.html.twig', {image: notification.changeRequestPuzzleImage, alt: notification.changeRequestPuzzleName, position: loop.index, ratio: null}) }}
                                         </a>
                                     {% endif %}
                                 </td>
@@ -77,14 +70,7 @@
                                 <td class="" style="width: 80px;">
                                     {% if notification.mergeRequestPuzzleImage is not null %}
                                         <a href="{{ path('puzzle_detail', {puzzleId: notification.mergeRequestPuzzleId}) }}">
-                                            {{ lazy_puzzle_image(
-                                                notification.mergeRequestPuzzleImage,
-                                                'puzzle_small',
-                                                notification.mergeRequestPuzzleName,
-                                                loop.index,
-                                                60,
-                                                'rounded-2'
-                                            ) }}
+                                            {{ include('_puzzle_row_image.html.twig', {image: notification.mergeRequestPuzzleImage, alt: notification.mergeRequestPuzzleName, position: loop.index, ratio: null}) }}
                                         </a>
                                     {% endif %}
                                 </td>
@@ -136,14 +122,7 @@
                                 <td class="" style="width: 80px;">
                                     {% if notification.conversationIsMarketplace and notification.conversationPuzzleImage is not null %}
                                         <a href="{{ path('conversation_detail', {conversationId: notification.conversationId}) }}">
-                                            {{ lazy_puzzle_image(
-                                                notification.conversationPuzzleImage,
-                                                'puzzle_small',
-                                                notification.conversationPuzzleName,
-                                                loop.index,
-                                                60,
-                                                'rounded-2'
-                                            ) }}
+                                            {{ include('_puzzle_row_image.html.twig', {image: notification.conversationPuzzleImage, alt: notification.conversationPuzzleName, position: loop.index, ratio: null}) }}
                                         </a>
                                     {% else %}
                                         <a href="{{ path('conversation_detail', {conversationId: notification.conversationId}) }}" class="btn btn-sm btn-outline-primary">
@@ -238,16 +217,7 @@
                                 <td class="" style="width: 80px;">
                                     {% if notification.lendingPuzzleImage is not null %}
                                         <a href="{{ path('puzzle_detail', {puzzleId: notification.lendingPuzzleId}) }}">
-                                            {{ lazy_puzzle_image(
-                                                notification.lendingPuzzleImage,
-                                                'puzzle_small',
-                                                'puzzle_img_alt'|trans({'%puzzle%': notification.lendingManufacturerName ~ ' ' ~ notification.lendingPuzzleName}),
-                                                loop.index,
-                                                60,
-                                                'rounded-2',
-                                                null,
-                                                notification.lendingPuzzleImageRatio
-                                            ) }}
+                                            {{ include('_puzzle_row_image.html.twig', {image: notification.lendingPuzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': notification.lendingManufacturerName ~ ' ' ~ notification.lendingPuzzleName}), position: loop.index, ratio: notification.lendingPuzzleImageRatio}) }}
                                         </a>
                                     {% endif %}
                                 </td>
@@ -279,16 +249,7 @@
                                 <td class="" style="width: 80px;">
                                     {% if notification.puzzleImage is not null%}
                                         <a href="{{ path('puzzle_detail', {puzzleId: notification.puzzleId}) }}">
-                                            {{ lazy_puzzle_image(
-                                                notification.puzzleImage,
-                                                'puzzle_small',
-                                                'puzzle_img_alt'|trans({'%puzzle%': notification.manufacturerName ~ ' ' ~ notification.puzzleName}),
-                                                loop.index,
-                                                60,
-                                                'rounded-2',
-                                                null,
-                                                notification.puzzleImageRatio
-                                            ) }}
+                                            {{ include('_puzzle_row_image.html.twig', {image: notification.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': notification.manufacturerName ~ ' ' ~ notification.puzzleName}), position: loop.index, ratio: notification.puzzleImageRatio}) }}
                                         </a>
                                     {% endif %}
                                 </td>
@@ -360,16 +321,7 @@
                                 <td class="" style="width: 80px;">
                                     {% if notification.puzzleImage is not null%}
                                         <a href="{{ path('puzzle_detail', {puzzleId: notification.puzzleId}) }}">
-                                            {{ lazy_puzzle_image(
-                                                notification.puzzleImage,
-                                                'puzzle_small',
-                                                'puzzle_img_alt'|trans({'%puzzle%': notification.manufacturerName ~ ' ' ~ notification.puzzleName}),
-                                                loop.index,
-                                                60,
-                                                'rounded-2',
-                                                null,
-                                                notification.puzzleImageRatio
-                                            ) }}
+                                            {{ include('_puzzle_row_image.html.twig', {image: notification.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': notification.manufacturerName ~ ' ' ~ notification.puzzleName}), position: loop.index, ratio: notification.puzzleImageRatio}) }}
                                         </a>
                                     {% endif %}
                                 </td>

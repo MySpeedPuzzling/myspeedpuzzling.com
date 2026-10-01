@@ -97,17 +97,7 @@
             <div class="d-flex align-items-center">
                 <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="flex-shrink-0" style="width: 90px;">
                     {# Hidden-until-round-starts puzzles come with a null image - the helper renders its placeholder #}
-                    {{ lazy_puzzle_image(
-                        puzzle.puzzleImage,
-                        'puzzle_small',
-                        'puzzle_img_alt'|trans({'%puzzle%': (puzzle.manufacturerName ?? '') ~ ' ' ~ puzzle.puzzleName}),
-                        loop.index,
-                        90,
-                        'rounded-2',
-                        60,
-                        puzzle.puzzleImageRatio,
-                        loop.first
-                    ) }}
+                    {{ include('_puzzle_row_image.html.twig', {image: puzzle.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': (puzzle.manufacturerName ?? '') ~ ' ' ~ puzzle.puzzleName}), position: loop.index, ratio: puzzle.puzzleImageRatio}) }}
                 </a>
 
                 <div class="ps-3 flex-grow-1">

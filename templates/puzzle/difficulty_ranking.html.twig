@@ -113,17 +113,7 @@
                             <span class="difficulty-rank fw-bold fs-5 text-center text-nowrap flex-shrink-0" style="width: 2.25rem; font-variant-numeric: tabular-nums;">{{ loop.index }}</span>
 
                             <a href="{{ puzzle_url }}" class="flex-shrink-0">
-                                {{ lazy_puzzle_image(
-                                    entry.puzzleImage,
-                                    'puzzle_small',
-                                    'puzzle_img_alt'|trans({'%puzzle%': entry.manufacturerName ~ ' ' ~ entry.puzzleName}),
-                                    loop.index,
-                                    56,
-                                    'rounded-2',
-                                    56,
-                                    entry.puzzleImageRatio,
-                                    loop.first
-                                ) }}
+                                {{ include('_puzzle_row_image.html.twig', {image: entry.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': entry.manufacturerName ~ ' ' ~ entry.puzzleName}), position: loop.index, ratio: entry.puzzleImageRatio}) }}
                             </a>
 
                             <div class="flex-grow-1 lh-sm" style="min-width: 0;">

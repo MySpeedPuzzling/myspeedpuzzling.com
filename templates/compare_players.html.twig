@@ -59,16 +59,7 @@
 
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: comparison.puzzleId}) }}">
-                                    {{ lazy_puzzle_image(
-                                        comparison.puzzleImage,
-                                        'puzzle_small',
-                                        'puzzle_img_alt'|trans({'%puzzle%': comparison.manufacturerName ~ ' ' ~ comparison.puzzleName}),
-                                        loop.index,
-                                        100,
-                                        'rounded-2',
-                                        null,
-                                        comparison.puzzleImageRatio
-                                    ) }}
+                                    {{ include('_puzzle_row_image.html.twig', {image: comparison.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': comparison.manufacturerName ~ ' ' ~ comparison.puzzleName}), position: loop.index, ratio: comparison.puzzleImageRatio}) }}
                                 </a>
                             </td>
 

@@ -12,16 +12,7 @@
                     <td class="ps-image">
                         <div class="position-relative">
                             <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                {{ lazy_puzzle_image(
-                                    puzzle.puzzleImage,
-                                    'puzzle_small',
-                                    'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}),
-                                    loop.index,
-                                    60,
-                                    'rounded-2',
-                                    60,
-                                    puzzle.puzzleImageRatio
-                                ) }}
+                                {{ include('_puzzle_row_image.html.twig', {image: puzzle.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}), position: loop.index, ratio: puzzle.puzzleImageRatio}) }}
                             </a>
 
                             {# Share / edit / delete, like in the recent activity - whoever tracked the time and every group member #}

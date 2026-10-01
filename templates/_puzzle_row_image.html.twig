@@ -1,0 +1,9 @@
+{#
+    The puzzle image of a table row - one size everywhere a table lists puzzles (recent activity, profile results,
+    ladders, most solved, round results, comparison, notifications, difficulty ranking): 80 px, 72 px on small phones
+    (.puzzle-row-image in _leaderboard.scss). The picture is how people recognise the puzzle - keep it this big.
+
+    Inputs:
+      - image (null|string), alt (string), position (int: the first rows load eagerly), ratio (null|float)
+#}
+{{- lazy_puzzle_image(image, 'puzzle_small', alt, position, 80, 'rounded-2 puzzle-row-image', 80, ratio) -}}

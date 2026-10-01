@@ -17,16 +17,7 @@
 
                     <td class="ps-image">
                         <a href="{{ path('puzzle_detail', {puzzleId: solving_time.puzzleId}) }}">
-                            {{ lazy_puzzle_image(
-                                solving_time.puzzleImage,
-                                'puzzle_small',
-                                'puzzle_img_alt'|trans({'%puzzle%': solving_time.manufacturerName ~ ' ' ~ solving_time.puzzleName}),
-                                loop.index,
-                                50,
-                                'rounded-2',
-                                50,
-                                solving_time.puzzleImageRatio
-                            ) }}
+                            {{ include('_puzzle_row_image.html.twig', {image: solving_time.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': solving_time.manufacturerName ~ ' ' ~ solving_time.puzzleName}), position: loop.index, ratio: solving_time.puzzleImageRatio}) }}
                         </a>
                     </td>
 

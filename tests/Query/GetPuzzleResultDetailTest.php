@@ -200,6 +200,7 @@ final class GetPuzzleResultDetailTest extends KernelTestCase
             self::assertSame($component->ranks[$rowKey], $standing->rank, "Rank of {$rowKey}");
             self::assertSame(count($component->times), $standing->total);
             self::assertSame($component->leaderTime, $standing->leaderTime);
+            self::assertSame($component->medianTime, $standing->medianTime, 'Median of the leaderboard');
             self::assertSame($component->gapsToFaster[$rowKey] ?? null, $standing->gapToNextFaster(), "Next faster gap of {$rowKey}");
         }
     }

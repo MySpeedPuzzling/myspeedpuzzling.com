@@ -18,6 +18,8 @@ readonly final class PuzzleResultStanding
         public int $leaderTime,
         // The closest strictly faster best time, null when the subject leads
         public null|int $closestFasterTime,
+        // Median of every subject's best time - the median the leaderboard shows above its table
+        public int $medianTime,
     ) {
     }
 

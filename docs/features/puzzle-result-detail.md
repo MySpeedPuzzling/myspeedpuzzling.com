@@ -99,6 +99,18 @@ The progress chart (`Chart:PlayerPuzzleTimesChart`, ≥ 2 timed attempts) is mem
 placeholder as a link to the membership page (`data-turbo-frame="_top"`) - not the `#membersExclusiveModal` button,
 which would stack a second Bootstrap modal on top of this one.
 
+## Layout (2026-10-01, Jan's review)
+
+- Header in two columns: whose results on the left (name gets the room), best time + "Rank N of M" + 🏆/↑ gap
+  chips on the right; on phones the chips stack under the time so the column stays as narrow as the time.
+- Members' chart is 150 px (50 px lower than elsewhere) with flat, thinned-out dates and two dashed reference lines:
+  **fastest on the puzzle** (gold, `standing.leaderTime`) and the puzzle's **median** (grey, `standing.medianTime` -
+  median of every subject's best time from the same aggregate query, equal to the leaderboard's median, guarded by the
+  parity test). `PlayerPuzzleTimesChart` takes `height`, `medianTime`, `fastestTime`; the legend under the chart
+  names both with their times. Non-members get a placeholder of the same height linking to the membership page.
+- Attempts: no heading; each line = date (dark, monospace) + `#N` (order solved, #1 = first, small grey) …… time
+  (dark, ★ for the best), then PPM …… ↩ change vs the previous attempt, ★ gap to the best. Compact spacing on phones.
+
 ## Why it replaced PR #92
 
 PR #92 built a similar page keyed by player + puzzle + category. A pair/team is not identified by one player and a

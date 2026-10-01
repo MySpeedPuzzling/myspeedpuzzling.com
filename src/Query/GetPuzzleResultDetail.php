@@ -334,7 +334,9 @@ SELECT
     COUNT(*) AS total,
     MIN(best.best_time) AS leader_time,
     COUNT(*) FILTER (WHERE best.best_time < (SELECT best_time FROM subject)) AS faster_count,
-    MAX(best.best_time) FILTER (WHERE best.best_time < (SELECT best_time FROM subject)) AS closest_faster_time
+    MAX(best.best_time) FILTER (WHERE best.best_time < (SELECT best_time FROM subject)) AS closest_faster_time,
+    -- Same median as the leaderboard: the middle best time, the two middle ones averaged and truncated
+    FLOOR(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY best.best_time))::int AS median_time
 FROM best
 SQL;
         } else {
@@ -375,7 +377,9 @@ SELECT
     COUNT(*) AS total,
     MIN(visible.best_time) AS leader_time,
     COUNT(*) FILTER (WHERE visible.best_time < (SELECT best_time FROM subject)) AS faster_count,
-    MAX(visible.best_time) FILTER (WHERE visible.best_time < (SELECT best_time FROM subject)) AS closest_faster_time
+    MAX(visible.best_time) FILTER (WHERE visible.best_time < (SELECT best_time FROM subject)) AS closest_faster_time,
+    -- Same median as the leaderboard: the middle best time, the two middle ones averaged and truncated
+    FLOOR(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY visible.best_time))::int AS median_time
 FROM visible
 SQL;
         }
@@ -387,6 +391,7 @@ SQL;
          *     leader_time: null|int,
          *     faster_count: int,
          *     closest_faster_time: null|int,
+         *     median_time: null|int,
          * } $row
          */
         $row = $this->database
@@ -408,6 +413,7 @@ SQL;
             subjectTime: (int) $row['subject_time'],
             leaderTime: (int) $row['leader_time'],
             closestFasterTime: $row['closest_faster_time'] !== null ? (int) $row['closest_faster_time'] : null,
+            medianTime: (int) $row['median_time'],
         );
     }
 

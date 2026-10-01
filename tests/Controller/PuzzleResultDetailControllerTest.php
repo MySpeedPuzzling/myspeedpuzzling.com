@@ -70,7 +70,7 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
 
         $crawler = $this->modal($browser, $timeId);
 
-        $attempts = $crawler->filter('li.py-2');
+        $attempts = $crawler->filter('li.pr-attempt');
         self::assertCount(4, $attempts);
         self::assertStringNotContainsString(PlayerFixture::PLAYER_WITH_STRIPE_NAME, $crawler->text());
 
@@ -111,7 +111,7 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
 
         $crawler = $this->modal($browser, $timeId);
 
-        self::assertCount(2, $crawler->filter('li.py-2'));
+        self::assertCount(2, $crawler->filter('li.pr-attempt'));
         self::assertStringNotContainsString('01:30:00', $crawler->text());
         self::assertStringContainsString('Rank 1 of 2', $crawler->text());
         self::assertCount(1, $crawler->filter('a[href^="/en/teams/"]'));
@@ -121,7 +121,7 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
         self::assertStringNotContainsString('Jane Smith', $crawler->text());
 
         $crawler = $this->modal($browser, $otherPairTime);
-        self::assertCount(1, $crawler->filter('li.py-2'));
+        self::assertCount(1, $crawler->filter('li.pr-attempt'));
         self::assertStringContainsString('Rank 2 of 2', $crawler->text());
         self::assertStringContainsString('+35:00', $crawler->filter('.bi-trophy')->closest('span')?->text() ?? '');
     }
@@ -199,12 +199,12 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
         );
 
         $crawler = $this->modal($browser, $timeId);
-        self::assertCount(3, $crawler->filter('li.py-2'));
+        self::assertCount(3, $crawler->filter('li.pr-attempt'));
         self::assertCount(0, $crawler->filter('a[href*="/edit-time/"]'));
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
         $crawler = $this->modal($browser, $timeId);
-        self::assertCount(4, $crawler->filter('li.py-2'));
+        self::assertCount(4, $crawler->filter('li.pr-attempt'));
         self::assertCount(4, $crawler->filter('a[href*="/edit-time/"][data-turbo-frame="modal-frame"]'));
         self::assertStringContainsString('Verification needed', $crawler->text());
     }

@@ -307,7 +307,10 @@ puzzle_result:
     team_page: "Team page"
     best_time: "Best time"
     rank: "Rank %rank% of %total%"
-    attempts: "Attempts (%count%)"
+    attempt_number: "Attempt no. %number%"
+    chart:
+        fastest: "Fastest on the puzzle"
+        median: "Median"
     personal_best: "Personal best"
     change_to_previous: "Change against the previous attempt"
     gap_to_best: "Behind the personal best"

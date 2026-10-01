@@ -1,0 +1,17 @@
+{#
+    Badges of a leaderboard time (1st try, unboxed, event) - nothing when it has none.
+
+    Inputs:
+      - time: PuzzleSolver or PuzzleSolversGroup
+#}
+{%- if time.firstAttempt or time.unboxed or time.competitionName -%}
+    <div class="lb-badges">
+        {%- if time.firstAttempt -%}
+            <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+        {%- endif -%}
+        {%- if time.unboxed -%}
+            <span class="badge rounded-pill bg-warning"><i class="bi bi-eye-slash"></i> {{ 'unboxed'|trans }}</span>
+        {%- endif -%}
+        {{- include('_competition_badge.html.twig', {time: time}) -}}
+    </div>
+{%- endif -%}

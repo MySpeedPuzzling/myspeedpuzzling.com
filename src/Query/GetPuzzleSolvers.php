@@ -59,6 +59,7 @@ SELECT
     player.name AS player_name,
     player.code AS player_code,
     player.country AS player_country,
+    player.avatar AS player_avatar,
     puzzle_solving_time.puzzle_id AS puzzle_id,
     puzzle_solving_time.seconds_to_solve AS time,
     finished_at,
@@ -103,6 +104,7 @@ SQL;
              *     player_name: null|string,
              *     player_code: string,
              *     player_country: null|string,
+             *     player_avatar: null|string,
              *     time: int,
              *     finished_at: null|string,
              *     tracked_at: string,
@@ -168,6 +170,7 @@ SELECT
             'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
+            'player_avatar', p.avatar,
             'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_member.skill_tier,
             'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
@@ -264,6 +267,7 @@ SELECT
             'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
+            'player_avatar', p.avatar,
             'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_member.skill_tier,
             'ranking_opted_out', COALESCE(p.ranking_opted_out, false)

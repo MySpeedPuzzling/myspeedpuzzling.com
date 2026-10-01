@@ -1,4 +1,3 @@
-{% from 'puzzle_intelligence/_macros.html.twig' import skill_icon %}
 <div {{ attributes }} data-loading="addClass(opacity-50)">
     {# data-nosnippet keeps UI chrome out of search snippets - Google honours it only on div, span and section #}
     <div class="puzzle-category-types mt-3 my-2" data-nosnippet>
@@ -342,11 +341,13 @@
 
         {% set hiddenRowsCount = this.hiddenRowsCount %}
 
-        <div class="table-responsive custom-table-wrapper mt-2 {{ hiddenRowsCount > 0 ? 'mb-3' : 'mb-5' }}" {{ stimulus_controller('toggle') }}>
-            <table class="table custom-table table-striped table-hover mb-0">
+        {# The table never scrolls sideways: the name column takes what rank and time leave and names truncate.
+           A row opens its details (date, PPM, the player's other times) on tap (docs/features/puzzle-leaderboard-chart.md) #}
+        <div class="custom-table-wrapper lb-wrapper mt-2 {{ hiddenRowsCount > 0 ? 'mb-3' : 'mb-5' }}" {{ stimulus_controller('leaderboard-rows') }}>
+            <table class="table custom-table table-hover lb-table mb-0">
                 <thead>
                 <tr>
-                    <th></th>
+                    <th class="lb-rank-head">#</th>
                     <th>{{ 'puzzler_name'|trans }}</th>
                     <th class="text-end">{{ 'time'|trans }}</th>
                 </tr>
@@ -374,128 +375,80 @@
                         </tr>
                     {%~ endif %}
 
-                    {%~ set is_own_row = logged_user.profile is not null and ((aggregated_solver[0].players is not defined and aggregated_solver[0].playerId is same as logged_user.profile.playerId) or (aggregated_solver[0].players is defined and aggregated_solver[0].containsPlayer(logged_user.profile.playerId))) %}
+                    {%~ set best = aggregated_solver[0] %}
+                    {%~ set row_id = 'leaderboard-row-' ~ timeId %}
+                    {%~ set is_own_row = logged_user.profile is not null and ((best.players is not defined and best.playerId is same as logged_user.profile.playerId) or (best.players is defined and best.containsPlayer(logged_user.profile.playerId))) %}
                     <tr
-                        id="leaderboard-row-{{ timeId }}"
+                        id="{{ row_id }}"
                         style="scroll-margin-top: 120px;"
-                        class="{{ is_own_row ? 'table-active-player' }}"
+                        class="lb-row {{ is_own_row ? 'table-active-player' }}"
+                        data-action="click->leaderboard-rows#toggle"
                     >
-                        <td class="rank">{{ this.ranks[timeId] }}.</td>
-
-                        <td class="player-name">
-                            {%~ if aggregated_solver[0].players is defined %}
-                                {%~ for puzzle_solver in aggregated_solver[0].players %}
-                                    {%~ if not loop.first %}
-                                        <br>
-
-                                    {%~ endif %}
-                                    {%~ if puzzle_solver.isPrivate and (logged_user.profile is null or puzzle_solver.playerId != logged_user.profile.playerId) %}
-                                        <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
-                                        <i class="bi bi-incognito text-muted"></i>
-                                    {%~ elseif puzzle_solver.playerId is not null %}
-                                        {%~ if logged_user.profile is not null and logged_user.profile.activeMembership and not puzzle_solver.rankingOptedOut %}
-                                            {{~ skill_icon(puzzle_solver.skillTierName ?? 'unknown', 16) }}
-                                        {%~ else %}
-                                            {{~ skill_icon('locked', 16) }}
-                                        {%~ endif %}
-                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                            {%~ if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
-                                                <i class="ci-star-filled text-warning"></i>
-                                            {%~ endif %}
-                                            {{~ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}
-                                        </a>
-                                        {%~ if puzzle_solver.playerCountry is not null %}
-                                            <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
-                                        {%~ endif %}
-                                    {%~ else %}
-                                        <span class="player-name-item">{{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}</span>
-                                    {%~ endif %}
-                                {%~ endfor %}
-                                {%~ if aggregated_solver[0].teamId is not null %}
-                                    <br>
-                                    <a class="small text-muted" href="{{ path('puzzling_team_detail', {teamId: aggregated_solver[0].teamId}) }}" data-testid="team-link">
-                                        <i class="bi bi-people"></i>
-                                        {{~ aggregated_solver[0].teamName ?? (this.category == 'duo' ? 'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans }}
-                                    </a>
-                                {%~ endif %}
-                            {%~ else %}
-                                {%~ if aggregated_solver[0].isPrivate and (logged_user.profile is null or aggregated_solver[0].playerId != logged_user.profile.playerId) %}
-                                    <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
-                                    <i class="bi bi-incognito text-muted"></i>
-                                {%~ else %}
-                                    {%~ if logged_user.profile is not null and logged_user.profile.activeMembership and not aggregated_solver[0].rankingOptedOut %}
-                                        {{~ skill_icon(aggregated_solver[0].skillTierName ?? 'unknown', 16) }}
-                                    {%~ else %}
-                                        {{~ skill_icon('locked', 16) }}
-                                    {%~ endif %}
-                                    <a href="{{ path('player_profile', {playerId: aggregated_solver[0].playerId}) }}">
-                                        {%~ if logged_user.profile is not null and aggregated_solver[0].playerId in logged_user.profile.favoritePlayers %}
-                                            <i class="ci-star-filled text-warning"></i>
-                                        {%~ endif %}
-                                        {{~ aggregated_solver[0].playerName ?? ('#' ~ aggregated_solver[0].playerCode) }}</a>
-                                    {%~ if aggregated_solver[0].playerCountry is not null %}
-                                        <small class="shadow-custom fi fi-{{ aggregated_solver[0].playerCountry.name }}"></small>
-                                    {%~ endif %}
-                                {%~ endif %}
-                            {%~ endif %}
+                        <td class="rank">
+                            <span class="lb-rank">{{ this.ranks[timeId] }}</span>
+                            <button
+                                type="button"
+                                class="lb-expand"
+                                data-leaderboard-rows-toggle
+                                aria-expanded="false"
+                                aria-label="{{ 'puzzle_times.leaderboard.more_info'|trans }}"
+                                title="{{ 'puzzle_times.leaderboard.more_info'|trans }}"
+                            ><i class="bi bi-chevron-down"></i></button>
                         </td>
 
-                        <td class="text-end with-ppm">
-                            {{~ aggregated_solver[0].time|puzzlingTime }}
-                            {%~ if is_own_row and aggregated_solver[0].isEditableBy(logged_user.profile.playerId) %}
-                                {{~ include('_edit_time_button.html.twig', {timeId: aggregated_solver[0].timeId, context: 'puzzle-detail'}) }}
+                        <td class="lb-solver">
+                            {%~ if best.players is defined %}
+                                {%~ for puzzle_solver in best.players %}
+                                    {{~ include('_leaderboard_player.html.twig', {player: puzzle_solver, small: true}) }}
+                                {%~ endfor %}
+                            {%~ else %}
+                                {{~ include('_leaderboard_player.html.twig', {player: best}) }}
                             {%~ endif %}
-                            {%~ if aggregated_solver[0].finishedAt is not null %}
-                                <br><small class="text-muted">{{ aggregated_solver[0].finishedAt|date('d.m.Y') }}</small>
-                            {%~ endif %}
-                            <br><small><span class="text-muted">PPM</span> {{ ppm(aggregated_solver[0].time, this.piecesCount) }}</small>
-                            {%~ if aggregated_solver[0].firstAttempt %}
-                                <br><span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
-                            {%~ endif %}
-                            {%~ if aggregated_solver[0].unboxed %}
-                                <br><span class="badge rounded-pill bg-warning"><i class="bi bi-eye-slash"></i> {{ 'unboxed'|trans }}</span>
-                            {%~ endif %}
-                            {{~ include('_competition_badge.html.twig', {time: aggregated_solver[0]}) }}
+                            {{~ include('_leaderboard_time_badges.html.twig', {time: best}) }}
+                        </td>
 
-                            {%~ if aggregated_solver|length > 1 %}
-                                <br>
-                                <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: 'row' ~ loop.index})}}>
-                                    <span class="badge bg-dark badge-shadow rounded-pill">
-                                        {{~ 'show_more_solving_times'|trans({ '%count%': aggregated_solver|length-1 }) }}
-                                    </span>
-                                </a>
-
-                                {# Every extra attempt of the player repeats this block, so it is kept compact: a <br> is joined
-                                   with the element after it, which renders the same - the line break drops leading whitespace #}
-                                <div class="more-times hidden with-ppm" {{ stimulus_target('toggle', 'row' ~ loop.index) }}>
-                                    {%~ for solving_time in aggregated_solver %}
-                                        {%~ if not loop.first %}
-                                            <span class="d-inline-block mt-1">
-                                                {{~ solving_time.time|puzzlingTime }}
-                                                {%~ if is_own_row and solving_time.isEditableBy(logged_user.profile.playerId) %}
-                                                    {{~ include('_edit_time_button.html.twig', {timeId: solving_time.timeId, context: 'puzzle-detail'}) }}
-                                                {%~ endif %}
-                                                {%~ if solving_time.finishedAt is not null %}
-                                                    <br><small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
-                                                {%~ endif %}
-                                                <br><small><span class="text-muted">PPM</span> {{ ppm(solving_time.time, this.piecesCount) }}</small>
-                                                {%~ if solving_time.firstAttempt %}
-                                                    <br><span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
-                                                {%~ endif %}
-                                                {%~ if solving_time.unboxed %}
-                                                    <br><span class="badge rounded-pill bg-warning"><i class="bi bi-eye-slash"></i> {{ 'unboxed'|trans }}</span>
-                                                {%~ endif %}
-                                                {{~ include('_competition_badge.html.twig', {time: solving_time}) }}
-                                            </span>
-                                            {%~ if not loop.last %}
-                                                <br>
-                                            {%~ endif %}
-                                        {%~ endif %}
-                                    {%~ endfor %}
-                                </div>
+                        <td class="lb-time">
+                            <span class="lb-time-value">{{ best.time|puzzlingTime }}</span>
+                            {%~ if this.leaderTime is not null and best.time > this.leaderTime %}
+                                <span class="lb-gap" title="{{ 'puzzle_times.leaderboard.gap_to_fastest'|trans }}"><i class="bi bi-trophy"></i>{{ (best.time - this.leaderTime)|gapTime }}</span>
+                            {%~ endif %}
+                            {%~ if this.gapsToFaster[timeId] is defined %}
+                                <span class="lb-gap" title="{{ 'puzzle_times.leaderboard.gap_to_faster'|trans }}"><i class="bi bi-arrow-up"></i>{{ this.gapsToFaster[timeId]|gapTime }}</span>
                             {%~ endif %}
                         </td>
                     </tr>
+
+                    {# Details, hidden until the row is tapped: this time's date and PPM, then the player's other times #}
+                    <tr class="lb-details" data-details-of="{{ row_id }}" hidden>
+                        <td></td>
+                        <td class="lb-solver" colspan="2">
+                            {{~ include('_leaderboard_time_meta.html.twig', {
+                                time: best,
+                                pieces: this.piecesCount,
+                                editable: is_own_row,
+                                team_page_label: (this.category == 'duo' ? 'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans,
+                            }) }}
+                        </td>
+                    </tr>
+                    {%~ if aggregated_solver|length > 1 %}
+                        <tr class="lb-details lb-details-heading" data-details-of="{{ row_id }}" hidden>
+                            <td></td>
+                            <td colspan="2">{{ 'puzzle_times.leaderboard.other_times'|trans({'%count%': aggregated_solver|length - 1}) }}</td>
+                        </tr>
+                        {%~ for solving_time in aggregated_solver|slice(1) %}
+                            <tr class="lb-details lb-attempt" data-details-of="{{ row_id }}" hidden>
+                                <td></td>
+                                <td class="lb-solver">
+                                    {{~ include('_leaderboard_time_meta.html.twig', {time: solving_time, pieces: this.piecesCount, editable: is_own_row}) }}
+                                    {{~ include('_leaderboard_time_badges.html.twig', {time: solving_time}) }}
+                                </td>
+                                <td class="lb-time">
+                                    <span class="lb-time-value">{{ solving_time.time|puzzlingTime }}</span>
+                                    <span class="lb-gap" title="{{ 'puzzle_times.leaderboard.gap_to_own_best'|trans }}"><i class="bi bi-star"></i>{{ (solving_time.time - best.time)|gapTime }}</span>
+                                </td>
+                            </tr>
+                        {%~ endfor %}
+                    {%~ endif %}
                 {%~ endfor %}
 
                 {% if this.times|length < 1 %}

@@ -180,6 +180,24 @@ Jan: the distribution "loses track of the first tries detailed info", and people
 - What it shows on real boards: London Postcard's fast end is almost all repeats (people who trained on it), while a newer
   155-solver puzzle is mostly first tries.
 
+## Row layout (2026-10-01)
+
+One row = rank · player · time, and **the table never scrolls sideways** (320 px included):
+
+- Rank and time cells take their content's width (`width: 1%; white-space: nowrap`), the player cell takes the rest
+  (`width: 100%; max-width: 0`) and names truncate with an ellipsis. No per-width media queries needed; the
+  measured worst case (40-char name, rank 5667, time 181:18:00) fits at 320 px.
+- Player = avatar (photo, else the initial on a tint picked by the last hex digit of the player id; incognito
+  for a private player) with the **country flag on the avatar's corner** (costs the name no width), skill tier
+  icon, name - `_leaderboard_player.html.twig`. Pair/team members stack with smaller avatars.
+- Second line (`_leaderboard_time_meta.html.twig`): pair/team page link (icon, + name when named) · date · PPM ·
+  edit · "More (Nx)", wrapping only when it must; badges (1st try, unboxed, event) below, truncated.
+- Time column: time + its **gap to the fastest time** of the filtered list (`PuzzleTimes::$leaderTime`,
+  `gapTime` filter: `+0:07`, `+12:05`, `+1:02:05`); the fastest row shows none.
+- Rank, times, gaps and dates are monospace (first step of unifying numbers across rankings); ranks 1-3 are gold,
+  silver, bronze.
+- Below 380 px: 1 px smaller name/time, 11 px meta, dates without the century (`03.04.25`).
+
 ## Tests
 
 - `tests/Services/LeaderboardHistogramBuilderTest.php` – empty, one solver, identical times, nice widths and aligned starts,

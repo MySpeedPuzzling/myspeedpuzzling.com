@@ -319,6 +319,12 @@ puzzle_times:
         show_more: "Show %count% more"
         show_all: "Show all (%count%)"
         hidden_rows: "%count% more"
+        gap_to_fastest: "Behind the fastest time"
+        gap_to_faster: "Behind the next faster time"
+        gap_to_own_best: "Behind their fastest time"
+        more_info: "More info"
+        other_times: "Other times (%count%)"
+        ppm: "Pieces per minute"
     chart:
         noun:
             solo: "Puzzlers"

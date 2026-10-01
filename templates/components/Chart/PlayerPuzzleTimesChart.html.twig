@@ -11,16 +11,6 @@
                 <i class="bi-zoom-out"></i>
             </button>
         </div>
-        {% if this.medianTime is not null or this.fastestTime is not null %}
-            <div class="chart-reference-legend">
-                {% if this.fastestTime is not null %}
-                    <span><i style="border-color: {{ constant('SpeedPuzzling\\Web\\Component\\Chart\\PlayerPuzzleTimesChart::FASTEST_COLOR') }};"></i>{{ 'puzzle_result.chart.fastest'|trans }} <span class="font-monospace">{{ this.fastestTime|puzzlingTime }}</span></span>
-                {% endif %}
-                {% if this.medianTime is not null %}
-                    <span><i style="border-color: {{ constant('SpeedPuzzling\\Web\\Component\\Chart\\PlayerPuzzleTimesChart::MEDIAN_COLOR') }};"></i>{{ 'puzzle_result.chart.median'|trans }} <span class="font-monospace">{{ this.medianTime|puzzlingTime }}</span></span>
-                {% endif %}
-            </div>
-        {% endif %}
     {% else %}
         <div class="card card-body p-2 my-3 shadow">
             <div style="height: {{ this.height }}px;" data-controller="time-chart" class="position-relative">

@@ -18,31 +18,8 @@
 {%- set links_turbo_frame = '_top' -%}
 
 <div class="puzzle-result" style="min-width: 0;">
-    {# 1. The puzzle #}
-    <div class="d-flex align-items-center gap-2 mb-3">
-        <a class="flex-shrink-0" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: result.puzzleId}) }}">
-            {{ lazy_puzzle_image(
-                result.puzzleImage,
-                'puzzle_small',
-                'puzzle_img_alt'|trans({'%puzzle%': result.manufacturerName ~ ' ' ~ result.puzzleName}),
-                999,
-                56,
-                'rounded-2',
-                56,
-                result.puzzleImageRatio
-            ) }}
-        </a>
-        <div style="min-width: 0;">
-            <a class="d-block fw-medium text-break low-line-height" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: result.puzzleId}) }}">
-                {{- result.puzzleName -}}
-            </a>
-            <small class="text-muted">
-                {{ result.manufacturerName }} · {{ 'pieces_count'|trans({'%count%': result.piecesCount})|raw }}
-            </small>
-        </div>
-    </div>
-
-    {# 2. Whose results (left) and the best time with where it stands on the leaderboard (right) #}
+    {# Whose results with their best time (left), where it stands on the leaderboard (right). The puzzle is in the
+       modal header (_modal.html.twig) or above this on the full page (_puzzle.html.twig) #}
     <div class="pr-head mb-3">
         <div class="pr-subject">
             {% if result.isGroup %}
@@ -57,28 +34,29 @@
             {% else %}
                 {{ include('_leaderboard_player.html.twig', {player: result.player}) }}
             {% endif %}
+
+            {% if best is not null %}
+                <div class="pr-best">
+                    <span class="pr-best-label">{{ 'puzzle_result.best_time'|trans }}</span>
+                    <span class="pr-best-time">{{ best.time|puzzlingTime }}</span>
+                </div>
+            {% endif %}
         </div>
 
-        {% if best is not null %}
-            <div class="pr-best">
-                <div class="pr-best-label">{{ 'puzzle_result.best_time'|trans }}</div>
-                <div class="pr-best-time">{{ best.time|puzzlingTime }}</div>
-                {% if standing is not null %}
-                    <div class="pr-chips">
-                        <span class="pr-chip pr-chip-rank">
-                            {{ 'puzzle_result.rank'|trans({'%rank%': standing.rank, '%total%': standing.total}) }}
-                        </span>
-                        {% if standing.gapToLeader is not null %}
-                            <span class="pr-chip" title="{{ 'puzzle_times.leaderboard.gap_to_fastest'|trans }}">
-                                <i class="bi bi-trophy"></i>{{ standing.gapToLeader|gapTime }}
-                            </span>
-                        {% endif %}
-                        {% if standing.gapToNextFaster is not null %}
-                            <span class="pr-chip" title="{{ 'puzzle_times.leaderboard.gap_to_faster'|trans }}">
-                                <i class="bi bi-arrow-up"></i>{{ standing.gapToNextFaster|gapTime }}
-                            </span>
-                        {% endif %}
-                    </div>
+        {% if standing is not null %}
+            <div class="pr-chips">
+                <span class="pr-chip pr-chip-rank">
+                    {{ 'puzzle_result.rank'|trans({'%rank%': standing.rank, '%total%': standing.total}) }}
+                </span>
+                {% if standing.gapToLeader is not null %}
+                    <span class="pr-chip" title="{{ 'puzzle_times.leaderboard.gap_to_fastest'|trans }}">
+                        <i class="bi bi-trophy"></i>{{ standing.gapToLeader|gapTime }}
+                    </span>
+                {% endif %}
+                {% if standing.gapToNextFaster is not null %}
+                    <span class="pr-chip" title="{{ 'puzzle_times.leaderboard.gap_to_faster'|trans }}">
+                        <i class="bi bi-arrow-up"></i>{{ standing.gapToNextFaster|gapTime }}
+                    </span>
                 {% endif %}
             </div>
         {% endif %}

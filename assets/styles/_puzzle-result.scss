@@ -8,6 +8,62 @@
     gap: 12px;
 }
 
+// The puzzle - in the modal header, or above the body on the full page
+.pr-puzzle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.pr-puzzle-image {
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+.pr-puzzle-text {
+    min-width: 0;
+}
+
+.pr-puzzle-name {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    a {
+        color: #111;
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+.pr-puzzle-meta {
+    font-size: .75rem;
+    color: #6c727f;
+}
+
+.pr-modal-header {
+    gap: 8px;
+    padding-top: .75rem;
+    padding-bottom: .75rem;
+
+    .pr-puzzle {
+        flex: 1 1 auto;
+    }
+
+    .btn-close {
+        flex-shrink: 0;
+        margin: 0 0 0 auto;
+    }
+}
+
 .pr-subject {
     flex: 1 1 auto;
     min-width: 0;
@@ -36,15 +92,16 @@ a.pr-team-link {
 }
 
 .pr-best {
-    flex: 0 1 auto;
-    max-width: 60%;
-    text-align: right;
+    margin-top: 4px;
+    line-height: 1;
 }
 
 .pr-best-label {
-    font-size: .6875rem;
+    display: block;
+    margin-bottom: 2px;
+    font-size: .625rem;
     text-transform: uppercase;
-    letter-spacing: .04em;
+    letter-spacing: .05em;
     color: #8a909c;
 }
 
@@ -52,17 +109,18 @@ a.pr-team-link {
     font-family: $font-family-monospace;
     font-size: 1.75rem;
     font-weight: 700;
-    line-height: 1.1;
+    line-height: 1.05;
     color: #111;
     letter-spacing: -.02em;
 }
 
+// Rank and gaps, one under another, right-aligned
 .pr-chips {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-end;
     gap: 4px;
-    margin-top: 6px;
 }
 
 .pr-chip {
@@ -145,11 +203,12 @@ a.pr-team-link {
 }
 
 @media (max-width: 575.98px) {
-    // Chips stack under the time, so the column is only as wide as the time and the name keeps its room
-    .pr-chips {
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 3px;
+    .pr-modal-header {
+        padding: .625rem .875rem;
+    }
+
+    .pr-modal-body {
+        padding: .625rem .875rem;
     }
 
     .pr-best-time {
@@ -163,35 +222,6 @@ a.pr-team-link {
     .pr-attempt-meta {
         margin-top: 0;
         line-height: 1.3;
-    }
-}
-
-// Reference lines of the members' chart (PlayerPuzzleTimesChart medianTime / fastestTime)
-.chart-reference-legend {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 2px 14px;
-    margin-top: 4px;
-    font-size: .6875rem;
-    color: #6c727f;
-
-    > span {
-        display: inline-flex;
-        align-items: center;
-        white-space: nowrap;
-    }
-
-    i {
-        display: inline-block;
-        width: 16px;
-        margin-right: 5px;
-        border-top: 2px dashed;
-    }
-
-    .font-monospace {
-        margin-left: 4px;
-        color: #222;
     }
 }
 

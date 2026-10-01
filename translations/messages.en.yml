@@ -309,7 +309,7 @@ puzzle_result:
     rank: "Rank %rank% of %total%"
     attempt_number: "Attempt no. %number%"
     chart:
-        fastest: "Fastest on the puzzle"
+        fastest: "Fastest"
         median: "Median"
     personal_best: "Personal best"
     change_to_previous: "Change against the previous attempt"

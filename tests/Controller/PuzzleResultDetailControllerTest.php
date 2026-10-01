@@ -187,6 +187,11 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
         $crawler = $this->modal($browser, $timeId);
         self::assertCount(1, $crawler->filter('canvas'));
         self::assertCount(0, $crawler->filter('.player-chart-placeholder'));
+
+        // The puzzle's fastest and median time as captioned reference lines (time_chart_controller.js draws them)
+        $chartData = (string) $crawler->filter('canvas')->attr('data-symfony--ux-chartjs--chart-view-value');
+        self::assertStringContainsString('"referenceCaption":"Fastest ', $chartData);
+        self::assertStringContainsString('"referenceCaption":"Median ', $chartData);
     }
 
     public function testEditButtonAndSuspiciousTimesOnlyForTheOwner(): void

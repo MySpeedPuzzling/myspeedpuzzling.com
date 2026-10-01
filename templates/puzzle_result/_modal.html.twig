@@ -1,10 +1,10 @@
 <turbo-frame id="modal-frame">
     <div data-modal-size="modal-lg">
-        <div class="modal-header">
-            <h5 class="modal-title">{{ 'puzzle_result.title'|trans }}</h5>
+        <div class="modal-header pr-modal-header">
+            {{ include('puzzle_result/_puzzle.html.twig', {result: result, heading: 'h5'}) }}
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'puzzle_result.close'|trans }}"></button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body pr-modal-body">
             {{ include('puzzle_result/_body.html.twig', {result: result}) }}
         </div>
     </div>

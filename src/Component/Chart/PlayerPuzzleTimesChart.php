@@ -10,6 +10,8 @@ use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
+use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
 #[AsTwigComponent]
@@ -37,6 +39,8 @@ final class PlayerPuzzleTimesChart
 
     public function __construct(
         readonly private ChartBuilderInterface $chartBuilder,
+        readonly private TranslatorInterface $translator,
+        readonly private PuzzlingTimeFormatter $timeFormatter,
     ) {
     }
 
@@ -75,8 +79,13 @@ final class PlayerPuzzleTimesChart
             ],
         ];
 
-        // Flat dashed lines, the same colours as the legend under the chart (template)
-        foreach ([[$this->medianTime, self::MEDIAN_COLOR], [$this->fastestTime, self::FASTEST_COLOR]] as [$reference, $color]) {
+        // Flat dashed lines; time_chart_controller.js writes `referenceCaption` onto the chart above each line
+        $references = [
+            [$this->fastestTime, self::FASTEST_COLOR, 'puzzle_result.chart.fastest'],
+            [$this->medianTime, self::MEDIAN_COLOR, 'puzzle_result.chart.median'],
+        ];
+
+        foreach ($references as [$reference, $color, $captionKey]) {
             if ($reference !== null) {
                 $datasets[] = [
                     'data' => array_fill(0, count($chartData), $reference),
@@ -86,6 +95,7 @@ final class PlayerPuzzleTimesChart
                     'pointRadius' => 0,
                     'pointHoverRadius' => 0,
                     'fill' => false,
+                    'referenceCaption' => $this->translator->trans($captionKey) . ' ' . $this->timeFormatter->formatTime($reference),
                 ];
             }
         }

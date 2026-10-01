@@ -20,6 +20,10 @@
 
         <h1 class="h4 mb-3">{{ 'puzzle_result.title'|trans }}</h1>
 
+        <div class="mb-3">
+            {{ include('puzzle_result/_puzzle.html.twig', {result: result}) }}
+        </div>
+
         {{ include('puzzle_result/_body.html.twig', {result: result}) }}
     </div>
 {% endblock %}

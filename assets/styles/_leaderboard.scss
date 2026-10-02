@@ -32,7 +32,6 @@ $lb-tints: (
 
 .lb-table {
     width: 100%;
-    font-size: .9375rem;
 
     > :not(caption) > * > * {
         padding-top: .375rem;
@@ -669,11 +668,10 @@ a.lb-name,
     }
 }
 
-// Phones: 14 px is the cap for anything in a ranking row - names, times, puzzle names (user feedback)
-@media (max-width: 575.98px) {
-    .lb-table,
-    .ps-table,
-    .player-list-item {
-        font-size: .875rem;
-    }
+// 14 px for names, times and puzzle names in every ranking row, at every width - one size, no growing on wider
+// screens (user feedback: too many font sizes)
+.lb-table,
+.ps-table,
+.player-list-item {
+    font-size: .875rem;
 }

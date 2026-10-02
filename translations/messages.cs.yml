@@ -3525,11 +3525,11 @@ newsletter:
         try_again: "Něco se pokazilo, zkuste to prosím znovu."
         invalid_email: "Zadejte prosím platnou e-mailovou adresu."
         too_many_attempts: "Příliš mnoho pokusů, zkuste to prosím později."
+        turned_on: "Měsíční e-mail s novinkami je zapnutý. Děkujeme!"
     check_inbox:
         headline: "Ještě jeden krok — mrkněte do e-mailu"
         sent: "Právě jsme vám poslali potvrzovací e-mail. Klikněte na odkaz v něm a newsletter je váš."
         spam_hint: "Nic nedorazilo? Dejte tomu chvilku — a pro jistotu mrkněte i do spamu."
-        turned_on: "Měsíční e-mail s novinkami je zapnutý. Děkujeme!"
         expires: "Potvrzovací odkaz platí %hours% hodin."
         cta_homepage: "Prozkoumat MySpeedPuzzling"
     confirm:

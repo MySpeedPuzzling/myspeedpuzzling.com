@@ -3834,11 +3834,11 @@ newsletter:
         try_again: "Something went wrong, please try again."
         invalid_email: "Please enter a valid e-mail address."
         too_many_attempts: "Too many attempts, please try again later."
+        turned_on: "The monthly news e-mail is on. Thanks!"
     check_inbox:
         headline: "One more step — check your inbox"
         sent: "We've just sent you a confirmation e-mail. Click the link inside and the newsletter is yours."
         spam_hint: "Nothing there? Give it a minute — and maybe peek into the spam folder, just in case."
-        turned_on: "The monthly news e-mail is on. Thanks!"
         expires: "The confirmation link is valid for %hours% hours."
         cta_homepage: "Explore MySpeedPuzzling"
     confirm:

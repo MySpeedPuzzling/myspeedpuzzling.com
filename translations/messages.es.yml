@@ -3527,11 +3527,11 @@ newsletter:
         try_again: "Algo ha salido mal. Por favor, inténtalo de nuevo."
         invalid_email: "Por favor, introduce una dirección de correo electrónico válida."
         too_many_attempts: "Demasiados intentos. Por favor, inténtalo de nuevo más tarde."
+        turned_on: "El correo mensual de novedades está activado. ¡Gracias!"
     check_inbox:
         headline: "Un paso más: revisa tu bandeja de entrada"
         sent: "Acabamos de enviarte un correo de confirmación. Haz clic en el enlace y el newsletter es tuyo."
         spam_hint: "¿No ha llegado nada? Dale un minuto y, por si acaso, echa también un vistazo a la carpeta de spam."
-        turned_on: "El correo mensual de novedades está activado. ¡Gracias!"
         expires: "El enlace de confirmación es válido durante %hours% horas."
         cta_homepage: "Explorar MySpeedPuzzling"
     confirm:

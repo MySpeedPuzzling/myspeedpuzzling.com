@@ -3529,11 +3529,11 @@ newsletter:
         try_again: "Une erreur est survenue, veuillez réessayer."
         invalid_email: "Veuillez saisir une adresse e-mail valide."
         too_many_attempts: "Trop de tentatives, veuillez réessayer plus tard."
+        turned_on: "L'e-mail mensuel des nouveautés est activé. Merci !"
     check_inbox:
         headline: "Plus qu'une étape — vérifiez votre boîte de réception"
         sent: "Nous venons de vous envoyer un e-mail de confirmation. Cliquez sur le lien qu'il contient et la newsletter est à vous."
         spam_hint: "Rien reçu ? Patientez une minute — et jetez un œil dans vos spams, au cas où."
-        turned_on: "L'e-mail mensuel des nouveautés est activé. Merci !"
         expires: "Le lien de confirmation est valable %hours% heures."
         cta_homepage: "Explorer MySpeedPuzzling"
     confirm:

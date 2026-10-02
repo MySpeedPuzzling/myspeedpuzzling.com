@@ -213,8 +213,8 @@ final class PuzzleDetailControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         // Honoured on div/span/section only - so on the menu's wrapper, not on the ul; the same menu is in the header
         // and in the bar that replaces it on scroll
-        self::assertCount(2, $crawler->filter('div.puzzle-more ul.dropdown-menu'));
-        self::assertCount(2, $crawler->filter('div.puzzle-more[data-nosnippet] ul.dropdown-menu'));
+        self::assertCount(2, $crawler->filter('div.more-menu ul.dropdown-menu'));
+        self::assertCount(2, $crawler->filter('div.more-menu[data-nosnippet] ul.dropdown-menu'));
         self::assertCount(1, $crawler->filter('div[data-nosnippet] a.btn[href="/en/puzzle"]'));
 
         $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_UNAPPROVED);

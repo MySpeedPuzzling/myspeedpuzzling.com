@@ -14,6 +14,8 @@ readonly final class PlayerIdentification
         public null|string $playerName,
         public null|CountryCode $playerCountry,
         public null|string $playerAvatar = null,
+        // Hidden from the current viewer (PrivateProfileAccess) - only where the query selects it
+        public bool $isPrivate = false,
     ) {
     }
 
@@ -24,6 +26,7 @@ readonly final class PlayerIdentification
      *     player_name: null|string,
      *     player_country: null|string,
      *     player_avatar?: null|string,
+     *     is_private?: bool,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -34,6 +37,7 @@ readonly final class PlayerIdentification
             playerName: $row['player_name'],
             playerCountry: CountryCode::fromCode($row['player_country']),
             playerAvatar: $row['player_avatar'] ?? null,
+            isPrivate: $row['is_private'] ?? false,
         );
     }
 }

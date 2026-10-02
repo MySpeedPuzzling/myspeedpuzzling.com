@@ -79,6 +79,38 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
+     * The favorite puzzlers page is the owner's alone, so there is no bystander to compare with: the blocker sees the
+     * follower until the block, and never after it.
+     */
+    public function testFollowerTheOwnerBlocksIsNowhereOnTheFavoritesPage(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/player-favorites/' . self::BLOCKER;
+        $database = self::getContainer()->get(Connection::class);
+
+        $database->executeStatement(
+            'UPDATE player SET favorite_players = :favorites WHERE id = :id',
+            ['favorites' => json_encode([self::BLOCKER]), 'id' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED_NAME, (string) $browser->getResponse()->getContent(), 'No canary: the follower is not shown before the block.');
+
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+    }
+
+    /**
      * @return iterable<string, array{string}>
      */
     public static function providePlayerListingPages(): iterable

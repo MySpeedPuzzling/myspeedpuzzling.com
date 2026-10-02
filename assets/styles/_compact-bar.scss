@@ -1,0 +1,84 @@
+// Shared by the puzzle page and the player pages (compact_bar_controller.js): the ⋯ button of a header's action menu,
+// and the compact bar that takes the header's place once its buttons scroll away.
+
+.more-btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-color: #dee2e6;
+    color: #4b566b;
+    font-size: 1.25rem;
+}
+
+// The bar that takes the header's place once its buttons scroll away (compact_bar_controller.js)
+.compact-bar {
+    position: fixed;
+    top: var(--header-height, 97px);
+    left: 0;
+    right: 0;
+    // Under the site header (.sticky-top, $zindex-sticky 1020) and its dropdowns, over the page's content
+    z-index: $zindex-sticky - 10;
+    background: #fff;
+    border-bottom: 1px solid #eceef2;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .05);
+    transform: translateY(-110%);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform .2s ease, opacity .2s ease, visibility 0s linear .2s;
+
+    &.is-visible {
+        transform: none;
+        opacity: 1;
+        visibility: visible;
+        transition: transform .2s ease, opacity .2s ease;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        transition: none !important;
+    }
+}
+
+.compact-bar-inner {
+    display: flex;
+    align-items: center;
+    gap: .625rem;
+    padding-top: .375rem;
+    padding-bottom: .375rem;
+}
+
+// A puzzle box in its own proportions here too: at most 40 × 44 px
+.compact-bar-thumb {
+    flex-shrink: 0;
+    width: auto;
+    height: auto;
+    max-width: 40px;
+    max-height: 44px;
+    border-radius: 4px;
+}
+
+.compact-bar-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+// A reminder of whose / which page this is - the full name is in the header above, so two lines at most here
+.compact-bar-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: .875rem;
+    color: #111;
+}
+
+.compact-bar-meta {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .75rem;
+    color: $lb-secondary;
+}

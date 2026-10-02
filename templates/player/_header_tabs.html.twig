@@ -1,0 +1,20 @@
+{#
+    The player's pages as tabs - under the header and inside its compact bar (components/PlayerHeader.html.twig).
+    They grow to fill the row when they fit and scroll sideways when they do not (scroll_tabs_controller.js).
+    A list view (a collection, the wish list …) shows Library as its section: aria-current "true", not "page".
+
+    Required variables: player, header (the PlayerHeader component)
+#}
+{% set current_route = app.request.attributes.get('_route') %}
+<nav class="player-tabs" aria-label="{{ 'player_header.pages'|trans }}" {{ stimulus_controller('scroll-tabs') }}>
+    <div class="player-tabs-scroller" {{ stimulus_target('scroll-tabs', 'scroller') }}>
+        {% for tab in header.tabs %}
+            {% set is_current = tab == header.currentTab %}
+            <a class="player-tab{{ is_current ? ' active' }}"
+               href="{{ path(tab.routeName, {playerId: player.playerId}) }}"
+               {%- if tab.nofollow %} rel="nofollow"{% endif %}
+               {%- if is_current %} aria-current="{{ current_route == tab.routeName ? 'page' : 'true' }}"{% endif %}
+            >{{ tab.translationKey|trans }}</a>
+        {% endfor %}
+    </div>
+</nav>

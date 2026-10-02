@@ -22,8 +22,9 @@ Jan's redesign of the puzzle page (mobile first, designs on a claude.ai canvas):
   badges, then Add time · Stopwatch · ⋯ (every action - wishlist, collections, sell/swap, lend, offers, QR, suggest a
   change), then Insights / Details toggles. No breadcrumb below 576 px (the meta line links to the same pages).
 - Once those buttons scroll away a compact bar (thumbnail, name ≤ 2 lines, pcs · brand, ⋯ with the same menu) slides in
-  under the site header (`puzzle_bar_controller.js`, `inert` while hidden). The menu is on the page twice, so
-  `puzzle/_dropdown_actions.html.twig` carries a class instead of an id and its stream replaces every copy (`targets`).
+  under the site header (`compact_bar_controller.js`, shared with the player pages since #224; `inert` while hidden).
+  The menu is on the page twice, so `puzzle/_dropdown_actions.html.twig` carries a class instead of an id and its
+  stream replaces every copy (`targets`).
 
 ## Chart switch: distribution or rankings (built 2026-10-02)
 

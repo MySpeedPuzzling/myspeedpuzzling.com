@@ -800,9 +800,6 @@
   "statistics_time": "Čas strávený skládáním"
   "statistics_puzzles_solved": "Počet složených puzzlí"
   "statistics_pieces_count": "Počet složených dílků"
-  "favorite_puzzlers": "Oblíbení puzzleři"
-  "no_favorite_puzzlers": "Žádní oblíbení puzzleři"
-  "favorite_puzzlers_meta_description": "Oblíbení puzzleři hráče %name% na MySpeedPuzzling: skládači, jejichž časy skládání puzzle sleduje nejpozorněji."
   "solved_puzzles": "Poskládané puzzle"
   "solved_puzzles_solo": "Jednotlivec"
   "solved_puzzles_group": "Skupinové skládání"
@@ -3953,6 +3950,24 @@ private_profile_viewers:
     manage: "Vybrat, kdo mě vidí"
     manage_help: "Umožněte vybraným přátelům vidět vaše jméno, profil a výsledky, zatímco před ostatními zůstanete skryti."
 
+favorite_puzzlers:
+    meta_title: "Vaši oblíbení puzzleři"
+    meta_description: "Puzzleři, které na MySpeedPuzzling sledujete, a puzzleři, kteří mají v oblíbených vás."
+    only_you: "Tuto stránku vidíte jen vy."
+    favorites:
+        title: "Vaši oblíbení"
+        empty: "Zatím nemáte žádné oblíbené puzzlery."
+        empty_hint: "Otevřete profil puzzlera a přidejte si ho do oblíbených - objeví se tady."
+        find_puzzlers: "Najít puzzlery"
+    followers:
+        title: "Kdo vás má v oblíbených"
+        empty: "Zatím si vás nikdo nepřidal do oblíbených."
+        empty_hint: "Jakmile to někdo udělá, objeví se tady."
+        in_your_favorites: "Ve vašich oblíbených"
+        private_more: "+ %count% puzzler se soukromým profilem|+ %count% puzzleři se soukromým profilem|+ %count% puzzlerů se soukromým profilem"
+        private_only: "%count% puzzler se soukromým profilem|%count% puzzleři se soukromým profilem|%count% puzzlerů se soukromým profilem"
+        private_hint: "Soukromé profily zůstávají v anonymitě - uvádíme jen jejich počet."
+
 "copuzzler_picker":
   "switch_label": "S kým jste skládali?"
   "mode":
@@ -4533,3 +4548,26 @@ digest_emails:
         confirm_button: "Už mi je neposílejte"
         done: "Hotovo – e-maily o nových zprávách už ti posílat nebudeme. Zprávy ti na MySpeedPuzzling budou chodit dál jako obvykle."
         settings_hint: "Kdykoli je můžeš znovu zapnout v nastavení profilu v části „Zprávy a upozornění“."
+
+player_header:
+    pages: "Stránky hráče"
+    tabs:
+        profile: "Profil"
+        statistics: "Statistiky"
+        calendar: "Kalendář"
+        library: "Knihovna"
+        favorites: "Oblíbení"
+    favorite: "Oblíbit"
+    favorite_on: "V oblíbených"
+    message: "Zpráva"
+    share: "Sdílet"
+    share_profile: "Sdílet profil"
+    link_copied: "Odkaz zkopírován"
+    member: "Člen"
+    private_profile: "Soukromý profil"
+    skill_tier: "Úroveň"
+    tier_title: "Úroveň pro %pieces% dílků"
+    no_tier_yet: "Zatím bez úrovně"
+    no_tier_yet_title: "Zatím málo výsledků s %pieces% dílky pro určení úrovně"
+    tier_locked_title: "Úrovně jsou pro členy"
+    more_actions: "Další akce"

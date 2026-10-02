@@ -4,6 +4,21 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Player header (#224)
+
+Shipped: [`features/player-header.md`](features/player-header.md).
+
+- [ ] **API vs web (Jan's call):** `/api/v1/me/followers` (`GetPlayerConnections`) still lists private followers the
+      viewer may not see, masked but by `#CODE`; the favorites page only counts them (`GetFavoritePlayers::followersOf`).
+      Align the API (count only) or accept the difference
+- [ ] The favorite toggle is still a GET link (`ToggleFavoritePlayerController`, `rel="nofollow"`, no CSRF) - a POST
+      button would be the honest form now that it is a primary action on 12 pages
+- [ ] Found while screenshotting, not caused by #224: `onboarding.checklist.progress` was overwritten by the free trial
+      (`cf819693`) with `%logged%`/`%required%`, but `onboarding/_getting_started_card.html.twig` passes
+      `%done%`/`%total%` - the card shows "%logged% of %required% so far" (en, cs, de at least)
+- [ ] Found while screenshotting, not caused by #224: the site topbar (`.topbar-text.text-nowrap`) is wider than
+      320 px in German and for admins - the page scrolls sideways there
+
 ## Transactional e-mails
 
 Shipped: [`features/transactional-emails.md`](features/transactional-emails.md).

@@ -27,11 +27,6 @@ final class PageMetaDescriptionsTest extends WebTestCase
             "John Doe's puzzle library on MySpeedPuzzling",
         ];
 
-        yield 'favorite puzzlers' => [
-            '/en/player-favorites/' . PlayerFixture::PLAYER_WITH_FAVORITES,
-            "Michael Johnson's favorite speed puzzlers on MySpeedPuzzling",
-        ];
-
         yield 'activity calendar' => [
             '/en/activity-calendar/' . PlayerFixture::PLAYER_REGULAR,
             "John Doe's puzzling activity calendar on MySpeedPuzzling",

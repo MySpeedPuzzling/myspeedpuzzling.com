@@ -1,0 +1,150 @@
+// Favorite puzzlers (templates/player_favorite_puzzlers.html.twig, favorite_puzzlers/_puzzler.html.twig): the owner's
+// favorites and who has them in favorites. The rankings' building blocks - avatar with the country flag on its corner,
+// 14 px name in #111, 12 px #CODE in $lb-secondary - but a name wraps instead of being cut: it is all the row has to say.
+// Never scrolls sideways, 320 px included.
+
+$fp-divider: #eceef2;
+
+.fp-only-you {
+    margin: .75rem 0 1rem;
+    font-size: .75rem;
+    color: $lb-secondary;
+}
+
+.fp-section {
+    margin-bottom: 2rem;
+}
+
+.fp-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    margin-bottom: .5rem;
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #111;
+}
+
+.fp-count {
+    display: inline-block;
+    min-width: 1.5rem;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: #eef0f4;
+    color: #4b5160;
+    font-size: .75rem;
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.fp-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid $fp-divider;
+}
+
+.fp-item {
+    border-bottom: 1px solid $fp-divider;
+}
+
+// The whole row is the link - a 52 px target
+.fp-link,
+.fp-item-private {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    min-height: 52px;
+    padding: 8px 4px;
+}
+
+.fp-link {
+    color: #111;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        background: #f9fafb;
+        color: #111;
+
+        .fp-name {
+            text-decoration: underline;
+        }
+    }
+}
+
+// The avatar one step bigger than in a ranking row: here it carries two lines of text
+.fp-item .lb-avatar {
+    width: 36px;
+    height: 36px;
+    margin-right: 0;
+
+    .lb-avatar-img {
+        font-size: 1rem;
+    }
+
+    .lb-flag.fi {
+        right: -5px;
+        bottom: -3px;
+        width: 16px;
+        height: 12px;
+        line-height: 12px;
+    }
+}
+
+.fp-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.fp-name,
+.fp-code {
+    overflow-wrap: anywhere;
+}
+
+.fp-name {
+    font-size: .875rem;
+    line-height: 1.3;
+    color: #111;
+}
+
+.fp-name-hidden,
+.fp-item-private .fp-name {
+    color: $lb-secondary;
+}
+
+.fp-code {
+    margin-top: 1px;
+    font-size: .75rem;
+    line-height: 1.3;
+    color: $lb-secondary;
+}
+
+.fp-empty {
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: #f9fafb;
+    font-size: .875rem;
+    color: $lb-secondary;
+
+    p {
+        margin-bottom: .5rem;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    .btn {
+        margin-top: .25rem;
+    }
+}
+
+.fp-empty-text {
+    color: #111;
+}

@@ -44,8 +44,8 @@
 
 {% block content %}
     {{ include('_return_back_button.html.twig') }}
-    <h1 class="visually-hidden">{{ player_display_name }}</h1>
-    <twig:PlayerHeader player="{{ player }}" />
+    {# The header's player name is the page's H1 #}
+    <twig:PlayerHeader player="{{ player }}" tab="profile" :heading="true" />
 
     {{ include('review_results/_banner.html.twig', {review_counts: review_counts}) }}
 
@@ -54,46 +54,6 @@
             {{ include('onboarding/_getting_started_card.html.twig', {progress: getting_started, folded: false}) }}
         </div>
     {% endif %}
-
-    <div class="row mb-3">
-        {% if player.activeMembership %}
-            <p class="col-sm">
-                <a href="{{ path('membership') }}" class="badge bg-primary py-1 px-2 text-light">
-                    <i class="ci ci-heart-filled"></i>
-                    {{ 'active_membership'|trans }}
-                </a>
-            </p>
-        {% endif %}
-
-        {% if can_message %}
-            <p class="col-sm">
-                <a href="{{ path('start_conversation', {recipientId: player.playerId}) }}" class="btn btn-sm btn-outline-primary" data-turbo="true" data-turbo-frame="modal-frame">
-                    <i class="bi bi-envelope me-1"></i> {{ 'messaging.send_message'|trans }}
-                </a>
-            </p>
-        {% endif %}
-
-        {% if logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
-            <div class="col-sm" style="max-width: 366px;" data-controller="clipboard">
-                <div class="share-profile-link">
-                    <small>Share your profile (<span class="text-muted">{{ 'my_profile.share_mention_myspeedpuzzling'|trans|raw }}</span>)</small>
-                    <div class="input-group input-group-sm">
-                        <input
-                            data-action="click->clipboard#selectInputContent dblclick->clipboard#selectInputContent focus->clipboard#selectInputContent"
-                            {{ stimulus_target('clipboard', 'input')}}
-                            value="{{ url('player_profile', {playerId: player.playerId}) }}"
-                            class="form-control form-control-sm"
-                            type="text"
-                            readonly
-                        >
-                        <button {{ stimulus_action('clipboard', 'copyToClipboard', 'click')}} id="share-profile-link-button" class="btn btn-sm btn-icon btn-primary" type="button">
-                            <i {{ stimulus_target('clipboard', 'buttonIcon')}} class="ci-share"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-    </div>
 
     {% if player.isPrivate and (logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId) %}
         <div class="alert alert-secondary d-flex align-items-start gap-3 p-3 rounded-3 shadow-sm">

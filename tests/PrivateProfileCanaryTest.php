@@ -196,6 +196,32 @@ final class PrivateProfileCanaryTest extends WebTestCase
     }
 
     /**
+     * "Who has you in favorites" on the favorite puzzlers page (the owner's alone): the friend sees her name, anybody
+     * else only a count - not even her code.
+     */
+    public function testFavoritesPageNamesAPrivateFollowerToTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE player SET favorite_players = :favorites WHERE id = :id',
+            ['favorites' => json_encode([self::FRIEND, ...array_values(self::STRANGERS)]), 'id' => self::OWNER],
+        );
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            $content = $this->get($browser, '/en/player-favorites/' . $strangerId);
+            self::assertStringNotContainsString(self::OWNER_NAME, $content, "A signed-in stranger ({$who}) is shown a private follower.");
+            self::assertStringNotContainsString(self::OWNER, $content, "A signed-in stranger ({$who}) is shown a private follower.");
+            self::assertStringNotContainsString('PLAYER2', $content, "A signed-in stranger ({$who}) is shown a private follower's code.");
+            self::assertStringContainsString('1 private puzzler', $content, 'No canary: the private follower is not counted.');
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertStringContainsString(self::OWNER_NAME, $this->get($browser, '/en/player-favorites/' . self::FRIEND));
+        self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+    }
+
+    /**
      * The friend reads the name on the page; the head of that page follows the player's own
      * setting, so nothing the friend's browser shares, unfurls or "reads later" carries an identity.
      */

@@ -4,23 +4,20 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
-use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * A personal page: the players the signed-in player has in favorites, and the players who have them in favorites.
+ * Nobody else gets it - whom a player follows, and who follows them, is theirs alone.
+ */
 final class PlayerFavoritePuzzlersController extends AbstractController
 {
     public function __construct(
-        readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetFavoritePlayers $getFavoritePlayers,
-        readonly private TranslatorInterface $translator,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
@@ -36,25 +33,20 @@ final class PlayerFavoritePuzzlersController extends AbstractController
         ],
         name: 'player_favorite_puzzlers',
     )]
-    public function __invoke(string $playerId, #[CurrentUser] null|UserInterface $user): Response
+    public function __invoke(string $playerId): Response
     {
-        try {
-            $player = $this->getPlayerProfile->byId($playerId);
-        } catch (PlayerNotFound) {
-            $this->addFlash('primary', $this->translator->trans('flashes.player_not_found'));
+        $viewer = $this->retrieveLoggedUserProfile->getProfile();
 
-            return $this->redirectToRoute('ladder');
-        }
-
-        $loggedPlayerProfile = $this->retrieveLoggedUserProfile->getProfile();
-
-        if ($player->isPrivate && $loggedPlayerProfile?->playerId !== $player->playerId) {
-            return $this->redirectToRoute('player_profile', ['playerId' => $player->playerId]);
+        // Guests and other players land on the player's profile, so old links and search results still lead somewhere.
+        // A 302, never a 301: the answer depends on who is asking.
+        if ($viewer === null || strtolower($playerId) !== strtolower($viewer->playerId)) {
+            return $this->redirectToRoute('player_profile', ['playerId' => $playerId]);
         }
 
         return $this->render('player_favorite_puzzlers.html.twig', [
-            'player' => $player,
-            'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),
+            'player' => $viewer,
+            'favorite_players' => $this->getFavoritePlayers->forPlayerId($viewer->playerId),
+            'followers' => $this->getFavoritePlayers->followersOf($viewer->playerId),
         ]);
     }
 }

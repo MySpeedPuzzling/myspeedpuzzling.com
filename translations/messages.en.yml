@@ -996,9 +996,6 @@ profile:
     statistics_time: "Time spent assembling"
     statistics_puzzles_solved: "Number of puzzles solved"
     statistics_pieces_count: "Number of pieces assembled"
-    favorite_puzzlers: "Favorite puzzlers"
-    no_favorite_puzzlers: "No favorite puzzlers"
-    favorite_puzzlers_meta_description: "%name%'s favorite speed puzzlers on MySpeedPuzzling: the players whose jigsaw puzzle times they follow most closely."
     solved_puzzles: "Solved puzzles"
     solved_puzzles_solo: "Individual"
     solved_puzzles_group: "Group assembly"
@@ -4262,6 +4259,24 @@ private_profile_viewers:
     manage: "Choose who can see me"
     manage_help: "Let selected friends see your name, profile and results while you stay hidden from everyone else."
 
+favorite_puzzlers:
+    meta_title: "Your favorite puzzlers"
+    meta_description: "The puzzlers you follow on MySpeedPuzzling and the puzzlers who have you in their favorites."
+    only_you: "Only you can see this page."
+    favorites:
+        title: "Your favorites"
+        empty: "You have no favorite puzzlers yet."
+        empty_hint: "Open a puzzler's profile and add them to your favorites - they will show up here."
+        find_puzzlers: "Find puzzlers"
+    followers:
+        title: "Who has you in favorites"
+        empty: "Nobody has added you to their favorites yet."
+        empty_hint: "When somebody does, they will show up here."
+        in_your_favorites: "In your favorites"
+        private_more: "+ 1 private puzzler|+ %count% private puzzlers"
+        private_only: "1 private puzzler|%count% private puzzlers"
+        private_hint: "Private profiles stay anonymous - we only show how many."
+
 
 copuzzler_picker:
     switch_label: "Who did you puzzle with?"
@@ -4843,3 +4858,26 @@ digest_emails:
         confirm_button: "Stop these e-mails"
         done: "Done – you won't get e-mails about new messages any more. Your messages still arrive on MySpeedPuzzling as usual."
         settings_hint: "You can switch them on again any time in your profile settings under \"Messaging & Notifications\"."
+
+player_header:
+    pages: "Player pages"
+    tabs:
+        profile: "Profile"
+        statistics: "Statistics"
+        calendar: "Calendar"
+        library: "Library"
+        favorites: "Favorites"
+    favorite: "Favorite"
+    favorite_on: "Favorite"
+    message: "Message"
+    share: "Share"
+    share_profile: "Share profile"
+    link_copied: "Link copied"
+    member: "Member"
+    private_profile: "Private profile"
+    skill_tier: "Skill tier"
+    tier_title: "Skill tier for %pieces% pieces"
+    no_tier_yet: "No tier yet"
+    no_tier_yet_title: "Not enough %pieces%-piece results for a skill tier yet"
+    tier_locked_title: "Skill tiers are for members"
+    more_actions: "More actions"

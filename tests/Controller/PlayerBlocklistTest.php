@@ -53,7 +53,8 @@ final class PlayerBlocklistTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE);
         self::assertCount(1, $crawler->filter('#blockPlayerModal form'));
-        self::assertCount(1, $crawler->filter('[data-bs-target="#blockPlayerModal"]'));
+        // The ⋯ menu is in the header and in its compact bar; the modal is rendered once
+        self::assertCount(2, $crawler->filter('[data-bs-target="#blockPlayerModal"]'));
 
         $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_ADMIN);
         self::assertCount(0, $crawler->filter('#blockPlayerModal'));

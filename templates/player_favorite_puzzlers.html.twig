@@ -1,33 +1,66 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ player.playerName ?? ('#' ~ player.code|upper) }} - {{ 'menu.favorite_puzzlers'|trans }}{% endblock %}
-{% block meta_description %}{{ 'profile.favorite_puzzlers_meta_description'|trans({'%name%': profile_head_name(player)}) }}{% endblock %}
+{# A personal page - only its owner ever gets it (PlayerFavoritePuzzlersController) #}
+{% block title %}{{ 'favorite_puzzlers.meta_title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'favorite_puzzlers.meta_description'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-    <twig:PlayerHeader player="{{ player }}" />
+    <twig:PlayerHeader player="{{ player }}" tab="favorites" :heading="true" />
 
-    <div class="row mt-4">
-        <div class="col-sm mt-3">
-            <h3>{{ 'profile.favorite_puzzlers'|trans }}</h3>
+    <p class="fp-only-you"><i class="bi bi-lock me-1" aria-hidden="true"></i>{{ 'favorite_puzzlers.only_you'|trans }}</p>
+
+    <div class="row fp-sections">
+        <section class="col-md-6 fp-section" aria-labelledby="fp-favorites-title">
+            <h2 class="fp-title" id="fp-favorites-title">
+                {{ 'favorite_puzzlers.favorites.title'|trans }}
+                {%- if favorite_players is not empty %} <span class="fp-count">{{ favorite_players|length }}</span>{% endif -%}
+            </h2>
 
             {% if favorite_players is empty %}
-                <div class="alert alert-warning">
-                    {{ 'profile.no_favorite_puzzlers'|trans }}
+                <div class="fp-empty">
+                    <p class="fp-empty-text"><i class="bi bi-star me-1" aria-hidden="true"></i>{{ 'favorite_puzzlers.favorites.empty'|trans }}</p>
+                    <p class="fp-empty-hint">{{ 'favorite_puzzlers.favorites.empty_hint'|trans }}</p>
+                    <a class="btn btn-sm btn-outline-primary" href="{{ path('players') }}">{{ 'favorite_puzzlers.favorites.find_puzzlers'|trans }}</a>
                 </div>
             {% else %}
-                <ul>
-                    {% for favorite_puzzler in favorite_players %}
-                        <li>
-                            <a href="{{ path('player_profile', {playerId: favorite_puzzler.playerId}) }}">
-                                {{ favorite_puzzler.playerName ?? 'secret_puzzler_name'|trans }} <code class="text-muted">#{{ favorite_puzzler.playerCode|upper }}</code>
-                            </a>
-                            {% if favorite_puzzler.playerCountry is not null %}
-                                <small class="shadow-custom fi fi-{{ favorite_puzzler.playerCountry.name }}"></small>
-                            {% endif %}
-                        </li>
+                <ul class="fp-list">
+                    {% for favorite_player in favorite_players %}
+                        {{ include('favorite_puzzlers/_puzzler.html.twig', {player: favorite_player}) }}
                     {% endfor %}
                 </ul>
             {% endif %}
-        </div>
+        </section>
+
+        <section class="col-md-6 fp-section" aria-labelledby="fp-followers-title">
+            <h2 class="fp-title" id="fp-followers-title">
+                {{ 'favorite_puzzlers.followers.title'|trans }}
+                {%- if followers.total > 0 %} <span class="fp-count">{{ followers.total }}</span>{% endif -%}
+            </h2>
+
+            {% if followers.total == 0 %}
+                <div class="fp-empty">
+                    <p class="fp-empty-text"><i class="bi bi-people me-1" aria-hidden="true"></i>{{ 'favorite_puzzlers.followers.empty'|trans }}</p>
+                    <p class="fp-empty-hint">{{ 'favorite_puzzlers.followers.empty_hint'|trans }}</p>
+                </div>
+            {% else %}
+                <ul class="fp-list">
+                    {% for follower in followers.players %}
+                        {{ include('favorite_puzzlers/_puzzler.html.twig', {player: follower, favorite_star: true}) }}
+                    {% endfor %}
+
+                    {# Private profiles hidden from the viewer: counted, never identified (GetFavoritePlayers::followersOf) #}
+                    {% if followers.privateCount > 0 %}
+                        <li class="fp-item fp-item-private">
+                            {{- include('_player_avatar.html.twig', {player_id: null, name: '', hidden: true}) -}}
+                            <span class="fp-text">
+                                <span class="fp-name">{{ (followers.players is empty ? 'favorite_puzzlers.followers.private_only' : 'favorite_puzzlers.followers.private_more')|trans({'%count%': followers.privateCount}) }}</span>
+                                <span class="fp-code">{{ 'favorite_puzzlers.followers.private_hint'|trans }}</span>
+                            </span>
+                        </li>
+                    {% endif %}
+                </ul>
+            {% endif %}
+        </section>
     </div>
 {% endblock %}

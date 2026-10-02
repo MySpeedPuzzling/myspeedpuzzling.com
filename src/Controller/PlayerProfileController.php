@@ -6,13 +6,9 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetAffiliateSupporters;
 use SpeedPuzzling\Web\Query\GetBadges;
-use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetGettingStartedProgress;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerReviewCounts;
-use SpeedPuzzling\Web\Query\GetRanking;
-use SpeedPuzzling\Web\Query\GetTags;
-use SpeedPuzzling\Web\Query\HasExistingConversation;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,12 +20,8 @@ final class PlayerProfileController extends AbstractController
 {
     public function __construct(
         readonly private GetPlayerProfile $getPlayerProfile,
-        readonly private GetRanking $getRanking,
-        readonly private GetFavoritePlayers $getFavoritePlayers,
-        readonly private GetTags $getTags,
         readonly private GetBadges $getBadges,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private HasExistingConversation $hasExistingConversation,
         readonly private GetAffiliateSupporters $getAffiliateSupporters,
         readonly private GetGettingStartedProgress $getGettingStartedProgress,
         readonly private GetPlayerReviewCounts $getPlayerReviewCounts,
@@ -52,12 +44,7 @@ final class PlayerProfileController extends AbstractController
         // PlayerNotFound extends NotFoundHttpException and bubbles up as 404
         $player = $this->getPlayerProfile->byId($playerId);
 
-        $canMessage = false;
         $loggedProfile = $this->retrieveLoggedUserProfile->getProfile();
-        if ($loggedProfile !== null && $loggedProfile->playerId !== $player->playerId) {
-            $canMessage = $player->allowDirectMessages
-                || $this->hasExistingConversation->acceptedBetween($loggedProfile->playerId, $player->playerId);
-        }
 
         $affiliateSupporters = null;
         if ($player->isInReferralProgram()) {
@@ -83,11 +70,7 @@ final class PlayerProfileController extends AbstractController
             'getting_started' => $gettingStarted,
             'review_counts' => $reviewCounts,
             'player' => $player,
-            'ranking' => $this->getRanking->allForPlayer($player->playerId),
-            'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),
-            'tags' => $this->getTags->allGroupedPerPuzzle(),
             'badges' => $this->getBadges->forPlayer($player->playerId),
-            'can_message' => $canMessage,
             'affiliate_supporters' => $affiliateSupporters,
         ]);
     }

@@ -1,0 +1,17 @@
+{#
+    Shares the player's profile: the system share sheet where there is one, otherwise copies the link and says so
+    (share_link_controller.js). Used by the own profile's Share button and every "Share profile" menu item.
+
+    Required variables: player, class, label
+#}
+<button type="button" class="{{ class }}"
+    {{ stimulus_controller('share-link', {
+        url: url('player_profile', {playerId: player.playerId}),
+        title: 'player_profile.meta.title'|trans({'%name%': player.isPrivateProfile ? 'secret_puzzler_name'|trans ~ ' #' ~ player.code|upper : (player.playerName ?? ('#' ~ player.code|upper))}),
+        copiedLabel: 'player_header.link_copied'|trans,
+    }) }}
+    {{ stimulus_action('share-link', 'share') }}
+>
+    <i class="bi bi-box-arrow-up me-1" aria-hidden="true" {{ stimulus_target('share-link', 'icon') }}></i>
+    <span aria-live="polite" {{ stimulus_target('share-link', 'label') }}>{{ label }}</span>
+</button>

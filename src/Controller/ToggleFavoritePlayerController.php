@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerIsNotInFavorites;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\AddPlayerToFavorites;
 use SpeedPuzzling\Web\Message\RemovePlayerFromFavorites;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -91,6 +92,13 @@ final class ToggleFavoritePlayerController extends AbstractController
             if ($realException instanceof PlayerNotFound) {
                 return $this->redirectToRoute('my_profile');
             }
+        }
+
+        // The player header offers the toggle on every page of the player - back to the page it was used on
+        $returnUrl = ReturnUrl::tryFrom($request->query->getString('return'));
+
+        if ($returnUrl !== null) {
+            return $this->redirect($returnUrl->path);
         }
 
         return $this->redirectToRoute('player_profile', [

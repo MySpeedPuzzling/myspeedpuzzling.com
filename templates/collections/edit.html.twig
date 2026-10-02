@@ -3,7 +3,7 @@
 {% block title %}{{ 'collections.edit.meta.title'|trans({'%name%': collection.name}) }}{% endblock %}
 
 {% block content %}
-    <twig:PlayerHeader player="{{ player }}" />
+    <twig:PlayerHeader player="{{ player }}" tab="library" :compact="true" />
 
     {% include '_return_back_button.html.twig' %}
 

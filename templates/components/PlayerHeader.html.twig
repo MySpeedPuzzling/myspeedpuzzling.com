@@ -1,148 +1,158 @@
-{% set route = app.request.attributes.get('_route') %}
+{#
+    The header of every page of one player (docs/features/player-header.md): avatar · name · #CODE · chips, the primary
+    actions as buttons and every action behind ⋯, the player's pages as tabs, and the compact bar that takes its place
+    once the tabs scroll away (compact_bar_controller.js, shared with the puzzle page). The owner's own form and history
+    pages get a one-line strip instead ($compact).
+    What a private profile shows is decided by PrivateProfileAccess (player.isPrivate = hidden from this viewer).
+#}
+{% set display_name = this.isHidden ? 'secret_puzzler_name'|trans : (player.playerName ?? ('#' ~ player.code|upper)) %}
+{% set avatar_args = {
+    player_id: player.playerId,
+    name: player.playerName ?? ('#' ~ player.code),
+    avatar: player.avatar,
+    country_code: player.countryCode ? player.countryCode.name : null,
+    country_name: player.countryCode ? player.countryCode.value : null,
+    hidden: this.isHidden,
+} %}
 
-<nav class="player-profile-header player-breadcrumb mt-n2 ms-n3 me-n3 mb-2 py-1 px-3">
-    {% set hidden_profile = player.isPrivate and (logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId) %}
-    <span class="player-breadcrumb-name">
-        {# The same avatar as in every ranking (photo or initial, flag on its corner), larger to match the header #}
-        {{ include('_player_avatar.html.twig', {
-            player_id: player.playerId,
-            name: player.playerName ?? ('#' ~ player.code),
-            avatar: player.avatar,
-            country_code: player.countryCode ? player.countryCode.name : null,
-            country_name: player.countryCode ? player.countryCode.value : null,
-            hidden: hidden_profile,
-            size: 'lg',
-        }) }}
-        {% if not player.isPrivate or (logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId) %}
-            {% if logged_user.profile is not null and logged_user.profile.activeMembership and not player.rankingOptedOut %}
-                {% if this.primarySkill is not null %}
-                    {% set skill_tier_name = this.primarySkill.skillTier.name|lower %}
-                    <svg class="rank-icon" width="20" height="20" style="color: var(--rank-{{ skill_tier_name }})"><use href="/rank-icons-sprite.svg#rank-{{ skill_tier_name }}"/></svg>
-                {% else %}
-                    <svg class="rank-icon" width="20" height="20" style="color: var(--rank-unknown)"><use href="/rank-icons-sprite.svg#rank-unknown"/></svg>
-                {% endif %}
-            {% else %}
-                <svg class="rank-icon" width="20" height="20" style="color: var(--rank-locked)"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
-            {% endif %}
+{% if compact %}
+    <nav {{ attributes.defaults({class: 'player-strip'}) }} aria-label="{{ 'player_header.pages'|trans }}">
+        <a class="player-strip-player" href="{{ path('player_profile', {playerId: player.playerId}) }}">
+            {{ include('_player_avatar.html.twig', avatar_args) }}
+            <span>{{ display_name }}</span>
+        </a>
+        {% if this.currentTab is not null %}
+            <i class="bi bi-chevron-right player-strip-sep" aria-hidden="true"></i>
+            <a class="player-strip-section" href="{{ path(this.currentTab.routeName, {playerId: player.playerId}) }}"{% if this.currentTab.nofollow %} rel="nofollow"{% endif %}>{{ this.currentTab.translationKey|trans }}</a>
         {% endif %}
-        <span class="player-breadcrumb-name-text">
-            {%- if player.isPrivate and (logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId) -%}
-                {{ 'secret_puzzler_name'|trans }}
-            {%- else -%}
-                {{ player.playerName ?? ('#' ~ player.code|upper) }}
-            {%- endif -%}
-        </span>
-        <code class="player-breadcrumb-code">#{{ player.code|upper }}</code>
-    </span>
-
-    <span class="player-breadcrumb-divider">/</span>
-
-    <div class="dropdown">
-        <button type="button" class="dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            {% if route == 'player_statistics' %}
-                {{ 'menu.statistics'|trans }}
-            {% elseif route == 'activity_calendar' %}
-                {{ 'menu.activity_calendar'|trans }}
-            {% elseif route == 'player_favorite_puzzlers' %}
-                {{ 'menu.favorite_puzzlers'|trans }}
-            {% elseif route == 'puzzle_library' %}
-                {{ 'menu.puzzle_library'|trans }}
-            {% elseif route == 'edit_profile' %}
-                {{ 'menu.edit_profile'|trans }}
-            {% elseif route == 'export_puzzler_data' %}
-                {{ 'menu.export_data'|trans }}
-            {% else %}
-                {{ 'menu.profile'|trans }}
-            {% endif %}
-        </button>
-        <div class="dropdown-menu">
-            <a href="{{ path('player_profile', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_profile' %}active{% endif %}">
-                <i class="bi bi-person me-1"></i> {{ 'menu.profile'|trans }}
-            </a>
-
-            {% if not player.isPrivate or (logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId) %}
-                <a rel="nofollow" href="{{ path('player_statistics', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_statistics' %}active{% endif %}">
-                    <i class="bi bi-bar-chart-line me-1"></i> {{ 'menu.statistics'|trans }}
-                </a>
-
-                <a href="{{ path('activity_calendar', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'activity_calendar' %}active{% endif %}">
-                    <i class="bi bi-calendar-event me-1"></i> {{ 'menu.activity_calendar'|trans }}
-                </a>
-
-                <a href="{{ path('player_favorite_puzzlers', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_favorite_puzzlers' %}active{% endif %}">
-                    <i class="bi bi-eye me-1"></i> {{ 'menu.favorite_puzzlers'|trans }}
-                </a>
-
-                <a href="{{ path('puzzle_library', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'puzzle_library' %}active{% endif %}">
-                    <i class="bi bi-collection me-1"></i> {{ 'menu.puzzle_library'|trans }}
-                </a>
-            {% endif %}
-
-            {% if logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId %}
-                {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}
-                    <a data-turbo-prefetch="false" rel="nofollow" href="{{ path('remove_player_from_favorite', {playerId: player.playerId}) }}" class="dropdown-item">
-                        <i class="me-1 ci-star-filled"></i> {{ 'profile.remove_from_favorites'|trans }}
-                    </a>
-                {% else %}
-                    <a data-turbo-prefetch="false" rel="nofollow" href="{{ path('add_player_to_favorite', {playerId: player.playerId}) }}" class="dropdown-item">
-                        <i class="me-1 ci-star"></i> {{ 'profile.add_to_favorites'|trans }}
-                    </a>
+    </nav>
+{% else %}
+    {% set return_path = app.request.requestUri %}
+    <div {{ attributes.defaults({class: 'player-header'}) }} {{ stimulus_controller('compact-bar') }}>
+        {# Slides in once the tabs have scrolled away: whose pages these are, the tabs and ⋯ - the results, the library
+           and the statistics below can be very long #}
+        <div class="compact-bar player-bar" {{ stimulus_target('compact-bar', 'bar') }} inert>
+            <div class="container player-bar-inner{{ this.tabs is empty ? ' player-bar-no-tabs' }}">
+                {{ include('_player_avatar.html.twig', avatar_args|merge({size: 'lg'})) }}
+                <div class="compact-bar-text">
+                    <div class="compact-bar-name">{{ display_name }}</div>
+                    <div class="compact-bar-meta">#{{ player.code|upper }}</div>
+                </div>
+                {% if this.tabs is not empty %}
+                    {{ include('player/_header_tabs.html.twig', {header: this}) }}
                 {% endif %}
-
-                {% if not player.isPrivate %}
-                    <a data-turbo-prefetch="false" rel="nofollow" href="{{ path('compare_players', {'opponentPlayerId': player.playerId}) }}" class="dropdown-item">
-                        <i class="me-1 ci-compare"></i> {{ 'profile.compare'|trans }}
-                    </a>
-                {% endif %}
-
-                {% if logged_user.profile is not null %}
-                    <hr class="dropdown-divider">
-
-                    <button type="button" class="dropdown-item small text-muted" data-bs-toggle="modal" data-bs-target="#blockPlayerModal">
-                        <i class="me-1 bi bi-slash-circle"></i> {{ 'blocklist.block_player'|trans }}
-                    </button>
-                {% endif %}
-            {% endif %}
-
-            {% if logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
-                <hr class="dropdown-divider">
-
-                <a href="{{ path('export_puzzler_data', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'export_puzzler_data' %}active{% endif %}">
-                    <i class="me-1 bi bi-download"></i> {{ 'menu.export_data'|trans }}
-                </a>
-
-                <a href="{{ path('edit_profile', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'edit_profile' %}active{% endif %}">
-                    <i class="me-1 ci-edit"></i> {{ 'menu.edit_profile'|trans }}
-                </a>
-
-                <a href="{{ path('affiliate_dashboard') }}" class="dropdown-item {% if route == 'affiliate_dashboard' %}active{% endif %}">
-                    <i class="me-1 bi bi-megaphone"></i> {{ 'menu.referral_program'|trans }}
-                </a>
-            {% endif %}
-        </div>
-    </div>
-</nav>
-
-{% if logged_user.profile is not null and logged_user.profile.playerId is not same as player.playerId %}
-    <div class="modal fade" id="blockPlayerModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <form action="{{ path('block_user', {playerId: player.playerId}) }}" method="post" data-turbo="false">
-                    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Messaging\\BlockUserController::CSRF_TOKEN_ID')) }}">
-                    <div class="modal-header">
-                        <h5 class="modal-title">{{ 'blocklist.modal_title'|trans }}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>{{ 'blocklist.modal_text'|trans }}</p>
-                        <p class="mb-0 text-muted small">{{ 'blocklist.modal_undo'|trans }}</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'blocklist.cancel'|trans }}</button>
-                        <button type="submit" class="btn btn-danger">{{ 'blocklist.block_player'|trans }}</button>
-                    </div>
-                </form>
+                {{ include('player/_header_actions_menu.html.twig', {header: this}) }}
             </div>
         </div>
+
+        <div class="player-head">
+            <div class="player-head-avatar">
+                {{ include('_player_avatar.html.twig', avatar_args|merge({size: 'xl'})) }}
+            </div>
+
+            <div class="player-head-info">
+                {% set name_tag = heading ? 'h1' : 'div' %}
+                <{{ name_tag }} class="player-head-name">{{ display_name }}</{{ name_tag }}>
+                {# The country is the flag on the avatar #}
+                <div class="player-head-meta">#{{ player.code|upper }}</div>
+
+                {% set show_member = player.activeMembership and not this.isHidden %}
+                {% set show_private = this.isOwnProfile and player.isPrivateProfile %}
+                {% if this.tierChip is not null or show_member or show_private %}
+                    <div class="player-head-chips">
+                        {% if this.tierChip == 'tier' %}
+                            {% set tier = this.primarySkill.skillTier.name|lower %}
+                            <span class="player-chip player-chip-tier" style="--chip-color: var(--rank-{{ tier }})" title="{{ 'player_header.tier_title'|trans({'%pieces%': constant('SpeedPuzzling\\Web\\Component\\PlayerHeader::TIER_PIECES_COUNT')}) }}">
+                                <svg class="rank-icon" width="16" height="16" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-{{ tier }}"/></svg>
+                                {{ ('puzzle_intelligence.skill.tiers.' ~ tier)|trans }}
+                            </span>
+                        {% elseif this.tierChip == 'no_tier_yet' %}
+                            <span class="player-chip" title="{{ 'player_header.no_tier_yet_title'|trans({'%pieces%': constant('SpeedPuzzling\\Web\\Component\\PlayerHeader::TIER_PIECES_COUNT')}) }}">
+                                <svg class="rank-icon" width="16" height="16" style="color: var(--rank-unknown)" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-unknown"/></svg>
+                                {{ 'player_header.no_tier_yet'|trans }}
+                            </span>
+                        {% elseif this.tierChip == 'locked' %}
+                            <button type="button" class="player-chip" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" title="{{ 'player_header.tier_locked_title'|trans }}">
+                                <svg class="rank-icon" width="16" height="16" style="color: var(--rank-locked)" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
+                                {{ 'player_header.skill_tier'|trans }}
+                            </button>
+                        {% endif %}
+
+                        {% if show_member %}
+                            <a class="player-chip player-chip-member" href="{{ path('membership') }}">
+                                <i class="ci-heart-filled" aria-hidden="true"></i>
+                                {{ 'player_header.member'|trans }}
+                            </a>
+                        {% endif %}
+
+                        {% if show_private %}
+                            <a class="player-chip" href="{{ path('private_profile_viewers') }}" title="{{ 'private_profile_viewers.title'|trans }}">
+                                <i class="bi bi-incognito" aria-hidden="true"></i>
+                                {{ 'player_header.private_profile'|trans }}
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+
+            {# The two things people come to do, then ⋯ with every action on the player #}
+            <div class="player-head-actions" data-nosnippet{% if this.tabs is empty %} {{ stimulus_target('compact-bar', 'head') }}{% endif %}>
+                {% if this.isOwnProfile %}
+                    {{ include('player/_share_profile_button.html.twig', {class: 'btn btn-primary', label: 'player_header.share'|trans}) }}
+                    <a class="btn btn-outline-primary" href="{{ path('edit_profile') }}">
+                        <i class="ci-edit me-1" aria-hidden="true"></i> {{ 'menu.edit_profile'|trans }}
+                    </a>
+                {% else %}
+                    {# Filled while the player is in the viewer's favorites - a toggle that shows its state #}
+                    {% if this.isInViewersFavorites %}
+                        <a class="btn btn-primary" data-turbo-prefetch="false" rel="nofollow" href="{{ path('remove_player_from_favorite', {playerId: player.playerId, return: return_path}) }}" title="{{ 'profile.remove_from_favorites'|trans }}" aria-label="{{ 'profile.remove_from_favorites'|trans }}">
+                            <i class="bi bi-star-fill me-1" aria-hidden="true"></i> {{ 'player_header.favorite_on'|trans }}
+                        </a>
+                    {% else %}
+                        <a class="btn btn-outline-primary" data-turbo-prefetch="false" rel="nofollow" href="{{ path('add_player_to_favorite', {playerId: player.playerId, return: return_path}) }}" title="{{ 'profile.add_to_favorites'|trans }}" aria-label="{{ 'profile.add_to_favorites'|trans }}">
+                            <i class="bi bi-star me-1" aria-hidden="true"></i> {{ 'player_header.favorite'|trans }}
+                        </a>
+                    {% endif %}
+
+                    {% if this.canMessage %}
+                        <a class="btn btn-outline-primary" href="{{ path('start_conversation', {recipientId: player.playerId}) }}" data-turbo="true" data-turbo-frame="modal-frame" rel="nofollow">
+                            <i class="bi bi-envelope me-1" aria-hidden="true"></i> {{ 'player_header.message'|trans }}
+                        </a>
+                    {% endif %}
+                {% endif %}
+
+                {{ include('player/_header_actions_menu.html.twig', {header: this}) }}
+            </div>
+        </div>
+
+        {% if this.tabs is not empty %}
+            <div class="player-head-tabs" {{ stimulus_target('compact-bar', 'head') }}>
+                {{ include('player/_header_tabs.html.twig', {header: this}) }}
+            </div>
+        {% endif %}
     </div>
+
+    {% if logged_user.profile is not null and not this.isOwnProfile %}
+        <div class="modal fade" id="blockPlayerModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form action="{{ path('block_user', {playerId: player.playerId}) }}" method="post" data-turbo="false">
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Messaging\\BlockUserController::CSRF_TOKEN_ID')) }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title">{{ 'blocklist.modal_title'|trans }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>{{ 'blocklist.modal_text'|trans }}</p>
+                            <p class="mb-0 text-muted small">{{ 'blocklist.modal_undo'|trans }}</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'blocklist.cancel'|trans }}</button>
+                            <button type="submit" class="btn btn-danger">{{ 'blocklist.block_player'|trans }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 {% endif %}

@@ -780,9 +780,6 @@
   "statistics_time": "Zeit fürs Zusammensetzen verbracht"
   "statistics_puzzles_solved": "Anzahl gelöster Puzzles"
   "statistics_pieces_count": "Anzahl zusammengesetzter Teile"
-  "favorite_puzzlers": "Lieblings-Puzzler"
-  "no_favorite_puzzlers": "Keine Lieblings-Puzzler"
-  "favorite_puzzlers_meta_description": "Die Lieblings-Puzzler von %name% auf MySpeedPuzzling: die Speed Puzzler, deren Legezeiten %name% am aufmerksamsten verfolgt."
   "solved_puzzles": "Gelöste Puzzles"
   "solved_puzzles_solo": "Einzeln"
   "solved_puzzles_group": "Gruppenzusammensetzung"
@@ -3955,6 +3952,24 @@ private_profile_viewers:
     manage: "Auswählen, wer mich sehen kann"
     manage_help: "Lassen Sie ausgewählte Freunde Ihren Namen, Ihr Profil und Ihre Ergebnisse sehen, während Sie für alle anderen verborgen bleiben."
 
+favorite_puzzlers:
+    meta_title: "Ihre Lieblings-Puzzler"
+    meta_description: "Die Puzzler, denen Sie auf MySpeedPuzzling folgen, und die Puzzler, die Sie in ihren Favoriten haben."
+    only_you: "Nur Sie können diese Seite sehen."
+    favorites:
+        title: "Ihre Favoriten"
+        empty: "Sie haben noch keine Lieblings-Puzzler."
+        empty_hint: "Öffnen Sie das Profil eines Puzzlers und fügen Sie ihn zu Ihren Favoriten hinzu - dann erscheint er hier."
+        find_puzzlers: "Puzzler finden"
+    followers:
+        title: "Wer Sie in den Favoriten hat"
+        empty: "Bisher hat Sie noch niemand zu seinen Favoriten hinzugefügt."
+        empty_hint: "Sobald das jemand tut, erscheint er hier."
+        in_your_favorites: "In Ihren Favoriten"
+        private_more: "+ %count% Puzzler mit privatem Profil|+ %count% Puzzler mit privatem Profil"
+        private_only: "%count% Puzzler mit privatem Profil|%count% Puzzler mit privatem Profil"
+        private_hint: "Private Profile bleiben anonym - wir zeigen nur ihre Anzahl."
+
 "copuzzler_picker":
   "switch_label": "Mit wem haben Sie gepuzzelt?"
   "mode":
@@ -4535,3 +4550,26 @@ digest_emails:
         confirm_button: "Diese E-Mails abbestellen"
         done: "Erledigt – Sie erhalten keine E-Mails zu neuen Nachrichten mehr. Ihre Nachrichten kommen auf MySpeedPuzzling weiterhin wie gewohnt an."
         settings_hint: "Sie können sie jederzeit in Ihren Profileinstellungen unter „Nachrichten & Benachrichtigungen“ wieder einschalten."
+
+player_header:
+    pages: "Seiten des Spielers"
+    tabs:
+        profile: "Profil"
+        statistics: "Statistiken"
+        calendar: "Kalender"
+        library: "Bibliothek"
+        favorites: "Favoriten"
+    favorite: "Favorit"
+    favorite_on: "Favorit"
+    message: "Nachricht"
+    share: "Teilen"
+    share_profile: "Profil teilen"
+    link_copied: "Link kopiert"
+    member: "Mitglied"
+    private_profile: "Privates Profil"
+    skill_tier: "Stufe"
+    tier_title: "Stufe für %pieces% Teile"
+    no_tier_yet: "Noch keine Stufe"
+    no_tier_yet_title: "Noch nicht genug Ergebnisse mit %pieces% Teilen für eine Stufe"
+    tier_locked_title: "Stufen sind für Mitglieder"
+    more_actions: "Weitere Aktionen"

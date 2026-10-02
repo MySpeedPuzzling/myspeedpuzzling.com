@@ -783,9 +783,6 @@
   "statistics_time": "Temps passé à assembler"
   "statistics_puzzles_solved": "Nombre de puzzles résolus"
   "statistics_pieces_count": "Nombre de pièces assemblées"
-  "favorite_puzzlers": "Puzzleurs favoris"
-  "no_favorite_puzzlers": "Aucun puzzleur favori"
-  "favorite_puzzlers_meta_description": "Les puzzleurs favoris de %name% sur MySpeedPuzzling : les speed puzzlers dont %name% suit les temps de plus près."
   "solved_puzzles": "Puzzles résolus"
   "solved_puzzles_solo": "Individuel"
   "solved_puzzles_group": "Assemblage en groupe"
@@ -3957,6 +3954,24 @@ private_profile_viewers:
     manage: "Choisir qui peut me voir"
     manage_help: "Laissez des amis choisis voir votre nom, votre profil et vos résultats tout en restant masqué pour les autres."
 
+favorite_puzzlers:
+    meta_title: "Vos puzzleurs favoris"
+    meta_description: "Les puzzleurs que vous suivez sur MySpeedPuzzling et les puzzleurs qui vous ont dans leurs favoris."
+    only_you: "Cette page n'est visible que par vous."
+    favorites:
+        title: "Vos favoris"
+        empty: "Vous n'avez pas encore de puzzleur favori."
+        empty_hint: "Ouvrez le profil d'un puzzleur et ajoutez-le à vos favoris : il apparaîtra ici."
+        find_puzzlers: "Trouver des puzzleurs"
+    followers:
+        title: "Qui vous a dans ses favoris"
+        empty: "Personne ne vous a encore ajouté à ses favoris."
+        empty_hint: "Dès que quelqu'un le fera, il apparaîtra ici."
+        in_your_favorites: "Dans vos favoris"
+        private_more: "+ %count% puzzleur au profil privé|+ %count% puzzleurs au profil privé"
+        private_only: "%count% puzzleur au profil privé|%count% puzzleurs au profil privé"
+        private_hint: "Les profils privés restent anonymes : nous n'en indiquons que le nombre."
+
 "copuzzler_picker":
   "switch_label": "Avec qui avez-vous fait le puzzle ?"
   "mode":
@@ -4537,3 +4552,26 @@ digest_emails:
         confirm_button: "Ne plus recevoir ces e-mails"
         done: "C’est fait – vous ne recevrez plus d’e-mails sur les nouveaux messages. Vos messages continuent d’arriver sur MySpeedPuzzling comme d’habitude."
         settings_hint: "Vous pouvez les réactiver à tout moment dans les paramètres de votre profil, rubrique « Messagerie et notifications »."
+
+player_header:
+    pages: "Pages du joueur"
+    tabs:
+        profile: "Profil"
+        statistics: "Statistiques"
+        calendar: "Calendrier"
+        library: "Bibliothèque"
+        favorites: "Favoris"
+    favorite: "Favori"
+    favorite_on: "Favori"
+    message: "Message"
+    share: "Partager"
+    share_profile: "Partager le profil"
+    link_copied: "Lien copié"
+    member: "Membre"
+    private_profile: "Profil privé"
+    skill_tier: "Niveau"
+    tier_title: "Niveau pour %pieces% pièces"
+    no_tier_yet: "Pas encore de niveau"
+    no_tier_yet_title: "Pas encore assez de résultats en %pieces% pièces pour un niveau"
+    tier_locked_title: "Les niveaux sont réservés aux membres"
+    more_actions: "Plus d’actions"

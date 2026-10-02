@@ -75,8 +75,8 @@ $lb-tints: (
 
 .lb-row {
     cursor: pointer;
-    // "Jump to me" lands below the site header and the puzzle bar (puzzle_bar_controller.js publishes its height)
-    scroll-margin-top: calc(var(--header-height, 101px) + var(--puzzle-bar-height, 0px) + .75rem);
+    // "Jump to me" lands below the site header and the compact bar (compact_bar_controller.js publishes its height)
+    scroll-margin-top: calc(var(--header-height, 101px) + var(--compact-bar-height, 0px) + .75rem);
 }
 
 // The time is the row's link to the result detail - it looks like the time, not like a link
@@ -573,6 +573,51 @@ a.lb-name,
         width: 16px;
         height: 12px;
         line-height: 12px;
+    }
+}
+
+// Extra large avatar (player header, components/PlayerHeader.html.twig): 64 px phones, 72 px tablets, 96 px desktop
+.lb-avatar.lb-avatar-xl {
+    // Not in a flex row like the other sizes: an inline span would ignore its size
+    display: block;
+    width: 64px;
+    height: 64px;
+    margin-right: 0;
+
+    .lb-avatar-img {
+        font-size: 1.625rem;
+    }
+
+    .lb-flag.fi {
+        right: -4px;
+        bottom: 1px;
+        width: 22px;
+        height: 16.5px;
+        line-height: 16.5px;
+        border-radius: 3px;
+        box-shadow: 0 0 0 2px #fff, 0 1px 3px rgba(0, 0, 0, .25);
+    }
+
+    @media (min-width: 768px) {
+        width: 72px;
+        height: 72px;
+    }
+
+    @media (min-width: 992px) {
+        width: 96px;
+        height: 96px;
+
+        .lb-avatar-img {
+            font-size: 2.25rem;
+        }
+
+        .lb-flag.fi {
+            right: -2px;
+            bottom: 4px;
+            width: 30px;
+            height: 22.5px;
+            line-height: 22.5px;
+        }
     }
 }
 

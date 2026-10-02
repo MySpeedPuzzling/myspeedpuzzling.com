@@ -3,7 +3,7 @@
 {% block title %}{{ 'collections.create.meta.title'|trans }}{% endblock %}
 
 {% block content %}
-    <twig:PlayerHeader player="{{ player }}" />
+    <twig:PlayerHeader player="{{ player }}" tab="library" :compact="true" />
 
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">

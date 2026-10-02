@@ -1,0 +1,83 @@
+{#
+    The player header's ⋯ menu with every action on the player - shown in the header and in the compact bar that takes
+    its place once it scrolls away (components/PlayerHeader.html.twig), so nothing in it may carry an id. The primary
+    buttons come first again, as on the puzzle page: the bar has only this menu. docs/features/player-header.md
+
+    Required variables: player, header (the PlayerHeader component)
+#}
+{% set return_path = app.request.requestUri %}
+{# data-nosnippet: Google used the puzzle menu's hidden labels as the search snippet; honoured on div, not on ul #}
+<div class="dropdown more-menu" data-nosnippet>
+    <button class="btn btn-outline-secondary more-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'player_header.more_actions'|trans }}" title="{{ 'player_header.more_actions'|trans }}">
+        <i class="bi bi-three-dots" aria-hidden="true"></i>
+    </button>
+
+    <ul class="dropdown-menu dropdown-menu-end">
+        {% if header.isOwnProfile %}
+            <li>
+                {{ include('player/_share_profile_button.html.twig', {class: 'dropdown-item', label: 'player_header.share_profile'|trans}) }}
+            </li>
+            <li>
+                <a class="dropdown-item" href="{{ path('edit_profile') }}">
+                    <i class="ci-edit me-1" aria-hidden="true"></i> {{ 'menu.edit_profile'|trans }}
+                </a>
+            </li>
+            {% if player.isPrivateProfile %}
+                <li>
+                    <a class="dropdown-item" href="{{ path('private_profile_viewers') }}">
+                        <i class="bi bi-incognito me-1" aria-hidden="true"></i> {{ 'private_profile_viewers.title'|trans }}
+                    </a>
+                </li>
+            {% endif %}
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                <a class="dropdown-item" href="{{ path('export_puzzler_data', {playerId: player.playerId}) }}">
+                    <i class="bi bi-download me-1" aria-hidden="true"></i> {{ 'menu.export_data'|trans }}
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" href="{{ path('affiliate_dashboard') }}">
+                    <i class="bi bi-megaphone me-1" aria-hidden="true"></i> {{ 'menu.referral_program'|trans }}
+                </a>
+            </li>
+        {% else %}
+            <li>
+                {% if header.isInViewersFavorites %}
+                    <a class="dropdown-item" data-turbo-prefetch="false" rel="nofollow" href="{{ path('remove_player_from_favorite', {playerId: player.playerId, return: return_path}) }}">
+                        <i class="bi bi-star-fill me-1" aria-hidden="true"></i> {{ 'profile.remove_from_favorites'|trans }}
+                    </a>
+                {% else %}
+                    <a class="dropdown-item" data-turbo-prefetch="false" rel="nofollow" href="{{ path('add_player_to_favorite', {playerId: player.playerId, return: return_path}) }}">
+                        <i class="bi bi-star me-1" aria-hidden="true"></i> {{ 'profile.add_to_favorites'|trans }}
+                    </a>
+                {% endif %}
+            </li>
+            {% if header.canMessage %}
+                <li>
+                    <a class="dropdown-item" href="{{ path('start_conversation', {recipientId: player.playerId}) }}" data-turbo="true" data-turbo-frame="modal-frame" rel="nofollow">
+                        <i class="bi bi-envelope me-1" aria-hidden="true"></i> {{ 'messaging.send_message'|trans }}
+                    </a>
+                </li>
+            {% endif %}
+            <li><hr class="dropdown-divider"></li>
+            {% if not player.isPrivate %}
+                <li>
+                    <a class="dropdown-item" data-turbo-prefetch="false" rel="nofollow" href="{{ path('compare_players', {opponentPlayerId: player.playerId}) }}">
+                        <i class="ci-compare me-1" aria-hidden="true"></i> {{ 'profile.compare'|trans }}
+                    </a>
+                </li>
+            {% endif %}
+            <li>
+                {{ include('player/_share_profile_button.html.twig', {class: 'dropdown-item', label: 'player_header.share_profile'|trans}) }}
+            </li>
+            {% if logged_user.profile is not null %}
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <button type="button" class="dropdown-item small text-muted" data-bs-toggle="modal" data-bs-target="#blockPlayerModal">
+                        <i class="bi bi-slash-circle me-1" aria-hidden="true"></i> {{ 'blocklist.block_player'|trans }}
+                    </button>
+                </li>
+            {% endif %}
+        {% endif %}
+    </ul>
+</div>

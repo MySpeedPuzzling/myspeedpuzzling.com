@@ -5,9 +5,10 @@
 
 {% block content %}
 
-    <twig:PlayerHeader player="{{ player }}" />
+    <twig:PlayerHeader player="{{ player }}" tab="calendar" />
 
-    <h1 class="h3 mb-3">{{ 'activity_calendar.page_title'|trans }}</h1>
+    {# The header's Calendar tab names the page - the title stays for search engines and screen readers #}
+    <h1 class="visually-hidden">{{ 'activity_calendar.page_title'|trans }}</h1>
 
     <twig:ActivityCalendar playerId="{{ player.playerId }}" year="{{ year }}" month="{{ month }}" :streakOptedOut="player.streakOptedOut" />
 

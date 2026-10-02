@@ -3,7 +3,7 @@
 {% block title %}{{ collection.name }}{% if logged_user.profile is null or logged_user.profile.playerId != collection.playerId %} - {{ profile_name(player) }}{% endif %}{% endblock %}
 
 {% block content %}
-    <twig:PlayerHeader player="{{ player }}" />
+    <twig:PlayerHeader player="{{ player }}" tab="library" />
 
 <div data-controller="collection-items collection-filter">
     {% include '_return_back_button.html.twig' with {fallbackUrl: path('puzzle_library', {playerId: player.playerId}), fallbackTitle: 'collections.back_to_library'|trans} %}

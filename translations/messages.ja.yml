@@ -949,9 +949,6 @@
   "statistics_time": "組み立てに費やした時間"
   "statistics_puzzles_solved": "解いたパズル数"
   "statistics_pieces_count": "組み立てたピース数"
-  "favorite_puzzlers": "お気に入りパズラー"
-  "no_favorite_puzzlers": "お気に入りパズラーがいません"
-  "favorite_puzzlers_meta_description": "MySpeedPuzzlingで%name%がお気に入りに登録しているパズラー。タイムを特にチェックしているスピードパズラーの一覧です。"
   "solved_puzzles": "解いたパズル"
   "solved_puzzles_solo": "個人"
   "solved_puzzles_group": "グループ組み立て"
@@ -3946,6 +3943,24 @@ private_profile_viewers:
     manage: "自分を見られる人を選ぶ"
     manage_help: "選んだ友達にだけ名前、プロフィール、結果を見せ、それ以外の人からは隠れたままにできます。"
 
+favorite_puzzlers:
+    meta_title: "あなたのお気に入りパズラー"
+    meta_description: "MySpeedPuzzlingであなたがフォローしているパズラーと、あなたをお気に入りに登録しているパズラーの一覧です。"
+    only_you: "このページを見られるのはあなただけです。"
+    favorites:
+        title: "あなたのお気に入り"
+        empty: "お気に入りのパズラーはまだいません。"
+        empty_hint: "パズラーのプロフィールを開いてお気に入りに追加すると、ここに表示されます。"
+        find_puzzlers: "パズラーを探す"
+    followers:
+        title: "あなたをお気に入りに登録している人"
+        empty: "まだ誰もあなたをお気に入りに登録していません。"
+        empty_hint: "誰かが登録すると、ここに表示されます。"
+        in_your_favorites: "お気に入り登録済み"
+        private_more: "+ 非公開プロフィールのパズラー%count%人"
+        private_only: "非公開プロフィールのパズラー%count%人"
+        private_hint: "非公開プロフィールは匿名のまま、人数だけを表示しています。"
+
 "copuzzler_picker":
   "switch_label": "誰と一緒に解きましたか？"
   "mode":
@@ -4526,3 +4541,26 @@ digest_emails:
         confirm_button: "このメールを受け取らない"
         done: "設定しました。新着メッセージに関するメールは今後お送りしません。メッセージはこれまでどおりMySpeedPuzzlingに届きます。"
         settings_hint: "プロフィール設定の「メッセージと通知」から、いつでも再びオンにできます。"
+
+player_header:
+    pages: "プレイヤーのページ"
+    tabs:
+        profile: "プロフィール"
+        statistics: "統計"
+        calendar: "カレンダー"
+        library: "ライブラリ"
+        favorites: "お気に入り"
+    favorite: "お気に入り"
+    favorite_on: "お気に入り"
+    message: "メッセージ"
+    share: "共有"
+    share_profile: "プロフィールを共有"
+    link_copied: "リンクをコピーしました"
+    member: "メンバー"
+    private_profile: "非公開プロフィール"
+    skill_tier: "ティア"
+    tier_title: "%pieces%ピースのティア"
+    no_tier_yet: "ティアはまだありません"
+    no_tier_yet_title: "ティアの判定に必要な%pieces%ピースの記録がまだ足りません"
+    tier_locked_title: "ティアはメンバー限定です"
+    more_actions: "その他の操作"

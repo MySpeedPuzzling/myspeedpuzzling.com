@@ -3,7 +3,7 @@
 {% block title %}{{ 'sell_swap_list.history.title'|trans }}{% endblock %}
 
 {% block content %}
-    <twig:PlayerHeader player="{{ player }}" />
+    <twig:PlayerHeader player="{{ player }}" tab="library" :compact="true" />
 
     <div class="mb-2">
         <a href="{{ path('sell_swap_list_detail', {playerId: player.playerId}) }}" class="btn btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">

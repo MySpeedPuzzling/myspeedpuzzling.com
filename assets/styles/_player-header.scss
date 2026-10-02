@@ -1,0 +1,348 @@
+// The player header (templates/components/PlayerHeader.html.twig, docs/features/player-header.md): the puzzle page
+// header's scale and colours for a person. Phones: avatar · name, #CODE, chips, then the actions on a row of their own,
+// then the page tabs. From 768 px the actions sit right of the name. The compact bar: _compact-bar.scss + .player-bar.
+
+$player-tab-active: #d63c42; // $primary darkened for text: 4.6:1 on white (the e-mails' link colour)
+
+.player-header {
+    margin-bottom: 1rem;
+}
+
+.player-head {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    column-gap: .875rem;
+    align-items: start;
+
+    @media (min-width: 768px) {
+        grid-template-columns: 72px minmax(0, 1fr) auto;
+        column-gap: 1rem;
+    }
+
+    @media (min-width: 992px) {
+        grid-template-columns: 96px minmax(0, 1fr) auto;
+        column-gap: 1.5rem;
+    }
+}
+
+.player-head-info {
+    min-width: 0;
+    // Long names and codes wrap anywhere, nothing is cut
+    overflow-wrap: anywhere;
+}
+
+.player-head-name {
+    margin: 0 0 .2rem;
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: #111;
+
+    // Small phones: a long name would take many lines next to the avatar
+    @media (max-width: 379.98px) {
+        font-size: 1.125rem;
+    }
+
+    @media (min-width: 992px) {
+        margin-top: .5rem;
+        font-size: 1.75rem;
+        line-height: 1.2;
+    }
+}
+
+.player-head-meta {
+    font-size: .875rem;
+    line-height: 1.35;
+    color: $lb-secondary;
+}
+
+.player-head-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    margin-top: .5rem;
+}
+
+.player-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .3125rem;
+    min-height: 24px;
+    padding: .125rem .5625rem;
+    border: 0;
+    border-radius: 999px;
+    background: #f1f2f4;
+    color: #4b566b;
+    font-family: inherit;
+    font-size: .75rem;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-decoration: none;
+
+    .rank-icon {
+        flex-shrink: 0;
+        width: 16px;
+        height: 16px;
+    }
+
+    .ci-heart-filled,
+    .bi {
+        font-size: .75rem;
+    }
+}
+
+a.player-chip:hover,
+button.player-chip:hover {
+    color: #111;
+}
+
+// The tier's own colour: its icon, and a tint of it behind the name
+.player-chip-tier {
+    background: color-mix(in srgb, var(--chip-color) 14%, #fff);
+    color: #373f50;
+
+    .rank-icon {
+        color: var(--chip-color);
+    }
+}
+
+.player-chip-member {
+    background: #fff0f0;
+    color: #b23b3d;
+
+    &:hover {
+        color: #8f2d2f !important;
+    }
+}
+
+// The two primary actions and ⋯ - big enough for a thumb. They share the row by their labels' length; a label too
+// long for a small phone (German "Profil bearbeiten" at 320 px) wraps inside its button, never cut, ⋯ stays on the row.
+.player-head-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: .5rem;
+    margin-top: .875rem;
+
+    > .btn {
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: .25rem .625rem;
+        line-height: 1.2;
+        text-align: center;
+        text-wrap: balance;
+    }
+
+    > .more-menu {
+        flex: 0 0 auto;
+    }
+
+    @media (min-width: 768px) {
+        grid-column: auto;
+        align-self: start;
+        margin-top: 0;
+
+        > .btn {
+            flex: 0 0 auto;
+            padding-inline: 1.125rem;
+            white-space: nowrap;
+        }
+    }
+
+    @media (min-width: 992px) {
+        margin-top: .5rem;
+    }
+}
+
+.player-head-tabs {
+    margin-top: .75rem;
+
+    @media (min-width: 992px) {
+        margin-top: 1.25rem;
+    }
+}
+
+// The player's pages. Phones: they fill the row when they fit and scroll sideways when they do not, the edge that
+// hides more fades (scroll_tabs_controller.js). From 768 px: left-aligned, the underline as wide as the label.
+.player-tabs {
+    border-bottom: 1px solid #e3e6ec;
+}
+
+.player-tabs-scroller {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.player-tabs.can-scroll-end .player-tabs-scroller {
+    mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+}
+
+.player-tabs.can-scroll-start .player-tabs-scroller {
+    mask-image: linear-gradient(to left, #000 calc(100% - 2.5rem), transparent);
+}
+
+.player-tabs.can-scroll-start.can-scroll-end .player-tabs-scroller {
+    mask-image: linear-gradient(to right, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent);
+}
+
+.player-tab {
+    flex: 1 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 .75rem;
+    color: #4b566b;
+    font-size: .875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+
+    &:hover {
+        color: #111;
+    }
+
+    &.active {
+        color: $player-tab-active;
+        box-shadow: inset 0 -2px 0 $primary;
+    }
+
+    @media (min-width: 768px) {
+        flex: 0 0 auto;
+        padding: 0;
+        margin-right: 1.75rem;
+        font-size: .9375rem;
+
+        &:last-child {
+            margin-right: 0;
+        }
+    }
+}
+
+// The compact bar of the player pages. Phones: avatar · name, #CODE · ⋯, the tabs on a row under them.
+// 992 px+: one row - avatar · name · tabs · ⋯, the tabs' underline on the bar's edge.
+.player-bar-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: .625rem;
+    padding-top: .375rem;
+
+    > .lb-avatar {
+        order: 1;
+    }
+
+    > .compact-bar-text {
+        order: 2;
+    }
+
+    > .more-menu {
+        order: 3;
+    }
+
+    > .player-tabs {
+        order: 4;
+        flex: 0 0 100%;
+        // A flex item: without this it grows to all its tabs instead of scrolling them
+        min-width: 0;
+        margin-top: .125rem;
+        border-bottom: 0;
+    }
+
+    .player-tab {
+        min-height: 40px;
+        font-size: .8125rem;
+    }
+
+    &.player-bar-no-tabs {
+        padding-bottom: .375rem;
+    }
+
+    @media (min-width: 992px) {
+        flex-wrap: nowrap;
+        align-items: stretch;
+        min-height: 58px;
+        padding-top: 0;
+
+        > .lb-avatar,
+        > .compact-bar-text,
+        > .more-menu {
+            align-self: center;
+        }
+
+        > .compact-bar-text {
+            flex: 0 1 auto;
+        }
+
+        > .player-tabs {
+            order: 3;
+            display: flex;
+            flex: 0 1 auto;
+            min-width: 0;
+            margin: 0 0 0 auto;
+        }
+
+        > .more-menu {
+            order: 4;
+            margin-left: 1.25rem;
+        }
+
+        .player-tab {
+            min-height: 0;
+            font-size: .875rem;
+            margin-right: 1.5rem;
+        }
+
+        &.player-bar-no-tabs {
+            padding-bottom: 0;
+
+            > .more-menu {
+                margin-left: auto;
+            }
+        }
+    }
+}
+
+// The owner's form and history pages: "avatar · Name › Section" instead of the header
+.player-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .5rem;
+    min-height: 44px;
+    margin-bottom: .75rem;
+    font-size: .875rem;
+    line-height: 1.3;
+}
+
+.player-strip-player {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    color: #111;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+
+    &:hover {
+        color: $player-tab-active;
+    }
+}
+
+.player-strip-sep {
+    color: #9aa0ab;
+    font-size: .75rem;
+}
+
+.player-strip-section {
+    color: $player-tab-active;
+}

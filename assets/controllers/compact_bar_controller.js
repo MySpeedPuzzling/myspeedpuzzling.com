@@ -1,9 +1,10 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * The puzzle page's compact bar (thumbnail, name, pieces · brand, ⋯ menu): it slides in under the site header once
- * the puzzle's own buttons have scrolled away above it, and out again when they come back - the leaderboard below
- * can be hundreds of rows long. While hidden it is `inert`, so neither Tab nor a screen reader lands in it.
+ * A page header's compact bar - the puzzle page (thumbnail, name, pieces · brand, ⋯) and the player pages (avatar,
+ * name, page tabs, ⋯): it slides in under the site header once the header's `head` target has scrolled away above
+ * it, and out again when it comes back - a leaderboard or a results list below can be hundreds of rows long. While
+ * hidden it is `inert`, so neither Tab nor a screen reader lands in it.
  */
 export default class extends Controller {
     static targets = ['head', 'bar'];
@@ -33,19 +34,19 @@ export default class extends Controller {
         this.resizeObserver?.disconnect();
         window.removeEventListener('resize', this.onResize);
 
-        // Turbo keeps <html> between pages - no other page has the bar
-        document.documentElement.style.removeProperty('--puzzle-bar-height');
+        // Turbo keeps <html> between pages - the next one may have no bar
+        document.documentElement.style.removeProperty('--compact-bar-height');
     }
 
     /**
-     * `--puzzle-bar-height` on <html>: anchors on the page ("Jump to me" in the leaderboard) land below the bar,
+     * `--compact-bar-height` on <html>: anchors on the page ("Jump to me" in the leaderboard) land below the bar,
      * which is always shown by the time they are reached. Measured while hidden too - only translated, never collapsed.
      */
     publishHeight() {
         const height = Math.round(this.barTarget.getBoundingClientRect().height);
 
         if (height > 0) {
-            document.documentElement.style.setProperty('--puzzle-bar-height', `${height}px`);
+            document.documentElement.style.setProperty('--compact-bar-height', `${height}px`);
         }
     }
 

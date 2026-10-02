@@ -118,8 +118,9 @@ favourites are never touched — that would be a tell — they are filtered on r
 
 ## UI
 
-- **Block**: the last, divider-separated item of the profile header menu
-  (`components/PlayerHeader.html.twig`) → confirmation modal → `POST /en/block-user/{playerId}`.
+- **Block**: the last, divider-separated item of the player header's ⋯ menu
+  (`player/_header_actions_menu.html.twig`, in the header and its compact bar; the modal is rendered once by
+  `components/PlayerHeader.html.twig`) → confirmation modal → `POST /en/block-user/{playerId}`.
   After blocking from a profile the visitor lands on their own profile (the blocked one is a 404
   for them from now on).
 - **Blocked players**: a section of edit-profile listing `source = self` rows with *Unblock*;

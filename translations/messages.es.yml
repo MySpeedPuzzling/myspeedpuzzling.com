@@ -526,9 +526,6 @@
   "statistics_time": "Tiempo gastado armando"
   "statistics_puzzles_solved": "Número de rompecabezas resueltos"
   "statistics_pieces_count": "Número de piezas armadas"
-  "favorite_puzzlers": "Puzzleros favoritos"
-  "no_favorite_puzzlers": "No hay puzzleros favoritos"
-  "favorite_puzzlers_meta_description": "Los puzzleros favoritos de %name% en MySpeedPuzzling: los speed puzzlers cuyos tiempos sigue más de cerca."
   "solved_puzzles": "Rompecabezas resueltos"
   "solved_puzzles_solo": "Individual"
   "solved_puzzles_group": "Armado en grupo"
@@ -3955,6 +3952,24 @@ private_profile_viewers:
     manage: "Elegir quién puede verme"
     manage_help: "Deja que amigos seleccionados vean tu nombre, perfil y resultados mientras sigues oculto para los demás."
 
+favorite_puzzlers:
+    meta_title: "Tus puzzleros favoritos"
+    meta_description: "Los puzzleros que sigues en MySpeedPuzzling y los puzzleros que te tienen en sus favoritos."
+    only_you: "Solo tú puedes ver esta página."
+    favorites:
+        title: "Tus favoritos"
+        empty: "Todavía no tienes puzzleros favoritos."
+        empty_hint: "Abre el perfil de un puzzlero y añádelo a tus favoritos: aparecerá aquí."
+        find_puzzlers: "Buscar puzzleros"
+    followers:
+        title: "Quién te tiene en favoritos"
+        empty: "Todavía nadie te ha añadido a sus favoritos."
+        empty_hint: "Cuando alguien lo haga, aparecerá aquí."
+        in_your_favorites: "En tus favoritos"
+        private_more: "+ %count% puzzlero con perfil privado|+ %count% puzzleros con perfil privado"
+        private_only: "%count% puzzlero con perfil privado|%count% puzzleros con perfil privado"
+        private_hint: "Los perfiles privados son anónimos: solo mostramos cuántos son."
+
 "copuzzler_picker":
   "switch_label": "¿Con quién armaste el puzzle?"
   "mode":
@@ -4535,3 +4550,26 @@ digest_emails:
         confirm_button: "Dejar de recibir estos correos"
         done: "Listo: ya no te enviaremos correos sobre mensajes nuevos. Tus mensajes siguen llegando a MySpeedPuzzling como siempre."
         settings_hint: "Puedes volver a activarlos cuando quieras en los ajustes de tu perfil, en «Mensajes y notificaciones»."
+
+player_header:
+    pages: "Páginas del jugador"
+    tabs:
+        profile: "Perfil"
+        statistics: "Estadísticas"
+        calendar: "Calendario"
+        library: "Biblioteca"
+        favorites: "Favoritos"
+    favorite: "Favorito"
+    favorite_on: "Favorito"
+    message: "Mensaje"
+    share: "Compartir"
+    share_profile: "Compartir perfil"
+    link_copied: "Enlace copiado"
+    member: "Miembro"
+    private_profile: "Perfil privado"
+    skill_tier: "Nivel"
+    tier_title: "Nivel para %pieces% piezas"
+    no_tier_yet: "Aún sin nivel"
+    no_tier_yet_title: "Aún no hay suficientes resultados de %pieces% piezas para un nivel"
+    tier_locked_title: "Los niveles son para miembros"
+    more_actions: "Más acciones"

@@ -1,0 +1,36 @@
+{#
+    One puzzler on the favorite puzzlers page: the avatar with the country flag on its corner, the name and #CODE under
+    it. The whole row links to the profile. The name wraps instead of being cut - here it is all the row has to say.
+
+    Inputs:
+      - player: PlayerIdentification; isPrivate = a private profile hidden from the viewer, listed by code only
+      - favorite_star (bool, optional): a star before the name when the viewer has the player in favorites
+#}
+{%- set hidden = player.isPrivate -%}
+{%- set code = '#' ~ player.playerCode|upper -%}
+{%- set name = hidden ? 'secret_puzzler_name'|trans : (player.playerName ?? code) -%}
+{%- set in_favorites = favorite_star|default(false) and logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers -%}
+<li class="fp-item">
+    <a class="fp-link" href="{{ path('player_profile', {playerId: player.playerId}) }}">
+        {{- include('_player_avatar.html.twig', {
+            player_id: player.playerId,
+            name: name,
+            avatar: hidden ? null : player.playerAvatar,
+            country_code: hidden or player.playerCountry is null ? null : player.playerCountry.name,
+            country_name: hidden or player.playerCountry is null ? null : player.playerCountry.value,
+            hidden: hidden,
+        }) -}}
+        <span class="fp-text">
+            <span class="fp-name{{ hidden ? ' fp-name-hidden' }}">
+                {%- if in_favorites -%}
+                    <i class="ci-star-filled text-warning me-1" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ 'favorite_puzzlers.followers.in_your_favorites'|trans }}:</span>
+                {%- endif -%}
+                {{- name -}}
+            </span>
+            {%- if hidden or player.playerName is not null -%}
+                <span class="fp-code">{{ code }}</span>
+            {%- endif -%}
+        </span>
+    </a>
+</li>

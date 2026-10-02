@@ -10,7 +10,7 @@
       - avatar (null|string): uploaded avatar path
       - country_code (null|string), country_name (null|string, optional)
       - hidden (bool, optional): private player the viewer may not see
-      - size (string, optional): '' (28 px), 'sm' (22 px), 'xs' (20 px)
+      - size (string, optional): '' (28 px), 'sm' (22 px), 'xs' (20 px), 'lg' (34 px), 'xl' (64 - 96 px, player header)
 #}
 {%- set hidden = hidden|default(false) -%}
 <span class="lb-avatar{{ size|default('') ? ' lb-avatar-' ~ size }}">

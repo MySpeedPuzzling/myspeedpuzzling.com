@@ -207,6 +207,9 @@ final class ResultReviewEmailsTest extends KernelTestCase
         self::assertStringContainsString('Twins Puzzle', $html);
         self::assertStringContainsString('/en/review-results?from=rc-' . $danaContact['id'], $html);
         self::assertStringContainsString('and 1 more', $html, 'Up to 3 cases are listed');
+        // A real document for phones: viewport + mobile rules (EmailDocumentTwigExtension)
+        self::assertStringContainsString('name="viewport"', $html);
+
         // No action links - only the review page
         self::assertStringNotContainsString('/keep', $html);
         self::assertStringNotContainsString('/undo', $html);
@@ -263,7 +266,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
         self::assertCount(2, $emails);
         $removalsOnly = $emails[1];
 
-        self::assertSame('We tidied up your results', $removalsOnly->getSubject());
+        self::assertSame('We removed results you saved twice', $removalsOnly->getSubject());
         $html = (string) $removalsOnly->getHtmlBody();
         self::assertStringContainsString('Already fixed – we were sure', $html);
         self::assertStringContainsString('We removed the extra copy', $html);

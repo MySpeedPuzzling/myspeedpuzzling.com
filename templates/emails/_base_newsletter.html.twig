@@ -1,7 +1,7 @@
 {# Base newsletter template - use as a starting point for newsletter emails #}
 {# Copy this template and fill in the title and body sections #}
 {% trans_default_domain 'emails' %}
-{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
     <wrapper>
         <container>
             {{ include('emails/_header.html.twig') }}

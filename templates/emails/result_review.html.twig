@@ -5,7 +5,7 @@
     One line per result (sets), however many copies. Only removals (no case left) = the "we removed" wording.
 #}
 {% set removed_only = sets is empty %}
-{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
     <wrapper>
         <container>
             {{ include('emails/_header.html.twig') }}

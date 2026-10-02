@@ -7,7 +7,7 @@
    The code is one unbroken run of digits (letter-spacing only looks spaced), so
    a copy, a long-press or the OS's one-time-code autofill gets exactly six
    digits. #}
-{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
     <wrapper>
         <container>
             {{ include('emails/_header.html.twig') }}

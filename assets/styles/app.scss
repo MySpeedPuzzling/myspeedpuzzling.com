@@ -70,6 +70,22 @@
 
 @import "flag-icons/sass/flag-icons";
 
+// Text grows one step on tablets and one more on desktops - there is the room, and people sit further from the screen
+// (user feedback: desktop needed 133 % zoom). Percentages, never px, so a visitor's own browser text size still applies.
+// Everything sized in rem follows; images, avatars and layout widths (px) stay. Mirrored in the critical CSS
+// of base.html.twig, so the first paint has the same size.
+html {
+    font-size: 100%;
+
+    @media (min-width: 768px) {
+        font-size: 106.25%;
+    }
+
+    @media (min-width: 1200px) {
+        font-size: 112.5%;
+    }
+}
+
 body {
     display: flex;
     flex-direction: column;
@@ -107,6 +123,19 @@ main {
 }
 
 @media (min-width: 992px) {
+    // The menu had no spare width at 992 and 1200 px, so with the bigger root size (see html above) it must not widen:
+    // px gaps between the items, and the toolbar shows icons only until 1400 px (as it does below 992 px) - German,
+    // French and Spanish menus did not fit at 1200 px even before
+    .navbar {
+        --cz-navbar-nav-link-padding-x: 14px;
+    }
+
+    @media (max-width: 1399.98px) {
+        .navbar-toolbar .navbar-tool-text {
+            display: none !important;
+        }
+    }
+
     .navbar-nav .nav-link {
         line-height: 1.2;
         padding-top: 0.25rem !important;

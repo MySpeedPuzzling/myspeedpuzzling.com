@@ -378,6 +378,7 @@
   "empty_group_error": "Nelze vytvořit skupinu pouze sám se sebou, to pak není skupinové skládání :-)"
   "empty_group_player": "Jeden z puzzlerů je prázdný - vyplňte jeho jméno nebo kód, případně ho odeberte."
   "too_high_ppm": "Prosím zkontrolujte si zadaný čas, takhle rychle puzzle určitě složit nedokážete! Čas se zadává ve formátu HH:MM:SS. Vámi zadaný čas by byl nový světový rekord! :-)"
+  "could_not_save": "Při ukládání se něco pokazilo. Než to zkusíš znovu, podívej se do svých výsledků – výsledek už tam možná je."
   "ppm_warning_title": "Prosím ověřte zadaný čas"
   "ppm_warning_too_fast": "Váš čas se zdá velmi rychlý! Zkontrolujte prosím, zda jste čas zadali správně."
   "ppm_warning_too_slow": "Jen rychlá kontrola - zadali jste čas správně? Někdy se mohou zaměnit hodiny a minuty."
@@ -826,6 +827,8 @@
   "frequency_1_week": "Jednou týdně"
   "newsletter_enabled": "Dostávat newsletter"
   "newsletter_help": "Občas vám pošleme newsletter o novinkách na platformě, většinou o nových funkcích. Žádný marketing, žádná reklama — jen novinky. Očekávaná frekvence: maximálně 1x měsíčně."
+  "result_emails_enabled": "E-maily o mých výsledcích"
+  "result_emails_help": "Dáme vám vědět, když se některé vaše výsledky nejspíš uložily dvakrát, nebo když jsme odstranili kopii uloženou omylem. Nejvýš jednou týdně a jen když je něco nového."
   "messaging_notifications": "Zprávy a upozornění"
   "features_options": "Nastavení funkcí"
   "hide_ranking": "Skrýt mé hodnocení a dovednosti"
@@ -969,6 +972,7 @@
 "flashes":
   "photo_upload_deferred": "Vaše data jsou uložena! Fotku se teď nepodařilo nahrát — nahraje se automaticky, jakmile bude naše úložiště opět dostupné."
   "stopwatch_already_saved": "Tyto stopky byly již uloženy."
+  "result_already_saved": "Tenhle výsledek už byl uložený – tady je."
   "puzzle_needs_approve": "Nově přidané puzzle se budou veřejně zobrazovat až po schválení administrátorem - obvykle do 24 hodin od přidání."
   "time_added": "Skládání jsme zaznamenali."
   "time_deleted": "Smazali jsme veškeré důkazy. Nikdo se nikdy nedozví, co se právě stalo!"
@@ -3549,6 +3553,8 @@ email_preferences:
     newsletter_description: "Co je nového na MySpeedPuzzling — nové funkce a novinky z platformy, jednou měsíčně. Žádný marketing, žádná reklama."
     notifications_title: "Upozornění e-mailem"
     notifications_description: "Dáme vám vědět, když vám někdo napíše nebo se s vámi chce spojit — píšeme jen tehdy, když na vás opravdu něco čeká."
+    result_emails_title: "Vaše výsledky"
+    result_emails_description: "Když se některé vaše výsledky nejspíš uložily dvakrát, nebo jsme odstranili kopii uloženou omylem — nejvýš jednou týdně a jen když je něco nového."
     frequency_label: "Jak často nejvýše?"
     save_button: "Uložit nastavení"
     more_hint: "Hledáte víc? Všechna nastavení účtu najdete ve svém profilu."
@@ -4368,11 +4374,16 @@ puzzle_search:
         borrowed: "Vypůjčené"
         lent: "Půjčené"
         sell_swap: "Prodej / výměna"
+edit_time_puzzle:
+    change: "Změnit puzzle"
+    title: "Přesunout výsledek k jiným puzzle"
+    picker_help: "Vybral(a) jsi omylem jiné puzzle? Vyber ty správné – čas, datum, fotka i všechno ostatní se přesune s výsledkem. Vybrat jde jen z puzzlí, která už v databázi jsou."
+    only_tracker: "Puzzle u tohoto výsledku může změnit jen ten, kdo ho uložil."
+    choose_from_list: "Vyber puzzle ze seznamu."
 first_try:
     a_puzzler: "další puzzlař"
     form_error: "Zatím neuloženo: tyto puzzle už mají první pokus. Všechna vyplněná pole i fotky tu zůstaly – podívej se na poznámku níže."
     banner: "Máš %count% puzzle s víc než jedním prvním pokusem.|Máš %count% puzzle s víc než jedním prvním pokusem.|Máš %count% puzzlí s víc než jedním prvním pokusem."
-    banner_review: "Zkontrolovat"
     action:
         move: "Udělat z tohoto výsledku můj první pokus"
         untick: "Odebrat první pokus z tohoto výsledku"
@@ -4404,7 +4415,6 @@ first_try:
     page:
         title: "Konflikty prvních pokusů"
         intro: "Jedny puzzle můžou být tvým prvním pokusem jen jednou. Tady jsou puzzle, u kterých je jako první pokus označeno víc tvých výsledků – vyber ten, který to opravdu byl."
-        empty: "Není co řešit – každé puzzle má nejvýš jeden první pokus."
         question: "Jako tvůj první pokus je označen %count% výsledek. Který to opravdu byl?|Jako tvůj první pokus jsou označeny %count% výsledky. Který to opravdu byl?|Jako tvůj první pokus je označeno %count% výsledků. Který to opravdu byl?"
         oldest_hint: "Ten nejstarší – nejspíš opravdový první pokus."
         none: "Žádný z nich nebyl můj první pokus"
@@ -4425,7 +4435,78 @@ first_try:
         removed_one: "První pokus byl z výsledku odebrán."
         kept_late: "Hotovo – zůstává označený jako první pokus."
         changed: "Mezitím se to změnilo – takhle to vypadá teď."
+duplicate_check:
+    form_error: "Zatím neuloženo: přesně tenhle čas ze stejného dne už u těchto puzzlí uložený je. Všechna vyplněná pole i fotky tu zůstaly – podívej se na poznámku níže."
+    action:
+        confirm: "Ano, je to další složení"
+        undo: "Zpět"
+        view: "Zobrazit"
+    same_day:
+        title: "Přesně tenhle čas už je uložený"
+        body: "Uložil/a jsi ho omylem dvakrát? Pak tu už nic dělat nemusíš. Pokud jsi puzzle opravdu složil/a znovu v úplně stejném čase, potvrď to a ulož."
+    confirmed:
+        title: "Rozumím – je to další složení"
+        body: "Po uložení formuláře se uloží vedle výsledku výše."
+    tolerated:
+        body: "Tenhle čas je v tomto dni uložený víckrát. Změny můžeš klidně uložit:"
+    other_day:
+        title: "Stejný čas z jiného dne"
+    line:
+        own_today: "Přesně %time% jsi u těchto puzzlí uložil/a dnes v %clock%"
+        own: "Přesně %time% už máš u těchto puzzlí uložený na %date%"
+        own_other_day: "U těchto puzzlí máš %time% z %date%"
+        with_viewer_pair: "%name% už uložil/a váš společný výsledek ve dvojici s časem přesně %time% (%date%) – máš ho na profilu"
+        with_viewer_team: "%name% už uložil/a váš společný týmový výsledek s časem přesně %time% (%date%) – máš ho na profilu"
+        teammate: "%name% už má u těchto puzzlí přesně %time% z %date%"
+        teammate_other_day: "%name% má u těchto puzzlí %time% z %date%"
 photo_stash:
     kept: "Tvoje fotka tu zůstala, nemusíš ji vybírat znovu."
     remove: "Odebrat"
     lost: "Fotku se tentokrát nepodařilo podržet – vyber ji prosím znovu."
+review_results:
+    page:
+        title: "Kontrola tvých výsledků"
+        intro: "Výsledky, které se možná uložily dvakrát, kopie, které jsme za tebe odstranili, a první pokusy k vyřešení – všechno, na co se vyplatí podívat, na jednom místě."
+        empty: "Není co kontrolovat – tvoje výsledky vypadají v pořádku."
+    duplicates:
+        title: "Uloženo dvakrát?"
+        intro: "Tyto výsledky mají na stejných puzzle úplně stejný čas. Pokud je to jedno složení uložené dvakrát, nech si jednu kopii – druhá se smaže a ve statistikách se složení započítá jen jednou."
+        likely: "Nejspíš uloženo dvakrát"
+        possible: "Možná uloženo dvakrát"
+        same_time: "stejný čas na vteřinu: %time%"
+        saved_at: "Uloženo %date%"
+        older_hint: "Uloženo jako první – nejspíš originál."
+        keep: "Nechat tento"
+        keep_hint: "Kopie, kterou si necháš, převezme vše, co má jen ta druhá – fotku, komentář, první pokus i soutěž."
+        delete_mine: "Smazat moji kopii"
+        only_tracker: "Smazat ji může jen %name%."
+        both_real: "Oba jsou skutečné – dvě různá složení"
+        all_real: "Všechny jsou skutečné – různá složení"
+    removed:
+        title: "Odstraněno automaticky"
+        intro: "Stejný výsledek přišel dvakrát během pár vteřin, ve všem úplně stejný, a tak jsme druhou kopii odstranili. Pokud to bylo opravdu další složení, vrať ho zpět."
+        row: "Kopie uložena %saved%, odstraněna %removed%."
+        kept: "Výsledek, který zůstal"
+        undo: "Vrátit zpět"
+    banner:
+        duplicates: "%count% výsledek se možná uložil dvakrát.|%count% výsledky se možná uložily dvakrát.|%count% výsledků se možná uložilo dvakrát."
+        auto_removed: "Odstranili jsme %count% kopii dvakrát uloženého výsledku.|Odstranili jsme %count% kopie dvakrát uložených výsledků.|Odstranili jsme %count% kopií dvakrát uložených výsledků."
+        review: "Zkontrolovat"
+    recap:
+        title: "Neuložil/a jsi to dvakrát?"
+        intro: "Na těchto puzzle už máš úplně stejný čas."
+    flash:
+        copy_deleted: "Hotovo – kopie je smazaná a složení se počítá jednou.|Hotovo – %count% kopie jsou smazané a složení se počítá jednou.|Hotovo – %count% kopií je smazaných a složení se počítá jednou."
+        both_real: "{2} Uloženo – oba výsledky zůstávají.|[3,4] Uloženo – všechny %count% výsledky zůstávají.|[5,Inf[ Uloženo – všech %count% výsledků zůstává."
+        undone: "Výsledek je zpět."
+        undo_failed: "Tento výsledek už nejde vrátit."
+        changed: "Mezitím se to změnilo – takhle to vypadá teď."
+        first_try_left_off: "Ponechaný výsledek značku prvního pokusu nepřevzal: někdo z něj už má u těchto puzzlí jiný první pokus."
+
+result_emails:
+    unsubscribe:
+        headline: "E-maily o tvých výsledcích"
+        text: "Nechceš už dostávat e-maily o výsledcích uložených dvakrát? Ostatní e-maily (souhrn zpráv, newsletter) zůstanou, jak jsou."
+        confirm_button: "Už mi je neposílejte"
+        done: "Hotovo – e-maily o tvých výsledcích už ti posílat nebudeme."
+        settings_hint: "Kdykoli je můžeš znovu zapnout v nastavení profilu v části „Zprávy a upozornění“."

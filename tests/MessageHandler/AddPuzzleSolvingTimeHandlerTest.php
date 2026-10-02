@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\ToggleableFailingFilesystemAdapter;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -121,6 +122,57 @@ final class AddPuzzleSolvingTimeHandlerTest extends KernelTestCase
             self::assertInstanceOf(SuspiciousPpm::class, $exception->getPrevious());
             throw $exception;
         }
+    }
+
+    public function testASaveConfirmedAsAnotherSolveIsRecordedWithTheResult(): void
+    {
+        $timeId = Uuid::uuid7();
+
+        $this->messageBus->dispatch(new AddPuzzleSolvingTime(
+            timeId: $timeId,
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            puzzleId: PuzzleFixture::PUZZLE_1500_02,
+            competitionId: null,
+            time: '01:00:00',
+            comment: null,
+            finishedPuzzlesPhoto: null,
+            groupPlayers: [],
+            finishedAt: null,
+            firstAttempt: false,
+            unboxed: false,
+            createdVia: SolvingTimeSource::Stopwatch,
+            duplicateConfirmed: true,
+        ));
+
+        self::assertSame(
+            [['player_id' => PlayerFixture::PLAYER_REGULAR, 'kind' => 'saved_anyway', 'time_id' => $timeId->toString(), 'puzzle_id' => PuzzleFixture::PUZZLE_1500_02, 'via' => 'stopwatch']],
+            $this->database->fetchAllAssociative('SELECT player_id, kind, time_id, puzzle_id, via FROM result_duplicate_prevention'),
+        );
+    }
+
+    public function testARefusedConfirmedSaveRecordsNothing(): void
+    {
+        try {
+            $this->messageBus->dispatch(new AddPuzzleSolvingTime(
+                timeId: Uuid::uuid7(),
+                userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+                puzzleId: PuzzleFixture::PUZZLE_500_01,
+                competitionId: null,
+                time: '00:01:00',
+                comment: null,
+                finishedPuzzlesPhoto: null,
+                groupPlayers: [],
+                finishedAt: null,
+                firstAttempt: false,
+                unboxed: false,
+                duplicateConfirmed: true,
+            ));
+            self::fail('The suspiciously fast time must be refused');
+        } catch (HandlerFailedException $exception) {
+            self::assertInstanceOf(SuspiciousPpm::class, $exception->getPrevious());
+        }
+
+        self::assertSame([], $this->database->fetchAllAssociative('SELECT id FROM result_duplicate_prevention'));
     }
 
     public function testUnknownCompetitionIdIsSilentlyDroppedWithoutFailing(): void

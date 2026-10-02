@@ -12,6 +12,10 @@ export default class extends Controller {
         addNewBrandMessage: String,
         addNewPuzzleMessage: String,
         puzzleRequiredMessage: String,
+        // The edit form moves a result to an existing puzzle only - no new brand, no new puzzle
+        allowNew: { type: Boolean, default: true },
+        // The edit form's picker stays closed until asked for - its brand's puzzles are fetched only then
+        optionsOnDemand: { type: Boolean, default: false },
     };
 
     uuidRegex= /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -61,13 +65,17 @@ export default class extends Controller {
     }
 
     _onBrandConnect(event) {
+        event.detail.options.onChange = (value) => {
+            this.onBrandValueChanged(value);
+        };
+
+        if (!this.allowNewValue) {
+            return;
+        }
+
         const addNewBrandMessage = this.addNewBrandMessageValue || 'Add new brand:';
         event.detail.options.render.option_create = function (data, escape) {
             return '<div class="create py-2"><i class="ci-add small"></i> ' + addNewBrandMessage + ' <strong>' + escape(data.input) + '</strong></div>';
-        };
-
-        event.detail.options.onChange = (value) => {
-            this.onBrandValueChanged(value);
         };
 
 
@@ -142,7 +150,7 @@ export default class extends Controller {
             this._clearPuzzleRequiredError();
 
             if (this.uuidRegex.test(value)) {
-                this.newPuzzleTarget.classList.add('d-none');
+                this.toggleNewPuzzle(false);
 
                 // Dispatch event with pieces count for PPM validation
                 const option = this.puzzleTarget.tomselect.options[value];
@@ -153,12 +161,12 @@ export default class extends Controller {
                     this.dispatchPiecesCountEvent(null);
                 }
             } else {
-                this.newPuzzleTarget.classList.remove('d-none');
+                this.toggleNewPuzzle(true);
                 // New puzzle - pieces count will come from input field
                 this.dispatchPiecesCountEvent(null);
             }
         } else {
-            this.newPuzzleTarget.classList.add('d-none');
+            this.toggleNewPuzzle(false);
             // No puzzle selected - clear pieces count
             this.dispatchPiecesCountEvent(null);
         }
@@ -240,7 +248,16 @@ export default class extends Controller {
     }
 
     onNewBrandCreated() {
-        this.newPuzzleTarget.classList.remove('d-none');
+        this.toggleNewPuzzle(true);
+    }
+
+    // The edit form has no new-puzzle fields
+    toggleNewPuzzle(show) {
+        if (!this.hasNewPuzzleTarget) {
+            return;
+        }
+
+        this.newPuzzleTarget.classList.toggle('d-none', !show);
     }
 
     handleInitialValues() {
@@ -250,6 +267,11 @@ export default class extends Controller {
         // used to disable the puzzle field even though a brand was selected.
         this.initialBrandValue = this.brandTarget.value;
         this.initialPuzzleValue = this.puzzleTarget.value;
+
+        if (this.initialBrandValue && this.optionsOnDemandValue) {
+            // The result's own puzzle stays selected; loadPuzzleOptions() fetches the rest when the picker opens
+            return;
+        }
 
         if (this.initialBrandValue) {
             if (!this.brandTarget.tomselect.getOption(this.initialBrandValue) && !this.uuidRegex.test(this.initialBrandValue)) {
@@ -269,6 +291,19 @@ export default class extends Controller {
         }
     }
 
+    loadPuzzleOptions() {
+        if (!this.optionsOnDemandValue) {
+            return;
+        }
+
+        this.optionsOnDemandValue = false;
+
+        // Tom Select not initialized yet: handleInitialValues() fetches them, now that they are wanted
+        if (this.puzzleTarget.tomselect && this.uuidRegex.test(this.brandTarget.value)) {
+            this.fetchPuzzleOptions(this.brandTarget.value, false);
+        }
+    }
+
     enablePuzzleField() {
         const puzzleTomSelect = this.puzzleTarget.tomselect;
         puzzleTomSelect.enable();
@@ -283,7 +318,7 @@ export default class extends Controller {
         puzzleTomSelect.settings.placeholder = this.puzzleTarget.dataset.chooseBrandPlaceholder;
         puzzleTomSelect.inputState();
 
-        this.newPuzzleTarget.classList.add('d-none');
+        this.toggleNewPuzzle(false);
     }
 
     _onFormSubmit(event) {
@@ -557,7 +592,7 @@ export default class extends Controller {
         }
 
         // Show new puzzle fields
-        this.newPuzzleTarget.classList.remove('d-none');
+        this.toggleNewPuzzle(true);
 
         // Prefill EAN field
         if (this.hasEanInputTarget) {

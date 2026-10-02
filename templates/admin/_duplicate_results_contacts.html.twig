@@ -1,0 +1,111 @@
+{# "Your results" e-mails (docs/features/duplicate-results.md, "Admin overview") - included by admin/duplicate_results.html.twig #}
+{% macro funnel_cells(row) %}
+    <td class="text-end">{{ row.sent }}</td>
+    <td class="text-end">
+        {{ row.visited }}
+        {% if row.sent > 0 %}<small class="text-muted">({{ (row.visited / row.sent * 100)|round }} %)</small>{% endif %}
+    </td>
+    <td class="text-end">
+        {{ row.reacted }}
+        {% if row.sent > 0 %}<small class="text-muted">({{ (row.reacted / row.sent * 100)|round }} %)</small>{% endif %}
+    </td>
+    <td class="text-end">{{ row.all_resolved }}</td>
+    <td class="text-end">{{ row.median_hours_to_react is not null ? row.median_hours_to_react ~ ' h' : '-' }}</td>
+{% endmacro %}
+
+{% import _self as contact_helpers %}
+
+<section class="mt-5" data-testid="admin-result-review-contacts">
+    <h2 class="h5" id="contacts">Contacts - "Your results" e-mails</h2>
+    <p class="text-muted fs-sm">
+        Planned daily (<code>myspeedpuzzling:plan-result-review-emails</code>), sent every 5 minutes 08-20
+        Europe/Prague (<code>myspeedpuzzling:send-result-review-emails</code>): at most
+        <strong>{{ contacts.per_run }}</strong> per run, leaving <strong>{{ contacts.spacing_seconds }} s</strong> apart,
+        and <strong>{{ contacts.per_day }}</strong> per day as a safety guard (<code>RESULT_REVIEW_EMAILS_PER_RUN</code> /
+        <code>RESULT_REVIEW_EMAIL_SPACING_SECONDS</code> / <code>RESULT_REVIEW_EMAILS_PER_DAY</code>). "Reacted" =
+        resolved anything after the e-mail; "All resolved" = the player has no open case left (e-mails that listed
+        cases).
+    </p>
+
+    <div class="row g-3 mb-4">
+        {% for label, value in {
+            'Unsubscribed (switch off)': contacts.totals.unsubscribed,
+            'Ignoring (no more case e-mails)': contacts.totals.ignoring,
+            'Skipped - switched off': contacts.totals.skipped_switched_off,
+            'Skipped - nothing left': contacts.totals.skipped_nothing_left,
+            'Failed to send (mail log)': contacts.delivery.failed,
+            'Bounced (mail log)': contacts.delivery.bounced,
+        } %}
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="card card-body shadow-sm h-100 text-center">
+                    <div class="h3 mb-1">{{ value|number_format(0, '.', ' ') }}</div>
+                    <div class="fs-sm text-muted">{{ label }}</div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <h3 class="h6">By type</h3>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle fs-sm">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th class="text-end">Planned</th>
+                            <th class="text-end">Skipped</th>
+                            <th class="text-end">Sent</th>
+                            <th class="text-end">Visited</th>
+                            <th class="text-end">Reacted</th>
+                            <th class="text-end">All resolved</th>
+                            <th class="text-end">Median to react</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for type, row in contacts.by_type %}
+                            <tr>
+                                <td><code>{{ type }}</code></td>
+                                <td class="text-end">{{ row.planned }}</td>
+                                <td class="text-end">{{ row.skipped }}</td>
+                                {{ contact_helpers.funnel_cells(row) }}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <h3 class="h6">Waves (sent per day, Europe/Prague)</h3>
+            {% if contacts.waves is empty %}
+                <p class="text-muted fs-sm">Nothing sent yet.</p>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle fs-sm">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th class="text-end">First / weekly</th>
+                                <th class="text-end">Sent</th>
+                                <th class="text-end">Visited</th>
+                                <th class="text-end">Reacted</th>
+                                <th class="text-end">All resolved</th>
+                                <th class="text-end">Median to react</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for wave in contacts.waves %}
+                                <tr>
+                                    <td class="text-nowrap">{{ wave.day|date('d.m.Y') }}</td>
+                                    <td class="text-end">{{ wave.first }} / {{ wave.weekly }}</td>
+                                    {{ contact_helpers.funnel_cells(wave) }}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>

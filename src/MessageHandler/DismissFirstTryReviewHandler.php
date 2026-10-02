@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Message\DismissFirstTryReview;
 use SpeedPuzzling\Web\Repository\FirstTryReviewDismissalRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
+use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewReactions;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -21,6 +22,7 @@ readonly final class DismissFirstTryReviewHandler
         private PlayerRepository $playerRepository,
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         private FirstTryReviewDismissalRepository $dismissalRepository,
+        private ResultReviewReactions $resultReviewReactions,
         private ClockInterface $clock,
     ) {
     }
@@ -47,5 +49,7 @@ readonly final class DismissFirstTryReviewHandler
             $solvingTime,
             $this->clock->now(),
         ));
+
+        $this->resultReviewReactions->recordFor($player->id->toString());
     }
 }

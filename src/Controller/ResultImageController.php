@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Controller;
 use AsyncAws\Core\Exception\Exception as AsyncAwsException;
 use League\Flysystem\FilesystemException;
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
+use SpeedPuzzling\Web\Repository\ResultAutoRemovalRepository;
 use SpeedPuzzling\Web\Services\GetResultImage;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,6 +19,7 @@ final class ResultImageController extends AbstractController
     public function __construct(
         readonly private GetResultImage $getResultImage,
         readonly private LoggerInterface $logger,
+        readonly private ResultAutoRemovalRepository $autoRemovalRepository,
     ) {
     }
 
@@ -25,6 +28,16 @@ final class ResultImageController extends AbstractController
     {
         try {
             $resultImage = $this->getResultImage->forSolvingTime($timeId);
+        } catch (PuzzleSolvingTimeNotFound $exception) {
+            // A shared image of a copy removed automatically shows the copy that was kept
+            $keptTimeId = $this->autoRemovalRepository->findKeptTimeIdOf($timeId);
+
+            if ($keptTimeId === null) {
+                throw $exception;
+            }
+
+            // Temporary: Undo brings the removed id back, so no cache may remember the redirect for good
+            return $this->redirectToRoute('result_image', ['timeId' => $keptTimeId], Response::HTTP_FOUND);
         } catch (FilesystemException | AsyncAwsException $exception) {
             // Object storage outage (the source photo is on S3 and not in the
             // local spool) - a temporary 404 beats a 500, and must not be cached

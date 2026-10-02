@@ -249,3 +249,25 @@ oauth_identity_linked:
     not_you: |
         <p>Entonces otra persona podría iniciar sesión en tu cuenta. Inicia sesión, abre los ajustes de tu perfil y desconecta %provider% en «Connected sign-in methods», y por seguridad <a href="%resetPasswordUrl%">cambia tu contraseña</a>.</p>
     button: "Revisar mis métodos de inicio de sesión"
+
+result_review:
+    subject_first: "Algunos de tus resultados están guardados dos veces"
+    subject_weekly: "Novedades en tus resultados"
+    subject_removed: "Hemos ordenado tus resultados"
+    title_first: "Algunos de tus resultados parecen estar guardados dos veces"
+    title_weekly: "Novedades en tus resultados"
+    title_removed: "Hemos ordenado tus resultados"
+    greeting: "Hola %playerName%,"
+    intro_first: "Revisamos todos los resultados de MySpeedPuzzling y encontramos algunos tuyos que parecen estar guardados dos veces: tus estadísticas cuentan cada uno de ellos dos veces."
+    intro_weekly: "Desde nuestro último correo encontramos algo nuevo en tus resultados: un resultado guardado dos veces cuenta dos veces en tus estadísticas."
+    intro_removed: "Algunos de tus resultados llegaron dos veces en pocos segundos, idénticos en todo, así que eliminamos la copia sobrante: ahora tus estadísticas cuentan cada armado una sola vez. Si de verdad fue otro armado, puedes recuperarlo en la página de revisión."
+    cases_heading: "Quizá guardado dos veces:"
+    case_line: "%puzzleName% – %time%, %date%"
+    kind_saved_twice: "el mismo tiempo guardado dos veces"
+    kind_teammate_copy: "tu compañero de equipo también lo guardó"
+    kind_solo_and_group: "guardado como individual y como resultado de pareja/equipo"
+    more: "…y %count% más"
+    removals_heading: "Eliminamos una copia guardada por error; puedes deshacerlo:"
+    decide: "En la página de revisión te quedas con una copia con un solo toque, o nos dices que ambos son reales."
+    button: "Revisar mis resultados"
+    opt_out: "Recibes este correo por tus resultados en MySpeedPuzzling. <a href=\"%settingsUrl%\">Ajustes de correo</a> · <a href=\"%unsubscribeUrl%\">No quiero más correos sobre mis resultados</a>"

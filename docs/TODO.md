@@ -4,6 +4,21 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Duplicate results (#221)
+
+Plan: [`features/duplicate-results.md`](features/duplicate-results.md).
+
+- [ ] "Possibly saved twice" marker in the player's results list (`PlayerSolvedPuzzles`) for results with an open
+      case - left out of P4 while those templates are being reworked
+- [ ] Cron lines in `~/www/lily.srv` for detect (daily 04:14), plan (daily 04:29) and send (every 5 minutes from
+      :04, 08-20 Europe/Prague) - committed on the lily.srv branch `myspeedpuzzling-duplicate-results`, push it when
+      this feature deploys; then run the first detection by hand with `--backfill`
+- [ ] Before the first send: `myspeedpuzzling:send-result-review-email-preview` to the owner's inbox (each variant,
+      a locale or two)
+- [ ] "Your results" backlog: one e-mail a minute, ~560 players in ~9-10 hours of the first day - after that day
+      watch bounces/complaints, the reaction rate and the folder at Gmail / iCloud / Seznam (admin "Contacts"); lower
+      `RESULT_REVIEW_EMAILS_PER_RUN` or raise `RESULT_REVIEW_EMAIL_SPACING_SECONDS` on the box if it goes badly
+
 ## Live activity feed (Hub + Recent activity)
 
 Shipped: [`features/live-activity-feed.md`](features/live-activity-feed.md).
@@ -42,7 +57,8 @@ Shipped: [`features/puzzle-result-detail.md`](features/puzzle-result-detail.md),
 
 Shipped: [`features/first-try-integrity.md`](features/first-try-integrity.md).
 
-- [ ] Hub banner for players with first-try conflicts (the profile banner is the first step, rolled out gradually)
+- [x] Hub banner for players with first-try conflicts - part of the "Review your results" banner since duplicate
+      results P4
 - [ ] Remind about unresolved first-try conflicts in the digest e-mail
 - [ ] A few weeks after the deploy: how many of the 3,170 duplicate pairs (2026-09-30) got resolved - decide whether
       the rest needs another nudge

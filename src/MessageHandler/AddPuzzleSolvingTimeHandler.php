@@ -4,23 +4,38 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\PuzzlingTeam;
+use SpeedPuzzling\Web\Entity\ResultDuplicatePrevention;
+use SpeedPuzzling\Web\Entity\Stopwatch;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
+use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
+use SpeedPuzzling\Web\Exceptions\SolvingTimeAlreadySaved;
+use SpeedPuzzling\Web\Exceptions\SolvingTimeIdReused;
+use SpeedPuzzling\Web\Exceptions\SolvingTimeIdTaken;
+use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBeFinished;
+use SpeedPuzzling\Web\Exceptions\StopwatchNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
+use SpeedPuzzling\Web\Query\GetRecentIdenticalSolvingTime;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
+use SpeedPuzzling\Web\Repository\ResultDuplicatePreventionRepository;
+use SpeedPuzzling\Web\Repository\StopwatchRepository;
+use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryAssessor;
 use SpeedPuzzling\Web\Value\FirstTryEntry;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
@@ -28,7 +43,11 @@ use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\SolvingTimePredictor;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
+use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\SolvingTime;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
+use SpeedPuzzling\Web\Value\StopwatchStatus;
+use SpeedPuzzling\Web\Value\TeamComposition;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
 
@@ -52,6 +71,10 @@ readonly final class AddPuzzleSolvingTimeHandler
         private SolvingTimePredictor $solvingTimePredictor,
         private FirstTryAssessor $firstTryAssessor,
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
+        private StopwatchRepository $stopwatchRepository,
+        private GetRecentIdenticalSolvingTime $getRecentIdenticalSolvingTime,
+        private ResultDuplicatePreventionRepository $resultDuplicatePreventionRepository,
+        private IdLock $idLock,
     ) {
     }
 
@@ -60,17 +83,59 @@ readonly final class AddPuzzleSolvingTimeHandler
      * @throws CanNotAssembleEmptyGroup
      * @throws SuspiciousPpm
      * @throws FirstTryAlreadyTaken
+     * @throws SolvingTimeAlreadySaved
+     * @throws SolvingTimeIdTaken
+     * @throws SolvingTimeIdReused
+     * @throws StopwatchNotFound
+     * @throws CanNotModifyOtherPlayersTime
+     * @throws StopwatchCouldNotBeFinished
      */
     public function __invoke(AddPuzzleSolvingTime $message): void
     {
-        $puzzle = $this->puzzleRepository->get($message->puzzleId);
+        // First: a second request with the same id waits here until this one commits, then finds the row below
+        $this->idLock->lockUntilCommit($message->timeId);
+
         $player = $this->playerRepository->getByUserIdCreateIfNotExists($message->userId);
-        $group = $this->puzzlersGrouping->assembleGroup($player, $message->groupPlayers);
-        $solvingTimeId = $message->timeId;
-        $finishedPuzzlePhotoPath = null;
         $trackedAt = $this->clock->now();
         $finishedAt = $this->mistypedYearNormalizer->normalizeFinishedAt($message->finishedAt);
         $solvingTime = SolvingTime::fromUserInput($message->time);
+
+        // The id travels in the form (and is derived from the API's Idempotency-Key): a result with it means the
+        // same save arrived again - when it is the same entry (docs/features/duplicate-results.md, Layer 1)
+        $existingTime = $this->puzzleSolvingTimeRepository->findById($message->timeId);
+
+        if ($existingTime !== null) {
+            if ($existingTime->player->id->equals($player->id) === false) {
+                throw new SolvingTimeIdTaken();
+            }
+
+            if ($existingTime->isSameEntryAs($message->puzzleId, $solvingTime->seconds, $finishedAt, $trackedAt) === false) {
+                throw new SolvingTimeIdReused();
+            }
+
+            throw new SolvingTimeAlreadySaved($existingTime->id->toString(), $existingTime->puzzle->id->toString());
+        }
+
+        $stopwatch = null;
+
+        if ($message->stopwatchId !== null) {
+            $stopwatch = $this->stopwatchRepository->get($message->stopwatchId);
+
+            if ($stopwatch->player->id->equals($player->id) === false) {
+                throw new CanNotModifyOtherPlayersTime();
+            }
+
+            // Refused before anything is created: changes of a refused handler stay in the entity manager and a
+            // later flush in the same request would write them after all
+            if ($stopwatch->status === StopwatchStatus::NotStarted) {
+                throw new StopwatchCouldNotBeFinished();
+            }
+        }
+
+        $puzzle = $this->puzzleRepository->get($message->puzzleId);
+        $group = $this->puzzlersGrouping->assembleGroup($player, $message->groupPlayers);
+        $solvingTimeId = $message->timeId;
+        $finishedPuzzlePhotoPath = null;
         $puzzlersCount = 1;
         $competitionRound = null;
         $competition = null;
@@ -98,6 +163,26 @@ readonly final class AddPuzzleSolvingTimeHandler
 
         if ($group !== null) {
             $puzzlersCount = count($group->puzzlers);
+        }
+
+        // Safety net for a save sent again with a new id (no JavaScript, an old open form, the API without a key).
+        // Before the first-try check: the copy would otherwise be refused as a second first try
+        $recentTwinId = $solvingTime->seconds === null ? null : $this->getRecentIdenticalSolvingTime->savedBy(
+            playerId: $player->id->toString(),
+            puzzleId: $puzzle->id->toString(),
+            secondsToSolve: $solvingTime->seconds,
+            finishedAt: $finishedAt,
+            teamCompositionKey: $group !== null ? TeamComposition::fromGroup($group)->key : null,
+            competitionId: $competition?->id->toString(),
+            roundId: $competitionRound?->id->toString(),
+            firstAttempt: $message->firstAttempt,
+            unboxed: $message->unboxed,
+            comment: $message->comment,
+            hasPhoto: $message->finishedPuzzlesPhoto !== null,
+        );
+
+        if ($recentTwinId !== null) {
+            throw new SolvingTimeAlreadySaved($recentTwinId, $puzzle->id->toString());
         }
 
         // Before anything is written: the form checks the same, this catches races and the API
@@ -158,6 +243,7 @@ readonly final class AddPuzzleSolvingTimeHandler
             // Resolved last, once nothing above can refuse the time any more - the team is created outside
             // the unit of work
             puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group, usedByPlayerId: $player->id->toString()),
+            createdVia: $message->createdVia,
         );
 
         // Only when a name was typed: touching the team otherwise would load it for nothing
@@ -176,5 +262,42 @@ readonly final class AddPuzzleSolvingTimeHandler
         foreach ($unmarkFirstTryOf as $timeId) {
             $this->puzzleSolvingTimeRepository->get($timeId)->unmarkFirstAttempt($player);
         }
+
+        if ($stopwatch !== null) {
+            $this->finishStopwatch($stopwatch, $puzzle, $trackedAt);
+        }
+
+        // In the same transaction: the pair is a confirmed real second solve only if the result exists
+        if ($message->duplicateConfirmed) {
+            $this->resultDuplicatePreventionRepository->save(new ResultDuplicatePrevention(
+                id: Uuid::uuid7(),
+                player: $player,
+                kind: DuplicatePreventionKind::SavedAnyway,
+                timeId: $solvingTimeId,
+                puzzleId: $puzzle->id,
+                createdAt: $trackedAt,
+                via: $message->createdVia ?? SolvingTimeSource::Form,
+            ));
+        }
+    }
+
+    /**
+     * In the same transaction as the result: a stopwatch left unfinished after its result was saved invites
+     * saving it again. Already finished (a second tab saved it meanwhile) is fine - the result is what counts.
+     *
+     * @throws StopwatchCouldNotBeFinished
+     */
+    private function finishStopwatch(Stopwatch $stopwatch, Puzzle $puzzle, DateTimeImmutable $now): void
+    {
+        if ($stopwatch->status === StopwatchStatus::Finished) {
+            return;
+        }
+
+        // Resumed after the save page opened - the time typed in the form is the one saved, so it stops here
+        if ($stopwatch->status === StopwatchStatus::Running) {
+            $stopwatch->pause($now);
+        }
+
+        $stopwatch->finish($puzzle);
     }
 }

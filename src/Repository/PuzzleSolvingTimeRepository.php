@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Repository;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Value\PuzzlingType;
@@ -30,6 +31,24 @@ readonly final class PuzzleSolvingTimeRepository
         $puzzle = $this->entityManager->find(PuzzleSolvingTime::class, $puzzleSolvingTimeId);
 
         return $puzzle ?? throw new PuzzleSolvingTimeNotFound();
+    }
+
+    public function findById(UuidInterface $puzzleSolvingTimeId): null|PuzzleSolvingTime
+    {
+        return $this->entityManager->find(PuzzleSolvingTime::class, $puzzleSolvingTimeId);
+    }
+
+    public function save(PuzzleSolvingTime $solvingTime): void
+    {
+        $this->entityManager->persist($solvingTime);
+    }
+
+    /**
+     * The same path as deleting a result by hand: PuzzleSolvingTimeDeleted recalculates statistics and insights.
+     */
+    public function delete(PuzzleSolvingTime $solvingTime): void
+    {
+        $this->entityManager->remove($solvingTime);
     }
 
     /**

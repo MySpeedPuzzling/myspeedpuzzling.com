@@ -1,0 +1,316 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Duplicate results{% endblock %}
+
+{% macro gap(seconds) %}
+    {%- if seconds < 60 -%}
+        {{ seconds }} s
+    {%- elseif seconds < 3600 -%}
+        {{ (seconds / 60)|round(0, 'floor') }} min {{ seconds % 60 }} s
+    {%- elseif seconds < 86400 -%}
+        {{ (seconds / 3600)|round(1) }} h
+    {%- else -%}
+        {{ (seconds / 86400)|round(0, 'floor') }} days
+    {%- endif -%}
+{% endmacro %}
+
+{% macro person(person) %}
+    <a href="{{ path('player_profile', {playerId: person.id}) }}">{{ person.name ?? ('#' ~ person.code) }}</a>
+{% endmacro %}
+
+{% macro matrix_table(title, matrix, rows, statuses) %}
+    <h2 class="h5">{{ title }}</h2>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th></th>
+                    {% for status in statuses %}
+                        <th class="text-end"><code>{{ status.value }}</code></th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <th><code>{{ row.value }}</code></th>
+                        {% for status in statuses %}
+                            <td class="text-end">{{ matrix[row.value][status.value] ?? 0 }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endmacro %}
+
+{% block content %}
+    {% import _self as helpers %}
+    {% set difference_labels = {
+        finished_at: 'finish date',
+        group: 'group',
+        competition: 'competition',
+        first_try: 'first try',
+        unboxed: 'unboxed',
+        comment: 'comment',
+        photo: 'photo',
+    } %}
+
+    <h1 class="h3 mb-2">Duplicate results</h1>
+    <p class="text-muted small mb-4">
+        Results saved twice, judged per person (a teammate copy is a case for each member).
+        Tier A = certain (re-sent form), B = strong, C = possible - see <code>docs/features/duplicate-results.md</code>.
+        Detection runs daily; this page reads only the stored cases.
+    </p>
+
+    <div class="row g-3 mb-4">
+        {% for label, value in {
+            'Open cases': totals.openCases,
+            'Players affected': totals.playersAffected,
+            'Resolved (30 days)': totals.resolvedLast30Days,
+            'Confirmed real': totals.confirmedReal,
+            'Removed automatically': totals.autoRemoved,
+            'Undone': totals.autoRemovalsUndone,
+        } %}
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="card card-body shadow-sm h-100 text-center">
+                    <div class="h3 mb-1">{{ value|number_format(0, '.', ' ') }}</div>
+                    <div class="fs-sm text-muted">{{ label }}</div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">{{ helpers.matrix_table('Tier × status', by_tier, tiers, statuses) }}</div>
+        <div class="col-lg-6">{{ helpers.matrix_table('Kind × status', by_kind, kinds, statuses) }}</div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <h2 class="h5">New twins per month</h2>
+            <p class="text-muted fs-sm">By when the later copy was saved, pairs of results (last 12 months).</p>
+            {% if trend is empty %}
+                <p class="text-muted">No twins yet.</p>
+            {% else %}
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th class="text-end">Twins</th>
+                            <th class="text-end">Saved within 2 min</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for month in trend %}
+                            <tr>
+                                <td>{{ month.month }}</td>
+                                <td class="text-end">{{ month.twins }}</td>
+                                <td class="text-end">{{ month.saved_within_two_minutes }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+            <h2 class="h5">Saved again after</h2>
+            <p class="text-muted fs-sm">Pairs of results, all cases.</p>
+            <table class="table table-sm align-middle">
+                <tbody>
+                    {% for label, twins in gap_classes %}
+                        <tr>
+                            <td>{{ label }}</td>
+                            <td class="text-end">{{ twins }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="col-lg-4">
+            <h2 class="h5">Confirmed real, per tier</h2>
+            <p class="text-muted fs-sm">Of the decided cases, how many were two solves - the real precision of each tier.</p>
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Tier</th>
+                        <th class="text-end">Decided</th>
+                        <th class="text-end">Confirmed real</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tier_option in tiers %}
+                        {% set share = confirmed_real_share[tier_option.value] %}
+                        <tr>
+                            <td>{{ tier_option.letter }} - <code>{{ tier_option.value }}</code></td>
+                            <td class="text-end">{{ share.decided }}</td>
+                            <td class="text-end">
+                                {{ share.confirmed_real }}
+                                {% if share.percent is not null %}<small class="text-muted">({{ share.percent }} %)</small>{% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <h2 class="h5" id="cases">Cases</h2>
+
+    <ul class="nav nav-tabs mb-3">
+        {% for tab_option in tabs %}
+            <li class="nav-item">
+                <a class="nav-link {% if tab_option == tab %}active{% endif %}"
+                   href="{{ path('admin_duplicate_results', {tab: tab_option.value, tier: tier ? tier.value : null, kind: kind ? kind.value : null}) }}#cases">
+                    {{ tab_option.label }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <form method="get" action="{{ path('admin_duplicate_results') }}#cases" class="d-flex flex-wrap gap-2 mb-3" data-turbo="false">
+        <input type="hidden" name="tab" value="{{ tab.value }}">
+        <select name="tier" class="form-select form-select-sm w-auto">
+            <option value="">All tiers</option>
+            {% for tier_option in tiers %}
+                <option value="{{ tier_option.value }}" {% if tier_option == tier %}selected{% endif %}>{{ tier_option.letter }} - {{ tier_option.value }}</option>
+            {% endfor %}
+        </select>
+        <select name="kind" class="form-select form-select-sm w-auto">
+            <option value="">All kinds</option>
+            {% for kind_option in kinds %}
+                <option value="{{ kind_option.value }}" {% if kind_option == kind %}selected{% endif %}>{{ kind_option.value }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm btn-outline-primary">Filter</button>
+    </form>
+
+    <p class="text-muted fs-sm">{{ cases_total|number_format(0, '.', ' ') }} {{ cases_total == 1 ? 'case' : 'cases' }}</p>
+
+    {% if cases is empty %}
+        <div class="alert alert-info">No cases here.</div>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-sm align-middle fs-sm">
+                <thead>
+                    <tr>
+                        <th>Person</th>
+                        <th>Puzzle</th>
+                        <th class="text-end">Time</th>
+                        <th>Day(s)</th>
+                        <th>Copies (saved, tracker)</th>
+                        <th class="text-end">Gap</th>
+                        <th>Differs</th>
+                        <th>Tier / kind</th>
+                        <th>Detected</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for case in cases %}
+                        <tr>
+                            <td>
+                                <a href="{{ path('player_profile', {playerId: case.playerId}) }}">{{ case.playerName ?? ('#' ~ case.playerCode) }}</a>
+                                <a href="{{ path('admin_moderation_history', {playerId: case.playerId}) }}" class="ms-1 text-muted" title="Moderation history"><i class="ci-time"></i></a>
+                                {% if case.others is not empty %}
+                                    <div class="text-muted">
+                                        with {% for other in case.others %}{{ helpers.person(other) }}{% if not loop.last %}, {% endif %}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td><a href="{{ path('puzzle_detail', {puzzleId: case.puzzleId}) }}">{{ case.puzzleName }}</a></td>
+                            <td class="text-end text-nowrap">{{ case.seconds|puzzlingTime }}</td>
+                            <td class="text-nowrap">
+                                {{ case.dayA|date('d.m.Y') }}
+                                {% if case.dayB != case.dayA %}<br>{{ case.dayB|date('d.m.Y') }}{% endif %}
+                            </td>
+                            <td class="text-nowrap">
+                                {{ case.trackedAtA|date('d.m.Y H:i:s') }} {{ helpers.person(case.trackerA) }}<br>
+                                {{ case.trackedAtB|date('d.m.Y H:i:s') }} {{ helpers.person(case.trackerB) }}
+                            </td>
+                            <td class="text-end text-nowrap">{{ helpers.gap(case.gapSeconds) }}</td>
+                            <td>
+                                {% for difference in case.differences %}
+                                    <span class="badge bg-light text-dark border">{{ difference_labels[difference] ?? difference }}</span>
+                                {% else %}
+                                    <span class="text-muted">identical</span>
+                                {% endfor %}
+                            </td>
+                            <td class="text-nowrap">{{ case.tier.letter }} · <code>{{ case.kind.value }}</code></td>
+                            <td class="text-nowrap">{{ case.detectedAt|date('d.m.Y') }}</td>
+                            <td class="text-nowrap">
+                                <code>{{ case.status.value }}</code>
+                                {% if case.resolvedAt %}<div class="text-muted">{{ case.resolvedAt|date('d.m.Y') }}</div>{% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if pages > 1 %}
+            <nav aria-label="Cases pages">
+                <ul class="pagination pagination-sm">
+                    {% for page_number in 1..pages %}
+                        <li class="page-item {% if page_number == page %}active{% endif %}">
+                            <a class="page-link" href="{{ path('admin_duplicate_results', {tab: tab.value, tier: tier ? tier.value : null, kind: kind ? kind.value : null, page: page_number}) }}#cases">{{ page_number }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% endif %}
+
+    <section class="mt-5">
+        <h2 class="h5" id="removed-automatically">Removed automatically</h2>
+        <p class="text-muted fs-sm">
+            Tier A copies removed by the daily detection (newest {{ auto_removals|length }}). The older copy stays; links to
+            the removed id redirect to it. "Undone" = the player brought the copy back - the undo rate is the quality measure.
+        </p>
+
+        {% if auto_removals is empty %}
+            <div class="alert alert-info">Nothing removed automatically yet.</div>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table table-sm align-middle fs-sm" data-testid="admin-auto-removals">
+                    <thead>
+                        <tr>
+                            <th>Tracker</th>
+                            <th>Puzzle</th>
+                            <th class="text-end">Time</th>
+                            <th>Day</th>
+                            <th>Saved</th>
+                            <th>Removed id</th>
+                            <th>Kept id</th>
+                            <th>Removed</th>
+                            <th>Undone</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for removal in auto_removals %}
+                            <tr>
+                                <td>
+                                    <a href="{{ path('player_profile', {playerId: removal.playerId}) }}">{{ removal.playerName ?? ('#' ~ removal.playerCode) }}</a>
+                                    {% if removal.isGroup %}<span class="badge bg-light text-dark border">group</span>{% endif %}
+                                </td>
+                                <td><a href="{{ path('puzzle_detail', {puzzleId: removal.puzzleId}) }}">{{ removal.puzzleName }}</a></td>
+                                <td class="text-end text-nowrap">{{ removal.seconds is not null ? removal.seconds|puzzlingTime : '-' }}</td>
+                                <td class="text-nowrap">{{ removal.solvedAt|date('d.m.Y') }}</td>
+                                <td class="text-nowrap">{{ removal.savedAt|date('d.m.Y H:i:s') }}</td>
+                                <td><code>{{ removal.removedTimeId }}</code></td>
+                                <td><a href="{{ path('added_time_recap', {timeId: removal.keptTimeId}) }}"><code>{{ removal.keptTimeId }}</code></a></td>
+                                <td class="text-nowrap">{{ removal.removedAt|date('d.m.Y H:i') }}</td>
+                                <td class="text-nowrap">{{ removal.undoneAt ? 'yes, ' ~ removal.undoneAt|date('d.m.Y') : 'no' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </section>
+
+    {{ include('admin/_duplicate_results_contacts.html.twig', {contacts: contacts}) }}
+    {{ include('admin/_duplicate_puzzle_signals.html.twig') }}
+{% endblock %}

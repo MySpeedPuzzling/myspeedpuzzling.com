@@ -6,16 +6,19 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\StopwatchFixture;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class PuzzleAddControllerTest extends WebTestCase
 {
@@ -285,6 +288,216 @@ final class PuzzleAddControllerTest extends WebTestCase
             CompetitionSeriesFixture::EDITION_EJJ_68,
             $database->fetchOne('SELECT competition_id FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]),
         );
+    }
+
+    public function testResentFormLandsOnTheSavedResultInsteadOfSavingItAgain(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $database = self::getContainer()->get(Connection::class);
+        $timesBefore = $this->countPlayerTimes($database);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $timeId = $crawler->filter('input[name="time_id"]')->attr('value');
+        self::assertNotNull($timeId);
+        self::assertNotNull($crawler->filter('input[name="new_puzzle_id"]')->attr('value'));
+
+        $submission = $this->submissionOf($crawler);
+
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, 'time_id' => $timeId]);
+        $this->assertResponseRedirects('/en/time-added/' . $timeId);
+
+        // The answer got lost, the player taps save again
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, 'time_id' => $timeId]);
+        $this->assertResponseRedirects('/en/time-added/' . $timeId);
+
+        $browser->followRedirect();
+        $this->assertSelectorTextContains('body', 'This result was already saved');
+
+        self::assertSame($timesBefore + 1, $this->countPlayerTimes($database));
+        self::assertSame('resend_caught', $database->fetchOne(
+            'SELECT kind FROM result_duplicate_prevention WHERE time_id = :timeId AND player_id = :playerId',
+            ['timeId' => $timeId, 'playerId' => PlayerFixture::PLAYER_REGULAR],
+        ));
+        self::assertSame('form', $database->fetchOne('SELECT created_via FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]));
+    }
+
+    public function testAResentFormWithAnotherTimeIsANewResult(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $database = self::getContainer()->get(Connection::class);
+        $timesBefore = $this->countPlayerTimes($database);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $timeId = $crawler->filter('input[name="time_id"]')->attr('value');
+        self::assertNotNull($timeId);
+
+        $submission = $this->submissionOf($crawler);
+
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, 'time_id' => $timeId]);
+        $this->assertResponseRedirects('/en/time-added/' . $timeId);
+
+        // Back to the form, the time corrected, saved again: not the same result, so not swallowed as a resend
+        $submission['timeSeconds'] = '14';
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, 'time_id' => $timeId]);
+
+        $this->assertResponseRedirects();
+        $location = (string) $browser->getResponse()->headers->get('Location');
+        self::assertStringStartsWith('/en/time-added/', $location);
+        self::assertNotSame('/en/time-added/' . $timeId, $location);
+
+        self::assertSame($timesBefore + 2, $this->countPlayerTimes($database));
+        self::assertSame(2473, $database->fetchOne('SELECT seconds_to_solve FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]));
+        self::assertSame(2474, $database->fetchOne('SELECT seconds_to_solve FROM puzzle_solving_time WHERE id = :id', ['id' => substr($location, strlen('/en/time-added/'))]));
+    }
+
+    public function testANewPuzzleCanBeCorrectedAfterItsResultWasRefused(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $database = self::getContainer()->get(Connection::class);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $timeId = $crawler->filter('input[name="time_id"]')->attr('value');
+        $newPuzzleId = $crawler->filter('input[name="new_puzzle_id"]')->attr('value');
+        self::assertNotNull($timeId);
+        self::assertNotNull($newPuzzleId);
+
+        $submission = $this->submissionOf($crawler);
+        $submission['puzzle'] = 'Mistyped Pieces Puzzle';
+        // 500 meant: 41:13 for 5000 pieces is more than 100 pieces per minute
+        $submission['puzzlePiecesCount'] = '5000';
+        $ids = ['time_id' => $timeId, 'new_puzzle_id' => $newPuzzleId];
+
+        $crawler = $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, ...$ids], ['puzzle_add_form' => ['puzzlePhoto' => $this->boxPhoto()]]);
+
+        $this->assertResponseStatusCodeSame(422);
+        // The puzzle went in before the result was refused - the form still shows it as typed, its fields open
+        self::assertSame(5000, $database->fetchOne('SELECT pieces_count FROM puzzle WHERE id = :id', ['id' => $newPuzzleId]));
+        self::assertSame($newPuzzleId, $crawler->filter('input[name="new_puzzle_id"]')->attr('value'));
+        self::assertStringNotContainsString('d-none', (string) $crawler->filter('[data-time-form-autocomplete-target="newPuzzle"]')->attr('class'));
+
+        $submission['puzzlePiecesCount'] = '500';
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, ...$ids], ['puzzle_add_form' => ['puzzlePhoto' => $this->boxPhoto()]]);
+
+        $this->assertResponseRedirects('/en/time-added/' . $timeId);
+        self::assertSame(500, $database->fetchOne('SELECT pieces_count FROM puzzle WHERE id = :id', ['id' => $newPuzzleId]));
+        self::assertSame($newPuzzleId, $database->fetchOne('SELECT puzzle_id FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]));
+        self::assertSame(1, $database->fetchOne("SELECT COUNT(*) FROM puzzle WHERE name = 'Mistyped Pieces Puzzle'"));
+    }
+
+    public function testInvalidTimeIdIsReplacedWithAFreshOne(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $this->submissionOf($crawler), 'time_id' => 'not-a-uuid']);
+
+        $this->assertResponseRedirects();
+        $location = (string) $browser->getResponse()->headers->get('Location');
+        self::assertStringStartsWith('/en/time-added/', $location);
+        self::assertTrue(Uuid::isValid(substr($location, strlen('/en/time-added/'))));
+    }
+
+    public function testRefusedFormKeepsItsIds(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $timeId = $crawler->filter('input[name="time_id"]')->attr('value');
+        $newPuzzleId = $crawler->filter('input[name="new_puzzle_id"]')->attr('value');
+
+        $submission = $this->submissionOf($crawler);
+        unset($submission['puzzle']);
+
+        $crawler = $browser->request('POST', '/en/puzzle-add', [
+            'puzzle_add_form' => $submission,
+            'time_id' => $timeId,
+            'new_puzzle_id' => $newPuzzleId,
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertSame($timeId, $crawler->filter('input[name="time_id"]')->attr('value'));
+        self::assertSame($newPuzzleId, $crawler->filter('input[name="new_puzzle_id"]')->attr('value'));
+    }
+
+    public function testStopwatchIsFinishedWithItsResultAndAResentSaveLandsOnTheResult(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $database = self::getContainer()->get(Connection::class);
+        $url = '/en/save-stopwatch/' . StopwatchFixture::STOPWATCH_PAUSED;
+
+        $crawler = $browser->request('GET', $url);
+        $this->assertResponseIsSuccessful();
+        $timeId = $crawler->filter('input[name="time_id"]')->attr('value');
+        self::assertNotNull($timeId);
+
+        $submission = $this->submissionOf($crawler);
+
+        $browser->request('POST', $url, ['puzzle_add_form' => $submission, 'time_id' => $timeId]);
+        $this->assertResponseRedirects('/en/time-added/' . $timeId);
+
+        self::assertSame('finished', $database->fetchOne('SELECT status FROM stopwatch WHERE id = :id', ['id' => StopwatchFixture::STOPWATCH_PAUSED]));
+        self::assertSame('stopwatch', $database->fetchOne('SELECT created_via FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]));
+
+        // Sent again: the saved result, not "this stopwatch was already saved"
+        $browser->request('POST', $url, ['puzzle_add_form' => $submission, 'time_id' => $timeId]);
+        $this->assertResponseRedirects('/en/time-added/' . $timeId);
+
+        // Another form of the saved stopwatch (a second tab) is still turned away
+        $browser->request('POST', $url, ['puzzle_add_form' => $submission]);
+        $this->assertResponseRedirects('/en/my-profile');
+
+        // So is its own form with another time - a stopwatch saves one result
+        $submission['timeSeconds'] = (string) (((int) $submission['timeSeconds'] + 1) % 60);
+        $browser->request('POST', $url, ['puzzle_add_form' => $submission, 'time_id' => $timeId]);
+        $this->assertResponseRedirects('/en/my-profile');
+    }
+
+    private function boxPhoto(): UploadedFile
+    {
+        $path = tempnam(sys_get_temp_dir(), 'box_photo_') . '.jpg';
+        $image = imagecreatetruecolor(10, 10);
+        assert($image !== false);
+        imagejpeg($image, $path);
+
+        return new UploadedFile($path, 'box.jpg', 'image/jpeg', null, true);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function submissionOf(Crawler $form): array
+    {
+        $csrfToken = $form->filter('input[name="puzzle_add_form[_token]"]')->attr('value');
+        self::assertNotNull($csrfToken);
+
+        return [
+            '_token' => $csrfToken,
+            'mode' => 'speed_puzzling',
+            'brand' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            'puzzle' => PuzzleFixture::PUZZLE_500_01,
+            'timeHours' => '0',
+            'timeMinutes' => '41',
+            'timeSeconds' => '13',
+            'finishedAt' => '12.07.2026',
+            'collection' => '__system_collection__',
+        ];
     }
 
     /**

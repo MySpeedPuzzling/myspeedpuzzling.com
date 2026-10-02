@@ -69,6 +69,7 @@ final class EmailPreferencesController extends AbstractController
             'newsletterEnabled' => $profile->newsletterEnabled,
             'emailNotificationsEnabled' => $profile->emailNotificationsEnabled,
             'emailNotificationFrequency' => $profile->emailNotificationFrequency,
+            'resultEmailsEnabled' => $profile->resultEmailsEnabled,
             'frequencies' => EmailNotificationFrequency::cases(),
             'saved' => $request->query->getBoolean('saved'),
         ]);

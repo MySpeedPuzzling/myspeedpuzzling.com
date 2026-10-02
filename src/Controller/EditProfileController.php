@@ -170,6 +170,7 @@ final class EditProfileController extends AbstractController
                     $messagingSettingsFormData->emailNotificationsEnabled,
                     $messagingSettingsFormData->emailNotificationFrequency,
                     $messagingSettingsFormData->newsletterEnabled,
+                    $messagingSettingsFormData->resultEmailsEnabled,
                 )
             );
 

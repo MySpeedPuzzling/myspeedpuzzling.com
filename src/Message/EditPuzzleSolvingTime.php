@@ -28,14 +28,27 @@ readonly final class EditPuzzleSolvingTime
         public null|string $teamName = null,
         // Answer to a first try the group already has (docs/features/first-try-integrity.md)
         public FirstTryResolution $firstTryResolution = FirstTryResolution::None,
+        // The player was told the same time from the same day is saved already and said it is another solve
+        // (docs/features/duplicate-results.md, Layer 2) - recorded as `saved_anyway` with the edit
+        public bool $duplicateConfirmed = false,
+        // The puzzle the result belongs to - another one than now moves it there (tracker only,
+        // docs/features/duplicate-results.md, Layer 4). Null = the puzzle stays
+        public null|string $puzzleId = null,
     ) {
     }
 
     /**
      * @param array<string> $groupPlayers
      */
-    public static function fromFormData(string $userId, string $timeId, array $groupPlayers, EditPuzzleSolvingTimeFormData $formData, null|string $teamName = null, FirstTryResolution $firstTryResolution = FirstTryResolution::None): self
-    {
+    public static function fromFormData(
+        string $userId,
+        string $timeId,
+        array $groupPlayers,
+        EditPuzzleSolvingTimeFormData $formData,
+        null|string $teamName = null,
+        FirstTryResolution $firstTryResolution = FirstTryResolution::None,
+        bool $duplicateConfirmed = false,
+    ): self {
         return new self(
             currentUserId: $userId,
             puzzleSolvingTimeId: $timeId,
@@ -49,6 +62,8 @@ readonly final class EditPuzzleSolvingTime
             unboxed: $formData->unboxed,
             teamName: $teamName,
             firstTryResolution: $firstTryResolution,
+            duplicateConfirmed: $duplicateConfirmed,
+            puzzleId: $formData->puzzle,
         );
     }
 }

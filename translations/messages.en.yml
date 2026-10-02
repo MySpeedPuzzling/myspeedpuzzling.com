@@ -457,6 +457,7 @@ forms:
     empty_group_error: "You cannot create a group with yourself only, that's not group assembling :-)"
     empty_group_player: "One of the puzzlers is empty - fill in their name or code, or remove them."
     too_high_ppm: "Please check the time you entered, there is no way you can solve the puzzle that fast! :-) The time should be entered in HH:MM:SS format. The time you entered would be a new world record! :-)"
+    could_not_save: "Something went wrong while saving. Please check your results before you try again – the result may already be there."
     ppm_warning_title: "Please verify your time"
     ppm_warning_too_fast: "Your pace seems very fast! Please double-check your time is entered correctly."
     ppm_warning_too_slow: "Just a quick check - did you enter the time correctly? Sometimes hours and minutes can get mixed up."
@@ -1020,6 +1021,8 @@ edit_profile:
     frequency_1_week: "Once a week"
     newsletter_enabled: "Receive newsletters"
     newsletter_help: "We will occasionally send a newsletter about what's new on the platform, usually explaining new features. No marketing, no promotions — just what's new. Expected frequency: no more than 1 per month."
+    result_emails_enabled: "E-mails about my results"
+    result_emails_help: "We let you know when some of your results seem to be saved twice, or when we removed a copy saved by mistake. At most once a week, and only when there is something new."
     personal_access_tokens: "Personal Access Tokens"
     personal_access_tokens_description: "Tokens for accessing your own data through the API."
     pat_created_title: "Your Personal Access Token"
@@ -1167,6 +1170,7 @@ player_profile:
 flashes:
     photo_upload_deferred: "Your data is saved! The photo could not be uploaded right now — it will be uploaded automatically as soon as our storage is available again."
     stopwatch_already_saved: "These stopwatches have already been saved."
+    result_already_saved: "This result was already saved – here it is."
     puzzle_needs_approve: "Recently added puzzles will be publicly displayed after approval by an administrator - usually within 24 hours of adding."
     time_added: "We have saved your puzzling time."
     tracking_added: "We have saved your puzzle tracking."
@@ -3853,6 +3857,8 @@ email_preferences:
     newsletter_description: "What's new on MySpeedPuzzling — new features and platform news, once a month. No marketing, no promotions."
     notifications_title: "Notification e-mails"
     notifications_description: "A friendly heads-up when someone messages you or wants to connect — sent only when something is actually waiting for you."
+    result_emails_title: "Your results"
+    result_emails_description: "When some of your results seem to be saved twice, or we removed a copy saved by mistake — at most once a week, only when there is something new."
     frequency_label: "How often at most?"
     save_button: "Save my preferences"
     more_hint: "Looking for more? All account settings live in your profile."
@@ -4673,11 +4679,16 @@ puzzle_search:
         borrowed: "Borrowed"
         lent: "Lent"
         sell_swap: "Sell / swap"
+edit_time_puzzle:
+    change: "Change puzzle"
+    title: "Move this result to another puzzle"
+    picker_help: "Picked the wrong puzzle? Choose the right one - the time, date, photo and everything else move with the result. Only puzzles already in our database can be chosen here."
+    only_tracker: "Only the puzzler who saved this result can change its puzzle."
+    choose_from_list: "Choose a puzzle from the list."
 first_try:
     a_puzzler: "a puzzler"
     form_error: "Not saved yet: this puzzle already has a first try. All your fields and photos are still here – see the note below."
     banner: "You have %count% puzzle with more than one first try.|You have %count% puzzles with more than one first try."
-    banner_review: "Review"
     action:
         move: "Make this result my first try"
         untick: "Remove first try from this result"
@@ -4709,7 +4720,6 @@ first_try:
     page:
         title: "First-try conflicts"
         intro: "A puzzle can be your first try only once. Here are the puzzles where more than one of your results is marked as a first try – pick the one that really was."
-        empty: "Nothing to sort out – every puzzle has at most one first try."
         question: "%count% of your results are marked as your first try. Which one really was?"
         oldest_hint: "The oldest one – most likely the real first try."
         none: "None of these was my first try"
@@ -4730,7 +4740,78 @@ first_try:
         removed_one: "First try removed from that result."
         kept_late: "Done – it stays marked as a first try."
         changed: "This has changed in the meantime – here is how it looks now."
+duplicate_check:
+    form_error: "Not saved yet: exactly this time from the same day is already saved for this puzzle. All your fields and photos are still here – see the note below."
+    action:
+        confirm: "Yes, it's another solve"
+        undo: "Undo"
+        view: "View it"
+    same_day:
+        title: "This exact time is already saved"
+        body: "Saved twice by mistake? Then there is nothing more to do here. If you really solved it again in exactly the same time, confirm it and save."
+    confirmed:
+        title: "Got it – this is another solve"
+        body: "It will be saved next to the result above when you save the form."
+    tolerated:
+        body: "This time is saved more than once on this day. You can save your changes as they are:"
+    other_day:
+        title: "The same time from another day"
+    line:
+        own_today: "You saved exactly %time% on this puzzle today at %clock%"
+        own: "You already saved exactly %time% on this puzzle for %date%"
+        own_other_day: "You have %time% on this puzzle from %date%"
+        with_viewer_pair: "%name% already saved your pair result with exactly %time% (%date%) – it is on your profile"
+        with_viewer_team: "%name% already saved your team result with exactly %time% (%date%) – it is on your profile"
+        teammate: "%name% already has exactly %time% on this puzzle from %date%"
+        teammate_other_day: "%name% has %time% on this puzzle from %date%"
 photo_stash:
     kept: "Your photo is still here, no need to choose it again."
     remove: "Remove"
     lost: "Your photo could not be kept this time – please choose it again."
+review_results:
+    page:
+        title: "Review your results"
+        intro: "Results that may have been saved twice, copies we removed for you and first tries to sort out – everything worth a look, in one place."
+        empty: "Nothing to review – your results look fine."
+    duplicates:
+        title: "Saved twice?"
+        intro: "These results have exactly the same time on the same puzzle. If it is one solve saved twice, keep one copy – the other one is deleted and the solve counts only once in your statistics."
+        likely: "Most likely saved twice"
+        possible: "Possibly saved twice"
+        same_time: "the same time to the second: %time%"
+        saved_at: "Saved %date%"
+        older_hint: "Saved first – most likely the original."
+        keep: "Keep this one"
+        keep_hint: "The copy you keep takes over whatever only the other one has – photo, comment, first try, competition."
+        delete_mine: "Delete my copy"
+        only_tracker: "Only %name% can delete it."
+        both_real: "Both are real – two different solves"
+        all_real: "All are real – different solves"
+    removed:
+        title: "Removed automatically"
+        intro: "The same result arrived twice within a few seconds, identical in every detail, so we removed the second copy. If it really was another solve, bring it back."
+        row: "Copy saved %saved%, removed %removed%."
+        kept: "The result that stayed"
+        undo: "Undo"
+    banner:
+        duplicates: "%count% result may have been saved twice.|%count% results may have been saved twice."
+        auto_removed: "We removed %count% copy of a result that was saved twice.|We removed %count% copies of results that were saved twice."
+        review: "Review"
+    recap:
+        title: "Did you save this twice?"
+        intro: "You already have exactly the same time on this puzzle."
+    flash:
+        copy_deleted: "Done – the copy is deleted and the solve counts once.|Done – %count% copies are deleted and the solve counts once."
+        both_real: "{2} Saved – both results stay.|[3,Inf[ Saved – all %count% results stay."
+        undone: "The result is back."
+        undo_failed: "This result cannot be brought back any more."
+        changed: "This has changed in the meantime – here is how it looks now."
+        first_try_left_off: "The result you kept did not take over the first-try mark: somebody in it already has another first try on this puzzle."
+
+result_emails:
+    unsubscribe:
+        headline: "E-mails about your results"
+        text: "Don't want e-mails about results saved twice any more? Your other e-mails (the messages digest, the newsletter) stay as they are."
+        confirm_button: "Stop these e-mails"
+        done: "Done – you won't get e-mails about your results any more."
+        settings_hint: "You can switch them on again any time in your profile settings under \"Messaging & Notifications\"."

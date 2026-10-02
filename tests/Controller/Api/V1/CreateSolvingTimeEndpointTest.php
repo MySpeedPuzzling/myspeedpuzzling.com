@@ -218,6 +218,101 @@ final class CreateSolvingTimeEndpointTest extends WebTestCase
         $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
+    public function testRetryWithTheSameIdempotencyKeyAnswersTheSavedResult(): void
+    {
+        $browser = self::createClient();
+
+        $token = PatTestHelper::createToken($browser, PlayerFixture::PLAYER_REGULAR);
+        PatTestHelper::addBearerToken($browser, $token);
+
+        $send = function (string $idempotencyKey, string $comment) use ($browser): string {
+            $browser->request(
+                'POST',
+                '/api/v1/me/solving-times',
+                server: ['CONTENT_TYPE' => 'application/json', 'HTTP_IDEMPOTENCY_KEY' => $idempotencyKey],
+                content: (string) json_encode([
+                    'puzzle_id' => PuzzleFixture::PUZZLE_1500_02,
+                    'time' => '1:02:33',
+                    'comment' => $comment,
+                    'finished_at' => '2026-09-20T00:00:00+00:00',
+                ]),
+            );
+
+            $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+
+            return (string) $browser->getResponse()->getContent();
+        };
+
+        $first = $send('retry-key-1', 'Morning');
+        // The retry differs on purpose: it is still answered with what the first request saved
+        $retry = $send('retry-key-1', 'Changed in the retry');
+
+        self::assertSame($first, $retry);
+
+        $timeId = $this->extractTimeId($first);
+        /** @var array{created_via: string, comment: string} $row */
+        $row = $this->database()->fetchAssociative('SELECT created_via, comment FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]);
+        self::assertSame(['created_via' => 'api', 'comment' => 'Morning'], $row);
+
+        /** @var int|string $copies */
+        $copies = $this->database()->fetchOne(
+            'SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :playerId AND puzzle_id = :puzzleId AND seconds_to_solve = 3753',
+            ['playerId' => PlayerFixture::PLAYER_REGULAR, 'puzzleId' => PuzzleFixture::PUZZLE_1500_02],
+        );
+        self::assertSame(1, (int) $copies);
+        self::assertSame('resend_caught', $this->database()->fetchOne(
+            "SELECT kind FROM result_duplicate_prevention WHERE time_id = :id AND via = 'api'",
+            ['id' => $timeId],
+        ));
+
+        // Another key is another result
+        $other = $send('retry-key-2', 'Evening');
+        self::assertNotSame($timeId, $this->extractTimeId($other));
+    }
+
+    public function testAKeyReusedForAnotherResultIsRefused(): void
+    {
+        $browser = self::createClient();
+
+        $token = PatTestHelper::createToken($browser, PlayerFixture::PLAYER_REGULAR);
+        PatTestHelper::addBearerToken($browser, $token);
+
+        $send = function (string $time) use ($browser): void {
+            $browser->request(
+                'POST',
+                '/api/v1/me/solving-times',
+                server: ['CONTENT_TYPE' => 'application/json', 'HTTP_IDEMPOTENCY_KEY' => 'reused-key'],
+                content: (string) json_encode([
+                    'puzzle_id' => PuzzleFixture::PUZZLE_1500_02,
+                    'time' => $time,
+                    'finished_at' => '2026-09-20T00:00:00+00:00',
+                ]),
+            );
+        };
+
+        $send('1:02:33');
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+
+        // The app reused the key of the previous result for a new one
+        $send('1:05:00');
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+
+        /** @var array{type: string, title: string, detail: string, status: int} $problem */
+        $problem = json_decode((string) $browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('/errors/idempotency_key_reused', $problem['type']);
+        self::assertSame(422, $problem['status']);
+        self::assertStringContainsString('Idempotency-Key', $problem['detail']);
+
+        /** @var int|string $saved */
+        $saved = $this->database()->fetchOne(
+            'SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :playerId AND puzzle_id = :puzzleId AND seconds_to_solve = 3900',
+            ['playerId' => PlayerFixture::PLAYER_REGULAR, 'puzzleId' => PuzzleFixture::PUZZLE_1500_02],
+        );
+        self::assertSame(0, (int) $saved, 'Nothing is saved');
+    }
+
     private function database(): Connection
     {
         return self::getContainer()->get(Connection::class);

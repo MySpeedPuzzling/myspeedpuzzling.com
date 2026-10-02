@@ -47,12 +47,7 @@
     <h1 class="visually-hidden">{{ player_display_name }}</h1>
     <twig:PlayerHeader player="{{ player }}" />
 
-    {% if first_try_conflicts > 0 %}
-        <div class="alert alert-warning d-flex align-items-center justify-content-between gap-2 py-2 fs-sm mb-3" data-testid="first-try-conflicts-banner">
-            <span><i class="bi bi-exclamation-triangle me-1"></i>{{ 'first_try.banner'|trans({'%count%': first_try_conflicts}) }}</span>
-            <a href="{{ path('first_try_conflicts') }}" class="btn btn-sm btn-outline-dark flex-shrink-0">{{ 'first_try.banner_review'|trans }}</a>
-        </div>
-    {% endif %}
+    {{ include('review_results/_banner.html.twig', {review_counts: review_counts}) }}
 
     {% if getting_started is not null %}
         <div class="mb-3">

@@ -16,15 +16,33 @@ export default class extends Controller {
         this.originalLabelHtml = null;
 
         this.boundPrevent = this.preventDuplicateSubmission.bind(this);
-        this.boundReset = this.reset.bind(this);
+        this.boundSubmitEnd = this.submitEnded.bind(this);
 
         this.element.addEventListener('submit', this.boundPrevent);
-        this.element.addEventListener('turbo:submit-end', this.boundReset);
+        this.element.addEventListener('turbo:submit-end', this.boundSubmitEnd);
     }
 
     disconnect() {
         this.element.removeEventListener('submit', this.boundPrevent);
-        this.element.removeEventListener('turbo:submit-end', this.boundReset);
+        this.element.removeEventListener('turbo:submit-end', this.boundSubmitEnd);
+    }
+
+    // Turbo fires submit-end as soon as the answer's headers arrive. A successful full-page submit answers with a
+    // redirect and Turbo is about to render the next page - unlocking now would let a second tap send the form
+    // again while the first one is already saved (docs/features/duplicate-results.md). So the button stays locked
+    // until the new page replaces the form. Everything else unlocks: a refused form (422 - Turbo renders it, the
+    // new form element starts unlocked anyway), a dropped connection, and modal/frame submits answered with a
+    // stream or frame content, where the form stays on the page.
+    submitEnded(event) {
+        const { success, fetchResponse } = event.detail ?? {};
+
+        if (success && fetchResponse?.redirected) {
+            // Turbo has just re-enabled the button it was submitted with - disable it again
+            this.disableSubmitButton();
+            return;
+        }
+
+        this.reset();
     }
 
     preventDuplicateSubmission(event) {

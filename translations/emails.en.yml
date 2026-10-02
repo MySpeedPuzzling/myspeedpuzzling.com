@@ -250,3 +250,25 @@ oauth_identity_linked:
     not_you: |
         <p>Then someone else may be able to sign in to your account. Sign in, open your profile settings and disconnect %provider% under "Connected sign-in methods" - and <a href="%resetPasswordUrl%">change your password</a> to be safe.</p>
     button: "Review my sign-in methods"
+
+result_review:
+    subject_first: "Some of your results are saved twice"
+    subject_weekly: "Something new in your results"
+    subject_removed: "We tidied up your results"
+    title_first: "Some of your results seem to be saved twice"
+    title_weekly: "Something new in your results"
+    title_removed: "We tidied up your results"
+    greeting: "Hi %playerName%,"
+    intro_first: "We went through all results on MySpeedPuzzling and found some of yours that seem to be saved twice – your statistics count each of them twice."
+    intro_weekly: "Since our last e-mail we found something new in your results – a result saved twice counts twice in your statistics."
+    intro_removed: "Some of your results arrived twice within a few seconds, identical in every detail, so we removed the extra copy – your statistics now count each solve once. If it really was another solve, you can bring it back on the review page."
+    cases_heading: "Possibly saved twice:"
+    case_line: "%puzzleName% – %time%, %date%"
+    kind_saved_twice: "the same time saved twice"
+    kind_teammate_copy: "your teammate saved it too"
+    kind_solo_and_group: "saved as a solo and as a pair/team result"
+    more: "…and %count% more"
+    removals_heading: "We removed a copy saved by mistake – you can undo it:"
+    decide: "On the review page you keep one copy with a single tap, or tell us both are real."
+    button: "Review my results"
+    opt_out: "You get this e-mail because of your results on MySpeedPuzzling. <a href=\"%settingsUrl%\">E-mail settings</a> · <a href=\"%unsubscribeUrl%\">Stop e-mails about my results</a>"

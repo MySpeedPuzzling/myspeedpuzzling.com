@@ -249,3 +249,25 @@ oauth_identity_linked:
     not_you: |
         <p>Dans ce cas, quelqu'un d'autre pourrait se connecter à votre compte. Connectez-vous, ouvrez les paramètres de votre profil et dissociez %provider% dans « Connected sign-in methods », puis, par précaution, <a href="%resetPasswordUrl%">changez votre mot de passe</a>.</p>
     button: "Vérifier mes méthodes de connexion"
+
+result_review:
+    subject_first: "Certains de vos résultats sont enregistrés deux fois"
+    subject_weekly: "Du nouveau dans vos résultats"
+    subject_removed: "Nous avons fait le ménage dans vos résultats"
+    title_first: "Certains de vos résultats semblent enregistrés deux fois"
+    title_weekly: "Du nouveau dans vos résultats"
+    title_removed: "Nous avons fait le ménage dans vos résultats"
+    greeting: "Bonjour %playerName%,"
+    intro_first: "Nous avons passé en revue tous les résultats sur MySpeedPuzzling et trouvé certains des vôtres qui semblent enregistrés deux fois – vos statistiques comptent chacun d’eux deux fois."
+    intro_weekly: "Depuis notre dernier e-mail, nous avons trouvé du nouveau dans vos résultats – un résultat enregistré deux fois compte deux fois dans vos statistiques."
+    intro_removed: "Certains de vos résultats sont arrivés deux fois en quelques secondes, identiques en tout point : nous avons donc retiré la copie en trop – vos statistiques comptent désormais chaque assemblage une seule fois. S’il s’agissait vraiment d’un autre assemblage, vous pouvez le rétablir sur la page de vérification."
+    cases_heading: "Peut-être enregistré deux fois :"
+    case_line: "%puzzleName% – %time%, %date%"
+    kind_saved_twice: "le même temps enregistré deux fois"
+    kind_teammate_copy: "votre coéquipier l’a aussi enregistré"
+    kind_solo_and_group: "enregistré en solo et comme résultat de duo/d’équipe"
+    more: "…et %count% de plus"
+    removals_heading: "Nous avons retiré une copie enregistrée par erreur – vous pouvez l’annuler :"
+    decide: "Sur la page de vérification, vous gardez une copie d’un seul geste, ou vous nous dites que les deux sont réels."
+    button: "Vérifier mes résultats"
+    opt_out: "Vous recevez cet e-mail en raison de vos résultats sur MySpeedPuzzling. <a href=\"%settingsUrl%\">Paramètres e-mail</a> · <a href=\"%unsubscribeUrl%\">Ne plus recevoir d’e-mails sur mes résultats</a>"

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use SpeedPuzzling\Web\Query\GetFirstTryTimes;
 use SpeedPuzzling\Web\Query\GetAffiliateSupporters;
 use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetGettingStartedProgress;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Query\GetPlayerReviewCounts;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\HasExistingConversation;
@@ -32,7 +32,7 @@ final class PlayerProfileController extends AbstractController
         readonly private HasExistingConversation $hasExistingConversation,
         readonly private GetAffiliateSupporters $getAffiliateSupporters,
         readonly private GetGettingStartedProgress $getGettingStartedProgress,
-        readonly private GetFirstTryTimes $getFirstTryTimes,
+        readonly private GetPlayerReviewCounts $getPlayerReviewCounts,
     ) {
     }
 
@@ -67,10 +67,10 @@ final class PlayerProfileController extends AbstractController
         // A newcomer's own profile is mostly empty - the same "Getting started" card as on the Hub
         // gives it somewhere to go (docs/features/getting-started-guide.md)
         $gettingStarted = null;
-        $firstTryConflicts = 0;
+        $reviewCounts = null;
         if ($loggedProfile !== null && $loggedProfile->playerId === $player->playerId) {
-            // docs/features/first-try-integrity.md - only the owner pays for it
-            $firstTryConflicts = $this->getFirstTryTimes->conflictCountOf($player->playerId);
+            // "Review your results" banner (docs/features/duplicate-results.md) - only the owner pays for it
+            $reviewCounts = $this->getPlayerReviewCounts->forPlayer($player->playerId);
 
             $progress = $this->getGettingStartedProgress->forPlayer($loggedProfile);
 
@@ -81,7 +81,7 @@ final class PlayerProfileController extends AbstractController
 
         return $this->render('player_profile.html.twig', [
             'getting_started' => $gettingStarted,
-            'first_try_conflicts' => $firstTryConflicts,
+            'review_counts' => $reviewCounts,
             'player' => $player,
             'ranking' => $this->getRanking->allForPlayer($player->playerId),
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),

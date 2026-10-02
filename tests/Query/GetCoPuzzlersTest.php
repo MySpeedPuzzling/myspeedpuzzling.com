@@ -18,6 +18,10 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 final class GetCoPuzzlersTest extends KernelTestCase
 {
+    // Every result takes another second: identical results saved within seconds would be one result saved twice
+    // (docs/features/duplicate-results.md)
+    private int $savedResults = 0;
+
     private GetCoPuzzlers $query;
     private MessageBusInterface $messageBus;
     private DateTimeImmutable $now;
@@ -149,7 +153,7 @@ final class GetCoPuzzlersTest extends KernelTestCase
             userId: $userId,
             puzzleId: PuzzleFixture::PUZZLE_1500_01,
             competitionId: null,
-            time: '03:00:00',
+            time: sprintf('03:00:%02d', $this->savedResults++),
             comment: null,
             finishedPuzzlesPhoto: null,
             groupPlayers: $groupPlayers,

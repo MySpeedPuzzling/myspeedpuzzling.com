@@ -50,6 +50,12 @@ final class MessagingSettingsFormType extends AbstractType
             'help' => 'edit_profile.newsletter_help',
             'required' => false,
         ]);
+
+        $builder->add('resultEmailsEnabled', CheckboxType::class, [
+            'label' => 'edit_profile.result_emails_enabled',
+            'help' => 'edit_profile.result_emails_help',
+            'required' => false,
+        ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

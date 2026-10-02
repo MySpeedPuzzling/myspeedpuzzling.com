@@ -395,6 +395,7 @@
   "empty_group_error": "Sie können keine Gruppe nur mit sich selbst erstellen, das ist kein Gruppenpuzzeln :-)"
   "empty_group_player": "Einer der Puzzler ist leer - geben Sie seinen Namen oder Code ein oder entfernen Sie ihn."
   "too_high_ppm": "Bitte überprüfen Sie die eingegebene Zeit, es ist unmöglich, das Puzzle so schnell zu lösen! :-) Die Zeit sollte im Format HH:MM:SS eingegeben werden. Die von Ihnen eingegebene Zeit wäre ein neuer Weltrekord! :-)"
+  "could_not_save": "Beim Speichern ist etwas schiefgelaufen. Bitte prüfen Sie Ihre Ergebnisse, bevor Sie es erneut versuchen – das Ergebnis ist möglicherweise schon gespeichert."
   "ppm_warning_title": "Bitte überprüfen Sie Ihre Zeit"
   "ppm_warning_too_fast": "Ihre Zeit scheint sehr schnell zu sein! Bitte überprüfen Sie, ob Sie die Zeit richtig eingegeben haben."
   "ppm_warning_too_slow": "Kurze Kontrolle - haben Sie die Zeit richtig eingegeben? Manchmal werden Stunden und Minuten vertauscht."
@@ -806,6 +807,8 @@
   "frequency_1_week": "Einmal pro Woche"
   "newsletter_enabled": "Newsletter erhalten"
   "newsletter_help": "Wir senden gelegentlich einen Newsletter über Neuigkeiten auf der Plattform, meist über neue Funktionen. Kein Marketing, keine Werbung — nur Neuigkeiten. Erwartete Häufigkeit: maximal 1x pro Monat."
+  "result_emails_enabled": "E-Mails zu meinen Ergebnissen"
+  "result_emails_help": "Wir sagen Ihnen Bescheid, wenn einige Ihrer Ergebnisse anscheinend doppelt gespeichert wurden oder wenn wir eine versehentlich gespeicherte Kopie entfernt haben. Höchstens einmal pro Woche und nur, wenn es etwas Neues gibt."
   "messaging_notifications": "Nachrichten & Benachrichtigungen"
   "personal_access_tokens": "Persönliche Zugriffstoken"
   "personal_access_tokens_description": "Token für den Zugriff auf Ihre eigenen Daten über die API."
@@ -949,6 +952,7 @@
 "flashes":
   "photo_upload_deferred": "Ihre Daten sind gespeichert! Das Foto konnte gerade nicht hochgeladen werden – es wird automatisch hochgeladen, sobald unser Speicher wieder verfügbar ist."
   "stopwatch_already_saved": "Diese Stoppuhren wurden bereits gespeichert."
+  "result_already_saved": "Dieses Ergebnis wurde bereits gespeichert – hier ist es."
   "collection_not_found": "Die gesuchte Sammlung existiert bei uns nicht!"
   "puzzle_removed_from_collection": "Puzzle wurde aus der Sammlung entfernt."
   "puzzle_needs_approve": "Neu hinzugefügte Puzzles werden nach der Genehmigung durch einen Administrator öffentlich angezeigt - normalerweise innerhalb von 24 Stunden nach dem Hinzufügen."
@@ -3551,6 +3555,8 @@ email_preferences:
     newsletter_description: "Was gibt es Neues auf MySpeedPuzzling – neue Funktionen und Neuigkeiten zur Plattform, einmal im Monat. Kein Marketing, keine Werbung."
     notifications_title: "Benachrichtigungs-E-Mails"
     notifications_description: "Eine kurze Nachricht, wenn Ihnen jemand schreibt oder sich mit Ihnen verbinden möchte – nur dann, wenn wirklich etwas auf Sie wartet."
+    result_emails_title: "Ihre Ergebnisse"
+    result_emails_description: "Wenn einige Ihrer Ergebnisse anscheinend doppelt gespeichert wurden oder wir eine versehentlich gespeicherte Kopie entfernt haben – höchstens einmal pro Woche und nur, wenn es etwas Neues gibt."
     frequency_label: "Wie oft höchstens?"
     save_button: "Einstellungen speichern"
     more_hint: "Sie suchen mehr? Alle Kontoeinstellungen finden Sie in Ihrem Profil."
@@ -4370,11 +4376,16 @@ puzzle_search:
         borrowed: "Ausgeliehen"
         lent: "Verliehen"
         sell_swap: "Verkauf / Tausch"
+edit_time_puzzle:
+    change: "Puzzle ändern"
+    title: "Dieses Ergebnis zu einem anderen Puzzle verschieben"
+    picker_help: "Versehentlich das falsche Puzzle gewählt? Wählen Sie das richtige – Zeit, Datum, Foto und alles andere wandern mit dem Ergebnis mit. Hier können nur Puzzles gewählt werden, die bereits in unserer Datenbank sind."
+    only_tracker: "Nur wer dieses Ergebnis gespeichert hat, kann sein Puzzle ändern."
+    choose_from_list: "Wählen Sie ein Puzzle aus der Liste."
 first_try:
     a_puzzler: "ein Puzzler"
     form_error: "Noch nicht gespeichert: Für dieses Puzzle gibt es bereits einen ersten Versuch. Alle Ihre Angaben und Fotos sind noch da – siehe Hinweis unten."
     banner: "Sie haben %count% Puzzle mit mehr als einem ersten Versuch.|Sie haben %count% Puzzles mit mehr als einem ersten Versuch."
-    banner_review: "Prüfen"
     action:
         move: "Dieses Ergebnis zu meinem ersten Versuch machen"
         untick: "Ersten Versuch von diesem Ergebnis entfernen"
@@ -4406,7 +4417,6 @@ first_try:
     page:
         title: "Konflikte bei ersten Versuchen"
         intro: "Ein Puzzle kann nur einmal Ihr erster Versuch sein. Hier sind die Puzzles, bei denen mehrere Ihrer Ergebnisse als erster Versuch markiert sind – wählen Sie das, das es wirklich war."
-        empty: "Nichts zu klären – jedes Puzzle hat höchstens einen ersten Versuch."
         question: "%count% Ihrer Ergebnisse sind als Ihr erster Versuch markiert. Welches war es wirklich?"
         oldest_hint: "Das älteste – höchstwahrscheinlich der echte erste Versuch."
         none: "Keines davon war mein erster Versuch"
@@ -4427,7 +4437,78 @@ first_try:
         removed_one: "Erster Versuch von diesem Ergebnis entfernt."
         kept_late: "Erledigt – es bleibt als erster Versuch markiert."
         changed: "Das hat sich inzwischen geändert – so sieht es jetzt aus."
+duplicate_check:
+    form_error: "Noch nicht gespeichert: Genau diese Zeit vom selben Tag ist für dieses Puzzle bereits gespeichert. Alle Ihre Angaben und Fotos sind noch da – siehe Hinweis unten."
+    action:
+        confirm: "Ja, es ist ein weiterer Versuch"
+        undo: "Rückgängig"
+        view: "Ansehen"
+    same_day:
+        title: "Genau diese Zeit ist bereits gespeichert"
+        body: "Versehentlich doppelt gespeichert? Dann ist hier nichts weiter zu tun. Wenn Sie das Puzzle wirklich noch einmal in genau derselben Zeit gelöst haben, bestätigen Sie es und speichern Sie."
+    confirmed:
+        title: "Verstanden – das ist ein weiterer Versuch"
+        body: "Beim Speichern des Formulars wird es neben dem obigen Ergebnis gespeichert."
+    tolerated:
+        body: "Diese Zeit ist an diesem Tag mehrfach gespeichert. Sie können Ihre Änderungen trotzdem speichern:"
+    other_day:
+        title: "Dieselbe Zeit von einem anderen Tag"
+    line:
+        own_today: "Sie haben heute um %clock% genau %time% für dieses Puzzle gespeichert"
+        own: "Sie haben für dieses Puzzle bereits genau %time% am %date% gespeichert"
+        own_other_day: "Sie haben %time% für dieses Puzzle vom %date%"
+        with_viewer_pair: "%name% hat Ihr Paar-Ergebnis mit genau %time% (%date%) bereits gespeichert – es ist in Ihrem Profil"
+        with_viewer_team: "%name% hat Ihr Team-Ergebnis mit genau %time% (%date%) bereits gespeichert – es ist in Ihrem Profil"
+        teammate: "%name% hat für dieses Puzzle bereits genau %time% vom %date%"
+        teammate_other_day: "%name% hat %time% für dieses Puzzle vom %date%"
 photo_stash:
     kept: "Ihr Foto ist noch da, Sie müssen es nicht erneut auswählen."
     remove: "Entfernen"
     lost: "Ihr Foto konnte diesmal nicht behalten werden – bitte wählen Sie es erneut aus."
+review_results:
+    page:
+        title: "Ihre Ergebnisse prüfen"
+        intro: "Ergebnisse, die vielleicht doppelt gespeichert wurden, Kopien, die wir für Sie entfernt haben, und erste Versuche zum Klären – alles, was einen Blick wert ist, an einem Ort."
+        empty: "Nichts zu prüfen – Ihre Ergebnisse sehen gut aus."
+    duplicates:
+        title: "Doppelt gespeichert?"
+        intro: "Diese Ergebnisse haben beim selben Puzzle genau dieselbe Zeit. Wenn dasselbe Ergebnis doppelt gespeichert wurde, behalten Sie eine Kopie – die andere wird gelöscht und das Ergebnis zählt in Ihren Statistiken nur einmal."
+        likely: "Höchstwahrscheinlich doppelt gespeichert"
+        possible: "Möglicherweise doppelt gespeichert"
+        same_time: "dieselbe Zeit auf die Sekunde: %time%"
+        saved_at: "Gespeichert am %date%"
+        older_hint: "Zuerst gespeichert – höchstwahrscheinlich das Original."
+        keep: "Dieses behalten"
+        keep_hint: "Die Kopie, die Sie behalten, übernimmt alles, was nur die andere hat – Foto, Kommentar, ersten Versuch, Wettbewerb."
+        delete_mine: "Meine Kopie löschen"
+        only_tracker: "Nur %name% kann sie löschen."
+        both_real: "Beide sind echt – zwei verschiedene Versuche"
+        all_real: "Alle sind echt – verschiedene Versuche"
+    removed:
+        title: "Automatisch entfernt"
+        intro: "Dasselbe Ergebnis kam innerhalb weniger Sekunden zweimal an, in jedem Detail identisch, daher haben wir die zweite Kopie entfernt. Wenn es wirklich ein weiterer Versuch war, holen Sie es zurück."
+        row: "Kopie gespeichert am %saved%, entfernt am %removed%."
+        kept: "Das Ergebnis, das geblieben ist"
+        undo: "Rückgängig"
+    banner:
+        duplicates: "%count% Ergebnis wurde vielleicht doppelt gespeichert.|%count% Ergebnisse wurden vielleicht doppelt gespeichert."
+        auto_removed: "Wir haben %count% Kopie eines doppelt gespeicherten Ergebnisses entfernt.|Wir haben %count% Kopien doppelt gespeicherter Ergebnisse entfernt."
+        review: "Prüfen"
+    recap:
+        title: "Haben Sie das doppelt gespeichert?"
+        intro: "Sie haben bei diesem Puzzle bereits genau dieselbe Zeit."
+    flash:
+        copy_deleted: "Erledigt – die Kopie ist gelöscht und das Ergebnis zählt nur einmal.|Erledigt – %count% Kopien sind gelöscht und das Ergebnis zählt nur einmal."
+        both_real: "{2} Gespeichert – beide Ergebnisse bleiben.|[3,Inf[ Gespeichert – alle %count% Ergebnisse bleiben."
+        undone: "Das Ergebnis ist wieder da."
+        undo_failed: "Dieses Ergebnis kann nicht mehr zurückgeholt werden."
+        changed: "Das hat sich inzwischen geändert – so sieht es jetzt aus."
+        first_try_left_off: "Das behaltene Ergebnis hat die Markierung „erster Versuch“ nicht übernommen: Jemand darin hat bei diesem Puzzle bereits einen anderen ersten Versuch."
+
+result_emails:
+    unsubscribe:
+        headline: "E-Mails zu Ihren Ergebnissen"
+        text: "Sie möchten keine E-Mails mehr zu doppelt gespeicherten Ergebnissen erhalten? Ihre anderen E-Mails (die Nachrichten-Zusammenfassung, der Newsletter) bleiben, wie sie sind."
+        confirm_button: "Diese E-Mails abbestellen"
+        done: "Erledigt – Sie erhalten keine E-Mails zu Ihren Ergebnissen mehr."
+        settings_hint: "Sie können sie jederzeit in Ihren Profileinstellungen unter „Nachrichten & Benachrichtigungen“ wieder einschalten."

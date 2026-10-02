@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Events\PuzzleSolved;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
+use SpeedPuzzling\Web\Events\PuzzleSolvingTimeMovedToOtherPuzzle;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImprovementRatioCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
@@ -33,11 +34,12 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
     ) {
     }
 
-    public function __invoke(PuzzleSolved|PuzzleSolvingTimeModified|PuzzleSolvingTimeDeleted $event): void
+    public function __invoke(PuzzleSolved|PuzzleSolvingTimeModified|PuzzleSolvingTimeDeleted|PuzzleSolvingTimeMovedToOtherPuzzle $event): void
     {
         $puzzleId = $event->puzzleId->toString();
 
-        if ($event instanceof PuzzleSolvingTimeDeleted) {
+        // A result moved to another puzzle is gone from the one it left, like a deleted one
+        if ($event instanceof PuzzleSolvingTimeDeleted || $event instanceof PuzzleSolvingTimeMovedToOtherPuzzle) {
             $playerId = $event->playerId->toString();
             $piecesCount = $event->piecesCount;
         } else {

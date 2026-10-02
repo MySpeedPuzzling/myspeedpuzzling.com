@@ -409,6 +409,7 @@
   "empty_group_error": "No puedes crear un grupo solo contigo, eso no es armado en grupo :-)"
   "empty_group_player": "Uno de los puzzleros está vacío - completa su nombre o código, o elimínalo."
   "too_high_ppm": "Por favor verifica el tiempo que ingresaste, ¡no hay manera de que puedas resolver el rompecabezas tan rápido! :-) El tiempo debe ingresarse en formato HH:MM:SS. ¡El tiempo que ingresaste sería un nuevo récord mundial! :-)"
+  "could_not_save": "Algo salió mal al guardar. Revisa tus resultados antes de volver a intentarlo: es posible que el resultado ya esté guardado."
   "ppm_warning_title": "Por favor verifica tu tiempo"
   "ppm_warning_too_fast": "¡Tu ritmo parece muy rápido! Por favor verifica que hayas ingresado el tiempo correctamente."
   "ppm_warning_too_slow": "Solo una verificación rápida - ¿ingresaste el tiempo correctamente? A veces las horas y los minutos se pueden confundir."
@@ -552,6 +553,8 @@
   "frequency_1_week": "Una vez a la semana"
   "newsletter_enabled": "Recibir boletines"
   "newsletter_help": "Ocasionalmente enviaremos un boletín sobre novedades en la plataforma, generalmente explicando nuevas funciones. Sin marketing ni promociones: solo novedades. Frecuencia esperada: no más de 1 al mes."
+  "result_emails_enabled": "Correos sobre mis resultados"
+  "result_emails_help": "Te avisamos cuando algunos de tus resultados parecen estar guardados dos veces o cuando eliminamos una copia guardada por error. Como mucho una vez por semana y solo si hay algo nuevo."
   "features_options": "Opciones de funciones"
   "hide_ranking": "Ocultar mi clasificación y habilidad"
   "hide_ranking_help": "Tu nivel de habilidad y clasificación Rating se ocultarán. No aparecerás en la escalera MSP Rating. Tus datos seguirán usándose en los cálculos de dificultad de puzzles y clasificaciones de otros jugadores."
@@ -951,6 +954,7 @@
 "flashes":
   "photo_upload_deferred": "¡Tus datos están guardados! La foto no se pudo subir en este momento — se subirá automáticamente en cuanto nuestro almacenamiento vuelva a estar disponible."
   "stopwatch_already_saved": "Estos cronómetros ya han sido guardados."
+  "result_already_saved": "Este resultado ya estaba guardado; aquí lo tienes."
   "collection_not_found": "¡La colección que buscabas no existe en nuestra plataforma!"
   "puzzle_removed_from_collection": "El puzzle ha sido eliminado de la colección."
   "puzzle_added_to_collection": "El puzzle ha sido añadido a la colección."
@@ -3551,6 +3555,8 @@ email_preferences:
     newsletter_description: "Lo nuevo en MySpeedPuzzling: nuevas funciones y novedades de la plataforma, una vez al mes. Sin marketing, sin promociones."
     notifications_title: "E-mails de notificación"
     notifications_description: "Un aviso cuando alguien te escribe o quiere conectar contigo — solo cuando de verdad hay algo esperándote."
+    result_emails_title: "Tus resultados"
+    result_emails_description: "Cuando algunos de tus resultados parecen estar guardados dos veces o eliminamos una copia guardada por error — como mucho una vez por semana y solo si hay algo nuevo."
     frequency_label: "¿Con qué frecuencia como máximo?"
     save_button: "Guardar mis preferencias"
     more_hint: "¿Buscas más? Todos los ajustes de tu cuenta están en tu perfil."
@@ -4370,11 +4376,16 @@ puzzle_search:
         borrowed: "Tomados prestados"
         lent: "Prestados"
         sell_swap: "Venta / intercambio"
+edit_time_puzzle:
+    change: "Cambiar rompecabezas"
+    title: "Mover este resultado a otro rompecabezas"
+    picker_help: "¿Elegiste el rompecabezas equivocado? Elige el correcto: el tiempo, la fecha, la foto y todo lo demás se mueven con el resultado. Aquí solo se pueden elegir rompecabezas que ya están en nuestra base de datos."
+    only_tracker: "Solo quien guardó este resultado puede cambiar su rompecabezas."
+    choose_from_list: "Elige un rompecabezas de la lista."
 first_try:
     a_puzzler: "otra persona"
     form_error: "Aún no se ha guardado: este rompecabezas ya tiene un primer intento. Todos tus datos y fotos siguen aquí – mira la nota de abajo."
     banner: "Tienes %count% rompecabezas con más de un primer intento.|Tienes %count% rompecabezas con más de un primer intento."
-    banner_review: "Revisar"
     action:
         move: "Hacer de este resultado mi primer intento"
         untick: "Quitar el primer intento de este resultado"
@@ -4406,7 +4417,6 @@ first_try:
     page:
         title: "Conflictos de primeros intentos"
         intro: "Un rompecabezas solo puede ser tu primer intento una vez. Aquí están los rompecabezas en los que más de uno de tus resultados está marcado como primer intento – elige el que realmente lo fue."
-        empty: "Nada que resolver – cada rompecabezas tiene como mucho un primer intento."
         question: "%count% de tus resultados están marcados como tu primer intento. ¿Cuál lo fue realmente?"
         oldest_hint: "El más antiguo – probablemente el verdadero primer intento."
         none: "Ninguno de estos fue mi primer intento"
@@ -4427,7 +4437,78 @@ first_try:
         removed_one: "Se quitó el primer intento de ese resultado."
         kept_late: "Hecho – sigue marcado como primer intento."
         changed: "Esto ha cambiado mientras tanto – así se ve ahora."
+duplicate_check:
+    form_error: "Aún no se ha guardado: exactamente este tiempo del mismo día ya está guardado para este rompecabezas. Todos tus datos y fotos siguen aquí – mira la nota de abajo."
+    action:
+        confirm: "Sí, es otro armado"
+        undo: "Deshacer"
+        view: "Verlo"
+    same_day:
+        title: "Este tiempo exacto ya está guardado"
+        body: "¿Lo guardaste dos veces por error? Entonces no hace falta hacer nada más aquí. Si de verdad lo volviste a armar en exactamente el mismo tiempo, confírmalo y guarda."
+    confirmed:
+        title: "Entendido – es otro armado"
+        body: "Se guardará junto al resultado de arriba cuando guardes el formulario."
+    tolerated:
+        body: "Este tiempo está guardado más de una vez en este día. Puedes guardar tus cambios igualmente:"
+    other_day:
+        title: "El mismo tiempo de otro día"
+    line:
+        own_today: "Guardaste exactamente %time% en este rompecabezas hoy a las %clock%"
+        own: "Ya guardaste exactamente %time% en este rompecabezas para el %date%"
+        own_other_day: "Tienes %time% en este rompecabezas del %date%"
+        with_viewer_pair: "%name% ya guardó vuestro resultado en pareja con exactamente %time% (%date%) – está en tu perfil"
+        with_viewer_team: "%name% ya guardó vuestro resultado en equipo con exactamente %time% (%date%) – está en tu perfil"
+        teammate: "%name% ya tiene exactamente %time% en este rompecabezas del %date%"
+        teammate_other_day: "%name% tiene %time% en este rompecabezas del %date%"
 photo_stash:
     kept: "Tu foto sigue aquí, no hace falta elegirla de nuevo."
     remove: "Quitar"
     lost: "Esta vez no se pudo conservar tu foto – elígela de nuevo, por favor."
+review_results:
+    page:
+        title: "Revisa tus resultados"
+        intro: "Resultados que quizá se guardaron dos veces, copias que eliminamos por ti y primeros intentos por aclarar – todo lo que merece un vistazo, en un solo lugar."
+        empty: "Nada que revisar – tus resultados se ven bien."
+    duplicates:
+        title: "¿Guardado dos veces?"
+        intro: "Estos resultados tienen exactamente el mismo tiempo en el mismo rompecabezas. Si es un solo armado guardado dos veces, quédate con una copia – la otra se elimina y el armado cuenta solo una vez en tus estadísticas."
+        likely: "Muy probablemente guardado dos veces"
+        possible: "Quizá guardado dos veces"
+        same_time: "el mismo tiempo al segundo: %time%"
+        saved_at: "Guardado el %date%"
+        older_hint: "Guardado primero – muy probablemente el original."
+        keep: "Quedarme con este"
+        keep_hint: "La copia que conservas recibe lo que solo tiene la otra – foto, comentario, primer intento, competición."
+        delete_mine: "Eliminar mi copia"
+        only_tracker: "Solo %name% puede eliminarla."
+        both_real: "Los dos son reales – dos armados distintos"
+        all_real: "Todos son reales – armados distintos"
+    removed:
+        title: "Eliminados automáticamente"
+        intro: "El mismo resultado llegó dos veces en pocos segundos, idéntico en todo, así que eliminamos la segunda copia. Si de verdad fue otro armado, recupéralo."
+        row: "Copia guardada el %saved%, eliminada el %removed%."
+        kept: "El resultado que se quedó"
+        undo: "Deshacer"
+    banner:
+        duplicates: "%count% resultado quizá se guardó dos veces.|%count% resultados quizá se guardaron dos veces."
+        auto_removed: "Eliminamos %count% copia de un resultado guardado dos veces.|Eliminamos %count% copias de resultados guardados dos veces."
+        review: "Revisar"
+    recap:
+        title: "¿Lo guardaste dos veces?"
+        intro: "Ya tienes exactamente el mismo tiempo en este rompecabezas."
+    flash:
+        copy_deleted: "Listo – la copia se eliminó y el armado cuenta una vez.|Listo – se eliminaron %count% copias y el armado cuenta una vez."
+        both_real: "{2} Guardado – los dos resultados se quedan.|[3,Inf[ Guardado – los %count% resultados se quedan."
+        undone: "El resultado ha vuelto."
+        undo_failed: "Este resultado ya no se puede recuperar."
+        changed: "Esto cambió mientras tanto – así se ve ahora."
+        first_try_left_off: "El resultado que conservaste no recibió la marca de primer intento: alguien de ese resultado ya tiene otro primer intento en este rompecabezas."
+
+result_emails:
+    unsubscribe:
+        headline: "Correos sobre tus resultados"
+        text: "¿Ya no quieres recibir correos sobre resultados guardados dos veces? Tus demás correos (el resumen de mensajes, el boletín) siguen igual."
+        confirm_button: "Dejar de recibir estos correos"
+        done: "Listo: ya no te enviaremos correos sobre tus resultados."
+        settings_hint: "Puedes volver a activarlos cuando quieras en los ajustes de tu perfil, en «Mensajes y notificaciones»."

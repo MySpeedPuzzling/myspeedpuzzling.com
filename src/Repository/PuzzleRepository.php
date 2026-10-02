@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Repository;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
@@ -29,6 +30,11 @@ readonly final class PuzzleRepository
         $puzzle = $this->entityManager->find(Puzzle::class, $puzzleId);
 
         return $puzzle ?? throw new PuzzleNotFound();
+    }
+
+    public function findById(UuidInterface $puzzleId): null|Puzzle
+    {
+        return $this->entityManager->find(Puzzle::class, $puzzleId);
     }
 
     /**

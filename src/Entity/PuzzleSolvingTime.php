@@ -14,6 +14,7 @@ use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
+use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Attribute\HasDeleteDomainEvent;
 use SpeedPuzzling\Web\Doctrine\PuzzlersGroupDoctrineType;
@@ -21,9 +22,12 @@ use SpeedPuzzling\Web\Events\GroupSolvingTimeEdited;
 use SpeedPuzzling\Web\Events\PuzzleSolved;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
+use SpeedPuzzling\Web\Events\PuzzleSolvingTimeMovedToOtherPuzzle;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\PuzzlingType;
+use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use SpeedPuzzling\Web\Value\TimePredictionMethod;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
 
@@ -135,6 +139,10 @@ class PuzzleSolvingTime implements EntityWithEvents
         #[ManyToOne]
         #[JoinColumn(onDelete: 'RESTRICT')]
         public null|PuzzlingTeam $puzzlingTeam = null,
+        // Where it was saved from (docs/features/duplicate-results.md) - null for results older than the column
+        #[Immutable]
+        #[Column(type: Types::STRING, nullable: true, enumType: SolvingTimeSource::class)]
+        public null|SolvingTimeSource $createdVia = null,
     ) {
         $this->puzzlersCount = $this->calculatePuzzlersCount();
         $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
@@ -142,6 +150,109 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(
             new PuzzleSolved($this->id, $this->puzzle->id),
         );
+    }
+
+    /**
+     * Brings back a result removed automatically as a copy, with its own id and everything it had
+     * (docs/features/duplicate-results.md, "Undo"). Statistics and insights follow PuzzleSolvingTimeModified -
+     * not PuzzleSolved: nobody is notified again and no wishlist changes for a result that existed before.
+     */
+    public static function restore(
+        RemovedResultSnapshot $snapshot,
+        Player $player,
+        Puzzle $puzzle,
+        null|Competition $competition,
+        null|PuzzlingTeam $puzzlingTeam,
+    ): self {
+        $group = $snapshot->group();
+
+        $time = new self(
+            id: Uuid::fromString($snapshot->id),
+            secondsToSolve: $snapshot->secondsToSolve,
+            player: $player,
+            puzzle: $puzzle,
+            trackedAt: $snapshot->trackedAt,
+            verified: $snapshot->verified,
+            team: $group,
+            finishedAt: $snapshot->finishedAt,
+            comment: $snapshot->comment,
+            finishedPuzzlePhoto: $snapshot->finishedPuzzlePhoto,
+            firstAttempt: $snapshot->firstAttempt,
+            unboxed: $snapshot->unboxed,
+            competition: $competition,
+            piecesPlaced: $snapshot->piecesPlaced,
+            qualified: $snapshot->qualified,
+            suspicious: $snapshot->suspicious,
+            finishedLaterSeconds: $snapshot->finishedLaterSeconds,
+            puzzlingTeam: $group === null ? null : $puzzlingTeam,
+            createdVia: $snapshot->createdVia,
+        );
+
+        $time->predictable = $snapshot->predictable;
+        $time->predictionMethod = $snapshot->predictionMethod;
+        $time->predictedSeconds = $snapshot->predictedSeconds;
+        $time->predictedRangeLowSeconds = $snapshot->predictedRangeLowSeconds;
+        $time->predictedRangeHighSeconds = $snapshot->predictedRangeHighSeconds;
+        $time->predictedAttemptNumber = $snapshot->predictedAttemptNumber;
+        $time->predictionLastTimeSeconds = $snapshot->predictionLastTimeSeconds;
+        $time->predictionSource = $snapshot->predictionSource;
+        $time->predictionComputedAt = $snapshot->predictionComputedAt;
+        $time->predictionModelVersion = $snapshot->predictionModelVersion;
+
+        $time->popEvents();
+        $time->recordThat(new PuzzleSolvingTimeModified($time->id, $puzzle->id));
+
+        return $time;
+    }
+
+    /**
+     * The player keeps this copy and deletes its twins: whatever only a twin had - photo, comment, first-try
+     * tag, competition - is not lost with it (docs/features/duplicate-results.md, "Keep this one"); with several
+     * twins the first one in the list that has it wins. The first-try tag only when the caller checked that it
+     * may move here. The round follows from the competition; the caller resolves it once this is done.
+     *
+     * @param list<self> $copies
+     * @return bool whether anything was taken over
+     */
+    public function takeOverFrom(array $copies, Player $by, bool $withFirstTry): bool
+    {
+        $changed = false;
+
+        foreach ($copies as $copy) {
+            if ($this->finishedPuzzlePhoto === null && $copy->finishedPuzzlePhoto !== null) {
+                $this->finishedPuzzlePhoto = $copy->finishedPuzzlePhoto;
+                $changed = true;
+            }
+
+            if (trim($this->comment ?? '') === '' && trim($copy->comment ?? '') !== '') {
+                $this->comment = $copy->comment;
+                $changed = true;
+            }
+
+            if ($withFirstTry && $this->firstAttempt === false && $copy->firstAttempt === true) {
+                $this->firstAttempt = true;
+                $changed = true;
+            }
+
+            if ($this->competition === null && $copy->competition !== null) {
+                $this->competition = $copy->competition;
+                $changed = true;
+            }
+        }
+
+        if ($changed === false) {
+            return false;
+        }
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+
+        if ($this->team !== null) {
+            $this->recordGroupEdit($by, $this->memberPlayerIds());
+        }
+
+        return true;
     }
 
     /**
@@ -165,6 +276,24 @@ class PuzzleSolvingTime implements EntityWithEvents
         }
 
         return false;
+    }
+
+    /**
+     * Whether a new entry carrying this result's id is this result sent again (docs/features/duplicate-results.md,
+     * Layer 1): the same puzzle, time and day. Anything else - the player went back and corrected the time - is a
+     * different result that merely reuses the id. Without a date on either side the day is the day it was saved.
+     */
+    public function isSameEntryAs(string $puzzleId, null|int $secondsToSolve, null|DateTimeImmutable $finishedAt, DateTimeImmutable $now): bool
+    {
+        if ($this->puzzle->id->toString() !== strtolower($puzzleId) || $this->secondsToSolve !== $secondsToSolve) {
+            return false;
+        }
+
+        if ($this->finishedAt === null && $finishedAt === null) {
+            return true;
+        }
+
+        return ($this->finishedAt ?? $this->trackedAt)->format('Y-m-d') === ($finishedAt ?? $now)->format('Y-m-d');
     }
 
     /**
@@ -299,6 +428,25 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
         );
+    }
+
+    /**
+     * The tracker picked the wrong puzzle and fixes it in the edit form (docs/features/duplicate-results.md,
+     * Layer 4). The puzzle left behind is told like a deletion; the edit's modify() tells the new one. The stored
+     * prediction was a prediction for another puzzle, so it goes - the round is re-derived by the caller.
+     */
+    public function moveToPuzzle(Puzzle $newPuzzle): void
+    {
+        if ($this->puzzle->id->equals($newPuzzle->id)) {
+            return;
+        }
+
+        $this->recordThat(
+            new PuzzleSolvingTimeMovedToOtherPuzzle($this->id, $this->puzzle->id, $this->player->id, $this->puzzle->piecesCount),
+        );
+
+        $this->puzzle = $newPuzzle;
+        $this->forgetPrediction();
     }
 
     public function migrateToPuzzle(Puzzle $newPuzzle): void

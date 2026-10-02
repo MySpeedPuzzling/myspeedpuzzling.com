@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Message;
 use DateTimeImmutable;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class AddPuzzleSolvingTime
@@ -29,6 +30,12 @@ readonly final class AddPuzzleSolvingTime
         public null|string $teamName = null,
         // Answer to a first try the group already has (docs/features/first-try-integrity.md)
         public FirstTryResolution $firstTryResolution = FirstTryResolution::None,
+        public null|SolvingTimeSource $createdVia = null,
+        // Saving the stopwatch's result finishes it, in the same transaction
+        public null|string $stopwatchId = null,
+        // The player was told the same time from the same day is saved already and said it is another solve
+        // (docs/features/duplicate-results.md, Layer 2) - recorded as `saved_anyway` with the result
+        public bool $duplicateConfirmed = false,
     ) {
     }
 }

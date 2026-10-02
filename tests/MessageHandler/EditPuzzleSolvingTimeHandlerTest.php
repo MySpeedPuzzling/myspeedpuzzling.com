@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -53,6 +54,28 @@ final class EditPuzzleSolvingTimeHandlerTest extends KernelTestCase
         self::assertSame('Edited comment', $row['comment']);
         self::assertFalse((bool) $row['first_attempt']);
         self::assertTrue((bool) $row['unboxed']);
+    }
+
+    public function testAnEditConfirmedAsAnotherSolveIsRecordedWithIt(): void
+    {
+        $this->messageBus->dispatch(new EditPuzzleSolvingTime(
+            currentUserId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            puzzleSolvingTimeId: PuzzleSolvingTimeFixture::TIME_01,
+            competitionId: null,
+            time: '00:35:00',
+            comment: null,
+            groupPlayers: [],
+            finishedAt: null,
+            finishedPuzzlesPhoto: null,
+            firstAttempt: false,
+            unboxed: false,
+            duplicateConfirmed: true,
+        ));
+
+        self::assertSame(
+            [['player_id' => PlayerFixture::PLAYER_REGULAR, 'kind' => 'saved_anyway', 'time_id' => PuzzleSolvingTimeFixture::TIME_01, 'puzzle_id' => PuzzleFixture::PUZZLE_500_01, 'via' => 'form']],
+            $this->database->fetchAllAssociative('SELECT player_id, kind, time_id, puzzle_id, via FROM result_duplicate_prevention'),
+        );
     }
 
     public function testRelaxModeClearsTheTime(): void

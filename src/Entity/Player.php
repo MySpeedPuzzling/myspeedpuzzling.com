@@ -151,6 +151,12 @@ class Player
     #[Column(type: Types::BOOLEAN, options: ['default' => true])]
     public bool $newsletterEnabled = true;
 
+    // The "Your results" e-mail about results saved twice (docs/features/duplicate-results.md) - neither the
+    // newsletter nor the chat digest, so only this switch decides it
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => true])]
+    public bool $resultEmailsEnabled = true;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::BOOLEAN, options: ['default' => false])]
     public bool $streakOptedOut = false;
@@ -391,6 +397,11 @@ class Player
     public function changeNewsletterEnabled(bool $enabled): void
     {
         $this->newsletterEnabled = $enabled;
+    }
+
+    public function changeResultEmailsEnabled(bool $enabled): void
+    {
+        $this->resultEmailsEnabled = $enabled;
     }
 
     public function changeStreakOptedOut(bool $optedOut): void

@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Message\ResolveFirstTryConflict;
 use SpeedPuzzling\Web\Query\GetFirstTryTimes;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
+use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewReactions;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -22,6 +23,7 @@ readonly final class ResolveFirstTryConflictHandler
         private GetFirstTryTimes $getFirstTryTimes,
         private PlayerRepository $playerRepository,
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
+        private ResultReviewReactions $resultReviewReactions,
     ) {
     }
 
@@ -49,5 +51,7 @@ readonly final class ResolveFirstTryConflictHandler
 
             $this->puzzleSolvingTimeRepository->get($timeId)->unmarkFirstAttempt($player);
         }
+
+        $this->resultReviewReactions->recordFor($player->id->toString());
     }
 }

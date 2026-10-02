@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Symfony\Component\Security\Core\User\UserInterface;
+use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
+use SpeedPuzzling\Web\Query\GetPlayerDuplicateCases;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerRatingRanking;
 use SpeedPuzzling\Web\Query\GetPlayerSkill;
@@ -12,6 +14,8 @@ use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetSolvingTimePrediction;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetRanking;
+use SpeedPuzzling\Web\Repository\ResultAutoRemovalRepository;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspRatingCalculator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -32,6 +36,9 @@ final class AddedTimeRecapController extends AbstractController
         readonly private GetPlayerRatingRanking $getPlayerRatingRanking,
         readonly private MspRatingCalculator $mspRatingCalculator,
         readonly private GetSolvingTimePrediction $getSolvingTimePrediction,
+        readonly private GetPlayerDuplicateCases $getPlayerDuplicateCases,
+        readonly private ResultAutoRemovalRepository $autoRemovalRepository,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -51,7 +58,20 @@ final class AddedTimeRecapController extends AbstractController
         #[CurrentUser] UserInterface $user,
         string $timeId,
     ): Response {
-        $solvingPuzzle = $this->getPlayerSolvedPuzzles->byTimeId($timeId);
+        try {
+            $solvingPuzzle = $this->getPlayerSolvedPuzzles->byTimeId($timeId);
+        } catch (PuzzleSolvingTimeNotFound $exception) {
+            // A copy removed automatically lives on as the copy that was kept (docs/features/duplicate-results.md)
+            $keptTimeId = $this->autoRemovalRepository->findKeptTimeIdOf($timeId);
+
+            if ($keptTimeId === null) {
+                throw $exception;
+            }
+
+            // Temporary: Undo brings the removed id back, so no cache may remember the redirect for good
+            return $this->redirectToRoute('added_time_recap', ['timeId' => $keptTimeId], Response::HTTP_FOUND);
+        }
+
         $player = $this->getPlayerProfile->byId($solvingPuzzle->playerId);
 
         $isSolo = $solvingPuzzle->players === null;
@@ -93,7 +113,13 @@ final class AddedTimeRecapController extends AbstractController
             }
         }
 
+        // Saved twice? The detection right after the save already stored it (docs/features/duplicate-results.md)
+        $viewer = $this->retrieveLoggedUserProfile->getProfile();
+        $duplicates = $viewer !== null ? $this->getPlayerDuplicateCases->openOfTime($viewer->playerId, $timeId) : [];
+
         return $this->render('added_time_recap.html.twig', [
+            'duplicates' => $duplicates,
+            'viewer_player_id' => $viewer?->playerId,
             'solved_puzzle' => $solvingPuzzle,
             'puzzle_difficulty' => $puzzleDifficulty,
             'time_prediction' => $timePrediction,

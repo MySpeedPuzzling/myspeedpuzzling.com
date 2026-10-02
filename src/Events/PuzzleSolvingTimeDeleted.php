@@ -13,6 +13,7 @@ readonly final class PuzzleSolvingTimeDeleted implements DeleteDomainEvent
         public UuidInterface $puzzleId,
         public UuidInterface $playerId,
         public int $piecesCount,
+        public UuidInterface $puzzleSolvingTimeId,
     ) {
     }
 
@@ -22,6 +23,6 @@ readonly final class PuzzleSolvingTimeDeleted implements DeleteDomainEvent
             throw new \InvalidArgumentException('Expected PuzzleSolvingTime entity');
         }
 
-        return new self($entity->puzzle->id, $entity->player->id, $entity->puzzle->piecesCount);
+        return new self($entity->puzzle->id, $entity->player->id, $entity->puzzle->piecesCount, $entity->id);
     }
 }

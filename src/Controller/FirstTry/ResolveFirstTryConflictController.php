@@ -46,7 +46,7 @@ final class ResolveFirstTryConflictController extends AbstractController
 
         // Nothing chosen: the radios are required, so only a hand-made request gets here
         if ($keep !== 'none' && Uuid::isValid($keep) === false) {
-            return $this->redirectToRoute('first_try_conflicts');
+            return $this->redirectToRoute('review_results');
         }
 
         try {
@@ -55,7 +55,7 @@ final class ResolveFirstTryConflictController extends AbstractController
             if ($exception->getPrevious() instanceof FirstTryConflictChanged) {
                 $this->addFlash('warning', $this->translator->trans('first_try.flash.changed'));
 
-                return $this->redirectToRoute('first_try_conflicts');
+                return $this->redirectToRoute('review_results');
             }
 
             throw $exception;
@@ -63,6 +63,6 @@ final class ResolveFirstTryConflictController extends AbstractController
 
         $this->addFlash('success', $this->translator->trans($keep === 'none' ? 'first_try.flash.removed_all' : 'first_try.flash.kept'));
 
-        return $this->redirectToRoute('first_try_conflicts');
+        return $this->redirectToRoute('review_results');
     }
 }

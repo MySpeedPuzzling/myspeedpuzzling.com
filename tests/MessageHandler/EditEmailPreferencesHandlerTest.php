@@ -32,6 +32,7 @@ final class EditEmailPreferencesHandlerTest extends KernelTestCase
                 newsletterEnabled: false,
                 emailNotificationsEnabled: false,
                 emailNotificationFrequency: EmailNotificationFrequency::TwentyFourHours,
+                resultEmailsEnabled: true,
             ),
         );
 
@@ -49,6 +50,7 @@ final class EditEmailPreferencesHandlerTest extends KernelTestCase
                 newsletterEnabled: true,
                 emailNotificationsEnabled: true,
                 emailNotificationFrequency: EmailNotificationFrequency::OneWeek,
+                resultEmailsEnabled: true,
             ),
         );
 
@@ -69,6 +71,7 @@ final class EditEmailPreferencesHandlerTest extends KernelTestCase
                 newsletterEnabled: false,
                 emailNotificationsEnabled: false,
                 emailNotificationFrequency: EmailNotificationFrequency::SixHours,
+                resultEmailsEnabled: true,
             ),
         );
 

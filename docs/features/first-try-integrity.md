@@ -24,7 +24,8 @@ mix) and 1,268 first tries logged a day after an earlier solve of the same playe
   sometimes wrong, so the player can always save as it is.
 - **Tolerated legacy on edit**: an edit that neither ticks the tag newly nor adds a registered person is never
   blocked, even with duplicates - otherwise the 3,170 old pairs would stop people fixing a typo. The notice points to
-  the conflicts page instead (and offers the move when the player may make it).
+  the conflicts page instead (and offers the move when the player may make it). Moving the result to another puzzle
+  in the edit form is not such an edit: there it is a new result (`docs/features/duplicate-results.md`, Layer 4).
 
 ## Where it is enforced
 
@@ -46,7 +47,9 @@ Surfaces:
 - **Live check**: `first_try_check_controller.js` asks `GET /{_locale}/first-try-check` (`FirstTryCheckController`)
   whenever the puzzle, date, co-puzzlers or the tag change, debounced and aborted on newer input. The endpoint
   renders the same partial the 422 renders (`templates/first_try/_notice.html.twig`), so both always say the same.
-  The controller never submits, re-renders or navigates the form.
+  The controller never submits, re-renders or navigates the form. Since duplicate-results Layer 2 it also sends the
+  time and asks without the tag; the same-time block renders before the first-try one
+  (`docs/features/duplicate-results.md`).
 - **Handlers** (`AddPuzzleSolvingTimeHandler`, `EditPuzzleSolvingTimeHandler`): the authoritative guard, before any
   write (photo upload included), throwing `FirstTryAlreadyTaken`. Catches races and the API. With
   `firstTryResolution: MoveHere` they untick the old results after persisting the new one.
@@ -87,7 +90,9 @@ Without a signed-in viewer (kernel tests, cron) nobody is hidden and everybody c
 
 ## Conflicts page + banner
 
-- `/{_locale}/first-try-conflicts` (`FirstTryConflictsController`, English only, `noindex`):
+- Since duplicate results P4 the conflicts live on **"Review your results"** (`/{_locale}/review-results`,
+  `docs/features/duplicate-results.md`) below the results saved twice; `/{_locale}/first-try-conflicts` answers 301
+  there and its POST routes kept their paths (they redirect back to the review page). The sections:
   - **Conflicts**: every puzzle where the player holds 2+ first tries; each result with its "1st try" badge (so it is
     clear what was marked), the **oldest marked one preselected**, plus "None of these was my first try". An unmarked
     solve from a day before all of them is pointed out. One POST per puzzle → `ResolveFirstTryConflict` (re-reads the
@@ -97,8 +102,9 @@ Without a signed-in viewer (kernel tests, cron) nobody is hidden and everybody c
     an earlier solve of **their own** - a teammate's history is theirs to review. "Remove first try"
     (`UnmarkFirstAttempt`) or "It's fine, hide this" (`DismissFirstTryReview` → `first_try_review_dismissal`, the only
     stored state of the feature). Puzzles with a conflict are left out until the conflict is resolved.
-- **Banner** on the player's **own profile page only** when they have conflicts. Other viewers pay no query for it
-  (guarded by `FirstTryPagesTest`).
+- **Banner**: part of the "Review your results" banner on the **Hub and the player's own profile**
+  (`GetPlayerReviewCounts`, one query with the duplicate counts). Other viewers pay no query for it (guarded by
+  `FirstTryPagesTest` and `ReviewResultsControllerTest`).
 
 Unticking goes through `PuzzleSolvingTime::unmarkFirstAttempt()`: `PuzzleSolvingTimeModified` (puzzle statistics +
 incremental insights; MSP rating and derived metrics follow on the 15-minute cron) and, for a pair/team result,

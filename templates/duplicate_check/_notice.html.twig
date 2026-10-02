@@ -1,0 +1,90 @@
+{#
+    The "same time already saved" part of the add/edit time form notice (docs/features/duplicate-results.md, Layer 2),
+    rendered before the first-try part by first_try/_notice.html.twig - for a refused submit and the live check alike.
+    duplicates: null|DuplicateAssessment, confirmed: whether "It's another solve" was chosen
+#}
+{%- macro line(line, same_day) -%}
+    {%- set time = line.time.secondsToSolve|puzzlingTime -%}
+    {%- set date = line.time.solvedAt|date('d.m.Y') -%}
+    {%- set name = line.person is not null and line.person.label is not null ? line.person.label : 'first_try.a_puzzler'|trans|capitalize -%}
+    {%- if line.kind == 'own' -%}
+        {%- if not same_day -%}
+            {{ 'duplicate_check.line.own_other_day'|trans({'%time%': time, '%date%': date}) }}
+        {%- elseif line.savedToday -%}
+            {{ 'duplicate_check.line.own_today'|trans({'%time%': time, '%clock%': line.time.trackedAt|date('H:i')}) }}
+        {%- else -%}
+            {{ 'duplicate_check.line.own'|trans({'%time%': time, '%date%': date}) }}
+        {%- endif -%}
+        {%- if line.with is not empty -%}
+            {%- set names = line.with|map(with => with ?: 'first_try.a_puzzler'|trans)|join(', ') -%}
+            {{ ' – ' }}{{ (line.with|length == 1 ? 'first_try.page.pair_with' : 'first_try.page.team_with')|trans({'%names%': names}) }}
+        {%- endif -%}
+    {%- elseif line.kind == 'with_viewer' -%}
+        {%- if not same_day -%}
+            {{ 'duplicate_check.line.own_other_day'|trans({'%time%': time, '%date%': date}) }}
+        {%- else -%}
+            {{ (line.time.isPair ? 'duplicate_check.line.with_viewer_pair' : 'duplicate_check.line.with_viewer_team')|trans({'%name%': name, '%time%': time, '%date%': date}) }}
+        {%- endif -%}
+    {%- else -%}
+        {{ (same_day ? 'duplicate_check.line.teammate' : 'duplicate_check.line.teammate_other_day')|trans({'%name%': name, '%time%': time, '%date%': date}) }}
+    {%- endif -%}
+    {%- if line.viewable -%}
+        {{ ' · ' }}<a href="{{ path('puzzle_result_detail', {timeId: line.time.timeId}) }}" target="_blank" rel="noopener" data-turbo="false">{{ 'duplicate_check.action.view'|trans }}</a>
+    {%- endif -%}
+{%- endmacro -%}
+
+{% if duplicates is not null and not duplicates.isEmpty %}
+    <div class="duplicate-notice mt-2 mb-3">
+        {% if duplicates.needsConfirmation and confirmed %}
+            {# The player said it is another solve - saved next to the other one #}
+            <div class="alert alert-success small mb-2" role="status">
+                <p class="fw-semibold mb-1"><i class="bi bi-check2-circle me-1"></i>{{ 'duplicate_check.confirmed.title'|trans }}</p>
+                <ul class="mb-2 ps-3">
+                    {% for line in duplicates.sameDayLines %}
+                        <li>{{ _self.line(line, true) }}</li>
+                    {% endfor %}
+                </ul>
+                <p class="mb-2">{{ 'duplicate_check.confirmed.body'|trans }}</p>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="first-try-check#undoDuplicate">
+                    {{ 'duplicate_check.action.undo'|trans }}
+                </button>
+            </div>
+        {% elseif duplicates.needsConfirmation %}
+            {# The same time from the same day: most likely saved twice - saving needs a confirmation #}
+            <div class="alert alert-warning small mb-2" role="alert">
+                <p class="fw-semibold mb-1"><i class="bi bi-files me-1"></i>{{ 'duplicate_check.same_day.title'|trans }}</p>
+                <ul class="mb-2 ps-3">
+                    {% for line in duplicates.sameDayLines %}
+                        <li>{{ _self.line(line, true) }}</li>
+                    {% endfor %}
+                </ul>
+                <p class="mb-2">{{ 'duplicate_check.same_day.body'|trans }}</p>
+                <button type="button" class="btn btn-sm btn-primary" data-action="first-try-check#confirmDuplicate">
+                    {{ 'duplicate_check.action.confirm'|trans }}
+                </button>
+            </div>
+        {% elseif duplicates.sameDayLines is not empty %}
+            {# An edit that changes neither the time, the day nor the people: it did not create the twin #}
+            <div class="alert alert-info small mb-2" role="status">
+                <p class="mb-1">{{ 'duplicate_check.tolerated.body'|trans }}</p>
+                <ul class="mb-0 ps-3">
+                    {% for line in duplicates.sameDayLines %}
+                        <li>{{ _self.line(line, true) }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {% if duplicates.otherDayLines is not empty %}
+            {# The same time from another day - mostly a genuine repeat, only a heads-up #}
+            <div class="alert alert-secondary small mb-2" role="status">
+                <p class="fw-semibold mb-1"><i class="bi bi-info-circle me-1"></i>{{ 'duplicate_check.other_day.title'|trans }}</p>
+                <ul class="mb-0 ps-3">
+                    {% for line in duplicates.otherDayLines %}
+                        <li>{{ _self.line(line, false) }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    </div>
+{% endif %}

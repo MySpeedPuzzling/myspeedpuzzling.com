@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Ramsey\Uuid\Uuid;
 use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\FormType\EditPuzzleSolvingTimeFormType;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\RecordDuplicatePrevention;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
@@ -21,9 +24,13 @@ use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\EditTimeReturnContext;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
+use SpeedPuzzling\Web\Value\ResultEntryCheck;
+use SpeedPuzzling\Web\Value\SolvingTime;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -119,15 +126,34 @@ final class EditTimeController extends AbstractController
             }
         }
 
+        // Only whoever tracked the result may move it to another puzzle (docs/features/duplicate-results.md, Layer 4)
+        $canChangePuzzle = $solvedPuzzle->playerId === $player->playerId;
+        $storedPuzzle = $this->getPuzzleOverview->byId($solvedPuzzle->puzzleId);
+
         $editTimeForm = $this->createForm(EditPuzzleSolvingTimeFormType::class, $data, [
             // Server-derived from the access-checked row, never from the request: the picker must
             // keep offering the linked competition even when it is not publicly selectable
             'current_competition_id' => $solvedPuzzle->competitionId,
+            // The brand of the result's own puzzle is always offered
+            'active_puzzle' => $storedPuzzle,
+            'can_change_puzzle' => $canChangePuzzle,
         ]);
         // A photo kept from a refused submit goes back into its empty file input first (FormPhotoStash)
         $restoredPhotos = $this->formPhotoStash->restore($request, $editTimeForm, $player->playerId);
         $editTimeForm->handleRequest($request);
         $this->formPhotoStash->reportLost($editTimeForm, $restoredPhotos);
+
+        // The puzzle the result is saved on: another one picked by the tracker, once it is known to exist
+        $activePuzzle = $storedPuzzle;
+        $pickedPuzzleId = $editTimeForm->get('puzzle')->getData();
+
+        if ($editTimeForm->isSubmitted() && is_string($pickedPuzzleId) && Uuid::isValid($pickedPuzzleId) && strtolower($pickedPuzzleId) !== $solvedPuzzle->puzzleId) {
+            try {
+                $activePuzzle = $this->getPuzzleOverview->byId($pickedPuzzleId);
+            } catch (PuzzleNotFound) {
+                $editTimeForm->get('puzzle')->addError(new FormError($this->translator->trans('edit_time_puzzle.choose_from_list')));
+            }
+        }
 
         // The co-puzzler inputs live outside the Symfony form, so an empty one has to invalidate the form
         // explicitly - that is what makes render() answer 422 instead of a 200 Turbo Drive discards
@@ -135,18 +161,42 @@ final class EditTimeController extends AbstractController
             $editTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_player')));
         }
 
-        // docs/features/first-try-integrity.md
+        // docs/features/first-try-integrity.md + docs/features/duplicate-results.md (Layer 2)
         $firstTryResolution = FirstTryResolution::tryFrom($request->request->getString('first_try_resolution')) ?? FirstTryResolution::None;
-        $firstTry = null;
+        $duplicateConfirmed = $request->request->getString('duplicate_confirmed') === '1';
+        $check = ResultEntryCheck::nothing();
 
-        // Also when the form opens: an old duplicate gets its pointer to the conflicts page right away
-        if ($data->firstAttempt) {
-            $firstTry = $this->firstTryFormCheck->forEditedResult($player->playerId, $solvedPuzzle, $groupPlayers, $data->finishedAt);
+        // Also when the form opens with the tag: an old duplicate gets its pointer to the conflicts page right away
+        if ($editTimeForm->isSubmitted() || $data->firstAttempt) {
+            $check = $this->firstTryFormCheck->forEditedResult(
+                $player->playerId,
+                $solvedPuzzle,
+                $groupPlayers,
+                $data->finishedAt,
+                $data->firstAttempt,
+                // Relax has no time to compare
+                $data->mode === PuzzleAddMode::SpeedPuzzling
+                    ? SolvingTime::fromHoursMinutesSeconds($data->timeHours, $data->timeMinutes, $data->timeSeconds)->seconds
+                    : null,
+                $activePuzzle->puzzleId,
+            );
 
-            if ($editTimeForm->isSubmitted() && $firstTry->blocks($firstTryResolution)) {
+            if ($editTimeForm->isSubmitted() && $check->duplicateBlocks($duplicateConfirmed)) {
+                $editTimeForm->addError(new FormError($this->translator->trans('duplicate_check.form_error')));
+
+                $this->messageBus->dispatch(new RecordDuplicatePrevention(
+                    playerId: $player->playerId,
+                    kind: DuplicatePreventionKind::WarningShown,
+                    timeId: $solvedPuzzle->timeId,
+                    puzzleId: $activePuzzle->puzzleId,
+                    via: SolvingTimeSource::Form,
+                ));
+            } elseif ($editTimeForm->isSubmitted() && $check->firstTryBlocks($firstTryResolution, $duplicateConfirmed)) {
                 $editTimeForm->addError(new FormError($this->translator->trans('first_try.form_error')));
             }
         }
+
+        $firstTry = $check->firstTry;
 
         if ($editTimeForm->isSubmitted() && $editTimeForm->isValid()) {
             if ($data->mode === PuzzleAddMode::Relax && $request->request->has('no_remember_date')) {
@@ -155,7 +205,16 @@ final class EditTimeController extends AbstractController
 
             try {
                 $this->messageBus->dispatch(
-                    EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data, $request->request->getString('team_name'), $firstTryResolution),
+                    EditPuzzleSolvingTime::fromFormData(
+                        $user->getUserIdentifier(),
+                        $timeId,
+                        $groupPlayers,
+                        $data,
+                        $request->request->getString('team_name'),
+                        $firstTryResolution,
+                        // Only an answer to a same-day twin the check found counts as "saved anyway"
+                        $duplicateConfirmed && $check->duplicates?->needsConfirmation() === true,
+                    ),
                 );
 
                 $this->formPhotoStash->forget($restoredPhotos, $player->playerId);
@@ -193,7 +252,8 @@ final class EditTimeController extends AbstractController
         }
 
         $templateParams = [
-            'active_puzzle' => $this->getPuzzleOverview->byId($solvedPuzzle->puzzleId),
+            'active_puzzle' => $activePuzzle,
+            'can_change_puzzle' => $canChangePuzzle,
             'solved_puzzle' => $solvedPuzzle,
             'solving_time_form' => $editTimeForm,
             'filled_group_players' => $groupPlayers,
@@ -217,6 +277,8 @@ final class EditTimeController extends AbstractController
             'return_title' => $this->resolveReturnTitle($context, $solvedPuzzle),
             'first_try' => $firstTry,
             'first_try_resolution' => $firstTryResolution->value,
+            'duplicates' => $check->duplicates,
+            'duplicate_confirmed' => $duplicateConfirmed,
             'kept_photos' => $this->formPhotoStash->keep($editTimeForm, $restoredPhotos, $player->playerId),
         ];
 

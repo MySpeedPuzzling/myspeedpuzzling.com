@@ -186,8 +186,9 @@
 
     {% endif %}
 
-    <div class="d-flex align-content-between justify-content-between mt-3" data-nosnippet>
-        <div class="fs-sm">
+    {# Stats never shrink under the controls: when both do not fit on one line, the toggle and Filters wrap below #}
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mt-3" data-nosnippet>
+        <div class="fs-sm flex-shrink-0">
             {% if this.times|length > 1 %}
                 {% if this.medianTime %}
                     <span class="d-inline-flex align-items-center gap-1">
@@ -215,9 +216,10 @@
             {% endif %}
         </div>
 
+        <div class="d-flex align-items-center gap-3 ms-auto">
         {# Free for every signed-in player, unlike the members' filters next to it (pairs & teams, D7) #}
         {% if logged_user.profile is not null and this.category != 'solo' and (this.times|length > 1 or this.onlyMyTeams) %}
-            <div class="form-check form-switch mb-0 me-3">
+            <div class="form-check form-switch mb-0">
                 <input
                     data-model="onlyMyTeams"
                     type="checkbox"
@@ -314,6 +316,7 @@
                 {% endif %}
             </div>
         {% endif %}
+        </div>
     </div>
 
     <div>

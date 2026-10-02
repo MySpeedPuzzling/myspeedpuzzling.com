@@ -159,6 +159,7 @@ SELECT
     (membership.id IS NOT NULL) AS has_membership_row,
     membership.trial_ends_at AS free_trial_ends_at,
     (SELECT json_object_agg(impression.modal, impression.displayed_at) FROM player_modal_impression impression WHERE impression.player_id = player.id) AS modal_impressions,
+    player.leaderboard_chart_view,
     (membership.ends_at IS NULL AND membership.billing_period_ends_at IS NOT NULL) AS has_active_stripe_subscription,
     GREATEST(
         COALESCE(membership.ends_at, membership.billing_period_ends_at, '1970-01-01'::timestamp),

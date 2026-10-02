@@ -325,6 +325,10 @@
       "group": "%count% Team|%count% Teams"
     "first_attempts_count": "%count% erster Versuch|%count% erste Versuche"
     "repeats_count": "%count% Wiederholung|%count% Wiederholungen"
+    "view":
+      "label": "Diagrammansicht"
+      "distribution": "Verteilung"
+      "ranking": "Rangliste"
 "stopwatch":
   "meta":
     "title": "Stoppuhr"

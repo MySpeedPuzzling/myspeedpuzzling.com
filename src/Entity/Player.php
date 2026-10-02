@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Doctrine\SellSwapListSettingsDoctrineType;
 use SpeedPuzzling\Web\Value\CollectionDisplayMode;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
+use SpeedPuzzling\Web\Value\LeaderboardChartView;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
 use DateTimeImmutable;
 
@@ -172,6 +173,10 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::STRING, enumType: CollectionDisplayMode::class, options: ['default' => 'off'])]
     public CollectionDisplayMode $collectionDisplayMode = CollectionDisplayMode::Off;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, enumType: LeaderboardChartView::class, options: ['default' => 'distribution'])]
+    public LeaderboardChartView $leaderboardChartView = LeaderboardChartView::Distribution;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
@@ -422,6 +427,11 @@ class Player
     public function changeCollectionDisplayMode(CollectionDisplayMode $mode): void
     {
         $this->collectionDisplayMode = $mode;
+    }
+
+    public function changeLeaderboardChartView(LeaderboardChartView $view): void
+    {
+        $this->leaderboardChartView = $view;
     }
 
     public function joinReferralProgram(DateTimeImmutable $now): void

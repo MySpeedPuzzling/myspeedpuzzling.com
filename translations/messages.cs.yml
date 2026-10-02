@@ -326,6 +326,10 @@
       "group": "%count% tým|%count% týmy|%count% týmů"
     "first_attempts_count": "%count% první pokus|%count% první pokusy|%count% prvních pokusů"
     "repeats_count": "%count% opakování"
+    "view":
+      "label": "Zobrazení grafu"
+      "distribution": "Rozložení časů"
+      "ranking": "Pořadí"
 "stopwatch":
   "meta":
     "title": "Stopky"

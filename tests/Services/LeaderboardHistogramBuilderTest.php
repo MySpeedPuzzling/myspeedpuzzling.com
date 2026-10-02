@@ -47,8 +47,8 @@ final class LeaderboardHistogramBuilderTest extends TestCase
 
     public function testNarrowestNiceWidthThatFitsAndBarsStartOnItsMultiples(): void
     {
-        // 101 solvers spread evenly from 25 to 50 minutes: 60 s bars are the narrowest within 30 bars
-        $times = range(1500, 3000, 15);
+        // 301 solvers spread evenly from 25 to 50 minutes: 60 s bars are the narrowest within 30 bars
+        $times = range(1500, 3000, 5);
 
         $histogram = new LeaderboardHistogramBuilder()->build($times);
 
@@ -61,7 +61,7 @@ final class LeaderboardHistogramBuilderTest extends TestCase
             self::assertSame(0, ($bin->from ?? 0) % 60);
         }
 
-        self::assertSame(101, self::countedRows($histogram));
+        self::assertSame(301, self::countedRows($histogram));
         // Median 2250 s is 750 s = 12.5 bars after the first bar starts
         self::assertSame(2250, $histogram->medianTime);
         self::assertSame(12.5, $histogram->medianPosition);
@@ -151,6 +151,29 @@ final class LeaderboardHistogramBuilderTest extends TestCase
         self::assertNull($histogram->viewerPosition);
     }
 
+    public function testBarLimitGrowsWithTheLeaderboard(): void
+    {
+        self::assertSame(5, LeaderboardHistogramBuilder::maxBins(0));
+        self::assertSame(5, LeaderboardHistogramBuilder::maxBins(2));
+        self::assertSame(6, LeaderboardHistogramBuilder::maxBins(5));
+        self::assertSame(8, LeaderboardHistogramBuilder::maxBins(10));
+        self::assertSame(16, LeaderboardHistogramBuilder::maxBins(50));
+        self::assertSame(20, LeaderboardHistogramBuilder::maxBins(100));
+        self::assertSame(30, LeaderboardHistogramBuilder::maxBins(225));
+        self::assertSame(30, LeaderboardHistogramBuilder::maxBins(1800));
+    }
+
+    public function testAHandfulOfPuzzlersGetsAFewWideBars(): void
+    {
+        // Five puzzlers between 32 and 81 minutes: the 30-bar limit gave 2-minute bars, 26 slots for five people
+        $histogram = new LeaderboardHistogramBuilder()->build([1920, 2580, 3010, 3900, 4860]);
+
+        self::assertSame(600, $histogram->binWidth);
+        self::assertCount(6, $histogram->bins);
+        self::assertSame(1800, $histogram->bins[0]->from);
+        self::assertSame(5, self::countedRows($histogram));
+    }
+
     public function testMonsterPuzzlesGetHourLongBars(): void
     {
         // 20 to 100 hours
@@ -178,7 +201,7 @@ final class LeaderboardHistogramBuilderTest extends TestCase
             $histogram = new LeaderboardHistogramBuilder()->build($times, viewerTime: $times[0]);
 
             $coreBars = array_filter($histogram->bins, static fn ($bin): bool => $bin->isFoldedTail() === false);
-            self::assertLessThanOrEqual(LeaderboardHistogramBuilder::MAX_BINS, count($coreBars), "size {$size}");
+            self::assertLessThanOrEqual(LeaderboardHistogramBuilder::maxBins($size), count($coreBars), "size {$size}");
             self::assertSame($size, self::countedRows($histogram), "size {$size}");
             $viewerBin = $histogram->viewerBin;
             self::assertNotNull($viewerBin);

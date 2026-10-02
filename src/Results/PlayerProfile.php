@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\FreeTrial;
+use SpeedPuzzling\Web\Value\LeaderboardChartView;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
 
 /**
@@ -61,6 +62,7 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     has_membership_row?: bool,
  *     free_trial_ends_at?: null|string,
  *     modal_impressions?: null|string,
+ *     leaderboard_chart_view?: null|string,
  *  }
  */
 readonly final class PlayerProfile
@@ -152,6 +154,11 @@ readonly final class PlayerProfile
          * null once it is, so "still waiting" and "from when" are one value.
          */
         public null|DateTimeImmutable $freeTrialOldEnoughAt = null,
+        /**
+         * The chart above puzzle leaderboards (docs/features/puzzle-leaderboard-chart.md) - the signed-in player's own
+         * profile only, everybody else's says Distribution.
+         */
+        public LeaderboardChartView $leaderboardChartView = LeaderboardChartView::Distribution,
     ) {
     }
 
@@ -319,6 +326,7 @@ readonly final class PlayerProfile
             freeTrialEndsAt: $freeTrialEndsAt,
             modalImpressions: $modalImpressions,
             freeTrialOldEnoughAt: $freeTrialOldEnoughAt,
+            leaderboardChartView: LeaderboardChartView::tryFrom($row['leaderboard_chart_view'] ?? '') ?? LeaderboardChartView::Distribution,
         );
     }
 

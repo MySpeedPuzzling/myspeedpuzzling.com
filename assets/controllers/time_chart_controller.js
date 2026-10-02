@@ -47,13 +47,18 @@ export default class extends Controller {
         // Pre-load chart.js (already cached by ux-chartjs controller, resolves instantly)
         import('chart.js/auto').then(mod => { this._ChartClass = mod.default; });
 
-        this.element.addEventListener('chartjs:pre-connect', this._onPreConnect.bind(this));
-        this.element.addEventListener('chartjs:view-value-change', this._onViewValueChanged.bind(this));
+        // Bound once: removeEventListener needs the same function, a fresh bind() would leave the listener behind and it
+        // would keep rewriting the options of whatever chart the element shows next
+        this._onPreConnect = this._onPreConnect.bind(this);
+        this._onViewValueChanged = this._onViewValueChanged.bind(this);
+
+        this.element.addEventListener('chartjs:pre-connect', this._onPreConnect);
+        this.element.addEventListener('chartjs:view-value-change', this._onViewValueChanged);
     }
 
     disconnect() {
-        this.element.removeEventListener('chartjs:pre-connect', this._onPreConnect.bind(this));
-        this.element.removeEventListener('chartjs:view-value-change', this._onViewValueChanged.bind(this));
+        this.element.removeEventListener('chartjs:pre-connect', this._onPreConnect);
+        this.element.removeEventListener('chartjs:view-value-change', this._onViewValueChanged);
     }
 
     _onPreConnect(event) {

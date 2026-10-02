@@ -327,6 +327,10 @@
       "group": "%count%チーム"
     "first_attempts_count": "初回 %count%"
     "repeats_count": "2回目以降 %count%"
+    "view":
+      "label": "グラフ表示"
+      "distribution": "分布"
+      "ranking": "ランキング"
 "stopwatch":
   "meta":
     "title": "ストップウォッチ"

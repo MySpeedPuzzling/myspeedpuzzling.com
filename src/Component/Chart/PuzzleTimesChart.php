@@ -11,21 +11,20 @@ use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Services\LeaderboardHistogramBuilder;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
+use SpeedPuzzling\Web\Value\LeaderboardChartView;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
 /**
- * Members' chart above the puzzle leaderboard (docs/features/puzzle-leaderboard-chart.md): one bar per
- * row while every bar can still be read, the distribution of the times once the leaderboard is longer.
- * Either way it is drawn from the whole filtered leaderboard, never from the rows the table shows.
+ * Members' chart above the puzzle leaderboard (docs/features/puzzle-leaderboard-chart.md): the distribution of the
+ * times, or the ranking - one bar per row - when the member switched to it. Either way it is drawn from the whole
+ * filtered leaderboard, never from the rows the table shows.
  */
 #[AsTwigComponent]
 final class PuzzleTimesChart
 {
-    public const int INDIVIDUAL_BARS_MAX = 50;
-
     private const string COLOR_VIEWER = 'rgba(254, 64, 66, 1)';
     // The outline of the viewer's bar in the distribution: a lighter tone of the You line (Jan, 2026-09-30)
     private const string COLOR_VIEWER_OUTLINE = 'rgba(254, 110, 112, 1)';
@@ -45,6 +44,8 @@ final class PuzzleTimesChart
     // solo, duo or group - what one row of the leaderboard is
     public string $category = 'solo';
 
+    public LeaderboardChartView $view = LeaderboardChartView::Distribution;
+
     private null|LeaderboardHistogram $histogram = null;
 
     public function __construct(
@@ -57,7 +58,7 @@ final class PuzzleTimesChart
 
     public function isDistribution(): bool
     {
-        return count($this->results) > self::INDIVIDUAL_BARS_MAX;
+        return $this->view === LeaderboardChartView::Distribution;
     }
 
     public function getChart(): Chart

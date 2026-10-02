@@ -8,17 +8,21 @@ use SpeedPuzzling\Web\Results\LeaderboardHistogram;
 use SpeedPuzzling\Web\Results\LeaderboardHistogramBin;
 
 /**
- * Bins a leaderboard's times into the distribution chart of big leaderboards
- * (docs/features/puzzle-leaderboard-chart.md).
+ * Bins a leaderboard's times into the distribution chart (docs/features/puzzle-leaderboard-chart.md).
  *
- * - Bar width is the narrowest "nice" width (10 s ... 4 h) that keeps the chart at MAX_BINS bars or fewer,
+ * - Bar width is the narrowest "nice" width (10 s ... 4 h) that keeps the chart at maxBins() bars or fewer,
  *   and bars start on a multiple of it, so the axis reads 0:15, 0:20, 0:25 ...
+ * - The bar limit grows with the leaderboard: a handful of puzzlers gets a few wide bars instead of twenty slots with
+ *   nobody in most of them, the big leaderboards keep up to MAX_BINS.
  * - Far outliers - beyond Q1 - 3 IQR and Q3 + 3 IQR - fold into one open-ended bar at either end, so a single
  *   7-hour entry cannot squeeze everybody else into two bars. On real leaderboards that is ~1 % of the rows.
  */
 readonly final class LeaderboardHistogramBuilder
 {
     public const int MAX_BINS = 30;
+
+    // Fewest bars any leaderboard may get, so two or three puzzlers still spread over a readable axis
+    private const int MIN_BINS = 5;
 
     /**
      * Bar widths in seconds, narrowest first
@@ -70,7 +74,7 @@ readonly final class LeaderboardHistogramBuilder
             }
         }
 
-        $width = self::chooseWidth($coreMin, $coreMax);
+        $width = self::chooseWidth($coreMin, $coreMax, self::maxBins($total));
         $start = intdiv($coreMin, $width) * $width;
         $end = (intdiv($coreMax, $width) + 1) * $width;
 
@@ -158,10 +162,20 @@ readonly final class LeaderboardHistogramBuilder
         );
     }
 
-    private static function chooseWidth(int $min, int $max): int
+    /**
+     * Bar limit for a leaderboard of $rows rows: 2 × ⌈√rows⌉ between MIN_BINS and MAX_BINS - measured on every real
+     * leaderboard (2026-10-02), it keeps the share of empty bars under a fifth from 6 rows up and leaves boards of
+     * a few hundred rows as they were
+     */
+    public static function maxBins(int $rows): int
+    {
+        return min(self::MAX_BINS, max(self::MIN_BINS, 2 * (int) ceil(sqrt(max(0, $rows)))));
+    }
+
+    private static function chooseWidth(int $min, int $max, int $maxBins): int
     {
         foreach (self::BIN_WIDTHS as $width) {
-            if (intdiv($max, $width) + 1 - intdiv($min, $width) <= self::MAX_BINS) {
+            if (intdiv($max, $width) + 1 - intdiv($min, $width) <= $maxBins) {
                 return $width;
             }
         }

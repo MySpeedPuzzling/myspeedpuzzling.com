@@ -791,3 +791,37 @@ $lb-part-gap: 1.1em;
         }
     }
 }
+
+// The switch in the chart card's corner (Chart/PuzzleTimesChart): distribution or ranking, icons only. Grey outline,
+// the shown chart filled - read at a glance which one is on
+.lb-chart-switch {
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        padding: .3125rem .5rem;
+        line-height: 1;
+        color: $gray-700;
+        background-color: #fff;
+        border-color: $border-color;
+
+        &:hover {
+            color: $primary;
+            background-color: #fff;
+            border-color: $border-color;
+        }
+
+        &.active,
+        &.active:hover {
+            color: #fff;
+            background-color: $primary;
+            border-color: $primary;
+        }
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+}

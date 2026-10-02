@@ -10,35 +10,48 @@ use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Services\LeaderboardHistogramBuilder;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
+use SpeedPuzzling\Web\Value\LeaderboardChartView;
 use SpeedPuzzling\Web\Value\Puzzler;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 
 /**
- * The members' chart above the puzzle leaderboard (docs/features/puzzle-leaderboard-chart.md):
- * a bar per row up to INDIVIDUAL_BARS_MAX rows, the distribution of the times above that.
+ * The members' chart above the puzzle leaderboard (docs/features/puzzle-leaderboard-chart.md): the distribution of
+ * the times by default, a bar per row (the ranking) when the member switched to it - whatever the number of rows.
  */
 final class PuzzleTimesChartTest extends KernelTestCase
 {
     private const string VIEWER_COLOR = 'rgba(254, 64, 66, 1)';
     private const string VIEWER_OUTLINE_COLOR = 'rgba(254, 110, 112, 1)';
 
-    public function testUpToTheLimitEveryRowIsItsOwnBar(): void
+    public function testRankingIsABarPerRowWhateverTheSize(): void
     {
-        $chart = $this->chart(self::soloRows(PuzzleTimesChart::INDIVIDUAL_BARS_MAX));
+        foreach ([3, 500] as $size) {
+            $chart = $this->chart(self::soloRows($size), view: LeaderboardChartView::Ranking);
 
-        self::assertFalse($chart->isDistribution());
-        $data = $chart->getChart()->getData();
-        self::assertIsArray($data['labels']);
-        self::assertCount(PuzzleTimesChart::INDIVIDUAL_BARS_MAX, $data['labels']);
-        self::assertSame('1. Solver 1', $data['labels'][0]);
+            self::assertFalse($chart->isDistribution());
+            $data = $chart->getChart()->getData();
+            self::assertIsArray($data['labels']);
+            self::assertCount($size, $data['labels']);
+            self::assertSame('1. Solver 1', $data['labels'][0]);
+        }
+    }
+
+    public function testDistributionIsTheDefaultWhateverTheSize(): void
+    {
+        foreach ([3, 500] as $size) {
+            $chart = $this->chart(self::soloRows($size));
+
+            self::assertTrue($chart->isDistribution());
+            self::assertSame($size, array_sum(self::datasetValues($chart->getChart()->getData(), 0)) + array_sum(self::datasetValues($chart->getChart()->getData(), 1)));
+        }
     }
 
     public function testBarPerRowChartMarksTheMedianAcrossTheBarsAndTheViewersBar(): void
     {
         // 20 solvers 51 ... 70 minutes: the median is between the 10th (01:00:00) and the 11th (01:01:00)
-        $chart = $this->chart(self::soloRows(20), viewerId: 'player-7');
+        $chart = $this->chart(self::soloRows(20), viewerId: 'player-7', view: LeaderboardChartView::Ranking);
 
         $data = $chart->getChart()->getData();
         $options = $chart->getChart()->getOptions();
@@ -62,15 +75,15 @@ final class PuzzleTimesChartTest extends KernelTestCase
 
     public function testBarPerRowChartWithoutTheViewerMarksOnlyTheMedian(): void
     {
-        $chart = $this->chart(self::soloRows(3));
+        $chart = $this->chart(self::soloRows(3), view: LeaderboardChartView::Ranking);
 
         self::assertSame(['Median'], array_column(self::markers($chart->getChart()->getOptions()), 'label'));
         self::assertSame('Times of 3 puzzlers, median 00:52:00.', $chart->getSummary());
     }
 
-    public function testLongerLeaderboardsShowTheDistribution(): void
+    public function testDistributionOfALeaderboard(): void
     {
-        $chart = $this->chart(self::soloRows(PuzzleTimesChart::INDIVIDUAL_BARS_MAX + 1));
+        $chart = $this->chart(self::soloRows(51));
 
         self::assertTrue($chart->isDistribution());
 
@@ -78,16 +91,16 @@ final class PuzzleTimesChartTest extends KernelTestCase
         $options = $chart->getChart()->getOptions();
 
         // Two stacked datasets, first tries and repeats - together every row
-        self::assertSame(PuzzleTimesChart::INDIVIDUAL_BARS_MAX + 1, array_sum(self::datasetValues($data, 0)) + array_sum(self::datasetValues($data, 1)));
+        self::assertSame(51, array_sum(self::datasetValues($data, 0)) + array_sum(self::datasetValues($data, 1)));
         self::assertIsArray($data['labels']);
-        self::assertLessThanOrEqual(LeaderboardHistogramBuilder::MAX_BINS + 2, count($data['labels']));
+        self::assertLessThanOrEqual(LeaderboardHistogramBuilder::maxBins(51) + 2, count($data['labels']));
         self::assertSame('00:50:00', $data['labels'][0]);
 
         // Tooltip titles name each bar's time range, markers: the median only - the viewer has no row
         $markers = self::markers($options);
-        // 51 solvers a minute apart: two-minute bars are the narrowest that fit
+        // 51 solvers a minute apart, at most 16 bars for 51 rows: five-minute bars are the narrowest that fit
         self::assertCount(count($data['labels']), self::ranges($options));
-        self::assertSame('00:50:00 – 00:52:00', self::ranges($options)[0]);
+        self::assertSame('00:50:00 – 00:55:00', self::ranges($options)[0]);
         self::assertSame(['Median'], array_column($markers, 'label'));
         self::assertSame('Puzzlers', self::yAxisTitle($options));
 
@@ -216,8 +229,12 @@ final class PuzzleTimesChartTest extends KernelTestCase
     /**
      * @param array<string, array<PuzzleSolver|PuzzleSolversGroup>> $rows
      */
-    private function chart(array $rows, null|string $viewerId = null, string $category = 'solo'): PuzzleTimesChart
-    {
+    private function chart(
+        array $rows,
+        null|string $viewerId = null,
+        string $category = 'solo',
+        LeaderboardChartView $view = LeaderboardChartView::Distribution,
+    ): PuzzleTimesChart {
         $container = self::getContainer();
 
         $chart = new PuzzleTimesChart(
@@ -229,6 +246,7 @@ final class PuzzleTimesChartTest extends KernelTestCase
         $chart->results = $rows;
         $chart->playerId = $viewerId;
         $chart->category = $category;
+        $chart->view = $view;
 
         return $chart;
     }

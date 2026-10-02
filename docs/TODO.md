@@ -60,6 +60,15 @@ Shipped: [`features/puzzle-result-detail.md`](features/puzzle-result-detail.md),
 - [ ] Older, found on the way: `templates/puzzle/brand_hub.html.twig` uses `column-gap-*`, which Bootstrap 5.2 does
       not have (no-op)
 
+## Leaderboard chart switch (distribution / rankings)
+
+Shipped: [`features/puzzle-leaderboard-chart.md`](features/puzzle-leaderboard-chart.md) §"Chart switch".
+
+- [ ] Browser check as a member (dev is not signed in as one): switch both ways on a 3-row board and on London Postcard,
+      zoom + reset in the rankings, tooltips/legend/outline in the distribution, Median + You in both, no console errors
+- [ ] Rankings on big boards ship 118 KB of chart JSON with every re-render (London Postcard); if members use it a lot,
+      send a `firstAttempt` flag array and map colours in JS (~ -40 KB)
+
 ## First-try integrity (#217)
 
 Shipped: [`features/first-try-integrity.md`](features/first-try-integrity.md).

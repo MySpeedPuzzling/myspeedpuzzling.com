@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use SpeedPuzzling\Web\Message\ChangeLeaderboardChartView;
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
 use SpeedPuzzling\Web\Results\PlayersPerCountry;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
@@ -11,6 +12,8 @@ use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\LeaderboardChartView;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
@@ -73,6 +76,14 @@ final class PuzzleTimes
 
     #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
     public null|string $country = null;
+
+    /**
+     * The members' chart: the distribution or the ranking (docs/features/puzzle-leaderboard-chart.md). Starts from the
+     * viewer's stored choice and is changed only by changeChartView() - the profile may already be loaded (and cached)
+     * when the action runs, so the render after it could not rely on the profile
+     */
+    #[LiveProp]
+    public LeaderboardChartView $chartView = LeaderboardChartView::Distribution;
 
     // Same rank as the viewer's row shows: a time equal to the row above shares its rank
     public null|int $myRank = null;
@@ -155,7 +166,38 @@ final class PuzzleTimes
         readonly private GetPuzzleSolvers $getPuzzleSolvers,
         readonly private PuzzlesSorter $puzzlesSorter,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private MessageBusInterface $messageBus,
     ) {
+    }
+
+    #[PostMount(priority: 10)]
+    public function startFromStoredChartView(): void
+    {
+        $this->chartView = $this->retrieveLoggedUserProfile->getProfile()->leaderboardChartView ?? LeaderboardChartView::Distribution;
+    }
+
+    /**
+     * The switch in the chart's corner: shows the other chart and remembers the choice for every puzzle page. The table
+     * stays as it is - no reset of the shown rows.
+     */
+    #[LiveAction]
+    public function changeChartView(#[LiveArg] string $view): void
+    {
+        $chartView = LeaderboardChartView::tryFrom($view);
+
+        if ($chartView === null) {
+            return;
+        }
+
+        $this->chartView = $chartView;
+        $profile = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($profile !== null && $profile->leaderboardChartView !== $chartView) {
+            $this->messageBus->dispatch(new ChangeLeaderboardChartView(
+                playerId: $profile->playerId,
+                view: $chartView,
+            ));
+        }
     }
 
     #[LiveAction]

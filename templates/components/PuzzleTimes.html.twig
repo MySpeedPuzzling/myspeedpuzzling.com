@@ -332,6 +332,7 @@
                 results="{{ this.times }}"
                 playerId="{{ logged_user.profile ? logged_user.profile.playerId : null }}"
                 category="{{ this.category }}"
+                :view="this.chartView"
                 title=""
             />
         {% endif %}

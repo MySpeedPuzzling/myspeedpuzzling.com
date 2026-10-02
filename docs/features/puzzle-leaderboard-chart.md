@@ -25,6 +25,172 @@ Jan's redesign of the puzzle page (mobile first, designs on a claude.ai canvas):
   under the site header (`puzzle_bar_controller.js`, `inert` while hidden). The menu is on the page twice, so
   `puzzle/_dropdown_actions.html.twig` carries a class instead of an id and its stream replaces every copy (`targets`).
 
+## Chart switch: distribution or rankings (built 2026-10-02)
+
+Replaces decision 2 ("no toggle") and the 50-row switch: some members preferred the bar per row.
+Code: `Value\LeaderboardChartView`, `ChangeLeaderboardChartView` + handler, `PuzzleTimes::changeChartView()`,
+`PuzzleTimesChart::$view`, `templates/components/Chart/PuzzleTimesChart.html.twig`, `LeaderboardHistogramBuilder::maxBins()`.
+
+### What the player gets
+
+- **One rule for every leaderboard:** the distribution is the default chart, whatever the number of rows. A switch turns
+  it into the **rankings**, the old chart with one bar per row, fastest first. The 50-row threshold
+  (`INDIVIDUAL_BARS_MAX`) is gone, both for showing and for switching.
+- **The switch:** two icon-only buttons in the chart card's top right corner. It sits in a slim row of its own above the
+  canvas, not on top of it. The ranking's tallest bars, and often its "You" label, are in that corner, and so is the
+  zoom-reset button (`.zoom-reset`, `top: 0; right: 0`).
+  - The shown chart's button is filled (`.lb-chart-switch` in `_leaderboard.scss`).
+  - Icons: Symfony UX Icons, imported into `assets/icons/` (`ux:icons:import`), so nothing is fetched from Iconify at
+    runtime: `clarity:bell-curve-line` for Distribution, `bi:bar-chart` for Rankings (Jan's pick, 2026-10-02, out of four
+    pairs). They are picked in one place, the `view_icons` map at the top of the members' branch of the template.
+- **Who sees it:** members, whenever the chart is shown (2 or more rows). Non-members keep the locked placeholder and no
+  chart data.
+- **Remembered:** the choice is stored on the player and applies to every puzzle page, every tab and every device. The
+  default is `distribution`, so boards with 51 or more rows looked as before until the player tapped.
+- **Behaviour change:** boards with 50 or fewer rows (most puzzles) open on the distribution instead of the bar per row.
+  That includes a favourites filter that narrows a board to a few friends. Members who want names in the bars switch once,
+  and it is remembered.
+
+### Small boards: fewer, wider bars
+
+The distribution was tuned for boards with more than 50 rows: up to `MAX_BINS` = 30 bars, with the narrowest nice width
+that fits. On small boards that gave about 20 slots for a handful of people, so the bar limit now grows with the board:
+`maxBins(rows) = min(30, max(5, 2 × ⌈√rows⌉))`. Bar widths, aligned starts and outlier folding are unchanged. Measured
+on the dev copy of prod (solo, best time per player; medians per bucket; "empty" = bars with nobody in them):
+
+| Rows | Boards | Before: bars / empty / tallest | Now: bars / empty / tallest |
+|---|---|---|---|
+| 2–5 | 9,801 | 21 / 88 % / 1 | 4 / 40 % / 1 |
+| 6–10 | 2,243 | 21 / 69 % / 2 | 5 / 17 % / 3 |
+| 11–20 | 1,321 | 21 / 50 % / 3 | 7 / 14 % / 5 |
+| 21–35 | 735 | 21 / 33 % / 4 | 9 / 10 % / 7 |
+| 36–50 | 292 | 20 / 23 % / 7 | 11 / 9 % / 11 |
+| 51–100 | 468 | 21 / 17 % / 10 | 13 / 8 % / 14 |
+| 101–300 | 358 | 21 / 8 % / 24 | 19 / 6 % / 26 |
+| 301+ | 149 | 25 / 0 % / 72 | 25 / 0 % / 72 (unchanged) |
+
+- **One formula, no threshold.** It also makes boards of 51–100 rows a bit coarser (21 → 13 bars, often 10-minute
+  instead of 5-minute bars, fewer gaps). Boards of more than ~200 rows barely change.
+- Rejected:
+  - `min(30, rows)`: 11–35-row boards still get 27–30 % empty bars.
+  - `3 × ⌈∛rows⌉`: it also coarsens the big boards (301+ → 20 bars).
+
+### Storing the choice without an extra query
+
+- Column `player.leaderboard_chart_view` (string `enumType`, NOT NULL, default `'distribution'`), written by
+  `Player::changeLeaderboardChartView()` through `ChangeLeaderboardChartView` and its handler.
+  - The migration (`Version20261002174420`) was generated against a scratch DB built from the committed migrations. It is
+    a single `ADD COLUMN … DEFAULT 'distribution' NOT NULL`, which is metadata-only in Postgres 11+ and safe for blue-green.
+- **Read side:**
+  - only `GetPlayerProfile::byUserId()` selects the column, as the optional `leaderboard_chart_view` key of
+    `PlayerProfileRow`;
+  - `PlayerProfile::$leaderboardChartView` uses `tryFrom()` and falls back to Distribution;
+  - `byId()`, somebody else's profile, does not read the column, so it always says Distribution.
+
+  `RetrieveLoggedUserProfile` already loads that row once per request, so the page and every re-render get the choice
+  with **no new query**. `PuzzleTimesChartViewTest::testTheStoredChoiceCostsNoQuery` pins it: one statement mentions the
+  column, and the ranking page runs as many queries as the distribution page.
+
+### Live component
+
+- `PuzzleTimes::$chartView`, a `LiveProp` holding the enum, is set in a `#[PostMount]` hook from the profile
+  (distribution when there is no profile). Only the action changes it; the browser cannot write it.
+  - Why a LiveProp and not "read the profile on every render": `RetrieveLoggedUserProfile` can load and cache the profile
+    before the action runs in the same request. That render would then still see the old value.
+- `#[LiveAction] changeChartView(#[LiveArg] string $view)`:
+  - an unknown value changes nothing;
+  - otherwise it sets the prop and, for a signed-in player whose stored choice differs, dispatches
+    `ChangeLeaderboardChartView`;
+  - it does **not** reset `$limit`, so the table stays as it is;
+  - it does not require membership: a lapsed member keeps their choice, and non-members never see the switch.
+- `PuzzleTimesChart::$view` decides `isDistribution()`. The buttons use `data-action="live#action"`
+  (`data-live-view-param`), like the tab buttons. The chart is a plain Twig component inside the Live one, so the action
+  reaches `PuzzleTimes`.
+- **Icon only, still words:** each button has `aria-label` + `title`, and the group has `aria-label`. That is three keys,
+  `puzzle_times.chart.view.{label,distribution,ranking}` ("Chart view", "Distribution", "Rankings"), in all 6 locales.
+  `aria-pressed` marks the shown chart.
+
+### Swapping one chart for the other
+
+The ux-chartjs controller's `viewValueChanged()` keeps the Chart.js instance and only swaps `data` and `options`. The
+plugins handed over in `chartjs:pre-connect` stay. That is right while the view stays the same (filters, tabs, "Show more"),
+but the two views are different charts:
+
+| | Distribution | Rankings (bar per row) |
+|---|---|---|
+| Datasets | 2, stacked | 1 |
+| x axis | time ranges | rows, ticks hidden |
+| y axis | count | time (h:mm:ss, set by `time-chart`) |
+| Controllers on the wrapper | `leaderboard-chart` | `time-chart leaderboard-chart` |
+| Extras | legend under it, tooltips from `ranges` | drag/pinch zoom + reset button |
+
+Before this change, the same morph ran whenever a filter crossed 50 rows. It was found by reading the code and was never
+reproduced in a browser:
+
+- `time_chart_controller.js` `disconnect()` removed `this._onPreConnect.bind(this)`. That is a new function, so nothing
+  was removed. After bars → distribution, the listener stayed on the reused wrapper. On every later re-render it rewrote
+  the distribution's options: `scales.y` (losing `stacked` and the title), the tooltip callbacks, and zoom.
+- Distribution → bars only worked because idiomorph syncs the wrapper's attributes before it morphs the canvas.
+
+So **one chart is never morphed into the other; it is rebuilt:**
+
+- The controller `<div>` sits in a container keyed by the view: `<div id="leaderboard-chart-{distribution|ranking}">`.
+  When an element's `id` differs, Live Component's morph (`beforeElUpdated` in `live_controller.js`) replaces its
+  `innerHTML` instead of morphing it. The wrapper and the canvas then arrive as new nodes in one mutation, and Stimulus
+  connects them in tree order:
+  1. the eager `time-chart` and `leaderboard-chart` controllers on the wrapper;
+  2. the Chart.js controller on the canvas, which fires `chartjs:pre-connect` into both.
+
+  The old canvas disconnects and runs `chart.destroy()`.
+- The id is on the outer container, not on the controller `<div>`. With the id there, only that div's children would be
+  replaced, and its `data-controller` would be morphed afterwards, so the canvas would connect before `time-chart`.
+- The same view (filters, tabs, "Show more") keeps the same id, so the chart is updated in place, as before.
+- `time_chart_controller.js` now binds its listeners once in `connect()`, as `leaderboard_chart_controller.js` does.
+- Both views are 200 px high (the bar per row was 180 px), so the table does not jump on a switch.
+
+### Performance
+
+- **Page load:** no new query; the switch and its two inline icons add well under 1 KB of markup (members only).
+- **Distribution (default):** small boards get fewer bars, so their chart JSON shrinks.
+- **Rankings on a big board:** back to the weight before 2026-09-30, 118 KB of chart JSON on London Postcard (1,718 bars).
+  It is re-sent with every re-render of the component. This is opt-in.
+  - A cheap trim if it matters: the per-bar colour strings are about a third of the payload. A `firstAttempt` flag array
+    mapped to colours in JS would cut about 40 KB. Not done; measure first.
+- **Switching:** one Live re-render plus one `UPDATE player`, the cost of changing a filter. It happens about once per
+  member.
+- Rejected alternatives:
+  - **Both charts in the page, switched in the browser.** Every member would pay for the ranking's data.
+  - **A separate JSON endpoint.** It would duplicate the filter pipeline in `PuzzleTimes::populate()`.
+  - **localStorage.** The server must render the right chart on first paint, and localStorage would not follow the player
+    across devices.
+
+### Tests
+
+- `LeaderboardHistogramBuilderTest`: `maxBins()` per size, a handful of puzzlers gets a few wide bars, and the skewed
+  boards stay within `maxBins()`.
+- `PuzzleTimesChartTest`: the distribution by default for 3 and 500 rows, a bar per row whenever `view` is Ranking.
+- `PuzzleTimesDistributionChartTest`: every filter feeds the distribution; the hidden-player case runs on the ranking.
+- `PuzzleTimesChartViewTest`:
+  - the default is pressed;
+  - switching rebuilds into `#leaderboard-chart-ranking`, stores the choice, the next page opens on it, and switching
+    back works;
+  - the table's rows are untouched;
+  - small boards have the switch too;
+  - an unknown value changes nothing;
+  - non-members and guests get no switch, and a guest's call stores nothing;
+  - the query parity described above.
+- `ChangeLeaderboardChartViewHandlerTest`: stored and read back through `byUserId()`; `byId()` and an unknown stored value
+  read as Distribution; an unknown player throws.
+
+### Decisions (Jan, 2026-10-02)
+
+1. **Icons only.** They still carry `aria-label` + `title`.
+2. **No 50-row distinction:** the distribution is the default for every board, and the switch leads to the old ranking,
+   named "Rankings". The bar limit by row count was approved with it.
+3. **All locales** for the three accessible-name texts.
+4. **Icons:** pair A (Tabler histogram / Tabler rising bars) shipped first. The candidates are compared on
+   https://claude.ai/artifact/JwZzJfXe3DfhdzQmwf7MLk; the other pairs swap in through `view_icons`.
+
 ## The problem
 
 Jan, after WS-C capped the table at 100 rows: *"think about the chart … showing only the top 100 would affect the chart a lot … it
@@ -88,7 +254,8 @@ Times are right-skewed: London Postcard (500 pcs) – fastest 19:02, median 53:2
 
 ## Recommendation (built)
 
-**Chart – pick the right view by size, no toggle.**
+**Chart – pick the right view by size, no toggle.** *(Superseded 2026-10-02: the distribution is the default at every size
+and members switch to the bar per row themselves - see "Chart switch" above. Kept for the reasoning of 2026-09-30.)*
 - **Up to 50 rows: one bar per row, as before** (`PuzzleTimesChart::INDIVIDUAL_BARS_MAX`). Every bar is at least ~6 px
   wide on a phone, names are in the tooltips, first attempts stay blue, drag-zoom stays. New: the same dashed **Median** line,
   here horizontal at the median time (y is time in this view), and **You** above the viewer's (solid red) bar, drawn by the same
@@ -103,7 +270,8 @@ Times are right-skewed: London Postcard (500 pcs) – fastest 19:02, median 53:2
   histogram plus the percentile sentence gives the same answer in plain words.
 
 **The distribution** (`LeaderboardHistogramBuilder`, pure PHP, unit-tested):
-- Bar width = the narrowest of 10 s, 15 s, 30 s, 1, 2, 5, 10, 15, 30 min, 1, 2, 4 h that keeps the chart at ≤ 30 bars; bars start
+- Bar width = the narrowest of 10 s, 15 s, 30 s, 1, 2, 5, 10, 15, 30 min, 1, 2, 4 h that keeps the chart at ≤ 30 bars (since
+  2026-10-02 at ≤ `maxBins(rows)`, fewer on small boards - see "Small boards" above); bars start
   on multiples of it, so the axis reads 00:15:00, 00:20:00, 00:25:00 … Validated on every real board with more than 50 rows: 13–31 bars
   (median 21), 5-minute bars on 775 of 975 solo boards.
 - Far outliers – beyond Q1 − 3 IQR / Q3 + 3 IQR – fold into one open-ended, lighter bar at either end ("≥ 2:30:00"); they hold a
@@ -167,14 +335,14 @@ The chart gets exactly the rows the table would show if it were not capped - `Pu
   see it); a pair or team is left out only when all its members are private. **Blocked players** are left out by the query.
 - Relax-mode solves have no time and suspicious times are excluded, so neither is on the leaderboard nor in the chart.
 
-The 50-row switch counts these filtered rows, so filtering a 1,700-row board down to 20 favourites shows 20 bars.
-Covered by `PuzzleTimesDistributionChartTest::testEveryFilterFeedsTheChartAndTheSwitchCountsFilteredRows` (+ the pairs and
-private-profile cases next to it).
+Filtering a 1,700-row board down to 20 favourites shows the distribution of those 20 (or 20 bars on the ranking).
+Covered by `PuzzleTimesDistributionChartTest::testEveryFilterFeedsTheChart` (+ the pairs and private-profile cases next to
+it).
 
 ## Decisions (Jan, 2026-09-30)
 
-1. **Switch to the distribution above 50 rows** – kept.
-2. **No toggle** between the two views – kept.
+1. **Switch to the distribution above 50 rows** – kept. *Replaced 2026-10-02: the distribution at every size.*
+2. **No toggle** between the two views – kept. *Replaced 2026-10-02: a remembered switch, see "Chart switch".*
 3. **±2 neighbours** – kept; the gap row now says how many rows it hides ("⋯ 497 more") and runs "Show more" when tapped.
 4. **"faster than X %"** stays everywhere: "Top 97 %" would be ambiguous (faster than 97 %, or the slowest 3 %?).
 5. **Median + You on the bar-per-row chart** – yes: horizontal dashed median, "You" above the viewer's bar, same summary.
@@ -230,13 +398,16 @@ One row = rank · player · time, and **the table never scrolls sideways** (320 
 
 - `tests/Services/LeaderboardHistogramBuilderTest.php` – empty, one solver, identical times, nice widths and aligned starts,
   slow and fast outliers folded, even-count median, monster puzzles, randomised skewed boards (bar limit, no row lost),
-  first tries counted per bar tails included.
-- `tests/Component/Chart/PuzzleTimesChartTest.php` – 50 vs 51 rows, labels/ranges/markers/nouns, viewer bar, pairs; the
+  first tries counted per bar tails included, the bar limit by board size.
+- `tests/Component/Chart/PuzzleTimesChartTest.php` – distribution by default / ranking on request at any size,
+  labels/ranges/markers/nouns, viewer bar, pairs; the
   bar-per-row chart's median line, "You" label, top padding and summary; the variant's split per bar, tooltip lines, lighter
   tails, outline instead of a red fill, stacked options, legend only when both colours are there.
 - `tests/Component/PuzzleTimesDistributionChartTest.php` – members get the distribution; every filter (first attempts,
-  unboxed, country, favourites, my pairs) feeds the chart and the switch counts filtered rows; hidden private profiles stay out;
-  non-members get no chart data.
+  unboxed, country, favourites, my pairs) feeds the chart; hidden private profiles stay out; non-members get no chart data.
+- `tests/Component/PuzzleTimesChartViewTest.php` – the switch: default, rebuild + remembered choice, table untouched, small
+  boards, unknown value, non-members and guests, no query of its own.
+- `tests/MessageHandler/ChangeLeaderboardChartViewHandlerTest.php` – stored and read through the viewer's profile only.
 - `tests/Component/PuzzleTimesLeaderboardLimitTest.php` – neighbourhood far down / right below the top rows / inside the top
   rows, tied ranks in the neighbourhood, the position line (#1, small board, far down), the "⋯ N more" gap row (count, tap =
   "Show more", count after a tap, gone once the rows join) and its Czech plural forms.

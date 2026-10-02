@@ -327,6 +327,10 @@
       "group": "%count% equipo|%count% equipos"
     "first_attempts_count": "%count% primer intento|%count% primeros intentos"
     "repeats_count": "%count% repetición|%count% repeticiones"
+    "view":
+      "label": "Vista del gráfico"
+      "distribution": "Distribución"
+      "ranking": "Clasificación"
 "stopwatch":
   "meta":
     "title": "Cronómetro"

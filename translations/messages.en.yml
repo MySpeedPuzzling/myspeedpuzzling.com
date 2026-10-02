@@ -389,6 +389,10 @@ puzzle_times:
             group: "%count% team|%count% teams"
         first_attempts_count: "%count% first try|%count% first tries"
         repeats_count: "%count% repeat|%count% repeats"
+        view:
+            label: "Chart view"
+            distribution: "Distribution"
+            ranking: "Rankings"
 
 stopwatch:
     meta:

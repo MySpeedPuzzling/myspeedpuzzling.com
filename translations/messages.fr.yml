@@ -328,6 +328,10 @@
       "group": "%count% équipe|%count% équipes"
     "first_attempts_count": "%count% première tentative|%count% premières tentatives"
     "repeats_count": "%count% répétition|%count% répétitions"
+    "view":
+      "label": "Vue du graphique"
+      "distribution": "Répartition"
+      "ranking": "Classement"
 "stopwatch":
   "meta":
     "title": "Chronomètre"

@@ -52,23 +52,23 @@ final class PuzzleTimesDistributionChartTest extends WebTestCase
     /**
      * 80 solvers finishing in 5001 ... 5080 s; each case marks the fastest N of them for one filter.
      *
-     * @return iterable<string, array{string, bool|string, int, string}>
+     * @return iterable<string, array{string, bool|string, int}>
      */
     public static function provideFilters(): iterable
     {
-        yield 'no filter' => ['', true, 80, 'leaderboard-distribution'];
-        yield 'first attempts only, 60 left' => ['onlyFirstTries', true, 60, 'leaderboard-distribution'];
-        yield 'unboxed only, 40 left' => ['onlyUnboxed', true, 40, 'leaderboard-individual'];
-        yield 'one country, 70 left' => ['country', 'cz', 70, 'leaderboard-distribution'];
-        yield 'favorite players, 20 left' => ['onlyFavoritePlayers', true, 20, 'leaderboard-individual'];
+        yield 'no filter' => ['', true, 80];
+        yield 'first attempts only, 60 left' => ['onlyFirstTries', true, 60];
+        yield 'unboxed only, 40 left' => ['onlyUnboxed', true, 40];
+        yield 'one country, 70 left' => ['country', 'cz', 70];
+        yield 'favorite players, 20 left' => ['onlyFavoritePlayers', true, 20];
     }
 
     /**
-     * Jan: "it would still work on filtering, and when fewer than 50 there will be the other chart, right?" - both:
-     * the chart is drawn from the filtered rows, and the 50-row switch counts them
+     * The chart is drawn from the filtered rows - and stays the distribution however few are left (the member switches
+     * to the ranking themselves, see PuzzleTimesChartViewTest)
      */
     #[DataProvider('provideFilters')]
-    public function testEveryFilterFeedsTheChartAndTheSwitchCountsFilteredRows(string $filter, bool|string $value, int $rows, string $chart): void
+    public function testEveryFilterFeedsTheChart(string $filter, bool|string $value, int $rows): void
     {
         $client = self::createClient();
         TestingLogin::asPlayer($client, PlayerFixture::PLAYER_WITH_STRIPE);
@@ -100,10 +100,10 @@ final class PuzzleTimesDistributionChartTest extends WebTestCase
         }
 
         $crawler = $component->render()->crawler();
-        self::assertCount(1, $crawler->filter('[data-testid="' . $chart . '"]'));
+        self::assertCount(1, $crawler->filter('[data-testid="leaderboard-distribution"]'));
 
         $data = self::chartData($crawler);
-        self::assertSame($rows, $chart === 'leaderboard-distribution' ? array_sum($data['counts']) : count($data['labels']));
+        self::assertSame($rows, array_sum($data['counts']));
 
         // First tries only: every bar is a first try - a single colour, so no legend
         if ($filter === 'onlyFirstTries') {
@@ -127,8 +127,8 @@ final class PuzzleTimesDistributionChartTest extends WebTestCase
         ], $client);
         $component->setRouteLocale('en');
 
-        self::assertCount(3, self::chartData($component->render()->crawler())['labels']);
-        self::assertCount(2, self::chartData($component->set('onlyMyTeams', true)->render()->crawler())['labels']);
+        self::assertSame(3, array_sum(self::chartData($component->render()->crawler())['counts']));
+        self::assertSame(2, array_sum(self::chartData($component->set('onlyMyTeams', true)->render()->crawler())['counts']));
     }
 
     public function testBarPerRowChartLeavesOutHiddenPlayersAndCarriesTheMarkersAndSummary(): void
@@ -142,7 +142,7 @@ final class PuzzleTimesDistributionChartTest extends WebTestCase
             'piecesCount' => 500,
         ], $client);
         $component->setRouteLocale('en');
-        $crawler = $component->render()->crawler();
+        $crawler = $component->call('changeChartView', ['view' => 'ranking'])->render()->crawler();
 
         $wrapper = $crawler->filter('[data-testid="leaderboard-individual"]');
         self::assertSame('time-chart leaderboard-chart', $wrapper->attr('data-controller'));

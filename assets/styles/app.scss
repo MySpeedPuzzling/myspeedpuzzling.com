@@ -970,7 +970,8 @@ canvas {
     top: var(--header-height, 97px);
     left: 0;
     right: 0;
-    z-index: 1020;
+    // Under the site header (.sticky-top, $zindex-sticky 1020) and its dropdowns, over the page's content
+    z-index: $zindex-sticky - 10;
     background: #fff;
     border-bottom: 1px solid #eceef2;
     box-shadow: 0 4px 12px rgba(0, 0, 0, .05);

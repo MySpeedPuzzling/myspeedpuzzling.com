@@ -15,23 +15,20 @@ use SpeedPuzzling\Web\Repository\ResultReviewContactRepository;
 use SpeedPuzzling\Web\Results\AutoRemovedResult;
 use SpeedPuzzling\Web\Results\ResultReviewEmailCase;
 use SpeedPuzzling\Web\Results\ResultReviewSendingSummary;
-use SpeedPuzzling\Web\Services\DuplicateResults\DuplicateSets;
-use SpeedPuzzling\Web\Services\DuplicateResults\ResultEmailsUnsubscribeUrl;
-use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
+use SpeedPuzzling\Web\Services\DelayedEmailQueue;
+use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewEmailComposer;
 use SpeedPuzzling\Web\Services\Listmonk\ListmonkNewsletterLists;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Value\ResultReviewContactSkipReason;
 use SpeedPuzzling\Web\Value\ResultReviewContactType;
-use Symfony\Bridge\Twig\Mime\TemplatedEmail;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Mime\Address;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The paced sending of "Your results" e-mails (docs/features/duplicate-results.md, "Sending"): at most
- * `result_review_emails_per_run` now and `result_review_emails_per_day` per Europe/Prague day, through the
- * `notifications` transport - never `transactional`, sign-in links keep their own reputation.
+ * `result_review_emails_per_run` per run and `result_review_emails_per_day` per Europe/Prague day, through the
+ * `notifications` transport - never `transactional`, sign-in links keep their own reputation. The e-mails of a run
+ * leave `result_review_email_spacing_seconds` apart (a DelayStamp each: 0 s, 60 s, 120 s, ...), so runs every
+ * 5 minutes of 5 e-mails send one a minute.
  *
  * The planning can be days old, so every e-mail is checked again: the switch still on, cases still open, removals
  * still not undone. What was resolved meanwhile is left out; nothing left (or Tier C alone) = skipped.
@@ -43,7 +40,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[AsMessageHandler]
 readonly final class SendPlannedResultReviewEmailsHandler
 {
-    public const int LISTED_MAX = 3;
     private const string DAY_TIMEZONE = 'Europe/Prague';
 
     public function __construct(
@@ -51,13 +47,12 @@ readonly final class SendPlannedResultReviewEmailsHandler
         private ResultReviewContactRepository $contactRepository,
         private ResultAutoRemovalRepository $autoRemovalRepository,
         private PlayerAccountEmail $playerAccountEmail,
-        private EmailPreferencesLinkGenerator $emailPreferencesLinkGenerator,
-        private ResultEmailsUnsubscribeUrl $unsubscribeUrl,
-        private MailerInterface $mailer,
-        private TranslatorInterface $translator,
+        private ResultReviewEmailComposer $emailComposer,
+        private DelayedEmailQueue $emailQueue,
         private ClockInterface $clock,
         private int $resultReviewEmailsPerRun,
         private int $resultReviewEmailsPerDay,
+        private int $resultReviewEmailSpacingSeconds,
     ) {
     }
 
@@ -82,7 +77,7 @@ readonly final class SendPlannedResultReviewEmailsHandler
                 continue;
             }
 
-            if ($this->send($contact, $now)) {
+            if ($this->send($contact, $now, $sent * $this->resultReviewEmailSpacingSeconds)) {
                 $sent++;
             } else {
                 $skipped++;
@@ -97,7 +92,7 @@ readonly final class SendPlannedResultReviewEmailsHandler
         );
     }
 
-    private function send(ResultReviewContact $contact, DateTimeImmutable $now): bool
+    private function send(ResultReviewContact $contact, DateTimeImmutable $now, int $delaySeconds): bool
     {
         $player = $contact->player;
         $playerId = $player->id->toString();
@@ -127,43 +122,18 @@ readonly final class SendPlannedResultReviewEmailsHandler
         }
 
         $locale = ListmonkNewsletterLists::normalizeLocale($player->locale);
-        $unsubscribeUrl = $this->unsubscribeUrl->forPlayer($playerId, $locale);
-        $subjectKey = match (true) {
-            $cases === [] => 'result_review.subject_removed',
-            $contact->type === ResultReviewContactType::First => 'result_review.subject_first',
-            default => 'result_review.subject_weekly',
-        };
-
-        // One line per result, however many copies: a result saved by three teammates is three cases of one set.
-        // The first case of a set is its strongest (the cases come ordered so) and describes it
-        $sets = array_map(
-            static fn (array $keys): ResultReviewEmailCase => $cases[$keys[0]],
-            DuplicateSets::group(array_map(static fn (ResultReviewEmailCase $case): array => [$case->timeAId, $case->timeBId], $cases)),
+        $email = $this->emailComposer->compose(
+            contactId: $contact->id->toString(),
+            playerId: $playerId,
+            playerName: $player->name,
+            emailAddress: $playerEmail,
+            locale: $locale,
+            first: $contact->type === ResultReviewContactType::First,
+            cases: $cases,
+            removals: $removals,
         );
 
-        $email = (new TemplatedEmail())
-            ->from(new Address('notify@notify.myspeedpuzzling.com', 'MySpeedPuzzling'))
-            ->to($playerEmail)
-            ->locale($locale)
-            ->subject($this->translator->trans($subjectKey, domain: 'emails', locale: $locale))
-            ->htmlTemplate('emails/result_review.html.twig')
-            ->context([
-                'contactId' => $contact->id->toString(),
-                'first' => $contact->type === ResultReviewContactType::First,
-                'playerName' => $player->name,
-                'sets' => array_slice($sets, 0, self::LISTED_MAX),
-                'moreSets' => max(0, count($sets) - self::LISTED_MAX),
-                'removals' => array_slice($removals, 0, self::LISTED_MAX),
-                'moreRemovals' => max(0, count($removals) - self::LISTED_MAX),
-                'locale' => $locale,
-                'settingsUrl' => $this->emailPreferencesLinkGenerator->forPlayer($playerId, $playerEmail, $locale),
-                'unsubscribeUrl' => $unsubscribeUrl,
-            ]);
-        $email->getHeaders()->addTextHeader('X-Transport', 'notifications');
-        $email->getHeaders()->addTextHeader('List-Unsubscribe', '<' . $unsubscribeUrl . '>');
-        $email->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
-
-        $this->mailer->send($email);
+        $this->emailQueue->queue($email, $delaySeconds);
 
         $contact->sent(
             caseIds: array_map(static fn (ResultReviewEmailCase $case): string => $case->caseId, $cases),

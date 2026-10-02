@@ -40,7 +40,7 @@ final class DuplicateResultsControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $contacts = $crawler->filter('[data-testid="admin-result-review-contacts"]');
         self::assertCount(1, $contacts);
-        self::assertStringContainsString('at most 10 per run and 20 per day', $contacts->text());
+        self::assertStringContainsString('at most 5 per run, leaving 60 s apart, and 1000 per day', $contacts->text());
         self::assertStringContainsString('Nothing sent yet.', $contacts->text());
     }
 

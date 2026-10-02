@@ -409,17 +409,21 @@ its unsubscribe means "no newsletter", and the reaction must land in our databas
 - Sent by the app through the **`notifications`** transport (`notify@`, like the chat digest) - **never
   `transactional`** (`robot@`: sign-in links and password resets keep their own quota and reputation). All three
   mailboxes share the Seznam relay's IP reputation (Apple blocked it in July 2026), so pacing matters.
-- **Planned, then sent**: the cron creates `result_review_contact` rows as `planned`; a sending job (hourly,
-  08–20 Europe/Prague) sends at most N per run and M per day. M is a setting, raised without a deploy.
+- **Planned, then sent**: the cron creates `result_review_contact` rows as `planned`; a sending job (every
+  5 minutes, 08–20 Europe/Prague) takes at most N per run and queues them spaced out (one a minute), with a day cap M
+  as a safety guard. All three are settings, changed without a deploy.
 - **Audience** (measured 2026-10-02): 560 players have a case (same day or saved within 1 h, per person incl.
   teams; 879 cases). 15 of them (2.7 %) have e-mail notifications off - the same as all players with results
   (239 of 7,682, 3.1 %). 432 were active in the last 3 months; **418 are both active and reachable** - the upper bound
   of the backlog (Tier C alone never triggers an e-mail, so the real number is lower). 540 of the 545 with
   notifications on still have the default 24-hour frequency, so "on" is mostly the default, not a choice - one more
   reason for the separate one-click unsubscribe.
-- **First wave**: 20 e-mails (most active players first) → wait 2–3 days → check bounces (e-mail audit log),
-  complaints, reaction rate, and the folder it lands in at Gmail / iCloud / Seznam → then ~50 a day (the backlog of
-  ~560 players takes under two weeks). After the backlog: a few a week.
+- **Spacing, not a small day cap** (product owner, 2026-10-02): the infrastructure safely sends ~10,000 e-mails a
+  day as long as they leave with time between them. So the backlog goes out on one day, **one e-mail a minute**
+  (5 per 5-minute run, 60 s apart; ~560 players ≈ 9-10 hours), most active players first. Before that, the
+  owner checks the real e-mail in his own inbox (`myspeedpuzzling:send-result-review-email-preview`). After the
+  first day: check bounces (e-mail audit log), complaints, reaction rate, and the folder it lands in at Gmail /
+  iCloud / Seznam (admin "Contacts"). After the backlog: a few a week.
 - **One-click unsubscribe**: `List-Unsubscribe` + `List-Unsubscribe-Post` → a POST that switches off
   `result_emails_enabled` only (not the chat digest). Also a toggle in edit-profile.
 
@@ -439,15 +443,31 @@ its unsubscribe means "no newsletter", and the reaction must land in our databas
     e-mail is ≥ 7 calendar days old: removals always; new cases (A/B, C along) only when the player reacted to their
     latest e-mail **and** no e-mail listed cases in the last 30 days. Tier C alone never triggers one.
   - A case is in at most one sent e-mail; one planned contact per player at a time keeps the planning idempotent.
-- **Sending** - `SendPlannedResultReviewEmails` (console `myspeedpuzzling:send-result-review-emails`, hourly 08-20
-  Europe/Prague): at most `result_review_emails_per_run` per run and `result_review_emails_per_day` per Prague day
-  (env `RESULT_REVIEW_EMAILS_PER_RUN` = 10 / `RESULT_REVIEW_EMAILS_PER_DAY` = 20; the cron runs one-off containers,
-  so raising the day cap to ~50 after the first wave is an env change, no deploy). In order: weekly, then active, then
-  dormant. The run takes the planned contacts `FOR UPDATE SKIP LOCKED`, so a run overlapping a slow one never mails
+- **Sending** - `SendPlannedResultReviewEmails` (console `myspeedpuzzling:send-result-review-emails`, every
+  5 minutes 08-20 Europe/Prague, cron `4-59/5 8-20 * * *`): at most `result_review_emails_per_run` per run, leaving
+  `result_review_email_spacing_seconds` apart, and `result_review_emails_per_day` per Prague day as a safety guard
+  (env `RESULT_REVIEW_EMAILS_PER_RUN` = 5 / `RESULT_REVIEW_EMAIL_SPACING_SECONDS` = 60 /
+  `RESULT_REVIEW_EMAILS_PER_DAY` = 1000; the cron runs one-off containers, so a change is an env change, no deploy).
+  5 × 60 s fills the 5 minutes between runs exactly: one e-mail a minute, ~560 players in ~9-10 hours of one day.
+  The spacing: the run queues each e-mail itself (`Services\DelayedEmailQueue` - the queued `MessageEvent` and
+  `SendEmailMessage` on the default bus exactly as Symfony's Mailer does, plus a `DelayStamp` of index × spacing:
+  0 s, 60 s, 120 s, ...; a skipped contact takes no slot), so the Doctrine transport's `available_at` releases them
+  one by one to the consumer; `X-Transport`, the mail log (`EmailAuditSubscriber`) and VERP run at send time in the
+  worker as for any e-mail. The day cap counts contacts by `sent_at` = queued, not delivered. In order: weekly, then
+  active, then dormant. The run takes the planned contacts `FOR UPDATE SKIP LOCKED`, so a run overlapping a slow one
+  never mails
   the same contact. At send time: switch off → `skipped` (`switched_off`), no account e-mail → `no_email`, resolved cases and
   undone removals dropped, nothing (or Tier C alone) left → `nothing_left`. The contact keeps the ids it really
   listed; its removals get `reported_at`. One transaction per run - the queued e-mails (Doctrine messenger
   transport) included, so a failure sends nothing.
+- **Preview** - `myspeedpuzzling:send-result-review-email-preview <email> [--locale=en] [--variant=first|weekly|removed]`
+  (`SendResultReviewEmailPreview`): the same e-mail with sample data (a result saved twice, a teammate copy, a solo +
+  pair one, a fourth for "…and 1 more", one automatic removal; `removed` = the removal only), "[Preview] " before the
+  subject, sent through the `notifications` transport with the real headers. Subject, template, context and headers
+  come from one `Services\DuplicateResults\ResultReviewEmailComposer` used by both, so they cannot drift. Writes
+  nothing (the mail log records it like any e-mail). Its ids belong to nobody: the review button opens the real
+  review page (`from=rc-00000000-…` matches no contact, nothing recorded), the unsubscribe and settings links answer
+  404 - clicking them changes nothing for any player.
 - **E-mail** `templates/emails/result_review.html.twig` (`emails.*` `result_review.*`, player's locale; no separate
   text template - like every other e-mail, Symfony derives the text part from the HTML): one sentence why, up to 3
   **sets** (one line per result however many copies - grouped like the review page; puzzle, time, day, "saved
@@ -632,9 +652,10 @@ tested: candidate → tier + kind or null; same time on two puzzles never reache
 partial `templates/review_results/_banner.html.twig` on the Hub and the own profile, fed by one query
 (`GetPlayerReviewCounts`), nobody else pays a query.
 
-**E-mail** - `PlanResultReviewEmails` (daily, creates `planned` contacts) + `SendPlannedResultReviewEmails` (hourly
-08-20 Europe/Prague, caps per run and per day from parameters `result_review_emails_per_run` /
-`result_review_emails_per_day`) → template `templates/emails/result_review.html.twig` (domain `emails`, 6 locales),
+**E-mail** - `PlanResultReviewEmails` (daily, creates `planned` contacts) + `SendPlannedResultReviewEmails` (every
+5 minutes 08-20 Europe/Prague, a cap per run spaced by `result_review_email_spacing_seconds` and a day cap, parameters
+`result_review_emails_per_run` / `result_review_email_spacing_seconds` / `result_review_emails_per_day`) → template
+`templates/emails/result_review.html.twig` (domain `emails`, 6 locales),
 `X-Transport: notifications`, `List-Unsubscribe` + `List-Unsubscribe-Post` to a signed one-click POST route
 `result_emails_unsubscribe` (`UnsubscribeFromResultEmails`) · switch `resultEmailsEnabled` in the edit-profile
 "Messaging & Notifications" form · visits attributed by `?from=rc-<contactId>` (`RecordResultReviewVisit`).
@@ -661,7 +682,7 @@ partial `templates/review_results/_banner.html.twig` on the Hub and the own prof
 5. Weekly e-mail, staged waves.
 6. Layer 4 - puzzle change in edit, catalogue signal, API `Idempotency-Key`.
 
-New crons (detection daily, sending hourly) go into `~/www/lily.srv` `cron.d` as part of the work.
+New crons (detection daily, sending every 5 minutes) go into `~/www/lily.srv` `cron.d` as part of the work.
 
 ## Settled decisions (2026-10-02)
 
@@ -672,7 +693,7 @@ New crons (detection daily, sending hourly) go into `~/www/lily.srv` `cron.d` as
 - E-mail follows only its own `result_emails_enabled` (new switch under "Messaging & Notifications", on by default,
   one-click unsubscribe); a separate weekly e-mail, not part of the chat digest; the first (backlog) e-mail goes to
   everybody with a case, later ones only to players active in the last 3 months; `notifications` transport; paced
-  waves (20, then ~50/day).
+  by spacing (one e-mail a minute, the backlog on one day) instead of a small day cap.
 - Everything player-facing (form notices, review page, banner, recap notice, e-mail, settings) in all 6 locales; the
   admin overview English only.
 - API: no new rejections; optional `Idempotency-Key`.

@@ -87,12 +87,15 @@ return static function (ContainerConfigurator $configurator): void {
     // the __bb_trust cookie is simply not issued.
     $parameters->set('env(CHALLENGE_COOKIE_SECRET)', '');
 
-    // Pacing of the "Your results" e-mails (docs/features/duplicate-results.md, "Sending"). The first wave is 20
-    // a day; raise it (~50) through the env vars - the cron runs one-off containers, so the next run picks it up.
-    $parameters->set('env(RESULT_REVIEW_EMAILS_PER_RUN)', '10');
-    $parameters->set('env(RESULT_REVIEW_EMAILS_PER_DAY)', '20');
+    // Pacing of the "Your results" e-mails (docs/features/duplicate-results.md, "Sending"): the cron runs every
+    // 5 minutes, 5 e-mails a run, 60 s apart = one e-mail a minute; the day cap is a safety guard only. Env vars,
+    // and the cron runs one-off containers, so a change applies from the next run.
+    $parameters->set('env(RESULT_REVIEW_EMAILS_PER_RUN)', '5');
+    $parameters->set('env(RESULT_REVIEW_EMAILS_PER_DAY)', '1000');
+    $parameters->set('env(RESULT_REVIEW_EMAIL_SPACING_SECONDS)', '60');
     $parameters->set('result_review_emails_per_run', '%env(int:RESULT_REVIEW_EMAILS_PER_RUN)%');
     $parameters->set('result_review_emails_per_day', '%env(int:RESULT_REVIEW_EMAILS_PER_DAY)%');
+    $parameters->set('result_review_email_spacing_seconds', '%env(int:RESULT_REVIEW_EMAIL_SPACING_SECONDS)%');
 
     // Pairs & teams picker rollout (docs/features/feature_flags.md): admins only until flipped to 1.
     $parameters->set('pairsTeamsPickerPublic', '%env(bool:PAIRS_TEAMS_PICKER_PUBLIC)%');
@@ -116,6 +119,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$pairsTeamsPickerPublic', '%pairsTeamsPickerPublic%')
         ->bind('$resultReviewEmailsPerRun', '%result_review_emails_per_run%')
         ->bind('$resultReviewEmailsPerDay', '%result_review_emails_per_day%')
+        ->bind('$resultReviewEmailSpacingSeconds', '%result_review_email_spacing_seconds%')
         ->bind('$googleClientId', '%env(trim:string:GOOGLE_CLIENT_ID)%')
         ->bind('$googleClientSecret', '%env(trim:string:GOOGLE_CLIENT_SECRET)%')
         ->bind('$facebookAppId', '%env(trim:string:FACEBOOK_APP_ID)%')

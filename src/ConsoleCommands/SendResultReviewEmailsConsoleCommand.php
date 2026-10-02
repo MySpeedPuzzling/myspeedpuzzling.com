@@ -16,7 +16,7 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 #[AsCommand(
     name: 'myspeedpuzzling:send-result-review-emails',
-    description: 'Send planned "Your results" e-mails, at most result_review_emails_per_run now and result_review_emails_per_day a day',
+    description: 'Queue planned "Your results" e-mails, at most result_review_emails_per_run per run (result_review_email_spacing_seconds apart) and result_review_emails_per_day a day',
 )]
 final class SendResultReviewEmailsConsoleCommand extends Command
 {

@@ -33,6 +33,7 @@ final class DuplicateResultsController extends AbstractController
         private readonly GetResultReviewContactsOverview $getResultReviewContactsOverview,
         private readonly int $resultReviewEmailsPerRun,
         private readonly int $resultReviewEmailsPerDay,
+        private readonly int $resultReviewEmailSpacingSeconds,
     ) {
     }
 
@@ -83,6 +84,7 @@ final class DuplicateResultsController extends AbstractController
                 'delivery' => $this->getResultReviewContactsOverview->delivery(),
                 'per_run' => $this->resultReviewEmailsPerRun,
                 'per_day' => $this->resultReviewEmailsPerDay,
+                'spacing_seconds' => $this->resultReviewEmailSpacingSeconds,
             ],
         ]);
     }

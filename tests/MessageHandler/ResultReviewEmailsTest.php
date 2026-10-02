@@ -22,9 +22,9 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\ResultAutoRemovalRepository;
 use SpeedPuzzling\Web\Repository\ResultReviewContactRepository;
 use SpeedPuzzling\Web\Results\ResultReviewSendingSummary;
+use SpeedPuzzling\Web\Services\DelayedEmailQueue;
 use SpeedPuzzling\Web\Services\DuplicateResults\DailyDuplicateDetection;
-use SpeedPuzzling\Web\Services\DuplicateResults\ResultEmailsUnsubscribeUrl;
-use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
+use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewEmailComposer;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Tests\DataFixtures\DuplicateResultsFixture;
 use SpeedPuzzling\Web\Value\DuplicateDetectedBy;
@@ -33,10 +33,11 @@ use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
-use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
  * Planning and paced sending of the "Your results" e-mails (docs/features/duplicate-results.md, "Telling players").
@@ -308,20 +309,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
     public function testCapsPerRunAndPerPragueDay(): void
     {
         $dana = self::getContainer()->get(PlayerRepository::class)->get(self::DANA);
-        $caseId = $this->caseId(self::DANA, DuplicateResultsFixture::TIME_STRONG_A);
-
-        foreach (range(1, 4) as $ignored) {
-            $this->entityManager->persist(new ResultReviewContact(
-                id: Uuid::uuid7(),
-                player: $dana,
-                type: ResultReviewContactType::First,
-                priority: 1,
-                lastActiveOn: null,
-                caseIds: [$caseId],
-                removalIds: [],
-                plannedAt: new DateTimeImmutable(),
-            ));
-        }
+        $this->planForDana(4);
         // Sent at 23:00 Prague time the day before - not today's
         $this->entityManager->persist($yesterday = new ResultReviewContact(Uuid::uuid7(), $dana, ResultReviewContactType::First, 1, null, [], [], new DateTimeImmutable()));
         $yesterday->sent([], [], new DateTimeImmutable('2026-10-01 21:00:00'));
@@ -339,6 +327,40 @@ final class ResultReviewEmailsTest extends KernelTestCase
         self::assertSame(0, $third->sent, 'Two today already');
         self::assertSame(2, $third->sentTodayBefore);
         self::assertSame(2, $third->stillPlanned);
+    }
+
+    public function testTheEmailsOfARunLeaveSpacedOut(): void
+    {
+        $this->planForDana(5);
+
+        $handler = $this->handler(new MockClock(new DateTimeImmutable('2026-10-02 08:00:00')), perRun: 3, perDay: 1000, spacingSeconds: 60);
+
+        self::assertSame(3, $handler(new SendPlannedResultReviewEmails())->sent);
+        self::assertSame([0, 60, 120], $this->queuedEmailDelays());
+        self::assertQueuedEmailCount(3);
+
+        // The next run starts from 0 again - the cron's gap spaces the runs
+        $this->entityManager->flush();
+        self::assertSame(2, $handler(new SendPlannedResultReviewEmails())->sent);
+        self::assertSame([0, 60, 120, 0, 60], $this->queuedEmailDelays());
+    }
+
+    public function testASkippedEmailTakesNoSlotOfTheSpacing(): void
+    {
+        // Active Dana goes before dormant Tom
+        $this->activeDaysAgo(self::DANA, 1);
+        $this->plan();
+        // Dana's e-mail is skipped: nothing left to tell
+        $this->database->executeStatement("UPDATE result_duplicate_case SET status = 'both_real' WHERE player_id = :id", ['id' => self::DANA]);
+        $this->entityManager->clear();
+
+        $summary = $this->send();
+
+        self::assertSame(1, $summary->sent);
+        self::assertSame(1, $summary->skipped);
+        // The default spacing (result_review_email_spacing_seconds = 60) - Tom's e-mail leaves right away
+        self::assertSame([0], $this->queuedEmailDelays());
+        self::assertSame('notifications', $this->emailTo('tom@example.com')->getHeaders()->get('X-Transport')?->getBodyAsString());
     }
 
     public function testARunLocksThePlannedEmailsSoAnOverlappingRunSkipsThem(): void
@@ -400,7 +422,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
         return $result;
     }
 
-    private function handler(MockClock $clock, int $perRun, int $perDay): SendPlannedResultReviewEmailsHandler
+    private function handler(MockClock $clock, int $perRun, int $perDay, int $spacingSeconds = 60): SendPlannedResultReviewEmailsHandler
     {
         $container = self::getContainer();
 
@@ -409,14 +431,56 @@ final class ResultReviewEmailsTest extends KernelTestCase
             contactRepository: $container->get(ResultReviewContactRepository::class),
             autoRemovalRepository: $container->get(ResultAutoRemovalRepository::class),
             playerAccountEmail: $container->get(PlayerAccountEmail::class),
-            emailPreferencesLinkGenerator: $container->get(EmailPreferencesLinkGenerator::class),
-            unsubscribeUrl: $container->get(ResultEmailsUnsubscribeUrl::class),
-            mailer: $container->get(MailerInterface::class),
-            translator: $container->get(TranslatorInterface::class),
+            emailComposer: $container->get(ResultReviewEmailComposer::class),
+            emailQueue: $container->get(DelayedEmailQueue::class),
             clock: $clock,
             resultReviewEmailsPerRun: $perRun,
             resultReviewEmailsPerDay: $perDay,
+            resultReviewEmailSpacingSeconds: $spacingSeconds,
         );
+    }
+
+    /**
+     * The delays (in seconds) of the e-mails queued on the async transport so far, in dispatch order.
+     *
+     * @return list<null|int>
+     */
+    private function queuedEmailDelays(): array
+    {
+        $transport = self::getContainer()->get('messenger.transport.async');
+        self::assertInstanceOf(InMemoryTransport::class, $transport);
+
+        $delays = [];
+
+        foreach ($transport->getSent() as $envelope) {
+            if ($envelope->getMessage() instanceof SendEmailMessage) {
+                $delay = $envelope->last(DelayStamp::class)?->getDelay();
+                $delays[] = $delay === null ? null : intdiv($delay, 1000);
+            }
+        }
+
+        return $delays;
+    }
+
+    private function planForDana(int $count): void
+    {
+        $dana = self::getContainer()->get(PlayerRepository::class)->get(self::DANA);
+        $caseId = $this->caseId(self::DANA, DuplicateResultsFixture::TIME_STRONG_A);
+
+        foreach (range(1, $count) as $ignored) {
+            $this->entityManager->persist(new ResultReviewContact(
+                id: Uuid::uuid7(),
+                player: $dana,
+                type: ResultReviewContactType::First,
+                priority: 1,
+                lastActiveOn: null,
+                caseIds: [$caseId],
+                removalIds: [],
+                plannedAt: new DateTimeImmutable(),
+            ));
+        }
+
+        $this->entityManager->flush();
     }
 
     private function activeDaysAgo(string $playerId, int $days): void

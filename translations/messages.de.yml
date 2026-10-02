@@ -878,6 +878,7 @@
     "too_many_requests": "Sie haben mehrere Links hintereinander angefordert. Bitte prüfen Sie Ihr Postfach (und den Spam-Ordner) und warten Sie einen Moment, bevor Sie einen weiteren anfordern."
     "failed": "Wir konnten die Bestätigungs-E-Mail nicht senden. Bitte versuchen Sie es gleich noch einmal."
 "puzzle_detail":
+  "details": "Details"
   "meta":
     "title": "%brand% %name% – %pieces% Teile Puzzle"
     "ean": ", EAN %ean%"

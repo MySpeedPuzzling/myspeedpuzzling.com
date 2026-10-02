@@ -624,6 +624,7 @@
     "too_many_requests": "Has pedido varios enlaces seguidos. Revisa tu bandeja de entrada (y la carpeta de spam) y espera un momento antes de pedir otro."
     "failed": "No hemos podido enviar el correo de confirmación. Inténtalo de nuevo en un momento."
 "puzzle_detail":
+  "details": "Detalles"
   "meta":
     "title": "%brand% %name% – Puzzle de %pieces% piezas"
     "ean": ", EAN %ean%"

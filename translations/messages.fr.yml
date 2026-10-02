@@ -881,6 +881,7 @@
     "too_many_requests": "Vous avez demandé plusieurs liens d'affilée. Vérifiez votre boîte de réception (et vos spams) et patientez un instant avant d'en demander un autre."
     "failed": "Nous n'avons pas pu envoyer l'e-mail de confirmation. Veuillez réessayer dans un instant."
 "puzzle_detail":
+  "details": "Détails"
   "meta":
     "title": "%brand% %name% – Puzzle %pieces% pièces"
     "ean": ", EAN %ean%"

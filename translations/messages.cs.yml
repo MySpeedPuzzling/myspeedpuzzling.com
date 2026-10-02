@@ -898,6 +898,7 @@
     "too_many_requests": "Požádali jste o několik odkazů za sebou. Zkontrolujte prosím schránku (i spam) a chvíli počkejte, než požádáte o další."
     "failed": "Potvrzovací e-mail se nepodařilo odeslat. Zkuste to prosím za chvíli znovu."
 "puzzle_detail":
+  "details": "Podrobnosti"
   "meta":
     "title": "%brand% %name% – puzzle %pieces% dílků"
     "ean": ", EAN %ean%"

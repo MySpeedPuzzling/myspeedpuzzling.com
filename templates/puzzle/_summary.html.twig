@@ -75,49 +75,54 @@
     }]) %}
 {% endif %}
 
-<section class="puzzle-summary fs-sm">
-    <p class="puzzle-summary-intro mb-2">{{ 'puzzle_detail.summary.intro'|trans({
+<section class="puzzle-summary">
+    <p class="puzzle-summary-intro">{{ 'puzzle_detail.summary.intro'|trans({
         '%name%': puzzle.puzzleName|e,
         '%pieces%': puzzle.piecesCount,
         '%brand%': brand_html,
     })|raw }}</p>
 
-    {% if facts is not empty %}
-        <dl class="puzzle-summary-facts mb-2" style="display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr); gap: .125rem 1rem;">
-            {% for fact in facts %}
-                <dt class="fw-normal text-muted">{{ fact.label }}</dt>
-                <dd class="mb-0">{{ fact.html|raw }}</dd>
-            {% endfor %}
-        </dl>
-    {% endif %}
+    {% if facts is not empty or time_rows is not empty %}
+        <div class="puzzle-summary-body">
+            {% if facts is not empty %}
+                <dl class="puzzle-summary-facts">
+                    {% for fact in facts %}
+                        <div class="puzzle-summary-fact">
+                            <dt>{{ fact.label }}</dt>
+                            <dd>{{ fact.html|raw }}</dd>
+                        </div>
+                    {% endfor %}
+                </dl>
+            {% endif %}
 
-    {% if time_rows is not empty %}
-        {# Same rhythm as the list above: rows as tight as its lines, columns 1rem apart, digits of equal width #}
-        <table class="puzzle-summary-times table table-sm table-borderless w-auto mb-0" style="font-variant-numeric: tabular-nums;">
-            <thead>
-                <tr>
-                    <td class="p-0"></td>
-                    <th scope="col" class="fw-normal text-muted text-end pt-0 pb-1 pe-0 ps-3">{{ 'puzzle_detail.summary.times.solves'|trans }}</th>
-                    <th scope="col" class="fw-normal text-muted text-end pt-0 pb-1 pe-0 ps-3">{{ 'puzzle_detail.summary.times.median'|trans }}</th>
-                    <th scope="col" class="fw-normal text-muted text-end pt-0 pb-1 pe-0 ps-3">{{ 'puzzle_detail.summary.times.fastest'|trans }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in time_rows %}
-                    <tr>
-                        <th scope="row" class="fw-normal text-muted p-0 pb-1">{{ row.label }}</th>
-                        <td class="text-end pt-0 pb-1 pe-0 ps-3">{{ row.count|format_number([], 'decimal', 'default', app.request.locale) }}</td>
-                        <td class="text-end pt-0 pb-1 pe-0 ps-3">{{ row.median is not null ? row.median|puzzlingTime : '–' }}</td>
-                        <td class="text-end pt-0 pb-1 pe-0 ps-3">{{ row.fastest|puzzlingTime }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            {% if time_rows is not empty %}
+                <table class="puzzle-summary-times">
+                    <thead>
+                        <tr>
+                            <td></td>
+                            <th scope="col">{{ 'puzzle_detail.summary.times.solves'|trans }}</th>
+                            <th scope="col">{{ 'puzzle_detail.summary.times.median'|trans }}</th>
+                            <th scope="col">{{ 'puzzle_detail.summary.times.fastest'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in time_rows %}
+                            <tr>
+                                <th scope="row">{{ row.label }}</th>
+                                <td>{{ row.count|format_number([], 'decimal', 'default', app.request.locale) }}</td>
+                                <td>{{ row.median is not null ? row.median|puzzlingTime : '–' }}</td>
+                                <td>{{ row.fastest|puzzlingTime }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
     {% endif %}
 
     {% if not summary.hasSoloTimes %}
         {# The add page is robots-blocked, the translated link carries rel="nofollow" #}
-        <p class="mb-0 mt-2">{{ (summary.hasGroupTimes ? 'puzzle_detail.summary.no_solo_times' : 'puzzle_detail.summary.no_times')|trans({
+        <p class="mb-0 mt-3">{{ (summary.hasGroupTimes ? 'puzzle_detail.summary.no_solo_times' : 'puzzle_detail.summary.no_times')|trans({
             '%add_url%': path('puzzle_add', {puzzleId: puzzle.puzzleId})|e,
         })|raw }}</p>
     {% endif %}

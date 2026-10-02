@@ -711,10 +711,10 @@ final class PuzzleDetailControllerTest extends WebTestCase
                 '/en/puzzle/018d0008-0000-0000-0000-000000000001',
                 '/en/puzzle/018d0008-0000-0000-0000-000000000002',
             ],
-            $related->filter('a.card')->extract(['href']),
+            $related->filter('a.puzzle-related-card')->extract(['href']),
         );
         // The heading names the piece count, the cards do not repeat it
-        self::assertStringNotContainsString('pieces', $related->filter('.row')->text());
+        self::assertStringNotContainsString('pieces', $related->filter('.puzzle-related-list')->text());
 
         $allLink = $related->filter('p a');
         self::assertSame('All Ravensburger 500-piece puzzles', $allLink->text());
@@ -734,7 +734,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
         self::assertSame('More Trefl puzzles', $related->filter('h2')->text());
         self::assertSame(
             ["1000\u{a0}pieces", "500\u{a0}pieces", "1500\u{a0}pieces"],
-            $related->filter('a.card small')->each(static fn (Crawler $pieces): string => $pieces->text()),
+            $related->filter('a.puzzle-related-card small')->each(static fn (Crawler $pieces): string => $pieces->text()),
         );
 
         $allLink = $related->filter('p a');

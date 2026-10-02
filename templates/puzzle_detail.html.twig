@@ -369,8 +369,8 @@
     {# Same brand and piece count (GetRelatedPuzzles): the three most solved plus three picked for this page, so the
        links reach the whole catalogue; the whole brand when the combination is too small #}
     {% if related.puzzles|length >= 2 %}
-        <div class="puzzle-related mt-4">
-            <h2 class="h5">
+        <section class="puzzle-section puzzle-related">
+            <h2 class="puzzle-section-title">
                 {% if related.samePiecesCount %}
                     {{ 'puzzle_detail.related.title_pieces'|trans({'%brand%': puzzle.manufacturerName, '%pieces%': puzzle.piecesCount}) }}
                 {% else %}
@@ -378,44 +378,48 @@
                 {% endif %}
             </h2>
 
-            <div class="row g-2 g-md-3">
+            <ul class="puzzle-related-list">
                 {% for related_puzzle in related.puzzles %}
-                    <div class="col-6 col-md-4 col-lg-2">
-                        <a class="card card-body shadow p-2 h-100 text-decoration-none text-center" href="{{ path('puzzle_detail', {puzzleId: related_puzzle.puzzleId}) }}">
-                            <img
-                                class="rounded-2 mx-auto d-block"
-                                style="max-width: 100%; object-fit: contain;"
-                                loading="lazy"
-                                alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ related_puzzle.puzzleName}) }}"
-                                src="{{ related_puzzle.puzzleImage|puzzle_image('puzzle_small') }}"
-                                {{ puzzle_image_dimensions(related_puzzle.puzzleImageRatio, 90) }}
-                            >
-                            <span class="fs-sm text-decoration-underline low-line-height d-block mt-1">{{ related_puzzle.puzzleName }}</span>
+                    <li>
+                        <a class="puzzle-related-card" href="{{ path('puzzle_detail', {puzzleId: related_puzzle.puzzleId}) }}">
+                            <span class="puzzle-related-image">
+                                <img
+                                    loading="lazy"
+                                    alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ related_puzzle.puzzleName}) }}"
+                                    src="{{ related_puzzle.puzzleImage|puzzle_image('puzzle_small') }}"
+                                    {% if related_puzzle.puzzleImage %}
+                                        srcset="{{ related_puzzle.puzzleImage|puzzle_image('puzzle_small') }} 200w, {{ related_puzzle.puzzleImage|puzzle_image('puzzle_medium') }} 400w"
+                                        sizes="(min-width: 1200px) 190px, (min-width: 768px) 140px, 104px"
+                                    {% endif %}
+                                    {{ puzzle_image_dimensions(related_puzzle.puzzleImageRatio, 200) }}
+                                >
+                            </span>
+                            <span class="puzzle-related-name">{{ related_puzzle.puzzleName }}</span>
                             {# Every card shares the heading's piece count - only the brand-wide fallback names it #}
                             {% if not related.samePiecesCount %}
-                                <small class="text-muted">{{ 'pieces_count'|trans({ '%count%': related_puzzle.piecesCount })|raw }}</small>
+                                <small class="puzzle-related-pieces">{{ 'pieces_count'|trans({ '%count%': related_puzzle.piecesCount })|raw }}</small>
                             {% endif %}
                         </a>
-                    </div>
+                    </li>
                 {% endfor %}
-            </div>
+            </ul>
 
             {% if related.samePiecesCount and catalogue_links.linksBrandPiecesPage %}
-                <p class="mt-2 mb-0">
-                    <a href="{{ pieces_page.url }}">{{ 'brand_pieces_hub.all_puzzles'|trans({'%brand%': puzzle.manufacturerName, '%pieces%': puzzle.piecesCount}) }}</a>
+                <p class="puzzle-related-more">
+                    <a class="puzzle-related-all" href="{{ pieces_page.url }}">{{ 'brand_pieces_hub.all_puzzles'|trans({'%brand%': puzzle.manufacturerName, '%pieces%': puzzle.piecesCount}) }}<i class="bi bi-arrow-right" aria-hidden="true"></i></a>
                 </p>
             {% elseif catalogue_links.linksBrandHub %}
-                <p class="mt-2 mb-0">
-                    <a href="{{ path('brand_puzzles', {slug: catalogue_links.brandSlug}) }}">{{ 'puzzle_detail.related.view_all'|trans({'%brand%': puzzle.manufacturerName}) }}</a>
+                <p class="puzzle-related-more">
+                    <a class="puzzle-related-all" href="{{ path('brand_puzzles', {slug: catalogue_links.brandSlug}) }}">{{ 'puzzle_detail.related.view_all'|trans({'%brand%': puzzle.manufacturerName}) }}<i class="bi bi-arrow-right" aria-hidden="true"></i></a>
                 </p>
             {% endif %}
-        </div>
+        </section>
     {% endif %}
 
     {# Facts about the puzzle for readers who scroll this far (and for search engines) - deliberately at the
        bottom: the top of the page belongs to the puzzle and its leaderboard (Jan, 2026-09-30) #}
-    <div class="mt-5 pt-3 border-top">
-        <h2 class="puzzle-summary-heading h6 text-muted mb-2">{{ 'puzzle_detail.summary.heading'|trans }}</h2>
+    <div class="puzzle-section">
+        <h2 class="puzzle-section-title puzzle-summary-heading">{{ 'puzzle_detail.summary.heading'|trans }}</h2>
         {{ include('puzzle/_summary.html.twig', {
             puzzle: puzzle,
             summary: puzzle_summary,

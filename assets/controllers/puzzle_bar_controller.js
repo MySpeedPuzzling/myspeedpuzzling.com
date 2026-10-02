@@ -9,6 +9,14 @@ export default class extends Controller {
     static targets = ['head', 'bar'];
 
     connect() {
+        this.publishHeight();
+
+        if (typeof ResizeObserver !== 'undefined') {
+            // Its height follows the name (one or two lines), the root font size and the viewport
+            this.resizeObserver = new ResizeObserver(() => this.publishHeight());
+            this.resizeObserver.observe(this.barTarget);
+        }
+
         if (typeof IntersectionObserver === 'undefined') {
             return;
         }
@@ -22,7 +30,23 @@ export default class extends Controller {
 
     disconnect() {
         this.observer?.disconnect();
+        this.resizeObserver?.disconnect();
         window.removeEventListener('resize', this.onResize);
+
+        // Turbo keeps <html> between pages - no other page has the bar
+        document.documentElement.style.removeProperty('--puzzle-bar-height');
+    }
+
+    /**
+     * `--puzzle-bar-height` on <html>: anchors on the page ("Jump to me" in the leaderboard) land below the bar,
+     * which is always shown by the time they are reached. Measured while hidden too - only translated, never collapsed.
+     */
+    publishHeight() {
+        const height = Math.round(this.barTarget.getBoundingClientRect().height);
+
+        if (height > 0) {
+            document.documentElement.style.setProperty('--puzzle-bar-height', `${height}px`);
+        }
     }
 
     observe() {

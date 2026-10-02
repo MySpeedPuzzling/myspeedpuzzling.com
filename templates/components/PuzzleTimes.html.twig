@@ -392,7 +392,6 @@
                     {%~ set is_own_row = logged_user.profile is not null and ((best.players is not defined and best.playerId is same as logged_user.profile.playerId) or (best.players is defined and best.containsPlayer(logged_user.profile.playerId))) %}
                     <tr
                         id="{{ row_id }}"
-                        style="scroll-margin-top: 120px;"
                         class="lb-row {{ is_own_row ? 'table-active-player' }}"
                         data-controller="row-link"
                         data-action="click->row-link#open"

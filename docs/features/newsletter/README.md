@@ -15,7 +15,7 @@ One e-mail = one recipient. When an address belongs to both a player and a guest
 
 - **6 private, single opt-in lists**, one per locale: `Newsletter EN/CS/DE/ES/FR/JA` (`ListmonkNewsletterLists`). Looked up by name, auto-created when missing — no ids configured anywhere.
 - Subscriber attribs maintained by the sync: `locale`, `audience` (`player`/`guest`), `unsubscribe_url` (per-recipient signed MySpeedPuzzling URL), `manage_url` (players only — the standalone e-mail preferences page, see below).
-- The campaign template (versioned at [`listmonk-campaign-template.html`](listmonk-campaign-template.html), uploaded to Listmonk as **"MySpeedPuzzling Newsletter"**) renders a localized footer from those attribs. After editing the file, re-upload via `PUT /api/templates/{id}`.
+- The campaign template (versioned at [`listmonk-campaign-template.html`](listmonk-campaign-template.html), uploaded to Listmonk as **"MySpeedPuzzling Newsletter"**, id 5 on production) renders a localized footer from those attribs. After editing the file, re-upload via `PUT /api/templates/5` (`name`, `subject`, `type` as they are + the new `body`; check `GET /api/templates/5/preview`) - last upload 2026-10-02, the previous body is backed up on the box in `/root/listmonk-template-5-backup-2026-10-02.json`.
 
 ## Sync — `myspeedpuzzling:sync-newsletter-subscribers` (cron */15)
 

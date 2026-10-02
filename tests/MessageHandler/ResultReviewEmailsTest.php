@@ -250,7 +250,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
         $this->plan();
         $this->send();
         $this->database->executeStatement("UPDATE result_review_contact SET sent_at = NOW() - INTERVAL '10 days'");
-        $this->messageBus->dispatch(new DetectDuplicateResults());
+        self::getContainer()->get(DailyDuplicateDetection::class)->run(DuplicateDetectedBy::Cron);
         $this->plan();
 
         $this->send();

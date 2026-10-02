@@ -36,12 +36,14 @@ readonly final class GetPlayerReviewCounts
         $query = <<<SQL
 SELECT
     (
-        SELECT COUNT(*)
+        -- One result saved three times is three cases but one set on the review page: count it once
+        -- (a set is one puzzle and one time of this person)
+        SELECT COUNT(DISTINCT (a.puzzle_id, a.seconds_to_solve))
         FROM result_duplicate_case c
+        INNER JOIN puzzle_solving_time a ON a.id = c.time_a_id
+        INNER JOIN puzzle_solving_time b ON b.id = c.time_b_id
         WHERE c.player_id = :playerId
             AND c.status = :open
-            AND EXISTS (SELECT 1 FROM puzzle_solving_time a WHERE a.id = c.time_a_id)
-            AND EXISTS (SELECT 1 FROM puzzle_solving_time b WHERE b.id = c.time_b_id)
     ) AS duplicates,
     (
         SELECT COUNT(*)

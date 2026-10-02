@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Query;
 
 use SpeedPuzzling\Web\Query\GetMostSolvedPuzzles;
+use SpeedPuzzling\Web\Results\MostSolvedPuzzle;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -87,15 +88,20 @@ final class GetMostSolvedPuzzlesTest extends KernelTestCase
 
     public function testPuzzle500Pieces01HasMostSolves(): void
     {
-        // PUZZLE_500_01 has the most solving times in fixtures
-        $puzzles = $this->query->top(1);
+        // PUZZLE_500_01 has the most solving times in fixtures - possibly tied with another puzzle
+        // (DuplicateResultsFixture), and the order among equal counts is not defined
+        $puzzles = $this->query->top(5);
 
         self::assertNotEmpty($puzzles);
 
-        // The first puzzle should be PUZZLE_500_01 (has many solves)
-        self::assertSame(
+        $mostSolved = array_filter(
+            $puzzles,
+            static fn (MostSolvedPuzzle $puzzle): bool => $puzzle->solvedTimes === $puzzles[0]->solvedTimes,
+        );
+
+        self::assertContains(
             PuzzleFixture::PUZZLE_500_01,
-            $puzzles[0]->puzzleId,
+            array_map(static fn (MostSolvedPuzzle $puzzle): string => $puzzle->puzzleId, $mostSolved),
             'PUZZLE_500_01 should have the most solves',
         );
     }

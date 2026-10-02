@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\DuplicateCaseChanged;
 use SpeedPuzzling\Web\Message\ConfirmDuplicateIsReal;
 use SpeedPuzzling\Web\Message\KeepDuplicateCopy;
 use SpeedPuzzling\Web\Query\GetPlayerDuplicateCases;
+use SpeedPuzzling\Web\Query\GetPlayerReviewCounts;
 use SpeedPuzzling\Web\Results\DuplicateCopiesDeleted;
 use SpeedPuzzling\Web\Results\DuplicateReviewCopy;
 use SpeedPuzzling\Web\Results\DuplicateReviewSet;
@@ -57,6 +58,19 @@ final class DuplicateSetActionsTest extends KernelTestCase
         $recap = self::getContainer()->get(GetPlayerDuplicateCases::class)->openOfTime(self::MICHAEL, $byMichael);
         self::assertCount(1, $recap);
         self::assertSame([$bySarah, $byAdmin, $byMichael], $recap[0]->timeIds());
+    }
+
+    public function testTheBannerCountsASetOnce(): void
+    {
+        $before = self::getContainer()->get(GetPlayerReviewCounts::class)->forPlayer(self::SARAH)->duplicates;
+
+        $this->teamResultSavedByAllThree();
+
+        // Three copies = three cases for Sarah, but one result saved several times - one card, one in the count
+        self::assertSame(
+            $before + 1,
+            self::getContainer()->get(GetPlayerReviewCounts::class)->forPlayer(self::SARAH)->duplicates,
+        );
     }
 
     public function testDeletingMyCopyClosesItsCasesForEverybodyAndTheRestStaysOpen(): void

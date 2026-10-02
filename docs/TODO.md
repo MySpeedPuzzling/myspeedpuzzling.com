@@ -10,10 +10,9 @@ Plan: [`features/duplicate-results.md`](features/duplicate-results.md).
 
 - [ ] "Possibly saved twice" marker in the player's results list (`PlayerSolvedPuzzles`) for results with an open
       case - left out of P4 while those templates are being reworked
-- [ ] The banner (`GetPlayerReviewCounts`) still counts cases, not sets: a result saved by three teammates says
-      "3 results may have been saved twice" while the review page shows one card
 - [ ] Cron lines in `~/www/lily.srv` for detect (daily 04:14), plan (daily 04:29) and send (hourly :44, 08-20
-      Europe/Prague) - prepared with P5, not applied yet
+      Europe/Prague) - committed on the lily.srv branch `myspeedpuzzling-duplicate-results`, push it when this
+      feature deploys; then run the first detection by hand with `--backfill`
 - [ ] "Your results" first wave: 20 e-mails, then after 2-3 days check bounces/complaints, the reaction rate and the
       folder at Gmail / iCloud / Seznam (admin "Contacts"), then `RESULT_REVIEW_EMAILS_PER_DAY` ≈ 50 on the box
 

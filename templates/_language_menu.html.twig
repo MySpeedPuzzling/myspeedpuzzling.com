@@ -1,0 +1,51 @@
+{# The other five languages - the topbar switcher and the footer one share it.
+   Uses routeParamsXx / currentRoute from base.html.twig #}
+<ul class="dropdown-menu dropdown-menu-end" data-controller="locale-preference">
+    {% if app.request.locale is not same as 'en' %}
+        <li>
+            <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParamsEn) : path('homepage', {'_locale': 'en'}) }}" data-action="click->locale-preference#save" data-locale-preference-locale-param="en">
+                <span class="fi shadow-custom fi-us me-1"></span> English
+            </a>
+        </li>
+    {% endif %}
+
+    {% if app.request.locale is not same as 'de' %}
+        <li>
+            <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParamsDe) : path('homepage', {'_locale': 'de'}) }}" data-action="click->locale-preference#save" data-locale-preference-locale-param="de">
+                <span class="fi shadow-custom fi-de me-1"></span> Deutsch
+            </a>
+        </li>
+    {% endif %}
+
+    {% if app.request.locale is not same as 'cs' %}
+        <li>
+            <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParamsCs) : path('homepage', {'_locale': 'cs'}) }}" data-action="click->locale-preference#save" data-locale-preference-locale-param="cs">
+                <span class="fi shadow-custom fi-cz me-1"></span> Čeština
+            </a>
+        </li>
+    {% endif %}
+
+    {% if app.request.locale is not same as 'fr' %}
+        <li>
+            <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParamsFr) : path('homepage', {'_locale': 'fr'}) }}" data-action="click->locale-preference#save" data-locale-preference-locale-param="fr">
+                <span class="fi shadow-custom fi-fr me-1"></span> Français
+            </a>
+        </li>
+    {% endif %}
+
+    {% if app.request.locale is not same as 'es' %}
+        <li>
+            <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParamsEs) : path('homepage', {'_locale': 'es'}) }}" data-action="click->locale-preference#save" data-locale-preference-locale-param="es">
+                <span class="fi shadow-custom fi-es me-1"></span> Español
+            </a>
+        </li>
+    {% endif %}
+
+    {% if app.request.locale is not same as 'ja' %}
+        <li>
+            <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParamsJa) : path('homepage', {'_locale': 'ja'}) }}" data-action="click->locale-preference#save" data-locale-preference-locale-param="ja">
+                <span class="fi shadow-custom fi-jp me-1"></span> 日本語
+            </a>
+        </li>
+    {% endif %}
+</ul>

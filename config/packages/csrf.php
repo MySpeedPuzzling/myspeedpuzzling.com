@@ -44,6 +44,9 @@ return App::config([
                 // player opens (members modal, offer modal) - a session-backed token would
                 // start a session on each of them (#164)
                 'start_free_trial',
+                // The footer's "Turn it on" form for players who switched the newsletter off sits
+                // on every page they open - a session-backed token would write the session each time
+                'newsletter-turn-on',
             ],
         ],
     ],

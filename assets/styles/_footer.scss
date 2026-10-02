@@ -1,0 +1,344 @@
+//
+// Site footer (docs/features/site-footer.md)
+// The theme's darkest slate, so the page visibly ends. Every text on it passes WCAG AA:
+// links 7.7:1, muted text 4.9:1 (5.6:1 on the bar), the light coral 5.3:1.
+//
+
+$footer-bg:            $gray-900;
+$footer-bar-bg:        #232a37;
+$footer-heading-color: $white;
+$footer-link-color:    #c5ccd8;
+$footer-muted-color:   #98a2b3;
+$footer-accent-color:  #ff8384;
+$footer-rule-color:    rgba($white, .12);
+
+.site-footer {
+  margin-top: 3rem;
+  background-color: $footer-bg;
+  color: $footer-muted-color;
+  font-size: $font-size-sm;
+
+  a:focus-visible,
+  button:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid $footer-accent-color;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+// Links on the dark background - scoped, so the white language dropdown keeps its own colours
+.footer-links,
+.footer-legal,
+.footer-social,
+.footer-credit {
+  a {
+    color: $footer-link-color;
+    text-decoration: none;
+
+    &:hover {
+      color: $white;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+}
+
+.footer-heading {
+  display: block;
+  margin: 0 0 .625rem;
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: $footer-heading-color;
+}
+
+// At least 24px tall per link (WCAG 2.5.8)
+.footer-links {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li + li { margin-top: .1875rem; }
+
+  a {
+    display: inline-block;
+    padding: .1875rem 0;
+    line-height: 1.4;
+  }
+}
+
+// Newsletter band (guests)
+.footer-newsletter {
+  border-bottom: 1px solid $footer-rule-color;
+}
+
+.footer-newsletter-inner {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1.75rem;
+  padding-bottom: 1.75rem;
+
+  @include media-breakpoint-up(md) {
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 26rem);
+    align-items: start;
+    gap: 2rem;
+  }
+}
+
+.footer-newsletter-title {
+  margin: 0 0 .25rem;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-medium;
+  color: $footer-heading-color;
+}
+
+.footer-newsletter-consent {
+  margin: .5rem 0 0;
+  font-size: $font-size-xs;
+
+  a {
+    color: $footer-accent-color;
+    text-decoration: underline;
+  }
+}
+
+// Columns + brand block
+.footer-main {
+  display: grid;
+  gap: 2rem;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+
+  @include media-breakpoint-up(lg) {
+    grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr);
+    gap: 3rem;
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+
+    .footer-brand { grid-column: 1; grid-row: 1; }
+    .footer-columns { grid-column: 2; grid-row: 1; }
+  }
+}
+
+.footer-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.75rem 1.25rem;
+
+  @include media-breakpoint-up(md) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.footer-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: .625rem;
+  font-size: 1rem;
+  font-weight: $font-weight-medium;
+  color: $footer-heading-color;
+
+  &:hover {
+    color: $footer-heading-color;
+    text-decoration: none;
+  }
+
+  img { width: 40px; height: auto; }
+}
+
+.footer-tagline {
+  max-width: 22rem;
+  margin: .625rem 0 .75rem;
+  line-height: 1.55;
+}
+
+.footer-social {
+  display: flex;
+  gap: .25rem;
+  margin: 0 0 0 -.5rem;
+
+  a {
+    display: inline-grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: .5rem;
+    font-size: 1.125rem;
+
+    &:hover {
+      background-color: $footer-rule-color;
+      text-decoration: none;
+    }
+  }
+}
+
+// Popular searches (guests): folded groups on phones, four open columns from md up
+.footer-popular {
+  border-top: 1px solid $footer-rule-color;
+
+  > .container {
+    padding-top: 1.25rem;
+    padding-bottom: 1.5rem;
+  }
+}
+
+.footer-popular-title {
+  margin: 0 0 .25rem;
+  font-size: .9375rem;
+  font-weight: $font-weight-medium;
+  color: $footer-heading-color;
+}
+
+.footer-popular-group {
+  border-bottom: 1px solid $footer-rule-color;
+
+  > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 2.75rem;
+    margin: 0;
+    list-style: none;
+    cursor: pointer;
+
+    &::-webkit-details-marker { display: none; }
+
+    &::after {
+      content: "";
+      width: .4375rem;
+      height: .4375rem;
+      border-right: 1.5px solid currentColor;
+      border-bottom: 1.5px solid currentColor;
+      transform: translateY(-2px) rotate(45deg);
+    }
+  }
+
+  &[open] > summary::after {
+    transform: translateY(2px) rotate(-135deg);
+  }
+
+  .footer-links {
+    padding-bottom: .75rem;
+
+    a { font-size: $font-size-ms; }
+  }
+}
+
+@include media-breakpoint-up(md) {
+  .footer-popular-groups {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0 1.25rem;
+    margin-top: .75rem;
+  }
+
+  .footer-popular-group {
+    border-bottom: 0;
+  }
+
+  // Shown open without JS. A browser without ::details-content keeps the groups folded, still usable
+  @supports selector(::details-content) {
+    .footer-popular-group::details-content {
+      content-visibility: visible;
+    }
+
+    .footer-popular-group > summary {
+      min-height: 0;
+      margin-bottom: .625rem;
+      pointer-events: none;
+      cursor: default;
+
+      &::after { display: none; }
+    }
+  }
+}
+
+// Bottom bar: © + language share the first row on phones, legal links go below them
+.footer-bar {
+  background-color: $footer-bar-bg;
+  font-size: $font-size-ms;
+}
+
+.footer-bar-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "copy language"
+    "legal legal";
+  align-items: center;
+  gap: .375rem 1rem;
+  padding-top: 1rem;
+  padding-bottom: 1.125rem;
+
+  @include media-breakpoint-up(md) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "copy legal language";
+    column-gap: 1.25rem;
+  }
+}
+
+.footer-copy {
+  grid-area: copy;
+  margin: 0;
+}
+
+.footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  grid-area: legal;
+  gap: 0 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  a {
+    display: inline-block;
+    padding: .1875rem 0;
+  }
+}
+
+.footer-language {
+  grid-area: language;
+  justify-self: end;
+}
+
+.footer-language-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  min-height: 2rem;
+  padding: .25rem .625rem;
+  border: 1px solid $footer-rule-color;
+  border-radius: .375rem;
+  background: transparent;
+  color: $footer-link-color;
+  font-size: inherit;
+
+  &:hover {
+    border-color: rgba($white, .3);
+    color: $white;
+  }
+}
+
+.footer-newsletter-off,
+.footer-credit {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.footer-link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: $footer-accent-color;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.footer-credit a {
+  text-decoration: underline;
+  text-decoration-color: rgba($white, .3);
+}

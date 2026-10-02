@@ -41,10 +41,20 @@
   "visibility_private": "Soukromá"
 "footer":
   "created_with_love": "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"
-  "about": "MySpeedPuzzling je největší speed puzzling platforma na světě a tracker časů skládání puzzle.<br>Sledujte svou sbírku puzzlí, zaznamenávejte časy skládání a porovnávejte se s puzzlery z celého světa. Ať už skládáte pro relaxaci, nebo na čas, tady je vaše místo pro sdílení a společnou zábavu."
+  "tagline": "MySpeedPuzzling je největší speed puzzling platforma na světě a tracker časů skládání puzzle."
+  "nav_label": "Odkazy webu"
+  "language": "Jazyk"
+  "puzzle_database": "Databáze puzzlí"
+  "column":
+    "discover": "Objevujte"
+    "track": "Zaznamenávejte"
+    "learn": "Naučte se"
+  "group":
+    "brand_size": "Značka a velikost"
+    "brands": "Značky"
+    "pieces_times": "Počty dílků a časy"
+    "world_championship": "Mistrovství světa"
   "popular_search": "Často hledané"
-  "speed_puzzling_leaderboard": "Speed Puzzling Žebříček"
-  "speed_puzzling_players": "Speed Puzzling Hráči"
   "latest_puzzle_times": "Nejnovější Časy Puzzlí"
   "brand_puzzles": "Puzzle %brand%"
   "pieces_puzzles": "Puzzle %pieces% dílků"
@@ -3504,12 +3514,13 @@ auth:
 
 newsletter:
     footer:
-        title: "📬 Co je nového na MySpeedPuzzling"
+        title: "Co je nového na MySpeedPuzzling"
         pitch: "Nové funkce a novinky z platformy, jednou měsíčně. Žádný marketing, žádná reklama."
         email_placeholder: "Váš e-mail"
         subscribe_button: "Odebírat"
         consent: 'Přihlášením souhlasíte se zasíláním newsletteru MySpeedPuzzling. Odhlásit se můžete kdykoliv jedním kliknutím. <a href="%privacyUrl%">Zásady ochrany soukromí</a>'
-        manage_link: "Odběr newsletteru spravujete v nastavení notifikací"
+        switched_off: "Měsíční e-mail s novinkami máte vypnutý."
+        turn_on: "Zapnout"
     flash:
         try_again: "Něco se pokazilo, zkuste to prosím znovu."
         invalid_email: "Zadejte prosím platnou e-mailovou adresu."
@@ -3518,6 +3529,7 @@ newsletter:
         headline: "Ještě jeden krok — mrkněte do e-mailu"
         sent: "Právě jsme vám poslali potvrzovací e-mail. Klikněte na odkaz v něm a newsletter je váš."
         spam_hint: "Nic nedorazilo? Dejte tomu chvilku — a pro jistotu mrkněte i do spamu."
+        turned_on: "Měsíční e-mail s novinkami je zapnutý. Děkujeme!"
         expires: "Potvrzovací odkaz platí %hours% hodin."
         cta_homepage: "Prozkoumat MySpeedPuzzling"
     confirm:

@@ -43,10 +43,20 @@
   "visibility_private": "非公開"
 "footer":
   "created_with_love": "%simona%と%jan%によってパズルとコードへの愛を込めて作成されました"
-  "about": "MySpeedPuzzlingは世界最大のスピードパズルプラットフォームであり、ジグソーパズルのタイムトラッカーです。<br>パズルコレクションを管理し、完成タイムを記録し、世界中のパズラーと比較しましょう。リラックスのためでも、タイムを競うためでも、ここはあなたが共有し、一緒に楽しむ場所です。"
+  "tagline": "MySpeedPuzzlingは世界最大のスピードパズルプラットフォームであり、ジグソーパズルのタイムトラッカーです。"
+  "nav_label": "サイトリンク"
+  "language": "言語"
+  "puzzle_database": "パズルデータベース"
+  "column":
+    "discover": "見つける"
+    "track": "記録する"
+    "learn": "学ぶ"
+  "group":
+    "brand_size": "ブランドとピース数"
+    "brands": "ブランド"
+    "pieces_times": "ピース数とタイム"
+    "world_championship": "世界選手権"
   "popular_search": "人気検索"
-  "speed_puzzling_leaderboard": "スピードパズリングリーダーボード"
-  "speed_puzzling_players": "スピードパズリングプレイヤー"
   "latest_puzzle_times": "最新のパズルタイム"
   "brand_puzzles": "%brand%のパズル"
   "pieces_puzzles": "%pieces%ピースパズル"
@@ -3497,12 +3507,13 @@ qr_code:
 
 newsletter:
     footer:
-        title: "📬 MySpeedPuzzling の新着情報"
+        title: "MySpeedPuzzling の新着情報"
         pitch: "新機能とプラットフォームの最新情報を月1回お届けします。マーケティングや宣伝はありません。"
         email_placeholder: "メールアドレス"
         subscribe_button: "登録する"
         consent: '登録すると、MySpeedPuzzlingニュースレターの受信に同意したことになります。配信停止はいつでもワンクリックで可能です。<a href="%privacyUrl%">プライバシーポリシー</a>'
-        manage_link: "ニュースレターの配信は通知設定で管理できます"
+        switched_off: "月刊ニュースメールはオフになっています。"
+        turn_on: "オンにする"
     flash:
         try_again: "問題が発生しました。もう一度お試しください。"
         invalid_email: "有効なメールアドレスを入力してください。"
@@ -3511,6 +3522,7 @@ newsletter:
         headline: "あと一歩です — メールをご確認ください"
         sent: "確認メールをお送りしました。メール内のリンクをクリックすると、ニュースレターの登録が完了します。"
         spam_hint: "届いていませんか？もう少しお待ちください — 念のため迷惑メールフォルダもご確認ください。"
+        turned_on: "月刊ニュースメールをオンにしました。ありがとうございます！"
         expires: "確認リンクの有効期限は%hours%時間です。"
         cta_homepage: "MySpeedPuzzlingを見てみる"
     confirm:

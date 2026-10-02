@@ -41,10 +41,20 @@
   "visibility_private": "Privat"
 "footer":
   "created_with_love": "Mit Liebe für Puzzles und Code erstellt von %simona% und %jan%"
-  "about": "MySpeedPuzzling ist die weltweit größte Speedpuzzeln-Plattform und der Zeit-Tracker für Ihre Puzzles.<br>Verfolgen Sie Ihre Puzzle-Sammlung, erfassen Sie Legezeiten und vergleichen Sie sich mit Puzzlern aus aller Welt. Ob Sie zum Entspannen oder auf Zeit puzzeln – hier können Sie teilen und gemeinsam Spaß haben."
+  "tagline": "MySpeedPuzzling ist die weltweit größte Speedpuzzeln-Plattform und der Zeit-Tracker für Ihre Puzzles."
+  "nav_label": "Seitenlinks"
+  "language": "Sprache"
+  "puzzle_database": "Puzzle-Datenbank"
+  "column":
+    "discover": "Entdecken"
+    "track": "Erfassen"
+    "learn": "Lernen"
+  "group":
+    "brand_size": "Marke & Größe"
+    "brands": "Marken"
+    "pieces_times": "Teilezahlen & Zeiten"
+    "world_championship": "Weltmeisterschaft"
   "popular_search": "Beliebte Suchanfragen"
-  "speed_puzzling_leaderboard": "Speed Puzzling Bestenliste"
-  "speed_puzzling_players": "Speed Puzzling Spieler"
   "latest_puzzle_times": "Neueste Puzzle-Zeiten"
   "brand_puzzles": "%brand% Puzzles"
   "pieces_puzzles": "%pieces%-teilige Puzzles"
@@ -3506,12 +3516,13 @@ auth:
 
 newsletter:
     footer:
-        title: "📬 Was gibt's Neues auf MySpeedPuzzling"
+        title: "Was gibt's Neues auf MySpeedPuzzling"
         pitch: "Neue Funktionen und Plattform-News, einmal im Monat. Kein Marketing, keine Werbung."
         email_placeholder: "Ihre E-Mail-Adresse"
         subscribe_button: "Abonnieren"
         consent: 'Mit der Anmeldung stimmen Sie dem Erhalt des MySpeedPuzzling-Newsletters zu. Abmelden können Sie sich jederzeit mit einem Klick. <a href="%privacyUrl%">Datenschutzerklärung</a>'
-        manage_link: "Verwalten Sie Ihr Newsletter-Abo in den Benachrichtigungseinstellungen"
+        switched_off: "Die monatliche Neuigkeiten-E-Mail ist ausgeschaltet."
+        turn_on: "Einschalten"
     flash:
         try_again: "Etwas ist schiefgelaufen, bitte versuchen Sie es erneut."
         invalid_email: "Bitte geben Sie eine gültige E-Mail-Adresse ein."
@@ -3520,6 +3531,7 @@ newsletter:
         headline: "Noch ein Schritt – schauen Sie in Ihr Postfach"
         sent: "Wir haben Ihnen gerade eine Bestätigungs-E-Mail geschickt. Klicken Sie auf den Link darin und der Newsletter gehört Ihnen."
         spam_hint: "Nichts angekommen? Geben Sie ihr einen Moment – und werfen Sie zur Sicherheit auch einen Blick in den Spam-Ordner."
+        turned_on: "Die monatliche Neuigkeiten-E-Mail ist eingeschaltet. Danke!"
         expires: "Der Bestätigungslink ist %hours% Stunden gültig."
         cta_homepage: "MySpeedPuzzling entdecken"
     confirm:

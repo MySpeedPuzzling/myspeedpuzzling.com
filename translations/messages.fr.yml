@@ -43,10 +43,20 @@
   "visibility_private": "Privée"
 "footer":
   "created_with_love": "Créé avec amour pour les puzzles et le code par %simona% et %jan%"
-  "about": "MySpeedPuzzling est la plus grande plateforme de speed puzzling au monde et un tracker de temps de puzzle.<br>Suivez votre collection de puzzles, enregistrez vos temps d'assemblage et comparez-vous aux puzzleurs du monde entier. Que vous assembliez pour vous détendre ou pour la vitesse, c'est votre lieu de partage et de convivialité."
+  "tagline": "MySpeedPuzzling est la plus grande plateforme de speed puzzling au monde et un tracker de temps de puzzle."
+  "nav_label": "Liens du site"
+  "language": "Langue"
+  "puzzle_database": "Base de données de puzzles"
+  "column":
+    "discover": "Découvrir"
+    "track": "Suivre"
+    "learn": "Apprendre"
+  "group":
+    "brand_size": "Marque et taille"
+    "brands": "Marques"
+    "pieces_times": "Nombre de pièces et temps"
+    "world_championship": "Championnat du monde"
   "popular_search": "Recherches populaires"
-  "speed_puzzling_leaderboard": "Classement Speed Puzzling"
-  "speed_puzzling_players": "Joueurs Speed Puzzling"
   "latest_puzzle_times": "Derniers temps de puzzle"
   "brand_puzzles": "Puzzles %brand%"
   "pieces_puzzles": "Puzzles %pieces% pièces"
@@ -3508,12 +3518,13 @@ edition:
 
 newsletter:
     footer:
-        title: "📬 Les nouveautés de MySpeedPuzzling"
+        title: "Les nouveautés de MySpeedPuzzling"
         pitch: "Nouvelles fonctionnalités et actualités de la plateforme, une fois par mois. Pas de marketing, pas de promotions."
         email_placeholder: "Votre adresse e-mail"
         subscribe_button: "S'abonner"
         consent: 'En vous abonnant, vous acceptez de recevoir la newsletter MySpeedPuzzling. Désabonnez-vous à tout moment en un clic. <a href="%privacyUrl%">Politique de confidentialité</a>'
-        manage_link: "Gérez votre abonnement à la newsletter dans les paramètres de notifications"
+        switched_off: "L'e-mail mensuel des nouveautés est désactivé."
+        turn_on: "L'activer"
     flash:
         try_again: "Une erreur est survenue, veuillez réessayer."
         invalid_email: "Veuillez saisir une adresse e-mail valide."
@@ -3522,6 +3533,7 @@ newsletter:
         headline: "Plus qu'une étape — vérifiez votre boîte de réception"
         sent: "Nous venons de vous envoyer un e-mail de confirmation. Cliquez sur le lien qu'il contient et la newsletter est à vous."
         spam_hint: "Rien reçu ? Patientez une minute — et jetez un œil dans vos spams, au cas où."
+        turned_on: "L'e-mail mensuel des nouveautés est activé. Merci !"
         expires: "Le lien de confirmation est valable %hours% heures."
         cta_homepage: "Explorer MySpeedPuzzling"
     confirm:

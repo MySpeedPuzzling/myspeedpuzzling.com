@@ -16,6 +16,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * "Popular searches" in the footer (guests only) links real pages - brand × pieces pages, brand hubs, the
  * brand directory, a pieces hub, WJPC events and guides - never ?brand= / ?tag= / ?pieces= filter URLs,
  * which crawlers see as an empty shell canonicalised to /puzzle (docs/features/seo/research-2026-09.md §4.4).
+ * Grouped in four <details> (docs/features/site-footer.md); leaderboard, players and latest times are
+ * linked from the footer columns instead, never twice.
  */
 final class FooterPopularSearchesTest extends WebTestCase
 {
@@ -41,18 +43,20 @@ final class FooterPopularSearchesTest extends WebTestCase
             '/en/puzzle/brand/masterpieces',
             '/en/puzzle/brands',
             '/en/puzzle/750-pieces',
+            '/en/puzzle/1000-pieces/hardest',
+            '/en/guides/how-long-does-a-1000-piece-puzzle-take',
+            '/en/guides/average-puzzle-time-by-piece-count',
             '/en/events/world-jigsaw-puzzle-championship-2026',
             '/en/events/world-jigsaw-puzzle-championship-2025',
             '/en/events/world-jigsaw-puzzle-championship-2024',
             '/en/events/world-jigsaw-puzzle-championship-2023',
             '/en/events/world-jigsaw-puzzle-championship-2022',
-            $urlGenerator->generate('ladder', ['_locale' => 'en']),
-            $urlGenerator->generate('players', ['_locale' => 'en']),
-            $urlGenerator->generate('recent_activity', ['_locale' => 'en']),
-            '/en/guides/how-long-does-a-1000-piece-puzzle-take',
-            '/en/puzzle/1000-pieces/hardest',
-            '/en/guides/average-puzzle-time-by-piece-count',
         ], $links->extract(['href']));
+
+        $footerColumns = $crawler->filter('footer .footer-columns a')->extract(['href']);
+        foreach (['ladder', 'players', 'recent_activity'] as $route) {
+            self::assertContains($urlGenerator->generate($route, ['_locale' => 'en']), $footerColumns);
+        }
 
         $labels = $links->each(static fn (Crawler $link): string => $link->text());
         foreach (['Ravensburger 500-Piece Puzzles', 'Cobble Hill Puzzles', 'All puzzle brands A–Z', '750 Piece Puzzles', 'WJPC 2026', 'How long does a 1000-piece puzzle take?', 'Hardest 1000-piece puzzles', 'Puzzle solve times by piece count'] as $label) {
@@ -102,7 +106,7 @@ final class FooterPopularSearchesTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $links = $crawler->filter('footer ul.footer-popular-searches a');
-        self::assertCount(22, $links);
+        self::assertCount(19, $links);
 
         foreach ($links->each(static fn (Crawler $link): string => $link->text()) as $label) {
             self::assertStringNotContainsString('%', $label);

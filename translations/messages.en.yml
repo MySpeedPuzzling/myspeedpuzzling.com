@@ -44,10 +44,20 @@ form:
 
 footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"
-    about: "MySpeedPuzzling is the world's largest speed puzzling platform and jigsaw puzzle time tracker.<br>Track your puzzle collection, log solve times, and compare with puzzlers worldwide. Whether you puzzle for relaxation or speed, this is your place to share and have fun together."
+    tagline: "MySpeedPuzzling is the world's largest speed puzzling platform and jigsaw puzzle time tracker."
+    nav_label: "Site links"
+    language: "Language"
+    puzzle_database: "Puzzle database"
+    column:
+        discover: "Discover"
+        track: "Track"
+        learn: "Learn"
+    group:
+        brand_size: "Brand & size"
+        brands: "Brands"
+        pieces_times: "Piece counts & times"
+        world_championship: "World Championship"
     popular_search: "Popular searches"
-    speed_puzzling_leaderboard: "Speed Puzzling Leaderboard"
-    speed_puzzling_players: "Speed Puzzling Players"
     latest_puzzle_times: "Latest Puzzle Times"
     brand_puzzles: "%brand% Puzzles"
     pieces_puzzles: "%pieces% Piece Puzzles"
@@ -3813,12 +3823,13 @@ auth:
 
 newsletter:
     footer:
-        title: "📬 What's new on MySpeedPuzzling"
+        title: "What's new on MySpeedPuzzling"
         pitch: "New features and platform news, once a month. No marketing, no promotions."
         email_placeholder: "Your e-mail address"
         subscribe_button: "Subscribe"
         consent: 'By subscribing you agree to receiving the MySpeedPuzzling newsletter. Unsubscribe anytime with one click. <a href="%privacyUrl%">Privacy policy</a>'
-        manage_link: "Manage your newsletter subscription in notification settings"
+        switched_off: "The monthly news e-mail is off."
+        turn_on: "Turn it on"
     flash:
         try_again: "Something went wrong, please try again."
         invalid_email: "Please enter a valid e-mail address."
@@ -3827,6 +3838,7 @@ newsletter:
         headline: "One more step — check your inbox"
         sent: "We've just sent you a confirmation e-mail. Click the link inside and the newsletter is yours."
         spam_hint: "Nothing there? Give it a minute — and maybe peek into the spam folder, just in case."
+        turned_on: "The monthly news e-mail is on. Thanks!"
         expires: "The confirmation link is valid for %hours% hours."
         cta_homepage: "Explore MySpeedPuzzling"
     confirm:

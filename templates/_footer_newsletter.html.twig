@@ -1,0 +1,23 @@
+{# Guests only: players are subscribed by default and switch it in notification settings
+   (a player who switched it off gets one quiet line in the footer bar instead) #}
+<section class="footer-newsletter" aria-labelledby="footer-newsletter-title">
+    <div class="container px-3 footer-newsletter-inner">
+        <div>
+            <h2 class="footer-newsletter-title" id="footer-newsletter-title">{{ 'newsletter.footer.title'|trans }}</h2>
+            <p class="mb-0">{{ 'newsletter.footer.pitch'|trans }}</p>
+        </div>
+
+        {# data-turbo=false: a Turbo-driven redirect keeps the footer scroll position,
+           landing the visitor at the bottom of the check-inbox page #}
+        <form action="{{ path('newsletter_subscribe') }}" method="post" data-turbo="false">
+            <input type="hidden" name="_token" value="{{ csrf_token('newsletter-subscribe') }}">
+            <div class="input-group">
+                <input type="email" class="form-control" name="email" required autocomplete="email"
+                       placeholder="{{ 'newsletter.footer.email_placeholder'|trans }}"
+                       aria-label="{{ 'newsletter.footer.email_placeholder'|trans }}">
+                <button class="btn btn-primary" type="submit">{{ 'newsletter.footer.subscribe_button'|trans }}</button>
+            </div>
+            <p class="footer-newsletter-consent">{{ 'newsletter.footer.consent'|trans({'%privacyUrl%': path('privacy_policy')})|raw }}</p>
+        </form>
+    </div>
+</section>

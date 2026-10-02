@@ -1,0 +1,181 @@
+{# Site footer (docs/features/site-footer.md): links in four labelled columns, the brand block,
+   "Popular searches" for guests, then legal, language and credits in the bottom bar #}
+<div class="container px-3 footer-main">
+    <nav class="footer-columns" aria-label="{{ 'footer.nav_label'|trans }}">
+        <div>
+            <h2 class="footer-heading">{{ 'footer.column.discover'|trans }}</h2>
+            <ul class="footer-links">
+                <li><a href="{{ path('puzzles') }}">{{ 'footer.puzzle_database'|trans }}</a></li>
+                <li><a href="{{ path('ladder') }}">{{ 'menu.ladder'|trans }}</a></li>
+                <li><a href="{{ path('players') }}">{{ 'menu.players'|trans }}</a></li>
+                <li><a href="{{ path('recent_activity') }}">{{ 'footer.latest_puzzle_times'|trans }}</a></li>
+                <li><a href="{{ path('events') }}">{{ 'menu.events'|trans }}</a></li>
+                <li><a href="{{ path('marketplace') }}">Marketplace</a></li>
+            </ul>
+        </div>
+
+        <div>
+            <h2 class="footer-heading">{{ 'footer.column.track'|trans }}</h2>
+            <ul class="footer-links">
+                <li><a rel="nofollow" href="{{ path('puzzle_add') }}">{{ 'footer.puzzle_add'|trans }}</a></li>
+                <li><a rel="nofollow" href="{{ path('stopwatch') }}">{{ 'menu.stopwatch'|trans }}</a></li>
+                <li><a rel="nofollow" href="{{ path('multiscan') }}">{{ 'multiscan.title'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
+                <li><a href="{{ path('puzzle_picker') }}">{{ 'puzzle_picker.title'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
+                <li><a rel="nofollow" href="{{ path('pairs_and_teams') }}">{{ 'menu.pairs_and_teams'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
+            </ul>
+        </div>
+
+        <div>
+            <h2 class="footer-heading">{{ 'footer.column.learn'|trans }}</h2>
+            <ul class="footer-links">
+                <li><a href="{{ path('getting_started') }}">{{ 'onboarding.guide.link'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
+                <li><a href="{{ path('guides') }}">{{ 'footer.guides'|trans }}</a></li>
+                <li><a href="{{ path('faq') }}">{{ 'menu.faq'|trans }}</a></li>
+                <li><a href="{{ path('methodology') }}">{{ 'footer.methodology'|trans }}</a></li>
+                <li><a href="{{ path('wjpc_hub') }}">{{ 'footer.wjpc'|trans }}</a></li>
+            </ul>
+        </div>
+
+        <div>
+            <h2 class="footer-heading">MySpeedPuzzling</h2>
+            <ul class="footer-links">
+                <li><a href="{{ path('puzzle_tracker_app') }}">{{ 'footer.puzzle_tracker_app'|trans }}</a></li>
+                <li><a rel="nofollow" href="{{ path('membership') }}">{{ 'menu.membership'|trans }}</a></li>
+                <li><a href="{{ path('feature_requests') }}">{{ 'menu.feature_requests'|trans }}</a></li>
+                <li><a rel="nofollow" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="modal-frame"{% endif %}>{{ 'menu.feedback'|trans }}</a></li>
+                <li><a href="{{ path('for_organizers') }}">{{ 'menu.for_organizers'|trans }}</a></li>
+                <li><a href="{{ path('for_developers') }}">{{ 'menu.for_developers'|trans }}</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    {# After the links in the markup, so phones show it below them; from lg up it moves to the left column #}
+    <div class="footer-brand">
+        <a class="footer-logo" href="{{ path('homepage') }}">
+            {# The e-mail logo: its white halo keeps the outline visible on the dark background #}
+            <img src="{{ asset('img/email-logo.png') }}" alt="" width="40" height="36" loading="lazy">
+            MySpeedPuzzling
+        </a>
+        <p class="footer-tagline">{{ 'footer.tagline'|trans }}</p>
+        <p class="footer-social">
+            <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank" rel="noopener" title="Instagram" aria-label="Instagram"><i class="bi-instagram" aria-hidden="true"></i></a>
+            <a href="https://github.com/MySpeedPuzzling/myspeedpuzzling.com" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub"><i class="bi-github" aria-hidden="true"></i></a>
+        </p>
+    </div>
+</div>
+
+{% if logged_user.profile is null %}
+    {# Real pages only - never ?brand= / ?pieces= / ?tag= filter URLs: crawlers get an empty
+       component there, canonicalised to /puzzle (docs/features/seo/research-2026-09.md §4.4).
+       Every brand × pieces page and brand hub here was checked indexable on the production
+       copy (2026-09-30); the BOTYP tags had no event page and are gone. The page being viewed
+       is left out. Leaderboard, players and latest times are in the columns above already. #}
+    {% set brand_size_links = [] %}
+    {% for combination in [
+        {brand: 'Ravensburger', slug: 'ravensburger', pieces: 500},
+        {brand: 'Ravensburger', slug: 'ravensburger', pieces: 1000},
+        {brand: 'Trefl', slug: 'trefl', pieces: 500},
+        {brand: 'Clementoni', slug: 'clementoni', pieces: 500},
+        {brand: 'Buffalo Games', slug: 'buffalo-games', pieces: 500},
+    ] %}
+        {% set brand_size_links = brand_size_links|merge([{
+            label: 'brand_pieces_hub.title'|trans({'%brand%': combination.brand, '%pieces%': combination.pieces}),
+            url: path('brand_pieces_puzzles', {slug: combination.slug, pieces: combination.pieces}),
+        }]) %}
+    {% endfor %}
+
+    {% set brand_links = [] %}
+    {% for brand in [
+        {name: 'Cobble Hill', slug: 'cobble-hill'},
+        {name: 'Educa', slug: 'educa'},
+        {name: 'Galison', slug: 'galison'},
+        {name: 'Masterpieces', slug: 'masterpieces'},
+    ] %}
+        {% set brand_links = brand_links|merge([{
+            label: 'footer.brand_puzzles'|trans({'%brand%': brand.name}),
+            url: path('brand_puzzles', {slug: brand.slug}),
+        }]) %}
+    {% endfor %}
+    {% set brand_links = brand_links|merge([{label: 'brand_directory.all_brands_link'|trans, url: path('puzzle_brands')}]) %}
+
+    {# The guides are English-only - their labels say so in every other language. The hardest
+       1000-piece list had 230 rated puzzles on the production copy (2026-09-30), it needs 50. #}
+    {% set pieces_links = [
+        {label: 'footer.pieces_puzzles'|trans({'%pieces%': 750}), url: path('pieces_puzzles', {pieces: 750})},
+        {label: 'catalogue.difficulty.hardest_pieces'|trans({'%pieces%': 1000}), url: path('pieces_hardest_puzzles', {pieces: 1000})},
+        {label: 'catalogue.guide.how_long'|trans({'%pieces%': 1000}), url: path('guide_puzzle_time_by_pieces'), hreflang: 'en'},
+        {label: 'catalogue.guide.average_time'|trans, url: path('guide_average_puzzle_time'), hreflang: 'en'},
+    ] %}
+
+    {# Standalone events: /events/world-jigsaw-puzzle-championship-{year} #}
+    {% set championship_links = [] %}
+    {% for year in [2026, 2025, 2024, 2023, 2022] %}
+        {% set championship_links = championship_links|merge([{
+            label: 'footer.wjpc_edition'|trans({'%year%': year}),
+            url: path('event_detail', {slug: 'world-jigsaw-puzzle-championship-' ~ year}),
+        }]) %}
+    {% endfor %}
+
+    <nav class="footer-popular" aria-labelledby="footer-popular-title">
+        <div class="container px-3">
+            <h2 class="footer-popular-title" id="footer-popular-title">{{ 'footer.popular_search'|trans }}</h2>
+
+            {# <details> fold the groups on phones; from md up they show open without any JS (_footer.scss) #}
+            <div class="footer-popular-groups">
+                {% for group in [
+                    {title: 'footer.group.brand_size'|trans, links: brand_size_links},
+                    {title: 'footer.group.brands'|trans, links: brand_links},
+                    {title: 'footer.group.pieces_times'|trans, links: pieces_links},
+                    {title: 'footer.group.world_championship'|trans, links: championship_links},
+                ] %}
+                    <details class="footer-popular-group">
+                        <summary class="footer-heading">{{ group.title }}</summary>
+                        <ul class="footer-links footer-popular-searches">
+                            {% for popular_search in group.links|filter(popular_search => popular_search.url != app.request.pathInfo) %}
+                                <li>
+                                    <a href="{{ popular_search.url }}"{% if popular_search.hreflang ?? null %} hreflang="{{ popular_search.hreflang }}"{% endif %}>{{ popular_search.label }}</a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </details>
+                {% endfor %}
+            </div>
+        </div>
+    </nav>
+{% endif %}
+
+{% set language_names = {en: 'English', de: 'Deutsch', cs: 'Čeština', fr: 'Français', es: 'Español', ja: '日本語'} %}
+{% set current_language = language_names[app.request.locale] ?? 'English' %}
+
+<div class="footer-bar">
+    <div class="container px-3 footer-bar-inner">
+        <p class="footer-copy">© {{ 'now'|date('Y') }} MySpeedPuzzling</p>
+
+        <ul class="footer-legal">
+            <li><a href="{{ path('terms_of_service') }}">{{ 'menu.terms_of_service'|trans }}</a></li>
+            <li><a href="{{ path('privacy_policy') }}">{{ 'menu.privacy_policy'|trans }}</a></li>
+            <li><a href="{{ path('data_deletion') }}">{{ 'menu.data_deletion'|trans }}</a></li>
+        </ul>
+
+        <div class="footer-language dropup">
+            <button class="footer-language-toggle dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'footer.language'|trans }}: {{ current_language }}">
+                <i class="bi-globe" aria-hidden="true"></i>
+                {{ current_language }}
+            </button>
+            {{ include('_language_menu.html.twig') }}
+        </div>
+
+        {% if logged_user.profile is not null and not logged_user.profile.newsletterEnabled %}
+            {# Players are subscribed by default, so this one switched it off on purpose: one quiet line, no banner #}
+            <form class="footer-newsletter-off" action="{{ path('newsletter_turn_on') }}" method="post" data-turbo="false">
+                <input type="hidden" name="_token" value="{{ csrf_token('newsletter-turn-on') }}">
+                {{ 'newsletter.footer.switched_off'|trans }}
+                <button class="footer-link-button" type="submit">{{ 'newsletter.footer.turn_on'|trans }}</button>
+            </form>
+        {% endif %}
+
+        <p class="footer-credit">
+            {{ 'footer.created_with_love'|trans({'%simona%': '<a href="mailto:simona@speedpuzzling.cz">Simona&nbsp;Mikešová</a>', '%jan%': '<a href="https://janmikes.cz">Jan&nbsp;Mikeš</a>' })|raw }}
+        </p>
+    </div>
+</div>

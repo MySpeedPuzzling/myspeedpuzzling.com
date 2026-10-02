@@ -4511,3 +4511,11 @@ result_emails:
         confirm_button: "Diese E-Mails abbestellen"
         done: "Erledigt – Sie erhalten keine E-Mails zu Ihren Ergebnissen mehr."
         settings_hint: "Sie können sie jederzeit in Ihren Profileinstellungen unter „Nachrichten & Benachrichtigungen“ wieder einschalten."
+
+digest_emails:
+    unsubscribe:
+        headline: "E-Mails zu Ihren Nachrichten"
+        text: "Sie möchten keine E-Mails mehr zu neuen Nachrichten und Konversationsanfragen erhalten? Ihre anderen E-Mails (zu Ihren Ergebnissen, der Newsletter) bleiben, wie sie sind."
+        confirm_button: "Diese E-Mails abbestellen"
+        done: "Erledigt – Sie erhalten keine E-Mails zu neuen Nachrichten mehr. Ihre Nachrichten kommen auf MySpeedPuzzling weiterhin wie gewohnt an."
+        settings_hint: "Sie können sie jederzeit in Ihren Profileinstellungen unter „Nachrichten & Benachrichtigungen“ wieder einschalten."

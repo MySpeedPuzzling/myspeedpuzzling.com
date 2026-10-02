@@ -61,7 +61,7 @@ unread_messages:
     pending_requests_only: "誰かがあなたに連絡したがっています！承認待ちの新しい会話リクエストが%count%件あります。"
     pending_requests_context: "マーケットプレイスのパズルについて、コレクションへの質問、またはパズラー仲間からの挨拶かもしれません。"
     view_requests: "会話リクエストを確認する"
-    opt_out: 'これらのメール通知は<a href="%settingsUrl%">プロフィール設定</a>から管理できます。'
+    opt_out: 'これらのメール通知は<a href="%settingsUrl%">プロフィール設定</a>から管理できます。<a href="%unsubscribeUrl%">新着メッセージのメールを停止する</a>こともできます。'
 
 oauth2_client_request:
     subject: "新しいOAuth2クライアントリクエスト: %clientName%"

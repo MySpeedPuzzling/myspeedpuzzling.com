@@ -4513,3 +4513,11 @@ result_emails:
         confirm_button: "Ne plus recevoir ces e-mails"
         done: "C’est fait – vous ne recevrez plus d’e-mails sur vos résultats."
         settings_hint: "Vous pouvez les réactiver à tout moment dans les paramètres de votre profil, rubrique « Messagerie et notifications »."
+
+digest_emails:
+    unsubscribe:
+        headline: "E-mails sur vos messages"
+        text: "Vous ne voulez plus recevoir d’e-mails sur les nouveaux messages et les demandes de conversation ? Vos autres e-mails (sur vos résultats, la newsletter) restent inchangés."
+        confirm_button: "Ne plus recevoir ces e-mails"
+        done: "C’est fait – vous ne recevrez plus d’e-mails sur les nouveaux messages. Vos messages continuent d’arriver sur MySpeedPuzzling comme d’habitude."
+        settings_hint: "Vous pouvez les réactiver à tout moment dans les paramètres de votre profil, rubrique « Messagerie et notifications »."

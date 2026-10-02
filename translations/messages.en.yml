@@ -4819,3 +4819,11 @@ result_emails:
         confirm_button: "Stop these e-mails"
         done: "Done – you won't get e-mails about your results any more."
         settings_hint: "You can switch them on again any time in your profile settings under \"Messaging & Notifications\"."
+
+digest_emails:
+    unsubscribe:
+        headline: "E-mails about your messages"
+        text: "Don't want e-mails about new messages and conversation requests any more? Your other e-mails (about your results, the newsletter) stay as they are."
+        confirm_button: "Stop these e-mails"
+        done: "Done – you won't get e-mails about new messages any more. Your messages still arrive on MySpeedPuzzling as usual."
+        settings_hint: "You can switch them on again any time in your profile settings under \"Messaging & Notifications\"."

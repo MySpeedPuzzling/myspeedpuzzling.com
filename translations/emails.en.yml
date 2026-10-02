@@ -61,7 +61,7 @@ unread_messages:
     pending_requests_only: "Someone wants to reach you! You have %count% new conversation request(s) waiting for your approval."
     pending_requests_context: "These could be about a puzzle from the marketplace, a question about your collection, or just a fellow puzzler saying hi."
     view_requests: "Review conversation requests"
-    opt_out: 'You can manage these email notifications in your <a href="%settingsUrl%">profile settings</a>.'
+    opt_out: 'You can manage these email notifications in your <a href="%settingsUrl%">profile settings</a>, or <a href="%unsubscribeUrl%">stop emails about new messages</a>.'
 
 oauth2_client_request:
     subject: "New OAuth2 Client Request: %clientName%"

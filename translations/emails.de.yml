@@ -61,7 +61,7 @@ unread_messages:
     pending_requests_only: "Jemand möchte dich erreichen! Du hast %count% neue Konversationsanfrage(n), die auf deine Genehmigung warten."
     pending_requests_context: "Es könnte um ein Puzzle vom Marktplatz gehen, eine Frage zu deiner Sammlung oder einfach ein Gruß von einem Puzzler."
     view_requests: "Konversationsanfragen ansehen"
-    opt_out: 'Du kannst diese E-Mail-Benachrichtigungen in deinen <a href="%settingsUrl%">Profileinstellungen</a> verwalten.'
+    opt_out: 'Du kannst diese E-Mail-Benachrichtigungen in deinen <a href="%settingsUrl%">Profileinstellungen</a> verwalten oder <a href="%unsubscribeUrl%">E-Mails zu neuen Nachrichten abbestellen</a>.'
 
 oauth2_client_request:
     subject: "Neue OAuth2-Client-Anfrage: %clientName%"

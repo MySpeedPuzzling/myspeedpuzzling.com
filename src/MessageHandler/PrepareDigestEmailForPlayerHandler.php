@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use SpeedPuzzling\Web\Query\GetPlayersWithUnreadMessages;
 use SpeedPuzzling\Web\Repository\DigestEmailLogRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\DigestEmailsUnsubscribeUrl;
 use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
@@ -35,6 +36,7 @@ readonly final class PrepareDigestEmailForPlayerHandler
         private LoggerInterface $logger,
         private EmailPreferencesLinkGenerator $emailPreferencesLinkGenerator,
         private PlayerAccountEmail $playerAccountEmail,
+        private DigestEmailsUnsubscribeUrl $unsubscribeUrl,
     ) {
     }
 
@@ -76,6 +78,8 @@ readonly final class PrepareDigestEmailForPlayerHandler
             locale: $player->locale,
         );
 
+        $unsubscribeUrl = $this->unsubscribeUrl->forPlayer($message->playerId, $player->locale);
+
         $email = (new TemplatedEmail())
             ->from(new Address('notify@notify.myspeedpuzzling.com', 'MySpeedPuzzling'))
             ->to($playerEmail)
@@ -92,8 +96,12 @@ readonly final class PrepareDigestEmailForPlayerHandler
                     $playerEmail,
                     $player->locale,
                 ),
+                'unsubscribeUrl' => $unsubscribeUrl,
             ]);
         $email->getHeaders()->addTextHeader('X-Transport', 'notifications');
+        // One-click unsubscribe (RFC 8058) - Gmail and Yahoo expect it on recurring mail like this digest
+        $email->getHeaders()->addTextHeader('List-Unsubscribe', '<' . $unsubscribeUrl . '>');
+        $email->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
 
         $this->mailer->send($email);
 

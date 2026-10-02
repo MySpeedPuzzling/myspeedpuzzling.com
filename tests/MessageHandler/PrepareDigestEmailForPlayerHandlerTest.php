@@ -9,7 +9,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use SpeedPuzzling\Web\MessageHandler\PrepareDigestEmailForPlayerHandler;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\UriSigner;
 
 final class PrepareDigestEmailForPlayerHandlerTest extends KernelTestCase
 {
@@ -37,6 +40,36 @@ final class PrepareDigestEmailForPlayerHandlerTest extends KernelTestCase
 
         $logCountAfter = $this->countDigestEmailLogs(PlayerFixture::PLAYER_REGULAR);
         self::assertSame($logCountBefore + 1, $logCountAfter);
+    }
+
+    public function testDigestCarriesOneClickUnsubscribe(): void
+    {
+        ($this->handler)(new PrepareDigestEmailForPlayer(
+            playerId: PlayerFixture::PLAYER_REGULAR,
+        ));
+        $this->entityManager->flush();
+
+        // The template name is gone once the e-mail is rendered (TemplatedEmail::markAsRendered()) - the digest is
+        // the only e-mail this handler sends
+        $emails = self::getMailerMessages();
+        self::assertCount(1, $emails);
+        $email = $emails[0];
+        self::assertInstanceOf(TemplatedEmail::class, $email);
+        self::assertSame('Someone messaged you on MySpeedPuzzling', $email->getSubject());
+
+        // RFC 8058: both headers, the URL signed so it works without signing in
+        self::assertSame('List-Unsubscribe=One-Click', $email->getHeaders()->get('List-Unsubscribe-Post')?->getBodyAsString());
+        $header = (string) $email->getHeaders()->get('List-Unsubscribe')?->getBodyAsString();
+        self::assertMatchesRegularExpression(
+            '~^<https?://[^/]+/[a-z]{2}/message-emails/unsubscribe/' . PlayerFixture::PLAYER_REGULAR . '\?_hash=[^>]+>$~',
+            $header,
+        );
+
+        $url = substr($header, 1, -1);
+        self::assertTrue(self::getContainer()->get(UriSigner::class)->checkRequest(Request::create($url, 'POST')));
+
+        // The same link is in the e-mail's opt-out line
+        self::assertStringContainsString(htmlspecialchars($url), (string) $email->getHtmlBody());
     }
 
     public function testDigestEmailLogContainsOldestTimestamps(): void

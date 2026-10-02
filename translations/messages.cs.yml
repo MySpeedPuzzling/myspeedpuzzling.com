@@ -4509,3 +4509,11 @@ result_emails:
         confirm_button: "Už mi je neposílejte"
         done: "Hotovo – e-maily o tvých výsledcích už ti posílat nebudeme."
         settings_hint: "Kdykoli je můžeš znovu zapnout v nastavení profilu v části „Zprávy a upozornění“."
+
+digest_emails:
+    unsubscribe:
+        headline: "E-maily o tvých zprávách"
+        text: "Nechceš už dostávat e-maily o nových zprávách a žádostech o konverzaci? Ostatní e-maily (o tvých výsledcích, newsletter) zůstanou, jak jsou."
+        confirm_button: "Už mi je neposílejte"
+        done: "Hotovo – e-maily o nových zprávách už ti posílat nebudeme. Zprávy ti na MySpeedPuzzling budou chodit dál jako obvykle."
+        settings_hint: "Kdykoli je můžeš znovu zapnout v nastavení profilu v části „Zprávy a upozornění“."

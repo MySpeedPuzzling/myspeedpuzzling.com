@@ -4511,3 +4511,11 @@ result_emails:
         confirm_button: "Dejar de recibir estos correos"
         done: "Listo: ya no te enviaremos correos sobre tus resultados."
         settings_hint: "Puedes volver a activarlos cuando quieras en los ajustes de tu perfil, en «Mensajes y notificaciones»."
+
+digest_emails:
+    unsubscribe:
+        headline: "Correos sobre tus mensajes"
+        text: "¿Ya no quieres recibir correos sobre mensajes nuevos y solicitudes de conversación? Tus demás correos (sobre tus resultados, el boletín) siguen igual."
+        confirm_button: "Dejar de recibir estos correos"
+        done: "Listo: ya no te enviaremos correos sobre mensajes nuevos. Tus mensajes siguen llegando a MySpeedPuzzling como siempre."
+        settings_hint: "Puedes volver a activarlos cuando quieras en los ajustes de tu perfil, en «Mensajes y notificaciones»."

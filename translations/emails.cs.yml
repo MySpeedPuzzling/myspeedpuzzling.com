@@ -61,7 +61,7 @@ unread_messages:
     pending_requests_only: "Někdo se vám snaží napsat! Máte %count% nových žádostí o konverzaci čekajících na vaše schválení."
     pending_requests_context: "Může jít o puzzle z tržiště, dotaz ohledně vaší sbírky, nebo jen pozdrav od puzzlera."
     view_requests: "Zobrazit žádosti o konverzaci"
-    opt_out: 'Tato e-mailová upozornění můžete spravovat v <a href="%settingsUrl%">nastavení profilu</a>.'
+    opt_out: 'Tato e-mailová upozornění můžete spravovat v <a href="%settingsUrl%">nastavení profilu</a>, nebo <a href="%unsubscribeUrl%">e-maily o nových zprávách úplně vypnout</a>.'
 
 competition_submitted:
     subject: "Nová událost odeslána: %competitionName%"

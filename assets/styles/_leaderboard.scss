@@ -283,11 +283,9 @@ a.lb-name,
     }
 }
 
-// Small phones: 1px less for names and times keeps more of the name visible
+// Small phones: tighter cell padding keeps more of the name visible
 @media (max-width: 379.98px) {
     .lb-table {
-        font-size: .875rem;
-
         td.rank {
             padding-left: 6px;
         }
@@ -437,8 +435,6 @@ a.lb-name,
 
 @media (max-width: 379.98px) {
     .ps-table {
-        font-size: .875rem;
-
         td.ps-image {
             padding-left: 8px;
         }
@@ -670,5 +666,14 @@ a.lb-name,
 
     .lb-pcs-short {
         display: inline;
+    }
+}
+
+// Phones: 14 px is the cap for anything in a ranking row - names, times, puzzle names (user feedback)
+@media (max-width: 575.98px) {
+    .lb-table,
+    .ps-table,
+    .player-list-item {
+        font-size: .875rem;
     }
 }

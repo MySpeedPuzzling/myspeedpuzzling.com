@@ -13,6 +13,7 @@ readonly final class EditEmailPreferences
         public bool $newsletterEnabled,
         public bool $emailNotificationsEnabled,
         public EmailNotificationFrequency $emailNotificationFrequency,
+        public bool $resultEmailsEnabled,
     ) {
     }
 }

@@ -800,6 +800,8 @@
   "frequency_1_week": "Une fois par semaine"
   "newsletter_enabled": "Recevoir les newsletters"
   "newsletter_help": "Nous enverrons occasionnellement une newsletter sur les nouveautés de la plateforme, généralement pour expliquer les nouvelles fonctionnalités. Pas de marketing, pas de promotions — uniquement les nouveautés. Fréquence prévue : pas plus d'une fois par mois."
+  "result_emails_enabled": "E-mails sur mes résultats"
+  "result_emails_help": "Nous vous prévenons quand certains de vos résultats semblent enregistrés deux fois, ou quand nous avons retiré une copie enregistrée par erreur. Au plus une fois par semaine, et seulement s’il y a du nouveau."
   "messaging_notifications": "Messagerie et notifications"
   "personal_access_tokens": "Jetons d'accès personnels"
   "personal_access_tokens_description": "Jetons pour accéder à vos propres données via l'API."
@@ -3543,6 +3545,8 @@ email_preferences:
     newsletter_description: "Les nouveautés de MySpeedPuzzling — nouvelles fonctionnalités et actualités de la plateforme, une fois par mois. Pas de marketing, pas de promotions."
     notifications_title: "E-mails de notification"
     notifications_description: "Un petit mot quand quelqu'un vous écrit ou souhaite entrer en contact — uniquement quand quelque chose vous attend vraiment."
+    result_emails_title: "Vos résultats"
+    result_emails_description: "Quand certains de vos résultats semblent enregistrés deux fois, ou que nous avons retiré une copie enregistrée par erreur — au plus une fois par semaine, et seulement s’il y a du nouveau."
     frequency_label: "À quelle fréquence au maximum ?"
     save_button: "Enregistrer mes préférences"
     more_hint: "Vous cherchez plus ? Tous les réglages de votre compte se trouvent dans votre profil."
@@ -4484,3 +4488,11 @@ review_results:
         undone: "Le résultat est de retour."
         undo_failed: "Ce résultat ne peut plus être rétabli."
         changed: "Cela a changé entre-temps – voici ce qu’il en est maintenant."
+
+result_emails:
+    unsubscribe:
+        headline: "E-mails sur vos résultats"
+        text: "Vous ne voulez plus recevoir d’e-mails sur les résultats enregistrés deux fois ? Vos autres e-mails (le récapitulatif des messages, la newsletter) restent inchangés."
+        confirm_button: "Ne plus recevoir ces e-mails"
+        done: "C’est fait – vous ne recevrez plus d’e-mails sur vos résultats."
+        settings_hint: "Vous pouvez les réactiver à tout moment dans les paramètres de votre profil, rubrique « Messagerie et notifications »."

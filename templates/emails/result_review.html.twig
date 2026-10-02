@@ -1,0 +1,78 @@
+{% trans_default_domain 'emails' %}
+{#
+    "Your results" (docs/features/duplicate-results.md, "Telling players"). No action links on purpose: mail scanners
+    open links in advance, so "Review" only opens the page and every action is a POST there.
+#}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig') }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ (first ? 'result_review.title_first' : 'result_review.title_weekly')|trans }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p>{{ 'result_review.greeting'|trans({'%playerName%': playerName ?? 'Puzzler'}) }}</p>
+                    <p>{{ (first ? 'result_review.intro_first' : 'result_review.intro_weekly')|trans }}</p>
+
+                    {% if cases is not empty %}
+                        <p><strong>{{ 'result_review.cases_heading'|trans }}</strong></p>
+                        <ul>
+                            {% for case in cases %}
+                                <li>
+                                    {{ 'result_review.case_line'|trans({
+                                        '%puzzleName%': case.puzzleName,
+                                        '%time%': case.secondsToSolve is not null ? case.secondsToSolve|puzzlingTime : '-',
+                                        '%date%': case.solvedAt|format_date('medium', locale: locale),
+                                    }) }}
+                                    <br><small>{{ ('result_review.kind_' ~ case.lineKind)|trans }}</small>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        {% if moreCases > 0 %}
+                            <p>{{ 'result_review.more'|trans({'%count%': moreCases}) }}</p>
+                        {% endif %}
+                    {% endif %}
+
+                    {% if removals is not empty %}
+                        <p><strong>{{ 'result_review.removals_heading'|trans }}</strong></p>
+                        <ul>
+                            {% for removal in removals %}
+                                <li>
+                                    {{ 'result_review.case_line'|trans({
+                                        '%puzzleName%': removal.puzzleName,
+                                        '%time%': removal.secondsToSolve is not null ? removal.secondsToSolve|puzzlingTime : '-',
+                                        '%date%': removal.solvedAt|format_date('medium', locale: locale),
+                                    }) }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        {% if moreRemovals > 0 %}
+                            <p>{{ 'result_review.more'|trans({'%count%': moreRemovals}) }}</p>
+                        {% endif %}
+                    {% endif %}
+
+                    <p>{{ 'result_review.decide'|trans }}</p>
+
+                    <center>
+                        <button href="{{ url('review_results', {_locale: locale, from: 'rc-' ~ contactId}) }}">
+                            {{ 'result_review.button'|trans }}
+                        </button>
+                    </center>
+
+                    <spacer size-sm="10"></spacer>
+
+                    <p><small>{{ 'result_review.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</small></p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

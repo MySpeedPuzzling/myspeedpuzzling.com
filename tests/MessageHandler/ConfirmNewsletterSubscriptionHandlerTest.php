@@ -65,6 +65,7 @@ final class ConfirmNewsletterSubscriptionHandlerTest extends KernelTestCase
             emailNotificationsEnabled: true,
             emailNotificationFrequency: EmailNotificationFrequency::TwentyFourHours,
             newsletterEnabled: false,
+            resultEmailsEnabled: true,
         ));
 
         self::assertFalse($this->playerRepository->get(PlayerFixture::PLAYER_REGULAR)->newsletterEnabled);

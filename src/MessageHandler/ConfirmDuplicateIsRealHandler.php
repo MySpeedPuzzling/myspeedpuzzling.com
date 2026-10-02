@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Exceptions\DuplicateCaseChanged;
 use SpeedPuzzling\Web\Exceptions\DuplicateCaseNotFound;
 use SpeedPuzzling\Web\Message\ConfirmDuplicateIsReal;
 use SpeedPuzzling\Web\Repository\ResultDuplicateCaseRepository;
+use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewReactions;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -19,6 +20,7 @@ readonly final class ConfirmDuplicateIsRealHandler
 {
     public function __construct(
         private ResultDuplicateCaseRepository $caseRepository,
+        private ResultReviewReactions $resultReviewReactions,
         private ClockInterface $clock,
     ) {
     }
@@ -40,5 +42,6 @@ readonly final class ConfirmDuplicateIsRealHandler
         }
 
         $case->confirmBothReal($this->clock->now(), $message->via);
+        $this->resultReviewReactions->recordFor($case->player->id->toString());
     }
 }

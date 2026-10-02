@@ -9,10 +9,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\UserAccount;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 
 /**
  * Profile settings: the credential cards (issue #147). The #161 Auth0
@@ -85,6 +87,29 @@ final class EditProfileControllerTest extends WebTestCase
         $reloadedAccount = $entityManager->getRepository(UserAccount::class)->findOneBy(['userId' => $userAccount->userId]);
         self::assertNotNull($reloadedAccount);
         self::assertSame($originalEmail, $reloadedAccount->email);
+    }
+
+    public function testResultEmailsSwitchIsSavedWithTheMessagingSettings(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/edit-profile');
+
+        $form = $crawler->filter('form[name="messaging_settings_form"]')->form();
+        $resultEmailsField = $form['messaging_settings_form[resultEmailsEnabled]'];
+        assert($resultEmailsField instanceof ChoiceFormField);
+        self::assertSame('1', $resultEmailsField->getValue(), 'On by default');
+        $resultEmailsField->untick();
+        $browser->submit($form);
+
+        self::assertResponseRedirects();
+
+        $player = $browser->getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR);
+        self::assertFalse($player->resultEmailsEnabled);
+        // It is neither the newsletter nor the chat digest
+        self::assertTrue($player->newsletterEnabled);
+        self::assertTrue($player->emailNotificationsEnabled);
     }
 
     private function seedNativeAccount(KernelBrowser $browser): UserAccount

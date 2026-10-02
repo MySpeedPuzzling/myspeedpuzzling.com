@@ -1005,6 +1005,8 @@ edit_profile:
     frequency_1_week: "Once a week"
     newsletter_enabled: "Receive newsletters"
     newsletter_help: "We will occasionally send a newsletter about what's new on the platform, usually explaining new features. No marketing, no promotions — just what's new. Expected frequency: no more than 1 per month."
+    result_emails_enabled: "E-mails about my results"
+    result_emails_help: "We let you know when some of your results seem to be saved twice, or when we removed a copy saved by mistake. At most once a week, and only when there is something new."
     personal_access_tokens: "Personal Access Tokens"
     personal_access_tokens_description: "Tokens for accessing your own data through the API."
     pat_created_title: "Your Personal Access Token"
@@ -3837,6 +3839,8 @@ email_preferences:
     newsletter_description: "What's new on MySpeedPuzzling — new features and platform news, once a month. No marketing, no promotions."
     notifications_title: "Notification e-mails"
     notifications_description: "A friendly heads-up when someone messages you or wants to connect — sent only when something is actually waiting for you."
+    result_emails_title: "Your results"
+    result_emails_description: "When some of your results seem to be saved twice, or we removed a copy saved by mistake — at most once a week, only when there is something new."
     frequency_label: "How often at most?"
     save_button: "Save my preferences"
     more_hint: "Looking for more? All account settings live in your profile."
@@ -4779,3 +4783,11 @@ review_results:
         undone: "The result is back."
         undo_failed: "This result cannot be brought back any more."
         changed: "This has changed in the meantime – here is how it looks now."
+
+result_emails:
+    unsubscribe:
+        headline: "E-mails about your results"
+        text: "Don't want e-mails about results saved twice any more? Your other e-mails (the messages digest, the newsletter) stay as they are."
+        confirm_button: "Stop these e-mails"
+        done: "Done – you won't get e-mails about your results any more."
+        settings_hint: "You can switch them on again any time in your profile settings under \"Messaging & Notifications\"."

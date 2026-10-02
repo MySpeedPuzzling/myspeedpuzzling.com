@@ -543,6 +543,8 @@
   "frequency_1_week": "Una vez a la semana"
   "newsletter_enabled": "Recibir boletines"
   "newsletter_help": "Ocasionalmente enviaremos un boletín sobre novedades en la plataforma, generalmente explicando nuevas funciones. Sin marketing ni promociones: solo novedades. Frecuencia esperada: no más de 1 al mes."
+  "result_emails_enabled": "Correos sobre mis resultados"
+  "result_emails_help": "Te avisamos cuando algunos de tus resultados parecen estar guardados dos veces o cuando eliminamos una copia guardada por error. Como mucho una vez por semana y solo si hay algo nuevo."
   "features_options": "Opciones de funciones"
   "hide_ranking": "Ocultar mi clasificación y habilidad"
   "hide_ranking_help": "Tu nivel de habilidad y clasificación Rating se ocultarán. No aparecerás en la escalera MSP Rating. Tus datos seguirán usándose en los cálculos de dificultad de puzzles y clasificaciones de otros jugadores."
@@ -3541,6 +3543,8 @@ email_preferences:
     newsletter_description: "Lo nuevo en MySpeedPuzzling: nuevas funciones y novedades de la plataforma, una vez al mes. Sin marketing, sin promociones."
     notifications_title: "E-mails de notificación"
     notifications_description: "Un aviso cuando alguien te escribe o quiere conectar contigo — solo cuando de verdad hay algo esperándote."
+    result_emails_title: "Tus resultados"
+    result_emails_description: "Cuando algunos de tus resultados parecen estar guardados dos veces o eliminamos una copia guardada por error — como mucho una vez por semana y solo si hay algo nuevo."
     frequency_label: "¿Con qué frecuencia como máximo?"
     save_button: "Guardar mis preferencias"
     more_hint: "¿Buscas más? Todos los ajustes de tu cuenta están en tu perfil."
@@ -4482,3 +4486,11 @@ review_results:
         undone: "El resultado ha vuelto."
         undo_failed: "Este resultado ya no se puede recuperar."
         changed: "Esto cambió mientras tanto – así se ve ahora."
+
+result_emails:
+    unsubscribe:
+        headline: "Correos sobre tus resultados"
+        text: "¿Ya no quieres recibir correos sobre resultados guardados dos veces? Tus demás correos (el resumen de mensajes, el boletín) siguen igual."
+        confirm_button: "Dejar de recibir estos correos"
+        done: "Listo: ya no te enviaremos correos sobre tus resultados."
+        settings_hint: "Puedes volver a activarlos cuando quieras en los ajustes de tu perfil, en «Mensajes y notificaciones»."

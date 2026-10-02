@@ -817,6 +817,8 @@
   "frequency_1_week": "Jednou týdně"
   "newsletter_enabled": "Dostávat newsletter"
   "newsletter_help": "Občas vám pošleme newsletter o novinkách na platformě, většinou o nových funkcích. Žádný marketing, žádná reklama — jen novinky. Očekávaná frekvence: maximálně 1x měsíčně."
+  "result_emails_enabled": "E-maily o mých výsledcích"
+  "result_emails_help": "Dáme vám vědět, když se některé vaše výsledky nejspíš uložily dvakrát, nebo když jsme odstranili kopii uloženou omylem. Nejvýš jednou týdně a jen když je něco nového."
   "messaging_notifications": "Zprávy a upozornění"
   "features_options": "Nastavení funkcí"
   "hide_ranking": "Skrýt mé hodnocení a dovednosti"
@@ -3539,6 +3541,8 @@ email_preferences:
     newsletter_description: "Co je nového na MySpeedPuzzling — nové funkce a novinky z platformy, jednou měsíčně. Žádný marketing, žádná reklama."
     notifications_title: "Upozornění e-mailem"
     notifications_description: "Dáme vám vědět, když vám někdo napíše nebo se s vámi chce spojit — píšeme jen tehdy, když na vás opravdu něco čeká."
+    result_emails_title: "Vaše výsledky"
+    result_emails_description: "Když se některé vaše výsledky nejspíš uložily dvakrát, nebo jsme odstranili kopii uloženou omylem — nejvýš jednou týdně a jen když je něco nového."
     frequency_label: "Jak často nejvýše?"
     save_button: "Uložit nastavení"
     more_hint: "Hledáte víc? Všechna nastavení účtu najdete ve svém profilu."
@@ -4480,3 +4484,11 @@ review_results:
         undone: "Výsledek je zpět."
         undo_failed: "Tento výsledek už nejde vrátit."
         changed: "Mezitím se to změnilo – takhle to vypadá teď."
+
+result_emails:
+    unsubscribe:
+        headline: "E-maily o tvých výsledcích"
+        text: "Nechceš už dostávat e-maily o výsledcích uložených dvakrát? Ostatní e-maily (souhrn zpráv, newsletter) zůstanou, jak jsou."
+        confirm_button: "Už mi je neposílejte"
+        done: "Hotovo – e-maily o tvých výsledcích už ti posílat nebudeme."
+        settings_hint: "Kdykoli je můžeš znovu zapnout v nastavení profilu v části „Zprávy a upozornění“."

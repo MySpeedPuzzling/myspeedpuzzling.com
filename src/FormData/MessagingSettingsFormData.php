@@ -13,6 +13,7 @@ final class MessagingSettingsFormData
     public bool $emailNotificationsEnabled = true;
     public EmailNotificationFrequency $emailNotificationFrequency = EmailNotificationFrequency::TwentyFourHours;
     public bool $newsletterEnabled = true;
+    public bool $resultEmailsEnabled = true;
 
     public static function fromPlayerProfile(PlayerProfile $playerProfile): self
     {
@@ -21,6 +22,7 @@ final class MessagingSettingsFormData
         $data->emailNotificationsEnabled = $playerProfile->emailNotificationsEnabled;
         $data->emailNotificationFrequency = $playerProfile->emailNotificationFrequency;
         $data->newsletterEnabled = $playerProfile->newsletterEnabled;
+        $data->resultEmailsEnabled = $playerProfile->resultEmailsEnabled;
 
         return $data;
     }

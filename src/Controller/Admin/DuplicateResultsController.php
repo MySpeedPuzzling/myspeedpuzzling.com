@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetDuplicateResultsOverview;
+use SpeedPuzzling\Web\Query\GetResultReviewContactsOverview;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Value\DuplicateCaseListTab;
 use SpeedPuzzling\Web\Value\DuplicateCaseStatus;
@@ -27,6 +28,9 @@ final class DuplicateResultsController extends AbstractController
     public function __construct(
         private readonly GetDuplicateResultsOverview $getDuplicateResultsOverview,
         private readonly ClockInterface $clock,
+        private readonly GetResultReviewContactsOverview $getResultReviewContactsOverview,
+        private readonly int $resultReviewEmailsPerRun,
+        private readonly int $resultReviewEmailsPerDay,
     ) {
     }
 
@@ -59,6 +63,14 @@ final class DuplicateResultsController extends AbstractController
             'tiers' => DuplicateTier::cases(),
             'kinds' => DuplicateKind::cases(),
             'statuses' => DuplicateCaseStatus::cases(),
+            'contacts' => [
+                'by_type' => $this->getResultReviewContactsOverview->funnelByType(),
+                'waves' => $this->getResultReviewContactsOverview->waves(),
+                'totals' => $this->getResultReviewContactsOverview->totals($now),
+                'delivery' => $this->getResultReviewContactsOverview->delivery(),
+                'per_run' => $this->resultReviewEmailsPerRun,
+                'per_day' => $this->resultReviewEmailsPerDay,
+            ],
         ]);
     }
 }

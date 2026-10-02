@@ -87,6 +87,13 @@ return static function (ContainerConfigurator $configurator): void {
     // the __bb_trust cookie is simply not issued.
     $parameters->set('env(CHALLENGE_COOKIE_SECRET)', '');
 
+    // Pacing of the "Your results" e-mails (docs/features/duplicate-results.md, "Sending"). The first wave is 20
+    // a day; raise it (~50) through the env vars - the cron runs one-off containers, so the next run picks it up.
+    $parameters->set('env(RESULT_REVIEW_EMAILS_PER_RUN)', '10');
+    $parameters->set('env(RESULT_REVIEW_EMAILS_PER_DAY)', '20');
+    $parameters->set('result_review_emails_per_run', '%env(int:RESULT_REVIEW_EMAILS_PER_RUN)%');
+    $parameters->set('result_review_emails_per_day', '%env(int:RESULT_REVIEW_EMAILS_PER_DAY)%');
+
     // Pairs & teams picker rollout (docs/features/feature_flags.md): admins only until flipped to 1.
     $parameters->set('pairsTeamsPickerPublic', '%env(bool:PAIRS_TEAMS_PICKER_PUBLIC)%');
 
@@ -107,6 +114,8 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$signInLinkReuseGraceSeconds', '%signInLinkReuseGraceSeconds%')
         ->bind('$kernelSecret', '%kernel.secret%')
         ->bind('$pairsTeamsPickerPublic', '%pairsTeamsPickerPublic%')
+        ->bind('$resultReviewEmailsPerRun', '%result_review_emails_per_run%')
+        ->bind('$resultReviewEmailsPerDay', '%result_review_emails_per_day%')
         ->bind('$googleClientId', '%env(trim:string:GOOGLE_CLIENT_ID)%')
         ->bind('$googleClientSecret', '%env(trim:string:GOOGLE_CLIENT_SECRET)%')
         ->bind('$facebookAppId', '%env(trim:string:FACEBOOK_APP_ID)%')

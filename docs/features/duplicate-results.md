@@ -497,8 +497,24 @@ Ships right after the backfill, **before** Layers 2–3 reach players, so the st
   traced; the example player has no FK either (only shown). A new run refreshes open signals, **deletes open ones that
   no longer match** (no decision to keep), never touches `merge_proposed` / `dismissed` (the pair is never raised
   again). Puzzle FKs cascade, so an approved merge removes the signal.
+- **Scored** (2026-10-02, after the first look at the 458 pairs on a copy of production: the list was led by multi-puzzle
+  boxes, advent calendars and events - one time logged on every puzzle). The candidate statement also returns both
+  records' names, EANs, catalogue numbers, the trigram similarity of the unaccented lower-case names/alternative names
+  (or one name inside the other, ≥ 5 characters), brand, approval, results (`puzzle_statistics`), when they were added
+  - for the found pairs only, the statement stays ~1 s. `DuplicatePuzzleSignalScoring` (pure) sums points: same EAN
+  +50 (comma lists compared as tokens, no leading zeros), same catalogue number or one record's number inside the
+  other's EAN +40, similar name 50 × similarity from 0.5 (name inside the other +30), same brand +10, not approved +15,
+  ≤ 20 results +15, the newer record added ≤ 3 days before the first matching result +5, both added 1-75 s apart +10.
+  **Weak** = under 35 points or a counter-hint: *many results each* (both > 20 results, name similarity < 0.7 - a
+  shared EAN is then the box's EAN) or *parts of one set* (names equal but for a number, or one series before the last
+  ":"/" - "/"(" with different titles). `duplicate_puzzle_signal.score`, `reasons` (JSON list of
+  `DuplicatePuzzleSignalReason` values), `name_similarity`, `weak` - recomputed for open signals on every run, decided
+  ones keep theirs. On the copy: 69 strong, 389 weak; the strong list is almost all real duplicates (the misses are
+  box-mates with a shared box code, e.g. "Disney Princesses" / "Kittens"), the weak one holds a few real ones that
+  share nothing but brand (a typo'd "Puzzle movement Köbenhavb", a translated "Carte postale de Londres").
 - Admin: section "Possible duplicate puzzles" (`templates/admin/_duplicate_puzzle_signals.html.twig`, 30 per page,
-  most matching results first). "Propose merge" → `ProposeDuplicatePuzzleMerge` dispatches the regular
+  strong signals by score, then most matching results; reasons as badges, counter-hints in yellow; "Show weak signals
+  (N)" switches the list to the weak ones). "Propose merge" → `ProposeDuplicatePuzzleMerge` dispatches the regular
   `SubmitPuzzleMergeRequest` (puzzle A = source, reporter = the admin) in the same transaction and lands on the merge
   request detail; "Dismiss" → `DismissDuplicatePuzzleSignal`. Both refuse an already handled signal
   (`DuplicatePuzzleSignalAlreadyResolved` → flash).

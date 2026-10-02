@@ -63,8 +63,9 @@ final class DetectDuplicateResultsConsoleCommand extends Command
         $signals = $handledStamp->getResult();
 
         (new SymfonyStyle($input, $output))->success(sprintf(
-            'Duplicate puzzle signals: %d pairs, new: %d, removed: %d',
+            'Duplicate puzzle signals: %d pairs (%d strong), new: %d, removed: %d',
             $signals->pairs,
+            $signals->strongPairs,
             $signals->newSignals,
             $signals->removedSignals,
         ));

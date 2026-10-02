@@ -6,13 +6,16 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use SpeedPuzzling\Web\Results\DuplicatePuzzleSignalListItem;
 use SpeedPuzzling\Web\Results\DuplicatePuzzleSignalPuzzle;
+use SpeedPuzzling\Web\Value\DuplicatePuzzleSignalReason;
 use SpeedPuzzling\Web\Value\DuplicatePuzzleSignalStatus;
 
 /**
- * The catalogue signals on /admin/duplicate-results (docs/features/duplicate-results.md, Layer 4) - stored by the
- * detection cron, read here as they are. Strongest evidence first: most matching results, then most people.
+ * The catalogue signals on /admin/duplicate-results (docs/features/duplicate-results.md, Layer 4) - stored and scored
+ * by the detection cron, read here as they are. Strong and weak ones are listed apart (weak only on request), highest
+ * score first, then most matching results.
  */
 readonly final class GetDuplicatePuzzleSignals
 {
@@ -45,9 +48,23 @@ readonly final class GetDuplicatePuzzleSignals
     }
 
     /**
+     * @return array{strong: int, weak: int}
+     */
+    public function openCountsByStrength(): array
+    {
+        /** @var array{strong: int|string, weak: int|string} $row */
+        $row = $this->database->fetchAssociative(
+            'SELECT COUNT(*) FILTER (WHERE NOT weak) AS strong, COUNT(*) FILTER (WHERE weak) AS weak FROM duplicate_puzzle_signal WHERE status = :open',
+            ['open' => DuplicatePuzzleSignalStatus::Open->value],
+        );
+
+        return ['strong' => (int) $row['strong'], 'weak' => (int) $row['weak']];
+    }
+
+    /**
      * @return list<DuplicatePuzzleSignalListItem>
      */
-    public function open(int $page): array
+    public function open(int $page, bool $weak = false): array
     {
         $query = <<<SQL
 SELECT
@@ -60,6 +77,10 @@ SELECT
     puzzle_signal.example_seconds,
     puzzle_signal.example_day,
     puzzle_signal.detected_at,
+    puzzle_signal.score,
+    puzzle_signal.reasons,
+    puzzle_signal.name_similarity,
+    puzzle_signal.weak,
     {$this->puzzleColumns('a')},
     {$this->puzzleColumns('b')}
 FROM duplicate_puzzle_signal puzzle_signal
@@ -71,15 +92,19 @@ INNER JOIN manufacturer manufacturer_b ON manufacturer_b.id = puzzle_b.manufactu
 LEFT JOIN puzzle_statistics statistics_b ON statistics_b.puzzle_id = puzzle_b.id
 LEFT JOIN player example_player ON example_player.id = puzzle_signal.example_player_id
 WHERE puzzle_signal.status = :open
-ORDER BY puzzle_signal.matching_results DESC, puzzle_signal.matching_people DESC, puzzle_signal.detected_at, puzzle_signal.id
+    AND puzzle_signal.weak = :weak
+ORDER BY puzzle_signal.score DESC, puzzle_signal.matching_results DESC, puzzle_signal.matching_people DESC, puzzle_signal.detected_at, puzzle_signal.id
 LIMIT :limit OFFSET :offset
 SQL;
 
-        /** @var list<array<string, null|bool|int|string>> $rows */
+        /** @var list<array<string, null|bool|float|int|string>> $rows */
         $rows = $this->database->fetchAllAssociative($query, [
             'open' => DuplicatePuzzleSignalStatus::Open->value,
+            'weak' => $weak,
             'limit' => self::PER_PAGE,
             'offset' => (max(1, $page) - 1) * self::PER_PAGE,
+        ], [
+            'weak' => ParameterType::BOOLEAN,
         ]);
 
         return array_map(fn (array $row): DuplicatePuzzleSignalListItem => new DuplicatePuzzleSignalListItem(
@@ -94,7 +119,25 @@ SQL;
             exampleSeconds: (int) $row['example_seconds'],
             exampleDay: new DateTimeImmutable((string) $row['example_day']),
             detectedAt: new DateTimeImmutable((string) $row['detected_at']),
+            score: (int) $row['score'],
+            reasons: $this->reasons((string) $row['reasons']),
+            nameSimilarity: (float) $row['name_similarity'],
+            weak: (bool) $row['weak'],
         ), $rows);
+    }
+
+    /**
+     * @return list<DuplicatePuzzleSignalReason>
+     */
+    private function reasons(string $json): array
+    {
+        /** @var list<string> $values */
+        $values = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+
+        return array_values(array_filter(array_map(
+            static fn (string $value): null|DuplicatePuzzleSignalReason => DuplicatePuzzleSignalReason::tryFrom($value),
+            $values,
+        )));
     }
 
     private function puzzleColumns(string $side): string
@@ -113,7 +156,7 @@ SQL;
     }
 
     /**
-     * @param array<string, null|bool|int|string> $row
+     * @param array<string, null|bool|float|int|string> $row
      */
     private function puzzle(array $row, string $side): DuplicatePuzzleSignalPuzzle
     {

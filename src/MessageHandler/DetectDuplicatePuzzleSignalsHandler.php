@@ -12,11 +12,13 @@ use SpeedPuzzling\Web\Query\GetDuplicatePuzzleSignalCandidates;
 use SpeedPuzzling\Web\Repository\DuplicatePuzzleSignalRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Results\DuplicatePuzzleSignalDetectionSummary;
+use SpeedPuzzling\Web\Services\DuplicateResults\DuplicatePuzzleSignalScoring;
 use SpeedPuzzling\Web\Value\DuplicatePuzzleSignalStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * Stores every new catalogue signal and keeps the open ones current (docs/features/duplicate-results.md, Layer 4).
+ * Stores every new catalogue signal and keeps the open ones current, scores included (docs/features/duplicate-results.md,
+ * Layer 4).
  * An open signal whose pair no longer matches (a result moved to the right puzzle, edited or deleted) holds no
  * decision and is removed; a proposed or dismissed one stays, so a decision sticks and the pair is never raised
  * again. Merged puzzles take their signals along (ON DELETE CASCADE).
@@ -28,6 +30,7 @@ readonly final class DetectDuplicatePuzzleSignalsHandler
         private GetDuplicatePuzzleSignalCandidates $getDuplicatePuzzleSignalCandidates,
         private DuplicatePuzzleSignalRepository $signalRepository,
         private PuzzleRepository $puzzleRepository,
+        private DuplicatePuzzleSignalScoring $scoring,
         private ClockInterface $clock,
     ) {
     }
@@ -39,14 +42,30 @@ readonly final class DetectDuplicatePuzzleSignalsHandler
         $signals = $this->signalRepository->allByPair();
         $matchingKeys = [];
         $newSignals = 0;
+        $strongPairs = 0;
 
         foreach ($candidates as $candidate) {
             $key = DuplicatePuzzleSignal::key($candidate->puzzleAId, $candidate->puzzleBId);
             $matchingKeys[$key] = true;
             $examplePlayerId = Uuid::fromString($candidate->examplePlayerId);
+            $score = $this->scoring->score($candidate);
+
+            if (!$score->isWeak()) {
+                $strongPairs++;
+            }
 
             if (isset($signals[$key])) {
-                $signals[$key]->refresh($candidate->matchingResults, $candidate->matchingPeople, $examplePlayerId, $candidate->exampleSeconds, $candidate->exampleDay);
+                $signals[$key]->refresh(
+                    matchingResults: $candidate->matchingResults,
+                    matchingPeople: $candidate->matchingPeople,
+                    examplePlayerId: $examplePlayerId,
+                    exampleSeconds: $candidate->exampleSeconds,
+                    exampleDay: $candidate->exampleDay,
+                    score: $score->score,
+                    reasons: $score->reasonValues(),
+                    nameSimilarity: $score->nameSimilarity,
+                    weak: $score->isWeak(),
+                );
 
                 continue;
             }
@@ -61,6 +80,10 @@ readonly final class DetectDuplicatePuzzleSignalsHandler
                 examplePlayerId: $examplePlayerId,
                 exampleSeconds: $candidate->exampleSeconds,
                 exampleDay: $candidate->exampleDay,
+                score: $score->score,
+                reasons: $score->reasonValues(),
+                nameSimilarity: $score->nameSimilarity,
+                weak: $score->isWeak(),
             ));
 
             $newSignals++;
@@ -77,6 +100,7 @@ readonly final class DetectDuplicatePuzzleSignalsHandler
 
         return new DuplicatePuzzleSignalDetectionSummary(
             pairs: count($candidates),
+            strongPairs: $strongPairs,
             newSignals: $newSignals,
             removedSignals: $removedSignals,
         );

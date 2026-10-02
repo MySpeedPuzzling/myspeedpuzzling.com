@@ -20,6 +20,18 @@ final class PlayerProfileControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
     }
 
+    public function testProfileFeedOnlyCountsItsLabelsUpWithoutRefreshing(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR);
+
+        self::assertCount(0, $crawler->filter('[data-controller~="live-refresh"]'));
+        self::assertCount(0, $crawler->filter('[data-poll]'));
+        self::assertCount(1, $crawler->filter('[data-controller~="relative-time"]'));
+        self::assertGreaterThan(0, $crawler->filter('[data-controller~="relative-time"] tr[id^="activity-player-"] time[data-relative-time]')->count());
+    }
+
     public function testLoggedInUserCanAccessPage(): void
     {
         $browser = self::createClient();

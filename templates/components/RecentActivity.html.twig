@@ -1,102 +1,115 @@
-<div {{ attributes.defaults({'data-controller': 'show-more-recent-activity', 'data-poll': 'delay(120000)|$render'}) }}>
+{# No polling of its own: the Hub and Recent activity wrap it in a live-refresh controller (refreshes while somebody
+   looks, docs/features/live-activity-feed.md); the "… ago" labels count up everywhere (controllers/relative_time_controller.js) #}
+<div {{ attributes.defaults({
+    'data-controller': 'show-more-recent-activity relative-time',
+    'data-relative-time-messages-value': relative_time_messages()|json_encode,
+    'data-relative-time-locale-value': app.request.locale,
+    'data-relative-time-server-now-value': 'now'|date('U'),
+}) }}>
     {# Same row as the ladders and the profile results (_leaderboard_player, _leaderboard_time_badges, _leaderboard.scss):
        image · who solved what · time - never scrolls sideways. A tap on the row opens the result detail (docs/features/puzzle-result-detail.md) #}
-    <div class="custom-table-wrapper ps-wrapper mt-4">
-        <table class="table table-hover ps-table mb-0">
-            <tbody>
-                {% for item in this.items %}
-                    {% set is_own_row = this.isOnProfile is same as false and logged_user.profile is not null and (
-                        item.players is null
-                            ? item.playerId is same as logged_user.profile.playerId
-                            : logged_user.profile.playerId in item.players|map(member => member.playerId)
-                    ) %}
-                    <tr class="{{ is_own_row ? 'table-active-player' }} {{ this.showLimit > 0 and loop.index > this.showLimit ? 'd-none' }}" data-controller="row-link" data-action="click->row-link#open">
-                        <td class="ps-image">
-                            <div class="position-relative">
-                                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
-                                    {{ include('_puzzle_row_image.html.twig', {image: item.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': item.manufacturerName ~ ' ' ~ item.puzzleName}), position: loop.index, ratio: item.puzzleImageRatio}) }}
-                                </a>
+    {# "Show more" expands this element with a class: Live Component lays a class changed by JavaScript back over every
+       re-render, so an automatic refresh keeps the list open #}
+    <div class="ra-list" data-show-more-recent-activity-target="list">
+        <div class="custom-table-wrapper ps-wrapper mt-4">
+            <table class="table table-hover ps-table mb-0">
+                <tbody>
+                    {% set row_id_prefix = this.favoritesOnly ? 'favorites' : (this.playerId is not null ? 'player' : 'all') %}
+                    {% for item in this.items %}
+                        {% set is_own_row = this.isOnProfile is same as false and logged_user.profile is not null and (
+                            item.players is null
+                                ? item.playerId is same as logged_user.profile.playerId
+                                : logged_user.profile.playerId in item.players|map(member => member.playerId)
+                        ) %}
+                        {# The id lets the morph insert a new row at the top instead of rewriting every row below it #}
+                        <tr id="activity-{{ row_id_prefix }}-{{ item.id }}" class="{{ is_own_row ? 'table-active-player' }} {{ this.showLimit > 0 and loop.index > this.showLimit ? 'ra-extra' }}" data-controller="row-link" data-action="click->row-link#open">
+                            <td class="ps-image">
+                                <div class="position-relative">
+                                    <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
+                                        {{ include('_puzzle_row_image.html.twig', {image: item.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': item.manufacturerName ~ ' ' ~ item.puzzleName}), position: loop.index, ratio: item.puzzleImageRatio}) }}
+                                    </a>
 
-                                {% if logged_user.profile is not null and item.isEditableBy(logged_user.profile.playerId) %}
-                                    {{ include('_time_actions_menu.html.twig', {
-                                        time_id: item.id,
-                                        puzzle_name: item.puzzleName,
-                                        can_delete: item.playerId is same as logged_user.profile.playerId,
-                                    }) }}
-                                {% endif %}
-                            </div>
-                        </td>
-
-                        <td class="ps-info">
-                            {# The player leads, like on the ladders; on the player's own profile a solo time needs no
-                               name (it is theirs), so the puzzle leads there #}
-                            {% if this.isOnProfile and item.players is null %}
-                                <a class="ps-puzzle-name" href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">{{ item.puzzleName }}</a>
-                                <div class="ps-puzzle-meta">
-                                    {{ include('_pieces_brand.html.twig', {pieces: item.piecesCount, brand: item.manufacturerName}) }}
-                                </div>
-                            {% else %}
-                                <div class="ps-members ps-members-lead">
-                                    {% if item.players is null %}
-                                        {{ include('_leaderboard_player.html.twig', {player: item}) }}
-                                    {% else %}
-                                        {% for puzzle_solver in item.players %}
-                                            {{ include('_leaderboard_player.html.twig', {player: puzzle_solver, small: true}) }}
-                                        {% endfor %}
+                                    {% if logged_user.profile is not null and item.isEditableBy(logged_user.profile.playerId) %}
+                                        {{ include('_time_actions_menu.html.twig', {
+                                            time_id: item.id,
+                                            puzzle_name: item.puzzleName,
+                                            can_delete: item.playerId is same as logged_user.profile.playerId,
+                                        }) }}
                                     {% endif %}
                                 </div>
+                            </td>
 
-                                <div class="ps-puzzle-line">
-                                    <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">{{ item.puzzleName }}</a>
-                                </div>
-                                <div class="ps-puzzle-sub">
-                                    {{ include('_pieces_brand.html.twig', {pieces: item.piecesCount, brand: item.manufacturerName}) }}
-                                </div>
-                            {% endif %}
+                            <td class="ps-info">
+                                {# The player leads, like on the ladders; on the player's own profile a solo time needs no
+                                   name (it is theirs), so the puzzle leads there #}
+                                {% if this.isOnProfile and item.players is null %}
+                                    <a class="ps-puzzle-name" href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">{{ item.puzzleName }}</a>
+                                    <div class="ps-puzzle-meta">
+                                        {{ include('_pieces_brand.html.twig', {pieces: item.piecesCount, brand: item.manufacturerName}) }}
+                                    </div>
+                                {% else %}
+                                    <div class="ps-members ps-members-lead">
+                                        {% if item.players is null %}
+                                            {{ include('_leaderboard_player.html.twig', {player: item}) }}
+                                        {% else %}
+                                            {% for puzzle_solver in item.players %}
+                                                {{ include('_leaderboard_player.html.twig', {player: puzzle_solver, small: true}) }}
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
 
-                            <div class="ps-tags">
-                                {{ include('_leaderboard_time_badges.html.twig', {time: item, skip_first_try: true}) }}
-                            </div>
-                        </td>
-
-                        <td class="ps-time">
-                            {# The row's real link to the result detail - a tap anywhere else on the row clicks it #}
-                            <a
-                                class="ps-time-value"
-                                href="{{ path('puzzle_result_detail', {timeId: item.id}) }}"
-                                data-row-link-target="link"
-                                data-turbo-frame="modal-frame"
-                                rel="nofollow"
-                            >
-                                {%- if item.isSpeedMode -%}
-                                    {{ item.time|puzzlingTime }}
-                                {%- else -%}
-                                    <span class="badge rounded-pill bg-secondary"><i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}</span>
-                                {%- endif -%}
-                            </a>
-
-                            {# On a feed "1st try" says more at a glance than the PPM (that one is in the result detail) #}
-                            <span class="lb-time-date">{{ item.trackedAt|ago }}</span>
-                            {% if item.firstAttempt %}
-                                <span class="lb-first-try-line"><span class="badge rounded-pill bg-info lb-first-try">{{ 'first_attempt'|trans }}</span></span>
-                            {% endif %}
-
-                            {% if item.isSpeedMode and logged_user.profile is not null and item.playerId is not same as logged_user.profile.playerId %}
-                                {% set my_best_times = this.myBestTimes %}
-                                {% if item.players is null and my_best_times[item.puzzleId] is defined %}
-                                    <span class="ps-ppm">{{ 'my_time'|trans }} <span class="tabular-nums">{{ my_best_times[item.puzzleId]|puzzlingTime }}</span></span>
+                                    <div class="ps-puzzle-line">
+                                        <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">{{ item.puzzleName }}</a>
+                                    </div>
+                                    <div class="ps-puzzle-sub">
+                                        {{ include('_pieces_brand.html.twig', {pieces: item.piecesCount, brand: item.manufacturerName}) }}
+                                    </div>
                                 {% endif %}
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
 
-    {% if this.showLimit > 0 and this.items|length > this.showLimit %}
-        <button class="mt-3 btn btn-outline-primary btn-sm" data-action="click->show-more-recent-activity#revealRows" data-show-more-recent-activity-target="button">{{ 'show_more'|trans }}</button>
-    {% endif %}
+                                <div class="ps-tags">
+                                    {{ include('_leaderboard_time_badges.html.twig', {time: item, skip_first_try: true}) }}
+                                </div>
+                            </td>
+
+                            <td class="ps-time">
+                                {# The row's real link to the result detail - a tap anywhere else on the row clicks it #}
+                                <a
+                                    class="ps-time-value"
+                                    href="{{ path('puzzle_result_detail', {timeId: item.id}) }}"
+                                    data-row-link-target="link"
+                                    data-turbo-frame="modal-frame"
+                                    rel="nofollow"
+                                >
+                                    {%- if item.isSpeedMode -%}
+                                        {{ item.time|puzzlingTime }}
+                                    {%- else -%}
+                                        <span class="badge rounded-pill bg-secondary"><i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}</span>
+                                    {%- endif -%}
+                                </a>
+
+                                {# On a feed "1st try" says more at a glance than the PPM (that one is in the result detail) #}
+                                <time class="lb-time-date" datetime="{{ item.trackedAt|date('c') }}" data-relative-time>{{ item.trackedAt|ago }}</time>
+                                {% if item.firstAttempt %}
+                                    <span class="lb-first-try-line"><span class="badge rounded-pill bg-info lb-first-try">{{ 'first_attempt'|trans }}</span></span>
+                                {% endif %}
+
+                                {% if item.isSpeedMode and logged_user.profile is not null and item.playerId is not same as logged_user.profile.playerId %}
+                                    {% set my_best_times = this.myBestTimes %}
+                                    {% if item.players is null and my_best_times[item.puzzleId] is defined %}
+                                        <span class="ps-ppm">{{ 'my_time'|trans }} <span class="tabular-nums">{{ my_best_times[item.puzzleId]|puzzlingTime }}</span></span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if this.showLimit > 0 and this.items|length > this.showLimit %}
+            <button class="mt-3 btn btn-outline-primary btn-sm ra-show-more" data-action="click->show-more-recent-activity#revealRows">{{ 'show_more'|trans }}</button>
+        {% endif %}
+    </div>
 </div>
 
 {% macro placeholder(props) %}

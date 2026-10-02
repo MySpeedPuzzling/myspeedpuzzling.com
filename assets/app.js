@@ -20,6 +20,7 @@
 })();
 
 import './styles/app.scss';
+import './styles/live_refresh.scss';
 
 // start the Stimulus application
 import './bootstrap';

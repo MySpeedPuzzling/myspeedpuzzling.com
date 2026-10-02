@@ -4,6 +4,20 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Live activity feed (Hub + Recent activity)
+
+Shipped: [`features/live-activity-feed.md`](features/live-activity-feed.md).
+
+- [ ] A week after deploy: compare `RecentActivity` re-renders in Tempo with the baseline in §1.2 (7,281 polls
+      Thu 12–24 UTC, 91 % from tabs open 3+ hours)
+- [ ] Report upstream (symfony/ux): a re-render whose `fetch` rejects leaves `Component::backendRequest` set, so the
+      component ignores every later render on that page; drop the workaround in `live_refresh_controller.js` once fixed
+- [ ] `mercure_hub_controller.js` (unread counts, chat) has no recovery: on iOS 18 the stream can stay "open" but dead
+      after resume, a non-200 answer closes it for good, and the open stream keeps signed-in pages out of Chrome's
+      back/forward cache - close on `pagehide`, reopen on `pageshow` / visible, reconnect with backoff (§10 of the doc)
+- [ ] Before a competition with thousands watching: push rows rendered once per locale through Mercure instead of
+      per-viewer refreshes, after a load test through Traefik (§6.1 of the doc)
+
 ## Result detail modal + unified ranking rows (#222)
 
 Shipped: [`features/puzzle-result-detail.md`](features/puzzle-result-detail.md),

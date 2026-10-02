@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
 use SpeedPuzzling\Web\Message\DetectDuplicateResults;
+use SpeedPuzzling\Web\Message\PlanResultReviewEmails;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -26,6 +27,20 @@ final class DuplicateResultsControllerTest extends WebTestCase
         self::assertCount(4, $crawler->filter('#cases ~ .table-responsive tbody tr'));
         self::assertCount(1, $crawler->filter('[data-testid="admin-auto-removals"] tbody tr'));
         self::assertStringContainsString('Twins Puzzle', $crawler->filter('#cases ~ .table-responsive')->text());
+    }
+
+    public function testTheContactsFunnelShowsTheCaps(): void
+    {
+        $browser = $this->adminWithDetectedCases();
+        $browser->getContainer()->get(MessageBusInterface::class)->dispatch(new PlanResultReviewEmails());
+
+        $crawler = $browser->request('GET', '/admin/duplicate-results');
+
+        $this->assertResponseIsSuccessful();
+        $contacts = $crawler->filter('[data-testid="admin-result-review-contacts"]');
+        self::assertCount(1, $contacts);
+        self::assertStringContainsString('at most 10 per run and 20 per day', $contacts->text());
+        self::assertStringContainsString('Nothing sent yet.', $contacts->text());
     }
 
     public function testCasesFilterByTierAndKind(): void

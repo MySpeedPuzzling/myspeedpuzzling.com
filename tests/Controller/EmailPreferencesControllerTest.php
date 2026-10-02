@@ -110,11 +110,32 @@ final class EmailPreferencesControllerTest extends WebTestCase
         self::assertFalse($player->newsletterEnabled);
         self::assertTrue($player->emailNotificationsEnabled);
         self::assertSame(EmailNotificationFrequency::OneWeek, $player->emailNotificationFrequency);
+        self::assertTrue($player->resultEmailsEnabled, 'An untouched switch stays on');
 
         // Following the redirect shows the success confirmation
         $browser->followRedirect();
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('alert-success', (string) $browser->getResponse()->getContent());
+    }
+
+    public function testResultEmailsHaveTheirOwnSwitch(): void
+    {
+        $browser = self::createClient();
+        $token = $this->preferencesToken();
+
+        $crawler = $browser->request('GET', '/en/email-preferences/' . $token);
+
+        $form = $crawler->selectButton('Save my preferences')->form();
+        $resultEmailsField = $form['result_emails_enabled'];
+        assert($resultEmailsField instanceof ChoiceFormField);
+        self::assertSame('1', $resultEmailsField->getValue(), 'On by default');
+        $resultEmailsField->untick();
+        $browser->submit($form);
+
+        $player = self::getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR);
+        self::assertFalse($player->resultEmailsEnabled);
+        self::assertTrue($player->newsletterEnabled);
+        self::assertTrue($player->emailNotificationsEnabled);
     }
 
     public function testSavingWithInvalidTokenIsRejected(): void

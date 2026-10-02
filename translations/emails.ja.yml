@@ -249,3 +249,22 @@ oauth_identity_linked:
     not_you: |
         <p>第三者があなたのアカウントにログインできる状態になっている可能性があります。ログインしてプロフィール設定を開き、「Connected sign-in methods」から%provider%の連携を解除してください。念のため<a href="%resetPasswordUrl%">パスワードも変更</a>することをおすすめします。</p>
     button: "ログイン方法を確認する"
+
+result_review:
+    subject_first: "記録の一部が二重に保存されています"
+    subject_weekly: "記録についての新しいお知らせ"
+    title_first: "記録の一部が二重に保存されているようです"
+    title_weekly: "記録についての新しいお知らせ"
+    greeting: "%playerName%さん、こんにちは。"
+    intro_first: "MySpeedPuzzlingのすべての記録を確認したところ、二重に保存されているとみられる記録が見つかりました。統計ではそれぞれが2回分として数えられています。"
+    intro_weekly: "前回のメール以降、記録について新しく見つかったことがあります。二重に保存された記録は、統計で2回分として数えられます。"
+    cases_heading: "二重に保存された可能性がある記録："
+    case_line: "%puzzleName% – %time%、%date%"
+    kind_saved_twice: "同じタイムが二重に保存されています"
+    kind_teammate_copy: "チームメイトも同じ記録を保存しています"
+    kind_solo_and_group: "ソロとペア／チームの記録として保存されています"
+    more: "…ほか%count%件"
+    removals_heading: "誤って保存されたコピーを削除しました。元に戻すこともできます："
+    decide: "確認ページでは、ワンタップでどちらか一方を残すか、両方とも本物だと伝えることができます。"
+    button: "記録を確認する"
+    opt_out: "このメールは、MySpeedPuzzlingでのあなたの記録についてお送りしています。<a href=\"%settingsUrl%\">メール設定</a> · <a href=\"%unsubscribeUrl%\">記録に関するメールを受け取らない</a>"

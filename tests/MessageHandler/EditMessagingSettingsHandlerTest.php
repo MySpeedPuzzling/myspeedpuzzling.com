@@ -33,6 +33,7 @@ final class EditMessagingSettingsHandlerTest extends KernelTestCase
                 emailNotificationsEnabled: true,
                 emailNotificationFrequency: EmailNotificationFrequency::TwentyFourHours,
                 newsletterEnabled: true,
+                resultEmailsEnabled: true,
             ),
         );
 
@@ -51,6 +52,7 @@ final class EditMessagingSettingsHandlerTest extends KernelTestCase
                 emailNotificationsEnabled: false,
                 emailNotificationFrequency: EmailNotificationFrequency::TwentyFourHours,
                 newsletterEnabled: true,
+                resultEmailsEnabled: true,
             ),
         );
 
@@ -69,6 +71,7 @@ final class EditMessagingSettingsHandlerTest extends KernelTestCase
                 emailNotificationsEnabled: false,
                 emailNotificationFrequency: EmailNotificationFrequency::TwentyFourHours,
                 newsletterEnabled: true,
+                resultEmailsEnabled: true,
             ),
         );
 
@@ -87,6 +90,7 @@ final class EditMessagingSettingsHandlerTest extends KernelTestCase
                 emailNotificationsEnabled: true,
                 emailNotificationFrequency: EmailNotificationFrequency::SixHours,
                 newsletterEnabled: false,
+                resultEmailsEnabled: true,
             ),
         );
 
@@ -96,5 +100,25 @@ final class EditMessagingSettingsHandlerTest extends KernelTestCase
         self::assertTrue($player->emailNotificationsEnabled);
         self::assertSame(EmailNotificationFrequency::SixHours, $player->emailNotificationFrequency);
         self::assertFalse($player->newsletterEnabled);
+    }
+
+    public function testSwitchingResultEmailsOffTouchesNothingElse(): void
+    {
+        $this->messageBus->dispatch(
+            new EditMessagingSettings(
+                playerId: PlayerFixture::PLAYER_REGULAR,
+                allowDirectMessages: true,
+                emailNotificationsEnabled: true,
+                emailNotificationFrequency: EmailNotificationFrequency::TwentyFourHours,
+                newsletterEnabled: true,
+                resultEmailsEnabled: false,
+            ),
+        );
+
+        $player = $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR);
+
+        self::assertFalse($player->resultEmailsEnabled);
+        self::assertTrue($player->emailNotificationsEnabled);
+        self::assertTrue($player->newsletterEnabled);
     }
 }

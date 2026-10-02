@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\ResultAutoRemovalRepository;
 use SpeedPuzzling\Web\Repository\ResultDuplicateCaseRepository;
+use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewReactions;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
 use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
@@ -39,6 +40,7 @@ readonly final class UndoAutoRemovalHandler
         private CompetitionRepository $competitionRepository,
         private PuzzlingTeamResolver $puzzlingTeamResolver,
         private SolvingTimeRoundResolver $roundResolver,
+        private ResultReviewReactions $resultReviewReactions,
         private ClockInterface $clock,
     ) {
     }
@@ -93,5 +95,7 @@ readonly final class UndoAutoRemovalHandler
         foreach ($this->caseRepository->findOfPair($case->timeAId, $case->timeBId) as $pairCase) {
             $pairCase->removalUndone($now);
         }
+
+        $this->resultReviewReactions->recordFor($removal->player->id->toString());
     }
 }

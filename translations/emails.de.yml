@@ -249,3 +249,22 @@ oauth_identity_linked:
     not_you: |
         <p>Dann kann sich möglicherweise jemand anderes in dein Konto einloggen. Melde dich an, öffne deine Profileinstellungen und trenne %provider% unter „Connected sign-in methods" – und <a href="%resetPasswordUrl%">ändere sicherheitshalber dein Passwort</a>.</p>
     button: "Meine Anmeldemethoden prüfen"
+
+result_review:
+    subject_first: "Einige Ihrer Ergebnisse sind doppelt gespeichert"
+    subject_weekly: "Neues zu Ihren Ergebnissen"
+    title_first: "Einige Ihrer Ergebnisse sind anscheinend doppelt gespeichert"
+    title_weekly: "Neues zu Ihren Ergebnissen"
+    greeting: "Hallo %playerName%,"
+    intro_first: "Wir haben alle Ergebnisse auf MySpeedPuzzling durchgesehen und bei Ihnen einige gefunden, die anscheinend doppelt gespeichert sind – Ihre Statistiken zählen jedes davon doppelt."
+    intro_weekly: "Seit unserer letzten E-Mail haben wir etwas Neues in Ihren Ergebnissen gefunden – ein doppelt gespeichertes Ergebnis zählt in Ihren Statistiken doppelt."
+    cases_heading: "Möglicherweise doppelt gespeichert:"
+    case_line: "%puzzleName% – %time%, %date%"
+    kind_saved_twice: "dieselbe Zeit doppelt gespeichert"
+    kind_teammate_copy: "Ihr Teampartner hat es ebenfalls gespeichert"
+    kind_solo_and_group: "als Solo- und als Paar-/Team-Ergebnis gespeichert"
+    more: "…und %count% weitere"
+    removals_heading: "Wir haben eine versehentlich gespeicherte Kopie entfernt – Sie können das rückgängig machen:"
+    decide: "Auf der Prüfseite behalten Sie mit einem Tippen eine Kopie oder sagen uns, dass beide echt sind."
+    button: "Meine Ergebnisse prüfen"
+    opt_out: "Sie erhalten diese E-Mail wegen Ihrer Ergebnisse auf MySpeedPuzzling. <a href=\"%settingsUrl%\">E-Mail-Einstellungen</a> · <a href=\"%unsubscribeUrl%\">Keine E-Mails mehr zu meinen Ergebnissen</a>"

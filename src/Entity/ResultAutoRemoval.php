@@ -32,7 +32,7 @@ class ResultAutoRemoval
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $undoneAt = null;
 
-    // When the player was told in the "Your results" e-mail (P5)
+    // When the player was told in the "Your results" e-mail
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $reportedAt = null;
@@ -77,5 +77,13 @@ class ResultAutoRemoval
     public function undo(DateTimeImmutable $now): void
     {
         $this->undoneAt = $now;
+    }
+
+    /**
+     * Told in a "Your results" e-mail - once, never again.
+     */
+    public function reported(DateTimeImmutable $now): void
+    {
+        $this->reportedAt ??= $now;
     }
 }

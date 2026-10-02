@@ -40,6 +40,7 @@ readonly final class EditEmailPreferencesHandler
         $player->changeEmailNotificationsEnabled($message->emailNotificationsEnabled);
         $player->changeEmailNotificationFrequency($message->emailNotificationFrequency);
         $player->changeNewsletterEnabled($message->newsletterEnabled);
+        $player->changeResultEmailsEnabled($message->resultEmailsEnabled);
 
         $playerEmail = $newsletterChanged ? $this->playerAccountEmail->ofPlayer($player) : null;
 

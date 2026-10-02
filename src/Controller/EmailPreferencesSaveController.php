@@ -73,6 +73,7 @@ final class EmailPreferencesSaveController extends AbstractController
                 newsletterEnabled: $request->request->getBoolean('newsletter_enabled'),
                 emailNotificationsEnabled: $request->request->getBoolean('email_notifications_enabled'),
                 emailNotificationFrequency: $frequency,
+                resultEmailsEnabled: $request->request->getBoolean('result_emails_enabled'),
             ),
         );
 

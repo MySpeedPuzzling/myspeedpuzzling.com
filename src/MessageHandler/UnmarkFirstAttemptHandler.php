@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Message\UnmarkFirstAttempt;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
+use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewReactions;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -16,6 +17,7 @@ readonly final class UnmarkFirstAttemptHandler
     public function __construct(
         private PlayerRepository $playerRepository,
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
+        private ResultReviewReactions $resultReviewReactions,
     ) {
     }
 
@@ -32,5 +34,6 @@ readonly final class UnmarkFirstAttemptHandler
         }
 
         $solvingTime->unmarkFirstAttempt($player);
+        $this->resultReviewReactions->recordFor($player->id->toString());
     }
 }

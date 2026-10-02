@@ -1,7 +1,7 @@
 # Duplicate results ("saved twice")
 
-GitHub #221 · status: **P1 (Layer 1), P2 (detection + admin) and P4 (review page, automatic removal, banner) built**,
-the rest planned (analysis 2026-10-01/02).
+GitHub #221 · status: **P1 (Layer 1), P2 (detection + admin), P4 (review page, automatic removal, banner) and P5
+(the "Your results" e-mail) built**, the rest planned (analysis 2026-10-01/02).
 
 Players end up with the same result saved more than once. A copy counts twice in "completed N×", activity, player
 statistics and recaps, feeds Puzzle Insights a second attempt that never happened (attempt numbers, improvement
@@ -220,8 +220,9 @@ is the wrong answer).
 ### Detection
 
 - Daily cron `myspeedpuzzling:detect-duplicate-results` (~1.3 s for the whole site, measured; 878 per-person pairs
-  today) inserts new cases, closes cases that no longer match as `gone` (edited, deleted, merged away) and plans the
-  e-mails. First run = backfill (`detected_by = backfill`), sends nothing by itself.
+  today) inserts new cases and closes cases that no longer match as `gone` (edited, deleted, merged away). First
+  run = backfill (`detected_by = backfill`), sends nothing by itself; the e-mails are planned by their own cron after
+  it (P5).
 - Saving also writes: "It's another solve, save it" → case stored as `both_real` right away.
 
 Settled while building it (P2):
@@ -376,6 +377,51 @@ its unsubscribe means "no newsletter", and the reaction must land in our databas
 - **One-click unsubscribe**: `List-Unsubscribe` + `List-Unsubscribe-Post` → a POST that switches off
   `result_emails_enabled` only (not the chat digest). Also a toggle in edit-profile.
 
+### As built (P5, 2026-10-02)
+
+- **Switch** `player.result_emails_enabled` (default true for everybody): edit-profile → "Messaging & Notifications"
+  (`MessagingSettingsFormType::resultEmailsEnabled`) and the token page `email_preferences` (the e-mail's settings
+  link), both 6 locales. `newsletter_enabled` / `email_notifications_enabled` play no part.
+- **Planning** - `PlanResultReviewEmails` (console `myspeedpuzzling:plan-result-review-emails`, daily after the
+  detection): `GetResultReviewEmailCandidates` (open cases with both copies + removals not undone/reported, never in a
+  planned or sent contact; only players with the switch on, an account e-mail and no contact waiting) →
+  `Services\DuplicateResults\ResultReviewContactPlanner` (pure) → a `planned` `result_review_contact`:
+  - no e-mail sent yet → `first` with every open A/B case, C only alongside an A/B case or a removal, and every
+    removal - active or not. `priority` 1 = active in the last 3 months (`player_activity_day`), 2 = dormant;
+    `last_active_on` orders within (most recent first).
+  - otherwise → `weekly` (priority 0, goes before the backlog), only when active in the last 3 months and the last
+    e-mail is ≥ 7 calendar days old: removals always; new cases (A/B, C along) only when the player reacted to their
+    latest e-mail **and** no e-mail listed cases in the last 30 days. Tier C alone never triggers one.
+  - A case is in at most one sent e-mail; one planned contact per player at a time keeps the planning idempotent.
+- **Sending** - `SendPlannedResultReviewEmails` (console `myspeedpuzzling:send-result-review-emails`, hourly 08-20
+  Europe/Prague): at most `result_review_emails_per_run` per run and `result_review_emails_per_day` per Prague day
+  (env `RESULT_REVIEW_EMAILS_PER_RUN` = 10 / `RESULT_REVIEW_EMAILS_PER_DAY` = 20; the cron runs one-off containers,
+  so raising the day cap to ~50 after the first wave is an env change, no deploy). In order: weekly, then active, then
+  dormant. At send time: switch off → `skipped` (`switched_off`), no account e-mail → `no_email`, resolved cases and
+  undone removals dropped, nothing (or Tier C alone) left → `nothing_left`. The contact keeps the ids it really
+  listed; its removals get `reported_at`. One transaction per run - the queued e-mails (Doctrine messenger
+  transport) included, so a failure sends nothing.
+- **E-mail** `templates/emails/result_review.html.twig` (`emails.*` `result_review.*`, player's locale; no separate
+  text template - like every other e-mail, Symfony derives the text part from the HTML): one sentence why, up to 3
+  cases (puzzle, time, day, "saved twice" / "your teammate saved it too" / "solo and pair/team") + "…and N more",
+  up to 3 removals ("we removed a copy saved by mistake - you can undo it"), one "Review my results" button →
+  `review_results?from=rc-<contactId>`, the settings link and an unsubscribe link in the footer. Nobody is named
+  (the privacy rules of the review page do not fit an e-mail). From `notify@`, `X-Transport: notifications`,
+  `List-Unsubscribe: <signed https URL>` + `List-Unsubscribe-Post: List-Unsubscribe=One-Click`.
+- **Unsubscribe** `result_emails_unsubscribe` `/{_locale}/result-emails/unsubscribe/{playerId}`, signed with
+  Symfony's `UriSigner` (`ResultEmailsUnsubscribeUrl`, no expiry): POST = `UnsubscribeFromResultEmails` (one-click
+  from mail clients and the page's button, 303 back to the link), GET = a page with the button (scanners only GET),
+  unsigned or tampered = 404. No sign-in, no session.
+- **Attribution** - the review page records `?from=rc-<id>` (`RecordResultReviewVisit`: the viewer's own sent
+  contact, first visit only). `Services\DuplicateResults\ResultReviewReactions` sets `reacted_at` on the player's
+  latest sent contact (once) from `KeepDuplicateCopy`, `ConfirmDuplicateIsReal`, `UndoAutoRemoval`,
+  `ResolveFirstTryConflict`, `UnmarkFirstAttempt` and `DismissFirstTryReview`.
+- **Admin** - "Contacts" block of `/admin/duplicate-results` (`GetResultReviewContactsOverview`,
+  `templates/admin/_duplicate_results_contacts.html.twig`): funnel per type and per **wave = the e-mails sent on one
+  Prague day** (planning puts the whole backlog on one day, so the planned day would not separate the waves),
+  median time to react, unsubscribed players, players ignoring (latest e-mail ≥ 7 days old without a reaction),
+  skips by reason, failures and bounces from `email_audit_log` (`email_type = result_review`), the caps.
+
 ## Data model
 
 | Table | Purpose |
@@ -383,7 +429,7 @@ its unsubscribe means "no newsletter", and the reaction must land in our databas
 | `result_duplicate_case` | One row per **person** per pair: `player_id` (the person), `time_a_id`, `time_b_id` (older first), `tier`, `kind` (`same_tracker`, `teammate_copy`, `solo_and_group`, `group_other_day`, `saved_within_hour`…), `detected_at`, `detected_by` (`backfill`/`cron`/`save`), `status` (`open`/`copy_deleted`/`both_real`/`auto_removed`/`undone`/`gone`), `resolved_at`, `resolved_via` (`review_page`/`recap`/`form`/`automatic`/`admin`), `snapshot` (puzzle, seconds, days, gap, differences). Unique (`player_id`, `time_a_id`, `time_b_id`). **No FKs on the result ids** (like `puzzle_moderation_decision`) - the row outlives the deletion it records |
 | `result_auto_removal` | Snapshot of every automatically removed copy + kept id, `undone_at`, `reported_at` (in which e-mail) |
 | `result_duplicate_prevention` | Append-only: `player_id`, `kind` (`resend_caught`, `warning_shown`, `saved_anyway`), `time_id`, `puzzle_id`, `created_at`, `via` |
-| `result_review_contact` | One row per contact: `player_id`, `type` (`first`/`weekly`), `status` (`planned`/`sent`/`skipped`), `planned_at`, `sent_at`, `email_audit_log_id`, case + removal ids, `page_visited_at`, `reacted_at` |
+| `result_review_contact` | One row per contact: `player_id`, `type` (`first`/`weekly`), `status` (`planned`/`sent`/`skipped`), `priority` + `last_active_on` (sending order), `planned_at`, `sent_at`, `skipped_reason`, case + removal ids (json), `page_visited_at`, `reacted_at`. No `email_audit_log_id`: the audit row is written by the async mail worker after the contact's transaction; bounces are counted by `email_type` |
 | `player.result_emails_enabled` | bool, default true |
 | `puzzle_solving_time.created_via` | nullable enum (Layer 1) |
 

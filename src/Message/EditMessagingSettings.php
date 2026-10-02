@@ -14,6 +14,7 @@ readonly final class EditMessagingSettings
         public bool $emailNotificationsEnabled,
         public EmailNotificationFrequency $emailNotificationFrequency,
         public bool $newsletterEnabled,
+        public bool $resultEmailsEnabled,
     ) {
     }
 }

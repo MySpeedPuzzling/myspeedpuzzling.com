@@ -66,6 +66,8 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetPuzzleMergeReviewQueue' => self::ADMIN,
         'GetPuzzleTracking' => self::OWN_DATA,
         'GetReports' => self::ADMIN,
+        'GetResultReviewContactsOverview' => self::ADMIN,
+        'GetResultReviewEmailCandidates' => self::BACKGROUND,
         'GetRoundTeams' => self::ORGANISER,
         'GetSoldSwappedHistory' => self::BILATERAL,
         'GetStatistics' => self::AGGREGATE,

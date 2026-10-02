@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Message\KeepDuplicateCopy;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\ResultDuplicateCaseRepository;
+use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewReactions;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -32,6 +33,7 @@ readonly final class KeepDuplicateCopyHandler
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         private PlayerRepository $playerRepository,
         private SolvingTimeRoundResolver $roundResolver,
+        private ResultReviewReactions $resultReviewReactions,
         private ClockInterface $clock,
     ) {
     }
@@ -78,5 +80,6 @@ readonly final class KeepDuplicateCopyHandler
         }
 
         $this->puzzleSolvingTimeRepository->delete($copy);
+        $this->resultReviewReactions->recordFor($player->id->toString());
     }
 }

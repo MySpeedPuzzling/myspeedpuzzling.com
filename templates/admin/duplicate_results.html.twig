@@ -311,5 +311,6 @@
         {% endif %}
     </section>
 
+    {{ include('admin/_duplicate_results_contacts.html.twig', {contacts: contacts}) }}
     {{ include('admin/_duplicate_puzzle_signals.html.twig') }}
 {% endblock %}

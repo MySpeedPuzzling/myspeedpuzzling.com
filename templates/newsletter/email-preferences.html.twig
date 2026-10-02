@@ -57,6 +57,17 @@
                     </div>
                 </div>
 
+                <div class="card card-body shadow-lg mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="result-emails-switch"
+                               name="result_emails_enabled" value="1" {{ resultEmailsEnabled ? 'checked' }}>
+                        <label class="form-check-label" for="result-emails-switch">
+                            <span class="d-block fw-bold">🧩 {{ 'email_preferences.result_emails_title'|trans }}</span>
+                        </label>
+                    </div>
+                    <p class="fs-sm text-muted mb-0 mt-1">{{ 'email_preferences.result_emails_description'|trans }}</p>
+                </div>
+
                 <button type="submit" class="btn btn-primary">
                     {{ 'email_preferences.save_button'|trans }}
                 </button>

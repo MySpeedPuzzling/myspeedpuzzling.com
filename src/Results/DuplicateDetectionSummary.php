@@ -10,6 +10,7 @@ readonly final class DuplicateDetectionSummary
         public int $candidates,
         public int $newCases,
         public int $goneCases,
+        public int $autoRemoved = 0,
     ) {
     }
 }

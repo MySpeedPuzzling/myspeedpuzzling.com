@@ -1,6 +1,7 @@
 # Duplicate results ("saved twice")
 
-GitHub #221 · status: **P1 (Layer 1) built**, the rest planned (analysis 2026-10-01/02).
+GitHub #221 · status: **P1 (Layer 1), P2 (detection + admin) and P4 (review page, automatic removal, banner) built**,
+the rest planned (analysis 2026-10-01/02).
 
 Players end up with the same result saved more than once. A copy counts twice in "completed N×", activity, player
 statistics and recaps, feeds Puzzle Insights a second attempt that never happened (attempt numbers, improvement
@@ -272,6 +273,47 @@ The recap after saving shows a twin straight away with the same actions. The pla
   it - only concurrency or API clients without a key).
 - The **undo rate** is the quality measure. Widening the 10 s window is decided by data only (e.g. ≥ 99 % of the
   10–60 s cases end in "delete the copy" over a few months).
+
+### As built (P4, 2026-10-02)
+
+- **One detection code path**: `DuplicateCaseRecorder` (classify → skip known pairs → store, a result with a
+  `result_duplicate_prevention` row of kind `saved_anyway` *of that person* → the case is stored `both_real` /
+  `resolved_via = form`, in the daily run too). Used by `DetectDuplicateResultsHandler` (all results) and
+  `DetectDuplicateResultsOnSave` (one result).
+- **Save-time detection** = `DetectDuplicateResultsOnSave`, a sync handler of `PuzzleSolved`,
+  `PuzzleSolvingTimeModified` and `PuzzleSolvingTimeDeleted` (postFlush, inside the save's transaction):
+  `GetDuplicateCandidates::ofPeopleOnPuzzle()` for the result's people on its puzzle, keeping only pairs with this
+  result; an edited result's open cases that stop matching → `gone`; a deleted result's open cases → `gone` (the event
+  now carries the result id). Never removes anything. **Failure never costs the save**: it runs in its own savepoint,
+  every read comes before the first write, a failing query is rolled back to the savepoint and logged as a warning.
+  It stores only pairs that include the result just saved - for an added result a row nobody else can see before the
+  commit, so the daily run cannot insert the same case concurrently (no unique-key failure at the flush). Cost of a
+  save without a twin: the savepoint pair + one indexed query (3 statements). It also runs while fixtures load, so the
+  test database starts with `DuplicateResultsFixture`'s cases (`.claude/fixtures.md`).
+- **Automatic removal**: the daily handler dispatches `AutoRemoveCertainDuplicate` for every open Tier A case; the
+  handler re-runs the scoped candidate query + classifier and removes only if the pair is still Tier A (else the case
+  stays open). `result_auto_removal.player_id` = the **tracker** of the removed copy (only they may undo); every
+  person's case of the pair → `auto_removed`; other cases with the removed copy (a triplet) → `gone`. Snapshot =
+  `Value\RemovedResultSnapshot` (every column incl. the `team` JSON and prediction fields; the puzzling team is
+  resolved again from the group on Undo).
+- **Undo** (`UndoAutoRemoval`): `PuzzleSolvingTime::restore()` - same id, same row; records
+  `PuzzleSolvingTimeModified`, not `PuzzleSolved` (statistics and insights follow; no second follower notification,
+  no wishlist change). A competition deleted meanwhile is dropped, the round is re-derived. Cases of the pair →
+  `undone`.
+- **Keep** (`KeepDuplicateCopy`) deletes the other copy only when the viewer tracks it; with both copies the viewer's,
+  `PuzzleSolvingTime::takeOverFrom()` first fills what the kept one lacks (photo, empty comment, first-try tag,
+  competition; round re-derived; a group copy notifies the other members like any edit). Both copies must still
+  exist (else `DuplicateCaseChanged`, nothing deleted). Every open case with the deleted copy → `copy_deleted`.
+- Review page `review_results` (`/{_locale}/review-results`), POST routes `review_results_keep_copy`,
+  `review_results_both_real`, `review_results_undo_removal`; the first-try POST routes kept their paths and redirect
+  to the review page, `first_try_conflicts` answers 301. A case is shown only while both copies exist. Recap:
+  `GetPlayerDuplicateCases::openOfTime()` (one query, + one when there is a case); `via=recap` returns to the recap.
+  Removed ids: `added_time_recap` and `result_image` answer 301 to the kept copy (`ResultAutoRemovalRepository`,
+  looked up only after a not-found).
+- Banner `templates/review_results/_banner.html.twig` on the Hub and the own profile, one query
+  (`GetPlayerReviewCounts`: open cases with both copies + removals in 30 days not undone + the first-try conflict
+  count as a scalar subquery of `GetFirstTryTimes::conflictCountSql()`). Replaces the profile's first-try banner.
+- Not built yet: the "Possibly saved twice" marker in the results list (`docs/TODO.md`).
 
 ## Telling players
 

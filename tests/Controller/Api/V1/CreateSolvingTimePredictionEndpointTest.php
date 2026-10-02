@@ -92,6 +92,12 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
     private const int DUPLICATE_GUARD_QUERIES = 2;
 
     /**
+     * The detection right after the save (DetectDuplicateResultsOnSave, docs/features/duplicate-results.md): its
+     * savepoint pair + the scoped candidate query - a result without a twin costs nothing more
+     */
+    private const int SAVE_TIME_DUPLICATE_DETECTION = 3;
+
+    /**
      * The member has one earlier solo solve of the puzzle: the prediction is the
      * personalised one that applied before this time - the new time is excluded,
      * so personal_solve_count is the count *before* it and last_time_seconds the
@@ -108,7 +114,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertQueryCountAtMost(
             $browser,
-            self::WRITE_PATH_MEMBER_SOLO_500_01 + self::DUPLICATE_GUARD_QUERIES + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES + self::STORED_PREDICTION_QUERIES,
+            self::WRITE_PATH_MEMBER_SOLO_500_01 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES + self::STORED_PREDICTION_QUERIES,
             'Member solo create with a personal prediction (PAT)',
         );
         $response = $this->decode($browser);
@@ -165,7 +171,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertQueryCountAtMost(
             $browser,
-            self::WRITE_PATH_MEMBER_SOLO_500_04 + self::DUPLICATE_GUARD_QUERIES + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES + self::STORED_PREDICTION_QUERIES,
+            self::WRITE_PATH_MEMBER_SOLO_500_04 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES + self::STORED_PREDICTION_QUERIES,
             'Member solo create with a statistical prediction (PAT)',
         );
         $response = $this->decode($browser);
@@ -199,7 +205,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertQueryCountAtMost(
             $browser,
-            self::WRITE_PATH_NON_MEMBER_SOLO_500_02 + self::DUPLICATE_GUARD_QUERIES + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES,
+            self::WRITE_PATH_NON_MEMBER_SOLO_500_02 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES,
             'Non-member solo create (PAT)',
         );
         $response = $this->decode($browser);
@@ -225,7 +231,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         ]);
 
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, self::WRITE_PATH_MEMBER_GROUP_500_01 + self::DUPLICATE_GUARD_QUERIES, 'Member group create (PAT) - no profile, no prediction query');
+        $this->assertQueryCountAtMost($browser, self::WRITE_PATH_MEMBER_GROUP_500_01 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION, 'Member group create (PAT) - no profile, no prediction query');
         $response = $this->decode($browser);
 
         $this->assertNull($this->prediction($browser));
@@ -244,7 +250,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertQueryCountAtMost(
             $browser,
-            self::WRITE_PATH_MEMBER_SOLO_500_01 + self::DUPLICATE_GUARD_QUERIES + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES,
+            self::WRITE_PATH_MEMBER_SOLO_500_01 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES,
             'Opted-out member solo create (PAT)',
         );
         $response = $this->decode($browser);

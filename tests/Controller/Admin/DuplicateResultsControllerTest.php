@@ -20,10 +20,11 @@ final class DuplicateResultsControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/admin/duplicate-results');
 
         $this->assertResponseIsSuccessful();
-        self::assertSame('5', $crawler->filter('.card .h3')->first()->text());
-        // Dana Twin has four cases, her teammate one
+        // The Tier A copy was removed automatically: Dana Twin has three open cases left, her teammate one
+        self::assertSame('4', $crawler->filter('.card .h3')->first()->text());
         self::assertSame('2', $crawler->filter('.card .h3')->eq(1)->text());
-        self::assertCount(5, $crawler->filter('#cases ~ .table-responsive tbody tr'));
+        self::assertCount(4, $crawler->filter('#cases ~ .table-responsive tbody tr'));
+        self::assertCount(1, $crawler->filter('[data-testid="admin-auto-removals"] tbody tr'));
         self::assertStringContainsString('Twins Puzzle', $crawler->filter('#cases ~ .table-responsive')->text());
     }
 

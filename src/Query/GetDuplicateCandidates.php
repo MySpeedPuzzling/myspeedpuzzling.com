@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\DuplicateCandidate;
 use SpeedPuzzling\Web\Results\DuplicateCandidateTime;
@@ -34,6 +35,35 @@ readonly final class GetDuplicateCandidates
      */
     public function all(): array
     {
+        return $this->find('', '', []);
+    }
+
+    /**
+     * The same pairs, only of the given people on one puzzle - the detection right after a result was saved
+     * or edited, and the re-check before an automatic removal. Rides on the (player_id, puzzle_id) index.
+     *
+     * @param list<string> $personIds
+     * @return list<DuplicateCandidate> ordered by person, then by when the older copy was saved
+     */
+    public function ofPeopleOnPuzzle(string $puzzleId, array $personIds): array
+    {
+        if ($personIds === []) {
+            return [];
+        }
+
+        return $this->find(
+            'AND pst.puzzle_id = :puzzleId AND pst.player_id IN (:personIds)',
+            'AND pst.puzzle_id = :puzzleId AND member.player_id IN (:personIds)',
+            ['puzzleId' => $puzzleId, 'personIds' => $personIds],
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $parameters
+     * @return list<DuplicateCandidate>
+     */
+    private function find(string $soloScope, string $groupScope, array $parameters): array
+    {
         $pairsQuery = <<<SQL
 WITH person_result AS (
     SELECT pst.id, pst.player_id AS person_id, pst.player_id AS tracker_id, pst.puzzling_team_id AS team_id,
@@ -41,12 +71,14 @@ WITH person_result AS (
     FROM puzzle_solving_time pst
     WHERE pst.puzzling_team_id IS NULL
         AND pst.seconds_to_solve IS NOT NULL
+        {$soloScope}
     UNION ALL
     SELECT pst.id, member.player_id, pst.player_id, pst.puzzling_team_id,
         pst.puzzle_id, pst.seconds_to_solve, COALESCE(pst.finished_at, pst.tracked_at)::date, pst.tracked_at
     FROM puzzle_solving_time pst
     INNER JOIN puzzling_team_member member ON member.team_id = pst.puzzling_team_id AND member.player_id IS NOT NULL
     WHERE pst.seconds_to_solve IS NOT NULL
+        {$groupScope}
 )
 SELECT a.person_id, a.id AS a_id, b.id AS b_id
 FROM person_result a
@@ -67,7 +99,11 @@ INNER JOIN person_result b
 SQL;
 
         /** @var list<array{person_id: string, a_id: string, b_id: string}> $pairs */
-        $pairs = $this->database->fetchAllAssociative($pairsQuery);
+        $pairs = $this->database->fetchAllAssociative(
+            $pairsQuery,
+            $parameters,
+            isset($parameters['personIds']) ? ['personIds' => ArrayParameterType::STRING] : [],
+        );
 
         if ($pairs === []) {
             return [];

@@ -1,8 +1,5 @@
-{% extends 'base.html.twig' %}
-
-{% block title %}{{ 'first_try.page.title'|trans }}{% endblock %}
-{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
-
+{# The first-try part of "Review your results" (docs/features/first-try-integrity.md): conflicts, then late
+   first tries. Expects conflicts, late_first_tries and player_id. #}
 {%- macro result_label(time, player_id) -%}
     {%- set others = time.peopleExcept(player_id) -%}
     {%- set names = others|map(person => person.label() ?: 'first_try.a_puzzler'|trans)|join(', ') -%}
@@ -27,20 +24,12 @@
     </div>
 {%- endmacro -%}
 
-{% block content %}
-{% include '_return_back_button.html.twig' with {fallbackUrl: path('my_profile'), fallbackTitle: 'menu.my_profile'|trans} %}
-
 {% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\FirstTry\\FirstTryConflictsController::CSRF_TOKEN_ID')) %}
 
-<h1 class="h3 mb-2"><i class="bi bi-1-circle me-2"></i>{{ 'first_try.page.title'|trans }}</h1>
-<p class="text-muted">{{ 'first_try.page.intro'|trans }}</p>
-
-{% if conflicts is empty %}
-    <div class="alert alert-success fs-sm" data-testid="first-try-no-conflicts">
-        <i class="bi bi-check-circle me-1"></i>{{ 'first_try.page.empty'|trans }}
-    </div>
+{% if conflicts is not empty %}
+    <h2 class="h5 mt-4 mb-2" id="first-try"><i class="bi bi-1-circle me-2"></i>{{ 'first_try.page.title'|trans }}</h2>
+    <p class="text-muted fs-sm">{{ 'first_try.page.intro'|trans }}</p>
 {% endif %}
-
 {% for conflict in conflicts %}
     <div class="card card-body shadow-sm mb-3" data-testid="first-try-conflict">
         {{ _self.puzzle_heading(conflict.puzzle) }}
@@ -114,4 +103,3 @@
         {% endfor %}
     </details>
 {% endif %}
-{% endblock %}

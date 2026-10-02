@@ -4742,3 +4742,40 @@ photo_stash:
     kept: "Your photo is still here, no need to choose it again."
     remove: "Remove"
     lost: "Your photo could not be kept this time – please choose it again."
+review_results:
+    page:
+        title: "Review your results"
+        intro: "Results that may have been saved twice, copies we removed for you and first tries to sort out – everything worth a look, in one place."
+        empty: "Nothing to review – your results look fine."
+    duplicates:
+        title: "Saved twice?"
+        intro: "These results have exactly the same time on the same puzzle. If it is one solve saved twice, keep one copy – the other one is deleted and the solve counts only once in your statistics."
+        likely: "Most likely saved twice"
+        possible: "Possibly saved twice"
+        same_time: "the same time to the second: %time%"
+        saved_at: "Saved %date%"
+        older_hint: "Saved first – most likely the original."
+        keep: "Keep this one"
+        keep_hint: "The copy you keep takes over whatever only the other one has – photo, comment, first try, competition."
+        delete_mine: "Delete my copy"
+        only_tracker: "Only %name% can delete it."
+        both_real: "Both are real – two different solves"
+    removed:
+        title: "Removed automatically"
+        intro: "The same result arrived twice within a few seconds, identical in every detail, so we removed the second copy. If it really was another solve, bring it back."
+        row: "Copy saved %saved%, removed %removed%."
+        kept: "The result that stayed"
+        undo: "Undo"
+    banner:
+        duplicates: "%count% result may have been saved twice.|%count% results may have been saved twice."
+        auto_removed: "We removed %count% copy of a result that was saved twice.|We removed %count% copies of results that were saved twice."
+        review: "Review"
+    recap:
+        title: "Did you save this twice?"
+        intro: "You already have exactly the same time on this puzzle."
+    flash:
+        copy_deleted: "Done – the copy is deleted and the solve counts once."
+        both_real: "Saved – both results stay."
+        undone: "The result is back."
+        undo_failed: "This result cannot be brought back any more."
+        changed: "This has changed in the meantime – here is how it looks now."

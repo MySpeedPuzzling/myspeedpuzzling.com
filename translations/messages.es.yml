@@ -4445,3 +4445,40 @@ photo_stash:
     kept: "Tu foto sigue aquí, no hace falta elegirla de nuevo."
     remove: "Quitar"
     lost: "Esta vez no se pudo conservar tu foto – elígela de nuevo, por favor."
+review_results:
+    page:
+        title: "Revisa tus resultados"
+        intro: "Resultados que quizá se guardaron dos veces, copias que eliminamos por ti y primeros intentos por aclarar – todo lo que merece un vistazo, en un solo lugar."
+        empty: "Nada que revisar – tus resultados se ven bien."
+    duplicates:
+        title: "¿Guardado dos veces?"
+        intro: "Estos resultados tienen exactamente el mismo tiempo en el mismo rompecabezas. Si es un solo armado guardado dos veces, quédate con una copia – la otra se elimina y el armado cuenta solo una vez en tus estadísticas."
+        likely: "Muy probablemente guardado dos veces"
+        possible: "Quizá guardado dos veces"
+        same_time: "el mismo tiempo al segundo: %time%"
+        saved_at: "Guardado el %date%"
+        older_hint: "Guardado primero – muy probablemente el original."
+        keep: "Quedarme con este"
+        keep_hint: "La copia que conservas recibe lo que solo tiene la otra – foto, comentario, primer intento, competición."
+        delete_mine: "Eliminar mi copia"
+        only_tracker: "Solo %name% puede eliminarla."
+        both_real: "Los dos son reales – dos armados distintos"
+    removed:
+        title: "Eliminados automáticamente"
+        intro: "El mismo resultado llegó dos veces en pocos segundos, idéntico en todo, así que eliminamos la segunda copia. Si de verdad fue otro armado, recupéralo."
+        row: "Copia guardada el %saved%, eliminada el %removed%."
+        kept: "El resultado que se quedó"
+        undo: "Deshacer"
+    banner:
+        duplicates: "%count% resultado quizá se guardó dos veces.|%count% resultados quizá se guardaron dos veces."
+        auto_removed: "Eliminamos %count% copia de un resultado guardado dos veces.|Eliminamos %count% copias de resultados guardados dos veces."
+        review: "Revisar"
+    recap:
+        title: "¿Lo guardaste dos veces?"
+        intro: "Ya tienes exactamente el mismo tiempo en este rompecabezas."
+    flash:
+        copy_deleted: "Listo – la copia se eliminó y el armado cuenta una vez."
+        both_real: "Guardado – los dos resultados se quedan."
+        undone: "El resultado ha vuelto."
+        undo_failed: "Este resultado ya no se puede recuperar."
+        changed: "Esto cambió mientras tanto – así se ve ahora."

@@ -4445,3 +4445,40 @@ photo_stash:
     kept: "Ihr Foto ist noch da, Sie müssen es nicht erneut auswählen."
     remove: "Entfernen"
     lost: "Ihr Foto konnte diesmal nicht behalten werden – bitte wählen Sie es erneut aus."
+review_results:
+    page:
+        title: "Ihre Ergebnisse prüfen"
+        intro: "Ergebnisse, die vielleicht doppelt gespeichert wurden, Kopien, die wir für Sie entfernt haben, und erste Versuche zum Klären – alles, was einen Blick wert ist, an einem Ort."
+        empty: "Nichts zu prüfen – Ihre Ergebnisse sehen gut aus."
+    duplicates:
+        title: "Doppelt gespeichert?"
+        intro: "Diese Ergebnisse haben beim selben Puzzle genau dieselbe Zeit. Wenn es ein Lösen ist, das doppelt gespeichert wurde, behalten Sie eine Kopie – die andere wird gelöscht und das Lösen zählt in Ihren Statistiken nur einmal."
+        likely: "Höchstwahrscheinlich doppelt gespeichert"
+        possible: "Möglicherweise doppelt gespeichert"
+        same_time: "dieselbe Zeit auf die Sekunde: %time%"
+        saved_at: "Gespeichert am %date%"
+        older_hint: "Zuerst gespeichert – höchstwahrscheinlich das Original."
+        keep: "Dieses behalten"
+        keep_hint: "Die Kopie, die Sie behalten, übernimmt alles, was nur die andere hat – Foto, Kommentar, ersten Versuch, Wettbewerb."
+        delete_mine: "Meine Kopie löschen"
+        only_tracker: "Nur %name% kann sie löschen."
+        both_real: "Beide sind echt – zwei verschiedene Lösungen"
+    removed:
+        title: "Automatisch entfernt"
+        intro: "Dasselbe Ergebnis kam innerhalb weniger Sekunden zweimal an, in jedem Detail identisch, daher haben wir die zweite Kopie entfernt. Wenn es wirklich ein weiteres Lösen war, holen Sie es zurück."
+        row: "Kopie gespeichert am %saved%, entfernt am %removed%."
+        kept: "Das Ergebnis, das geblieben ist"
+        undo: "Rückgängig"
+    banner:
+        duplicates: "%count% Ergebnis wurde vielleicht doppelt gespeichert.|%count% Ergebnisse wurden vielleicht doppelt gespeichert."
+        auto_removed: "Wir haben %count% Kopie eines doppelt gespeicherten Ergebnisses entfernt.|Wir haben %count% Kopien doppelt gespeicherter Ergebnisse entfernt."
+        review: "Prüfen"
+    recap:
+        title: "Haben Sie das doppelt gespeichert?"
+        intro: "Sie haben bei diesem Puzzle bereits genau dieselbe Zeit."
+    flash:
+        copy_deleted: "Erledigt – die Kopie ist gelöscht und das Lösen zählt einmal."
+        both_real: "Gespeichert – beide Ergebnisse bleiben."
+        undone: "Das Ergebnis ist wieder da."
+        undo_failed: "Dieses Ergebnis kann nicht mehr zurückgeholt werden."
+        changed: "Das hat sich inzwischen geändert – so sieht es jetzt aus."

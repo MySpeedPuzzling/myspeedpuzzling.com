@@ -18,6 +18,10 @@
         {% endif %}
     </h1>
 
+    {% if review_counts is not null %}
+        <div class="mt-3">{{ include('review_results/_banner.html.twig', {review_counts: review_counts}) }}</div>
+    {% endif %}
+
     {% if getting_started is not null %}
         {{ include('onboarding/_getting_started_card.html.twig', {progress: getting_started, folded: getting_started_folded}) }}
     {% endif %}

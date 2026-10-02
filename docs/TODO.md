@@ -4,6 +4,13 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Duplicate results (#221)
+
+Plan: [`features/duplicate-results.md`](features/duplicate-results.md).
+
+- [ ] "Possibly saved twice" marker in the player's results list (`PlayerSolvedPuzzles`) for results with an open
+      case - left out of P4 while those templates are being reworked
+
 ## Result detail modal + unified ranking rows (#222)
 
 Shipped: [`features/puzzle-result-detail.md`](features/puzzle-result-detail.md),
@@ -28,7 +35,8 @@ Shipped: [`features/puzzle-result-detail.md`](features/puzzle-result-detail.md),
 
 Shipped: [`features/first-try-integrity.md`](features/first-try-integrity.md).
 
-- [ ] Hub banner for players with first-try conflicts (the profile banner is the first step, rolled out gradually)
+- [x] Hub banner for players with first-try conflicts - part of the "Review your results" banner since duplicate
+      results P4
 - [ ] Remind about unresolved first-try conflicts in the digest e-mail
 - [ ] A few weeks after the deploy: how many of the 3,170 duplicate pairs (2026-09-30) got resolved - decide whether
       the rest needs another nudge

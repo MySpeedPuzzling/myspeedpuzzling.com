@@ -107,8 +107,9 @@ final class NotifyWhenPuzzleSolvedTest extends KernelTestCase
         // 53 queries before the fan-out became one INSERT (one per follower + loading the follower entities);
         // one of them asks who blocks the solver, 6 record the solve's prediction (a savepoint pair + the 4 reads
         // of a personal prediction - prediction history, SolvingTimePredictor), 2 guard against saving it twice (the
-        // id lookup + GetRecentIdenticalSolvingTime, docs/features/duplicate-results.md)
-        self::assertLessThanOrEqual(36, count($queries), implode("\n", $queries));
+        // id lookup + GetRecentIdenticalSolvingTime, docs/features/duplicate-results.md), 3 look for a twin right
+        // after the save (a savepoint pair + the scoped candidate query, DetectDuplicateResultsOnSave)
+        self::assertLessThanOrEqual(39, count($queries), implode("\n", $queries));
     }
 
     public function testTeamMemberFollowedTwiceIsNotifiedOnceAndPrivateMembersNotifyNobody(): void

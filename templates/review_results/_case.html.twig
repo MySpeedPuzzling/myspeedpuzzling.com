@@ -1,0 +1,95 @@
+{# One duplicate case with both copies and its actions - on the review page and the recap.
+   Expects case (DuplicateReviewCase), player_id, via ('review_page' | 'recap'), on the recap also recap_time_id.
+   Only the tracker of a copy may delete it (docs/features/duplicate-results.md, "Review page"). #}
+{%- macro people_label(copy, player_id) -%}
+    {%- set others = copy.peopleExcept(player_id) -%}
+    {%- set names = others|map(person => person.label() ?: 'first_try.a_puzzler'|trans)|join(', ') -%}
+    {%- if others is empty -%}
+        {{ 'first_try.page.solo'|trans }}
+    {%- elseif others|length == 1 -%}
+        {{ 'first_try.page.pair_with'|trans({'%names%': names}) }}
+    {%- else -%}
+        {{ 'first_try.page.team_with'|trans({'%names%': names}) }}
+    {%- endif -%}
+{%- endmacro -%}
+
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ReviewResults\\ReviewResultsController::CSRF_TOKEN_ID')) %}
+{% set puzzle = case.puzzle %}
+
+<div class="card card-body shadow-sm mb-3" data-testid="duplicate-case">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        {% if puzzle.image is not null %}
+            <img class="rounded-2" style="width: 56px; height: 56px; object-fit: cover;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.name}) }}" src="{{ puzzle.image|thumbnail('puzzle_small') }}">
+        {% endif %}
+        <div class="low-line-height">
+            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="h6 mb-0">{{ puzzle.name }}</a><br>
+            <small class="text-muted">{{ puzzle.manufacturerName|upper }} · {{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }}</small>
+        </div>
+    </div>
+
+    <p class="fs-sm mb-2">
+        <strong>{{ (case.isLikely ? 'review_results.duplicates.likely' : 'review_results.duplicates.possible')|trans }}</strong>
+        {% if case.sameTime and case.older.secondsToSolve is not null %}
+            · {{ 'review_results.duplicates.same_time'|trans({'%time%': case.older.secondsToSolve|puzzlingTime}) }}
+        {% endif %}
+    </p>
+
+    <div class="row g-2 mb-2">
+        {% for copy in case.copies %}
+            {% set other = loop.first ? case.newer : case.older %}
+            <div class="col-sm-6">
+                <div class="border rounded-3 p-2 h-100 fs-sm" data-testid="duplicate-copy" data-time-id="{{ copy.timeId }}">
+                    <div class="d-flex gap-2">
+                        {% if copy.finishedPuzzlePhoto is not null %}
+                            <img class="rounded-2 flex-shrink-0" style="width: 64px; height: 64px; object-fit: cover;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.name}) }}" src="{{ copy.finishedPuzzlePhoto|thumbnail('puzzle_small') }}" loading="lazy">
+                        {% endif %}
+                        <div>
+                            <strong>{{ copy.solvedAt|date('d.m.Y') }}</strong>
+                            {% if copy.secondsToSolve is not null %}· {{ copy.secondsToSolve|puzzlingTime }}{% endif %}
+                            · {{ _self.people_label(copy, player_id) }}
+                            {% if copy.firstAttempt %}<span class="badge rounded-pill bg-info ms-1">{{ 'first_attempt'|trans }}</span>{% endif %}
+                            {% if copy.unboxed %}<span class="badge rounded-pill bg-warning ms-1"><i class="bi bi-eye-slash"></i> {{ 'unboxed'|trans }}</span>{% endif %}
+                            {% if copy.competitionName is not null %}<br><i class="bi bi-trophy me-1"></i>{{ copy.competitionName }}{% endif %}
+                            {% if copy.comment is not null and copy.comment|trim is not empty %}<br><span class="fst-italic">“{{ copy.comment|length > 120 ? copy.comment|slice(0, 120) ~ '…' : copy.comment }}”</span>{% endif %}
+                            <span class="d-block text-muted small">{{ 'review_results.duplicates.saved_at'|trans({'%date%': copy.trackedAt|date('d.m.Y H:i:s')}) }}</span>
+                            {% if case.isLikely and loop.first %}
+                                <span class="d-block text-muted small">{{ 'review_results.duplicates.older_hint'|trans }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        {% if copy.isTrackedBy(player_id) and other.isTrackedBy(player_id) %}
+                            <form method="post" action="{{ path('review_results_keep_copy', {caseId: case.caseId}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf }}">
+                                <input type="hidden" name="keep" value="{{ copy.timeId }}">
+                                <input type="hidden" name="via" value="{{ via }}">
+                                <button type="submit" class="btn btn-sm {{ case.isLikely and loop.first ? 'btn-primary' : 'btn-outline-primary' }}">{{ 'review_results.duplicates.keep'|trans }}</button>
+                            </form>
+                        {% elseif copy.isTrackedBy(player_id) %}
+                            <form method="post" action="{{ path('review_results_keep_copy', {caseId: case.caseId}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf }}">
+                                <input type="hidden" name="keep" value="{{ other.timeId }}">
+                                <input type="hidden" name="via" value="{{ via }}">
+                                <button type="submit" class="btn btn-sm btn-outline-primary">{{ 'review_results.duplicates.delete_mine'|trans }}</button>
+                            </form>
+                        {% else %}
+                            <span class="text-muted small" data-testid="duplicate-only-tracker">{{ 'review_results.duplicates.only_tracker'|trans({'%name%': copy.tracker ? (copy.tracker.label() ?: 'first_try.a_puzzler'|trans) : 'first_try.a_puzzler'|trans}) }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if case.older.isTrackedBy(player_id) and case.newer.isTrackedBy(player_id) %}
+        <p class="fs-sm text-muted mb-2">{{ 'review_results.duplicates.keep_hint'|trans }}</p>
+    {% endif %}
+
+    <form method="post" action="{{ path('review_results_both_real', {caseId: case.caseId}) }}">
+        <input type="hidden" name="_token" value="{{ csrf }}">
+        <input type="hidden" name="via" value="{{ via }}">
+        {% if recap_time_id is defined %}<input type="hidden" name="time" value="{{ recap_time_id }}">{% endif %}
+        <button type="submit" class="btn btn-link btn-sm text-muted px-0">{{ 'review_results.duplicates.both_real'|trans }}</button>
+    </form>
+</div>

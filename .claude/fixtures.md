@@ -292,3 +292,17 @@ These entries migrate from duplicate to survivor (no deduplication needed):
 | PuzzleSolvingTime | TIME_44 | (all solving times migrate) |
 | SoldSwappedItem | SOLD_01 | (all historical records migrate) |
 | SoldSwappedItem | SOLD_02 | (all historical records migrate) |
+
+## Duplicate Results (`DuplicateResultsFixture`)
+
+Results saved twice (`docs/features/duplicate-results.md`), on their own players and puzzle so no other fixture's
+counts change: `PLAYER_TWINS` (Dana Twin, `twins1`), `PLAYER_TWINS_TEAMMATE` (Tom Twin, `twins2`), both without a
+user account, and `PUZZLE_TWINS` (Twins Puzzle, 108 pcs, Trefl, **not approved** - so the catalogue, brand lists and solve-time buckets never see it). All results are 40-50 days old.
+
+| Pair | Times | Detection gives |
+|------|-------|-----------------|
+| `TIME_CERTAIN_A/B` | solo 1111 s, saved 7 s apart, identical | A `same_tracker` |
+| `TIME_STRONG_A/B` | solo 2222 s, saved 2 min apart | B `same_tracker` |
+| `TIME_TEAMMATE_A/B` | pair 3333 s, tracked by each member | B `teammate_copy`, one case per member |
+| `TIME_PRACTICE_A/B` (+ `TIME_PRACTICE_OTHER` 500 s that day) | solo 444 s, 5 s apart, identical | C `same_tracker` |
+| `TIME_OTHER_DAY_A/B` | solo 5555 s on two days, saved 6 days apart | nothing |

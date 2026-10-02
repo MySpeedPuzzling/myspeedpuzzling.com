@@ -9,11 +9,14 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Entity\ResultDuplicateCase;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\DeletePuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\RecordDuplicatePrevention;
+use SpeedPuzzling\Web\Repository\ResultDuplicateCaseRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\DuplicateResultsFixture;
+use SpeedPuzzling\Web\Value\DuplicateDetectedBy;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -130,6 +133,46 @@ final class DetectDuplicateResultsOnSaveTest extends KernelTestCase
         self::assertFalse($this->database->fetchOne(
             'SELECT 1 FROM result_duplicate_case_away WHERE time_b_id = :id',
             ['id' => $second->toString()],
+        ));
+    }
+
+    public function testACaseThatCannotBeWrittenNeverCostsTheSave(): void
+    {
+        $first = Uuid::uuid7();
+        $second = Uuid::uuid7();
+        $this->add($first, comment: 'First');
+
+        // Every read works, the write of the case fails (rolled back with the test's transaction) - written at the
+        // flush after the save, this used to fail the save itself
+        $this->database->executeStatement("ALTER TABLE result_duplicate_case ADD CONSTRAINT refuse_in_test CHECK (detected_by <> 'save') NOT VALID");
+
+        $this->add($second, comment: 'Second');
+
+        self::assertNotFalse($this->database->fetchOne('SELECT 1 FROM puzzle_solving_time WHERE id = :id', ['id' => $second->toString()]));
+        self::assertSame([], $this->casesOf($second));
+    }
+
+    public function testAPairStoredMeanwhileIsSkipped(): void
+    {
+        $repository = self::getContainer()->get(ResultDuplicateCaseRepository::class);
+        $case = $repository->findOfPair(Uuid::fromString(DuplicateResultsFixture::TIME_STRONG_A), Uuid::fromString(DuplicateResultsFixture::TIME_STRONG_B))[0];
+
+        // The same pair of the same person once more, as the daily run would have stored it a moment earlier
+        $repository->insertIfAbsent(new ResultDuplicateCase(
+            id: Uuid::uuid7(),
+            player: $case->player,
+            timeAId: $case->timeAId,
+            timeBId: $case->timeBId,
+            tier: $case->tier,
+            kind: $case->kind,
+            detectedAt: $case->detectedAt,
+            detectedBy: DuplicateDetectedBy::Save,
+            snapshot: $case->snapshot,
+        ));
+
+        self::assertCount(1, $this->database->fetchAllAssociative(
+            'SELECT 1 FROM result_duplicate_case WHERE time_b_id = :id',
+            ['id' => DuplicateResultsFixture::TIME_STRONG_B],
         ));
     }
 

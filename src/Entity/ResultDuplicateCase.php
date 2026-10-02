@@ -17,6 +17,7 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\DuplicateCaseStatus;
+use SpeedPuzzling\Web\Value\DuplicateClassification;
 use SpeedPuzzling\Web\Value\DuplicateDetectedBy;
 use SpeedPuzzling\Web\Value\DuplicateKind;
 use SpeedPuzzling\Web\Value\DuplicateResolvedVia;
@@ -32,6 +33,9 @@ use SpeedPuzzling\Web\Value\DuplicateTier;
 #[Entity]
 #[UniqueConstraint(columns: ['player_id', 'time_a_id', 'time_b_id'])]
 #[Index(columns: ['player_id', 'status'])]
+// Every edit and deletion of a result looks up the cases with it
+#[Index(columns: ['time_a_id'])]
+#[Index(columns: ['time_b_id'])]
 class ResultDuplicateCase
 {
     // Changed only through the named methods below
@@ -67,10 +71,11 @@ class ResultDuplicateCase
         #[Immutable]
         #[Column(name: 'time_b_id', type: UuidType::NAME)]
         public UuidInterface $timeBId,
-        #[Immutable]
+        // Tier, kind and snapshot follow the pair while it is open (reclassify())
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::STRING, enumType: DuplicateTier::class)]
         public DuplicateTier $tier,
-        #[Immutable]
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::STRING, enumType: DuplicateKind::class)]
         public DuplicateKind $kind,
         #[Immutable]
@@ -79,7 +84,7 @@ class ResultDuplicateCase
         #[Immutable]
         #[Column(type: Types::STRING, enumType: DuplicateDetectedBy::class)]
         public DuplicateDetectedBy $detectedBy,
-        #[Immutable]
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::JSON)]
         public array $snapshot,
     ) {
@@ -108,6 +113,23 @@ class ResultDuplicateCase
     public function isOpen(): bool
     {
         return $this->status === DuplicateCaseStatus::Open;
+    }
+
+    /**
+     * The pair still matches, but what lies around it changed - e.g. the middle copy of three re-sends was removed,
+     * so the outer two are certain now. Only an open case follows; a decided one keeps what it was decided as.
+     *
+     * @param array<string, mixed> $snapshot see DuplicateCandidate::snapshot()
+     */
+    public function reclassify(DuplicateClassification $classification, array $snapshot): void
+    {
+        if ($this->status !== DuplicateCaseStatus::Open) {
+            return;
+        }
+
+        $this->tier = $classification->tier;
+        $this->kind = $classification->kind;
+        $this->snapshot = $snapshot;
     }
 
     /**

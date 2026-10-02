@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\AutoRemovalCanNotBeUndone;
 use SpeedPuzzling\Web\Exceptions\AutoRemovalNotFound;
 use SpeedPuzzling\Web\Message\AutoRemoveCertainDuplicate;
 use SpeedPuzzling\Web\Message\DetectDuplicateResults;
+use SpeedPuzzling\Web\Message\ReclassifyDuplicateCasesAfterRemoval;
 use SpeedPuzzling\Web\Message\UndoAutoRemoval;
+use SpeedPuzzling\Web\Services\DuplicateResults\DailyDuplicateDetection;
+use SpeedPuzzling\Web\Tests\ClonesSolvingTimes;
 use SpeedPuzzling\Web\Tests\DataFixtures\DuplicateResultsFixture;
+use SpeedPuzzling\Web\Value\DuplicateDetectedBy;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -22,6 +28,8 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
  */
 final class AutoRemovalTest extends KernelTestCase
 {
+    use ClonesSolvingTimes;
+
     private MessageBusInterface $messageBus;
     private Connection $database;
 
@@ -38,7 +46,7 @@ final class AutoRemovalTest extends KernelTestCase
         self::assertNotFalse($before);
         $solvedBefore = $this->solvedTimesCount();
 
-        $this->messageBus->dispatch(new DetectDuplicateResults());
+        self::getContainer()->get(DailyDuplicateDetection::class)->run(DuplicateDetectedBy::Cron);
 
         self::assertFalse($this->row(DuplicateResultsFixture::TIME_CERTAIN_B), 'The newer copy is removed');
         self::assertNotFalse($this->row(DuplicateResultsFixture::TIME_CERTAIN_A), 'The older copy stays');
@@ -71,7 +79,7 @@ final class AutoRemovalTest extends KernelTestCase
         self::assertNotNull($this->database->fetchOne('SELECT undone_at FROM result_auto_removal WHERE id = :id', ['id' => $removal['id']]));
 
         // The pair had its case - the next detection leaves it alone
-        $this->messageBus->dispatch(new DetectDuplicateResults());
+        self::getContainer()->get(DailyDuplicateDetection::class)->run(DuplicateDetectedBy::Cron);
         self::assertNotFalse($this->row(DuplicateResultsFixture::TIME_CERTAIN_B));
     }
 
@@ -133,9 +141,83 @@ final class AutoRemovalTest extends KernelTestCase
         self::assertNotFalse($this->row(DuplicateResultsFixture::TIME_STRONG_B));
     }
 
+    public function testUndoFindsTheCasesByThePair(): void
+    {
+        $removalId = $this->removeCertainCopy();
+
+        // The case the removal was made for is gone (e.g. cleaned up) - the undo does not need it
+        $this->database->executeStatement('DELETE FROM result_duplicate_case WHERE time_b_id = :id', ['id' => DuplicateResultsFixture::TIME_CERTAIN_B]);
+
+        $this->messageBus->dispatch(new UndoAutoRemoval($removalId, DuplicateResultsFixture::PLAYER_TWINS));
+
+        self::assertNotFalse($this->row(DuplicateResultsFixture::TIME_CERTAIN_B));
+    }
+
+    public function testUndoIsRefusedWhenAMemberOfThePairIsNoLongerThere(): void
+    {
+        $removalId = $this->removeCertainCopy();
+
+        // The removed copy was a pair result with somebody who deleted their account since
+        $this->database->executeStatement(
+            "UPDATE result_auto_removal SET snapshot = jsonb_set(CAST(snapshot AS jsonb), '{team}', CAST(:team AS jsonb)) WHERE id = :id",
+            [
+                'id' => $removalId,
+                'team' => json_encode(['team_id' => null, 'puzzlers' => [
+                    ['player_id' => DuplicateResultsFixture::PLAYER_TWINS, 'player_name' => null],
+                    ['player_id' => Uuid::uuid7()->toString(), 'player_name' => null],
+                ]], JSON_THROW_ON_ERROR),
+            ],
+        );
+
+        try {
+            $this->messageBus->dispatch(new UndoAutoRemoval($removalId, DuplicateResultsFixture::PLAYER_TWINS));
+            self::fail('The undo must be refused');
+        } catch (HandlerFailedException $exception) {
+            self::assertInstanceOf(AutoRemovalCanNotBeUndone::class, $exception->getPrevious());
+        }
+
+        self::assertFalse($this->row(DuplicateResultsFixture::TIME_CERTAIN_B));
+    }
+
+    public function testTheOuterPairOfATripletIsCertainOnceTheMiddleCopyIsRemoved(): void
+    {
+        // T1 = TIME_CERTAIN_A, T2 = a copy 3 s later, T3 = TIME_CERTAIN_B (7 s after T1)
+        $trackedAt = $this->database->fetchOne('SELECT tracked_at FROM puzzle_solving_time WHERE id = :id', ['id' => DuplicateResultsFixture::TIME_CERTAIN_A]);
+        assert(is_string($trackedAt));
+        $middle = $this->cloneSolvingTime(DuplicateResultsFixture::TIME_CERTAIN_A, [
+            'tracked_at' => (new DateTimeImmutable($trackedAt))->modify('+3 seconds')->format('Y-m-d H:i:s'),
+        ]);
+
+        $this->messageBus->dispatch(new DetectDuplicateResults());
+
+        $outerCaseId = $this->caseId(DuplicateResultsFixture::TIME_CERTAIN_A, DuplicateResultsFixture::TIME_CERTAIN_B);
+        // T2 was saved in between
+        self::assertSame('strong', $this->database->fetchOne('SELECT tier FROM result_duplicate_case WHERE id = :id', ['id' => $outerCaseId]));
+
+        $firstPairCaseId = $this->caseId(DuplicateResultsFixture::TIME_CERTAIN_A, $middle);
+        self::assertTrue($this->messageBus->dispatch(new AutoRemoveCertainDuplicate($firstPairCaseId))->last(HandledStamp::class)?->getResult());
+
+        $nowCertain = $this->messageBus->dispatch(new ReclassifyDuplicateCasesAfterRemoval($firstPairCaseId))->last(HandledStamp::class)?->getResult();
+
+        self::assertSame([$outerCaseId], $nowCertain);
+        self::assertSame('certain', $this->database->fetchOne('SELECT tier FROM result_duplicate_case WHERE id = :id', ['id' => $outerCaseId]));
+        self::assertSame('open', $this->database->fetchOne('SELECT status FROM result_duplicate_case WHERE id = :id', ['id' => $outerCaseId]));
+    }
+
+    private function caseId(string $timeAId, string $timeBId): string
+    {
+        $caseId = $this->database->fetchOne(
+            'SELECT id FROM result_duplicate_case WHERE player_id = :playerId AND time_a_id = :a AND time_b_id = :b',
+            ['playerId' => DuplicateResultsFixture::PLAYER_TWINS, 'a' => $timeAId, 'b' => $timeBId],
+        );
+        assert(is_string($caseId));
+
+        return $caseId;
+    }
+
     private function removeCertainCopy(): string
     {
-        $this->messageBus->dispatch(new DetectDuplicateResults());
+        self::getContainer()->get(DailyDuplicateDetection::class)->run(DuplicateDetectedBy::Cron);
 
         $removalId = $this->database->fetchOne(
             'SELECT id FROM result_auto_removal WHERE removed_time_id = :id',

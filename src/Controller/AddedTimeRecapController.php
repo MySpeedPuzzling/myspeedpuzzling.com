@@ -68,7 +68,8 @@ final class AddedTimeRecapController extends AbstractController
                 throw $exception;
             }
 
-            return $this->redirectToRoute('added_time_recap', ['timeId' => $keptTimeId], Response::HTTP_MOVED_PERMANENTLY);
+            // Temporary: Undo brings the removed id back, so no cache may remember the redirect for good
+            return $this->redirectToRoute('added_time_recap', ['timeId' => $keptTimeId], Response::HTTP_FOUND);
         }
 
         $player = $this->getPlayerProfile->byId($solvingPuzzle->playerId);

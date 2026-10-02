@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Symfony\Component\Security\Core\User\UserInterface;
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\Collection;
+use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\PuzzleIdTaken;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeAlreadySaved;
+use SpeedPuzzling\Web\Exceptions\SolvingTimeIdReused;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeIdTaken;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\FormData\PuzzleAddFormData;
@@ -32,6 +35,7 @@ use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
+use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
@@ -71,6 +75,8 @@ final class PuzzleAddController extends AbstractController
         readonly private FirstTryFormCheck $firstTryFormCheck,
         readonly private FormPhotoStash $formPhotoStash,
         readonly private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
+        readonly private MistypedYearNormalizer $mistypedYearNormalizer,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -113,6 +119,7 @@ final class PuzzleAddController extends AbstractController
         // submit - so the same form sent twice saves once (docs/features/duplicate-results.md, Layer 1)
         $timeId = $this->submittedIdOrNew($request, 'time_id');
         $newPuzzleId = $this->submittedIdOrNew($request, 'new_puzzle_id');
+        $savedWithFormId = $request->isMethod('POST') ? $this->puzzleSolvingTimeRepository->findById($timeId) : null;
 
         if ($puzzleId !== null) {
             $activePuzzle = $this->getPuzzleOverview->byId($puzzleId);
@@ -130,7 +137,7 @@ final class PuzzleAddController extends AbstractController
             // Except the save form of this stopwatch sent again: the handler answers it with the saved result
             if (
                 $activeStopwatch->status === StopwatchStatus::Finished
-                && ($request->isMethod('POST') === false || $this->puzzleSolvingTimeRepository->findById($timeId) === null)
+                && $savedWithFormId === null
             ) {
                 $this->addFlash('warning', $this->translator->trans('flashes.stopwatch_already_saved'));
 
@@ -242,6 +249,36 @@ final class PuzzleAddController extends AbstractController
             $addTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_player')));
         }
 
+        // The form's id belongs to a saved result: the same form sent again only when it is the same entry (puzzle,
+        // time, day) - the handler answers that one. A changed entry is a new result (the player went back and
+        // corrected the time), so it gets an id of its own and goes through every check like any other
+        if (
+            $savedWithFormId !== null
+            && $addTimeForm->isSubmitted()
+            && $data->mode !== PuzzleAddMode::Collection
+            && $savedWithFormId->player->id->toString() === $userProfile->playerId
+            && $this->isSameEntry($savedWithFormId, $data, $newPuzzleId, $request) === false
+        ) {
+            // A stopwatch saves one result - its save form changed after the save is no second one
+            if ($activeStopwatch?->status === StopwatchStatus::Finished) {
+                $this->addFlash('warning', $this->translator->trans('flashes.stopwatch_already_saved'));
+
+                return $this->redirectToRoute('my_profile');
+            }
+
+            $timeId = Uuid::uuid7();
+
+            // The new puzzle of the form is that result's puzzle now - a different one entered needs its own id
+            if (
+                $savedWithFormId->puzzle->id->equals($newPuzzleId)
+                && is_string($data->puzzle)
+                && Uuid::isValid($data->puzzle) === false
+                && (trim($data->puzzle) !== $savedWithFormId->puzzle->name || $data->puzzlePiecesCount !== $savedWithFormId->puzzle->piecesCount)
+            ) {
+                $newPuzzleId = Uuid::uuid7();
+            }
+        }
+
         // Checked before anything is dispatched - a refused save must not leave a new puzzle behind. A new puzzle
         // has no history yet (docs/features/first-try-integrity.md, docs/features/duplicate-results.md Layer 2)
         $firstTryResolution = FirstTryResolution::tryFrom($request->request->getString('first_try_resolution')) ?? FirstTryResolution::None;
@@ -285,6 +322,7 @@ final class PuzzleAddController extends AbstractController
         if ($addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
             $userId = $user->getUserIdentifier();
             $mode = $data->mode;
+            $enteredPuzzle = $data->puzzle;
 
             if ($mode === PuzzleAddMode::Relax && $request->request->has('no_remember_date')) {
                 $data->finishedAt = null;
@@ -357,10 +395,14 @@ final class PuzzleAddController extends AbstractController
                 }
 
                 // The ids are user input - with fresh ones the next submit goes through
-                if ($refusal instanceof SolvingTimeIdTaken || $refusal instanceof PuzzleIdTaken) {
+                if ($refusal instanceof SolvingTimeIdTaken || $refusal instanceof SolvingTimeIdReused || $refusal instanceof PuzzleIdTaken) {
                     $timeId = Uuid::uuid7();
                     $newPuzzleId = Uuid::uuid7();
                 }
+
+                // A new puzzle saved before the result was refused: the form shows what was typed (the new-puzzle
+                // fields stay open) and the corrected resubmit corrects that puzzle (AddPuzzleHandler)
+                $data->puzzle = $enteredPuzzle;
 
                 $firstTry = $this->handleException($exception, $addTimeForm) ?? $firstTry;
             }
@@ -389,6 +431,27 @@ final class PuzzleAddController extends AbstractController
             'time_id' => $timeId->toString(),
             'new_puzzle_id' => $newPuzzleId->toString(),
         ]);
+    }
+
+    /**
+     * @see PuzzleSolvingTime::isSameEntryAs()
+     */
+    private function isSameEntry(PuzzleSolvingTime $saved, PuzzleAddFormData $data, UuidInterface $newPuzzleId, Request $request): bool
+    {
+        $puzzleId = is_string($data->puzzle) && Uuid::isValid($data->puzzle) ? $data->puzzle : $newPuzzleId->toString();
+
+        if ($data->mode === PuzzleAddMode::Relax) {
+            $finishedAt = $request->request->has('no_remember_date') ? null : $data->finishedAt;
+
+            return $saved->isSameEntryAs($puzzleId, null, $finishedAt, $this->clock->now());
+        }
+
+        return $saved->isSameEntryAs(
+            $puzzleId,
+            SolvingTime::fromHoursMinutesSeconds($data->timeHours, $data->timeMinutes, $data->timeSeconds)->seconds,
+            $this->mistypedYearNormalizer->normalizeFinishedAt($data->finishedAt),
+            $this->clock->now(),
+        );
     }
 
     private function submittedIdOrNew(Request $request, string $field): UuidInterface

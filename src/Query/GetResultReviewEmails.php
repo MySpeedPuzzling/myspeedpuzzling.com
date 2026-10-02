@@ -30,13 +30,16 @@ readonly final class GetResultReviewEmails
     /**
      * Weekly e-mails first, then the backlog: active players before dormant ones, the most recently active first.
      *
+     * Locks the rows it answers until the sending run's transaction ends, and skips rows another run holds - two
+     * overlapping runs (a slow one and the next hour's) never mail the same contact. Call it inside a transaction.
+     *
      * @return list<string>
      */
     public function plannedIdsInSendOrder(): array
     {
         /** @var list<string> $ids */
         $ids = $this->database->fetchFirstColumn(
-            'SELECT id FROM result_review_contact WHERE status = :planned ORDER BY priority, last_active_on DESC NULLS LAST, planned_at, id',
+            'SELECT id FROM result_review_contact WHERE status = :planned ORDER BY priority, last_active_on DESC NULLS LAST, planned_at, id FOR UPDATE SKIP LOCKED',
             ['planned' => ResultReviewContactStatus::Planned->value],
         );
 

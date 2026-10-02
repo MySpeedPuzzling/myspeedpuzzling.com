@@ -47,9 +47,17 @@ readonly final class FirstTryAssessor
 
         [$times, $members] = $this->visibleTimes($entry);
 
-        // The form sent again after its result was saved - the viewer's own result, so never filtered out
+        // The form sent again after its result was saved - the viewer's own result, so never filtered out. Only the
+        // same entry (time and day; the puzzle is the query's): a changed one is a new result and is checked
+        $solvedDay = ($entry->solvedAt ?? $this->clock->now())->format('Y-m-d');
+
         foreach ($times as $time) {
-            if ($entry->newTimeId !== null && $time->timeId === strtolower($entry->newTimeId)) {
+            if (
+                $entry->newTimeId !== null
+                && $time->timeId === strtolower($entry->newTimeId)
+                && $time->secondsToSolve === $entry->secondsToSolve
+                && $time->solvedDay() === $solvedDay
+            ) {
                 return ResultEntryCheck::nothing();
             }
         }

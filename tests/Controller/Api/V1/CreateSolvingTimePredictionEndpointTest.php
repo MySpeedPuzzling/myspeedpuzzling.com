@@ -86,10 +86,10 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
     private const int STORED_PREDICTION_QUERIES = 1;
 
     /**
-     * The add handler's duplicate guards on every create (docs/features/duplicate-results.md, Layer 1): the id
-     * lookup + GetRecentIdenticalSolvingTime
+     * The add handler's duplicate guards on every create (docs/features/duplicate-results.md, Layer 1): the
+     * advisory lock on the id, the id lookup + GetRecentIdenticalSolvingTime
      */
-    private const int DUPLICATE_GUARD_QUERIES = 2;
+    private const int DUPLICATE_GUARD_QUERIES = 3;
 
     /**
      * The detection right after the save (DetectDuplicateResultsOnSave, docs/features/duplicate-results.md): its

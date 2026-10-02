@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
-use SpeedPuzzling\Web\Message\AutoRemoveCertainDuplicate;
 use SpeedPuzzling\Web\Message\DetectDuplicateResults;
 use SpeedPuzzling\Web\Query\GetDuplicateCandidates;
 use SpeedPuzzling\Web\Repository\ResultDuplicateCaseRepository;
@@ -13,15 +12,14 @@ use SpeedPuzzling\Web\Results\DuplicateDetectionSummary;
 use SpeedPuzzling\Web\Services\DuplicateResults\DuplicateCaseRecorder;
 use SpeedPuzzling\Web\Value\DuplicateTier;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 /**
- * Stores every new duplicate case and closes open cases that no longer match (docs/features/duplicate-results.md,
- * "Detection"). A pair that already has a case - in any status - is never raised again, so a decision sticks.
+ * Stores every new duplicate case, closes open cases that no longer match and re-classifies the open ones that still
+ * do (docs/features/duplicate-results.md, "Detection"). A pair that already has a case - in any status - is never
+ * raised again, so a decision sticks.
  *
- * Open Tier A cases (the same form sent again) are removed automatically - each re-checked at that moment
- * (AutoRemoveCertainDuplicate). Tells nothing by itself.
+ * Removes nothing: it answers the open Tier A cases, and DailyDuplicateDetection removes each in a message - and a
+ * transaction - of its own, so one failing removal never undoes the detection or the other removals.
  */
 #[AsMessageHandler]
 readonly final class DetectDuplicateResultsHandler
@@ -30,7 +28,6 @@ readonly final class DetectDuplicateResultsHandler
         private GetDuplicateCandidates $getDuplicateCandidates,
         private DuplicateCaseRecorder $caseRecorder,
         private ResultDuplicateCaseRepository $caseRepository,
-        private MessageBusInterface $messageBus,
         private ClockInterface $clock,
     ) {
     }
@@ -41,29 +38,28 @@ readonly final class DetectDuplicateResultsHandler
         $candidates = $this->getDuplicateCandidates->all();
         $recorded = $this->caseRecorder->record($candidates, $this->caseRepository->allKeys(), $message->detectedBy);
 
+        foreach ($recorded['new'] as $case) {
+            $this->caseRepository->save($case);
+        }
+
         $goneCases = 0;
         $certainCaseIds = [];
 
         foreach ([...$this->caseRepository->findOpen(), ...$recorded['new']] as $case) {
-            if (!isset($recorded['matching'][$case->pairKey()])) {
+            $match = $recorded['matching'][$case->pairKey()] ?? null;
+
+            if ($match === null) {
                 $case->markGone($now);
                 $goneCases++;
 
                 continue;
             }
 
+            // What lies around the pair may have changed since it was stored (a copy in between removed)
+            $case->reclassify($match['classification'], $match['candidate']->snapshot());
+
             if ($case->isOpen() && $case->tier === DuplicateTier::Certain) {
                 $certainCaseIds[$case->id->toString()] = true;
-            }
-        }
-
-        $autoRemoved = 0;
-
-        foreach (array_keys($certainCaseIds) as $caseId) {
-            $envelope = $this->messageBus->dispatch(new AutoRemoveCertainDuplicate($caseId));
-
-            if ($envelope->last(HandledStamp::class)?->getResult() === true) {
-                $autoRemoved++;
             }
         }
 
@@ -71,7 +67,7 @@ readonly final class DetectDuplicateResultsHandler
             candidates: count($candidates),
             newCases: count($recorded['new']),
             goneCases: $goneCases,
-            autoRemoved: $autoRemoved,
+            certainCaseIds: array_keys($certainCaseIds),
         );
     }
 }

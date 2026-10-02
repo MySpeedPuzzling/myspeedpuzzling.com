@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\ConsoleCommands;
 
 use SpeedPuzzling\Web\Message\DetectDuplicatePuzzleSignals;
-use SpeedPuzzling\Web\Message\DetectDuplicateResults;
-use SpeedPuzzling\Web\Results\DuplicateDetectionSummary;
+use SpeedPuzzling\Web\Services\DuplicateResults\DailyDuplicateDetection;
 use SpeedPuzzling\Web\Results\DuplicatePuzzleSignalDetectionSummary;
 use SpeedPuzzling\Web\Value\DuplicateDetectedBy;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -26,6 +25,7 @@ final class DetectDuplicateResultsConsoleCommand extends Command
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,
+        private readonly DailyDuplicateDetection $dailyDuplicateDetection,
     ) {
         parent::__construct();
     }
@@ -39,22 +39,19 @@ final class DetectDuplicateResultsConsoleCommand extends Command
     {
         $detectedBy = $input->getOption('backfill') === true ? DuplicateDetectedBy::Backfill : DuplicateDetectedBy::Cron;
 
-        $envelope = $this->messageBus->dispatch(new DetectDuplicateResults($detectedBy));
-
-        /** @var HandledStamp $handledStamp */
-        $handledStamp = $envelope->last(HandledStamp::class);
-        /** @var DuplicateDetectionSummary $summary */
-        $summary = $handledStamp->getResult();
+        // The detection, then every certain copy removed in a message of its own (a failing one is logged and skipped)
+        $summary = $this->dailyDuplicateDetection->run($detectedBy);
 
         (new SymfonyStyle($input, $output))->success(sprintf(
-            'Candidates: %d, new cases: %d, gone: %d, removed automatically: %d',
+            'Candidates: %d, new cases: %d, gone: %d, removed automatically: %d, removals failed: %d',
             $summary->candidates,
             $summary->newCases,
             $summary->goneCases,
             $summary->autoRemoved,
+            $summary->autoRemovalsFailed,
         ));
 
-        // The same time on two different puzzles is no duplicate result but a merge hint (Layer 4)
+        // After the removals: the same time on two different puzzles is no duplicate result but a merge hint (Layer 4)
         $envelope = $this->messageBus->dispatch(new DetectDuplicatePuzzleSignals());
 
         /** @var HandledStamp $handledStamp */

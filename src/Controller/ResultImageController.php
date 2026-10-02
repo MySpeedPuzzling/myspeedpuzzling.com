@@ -36,7 +36,8 @@ final class ResultImageController extends AbstractController
                 throw $exception;
             }
 
-            return $this->redirectToRoute('result_image', ['timeId' => $keptTimeId], Response::HTTP_MOVED_PERMANENTLY);
+            // Temporary: Undo brings the removed id back, so no cache may remember the redirect for good
+            return $this->redirectToRoute('result_image', ['timeId' => $keptTimeId], Response::HTTP_FOUND);
         } catch (FilesystemException | AsyncAwsException $exception) {
             // Object storage outage (the source photo is on S3 and not in the
             // local spool) - a temporary 404 beats a 500, and must not be cached

@@ -13,6 +13,10 @@ use SpeedPuzzling\Web\Value\DuplicateCaseStatus;
  * The banner on the Hub and the player's own profile (docs/features/duplicate-results.md, "Banner"): open
  * duplicate cases, copies removed automatically lately and first-try conflicts - in one query. Only the owner
  * pays for it; nobody else's page asks.
+ *
+ * The first-try part reads every result of the player (~4-5 ms for the players with 2,000 results, measured
+ * 2026-10-02 on a production copy), the rest < 0.1 ms - the Hub, the most visited page, leaves it out (it never
+ * showed first-try conflicts), the own profile keeps it.
  */
 readonly final class GetPlayerReviewCounts
 {
@@ -25,8 +29,10 @@ readonly final class GetPlayerReviewCounts
     ) {
     }
 
-    public function forPlayer(string $playerId): PlayerReviewCounts
+    public function forPlayer(string $playerId, bool $withFirstTryConflicts = true): PlayerReviewCounts
     {
+        $firstTryConflicts = $withFirstTryConflicts ? $this->getFirstTryTimes->conflictCountSql() : '0';
+
         $query = <<<SQL
 SELECT
     (
@@ -44,7 +50,7 @@ SELECT
             AND removal.undone_at IS NULL
             AND removal.removed_at > :since
     ) AS auto_removed,
-    {$this->getFirstTryTimes->conflictCountSql()} AS first_try_conflicts
+    {$firstTryConflicts} AS first_try_conflicts
 SQL;
 
         /** @var array{duplicates: int|string, auto_removed: int|string, first_try_conflicts: int|string} $row */

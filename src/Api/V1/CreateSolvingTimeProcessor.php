@@ -11,6 +11,7 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeAlreadySaved;
+use SpeedPuzzling\Web\Exceptions\SolvingTimeIdReused;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\RecordDuplicatePrevention;
 use SpeedPuzzling\Web\Query\GetSolvingTimePrediction;
@@ -102,6 +103,11 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
             // the client gets the saved result exactly as the first request did (docs/features/duplicate-results.md)
             if ($exception->getPrevious() instanceof SolvingTimeAlreadySaved) {
                 return $this->answerResend($exception->getPrevious(), $playerId);
+            }
+
+            // The key of an earlier request with another puzzle, time or day - no retry, so no answer from it
+            if ($exception->getPrevious() instanceof SolvingTimeIdReused) {
+                throw new IdempotencyKeyReused($exception->getPrevious());
             }
 
             throw $exception;

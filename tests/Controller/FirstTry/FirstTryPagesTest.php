@@ -222,6 +222,22 @@ final class FirstTryPagesTest extends WebTestCase
         }
     }
 
+    public function testTheHubLeavesTheFirstTryConflictsToTheProfile(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $this->startCountingQueries($browser);
+
+        $browser->request('GET', '/en/hub');
+
+        $this->assertResponseIsSuccessful();
+
+        // The count reads every result of the player - too much for the most visited page (duplicate-results.md)
+        foreach ($this->executedSql($browser) as $sql) {
+            self::assertStringNotContainsString('mine AS (', $sql, 'The Hub costs no first-try query');
+        }
+    }
+
     public function testTheOldConflictsAddressMovedToTheReviewPage(): void
     {
         $browser = self::createClient();

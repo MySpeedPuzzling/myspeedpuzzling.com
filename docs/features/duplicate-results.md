@@ -165,8 +165,25 @@ exactly like first-try integrity - a case involving them is still detected and s
 - Button lock: stays locked when the submit succeeded **with a redirect** (a full-page save); a 422, a network
   failure and stream/frame answers (edit modal) unlock as before.
 - API: the replay answer is built from the stored result (status 201, same fields as a fresh create).
-- Accepted gap: two requests with the same id in flight at the same moment - the primary key stops the second row,
-  but that request ends in a 500 (the entity manager is closed after the failed flush).
+- **Two requests with the same id in flight at once** (fixed after review): `AddPuzzleSolvingTimeHandler`,
+  `AddPuzzleTrackingHandler` and `AddPuzzleHandler` take `pg_advisory_xact_lock(hashtextextended(id, 0))` as their
+  first statement (`Services\Doctrine\IdLock`, released by the commit) - the second request waits and then finds the
+  row like any resend, instead of a 500 at the primary key. The API's Idempotency-Key ids go through the same handler.
+- **A resend is the same entry, not just the same id**: `PuzzleSolvingTime::isSameEntryAs()` = same puzzle,
+  `seconds_to_solve` and finish day (no date on either side = the same). The same id with anything else is a
+  different result reusing it (`SolvingTimeIdReused`): the add form renews `time_id` before the checks when it sees
+  that (and `new_puzzle_id` only when a different new puzzle was typed - the old one belongs to the saved result
+  now); a finished stopwatch's form changed after its save is turned away like a second tab. The checks' own
+  early return (`FirstTryAssessor::check()`, the form's `time_id` among the rows) applies only to the same time and
+  day. API: 422 `application/problem+json`, `type` `/errors/idempotency_key_reused` (`Api\V1\IdempotencyKeyReused`).
+- **The new puzzle can still be corrected**: when `AddPuzzle` committed but the result was refused (e.g. a mistyped
+  piece count → `SuspiciousPpm`), the re-rendered form shows the typed name with the new-puzzle fields open, and the
+  corrected resubmit (same `new_puzzle_id`) updates that puzzle through `Puzzle::correctNewlyAdded()` (name, pieces,
+  brand, EAN, code, photo) - only while it is the player's own, unapproved and nothing uses it (`Query\IsPuzzleInUse`:
+  results, lists, lendings, stopwatches, events, moderation requests). A new brand typed again under the same name
+  reuses the brand the first send created. Otherwise the old early return stands.
+- A stopwatch that never ran is refused right after the ownership check, before anything is created - a refused
+  handler's changes stay in the entity manager.
 
 ## Layer 2 - check while adding
 
@@ -285,22 +302,32 @@ The recap after saving shows a twin straight away with the same actions. The pla
   `PuzzleSolvingTimeModified` and `PuzzleSolvingTimeDeleted` (postFlush, inside the save's transaction):
   `GetDuplicateCandidates::ofPeopleOnPuzzle()` for the result's people on its puzzle, keeping only pairs with this
   result; an edited result's open cases that stop matching → `gone`; a deleted result's open cases → `gone` (the event
-  now carries the result id). Never removes anything. **Failure never costs the save**: it runs in its own savepoint,
-  every read comes before the first write, a failing query is rolled back to the savepoint and logged as a warning.
-  It stores only pairs that include the result just saved - for an added result a row nobody else can see before the
-  commit, so the daily run cannot insert the same case concurrently (no unique-key failure at the flush). Cost of a
-  save without a twin: the savepoint pair + one indexed query (3 statements). It also runs while fixtures load, so the
+  now carries the result id). Never removes anything. **Failure never costs the save**: it runs in its own savepoint
+  and inserts its new cases right there with `INSERT .. ON CONFLICT DO NOTHING`
+  (`ResultDuplicateCaseRepository::insertIfAbsent()`; `DuplicateCaseRecorder` persists nothing itself) - persisted,
+  they were written by the flush after the handler, outside the savepoint, where a failure failed the save. A failing
+  statement is rolled back to the savepoint and logged as a warning. Cost of a save without a twin: the savepoint
+  pair + one indexed query (3 statements). It also runs while fixtures load, so the
   test database starts with `DuplicateResultsFixture`'s cases (`.claude/fixtures.md`).
-- **Automatic removal**: the daily handler dispatches `AutoRemoveCertainDuplicate` for every open Tier A case; the
-  handler re-runs the scoped candidate query + classifier and removes only if the pair is still Tier A (else the case
-  stays open). `result_auto_removal.player_id` = the **tracker** of the removed copy (only they may undo); every
+- **Automatic removal**: `DetectDuplicateResults` only records (its own transaction) and answers the open Tier A case
+  ids; `Services\DuplicateResults\DailyDuplicateDetection` (used by the console command) then dispatches each
+  `AutoRemoveCertainDuplicate` as a top-level message of its own, logs a failing one (warning) and clears the entity
+  manager between them (reset when a failed flush closed it) - one bad case never rolls back the night. The handler
+  re-runs the scoped candidate query + classifier and removes only if the pair is still Tier A (else the case stays
+  open). After each removal `ReclassifyDuplicateCasesAfterRemoval` classifies the open cases with the kept copy again
+  (`ResultDuplicateCase::reclassify()`, tier + kind + snapshot of open cases only) and the ones now certain join the
+  same run's queue - three re-sends T1 < T2 < T3 end with T1 alone, not with (T1, T3) as a B case. The daily detection
+  also re-classifies every open case that still matches. The duplicate puzzle signals run after all of it. `result_auto_removal.player_id` = the **tracker** of the removed copy (only they may undo); every
   person's case of the pair → `auto_removed`; other cases with the removed copy (a triplet) → `gone`. Snapshot =
   `Value\RemovedResultSnapshot` (every column incl. the `team` JSON and prediction fields; the puzzling team is
   resolved again from the group on Undo).
 - **Undo** (`UndoAutoRemoval`): `PuzzleSolvingTime::restore()` - same id, same row; records
   `PuzzleSolvingTimeModified`, not `PuzzleSolved` (statistics and insights follow; no second follower notification,
-  no wishlist change). A competition deleted meanwhile is dropped, the round is re-derived. Cases of the pair →
-  `undone`.
+  no wishlist change). A competition deleted meanwhile is dropped, the round is re-derived. Cases of the pair (found
+  by kept + removed id, not by the stored case id - a case that is gone is skipped) → `undone`. A registered member
+  of the stored group who deleted their account meanwhile refuses the undo (`AutoRemovalCanNotBeUndone`): the snapshot
+  knows them only by id, so they could come back neither as themselves nor as a named guest, and the kept copy - the
+  very same result - already carries the group as the deletion left it.
 - **Sets** (review fixes): a result saved by A, B and C is three cases per person, so the review page, the recap and
   the e-mail show **sets** - the connected components of results linked by the viewer's open cases with both copies
   there (`Services\DuplicateResults\DuplicateSets`, pure). One card per set (`Results\DuplicateReviewSet`), copies
@@ -324,11 +351,15 @@ The recap after saving shows a twin straight away with the same actions. The pla
   `review_results_both_real`, `review_results_undo_removal`; the first-try POST routes kept their paths and redirect
   to the review page, `first_try_conflicts` answers 301. A case is shown only while both copies exist. Recap:
   `GetPlayerDuplicateCases::openOfTime()` (one query, + one when there is a case); `via=recap` returns to the recap.
-  Removed ids: `added_time_recap` and `result_image` answer 301 to the kept copy (`ResultAutoRemovalRepository`,
-  looked up only after a not-found).
+  Removed ids: `added_time_recap` and `result_image` answer 302 to the kept copy (`ResultAutoRemovalRepository`,
+  looked up only after a not-found) - temporary, Undo brings the id back.
 - Banner `templates/review_results/_banner.html.twig` on the Hub and the own profile, one query
-  (`GetPlayerReviewCounts`: open cases with both copies + removals in 30 days not undone + the first-try conflict
-  count as a scalar subquery of `GetFirstTryTimes::conflictCountSql()`). Replaces the profile's first-try banner.
+  (`GetPlayerReviewCounts`: open cases with both copies + removals in 30 days not undone + on the profile the
+  first-try conflict count as a scalar subquery of `GetFirstTryTimes::conflictCountSql()`). Replaces the profile's
+  first-try banner. The Hub leaves the first-try part out (`withFirstTryConflicts: false`): it reads every result of
+  the player - measured on a production copy (2026-10-02, the three players with the most results, 1,785-2,328):
+  3.0-3.9 ms execution + ~1.2 ms planning warm, up to 9.4 ms cold; without it 0.09 ms. The Hub never showed
+  first-try conflicts before.
 - Not built yet: the "Possibly saved twice" marker in the results list (`docs/TODO.md`).
 
 ## Telling players
@@ -412,7 +443,8 @@ its unsubscribe means "no newsletter", and the reaction must land in our databas
   Europe/Prague): at most `result_review_emails_per_run` per run and `result_review_emails_per_day` per Prague day
   (env `RESULT_REVIEW_EMAILS_PER_RUN` = 10 / `RESULT_REVIEW_EMAILS_PER_DAY` = 20; the cron runs one-off containers,
   so raising the day cap to ~50 after the first wave is an env change, no deploy). In order: weekly, then active, then
-  dormant. At send time: switch off → `skipped` (`switched_off`), no account e-mail → `no_email`, resolved cases and
+  dormant. The run takes the planned contacts `FOR UPDATE SKIP LOCKED`, so a run overlapping a slow one never mails
+  the same contact. At send time: switch off → `skipped` (`switched_off`), no account e-mail → `no_email`, resolved cases and
   undone removals dropped, nothing (or Tier C alone) left → `nothing_left`. The contact keeps the ids it really
   listed; its removals get `reported_at`. One transaction per run - the queued e-mails (Doctrine messenger
   transport) included, so a failure sends nothing.
@@ -428,7 +460,8 @@ its unsubscribe means "no newsletter", and the reaction must land in our databas
   `List-Unsubscribe: <signed https URL>` + `List-Unsubscribe-Post: List-Unsubscribe=One-Click`.
 - **Unsubscribe** `result_emails_unsubscribe` `/{_locale}/result-emails/unsubscribe/{playerId}`, signed with
   Symfony's `UriSigner` (`ResultEmailsUnsubscribeUrl`, no expiry): POST = `UnsubscribeFromResultEmails` (one-click
-  from mail clients and the page's button, 303 back to the link), GET = a page with the button (scanners only GET),
+  from mail clients - body `List-Unsubscribe=One-Click` - gets a plain 200 as RFC 8058 requires, the page's button a
+  303 back to the link), GET = a page with the button (scanners only GET),
   unsigned or tampered = 404. No sign-in, no session.
 - **Attribution** - the review page records `?from=rc-<id>` (`RecordResultReviewVisit`: the viewer's own sent
   contact, first visit only). `Services\DuplicateResults\ResultReviewReactions` sets `reacted_at` on the player's
@@ -444,7 +477,7 @@ its unsubscribe means "no newsletter", and the reaction must land in our databas
 
 | Table | Purpose |
 |---|---|
-| `result_duplicate_case` | One row per **person** per pair: `player_id` (the person), `time_a_id`, `time_b_id` (older first), `tier`, `kind` (`same_tracker`, `teammate_copy`, `solo_and_group`, `group_other_day`, `saved_within_hour`…), `detected_at`, `detected_by` (`backfill`/`cron`/`save`), `status` (`open`/`copy_deleted`/`both_real`/`auto_removed`/`undone`/`gone`), `resolved_at`, `resolved_via` (`review_page`/`recap`/`form`/`automatic`/`admin`), `snapshot` (puzzle, seconds, days, gap, differences). Unique (`player_id`, `time_a_id`, `time_b_id`). **No FKs on the result ids** (like `puzzle_moderation_decision`) - the row outlives the deletion it records |
+| `result_duplicate_case` | One row per **person** per pair (indexed by `time_a_id` and `time_b_id` too - every edit and deletion looks up the cases of its result): `player_id` (the person), `time_a_id`, `time_b_id` (older first), `tier`, `kind` (`same_tracker`, `teammate_copy`, `solo_and_group`, `group_other_day`, `saved_within_hour`…), `detected_at`, `detected_by` (`backfill`/`cron`/`save`), `status` (`open`/`copy_deleted`/`both_real`/`auto_removed`/`undone`/`gone`), `resolved_at`, `resolved_via` (`review_page`/`recap`/`form`/`automatic`/`admin`), `snapshot` (puzzle, seconds, days, gap, differences). Unique (`player_id`, `time_a_id`, `time_b_id`). **No FKs on the result ids** (like `puzzle_moderation_decision`) - the row outlives the deletion it records |
 | `result_auto_removal` | Snapshot of every automatically removed copy + kept id, `undone_at`, `reported_at` (in which e-mail) |
 | `result_duplicate_prevention` | Append-only: `player_id`, `kind` (`resend_caught`, `warning_shown`, `saved_anyway`), `time_id`, `puzzle_id`, `created_at`, `via` |
 | `result_review_contact` | One row per contact: `player_id`, `type` (`first`/`weekly`), `status` (`planned`/`sent`/`skipped`), `priority` + `last_active_on` (sending order), `planned_at`, `sent_at`, `skipped_reason`, case + removal ids (json), `page_visited_at`, `reacted_at`. No `email_audit_log_id`: the audit row is written by the async mail worker after the contact's transaction; bounces are counted by `email_type` |
@@ -544,8 +577,9 @@ Nothing that runs on a page view scans results site-wide; everything heavy is pr
 | Where | What runs | Budget |
 |---|---|---|
 | Add/edit form live check | the first-try read model (`GetFirstTryTimes::ofPlayersOnPuzzle`), **one** query by `puzzle_id` - the duplicate part reuses its rows, no second query | unchanged from today |
-| Add handler safety net | one indexed lookup (`player_id`, `puzzle_id`) on the existing `custom_pst_player_puzzle_type` index | < 1 ms |
-| Hub / own profile banner | one count on `result_duplicate_case` (`player_id`, `status`) + `result_auto_removal` (`player_id`, `removed_at`), folded into **one** query; other viewers pay **nothing** (guarded by a query-count test like `FirstTryPagesTest`) | < 1 ms |
+| Add handler safety net | one indexed lookup (`player_id`, `puzzle_id`) on the existing `custom_pst_player_puzzle_type` index (+ the advisory lock on the id) | < 1 ms (0.03 ms measured on a production copy) |
+| Save-time detection | `GetDuplicateCandidates::ofPeopleOnPuzzle()` for the result's people on its puzzle | 0.6-1.3 ms warm, ~4 ms cold, for the heaviest player + puzzle (159 results) and the most solved puzzle (5,619), measured on a production copy |
+| Hub / own profile banner | one count on `result_duplicate_case` (`player_id`, `status`) + `result_auto_removal` (`player_id`, `removed_at`), folded into **one** query; other viewers pay **nothing** (guarded by a query-count test like `FirstTryPagesTest`); the profile adds the first-try count (~3-4 ms for the heaviest players), the Hub does not | < 1 ms (Hub, 0.09 ms measured) |
 | Review page, recap notice | stored cases for one person + their two results by id | a few indexed queries |
 | Admin overview | aggregates over the stored tables (~1k rows), no result scans | < 50 ms |
 | Detection cron (daily) | the per-person self-join over all results (~1.3 s measured on production) | daily only |

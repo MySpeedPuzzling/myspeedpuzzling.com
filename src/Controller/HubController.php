@@ -42,8 +42,9 @@ final class HubController extends AbstractController
         $reviewCounts = null;
 
         if ($profile !== null) {
-            // "Review your results" banner (docs/features/duplicate-results.md) - one query, signed-in players only
-            $reviewCounts = $this->getPlayerReviewCounts->forPlayer($profile->playerId);
+            // "Review your results" banner (docs/features/duplicate-results.md) - one query, signed-in players only;
+            // without the first-try conflicts, which cost a pass over all the player's results (the profile has them)
+            $reviewCounts = $this->getPlayerReviewCounts->forPlayer($profile->playerId, withFirstTryConflicts: false);
 
             $progress = $this->getGettingStartedProgress->forPlayer($profile);
 

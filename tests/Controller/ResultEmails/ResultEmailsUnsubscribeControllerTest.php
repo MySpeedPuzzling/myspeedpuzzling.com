@@ -23,10 +23,12 @@ final class ResultEmailsUnsubscribeControllerTest extends WebTestCase
         $browser = self::createClient();
         $url = $this->signedUrl($browser);
 
-        // What a mail client sends for List-Unsubscribe-Post (RFC 8058)
+        // What a mail client sends for List-Unsubscribe-Post (RFC 8058) - answered without a redirect
         $browser->request('POST', $url, ['List-Unsubscribe' => 'One-Click']);
 
-        $this->assertResponseRedirects($url, 303);
+        $this->assertResponseStatusCodeSame(200);
+        self::assertFalse($browser->getResponse()->isRedirection());
+        self::assertSame('Unsubscribed.', $browser->getResponse()->getContent());
 
         $player = $browser->getContainer()->get(PlayerRepository::class)->get(self::PLAYER);
         self::assertFalse($player->resultEmailsEnabled);

@@ -6,16 +6,16 @@ namespace SpeedPuzzling\Web\Tests\Controller\ReviewResults;
 
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Message\DetectDuplicateResults;
+use SpeedPuzzling\Web\Services\DuplicateResults\DailyDuplicateDetection;
 use SpeedPuzzling\Web\Tests\DataFixtures\DuplicateResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\FirstTryScenario;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\DuplicateDetectedBy;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * "Review your results", its actions, the recap notice, the banner and the redirects of removed ids
@@ -254,10 +254,10 @@ final class ReviewResultsControllerTest extends WebTestCase
         $browser = $this->danaAfterTheDetection();
 
         $browser->request('GET', '/en/time-added/' . DuplicateResultsFixture::TIME_CERTAIN_B);
-        $this->assertResponseRedirects('/en/time-added/' . DuplicateResultsFixture::TIME_CERTAIN_A, 301);
+        $this->assertResponseRedirects('/en/time-added/' . DuplicateResultsFixture::TIME_CERTAIN_A, 302);
 
         $browser->request('GET', '/result-image/' . DuplicateResultsFixture::TIME_CERTAIN_B);
-        $this->assertResponseRedirects('/result-image/' . DuplicateResultsFixture::TIME_CERTAIN_A, 301);
+        $this->assertResponseRedirects('/result-image/' . DuplicateResultsFixture::TIME_CERTAIN_A, 302);
 
         // Any other missing id is still a 404
         $browser->request('GET', '/en/time-added/' . Uuid::uuid7()->toString());
@@ -354,7 +354,7 @@ final class ReviewResultsControllerTest extends WebTestCase
     {
         $browser = self::createClient();
         $browser->disableReboot();
-        $browser->getContainer()->get(MessageBusInterface::class)->dispatch(new DetectDuplicateResults());
+        $browser->getContainer()->get(DailyDuplicateDetection::class)->run(DuplicateDetectedBy::Cron);
         TestingLogin::asPlayer($browser, self::DANA);
 
         return $browser;

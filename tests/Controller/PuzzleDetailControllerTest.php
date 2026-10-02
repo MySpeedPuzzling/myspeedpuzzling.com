@@ -239,7 +239,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
         self::assertSame('Puzzle 1 is a 500-piece jigsaw puzzle by Ravensburger.', $summary->filter('p.puzzle-summary-intro')->text());
         self::assertSame([
             'Product number' => 'RB-500-001',
-            'Used at' => 'WJPC 2024 and Czech National Championship 2024',
+            'Used at' => 'WJPC 2024 Czech National Championship 2024',
         ], self::summaryFacts($summary));
         self::assertSame([
             ['', 'Solves', 'Median', 'Fastest'],
@@ -288,7 +288,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
             'EAN' => '4005556175895 / 4005555008385',
             'Product number' => 'RB-500-001',
             'Also known as' => 'Bavorská romance',
-            'Used at' => 'WJPC 2024 and Czech National Championship 2024',
+            'Used at' => 'WJPC 2024 Czech National Championship 2024',
         ], self::summaryFacts($crawler->filter('section.puzzle-summary')));
 
         // One EAN is enough for the meta description

@@ -917,8 +917,6 @@
       "solo": "Solo"
       "pairs": "Duos"
       "teams": "Équipes"
-    "list_separator": ", "
-    "list_last_separator": " et "
     "no_times": "Aucun temps pour l'instant – <a href=\"%add_url%\" rel=\"nofollow\">enregistrez le vôtre</a> et soyez le premier au classement."
     "no_solo_times": "Aucun temps en solo pour l'instant – <a href=\"%add_url%\" rel=\"nofollow\">enregistrez le vôtre</a> et soyez le premier au classement solo."
   "breadcrumb":

@@ -1069,8 +1069,6 @@
       "solo": "ソロ"
       "pairs": "ペア"
       "teams": "チーム"
-    "list_separator": "、"
-    "list_last_separator": "、"
     "no_times": "まだ完成タイムがありません。<a href=\"%add_url%\" rel=\"nofollow\">あなたのタイムを記録して</a>、ランキングに一番乗りしましょう。"
     "no_solo_times": "まだソロの完成タイムがありません。<a href=\"%add_url%\" rel=\"nofollow\">あなたのタイムを記録して</a>、ソロランキングに一番乗りしましょう。"
   "breadcrumb":

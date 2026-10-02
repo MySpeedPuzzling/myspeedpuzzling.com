@@ -914,8 +914,6 @@
       "solo": "Solo"
       "pairs": "Paare"
       "teams": "Teams"
-    "list_separator": ", "
-    "list_last_separator": " und "
     "no_times": "Noch keine Legezeiten – <a href=\"%add_url%\" rel=\"nofollow\">tragen Sie Ihre ein</a> und führen Sie die Rangliste an."
     "no_solo_times": "Noch keine Solozeiten – <a href=\"%add_url%\" rel=\"nofollow\">tragen Sie Ihre ein</a> und führen Sie die Solo-Rangliste an."
   "breadcrumb":

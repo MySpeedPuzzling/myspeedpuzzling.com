@@ -1066,7 +1066,7 @@ canvas {
     color: #111;
     font-size: .875rem;
 
-    a:not(.puzzle-related-card) {
+    a:not(.puzzle-related-card):not(.badge) {
         color: inherit;
         text-decoration: underline;
         text-decoration-color: rgba(17, 17, 17, .3);
@@ -1240,6 +1240,20 @@ canvas {
     }
 }
 
+.puzzle-summary-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+
+    .badge {
+        font-size: .75rem;
+        font-weight: 400;
+        white-space: normal;
+        text-align: left;
+        text-decoration: none;
+    }
+}
+
 .puzzle-summary-times {
     width: 100%;
     margin: 0;
@@ -1265,6 +1279,13 @@ canvas {
         padding-top: 0;
         font-size: .75rem;
         color: $lb-secondary;
+
+        // The icons of the leaderboard strip above
+        .bi,
+        .stat-icon {
+            font-size: .6875rem;
+            vertical-align: -.1em;
+        }
     }
 
     tbody tr:last-child > * {

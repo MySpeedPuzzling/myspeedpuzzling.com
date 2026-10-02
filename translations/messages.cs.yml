@@ -934,8 +934,6 @@
       "solo": "Sólo"
       "pairs": "Dvojice"
       "teams": "Týmy"
-    "list_separator": ", "
-    "list_last_separator": " a "
     "no_times": "Zatím žádné časy skládání – <a href=\"%add_url%\" rel=\"nofollow\">zapiš ten svůj</a> a buď první v žebříčku."
     "no_solo_times": "Zatím žádné sólo časy – <a href=\"%add_url%\" rel=\"nofollow\">zapiš ten svůj</a> a buď první v sólo žebříčku."
   "breadcrumb":

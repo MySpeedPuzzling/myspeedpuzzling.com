@@ -660,8 +660,6 @@
       "solo": "Individual"
       "pairs": "Parejas"
       "teams": "Equipos"
-    "list_separator": ", "
-    "list_last_separator": " y "
     "no_times": "Aún no hay tiempos: <a href=\"%add_url%\" rel=\"nofollow\">registra el tuyo</a> y sé el primero en la clasificación."
     "no_solo_times": "Aún no hay tiempos en solitario: <a href=\"%add_url%\" rel=\"nofollow\">registra el tuyo</a> y sé el primero en la clasificación individual."
   "breadcrumb":

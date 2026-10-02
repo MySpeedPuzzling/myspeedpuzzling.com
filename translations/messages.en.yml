@@ -1133,8 +1133,6 @@ puzzle_detail:
             solo: "Solo"
             pairs: "Pairs"
             teams: "Teams"
-        list_separator: ", "
-        list_last_separator: " and "
         no_times: "No solve times yet – <a href=\"%add_url%\" rel=\"nofollow\">log yours</a> and be the first on the leaderboard."
         no_solo_times: "No solo times yet – <a href=\"%add_url%\" rel=\"nofollow\">log yours</a> and be the first on the solo leaderboard."
     breadcrumb:

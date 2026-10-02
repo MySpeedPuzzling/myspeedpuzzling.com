@@ -38,13 +38,14 @@
     {% set facts = facts|merge([{label: 'puzzle_detail.summary.facts.also_known_as'|trans, html: puzzle.puzzleAlternativeName|e}]) %}
 {% endif %}
 {% if summary.usedAt is not empty %}
-    {% set used_at_links = summary.usedAt|map(competition => competition.routeName is not null
-        ? '<a href="' ~ path(competition.routeName, competition.routeParameters)|e ~ '">' ~ competition.displayName|e ~ '</a>'
-        : competition.displayName|e
+    {# The same badges as the competition tags in the header's Details #}
+    {% set used_at_badges = summary.usedAt|map(competition => competition.routeName is not null
+        ? '<a class="badge bg-primary badge-shadow rounded-pill text-white link-light" href="' ~ path(competition.routeName, competition.routeParameters)|e ~ '"><i class="ci-diamond" aria-hidden="true"></i> ' ~ competition.displayName|e ~ '</a>'
+        : '<span class="badge bg-primary badge-shadow rounded-pill text-white"><i class="ci-diamond" aria-hidden="true"></i> ' ~ competition.displayName|e ~ '</span>'
     ) %}
     {% set facts = facts|merge([{
         label: 'puzzle_detail.summary.facts.used_at'|trans,
-        html: used_at_links|join('puzzle_detail.summary.list_separator'|trans, 'puzzle_detail.summary.list_last_separator'|trans),
+        html: '<span class="puzzle-summary-badges">' ~ used_at_badges|join(' ') ~ '</span>',
     }]) %}
 {% endif %}
 
@@ -101,8 +102,8 @@
                         <tr>
                             <td></td>
                             <th scope="col">{{ 'puzzle_detail.summary.times.solves'|trans }}</th>
-                            <th scope="col">{{ 'puzzle_detail.summary.times.median'|trans }}</th>
-                            <th scope="col">{{ 'puzzle_detail.summary.times.fastest'|trans }}</th>
+                            <th scope="col"><svg class="stat-icon" width="13" height="13" aria-hidden="true"><use href="/stat-icons-sprite.svg#stat-med"/></svg> {{ 'puzzle_detail.summary.times.median'|trans }}</th>
+                            <th scope="col"><i class="bi bi-1-circle" aria-hidden="true"></i> {{ 'puzzle_detail.summary.times.fastest'|trans }}</th>
                         </tr>
                     </thead>
                     <tbody>

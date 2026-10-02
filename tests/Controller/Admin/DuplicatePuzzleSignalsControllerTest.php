@@ -38,6 +38,44 @@ final class DuplicatePuzzleSignalsControllerTest extends WebTestCase
         self::assertCount(1, $section->filter('form[action="/admin/duplicate-results/puzzle-signals/' . $signalId . '/dismiss"]'));
     }
 
+    public function testStrongestSignalFirstWeakOnesOnRequest(): void
+    {
+        $browser = self::createClient();
+        $browser->disableReboot();
+        $container = $browser->getContainer();
+        $database = $container->get(Connection::class);
+        // Same EAN in two languages - beats a similar name alone; numbered parts of one set are weak
+        $this->signalOn($browser, PuzzleFixture::PUZZLE_1500_01, 'Formule 1 Monaco', PuzzleFixture::PUZZLE_1500_02, 'Formel 1 Monaco', '02:22:22');
+        $this->signalOn($browser, PuzzleFixture::PUZZLE_1000_04, 'Soft Cans', PuzzleFixture::PUZZLE_1000_05, 'Lata sobre lata', '01:11:11', '8412668184473');
+        $this->signalOn($browser, PuzzleFixture::PUZZLE_500_04, 'Advent Calendar 4', PuzzleFixture::PUZZLE_500_05, 'Advent Calendar 5', '00:33:33');
+        $container->get(MessageBusInterface::class)->dispatch(new DetectDuplicatePuzzleSignals());
+        $weakSignals = $database->fetchOne("SELECT COUNT(*) FROM duplicate_puzzle_signal WHERE status = 'open' AND weak");
+        self::assertIsInt($weakSignals);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $section = $browser->request('GET', '/admin/duplicate-results')->filter('#puzzle-signals');
+
+        $html = (string) $section->html();
+        $sameEan = strpos($html, '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_04);
+        $similarName = strpos($html, '/en/puzzle/' . PuzzleFixture::PUZZLE_1500_01);
+        self::assertNotFalse($sameEan);
+        self::assertNotFalse($similarName);
+        self::assertLessThan($similarName, $sameEan);
+        self::assertStringNotContainsString('/en/puzzle/' . PuzzleFixture::PUZZLE_500_04, $html);
+        self::assertStringContainsString('same EAN', $this->cardOf($section, PuzzleFixture::PUZZLE_1000_04)->text());
+        self::assertMatchesRegularExpression('/similar name 0\.6\d/', $this->cardOf($section, PuzzleFixture::PUZZLE_1500_01)->text());
+
+        $toggle = $section->filter('[data-test="signal-strength"] a');
+        self::assertSame('Show weak signals (' . $weakSignals . ')', trim($toggle->text()));
+
+        $section = $browser->request('GET', (string) $toggle->attr('href'))->filter('#puzzle-signals');
+
+        $this->assertResponseIsSuccessful();
+        self::assertStringContainsString('parts of one set', $this->cardOf($section, PuzzleFixture::PUZZLE_500_04)->text());
+        self::assertCount(0, $section->filter('a[href="/en/puzzle/' . PuzzleFixture::PUZZLE_1000_04 . '"]'));
+        self::assertStringContainsString('Back to strong signals', $section->filter('[data-test="signal-strength"]')->text());
+    }
+
     public function testProposeMergeOpensTheMergeRequest(): void
     {
         [$browser, $signalId] = $this->adminWithSignal();
@@ -105,26 +143,9 @@ final class DuplicatePuzzleSignalsControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->disableReboot();
         $container = $browser->getContainer();
-        $messageBus = $container->get(MessageBusInterface::class);
-        $day = $container->get(ClockInterface::class)->now()->modify('-3 days');
-
-        foreach ([PuzzleFixture::PUZZLE_1000_04, PuzzleFixture::PUZZLE_1000_05] as $puzzleId) {
-            $messageBus->dispatch(new AddPuzzleSolvingTime(
-                timeId: Uuid::uuid7(),
-                userId: PlayerFixture::PLAYER_WITH_STRIPE_USER_ID,
-                puzzleId: $puzzleId,
-                competitionId: null,
-                time: '01:11:11',
-                comment: null,
-                finishedPuzzlesPhoto: null,
-                groupPlayers: [],
-                finishedAt: $day,
-                firstAttempt: false,
-                unboxed: false,
-            ));
-        }
-
-        $messageBus->dispatch(new DetectDuplicatePuzzleSignals());
+        // A strong signal: the fixture names ("Puzzle 9", "Puzzle 10") would read as numbered parts of one set
+        $this->signalOn($browser, PuzzleFixture::PUZZLE_1000_04, 'Formule 1 Monaco', PuzzleFixture::PUZZLE_1000_05, 'Formel 1 Monaco', '01:11:11');
+        $container->get(MessageBusInterface::class)->dispatch(new DetectDuplicatePuzzleSignals());
 
         $signalId = $container->get(Connection::class)->fetchOne(
             'SELECT id FROM duplicate_puzzle_signal WHERE puzzle_a_id = :id',
@@ -135,6 +156,44 @@ final class DuplicatePuzzleSignalsControllerTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
         return [$browser, $signalId];
+    }
+
+    /**
+     * The same time on the same day on both puzzles, renamed (and with one EAN) first.
+     */
+    private function signalOn(KernelBrowser $browser, string $puzzleAId, string $nameA, string $puzzleBId, string $nameB, string $time, null|string $ean = null): void
+    {
+        $container = $browser->getContainer();
+        $messageBus = $container->get(MessageBusInterface::class);
+        $day = $container->get(ClockInterface::class)->now()->modify('-3 days');
+
+        foreach ([$puzzleAId => $nameA, $puzzleBId => $nameB] as $puzzleId => $name) {
+            $container->get(Connection::class)->executeStatement(
+                'UPDATE puzzle SET name = :name, alternative_name = NULL, ean = COALESCE(:ean, ean) WHERE id = :id',
+                ['name' => $name, 'ean' => $ean, 'id' => $puzzleId],
+            );
+
+            $messageBus->dispatch(new AddPuzzleSolvingTime(
+                timeId: Uuid::uuid7(),
+                userId: PlayerFixture::PLAYER_WITH_STRIPE_USER_ID,
+                puzzleId: $puzzleId,
+                competitionId: null,
+                time: $time,
+                comment: null,
+                finishedPuzzlesPhoto: null,
+                groupPlayers: [],
+                finishedAt: $day,
+                firstAttempt: false,
+                unboxed: false,
+            ));
+        }
+    }
+
+    private function cardOf(Crawler $section, string $puzzleId): Crawler
+    {
+        return $section->filter('.card')->reduce(
+            static fn (Crawler $card): bool => $card->filter('a[href="/en/puzzle/' . $puzzleId . '"]')->count() > 0,
+        );
     }
 
     private function post(KernelBrowser $browser, Crawler $crawler, string $signalId, string $action): void

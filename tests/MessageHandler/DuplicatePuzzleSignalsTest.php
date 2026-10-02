@@ -167,6 +167,96 @@ final class DuplicatePuzzleSignalsTest extends KernelTestCase
         self::assertSame(PlayerFixture::PLAYER_ADMIN, $signals[0]['example_player_id']);
     }
 
+    public function testSignalsAreScoredByWhatElseTheTwoRecordsShare(): void
+    {
+        // One EAN, two languages
+        $this->changePuzzle(PuzzleFixture::PUZZLE_1000_04, 'Soft Cans', '8412668184473');
+        $this->changePuzzle(PuzzleFixture::PUZZLE_1000_05, 'Lata sobre lata', '08412668184473, 4005555003540');
+        // Nearly the same name, different EANs
+        $this->changePuzzle(PuzzleFixture::PUZZLE_1500_01, 'Formule 1 Monaco');
+        $this->changePuzzle(PuzzleFixture::PUZZLE_1500_02, 'Formel 1 Monaco');
+        // Nothing in common but the brand - two puzzles of one box logged with one time
+        $this->changePuzzle(PuzzleFixture::PUZZLE_500_04, 'Tropicana Sunset');
+        $this->changePuzzle(PuzzleFixture::PUZZLE_500_05, 'Farmer’s Table');
+
+        foreach ([[PuzzleFixture::PUZZLE_1000_04, PuzzleFixture::PUZZLE_1000_05], [PuzzleFixture::PUZZLE_1500_01, PuzzleFixture::PUZZLE_1500_02], [PuzzleFixture::PUZZLE_500_04, PuzzleFixture::PUZZLE_500_05]] as $i => $pair) {
+            $this->add($pair[0], '01:1' . $i . ':11');
+            $this->add($pair[1], '01:1' . $i . ':11');
+        }
+
+        $summary = $this->detect();
+
+        $sameEan = $this->scoreOf(PuzzleFixture::PUZZLE_1000_04);
+        self::assertContains('same_ean', $sameEan['reasons']);
+        self::assertNotContains('similar_name', $sameEan['reasons']);
+        self::assertGreaterThanOrEqual(50, $sameEan['score']);
+        self::assertFalse($sameEan['weak']);
+
+        $similarName = $this->scoreOf(PuzzleFixture::PUZZLE_1500_01);
+        self::assertContains('similar_name', $similarName['reasons']);
+        self::assertNotContains('same_ean', $similarName['reasons']);
+        self::assertEqualsWithDelta(0.65, $similarName['name_similarity'], 0.01);
+        self::assertFalse($similarName['weak']);
+
+        $unrelated = $this->scoreOf(PuzzleFixture::PUZZLE_500_04);
+        self::assertContains('same_brand', $unrelated['reasons']);
+        self::assertSame([], array_intersect(['same_ean', 'same_code', 'similar_name', 'name_contained'], $unrelated['reasons']));
+        self::assertLessThan(35, $unrelated['score']);
+        self::assertTrue($unrelated['weak']);
+
+        self::assertGreaterThanOrEqual(2, $summary->strongPairs);
+        self::assertLessThan($summary->pairs, $summary->strongPairs);
+    }
+
+    public function testOpenSignalsAreScoredAgainDecidedOnesKeepTheirScore(): void
+    {
+        $this->changePuzzle(PuzzleFixture::PUZZLE_1500_01, 'Formule 1 Monaco');
+        $this->changePuzzle(PuzzleFixture::PUZZLE_1500_02, 'Formel 1 Monaco');
+        $this->changePuzzle(PuzzleFixture::PUZZLE_1000_04, 'Soft Cans', '8412668184473');
+        $this->changePuzzle(PuzzleFixture::PUZZLE_1000_05, 'Lata sobre lata', '8412668184473');
+        $this->add(PuzzleFixture::PUZZLE_1500_01, '02:22:22');
+        $this->add(PuzzleFixture::PUZZLE_1500_02, '02:22:22');
+        $this->add(PuzzleFixture::PUZZLE_1000_04, '01:11:11');
+        $this->add(PuzzleFixture::PUZZLE_1000_05, '01:11:11');
+        $this->detect();
+        $this->messageBus->dispatch(new DismissDuplicatePuzzleSignal($this->signalIdOf(PuzzleFixture::PUZZLE_1000_04)));
+        $dismissed = $this->scoreOf(PuzzleFixture::PUZZLE_1000_04);
+
+        // Somebody corrects the records: the names and the EAN no longer match
+        $this->changePuzzle(PuzzleFixture::PUZZLE_1500_02, 'Garden Visitors');
+        $this->changePuzzle(PuzzleFixture::PUZZLE_1000_05, 'Lata sobre lata', '4005555003540');
+        $this->detect();
+
+        $open = $this->scoreOf(PuzzleFixture::PUZZLE_1500_01);
+        self::assertNotContains('similar_name', $open['reasons']);
+        self::assertTrue($open['weak']);
+        self::assertSame($dismissed, $this->scoreOf(PuzzleFixture::PUZZLE_1000_04));
+    }
+
+    private function changePuzzle(string $puzzleId, string $name, null|string $ean = null): void
+    {
+        $this->database->executeStatement(
+            'UPDATE puzzle SET name = :name, alternative_name = NULL, ean = COALESCE(:ean, ean) WHERE id = :id',
+            ['name' => $name, 'ean' => $ean, 'id' => $puzzleId],
+        );
+    }
+
+    /**
+     * @return array{score: int, reasons: list<string>, name_similarity: float, weak: bool}
+     */
+    private function scoreOf(string $puzzleAId): array
+    {
+        /** @var array{score: int, reasons: string, name_similarity: float, weak: bool} $row */
+        $row = $this->database->fetchAssociative(
+            'SELECT score, reasons, name_similarity, weak FROM duplicate_puzzle_signal WHERE puzzle_a_id = :id',
+            ['id' => $puzzleAId],
+        );
+        /** @var list<string> $reasons */
+        $reasons = json_decode($row['reasons'], true, flags: JSON_THROW_ON_ERROR);
+
+        return ['score' => $row['score'], 'reasons' => $reasons, 'name_similarity' => $row['name_similarity'], 'weak' => $row['weak']];
+    }
+
     private function detect(): DuplicatePuzzleSignalDetectionSummary
     {
         $envelope = $this->messageBus->dispatch(new DetectDuplicatePuzzleSignals());

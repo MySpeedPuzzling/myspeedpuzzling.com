@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\DuplicatePuzzleSignalReason;
 
 /**
  * An open catalogue signal on the admin page (docs/features/duplicate-results.md, Layer 4).
@@ -24,6 +25,11 @@ readonly final class DuplicatePuzzleSignalListItem
         public int $exampleSeconds,
         public DateTimeImmutable $exampleDay,
         public DateTimeImmutable $detectedAt,
+        public int $score,
+        /** @var list<DuplicatePuzzleSignalReason> */
+        public array $reasons,
+        public float $nameSimilarity,
+        public bool $weak,
     ) {
     }
 }

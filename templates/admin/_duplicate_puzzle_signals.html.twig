@@ -2,14 +2,29 @@
 <section id="puzzle-signals" class="mt-5">
     <h2 class="h5">Possible duplicate puzzles</h2>
     <p class="text-muted fs-sm">
-        The same person saved the same time on the same day on two puzzles with the same piece count - often one
-        puzzle entered twice, sometimes chance. Not a duplicate result: once the puzzles are merged, the detection
-        finds the twins. Open {{ puzzle_signal_counts.open }} · merge proposed {{ puzzle_signal_counts.merge_proposed }}
-        · dismissed {{ puzzle_signal_counts.dismissed }}.
+        The same person saved the same time on the same day on two puzzles with the same piece count - one puzzle
+        entered twice, or the puzzles of one box or event logged with one time. Not a duplicate result: once the
+        puzzles are merged, the detection finds the twins. Open {{ puzzle_signal_counts.open }} · merge proposed
+        {{ puzzle_signal_counts.merge_proposed }} · dismissed {{ puzzle_signal_counts.dismissed }}.
+    </p>
+    <p class="text-muted fs-sm">
+        Scored by what else the two records share - same EAN +50, same catalogue number +40, similar name up to +50
+        (one name inside the other +30), same brand +10, not approved +15, at most 20 results +15, added just before
+        the results +5, added within a minute of each other +10. Weak = under 35 points, or a counter-hint: many results
+        each with names not alike, or parts of one set (numbered, or one series with different titles).
+    </p>
+    <p class="fs-sm" data-test="signal-strength">
+        {% if weak_signals %}
+            Weak signals ({{ open_signal_counts.weak }}) ·
+            <a href="{{ path('admin_duplicate_results') }}#puzzle-signals">Back to strong signals ({{ open_signal_counts.strong }})</a>
+        {% else %}
+            Strong signals ({{ open_signal_counts.strong }}) ·
+            <a href="{{ path('admin_duplicate_results', {weak_signals: 1}) }}#puzzle-signals">Show weak signals ({{ open_signal_counts.weak }})</a>
+        {% endif %}
     </p>
 
     {% if puzzle_signals is empty %}
-        <div class="alert alert-info">No open signals.</div>
+        <div class="alert alert-info">{{ weak_signals ? 'No weak signals.' : 'No open signals.' }}</div>
     {% else %}
         {% for signal in puzzle_signals %}
             <div class="card card-body shadow-sm mb-3 fs-sm">
@@ -36,6 +51,13 @@
                                 </div>
                             </div>
                         </div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex flex-wrap align-items-center gap-1 mt-2" data-test="signal-reasons">
+                    <span class="fw-semibold me-1">{{ signal.score }} points</span>
+                    {% for reason in signal.reasons %}
+                        <span class="badge {{ reason.isCounterEvidence() ? 'bg-warning text-dark' : 'bg-secondary' }}">{{ reason.label }}{% if reason.value == 'similar_name' %} {{ signal.nameSimilarity|number_format(2) }}{% endif %}</span>
                     {% endfor %}
                 </div>
 
@@ -69,7 +91,7 @@
                 <ul class="pagination pagination-sm flex-wrap">
                     {% for page_number in 1..signals_pages %}
                         <li class="page-item {% if page_number == signals_page %}active{% endif %}">
-                            <a class="page-link" href="{{ path('admin_duplicate_results', {signals_page: page_number}) }}#puzzle-signals">{{ page_number }}</a>
+                            <a class="page-link" href="{{ path('admin_duplicate_results', {signals_page: page_number}|merge(weak_signals ? {weak_signals: 1} : {})) }}#puzzle-signals">{{ page_number }}</a>
                         </li>
                     {% endfor %}
                 </ul>

@@ -79,6 +79,21 @@ class DuplicatePuzzleSignal
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::DATE_IMMUTABLE)]
         public DateTimeImmutable $exampleDay,
+        // How strongly the rest points at one puzzle entered twice (DuplicatePuzzleSignalScoring): the points, the
+        // reasons (DuplicatePuzzleSignalReason values), the name similarity for the admin, and whether it is weak
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::INTEGER, options: ['default' => 0])]
+        public int $score = 0,
+        /** @var list<string> */
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::JSON, options: ['default' => '[]'])]
+        public array $reasons = [],
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::FLOAT, options: ['default' => 0])]
+        public float $nameSimilarity = 0.0,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+        public bool $weak = false,
     ) {
     }
 
@@ -93,10 +108,22 @@ class DuplicatePuzzleSignal
     }
 
     /**
-     * The detection ran again: an open signal shows what is there now. A decided one keeps what it was decided on.
+     * The detection ran again: an open signal shows what is there now, scored anew. A decided one keeps what it was
+     * decided on.
+     *
+     * @param list<string> $reasons
      */
-    public function refresh(int $matchingResults, int $matchingPeople, UuidInterface $examplePlayerId, int $exampleSeconds, DateTimeImmutable $exampleDay): void
-    {
+    public function refresh(
+        int $matchingResults,
+        int $matchingPeople,
+        UuidInterface $examplePlayerId,
+        int $exampleSeconds,
+        DateTimeImmutable $exampleDay,
+        int $score,
+        array $reasons,
+        float $nameSimilarity,
+        bool $weak,
+    ): void {
         if ($this->status !== DuplicatePuzzleSignalStatus::Open) {
             return;
         }
@@ -106,6 +133,10 @@ class DuplicatePuzzleSignal
         $this->examplePlayerId = $examplePlayerId;
         $this->exampleSeconds = $exampleSeconds;
         $this->exampleDay = $exampleDay;
+        $this->score = $score;
+        $this->reasons = $reasons;
+        $this->nameSimilarity = $nameSimilarity;
+        $this->weak = $weak;
     }
 
     /**

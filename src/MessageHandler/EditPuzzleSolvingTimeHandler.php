@@ -15,11 +15,13 @@ use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\ResultDuplicatePreventionRepository;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryAssessor;
@@ -53,6 +55,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         private SolvingTimePredictor $solvingTimePredictor,
         private FirstTryAssessor $firstTryAssessor,
         private ResultDuplicatePreventionRepository $resultDuplicatePreventionRepository,
+        private PuzzleRepository $puzzleRepository,
     ) {
     }
 
@@ -63,6 +66,7 @@ readonly final class EditPuzzleSolvingTimeHandler
      * @throws CanNotAssembleEmptyGroup
      * @throws SuspiciousPpm
      * @throws FirstTryAlreadyTaken
+     * @throws PuzzleNotFound
      */
     public function __invoke(EditPuzzleSolvingTime $message): void
     {
@@ -74,6 +78,20 @@ readonly final class EditPuzzleSolvingTimeHandler
         if ($solvingTime->canBeModifiedBy($currentPlayer) === false) {
             throw new CanNotModifyOtherPlayersTime();
         }
+
+        // Another puzzle (docs/features/duplicate-results.md, Layer 4): only whoever tracked the result moves it -
+        // for everybody else in the group it is the tracker's result
+        $puzzle = $solvingTime->puzzle;
+
+        if ($message->puzzleId !== null && strtolower($message->puzzleId) !== $puzzle->id->toString()) {
+            if ($solvingTime->player->id->equals($currentPlayer->id) === false) {
+                throw new CanNotModifyOtherPlayersTime();
+            }
+
+            $puzzle = $this->puzzleRepository->get($message->puzzleId);
+        }
+
+        $puzzleChanges = $puzzle->id->equals($solvingTime->puzzle->id) === false;
 
         // Always assembled around whoever tracked the time, never around the editor - the row stays
         // theirs (first puzzler, not removable) no matter which group member edits it
@@ -103,14 +121,15 @@ readonly final class EditPuzzleSolvingTimeHandler
         $unmarkFirstTryOf = [];
 
         if ($message->firstAttempt) {
+            // On another puzzle the result is new there - nothing about it is an old, tolerated duplicate
             $firstTry = $this->firstTryAssessor->assess(new FirstTryEntry(
                 actorPlayerId: $currentPlayer->id->toString(),
-                puzzleId: $solvingTime->puzzle->id->toString(),
+                puzzleId: $puzzle->id->toString(),
                 memberPlayerIds: FirstTryEntry::memberIdsOf($solvingTime->player->id->toString(), $group),
                 solvedAt: $finishedAt ?? $solvingTime->trackedAt,
                 editedTimeId: $solvingTime->id->toString(),
-                previouslyFirstAttempt: $solvingTime->firstAttempt,
-                previousMemberPlayerIds: $solvingTime->memberPlayerIds(),
+                previouslyFirstAttempt: $puzzleChanges ? false : $solvingTime->firstAttempt,
+                previousMemberPlayerIds: $puzzleChanges ? null : $solvingTime->memberPlayerIds(),
             ));
 
             if ($firstTry->blocks($message->firstTryResolution)) {
@@ -130,7 +149,7 @@ readonly final class EditPuzzleSolvingTimeHandler
                 $puzzlersCount = count($group->puzzlers);
             }
 
-            $ppm = $solvingTimeValue->calculatePpm($solvingTime->puzzle->piecesCount, $puzzlersCount);
+            $ppm = $solvingTimeValue->calculatePpm($puzzle->piecesCount, $puzzlersCount);
 
             if ($ppm >= 100) {
                 throw new SuspiciousPpm($solvingTimeValue, $ppm);
@@ -156,6 +175,9 @@ readonly final class EditPuzzleSolvingTimeHandler
         }
 
         $membersBeforeEdit = $solvingTime->memberPlayerIds();
+
+        // Before modify(): its PuzzleSolvingTimeModified is then about the new puzzle, the old one is told by this
+        $solvingTime->moveToPuzzle($puzzle);
 
         $solvingTime->modify(
             $seconds,
@@ -187,7 +209,8 @@ readonly final class EditPuzzleSolvingTimeHandler
         // After modify(): the round depends on the competition and on solo/duo/team, both final only now
         $solvingTime->changeCompetitionRound($this->roundResolver->resolve($solvingTime));
 
-        // modify() forgets the prediction when the date, solo/group or the presence of a time changed
+        // modify() forgets the prediction when the date, solo/group or the presence of a time changed, moveToPuzzle()
+        // always
         $this->solvingTimePredictor->reconstructIfPending($solvingTime);
 
         // In the same transaction: the pair is a confirmed real second solve only if the edit is saved

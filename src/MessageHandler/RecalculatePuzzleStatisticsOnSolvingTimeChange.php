@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Entity\PuzzleStatistics;
 use SpeedPuzzling\Web\Events\PuzzleSolved;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
+use SpeedPuzzling\Web\Events\PuzzleSolvingTimeMovedToOtherPuzzle;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleStatisticsRepository;
 use SpeedPuzzling\Web\Services\PuzzleStatisticsCalculator;
@@ -24,7 +25,7 @@ readonly final class RecalculatePuzzleStatisticsOnSolvingTimeChange
     ) {
     }
 
-    public function __invoke(PuzzleSolved|PuzzleSolvingTimeModified|PuzzleSolvingTimeDeleted $event): void
+    public function __invoke(PuzzleSolved|PuzzleSolvingTimeModified|PuzzleSolvingTimeDeleted|PuzzleSolvingTimeMovedToOtherPuzzle $event): void
     {
         $this->recalculateForPuzzle($event->puzzleId);
     }

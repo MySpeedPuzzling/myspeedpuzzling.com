@@ -76,20 +76,26 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
             ],
         ]);
 
+        // Brand + puzzle: only whoever tracked the result may move it to another puzzle, and only to one that exists
+        // (docs/features/duplicate-results.md, Layer 4). For everybody else both stay disabled - a disabled field
+        // keeps the result's own puzzle whatever is submitted
+        /** @var bool $canChangePuzzle */
+        $canChangePuzzle = $options['can_change_puzzle'];
+
         $builder->add('brand', TextType::class, [
             'label' => 'forms.brand',
-            'help' => 'forms.brand_help',
             'required' => true,
+            'disabled' => $canChangePuzzle === false,
             'autocomplete' => true,
             'options_as_html' => true,
             'empty_data' => '',
             'tom_select_options' => [
-                'create' => true,
+                'create' => false,
                 'persist' => false,
                 'maxItems' => 1,
                 'options' => $brandChoices,
                 'closeAfterSelect' => true,
-                'createOnBlur' => true,
+                'createOnBlur' => false,
                 'searchField' => ['text', 'eanPrefix'],
             ],
             'attr' => [
@@ -129,16 +135,17 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
 
         $builder->add('puzzle', TextType::class, [
             'label' => 'forms.puzzle',
-            'help' => 'forms.puzzle_help',
+            'help' => 'edit_time_puzzle.picker_help',
             'required' => true,
+            'disabled' => $canChangePuzzle === false,
             'autocomplete' => true,
             'options_as_html' => true,
             'tom_select_options' => [
-                'create' => true,
+                'create' => false,
                 'persist' => false,
                 'maxItems' => 1,
                 'closeAfterSelect' => true,
-                'createOnBlur' => true,
+                'createOnBlur' => false,
                 'searchField' => ['search'],
             ],
             'attr' => [
@@ -215,33 +222,6 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
             ],
         ]);
 
-        $builder->add('puzzlePiecesCount', NumberType::class, [
-            'label' => 'forms.pieces_count',
-            'label_attr' => ['class' => 'required'],
-            'required' => false,
-        ]);
-
-        $builder->add('puzzlePhoto', FileType::class, [
-            'label' => 'forms.puzzle_box_photo',
-            'required' => false,
-            'label_attr' => ['class' => 'required'],
-            'constraints' => [
-                new Image(
-                    maxSize: '10m',
-                    mimeTypes: [
-                        'image/jpeg',
-                        'image/png',
-                        'image/gif',
-                        'image/webp',
-                        'image/heic',
-                        'image/heif',
-                        'image/avif',
-                    ],
-                    mimeTypesMessage: 'image_invalid_mime_type'
-                ),
-            ],
-        ]);
-
         $builder->add('finishedAt', DateType::class, [
             'label' => 'forms.date_finished',
             'required' => false,
@@ -250,16 +230,6 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
             'html5' => false,
             'input' => 'datetime_immutable',
             'input_format' => 'd.m.Y',
-        ]);
-
-        $builder->add('puzzleEan', TextType::class, [
-            'label' => 'forms.ean',
-            'required' => false,
-        ]);
-
-        $builder->add('puzzleIdentificationNumber', TextType::class, [
-            'label' => 'forms.puzzle_identification_number',
-            'required' => false,
         ]);
 
         $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) use ($competitionChoices): void {
@@ -279,9 +249,12 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
             // The competition the edited time is currently linked to (server-derived by the controller,
             // never from the request) — the picker always offers it, see CompetitionChoicesBuilder
             'current_competition_id' => null,
+            // Only whoever tracked the result (EditTimeController)
+            'can_change_puzzle' => false,
         ]);
 
         $resolver->setAllowedTypes('current_competition_id', ['null', 'string']);
+        $resolver->setAllowedTypes('can_change_puzzle', 'bool');
     }
 
     /**
@@ -297,15 +270,9 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
             $form->get('timeMinutes')->addError(new FormError($this->translator->trans('forms.time_required')));
         }
 
-        // TODO: Should check if the puzzle exists in database as well
-        if (is_string($data->puzzle) && Uuid::isValid($data->puzzle) === false) {
-            if ($data->puzzlePiecesCount === null) {
-                $form->get('puzzlePiecesCount')->addError(new FormError($this->translator->trans('forms.required_field')));
-            }
-
-            if ($data->puzzlePhoto === null && $data->finishedPuzzlesPhoto === null) {
-                $form->get('puzzlePhoto')->addError(new FormError($this->translator->trans('forms.puzzle_photo_is_required')));
-            }
+        // Existing puzzles only - no new puzzle from the edit form (EditTimeController checks that it exists)
+        if ($data->puzzle === null || Uuid::isValid($data->puzzle) === false) {
+            $form->get('puzzle')->addError(new FormError($this->translator->trans('edit_time_puzzle.choose_from_list')));
         }
 
         // Competition: only an id the picker offered — selectable OR the currently linked one

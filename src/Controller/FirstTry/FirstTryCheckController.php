@@ -21,6 +21,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * the form in (first_try_check_controller.js) - the very partial a refused submit shows, so both say the same.
  * An empty answer means there is nothing to say.
  *
+ * On an edit (`time`) the `puzzle` counts only when the viewer tracked the result - only they may move it.
  * `first_attempt=0` = the tag is not ticked (no parameter = ticked, what the script sent before it checked
  * duplicates too); `seconds` = the time entered, `duplicate_confirmed=1` = "It's another solve" was chosen.
  */
@@ -72,7 +73,10 @@ final class FirstTryCheckController extends AbstractController
                 return $this->notice(null);
             }
 
-            $check = $this->firstTryFormCheck->forEditedResult($viewer->playerId, $time, $groupPlayers, $solvedAt, $firstAttempt, $secondsToSolve);
+            // The tracker may have picked another puzzle for the result (docs/features/duplicate-results.md, Layer 4)
+            $pickedPuzzleId = $time->playerId === $viewer->playerId && Uuid::isValid($puzzleId) ? $puzzleId : null;
+
+            $check = $this->firstTryFormCheck->forEditedResult($viewer->playerId, $time, $groupPlayers, $solvedAt, $firstAttempt, $secondsToSolve, $pickedPuzzleId);
         } elseif (Uuid::isValid($puzzleId)) {
             $check = $this->firstTryFormCheck->forNewResult($viewer->playerId, $puzzleId, $groupPlayers, $solvedAt, $firstAttempt, $secondsToSolve);
         } else {

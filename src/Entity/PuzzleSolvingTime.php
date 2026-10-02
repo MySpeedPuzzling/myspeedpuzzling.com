@@ -22,6 +22,7 @@ use SpeedPuzzling\Web\Events\GroupSolvingTimeEdited;
 use SpeedPuzzling\Web\Events\PuzzleSolved;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
+use SpeedPuzzling\Web\Events\PuzzleSolvingTimeMovedToOtherPuzzle;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
@@ -405,6 +406,25 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
         );
+    }
+
+    /**
+     * The tracker picked the wrong puzzle and fixes it in the edit form (docs/features/duplicate-results.md,
+     * Layer 4). The puzzle left behind is told like a deletion; the edit's modify() tells the new one. The stored
+     * prediction was a prediction for another puzzle, so it goes - the round is re-derived by the caller.
+     */
+    public function moveToPuzzle(Puzzle $newPuzzle): void
+    {
+        if ($this->puzzle->id->equals($newPuzzle->id)) {
+            return;
+        }
+
+        $this->recordThat(
+            new PuzzleSolvingTimeMovedToOtherPuzzle($this->id, $this->puzzle->id, $this->player->id, $this->puzzle->piecesCount),
+        );
+
+        $this->puzzle = $newPuzzle;
+        $this->forgetPrediction();
     }
 
     public function migrateToPuzzle(Puzzle $newPuzzle): void

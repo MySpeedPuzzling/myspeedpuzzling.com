@@ -24,7 +24,8 @@ mix) and 1,268 first tries logged a day after an earlier solve of the same playe
   sometimes wrong, so the player can always save as it is.
 - **Tolerated legacy on edit**: an edit that neither ticks the tag newly nor adds a registered person is never
   blocked, even with duplicates - otherwise the 3,170 old pairs would stop people fixing a typo. The notice points to
-  the conflicts page instead (and offers the move when the player may make it).
+  the conflicts page instead (and offers the move when the player may make it). Moving the result to another puzzle
+  in the edit form is not such an edit: there it is a new result (`docs/features/duplicate-results.md`, Layer 4).
 
 ## Where it is enforced
 

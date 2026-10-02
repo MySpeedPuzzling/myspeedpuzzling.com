@@ -35,6 +35,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetConversationPartnersForListing' => self::BILATERAL,
         'GetConversations' => 'Filters on user_block itself (predates HiddenPlayers).',
         'GetDuplicateCandidates' => self::BACKGROUND,
+        'GetDuplicatePuzzleSignals' => self::ADMIN,
         'GetDuplicateResultsOverview' => self::ADMIN,
         'GetExportableSolvingTimes' => self::OWN_DATA,
         'GetFeatureRequestVoters' => self::BACKGROUND,

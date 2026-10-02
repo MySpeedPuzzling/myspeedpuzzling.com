@@ -16,5 +16,12 @@ export default class extends Controller {
                 targetElement.classList.remove('hidden');
             }
         });
+
+        // Optional: what the revealed part replaces (e.g. the chosen puzzle card when the picker opens)
+        if (event.params.hide) {
+            this.element.querySelectorAll(`[data-toggle-target="${event.params.hide}"]`).forEach(element => {
+                element.classList.add('hidden');
+            });
+        }
     }
 }

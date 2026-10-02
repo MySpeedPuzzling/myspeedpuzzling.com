@@ -31,6 +31,9 @@ readonly final class EditPuzzleSolvingTime
         // The player was told the same time from the same day is saved already and said it is another solve
         // (docs/features/duplicate-results.md, Layer 2) - recorded as `saved_anyway` with the edit
         public bool $duplicateConfirmed = false,
+        // The puzzle the result belongs to - another one than now moves it there (tracker only,
+        // docs/features/duplicate-results.md, Layer 4). Null = the puzzle stays
+        public null|string $puzzleId = null,
     ) {
     }
 
@@ -60,6 +63,7 @@ readonly final class EditPuzzleSolvingTime
             teamName: $teamName,
             firstTryResolution: $firstTryResolution,
             duplicateConfirmed: $duplicateConfirmed,
+            puzzleId: $formData->puzzle,
         );
     }
 }

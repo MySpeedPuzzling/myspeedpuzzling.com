@@ -1,0 +1,79 @@
+{# Catalogue signal (docs/features/duplicate-results.md, Layer 4) - its own partial on the duplicate results page #}
+<section id="puzzle-signals" class="mt-5">
+    <h2 class="h5">Possible duplicate puzzles</h2>
+    <p class="text-muted fs-sm">
+        The same person saved the same time on the same day on two puzzles with the same piece count - often one
+        puzzle entered twice, sometimes chance. Not a duplicate result: once the puzzles are merged, the detection
+        finds the twins. Open {{ puzzle_signal_counts.open }} · merge proposed {{ puzzle_signal_counts.merge_proposed }}
+        · dismissed {{ puzzle_signal_counts.dismissed }}.
+    </p>
+
+    {% if puzzle_signals is empty %}
+        <div class="alert alert-info">No open signals.</div>
+    {% else %}
+        {% for signal in puzzle_signals %}
+            <div class="card card-body shadow-sm mb-3 fs-sm">
+                <div class="row g-2">
+                    {% for puzzle in [signal.puzzleA, signal.puzzleB] %}
+                        <div class="col-6">
+                            <div class="d-flex flex-column flex-sm-row gap-2">
+                                {% if puzzle.image is not null %}
+                                    <img src="{{ puzzle.image|thumbnail('puzzle_small') }}" alt="" class="rounded-2 flex-shrink-0" style="width: 60px; height: 60px; object-fit: contain;">
+                                {% endif %}
+                                <div class="text-break">
+                                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.id}) }}" class="fw-semibold">{{ puzzle.name }}</a>
+                                    <div>{{ puzzle.manufacturerName }} · {{ puzzle.piecesCount }} pcs</div>
+                                    {% if puzzle.ean %}<div class="text-muted">EAN {{ puzzle.ean }}</div>{% endif %}
+                                    {% if puzzle.identificationNumber %}<div class="text-muted">{{ puzzle.identificationNumber }}</div>{% endif %}
+                                    <div>
+                                        {% if puzzle.approved %}
+                                            <span class="badge bg-success">approved</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">not approved</span>
+                                        {% endif %}
+                                        <span class="text-muted">{{ puzzle.results }} {{ puzzle.results == 1 ? 'result' : 'results' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="text-muted mt-2">
+                    {{ signal.matchingResults }} matching results by {{ signal.matchingPeople }} {{ signal.matchingPeople == 1 ? 'person' : 'people' }} ·
+                    e.g.
+                    {% if signal.examplePlayerCode is not null %}
+                        <a href="{{ path('player_profile', {playerId: signal.examplePlayerId}) }}">{{ signal.examplePlayerName ?? ('#' ~ signal.examplePlayerCode) }}</a>
+                    {% else %}
+                        a deleted player
+                    {% endif %}
+                    {{ signal.exampleSeconds|puzzlingTime }} on {{ signal.exampleDay|date('d.m.Y') }} ·
+                    detected {{ signal.detectedAt|date('d.m.Y') }}
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    <form method="post" action="{{ path('admin_duplicate_puzzle_signal_propose_merge', {signalId: signal.signalId}) }}" data-turbo="false">
+                        <input type="hidden" name="_token" value="{{ csrf_token('duplicate-puzzle-signal-' ~ signal.signalId) }}">
+                        <button type="submit" class="btn btn-sm btn-primary">Propose merge</button>
+                    </form>
+                    <form method="post" action="{{ path('admin_duplicate_puzzle_signal_dismiss', {signalId: signal.signalId}) }}" data-turbo="false">
+                        <input type="hidden" name="_token" value="{{ csrf_token('duplicate-puzzle-signal-' ~ signal.signalId) }}">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Dismiss</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+
+        {% if signals_pages > 1 %}
+            <nav aria-label="Possible duplicate puzzles pages">
+                <ul class="pagination pagination-sm flex-wrap">
+                    {% for page_number in 1..signals_pages %}
+                        <li class="page-item {% if page_number == signals_page %}active{% endif %}">
+                            <a class="page-link" href="{{ path('admin_duplicate_results', {signals_page: page_number}) }}#puzzle-signals">{{ page_number }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% endif %}
+</section>

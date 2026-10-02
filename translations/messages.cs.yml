@@ -4358,6 +4358,12 @@ puzzle_search:
         borrowed: "Vypůjčené"
         lent: "Půjčené"
         sell_swap: "Prodej / výměna"
+edit_time_puzzle:
+    change: "Změnit puzzle"
+    title: "Přesunout výsledek k jiným puzzle"
+    picker_help: "Vybral(a) jsi omylem jiné puzzle? Vyber ty správné – čas, datum, fotka i všechno ostatní se přesune s výsledkem. Vybrat jde jen z puzzlí, která už v databázi jsou."
+    only_tracker: "Puzzle u tohoto výsledku může změnit jen ten, kdo ho uložil."
+    choose_from_list: "Vyber puzzle ze seznamu."
 first_try:
     a_puzzler: "další puzzlař"
     form_error: "Zatím neuloženo: tyto puzzle už mají první pokus. Všechna vyplněná pole i fotky tu zůstaly – podívej se na poznámku níže."

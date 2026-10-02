@@ -4657,6 +4657,12 @@ puzzle_search:
         borrowed: "Borrowed"
         lent: "Lent"
         sell_swap: "Sell / swap"
+edit_time_puzzle:
+    change: "Change puzzle"
+    title: "Move this result to another puzzle"
+    picker_help: "Picked the wrong puzzle? Choose the right one - the time, date, photo and everything else move with the result. Only puzzles already in our database can be chosen here."
+    only_tracker: "Only the puzzler who saved this result can change its puzzle."
+    choose_from_list: "Choose a puzzle from the list."
 first_try:
     a_puzzler: "a puzzler"
     form_error: "Not saved yet: this puzzle already has a first try. All your fields and photos are still here – see the note below."

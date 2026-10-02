@@ -4362,6 +4362,12 @@ puzzle_search:
         borrowed: "Empruntés"
         lent: "Prêtés"
         sell_swap: "Vente / échange"
+edit_time_puzzle:
+    change: "Changer de puzzle"
+    title: "Déplacer ce résultat vers un autre puzzle"
+    picker_help: "Vous avez choisi le mauvais puzzle ? Choisissez le bon – le temps, la date, la photo et tout le reste suivent le résultat. Seuls les puzzles déjà présents dans notre base de données peuvent être choisis ici."
+    only_tracker: "Seule la personne qui a enregistré ce résultat peut changer son puzzle."
+    choose_from_list: "Choisissez un puzzle dans la liste."
 first_try:
     a_puzzler: "un puzzleur"
     form_error: "Pas encore enregistré : ce puzzle a déjà une première tentative. Tous vos champs et vos photos sont toujours là – voir la remarque ci-dessous."

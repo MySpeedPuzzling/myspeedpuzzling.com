@@ -2,7 +2,7 @@
 {% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
     <wrapper>
         <container>
-            {{ include('emails/_header.html.twig') }}
+            {{ include('emails/_header.html.twig', {preheader: 'subscription_payment_failed.preheader'|trans}) }}
 
             <row>
                 <columns>

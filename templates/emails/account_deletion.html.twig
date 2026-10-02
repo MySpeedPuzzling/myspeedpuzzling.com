@@ -2,7 +2,7 @@
 {% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
     <wrapper>
         <container>
-            {{ include('emails/_header.html.twig') }}
+            {{ include('emails/_header.html.twig', {preheader: 'account_deletion.preheader'|trans({'%minutes%': expiresInMinutes})}) }}
 
             <row>
                 <columns>
@@ -42,8 +42,8 @@
 
             <row>
                 <columns>
-                    <p class="text-center">{{ 'account_deletion.expires'|trans({'%minutes%': expiresInMinutes}) }}</p>
-                    <p class="text-center">{{ 'account_deletion.not_requested'|trans }}</p>
+                    <p>{{ 'account_deletion.expires'|trans({'%minutes%': expiresInMinutes}) }}</p>
+                    <p>{{ 'account_deletion.not_requested'|trans }}</p>
                 </columns>
             </row>
 

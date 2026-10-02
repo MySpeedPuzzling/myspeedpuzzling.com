@@ -2,7 +2,7 @@
 {% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
     <wrapper>
         <container>
-            {{ include('emails/_header.html.twig') }}
+            {{ include('emails/_header.html.twig', {preheader: 'unread_messages.preheader'|trans}) }}
 
             <row>
                 <columns>
@@ -47,7 +47,7 @@
                             <p>{{ 'unread_messages.pending_requests_only'|trans({'%count%': pendingRequestCount}) }}</p>
                         {% endif %}
 
-                        <p><small>{{ 'unread_messages.pending_requests_context'|trans }}</small></p>
+                        <p class="small-print">{{ 'unread_messages.pending_requests_context'|trans }}</p>
 
                         <center>
                             <button href="{{ url('conversations_list', {tab: 'requests'}) }}">
@@ -58,7 +58,7 @@
                         <spacer size-sm="10"></spacer>
                     {% endif %}
 
-                    <p><small>{{ 'unread_messages.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</small></p>
+                    <p class="small-print">{{ 'unread_messages.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</p>
                 </columns>
             </row>
 

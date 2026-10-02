@@ -3,6 +3,7 @@ footer: '<a href="%homepageLink%">MySpeedPuzzling.com</a>の一員でいてく�
 
 membership_cancelled:
     subject: "MySpeedPuzzling.comのメンバーシップ登録がキャンセルされました"
+    preheader: "今後の請求はありません。メンバーシップは%membershipExpiresAt%まで有効です。"
     title: "メンバーシップ登録がキャンセルされました！"
     content: |
         <p>お別れは残念ですが、MySpeedPuzzling.comで過ごしていただいた時間に感謝いたします。</p>
@@ -13,6 +14,7 @@ membership_cancelled:
 
 membership_granted:
     subject: "MySpeedPuzzling.comでのメンバーシップおめでとうございます"
+    preheader: "コミュニティへのご貢献に感謝して、メンバーシップを有効にしました。"
     title: "メンバーシップがアクティブになりました！"
     content: |
         <p>スピードパズリングコミュニティでのあなたの貢献と努力を認識できて嬉しく思います！</p>
@@ -22,6 +24,7 @@ membership_granted:
 
 membership_subscribed:
     subject: "MySpeedPuzzling.comでのメンバーシップおめでとうございます"
+    preheader: "メンバーシップが有効になりました。次回請求期間の開始日：%nextBillingPeriod%"
     title: "ご参加いただきありがとうございます！"
     content: |
         <h4>メンバーシップがアクティブになりました。</h4>
@@ -32,6 +35,7 @@ membership_subscribed:
 
 subscription_payment_failed:
     subject: "MySpeedPuzzling.comのメンバーシップ支払いが失敗しました"
+    preheader: "お支払いが完了しませんでした。メンバーシップを続けるには支払い方法をご確認ください。"
     title: "メンバーシップ支払いが失敗しました！"
     content: |
         <p>最近のメンバーシップ支払いが失敗したことを確認いたしました。支払い方法に問題があった可能性があります。</p>
@@ -41,6 +45,7 @@ subscription_payment_failed:
 
 subscription_renewed:
     subject: "MySpeedPuzzling.comのメンバーシップ支払いが成功しました"
+    preheader: "メンバーシップが更新されました。次回請求期間の開始日：%nextBillingPeriod%"
     title: "支払い成功、ありがとうございます！"
     content: |
         <p>引き続きご利用いただき、MySpeedPuzzling.comの一員でいてくださり本当にありがとうございます！</p>
@@ -51,6 +56,7 @@ subscription_renewed:
 
 unread_messages:
     subject: "MySpeedPuzzlingで誰かからメッセージが届いています"
+    preheader: "パズラー仲間からメッセージが届いています。MySpeedPuzzlingでご確認ください。"
     title: "新しいメッセージが届いています"
     greeting: "%playerName%さん、こんにちは"
     intro: "前回の訪問以降、誰かからメッセージが届いています。お待ちしている内容はこちらです："
@@ -74,6 +80,7 @@ oauth2_client_request:
 
 oauth2_client_approved:
     subject: "APIアプリケーションが承認されました！"
+    preheader: "%clientName%の認証情報を取得してください。リンクの有効期限は7日間です。"
     title: "アプリケーションが承認されました！"
     content: |
         <p>朗報です！OAuth2アプリケーション<strong>%clientName%</strong>が承認されました。</p>
@@ -83,6 +90,7 @@ oauth2_client_approved:
 
 oauth2_client_rejected:
     subject: "APIアプリケーションリクエストが承認されませんでした"
+    preheader: "%clientName%のリクエストは承認されませんでした。理由はメール本文をご覧ください。"
     title: "アプリケーションが承認されませんでした"
     content: |
         <p>残念ながら、OAuth2アプリケーション<strong>%clientName%</strong>のリクエストは承認されませんでした。</p>
@@ -99,6 +107,7 @@ competition_submitted:
 
 competition_approved:
     subject: "イベントが承認されました！"
+    preheader: "%competitionName%がMySpeedPuzzlingで公開されました。"
     title: "イベントが承認されました！"
     content: |
         <p>素晴らしいニュースです！イベント <strong>%competitionName%</strong> が承認され、MySpeedPuzzlingで公開されました。</p>
@@ -106,6 +115,7 @@ competition_approved:
 
 moderator_role_granted:
     subject: "MySpeedPuzzlingのコミュニティモデレーターになりました"
+    preheader: "パズルカタログの整理へのご協力に感謝します。進め方をご案内します。"
     title: "モデレーターチームへようこそ！"
     content: |
         <p>%playerName%さん、こんにちは。</p>
@@ -121,6 +131,7 @@ moderator_role_granted:
 
 competition_rejected:
     subject: "イベントは承認されませんでした"
+    preheader: "%competitionName%は承認されませんでした。理由はメール本文をご覧ください。"
     title: "イベント未承認"
     content: |
         <p>残念ながら、イベント <strong>%competitionName%</strong> は承認されませんでした。</p>
@@ -129,6 +140,7 @@ competition_rejected:
 
 feature_request_completed:
     subject: "ご提案の機能リクエストがリリースされました: %title%"
+    preheader: "ご提案の「%featureRequestTitle%」がMySpeedPuzzlingで公開されました。ありがとうございます！"
     title: "ご提案の機能リクエストが公開されました！"
     content: |
         <p>素晴らしいニュースです！ご提案の機能リクエスト <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> がリリースされ、MySpeedPuzzlingで公開されました。</p>
@@ -139,6 +151,7 @@ feature_request_completed:
         <p>私たちは透明性を100%大切にし、オープンに開発を進めています。この変更のコードや技術的な詳細にご興味があれば、<a href="%githubUrl%" class="link-underline">GitHubでご覧いただけます</a>。興味がなければ、どうぞ気にせず無視してください :)</p>
     upvoter:
         subject: "あなたが支持した機能リクエストがリリースされました: %title%"
+        preheader: "あなたが支持した「%featureRequestTitle%」がMySpeedPuzzlingで公開されました。"
         title: "あなたが支持した機能が公開されました！"
         content: |
             <p>素晴らしいニュースです！あなたが支持した機能リクエスト <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> がリリースされ、MySpeedPuzzlingで公開されました。</p>
@@ -150,6 +163,7 @@ feature_request_completed:
 
 feature_request_declined:
     subject: "ご提案の機能リクエストは見送られました: %title%"
+    preheader: "「%featureRequestTitle%」は見送ることになりました。アイデアをありがとうございました。"
     title: "ご提案の機能リクエストは見送られました"
     content: |
         <p>ご提案の機能リクエスト <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> は見送られることとなりました。</p>
@@ -158,6 +172,7 @@ feature_request_declined:
         <p><strong>チームからのコメント:</strong> %adminComment%</p>
     upvoter:
         subject: "あなたが支持した機能リクエストは見送られました: %title%"
+        preheader: "あなたが支持した「%featureRequestTitle%」は見送りとなりました。応援ありがとうございました。"
         title: "あなたが支持した機能リクエストは見送られました"
         content: |
             <p>あなたが支持した機能リクエスト <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> は見送られることとなりました。</p>
@@ -167,6 +182,7 @@ feature_request_declined:
 
 sign_in_link:
     subject: "MySpeedPuzzlingのサインインコード: %code%"
+    preheader: "%code%を入力するか、ワンタップでサインインしてください。有効期限は%minutes%分です。"
     title: "サインインコード"
     content: |
         <p>コードをリクエストしたMySpeedPuzzlingのページで、このコードを入力してください。</p>
@@ -177,6 +193,7 @@ sign_in_link:
 
 verify_email:
     subject: "MySpeedPuzzling.comのメールアドレスを確認してください"
+    preheader: "ワンクリックでメールアドレスを確認すれば、準備完了です。"
     title: "メールアドレスを確認してください"
     content: |
         <p>MySpeedPuzzlingへようこそ！10,000人を超えるパズラーの仲間入りです。</p>
@@ -187,6 +204,7 @@ verify_email:
 
 password_reset:
     subject: "MySpeedPuzzling.comのパスワードをリセット"
+    preheader: "メール内のボタンから新しいパスワードを設定できます。リンクは1回のみ、%minutes%分間有効です。"
     title: "新しいパスワードを設定してください"
     content: |
         <p>どなたか — おそらくあなた — が、MySpeedPuzzling.comアカウントのパスワードのリセットをリクエストしました。下のボタンをクリックして、新しいパスワードを設定してください。</p>
@@ -196,6 +214,7 @@ password_reset:
 
 account_deletion:
     subject: "MySpeedPuzzlingアカウントの削除を確認してください"
+    preheader: "データを残したい場合は、先にエクスポートしてください。リンクの有効期限は%minutes%分です。"
     title: "お別れは寂しいですが"
     content: |
         <p>どなたか — おそらくあなた — が、<b>%email%</b> で登録されたMySpeedPuzzlingアカウントの削除をリクエストしました。</p>
@@ -211,6 +230,7 @@ account_deletion:
 
 newsletter_confirmation:
     subject: "ワンクリックでパズルの最新情報があなたのものに 🧩"
+    preheader: "登録を確認すると、MySpeedPuzzlingの最新情報を多くても月1回お届けします。"
     title: "ニュースレターの登録を確認してください"
     content: |
         <p>こんにちは！どなたか — おそらくあなた — が、このアドレスでのMySpeedPuzzlingニュースレターの受信をリクエストしました。</p>
@@ -220,6 +240,7 @@ newsletter_confirmation:
 
 free_trial_started:
     subject: "MySpeedPuzzlingメンバーシップの無料トライアルが始まりました"
+    preheader: "%trialEndsAt%までメンバー向けの全機能をご利用いただけます。カード不要、解約も不要です。"
     title: "無料トライアルが始まりました！"
     content: |
         <p><b>%trialEndsAt%</b>まで、メンバー向けのすべての機能をご利用いただけます。カード不要、解約手続きも不要 - 自動的に終了します。</p>
@@ -233,6 +254,7 @@ free_trial_started:
         <p>気に入ったら、<a href="%membershipUrl%">メンバーシップページ</a>からいつでもメンバーになれます。トライアルの残り日数もそのまま引き継がれます。</p>
 free_trial_ending:
     subject: "MySpeedPuzzlingメンバーシップの無料トライアルがまもなく終了します"
+    preheader: "お手続きは不要です。自動的に終了し、料金は一切かかりません。"
     title: "無料トライアルは%trialEndsAt%に終了します"
     content: |
         <p>メンバーシップの無料トライアルは<b>%trialEndsAt%</b>に終了します。お手続きは不要です - 自動的に終了し、料金は一切かかりません。</p>
@@ -241,6 +263,7 @@ free_trial_ending:
 
 oauth_identity_linked:
     subject: "MySpeedPuzzlingアカウントに%provider%でのログインが連携されました"
+    preheader: "今後は%provider%でログインできます。心当たりがない場合の対処法もご案内します。"
     title: "%provider%でのログインを連携しました"
     content: |
         <p>MySpeedPuzzlingアカウント <strong>%email%</strong> に%provider%アカウントが連携されました（%linkedAt%）。今後はこちらでもログインできます。</p>
@@ -254,6 +277,9 @@ result_review:
     subject_first: "いくつかの記録を確認していただけますか？"
     subject_weekly: "確認していただきたい記録がほかにもあります"
     subject_removed: "重複していた記録を削除しました"
+    preheader_removed: "重複していた記録の余分なコピーを削除しました。それぞれ1回として数えられます。"
+    preheader_weekly: "ほかにも重複している可能性のある記録があります。さっと確認するだけで統計を正確に保てます。"
+    preheader_first: "いくつかの記録が重複している可能性があります。確認はすぐに済みます。"
     title_first: "いくつかの記録を確認していただけますか？"
     title_weekly: "確認していただきたい記録がほかにもあります"
     title_removed: "重複していた記録を削除しました"

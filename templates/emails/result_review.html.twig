@@ -8,7 +8,7 @@
 {% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
     <wrapper>
         <container>
-            {{ include('emails/_header.html.twig') }}
+            {{ include('emails/_header.html.twig', {preheader: (removed_only ? 'result_review.preheader_removed' : (first ? 'result_review.preheader_first' : 'result_review.preheader_weekly'))|trans}) }}
 
             <row>
                 <columns>
@@ -87,7 +87,7 @@
 
                     <spacer size-sm="10"></spacer>
 
-                    <p><small>{{ 'result_review.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</small></p>
+                    <p class="small-print">{{ 'result_review.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</p>
                 </columns>
             </row>
 

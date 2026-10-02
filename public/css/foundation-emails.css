@@ -80,7 +80,7 @@ table.body {
   width: 100%; }
 
 table.container {
-  background: #fefefe;
+  background: #ffffff;
   width: 580px;
   margin: 0 auto;
   Margin: 0 auto;
@@ -875,8 +875,12 @@ th {
   line-height: 1.3; }
 
 p {
-  margin-bottom: 10px;
-  Margin-bottom: 10px; }
+  line-height: 1.5;
+  margin-bottom: 12px;
+  Margin-bottom: 12px; }
+
+li {
+  line-height: 1.5; }
   p.lead {
     font-size: 20px;
     line-height: 1.6; }
@@ -889,22 +893,31 @@ p {
     line-height: 1.4;
     color: #8a8a8a; }
 
+/* E-mail colours (docs/features/transactional-emails.md): #d63c42 is the brand red darkened to 4.58:1 on white
+   (white on it as well) - #fe696a only passed 2.8:1, it stays for the header/footer rule and accents.
+   Links are underlined: by colour alone they differ from the body text by 1.6:1 only (WCAG 1.4.1). */
 small {
-  font-size: 80%;
-  color: #7d879c; }
+  font-size: 13px;
+  color: #6b7488; }
+
+/* Notes under the content (why you get this e-mail, opt-out): 14 px, #6b7488 = 4.69:1 on white */
+p.small-print {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #6b7488; }
 
 a {
-  color: #fe696a;
-  text-decoration: none; }
+  color: #d63c42;
+  text-decoration: underline; }
   a:hover {
-    color: #e55e5f; }
+    color: #b02f35; }
   a:active {
-    color: #e55e5f; }
+    color: #b02f35; }
   a:visited {
-    color: #fe696a; }
+    color: #d63c42; }
 
 a.link-underline {
-  color: #fe696a;
+  color: #d63c42;
   text-decoration: underline; }
 
 h1 a,
@@ -919,7 +932,7 @@ h5 a,
 h5 a:visited,
 h6 a,
 h6 a:visited {
-  color: #fe696a; }
+  color: #d63c42; }
 
 pre {
   background: #f3f5f9;
@@ -966,24 +979,32 @@ span.preheader {
   opacity: 0;
   overflow: hidden; }
 
+/* Bulletproof button: the colour sits on the cell too (+ a bgcolor attribute added by the email_document filter),
+   classic Outlook ignores the link's padding and background and pads the cell instead (mso-padding-alt).
+   12 + 20 + 12 = 44 px tap target. */
 table.button {
   width: auto;
   margin: 0 0 16px 0;
   Margin: 0 0 16px 0; }
+  table.button table {
+    border-collapse: separate; }
   table.button table td {
-    text-align: left;
-    color: #fefefe;
-    background: transparent;
-    border: none; }
+    text-align: center;
+    color: #ffffff;
+    background-color: #d63c42;
+    border: none;
+    border-radius: 8px;
+    mso-padding-alt: 12px 24px; }
     table.button table td a {
       font-family: Rubik, Helvetica, Arial, sans-serif;
       font-size: 16px;
       font-weight: bold;
-      color: #fefefe;
-      background: #fe696a;
+      line-height: 20px;
+      color: #ffffff;
+      background-color: #d63c42;
       text-decoration: none;
       display: inline-block;
-      padding: 10px 24px 10px 24px;
+      padding: 12px 24px 12px 24px;
       border: none;
       border-radius: 8px; }
   table.button.radius table td {
@@ -1005,7 +1026,7 @@ table.button.small table tr td a:visited,
 table.button.large:hover table tr td a,
 table.button.large:active table tr td a,
 table.button.large table tr td a:visited {
-  color: #fefefe; }
+  color: #ffffff; }
 
 table.button.tiny table td,
 table.button.tiny table a {
@@ -1043,39 +1064,45 @@ table.button.expanded {
 table.button:hover table td,
 table.button:visited table td,
 table.button:active table td {
-  background: transparent;
-  color: #fefefe; }
+  background-color: #b02f35;
+  color: #ffffff; }
 
 table.button:hover table a,
 table.button:visited table a,
 table.button:active table a {
-  background: #e55e5f;
+  background-color: #b02f35;
   border: none; }
 
+/* Secondary = outlined: white cell with a 2 px red border (border on the cell only, so Outlook draws it too),
+   10 + 20 + 10 + 2 x 2 = 44 px */
 table.button.secondary table td {
-  background: #777777;
-  color: #fefefe;
-  border: 0px solid #777777; }
+  background-color: #ffffff;
+  color: #d63c42;
+  border: 2px solid #d63c42;
+  mso-padding-alt: 10px 22px; }
 
 table.button.secondary table a {
-  color: #fefefe;
-  border: 0 solid #777777; }
+  color: #d63c42;
+  background-color: #ffffff;
+  padding: 10px 22px 10px 22px;
+  border: none; }
 
 table.button.secondary:hover table td {
-  background: #919191;
-  color: #fefefe; }
+  background-color: #fbeaea;
+  color: #d63c42; }
 
 table.button.secondary:hover table a {
-  border: 0 solid #919191; }
+  background-color: #fbeaea;
+  border: none; }
 
 table.button.secondary:hover table td a {
-  color: #fefefe; }
+  color: #d63c42; }
 
 table.button.secondary:active table td a {
-  color: #fefefe; }
+  color: #d63c42; }
 
 table.button.secondary table td a:visited {
-  color: #fefefe; }
+  color: #d63c42; }
 
 table.button.success table td {
   background: #3adb76;
@@ -1166,7 +1193,7 @@ table.menu {
     padding-right: 10px; }
     table.menu td.menu-item a,
     table.menu th.menu-item a {
-      color: #fe696a; }
+      color: #d63c42; }
 
 table.menu.vertical td.menu-item,
 table.menu.vertical th.menu-item {

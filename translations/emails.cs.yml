@@ -3,6 +3,7 @@ footer: 'Děkujeme, že jste součástí <a href="%homepageLink%">MySpeedPuzzlin
 
 membership_cancelled:
     subject: "Předplatné členství na MySpeedPuzzling.com bylo zrušeno"
+    preheader: "Další platby už vám nebudou účtovány. Členství zůstává aktivní do %membershipExpiresAt%."
     title: "Předplatné členství  bylo zrušeno!"
     content: |
         <p>Mrzí nás, že odcházíte, ale vážíme si času, který jste strávili s MySpeedPuzzling.com</p>
@@ -13,6 +14,7 @@ membership_cancelled:
 
 membership_granted:
     subject: "Gratulujeme k členství na MySpeedPuzzling.com"
+    preheader: "Poděkování za vše, co děláte pro komunitu: vaše členství je aktivní."
     title: "Vaše členství je nyní aktivní!"
     content: |
         <p>Jsme nadšení, že můžeme ocenit váš přínos a úsilí v Speed Puzzling komunitě!</p>
@@ -22,6 +24,7 @@ membership_granted:
 
 membership_subscribed:
     subject: "Gratulujeme k členství na MySpeedPuzzling.com"
+    preheader: "Vaše členství je aktivní. Další fakturační období začíná %nextBillingPeriod%."
     title: "Děkujeme, že jste s námi!"
     content: |
         <h4>Vaše členství je nyní aktivní.</h4>
@@ -32,6 +35,7 @@ membership_subscribed:
 
 subscription_payment_failed:
     subject: "Platba členství na MySpeedPuzzling.com selhala"
+    preheader: "Platba neprošla – zkontrolujte prosím platební metodu, aby vám členství zůstalo."
     title: "Platba členství selhala!"
     content: |
         <p>Všimli jsme si, že vaše poslední platba za předplatné neproběhla úspěšně. Mohlo dojít k problému s vaší platební metodou.</p>
@@ -41,6 +45,7 @@ subscription_payment_failed:
 
 subscription_renewed:
     subject: "Platba členství na MySpeedPuzzling.com proběhla úspěšně"
+    preheader: "Vaše členství je prodloužené. Další fakturační období začíná %nextBillingPeriod%."
     title: "Platba proběhla úspěšně, děkujeme!"
     content: |
         <p>Moc vám děkujeme, že zůstáváte s námi a jste součástí MySpeedPuzzling.com!</p>
@@ -51,6 +56,7 @@ subscription_renewed:
 
 unread_messages:
     subject: "Někdo vám napsal na MySpeedPuzzling"
+    preheader: "Ostatní puzzleři vám napsali – zprávy na vás čekají na MySpeedPuzzling."
     title: "Máte nové zprávy, které čekají"
     greeting: "Ahoj %playerName%,"
     intro: "Od vaší poslední návštěvy se vám někdo ozval. Tady je, co na vás čeká:"
@@ -73,6 +79,7 @@ competition_submitted:
 
 competition_approved:
     subject: "Vaše událost byla schválena!"
+    preheader: "Událost %competitionName% je nyní veřejně viditelná na MySpeedPuzzling."
     title: "Vaše událost byla schválena!"
     content: |
         <p>Skvělá zpráva! Vaše událost <strong>%competitionName%</strong> byla schválena a je nyní veřejně viditelná na MySpeedPuzzling.</p>
@@ -80,6 +87,7 @@ competition_approved:
 
 moderator_role_granted:
     subject: "Nyní jste komunitní moderátor MySpeedPuzzling"
+    preheader: "Děkujeme, že pomáháte udržovat katalog puzzlí v pořádku – tady je, jak to funguje."
     title: "Vítejte v týmu moderátorů!"
     content: |
         <p>Ahoj %playerName%,</p>
@@ -95,6 +103,7 @@ moderator_role_granted:
 
 competition_rejected:
     subject: "Vaše událost nebyla schválena"
+    preheader: "Událost %competitionName% nebyla schválena – důvod najdete v e-mailu."
     title: "Událost nebyla schválena"
     content: |
         <p>Bohužel vaše událost <strong>%competitionName%</strong> nebyla schválena.</p>
@@ -112,6 +121,7 @@ oauth2_client_request:
 
 oauth2_client_approved:
     subject: "Vaše API aplikace byla schválena!"
+    preheader: "Získejte přihlašovací údaje pro %clientName% – odkaz platí 7 dní."
     title: "Vaše aplikace byla schválena!"
     content: |
         <p>Skvělá zpráva! Vaše OAuth2 aplikace <strong>%clientName%</strong> byla schválena.</p>
@@ -121,6 +131,7 @@ oauth2_client_approved:
 
 oauth2_client_rejected:
     subject: "Vaše žádost o API aplikaci nebyla schválena"
+    preheader: "Vaše žádost o %clientName% nebyla schválena – důvod najdete v e-mailu."
     title: "Aplikace nebyla schválena"
     content: |
         <p>Bohužel vaše žádost o OAuth2 aplikaci <strong>%clientName%</strong> nebyla schválena.</p>
@@ -129,6 +140,7 @@ oauth2_client_rejected:
 
 feature_request_completed:
     subject: "Váš návrh na funkci byl vydán: %title%"
+    preheader: "Váš nápad „%featureRequestTitle%“ už je na MySpeedPuzzling k dispozici – děkujeme!"
     title: "Váš návrh na funkci je živý!"
     content: |
         <p>Skvělá zpráva! Váš návrh na funkci <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> byl vydán a je nyní živý na MySpeedPuzzling.</p>
@@ -139,6 +151,7 @@ feature_request_completed:
         <p>Jelikož vyvíjíme veřejně a jsme 100% transparentní, pokud vás zajímá kód a technické detaily této změny, klidně se <a href="%githubUrl%" class="link-underline">podívejte na GitHub</a>. Jinak to klidně ignorujte :)</p>
     upvoter:
         subject: "Návrh na funkci, který jste podpořili, byl vydán: %title%"
+        preheader: "Návrh „%featureRequestTitle%“, který jste podpořili, už je na MySpeedPuzzling k dispozici."
         title: "Funkce, kterou jste podpořili, je živá!"
         content: |
             <p>Skvělá zpráva! Návrh na funkci, který jste podpořili — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — byl vydán a je nyní živý na MySpeedPuzzling.</p>
@@ -150,6 +163,7 @@ feature_request_completed:
 
 feature_request_declined:
     subject: "Váš návrh na funkci byl zamítnut: %title%"
+    preheader: "Návrh „%featureRequestTitle%“ jsme se rozhodli nerealizovat – děkujeme za nápad."
     title: "Váš návrh na funkci byl zamítnut"
     content: |
         <p>Váš návrh na funkci <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> byl zamítnut.</p>
@@ -158,6 +172,7 @@ feature_request_declined:
         <p><strong>Komentář od týmu:</strong> %adminComment%</p>
     upvoter:
         subject: "Návrh na funkci, který jste podpořili, byl zamítnut: %title%"
+        preheader: "Návrh „%featureRequestTitle%“, který jste podpořili, nebudeme realizovat – díky za podporu."
         title: "Návrh na funkci, který jste podpořili, byl zamítnut"
         content: |
             <p>Návrh na funkci, který jste podpořili — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — byl zamítnut.</p>
@@ -167,6 +182,7 @@ feature_request_declined:
 
 sign_in_link:
     subject: "%code% je váš přihlašovací kód pro MySpeedPuzzling"
+    preheader: "Zadejte %code% tam, kde jste o kód žádali, nebo se přihlaste jedním klepnutím. Platí %minutes% minut."
     title: "Váš přihlašovací kód"
     content: |
         <p>Zadejte tento kód na stránce MySpeedPuzzling, kde jste si o něj řekli:</p>
@@ -177,6 +193,7 @@ sign_in_link:
 
 verify_email:
     subject: "Potvrďte svou e-mailovou adresu pro MySpeedPuzzling.com"
+    preheader: "Jedním kliknutím potvrdíte e-mailovou adresu – a můžete začít."
     title: "Potvrďte svou e-mailovou adresu"
     content: |
         <p>Vítejte na MySpeedPuzzling — jste v dobré společnosti více než 10 000 dalších puzzlerů!</p>
@@ -187,6 +204,7 @@ verify_email:
 
 password_reset:
     subject: "Obnovení hesla k MySpeedPuzzling.com"
+    preheader: "Nové heslo si zvolíte tlačítkem v e-mailu. Odkaz funguje jednou, %minutes% minut."
     title: "Zvolte si nové heslo"
     content: |
         <p>Někdo — doufejme, že vy — požádal o obnovení hesla k vašemu účtu na MySpeedPuzzling.com. Kliknutím na tlačítko níže si zvolíte nové.</p>
@@ -196,6 +214,7 @@ password_reset:
 
 account_deletion:
     subject: "Potvrďte smazání svého účtu na MySpeedPuzzling"
+    preheader: "Pokud si chcete data ponechat, nejdřív si je exportujte. Odkaz platí %minutes% minut."
     title: "Mrzí nás, že odcházíte"
     content: |
         <p>Někdo — doufejme, že vy — nás požádal o smazání účtu MySpeedPuzzling registrovaného na <b>%email%</b>.</p>
@@ -211,6 +230,7 @@ account_deletion:
 
 newsletter_confirmation:
     subject: "Jedno kliknutí a puzzle novinky jsou vaše 🧩"
+    preheader: "Potvrďte odběr: novinky z MySpeedPuzzling, maximálně jednou měsíčně."
     title: "Potvrďte odběr newsletteru"
     content: |
         <p>Ahoj! Někdo — doufejme, že vy — se přihlásil k odběru newsletteru MySpeedPuzzling na tuto adresu.</p>
@@ -220,6 +240,7 @@ newsletter_confirmation:
 
 free_trial_started:
     subject: "Tvoje zkušební období členství na MySpeedPuzzling začalo"
+    preheader: "Do %trialEndsAt% máš odemčené všechno, co mají členové – bez karty, nic se neruší."
     title: "Zkušební období běží!"
     content: |
         <p>Do <b>%trialEndsAt%</b> máš odemčeno všechno, co mají členové. Bez karty, nic se neruší - skončí samo.</p>
@@ -233,6 +254,7 @@ free_trial_started:
         <p>Když se ti členství zalíbí, můžeš se kdykoli stát členem na <a href="%membershipUrl%">stránce členství</a> - zbytek zkušebního období ti zůstane.</p>
 free_trial_ending:
     subject: "Tvoje zkušební období členství na MySpeedPuzzling brzy končí"
+    preheader: "Nemusíš nic dělat – skončí samo a nic ti nestrhneme."
     title: "Zkušební období končí %trialEndsAt%"
     content: |
         <p>Tvoje zkušební období členství končí <b>%trialEndsAt%</b>. Nemusíš nic dělat - skončí samo a nic ti nestrhneme.</p>
@@ -241,6 +263,7 @@ free_trial_ending:
 
 oauth_identity_linked:
     subject: "K vašemu účtu MySpeedPuzzling bylo připojeno přihlašování přes %provider%"
+    preheader: "Teď se můžete přihlašovat přes %provider%. Nebyli jste to vy? Tady je, co dělat."
     title: "Přihlašování přes %provider% připojeno"
     content: |
         <p>K vašemu účtu MySpeedPuzzling <strong>%email%</strong> byl právě připojen účet %provider% (%linkedAt%). Od teď se jím můžete přihlašovat.</p>
@@ -254,6 +277,9 @@ result_review:
     subject_first: "Zkontroluješ prosím pár svých výsledků?"
     subject_weekly: "Pár dalších výsledků ke kontrole"
     subject_removed: "Odstranili jsme výsledky, které se objevily dvakrát"
+    preheader_removed: "Kopie navíc u výsledků, které se objevily dvakrát, jsou pryč – každé složení se počítá jednou."
+    preheader_weekly: "Pár dalších výsledků se možná objevuje dvakrát – krátká kontrola udrží tvé statistiky přesné."
+    preheader_first: "Pár tvých výsledků se možná objevuje dvakrát – kontrola zabere jen chvilku."
     title_first: "Zkontroluješ prosím pár svých výsledků?"
     title_weekly: "Pár dalších výsledků ke kontrole"
     title_removed: "Odstranili jsme výsledky, které se objevily dvakrát"

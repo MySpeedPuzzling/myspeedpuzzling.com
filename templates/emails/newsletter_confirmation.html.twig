@@ -2,7 +2,7 @@
 {% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
     <wrapper>
         <container>
-            {{ include('emails/_header.html.twig') }}
+            {{ include('emails/_header.html.twig', {preheader: 'newsletter_confirmation.preheader'|trans}) }}
 
             <row>
                 <columns>
@@ -29,7 +29,7 @@
 
             <row>
                 <columns>
-                    <p style="color: #7d879c; font-size: 13px;">{{ 'newsletter_confirmation.expires'|trans({'%hours%': expiresHours}) }}</p>
+                    <p style="color: #6b7488; font-size: 14px;">{{ 'newsletter_confirmation.expires'|trans({'%hours%': expiresHours}) }}</p>
                 </columns>
             </row>
 

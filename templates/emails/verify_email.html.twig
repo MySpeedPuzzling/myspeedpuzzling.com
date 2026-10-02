@@ -2,7 +2,7 @@
 {% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
     <wrapper>
         <container>
-            {{ include('emails/_header.html.twig') }}
+            {{ include('emails/_header.html.twig', {preheader: 'verify_email.preheader'|trans}) }}
 
             <row>
                 <columns>
@@ -29,13 +29,8 @@
 
             <row>
                 <columns>
-                    <p class="text-center">{{ 'verify_email.expires'|trans({'%hours%': expiresInHours}) }}</p>
-                </columns>
-            </row>
-
-            <row>
-                <columns>
-                    <p class="text-center">{{ 'verify_email.not_requested'|trans }}</p>
+                    <p>{{ 'verify_email.expires'|trans({'%hours%': expiresInHours}) }}</p>
+                    <p>{{ 'verify_email.not_requested'|trans }}</p>
                 </columns>
             </row>
 

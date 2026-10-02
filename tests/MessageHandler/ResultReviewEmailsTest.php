@@ -214,9 +214,19 @@ final class ResultReviewEmailsTest extends KernelTestCase
         self::assertStringNotContainsString('/keep', $html);
         self::assertStringNotContainsString('/undo', $html);
 
+        // Document semantics from the rendered message (docs/features/transactional-emails.md): the language of the
+        // e-mail on <html> and on the body wrapper, the subject as <title>, the inbox preview line hidden on top
+        self::assertStringStartsWith("<!DOCTYPE html>\n<html lang=\"en\" dir=\"ltr\">", $html);
+        self::assertStringContainsString('<title>Could you check a few of your results?</title>', $html);
+        self::assertStringContainsString('<div class="preheader" style="display: none;', $html);
+        self::assertStringContainsString('A few of your results may show up twice', $html);
+        self::assertStringNotContainsString('A few of your results may show up twice', (string) $danaEmail->getTextBody(), 'The hidden preview line is not in the text part');
+
         $tomEmail = $this->emailTo('tom@example.com');
         self::assertSame('Zkontroluješ prosím pár svých výsledků?', $tomEmail->getSubject());
         self::assertStringContainsString('/cs/review-results?from=rc-', (string) $tomEmail->getHtmlBody());
+        self::assertStringContainsString('<div lang="cs" dir="ltr" role="article"', (string) $tomEmail->getHtmlBody());
+        self::assertStringContainsString('<title>Zkontroluješ prosím pár svých výsledků?</title>', (string) $tomEmail->getHtmlBody());
         self::assertStringContainsString('uložil ho i někdo další z tvé dvojice/týmu', (string) $tomEmail->getHtmlBody());
     }
 

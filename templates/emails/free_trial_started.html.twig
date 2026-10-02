@@ -2,7 +2,7 @@
 {% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
     <wrapper>
         <container>
-            {{ include('emails/_header.html.twig') }}
+            {{ include('emails/_header.html.twig', {preheader: 'free_trial_started.preheader'|trans({'%trialEndsAt%': trialEndsAt})}) }}
 
             <row>
                 <columns>

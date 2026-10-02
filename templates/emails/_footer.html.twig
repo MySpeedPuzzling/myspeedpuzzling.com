@@ -9,8 +9,9 @@
         </table>
         <table style="width: 100%;"><tr><td style="font-size: 0; line-height: 0; padding: 0; height: 20px;" height="20">&nbsp;</td></tr></table>
 
-        <p style="color: #7d879c; font-size: 13px; text-align: center; margin: 0; Margin: 0;">
-            <small>{{ 'footer'|trans({'%homepageLink%': url('homepage') })|raw }}</small>
+        {# 13 px for real (no <small> shrinking it to 10 px) and #6b7488 = 4.69:1 on white #}
+        <p style="color: #6b7488; font-size: 13px; line-height: 1.5; text-align: center; margin: 0; Margin: 0;">
+            {{ 'footer'|trans({'%homepageLink%': url('homepage') })|raw }}
         </p>
         <table style="width: 100%;"><tr><td style="font-size: 0; line-height: 0; padding: 0; height: 16px;" height="16">&nbsp;</td></tr></table>
     </columns>

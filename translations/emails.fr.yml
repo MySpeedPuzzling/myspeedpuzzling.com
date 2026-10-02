@@ -3,6 +3,7 @@ footer: 'Merci de faire partie de <a href="%homepageLink%">MySpeedPuzzling.com</
 
 membership_cancelled:
     subject: "L'abonnement adhésion sur MySpeedPuzzling.com a été annulé"
+    preheader: "Vous ne serez plus facturé. Votre adhésion reste active jusqu’au %membershipExpiresAt%."
     title: "L'abonnement adhésion a été annulé !"
     content: |
         <p>Nous sommes désolés de vous voir partir, mais nous apprécions le temps que vous avez passé avec MySpeedPuzzling.com.</p>
@@ -13,6 +14,7 @@ membership_cancelled:
 
 membership_granted:
     subject: "Félicitations pour votre adhésion à MySpeedPuzzling.com"
+    preheader: "Un merci pour tout ce que vous faites pour la communauté : votre adhésion est active."
     title: "Votre adhésion est maintenant active !"
     content: |
         <p>Nous sommes ravis de reconnaître votre contribution et vos efforts dans la communauté Speed Puzzling !</p>
@@ -22,6 +24,7 @@ membership_granted:
 
 membership_subscribed:
     subject: "Félicitations pour votre adhésion à MySpeedPuzzling.com"
+    preheader: "Votre adhésion est active. Prochaine période de facturation : %nextBillingPeriod%."
     title: "Merci de nous avoir rejoint !"
     content: |
         <h4>Votre adhésion est maintenant active.</h4>
@@ -32,6 +35,7 @@ membership_subscribed:
 
 subscription_payment_failed:
     subject: "Le paiement de l'adhésion sur MySpeedPuzzling.com a échoué"
+    preheader: "Le paiement n’a pas abouti – vérifiez votre moyen de paiement pour garder votre adhésion."
     title: "Le paiement de l'adhésion a échoué !"
     content: |
         <p>Nous avons remarqué que votre paiement récent d'adhésion n'a pas réussi. Il pourrait y avoir eu un problème avec votre méthode de paiement.</p>
@@ -41,6 +45,7 @@ subscription_payment_failed:
 
 subscription_renewed:
     subject: "Le paiement de l'adhésion sur MySpeedPuzzling.com a réussi"
+    preheader: "Votre adhésion est renouvelée. Prochaine période de facturation : %nextBillingPeriod%."
     title: "Paiement réussi, merci !"
     content: |
         <p>Merci beaucoup de rester avec nous et de faire partie de MySpeedPuzzling.com !</p>
@@ -51,6 +56,7 @@ subscription_renewed:
 
 unread_messages:
     subject: "Quelqu'un vous a écrit sur MySpeedPuzzling"
+    preheader: "D’autres puzzleurs vous ont écrit – vos messages vous attendent sur MySpeedPuzzling."
     title: "Vous avez de nouveaux messages en attente"
     greeting: "Bonjour %playerName%,"
     intro: "Quelqu'un vous a contacté depuis votre dernière visite. Voici ce qui vous attend :"
@@ -74,6 +80,7 @@ oauth2_client_request:
 
 oauth2_client_approved:
     subject: "Votre application API a été approuvée !"
+    preheader: "Récupérez les identifiants de %clientName% – le lien est valable 7 jours."
     title: "Votre application a été approuvée !"
     content: |
         <p>Bonne nouvelle ! Votre application OAuth2 <strong>%clientName%</strong> a été approuvée.</p>
@@ -83,6 +90,7 @@ oauth2_client_approved:
 
 oauth2_client_rejected:
     subject: "Votre demande d''application API n''a pas été approuvée"
+    preheader: "Votre demande pour %clientName% n’a pas été approuvée – la raison est indiquée dans l’e-mail."
     title: "Application non approuvée"
     content: |
         <p>Malheureusement, votre demande d'application OAuth2 pour <strong>%clientName%</strong> n'a pas été approuvée.</p>
@@ -99,6 +107,7 @@ competition_submitted:
 
 competition_approved:
     subject: "Votre événement a été approuvé !"
+    preheader: "%competitionName% est désormais visible publiquement sur MySpeedPuzzling."
     title: "Votre événement a été approuvé !"
     content: |
         <p>Bonne nouvelle ! Votre événement <strong>%competitionName%</strong> a été approuvé et est maintenant visible publiquement sur MySpeedPuzzling.</p>
@@ -106,6 +115,7 @@ competition_approved:
 
 moderator_role_granted:
     subject: "Vous êtes désormais modérateur de la communauté MySpeedPuzzling"
+    preheader: "Merci d’aider à garder le catalogue de puzzles bien rangé – voici comment ça marche."
     title: "Bienvenue dans l'équipe des modérateurs !"
     content: |
         <p>Bonjour %playerName%,</p>
@@ -121,6 +131,7 @@ moderator_role_granted:
 
 competition_rejected:
     subject: "Votre événement n'a pas été approuvé"
+    preheader: "Votre événement %competitionName% n’a pas été approuvé – la raison est indiquée dans l’e-mail."
     title: "Événement non approuvé"
     content: |
         <p>Malheureusement, votre événement <strong>%competitionName%</strong> n'a pas été approuvé.</p>
@@ -129,6 +140,7 @@ competition_rejected:
 
 feature_request_completed:
     subject: "Votre demande de fonctionnalité a été publiée : %title%"
+    preheader: "Votre idée « %featureRequestTitle% » est en ligne sur MySpeedPuzzling – merci !"
     title: "Votre demande de fonctionnalité est en ligne !"
     content: |
         <p>Bonne nouvelle ! Votre demande de fonctionnalité <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> a été publiée et est maintenant en ligne sur MySpeedPuzzling.</p>
@@ -139,6 +151,7 @@ feature_request_completed:
         <p>Comme nous développons de manière ouverte et en toute transparence, si le code et les détails techniques de ce changement vous intéressent, n'hésitez pas à <a href="%githubUrl%" class="link-underline">y jeter un œil sur GitHub</a>. Sinon, ignorez simplement ce message :)</p>
     upvoter:
         subject: "Une demande de fonctionnalité que vous avez soutenue a été publiée : %title%"
+        preheader: "La fonctionnalité « %featureRequestTitle% » que vous avez soutenue est désormais en ligne."
         title: "Une fonctionnalité que vous avez soutenue est en ligne !"
         content: |
             <p>Bonne nouvelle ! La demande de fonctionnalité que vous avez soutenue — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — a été publiée et est maintenant en ligne sur MySpeedPuzzling.</p>
@@ -150,6 +163,7 @@ feature_request_completed:
 
 feature_request_declined:
     subject: "Votre demande de fonctionnalité a été refusée : %title%"
+    preheader: "Nous avons décidé de ne pas développer « %featureRequestTitle% » – merci pour l’idée."
     title: "Votre demande de fonctionnalité a été refusée"
     content: |
         <p>Votre demande de fonctionnalité <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> a été refusée.</p>
@@ -158,6 +172,7 @@ feature_request_declined:
         <p><strong>Commentaire de l'équipe :</strong> %adminComment%</p>
     upvoter:
         subject: "Une demande de fonctionnalité que vous avez soutenue a été refusée : %title%"
+        preheader: "La fonctionnalité « %featureRequestTitle% » que vous avez soutenue ne sera pas développée – merci !"
         title: "Une demande de fonctionnalité que vous avez soutenue a été refusée"
         content: |
             <p>Une demande de fonctionnalité que vous avez soutenue — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — a été refusée.</p>
@@ -167,6 +182,7 @@ feature_request_declined:
 
 sign_in_link:
     subject: "%code% est votre code de connexion MySpeedPuzzling"
+    preheader: "Saisissez %code% là où vous l’avez demandé, ou connectez-vous en un geste. Valable %minutes% minutes."
     title: "Votre code de connexion"
     content: |
         <p>Saisissez ce code sur la page MySpeedPuzzling où vous l'avez demandé :</p>
@@ -177,6 +193,7 @@ sign_in_link:
 
 verify_email:
     subject: "Confirmez votre adresse e-mail pour MySpeedPuzzling.com"
+    preheader: "Un clic pour confirmer votre adresse e-mail – et tout est prêt."
     title: "Confirmez votre adresse e-mail"
     content: |
         <p>Bienvenue sur MySpeedPuzzling ! Vous êtes en bonne compagnie : nous sommes déjà plus de 10 000 puzzleurs.</p>
@@ -187,6 +204,7 @@ verify_email:
 
 password_reset:
     subject: "Réinitialisez votre mot de passe MySpeedPuzzling.com"
+    preheader: "Choisissez un nouveau mot de passe via le bouton. Lien valable une fois, %minutes% minutes."
     title: "Choisissez un nouveau mot de passe"
     content: |
         <p>Quelqu'un — nous espérons que c'est vous — a demandé la réinitialisation du mot de passe de votre compte MySpeedPuzzling.com. Cliquez sur le bouton ci-dessous pour en choisir un nouveau.</p>
@@ -196,6 +214,7 @@ password_reset:
 
 account_deletion:
     subject: "Confirmez la suppression de votre compte MySpeedPuzzling"
+    preheader: "Exportez d’abord vos données si vous souhaitez les garder. Le lien est valable %minutes% minutes."
     title: "Désolés de vous voir partir"
     content: |
         <p>Quelqu'un — nous espérons que c'est vous — nous a demandé de supprimer le compte MySpeedPuzzling enregistré à l'adresse <b>%email%</b>.</p>
@@ -211,6 +230,7 @@ account_deletion:
 
 newsletter_confirmation:
     subject: "Un clic et les nouveautés puzzle sont à vous 🧩"
+    preheader: "Confirmez votre abonnement : les nouveautés de MySpeedPuzzling, au plus une fois par mois."
     title: "Confirmez votre abonnement"
     content: |
         <p>Bonjour ! Quelqu'un — nous espérons que c'est vous — a demandé à recevoir la newsletter MySpeedPuzzling à cette adresse.</p>
@@ -220,6 +240,7 @@ newsletter_confirmation:
 
 free_trial_started:
     subject: "Votre essai gratuit de l'adhésion MySpeedPuzzling a commencé"
+    preheader: "Tout ce qu’ont les membres est débloqué jusqu’au %trialEndsAt% – sans carte, rien à résilier."
     title: "Votre essai gratuit a commencé !"
     content: |
         <p>Tout ce qu'ont les membres est débloqué pour vous jusqu'au <b>%trialEndsAt%</b>. Sans carte, rien à résilier - il se termine tout seul.</p>
@@ -233,6 +254,7 @@ free_trial_started:
         <p>Si cela vous plaît, vous pouvez devenir membre à tout moment sur la <a href="%membershipUrl%">page d'adhésion</a> - le reste de votre essai vous reste acquis.</p>
 free_trial_ending:
     subject: "Votre essai gratuit de l'adhésion MySpeedPuzzling se termine bientôt"
+    preheader: "Vous n’avez rien à faire – il se termine tout seul et rien ne vous sera facturé."
     title: "Votre essai gratuit se termine le %trialEndsAt%"
     content: |
         <p>Votre essai gratuit de l'adhésion se termine le <b>%trialEndsAt%</b>. Vous n'avez rien à faire - il se termine tout seul et rien ne vous sera facturé.</p>
@@ -241,6 +263,7 @@ free_trial_ending:
 
 oauth_identity_linked:
     subject: "La connexion avec %provider% a été associée à votre compte MySpeedPuzzling"
+    preheader: "Vous pouvez désormais vous connecter avec %provider%. Ce n’était pas vous ? Voici quoi faire."
     title: "Connexion avec %provider% associée"
     content: |
         <p>Un compte %provider% vient d'être associé à votre compte MySpeedPuzzling <strong>%email%</strong> (%linkedAt%). Vous pouvez désormais l'utiliser pour vous connecter.</p>
@@ -254,6 +277,9 @@ result_review:
     subject_first: "Pourriez-vous vérifier quelques-uns de vos résultats ?"
     subject_weekly: "Quelques résultats de plus à vérifier"
     subject_removed: "Nous avons retiré des résultats apparus en double"
+    preheader_removed: "Les copies en trop des résultats en double sont retirées – chaque assemblage compte une fois."
+    preheader_weekly: "D’autres résultats sont peut-être en double – vérifiez-les vite pour des statistiques justes."
+    preheader_first: "Quelques-uns de vos résultats sont peut-être en double – les vérifier ne prend qu’un instant."
     title_first: "Pourriez-vous vérifier quelques-uns de vos résultats ?"
     title_weekly: "Quelques résultats de plus à vérifier"
     title_removed: "Nous avons retiré des résultats apparus en double"

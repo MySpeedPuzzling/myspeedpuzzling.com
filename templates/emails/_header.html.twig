@@ -1,16 +1,20 @@
 {% trans_default_domain 'emails' %}
 {# One slim line: a 32 px logo with the name beside it, left-aligned like the title and the text, on the brand-red rule.
-   The centred 80 px logo + domain line before took ~140 px of a phone screen before the title (Jan, 2026-10-02) #}
+   The centred 80 px logo + domain line before took ~140 px of a phone screen before the title (Jan, 2026-10-02).
+   Logo and name are ONE link (a screen reader hears "MySpeedPuzzling, link" once); email-logo.png has a white halo,
+   so it stays visible when a mail app darkens the background. docs/features/transactional-emails.md #}
 <row>
     <columns>
+        {% if preheader is defined and preheader is not empty %}
+            {# The inbox preview line. Hidden everywhere; the zero-width filler keeps the preview from running on into
+               "MySpeedPuzzling" and the body text. The plain-text part leaves it out (EmailHtmlToTextConverter). #}
+            <div class="preheader" style="display: none; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; mso-hide: all; color: #ffffff;">{{ preheader }}{% for i in 1..90 %}&#847;&zwnj;&nbsp;{% endfor %}</div>
+        {% endif %}
         <table style="width: 100%;"><tr><td style="font-size: 0; line-height: 0; padding: 0; height: 12px;" height="12">&nbsp;</td></tr></table>
-        <table role="presentation" style="width: 100%; border-collapse: collapse; border-bottom: 2px solid #fe696a;">
+        <table style="width: 100%; border-collapse: collapse; border-bottom: 2px solid #fe696a;">
             <tr>
-                <td style="padding: 0 0 10px 0; vertical-align: middle; width: 32px;" width="32">
-                    <a href="{{ url('homepage') }}"><img src="https://myspeedpuzzling.com/img/speedpuzzling-logo.png" alt="" width="32" style="display: block; width: 32px; height: auto;"></a>
-                </td>
-                <td style="padding: 0 0 10px 8px; vertical-align: middle; font-size: 16px; font-weight: 500; line-height: 1.2;">
-                    <a href="{{ url('homepage') }}" style="color: #373f50; text-decoration: none;">MySpeedPuzzling</a>
+                <td style="padding: 0 0 10px 0; vertical-align: middle;">
+                    <a href="{{ url('homepage') }}" style="color: #373f50; text-decoration: none; font-size: 16px; font-weight: bold; line-height: 29px;"><img src="https://myspeedpuzzling.com/img/email-logo.png" alt="" width="32" height="29" style="display: inline-block; width: 32px; height: 29px; border: 0; vertical-align: middle;">&nbsp;&nbsp;<span style="vertical-align: middle; color: #373f50;">MySpeedPuzzling</span></a>
                 </td>
             </tr>
         </table>

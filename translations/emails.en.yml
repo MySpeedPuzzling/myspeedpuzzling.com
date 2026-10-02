@@ -3,6 +3,7 @@ footer: 'Thank you for being part of <a href="%homepageLink%">MySpeedPuzzling.co
 
 membership_cancelled:
     subject: "Membership subscription on MySpeedPuzzling.com has been canceled"
+    preheader: "No further charges. Your membership stays active until %membershipExpiresAt%."
     title: "Membership subscription has been canceled!"
     content: |
         <p>We're sorry to see you go, but we appreciate the time you spent with MySpeedPuzzling.com.</p>
@@ -13,6 +14,7 @@ membership_cancelled:
 
 membership_granted:
     subject: "Congratulations on your membership at MySpeedPuzzling.com"
+    preheader: "A thank-you for what you do for the community: your membership is active."
     title: "Your membership is now active!"
     content: |
         <p>We are thrilled to recognize your contribution and efforts in the Speed Puzzling community!</p>
@@ -22,6 +24,7 @@ membership_granted:
 
 membership_subscribed:
     subject: "Congratulations on your membership at MySpeedPuzzling.com"
+    preheader: "Your membership is active. Your next billing period begins on %nextBillingPeriod%."
     title: "Thank you for joining us!"
     content: |
         <h4>Your membership is now active.</h4>
@@ -32,6 +35,7 @@ membership_subscribed:
 
 subscription_payment_failed:
     subject: "Membership payment on MySpeedPuzzling.com failed"
+    preheader: "The payment did not go through – check your payment method to keep your membership."
     title: "Membership payment failed!"
     content: |
         <p>We noticed that your recent membership payment was unsuccessful. There may have been an issue with your payment method.</p>
@@ -41,6 +45,7 @@ subscription_payment_failed:
 
 subscription_renewed:
     subject: "Membership payment on MySpeedPuzzling.com was successful"
+    preheader: "Your membership is renewed. Your next billing period begins on %nextBillingPeriod%."
     title: "Payment successful, thank you!"
     content: |
         <p>Thank you so much for staying with us and being part of MySpeedPuzzling.com!</p>
@@ -51,6 +56,7 @@ subscription_renewed:
 
 unread_messages:
     subject: "Someone messaged you on MySpeedPuzzling"
+    preheader: "Fellow puzzlers wrote to you – your messages are waiting on MySpeedPuzzling."
     title: "You have new messages waiting"
     greeting: "Hi %playerName%,"
     intro: "Someone reached out to you since your last visit. Here's what's waiting for you:"
@@ -74,6 +80,7 @@ oauth2_client_request:
 
 oauth2_client_approved:
     subject: "Your API application has been approved!"
+    preheader: "Claim the credentials for %clientName% – the link is valid for 7 days."
     title: "Your application has been approved!"
     content: |
         <p>Great news! Your OAuth2 application <strong>%clientName%</strong> has been approved.</p>
@@ -83,6 +90,7 @@ oauth2_client_approved:
 
 oauth2_client_rejected:
     subject: "Your API application request was not approved"
+    preheader: "Your request for %clientName% was not approved – the reason is inside."
     title: "Application not approved"
     content: |
         <p>Unfortunately, your OAuth2 application request for <strong>%clientName%</strong> was not approved.</p>
@@ -99,6 +107,7 @@ competition_submitted:
 
 competition_approved:
     subject: "Your event has been approved!"
+    preheader: "%competitionName% is now publicly visible on MySpeedPuzzling."
     title: "Your event has been approved!"
     content: |
         <p>Great news! Your event <strong>%competitionName%</strong> has been approved and is now publicly visible on MySpeedPuzzling.</p>
@@ -106,6 +115,7 @@ competition_approved:
 
 moderator_role_granted:
     subject: "You are now a MySpeedPuzzling community moderator"
+    preheader: "Thank you for helping keep the puzzle catalogue tidy – here is how it works."
     title: "Welcome to the moderator team!"
     content: |
         <p>Hi %playerName%,</p>
@@ -121,6 +131,7 @@ moderator_role_granted:
 
 competition_rejected:
     subject: "Your event submission was not approved"
+    preheader: "%competitionName% was not approved – the reason is inside."
     title: "Event not approved"
     content: |
         <p>Unfortunately, your event <strong>%competitionName%</strong> was not approved.</p>
@@ -129,6 +140,7 @@ competition_rejected:
 
 feature_request_completed:
     subject: "Your feature request has been released: %title%"
+    preheader: "Your idea \"%featureRequestTitle%\" is now live on MySpeedPuzzling – thank you!"
     title: "Your feature request is live!"
     content: |
         <p>Great news! Your feature request <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> has been released and is now live on MySpeedPuzzling.</p>
@@ -139,6 +151,7 @@ feature_request_completed:
         <p>Since we build in public and keep things 100% transparent, if you're curious about the code and technical details behind this change, feel free to <a href="%githubUrl%" class="link-underline">check it out on GitHub</a>. Otherwise, just ignore this :)</p>
     upvoter:
         subject: "A feature request you upvoted has been released: %title%"
+        preheader: "\"%featureRequestTitle%\", which you upvoted, is now live on MySpeedPuzzling."
         title: "A feature you upvoted is live!"
         content: |
             <p>Great news! The feature request you upvoted — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — has been released and is now live on MySpeedPuzzling.</p>
@@ -150,6 +163,7 @@ feature_request_completed:
 
 feature_request_declined:
     subject: "Your feature request has been declined: %title%"
+    preheader: "We decided not to build \"%featureRequestTitle%\" – thank you for the idea."
     title: "Your feature request has been declined"
     content: |
         <p>Your feature request <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> has been declined.</p>
@@ -158,6 +172,7 @@ feature_request_declined:
         <p><strong>Comment from the team:</strong> %adminComment%</p>
     upvoter:
         subject: "A feature request you upvoted has been declined: %title%"
+        preheader: "\"%featureRequestTitle%\", which you upvoted, won't be built – thanks for your support."
         title: "A feature request you upvoted has been declined"
         content: |
             <p>A feature request you upvoted — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — has been declined.</p>
@@ -167,6 +182,7 @@ feature_request_declined:
 
 sign_in_link:
     subject: "%code% is your MySpeedPuzzling sign-in code"
+    preheader: "Enter %code% where you asked for it, or sign in with one tap. Valid for %minutes% minutes."
     title: "Your sign-in code"
     content: |
         <p>Enter this code on the MySpeedPuzzling page where you asked for it:</p>
@@ -177,6 +193,7 @@ sign_in_link:
 
 verify_email:
     subject: "Confirm your email address for MySpeedPuzzling.com"
+    preheader: "One click confirms your email address – then you're all set."
     title: "Confirm your email address"
     content: |
         <p>Welcome to MySpeedPuzzling — you are in good company of over 10,000 other puzzlers!</p>
@@ -187,6 +204,7 @@ verify_email:
 
 password_reset:
     subject: "Reset your MySpeedPuzzling.com password"
+    preheader: "Choose a new password with the button inside. The link works once, for %minutes% minutes."
     title: "Choose a new password"
     content: |
         <p>Somebody — hopefully you — asked to reset the password for your MySpeedPuzzling.com account. Click the button below to choose a new one.</p>
@@ -196,6 +214,7 @@ password_reset:
 
 account_deletion:
     subject: "Confirm the deletion of your MySpeedPuzzling account"
+    preheader: "Export your data first if you want to keep it. The link is valid for %minutes% minutes."
     title: "Sorry to see you go"
     content: |
         <p>Somebody — hopefully you — asked us to delete the MySpeedPuzzling account registered to <b>%email%</b>.</p>
@@ -211,6 +230,7 @@ account_deletion:
 
 newsletter_confirmation:
     subject: "One click and the puzzle news is yours 🧩"
+    preheader: "Confirm your subscription: what's new on MySpeedPuzzling, at most once a month."
     title: "Confirm your subscription"
     content: |
         <p>Hi! Somebody — hopefully you — asked to receive the MySpeedPuzzling newsletter at this address.</p>
@@ -220,6 +240,7 @@ newsletter_confirmation:
 
 free_trial_started:
     subject: "Your free trial of MySpeedPuzzling membership has started"
+    preheader: "All member features are unlocked until %trialEndsAt% – no card, nothing to cancel."
     title: "Your free trial is on!"
     content: |
         <p>Everything members have is unlocked for you until <b>%trialEndsAt%</b>. No card, nothing to cancel - it ends by itself.</p>
@@ -234,6 +255,7 @@ free_trial_started:
 
 free_trial_ending:
     subject: "Your free trial of MySpeedPuzzling membership ends soon"
+    preheader: "Nothing to do – it ends by itself and you won't be charged."
     title: "Your free trial ends on %trialEndsAt%"
     content: |
         <p>Your free trial of membership ends on <b>%trialEndsAt%</b>. You do not have to do anything - it ends by itself and you will not be charged.</p>
@@ -242,6 +264,7 @@ free_trial_ending:
 
 oauth_identity_linked:
     subject: "%provider% sign-in was connected to your MySpeedPuzzling account"
+    preheader: "You can now sign in with %provider%. Wasn't you? Here is what to do."
     title: "%provider% sign-in connected"
     content: |
         <p>A %provider% account was just connected to your MySpeedPuzzling account <strong>%email%</strong> (%linkedAt%). From now on you can use it to sign in.</p>
@@ -255,6 +278,9 @@ result_review:
     subject_first: "Could you check a few of your results?"
     subject_weekly: "A few more results to check"
     subject_removed: "We removed results that showed up twice"
+    preheader_removed: "The extra copies of results that showed up twice are gone – each solve counts once."
+    preheader_weekly: "A few more results may show up twice – a quick check keeps your statistics right."
+    preheader_first: "A few of your results may show up twice – checking them takes just a moment."
     title_first: "Could you check a few of your results?"
     title_weekly: "A few more results to check"
     title_removed: "We removed results that showed up twice"

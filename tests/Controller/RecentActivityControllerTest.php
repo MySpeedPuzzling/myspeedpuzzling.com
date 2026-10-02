@@ -25,13 +25,12 @@ final class RecentActivityControllerTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/recent-activity');
 
-        $wrapper = $crawler->filter('[data-controller~="live-refresh"]');
-        self::assertCount(1, $wrapper);
-        self::assertCount(1, $wrapper->filter('.live-refresh-status'));
-        self::assertCount(0, $crawler->filter('[data-poll]'));
-
-        $feed = $wrapper->filter('[data-controller~="relative-time"]');
+        $feed = $crawler->filter('[data-controller~="live-refresh"][data-controller~="relative-time"]');
         self::assertCount(1, $feed);
+        // 100 rows, no "Show more" row: the status line sits in the gap above the table
+        self::assertCount(1, $feed->filter('.live-refresh-anchor > .live-refresh-status-above[data-live-ignore]'));
+        self::assertCount(0, $feed->filter('.ra-footer'));
+        self::assertCount(0, $crawler->filter('[data-poll]'));
         self::assertMatchesRegularExpression('~^\d{10}$~', (string) $feed->attr('data-relative-time-server-now-value'));
         self::assertSame('en', $feed->attr('data-relative-time-locale-value'));
 

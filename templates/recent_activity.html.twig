@@ -8,9 +8,5 @@
 
     {# Refreshes every minute while somebody looks; the line above the table counts down and pauses
        (docs/features/live-activity-feed.md) #}
-    <div class="live-refresh-anchor" data-controller="live-refresh">
-        {{ include('_live_refresh_status.html.twig') }}
-
-        <twig:RecentActivity limit="100" />
-    </div>
+    <twig:RecentActivity limit="100" :autoRefresh="true" />
 {% endblock %}

@@ -7,7 +7,9 @@
 {% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
 
 {% block content %}
-    <h1 class="h3 mb-0">
+    {# For screen readers and the document outline only: on a phone the greeting pushed the feed and its
+       "Auto-update in …" line off the first screen (Jan, 2026-10-02) #}
+    <h1 class="visually-hidden">
         {% if logged_user.profile is null %}
             {{ 'hub.welcome'|trans }} {{ 'hub.seo_suffix'|trans }}
         {% else %}
@@ -27,14 +29,14 @@
     {% endif %}
 
     <div class="row">
-        {# Both feeds refresh every minute while shown and somebody is here; the line above the table counts down and
-           pauses (docs/features/live-activity-feed.md) #}
-        <div class="col-lg-6 pt-lg-4" data-controller="live-refresh">
+        {# Both feeds refresh every minute while shown and somebody is here; the line on the "Show more" row counts down
+           and pauses (docs/features/live-activity-feed.md) #}
+        <div class="col-lg-6 pt-lg-4">
             <ul class="nav nav-fill nav-tabs mt-0" role="tablist" data-controller="tabs">
                 <li class="nav-item">
                     <a class="nav-link active" href="#recent-activity" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
                         <div class="text-center">
-                            <span class="media-tab-title h6 text-nowrap pt-2 mb-0">{{ 'profile.recent_activity'|trans|raw }}</span>
+                            <span class="media-tab-title h6 text-nowrap pt-2 mb-0">{{ 'hub.recent_activity'|trans }}</span>
                         </div>
                     </a>
                 </li>
@@ -42,17 +44,15 @@
                 <li class="nav-item">
                     <a class="nav-link" href="#recent-favorites-activity" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
                         <div class="text-center">
-                            <span class="media-tab-title h6 text-nowrap pt-2 mb-0">{{ 'hub.recent_favorites_activity'|trans|raw }}</span>
+                            <span class="media-tab-title h6 text-nowrap pt-2 mb-0">{{ 'hub.recent_favorites_activity'|trans }}</span>
                         </div>
                     </a>
                 </li>
             </ul>
 
-            <div class="tab-content live-refresh-anchor">
-                {{ include('_live_refresh_status.html.twig') }}
-
+            <div class="tab-content">
                 <div class="tab-pane fade show active" id="recent-activity" role="tabpanel">
-                    <twig:RecentActivity limit="20" :showLimit="4"  />
+                    <twig:RecentActivity limit="20" :showLimit="4" :autoRefresh="true" />
                 </div>
 
                 <div class="tab-pane fade" id="recent-favorites-activity" role="tabpanel">
@@ -64,7 +64,7 @@
                             <div>{{ 'hub.not_logged'|trans }}</div>
                         </div>
                     {% else %}
-                        <twig:RecentActivity loading="lazy" limit="20" :showLimit="4" :favoritesOnly="true" />
+                        <twig:RecentActivity loading="lazy" limit="20" :showLimit="4" :favoritesOnly="true" :autoRefresh="true" />
                     {% endif %}
                 </div>
             </div>

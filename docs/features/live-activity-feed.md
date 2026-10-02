@@ -484,39 +484,50 @@ without JS, nothing changes.
 
 ## 8. The status line and its ring
 
-Jan's call after seeing the first version: a short text with the ring at its end, right-aligned above the table,
-instead of a bare ring next to the tabs. The ring fills smoothly instead of once a second.
+**Where it sits** (Jan's calls on 2026-10-02 after seeing two versions):
+- **Hub:** under the table, on the "Show more" row: the button on the left, "Auto-update in 42 seconds ◯" on the
+  right (`.ra-footer`). Once the list is open, the button hides and the line stays.
+- **Global Recent activity (100 rows, no "Show more"):** in the 1.5rem gap above the table, right-aligned and
+  absolutely positioned, so it adds no height (`.live-refresh-anchor` / `.live-refresh-status-above`).
+- **The Hub greeting is visually hidden** (still the `<h1>` for screen readers), and the feed tabs read
+  "Recent activity | Favorites" on one line.
+  - Measured at 320 px in all six locales: both tabs fit on one line, the "Show more" row never overflows, and
+    the status text wraps to two lines in cs/de.
+  - The status line is on the first screen at 375×667 and 390×844; at 320×568 it is ~50 px below.
+- **The status belongs to its feed:** the component renders it (`RecentActivity` with `autoRefresh`),
+  `data-live-ignore`, so no re-render touches what the controller drew. `live_refresh_controller.js` sits on
+  the component's root, one per feed. A pause is page-wide.
 
-- **What and where:** "Auto-update in 42 seconds ◯" at 11 px (`.6875rem`), grey text, ring in the
-  brand colour (`--cz-primary`).
-  - It sits in the 1.5rem gap above the table (`.ps-wrapper.mt-4`): absolutely positioned at the
-    bottom of `.live-refresh-anchor`, so it adds no height.
-  - The whole line is a 24 px tall button (WCAG 2.5.8 target size).
-  - Partial: `templates/_live_refresh_status.html.twig`.
-- **The text** changes once a second; the tick wakes exactly when the whole seconds left change.
-  - Running: "Auto-update in N seconds".
-  - While the refresh is on its way: "Updating…".
-  - Paused: "Auto-update paused" ("… while you were away" when idle).
-  - After a failure: "Update failed, retrying in N seconds".
-  - On a guest's favourites tab there is nothing to count down, so the line is hidden.
-- **Plural forms in the browser:** `browser_translation()` (`BrowserTranslationTwigExtension`)
-  hands over the raw message plus the locale of the catalogue that defines it.
-  `assets/translation_choice.js` (Symfony's choice rules, shared with the labels) then picks the
-  form exactly like PHP does, including a key that exists only in English on a Czech page, which
-  falls back to English rules. Pinned by `RelativeTimeParityTest::testCountdownTextReadsLikePhpInEveryLocale`.
-- **The smooth ring:** two half-circles, each clipped by its half, turned with `transform: rotate()`
-  by two Web Animations that the controller starts for every refresh cycle (`currentTime` = time
-  since the last refresh).
-  - Only `transform` animates, so the browser runs it on the compositor with no main-thread paint
-    per frame. Animating `stroke-dashoffset` or a conic-gradient would repaint every frame (§5.4).
-  - It still produces frames while it runs. Paused, idle, failed or hidden means no animation at all.
-  - **Reduced motion** (`prefers-reduced-motion`): the same animations with `steps(n)`, one step per
-    second.
-- **It is the pause / resume button** (WCAG 2.2.2, decided in §11):
-  - While counting, a click pauses (`aria-pressed="true"`, both animations cancelled).
-  - A click on a paused, idle or failed line resumes and refreshes at once.
-  - `aria-label` "Pause automatic updates" stays the same; the tooltip (`title`) names the state.
-    The ring is `aria-hidden`.
+**Look:**
+- 11 px (`.6875rem`) grey text and a 20 px ring in the brand colour (`--cz-primary`, the theme's variable;
+  `--bs-primary` is not defined here).
+- A pause icon sits in the ring's middle; play when paused or idle; ↻ after a failure.
+- The whole line is one button, at least 24 px tall (WCAG 2.5.8).
+
+**Text** changes once a second; the tick wakes exactly when the whole seconds left change.
+- Running: "Auto-update in N seconds".
+- While the refresh is on its way: "Updating…".
+- Paused: "Auto-update paused" ("… while you were away" when idle).
+- After a failure: "Update failed, retrying in N seconds".
+
+**Plural forms in the browser:** `browser_translation()` (`BrowserTranslationTwigExtension`) hands over the raw
+message plus the locale of the catalogue that defines it.
+- `assets/translation_choice.js` (Symfony's choice rules, shared with the labels) then picks the form exactly
+  like PHP does, including the English fallback on pages not yet translated.
+- Pinned by `RelativeTimeParityTest::testCountdownTextReadsLikePhpInEveryLocale`.
+
+**The smooth ring:** two half-circles, each clipped by its half, turned with `transform: rotate()` by two Web
+Animations that the controller starts for every refresh cycle (`currentTime` = time since the last refresh).
+- Only `transform` animates, so it runs on the compositor with no main-thread paint per frame. A
+  `stroke-dashoffset` or conic-gradient animation would repaint every frame (§5.4).
+- It runs only while the feed is counting and shown: no animation while paused, idle, failed, in a hidden tab
+  pane or with the page hidden.
+- Reduced motion: `steps(n)`, one step per second.
+
+**Pause / resume (WCAG 2.2.2):**
+- While counting, a click pauses (`aria-pressed="true"`, animations cancelled).
+- A click on a paused, idle or failed line resumes and refreshes at once.
+- `aria-label` "Pause automatic updates" stays the same; the tooltip names the state; the ring is `aria-hidden`.
 
 ## 9. Risks
 
@@ -576,14 +587,15 @@ instead of a bare ring next to the tabs. The ring fills smoothly instead of once
 
 ## 12. What was built (2026-10-02)
 
-- `assets/controllers/live_refresh_controller.js`: the scheduler and the ring (§4.1, §8). It sits on
-  a wrapper around the ring and the component(s): the Hub's left column, the Recent activity page.
+- `assets/controllers/live_refresh_controller.js`: the scheduler and the status line (§4.1, §8), on the
+  root of each auto-refreshing component.
 - `assets/page_ticker.js`: the one page-wide timer. It sleeps while the page is hidden and wakes on
   `visibilitychange`, `pageshow` and `resume`.
 - `assets/relative_time.js`: `|ago` + Symfony's plural choice, for < 28 days.
 - `assets/controllers/relative_time_controller.js`: on the component root, counts the labels up.
-- `templates/_live_refresh_status.html.twig`: the status line and ring (§8);
+- `templates/_live_refresh_status.html.twig`: the status line and ring (§8), rendered by the component;
   `assets/styles/live_refresh.scss`, imported from `app.js`.
+- `RecentActivity::$autoRefresh` (Hub, Recent activity) puts `live-refresh` on the component root.
 - `assets/translation_choice.js` + `BrowserTranslationTwigExtension` (`browser_translation()`):
   plural forms in the browser, chosen like PHP's (§8).
 - `templates/components/RecentActivity.html.twig`:

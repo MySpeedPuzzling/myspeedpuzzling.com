@@ -32,6 +32,13 @@ final class RecentActivity
     #[LiveProp]
     public bool $isOnProfile = false;
 
+    /**
+     * Refreshes itself every minute while somebody looks, with the "Auto-update in …" status line
+     * (controllers/live_refresh_controller.js) - the Hub and the global Recent activity page only.
+     */
+    #[LiveProp]
+    public bool $autoRefresh = false;
+
     /** @var null|array<RecentActivityItem> */
     private null|array $cachedItems = null;
 

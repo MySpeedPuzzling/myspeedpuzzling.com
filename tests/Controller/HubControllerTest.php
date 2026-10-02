@@ -20,27 +20,38 @@ final class HubControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
     }
 
-    public function testBothFeedsRefreshThroughOneRingInsteadOfPolling(): void
+    public function testFeedRefreshesItselfWithItsStatusOnTheShowMoreRow(): void
     {
         $browser = self::createClient();
 
         $crawler = $browser->request('GET', '/en/hub');
 
-        $wrapper = $crawler->filter('[data-controller~="live-refresh"]');
-        self::assertCount(1, $wrapper);
-        self::assertCount(1, $wrapper->filter('.live-refresh-status[aria-pressed="false"][data-live-refresh-target="status"]'));
-        self::assertSame('Auto-update in 60 seconds', $wrapper->filter('.live-refresh-status [data-live-refresh-target="text"]')->text());
-        self::assertCount(2, $wrapper->filter('.live-refresh-status [data-live-refresh-target="fill"]'));
-        // A guest has no favourites tab
-        self::assertCount(1, $wrapper->filter('[data-controller~="live"]'));
+        // A guest has no favourites tab: one feed, refreshing itself
+        $feed = $crawler->filter('[data-controller~="live"][data-controller~="live-refresh"]');
+        self::assertCount(1, $feed);
+
+        // "Show more" on the left, the status line on the right - never morphed by a re-render
+        $status = $feed->filter('.ra-footer .ra-show-more + .live-refresh-status[data-live-ignore][aria-pressed="false"][data-live-refresh-target="status"]');
+        self::assertCount(1, $status);
+        self::assertSame('Auto-update in 60 seconds', $status->filter('[data-live-refresh-target="text"]')->text());
+        self::assertCount(2, $status->filter('[data-live-refresh-target="fill"]'));
+        self::assertCount(1, $status->filter('.live-refresh-icon-pause'));
+
         // docs/features/live-activity-feed.md: the library's blind setInterval polled from tabs nobody looked at
         self::assertCount(0, $crawler->filter('[data-poll]'));
+
+        // The greeting is for screen readers only; both tabs fit on one line (no <br>)
+        self::assertCount(1, $crawler->filter('h1.visually-hidden'));
+        $feedTabs = $crawler->filter('.nav-tabs')->first();
+        self::assertSame(['Recent activity', 'Favorites'], $feedTabs->filter('.media-tab-title')->each(static fn ($tab): string => $tab->text()));
+        self::assertCount(0, $feedTabs->filter('.media-tab-title br'));
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
         $crawler = $browser->request('GET', '/en/hub');
 
-        // All activity + the favourites tab's lazy placeholder, under the same ring
-        self::assertCount(2, $crawler->filter('[data-controller~="live-refresh"] [data-controller~="live"]'));
+        // All activity + the favourites tab's lazy placeholder, which gets its controller once it has rendered
+        self::assertCount(2, $crawler->filter('.tab-content [data-controller~="live"]'));
+        self::assertCount(1, $crawler->filter('[data-controller~="live-refresh"]'));
         self::assertCount(0, $crawler->filter('[data-poll]'));
     }
 

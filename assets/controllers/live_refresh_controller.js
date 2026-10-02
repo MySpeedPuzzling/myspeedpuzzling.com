@@ -9,17 +9,19 @@ const WATCHDOG_MS = 30000;
 const BACKOFF_SECONDS = [60, 120, 300];
 const INTERACTION_EVENTS = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'scroll'];
 
+// A pause is the visitor's choice for the whole page, not for one of the Hub's two tabs
+let pausedByVisitor = false;
+
 /**
- * Re-renders the live components inside the element every interval while somebody can see them
- * (docs/features/live-activity-feed.md). The library's own `data-poll` is a bare setInterval:
+ * Sits on a live component's root (RecentActivity with `autoRefresh`) and re-renders it every interval while
+ * somebody can see it (docs/features/live-activity-feed.md). The library's own `data-poll` is a bare setInterval:
  * production showed 91 % of the feed's refreshes coming from desktop tabs left open for hours.
  *
- * - only a component that is shown (not in a hidden tab pane) refreshes; one that comes back
- *   overdue refreshes right away
- * - nothing runs while the page is hidden (the page ticker sleeps) or after `idleAfter` without any
- *   interaction - the next touch, key, scroll or return to the tab resumes it
- * - the status line ("Auto-update in 42 seconds" + a ring filling smoothly) counts down and is the
- *   WCAG 2.2.2 pause / resume button
+ * - only a component that is shown (not in a hidden tab pane) refreshes; one that comes back overdue refreshes at once
+ * - nothing runs while the page is hidden (the page ticker sleeps) or after `idleAfter` without any interaction -
+ *   the next touch, key, scroll or return to the tab resumes it
+ * - the status line ("Auto-update in 42 seconds" + a ring filling smoothly) counts down and is the WCAG 2.2.2
+ *   pause / resume button; it is `data-live-ignore`, so no re-render ever morphs what this controller drew
  * - a failed refresh is retried later (60 → 120 → 300 s) instead of showing the error page
  */
 export default class extends Controller {
@@ -31,8 +33,12 @@ export default class extends Controller {
     };
 
     initialize() {
-        this.feeds = new Map();
-        this.paused = false;
+        this.component = null;
+        this.lastRenderAt = Date.now();
+        this.dueAt = this.nextDue(this.lastRenderAt);
+        this.inFlight = false;
+        this.failures = 0;
+        this.watchdog = null;
         this.lastInteractionAt = Date.now();
         this.resumedFromIdleAt = 0;
         this.look = null;
@@ -46,6 +52,28 @@ export default class extends Controller {
         INTERACTION_EVENTS.forEach((type) => document.addEventListener(type, this.onInteraction, { capture: true, passive: true }));
         document.addEventListener('visibilitychange', this.onInteraction);
         window.addEventListener('online', this.onOnline);
+
+        getComponent(this.element).then((component) => {
+            this.component = component;
+
+            component.on('render:finished', () => {
+                clearTimeout(this.watchdog);
+                this.inFlight = false;
+                this.failures = 0;
+                this.lastRenderAt = Date.now();
+                this.dueAt = this.nextDue(this.lastRenderAt);
+                wake();
+            });
+
+            component.on('response:error', (backendResponse, controls) => {
+                if (this.inFlight) {
+                    // Our own background refresh: retried later, never the error page in a modal
+                    controls.displayError = false;
+                    this.failed();
+                }
+            });
+        });
+
         this.unsubscribe = subscribe((now) => this.tick(now));
     }
 
@@ -54,8 +82,7 @@ export default class extends Controller {
         document.removeEventListener('visibilitychange', this.onInteraction);
         window.removeEventListener('online', this.onOnline);
         this.unsubscribe();
-        this.feeds.forEach((feed) => clearTimeout(feed.watchdog));
-        this.feeds.clear();
+        clearTimeout(this.watchdog);
         this.stopRing();
     }
 
@@ -66,56 +93,42 @@ export default class extends Controller {
 
     toggle() {
         const now = Date.now();
-        const stalled = [...this.feeds.values()].some((feed) => feed.failures > 0);
 
-        // A click that ends a pause - manual, after being away, or after failures - refreshes now
-        if (this.paused || now - this.resumedFromIdleAt < 1000 || stalled || this.state(now) !== 'running') {
-            this.paused = false;
+        // A click that ends a pause - the visitor's own, after being away, or after failures - refreshes now
+        if (pausedByVisitor || now - this.resumedFromIdleAt < 1000 || this.failures > 0 || this.state(now) !== 'running') {
+            pausedByVisitor = false;
             this.lastInteractionAt = now;
-            this.feeds.forEach((feed) => {
-                feed.failures = 0;
-                feed.dueAt = now;
-            });
+            this.failures = 0;
+            this.dueAt = now;
         } else {
-            this.paused = true;
+            pausedByVisitor = true;
         }
 
         wake();
     }
 
     tick(now) {
-        this.discover(now);
-
         const state = this.state(now);
-        let shown = null;
 
-        for (const feed of this.feeds.values()) {
-            if (!feed.element.isConnected) {
-                clearTimeout(feed.watchdog);
-                this.feeds.delete(feed.element);
-                continue;
-            }
+        if (!isShown(this.element)) {
+            // A tab pane that is not shown: checked again in a second, refreshed at once when shown overdue
+            this.stopRing();
 
-            if (!isShown(feed.element)) {
-                continue;
-            }
-
-            shown ??= feed;
-
-            if (
-                state === 'running'
-                && feed.component !== null
-                && !feed.inFlight
-                && now >= feed.dueAt
-                && !isPlaceholder(feed.element)
-                // A refresh would close the row's open actions menu under the visitor's finger
-                && feed.element.querySelector('.dropdown-menu.show') === null
-            ) {
-                this.refresh(feed);
-            }
+            return now + 1000;
         }
 
-        this.paint(shown, state, now);
+        if (
+            state === 'running'
+            && this.component !== null
+            && !this.inFlight
+            && now >= this.dueAt
+            // A refresh would close the row's open actions menu under the visitor's finger
+            && this.element.querySelector('.dropdown-menu.show') === null
+        ) {
+            this.refresh();
+        }
+
+        this.paint(state, now);
 
         if (state !== 'running') {
             // Woken again by an interaction, the toggle or the browser coming back online
@@ -123,81 +136,49 @@ export default class extends Controller {
         }
 
         // Also when a due refresh is held back (an open row menu, a component still connecting): check again in a second
-        if (shown === null || shown.inFlight || now >= shown.dueAt) {
+        if (this.inFlight || now >= this.dueAt) {
             return now + 1000;
         }
 
         // The moment the whole seconds left change
-        return shown.dueAt - (Math.ceil((shown.dueAt - now) / 1000) - 1) * 1000;
+        return this.dueAt - (Math.ceil((this.dueAt - now) / 1000) - 1) * 1000;
     }
 
-    discover(now) {
-        this.element.querySelectorAll('[data-controller~="live"]').forEach((element) => {
-            if (this.feeds.has(element)) {
-                return;
-            }
-
-            const feed = { element, component: null, lastRenderAt: now, dueAt: this.nextDue(now), inFlight: false, failures: 0, watchdog: null };
-            this.feeds.set(element, feed);
-
-            getComponent(element).then((component) => {
-                feed.component = component;
-
-                component.on('render:finished', () => {
-                    clearTimeout(feed.watchdog);
-                    feed.inFlight = false;
-                    feed.failures = 0;
-                    feed.lastRenderAt = Date.now();
-                    feed.dueAt = this.nextDue(feed.lastRenderAt);
-                    wake();
-                });
-
-                component.on('response:error', (backendResponse, controls) => {
-                    if (feed.inFlight) {
-                        // Our own background refresh: retried later, never the error page in a modal
-                        controls.displayError = false;
-                        this.failed(feed);
-                    }
-                });
-            });
-        });
-    }
-
-    refresh(feed) {
-        const { component } = feed;
+    refresh() {
+        const { component } = this;
         const previous = component.backendRequest;
 
-        feed.inFlight = true;
+        this.inFlight = true;
         component.render();
 
         const request = component.backendRequest;
 
         if (request && request !== previous) {
-            // Live Component never clears a request whose fetch rejected (offline, a dropped
-            // connection): the component would ignore every later render on this page
+            // Live Component never clears a request whose fetch rejected (offline, a dropped connection): the
+            // component would ignore every later render on this page
             request.promise.catch(() => {
                 if (component.backendRequest === request) {
                     component.backendRequest = null;
                 }
 
-                this.failed(feed);
+                this.failed();
             });
         }
 
-        clearTimeout(feed.watchdog);
-        feed.watchdog = setTimeout(() => this.failed(feed), WATCHDOG_MS);
+        clearTimeout(this.watchdog);
+        this.watchdog = setTimeout(() => this.failed(), WATCHDOG_MS);
     }
 
-    failed(feed) {
-        if (!feed.inFlight) {
+    failed() {
+        if (!this.inFlight) {
             return;
         }
 
-        clearTimeout(feed.watchdog);
-        feed.inFlight = false;
-        feed.failures++;
-        feed.lastRenderAt = Date.now();
-        feed.dueAt = feed.lastRenderAt + BACKOFF_SECONDS[Math.min(feed.failures, BACKOFF_SECONDS.length) - 1] * 1000;
+        clearTimeout(this.watchdog);
+        this.inFlight = false;
+        this.failures++;
+        this.lastRenderAt = Date.now();
+        this.dueAt = this.lastRenderAt + BACKOFF_SECONDS[Math.min(this.failures, BACKOFF_SECONDS.length) - 1] * 1000;
         wake();
     }
 
@@ -207,7 +188,7 @@ export default class extends Controller {
     }
 
     state(now) {
-        if (this.paused) {
+        if (pausedByVisitor) {
             return 'paused';
         }
 
@@ -236,19 +217,12 @@ export default class extends Controller {
         this.lastInteractionAt = now;
     }
 
-    paint(feed, state, now) {
+    paint(state, now) {
         if (!this.hasStatusTarget) {
             return;
         }
 
-        // Nothing to count down for: a guest's empty favourites tab
-        this.statusTarget.hidden = feed === null;
-
-        let look = state;
-
-        if (state === 'running' && feed !== null && feed.failures > 0) {
-            look = 'failed';
-        }
+        const look = state === 'running' && this.failures > 0 ? 'failed' : state;
 
         if (this.look !== look) {
             this.look = look;
@@ -258,9 +232,8 @@ export default class extends Controller {
             this.statusTarget.title = this.statusTarget.dataset[`${look}Title`] ?? '';
         }
 
-        const refreshing = look === 'running' && feed !== null && feed.inFlight;
-        const secondsLeft = feed === null ? 0 : Math.max(0, Math.ceil((feed.dueAt - now) / 1000));
-        const text = this.text(refreshing ? 'refreshing' : look, secondsLeft);
+        const refreshing = look === 'running' && this.inFlight;
+        const text = this.text(refreshing ? 'refreshing' : look, Math.max(0, Math.ceil((this.dueAt - now) / 1000)));
 
         if (this.hasTextTarget && text !== null && this.textTarget.textContent !== text) {
             this.textTarget.textContent = text;
@@ -268,8 +241,8 @@ export default class extends Controller {
 
         this.statusTarget.classList.toggle('is-full', refreshing);
 
-        if (look === 'running' && feed !== null && !feed.inFlight) {
-            this.runRing(feed.lastRenderAt, feed.dueAt, now);
+        if (look === 'running' && !this.inFlight) {
+            this.runRing(this.lastRenderAt, this.dueAt, now);
         } else {
             this.stopRing();
         }
@@ -319,9 +292,4 @@ export default class extends Controller {
 
 function isShown(element) {
     return typeof element.checkVisibility === 'function' ? element.checkVisibility() : element.offsetParent !== null;
-}
-
-// A `loading="lazy"` component renders itself once it scrolls into view
-function isPlaceholder(element) {
-    return (element.getAttribute('data-action') ?? '').includes('live:appear');
 }

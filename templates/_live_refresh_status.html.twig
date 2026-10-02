@@ -1,10 +1,12 @@
-{# "Auto-update in 42 seconds ◯" above the feed: the countdown to its next automatic refresh, and the WCAG 2.2.2 pause /
-   resume button. Lives inside a `live-refresh` controller element but outside the live component, so a re-render never
-   morphs it; texts carry the locale of their catalogue so JavaScript picks the plural form like PHP does
-   (controllers/live_refresh_controller.js, docs/features/live-activity-feed.md) #}
+{# "Auto-update in 42 seconds ◯" - the countdown to the feed's next automatic refresh and the WCAG 2.2.2 pause / resume
+   button, rendered by RecentActivity with autoRefresh: on the "Show more" row (placement 'footer') or in the gap above
+   an unlimited list ('above'). data-live-ignore: a re-render never morphs what the controller drew. Texts carry the locale
+   of their catalogue so JavaScript picks plural forms like PHP (controllers/live_refresh_controller.js,
+   docs/features/live-activity-feed.md) #}
 <button
     type="button"
-    class="live-refresh-status"
+    class="live-refresh-status live-refresh-status-{{ placement|default('footer') }}"
+    data-live-ignore
     data-live-refresh-target="status"
     data-action="live-refresh#toggle"
     data-state="running"
@@ -24,9 +26,13 @@
     aria-pressed="false"
 >
     <span class="live-refresh-text" data-live-refresh-target="text">{{ 'live_refresh.countdown'|trans({'%count%': 60}) }}</span>
-    {# Two halves turned with `transform` only: a smooth ring the browser animates off the main thread #}
+    {# Two halves turned with `transform` only: a smooth ring the browser animates off the main thread; pause / play /
+       retry in its middle #}
     <span class="live-refresh-ring" aria-hidden="true">
         <span class="live-refresh-half live-refresh-half-right"><span class="live-refresh-fill" data-live-refresh-target="fill"></span></span>
         <span class="live-refresh-half live-refresh-half-left"><span class="live-refresh-fill" data-live-refresh-target="fill"></span></span>
+        <i class="bi bi-pause-fill live-refresh-icon live-refresh-icon-pause"></i>
+        <i class="bi bi-play-fill live-refresh-icon live-refresh-icon-play"></i>
+        <i class="bi bi-arrow-clockwise live-refresh-icon live-refresh-icon-retry"></i>
     </span>
 </button>

@@ -12,6 +12,9 @@ $lb-avatar: 28px;
 $lb-avatar-sm: 22px;
 // Under the tier icon: avatar + its 2 px margin + the 3 px gap of .lb-player
 $lb-indent: $lb-avatar + 5px;
+// Three sizes in a row - 14 px what you read (names, times, puzzle names, rank), 12 px what supports it (dates, pieces ·
+// brand, gaps, PPM), 11 px pills - and two colours: #111 and this grey (user feedback: too many sizes and greys)
+$lb-secondary: #5b616d;
 
 // Tint of an avatar without a photo, picked by the last hex digit of the player id
 $lb-tints: (
@@ -95,7 +98,6 @@ $lb-tints: (
     display: block;
     min-width: 2ch;
     font-variant-numeric: tabular-nums;
-    font-size: .8125rem;
     font-weight: 400;
     line-height: $lb-line;
     color: #111;
@@ -113,13 +115,13 @@ $lb-tints: (
     display: block;
     margin-top: -2px;
     font-variant-numeric: tabular-nums;
-    font-size: .6875rem;
+    font-size: .75rem;
     line-height: 1.3;
-    color: #6c727f;
+    color: $lb-secondary;
 
     .bi {
         margin-right: 3px;
-        font-size: .5625rem;
+        font-size: .625rem;
         vertical-align: 1px;
     }
 
@@ -215,12 +217,10 @@ a.lb-name,
 }
 
 .lb-name-guest {
-    color: #4b5160;
+    color: $lb-secondary;
 }
 
 .lb-player-sm {
-    font-size: .875rem;
-
     .lb-avatar {
         width: $lb-avatar-sm;
         height: $lb-avatar-sm;
@@ -268,9 +268,9 @@ a.lb-name,
         align-items: center;
         gap: 3px;
         max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        white-space: normal;
+        text-align: left;
+        overflow-wrap: break-word;
         font-size: .6875rem;
         font-weight: 500;
         line-height: 1.2;
@@ -297,14 +297,6 @@ a.lb-name,
             padding-left: 6px;
             padding-right: 8px;
         }
-    }
-
-    .lb-rank {
-        font-size: .75rem;
-    }
-
-    .lb-player-sm {
-        font-size: .8125rem;
     }
 
 }
@@ -357,10 +349,8 @@ a.lb-name,
 }
 
 .custom-table-wrapper .table a.ps-puzzle-name {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    display: block;
+    overflow-wrap: break-word;
     font-weight: 400;
     line-height: 1.25;
     color: #111;
@@ -373,12 +363,10 @@ a.lb-name,
 
 .ps-puzzle-meta {
     margin-top: 1px;
-    font-size: .8125rem;
+    font-size: .75rem;
     line-height: 1.3;
-    color: #5b616d;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    color: $lb-secondary;
+    overflow-wrap: break-word;
 }
 
 .ps-members {
@@ -423,9 +411,9 @@ a.lb-name,
 .ps-date,
 .ps-ppm {
     display: block;
-    font-size: .8125rem;
+    font-size: .75rem;
     line-height: 1.35;
-    color: #5b616d;
+    color: $lb-secondary;
 }
 
 .ps-date {
@@ -470,29 +458,27 @@ a.lb-name,
     margin-top: 0;
 }
 
-// The puzzle as context under the player (ladders, recent activity): its name on one line, pieces · brand under it
+// The puzzle as context under the player (ladders, recent activity): its name, pieces · brand under it - both wrap,
+// only player names are ever cut (user feedback: cut texts are hard to read)
 .ps-puzzle-line,
 .ps-puzzle-sub {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: break-word;
 }
 
 .ps-puzzle-sub {
     margin-top: 1px;
     font-size: .75rem;
     line-height: 1.3;
-    color: #6c727f;
+    color: $lb-secondary;
 }
 
 .ps-puzzle-line {
     margin-top: 4px;
-    font-size: .75rem;
-    line-height: 1.3;
-    color: #5b616d;
+    line-height: 1.25;
+    color: #111;
 
     a {
-        color: #4b5160 !important;
+        color: #111 !important;
         text-decoration: none !important;
         font-weight: 400;
 
@@ -539,7 +525,7 @@ a.lb-name,
 .player-list-code {
     flex-shrink: 0;
     font-size: .75rem;
-    color: #6c727f;
+    color: $lb-secondary;
 }
 
 .player-list-count {
@@ -635,14 +621,14 @@ a.lb-name,
     white-space: nowrap;
     font-size: .75rem;
     line-height: 1.3;
-    color: #6c727f;
+    color: $lb-secondary;
     font-variant-numeric: tabular-nums;
 }
 
 .lb-gaps {
     display: inline-grid;
     // The gaps' own size, so the em of the slots measures their text (+MM:SS with its icon), not the time's
-    font-size: .6875rem;
+    font-size: .75rem;
     grid-template-columns: minmax(4.4em, auto) minmax(4.4em, auto);
     column-gap: 6px;
     justify-items: end;
@@ -674,4 +660,20 @@ a.lb-name,
 .ps-table,
 .player-list-item {
     font-size: .875rem;
+}
+
+// Ladders on phones: the row also holds the puzzle image, so the gaps stack under the date instead of widening the time
+// column - the player and puzzle keep the width
+@media (max-width: 575.98px) {
+    .ps-table .lb-gaps {
+        display: block;
+
+        .lb-gap {
+            display: block;
+        }
+
+        .lb-gap:empty {
+            display: none;
+        }
+    }
 }

@@ -23,6 +23,8 @@ Shipped: [`features/puzzle-result-detail.md`](features/puzzle-result-detail.md),
       rows; decide whether the tab should count rows
 - [ ] Older, found on the way: the "≡" menu button in the puzzle header makes the page 345 px wide at 320-340 px;
       `templates/puzzle/brand_hub.html.twig` uses `column-gap-*`, which Bootstrap 5.2 does not have (no-op)
+- [ ] `/en/stopwatch` is wider than the viewport at 800-1024 px (an `img.img-fluid` 420 px wide pushes it to ~900 px at
+      800 px) - older than the 17/18 px root font size, found while checking it
 
 ## First-try integrity (#217)
 

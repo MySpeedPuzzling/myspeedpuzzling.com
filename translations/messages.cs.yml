@@ -4372,7 +4372,6 @@ first_try:
     a_puzzler: "další puzzlař"
     form_error: "Zatím neuloženo: tyto puzzle už mají první pokus. Všechna vyplněná pole i fotky tu zůstaly – podívej se na poznámku níže."
     banner: "Máš %count% puzzle s víc než jedním prvním pokusem.|Máš %count% puzzle s víc než jedním prvním pokusem.|Máš %count% puzzlí s víc než jedním prvním pokusem."
-    banner_review: "Zkontrolovat"
     action:
         move: "Udělat z tohoto výsledku můj první pokus"
         untick: "Odebrat první pokus z tohoto výsledku"
@@ -4404,7 +4403,6 @@ first_try:
     page:
         title: "Konflikty prvních pokusů"
         intro: "Jedny puzzle můžou být tvým prvním pokusem jen jednou. Tady jsou puzzle, u kterých je jako první pokus označeno víc tvých výsledků – vyber ten, který to opravdu byl."
-        empty: "Není co řešit – každé puzzle má nejvýš jeden první pokus."
         question: "Jako tvůj první pokus je označen %count% výsledek. Který to opravdu byl?|Jako tvůj první pokus jsou označeny %count% výsledky. Který to opravdu byl?|Jako tvůj první pokus je označeno %count% výsledků. Který to opravdu byl?"
         oldest_hint: "Ten nejstarší – nejspíš opravdový první pokus."
         none: "Žádný z nich nebyl můj první pokus"
@@ -4428,7 +4426,7 @@ first_try:
 duplicate_check:
     form_error: "Zatím neuloženo: přesně tenhle čas ze stejného dne už u těchto puzzlí uložený je. Všechna vyplněná pole i fotky tu zůstaly – podívej se na poznámku níže."
     action:
-        confirm: "Je to další složení, uložit"
+        confirm: "Ano, je to další složení"
         undo: "Zpět"
         view: "Zobrazit"
     same_day:
@@ -4445,8 +4443,8 @@ duplicate_check:
         own_today: "Přesně %time% jsi u těchto puzzlí uložil/a dnes v %clock%"
         own: "Přesně %time% už máš u těchto puzzlí uložený na %date%"
         own_other_day: "U těchto puzzlí máš %time% z %date%"
-        with_viewer_pair: "%name% už uložil/a váš výsledek ve dvojici s časem přesně %time% (%date%) – máš ho na profilu"
-        with_viewer_team: "%name% už uložil/a váš týmový výsledek s časem přesně %time% (%date%) – máš ho na profilu"
+        with_viewer_pair: "%name% už uložil/a váš společný výsledek ve dvojici s časem přesně %time% (%date%) – máš ho na profilu"
+        with_viewer_team: "%name% už uložil/a váš společný týmový výsledek s časem přesně %time% (%date%) – máš ho na profilu"
         teammate: "%name% už má u těchto puzzlí přesně %time% z %date%"
         teammate_other_day: "%name% má u těchto puzzlí %time% z %date%"
 photo_stash:
@@ -4471,6 +4469,7 @@ review_results:
         delete_mine: "Smazat moji kopii"
         only_tracker: "Smazat ji může jen %name%."
         both_real: "Oba jsou skutečné – dvě různá složení"
+        all_real: "Všechny jsou skutečné – různá složení"
     removed:
         title: "Odstraněno automaticky"
         intro: "Stejný výsledek přišel dvakrát během pár vteřin, ve všem úplně stejný, a tak jsme druhou kopii odstranili. Pokud to bylo opravdu další složení, vrať ho zpět."
@@ -4485,11 +4484,12 @@ review_results:
         title: "Neuložil/a jsi to dvakrát?"
         intro: "Na těchto puzzle už máš úplně stejný čas."
     flash:
-        copy_deleted: "Hotovo – kopie je smazaná a složení se počítá jednou."
-        both_real: "Uloženo – oba výsledky zůstávají."
+        copy_deleted: "Hotovo – kopie je smazaná a složení se počítá jednou.|Hotovo – %count% kopie jsou smazané a složení se počítá jednou.|Hotovo – %count% kopií je smazaných a složení se počítá jednou."
+        both_real: "{2} Uloženo – oba výsledky zůstávají.|[3,4] Uloženo – všechny %count% výsledky zůstávají.|[5,Inf[ Uloženo – všech %count% výsledků zůstává."
         undone: "Výsledek je zpět."
         undo_failed: "Tento výsledek už nejde vrátit."
         changed: "Mezitím se to změnilo – takhle to vypadá teď."
+        first_try_left_off: "Ponechaný výsledek značku prvního pokusu nepřevzal: někdo z něj už má u těchto puzzlí jiný první pokus."
 
 result_emails:
     unsubscribe:

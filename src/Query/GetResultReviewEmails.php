@@ -72,6 +72,8 @@ readonly final class GetResultReviewEmails
         $query = <<<SQL
 SELECT
     CAST(c.id AS text) AS case_id,
+    CAST(c.time_a_id AS text) AS time_a_id,
+    CAST(c.time_b_id AS text) AS time_b_id,
     c.tier,
     c.kind,
     puzzle.name AS puzzle_name,
@@ -87,7 +89,7 @@ WHERE c.id IN (:caseIds)
 ORDER BY CASE c.tier WHEN :possible THEN 1 ELSE 0 END, b.tracked_at DESC, c.id
 SQL;
 
-        /** @var list<array{case_id: string, tier: string, kind: string, puzzle_name: string, seconds_to_solve: null|int, solved_at: string}> $rows */
+        /** @var list<array{case_id: string, time_a_id: string, time_b_id: string, tier: string, kind: string, puzzle_name: string, seconds_to_solve: null|int, solved_at: string}> $rows */
         $rows = $this->database->fetchAllAssociative($query, [
             'caseIds' => $caseIds,
             'playerId' => $playerId,
@@ -99,6 +101,8 @@ SQL;
 
         return array_map(static fn (array $row): ResultReviewEmailCase => new ResultReviewEmailCase(
             caseId: $row['case_id'],
+            timeAId: $row['time_a_id'],
+            timeBId: $row['time_b_id'],
             tier: DuplicateTier::from($row['tier']),
             kind: DuplicateKind::from($row['kind']),
             puzzleName: $row['puzzle_name'],

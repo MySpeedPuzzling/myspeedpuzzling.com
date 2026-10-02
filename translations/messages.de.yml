@@ -4374,7 +4374,6 @@ first_try:
     a_puzzler: "ein Puzzler"
     form_error: "Noch nicht gespeichert: Für dieses Puzzle gibt es bereits einen ersten Versuch. Alle Ihre Angaben und Fotos sind noch da – siehe Hinweis unten."
     banner: "Sie haben %count% Puzzle mit mehr als einem ersten Versuch.|Sie haben %count% Puzzles mit mehr als einem ersten Versuch."
-    banner_review: "Prüfen"
     action:
         move: "Dieses Ergebnis zu meinem ersten Versuch machen"
         untick: "Ersten Versuch von diesem Ergebnis entfernen"
@@ -4406,7 +4405,6 @@ first_try:
     page:
         title: "Konflikte bei ersten Versuchen"
         intro: "Ein Puzzle kann nur einmal Ihr erster Versuch sein. Hier sind die Puzzles, bei denen mehrere Ihrer Ergebnisse als erster Versuch markiert sind – wählen Sie das, das es wirklich war."
-        empty: "Nichts zu klären – jedes Puzzle hat höchstens einen ersten Versuch."
         question: "%count% Ihrer Ergebnisse sind als Ihr erster Versuch markiert. Welches war es wirklich?"
         oldest_hint: "Das älteste – höchstwahrscheinlich der echte erste Versuch."
         none: "Keines davon war mein erster Versuch"
@@ -4430,7 +4428,7 @@ first_try:
 duplicate_check:
     form_error: "Noch nicht gespeichert: Genau diese Zeit vom selben Tag ist für dieses Puzzle bereits gespeichert. Alle Ihre Angaben und Fotos sind noch da – siehe Hinweis unten."
     action:
-        confirm: "Es ist ein weiterer Versuch, speichern"
+        confirm: "Ja, es ist ein weiterer Versuch"
         undo: "Rückgängig"
         view: "Ansehen"
     same_day:
@@ -4462,7 +4460,7 @@ review_results:
         empty: "Nichts zu prüfen – Ihre Ergebnisse sehen gut aus."
     duplicates:
         title: "Doppelt gespeichert?"
-        intro: "Diese Ergebnisse haben beim selben Puzzle genau dieselbe Zeit. Wenn es ein Lösen ist, das doppelt gespeichert wurde, behalten Sie eine Kopie – die andere wird gelöscht und das Lösen zählt in Ihren Statistiken nur einmal."
+        intro: "Diese Ergebnisse haben beim selben Puzzle genau dieselbe Zeit. Wenn dasselbe Ergebnis doppelt gespeichert wurde, behalten Sie eine Kopie – die andere wird gelöscht und das Ergebnis zählt in Ihren Statistiken nur einmal."
         likely: "Höchstwahrscheinlich doppelt gespeichert"
         possible: "Möglicherweise doppelt gespeichert"
         same_time: "dieselbe Zeit auf die Sekunde: %time%"
@@ -4472,10 +4470,11 @@ review_results:
         keep_hint: "Die Kopie, die Sie behalten, übernimmt alles, was nur die andere hat – Foto, Kommentar, ersten Versuch, Wettbewerb."
         delete_mine: "Meine Kopie löschen"
         only_tracker: "Nur %name% kann sie löschen."
-        both_real: "Beide sind echt – zwei verschiedene Lösungen"
+        both_real: "Beide sind echt – zwei verschiedene Versuche"
+        all_real: "Alle sind echt – verschiedene Versuche"
     removed:
         title: "Automatisch entfernt"
-        intro: "Dasselbe Ergebnis kam innerhalb weniger Sekunden zweimal an, in jedem Detail identisch, daher haben wir die zweite Kopie entfernt. Wenn es wirklich ein weiteres Lösen war, holen Sie es zurück."
+        intro: "Dasselbe Ergebnis kam innerhalb weniger Sekunden zweimal an, in jedem Detail identisch, daher haben wir die zweite Kopie entfernt. Wenn es wirklich ein weiterer Versuch war, holen Sie es zurück."
         row: "Kopie gespeichert am %saved%, entfernt am %removed%."
         kept: "Das Ergebnis, das geblieben ist"
         undo: "Rückgängig"
@@ -4487,11 +4486,12 @@ review_results:
         title: "Haben Sie das doppelt gespeichert?"
         intro: "Sie haben bei diesem Puzzle bereits genau dieselbe Zeit."
     flash:
-        copy_deleted: "Erledigt – die Kopie ist gelöscht und das Lösen zählt einmal."
-        both_real: "Gespeichert – beide Ergebnisse bleiben."
+        copy_deleted: "Erledigt – die Kopie ist gelöscht und das Ergebnis zählt nur einmal.|Erledigt – %count% Kopien sind gelöscht und das Ergebnis zählt nur einmal."
+        both_real: "{2} Gespeichert – beide Ergebnisse bleiben.|[3,Inf[ Gespeichert – alle %count% Ergebnisse bleiben."
         undone: "Das Ergebnis ist wieder da."
         undo_failed: "Dieses Ergebnis kann nicht mehr zurückgeholt werden."
         changed: "Das hat sich inzwischen geändert – so sieht es jetzt aus."
+        first_try_left_off: "Das behaltene Ergebnis hat die Markierung „erster Versuch“ nicht übernommen: Jemand darin hat bei diesem Puzzle bereits einen anderen ersten Versuch."
 
 result_emails:
     unsubscribe:

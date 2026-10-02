@@ -7,9 +7,11 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ResultReviewContact;
 use SpeedPuzzling\Web\Entity\UserAccount;
+use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\ConfirmDuplicateIsReal;
 use SpeedPuzzling\Web\Message\DetectDuplicateResults;
 use SpeedPuzzling\Web\Message\DismissFirstTryReview;
@@ -209,7 +211,62 @@ final class ResultReviewEmailsTest extends KernelTestCase
         $tomEmail = $this->emailTo('tom@example.com');
         self::assertSame('Některé tvé výsledky jsou uložené dvakrát', $tomEmail->getSubject());
         self::assertStringContainsString('/cs/review-results?from=rc-', (string) $tomEmail->getHtmlBody());
-        self::assertStringContainsString('uložil ho i někdo další z vaší dvojice/týmu', (string) $tomEmail->getHtmlBody());
+        self::assertStringContainsString('uložil ho i někdo další z tvé dvojice/týmu', (string) $tomEmail->getHtmlBody());
+    }
+
+    public function testAResultSavedThreeTimesIsOneLine(): void
+    {
+        // A third copy of the Tier B pair - three cases of one result
+        $this->messageBus->dispatch(new AddPuzzleSolvingTime(
+            timeId: Uuid::uuid7(),
+            userId: 'auth0|twins001',
+            puzzleId: DuplicateResultsFixture::PUZZLE_TWINS,
+            competitionId: null,
+            time: '00:37:02',
+            comment: 'Third copy',
+            finishedPuzzlesPhoto: null,
+            groupPlayers: [],
+            finishedAt: self::getContainer()->get(ClockInterface::class)->now()->modify('-41 days')->setTime(0, 0),
+            firstAttempt: false,
+            unboxed: false,
+        ));
+        self::assertCount(6, $this->openCaseIdsOf(self::DANA));
+
+        $this->plan();
+        $this->send();
+
+        $html = (string) $this->emailTo('dana@example.com')->getHtmlBody();
+        self::assertSame(1, substr_count($html, 'Twins Puzzle – 00:37:02'));
+        self::assertStringContainsString('and 1 more', $html, 'Four results, three listed - counted in results, not cases');
+        // Every case went out with it, listed or not
+        self::assertCount(6, $this->jsonList($this->contactsOf(self::DANA)[0]['case_ids']));
+    }
+
+    public function testAnEmailWithRemovalsOnlyTellsWhatWasRemoved(): void
+    {
+        $this->activeDaysAgo(self::DANA, 1);
+        $this->plan();
+        $this->send();
+        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = NOW() - INTERVAL '10 days'");
+        $this->messageBus->dispatch(new DetectDuplicateResults());
+        $this->plan();
+
+        $this->send();
+
+        $emails = array_values(array_filter(
+            self::getMailerMessages(),
+            static fn (object $message): bool => $message instanceof TemplatedEmail && $message->getTo()[0]->getAddress() === 'dana@example.com',
+        ));
+        self::assertCount(2, $emails);
+        $removalsOnly = $emails[1];
+
+        self::assertSame('We tidied up your results', $removalsOnly->getSubject());
+        $html = (string) $removalsOnly->getHtmlBody();
+        self::assertStringContainsString('so we removed the extra copy', $html);
+        self::assertStringContainsString('We removed a copy saved by mistake', $html);
+        self::assertStringNotContainsString('saved twice:', $html);
+        self::assertStringNotContainsString('seem to be saved twice', $html);
+        self::assertStringNotContainsString('keep one copy with a single tap', $html);
     }
 
     public function testWhatChangedMeanwhileIsCheckedAgainAtSendTime(): void

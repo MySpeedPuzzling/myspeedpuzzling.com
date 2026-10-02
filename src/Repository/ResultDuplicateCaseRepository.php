@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Repository;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\ResultDuplicateCase;
 use SpeedPuzzling\Web\Exceptions\DuplicateCaseNotFound;
 use SpeedPuzzling\Web\Value\DuplicateCaseStatus;
@@ -57,6 +58,20 @@ readonly final class ResultDuplicateCaseRepository
             ->setParameter('timeIds', $timeIds)
             ->getQuery()
             ->getResult();
+
+        return $cases;
+    }
+
+    /**
+     * The person's open cases - the actions on the review page find the set of a case among them.
+     *
+     * @return list<ResultDuplicateCase>
+     */
+    public function findOpenOf(Player $player): array
+    {
+        /** @var list<ResultDuplicateCase> $cases */
+        $cases = $this->entityManager->getRepository(ResultDuplicateCase::class)
+            ->findBy(['player' => $player, 'status' => DuplicateCaseStatus::Open]);
 
         return $cases;
     }

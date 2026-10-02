@@ -8,6 +8,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Exceptions\DuplicateCaseChanged;
 use SpeedPuzzling\Web\Message\KeepDuplicateCopy;
+use SpeedPuzzling\Web\Results\DuplicateCopiesDeleted;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DuplicateResolvedVia;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,12 +16,14 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * "Keep this one" / "Delete my copy" - from the review page or the recap (`via=recap`, back to the kept result).
+ * "Keep this one" / "Delete my copy" on a set of copies - from the review page or the recap (`via=recap`, back to
+ * the kept result). `copies[]` = the copies the page showed; a set that changed since is refused.
  */
 final class KeepDuplicateCopyController extends AbstractController
 {
@@ -56,7 +59,7 @@ final class KeepDuplicateCopyController extends AbstractController
         }
 
         try {
-            $this->messageBus->dispatch(new KeepDuplicateCopy($caseId, $keep, $player->playerId, $via));
+            $envelope = $this->messageBus->dispatch(new KeepDuplicateCopy($caseId, $keep, $player->playerId, $via, ReviewResultsController::shownCopies($request)));
         } catch (HandlerFailedException $exception) {
             if ($exception->getPrevious() instanceof DuplicateCaseChanged) {
                 $this->addFlash('warning', $this->translator->trans('review_results.flash.changed'));
@@ -67,7 +70,14 @@ final class KeepDuplicateCopyController extends AbstractController
             throw $exception;
         }
 
-        $this->addFlash('success', $this->translator->trans('review_results.flash.copy_deleted'));
+        $outcome = $envelope->last(HandledStamp::class)?->getResult();
+        assert($outcome instanceof DuplicateCopiesDeleted);
+
+        $this->addFlash('success', $this->translator->trans('review_results.flash.copy_deleted', ['%count%' => $outcome->deleted]));
+
+        if ($outcome->firstTryLeftOff) {
+            $this->addFlash('warning', $this->translator->trans('review_results.flash.first_try_left_off'));
+        }
 
         if ($via === DuplicateResolvedVia::Recap) {
             return $this->redirectToRoute('added_time_recap', ['timeId' => $keep]);

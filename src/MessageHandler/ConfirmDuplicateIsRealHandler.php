@@ -8,18 +8,19 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\DuplicateCaseChanged;
 use SpeedPuzzling\Web\Exceptions\DuplicateCaseNotFound;
 use SpeedPuzzling\Web\Message\ConfirmDuplicateIsReal;
-use SpeedPuzzling\Web\Repository\ResultDuplicateCaseRepository;
+use SpeedPuzzling\Web\Services\DuplicateResults\DuplicateCaseSetResolver;
 use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewReactions;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * "Both are real" - closes the case for this person only; others in a pair/team decide for themselves.
+ * "Both/All are real" on a set of copies - closes every open case of the set for this person only; others in a
+ * pair/team decide for themselves.
  */
 #[AsMessageHandler]
 readonly final class ConfirmDuplicateIsRealHandler
 {
     public function __construct(
-        private ResultDuplicateCaseRepository $caseRepository,
+        private DuplicateCaseSetResolver $setResolver,
         private ResultReviewReactions $resultReviewReactions,
         private ClockInterface $clock,
     ) {
@@ -31,17 +32,13 @@ readonly final class ConfirmDuplicateIsRealHandler
      */
     public function __invoke(ConfirmDuplicateIsReal $message): void
     {
-        $case = $this->caseRepository->get($message->caseId);
+        ['cases' => $cases] = $this->setResolver->resolve($message->caseId, $message->playerId, $message->copyTimeIds);
+        $now = $this->clock->now();
 
-        if ($case->player->id->toString() !== strtolower($message->playerId)) {
-            throw new DuplicateCaseNotFound();
+        foreach ($cases as $case) {
+            $case->confirmBothReal($now, $message->via);
         }
 
-        if ($case->isOpen() === false) {
-            throw new DuplicateCaseChanged();
-        }
-
-        $case->confirmBothReal($this->clock->now(), $message->via);
-        $this->resultReviewReactions->recordFor($case->player->id->toString());
+        $this->resultReviewReactions->recordFor($cases[0]->player->id->toString());
     }
 }

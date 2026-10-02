@@ -41,11 +41,34 @@ export default class extends Controller {
 
         // Listen for puzzle pieces count updates from autocomplete
         this.element.addEventListener('ppm:piecesCountUpdated', this.handlePiecesCountUpdate.bind(this));
+
+        // The modal closed by X, backdrop or Esc is a cancel too - the submit it interrupted locked the button.
+        // (A Stimulus action cannot listen to it: the dots in "hidden.bs.modal" read as a key filter.)
+        this.confirming = false;
+        this.boundModalHidden = this.modalHidden.bind(this);
+
+        if (this.hasModalTarget) {
+            this.modalTarget.addEventListener('hidden.bs.modal', this.boundModalHidden);
+        }
     }
 
     disconnect() {
         this.element.removeEventListener('submit', this.handleSubmit.bind(this));
         this.element.removeEventListener('ppm:piecesCountUpdated', this.handlePiecesCountUpdate.bind(this));
+
+        if (this.hasModalTarget) {
+            this.modalTarget.removeEventListener('hidden.bs.modal', this.boundModalHidden);
+        }
+    }
+
+    modalHidden() {
+        // Confirmed: the form is being sent again, its lock is the new submit's
+        if (this.confirming) {
+            this.confirming = false;
+            return;
+        }
+
+        this.resetSubmitPrevention();
     }
 
     handlePiecesCountUpdate(event) {
@@ -238,6 +261,8 @@ export default class extends Controller {
     }
 
     confirmSubmit() {
+        this.confirming = true;
+
         // Close modal
         if (this.hasModalTarget) {
             const modal = Modal.getInstance(this.modalTarget);

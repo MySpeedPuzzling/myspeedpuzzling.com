@@ -62,4 +62,20 @@ final class ReviewResultsController extends AbstractController
             'late_first_tries' => $this->getFirstTryTimes->lateFirstTriesOf($player->playerId),
         ]);
     }
+
+    /**
+     * The copies of a set as the page showed them (`copies[]` of the keep / both-real forms).
+     *
+     * @return list<string>
+     */
+    public static function shownCopies(Request $request): array
+    {
+        $copies = array_filter(
+            $request->request->all('copies'),
+            static fn (mixed $copy): bool => is_string($copy) && Uuid::isValid($copy),
+        );
+
+        /** @var list<string> */
+        return array_values($copies);
+    }
 }

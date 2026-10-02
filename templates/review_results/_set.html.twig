@@ -1,6 +1,9 @@
-{# One duplicate case with both copies and its actions - on the review page and the recap.
-   Expects case (DuplicateReviewCase), player_id, via ('review_page' | 'recap'), on the recap also recap_time_id.
-   Only the tracker of a copy may delete it (docs/features/duplicate-results.md, "Review page"). #}
+{# One set of copies of a result and its actions - on the review page and the recap
+   (docs/features/duplicate-results.md, "Review page"). Expects set (DuplicateReviewSet), player_id,
+   via ('review_page' | 'recap'), on the recap also recap_time_id.
+   Only the tracker of a copy may delete it: with two or more copies of their own the player picks the one to keep,
+   with one they may delete it, the others' copies only their trackers. Every form sends the copies shown, so a set
+   that changed meanwhile is refused instead of acting on a copy the player never saw. #}
 {%- macro people_label(copy, player_id) -%}
     {%- set others = copy.peopleExcept(player_id) -%}
     {%- set names = others|map(person => person.label() ?: 'first_try.a_puzzler'|trans)|join(', ') -%}
@@ -13,10 +16,19 @@
     {%- endif -%}
 {%- endmacro -%}
 
-{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ReviewResults\\ReviewResultsController::CSRF_TOKEN_ID')) %}
-{% set puzzle = case.puzzle %}
+{%- macro hidden_fields(set, csrf, via) -%}
+    <input type="hidden" name="_token" value="{{ csrf }}">
+    <input type="hidden" name="via" value="{{ via }}">
+    {%- for time_id in set.timeIds -%}
+        <input type="hidden" name="copies[]" value="{{ time_id }}">
+    {%- endfor -%}
+{%- endmacro -%}
 
-<div class="card card-body shadow-sm mb-3" data-testid="duplicate-case">
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ReviewResults\\ReviewResultsController::CSRF_TOKEN_ID')) %}
+{% set puzzle = set.puzzle %}
+{% set own_copies = set.countTrackedBy(player_id) %}
+
+<div class="card card-body shadow-sm mb-3" data-testid="duplicate-set">
     <div class="d-flex align-items-center gap-2 mb-2">
         {% if puzzle.image is not null %}
             <img class="rounded-2" style="width: 56px; height: 56px; object-fit: cover;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.name}) }}" src="{{ puzzle.image|thumbnail('puzzle_small') }}">
@@ -28,17 +40,16 @@
     </div>
 
     <p class="fs-sm mb-2">
-        <strong>{{ (case.isLikely ? 'review_results.duplicates.likely' : 'review_results.duplicates.possible')|trans }}</strong>
-        {% if case.sameTime and case.older.secondsToSolve is not null %}
-            · {{ 'review_results.duplicates.same_time'|trans({'%time%': case.older.secondsToSolve|puzzlingTime}) }}
+        <strong>{{ (set.isLikely ? 'review_results.duplicates.likely' : 'review_results.duplicates.possible')|trans }}</strong>
+        {% if set.sameTime and set.oldest.secondsToSolve is not null %}
+            · {{ 'review_results.duplicates.same_time'|trans({'%time%': set.oldest.secondsToSolve|puzzlingTime}) }}
         {% endif %}
     </p>
 
-    <div class="row g-2 mb-2">
-        {% for copy in case.copies %}
-            {% set other = loop.first ? case.newer : case.older %}
-            <div class="col-sm-6">
-                <div class="border rounded-3 p-2 h-100 fs-sm" data-testid="duplicate-copy" data-time-id="{{ copy.timeId }}">
+    <div class="row row-cols-1 row-cols-sm-2 {{ set.copies|length > 2 ? 'row-cols-lg-3' }} g-2 mb-3">
+        {% for copy in set.copies %}
+            <div class="col">
+                <div class="border rounded-3 p-2 h-100 fs-sm d-flex flex-column" data-testid="duplicate-copy" data-time-id="{{ copy.timeId }}">
                     <div class="d-flex gap-2">
                         {% if copy.finishedPuzzlePhoto is not null %}
                             <img class="rounded-2 flex-shrink-0" style="width: 64px; height: 64px; object-fit: cover;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.name}) }}" src="{{ copy.finishedPuzzlePhoto|thumbnail('puzzle_small') }}" loading="lazy">
@@ -52,29 +63,29 @@
                             {% if copy.competitionName is not null %}<br><i class="bi bi-trophy me-1"></i>{{ copy.competitionName }}{% endif %}
                             {% if copy.comment is not null and copy.comment|trim is not empty %}<br><span class="fst-italic">“{{ copy.comment|length > 120 ? copy.comment|slice(0, 120) ~ '…' : copy.comment }}”</span>{% endif %}
                             <span class="d-block text-muted small">{{ 'review_results.duplicates.saved_at'|trans({'%date%': copy.trackedAt|date('d.m.Y H:i:s')}) }}</span>
-                            {% if case.isLikely and loop.first %}
-                                <span class="d-block text-muted small">{{ 'review_results.duplicates.older_hint'|trans }}</span>
+                            {% if set.isLikely and loop.first %}
+                                <span class="d-block text-muted small" data-testid="duplicate-original">{{ 'review_results.duplicates.older_hint'|trans }}</span>
                             {% endif %}
                         </div>
                     </div>
 
-                    <div class="mt-2">
-                        {% if copy.isTrackedBy(player_id) and other.isTrackedBy(player_id) %}
-                            <form method="post" action="{{ path('review_results_keep_copy', {caseId: case.caseId}) }}">
-                                <input type="hidden" name="_token" value="{{ csrf }}">
+                    <div class="mt-auto pt-2">
+                        {% if own_copies >= 2 %}
+                            <form method="post" action="{{ path('review_results_keep_copy', {caseId: set.caseId}) }}" class="d-grid">
+                                {{ _self.hidden_fields(set, csrf, via) }}
                                 <input type="hidden" name="keep" value="{{ copy.timeId }}">
-                                <input type="hidden" name="via" value="{{ via }}">
-                                <button type="submit" class="btn btn-sm {{ case.isLikely and loop.first ? 'btn-primary' : 'btn-outline-primary' }}">{{ 'review_results.duplicates.keep'|trans }}</button>
+                                <button type="submit" class="btn btn-sm {{ set.isLikely and loop.first ? 'btn-primary' : 'btn-outline-primary' }}">{{ 'review_results.duplicates.keep'|trans }}</button>
                             </form>
-                        {% elseif copy.isTrackedBy(player_id) %}
-                            <form method="post" action="{{ path('review_results_keep_copy', {caseId: case.caseId}) }}">
-                                <input type="hidden" name="_token" value="{{ csrf }}">
-                                <input type="hidden" name="keep" value="{{ other.timeId }}">
-                                <input type="hidden" name="via" value="{{ via }}">
+                        {% elseif own_copies == 1 and copy.isTrackedBy(player_id) %}
+                            <form method="post" action="{{ path('review_results_keep_copy', {caseId: set.caseId}) }}" class="d-grid">
+                                {{ _self.hidden_fields(set, csrf, via) }}
+                                <input type="hidden" name="keep" value="{{ set.keptInsteadOf(copy).timeId }}">
                                 <button type="submit" class="btn btn-sm btn-outline-primary">{{ 'review_results.duplicates.delete_mine'|trans }}</button>
                             </form>
-                        {% else %}
-                            <span class="text-muted small" data-testid="duplicate-only-tracker">{{ 'review_results.duplicates.only_tracker'|trans({'%name%': copy.tracker ? (copy.tracker.label() ?: 'first_try.a_puzzler'|trans) : 'first_try.a_puzzler'|trans}) }}</span>
+                        {% endif %}
+
+                        {% if not copy.isTrackedBy(player_id) %}
+                            <span class="d-block text-muted small {{ own_copies >= 2 ? 'mt-1' }}" data-testid="duplicate-only-tracker">{{ 'review_results.duplicates.only_tracker'|trans({'%name%': copy.tracker ? (copy.tracker.label() ?: 'first_try.a_puzzler'|trans) : 'first_try.a_puzzler'|trans}) }}</span>
                         {% endif %}
                     </div>
                 </div>
@@ -82,14 +93,15 @@
         {% endfor %}
     </div>
 
-    {% if case.older.isTrackedBy(player_id) and case.newer.isTrackedBy(player_id) %}
+    {% if own_copies >= 2 %}
         <p class="fs-sm text-muted mb-2">{{ 'review_results.duplicates.keep_hint'|trans }}</p>
     {% endif %}
 
-    <form method="post" action="{{ path('review_results_both_real', {caseId: case.caseId}) }}">
-        <input type="hidden" name="_token" value="{{ csrf }}">
-        <input type="hidden" name="via" value="{{ via }}">
+    <form method="post" action="{{ path('review_results_both_real', {caseId: set.caseId}) }}" class="d-grid d-sm-block">
+        {{ _self.hidden_fields(set, csrf, via) }}
         {% if recap_time_id is defined %}<input type="hidden" name="time" value="{{ recap_time_id }}">{% endif %}
-        <button type="submit" class="btn btn-link btn-sm text-muted px-0">{{ 'review_results.duplicates.both_real'|trans }}</button>
+        <button type="submit" class="btn btn-sm btn-outline-secondary" data-testid="duplicate-all-real">
+            {{ set.copies|length > 2 ? 'review_results.duplicates.all_real'|trans : 'review_results.duplicates.both_real'|trans }}
+        </button>
     </form>
 </div>

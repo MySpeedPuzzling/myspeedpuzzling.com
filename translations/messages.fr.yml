@@ -4376,7 +4376,6 @@ first_try:
     a_puzzler: "un puzzleur"
     form_error: "Pas encore enregistré : ce puzzle a déjà une première tentative. Tous vos champs et vos photos sont toujours là – voir la remarque ci-dessous."
     banner: "Vous avez %count% puzzle avec plus d’une première tentative.|Vous avez %count% puzzles avec plus d’une première tentative."
-    banner_review: "Vérifier"
     action:
         move: "Faire de ce résultat ma première tentative"
         untick: "Retirer la première tentative de ce résultat"
@@ -4408,7 +4407,6 @@ first_try:
     page:
         title: "Conflits de premières tentatives"
         intro: "Un puzzle ne peut être votre première tentative qu’une seule fois. Voici les puzzles pour lesquels plusieurs de vos résultats sont marqués comme première tentative – choisissez celui qui l’était vraiment."
-        empty: "Rien à régler – chaque puzzle a au plus une première tentative."
         question: "%count% de vos résultats sont marqués comme votre première tentative. Lequel l’était vraiment ?"
         oldest_hint: "Le plus ancien – très probablement la vraie première tentative."
         none: "Aucun de ces résultats n’était ma première tentative"
@@ -4432,15 +4430,15 @@ first_try:
 duplicate_check:
     form_error: "Pas encore enregistré : exactement ce temps du même jour est déjà enregistré pour ce puzzle. Tous vos champs et vos photos sont toujours là – voir la remarque ci-dessous."
     action:
-        confirm: "C’est une autre résolution, l’enregistrer"
+        confirm: "Oui, c’est un autre assemblage"
         undo: "Annuler"
         view: "Le voir"
     same_day:
         title: "Ce temps exact est déjà enregistré"
         body: "Enregistré deux fois par erreur ? Alors il n’y a plus rien à faire ici. Si vous avez vraiment refait ce puzzle en exactement le même temps, confirmez-le et enregistrez."
     confirmed:
-        title: "C’est noté – c’est une autre résolution"
-        body: "Elle sera enregistrée à côté du résultat ci-dessus quand vous enregistrerez le formulaire."
+        title: "C’est noté – c’est un autre assemblage"
+        body: "Il sera enregistré à côté du résultat ci-dessus quand vous enregistrerez le formulaire."
     tolerated:
         body: "Ce temps est enregistré plusieurs fois ce jour-là. Vous pouvez tout de même enregistrer vos modifications :"
     other_day:
@@ -4475,6 +4473,7 @@ review_results:
         delete_mine: "Supprimer ma copie"
         only_tracker: "Seul·e %name% peut la supprimer."
         both_real: "Les deux sont réels – deux assemblages différents"
+        all_real: "Tous sont réels – des assemblages différents"
     removed:
         title: "Retirés automatiquement"
         intro: "Le même résultat est arrivé deux fois en quelques secondes, identique en tout point, nous avons donc retiré la seconde copie. S’il s’agissait vraiment d’un autre assemblage, rétablissez-le."
@@ -4489,11 +4488,12 @@ review_results:
         title: "L’avez-vous enregistré deux fois ?"
         intro: "Vous avez déjà exactement le même temps sur ce puzzle."
     flash:
-        copy_deleted: "C’est fait – la copie est supprimée et l’assemblage compte une fois."
-        both_real: "Enregistré – les deux résultats restent."
+        copy_deleted: "C’est fait – la copie est supprimée et l’assemblage compte une fois.|C’est fait – %count% copies sont supprimées et l’assemblage compte une fois."
+        both_real: "{2} Enregistré – les deux résultats restent.|[3,Inf[ Enregistré – les %count% résultats restent."
         undone: "Le résultat est de retour."
         undo_failed: "Ce résultat ne peut plus être rétabli."
         changed: "Cela a changé entre-temps – voici ce qu’il en est maintenant."
+        first_try_left_off: "Le résultat conservé n’a pas repris la mention première tentative : quelqu’un de ce résultat a déjà une autre première tentative sur ce puzzle."
 
 result_emails:
     unsubscribe:

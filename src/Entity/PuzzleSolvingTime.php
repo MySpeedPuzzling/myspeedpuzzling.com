@@ -206,34 +206,38 @@ class PuzzleSolvingTime implements EntityWithEvents
     }
 
     /**
-     * The player keeps this copy and deletes its twin: whatever only the twin had - photo, comment, first-try
-     * tag, competition - is not lost with it (docs/features/duplicate-results.md, "Keep this one"). The round
-     * follows from the competition; the caller resolves it once this is done.
+     * The player keeps this copy and deletes its twins: whatever only a twin had - photo, comment, first-try
+     * tag, competition - is not lost with it (docs/features/duplicate-results.md, "Keep this one"); with several
+     * twins the first one in the list that has it wins. The first-try tag only when the caller checked that it
+     * may move here. The round follows from the competition; the caller resolves it once this is done.
      *
+     * @param list<self> $copies
      * @return bool whether anything was taken over
      */
-    public function takeOverFrom(self $copy, Player $by): bool
+    public function takeOverFrom(array $copies, Player $by, bool $withFirstTry): bool
     {
         $changed = false;
 
-        if ($this->finishedPuzzlePhoto === null && $copy->finishedPuzzlePhoto !== null) {
-            $this->finishedPuzzlePhoto = $copy->finishedPuzzlePhoto;
-            $changed = true;
-        }
+        foreach ($copies as $copy) {
+            if ($this->finishedPuzzlePhoto === null && $copy->finishedPuzzlePhoto !== null) {
+                $this->finishedPuzzlePhoto = $copy->finishedPuzzlePhoto;
+                $changed = true;
+            }
 
-        if (trim($this->comment ?? '') === '' && trim($copy->comment ?? '') !== '') {
-            $this->comment = $copy->comment;
-            $changed = true;
-        }
+            if (trim($this->comment ?? '') === '' && trim($copy->comment ?? '') !== '') {
+                $this->comment = $copy->comment;
+                $changed = true;
+            }
 
-        if ($this->firstAttempt === false && $copy->firstAttempt === true) {
-            $this->firstAttempt = true;
-            $changed = true;
-        }
+            if ($withFirstTry && $this->firstAttempt === false && $copy->firstAttempt === true) {
+                $this->firstAttempt = true;
+                $changed = true;
+            }
 
-        if ($this->competition === null && $copy->competition !== null) {
-            $this->competition = $copy->competition;
-            $changed = true;
+            if ($this->competition === null && $copy->competition !== null) {
+                $this->competition = $copy->competition;
+                $changed = true;
+            }
         }
 
         if ($changed === false) {

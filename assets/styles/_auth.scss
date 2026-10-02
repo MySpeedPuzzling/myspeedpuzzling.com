@@ -278,7 +278,8 @@
 }
 
 .auth-illustration img {
-    max-width: 420px;
+    // Never wider than its column - a plain 420px replaced img-fluid's 100% and pushed the page sideways at 768-1024 px
+    max-width: min(420px, 100%);
 }
 
 // The 6-digit code (phase 2): big, spaced, tabular digits - easy to compare

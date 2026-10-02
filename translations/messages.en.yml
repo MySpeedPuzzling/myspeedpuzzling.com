@@ -4671,7 +4671,6 @@ first_try:
     a_puzzler: "a puzzler"
     form_error: "Not saved yet: this puzzle already has a first try. All your fields and photos are still here – see the note below."
     banner: "You have %count% puzzle with more than one first try.|You have %count% puzzles with more than one first try."
-    banner_review: "Review"
     action:
         move: "Make this result my first try"
         untick: "Remove first try from this result"
@@ -4703,7 +4702,6 @@ first_try:
     page:
         title: "First-try conflicts"
         intro: "A puzzle can be your first try only once. Here are the puzzles where more than one of your results is marked as a first try – pick the one that really was."
-        empty: "Nothing to sort out – every puzzle has at most one first try."
         question: "%count% of your results are marked as your first try. Which one really was?"
         oldest_hint: "The oldest one – most likely the real first try."
         none: "None of these was my first try"
@@ -4727,7 +4725,7 @@ first_try:
 duplicate_check:
     form_error: "Not saved yet: exactly this time from the same day is already saved for this puzzle. All your fields and photos are still here – see the note below."
     action:
-        confirm: "It's another solve, save it"
+        confirm: "Yes, it's another solve"
         undo: "Undo"
         view: "View it"
     same_day:
@@ -4770,6 +4768,7 @@ review_results:
         delete_mine: "Delete my copy"
         only_tracker: "Only %name% can delete it."
         both_real: "Both are real – two different solves"
+        all_real: "All are real – different solves"
     removed:
         title: "Removed automatically"
         intro: "The same result arrived twice within a few seconds, identical in every detail, so we removed the second copy. If it really was another solve, bring it back."
@@ -4784,11 +4783,12 @@ review_results:
         title: "Did you save this twice?"
         intro: "You already have exactly the same time on this puzzle."
     flash:
-        copy_deleted: "Done – the copy is deleted and the solve counts once."
-        both_real: "Saved – both results stay."
+        copy_deleted: "Done – the copy is deleted and the solve counts once.|Done – %count% copies are deleted and the solve counts once."
+        both_real: "{2} Saved – both results stay.|[3,Inf[ Saved – all %count% results stay."
         undone: "The result is back."
         undo_failed: "This result cannot be brought back any more."
         changed: "This has changed in the meantime – here is how it looks now."
+        first_try_left_off: "The result you kept did not take over the first-try mark: somebody in it already has another first try on this puzzle."
 
 result_emails:
     unsubscribe:

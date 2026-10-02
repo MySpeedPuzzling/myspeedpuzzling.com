@@ -8,8 +8,8 @@
     {% if duplicates is not empty %}
         <div class="mt-3" data-testid="recap-duplicates">
             <p class="fs-sm mb-2"><i class="bi bi-files me-1"></i><strong>{{ 'review_results.recap.title'|trans }}</strong> {{ 'review_results.recap.intro'|trans }}</p>
-            {% for case in duplicates %}
-                {{ include('review_results/_case.html.twig', {case: case, player_id: viewer_player_id, via: 'recap', recap_time_id: solved_puzzle.timeId}) }}
+            {% for set in duplicates %}
+                {{ include('review_results/_set.html.twig', {set: set, player_id: viewer_player_id, via: 'recap', recap_time_id: solved_puzzle.timeId}) }}
             {% endfor %}
         </div>
     {% endif %}

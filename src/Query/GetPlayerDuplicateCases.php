@@ -9,10 +9,11 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\AutoRemovedResult;
-use SpeedPuzzling\Web\Results\DuplicateReviewCase;
 use SpeedPuzzling\Web\Results\DuplicateReviewCopy;
+use SpeedPuzzling\Web\Results\DuplicateReviewSet;
 use SpeedPuzzling\Web\Results\FirstTryPerson;
 use SpeedPuzzling\Web\Results\FirstTryPuzzle;
+use SpeedPuzzling\Web\Services\DuplicateResults\DuplicateSets;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\DuplicateCaseStatus;
@@ -22,8 +23,9 @@ use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
 
 /**
  * The player's own duplicate cases and automatic removals, for the review page and the recap
- * (docs/features/duplicate-results.md, "Review page"). Reads the stored cases of one person plus their two
- * results by id - a case whose copy is gone already is left out (the detection closes it).
+ * (docs/features/duplicate-results.md, "Review page"). Reads the stored cases of one person plus their
+ * results by id - a case whose copy is gone already is left out (the detection closes it). Cases that share a
+ * result come as one set (DuplicateSets): a result saved three times is one card with three copies.
  *
  * People of a pair/team the viewer may not see are masked like on the first-try conflicts: a private player
  * without the viewer on their allow list, or one the viewer blocked, is "a puzzler".
@@ -41,21 +43,22 @@ readonly final class GetPlayerDuplicateCases
     }
 
     /**
-     * @return list<DuplicateReviewCase> the likely ones first (Tier A/B), then Tier C; newest first within
+     * @return list<DuplicateReviewSet> the likely ones first (Tier A/B), then Tier C; newest first within
      */
     public function openOf(string $playerId): array
     {
-        return $this->cases($playerId, null);
+        return $this->sets($playerId, null);
     }
 
     /**
-     * The open cases with this result in them - the recap right after saving it.
+     * The set with this result in it - the recap right after saving it. The whole set, also copies linked to
+     * this result only through another copy.
      *
-     * @return list<DuplicateReviewCase>
+     * @return list<DuplicateReviewSet>
      */
     public function openOfTime(string $playerId, string $timeId): array
     {
-        return $this->cases($playerId, $timeId);
+        return $this->sets($playerId, $timeId);
     }
 
     /**
@@ -99,12 +102,10 @@ SQL;
     }
 
     /**
-     * @return list<DuplicateReviewCase>
+     * @return list<DuplicateReviewSet>
      */
-    private function cases(string $playerId, null|string $timeId): array
+    private function sets(string $playerId, null|string $timeId): array
     {
-        $timeCondition = $timeId !== null ? 'AND :timeId IN (c.time_a_id, c.time_b_id)' : '';
-
         $query = <<<SQL
 SELECT
     c.id AS case_id,
@@ -124,54 +125,80 @@ INNER JOIN puzzle ON puzzle.id = a.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 WHERE c.player_id = :playerId
     AND c.status = :open
-    {$timeCondition}
 ORDER BY CASE c.tier WHEN :certain THEN 0 WHEN :strong THEN 1 ELSE 2 END, b.tracked_at DESC, c.id
 SQL;
 
-        $parameters = [
+        /** @var list<array{case_id: string, tier: string, kind: string, time_a_id: string, time_b_id: string, puzzle_id: string, puzzle_name: string, puzzle_pieces_count: int, puzzle_image: null|string, manufacturer_name: string}> $rows */
+        $rows = $this->database->fetchAllAssociative($query, [
             'playerId' => $playerId,
             'open' => DuplicateCaseStatus::Open->value,
             'certain' => DuplicateTier::Certain->value,
             'strong' => DuplicateTier::Strong->value,
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-        ];
+        ]);
 
-        if ($timeId !== null) {
-            $parameters['timeId'] = $timeId;
+        // The first case of a set is its strongest and newest - the rows come ordered so
+        $sets = [];
+
+        foreach (DuplicateSets::group(self::pairs($rows)) as $keys) {
+            $setRows = array_map(static fn (int $key): array => $rows[$key], $keys);
+
+            if ($timeId === null || in_array(strtolower($timeId), DuplicateSets::timeIdsOf(self::pairs($setRows)), true)) {
+                $sets[] = $setRows;
+            }
         }
 
-        /** @var list<array{case_id: string, tier: string, kind: string, time_a_id: string, time_b_id: string, puzzle_id: string, puzzle_name: string, puzzle_pieces_count: int, puzzle_image: null|string, manufacturer_name: string}> $rows */
-        $rows = $this->database->fetchAllAssociative($query, $parameters);
-
-        if ($rows === []) {
+        if ($sets === []) {
             return [];
         }
 
-        $copies = $this->copies([...array_column($rows, 'time_a_id'), ...array_column($rows, 'time_b_id')]);
-        $cases = [];
+        $copies = $this->copies(DuplicateSets::timeIdsOf(self::pairs(array_merge(...$sets))));
+        $result = [];
 
-        foreach ($rows as $row) {
-            if (!isset($copies[$row['time_a_id']], $copies[$row['time_b_id']])) {
+        foreach ($sets as $setRows) {
+            $strongest = $setRows[0];
+            $setCopies = [];
+
+            foreach (DuplicateSets::timeIdsOf(self::pairs($setRows)) as $setTimeId) {
+                if (isset($copies[$setTimeId])) {
+                    $setCopies[] = $copies[$setTimeId];
+                }
+            }
+
+            if (count($setCopies) < 2) {
                 continue;
             }
 
-            $cases[] = new DuplicateReviewCase(
-                caseId: $row['case_id'],
-                tier: DuplicateTier::from($row['tier']),
-                kind: DuplicateKind::from($row['kind']),
+            $caseIds = array_map(static fn (array $row): string => $row['case_id'], $setRows);
+            assert($caseIds !== []);
+
+            usort($setCopies, static fn (DuplicateReviewCopy $a, DuplicateReviewCopy $b): int => [$a->trackedAt, $a->timeId] <=> [$b->trackedAt, $b->timeId]);
+
+            $result[] = new DuplicateReviewSet(
+                caseIds: $caseIds,
+                tier: DuplicateTier::from($strongest['tier']),
+                kind: DuplicateKind::from($strongest['kind']),
                 puzzle: new FirstTryPuzzle(
-                    puzzleId: $row['puzzle_id'],
-                    name: $row['puzzle_name'],
-                    manufacturerName: $row['manufacturer_name'],
-                    piecesCount: $row['puzzle_pieces_count'],
-                    image: $row['puzzle_image'],
+                    puzzleId: $strongest['puzzle_id'],
+                    name: $strongest['puzzle_name'],
+                    manufacturerName: $strongest['manufacturer_name'],
+                    piecesCount: $strongest['puzzle_pieces_count'],
+                    image: $strongest['puzzle_image'],
                 ),
-                older: $copies[$row['time_a_id']],
-                newer: $copies[$row['time_b_id']],
+                copies: $setCopies,
             );
         }
 
-        return $cases;
+        return $result;
+    }
+
+    /**
+     * @param list<array{time_a_id: string, time_b_id: string, ...}> $rows
+     * @return list<array{string, string}>
+     */
+    private static function pairs(array $rows): array
+    {
+        return array_map(static fn (array $row): array => [$row['time_a_id'], $row['time_b_id']], $rows);
     }
 
     /**

@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Repository\ResultReviewContactRepository;
 use SpeedPuzzling\Web\Results\AutoRemovedResult;
 use SpeedPuzzling\Web\Results\ResultReviewEmailCase;
 use SpeedPuzzling\Web\Results\ResultReviewSendingSummary;
+use SpeedPuzzling\Web\Services\DuplicateResults\DuplicateSets;
 use SpeedPuzzling\Web\Services\DuplicateResults\ResultEmailsUnsubscribeUrl;
 use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
 use SpeedPuzzling\Web\Services\Listmonk\ListmonkNewsletterLists;
@@ -126,7 +127,18 @@ readonly final class SendPlannedResultReviewEmailsHandler
 
         $locale = ListmonkNewsletterLists::normalizeLocale($player->locale);
         $unsubscribeUrl = $this->unsubscribeUrl->forPlayer($playerId, $locale);
-        $subjectKey = $contact->type === ResultReviewContactType::First ? 'result_review.subject_first' : 'result_review.subject_weekly';
+        $subjectKey = match (true) {
+            $cases === [] => 'result_review.subject_removed',
+            $contact->type === ResultReviewContactType::First => 'result_review.subject_first',
+            default => 'result_review.subject_weekly',
+        };
+
+        // One line per result, however many copies: a result saved by three teammates is three cases of one set.
+        // The first case of a set is its strongest (the cases come ordered so) and describes it
+        $sets = array_map(
+            static fn (array $keys): ResultReviewEmailCase => $cases[$keys[0]],
+            DuplicateSets::group(array_map(static fn (ResultReviewEmailCase $case): array => [$case->timeAId, $case->timeBId], $cases)),
+        );
 
         $email = (new TemplatedEmail())
             ->from(new Address('notify@notify.myspeedpuzzling.com', 'MySpeedPuzzling'))
@@ -138,8 +150,8 @@ readonly final class SendPlannedResultReviewEmailsHandler
                 'contactId' => $contact->id->toString(),
                 'first' => $contact->type === ResultReviewContactType::First,
                 'playerName' => $player->name,
-                'cases' => array_slice($cases, 0, self::LISTED_MAX),
-                'moreCases' => max(0, count($cases) - self::LISTED_MAX),
+                'sets' => array_slice($sets, 0, self::LISTED_MAX),
+                'moreSets' => max(0, count($sets) - self::LISTED_MAX),
                 'removals' => array_slice($removals, 0, self::LISTED_MAX),
                 'moreRemovals' => max(0, count($removals) - self::LISTED_MAX),
                 'locale' => $locale,

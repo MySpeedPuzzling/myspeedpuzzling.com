@@ -19,8 +19,8 @@
     <h2 class="h5 mt-4 mb-2" id="saved-twice"><i class="bi bi-files me-2"></i>{{ 'review_results.duplicates.title'|trans }}</h2>
     <p class="text-muted fs-sm">{{ 'review_results.duplicates.intro'|trans }}</p>
 
-    {% for case in duplicates %}
-        {{ include('review_results/_case.html.twig', {case: case, player_id: player_id, via: 'review_page'}) }}
+    {% for set in duplicates %}
+        {{ include('review_results/_set.html.twig', {set: set, player_id: player_id, via: 'review_page'}) }}
     {% endfor %}
 {% endif %}
 

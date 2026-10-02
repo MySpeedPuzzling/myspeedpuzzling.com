@@ -20,7 +20,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * "Both are real" - from the review page or the recap (`via=recap`, back to the result it was opened from).
+ * "Both/All are real" on a set of copies - from the review page or the recap (`via=recap`, back to the result it
+ * was opened from). `copies[]` = the copies the page showed; a set that changed since is refused.
  */
 final class ConfirmDuplicateIsRealController extends AbstractController
 {
@@ -52,8 +53,10 @@ final class ConfirmDuplicateIsRealController extends AbstractController
             ? DuplicateResolvedVia::Recap
             : DuplicateResolvedVia::ReviewPage;
 
+        $copies = ReviewResultsController::shownCopies($request);
+
         try {
-            $this->messageBus->dispatch(new ConfirmDuplicateIsReal($caseId, $player->playerId, $via));
+            $this->messageBus->dispatch(new ConfirmDuplicateIsReal($caseId, $player->playerId, $via, $copies));
         } catch (HandlerFailedException $exception) {
             if ($exception->getPrevious() instanceof DuplicateCaseChanged) {
                 $this->addFlash('warning', $this->translator->trans('review_results.flash.changed'));
@@ -64,7 +67,7 @@ final class ConfirmDuplicateIsRealController extends AbstractController
             throw $exception;
         }
 
-        $this->addFlash('success', $this->translator->trans('review_results.flash.both_real'));
+        $this->addFlash('success', $this->translator->trans('review_results.flash.both_real', ['%count%' => max(2, count($copies))]));
 
         if ($via === DuplicateResolvedVia::Recap) {
             return $this->redirectToRoute('added_time_recap', ['timeId' => $recapTimeId]);

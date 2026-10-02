@@ -301,10 +301,25 @@ The recap after saving shows a twin straight away with the same actions. The pla
   `PuzzleSolvingTimeModified`, not `PuzzleSolved` (statistics and insights follow; no second follower notification,
   no wishlist change). A competition deleted meanwhile is dropped, the round is re-derived. Cases of the pair →
   `undone`.
-- **Keep** (`KeepDuplicateCopy`) deletes the other copy only when the viewer tracks it; with both copies the viewer's,
-  `PuzzleSolvingTime::takeOverFrom()` first fills what the kept one lacks (photo, empty comment, first-try tag,
-  competition; round re-derived; a group copy notifies the other members like any edit). Both copies must still
-  exist (else `DuplicateCaseChanged`, nothing deleted). Every open case with the deleted copy → `copy_deleted`.
+- **Sets** (review fixes): a result saved by A, B and C is three cases per person, so the review page, the recap and
+  the e-mail show **sets** - the connected components of results linked by the viewer's open cases with both copies
+  there (`Services\DuplicateResults\DuplicateSets`, pure). One card per set (`Results\DuplicateReviewSet`), copies
+  oldest first, only the oldest "Saved first – most likely the original"; tier/kind = the strongest case's. With two
+  or more own copies every copy offers "Keep this one"; with one own copy only that one offers "Delete my copy" (keeps
+  the oldest other copy); the others' copies say "Only <name> can delete it". "Both are real" / "All are real" closes
+  all the viewer's open cases of the set (`both_real`).
+- **Keep** (`KeepDuplicateCopy`, routes unchanged: the set's first case id + `keep` + `copies[]` = the copies the
+  page showed) - `DuplicateCaseSetResolver` finds the set again from the case exactly like the page; a different
+  set (a copy added, decided or deleted meanwhile) → `DuplicateCaseChanged`, nothing changes. Deletes every other copy
+  of the set the viewer tracks (none → `CanNotModifyOtherPlayersTime`). When the viewer tracks the kept copy,
+  `PuzzleSolvingTime::takeOverFrom()` first fills what it lacks from the deleted ones, oldest first (photo, empty
+  comment, competition; round re-derived; a group copy notifies the other members like any edit) and the first-try
+  tag: always for a solo result, for a pair/team result only when `FirstTryAssessor` finds no other first try of its
+  members (the deleted copies left out) - otherwise the tag stays off and the flash says so
+  (`Results\DuplicateCopiesDeleted::firstTryLeftOff`). Every open case (anybody's) with a deleted copy →
+  `copy_deleted`. A case between two copies that both stay (the kept one and another tracker's copy, or two such
+  copies) **stays open**: there are still two results and their trackers decide about their own copies; the
+  viewer keeps seeing the smaller set until they do (or says "All are real").
 - Review page `review_results` (`/{_locale}/review-results`), POST routes `review_results_keep_copy`,
   `review_results_both_real`, `review_results_undo_removal`; the first-try POST routes kept their paths and redirect
   to the review page, `first_try_conflicts` answers 301. A case is shown only while both copies exist. Recap:
@@ -403,7 +418,10 @@ its unsubscribe means "no newsletter", and the reaction must land in our databas
   transport) included, so a failure sends nothing.
 - **E-mail** `templates/emails/result_review.html.twig` (`emails.*` `result_review.*`, player's locale; no separate
   text template - like every other e-mail, Symfony derives the text part from the HTML): one sentence why, up to 3
-  cases (puzzle, time, day, "saved twice" / "your teammate saved it too" / "solo and pair/team") + "…and N more",
+  **sets** (one line per result however many copies - grouped like the review page; puzzle, time, day, "saved
+  twice" / "your teammate saved it too" / "solo and pair/team" of the strongest case) + "…and N more" (in sets; the
+  contact still records every case id). Removals only = its own subject/title/intro (`*_removed`) and no "decide"
+  paragraph,
   up to 3 removals ("we removed a copy saved by mistake - you can undo it"), one "Review my results" button →
   `review_results?from=rc-<contactId>`, the settings link and an unsubscribe link in the footer. Nobody is named
   (the privacy rules of the review page do not fit an e-mail). From `notify@`, `X-Transport: notifications`,

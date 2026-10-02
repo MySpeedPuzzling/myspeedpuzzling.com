@@ -55,7 +55,7 @@
             {% set is_focus = attempt.timeId == result.focusTimeId %}
             <li class="pr-attempt"{% if is_focus %} aria-current="true"{% endif %}>
                 <div class="pr-attempt-line">
-                    <span class="pr-attempt-date{{ is_focus ? ' fw-bold' }}">
+                    <span class="pr-attempt-date">
                         {{- (attempt.finishedAt ?? attempt.trackedAt)|date('d.m.Y') -}}
                         <span class="pr-attempt-number" title="{{ 'puzzle_result.attempt_number'|trans({'%number%': attempts_count - loop.index0}) }}">#{{ attempts_count - loop.index0 }}</span>
                     </span>
@@ -65,7 +65,7 @@
                             {% if attempt.isBest %}
                                 <i class="bi bi-star-fill text-warning me-1" title="{{ 'puzzle_result.personal_best'|trans }}"></i>
                             {% endif %}
-                            <span class="pr-attempt-time{{ attempt.isBest ? ' fw-bold' }}">{{ attempt.time|puzzlingTime }}</span>
+                            <span class="pr-attempt-time">{{ attempt.time|puzzlingTime }}</span>
                         {% else %}
                             <span class="badge rounded-pill bg-secondary text-dark">
                                 <i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}

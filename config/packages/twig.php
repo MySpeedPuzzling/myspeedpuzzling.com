@@ -6,6 +6,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use SpeedPuzzling\Web\Query\GetConversations;
 use SpeedPuzzling\Web\Query\GetNotifications;
+use SpeedPuzzling\Web\Services\Email\EmailHtmlToTextConverter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
 
@@ -34,6 +35,10 @@ return App::config([
         'paths' => [
             '%kernel.project_dir%/public/img' => 'images',
             '%kernel.project_dir%/public/css' => 'styles',
+        ],
+        // The plain-text part of e-mails keeps links and paragraphs (Symfony's default strip_tags() drops every URL)
+        'mailer' => [
+            'html_to_text_converter' => EmailHtmlToTextConverter::class,
         ],
     ],
 ]);

@@ -44,6 +44,6 @@ final class RemoveLateFirstTryController extends AbstractController
 
         $this->addFlash('success', $this->translator->trans('first_try.flash.removed_one'));
 
-        return $this->redirectToRoute('first_try_conflicts');
+        return $this->redirectToRoute('review_results');
     }
 }

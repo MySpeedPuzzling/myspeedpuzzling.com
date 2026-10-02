@@ -46,6 +46,6 @@ final class KeepLateFirstTryController extends AbstractController
 
         $this->addFlash('success', $this->translator->trans('first_try.flash.kept_late'));
 
-        return $this->redirectToRoute('first_try_conflicts');
+        return $this->redirectToRoute('review_results');
     }
 }

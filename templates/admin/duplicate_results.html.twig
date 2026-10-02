@@ -69,8 +69,10 @@
             'Players affected': totals.playersAffected,
             'Resolved (30 days)': totals.resolvedLast30Days,
             'Confirmed real': totals.confirmedReal,
+            'Removed automatically': totals.autoRemoved,
+            'Undone': totals.autoRemovalsUndone,
         } %}
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-md-4 col-lg-2">
                 <div class="card card-body shadow-sm h-100 text-center">
                     <div class="h3 mb-1">{{ value|number_format(0, '.', ' ') }}</div>
                     <div class="fs-sm text-muted">{{ label }}</div>
@@ -260,4 +262,52 @@
             </nav>
         {% endif %}
     {% endif %}
+
+    <section class="mt-5">
+        <h2 class="h5" id="removed-automatically">Removed automatically</h2>
+        <p class="text-muted fs-sm">
+            Tier A copies removed by the daily detection (newest {{ auto_removals|length }}). The older copy stays; links to
+            the removed id redirect to it. "Undone" = the player brought the copy back - the undo rate is the quality measure.
+        </p>
+
+        {% if auto_removals is empty %}
+            <div class="alert alert-info">Nothing removed automatically yet.</div>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table table-sm align-middle fs-sm" data-testid="admin-auto-removals">
+                    <thead>
+                        <tr>
+                            <th>Tracker</th>
+                            <th>Puzzle</th>
+                            <th class="text-end">Time</th>
+                            <th>Day</th>
+                            <th>Saved</th>
+                            <th>Removed id</th>
+                            <th>Kept id</th>
+                            <th>Removed</th>
+                            <th>Undone</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for removal in auto_removals %}
+                            <tr>
+                                <td>
+                                    <a href="{{ path('player_profile', {playerId: removal.playerId}) }}">{{ removal.playerName ?? ('#' ~ removal.playerCode) }}</a>
+                                    {% if removal.isGroup %}<span class="badge bg-light text-dark border">group</span>{% endif %}
+                                </td>
+                                <td><a href="{{ path('puzzle_detail', {puzzleId: removal.puzzleId}) }}">{{ removal.puzzleName }}</a></td>
+                                <td class="text-end text-nowrap">{{ removal.seconds is not null ? removal.seconds|puzzlingTime : '-' }}</td>
+                                <td class="text-nowrap">{{ removal.solvedAt|date('d.m.Y') }}</td>
+                                <td class="text-nowrap">{{ removal.savedAt|date('d.m.Y H:i:s') }}</td>
+                                <td><code>{{ removal.removedTimeId }}</code></td>
+                                <td><a href="{{ path('added_time_recap', {timeId: removal.keptTimeId}) }}"><code>{{ removal.keptTimeId }}</code></a></td>
+                                <td class="text-nowrap">{{ removal.removedAt|date('d.m.Y H:i') }}</td>
+                                <td class="text-nowrap">{{ removal.undoneAt ? 'yes, ' ~ removal.undoneAt|date('d.m.Y') : 'no' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </section>
 {% endblock %}

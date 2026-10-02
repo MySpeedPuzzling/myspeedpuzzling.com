@@ -88,16 +88,25 @@ SQL;
      */
     public function conflictCountOf(string $playerId): int
     {
-        $query = <<<SQL
-WITH {$this->playerTimesCte()}
-SELECT COUNT(*) FROM (
-    SELECT puzzle_id FROM mine WHERE first_attempt = true GROUP BY puzzle_id HAVING COUNT(*) > 1
-) conflict
-SQL;
-
-        $count = $this->database->fetchOne($query, ['playerId' => $playerId]);
+        $count = $this->database->fetchOne('SELECT ' . $this->conflictCountSql(), ['playerId' => $playerId]);
 
         return is_numeric($count) ? (int) $count : 0;
+    }
+
+    /**
+     * The conflict count as a scalar subquery taking :playerId - GetPlayerReviewCounts folds it into the
+     * banner's single query.
+     */
+    public function conflictCountSql(): string
+    {
+        return <<<SQL
+(
+    WITH {$this->playerTimesCte()}
+    SELECT COUNT(*) FROM (
+        SELECT puzzle_id FROM mine WHERE first_attempt = true GROUP BY puzzle_id HAVING COUNT(*) > 1
+    ) conflict
+)
+SQL;
     }
 
     /**

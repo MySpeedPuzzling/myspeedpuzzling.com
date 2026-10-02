@@ -87,7 +87,9 @@ Without a signed-in viewer (kernel tests, cron) nobody is hidden and everybody c
 
 ## Conflicts page + banner
 
-- `/{_locale}/first-try-conflicts` (`FirstTryConflictsController`, English only, `noindex`):
+- Since duplicate results P4 the conflicts live on **"Review your results"** (`/{_locale}/review-results`,
+  `docs/features/duplicate-results.md`) below the results saved twice; `/{_locale}/first-try-conflicts` answers 301
+  there and its POST routes kept their paths (they redirect back to the review page). The sections:
   - **Conflicts**: every puzzle where the player holds 2+ first tries; each result with its "1st try" badge (so it is
     clear what was marked), the **oldest marked one preselected**, plus "None of these was my first try". An unmarked
     solve from a day before all of them is pointed out. One POST per puzzle → `ResolveFirstTryConflict` (re-reads the
@@ -97,8 +99,9 @@ Without a signed-in viewer (kernel tests, cron) nobody is hidden and everybody c
     an earlier solve of **their own** - a teammate's history is theirs to review. "Remove first try"
     (`UnmarkFirstAttempt`) or "It's fine, hide this" (`DismissFirstTryReview` → `first_try_review_dismissal`, the only
     stored state of the feature). Puzzles with a conflict are left out until the conflict is resolved.
-- **Banner** on the player's **own profile page only** when they have conflicts. Other viewers pay no query for it
-  (guarded by `FirstTryPagesTest`).
+- **Banner**: part of the "Review your results" banner on the **Hub and the player's own profile**
+  (`GetPlayerReviewCounts`, one query with the duplicate counts). Other viewers pay no query for it (guarded by
+  `FirstTryPagesTest` and `ReviewResultsControllerTest`).
 
 Unticking goes through `PuzzleSolvingTime::unmarkFirstAttempt()`: `PuzzleSolvingTimeModified` (puzzle statistics +
 incremental insights; MSP rating and derived metrics follow on the 15-minute cron) and, for a pair/team result,

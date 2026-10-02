@@ -75,4 +75,19 @@ final class GetDuplicateCandidatesTest extends KernelTestCase
         );
         self::assertSame([DuplicateResultsFixture::PLAYER_TWINS], array_column($candidate->otherPeople(), 'id'));
     }
+
+    public function testScopedToPeopleOnOnePuzzle(): void
+    {
+        $query = self::getContainer()->get(GetDuplicateCandidates::class);
+
+        $teammates = $query->ofPeopleOnPuzzle(DuplicateResultsFixture::PUZZLE_TWINS, [DuplicateResultsFixture::PLAYER_TWINS_TEAMMATE]);
+        self::assertSame(
+            [DuplicateResultsFixture::PLAYER_TWINS_TEAMMATE . ' ' . DuplicateResultsFixture::TIME_TEAMMATE_A],
+            array_map(static fn (DuplicateCandidate $candidate): string => $candidate->personId . ' ' . $candidate->older->timeId, $teammates),
+        );
+
+        self::assertCount(4, $query->ofPeopleOnPuzzle(DuplicateResultsFixture::PUZZLE_TWINS, [DuplicateResultsFixture::PLAYER_TWINS]));
+        self::assertCount(5, $query->ofPeopleOnPuzzle(DuplicateResultsFixture::PUZZLE_TWINS, [DuplicateResultsFixture::PLAYER_TWINS, DuplicateResultsFixture::PLAYER_TWINS_TEAMMATE]));
+        self::assertSame([], $query->ofPeopleOnPuzzle(DuplicateResultsFixture::PUZZLE_TWINS, []));
+    }
 }

@@ -95,6 +95,55 @@ class ResultDuplicateCase
         return self::key($this->player->id->toString(), $this->timeAId->toString(), $this->timeBId->toString());
     }
 
+    public function involves(string $timeId): bool
+    {
+        return $this->timeAId->toString() === strtolower($timeId) || $this->timeBId->toString() === strtolower($timeId);
+    }
+
+    public function otherTimeId(string $timeId): string
+    {
+        return $this->timeAId->toString() === strtolower($timeId) ? $this->timeBId->toString() : $this->timeAId->toString();
+    }
+
+    public function isOpen(): bool
+    {
+        return $this->status === DuplicateCaseStatus::Open;
+    }
+
+    /**
+     * Somebody kept one copy and deleted the other - closes the case of everybody it was about.
+     */
+    public function copyDeleted(DateTimeImmutable $now, DuplicateResolvedVia $via): void
+    {
+        $this->decide(DuplicateCaseStatus::CopyDeleted, $now, $via);
+    }
+
+    /**
+     * The person says these are two different solves - for them only, others in a group decide for themselves.
+     */
+    public function confirmBothReal(DateTimeImmutable $now, DuplicateResolvedVia $via): void
+    {
+        $this->decide(DuplicateCaseStatus::BothReal, $now, $via);
+    }
+
+    public function autoRemoved(DateTimeImmutable $now): void
+    {
+        $this->decide(DuplicateCaseStatus::AutoRemoved, $now, DuplicateResolvedVia::Automatic);
+    }
+
+    /**
+     * The tracker brought the removed copy back - it was another solve after all.
+     */
+    public function removalUndone(DateTimeImmutable $now): void
+    {
+        if ($this->status !== DuplicateCaseStatus::AutoRemoved) {
+            return;
+        }
+
+        $this->status = DuplicateCaseStatus::Undone;
+        $this->resolvedAt = $now;
+    }
+
     /**
      * The pair no longer matches - a copy was deleted, its time or date changed, or it was merged away.
      * Only an open case can go; a decided one keeps its decision.
@@ -107,5 +156,16 @@ class ResultDuplicateCase
 
         $this->status = DuplicateCaseStatus::Gone;
         $this->resolvedAt = $now;
+    }
+
+    private function decide(DuplicateCaseStatus $status, DateTimeImmutable $now, DuplicateResolvedVia $via): void
+    {
+        if ($this->status !== DuplicateCaseStatus::Open) {
+            return;
+        }
+
+        $this->status = $status;
+        $this->resolvedAt = $now;
+        $this->resolvedVia = $via;
     }
 }

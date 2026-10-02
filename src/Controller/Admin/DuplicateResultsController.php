@@ -48,6 +48,7 @@ final class DuplicateResultsController extends AbstractController
             'gap_classes' => $this->getDuplicateResultsOverview->gapClasses(),
             'confirmed_real_share' => $this->getDuplicateResultsOverview->confirmedRealShareByTier(),
             'cases' => $this->getDuplicateResultsOverview->cases($tab, $tier, $kind, $page),
+            'auto_removals' => $this->getDuplicateResultsOverview->autoRemovals(),
             'cases_total' => $total,
             'page' => $page,
             'pages' => max(1, (int) ceil($total / GetDuplicateResultsOverview::PER_PAGE)),

@@ -14,6 +14,7 @@ use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
+use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Attribute\HasDeleteDomainEvent;
 use SpeedPuzzling\Web\Doctrine\PuzzlersGroupDoctrineType;
@@ -23,6 +24,7 @@ use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\PuzzlingType;
+use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use SpeedPuzzling\Web\Value\TimePredictionMethod;
@@ -147,6 +149,105 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(
             new PuzzleSolved($this->id, $this->puzzle->id),
         );
+    }
+
+    /**
+     * Brings back a result removed automatically as a copy, with its own id and everything it had
+     * (docs/features/duplicate-results.md, "Undo"). Statistics and insights follow PuzzleSolvingTimeModified -
+     * not PuzzleSolved: nobody is notified again and no wishlist changes for a result that existed before.
+     */
+    public static function restore(
+        RemovedResultSnapshot $snapshot,
+        Player $player,
+        Puzzle $puzzle,
+        null|Competition $competition,
+        null|PuzzlingTeam $puzzlingTeam,
+    ): self {
+        $group = $snapshot->group();
+
+        $time = new self(
+            id: Uuid::fromString($snapshot->id),
+            secondsToSolve: $snapshot->secondsToSolve,
+            player: $player,
+            puzzle: $puzzle,
+            trackedAt: $snapshot->trackedAt,
+            verified: $snapshot->verified,
+            team: $group,
+            finishedAt: $snapshot->finishedAt,
+            comment: $snapshot->comment,
+            finishedPuzzlePhoto: $snapshot->finishedPuzzlePhoto,
+            firstAttempt: $snapshot->firstAttempt,
+            unboxed: $snapshot->unboxed,
+            competition: $competition,
+            piecesPlaced: $snapshot->piecesPlaced,
+            qualified: $snapshot->qualified,
+            suspicious: $snapshot->suspicious,
+            finishedLaterSeconds: $snapshot->finishedLaterSeconds,
+            puzzlingTeam: $group === null ? null : $puzzlingTeam,
+            createdVia: $snapshot->createdVia,
+        );
+
+        $time->predictable = $snapshot->predictable;
+        $time->predictionMethod = $snapshot->predictionMethod;
+        $time->predictedSeconds = $snapshot->predictedSeconds;
+        $time->predictedRangeLowSeconds = $snapshot->predictedRangeLowSeconds;
+        $time->predictedRangeHighSeconds = $snapshot->predictedRangeHighSeconds;
+        $time->predictedAttemptNumber = $snapshot->predictedAttemptNumber;
+        $time->predictionLastTimeSeconds = $snapshot->predictionLastTimeSeconds;
+        $time->predictionSource = $snapshot->predictionSource;
+        $time->predictionComputedAt = $snapshot->predictionComputedAt;
+        $time->predictionModelVersion = $snapshot->predictionModelVersion;
+
+        $time->popEvents();
+        $time->recordThat(new PuzzleSolvingTimeModified($time->id, $puzzle->id));
+
+        return $time;
+    }
+
+    /**
+     * The player keeps this copy and deletes its twin: whatever only the twin had - photo, comment, first-try
+     * tag, competition - is not lost with it (docs/features/duplicate-results.md, "Keep this one"). The round
+     * follows from the competition; the caller resolves it once this is done.
+     *
+     * @return bool whether anything was taken over
+     */
+    public function takeOverFrom(self $copy, Player $by): bool
+    {
+        $changed = false;
+
+        if ($this->finishedPuzzlePhoto === null && $copy->finishedPuzzlePhoto !== null) {
+            $this->finishedPuzzlePhoto = $copy->finishedPuzzlePhoto;
+            $changed = true;
+        }
+
+        if (trim($this->comment ?? '') === '' && trim($copy->comment ?? '') !== '') {
+            $this->comment = $copy->comment;
+            $changed = true;
+        }
+
+        if ($this->firstAttempt === false && $copy->firstAttempt === true) {
+            $this->firstAttempt = true;
+            $changed = true;
+        }
+
+        if ($this->competition === null && $copy->competition !== null) {
+            $this->competition = $copy->competition;
+            $changed = true;
+        }
+
+        if ($changed === false) {
+            return false;
+        }
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+
+        if ($this->team !== null) {
+            $this->recordGroupEdit($by, $this->memberPlayerIds());
+        }
+
+        return true;
     }
 
     /**

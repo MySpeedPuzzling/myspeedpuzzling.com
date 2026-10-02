@@ -23,6 +23,9 @@ final class DetectDuplicateResultsHandlerTest extends KernelTestCase
         self::bootKernel();
         $this->messageBus = self::getContainer()->get(MessageBusInterface::class);
         $this->database = self::getContainer()->get(Connection::class);
+
+        // The fixtures come with the cases the detection at save time stored - start from none
+        $this->database->executeStatement('DELETE FROM result_duplicate_case');
     }
 
     public function testStoresOneCasePerPersonForEveryTwin(): void
@@ -31,6 +34,8 @@ final class DetectDuplicateResultsHandlerTest extends KernelTestCase
 
         self::assertSame(5, $summary->newCases);
         self::assertSame(0, $summary->goneCases);
+        // Tier A: the copy sent again 7 s later
+        self::assertSame(1, $summary->autoRemoved);
 
         $twins = DuplicateResultsFixture::PLAYER_TWINS;
         $teammate = DuplicateResultsFixture::PLAYER_TWINS_TEAMMATE;

@@ -7,12 +7,14 @@ namespace SpeedPuzzling\Web\Query;
 use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Results\AutoRemovalListItem;
 use SpeedPuzzling\Web\Results\DuplicateCaseListItem;
 use SpeedPuzzling\Web\Results\DuplicateResultsTotals;
 use SpeedPuzzling\Web\Value\DuplicateCaseListTab;
 use SpeedPuzzling\Web\Value\DuplicateCaseStatus;
 use SpeedPuzzling\Web\Value\DuplicateKind;
 use SpeedPuzzling\Web\Value\DuplicateTier;
+use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
 
 /**
  * Admin numbers of duplicate results (docs/features/duplicate-results.md, "Admin overview").
@@ -37,11 +39,13 @@ SELECT
     COUNT(*) FILTER (WHERE status = :open) AS open_cases,
     COUNT(DISTINCT player_id) FILTER (WHERE status = :open) AS players_affected,
     COUNT(*) FILTER (WHERE status IN (:resolved) AND resolved_at > :monthAgo) AS resolved_last_30_days,
-    COUNT(*) FILTER (WHERE status IN (:confirmedReal)) AS confirmed_real
+    COUNT(*) FILTER (WHERE status IN (:confirmedReal)) AS confirmed_real,
+    (SELECT COUNT(*) FROM result_auto_removal) AS auto_removed,
+    (SELECT COUNT(*) FROM result_auto_removal WHERE undone_at IS NOT NULL) AS auto_removals_undone
 FROM result_duplicate_case
 SQL;
 
-        /** @var array{open_cases: int|string, players_affected: int|string, resolved_last_30_days: int|string, confirmed_real: int|string} $row */
+        /** @var array{open_cases: int|string, players_affected: int|string, resolved_last_30_days: int|string, confirmed_real: int|string, auto_removed: int|string, auto_removals_undone: int|string} $row */
         $row = $this->database->fetchAssociative($query, [
             'open' => DuplicateCaseStatus::Open->value,
             'resolved' => self::values(DuplicateCaseStatus::resolved()),
@@ -57,6 +61,8 @@ SQL;
             playersAffected: (int) $row['players_affected'],
             resolvedLast30Days: (int) $row['resolved_last_30_days'],
             confirmedReal: (int) $row['confirmed_real'],
+            autoRemoved: (int) $row['auto_removed'],
+            autoRemovalsUndone: (int) $row['auto_removals_undone'],
         );
     }
 
@@ -259,6 +265,58 @@ SQL;
                 status: DuplicateCaseStatus::from($row['status']),
                 detectedAt: new DateTimeImmutable($row['detected_at']),
                 resolvedAt: $row['resolved_at'] !== null ? new DateTimeImmutable($row['resolved_at']) : null,
+            );
+        }, $rows);
+    }
+
+    /**
+     * The copies removed automatically, newest first - what was removed (from the snapshot), which copy stayed,
+     * and whether the player brought it back.
+     *
+     * @return list<AutoRemovalListItem>
+     */
+    public function autoRemovals(int $limit = self::PER_PAGE): array
+    {
+        $query = <<<SQL
+SELECT
+    removal.id,
+    removal.player_id,
+    player.name AS player_name,
+    player.code AS player_code,
+    removal.removed_time_id,
+    removal.kept_time_id,
+    removal.removed_at,
+    removal.undone_at,
+    removal.snapshot
+FROM result_auto_removal removal
+INNER JOIN player ON player.id = removal.player_id
+ORDER BY removal.removed_at DESC, removal.id
+LIMIT :limit
+SQL;
+
+        /** @var list<array{id: string, player_id: string, player_name: null|string, player_code: string, removed_time_id: string, kept_time_id: string, removed_at: string, undone_at: null|string, snapshot: string}> $rows */
+        $rows = $this->database->fetchAllAssociative($query, ['limit' => $limit]);
+
+        return array_map(static function (array $row): AutoRemovalListItem {
+            /** @var array<string, mixed> $data */
+            $data = json_decode($row['snapshot'], true, flags: JSON_THROW_ON_ERROR);
+            $snapshot = RemovedResultSnapshot::fromArray($data);
+
+            return new AutoRemovalListItem(
+                removalId: $row['id'],
+                playerId: $row['player_id'],
+                playerName: $row['player_name'],
+                playerCode: $row['player_code'],
+                puzzleId: $snapshot->puzzleId,
+                puzzleName: $snapshot->puzzleName,
+                seconds: $snapshot->secondsToSolve,
+                solvedAt: $snapshot->finishedAt ?? $snapshot->trackedAt,
+                savedAt: $snapshot->trackedAt,
+                isGroup: $snapshot->team !== null,
+                removedTimeId: $row['removed_time_id'],
+                keptTimeId: $row['kept_time_id'],
+                removedAt: new DateTimeImmutable($row['removed_at']),
+                undoneAt: $row['undone_at'] !== null ? new DateTimeImmutable($row['undone_at']) : null,
             );
         }, $rows);
     }

@@ -4419,3 +4419,40 @@ photo_stash:
     kept: "Tvoje fotka tu zůstala, nemusíš ji vybírat znovu."
     remove: "Odebrat"
     lost: "Fotku se tentokrát nepodařilo podržet – vyber ji prosím znovu."
+review_results:
+    page:
+        title: "Kontrola tvých výsledků"
+        intro: "Výsledky, které se možná uložily dvakrát, kopie, které jsme za tebe odstranili, a první pokusy k vyřešení – všechno, na co se vyplatí podívat, na jednom místě."
+        empty: "Není co kontrolovat – tvoje výsledky vypadají v pořádku."
+    duplicates:
+        title: "Uloženo dvakrát?"
+        intro: "Tyto výsledky mají na stejných puzzle úplně stejný čas. Pokud je to jedno složení uložené dvakrát, nech si jednu kopii – druhá se smaže a ve statistikách se složení započítá jen jednou."
+        likely: "Nejspíš uloženo dvakrát"
+        possible: "Možná uloženo dvakrát"
+        same_time: "stejný čas na vteřinu: %time%"
+        saved_at: "Uloženo %date%"
+        older_hint: "Uloženo jako první – nejspíš originál."
+        keep: "Nechat tento"
+        keep_hint: "Kopie, kterou si necháš, převezme vše, co má jen ta druhá – fotku, komentář, první pokus i soutěž."
+        delete_mine: "Smazat moji kopii"
+        only_tracker: "Smazat ji může jen %name%."
+        both_real: "Oba jsou skutečné – dvě různá složení"
+    removed:
+        title: "Odstraněno automaticky"
+        intro: "Stejný výsledek přišel dvakrát během pár vteřin, ve všem úplně stejný, a tak jsme druhou kopii odstranili. Pokud to bylo opravdu další složení, vrať ho zpět."
+        row: "Kopie uložena %saved%, odstraněna %removed%."
+        kept: "Výsledek, který zůstal"
+        undo: "Vrátit zpět"
+    banner:
+        duplicates: "%count% výsledek se možná uložil dvakrát.|%count% výsledky se možná uložily dvakrát.|%count% výsledků se možná uložilo dvakrát."
+        auto_removed: "Odstranili jsme %count% kopii dvakrát uloženého výsledku.|Odstranili jsme %count% kopie dvakrát uložených výsledků.|Odstranili jsme %count% kopií dvakrát uložených výsledků."
+        review: "Zkontrolovat"
+    recap:
+        title: "Neuložil/a jsi to dvakrát?"
+        intro: "Na těchto puzzle už máš úplně stejný čas."
+    flash:
+        copy_deleted: "Hotovo – kopie je smazaná a složení se počítá jednou."
+        both_real: "Uloženo – oba výsledky zůstávají."
+        undone: "Výsledek je zpět."
+        undo_failed: "Tento výsledek už nejde vrátit."
+        changed: "Mezitím se to změnilo – takhle to vypadá teď."

@@ -106,6 +106,7 @@ final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChangeTest exte
             Uuid::fromString(PuzzleFixture::PUZZLE_500_01),
             Uuid::fromString(PlayerFixture::PLAYER_REGULAR),
             500,
+            Uuid::uuid7(),
         );
 
         ($this->handler)($event);

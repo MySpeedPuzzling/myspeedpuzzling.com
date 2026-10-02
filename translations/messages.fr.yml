@@ -4423,3 +4423,40 @@ photo_stash:
     kept: "Votre photo est toujours là, inutile de la choisir à nouveau."
     remove: "Retirer"
     lost: "Votre photo n’a pas pu être conservée cette fois – veuillez la choisir à nouveau."
+review_results:
+    page:
+        title: "Vérifier vos résultats"
+        intro: "Les résultats peut-être enregistrés deux fois, les copies que nous avons retirées pour vous et les premières tentatives à régler – tout ce qui mérite un coup d’œil, au même endroit."
+        empty: "Rien à vérifier – vos résultats ont l’air corrects."
+    duplicates:
+        title: "Enregistré deux fois ?"
+        intro: "Ces résultats ont exactement le même temps sur le même puzzle. S’il s’agit d’un seul assemblage enregistré deux fois, gardez une copie – l’autre est supprimée et l’assemblage ne compte qu’une fois dans vos statistiques."
+        likely: "Très probablement enregistré deux fois"
+        possible: "Peut-être enregistré deux fois"
+        same_time: "le même temps à la seconde près : %time%"
+        saved_at: "Enregistré le %date%"
+        older_hint: "Enregistré en premier – très probablement l’original."
+        keep: "Garder celui-ci"
+        keep_hint: "La copie que vous gardez reprend ce que seule l’autre possède – photo, commentaire, première tentative, compétition."
+        delete_mine: "Supprimer ma copie"
+        only_tracker: "Seul·e %name% peut la supprimer."
+        both_real: "Les deux sont réels – deux assemblages différents"
+    removed:
+        title: "Retirés automatiquement"
+        intro: "Le même résultat est arrivé deux fois en quelques secondes, identique en tout point, nous avons donc retiré la seconde copie. S’il s’agissait vraiment d’un autre assemblage, rétablissez-le."
+        row: "Copie enregistrée le %saved%, retirée le %removed%."
+        kept: "Le résultat conservé"
+        undo: "Annuler"
+    banner:
+        duplicates: "%count% résultat a peut-être été enregistré deux fois.|%count% résultats ont peut-être été enregistrés deux fois."
+        auto_removed: "Nous avons retiré %count% copie d’un résultat enregistré deux fois.|Nous avons retiré %count% copies de résultats enregistrés deux fois."
+        review: "Vérifier"
+    recap:
+        title: "L’avez-vous enregistré deux fois ?"
+        intro: "Vous avez déjà exactement le même temps sur ce puzzle."
+    flash:
+        copy_deleted: "C’est fait – la copie est supprimée et l’assemblage compte une fois."
+        both_real: "Enregistré – les deux résultats restent."
+        undone: "Le résultat est de retour."
+        undo_failed: "Ce résultat ne peut plus être rétabli."
+        changed: "Cela a changé entre-temps – voici ce qu’il en est maintenant."

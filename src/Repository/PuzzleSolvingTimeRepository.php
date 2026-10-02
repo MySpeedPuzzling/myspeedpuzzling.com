@@ -38,6 +38,19 @@ readonly final class PuzzleSolvingTimeRepository
         return $this->entityManager->find(PuzzleSolvingTime::class, $puzzleSolvingTimeId);
     }
 
+    public function save(PuzzleSolvingTime $solvingTime): void
+    {
+        $this->entityManager->persist($solvingTime);
+    }
+
+    /**
+     * The same path as deleting a result by hand: PuzzleSolvingTimeDeleted recalculates statistics and insights.
+     */
+    public function delete(PuzzleSolvingTime $solvingTime): void
+    {
+        $this->entityManager->remove($solvingTime);
+    }
+
     /**
      * Solo times with seconds of the player whose prediction was not evaluated yet, plus the listed ones.
      * Locked for the rest of the transaction: an edit of one of them waits until the new predictions are

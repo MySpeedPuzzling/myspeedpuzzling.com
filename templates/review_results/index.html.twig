@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'review_results.page.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{% include '_return_back_button.html.twig' with {fallbackUrl: path('my_profile'), fallbackTitle: 'menu.my_profile'|trans} %}
+
+<h1 class="h3 mb-2"><i class="bi bi-clipboard-check me-2"></i>{{ 'review_results.page.title'|trans }}</h1>
+<p class="text-muted">{{ 'review_results.page.intro'|trans }}</p>
+
+{% if duplicates is empty and auto_removals is empty and conflicts is empty and late_first_tries is empty %}
+    <div class="alert alert-success fs-sm" data-testid="review-results-empty">
+        <i class="bi bi-check-circle me-1"></i>{{ 'review_results.page.empty'|trans }}
+    </div>
+{% endif %}
+
+{% if duplicates is not empty %}
+    <h2 class="h5 mt-4 mb-2" id="saved-twice"><i class="bi bi-files me-2"></i>{{ 'review_results.duplicates.title'|trans }}</h2>
+    <p class="text-muted fs-sm">{{ 'review_results.duplicates.intro'|trans }}</p>
+
+    {% for case in duplicates %}
+        {{ include('review_results/_case.html.twig', {case: case, player_id: player_id, via: 'review_page'}) }}
+    {% endfor %}
+{% endif %}
+
+{% if auto_removals is not empty %}
+    {% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ReviewResults\\ReviewResultsController::CSRF_TOKEN_ID')) %}
+
+    <h2 class="h5 mt-4 mb-2" id="removed-automatically"><i class="bi bi-magic me-2"></i>{{ 'review_results.removed.title'|trans }}</h2>
+    <p class="text-muted fs-sm">{{ 'review_results.removed.intro'|trans }}</p>
+
+    {% for removal in auto_removals %}
+        <div class="card card-body mb-2 py-2" data-testid="review-results-removal">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 fs-sm">
+                <span>
+                    <a href="{{ path('puzzle_detail', {puzzleId: removal.puzzleId}) }}" class="fw-medium">{{ removal.puzzleName }}</a>
+                    {% if removal.secondsToSolve is not null %}· {{ removal.secondsToSolve|puzzlingTime }}{% endif %}
+                    · {{ removal.solvedAt|date('d.m.Y') }}<br>
+                    <span class="text-muted">{{ 'review_results.removed.row'|trans({'%saved%': removal.savedAt|date('d.m.Y H:i:s'), '%removed%': removal.removedAt|date('d.m.Y')}) }}</span>
+                    <a href="{{ path('added_time_recap', {timeId: removal.keptTimeId}) }}" class="text-muted ms-1">{{ 'review_results.removed.kept'|trans }}</a>
+                </span>
+                <form method="post" action="{{ path('review_results_undo_removal', {removalId: removal.removalId}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">{{ 'review_results.removed.undo'|trans }}</button>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+{% endif %}
+
+{{ include('first_try/_conflicts.html.twig', {conflicts: conflicts, late_first_tries: late_first_tries, player_id: player_id}) }}
+{% endblock %}

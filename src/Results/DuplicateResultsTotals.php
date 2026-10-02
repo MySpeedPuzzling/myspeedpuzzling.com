@@ -11,6 +11,8 @@ readonly final class DuplicateResultsTotals
         public int $playersAffected,
         public int $resolvedLast30Days,
         public int $confirmedReal,
+        public int $autoRemoved,
+        public int $autoRemovalsUndone,
     ) {
     }
 }

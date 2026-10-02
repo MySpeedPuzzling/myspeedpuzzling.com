@@ -306,3 +306,8 @@ user account, and `PUZZLE_TWINS` (Twins Puzzle, 108 pcs, Trefl, **not approved**
 | `TIME_TEAMMATE_A/B` | pair 3333 s, tracked by each member | B `teammate_copy`, one case per member |
 | `TIME_PRACTICE_A/B` (+ `TIME_PRACTICE_OTHER` 500 s that day) | solo 444 s, 5 s apart, identical | C `same_tracker` |
 | `TIME_OTHER_DAY_A/B` | solo 5555 s on two days, saved 6 days apart | nothing |
+
+The detection at save time (`DetectDuplicateResultsOnSave`) runs while the fixtures load, so the test database
+already holds these five cases - **open, `detected_by = save`**, the Tier A one too (only the daily detection removes
+copies). Tests that need a clean slate delete them first (`DetectDuplicateResultsHandlerTest`); dispatching
+`DetectDuplicateResults` removes `TIME_CERTAIN_B` automatically (a `result_auto_removal` row, Undo brings it back).

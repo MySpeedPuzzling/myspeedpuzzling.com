@@ -18,7 +18,7 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 #[AsCommand(
     name: 'myspeedpuzzling:detect-duplicate-results',
-    description: 'Store new duplicate result cases (same person, puzzle and time) and close the ones that no longer match',
+    description: 'Store new duplicate result cases (same person, puzzle and time), close the ones that no longer match and remove the certain copies (Tier A)',
 )]
 final class DetectDuplicateResultsConsoleCommand extends Command
 {
@@ -45,10 +45,11 @@ final class DetectDuplicateResultsConsoleCommand extends Command
         $summary = $handledStamp->getResult();
 
         (new SymfonyStyle($input, $output))->success(sprintf(
-            'Candidates: %d, new cases: %d, gone: %d',
+            'Candidates: %d, new cases: %d, gone: %d, removed automatically: %d',
             $summary->candidates,
             $summary->newCases,
             $summary->goneCases,
+            $summary->autoRemoved,
         ));
 
         return Command::SUCCESS;

@@ -1,21 +1,17 @@
 {% trans_default_domain 'emails' %}
+{# One slim line: a 32 px logo with the name beside it, left-aligned like the title and the text, on the brand-red rule.
+   The centred 80 px logo + domain line before took ~140 px of a phone screen before the title (Jan, 2026-10-02) #}
 <row>
     <columns>
-        <table style="width: 100%;"><tr><td style="font-size: 0; line-height: 0; padding: 0; height: 16px;" height="16">&nbsp;</td></tr></table>
-        <center>
-            <a href="{{ url('homepage') }}">
-                <img src="https://myspeedpuzzling.com/img/speedpuzzling-logo.png" alt="MySpeedPuzzling.com" style="width: 80px; height: auto;" width="80" height="auto">
-            </a>
-        </center>
-        <p style="color: #7d879c; font-size: 13px; text-align: center; margin: 4px 0 0 0; Margin: 4px 0 0 0;"><a href="{{ url('homepage') }}" style="color: #7d879c; text-decoration: none;">MySpeedPuzzling.com</a></p>
-    </columns>
-</row>
-
-<row>
-    <columns>
-        <table style="width: 100%; border-collapse: collapse;">
+        <table style="width: 100%;"><tr><td style="font-size: 0; line-height: 0; padding: 0; height: 12px;" height="12">&nbsp;</td></tr></table>
+        <table role="presentation" style="width: 100%; border-collapse: collapse; border-bottom: 2px solid #fe696a;">
             <tr>
-                <td style="border-top: 2px solid #fe696a; font-size: 0; line-height: 0; height: 0; padding: 0;" height="0">&nbsp;</td>
+                <td style="padding: 0 0 10px 0; vertical-align: middle; width: 32px;" width="32">
+                    <a href="{{ url('homepage') }}"><img src="https://myspeedpuzzling.com/img/speedpuzzling-logo.png" alt="" width="32" style="display: block; width: 32px; height: auto;"></a>
+                </td>
+                <td style="padding: 0 0 10px 8px; vertical-align: middle; font-size: 16px; font-weight: 500; line-height: 1.2;">
+                    <a href="{{ url('homepage') }}" style="color: #373f50; text-decoration: none;">MySpeedPuzzling</a>
+                </td>
             </tr>
         </table>
     </columns>

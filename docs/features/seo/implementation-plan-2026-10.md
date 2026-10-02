@@ -56,6 +56,11 @@ Google uses the hidden dropdown text as the snippet today ("Suggest a change Mis
 
 Placement: a `<section class="puzzle-summary" …>` directly under the header block, above the insights toggle.
 
+> **Update 2026-10-02:** the summary moved to the bottom of the page (2026-09-30), below the related puzzles. Both
+> sections are rendered **for guests only** (`PuzzleDetailController`, `$user === null`): signed-in players have
+> these facts higher up (Details, the leaderboard strip), so for them the sections only repeated the page, and
+> `GetRelatedPuzzles` does not run for them. Crawlers visit signed out, so they see exactly what a guest sees.
+
 Content is built from public data only. **No difficulty/percentile wording**: insights are the members' exclusive, per Jan.
 - **S1 (always):** "{name} is a {pieces}-piece jigsaw puzzle by {brand}."
   - Brand links to the brand hub if the brand has a slug.

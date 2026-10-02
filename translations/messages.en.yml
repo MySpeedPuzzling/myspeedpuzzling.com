@@ -1086,6 +1086,7 @@ edit_profile:
         failed: "We couldn't send the confirmation e-mail. Please try again in a moment."
 
 puzzle_detail:
+    details: "Details"
     meta:
         title: "%brand% %name% – %pieces% Piece Puzzle"
         ean: ", EAN %ean%"

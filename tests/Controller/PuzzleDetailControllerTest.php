@@ -627,7 +627,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
 
         // A puzzle without an embargo shows its product number
         $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
-        self::assertStringContainsString('RB-500-001', $crawler->filter('#main-content .manufacturer-name')->text());
+        self::assertStringContainsString('RB-500-001', $crawler->filter('#main-content .puzzle-details')->text());
         self::assertSame('RB-500-001', self::productJsonLd($crawler)['sku']);
     }
 
@@ -649,7 +649,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
         self::assertSame($largeImage, $crawler->filter('meta[property="og:image"]')->attr('content'));
         self::assertSame($largeImage, $crawler->filter('meta[name="twitter:image"]')->attr('content'));
         self::assertSame($largeImage, self::productJsonLd($crawler)['image']);
-        self::assertSame($largeImage, $crawler->filter('.puzzle-detail-image a.gallery-item')->attr('href'));
+        self::assertSame($largeImage, $crawler->filter('.puzzle-head-image a.gallery-item')->attr('href'));
         self::assertStringNotContainsString('/original/box-with-exif.jpg', (string) $browser->getResponse()->getContent());
     }
 

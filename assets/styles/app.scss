@@ -788,15 +788,121 @@ canvas {
     touch-action: pan-y !important;
 }
 
-.puzzle-detail-image {
-    width: 90px;
+// Puzzle detail (templates/puzzle_detail.html.twig). Phones and tablets: image · core facts · ≡ menu on one row, the
+// rankings under it. Desktop (992 px+): the puzzle in a left column (large image, facts, buttons), the rankings right.
+.puzzle-head {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr) auto;
+    grid-template-areas: "image info menu";
+    column-gap: .75rem;
+    align-items: start;
+
+    @media (min-width: 576px) {
+        grid-template-columns: 110px minmax(0, 1fr) auto;
+    }
 
     @media (min-width: 768px) {
-        width: 110px;
+        grid-template-columns: 160px minmax(0, 1fr) auto;
+        column-gap: 1rem;
     }
+}
+
+.puzzle-head-image {
+    grid-area: image;
 
     img {
         width: 100%;
+        height: auto;
+    }
+}
+
+.puzzle-head-info {
+    grid-area: info;
+    min-width: 0;
+    overflow-wrap: break-word;
+}
+
+.puzzle-head-menu {
+    grid-area: menu;
+}
+
+.puzzle-head-brand {
+    margin-top: .25rem;
+}
+
+.puzzle-head-badges:empty {
+    display: none;
+}
+
+// Add time + stopwatch as buttons on desktop only - below 992 px they are in the ≡ menu
+.puzzle-head-actions {
+    display: none;
+}
+
+// Product codes, EANs, events: there for whoever wants them, folded so the core facts stand out
+.puzzle-details {
+    margin-top: .5rem;
+
+    > summary {
+        display: inline-block;
+        font-size: .875rem;
+        color: $gray-700;
+        cursor: pointer;
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+
+        &::after {
+            content: "\F282"; // bi-chevron-down
+            font-family: bootstrap-icons;
+            font-size: .75em;
+            margin-left: .35em;
+            vertical-align: -.05em;
+        }
+    }
+
+    &[open] > summary::after {
+        content: "\F286"; // bi-chevron-up
+    }
+}
+
+.puzzle-details-body {
+    margin-top: .25rem;
+    overflow-wrap: anywhere;
+}
+
+@media (min-width: 992px) {
+    .puzzle-layout {
+        display: grid;
+        grid-template-columns: 340px minmax(0, 1fr);
+        column-gap: 2.5rem;
+        align-items: start;
+    }
+
+    .puzzle-head {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "image image"
+            "info menu";
+        row-gap: 1rem;
+    }
+
+    .puzzle-head-image img {
+        width: auto;
+        max-width: 100%;
+        max-height: 340px;
+    }
+
+    .puzzle-head-actions {
+        display: flex;
+        gap: .5rem;
+        margin-top: 1rem;
+
+        .btn {
+            flex: 1 1 0;
+        }
     }
 }
 

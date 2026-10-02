@@ -21,8 +21,8 @@ Shipped: [`features/puzzle-result-detail.md`](features/puzzle-result-detail.md),
       the same page) - accepted trade-off of pausing Turbo's history, see the hotwire guide
 - [ ] Profile pair/team tabs count distinct puzzles while their rows are per puzzle *and* pair - "Pair (1)" can have 2
       rows; decide whether the tab should count rows
-- [ ] Older, found on the way: the "≡" menu button in the puzzle header makes the page 345 px wide at 320-340 px;
-      `templates/puzzle/brand_hub.html.twig` uses `column-gap-*`, which Bootstrap 5.2 does not have (no-op)
+- [ ] Older, found on the way: `templates/puzzle/brand_hub.html.twig` uses `column-gap-*`, which Bootstrap 5.2 does
+      not have (no-op)
 
 ## First-try integrity (#217)
 

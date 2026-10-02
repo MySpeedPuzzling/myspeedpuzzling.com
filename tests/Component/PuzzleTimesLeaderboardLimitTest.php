@@ -173,6 +173,8 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
 
         // 100 of the 250 others are slower; 6505 s - 6000 s (the 100th) = 505 s
         self::assertSame('#151 of 251', $crawler->filter('[data-testid="my-rank"]')->text());
+        // Far down, "Jump to me" under the chart as well
+        self::assertCount(1, $crawler->filter('a[href^="#leaderboard-row-"]:not(.lb-stat)'));
         self::assertSame(['faster than 40% of puzzlers', '00:08:25 from the top 100'], $this->standing($crawler));
 
         // "Show more" still continues right after the top rows
@@ -249,6 +251,8 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
         $crawler = $this->mountSoloLeaderboard($client, PuzzleFixture::PUZZLE_500_01, 500)->render()->crawler();
 
         self::assertSame('#1 of 4', $crawler->filter('[data-testid="my-rank"]')->text());
+        // In the top 10 the row is right under the chart - only the strip's number links to it
+        self::assertCount(0, $crawler->filter('a[href^="#leaderboard-row-"]:not(.lb-stat)'));
         self::assertSame([], $this->standing($crawler));
     }
 

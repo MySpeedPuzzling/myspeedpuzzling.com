@@ -336,6 +336,19 @@
             />
         {% endif %}
 
+        {# Outside the top 10 the viewer's row is a long scroll away - inside it they see it right under the chart #}
+        {% if logged_user.profile is not null and this.myRowKey is not null and this.myRank is not null and this.myRank > 10 %}
+            <div class="text-center fs-sm mt-3 mb-2">
+                <a
+                    href="#leaderboard-row-{{ this.myRowKey }}"
+                    class="text-primary"
+                    data-turbo="false"
+                >
+                    {{ 'puzzle_times.my_attempts.jump_to_me'|trans }} <i class="bi bi-arrow-down-short"></i>
+                </a>
+            </div>
+        {% endif %}
+
         {% set hiddenRowsCount = this.hiddenRowsCount %}
 
         {# The table never scrolls sideways: the name column takes what rank and time leave and names truncate.

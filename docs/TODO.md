@@ -4,6 +4,20 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Transactional e-mails
+
+Shipped: [`features/transactional-emails.md`](features/transactional-emails.md).
+
+- [ ] **Reply-To (Jan's decision):** the footer invites questions, but replies to `robot@mail.` / `notify@notify.`
+      go nowhere anybody reads - pick the mailbox (e.g. simona@ or jan@) and set `Reply-To` on the transactional and
+      notification e-mails (the newsletter already sets `Reply-To: jan@myspeedpuzzling.com` per campaign)
+- [ ] Production Listmonk template "MySpeedPuzzling Newsletter" (id 5): upload the new
+      `features/newsletter/listmonk-campaign-template.html` once `email-logo.png` is live (see the README for the API)
+      - tick when done
+- [ ] Inky `<spacer size-sm>` never shows anywhere (its `hide-for-large` class inlines `display:none` and the mobile
+      rule that would show it is not in `email_document`); spacing relies on paddings - replace them with `size` or a
+      plain spacer table when touching a template
+
 ## Duplicate results (#221)
 
 Plan: [`features/duplicate-results.md`](features/duplicate-results.md).

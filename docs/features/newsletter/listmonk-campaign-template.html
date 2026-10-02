@@ -1,14 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ if .Subscriber.Attribs.locale }}{{ .Subscriber.Attribs.locale }}{{ else }}en{{ end }}" dir="ltr">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light">
-    <meta name="supported-color-schemes" content="light">
-    <title>MySpeedPuzzling</title>
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light only">
+    <title>{{ .Campaign.Subject }}</title>
+    <!-- Conventions shared with the app's e-mails: docs/features/transactional-emails.md
+         (#d63c42 links/buttons = 4.58:1 on white, #fe696a only for the rule, logo with a white halo for dark mode) -->
     <style>
         /* Client resets */
+        :root { color-scheme: light only; supported-color-schemes: light only; }
         body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; font-size: inherit !important; font-family: inherit !important; font-weight: inherit !important; line-height: inherit !important; }
         img { border: 0; line-height: 100%; outline: none; text-decoration: none; max-width: 100%; height: auto; }
         table { border-collapse: collapse; }
 
@@ -20,25 +26,27 @@
         .content p { margin: 0 0 14px; }
         .content ul, .content ol { margin: 0 0 14px; padding-left: 22px; }
         .content li { margin: 0 0 6px; }
-        .content a { color: #fe696a; text-decoration: underline; }
+        .content a { color: #d63c42; text-decoration: underline; }
         .content img { border-radius: 8px; }
         .content hr { border: 0; border-top: 1px solid #e3e9ef; margin: 24px 0; }
-        .content blockquote { margin: 0 0 14px; padding: 10px 16px; border-left: 3px solid #fe696a; background: #f7f9fc; border-radius: 0 8px 8px 0; }
+        .content blockquote { margin: 0 0 14px; padding: 10px 16px; border-left: 3px solid #fe696a; background: #ffffff; }
 
-        /* Bulletproof-ish CTA for use inside campaign content: <a class="button" href="...">...</a> */
+        /* CTA for use inside campaign content: <a class="button" href="...">...</a> - white on #d63c42 = 4.58:1,
+           12 + 20 + 12 = 44 px tap target, bold (no web font in mail clients, 500 renders as normal) */
         .content a.button {
             display: inline-block;
-            background: #fe696a;
+            background-color: #d63c42;
             color: #ffffff !important;
             text-decoration: none;
-            font-weight: 500;
+            font-weight: bold;
             font-size: 16px;
-            line-height: 1;
-            padding: 14px 28px;
+            line-height: 20px;
+            padding: 12px 24px;
             border-radius: 8px;
         }
 
-        .footer a { color: #7d879c; text-decoration: underline; }
+        /* #5f6a80 = 4.98:1 on the #f3f5f9 page background */
+        .footer a { color: #5f6a80; text-decoration: underline; }
 
         @media only screen and (max-width: 620px) {
             .card { padding: 24px 20px !important; }
@@ -47,28 +55,28 @@
     </style>
 </head>
 <body style="margin:0; padding:0; background-color:#f3f5f9;">
+<div lang="{{ if .Subscriber.Attribs.locale }}{{ .Subscriber.Attribs.locale }}{{ else }}en{{ end }}" dir="ltr" role="article" aria-roledescription="email" aria-label="{{ .Campaign.Subject }}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f5f9;">
     <tr>
         <td align="center" class="outer" style="padding: 16px 12px 24px;">
             <!-- Fluid-hybrid width: width=100% + max-width so mobile clients reflow
                  instead of scaling the whole 600px canvas down (tiny text on iOS Mail);
-                 the MSO conditional keeps desktop Outlook at a fixed 600px. -->
-            <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0"><tr><td><![endif]-->
+                 the MSO conditional keeps desktop Outlook at a fixed 600px. Listmonk's Go templates strip
+                 HTML comments, so the conditional is printed through Safe. -->
+            {{ Safe "<!--[if mso]><table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\"><tr><td><![endif]-->" }}
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;">
 
-                <!-- Compact header: logo + wordmark, no wasted space above the fold -->
+                <!-- Content card; on top the same slim header as the app's e-mails: 32 px logo (white halo, stays
+                     visible in dark mode) + name as ONE link, left-aligned on the brand-red rule -->
                 <tr>
-                    <td align="center" style="padding: 8px 0 14px;">
-                        <a href="https://myspeedpuzzling.com" style="text-decoration:none;">
-                            <img src="https://myspeedpuzzling.com/img/speedpuzzling-logo.png" width="56" height="56" alt="MySpeedPuzzling" style="display:block; width:56px; height:56px; margin:0 auto;">
-                            <span style="display:block; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; color:#7d879c; padding-top:4px;">MySpeedPuzzling.com</span>
-                        </a>
-                    </td>
-                </tr>
-
-                <!-- Content card with the coral brand accent on top -->
-                <tr>
-                    <td class="card" style="background-color:#ffffff; border-top: 3px solid #fe696a; border-radius: 8px; padding: 32px 36px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    <td class="card" style="background-color:#ffffff; border-radius: 8px; padding: 20px 36px 32px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-bottom: 2px solid #fe696a; margin: 0 0 24px;">
+                            <tr>
+                                <td style="padding: 0 0 10px 0; vertical-align: middle;">
+                                    <a href="https://myspeedpuzzling.com" style="color:#373f50; text-decoration:none; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; font-weight:bold; line-height:29px;"><img src="https://myspeedpuzzling.com/img/email-logo.png" width="32" height="29" alt="" style="display:inline-block; width:32px; height:29px; border:0; vertical-align:middle;">&nbsp;&nbsp;<span style="vertical-align:middle; color:#373f50;">MySpeedPuzzling</span></a>
+                                </td>
+                            </tr>
+                        </table>
                         <div class="content" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; color:#4b566b;">
                             {{ template "content" . }}
                         </div>
@@ -77,57 +85,58 @@
 
                 <!-- Footer: why you got this, the two choices, identity -->
                 <tr>
-                    <td align="center" class="footer" style="padding: 20px 16px 8px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:1.6; color:#7d879c;">
+                    <td align="center" class="footer" style="padding: 20px 16px 8px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:1.6; color:#5f6a80;">
                         {{ if eq .Subscriber.Attribs.locale "cs" }}
                             <p style="margin:0 0 10px;">Tento e-mail vám přišel od MySpeedPuzzling, protože odebíráte náš newsletter.</p>
                             <p style="margin:0 0 10px;">
-                                <a href="{{ if .Subscriber.Attribs.unsubscribe_url }}{{ .Subscriber.Attribs.unsubscribe_url }}{{ else }}{{ UnsubscribeURL }}{{ end }}" style="color:#7d879c;">Odhlásit odběr jedním kliknutím</a>
-                                {{ if .Subscriber.Attribs.manage_url }} &nbsp;·&nbsp; <a href="{{ .Subscriber.Attribs.manage_url }}" style="color:#7d879c;">Spravovat nastavení notifikací</a>{{ end }}
+                                <a href="{{ if .Subscriber.Attribs.unsubscribe_url }}{{ .Subscriber.Attribs.unsubscribe_url }}{{ else }}{{ UnsubscribeURL }}{{ end }}" style="color:#5f6a80;">Odhlásit odběr jedním kliknutím</a>
+                                {{ if .Subscriber.Attribs.manage_url }} &nbsp;·&nbsp; <a href="{{ .Subscriber.Attribs.manage_url }}" style="color:#5f6a80;">Spravovat nastavení notifikací</a>{{ end }}
                             </p>
                             <p style="margin:0;">MySpeedPuzzling &nbsp;·&nbsp; Vyrobeno s ❤️ v Česku — Simona &amp; Jan</p>
                         {{ else if eq .Subscriber.Attribs.locale "de" }}
                             <p style="margin:0 0 10px;">Du erhältst diese E-Mail von MySpeedPuzzling, weil du unseren Newsletter abonniert hast.</p>
                             <p style="margin:0 0 10px;">
-                                <a href="{{ if .Subscriber.Attribs.unsubscribe_url }}{{ .Subscriber.Attribs.unsubscribe_url }}{{ else }}{{ UnsubscribeURL }}{{ end }}" style="color:#7d879c;">Mit einem Klick abmelden</a>
-                                {{ if .Subscriber.Attribs.manage_url }} &nbsp;·&nbsp; <a href="{{ .Subscriber.Attribs.manage_url }}" style="color:#7d879c;">Benachrichtigungen verwalten</a>{{ end }}
+                                <a href="{{ if .Subscriber.Attribs.unsubscribe_url }}{{ .Subscriber.Attribs.unsubscribe_url }}{{ else }}{{ UnsubscribeURL }}{{ end }}" style="color:#5f6a80;">Mit einem Klick abmelden</a>
+                                {{ if .Subscriber.Attribs.manage_url }} &nbsp;·&nbsp; <a href="{{ .Subscriber.Attribs.manage_url }}" style="color:#5f6a80;">Benachrichtigungen verwalten</a>{{ end }}
                             </p>
                             <p style="margin:0;">MySpeedPuzzling &nbsp;·&nbsp; Mit ❤️ in Tschechien gemacht — Simona &amp; Jan</p>
                         {{ else if eq .Subscriber.Attribs.locale "es" }}
                             <p style="margin:0 0 10px;">Recibes este correo de MySpeedPuzzling porque estás suscrito a nuestro boletín.</p>
                             <p style="margin:0 0 10px;">
-                                <a href="{{ if .Subscriber.Attribs.unsubscribe_url }}{{ .Subscriber.Attribs.unsubscribe_url }}{{ else }}{{ UnsubscribeURL }}{{ end }}" style="color:#7d879c;">Darse de baja con un clic</a>
-                                {{ if .Subscriber.Attribs.manage_url }} &nbsp;·&nbsp; <a href="{{ .Subscriber.Attribs.manage_url }}" style="color:#7d879c;">Gestionar notificaciones</a>{{ end }}
+                                <a href="{{ if .Subscriber.Attribs.unsubscribe_url }}{{ .Subscriber.Attribs.unsubscribe_url }}{{ else }}{{ UnsubscribeURL }}{{ end }}" style="color:#5f6a80;">Darse de baja con un clic</a>
+                                {{ if .Subscriber.Attribs.manage_url }} &nbsp;·&nbsp; <a href="{{ .Subscriber.Attribs.manage_url }}" style="color:#5f6a80;">Gestionar notificaciones</a>{{ end }}
                             </p>
                             <p style="margin:0;">MySpeedPuzzling &nbsp;·&nbsp; Hecho con ❤️ en Chequia — Simona &amp; Jan</p>
                         {{ else if eq .Subscriber.Attribs.locale "fr" }}
                             <p style="margin:0 0 10px;">Vous recevez cet e-mail de MySpeedPuzzling car vous êtes abonné(e) à notre newsletter.</p>
                             <p style="margin:0 0 10px;">
-                                <a href="{{ if .Subscriber.Attribs.unsubscribe_url }}{{ .Subscriber.Attribs.unsubscribe_url }}{{ else }}{{ UnsubscribeURL }}{{ end }}" style="color:#7d879c;">Se désabonner en un clic</a>
-                                {{ if .Subscriber.Attribs.manage_url }} &nbsp;·&nbsp; <a href="{{ .Subscriber.Attribs.manage_url }}" style="color:#7d879c;">Gérer mes notifications</a>{{ end }}
+                                <a href="{{ if .Subscriber.Attribs.unsubscribe_url }}{{ .Subscriber.Attribs.unsubscribe_url }}{{ else }}{{ UnsubscribeURL }}{{ end }}" style="color:#5f6a80;">Se désabonner en un clic</a>
+                                {{ if .Subscriber.Attribs.manage_url }} &nbsp;·&nbsp; <a href="{{ .Subscriber.Attribs.manage_url }}" style="color:#5f6a80;">Gérer mes notifications</a>{{ end }}
                             </p>
                             <p style="margin:0;">MySpeedPuzzling &nbsp;·&nbsp; Fait avec ❤️ en Tchéquie — Simona &amp; Jan</p>
                         {{ else if eq .Subscriber.Attribs.locale "ja" }}
                             <p style="margin:0 0 10px;">このメールは、MySpeedPuzzling のニュースレターにご登録いただいているためお送りしています。</p>
                             <p style="margin:0 0 10px;">
-                                <a href="{{ if .Subscriber.Attribs.unsubscribe_url }}{{ .Subscriber.Attribs.unsubscribe_url }}{{ else }}{{ UnsubscribeURL }}{{ end }}" style="color:#7d879c;">ワンクリックで配信停止</a>
-                                {{ if .Subscriber.Attribs.manage_url }} &nbsp;·&nbsp; <a href="{{ .Subscriber.Attribs.manage_url }}" style="color:#7d879c;">通知設定を管理</a>{{ end }}
+                                <a href="{{ if .Subscriber.Attribs.unsubscribe_url }}{{ .Subscriber.Attribs.unsubscribe_url }}{{ else }}{{ UnsubscribeURL }}{{ end }}" style="color:#5f6a80;">ワンクリックで配信停止</a>
+                                {{ if .Subscriber.Attribs.manage_url }} &nbsp;·&nbsp; <a href="{{ .Subscriber.Attribs.manage_url }}" style="color:#5f6a80;">通知設定を管理</a>{{ end }}
                             </p>
                             <p style="margin:0;">MySpeedPuzzling &nbsp;·&nbsp; チェコから❤️を込めて — Simona &amp; Jan</p>
                         {{ else }}
                             <p style="margin:0 0 10px;">You're receiving this e-mail from MySpeedPuzzling because you're subscribed to our newsletter.</p>
                             <p style="margin:0 0 10px;">
-                                <a href="{{ if .Subscriber.Attribs.unsubscribe_url }}{{ .Subscriber.Attribs.unsubscribe_url }}{{ else }}{{ UnsubscribeURL }}{{ end }}" style="color:#7d879c;">One-click unsubscribe</a>
-                                {{ if .Subscriber.Attribs.manage_url }} &nbsp;·&nbsp; <a href="{{ .Subscriber.Attribs.manage_url }}" style="color:#7d879c;">Manage notification settings</a>{{ end }}
+                                <a href="{{ if .Subscriber.Attribs.unsubscribe_url }}{{ .Subscriber.Attribs.unsubscribe_url }}{{ else }}{{ UnsubscribeURL }}{{ end }}" style="color:#5f6a80;">One-click unsubscribe</a>
+                                {{ if .Subscriber.Attribs.manage_url }} &nbsp;·&nbsp; <a href="{{ .Subscriber.Attribs.manage_url }}" style="color:#5f6a80;">Manage notification settings</a>{{ end }}
                             </p>
                             <p style="margin:0;">MySpeedPuzzling &nbsp;·&nbsp; Made with ❤️ in the Czech Republic — Simona &amp; Jan</p>
                         {{ end }}
                     </td>
                 </tr>
             </table>
-            <!--[if mso]></td></tr></table><![endif]-->
+            {{ Safe "<!--[if mso]></td></tr></table><![endif]-->" }}
             {{ TrackView }}
         </td>
     </tr>
 </table>
+</div>
 </body>
 </html>

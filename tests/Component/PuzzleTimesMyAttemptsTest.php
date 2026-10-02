@@ -74,7 +74,7 @@ final class PuzzleTimesMyAttemptsTest extends WebTestCase
         $html = $component->render()->toString();
 
         self::assertStringContainsString('Latest time:', $html);
-        self::assertStringContainsString('Fastest time:', $html);
+        self::assertStringContainsString('Your best', $html);
         self::assertStringNotContainsString('Your latest time is your fastest', $html);
         self::assertStringContainsString('All my times (2)', $html);
     }

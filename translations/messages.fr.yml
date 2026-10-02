@@ -272,6 +272,15 @@
     "by_brand": "Parcourir par marque"
     "by_size": "Parcourir par nombre de pièces"
 "puzzle_times":
+  "stats":
+    "fastest": "Plus rapide"
+    "median": "Médiane"
+    "average": "Moyenne"
+    "rank": "#%rank% sur %total%"
+    "my_best":
+      "solo": "Ton meilleur"
+      "duo": "Ton meilleur en duo"
+      "group": "Ton meilleur en équipe"
   "my_attempts":
     "my_time": "Mon temps :"
     "latest_time": "Dernier temps :"
@@ -882,6 +891,7 @@
     "failed": "Nous n'avons pas pu envoyer l'e-mail de confirmation. Veuillez réessayer dans un instant."
 "puzzle_detail":
   "details": "Détails"
+  "more_actions": "Plus d’actions"
   "meta":
     "title": "%brand% %name% – Puzzle %pieces% pièces"
     "ean": ", EAN %ean%"

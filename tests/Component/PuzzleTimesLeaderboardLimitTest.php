@@ -172,10 +172,8 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
         );
 
         // 100 of the 250 others are slower; 6505 s - 6000 s (the 100th) = 505 s
-        self::assertSame(
-            'Rank 151 of 251 · faster than 40% of puzzlers · 00:08:25 from the top 100',
-            $crawler->filter('[data-testid="my-position"]')->text(),
-        );
+        self::assertSame('#151 of 251', $crawler->filter('[data-testid="my-rank"]')->text());
+        self::assertSame(['faster than 40% of puzzlers', '00:08:25 from the top 100'], $this->standing($crawler));
 
         // "Show more" still continues right after the top rows
         self::assertSame('Show 100 more', $this->buttonText($crawler, 'showMore'));
@@ -250,7 +248,8 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
 
         $crawler = $this->mountSoloLeaderboard($client, PuzzleFixture::PUZZLE_500_01, 500)->render()->crawler();
 
-        self::assertSame('Rank 1 of 4', $crawler->filter('[data-testid="my-position"]')->text());
+        self::assertSame('#1 of 4', $crawler->filter('[data-testid="my-rank"]')->text());
+        self::assertSame([], $this->standing($crawler));
     }
 
     public function testPositionLineOfASmallLeaderboardHasNoPercentage(): void
@@ -261,7 +260,8 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
 
         $crawler = $this->mountSoloLeaderboard($client, PuzzleFixture::PUZZLE_500_01, 500)->render()->crawler();
 
-        self::assertSame('Rank 3 of 4 · 00:15:00 behind the fastest', $crawler->filter('[data-testid="my-position"]')->text());
+        self::assertSame('#3 of 4', $crawler->filter('[data-testid="my-rank"]')->text());
+        self::assertSame(['00:15:00 behind the fastest'], $this->standing($crawler));
     }
 
     public function testRowsShowTheirGapsToTheFastestAndToTheNextFasterTime(): void
@@ -309,7 +309,7 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
             array_slice($this->rowKeys($crawler), -5),
         );
         self::assertSame(['148', '149', '150', '150', '152'], array_slice($this->ranks($crawler), -5));
-        self::assertStringStartsWith('Rank 150 of 251 ·', $crawler->filter('[data-testid="my-position"]')->text());
+        self::assertSame('#150 of 251', $crawler->filter('[data-testid="my-rank"]')->text());
     }
 
     public function testChromeIsKeptOutOfSearchSnippets(): void
@@ -399,5 +399,17 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
     private function buttonText(Crawler $crawler, string $action): string
     {
         return trim($crawler->filter(sprintf('button[data-live-action-param="%s"]', $action))->last()->text());
+    }
+
+    /**
+     * How the viewer stands, after their own time - the parts of the line under the numbers
+     *
+     * @return list<string>
+     */
+    private function standing(Crawler $crawler): array
+    {
+        return array_slice($crawler->filter('[data-testid="my-position"] > span')->each(
+            static fn (Crawler $part): string => trim($part->text()),
+        ), 1);
     }
 }

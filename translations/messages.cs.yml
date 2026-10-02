@@ -270,6 +270,15 @@
     "by_brand": "Procházet podle značky"
     "by_size": "Procházet podle počtu dílků"
 "puzzle_times":
+  "stats":
+    "fastest": "Nejrychlejší"
+    "median": "Medián"
+    "average": "Průměr"
+    "rank": "#%rank% z %total%"
+    "my_best":
+      "solo": "Tvůj nejlepší"
+      "duo": "Tvůj nejlepší pár"
+      "group": "Tvůj nejlepší tým"
   "my_attempts":
     "my_time": "Můj čas:"
     "latest_time": "Poslední čas:"
@@ -899,6 +908,7 @@
     "failed": "Potvrzovací e-mail se nepodařilo odeslat. Zkuste to prosím za chvíli znovu."
 "puzzle_detail":
   "details": "Podrobnosti"
+  "more_actions": "Další akce"
   "meta":
     "title": "%brand% %name% – puzzle %pieces% dílků"
     "ean": ", EAN %ean%"

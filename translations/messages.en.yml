@@ -318,6 +318,15 @@ puzzle_result:
     finished_photo: "Photo of the finished puzzle"
 
 puzzle_times:
+    stats:
+        fastest: "Fastest"
+        median: "Median"
+        average: "Average"
+        rank: "#%rank% of %total%"
+        my_best:
+            solo: "Your best"
+            duo: "Your best pair"
+            group: "Your best team"
     my_attempts:
         my_time: "My time:"
         latest_time: "Latest time:"
@@ -1087,6 +1096,7 @@ edit_profile:
 
 puzzle_detail:
     details: "Details"
+    more_actions: "More actions"
     meta:
         title: "%brand% %name% – %pieces% Piece Puzzle"
         ean: ", EAN %ean%"

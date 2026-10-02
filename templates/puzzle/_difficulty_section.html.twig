@@ -5,29 +5,9 @@
 {# data-nosnippet: members-only UI chrome must never become a Google snippet #}
 <div data-nosnippet>
 
-{# Toggle button + methodology link on same line — always visible #}
-<div class="d-flex align-items-center gap-2 mt-3 mb-2">
-    <button
-        class="btn btn-outline-primary btn-sm flex-grow-1 d-flex align-items-center justify-content-between"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#puzzleInsights"
-        aria-expanded="false"
-        aria-controls="puzzleInsights"
-    >
-        <span>
-            <i class="bi bi-lightbulb me-1"></i>
-            {{ 'puzzle_intelligence.insights.title'|trans }}
-        </span>
-        <i class="bi bi-chevron-down fs-sm transition-transform"></i>
-    </button>
-    <a href="{{ path('methodology', {return: app.request.uri, return_title: 'puzzle_intelligence.insights.title'|trans}) }}" class="btn btn-outline-secondary btn-sm flex-shrink-0">
-        <i class="bi bi-question-circle"></i>
-    </a>
-</div>
-
+{# The panel only - its toggle sits in the puzzle header next to "Details" (puzzle_detail.html.twig) #}
 {# Collapsible content #}
-<div class="collapse mb-3" id="puzzleInsights">
+<div class="collapse mt-2 mb-1" id="puzzleInsights">
     <div class="card shadow-sm">
         <div class="card-body">
             {% if is_member %}
@@ -226,6 +206,10 @@
                     </div>
                 </div>
             {% endif %}
+
+            <a class="d-inline-block fs-sm mt-3" href="{{ path('methodology', {return: app.request.uri, return_title: 'puzzle_intelligence.insights.title'|trans}) }}">
+                <i class="bi bi-question-circle me-1"></i>{{ 'difficulty_ranking.methodology_link'|trans }}
+            </a>
         </div>
     </div>
 </div>

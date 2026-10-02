@@ -162,7 +162,8 @@
        below sm the database is just an icon and below md the puzzle's own name is left out (the H1 says it right
        underneath). The BreadcrumbList JSON-LD above carries the same levels. The icon stands alone, so it is centred on
        the line (its glyph sits too high on the baseline) without the theme's gap for a following label. #}
-    <nav aria-label="breadcrumb" class="puzzle-breadcrumb mb-3">
+    {# Phones skip it: "500 pieces · Brand" right under the name links to the same two pages #}
+    <nav aria-label="breadcrumb" class="puzzle-breadcrumb mb-3 d-none d-sm-block">
         <ol class="breadcrumb flex-nowrap align-items-center mb-0" style="font-size: 0.8rem;">
             {% for level in breadcrumb %}
                 {% if loop.first %}
@@ -182,16 +183,30 @@
        two things people come to do (add a time, start the stopwatch) - and its rankings on the right, so a leaderboard
        row is not stretched across the whole page. Below 992 px it is one column in the same order as before: head,
        insights, rankings. Product codes, EANs and events are details, folded away (user feedback) #}
-    <div class="puzzle-layout">
+    <div class="puzzle-layout" data-controller="puzzle-bar">
+        {# Takes the header's place once its buttons scroll away (puzzle_bar_controller.js): which puzzle this is, and ⋯
+           with every action - the leaderboard below can be hundreds of rows long #}
+        <div class="puzzle-bar" data-puzzle-bar-target="bar" inert>
+            <div class="container puzzle-bar-inner">
+                <img class="puzzle-bar-image" alt="" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}" loading="lazy">
+                <div class="puzzle-bar-text">
+                    <div class="puzzle-bar-name">{{ puzzle.puzzleName }}</div>
+                    <div class="puzzle-bar-meta">{{ include('_pieces_brand.html.twig', {pieces: puzzle.piecesCount, brand: puzzle.manufacturerName}) }}</div>
+                </div>
+                {{ include('puzzle/_detail_actions_menu.html.twig') }}
+            </div>
+        </div>
+
         <aside class="puzzle-aside">
             <div class="puzzle-head">
-                <div class="puzzle-head-image text-center">
+                <div class="puzzle-head-image">
                     <div class="gallery">
                         {% if puzzle.puzzleImage is not null %}
                             {# The large stripped preset, not the uploaded original (older uploads may carry EXIF/GPS) #}
                             <a class="gallery-item gallery-item-inline-block" href="{{ puzzle.puzzleImage|thumbnail('puzzle_large') }}">
-                                {# 340 px wide on desktop - the 900 px preset keeps it sharp there, phones still load the 400 px one #}
-                                <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" srcset="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }} 400w, {{ puzzle.puzzleImage|puzzle_image('puzzle_large') }} 900w" sizes="(min-width: 992px) 340px, (min-width: 768px) 160px, (min-width: 576px) 110px, 90px" {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 110) }} fetchpriority="high">
+                                {# Always the whole box in its own proportions, never cropped: at most 112 px each way on phones, 160 px on tablets,
+                                   340 px wide on desktop - the 900 px preset keeps it sharp there, phones still load the 400 px one #}
+                                <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" srcset="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }} 400w, {{ puzzle.puzzleImage|puzzle_image('puzzle_large') }} 900w" sizes="(min-width: 992px) 340px, (min-width: 768px) 160px, 112px" {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 110) }} fetchpriority="high">
                             </a>
                         {% else %}
                             <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 110) }} fetchpriority="high">
@@ -200,130 +215,117 @@
                 </div>
 
                 <div class="puzzle-head-info">
-                    {# The piece count links to the same page as the breadcrumb #}
-                    <h1 class="h4 mb-0">
-                        {{ puzzle.puzzleName }}
-                        <span class="fs-base text-muted fw-normal text-nowrap">(
-                            {%- if pieces_page is not null -%}
-                                <a class="text-reset text-decoration-none" href="{{ pieces_page.url }}" title="{{ pieces_page.name }}">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</a>
-                            {%- else -%}
-                                {{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}
-                            {%- endif -%}
-                        )</span>
-                    </h1>
-                    <div class="puzzle-head-brand fs-sm">
-                        {% if puzzle.manufacturerSlug is not null %}
-                            <a href="{{ path('brand_puzzles', {slug: puzzle.manufacturerSlug}) }}">{{ puzzle.manufacturerName }}</a>
-                        {% else %}
-                            {{ puzzle.manufacturerName }}
-                        {% endif %}
-                    </div>
-
-                    {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-                        <span class="d-inline-flex align-items-center gap-1 mt-2">
-                            {% if puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is not null %}
-                                {% set dt_name = puzzle_difficulty.difficultyTier.name|lower %}
-                                {% set dt_icon_map = {'veryeasy':'diff-very-easy','easy':'diff-easy','average':'diff-average','challenging':'diff-challenging','hard':'diff-hard','veryhard':'diff-very-hard'} %}
-                                <svg class="diff-icon" width="24" height="24" style="color: var(--{{ dt_icon_map[dt_name] ?? 'diff-unknown' }})"><use href="/difficulty-icons-sprite.svg#{{ dt_icon_map[dt_name] ?? 'diff-unknown' }}"/></svg>
-                                <small class="fw-bold">{{ puzzle_difficulty.difficultyTier.translationKey|trans }}</small>
+                    {# Name, then "500 pieces · Brand" on one line under it; the piece count stays in the H1 (and links to
+                       the same page as the breadcrumb) #}
+                    <div class="puzzle-head-titles">
+                        <h1 class="puzzle-head-title">
+                            <span class="puzzle-head-name">{{ puzzle.puzzleName }}</span>
+                            <span class="puzzle-head-pieces">
+                                {%- if pieces_page is not null -%}
+                                    <a class="text-reset text-decoration-none" href="{{ pieces_page.url }}" title="{{ pieces_page.name }}">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</a>
+                                {%- else -%}
+                                    {{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}
+                                {%- endif -%}
+                            </span>
+                        </h1>
+                        <span class="puzzle-head-brand">·
+                            {% if puzzle.manufacturerSlug is not null %}
+                                <a href="{{ path('brand_puzzles', {slug: puzzle.manufacturerSlug}) }}">{{ puzzle.manufacturerName }}</a>
                             {% else %}
-                                <svg class="diff-icon" width="24" height="24" style="color: var(--diff-unknown)"><use href="/difficulty-icons-sprite.svg#diff-unknown"/></svg>
-                                <small class="fw-bold text-muted">{{ 'puzzle_intelligence.difficulty.not_enough_data'|trans }}</small>
+                                {{ puzzle.manufacturerName }}
                             {% endif %}
                         </span>
-                    {% else %}
-                        <span class="d-inline-flex align-items-center gap-1 mt-2" role="button" title="{{ 'difficulty_ranking.difficulty_locked'|trans }}" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
-                            <svg class="diff-icon" width="24" height="24" style="color: var(--diff-locked)"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
-                            <small class="fw-bold">{{ 'puzzle_intelligence.difficulty.tier_label'|trans }}</small>
-                        </span>
-                    {% endif %}
-
-                    <div class="puzzle-head-badges" id="puzzle-badges-{{ puzzle.puzzleId }}">
-                        {{ include('puzzle/_badges.html.twig', {
-                            puzzle_id: puzzle.puzzleId,
-                            puzzle_statuses: puzzle_statuses,
-                        }) }}
-                        {% if offers_count > 0 %}
-                            {% set puzzleDetailReturnUrl = path('puzzle_detail', {puzzleId: puzzle.puzzleId, return: app.request.query.get('return'), return_title: app.request.query.get('return_title')}) %}
-                            <a href="{{ path('marketplace_puzzle', {puzzleId: puzzle.puzzleId, return: puzzleDetailReturnUrl, return_title: puzzle.puzzleName}) }}"
-                               class="puzzle-offers-badge mt-1 badge bg-danger badge-shadow rounded-pill text-white link-light">
-                                <i class="bi bi-shop me-1"></i>
-                                {% if lowest_offer_prices is not empty %}
-                                    {# The cheapest priced offer - the prices of the Product structured data, visible
-                                       on the page. Never compared across currencies: one price per currency. #}
-                                    {% set offer_prices = [] %}
-                                    {% for currency, price in lowest_offer_prices %}
-                                        {% set offer_prices = offer_prices|merge([price|format_currency(currency, {fraction_digit: price == price|round ? 0 : 2}, app.request.locale)]) %}
-                                    {% endfor %}
-                                    {{ 'puzzler_offers.badge_from'|trans({'%count%': offers_count, '%price%': offer_prices|join(' / ')}) }}
-                                {% else %}
-                                    {{ 'puzzler_offers.badge'|trans({'%count%': offers_count}) }}
-                                {% endif %}
-                            </a>
-                        {% endif %}
-                        {% if has_pending_proposals %}
-                            <a href="{{ path('puzzle_pending_proposals', {puzzleId: puzzle.puzzleId}) }}"
-                               class="mt-1 badge bg-warning text-dark rounded-pill"
-                               rel="nofollow"
-                               data-turbo="true"
-                               data-turbo-frame="modal-frame">
-                                <i class="bi bi-exclamation-triangle me-1"></i>
-                                {{ 'pending_proposals.badge'|trans }}
-                            </a>
-                        {% endif %}
                     </div>
-                </div>
 
-                <div class="puzzle-head-menu">
-                    {# data-nosnippet: Google used the hidden menu labels as the search snippet ("Suggest a change …");
-                       it is honoured on div/span/section only, not on the ul #}
-                    <div class="dropdown" data-nosnippet>
-                        <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="ci-menu"></i>
-                        </button>
+                    <div class="puzzle-head-chips">
+                        {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                            <span class="puzzle-head-difficulty">
+                                {% if puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is not null %}
+                                    {% set dt_name = puzzle_difficulty.difficultyTier.name|lower %}
+                                    {% set dt_icon_map = {'veryeasy':'diff-very-easy','easy':'diff-easy','average':'diff-average','challenging':'diff-challenging','hard':'diff-hard','veryhard':'diff-very-hard'} %}
+                                    <svg class="diff-icon" width="24" height="24" style="color: var(--{{ dt_icon_map[dt_name] ?? 'diff-unknown' }})"><use href="/difficulty-icons-sprite.svg#{{ dt_icon_map[dt_name] ?? 'diff-unknown' }}"/></svg>
+                                    <small>{{ puzzle_difficulty.difficultyTier.translationKey|trans }}</small>
+                                {% else %}
+                                    <svg class="diff-icon" width="24" height="24" style="color: var(--diff-unknown)"><use href="/difficulty-icons-sprite.svg#diff-unknown"/></svg>
+                                    <small class="text-muted">{{ 'puzzle_intelligence.difficulty.not_enough_data'|trans }}</small>
+                                {% endif %}
+                            </span>
+                        {% else %}
+                            <span class="puzzle-head-difficulty" role="button" title="{{ 'difficulty_ranking.difficulty_locked'|trans }}" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                <svg class="diff-icon" width="24" height="24" style="color: var(--diff-locked)"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
+                                <small>{{ 'puzzle_intelligence.difficulty.tier_label'|trans }}</small>
+                            </span>
+                        {% endif %}
 
-                        <ul class="dropdown-menu">
-                            <li class="d-lg-none">
-                                <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: puzzle.puzzleId}) }}">
-                                    <i class="ci-add me-1"></i> {{  'add_solving'|trans }}
-                                </a>
-                            </li>
-                            <li class="d-lg-none">
-                                <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}">
-                                    <i class="ci-time me-1"></i> {{ 'start_solving'|trans }}
-                                </a>
-                            </li>
-
-                            {% if logged_user.profile is not null %}
-                                <li class="d-lg-none"><hr class="dropdown-divider"></li>
-                            {% endif %}
-
-                            {{ include('puzzle/_dropdown_actions.html.twig', {
+                        <div class="puzzle-head-badges" style="display: contents;" id="puzzle-badges-{{ puzzle.puzzleId }}">
+                            {{ include('puzzle/_badges.html.twig', {
                                 puzzle_id: puzzle.puzzleId,
                                 puzzle_statuses: puzzle_statuses,
-                                offer_counts: { (puzzle.puzzleId): offers_count },
-                                puzzle_name: puzzle.puzzleName,
                             }) }}
-                        </ul>
+                            {% if offers_count > 0 %}
+                                {% set puzzleDetailReturnUrl = path('puzzle_detail', {puzzleId: puzzle.puzzleId, return: app.request.query.get('return'), return_title: app.request.query.get('return_title')}) %}
+                                <a href="{{ path('marketplace_puzzle', {puzzleId: puzzle.puzzleId, return: puzzleDetailReturnUrl, return_title: puzzle.puzzleName}) }}"
+                                   class="puzzle-offers-badge mt-1 badge bg-danger badge-shadow rounded-pill text-white link-light">
+                                    <i class="bi bi-shop me-1"></i>
+                                    {% if lowest_offer_prices is not empty %}
+                                        {# The cheapest priced offer - the prices of the Product structured data, visible
+                                           on the page. Never compared across currencies: one price per currency. #}
+                                        {% set offer_prices = [] %}
+                                        {% for currency, price in lowest_offer_prices %}
+                                            {% set offer_prices = offer_prices|merge([price|format_currency(currency, {fraction_digit: price == price|round ? 0 : 2}, app.request.locale)]) %}
+                                        {% endfor %}
+                                        {{ 'puzzler_offers.badge_from'|trans({'%count%': offers_count, '%price%': offer_prices|join(' / ')}) }}
+                                    {% else %}
+                                        {{ 'puzzler_offers.badge'|trans({'%count%': offers_count}) }}
+                                    {% endif %}
+                                </a>
+                            {% endif %}
+                            {% if has_pending_proposals %}
+                                <a href="{{ path('puzzle_pending_proposals', {puzzleId: puzzle.puzzleId}) }}"
+                                   class="mt-1 badge bg-warning text-dark rounded-pill"
+                                   rel="nofollow"
+                                   data-turbo="true"
+                                   data-turbo-frame="modal-frame">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    {{ 'pending_proposals.badge'|trans }}
+                                </a>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {# The two things people come here to do, as buttons on desktop - in the ≡ menu below 992 px #}
-            <div class="puzzle-head-actions" data-nosnippet>
-                <a class="btn btn-primary btn-sm" data-turbo-frame="_top" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: puzzle.puzzleId}) }}">
+            {# The two things people come here to do, then ⋯ with every action on the puzzle #}
+            <div class="puzzle-head-actions" data-nosnippet data-puzzle-bar-target="head">
+                <a class="btn btn-primary" data-turbo-frame="_top" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: puzzle.puzzleId}) }}">
                     <i class="ci-add me-1"></i> {{ 'add_solving'|trans }}
                 </a>
-                <a class="btn btn-outline-primary btn-sm" data-turbo-frame="_top" rel="nofollow" href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}">
+                <a class="btn btn-outline-primary" data-turbo-frame="_top" rel="nofollow" href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}">
                     <i class="ci-time me-1"></i> {{ 'start_solving'|trans }}
                 </a>
+                {{ include('puzzle/_detail_actions_menu.html.twig') }}
             </div>
 
             {# Like the EAN: a secret puzzle's product number would give it away while its image is embargoed #}
             {% set has_codes = not is_image_hidden and (puzzle.puzzleIdentificationNumber is not null or puzzle.puzzleEan) %}
+            {% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
+            <div class="puzzle-head-toggles" data-nosnippet>
+                <button class="puzzle-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#puzzleInsights" aria-expanded="false" aria-controls="puzzleInsights">
+                    <i class="bi bi-lightbulb" aria-hidden="true"></i>
+                    {{ 'puzzle_intelligence.insights.title'|trans }}
+                    {% if not is_member %}<i class="ci-locked" aria-hidden="true"></i>{% endif %}
+                    <i class="bi bi-chevron-down puzzle-toggle-chevron" aria-hidden="true"></i>
+                </button>
+                {% if has_codes or tags %}
+                    <button class="puzzle-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#puzzleDetails" aria-expanded="false" aria-controls="puzzleDetails">
+                        {{ 'puzzle_detail.details'|trans }}
+                        <i class="bi bi-chevron-down puzzle-toggle-chevron" aria-hidden="true"></i>
+                    </button>
+                {% endif %}
+            </div>
+
             {% if has_codes or tags %}
-                <details class="puzzle-details">
-                    <summary>{{ 'puzzle_detail.details'|trans }}</summary>
+                <div class="collapse" id="puzzleDetails">
                     <div class="puzzle-details-body">
                         {% if not is_image_hidden and puzzle.puzzleIdentificationNumber is not null %}
                             <div><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small></div>
@@ -345,7 +347,7 @@
                             </p>
                         {% endif %}
                     </div>
-                </details>
+                </div>
             {% endif %}
 
             {% if not puzzle.puzzleApproved %}

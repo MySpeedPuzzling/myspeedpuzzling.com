@@ -33,23 +33,28 @@ Code: `Value\LeaderboardChartView`, `ChangeLeaderboardChartView` + handler, `Puz
 
 ### What the player gets
 
-- **One rule for every leaderboard:** the distribution is the default chart, whatever the number of rows. A switch turns
-  it into the **rankings**, the old chart with one bar per row, fastest first. The 50-row threshold
-  (`INDIVIDUAL_BARS_MAX`) is gone, both for showing and for switching.
-- **The switch:** two icon-only buttons in the chart card's top right corner. It sits in a slim row of its own above the
-  canvas, not on top of it. The ranking's tallest bars, and often its "You" label, are in that corner, and so is the
-  zoom-reset button (`.zoom-reset`, `top: 0; right: 0`).
+- **From 20 rows a member chooses:** the distribution is the default, and a switch turns it into the **rankings**, the
+  old chart with one bar per row, fastest first. `PuzzleTimesChart::SWITCH_MIN_ROWS` = 20 **filtered** rows.
+- **Below 20 rows it is always the rankings, without a switch.** A distribution of a handful of puzzlers has no shape
+  (Jan, 2026-10-02, after the first version showed it at every size). Measured on every solo board with `maxBins()`:
+  10–14 rows give ~7 bars, the tallest with 4 puzzlers and half of them holding a single one; 20–24 rows give ~8 bars,
+  the tallest with 6 and 60 % with two or more. 2,087 of 15,367 solo boards have 20 rows or more. A filter decides too:
+  a dozen favourite players are shown by name. The stored choice stays untouched for the next long board.
+  The old 50-row threshold (`INDIVIDUAL_BARS_MAX`) is gone.
+- **The switch lies on the chart's top right corner,** `top: 0; right: 20px`, over the plot (Jan, 2026-10-02: no row of
+  its own, saves space). It covers the plot's 18 px top padding and a few pixels below it. In the distribution that is
+  the slow tail's empty space; in the rankings the slowest bars stay visible to its right, and the buttons are
+  translucent. Checked on screenshots of London Postcard's 1,722 times at 375 px and 1,280 px.
   - The shown chart's button is filled (`.lb-chart-switch` in `_leaderboard.scss`).
+  - The rankings' zoom-reset button (`.zoom-reset`, top right on every other chart) moves left of the switch and takes
+    its height (`$lb-chart-switch-width`, measured 63–67 px).
   - Icons: Symfony UX Icons, imported into `assets/icons/` (`ux:icons:import`), so nothing is fetched from Iconify at
     runtime: `clarity:bell-curve-line` for Distribution, `bi:bar-chart` for Rankings (Jan's pick, 2026-10-02, out of four
     pairs). They are picked in one place, the `view_icons` map at the top of the members' branch of the template.
-- **Who sees it:** members, whenever the chart is shown (2 or more rows). Non-members keep the locked placeholder and no
-  chart data.
+- **Who sees it:** members, on boards of 20 or more rows. Non-members keep the locked placeholder and no chart data.
 - **Remembered:** the choice is stored on the player and applies to every puzzle page, every tab and every device. The
   default is `distribution`, so boards with 51 or more rows looked as before until the player tapped.
-- **Behaviour change:** boards with 50 or fewer rows (most puzzles) open on the distribution instead of the bar per row.
-  That includes a favourites filter that narrows a board to a few friends. Members who want names in the bars switch once,
-  and it is remembered.
+- **Behaviour change:** boards with 20–50 rows open on the distribution instead of the bar per row.
 
 ### Small boards: fewer, wider bars
 
@@ -185,11 +190,14 @@ So **one chart is never morphed into the other; it is rebuilt:**
 ### Decisions (Jan, 2026-10-02)
 
 1. **Icons only.** They still carry `aria-label` + `title`.
-2. **No 50-row distinction:** the distribution is the default for every board, and the switch leads to the old ranking,
-   named "Rankings". The bar limit by row count was approved with it.
+2. **No 50-row distinction:** the distribution is the default, and the switch leads to the old ranking, named
+   "Rankings". The bar limit by row count was approved with it. *Refined the same day, see 6.*
 3. **All locales** for the three accessible-name texts.
-4. **Icons:** pair A (Tabler histogram / Tabler rising bars) shipped first. The candidates are compared on
-   https://claude.ai/artifact/JwZzJfXe3DfhdzQmwf7MLk; the other pairs swap in through `view_icons`.
+4. **Icons:** pair C, `clarity:bell-curve-line` / `bi:bar-chart`, out of four pairs compared on
+   https://claude.ai/artifact/JwZzJfXe3DfhdzQmwf7MLk. Another pair swaps in through `view_icons`.
+5. **The switch lies on the chart,** top right, 20 px from the right edge, instead of a row above it.
+6. **Below 20 rows always the rankings, without a switch.** "The distribution chart is weird with not enough records";
+   20 was Jan's suggestion, and the measurements above back it.
 
 ## The problem
 
@@ -254,8 +262,9 @@ Times are right-skewed: London Postcard (500 pcs) – fastest 19:02, median 53:2
 
 ## Recommendation (built)
 
-**Chart – pick the right view by size, no toggle.** *(Superseded 2026-10-02: the distribution is the default at every size
-and members switch to the bar per row themselves - see "Chart switch" above. Kept for the reasoning of 2026-09-30.)*
+**Chart – pick the right view by size, no toggle.** *(Superseded 2026-10-02: from 20 rows the distribution is the default
+and members switch to the bar per row themselves, below 20 rows always the bar per row - see "Chart switch" above. Kept for
+the reasoning of 2026-09-30.)*
 - **Up to 50 rows: one bar per row, as before** (`PuzzleTimesChart::INDIVIDUAL_BARS_MAX`). Every bar is at least ~6 px
   wide on a phone, names are in the tooltips, first attempts stay blue, drag-zoom stays. New: the same dashed **Median** line,
   here horizontal at the median time (y is time in this view), and **You** above the viewer's (solid red) bar, drawn by the same
@@ -341,7 +350,7 @@ it).
 
 ## Decisions (Jan, 2026-09-30)
 
-1. **Switch to the distribution above 50 rows** – kept. *Replaced 2026-10-02: the distribution at every size.*
+1. **Switch to the distribution above 50 rows** – kept. *Replaced 2026-10-02: from 20 rows, by the member's choice.*
 2. **No toggle** between the two views – kept. *Replaced 2026-10-02: a remembered switch, see "Chart switch".*
 3. **±2 neighbours** – kept; the gap row now says how many rows it hides ("⋯ 497 more") and runs "Show more" when tapped.
 4. **"faster than X %"** stays everywhere: "Top 97 %" would be ambiguous (faster than 97 %, or the slowest 3 %?).

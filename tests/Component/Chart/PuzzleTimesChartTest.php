@@ -18,7 +18,7 @@ use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 
 /**
  * The members' chart above the puzzle leaderboard (docs/features/puzzle-leaderboard-chart.md): the distribution of
- * the times by default, a bar per row (the ranking) when the member switched to it - whatever the number of rows.
+ * the times by default, a bar per row (the ranking) when the member switched to it - and always below SWITCH_MIN_ROWS.
  */
 final class PuzzleTimesChartTest extends KernelTestCase
 {
@@ -38,14 +38,27 @@ final class PuzzleTimesChartTest extends KernelTestCase
         }
     }
 
-    public function testDistributionIsTheDefaultWhateverTheSize(): void
+    public function testDistributionIsTheDefaultFromTwentyRows(): void
     {
-        foreach ([3, 500] as $size) {
+        foreach ([PuzzleTimesChart::SWITCH_MIN_ROWS, 500] as $size) {
             $chart = $this->chart(self::soloRows($size));
 
+            self::assertTrue($chart->canSwitchView());
             self::assertTrue($chart->isDistribution());
             self::assertSame($size, array_sum(self::datasetValues($chart->getChart()->getData(), 0)) + array_sum(self::datasetValues($chart->getChart()->getData(), 1)));
         }
+    }
+
+    public function testShorterLeaderboardsAreAlwaysTheRanking(): void
+    {
+        $chart = $this->chart(self::soloRows(PuzzleTimesChart::SWITCH_MIN_ROWS - 1));
+
+        self::assertFalse($chart->canSwitchView());
+        self::assertFalse($chart->isDistribution());
+
+        $data = $chart->getChart()->getData();
+        self::assertIsArray($data['labels']);
+        self::assertCount(PuzzleTimesChart::SWITCH_MIN_ROWS - 1, $data['labels']);
     }
 
     public function testBarPerRowChartMarksTheMedianAcrossTheBarsAndTheViewersBar(): void

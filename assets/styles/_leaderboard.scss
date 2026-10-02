@@ -792,23 +792,44 @@ $lb-part-gap: 1.1em;
     }
 }
 
-// The switch in the chart card's corner (Chart/PuzzleTimesChart): distribution or ranking, icons only. Grey outline,
-// the shown chart filled - read at a glance which one is on
+// The members' chart (Chart/PuzzleTimesChart) with the distribution / ranking switch lying on its top right corner
+// (Jan, 2026-10-02: no row of its own). The plot keeps 18 px of top padding for the Median / You labels, so the switch
+// covers at most the tips of the slowest bars there - and is translucent, so they show through.
+$lb-chart-switch-right: 20px;
+$lb-chart-switch-width: 68px; // two buttons sharing a border (measured 63-67 px)
+
+.lb-chart {
+    .lb-chart-switch {
+        position: absolute;
+        top: 0;
+        right: $lb-chart-switch-right;
+        z-index: 2;
+    }
+
+    // The ranking's zoom reset, top right everywhere else, moves left of the switch, as tall as it
+    .lb-chart-switch ~ * .zoom-reset {
+        right: $lb-chart-switch-right + $lb-chart-switch-width + 6px;
+        padding: .25rem .4375rem;
+        line-height: 1;
+    }
+}
+
+// Icons only: grey outline, the shown chart filled - read at a glance which one is on
 .lb-chart-switch {
     .btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 34px;
-        padding: .3125rem .5rem;
+        min-width: 31px;
+        padding: .25rem .4375rem;
         line-height: 1;
         color: $gray-700;
-        background-color: #fff;
+        background-color: rgba($white, .85);
         border-color: $border-color;
 
         &:hover {
             color: $primary;
-            background-color: #fff;
+            background-color: $white;
             border-color: $border-color;
         }
 

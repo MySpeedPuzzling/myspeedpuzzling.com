@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Component\Chart\PuzzleTimesChart;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -61,11 +62,12 @@ final class PuzzleTimesDistributionChartTest extends WebTestCase
         yield 'unboxed only, 40 left' => ['onlyUnboxed', true, 40];
         yield 'one country, 70 left' => ['country', 'cz', 70];
         yield 'favorite players, 20 left' => ['onlyFavoritePlayers', true, 20];
+        yield 'favorite players, 12 left: the ranking' => ['onlyFavoritePlayers', true, 12];
     }
 
     /**
-     * The chart is drawn from the filtered rows - and stays the distribution however few are left (the member switches
-     * to the ranking themselves, see PuzzleTimesChartViewTest)
+     * The chart is drawn from the filtered rows, and the rows left decide: from PuzzleTimesChart::SWITCH_MIN_ROWS the
+     * member's choice (the distribution here), below it always the ranking - e.g. a few favourite players, by name
      */
     #[DataProvider('provideFilters')]
     public function testEveryFilterFeedsTheChart(string $filter, bool|string $value, int $rows): void
@@ -100,9 +102,17 @@ final class PuzzleTimesDistributionChartTest extends WebTestCase
         }
 
         $crawler = $component->render()->crawler();
-        self::assertCount(1, $crawler->filter('[data-testid="leaderboard-distribution"]'));
-
         $data = self::chartData($crawler);
+
+        if ($rows < PuzzleTimesChart::SWITCH_MIN_ROWS) {
+            self::assertCount(1, $crawler->filter('[data-testid="leaderboard-individual"]'));
+            self::assertCount(0, $crawler->filter('[data-testid="leaderboard-chart-switch"]'));
+            self::assertCount($rows, $data['labels']);
+
+            return;
+        }
+
+        self::assertCount(1, $crawler->filter('[data-testid="leaderboard-distribution"]'));
         self::assertSame($rows, array_sum($data['counts']));
 
         // First tries only: every bar is a first try - a single colour, so no legend
@@ -127,8 +137,9 @@ final class PuzzleTimesDistributionChartTest extends WebTestCase
         ], $client);
         $component->setRouteLocale('en');
 
-        self::assertSame(3, array_sum(self::chartData($component->render()->crawler())['counts']));
-        self::assertSame(2, array_sum(self::chartData($component->set('onlyMyTeams', true)->render()->crawler())['counts']));
+        // Three pairs and then two: the ranking, one bar per row
+        self::assertCount(3, self::chartData($component->render()->crawler())['labels']);
+        self::assertCount(2, self::chartData($component->set('onlyMyTeams', true)->render()->crawler())['labels']);
     }
 
     public function testBarPerRowChartLeavesOutHiddenPlayersAndCarriesTheMarkersAndSummary(): void

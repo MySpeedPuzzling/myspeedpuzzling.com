@@ -10,61 +10,65 @@
             {% set view_icons = {distribution: 'clarity:bell-curve-line', ranking: 'bi:bar-chart'} %}
             {% set current_view = this.distribution ? 'distribution' : 'ranking' %}
 
-            {# Above the canvas, not on it: the ranking's tallest bars, its "You" and the zoom reset sit in that corner #}
-            <div class="d-flex justify-content-end mb-1">
-                <div class="btn-group btn-group-sm lb-chart-switch" role="group" aria-label="{{ 'puzzle_times.chart.view.label'|trans }}" data-testid="leaderboard-chart-switch">
-                    {% for view in ['distribution', 'ranking'] %}
-                        {% set view_label = ('puzzle_times.chart.view.' ~ view)|trans %}
-                        <button
-                            type="button"
-                            class="btn {{ view == current_view ? 'active' }}"
-                            aria-pressed="{{ view == current_view ? 'true' : 'false' }}"
-                            aria-label="{{ view_label }}"
-                            title="{{ view_label }}"
-                            data-action="live#action"
-                            data-live-action-param="changeChartView"
-                            data-live-view-param="{{ view }}"
-                            data-testid="leaderboard-chart-switch-{{ view }}"
-                        >{{ ux_icon(view_icons[view], {'aria-hidden': 'true'}) }}</button>
-                    {% endfor %}
-                </div>
-            </div>
-
-            {# Keyed by the view: when the id changes, the Live morph replaces this container's content instead of morphing
-               one chart into the other, so the new wrapper's controllers connect before its canvas builds the chart - the
-               two charts differ in datasets, axes, controllers and plugins. The same view keeps the id and is updated
-               in place. #}
-            <div id="leaderboard-chart-{{ current_view }}" data-testid="leaderboard-chart-{{ current_view }}">
-                {% if this.distribution %}
-                    {# How the times are distributed, with Median and You #}
-                    <div style="height: 200px;" data-controller="leaderboard-chart" class="position-relative" data-testid="leaderboard-distribution">
-                        {{ render_chart(computed.chart, {role: 'img', 'aria-label': computed.summary}) }}
-                    </div>
-                    {% if computed.legend is not empty %}
-                        <div class="d-flex justify-content-center gap-3 fs-xs text-muted mt-1" data-testid="leaderboard-legend">
-                            {% for item in computed.legend %}
-                                <span class="d-inline-flex align-items-center gap-1">
-                                    <span class="d-inline-block rounded-1" style="width: 10px; height: 10px; background: {{ item.color }};"></span>
-                                    {{ item.label }}
-                                </span>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                {% else %}
-                    {# A bar per row, fastest first; time-chart keeps its zoom and time tooltips. Same height as the
-                       distribution, so the table does not jump on a switch #}
-                    <div style="height: 200px;" data-controller="time-chart leaderboard-chart" class="position-relative" data-testid="leaderboard-individual">
-                        {{ render_chart(computed.chart, {role: 'img', 'aria-label': computed.summary}) }}
-
-                        <button
-                            class="d-none position-absolute btn btn-sm btn-outline-primary shadow zoom-reset"
-                            data-action="time-chart#resetZoom"
-                            data-time-chart-target="zoomButton"
-                        >
-                            <i class="bi-zoom-out"></i>
-                        </button>
+            {# The switch lies on the chart's top right corner (Jan, 2026-10-02: no row of its own, saves space) - over the
+               plot's top padding, translucent, so at most the tips of the slowest bars sit under it. The ranking's zoom
+               reset moves to its left (_leaderboard.scss). Short leaderboards are always the ranking, without a switch. #}
+            <div class="position-relative lb-chart">
+                {% if this.canSwitchView %}
+                    <div class="btn-group btn-group-sm lb-chart-switch" role="group" aria-label="{{ 'puzzle_times.chart.view.label'|trans }}" data-testid="leaderboard-chart-switch">
+                        {% for view in ['distribution', 'ranking'] %}
+                            {% set view_label = ('puzzle_times.chart.view.' ~ view)|trans %}
+                            <button
+                                type="button"
+                                class="btn {{ view == current_view ? 'active' }}"
+                                aria-pressed="{{ view == current_view ? 'true' : 'false' }}"
+                                aria-label="{{ view_label }}"
+                                title="{{ view_label }}"
+                                data-action="live#action"
+                                data-live-action-param="changeChartView"
+                                data-live-view-param="{{ view }}"
+                                data-testid="leaderboard-chart-switch-{{ view }}"
+                            >{{ ux_icon(view_icons[view], {'aria-hidden': 'true'}) }}</button>
+                        {% endfor %}
                     </div>
                 {% endif %}
+
+                {# Keyed by the view: when the id changes, the Live morph replaces this container's content instead of morphing
+                   one chart into the other, so the new wrapper's controllers connect before its canvas builds the chart - the
+                   two charts differ in datasets, axes, controllers and plugins. The same view keeps the id and is updated
+                   in place. #}
+                <div id="leaderboard-chart-{{ current_view }}" data-testid="leaderboard-chart-{{ current_view }}">
+                    {% if this.distribution %}
+                        {# How the times are distributed, with Median and You #}
+                        <div style="height: 200px;" data-controller="leaderboard-chart" class="position-relative" data-testid="leaderboard-distribution">
+                            {{ render_chart(computed.chart, {role: 'img', 'aria-label': computed.summary}) }}
+                        </div>
+                        {% if computed.legend is not empty %}
+                            <div class="d-flex justify-content-center gap-3 fs-xs text-muted mt-1" data-testid="leaderboard-legend">
+                                {% for item in computed.legend %}
+                                    <span class="d-inline-flex align-items-center gap-1">
+                                        <span class="d-inline-block rounded-1" style="width: 10px; height: 10px; background: {{ item.color }};"></span>
+                                        {{ item.label }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        {# A bar per row, fastest first; time-chart keeps its zoom and time tooltips. Same height as the
+                           distribution, so the table does not jump on a switch #}
+                        <div style="height: 200px;" data-controller="time-chart leaderboard-chart" class="position-relative" data-testid="leaderboard-individual">
+                            {{ render_chart(computed.chart, {role: 'img', 'aria-label': computed.summary}) }}
+
+                            <button
+                                class="d-none position-absolute btn btn-sm btn-outline-primary shadow zoom-reset"
+                                data-action="time-chart#resetZoom"
+                                data-time-chart-target="zoomButton"
+                            >
+                                <i class="bi-zoom-out"></i>
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         {% else %}
             <div class="puzzle-detail-chart-placeholder text-center">

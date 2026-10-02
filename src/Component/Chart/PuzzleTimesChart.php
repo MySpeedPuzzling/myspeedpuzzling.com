@@ -19,8 +19,8 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
 /**
  * Members' chart above the puzzle leaderboard (docs/features/puzzle-leaderboard-chart.md): the distribution of the
- * times, or the ranking - one bar per row - when the member switched to it. Either way it is drawn from the whole
- * filtered leaderboard, never from the rows the table shows.
+ * times, or the ranking - one bar per row - when the member switched to it; a leaderboard shorter than SWITCH_MIN_ROWS
+ * is always the ranking. Either way it is drawn from the whole filtered leaderboard, never from the rows the table shows.
  */
 #[AsTwigComponent]
 final class PuzzleTimesChart
@@ -56,9 +56,21 @@ final class PuzzleTimesChart
     ) {
     }
 
+    /**
+     * Below this many rows the chart is always the ranking and has no switch: a distribution of a handful of puzzlers
+     * has no shape. Measured on every solo board (2026-10-02): from 20 rows the median board gets ~8 bars, the tallest
+     * with 6 puzzlers and 60 % of them with two or more; below 15 rows half the bars hold a single puzzler.
+     */
+    public const int SWITCH_MIN_ROWS = 20;
+
+    public function canSwitchView(): bool
+    {
+        return count($this->results) >= self::SWITCH_MIN_ROWS;
+    }
+
     public function isDistribution(): bool
     {
-        return $this->view === LeaderboardChartView::Distribution;
+        return $this->canSwitchView() && $this->view === LeaderboardChartView::Distribution;
     }
 
     public function getChart(): Chart

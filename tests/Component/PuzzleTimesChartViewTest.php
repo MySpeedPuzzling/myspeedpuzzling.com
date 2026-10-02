@@ -89,9 +89,9 @@ final class PuzzleTimesChartViewTest extends WebTestCase
         self::assertSame(200, $puzzleTimes->limit);
     }
 
-    public function testSmallLeaderboardsHaveTheSwitchToo(): void
+    public function testShortLeaderboardsAreAlwaysTheRankingWithoutASwitch(): void
     {
-        // PUZZLE_500_01: four solvers this viewer can see
+        // PUZZLE_500_01: four solvers this viewer can see - fewer than PuzzleTimesChart::SWITCH_MIN_ROWS
         $client = self::createClient();
         TestingLogin::asPlayer($client, PlayerFixture::PLAYER_WITH_STRIPE);
 
@@ -102,8 +102,11 @@ final class PuzzleTimesChartViewTest extends WebTestCase
         $component->setRouteLocale('en');
         $crawler = $component->render()->crawler();
 
-        self::assertCount(1, $crawler->filter('[data-testid="leaderboard-chart-switch"]'));
-        self::assertCount(1, $crawler->filter('[data-testid="leaderboard-distribution"]'));
+        self::assertCount(0, $crawler->filter('[data-testid="leaderboard-chart-switch"]'));
+        self::assertCount(1, $crawler->filter('#leaderboard-chart-ranking [data-testid="leaderboard-individual"]'));
+
+        // The stored choice is untouched - longer leaderboards still open on it
+        self::assertSame('distribution', $this->storedView(PlayerFixture::PLAYER_WITH_STRIPE));
     }
 
     public function testAnUnknownViewChangesNothing(): void

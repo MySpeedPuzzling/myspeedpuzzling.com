@@ -64,8 +64,9 @@ Shipped: [`features/puzzle-result-detail.md`](features/puzzle-result-detail.md),
 
 Shipped: [`features/puzzle-leaderboard-chart.md`](features/puzzle-leaderboard-chart.md) §"Chart switch".
 
-- [ ] Browser check as a member (dev is not signed in as one): switch both ways on a 3-row board and on London Postcard,
-      zoom + reset in the rankings, tooltips/legend/outline in the distribution, Median + You in both, no console errors
+- [ ] Click the switch as a member in a real browser (dev is not signed in as one): both ways on London Postcard, zoom +
+      reset in the rankings, tooltips in the distribution, no console errors. Both views and a short board were checked
+      on screenshots of rendered pages (375 px + 1,280 px, 2026-10-02); the Live switch itself was not clicked yet
 - [ ] Rankings on big boards ship 118 KB of chart JSON with every re-render (London Postcard); if members use it a lot,
       send a `firstAttempt` flag array and map colours in JS (~ -40 KB)
 

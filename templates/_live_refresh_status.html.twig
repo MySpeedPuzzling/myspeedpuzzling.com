@@ -1,0 +1,32 @@
+{# "Auto-update in 42 seconds ◯" above the feed: the countdown to its next automatic refresh, and the WCAG 2.2.2 pause /
+   resume button. Lives inside a `live-refresh` controller element but outside the live component, so a re-render never
+   morphs it; texts carry the locale of their catalogue so JavaScript picks the plural form like PHP does
+   (controllers/live_refresh_controller.js, docs/features/live-activity-feed.md) #}
+<button
+    type="button"
+    class="live-refresh-status"
+    data-live-refresh-target="status"
+    data-action="live-refresh#toggle"
+    data-state="running"
+    data-texts="{{ {
+        running: browser_translation('live_refresh.countdown'),
+        refreshing: browser_translation('live_refresh.updating'),
+        paused: browser_translation('live_refresh.status_paused'),
+        idle: browser_translation('live_refresh.status_idle'),
+        failed: browser_translation('live_refresh.retrying'),
+    }|json_encode }}"
+    data-running-title="{{ 'live_refresh.running'|trans }}"
+    data-paused-title="{{ 'live_refresh.paused'|trans }}"
+    data-idle-title="{{ 'live_refresh.idle'|trans }}"
+    data-failed-title="{{ 'live_refresh.failed'|trans }}"
+    title="{{ 'live_refresh.running'|trans }}"
+    aria-label="{{ 'live_refresh.pause'|trans }}"
+    aria-pressed="false"
+>
+    <span class="live-refresh-text" data-live-refresh-target="text">{{ 'live_refresh.countdown'|trans({'%count%': 60}) }}</span>
+    {# Two halves turned with `transform` only: a smooth ring the browser animates off the main thread #}
+    <span class="live-refresh-ring" aria-hidden="true">
+        <span class="live-refresh-half live-refresh-half-right"><span class="live-refresh-fill" data-live-refresh-target="fill"></span></span>
+        <span class="live-refresh-half live-refresh-half-left"><span class="live-refresh-fill" data-live-refresh-target="fill"></span></span>
+    </span>
+</button>

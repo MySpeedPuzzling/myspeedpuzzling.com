@@ -482,23 +482,41 @@ without JS, nothing changes.
 - **Verify** in the prototype with a `PerformanceObserver('layout-shift')`. It has to run in a
   window that is actually in front; a hidden window produces no frames and so no entries.
 
-## 8. The ring
+## 8. The status line and its ring
 
-- **What and where:** a 20–24 px inline SVG circle in the feed header, right-aligned next to the
-  tabs. JS sets its progress (`stroke-dashoffset`) once per second from the page tick, with no CSS
-  transition and no animation (§5.4).
-- **States:**
-  - counting
-  - refreshing: full ring, a short spin
-  - paused: hidden / idle / offline / error, dimmed, with a ↻
+Jan's call after seeing the first version: a short text with the ring at its end, right-aligned above the table,
+instead of a bare ring next to the tabs. The ring fills smoothly instead of once a second.
+
+- **What and where:** "Auto-update in 42 seconds ◯" at 11 px (`.6875rem`), grey text, ring in the
+  brand colour (`--cz-primary`).
+  - It sits in the 1.5rem gap above the table (`.ps-wrapper.mt-4`): absolutely positioned at the
+    bottom of `.live-refresh-anchor`, so it adds no height.
+  - The whole line is a 24 px tall button (WCAG 2.5.8 target size).
+  - Partial: `templates/_live_refresh_status.html.twig`.
+- **The text** changes once a second; the tick wakes exactly when the whole seconds left change.
+  - Running: "Auto-update in N seconds".
+  - While the refresh is on its way: "Updating…".
+  - Paused: "Auto-update paused" ("… while you were away" when idle).
+  - After a failure: "Update failed, retrying in N seconds".
+  - On a guest's favourites tab there is nothing to count down, so the line is hidden.
+- **Plural forms in the browser:** `browser_translation()` (`BrowserTranslationTwigExtension`)
+  hands over the raw message plus the locale of the catalogue that defines it.
+  `assets/translation_choice.js` (Symfony's choice rules, shared with the labels) then picks the
+  form exactly like PHP does, including a key that exists only in English on a Czech page, which
+  falls back to English rules. Pinned by `RelativeTimeParityTest::testCountdownTextReadsLikePhpInEveryLocale`.
+- **The smooth ring:** two half-circles, each clipped by its half, turned with `transform: rotate()`
+  by two Web Animations that the controller starts for every refresh cycle (`currentTime` = time
+  since the last refresh).
+  - Only `transform` animates, so the browser runs it on the compositor with no main-thread paint
+    per frame. Animating `stroke-dashoffset` or a conic-gradient would repaint every frame (§5.4).
+  - It still produces frames while it runs. Paused, idle, failed or hidden means no animation at all.
+  - **Reduced motion** (`prefers-reduced-motion`): the same animations with `steps(n)`, one step per
+    second.
 - **It is the pause / resume button** (WCAG 2.2.2, decided in §11):
-  - While counting, a click pauses (`aria-pressed="true"`, play icon). A click on a paused, idle
-    or failed ring resumes and refreshes at once.
+  - While counting, a click pauses (`aria-pressed="true"`, both animations cancelled).
+  - A click on a paused, idle or failed line resumes and refreshes at once.
   - `aria-label` "Pause automatic updates" stays the same; the tooltip (`title`) names the state.
-    The SVG itself is `aria-hidden`.
-  - 32 px button around a 24 px ring (WCAG 2.5.8 minimum target size).
-- **Reduced motion** (`prefers-reduced-motion`): keep the ring, since it carries information, but
-  no spin.
+    The ring is `aria-hidden`.
 
 ## 9. Risks
 
@@ -564,8 +582,10 @@ without JS, nothing changes.
   `visibilitychange`, `pageshow` and `resume`.
 - `assets/relative_time.js`: `|ago` + Symfony's plural choice, for < 28 days.
 - `assets/controllers/relative_time_controller.js`: on the component root, counts the labels up.
-- `templates/_live_refresh_ring.html.twig`: the ring; `assets/styles/live_refresh.scss`, imported
-  from `app.js`.
+- `templates/_live_refresh_status.html.twig`: the status line and ring (§8);
+  `assets/styles/live_refresh.scss`, imported from `app.js`.
+- `assets/translation_choice.js` + `BrowserTranslationTwigExtension` (`browser_translation()`):
+  plural forms in the browser, chosen like PHP's (§8).
 - `templates/components/RecentActivity.html.twig`:
   - no `data-poll`;
   - row ids `activity-{all|favorites|player}-{id}`;
@@ -586,7 +606,8 @@ without JS, nothing changes.
 
 | Check | Result |
 |---|---|
-| Ring | moves ~1.7 % per second, i.e. ~60 s |
+| Ring (second version) | two compositor animations; the right half 25 % in after ~7 s, the left delayed by half the cycle; `steps(30)` under reduced motion |
+| Status text | "Auto-update in 52 seconds" → "… 50 seconds" over 2 s; fills exactly the 27 px gap between tabs and table |
 | New result | inserted at the top by id, the old first row moved to second; 20 rows, still 4 visible |
 | Label of a new row | "1 second ago" → "4 seconds ago", one step per second |
 | Layout shift of an insert (desktop) | **0.0194**: the §9 estimate, an existing behaviour that is now once a minute |

@@ -27,7 +27,7 @@ final class RecentActivityControllerTest extends WebTestCase
 
         $wrapper = $crawler->filter('[data-controller~="live-refresh"]');
         self::assertCount(1, $wrapper);
-        self::assertCount(1, $wrapper->filter('.live-refresh-ring'));
+        self::assertCount(1, $wrapper->filter('.live-refresh-status'));
         self::assertCount(0, $crawler->filter('[data-poll]'));
 
         $feed = $wrapper->filter('[data-controller~="relative-time"]');
@@ -46,6 +46,19 @@ final class RecentActivityControllerTest extends WebTestCase
         self::assertCount($rows->count(), array_unique($rows->each(static fn ($row): string => (string) $row->attr('id'))));
         self::assertStringStartsWith('activity-all-', (string) $rows->first()->attr('id'));
         self::assertMatchesRegularExpression('~^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$~', (string) $feed->filter('time.lb-time-date')->first()->attr('datetime'));
+    }
+
+    public function testCountdownTextComesWithTheLocaleOfItsCatalogue(): void
+    {
+        $browser = self::createClient();
+
+        // Translated only in English so far: a Czech page must pick its plural form by English rules, as PHP does
+        $crawler = $browser->request('GET', '/nedavna-aktivita');
+
+        /** @var array<string, array{message: string, locale: string}> $texts */
+        $texts = json_decode((string) $crawler->filter('.live-refresh-status')->attr('data-texts'), true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame(['running', 'refreshing', 'paused', 'idle', 'failed'], array_keys($texts));
+        self::assertSame(['message' => 'Auto-update in 1 second|Auto-update in %count% seconds', 'locale' => 'en'], $texts['running']);
     }
 
     public function testLoggedInUserCanAccessPage(): void

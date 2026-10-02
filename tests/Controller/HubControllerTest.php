@@ -28,7 +28,9 @@ final class HubControllerTest extends WebTestCase
 
         $wrapper = $crawler->filter('[data-controller~="live-refresh"]');
         self::assertCount(1, $wrapper);
-        self::assertCount(1, $wrapper->filter('.live-refresh-ring[aria-pressed="false"][data-live-refresh-target="ring"]'));
+        self::assertCount(1, $wrapper->filter('.live-refresh-status[aria-pressed="false"][data-live-refresh-target="status"]'));
+        self::assertSame('Auto-update in 60 seconds', $wrapper->filter('.live-refresh-status [data-live-refresh-target="text"]')->text());
+        self::assertCount(2, $wrapper->filter('.live-refresh-status [data-live-refresh-target="fill"]'));
         // A guest has no favourites tab
         self::assertCount(1, $wrapper->filter('[data-controller~="live"]'));
         // docs/features/live-activity-feed.md: the library's blind setInterval polled from tabs nobody looked at

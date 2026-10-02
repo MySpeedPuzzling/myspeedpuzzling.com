@@ -2,6 +2,7 @@
 import { Controller } from '@hotwired/stimulus';
 import { getComponent } from '@symfony/ux-live-component';
 import { subscribe, wake } from '../page_ticker.js';
+import { chooseTranslation } from '../translation_choice.js';
 
 const JITTER_MS = 5000;
 const WATCHDOG_MS = 30000;
@@ -17,11 +18,12 @@ const INTERACTION_EVENTS = ['pointerdown', 'pointermove', 'keydown', 'wheel', 't
  *   overdue refreshes right away
  * - nothing runs while the page is hidden (the page ticker sleeps) or after `idleAfter` without any
  *   interaction - the next touch, key, scroll or return to the tab resumes it
- * - the ring shows the time to the next refresh and is the WCAG 2.2.2 pause / resume button
+ * - the status line ("Auto-update in 42 seconds" + a ring filling smoothly) counts down and is the
+ *   WCAG 2.2.2 pause / resume button
  * - a failed refresh is retried later (60 → 120 → 300 s) instead of showing the error page
  */
 export default class extends Controller {
-    static targets = ['ring', 'progress'];
+    static targets = ['status', 'text', 'fill'];
 
     static values = {
         interval: { type: Number, default: 60000 },
@@ -34,6 +36,8 @@ export default class extends Controller {
         this.lastInteractionAt = Date.now();
         this.resumedFromIdleAt = 0;
         this.look = null;
+        this.ringCycle = null;
+        this.ringAnimations = [];
         this.onInteraction = this.onInteraction.bind(this);
         this.onOnline = () => wake();
     }
@@ -52,6 +56,12 @@ export default class extends Controller {
         this.unsubscribe();
         this.feeds.forEach((feed) => clearTimeout(feed.watchdog));
         this.feeds.clear();
+        this.stopRing();
+    }
+
+    statusTargetConnected(element) {
+        // Texts with the locale of their catalogue, so a count is worded like PHP words it (templates/_live_refresh_status.html.twig)
+        this.texts = JSON.parse(element.dataset.texts ?? '{}');
     }
 
     toggle() {
@@ -112,12 +122,13 @@ export default class extends Controller {
             return Infinity;
         }
 
-        if (shown === null || shown.inFlight) {
+        // Also when a due refresh is held back (an open row menu, a component still connecting): check again in a second
+        if (shown === null || shown.inFlight || now >= shown.dueAt) {
             return now + 1000;
         }
 
-        // Whole seconds counted from the last refresh, so the ring moves in even steps
-        return Math.min(shown.dueAt, shown.lastRenderAt + (Math.floor((now - shown.lastRenderAt) / 1000) + 1) * 1000);
+        // The moment the whole seconds left change
+        return shown.dueAt - (Math.ceil((shown.dueAt - now) / 1000) - 1) * 1000;
     }
 
     discover(now) {
@@ -226,9 +237,12 @@ export default class extends Controller {
     }
 
     paint(feed, state, now) {
-        if (!this.hasRingTarget) {
+        if (!this.hasStatusTarget) {
             return;
         }
+
+        // Nothing to count down for: a guest's empty favourites tab
+        this.statusTarget.hidden = feed === null;
 
         let look = state;
 
@@ -238,24 +252,68 @@ export default class extends Controller {
 
         if (this.look !== look) {
             this.look = look;
-            this.ringTarget.dataset.state = look;
-            this.ringTarget.setAttribute('aria-pressed', String(look === 'paused'));
-            // data-running-title … data-failed-title, translated in templates/_live_refresh_ring.html.twig
-            this.ringTarget.title = this.ringTarget.dataset[`${look}Title`] ?? '';
+            this.statusTarget.dataset.state = look;
+            this.statusTarget.setAttribute('aria-pressed', String(look === 'paused'));
+            // data-running-title … data-failed-title, translated in templates/_live_refresh_status.html.twig
+            this.statusTarget.title = this.statusTarget.dataset[`${look}Title`] ?? '';
         }
 
-        let progress = 0;
+        const refreshing = look === 'running' && feed !== null && feed.inFlight;
+        const secondsLeft = feed === null ? 0 : Math.max(0, Math.ceil((feed.dueAt - now) / 1000));
+        const text = this.text(refreshing ? 'refreshing' : look, secondsLeft);
 
-        // Full while the refresh is on its way, empty again once it has arrived
-        if (look === 'running' && feed !== null) {
-            progress = feed.inFlight ? 1 : Math.min(1, Math.max(0, (now - feed.lastRenderAt) / (feed.dueAt - feed.lastRenderAt)));
+        if (this.hasTextTarget && text !== null && this.textTarget.textContent !== text) {
+            this.textTarget.textContent = text;
         }
 
-        const offset = (100 - progress * 100).toFixed(1);
+        this.statusTarget.classList.toggle('is-full', refreshing);
 
-        if (this.hasProgressTarget && this.progressTarget.getAttribute('stroke-dashoffset') !== offset) {
-            this.progressTarget.setAttribute('stroke-dashoffset', offset);
+        if (look === 'running' && feed !== null && !feed.inFlight) {
+            this.runRing(feed.lastRenderAt, feed.dueAt, now);
+        } else {
+            this.stopRing();
         }
+    }
+
+    text(key, count) {
+        const text = this.texts?.[key];
+
+        return text === undefined ? null : chooseTranslation(text.message, count, text.locale);
+    }
+
+    // The ring fills smoothly from the last refresh to the next: two Web Animations of `transform` only, which the
+    // browser runs off the main thread (assets/styles/live_refresh.scss). Restarted only when the cycle changes.
+    runRing(start, due, now) {
+        const cycle = `${start}:${due}`;
+
+        if (this.ringCycle === cycle || this.fillTargets.length !== 2 || typeof Element.prototype.animate !== 'function') {
+            return;
+        }
+
+        this.stopRing();
+        this.ringCycle = cycle;
+
+        const half = (due - start) / 2;
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const options = {
+            duration: half,
+            fill: 'both',
+            // Reduced motion: a step per second instead of a continuous sweep
+            easing: reducedMotion ? `steps(${Math.max(1, Math.round(half / 1000))})` : 'linear',
+        };
+        const keyframes = [{ transform: 'rotate(-135deg)' }, { transform: 'rotate(45deg)' }];
+        const [right, left] = this.fillTargets;
+
+        this.ringAnimations = [right.animate(keyframes, options), left.animate(keyframes, { ...options, delay: half })];
+        this.ringAnimations.forEach((animation) => {
+            animation.currentTime = now - start;
+        });
+    }
+
+    stopRing() {
+        this.ringAnimations.forEach((animation) => animation.cancel());
+        this.ringAnimations = [];
+        this.ringCycle = null;
     }
 }
 

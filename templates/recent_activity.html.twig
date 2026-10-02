@@ -4,12 +4,12 @@
 {% block meta_description %}{{ 'recent_activity.meta.description'|trans }}{% endblock %}
 
 {% block content %}
-    {# Refreshes every minute while somebody looks; the ring counts down and pauses (docs/features/live-activity-feed.md) #}
-    <div data-controller="live-refresh">
-        <div class="d-flex align-items-center justify-content-between gap-3">
-            <h1 class="mb-0">{{ 'recent_activity.meta.title'|trans }}</h1>
-            {{ include('_live_refresh_ring.html.twig') }}
-        </div>
+    <h1>{{ 'recent_activity.meta.title'|trans }}</h1>
+
+    {# Refreshes every minute while somebody looks; the line above the table counts down and pauses
+       (docs/features/live-activity-feed.md) #}
+    <div class="live-refresh-anchor" data-controller="live-refresh">
+        {{ include('_live_refresh_status.html.twig') }}
 
         <twig:RecentActivity limit="100" />
     </div>

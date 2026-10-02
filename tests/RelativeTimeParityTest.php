@@ -7,9 +7,11 @@ namespace SpeedPuzzling\Web\Tests;
 use DateTimeImmutable;
 use DateTimeZone;
 use SpeedPuzzling\Web\Services\RelativeTimeFormatter;
+use SpeedPuzzling\Web\Twig\BrowserTranslationTwigExtension;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The feed's "… ago" labels count up in the browser (assets/relative_time.js) after the server rendered
@@ -79,14 +81,48 @@ final class RelativeTimeParityTest extends KernelTestCase
         ], $this->runInNode($cases));
     }
 
+    /**
+     * The feed's "Auto-update in 42 seconds" counts down in the browser: the same key translated by PHP with
+     * %count% - also where a locale has no translation yet and both fall back to English and its plural rules.
+     */
+    public function testCountdownTextReadsLikePhpInEveryLocale(): void
+    {
+        $container = self::getContainer();
+        $browserTranslation = $container->get(BrowserTranslationTwigExtension::class);
+        $translator = $container->get(TranslatorInterface::class);
+        $cases = [];
+        $labels = [];
+        $expected = [];
+
+        foreach (self::LOCALES as $locale) {
+            foreach (['live_refresh.countdown', 'live_refresh.retrying', 'live_refresh.updating'] as $id) {
+                $text = $browserTranslation->browserTranslation($id, 'messages', $locale);
+
+                foreach ([0, 1, 2, 3, 4, 5, 21, 22, 59, 60, 65] as $count) {
+                    $cases[] = ['choice' => $text['message'], 'count' => $count, 'locale' => $text['locale']];
+                    $labels[] = sprintf('%s %s %d', $locale, $id, $count);
+                    $expected[] = sprintf('%s %s %d: %s', $locale, $id, $count, $translator->trans($id, ['%count%' => $count], 'messages', $locale));
+                }
+            }
+        }
+
+        $actual = [];
+
+        foreach ($this->runInNode($cases) as $index => $result) {
+            $actual[] = sprintf('%s: %s', $labels[$index], $result['text'] ?? 'null');
+        }
+
+        self::assertSame($expected, $actual);
+    }
+
     private function formatter(): RelativeTimeFormatter
     {
         return self::getContainer()->get(RelativeTimeFormatter::class);
     }
 
     /**
-     * @param list<array{elapsed: int|float, messages: array<string, string>, locale: string}> $cases
-     * @return list<array{text: null|string, changesIn: null|int|float}>
+     * @param list<array{elapsed: int|float, messages: array<string, string>, locale: string}|array{choice: string, count: int, locale: string}> $cases
+     * @return list<array{text: null|string, changesIn?: null|int|float}>
      */
     private function runInNode(array $cases): array
     {
@@ -98,7 +134,7 @@ final class RelativeTimeParityTest extends KernelTestCase
         $process->setInput((string) json_encode($cases, JSON_THROW_ON_ERROR));
         $process->mustRun();
 
-        /** @var list<array{text: null|string, changesIn: null|int|float}> $results */
+        /** @var list<array{text: null|string, changesIn?: null|int|float}> $results */
         $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
 
         return $results;

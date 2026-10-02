@@ -1,5 +1,5 @@
-// Recent activity feed (templates/components/RecentActivity.html.twig) and its refresh ring
-// (templates/_live_refresh_ring.html.twig, controllers/live_refresh_controller.js, docs/features/live-activity-feed.md)
+// Recent activity feed (templates/components/RecentActivity.html.twig) and its refresh status line
+// (templates/_live_refresh_status.html.twig, controllers/live_refresh_controller.js, docs/features/live-activity-feed.md)
 
 // Rows past showLimit until "Show more" - a class on the list, which a re-render keeps
 .ra-list:not(.is-expanded) tr.ra-extra {
@@ -10,94 +10,105 @@
     display: none;
 }
 
-// The ring's progress is set by JavaScript once a second: no CSS animation or transition, Chromium would repaint
-// a stroke animation on every frame. 32 px around a 24 px ring keeps the target at WCAG's 24 px minimum.
-.live-refresh-ring {
+// "Auto-update in 42 seconds ◯" sits in the 1.5rem gap above the table (.ps-wrapper.mt-4), so it costs no height: the
+// anchor's top edge is the table's and the button fills the gap above it - 24 px tall, WCAG 2.5.8's minimum target
+.live-refresh-anchor {
     position: relative;
+}
+
+.live-refresh-status {
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    z-index: 1;
     display: inline-flex;
-    flex: 0 0 auto;
     align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
+    gap: 5px;
+    height: 1.5rem;
     padding: 0;
     border: 0;
-    border-radius: 50%;
     background: transparent;
-    color: var(--bs-primary);
+    font-size: .6875rem;
+    line-height: 1.2;
+    color: #5b616d;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
     cursor: pointer;
 
-    svg {
-        position: absolute;
-        top: 4px;
-        left: 4px;
-        // Fills clockwise from 12 o'clock
-        transform: rotate(-90deg);
-    }
-
-    circle {
-        fill: none;
-        stroke-width: 2.5;
-    }
-
-    .live-refresh-track {
-        stroke: rgba(0, 0, 0, .12);
-    }
-
-    .live-refresh-progress {
-        stroke: currentColor;
-    }
-
-    i {
-        position: relative;
-        font-size: 10px;
-        line-height: 1;
-    }
-
-    .live-refresh-icon-play,
-    .live-refresh-icon-retry {
-        display: none;
-    }
-
-    &[data-state="paused"],
-    &[data-state="idle"],
-    &[data-state="failed"] {
-        color: #5b616d;
-
-        .live-refresh-icon-pause {
-            display: none;
-        }
-    }
-
-    &[data-state="paused"] .live-refresh-icon-play,
-    &[data-state="idle"] .live-refresh-icon-play,
-    &[data-state="failed"] .live-refresh-icon-retry {
-        display: inline;
+    &:hover .live-refresh-text {
+        text-decoration: underline;
     }
 
     &:focus-visible {
-        outline: 2px solid var(--bs-primary);
-        outline-offset: 1px;
+        outline: 2px solid var(--cz-primary);
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+
+    &[hidden] {
+        display: none;
     }
 }
 
-// The Hub's tabs with the ring at their end; its cell continues the tabs' bottom line
-.live-refresh-tabs {
-    display: flex;
-    // The tabs' own bottom margin (components/_nav.scss), moved here so both bottom lines meet
-    margin-bottom: 1.25rem;
+// The ring: two halves, each clipping a circle whose coloured half is turned into view with `transform` only -
+// Web Animations driven by the controller run that on the compositor, no repaint per frame (a stroke-dashoffset
+// animation would repaint the SVG on the main thread every frame). Turned to -135deg the coloured half hides in the
+// other half: empty; at 45deg it fills its half.
+.live-refresh-ring {
+    position: relative;
+    flex: 0 0 auto;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .12);
+    color: var(--cz-primary);
+}
 
-    .nav-tabs {
-        flex: 1 1 auto;
-        min-width: 0;
-        margin-bottom: 0;
-    }
+.live-refresh-half {
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    overflow: hidden;
+}
 
-    .live-refresh-tab-end {
-        display: flex;
-        align-items: center;
-        padding-left: 4px;
-        // .nav-tabs defines its border colour on itself, so the variable does not reach this sibling
-        border-bottom: 1px solid #e3e9ef;
-    }
+.live-refresh-half-right {
+    left: 50%;
+}
+
+.live-refresh-half-left {
+    left: 0;
+}
+
+.live-refresh-fill {
+    position: absolute;
+    top: 0;
+    width: 200%;
+    height: 100%;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    transform: rotate(-135deg);
+}
+
+.live-refresh-half-right .live-refresh-fill {
+    left: -100%;
+    border-top-color: currentColor;
+    border-right-color: currentColor;
+}
+
+.live-refresh-half-left .live-refresh-fill {
+    left: 0;
+    border-bottom-color: currentColor;
+    border-left-color: currentColor;
+}
+
+// Refreshing: full
+.live-refresh-status.is-full .live-refresh-fill {
+    transform: rotate(45deg);
+}
+
+.live-refresh-status[data-state="paused"] .live-refresh-ring,
+.live-refresh-status[data-state="idle"] .live-refresh-ring,
+.live-refresh-status[data-state="failed"] .live-refresh-ring {
+    color: #5b616d;
 }

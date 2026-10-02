@@ -266,7 +266,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
         self::assertCount(2, $emails);
         $removalsOnly = $emails[1];
 
-        self::assertSame('We removed results you saved twice', $removalsOnly->getSubject());
+        self::assertSame('We removed results that showed up twice', $removalsOnly->getSubject());
         $html = (string) $removalsOnly->getHtmlBody();
         self::assertStringContainsString('Already fixed – we were sure', $html);
         self::assertStringContainsString('We removed the extra copy', $html);

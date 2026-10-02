@@ -808,7 +808,7 @@
   "newsletter_enabled": "Newsletter erhalten"
   "newsletter_help": "Wir senden gelegentlich einen Newsletter über Neuigkeiten auf der Plattform, meist über neue Funktionen. Kein Marketing, keine Werbung — nur Neuigkeiten. Erwartete Häufigkeit: maximal 1x pro Monat."
   "result_emails_enabled": "E-Mails zu meinen Ergebnissen"
-  "result_emails_help": "Wir sagen Ihnen Bescheid, wenn einige Ihrer Ergebnisse anscheinend doppelt gespeichert wurden oder wenn wir eine versehentlich gespeicherte Kopie entfernt haben. Höchstens einmal pro Woche und nur, wenn es etwas Neues gibt."
+  "result_emails_help": "Wir sagen Ihnen Bescheid, wenn einige Ihrer Ergebnisse anscheinend doppelt vorhanden sind oder wenn wir eine überzählige Kopie entfernt haben. Höchstens einmal pro Woche und nur, wenn es etwas Neues gibt."
   "messaging_notifications": "Nachrichten & Benachrichtigungen"
   "personal_access_tokens": "Persönliche Zugriffstoken"
   "personal_access_tokens_description": "Token für den Zugriff auf Ihre eigenen Daten über die API."
@@ -3556,7 +3556,7 @@ email_preferences:
     notifications_title: "Benachrichtigungs-E-Mails"
     notifications_description: "Eine kurze Nachricht, wenn Ihnen jemand schreibt oder sich mit Ihnen verbinden möchte – nur dann, wenn wirklich etwas auf Sie wartet."
     result_emails_title: "Ihre Ergebnisse"
-    result_emails_description: "Wenn einige Ihrer Ergebnisse anscheinend doppelt gespeichert wurden oder wir eine versehentlich gespeicherte Kopie entfernt haben – höchstens einmal pro Woche und nur, wenn es etwas Neues gibt."
+    result_emails_description: "Wenn einige Ihrer Ergebnisse anscheinend doppelt vorhanden sind oder wir eine überzählige Kopie entfernt haben – höchstens einmal pro Woche und nur, wenn es etwas Neues gibt."
     frequency_label: "Wie oft höchstens?"
     save_button: "Einstellungen speichern"
     more_hint: "Sie suchen mehr? Alle Kontoeinstellungen finden Sie in Ihrem Profil."
@@ -4468,13 +4468,13 @@ photo_stash:
 review_results:
     page:
         title: "Ihre Ergebnisse prüfen"
-        intro: "Ergebnisse, die vielleicht doppelt gespeichert wurden, Kopien, die wir für Sie entfernt haben, und erste Versuche zum Klären – alles, was einen Blick wert ist, an einem Ort."
+        intro: "Ergebnisse, die vielleicht doppelt vorhanden sind, überzählige Kopien, die wir für Sie entfernt haben, und erste Versuche zum Klären – alles, was einen Blick wert ist, an einem Ort."
         empty: "Nichts zu prüfen – Ihre Ergebnisse sehen gut aus."
     duplicates:
-        title: "Doppelt gespeichert?"
-        intro: "Diese Ergebnisse haben beim selben Puzzle genau dieselbe Zeit. Wenn dasselbe Ergebnis doppelt gespeichert wurde, behalten Sie eine Kopie – die andere wird gelöscht und das Ergebnis zählt in Ihren Statistiken nur einmal."
-        likely: "Höchstwahrscheinlich doppelt gespeichert"
-        possible: "Möglicherweise doppelt gespeichert"
+        title: "Dasselbe Ergebnis doppelt?"
+        intro: "Diese Ergebnisse haben beim selben Puzzle genau dieselbe Zeit. Wenn derselbe Durchgang doppelt erfasst wurde, behalten Sie eine Kopie – die andere wird gelöscht und das Ergebnis zählt in Ihren Statistiken nur einmal."
+        likely: "Höchstwahrscheinlich derselbe Durchgang doppelt"
+        possible: "Möglicherweise derselbe Durchgang doppelt"
         same_time: "dieselbe Zeit auf die Sekunde: %time%"
         saved_at: "Gespeichert am %date%"
         older_hint: "Zuerst gespeichert – höchstwahrscheinlich das Original."
@@ -4491,11 +4491,11 @@ review_results:
         kept: "Das Ergebnis, das geblieben ist"
         undo: "Rückgängig"
     banner:
-        duplicates: "%count% Ergebnis wurde vielleicht doppelt gespeichert.|%count% Ergebnisse wurden vielleicht doppelt gespeichert."
-        auto_removed: "Wir haben %count% Kopie eines doppelt gespeicherten Ergebnisses entfernt.|Wir haben %count% Kopien doppelt gespeicherter Ergebnisse entfernt."
+        duplicates: "%count% Ergebnis ist vielleicht doppelt vorhanden.|%count% Ergebnisse sind vielleicht doppelt vorhanden."
+        auto_removed: "Wir haben %count% überzählige Kopie eines Ergebnisses entfernt.|Wir haben %count% überzählige Kopien von Ergebnissen entfernt."
         review: "Prüfen"
     recap:
-        title: "Haben Sie das doppelt gespeichert?"
+        title: "Dasselbe Ergebnis doppelt?"
         intro: "Sie haben bei diesem Puzzle bereits genau dieselbe Zeit."
     flash:
         copy_deleted: "Erledigt – die Kopie ist gelöscht und das Ergebnis zählt nur einmal.|Erledigt – %count% Kopien sind gelöscht und das Ergebnis zählt nur einmal."
@@ -4508,7 +4508,7 @@ review_results:
 result_emails:
     unsubscribe:
         headline: "E-Mails zu Ihren Ergebnissen"
-        text: "Sie möchten keine E-Mails mehr zu doppelt gespeicherten Ergebnissen erhalten? Ihre anderen E-Mails (die Nachrichten-Zusammenfassung, der Newsletter) bleiben, wie sie sind."
+        text: "Sie möchten keine E-Mails mehr zu doppelt vorhandenen Ergebnissen erhalten? Ihre anderen E-Mails (die Nachrichten-Zusammenfassung, der Newsletter) bleiben, wie sie sind."
         confirm_button: "Diese E-Mails abbestellen"
         done: "Erledigt – Sie erhalten keine E-Mails zu Ihren Ergebnissen mehr."
         settings_hint: "Sie können sie jederzeit in Ihren Profileinstellungen unter „Nachrichten & Benachrichtigungen“ wieder einschalten."

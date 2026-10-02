@@ -811,7 +811,7 @@
   "newsletter_enabled": "Recevoir les newsletters"
   "newsletter_help": "Nous enverrons occasionnellement une newsletter sur les nouveautés de la plateforme, généralement pour expliquer les nouvelles fonctionnalités. Pas de marketing, pas de promotions — uniquement les nouveautés. Fréquence prévue : pas plus d'une fois par mois."
   "result_emails_enabled": "E-mails sur mes résultats"
-  "result_emails_help": "Nous vous prévenons quand certains de vos résultats semblent enregistrés deux fois, ou quand nous avons retiré une copie enregistrée par erreur. Au plus une fois par semaine, et seulement s’il y a du nouveau."
+  "result_emails_help": "Nous vous prévenons quand certains de vos résultats semblent apparaître en double, ou quand nous avons retiré une copie en trop. Au plus une fois par semaine, et seulement s’il y a du nouveau."
   "messaging_notifications": "Messagerie et notifications"
   "personal_access_tokens": "Jetons d'accès personnels"
   "personal_access_tokens_description": "Jetons pour accéder à vos propres données via l'API."
@@ -3558,7 +3558,7 @@ email_preferences:
     notifications_title: "E-mails de notification"
     notifications_description: "Un petit mot quand quelqu'un vous écrit ou souhaite entrer en contact — uniquement quand quelque chose vous attend vraiment."
     result_emails_title: "Vos résultats"
-    result_emails_description: "Quand certains de vos résultats semblent enregistrés deux fois, ou que nous avons retiré une copie enregistrée par erreur — au plus une fois par semaine, et seulement s’il y a du nouveau."
+    result_emails_description: "Quand certains de vos résultats semblent apparaître en double, ou que nous avons retiré une copie en trop — au plus une fois par semaine, et seulement s’il y a du nouveau."
     frequency_label: "À quelle fréquence au maximum ?"
     save_button: "Enregistrer mes préférences"
     more_hint: "Vous cherchez plus ? Tous les réglages de votre compte se trouvent dans votre profil."
@@ -4470,13 +4470,13 @@ photo_stash:
 review_results:
     page:
         title: "Vérifier vos résultats"
-        intro: "Les résultats peut-être enregistrés deux fois, les copies que nous avons retirées pour vous et les premières tentatives à régler – tout ce qui mérite un coup d’œil, au même endroit."
+        intro: "Les résultats peut-être en double, les copies en trop que nous avons retirées pour vous et les premières tentatives à régler – tout ce qui mérite un coup d’œil, au même endroit."
         empty: "Rien à vérifier – vos résultats ont l’air corrects."
     duplicates:
-        title: "Enregistré deux fois ?"
-        intro: "Ces résultats ont exactement le même temps sur le même puzzle. S’il s’agit d’un seul assemblage enregistré deux fois, gardez une copie – l’autre est supprimée et l’assemblage ne compte qu’une fois dans vos statistiques."
-        likely: "Très probablement enregistré deux fois"
-        possible: "Peut-être enregistré deux fois"
+        title: "Le même résultat en double ?"
+        intro: "Ces résultats ont exactement le même temps sur le même puzzle. S’il s’agit d’un seul assemblage compté deux fois, gardez une copie – l’autre est supprimée et l’assemblage ne compte qu’une fois dans vos statistiques."
+        likely: "Très probablement le même assemblage en double"
+        possible: "Peut-être le même assemblage en double"
         same_time: "le même temps à la seconde près : %time%"
         saved_at: "Enregistré le %date%"
         older_hint: "Enregistré en premier – très probablement l’original."
@@ -4493,11 +4493,11 @@ review_results:
         kept: "Le résultat conservé"
         undo: "Annuler"
     banner:
-        duplicates: "%count% résultat a peut-être été enregistré deux fois.|%count% résultats ont peut-être été enregistrés deux fois."
-        auto_removed: "Nous avons retiré %count% copie d’un résultat enregistré deux fois.|Nous avons retiré %count% copies de résultats enregistrés deux fois."
+        duplicates: "%count% résultat est peut-être en double.|%count% résultats sont peut-être en double."
+        auto_removed: "Nous avons retiré %count% copie en trop d’un résultat.|Nous avons retiré %count% copies en trop de résultats."
         review: "Vérifier"
     recap:
-        title: "L’avez-vous enregistré deux fois ?"
+        title: "Le même résultat en double ?"
         intro: "Vous avez déjà exactement le même temps sur ce puzzle."
     flash:
         copy_deleted: "C’est fait – la copie est supprimée et l’assemblage compte une fois.|C’est fait – %count% copies sont supprimées et l’assemblage compte une fois."
@@ -4510,7 +4510,7 @@ review_results:
 result_emails:
     unsubscribe:
         headline: "E-mails sur vos résultats"
-        text: "Vous ne voulez plus recevoir d’e-mails sur les résultats enregistrés deux fois ? Vos autres e-mails (le récapitulatif des messages, la newsletter) restent inchangés."
+        text: "Vous ne voulez plus recevoir d’e-mails sur les résultats en double ? Vos autres e-mails (le récapitulatif des messages, la newsletter) restent inchangés."
         confirm_button: "Ne plus recevoir ces e-mails"
         done: "C’est fait – vous ne recevrez plus d’e-mails sur vos résultats."
         settings_hint: "Vous pouvez les réactiver à tout moment dans les paramètres de votre profil, rubrique « Messagerie et notifications »."

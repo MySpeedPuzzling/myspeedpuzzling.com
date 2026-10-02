@@ -828,7 +828,7 @@
   "newsletter_enabled": "Dostávat newsletter"
   "newsletter_help": "Občas vám pošleme newsletter o novinkách na platformě, většinou o nových funkcích. Žádný marketing, žádná reklama — jen novinky. Očekávaná frekvence: maximálně 1x měsíčně."
   "result_emails_enabled": "E-maily o mých výsledcích"
-  "result_emails_help": "Dáme vám vědět, když se některé vaše výsledky nejspíš uložily dvakrát, nebo když jsme odstranili kopii uloženou omylem. Nejvýš jednou týdně a jen když je něco nového."
+  "result_emails_help": "Dáme vám vědět, když se některé vaše výsledky nejspíš objevují dvakrát, nebo když jsme odstranili kopii navíc. Nejvýš jednou týdně a jen když je něco nového."
   "messaging_notifications": "Zprávy a upozornění"
   "features_options": "Nastavení funkcí"
   "hide_ranking": "Skrýt mé hodnocení a dovednosti"
@@ -3554,7 +3554,7 @@ email_preferences:
     notifications_title: "Upozornění e-mailem"
     notifications_description: "Dáme vám vědět, když vám někdo napíše nebo se s vámi chce spojit — píšeme jen tehdy, když na vás opravdu něco čeká."
     result_emails_title: "Vaše výsledky"
-    result_emails_description: "Když se některé vaše výsledky nejspíš uložily dvakrát, nebo jsme odstranili kopii uloženou omylem — nejvýš jednou týdně a jen když je něco nového."
+    result_emails_description: "Když se některé vaše výsledky nejspíš objevují dvakrát, nebo jsme odstranili kopii navíc — nejvýš jednou týdně a jen když je něco nového."
     frequency_label: "Jak často nejvýše?"
     save_button: "Uložit nastavení"
     more_hint: "Hledáte víc? Všechna nastavení účtu najdete ve svém profilu."
@@ -4466,13 +4466,13 @@ photo_stash:
 review_results:
     page:
         title: "Kontrola tvých výsledků"
-        intro: "Výsledky, které se možná uložily dvakrát, kopie, které jsme za tebe odstranili, a první pokusy k vyřešení – všechno, na co se vyplatí podívat, na jednom místě."
+        intro: "Výsledky, které se možná objevují dvakrát, kopie navíc, které jsme za tebe odstranili, a první pokusy k vyřešení – všechno, na co se vyplatí podívat, na jednom místě."
         empty: "Není co kontrolovat – tvoje výsledky vypadají v pořádku."
     duplicates:
-        title: "Uloženo dvakrát?"
-        intro: "Tyto výsledky mají na stejných puzzle úplně stejný čas. Pokud je to jedno složení uložené dvakrát, nech si jednu kopii – druhá se smaže a ve statistikách se složení započítá jen jednou."
-        likely: "Nejspíš uloženo dvakrát"
-        possible: "Možná uloženo dvakrát"
+        title: "Stejný výsledek dvakrát?"
+        intro: "Tyto výsledky mají na stejných puzzle úplně stejný čas. Pokud je to jedno složení zaznamenané dvakrát, nech si jednu kopii – druhá se smaže a ve statistikách se složení započítá jen jednou."
+        likely: "Nejspíš stejné složení dvakrát"
+        possible: "Možná stejné složení dvakrát"
         same_time: "stejný čas na vteřinu: %time%"
         saved_at: "Uloženo %date%"
         older_hint: "Uloženo jako první – nejspíš originál."
@@ -4489,11 +4489,11 @@ review_results:
         kept: "Výsledek, který zůstal"
         undo: "Vrátit zpět"
     banner:
-        duplicates: "%count% výsledek se možná uložil dvakrát.|%count% výsledky se možná uložily dvakrát.|%count% výsledků se možná uložilo dvakrát."
-        auto_removed: "Odstranili jsme %count% kopii dvakrát uloženého výsledku.|Odstranili jsme %count% kopie dvakrát uložených výsledků.|Odstranili jsme %count% kopií dvakrát uložených výsledků."
+        duplicates: "%count% výsledek se možná objevuje dvakrát.|%count% výsledky se možná objevují dvakrát.|%count% výsledků se možná objevuje dvakrát."
+        auto_removed: "Odstranili jsme %count% kopii výsledku navíc.|Odstranili jsme %count% kopie výsledků navíc.|Odstranili jsme %count% kopií výsledků navíc."
         review: "Zkontrolovat"
     recap:
-        title: "Neuložil/a jsi to dvakrát?"
+        title: "Stejný výsledek dvakrát?"
         intro: "Na těchto puzzle už máš úplně stejný čas."
     flash:
         copy_deleted: "Hotovo – kopie je smazaná a složení se počítá jednou.|Hotovo – %count% kopie jsou smazané a složení se počítá jednou.|Hotovo – %count% kopií je smazaných a složení se počítá jednou."
@@ -4506,7 +4506,7 @@ review_results:
 result_emails:
     unsubscribe:
         headline: "E-maily o tvých výsledcích"
-        text: "Nechceš už dostávat e-maily o výsledcích uložených dvakrát? Ostatní e-maily (souhrn zpráv, newsletter) zůstanou, jak jsou."
+        text: "Nechceš už dostávat e-maily o výsledcích, které se objevují dvakrát? Ostatní e-maily (souhrn zpráv, newsletter) zůstanou, jak jsou."
         confirm_button: "Už mi je neposílejte"
         done: "Hotovo – e-maily o tvých výsledcích už ti posílat nebudeme."
         settings_hint: "Kdykoli je můžeš znovu zapnout v nastavení profilu v části „Zprávy a upozornění“."

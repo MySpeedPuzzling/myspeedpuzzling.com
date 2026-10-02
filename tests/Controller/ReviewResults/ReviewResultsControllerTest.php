@@ -49,7 +49,7 @@ final class ReviewResultsControllerTest extends WebTestCase
         self::assertStringContainsString('noindex', (string) $crawler->filter('meta[name="robots"]')->attr('content'));
         self::assertCount(4, $crawler->filter('[data-testid="duplicate-set"]'));
         // Tier A/B first, Tier C last
-        self::assertStringContainsString('Possibly saved twice', $crawler->filter('[data-testid="duplicate-set"]')->last()->text());
+        self::assertStringContainsString('Possibly the same solve twice', $crawler->filter('[data-testid="duplicate-set"]')->last()->text());
 
         TestingLogin::asPlayer($browser, self::TOM);
         $crawler = $browser->request('GET', '/en/review-results');
@@ -304,7 +304,7 @@ final class ReviewResultsControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $banner = $crawler->filter('[data-testid="review-results-banner"]');
-        self::assertStringContainsString('4 results may have been saved twice.', $banner->text());
+        self::assertStringContainsString('4 results may show up twice.', $banner->text());
         self::assertCount(1, $banner->filter('a[href="/en/review-results"]'));
         self::assertCount(1, array_filter($this->executedSql($browser), static fn (string $sql): bool => str_contains($sql, 'result_duplicate_case')), 'One query feeds the banner');
 
@@ -331,8 +331,8 @@ final class ReviewResultsControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/hub');
 
         $banner = $crawler->filter('[data-testid="review-results-banner"]');
-        self::assertStringContainsString('3 results may have been saved twice.', $banner->text());
-        self::assertStringContainsString('We removed 1 copy of a result that was saved twice.', $banner->text());
+        self::assertStringContainsString('3 results may show up twice.', $banner->text());
+        self::assertStringContainsString('We removed 1 extra copy of a result.', $banner->text());
     }
 
     public function testGuestsHubPaysNothing(): void

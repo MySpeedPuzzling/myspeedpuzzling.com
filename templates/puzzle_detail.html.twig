@@ -368,7 +368,8 @@
 
     {# Same brand and piece count (GetRelatedPuzzles): the three most solved plus three picked for this page, so the
        links reach the whole catalogue; the whole brand when the combination is too small #}
-    {% if related.puzzles|length >= 2 %}
+    {# This section and "About this puzzle" below: guests and search engines only (PuzzleDetailController) #}
+    {% if related is not null and related.puzzles|length >= 2 %}
         <section class="puzzle-section puzzle-related">
             <h2 class="puzzle-section-title">
                 {% if related.samePiecesCount %}
@@ -418,13 +419,15 @@
 
     {# Facts about the puzzle for readers who scroll this far (and for search engines) - deliberately at the
        bottom: the top of the page belongs to the puzzle and its leaderboard (Jan, 2026-09-30) #}
-    <div class="puzzle-section">
-        <h2 class="puzzle-section-title puzzle-summary-heading">{{ 'puzzle_detail.summary.heading'|trans }}</h2>
-        {{ include('puzzle/_summary.html.twig', {
-            puzzle: puzzle,
-            summary: puzzle_summary,
-            is_image_hidden: is_image_hidden,
-        }) }}
-    </div>
+    {% if show_seo_sections %}
+        <div class="puzzle-section">
+            <h2 class="puzzle-section-title puzzle-summary-heading">{{ 'puzzle_detail.summary.heading'|trans }}</h2>
+            {{ include('puzzle/_summary.html.twig', {
+                puzzle: puzzle,
+                summary: puzzle_summary,
+                is_image_hidden: is_image_hidden,
+            }) }}
+        </div>
+    {% endif %}
 
 {% endblock %}

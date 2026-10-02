@@ -721,6 +721,24 @@ final class PuzzleDetailControllerTest extends WebTestCase
         self::assertSame('/en/puzzle/brand/ravensburger/500-pieces', $allLink->attr('href'));
     }
 
+    /**
+     * The related puzzles and "About this puzzle" serve search engines and guests - a signed-in player has those facts
+     * higher up, and the related puzzles' query does not run for them.
+     */
+    public function testSignedInPlayerSeesNeitherRelatedPuzzlesNorTheSummary(): void
+    {
+        $browser = self::createClient();
+        self::clearCatalogueStatsCache($browser->getContainer());
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
+
+        $this->assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('.puzzle-related'));
+        self::assertCount(0, $crawler->filter('section.puzzle-summary'));
+        self::assertCount(0, $crawler->filter('h2.puzzle-summary-heading'));
+    }
+
     public function testRelatedPuzzlesFallBackToTheWholeBrand(): void
     {
         $browser = self::createClient();

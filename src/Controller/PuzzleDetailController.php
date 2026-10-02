@@ -101,6 +101,11 @@ final class PuzzleDetailController extends AbstractController
 
         $marketplaceOffers = $this->getSellSwapListItems->marketplaceOffersByPuzzleId($puzzleId);
 
+        // "More … puzzles" and "About this puzzle" are for search engines and guests only: a signed-in player has
+        // every fact higher up (Details, the leaderboard strip) and finds puzzles their own ways (Jan, 2026-10-02).
+        // Crawlers come signed out, so they see exactly what a guest sees
+        $showSeoSections = $user === null;
+
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
             'puzzle_statuses' => $puzzleStatuses,
@@ -114,7 +119,8 @@ final class PuzzleDetailController extends AbstractController
             'is_image_hidden' => $isImageHidden,
             'puzzle_difficulty' => $puzzleDifficulty,
             'time_prediction' => $timePrediction,
-            'related' => $this->getRelatedPuzzles->forPuzzle($puzzle->manufacturerId, $puzzle->piecesCount, $puzzleId),
+            'show_seo_sections' => $showSeoSections,
+            'related' => $showSeoSections ? $this->getRelatedPuzzles->forPuzzle($puzzle->manufacturerId, $puzzle->piecesCount, $puzzleId) : null,
             'puzzle_summary' => $this->getPuzzleSummary->forPuzzle($puzzleId),
             'catalogue_links' => PuzzleCatalogueLinks::forPuzzle($puzzle, $brandHub),
         ]);

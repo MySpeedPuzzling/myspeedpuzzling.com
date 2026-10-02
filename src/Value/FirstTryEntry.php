@@ -7,7 +7,8 @@ namespace SpeedPuzzling\Web\Value;
 use DateTimeImmutable;
 
 /**
- * A result about to be saved as a first try, as the rules look at it.
+ * A result about to be saved, as the first-try rules (when it carries the tag) and the "same time already saved"
+ * check look at it (docs/features/first-try-integrity.md, docs/features/duplicate-results.md).
  */
 readonly final class FirstTryEntry
 {
@@ -24,6 +25,14 @@ readonly final class FirstTryEntry
         public null|string $editedTimeId = null,
         public bool $previouslyFirstAttempt = false,
         public null|array $previousMemberPlayerIds = null,
+        // The time entered - null = no time (relax) or none complete yet, nothing to compare
+        public null|int $secondsToSolve = null,
+        // Edit only: the time and the day before the edit
+        public null|int $previousSecondsToSolve = null,
+        public null|DateTimeImmutable $previousSolvedAt = null,
+        // Add only: the id the form saves the result under. A result with it = the form sent again after it was
+        // saved - nothing to check, the handler answers the resend (docs/features/duplicate-results.md, Layer 1)
+        public null|string $newTimeId = null,
     ) {
     }
 

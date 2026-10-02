@@ -4408,6 +4408,30 @@ first_try:
         removed_one: "その記録から初回を外しました。"
         kept_late: "完了しました。初回のままです。"
         changed: "その間に変更がありました。現在の状態を表示しています。"
+duplicate_check:
+    form_error: "まだ保存されていません：同じ日のまったく同じタイムがこのパズルにすでに保存されています。入力内容と写真はそのまま残っています。下の説明をご確認ください。"
+    action:
+        confirm: "別の完成なので保存する"
+        undo: "元に戻す"
+        view: "表示"
+    same_day:
+        title: "まったく同じタイムがすでに保存されています"
+        body: "誤って2回保存しましたか？それならここで行うことはありません。本当にまったく同じタイムでもう一度完成させた場合は、確認して保存してください。"
+    confirmed:
+        title: "了解しました – 別の完成として扱います"
+        body: "フォームを保存すると、上の記録とは別に保存されます。"
+    tolerated:
+        body: "このタイムはこの日に複数回保存されています。変更はそのまま保存できます："
+    other_day:
+        title: "別の日の同じタイム"
+    line:
+        own_today: "今日%clock%にこのパズルでちょうど%time%を保存しました"
+        own: "%date%のこのパズルでちょうど%time%をすでに保存しています"
+        own_other_day: "%date%のこのパズルの記録%time%があります"
+        with_viewer_pair: "%name%があなたとのペア記録（ちょうど%time%、%date%）をすでに保存しています – あなたのプロフィールに載っています"
+        with_viewer_team: "%name%があなたとのチーム記録（ちょうど%time%、%date%）をすでに保存しています – あなたのプロフィールに載っています"
+        teammate: "%name%はこのパズルで%date%のちょうど%time%をすでに持っています"
+        teammate_other_day: "%name%はこのパズルで%date%の%time%を持っています"
 photo_stash:
     kept: "写真はそのまま残っています。選び直す必要はありません。"
     remove: "削除"

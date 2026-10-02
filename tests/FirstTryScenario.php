@@ -43,8 +43,15 @@ readonly final class FirstTryScenario
     /**
      * @param list<string> $groupPlayers
      */
-    public function add(string $userId, array $groupPlayers = [], int $daysAgo = 0, bool $firstTry = false): string
-    {
+    public function add(
+        string $userId,
+        array $groupPlayers = [],
+        int $daysAgo = 0,
+        bool $firstTry = false,
+        string $time = '05:00:00',
+        // A different comment keeps a same-day copy apart from the add handler's resend safety net
+        null|string $comment = null,
+    ): string {
         $timeId = Uuid::uuid7();
 
         $this->messageBus->dispatch(new AddPuzzleSolvingTime(
@@ -52,8 +59,8 @@ readonly final class FirstTryScenario
             userId: $userId,
             puzzleId: self::PUZZLE,
             competitionId: null,
-            time: '05:00:00',
-            comment: null,
+            time: $time,
+            comment: $comment,
             finishedPuzzlesPhoto: null,
             groupPlayers: $groupPlayers,
             finishedAt: $this->daysAgo($daysAgo),

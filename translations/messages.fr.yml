@@ -4419,6 +4419,30 @@ first_try:
         removed_one: "Première tentative retirée de ce résultat."
         kept_late: "C’est fait – il reste marqué comme première tentative."
         changed: "Cela a changé entre-temps – voici l’état actuel."
+duplicate_check:
+    form_error: "Pas encore enregistré : exactement ce temps du même jour est déjà enregistré pour ce puzzle. Tous vos champs et vos photos sont toujours là – voir la remarque ci-dessous."
+    action:
+        confirm: "C’est une autre résolution, l’enregistrer"
+        undo: "Annuler"
+        view: "Le voir"
+    same_day:
+        title: "Ce temps exact est déjà enregistré"
+        body: "Enregistré deux fois par erreur ? Alors il n’y a plus rien à faire ici. Si vous avez vraiment refait ce puzzle en exactement le même temps, confirmez-le et enregistrez."
+    confirmed:
+        title: "C’est noté – c’est une autre résolution"
+        body: "Elle sera enregistrée à côté du résultat ci-dessus quand vous enregistrerez le formulaire."
+    tolerated:
+        body: "Ce temps est enregistré plusieurs fois ce jour-là. Vous pouvez tout de même enregistrer vos modifications :"
+    other_day:
+        title: "Le même temps un autre jour"
+    line:
+        own_today: "Vous avez enregistré exactement %time% pour ce puzzle aujourd’hui à %clock%"
+        own: "Vous avez déjà enregistré exactement %time% pour ce puzzle le %date%"
+        own_other_day: "Vous avez %time% pour ce puzzle du %date%"
+        with_viewer_pair: "%name% a déjà enregistré votre résultat en duo avec exactement %time% (%date%) – il est sur votre profil"
+        with_viewer_team: "%name% a déjà enregistré votre résultat en équipe avec exactement %time% (%date%) – il est sur votre profil"
+        teammate: "%name% a déjà exactement %time% pour ce puzzle du %date%"
+        teammate_other_day: "%name% a %time% pour ce puzzle du %date%"
 photo_stash:
     kept: "Votre photo est toujours là, inutile de la choisir à nouveau."
     remove: "Retirer"

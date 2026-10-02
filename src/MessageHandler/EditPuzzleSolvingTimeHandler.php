@@ -7,7 +7,9 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzlingTeam;
+use SpeedPuzzling\Web\Entity\ResultDuplicatePrevention;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
@@ -19,6 +21,7 @@ use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
+use SpeedPuzzling\Web\Repository\ResultDuplicatePreventionRepository;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryAssessor;
 use SpeedPuzzling\Web\Value\FirstTryEntry;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
@@ -26,7 +29,9 @@ use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\SolvingTimePredictor;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
+use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\SolvingTime;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
 
@@ -47,6 +52,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         private PuzzlingTeamResolver $puzzlingTeamResolver,
         private SolvingTimePredictor $solvingTimePredictor,
         private FirstTryAssessor $firstTryAssessor,
+        private ResultDuplicatePreventionRepository $resultDuplicatePreventionRepository,
     ) {
     }
 
@@ -183,5 +189,18 @@ readonly final class EditPuzzleSolvingTimeHandler
 
         // modify() forgets the prediction when the date, solo/group or the presence of a time changed
         $this->solvingTimePredictor->reconstructIfPending($solvingTime);
+
+        // In the same transaction: the pair is a confirmed real second solve only if the edit is saved
+        if ($message->duplicateConfirmed) {
+            $this->resultDuplicatePreventionRepository->save(new ResultDuplicatePrevention(
+                id: Uuid::uuid7(),
+                player: $currentPlayer,
+                kind: DuplicatePreventionKind::SavedAnyway,
+                timeId: $solvingTime->id,
+                puzzleId: $solvingTime->puzzle->id,
+                createdAt: $this->clock->now(),
+                via: SolvingTimeSource::Form,
+            ));
+        }
     }
 }

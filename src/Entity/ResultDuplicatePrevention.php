@@ -39,7 +39,9 @@ class ResultDuplicatePrevention
         #[Immutable]
         #[Column(type: Types::STRING, enumType: DuplicatePreventionKind::class)]
         public DuplicatePreventionKind $kind,
-        // The result already saved (the one a resend was answered with)
+        // resend_caught: the result already saved (the one the resend was answered with); warning_shown: the result
+        // being entered (the add form's time_id - it exists only if saved later - or the edited one); saved_anyway:
+        // the result saved or edited after the warning
         #[Immutable]
         #[Column(type: UuidType::NAME)]
         public UuidInterface $timeId,

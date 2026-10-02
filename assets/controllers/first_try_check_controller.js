@@ -1,15 +1,16 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * Checks the "first try" tag of the add/edit time form while it is being filled in
- * (docs/features/first-try-integrity.md): as soon as the puzzle, the date, the co-puzzlers or the tag change,
- * the server answers with the notice a refused submit would show - so nobody learns about it only on save.
+ * Checks the add/edit time form while it is being filled in: the "first try" tag
+ * (docs/features/first-try-integrity.md) and the same time already saved (docs/features/duplicate-results.md,
+ * Layer 2). As soon as the puzzle, the time, the date, the co-puzzlers or the tag change, the server answers with
+ * the notice a refused submit would show - so nobody learns about it only on save.
  *
  * It never submits, re-renders or navigates the form: every other field and a chosen photo stay as they are.
  * The texts come with the server's answer.
  */
 export default class extends Controller {
-    static targets = ['checkbox', 'resolution', 'notice', 'puzzle', 'date', 'mode'];
+    static targets = ['checkbox', 'resolution', 'duplicateConfirmed', 'notice', 'puzzle', 'date', 'mode', 'hours', 'minutes', 'seconds'];
 
     static values = {
         url: String,
@@ -25,6 +26,8 @@ export default class extends Controller {
         this.lastQuery = null;
         this.timer = null;
         this.controller = null;
+        // What the form held when "It's another solve" was chosen - the answer is about exactly that
+        this.confirmedFor = this.hasDuplicateConfirmedTarget && this.duplicateConfirmedTarget.value === '1' ? this.duplicateKey() : null;
 
         this.onChange = (event) => {
             // Clicks inside the notice itself are handled by the actions below
@@ -66,10 +69,23 @@ export default class extends Controller {
         this.check();
     }
 
+    confirmDuplicate() {
+        this.duplicateConfirmedTarget.value = '1';
+        this.confirmedFor = this.duplicateKey();
+        this.check();
+    }
+
+    undoDuplicate() {
+        this.duplicateConfirmedTarget.value = '';
+        this.confirmedFor = null;
+        this.check();
+    }
+
     untick() {
         this.checkboxTarget.checked = false;
         this.resolutionTarget.value = '';
-        this.clear();
+        // The same time already saved still has its say
+        this.check();
     }
 
     schedule() {
@@ -77,11 +93,41 @@ export default class extends Controller {
         this.timer = setTimeout(() => this.check(), 250);
     }
 
+    puzzle() {
+        return this.puzzleValue || (this.hasPuzzleTarget ? this.puzzleTarget.value : '');
+    }
+
+    totalSeconds() {
+        const value = (target) => parseInt(target.value, 10) || 0;
+
+        if (!this.hasHoursTarget || !this.hasMinutesTarget || !this.hasSecondsTarget) {
+            return 0;
+        }
+
+        return value(this.hoursTarget) * 3600 + value(this.minutesTarget) * 60 + value(this.secondsTarget);
+    }
+
+    groupPlayers() {
+        const players = [];
+
+        this.element.querySelectorAll('input[name="group_players[]"]').forEach((input) => {
+            if (input.value.trim() !== '') {
+                players.push(input.value);
+            }
+        });
+
+        return players;
+    }
+
+    // Everything the same-time check compares - another value means another question
+    duplicateKey() {
+        return [this.puzzle(), this.totalSeconds(), this.hasDateTarget ? this.dateTarget.value : '', ...this.groupPlayers()].join('|');
+    }
+
     query() {
         const params = new URLSearchParams();
-        const puzzle = this.puzzleValue || (this.hasPuzzleTarget ? this.puzzleTarget.value : '');
 
-        params.set('puzzle', puzzle);
+        params.set('puzzle', this.puzzle());
 
         if (this.timeValue) {
             params.set('time', this.timeValue);
@@ -91,29 +137,47 @@ export default class extends Controller {
             params.set('date', this.dateTarget.value);
         }
 
-        this.element.querySelectorAll('input[name="group_players[]"]').forEach((input) => {
-            if (input.value.trim() !== '') {
-                params.append('group_players[]', input.value);
-            }
-        });
+        this.groupPlayers().forEach((player) => params.append('group_players[]', player));
+
+        params.set('first_attempt', this.hasCheckboxTarget && this.checkboxTarget.checked ? '1' : '0');
+
+        const seconds = this.totalSeconds();
+
+        if (seconds > 0) {
+            params.set('seconds', String(seconds));
+        }
 
         params.set('resolution', this.resolutionTarget.value);
+
+        if (this.hasDuplicateConfirmedTarget) {
+            params.set('duplicate_confirmed', this.duplicateConfirmedTarget.value);
+        }
 
         return params.toString();
     }
 
     async check() {
-        if (!this.hasCheckboxTarget || !this.checkboxTarget.checked || this.isOtherMode()) {
+        if (this.isOtherMode()) {
             this.resolutionTarget.value = '';
+            this.resetDuplicateConfirmation();
             this.clear();
 
             return;
         }
 
-        const puzzle = this.puzzleValue || (this.hasPuzzleTarget ? this.puzzleTarget.value : '');
+        // "It's another solve" was an answer to what the form held then
+        if (this.confirmedFor !== null && this.confirmedFor !== this.duplicateKey()) {
+            this.resetDuplicateConfirmation();
+        }
 
-        // A new puzzle has no history yet
-        if (!this.timeValue && !this.uuidRegex.test(puzzle)) {
+        const ticked = this.hasCheckboxTarget && this.checkboxTarget.checked;
+
+        if (!ticked) {
+            this.resolutionTarget.value = '';
+        }
+
+        // A new puzzle has no history yet; without the tag only a complete time has something to compare
+        if ((!this.timeValue && !this.uuidRegex.test(this.puzzle())) || (!ticked && this.totalSeconds() === 0)) {
             this.clear();
 
             return;
@@ -152,6 +216,14 @@ export default class extends Controller {
 
         if (this.hasNoticeTarget) {
             this.noticeTarget.innerHTML = '';
+        }
+    }
+
+    resetDuplicateConfirmation() {
+        this.confirmedFor = null;
+
+        if (this.hasDuplicateConfirmedTarget) {
+            this.duplicateConfirmedTarget.value = '';
         }
     }
 

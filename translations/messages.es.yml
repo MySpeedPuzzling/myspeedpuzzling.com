@@ -4417,6 +4417,30 @@ first_try:
         removed_one: "Se quitó el primer intento de ese resultado."
         kept_late: "Hecho – sigue marcado como primer intento."
         changed: "Esto ha cambiado mientras tanto – así se ve ahora."
+duplicate_check:
+    form_error: "Aún no se ha guardado: exactamente este tiempo del mismo día ya está guardado para este rompecabezas. Todos tus datos y fotos siguen aquí – mira la nota de abajo."
+    action:
+        confirm: "Es otra resolución, guardarla"
+        undo: "Deshacer"
+        view: "Verlo"
+    same_day:
+        title: "Este tiempo exacto ya está guardado"
+        body: "¿Lo guardaste dos veces por error? Entonces no hace falta hacer nada más aquí. Si de verdad lo volviste a armar en exactamente el mismo tiempo, confírmalo y guarda."
+    confirmed:
+        title: "Entendido – es otra resolución"
+        body: "Se guardará junto al resultado de arriba cuando guardes el formulario."
+    tolerated:
+        body: "Este tiempo está guardado más de una vez en este día. Puedes guardar tus cambios igualmente:"
+    other_day:
+        title: "El mismo tiempo de otro día"
+    line:
+        own_today: "Guardaste exactamente %time% en este rompecabezas hoy a las %clock%"
+        own: "Ya guardaste exactamente %time% en este rompecabezas para el %date%"
+        own_other_day: "Tienes %time% en este rompecabezas del %date%"
+        with_viewer_pair: "%name% ya guardó vuestro resultado en pareja con exactamente %time% (%date%) – está en tu perfil"
+        with_viewer_team: "%name% ya guardó vuestro resultado en equipo con exactamente %time% (%date%) – está en tu perfil"
+        teammate: "%name% ya tiene exactamente %time% en este rompecabezas del %date%"
+        teammate_other_day: "%name% tiene %time% en este rompecabezas del %date%"
 photo_stash:
     kept: "Tu foto sigue aquí, no hace falta elegirla de nuevo."
     remove: "Quitar"

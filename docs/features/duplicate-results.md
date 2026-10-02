@@ -176,6 +176,26 @@ is the wrong answer).
   e-mails. First run = backfill (`detected_by = backfill`), sends nothing by itself.
 - Saving also writes: "It's another solve, save it" → case stored as `both_real` right away.
 
+Settled while building it (P2):
+
+- **Kinds**: `same_tracker` = solo twins of one tracker on the same day; `same_tracker_group` = one tracker saved a
+  pair/team result twice - also when the two groups differ but both contain the person (a guest added later), which
+  is Tier B on the same day and otherwise only `saved_within_hour`; `teammate_copy` = two different trackers, both
+  pair/team results; `solo_and_group` = the person's solo result + a pair/team result with them (B on the same day,
+  otherwise only `saved_within_hour`); `saved_within_hour` = different days, saved < 1 h apart.
+- **Practice session** = the person has another result of the puzzle on either day with a *different* time (or
+  none). A third copy of the same time is not a practice session - otherwise a triplet of re-sends would only be C.
+  The practice-session demotion to C applies to same-tracker solo twins only; a same-tracker group on the same day
+  stays B as in the table (and is A only outside a practice session).
+- "Nothing saved in between" is checked only for same-tracker pairs saved within an hour (it decides only Tier A).
+- `GetDuplicateCandidates` runs two statements: the self-join finds the pairs, a second one reads the details of
+  just those (~1k). As one statement the planner's estimate for the per-pair subqueries made JIT compilation alone
+  double the run time. Measured on a local copy of production (523k results): 2.0 s in total vs 2.3 s for the
+  plain self-join on the same machine; 939 per-person pairs, 593 people, every pair classified: A 25, B 753, C 161.
+- A case that is `gone` gets `resolved_at` (when it was noticed) and no `resolved_via`. Admin tabs: Resolved =
+  `copy_deleted` + `auto_removed`, Confirmed real = `both_real` + `undone`. Cards and the tier/kind tables count
+  cases (per person); the monthly trend and the gap classes count pairs of results.
+
 ### Review page
 
 `/{_locale}/first-try-conflicts` becomes **"Review your results"** (`/{_locale}/review-results`, old URL 301),

@@ -18,8 +18,8 @@
 <section class="mt-5" data-testid="admin-result-review-contacts">
     <h2 class="h5" id="contacts">Contacts - "Your results" e-mails</h2>
     <p class="text-muted fs-sm">
-        Planned daily (<code>myspeedpuzzling:plan-result-review-emails</code>), sent every 5 minutes 08-20
-        Europe/Prague (<code>myspeedpuzzling:send-result-review-emails</code>): at most
+        Planned daily (<code>myspeedpuzzling:plan-result-review-emails</code>), sent every 5 minutes around the clock
+        (<code>myspeedpuzzling:send-result-review-emails</code>): at most
         <strong>{{ contacts.per_run }}</strong> per run, leaving <strong>{{ contacts.spacing_seconds }} s</strong> apart,
         and <strong>{{ contacts.per_day }}</strong> per day as a safety guard (<code>RESULT_REVIEW_EMAILS_PER_RUN</code> /
         <code>RESULT_REVIEW_EMAIL_SPACING_SECONDS</code> / <code>RESULT_REVIEW_EMAILS_PER_DAY</code>). "Reacted" =

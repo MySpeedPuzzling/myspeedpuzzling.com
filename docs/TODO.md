@@ -10,12 +10,8 @@ Plan: [`features/duplicate-results.md`](features/duplicate-results.md).
 
 - [ ] "Possibly saved twice" marker in the player's results list (`PlayerSolvedPuzzles`) for results with an open
       case - left out of P4 while those templates are being reworked
-- [ ] Cron lines in `~/www/lily.srv` for detect (daily 04:14), plan (daily 04:29) and send (every 5 minutes from
-      :04, 08-20 Europe/Prague) - committed on the lily.srv branch `myspeedpuzzling-duplicate-results`, push it when
-      this feature deploys; then run the first detection by hand with `--backfill`
-- [ ] Before the first send: `myspeedpuzzling:send-result-review-email-preview` to the owner's inbox (each variant,
-      a locale or two)
-- [ ] "Your results" backlog: one e-mail a minute, ~560 players in ~9-10 hours of the first day - after that day
+- [ ] "Your results" backlog (491 planned 2026-10-02, sending since ~16:00, one e-mail a minute around the clock,
+      crons live in lily.srv) - after the first day
       watch bounces/complaints, the reaction rate and the folder at Gmail / iCloud / Seznam (admin "Contacts"); lower
       `RESULT_REVIEW_EMAILS_PER_RUN` or raise `RESULT_REVIEW_EMAIL_SPACING_SECONDS` on the box if it goes badly
 

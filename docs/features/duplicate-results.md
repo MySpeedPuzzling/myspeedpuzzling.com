@@ -410,7 +410,7 @@ its unsubscribe means "no newsletter", and the reaction must land in our databas
   `transactional`** (`robot@`: sign-in links and password resets keep their own quota and reputation). All three
   mailboxes share the Seznam relay's IP reputation (Apple blocked it in July 2026), so pacing matters.
 - **Planned, then sent**: the cron creates `result_review_contact` rows as `planned`; a sending job (every
-  5 minutes, 08–20 Europe/Prague) takes at most N per run and queues them spaced out (one a minute), with a day cap M
+  5 minutes around the clock - players are worldwide) takes at most N per run and queues them spaced out (one a minute), with a day cap M
   as a safety guard. All three are settings, changed without a deploy.
 - **Audience** (measured 2026-10-02): 560 players have a case (same day or saved within 1 h, per person incl.
   teams; 879 cases). 15 of them (2.7 %) have e-mail notifications off - the same as all players with results
@@ -444,7 +444,7 @@ its unsubscribe means "no newsletter", and the reaction must land in our databas
     latest e-mail **and** no e-mail listed cases in the last 30 days. Tier C alone never triggers one.
   - A case is in at most one sent e-mail; one planned contact per player at a time keeps the planning idempotent.
 - **Sending** - `SendPlannedResultReviewEmails` (console `myspeedpuzzling:send-result-review-emails`, every
-  5 minutes 08-20 Europe/Prague, cron `4-59/5 8-20 * * *`): at most `result_review_emails_per_run` per run, leaving
+  5 minutes around the clock, cron `4-59/5 * * * *` - no day window, players are worldwide): at most `result_review_emails_per_run` per run, leaving
   `result_review_email_spacing_seconds` apart, and `result_review_emails_per_day` per Prague day as a safety guard
   (env `RESULT_REVIEW_EMAILS_PER_RUN` = 5 / `RESULT_REVIEW_EMAIL_SPACING_SECONDS` = 60 /
   `RESULT_REVIEW_EMAILS_PER_DAY` = 1000; the cron runs one-off containers, so a change is an env change, no deploy).
@@ -653,7 +653,7 @@ partial `templates/review_results/_banner.html.twig` on the Hub and the own prof
 (`GetPlayerReviewCounts`), nobody else pays a query.
 
 **E-mail** - `PlanResultReviewEmails` (daily, creates `planned` contacts) + `SendPlannedResultReviewEmails` (every
-5 minutes 08-20 Europe/Prague, a cap per run spaced by `result_review_email_spacing_seconds` and a day cap, parameters
+5 minutes around the clock, a cap per run spaced by `result_review_email_spacing_seconds` and a day cap, parameters
 `result_review_emails_per_run` / `result_review_email_spacing_seconds` / `result_review_emails_per_day`) → template
 `templates/emails/result_review.html.twig` (domain `emails`, 6 locales),
 `X-Transport: notifications`, `List-Unsubscribe` + `List-Unsubscribe-Post` to a signed one-click POST route

@@ -59,7 +59,24 @@ readonly final class FirstTryFormCheck
         null|DateTimeImmutable $solvedAt,
         bool $firstAttempt,
         null|int $secondsToSolve,
+        // The puzzle picked in the form when the tracker moves the result (docs/features/duplicate-results.md,
+        // Layer 4) - null = it stays where it is
+        null|string $puzzleId = null,
     ): ResultEntryCheck {
+        $puzzleId = $puzzleId !== null ? strtolower($puzzleId) : $time->puzzleId;
+
+        // On another puzzle the result is new there: nothing from before the edit is tolerated
+        if ($puzzleId !== $time->puzzleId) {
+            return $this->assessor->check(new FirstTryEntry(
+                actorPlayerId: $viewerPlayerId,
+                puzzleId: $puzzleId,
+                memberPlayerIds: $this->members($time->playerId, $groupPlayers),
+                solvedAt: $this->mistypedYearNormalizer->normalizeFinishedAt($solvedAt) ?? $time->finishedAt,
+                editedTimeId: $time->timeId,
+                secondsToSolve: $secondsToSolve,
+            ), $firstAttempt);
+        }
+
         // The group is always the tracker's, whoever edits it (EditPuzzleSolvingTimeHandler)
         $previousMembers = [$time->playerId];
 

@@ -6,11 +6,16 @@
      data-image-editor-apply-value="{{ 'image_editor.apply'|trans }}"
      data-image-editor-edit-value="{{ 'forms.edit'|trans }}">
 
+    {# Edit form, the tracker: the result can move to another puzzle (docs/features/duplicate-results.md, Layer 4) #}
+    {% set puzzle_change = active_puzzle is not null and can_change_puzzle|default(false) %}
+    {% set puzzle_picker_open = puzzle_change and solving_time_form.puzzle.vars.errors|length > 0 %}
+    {# A puzzle that can still change is read from the puzzle field by first-try-check #}
+
     {% set form_start_options = {
         'attr': {
             'data-controller': 'submit-prevention ppm-validator first-try-check',
             'data-first-try-check-url-value': path('first_try_check'),
-            'data-first-try-check-puzzle-value': active_puzzle is defined and active_puzzle is not null ? active_puzzle.puzzleId : '',
+            'data-first-try-check-puzzle-value': active_puzzle is defined and active_puzzle is not null and not puzzle_change ? active_puzzle.puzzleId : '',
             'data-first-try-check-time-value': solved_puzzle is defined ? solved_puzzle.timeId : '',
             'data-submit-prevention-compress-images-value': 'true',
             'data-submit-prevention-compressing-text-value': 'forms.compressing_images'|trans,
@@ -44,8 +49,10 @@
         {% endif %}
 
         <div class="row pb-4"
-             {% if active_puzzle is null %}
+             {% if active_puzzle is null or puzzle_change %}
              data-controller="time-form-autocomplete"
+             data-time-form-autocomplete-allow-new-value="{{ puzzle_change ? 'false' : 'true' }}"
+             data-time-form-autocomplete-options-on-demand-value="{{ puzzle_change and not puzzle_picker_open ? 'true' : 'false' }}"
              data-time-form-autocomplete-ean-search-url-value="{{ path('puzzle_by_ean_search', {ean: '__EAN__'}) }}"
              data-time-form-autocomplete-not-found-message-value="{{ 'scan.puzzle_form.not_found'|trans }}"
              data-time-form-autocomplete-multiple-brands-message-value="{{ 'scan.puzzle_form.multiple_brands'|trans }}"
@@ -54,10 +61,10 @@
              data-time-form-autocomplete-add-new-puzzle-message-value="{{ 'forms.add_new_puzzle'|trans }}"
              data-time-form-autocomplete-puzzle-required-message-value="{{ 'forms.required_field'|trans }}"
              {% endif %}>
-            <div class="col-lg-6 order-lg-1">
+            <div class="col-lg-6 order-lg-1" {% if puzzle_change %}data-controller="toggle"{% endif %}>
 
                 {% if active_puzzle is not null %}
-                    <div class="card card-body shadow mb-3">
+                    <div class="card card-body shadow mb-3 {{ puzzle_picker_open ? 'hidden' }}" {% if puzzle_change %}data-toggle-target="chosenPuzzle"{% endif %}>
                         <h5>{{ 'puzzle_add.chosen_puzzle'|trans }}</h5>
 
                         <div class="py-1 d-flex low-line-height">
@@ -76,11 +83,26 @@
                                 <div class="description"><small>{{ 'pieces_count'|trans({ '%count%': active_puzzle.piecesCount })|raw }}</small></div>
                             </div>
                         </div>
+
+                        {% if puzzle_change %}
+                            <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-2"
+                                    data-action="click->toggle#toggle click->time-form-autocomplete#loadPuzzleOptions"
+                                    data-toggle-target-param="puzzlePicker"
+                                    data-toggle-hide-param="chosenPuzzle">
+                                <i class="bi bi-arrow-left-right me-1"></i>{{ 'edit_time_puzzle.change'|trans }}
+                            </button>
+                        {% elseif solved_puzzle is defined %}
+                            <p class="text-muted small mb-0 mt-2">{{ 'edit_time_puzzle.only_tracker'|trans }}</p>
+                        {% endif %}
                     </div>
                 {% endif %}
 
-                <div {% if active_puzzle is not null %}style="display: none;"{% endif %}>
+                <div {% if puzzle_change %}class="{{ puzzle_picker_open ? '' : 'hidden' }}" data-toggle-target="puzzlePicker"{% elseif active_puzzle is not null %}style="display: none;"{% endif %}>
                     <div class="card card-body shadow mb-3">
+                        {% if puzzle_change %}
+                            <h5>{{ 'edit_time_puzzle.title'|trans }}</h5>
+                        {% endif %}
+
                         <div data-time-form-autocomplete-target="scannerMessage" class="alert alert-warning d-none small mb-3"></div>
 
                         {% if active_puzzle is null %}
@@ -94,6 +116,8 @@
 
                         {{ form_row(solving_time_form.puzzle, {'attr': {'data-time-form-autocomplete-target': 'puzzle', 'data-first-try-check-target': 'puzzle'}}) }}
 
+                        {# Add form only - the edit form moves a result to an existing puzzle, never to a new one #}
+                        {% if solving_time_form.puzzlePiecesCount is defined %}
                         <div data-time-form-autocomplete-target="newPuzzle" class="{{ hide_new_puzzle|default(false) ? 'd-none' }}">
                             <p>
                                 <small class="text-muted">{{ 'puzzle_add.need_approve_info'|trans }}</small>
@@ -165,6 +189,7 @@
                                 {{ include('photo_stash/_kept_photo_input.html.twig', {photo: kept_photo, field: 'puzzlePhoto'}) }}
                             </div>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>

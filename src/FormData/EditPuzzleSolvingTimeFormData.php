@@ -9,8 +9,6 @@ use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints\Callback;
-use Symfony\Component\Validator\Constraints\Length;
-use Symfony\Component\Validator\Constraints\Positive;
 use Symfony\Component\Validator\Constraints\PositiveOrZero;
 use Symfony\Component\Validator\Constraints\Range;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
@@ -68,18 +66,6 @@ final class EditPuzzleSolvingTimeFormData
 
     public null|string $puzzle = null;
     public null|string $competition = null;
-
-    #[Positive]
-    #[Range(min: 10, max: 25000)]
-    public null|int $puzzlePiecesCount = null;
-
-    public null|UploadedFile $puzzlePhoto = null;
-
-    #[Length(max: 15)]
-    public null|string $puzzleEan = null;
-
-    #[Length(max: 50)]
-    public null|string $puzzleIdentificationNumber = null;
 
     public null|DateTimeImmutable $finishedAt;
 

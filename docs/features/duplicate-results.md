@@ -382,6 +382,39 @@ Ships right after the backfill, **before** Layers 2–3 reach players, so the st
   as a merge candidate; once merged, normal detection finds the twin.
 - API idempotency (Layer 2).
 
+**As built (P6, 2026-10-02):**
+- **Puzzle change in edit** - only the tracker (`EditPuzzleSolvingTimeFormType` option `can_change_puzzle`; for the
+  other members brand + puzzle are disabled fields, so whatever they send keeps the puzzle, and they read "Only the
+  puzzler who saved this result can change its puzzle"). The chosen-puzzle card gets "Change puzzle", which opens the
+  add form's brand → puzzle picker (`time_form_autocomplete_controller.js` with `allowNew = false`: no new brand, no
+  new puzzle, no scanner; the brand's puzzles are fetched only when the picker opens, `optionsOnDemand`). The edit form
+  lost its unused new-puzzle fields. Server side: a UUID of an existing puzzle (`edit_time_puzzle.choose_from_list`
+  otherwise, 422, the picker comes back open); the card then shows the picked puzzle.
+- `EditPuzzleSolvingTime::$puzzleId` (null = stays; the API never sends it). The handler refuses a move by anybody but
+  the tracker (`CanNotModifyOtherPlayersTime`), runs the first-try guard and the PPM check against the new puzzle and
+  calls `PuzzleSolvingTime::moveToPuzzle()` before `modify()`: it records `PuzzleSolvingTimeMovedToOtherPuzzle` (the
+  puzzle it **left**, its tracker and piece count - consumed like a deletion by the statistics and incremental
+  insights handlers, routed `sync`) and forgets the prediction; `modify()`'s `PuzzleSolvingTimeModified` then names
+  the new puzzle, the round is re-derived after `modify()` as before, `reconstructIfPending()` queues the backfill, and
+  a pair/team gets the usual `GroupSolvingTimeEdited`.
+- On another puzzle the result counts as **new there**: neither the first-try tolerance (unchanged tag and people) nor
+  the duplicate edit tolerance (unchanged time, day, people) applies - `FirstTryFormCheck::forEditedResult(…, $puzzleId)`
+  and the handler pass no "before the edit" values. The live check takes `puzzle` on an edit only from the tracker.
+- **Catalogue signal** - `DetectDuplicatePuzzleSignals` runs right after `DetectDuplicateResults` in
+  `myspeedpuzzling:detect-duplicate-results` (no new cron). `GetDuplicatePuzzleSignalCandidates` = one statement, per
+  person like the case detection (solo by tracker + registered team members), same seconds + same day + same piece
+  count, pair ordered by id; a full pass is unavoidable ("any two puzzles"), the self-join is a merge join on
+  person + seconds + day: ~1 s on the dev copy of production (523k results → 458 pairs; about a third chance).
+- `duplicate_puzzle_signal` (`DuplicatePuzzleSignal`): as planned + `merge_request_id` (no FK) so the proposal can be
+  traced; the example player has no FK either (only shown). A new run refreshes open signals, **deletes open ones that
+  no longer match** (no decision to keep), never touches `merge_proposed` / `dismissed` (the pair is never raised
+  again). Puzzle FKs cascade, so an approved merge removes the signal.
+- Admin: section "Possible duplicate puzzles" (`templates/admin/_duplicate_puzzle_signals.html.twig`, 30 per page,
+  most matching results first). "Propose merge" → `ProposeDuplicatePuzzleMerge` dispatches the regular
+  `SubmitPuzzleMergeRequest` (puzzle A = source, reporter = the admin) in the same transaction and lands on the merge
+  request detail; "Dismiss" → `DismissDuplicatePuzzleSignal`. Both refuse an already handled signal
+  (`DuplicatePuzzleSignalAlreadyResolved` → flash).
+
 ## Performance
 
 Nothing that runs on a page view scans results site-wide; everything heavy is precomputed by the cron.

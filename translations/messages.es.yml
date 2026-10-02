@@ -4360,6 +4360,12 @@ puzzle_search:
         borrowed: "Tomados prestados"
         lent: "Prestados"
         sell_swap: "Venta / intercambio"
+edit_time_puzzle:
+    change: "Cambiar rompecabezas"
+    title: "Mover este resultado a otro rompecabezas"
+    picker_help: "¿Elegiste el rompecabezas equivocado? Elige el correcto: el tiempo, la fecha, la foto y todo lo demás se mueven con el resultado. Aquí solo se pueden elegir rompecabezas que ya están en nuestra base de datos."
+    only_tracker: "Solo quien guardó este resultado puede cambiar su rompecabezas."
+    choose_from_list: "Elige un rompecabezas de la lista."
 first_try:
     a_puzzler: "otra persona"
     form_error: "Aún no se ha guardado: este rompecabezas ya tiene un primer intento. Todos tus datos y fotos siguen aquí – mira la nota de abajo."

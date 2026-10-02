@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Admin;
 
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Query\GetDuplicatePuzzleSignals;
 use SpeedPuzzling\Web\Query\GetDuplicateResultsOverview;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Value\DuplicateCaseListTab;
 use SpeedPuzzling\Web\Value\DuplicateCaseStatus;
 use SpeedPuzzling\Web\Value\DuplicateKind;
+use SpeedPuzzling\Web\Value\DuplicatePuzzleSignalStatus;
 use SpeedPuzzling\Web\Value\DuplicateTier;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,6 +29,7 @@ final class DuplicateResultsController extends AbstractController
     public function __construct(
         private readonly GetDuplicateResultsOverview $getDuplicateResultsOverview,
         private readonly ClockInterface $clock,
+        private readonly GetDuplicatePuzzleSignals $getDuplicatePuzzleSignals,
     ) {
     }
 
@@ -39,6 +42,9 @@ final class DuplicateResultsController extends AbstractController
         $kind = DuplicateKind::tryFrom($request->query->getString('kind'));
         $page = max(1, $request->query->getInt('page', 1));
         $total = $this->getDuplicateResultsOverview->countCases($tab, $tier, $kind);
+        // Catalogue signal (Layer 4): two puzzle records with the same time from the same person
+        $signalCounts = $this->getDuplicatePuzzleSignals->countsByStatus();
+        $signalsPage = max(1, $request->query->getInt('signals_page', 1));
 
         return $this->render('admin/duplicate_results.html.twig', [
             'totals' => $this->getDuplicateResultsOverview->totals($now),
@@ -58,6 +64,10 @@ final class DuplicateResultsController extends AbstractController
             'tiers' => DuplicateTier::cases(),
             'kinds' => DuplicateKind::cases(),
             'statuses' => DuplicateCaseStatus::cases(),
+            'puzzle_signals' => $this->getDuplicatePuzzleSignals->open($signalsPage),
+            'puzzle_signal_counts' => $signalCounts,
+            'signals_page' => $signalsPage,
+            'signals_pages' => max(1, (int) ceil($signalCounts[DuplicatePuzzleSignalStatus::Open->value] / GetDuplicatePuzzleSignals::PER_PAGE)),
         ]);
     }
 }

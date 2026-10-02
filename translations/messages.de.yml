@@ -4360,6 +4360,12 @@ puzzle_search:
         borrowed: "Ausgeliehen"
         lent: "Verliehen"
         sell_swap: "Verkauf / Tausch"
+edit_time_puzzle:
+    change: "Puzzle ändern"
+    title: "Dieses Ergebnis zu einem anderen Puzzle verschieben"
+    picker_help: "Versehentlich das falsche Puzzle gewählt? Wählen Sie das richtige – Zeit, Datum, Foto und alles andere wandern mit dem Ergebnis mit. Hier können nur Puzzles gewählt werden, die bereits in unserer Datenbank sind."
+    only_tracker: "Nur wer dieses Ergebnis gespeichert hat, kann sein Puzzle ändern."
+    choose_from_list: "Wählen Sie ein Puzzle aus der Liste."
 first_try:
     a_puzzler: "ein Puzzler"
     form_error: "Noch nicht gespeichert: Für dieses Puzzle gibt es bereits einen ersten Versuch. Alle Ihre Angaben und Fotos sind noch da – siehe Hinweis unten."

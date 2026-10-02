@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Ramsey\Uuid\Uuid;
 use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\FormType\EditPuzzleSolvingTimeFormType;
@@ -124,15 +126,34 @@ final class EditTimeController extends AbstractController
             }
         }
 
+        // Only whoever tracked the result may move it to another puzzle (docs/features/duplicate-results.md, Layer 4)
+        $canChangePuzzle = $solvedPuzzle->playerId === $player->playerId;
+        $storedPuzzle = $this->getPuzzleOverview->byId($solvedPuzzle->puzzleId);
+
         $editTimeForm = $this->createForm(EditPuzzleSolvingTimeFormType::class, $data, [
             // Server-derived from the access-checked row, never from the request: the picker must
             // keep offering the linked competition even when it is not publicly selectable
             'current_competition_id' => $solvedPuzzle->competitionId,
+            // The brand of the result's own puzzle is always offered
+            'active_puzzle' => $storedPuzzle,
+            'can_change_puzzle' => $canChangePuzzle,
         ]);
         // A photo kept from a refused submit goes back into its empty file input first (FormPhotoStash)
         $restoredPhotos = $this->formPhotoStash->restore($request, $editTimeForm, $player->playerId);
         $editTimeForm->handleRequest($request);
         $this->formPhotoStash->reportLost($editTimeForm, $restoredPhotos);
+
+        // The puzzle the result is saved on: another one picked by the tracker, once it is known to exist
+        $activePuzzle = $storedPuzzle;
+        $pickedPuzzleId = $editTimeForm->get('puzzle')->getData();
+
+        if ($editTimeForm->isSubmitted() && is_string($pickedPuzzleId) && Uuid::isValid($pickedPuzzleId) && strtolower($pickedPuzzleId) !== $solvedPuzzle->puzzleId) {
+            try {
+                $activePuzzle = $this->getPuzzleOverview->byId($pickedPuzzleId);
+            } catch (PuzzleNotFound) {
+                $editTimeForm->get('puzzle')->addError(new FormError($this->translator->trans('edit_time_puzzle.choose_from_list')));
+            }
+        }
 
         // The co-puzzler inputs live outside the Symfony form, so an empty one has to invalidate the form
         // explicitly - that is what makes render() answer 422 instead of a 200 Turbo Drive discards
@@ -157,6 +178,7 @@ final class EditTimeController extends AbstractController
                 $data->mode === PuzzleAddMode::SpeedPuzzling
                     ? SolvingTime::fromHoursMinutesSeconds($data->timeHours, $data->timeMinutes, $data->timeSeconds)->seconds
                     : null,
+                $activePuzzle->puzzleId,
             );
 
             if ($editTimeForm->isSubmitted() && $check->duplicateBlocks($duplicateConfirmed)) {
@@ -166,7 +188,7 @@ final class EditTimeController extends AbstractController
                     playerId: $player->playerId,
                     kind: DuplicatePreventionKind::WarningShown,
                     timeId: $solvedPuzzle->timeId,
-                    puzzleId: $solvedPuzzle->puzzleId,
+                    puzzleId: $activePuzzle->puzzleId,
                     via: SolvingTimeSource::Form,
                 ));
             } elseif ($editTimeForm->isSubmitted() && $check->firstTryBlocks($firstTryResolution, $duplicateConfirmed)) {
@@ -230,7 +252,8 @@ final class EditTimeController extends AbstractController
         }
 
         $templateParams = [
-            'active_puzzle' => $this->getPuzzleOverview->byId($solvedPuzzle->puzzleId),
+            'active_puzzle' => $activePuzzle,
+            'can_change_puzzle' => $canChangePuzzle,
             'solved_puzzle' => $solvedPuzzle,
             'solving_time_form' => $editTimeForm,
             'filled_group_players' => $groupPlayers,

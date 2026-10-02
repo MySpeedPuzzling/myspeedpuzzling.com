@@ -8,13 +8,13 @@ use DateTimeImmutable;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
-use SpeedPuzzling\Web\Value\FirstTryAssessment;
 use SpeedPuzzling\Web\Value\FirstTryEntry;
+use SpeedPuzzling\Web\Value\ResultEntryCheck;
 
 /**
- * The first-try rules for what the add/edit forms hold - the forms themselves and the live check ask here,
- * so both say the same thing. The co-puzzler inputs are read the way the handlers read them (#code =
- * a registered player), nothing gets created.
+ * The first-try rules and the "same time already saved" check for what the add/edit forms hold - the forms
+ * themselves and the live check ask here, so both say the same thing. The co-puzzler inputs are read the way the
+ * handlers read them (#code = a registered player), nothing gets created.
  */
 readonly final class FirstTryFormCheck
 {
@@ -28,22 +28,38 @@ readonly final class FirstTryFormCheck
     /**
      * @param array<string> $groupPlayers
      */
-    public function forNewResult(string $viewerPlayerId, string $puzzleId, array $groupPlayers, null|DateTimeImmutable $solvedAt): FirstTryAssessment
-    {
-        return $this->assessor->assess(new FirstTryEntry(
+    public function forNewResult(
+        string $viewerPlayerId,
+        string $puzzleId,
+        array $groupPlayers,
+        null|DateTimeImmutable $solvedAt,
+        bool $firstAttempt,
+        null|int $secondsToSolve,
+        // The add form's own result id (docs/features/duplicate-results.md, Layer 1)
+        null|string $timeId = null,
+    ): ResultEntryCheck {
+        return $this->assessor->check(new FirstTryEntry(
             actorPlayerId: $viewerPlayerId,
             puzzleId: $puzzleId,
             memberPlayerIds: $this->members($viewerPlayerId, $groupPlayers),
             // The date the handler will store
             solvedAt: $this->mistypedYearNormalizer->normalizeFinishedAt($solvedAt),
-        ));
+            secondsToSolve: $secondsToSolve,
+            newTimeId: $timeId,
+        ), $firstAttempt);
     }
 
     /**
      * @param array<string> $groupPlayers
      */
-    public function forEditedResult(string $viewerPlayerId, SolvedPuzzleDetail $time, array $groupPlayers, null|DateTimeImmutable $solvedAt): FirstTryAssessment
-    {
+    public function forEditedResult(
+        string $viewerPlayerId,
+        SolvedPuzzleDetail $time,
+        array $groupPlayers,
+        null|DateTimeImmutable $solvedAt,
+        bool $firstAttempt,
+        null|int $secondsToSolve,
+    ): ResultEntryCheck {
         // The group is always the tracker's, whoever edits it (EditPuzzleSolvingTimeHandler)
         $previousMembers = [$time->playerId];
 
@@ -53,7 +69,7 @@ readonly final class FirstTryFormCheck
             }
         }
 
-        return $this->assessor->assess(new FirstTryEntry(
+        return $this->assessor->check(new FirstTryEntry(
             actorPlayerId: $viewerPlayerId,
             puzzleId: $time->puzzleId,
             memberPlayerIds: $this->members($time->playerId, $groupPlayers),
@@ -61,7 +77,10 @@ readonly final class FirstTryFormCheck
             editedTimeId: $time->timeId,
             previouslyFirstAttempt: $time->firstAttempt,
             previousMemberPlayerIds: $previousMembers,
-        ));
+            secondsToSolve: $secondsToSolve,
+            previousSecondsToSolve: $time->time,
+            previousSolvedAt: $time->finishedAt,
+        ), $firstAttempt);
     }
 
     /**

@@ -9,9 +9,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\PuzzlingTeam;
+use SpeedPuzzling\Web\Entity\ResultDuplicatePrevention;
 use SpeedPuzzling\Web\Entity\Stopwatch;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
@@ -30,6 +32,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
+use SpeedPuzzling\Web\Repository\ResultDuplicatePreventionRepository;
 use SpeedPuzzling\Web\Repository\StopwatchRepository;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryAssessor;
 use SpeedPuzzling\Web\Value\FirstTryEntry;
@@ -38,7 +41,9 @@ use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\SolvingTimePredictor;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
+use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\SolvingTime;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 use SpeedPuzzling\Web\Value\TeamComposition;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -66,6 +71,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         private StopwatchRepository $stopwatchRepository,
         private GetRecentIdenticalSolvingTime $getRecentIdenticalSolvingTime,
+        private ResultDuplicatePreventionRepository $resultDuplicatePreventionRepository,
     ) {
     }
 
@@ -242,6 +248,19 @@ readonly final class AddPuzzleSolvingTimeHandler
 
         if ($stopwatch !== null) {
             $this->finishStopwatch($stopwatch, $puzzle, $trackedAt);
+        }
+
+        // In the same transaction: the pair is a confirmed real second solve only if the result exists
+        if ($message->duplicateConfirmed) {
+            $this->resultDuplicatePreventionRepository->save(new ResultDuplicatePrevention(
+                id: Uuid::uuid7(),
+                player: $player,
+                kind: DuplicatePreventionKind::SavedAnyway,
+                timeId: $solvingTimeId,
+                puzzleId: $puzzle->id,
+                createdAt: $trackedAt,
+                via: $message->createdVia ?? SolvingTimeSource::Form,
+            ));
         }
     }
 

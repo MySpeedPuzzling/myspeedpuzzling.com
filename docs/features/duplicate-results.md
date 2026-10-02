@@ -188,6 +188,32 @@ is the wrong answer).
   (UUIDv5 of player + key), so a retry answers the existing result; the Layer 1 safety net covers clients without it.
   Same-day twins from the API end up as cases (Layer 3).
 
+**As built (P3, 2026-10-02):**
+- One read, two answers: `FirstTryAssessor::check(FirstTryEntry, firstAttempt)` reads `GetFirstTryTimes::ofPlayersOnPuzzle()`
+  once (now also `tracked_at` + tracker) and returns `Value\ResultEntryCheck` = the first-try assessment (only when
+  the tag is ticked) + `Value\DuplicateAssessment` from `Services\DuplicateResults\DuplicateAssessor` (pure, only
+  with a time). Neither tag nor time = no query. `FirstTryEntry` carries the entered seconds (and, for an edit, the
+  previous seconds and day). Hidden people are filtered before either part sees the rows.
+- Lines (`DuplicateNoticeLine`): `own` (the viewer saved it: "today at 14:05" when saved today, else the day; a
+  pair/team gets "– pair with …"), `with_viewer` (somebody else saved a pair/team with the viewer: "Petr already saved
+  your pair result … – it is on your profile"), `teammate` (a result of a teammate of the new result without the
+  viewer). "View it" opens `puzzle_result_detail` in a new tab - only when the viewer took part or nobody in it is
+  hidden.
+- **Edit tolerance**: an edit that changes neither the seconds, the day nor adds anybody is never asked (the twin is
+  older than the edit; a confirmation would record an old copy as `saved_anyway`). The lines are shown as info.
+- Live check: `first_attempt=0|1` (missing = ticked, what the old script sent), `seconds`, `duplicate_confirmed`;
+  the script asks when the puzzle is known and the tag is ticked or a time is entered. "It's another solve" is
+  remembered for exactly the puzzle/time/date/co-puzzlers it was given for, any change resets it.
+- The add form sent again after its result was saved (its `time_id` is among the rows) is not checked at all - the
+  handler answers the resend (Layer 1); otherwise its own twin would refuse it.
+- Server: the duplicate refusal comes before the first-try one (`ResultEntryCheck::firstTryBlocks()` is false while
+  a same-day twin is unanswered), so a copy of a first try is never offered "Make this result my first try".
+- `result_duplicate_prevention.time_id`: `warning_shown` = the result being entered (the add form's `time_id`, so a
+  later `saved_anyway` row carries the same id; the edited result for an edit), recorded on every 422 that shows the
+  same-day block (not by the live check - a GET writes nothing). `saved_anyway` is written by the add/edit handler in
+  its own transaction, only when the controller saw a same-day twin and the player confirmed (a stale confirmation
+  without a twin records nothing). P4 turns `saved_anyway` rows into `both_real` cases.
+
 ## Layer 3 - cases, review page, automatic removal
 
 ### Detection

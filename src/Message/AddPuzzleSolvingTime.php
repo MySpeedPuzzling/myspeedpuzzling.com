@@ -33,6 +33,9 @@ readonly final class AddPuzzleSolvingTime
         public null|SolvingTimeSource $createdVia = null,
         // Saving the stopwatch's result finishes it, in the same transaction
         public null|string $stopwatchId = null,
+        // The player was told the same time from the same day is saved already and said it is another solve
+        // (docs/features/duplicate-results.md, Layer 2) - recorded as `saved_anyway` with the result
+        public bool $duplicateConfirmed = false,
     ) {
     }
 }

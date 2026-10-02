@@ -184,17 +184,17 @@
                                 <label class="form-label required">{{ 'time'|trans }}</label>
                                 <div class="d-flex align-items-center gap-1">
                                     <div class="flex-grow-1">
-                                        {{ form_widget(solving_time_form.timeHours, {'attr': {'data-ppm-validator-target': 'timeHours'}}) }}
+                                        {{ form_widget(solving_time_form.timeHours, {'attr': {'data-ppm-validator-target': 'timeHours', 'data-first-try-check-target': 'hours'}}) }}
                                         <div class="text-center text-muted small">{{ 'forms.hours_short'|trans }}</div>
                                     </div>
                                     <span class="fs-4 text-muted pb-3">:</span>
                                     <div class="flex-grow-1">
-                                        {{ form_widget(solving_time_form.timeMinutes, {'attr': {'data-ppm-validator-target': 'timeMinutes'}}) }}
+                                        {{ form_widget(solving_time_form.timeMinutes, {'attr': {'data-ppm-validator-target': 'timeMinutes', 'data-first-try-check-target': 'minutes'}}) }}
                                         <div class="text-center text-muted small">{{ 'forms.minutes_short'|trans }}</div>
                                     </div>
                                     <span class="fs-4 text-muted pb-3">:</span>
                                     <div class="flex-grow-1">
-                                        {{ form_widget(solving_time_form.timeSeconds, {'attr': {'data-ppm-validator-target': 'timeSeconds'}}) }}
+                                        {{ form_widget(solving_time_form.timeSeconds, {'attr': {'data-ppm-validator-target': 'timeSeconds', 'data-first-try-check-target': 'seconds'}}) }}
                                         <div class="text-center text-muted small">{{ 'forms.seconds_short'|trans }}</div>
                                     </div>
                                 </div>
@@ -226,11 +226,12 @@
                     <div class="form-switch" data-puzzle-add-form-target="firstAttemptSection">
                         {{ form_row(solving_time_form.firstAttempt, {'attr': {'data-first-try-check-target': 'checkbox'}}) }}
 
-                        {# docs/features/first-try-integrity.md - filled by first-try-check, or by a refused submit #}
+                        {# docs/features/first-try-integrity.md + duplicate-results.md - filled by first-try-check, or by a refused submit #}
                         <input type="hidden" name="first_try_resolution" value="{{ first_try_resolution|default('') }}" data-first-try-check-target="resolution">
+                        <input type="hidden" name="duplicate_confirmed" value="{{ duplicate_confirmed|default(false) ? '1' : '' }}" data-first-try-check-target="duplicateConfirmed">
                         <div data-first-try-check-target="notice" aria-live="polite">
-                            {%- if first_try|default(null) is not null -%}
-                                {{ include('first_try/_notice.html.twig', {assessment: first_try, resolution: first_try_resolution|default('')}) }}
+                            {%- if first_try|default(null) is not null or duplicates|default(null) is not null -%}
+                                {{ include('first_try/_notice.html.twig', {assessment: first_try|default(null), resolution: first_try_resolution|default(''), duplicates: duplicates|default(null), duplicate_confirmed: duplicate_confirmed|default(false)}) }}
                             {%- endif -%}
                         </div>
                     </div>

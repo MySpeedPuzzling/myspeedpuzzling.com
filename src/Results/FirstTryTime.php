@@ -20,6 +20,9 @@ readonly final class FirstTryTime
         public bool $firstAttempt,
         public null|int $secondsToSolve,
         public array $people,
+        // When it was saved - the duplicate check tells "you saved it today at 14:05"
+        public DateTimeImmutable $trackedAt,
+        public string $trackerPlayerId,
     ) {
     }
 
@@ -29,6 +32,11 @@ readonly final class FirstTryTime
     public function solvedDay(): string
     {
         return $this->solvedAt->format('Y-m-d');
+    }
+
+    public function isTrackedBy(string $playerId): bool
+    {
+        return strtolower($this->trackerPlayerId) === strtolower($playerId);
     }
 
     public function involves(string $playerId): bool

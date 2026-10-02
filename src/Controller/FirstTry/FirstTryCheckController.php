@@ -17,9 +17,12 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * The first-try notice of the add/edit time form, fetched while the player fills the form in
- * (first_try_check_controller.js) - the very partial a refused submit shows, so both say the same.
+ * The first-try and "same time already saved" notice of the add/edit time form, fetched while the player fills
+ * the form in (first_try_check_controller.js) - the very partial a refused submit shows, so both say the same.
  * An empty answer means there is nothing to say.
+ *
+ * `first_attempt=0` = the tag is not ticked (no parameter = ticked, what the script sent before it checked
+ * duplicates too); `seconds` = the time entered, `duplicate_confirmed=1` = "It's another solve" was chosen.
  */
 final class FirstTryCheckController extends AbstractController
 {
@@ -51,6 +54,10 @@ final class FirstTryCheckController extends AbstractController
         $date = DateTimeImmutable::createFromFormat('!d.m.Y', $request->query->getString('date'));
         $solvedAt = $date !== false ? $date : null;
         $resolution = FirstTryResolution::tryFrom($request->query->getString('resolution')) ?? FirstTryResolution::None;
+        $firstAttempt = $request->query->getString('first_attempt', '1') !== '0';
+        $seconds = $request->query->getInt('seconds');
+        $secondsToSolve = $seconds > 0 ? $seconds : null;
+        $duplicateConfirmed = $request->query->getString('duplicate_confirmed') === '1';
         $timeId = $request->query->getString('time');
         $puzzleId = $request->query->getString('puzzle');
 
@@ -65,16 +72,18 @@ final class FirstTryCheckController extends AbstractController
                 return $this->notice(null);
             }
 
-            $assessment = $this->firstTryFormCheck->forEditedResult($viewer->playerId, $time, $groupPlayers, $solvedAt);
+            $check = $this->firstTryFormCheck->forEditedResult($viewer->playerId, $time, $groupPlayers, $solvedAt, $firstAttempt, $secondsToSolve);
         } elseif (Uuid::isValid($puzzleId)) {
-            $assessment = $this->firstTryFormCheck->forNewResult($viewer->playerId, $puzzleId, $groupPlayers, $solvedAt);
+            $check = $this->firstTryFormCheck->forNewResult($viewer->playerId, $puzzleId, $groupPlayers, $solvedAt, $firstAttempt, $secondsToSolve);
         } else {
             return $this->notice(null);
         }
 
         return $this->notice($this->renderView('first_try/_notice.html.twig', [
-            'assessment' => $assessment,
+            'assessment' => $check->firstTry,
             'resolution' => $resolution->value,
+            'duplicates' => $check->duplicates,
+            'duplicate_confirmed' => $duplicateConfirmed,
         ]));
     }
 

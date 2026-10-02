@@ -4417,6 +4417,30 @@ first_try:
         removed_one: "Erster Versuch von diesem Ergebnis entfernt."
         kept_late: "Erledigt – es bleibt als erster Versuch markiert."
         changed: "Das hat sich inzwischen geändert – so sieht es jetzt aus."
+duplicate_check:
+    form_error: "Noch nicht gespeichert: Genau diese Zeit vom selben Tag ist für dieses Puzzle bereits gespeichert. Alle Ihre Angaben und Fotos sind noch da – siehe Hinweis unten."
+    action:
+        confirm: "Es ist ein weiterer Versuch, speichern"
+        undo: "Rückgängig"
+        view: "Ansehen"
+    same_day:
+        title: "Genau diese Zeit ist bereits gespeichert"
+        body: "Versehentlich doppelt gespeichert? Dann ist hier nichts weiter zu tun. Wenn Sie das Puzzle wirklich noch einmal in genau derselben Zeit gelöst haben, bestätigen Sie es und speichern Sie."
+    confirmed:
+        title: "Verstanden – das ist ein weiterer Versuch"
+        body: "Beim Speichern des Formulars wird es neben dem obigen Ergebnis gespeichert."
+    tolerated:
+        body: "Diese Zeit ist an diesem Tag mehrfach gespeichert. Sie können Ihre Änderungen trotzdem speichern:"
+    other_day:
+        title: "Dieselbe Zeit von einem anderen Tag"
+    line:
+        own_today: "Sie haben heute um %clock% genau %time% für dieses Puzzle gespeichert"
+        own: "Sie haben für dieses Puzzle bereits genau %time% am %date% gespeichert"
+        own_other_day: "Sie haben %time% für dieses Puzzle vom %date%"
+        with_viewer_pair: "%name% hat Ihr Paar-Ergebnis mit genau %time% (%date%) bereits gespeichert – es ist in Ihrem Profil"
+        with_viewer_team: "%name% hat Ihr Team-Ergebnis mit genau %time% (%date%) bereits gespeichert – es ist in Ihrem Profil"
+        teammate: "%name% hat für dieses Puzzle bereits genau %time% vom %date%"
+        teammate_other_day: "%name% hat %time% für dieses Puzzle vom %date%"
 photo_stash:
     kept: "Ihr Foto ist noch da, Sie müssen es nicht erneut auswählen."
     remove: "Entfernen"

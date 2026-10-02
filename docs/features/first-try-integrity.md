@@ -46,7 +46,9 @@ Surfaces:
 - **Live check**: `first_try_check_controller.js` asks `GET /{_locale}/first-try-check` (`FirstTryCheckController`)
   whenever the puzzle, date, co-puzzlers or the tag change, debounced and aborted on newer input. The endpoint
   renders the same partial the 422 renders (`templates/first_try/_notice.html.twig`), so both always say the same.
-  The controller never submits, re-renders or navigates the form.
+  The controller never submits, re-renders or navigates the form. Since duplicate-results Layer 2 it also sends the
+  time and asks without the tag; the same-time block renders before the first-try one
+  (`docs/features/duplicate-results.md`).
 - **Handlers** (`AddPuzzleSolvingTimeHandler`, `EditPuzzleSolvingTimeHandler`): the authoritative guard, before any
   write (photo upload included), throwing `FirstTryAlreadyTaken`. Catches races and the API. With
   `firstTryResolution: MoveHere` they untick the old results after persisting the new one.

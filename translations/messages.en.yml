@@ -4714,6 +4714,30 @@ first_try:
         removed_one: "First try removed from that result."
         kept_late: "Done – it stays marked as a first try."
         changed: "This has changed in the meantime – here is how it looks now."
+duplicate_check:
+    form_error: "Not saved yet: exactly this time from the same day is already saved for this puzzle. All your fields and photos are still here – see the note below."
+    action:
+        confirm: "It's another solve, save it"
+        undo: "Undo"
+        view: "View it"
+    same_day:
+        title: "This exact time is already saved"
+        body: "Saved twice by mistake? Then there is nothing more to do here. If you really solved it again in exactly the same time, confirm it and save."
+    confirmed:
+        title: "Got it – this is another solve"
+        body: "It will be saved next to the result above when you save the form."
+    tolerated:
+        body: "This time is saved more than once on this day. You can save your changes as they are:"
+    other_day:
+        title: "The same time from another day"
+    line:
+        own_today: "You saved exactly %time% on this puzzle today at %clock%"
+        own: "You already saved exactly %time% on this puzzle for %date%"
+        own_other_day: "You have %time% on this puzzle from %date%"
+        with_viewer_pair: "%name% already saved your pair result with exactly %time% (%date%) – it is on your profile"
+        with_viewer_team: "%name% already saved your team result with exactly %time% (%date%) – it is on your profile"
+        teammate: "%name% already has exactly %time% on this puzzle from %date%"
+        teammate_other_day: "%name% has %time% on this puzzle from %date%"
 photo_stash:
     kept: "Your photo is still here, no need to choose it again."
     remove: "Remove"

@@ -38,6 +38,8 @@ use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\FirstTryAssessment;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
+use SpeedPuzzling\Web\Value\ResultEntryCheck;
+use SpeedPuzzling\Web\Value\SolvingTime;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -240,24 +242,45 @@ final class PuzzleAddController extends AbstractController
             $addTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_player')));
         }
 
-        // Checked before anything is dispatched - a refused first try must not leave a new puzzle behind.
-        // A new puzzle cannot have one yet (docs/features/first-try-integrity.md)
+        // Checked before anything is dispatched - a refused save must not leave a new puzzle behind. A new puzzle
+        // has no history yet (docs/features/first-try-integrity.md, docs/features/duplicate-results.md Layer 2)
         $firstTryResolution = FirstTryResolution::tryFrom($request->request->getString('first_try_resolution')) ?? FirstTryResolution::None;
-        $firstTry = null;
+        $duplicateConfirmed = $request->request->getString('duplicate_confirmed') === '1';
+        $check = ResultEntryCheck::nothing();
 
         if (
             $addTimeForm->isSubmitted()
             && $data->mode === PuzzleAddMode::SpeedPuzzling
-            && $data->firstAttempt
             && is_string($data->puzzle)
             && Uuid::isValid($data->puzzle)
         ) {
-            $firstTry = $this->firstTryFormCheck->forNewResult($userProfile->playerId, $data->puzzle, $groupPlayers, $data->finishedAt);
+            $check = $this->firstTryFormCheck->forNewResult(
+                $userProfile->playerId,
+                $data->puzzle,
+                $groupPlayers,
+                $data->finishedAt,
+                $data->firstAttempt,
+                SolvingTime::fromHoursMinutesSeconds($data->timeHours, $data->timeMinutes, $data->timeSeconds)->seconds,
+                $timeId->toString(),
+            );
 
-            if ($firstTry->blocks($firstTryResolution)) {
+            // The same time from the same day first: a copy of a first try is no case for "make this my first try"
+            if ($check->duplicateBlocks($duplicateConfirmed)) {
+                $addTimeForm->addError(new FormError($this->translator->trans('duplicate_check.form_error')));
+
+                $this->messageBus->dispatch(new RecordDuplicatePrevention(
+                    playerId: $userProfile->playerId,
+                    kind: DuplicatePreventionKind::WarningShown,
+                    timeId: $timeId->toString(),
+                    puzzleId: $data->puzzle,
+                    via: $stopwatchId !== null ? SolvingTimeSource::Stopwatch : SolvingTimeSource::Form,
+                ));
+            } elseif ($check->firstTryBlocks($firstTryResolution, $duplicateConfirmed)) {
                 $addTimeForm->addError(new FormError($this->translator->trans('first_try.form_error')));
             }
         }
+
+        $firstTry = $check->firstTry;
 
         if ($addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
             $userId = $user->getUserIdentifier();
@@ -306,7 +329,17 @@ final class PuzzleAddController extends AbstractController
 
                 // Step 2: Mode-specific handling
                 $response = match ($mode) {
-                    PuzzleAddMode::SpeedPuzzling => $this->handleSpeedPuzzling($data, $timeId, $userId, $groupPlayers, $stopwatchId, $teamName, $firstTryResolution),
+                    PuzzleAddMode::SpeedPuzzling => $this->handleSpeedPuzzling(
+                        $data,
+                        $timeId,
+                        $userId,
+                        $groupPlayers,
+                        $stopwatchId,
+                        $teamName,
+                        $firstTryResolution,
+                        // Only an answer to a same-day twin the check found counts as "saved anyway"
+                        $duplicateConfirmed && $check->duplicates?->needsConfirmation() === true,
+                    ),
                     PuzzleAddMode::Relax => $this->handleRelax($data, $timeId, $userId, $groupPlayers, $teamName),
                     PuzzleAddMode::Collection => $this->handleCollection($data, $userProfile->playerId),
                 };
@@ -350,6 +383,8 @@ final class PuzzleAddController extends AbstractController
             'system_collection_id' => Collection::SYSTEM_ID,
             'first_try' => $firstTry,
             'first_try_resolution' => $firstTryResolution->value,
+            'duplicates' => $check->duplicates,
+            'duplicate_confirmed' => $duplicateConfirmed,
             'kept_photos' => $this->formPhotoStash->keep($addTimeForm, $restoredPhotos, $userProfile->playerId),
             'time_id' => $timeId->toString(),
             'new_puzzle_id' => $newPuzzleId->toString(),
@@ -398,6 +433,7 @@ final class PuzzleAddController extends AbstractController
         null|string $stopwatchId,
         string $teamName,
         FirstTryResolution $firstTryResolution,
+        bool $duplicateConfirmed,
     ): Response {
         assert($data->puzzle !== null);
 
@@ -422,6 +458,7 @@ final class PuzzleAddController extends AbstractController
                 createdVia: $stopwatchId !== null ? SolvingTimeSource::Stopwatch : SolvingTimeSource::Form,
                 // Finished by the same handler, in the same transaction as the result
                 stopwatchId: $stopwatchId,
+                duplicateConfirmed: $duplicateConfirmed,
             ),
         );
 

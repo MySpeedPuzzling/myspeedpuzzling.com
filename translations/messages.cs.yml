@@ -4415,6 +4415,30 @@ first_try:
         removed_one: "První pokus byl z výsledku odebrán."
         kept_late: "Hotovo – zůstává označený jako první pokus."
         changed: "Mezitím se to změnilo – takhle to vypadá teď."
+duplicate_check:
+    form_error: "Zatím neuloženo: přesně tenhle čas ze stejného dne už u těchto puzzlí uložený je. Všechna vyplněná pole i fotky tu zůstaly – podívej se na poznámku níže."
+    action:
+        confirm: "Je to další složení, uložit"
+        undo: "Zpět"
+        view: "Zobrazit"
+    same_day:
+        title: "Přesně tenhle čas už je uložený"
+        body: "Uložil/a jsi ho omylem dvakrát? Pak tu už nic dělat nemusíš. Pokud jsi puzzle opravdu složil/a znovu v úplně stejném čase, potvrď to a ulož."
+    confirmed:
+        title: "Rozumím – je to další složení"
+        body: "Po uložení formuláře se uloží vedle výsledku výše."
+    tolerated:
+        body: "Tenhle čas je v tomto dni uložený víckrát. Změny můžeš klidně uložit:"
+    other_day:
+        title: "Stejný čas z jiného dne"
+    line:
+        own_today: "Přesně %time% jsi u těchto puzzlí uložil/a dnes v %clock%"
+        own: "Přesně %time% už máš u těchto puzzlí uložený na %date%"
+        own_other_day: "U těchto puzzlí máš %time% z %date%"
+        with_viewer_pair: "%name% už uložil/a váš výsledek ve dvojici s časem přesně %time% (%date%) – máš ho na profilu"
+        with_viewer_team: "%name% už uložil/a váš týmový výsledek s časem přesně %time% (%date%) – máš ho na profilu"
+        teammate: "%name% už má u těchto puzzlí přesně %time% z %date%"
+        teammate_other_day: "%name% má u těchto puzzlí %time% z %date%"
 photo_stash:
     kept: "Tvoje fotka tu zůstala, nemusíš ji vybírat znovu."
     remove: "Odebrat"

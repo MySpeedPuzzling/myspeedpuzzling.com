@@ -40,19 +40,19 @@
         <div class="lb-stats" data-nosnippet>
             {% if this.leaderTime is not null %}
                 <div class="lb-stat">
-                    <span class="lb-stat-label">{{ 'puzzle_times.stats.fastest'|trans }}</span>
+                    <span class="lb-stat-label"><i class="bi bi-1-circle" aria-hidden="true"></i>{{ 'puzzle_times.stats.fastest'|trans }}</span>
                     <span class="lb-stat-value">{{ this.leaderTime|puzzlingTime }}</span>
                 </div>
             {% endif %}
             {% if this.medianTime and this.times|length > 1 %}
                 <div class="lb-stat">
-                    <span class="lb-stat-label">{{ 'puzzle_times.stats.median'|trans }}</span>
+                    <span class="lb-stat-label"><svg class="stat-icon" width="14" height="14" aria-hidden="true"><use href="/stat-icons-sprite.svg#stat-med"/></svg>{{ 'puzzle_times.stats.median'|trans }}</span>
                     <span class="lb-stat-value">{{ this.medianTime|puzzlingTime }}</span>
                 </div>
             {% endif %}
             {% if has_mine %}
                 {% set mine_inner %}
-                    <span class="lb-stat-label">{{ ('puzzle_times.stats.my_best.' ~ this.category)|trans }}</span>
+                    <span class="lb-stat-label"><i class="bi bi-star" aria-hidden="true"></i>{{ ('puzzle_times.stats.my_best.' ~ this.category)|trans }}</span>
                     <span class="lb-stat-value">{{ this.myFastestAttempt.time|puzzlingTime }}</span>
                     {% if this.myRank %}
                         <span class="lb-stat-note" data-testid="my-rank">{{ 'puzzle_times.stats.rank'|trans({'%rank%': this.myRank, '%total%': this.times|length}) }}</span>
@@ -65,7 +65,7 @@
                 {% endif %}
             {% elseif this.averageTime and this.times|length > 1 %}
                 <div class="lb-stat">
-                    <span class="lb-stat-label">{{ 'puzzle_times.stats.average'|trans }}</span>
+                    <span class="lb-stat-label"><svg class="stat-icon" width="14" height="14" aria-hidden="true"><use href="/stat-icons-sprite.svg#stat-avg"/></svg>{{ 'puzzle_times.stats.average'|trans }}</span>
                     <span class="lb-stat-value">{{ this.averageTime|puzzlingTime }}</span>
                 </div>
             {% endif %}

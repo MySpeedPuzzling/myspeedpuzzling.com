@@ -703,9 +703,23 @@ a.lb-name,
 }
 
 .lb-stat-label {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
     font-size: .75rem;
     line-height: 1.3;
     color: $lb-secondary;
+
+    // ① as on the rows' gap to the fastest time, the median/average icons of the stats, ★ for one's best
+    .bi {
+        font-size: .6875rem;
+    }
+
+    .stat-icon {
+        flex-shrink: 0;
+        width: 13px;
+        height: 13px;
+    }
 }
 
 .lb-stat-value {

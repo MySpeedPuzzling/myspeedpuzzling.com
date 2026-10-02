@@ -9,7 +9,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\ResultDuplicateCase;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
-use SpeedPuzzling\Web\Repository\ResultDuplicateCaseRepository;
 use SpeedPuzzling\Web\Repository\ResultDuplicatePreventionRepository;
 use SpeedPuzzling\Web\Results\DuplicateCandidate;
 use SpeedPuzzling\Web\Value\DuplicateClassification;
@@ -24,14 +23,14 @@ use SpeedPuzzling\Web\Value\DuplicateResolvedVia;
  * A case of a result the person saved after the add form had told them the same time was already there
  * ("It's another solve, save it" - result_duplicate_prevention, kind saved_anyway) is confirmed real right away.
  *
- * Reads everything first and persists last: the detection at save time runs inside the save's transaction,
- * and a failing read there must not leave half of its cases in the unit of work.
+ * Stores nothing itself: the daily run persists the new cases, the detection at save time inserts them with
+ * ON CONFLICT DO NOTHING inside its savepoint (ResultDuplicateCaseRepository::insertIfAbsent()) - a case written at
+ * the save's own flush could fail the player's save.
  */
 readonly final class DuplicateCaseRecorder
 {
     public function __construct(
         private DuplicateClassifier $classifier,
-        private ResultDuplicateCaseRepository $caseRepository,
         private ResultDuplicatePreventionRepository $preventionRepository,
         private PlayerRepository $playerRepository,
         private ClockInterface $clock,
@@ -41,8 +40,8 @@ readonly final class DuplicateCaseRecorder
     /**
      * @param list<DuplicateCandidate> $candidates
      * @param array<string, true> $knownKeys every pair that already has a case (ResultDuplicateCase::key())
-     * @return array{matching: array<string, true>, new: list<ResultDuplicateCase>} matching = the keys of every
-     *     candidate that is a case (new or known)
+     * @return array{matching: array<string, array{candidate: DuplicateCandidate, classification: DuplicateClassification}>, new: list<ResultDuplicateCase>}
+     *     matching = every candidate that is a case (new or known), by key; new = the cases to store, not stored yet
      */
     public function record(array $candidates, array $knownKeys, DuplicateDetectedBy $detectedBy): array
     {
@@ -63,7 +62,7 @@ readonly final class DuplicateCaseRecorder
                 continue;
             }
 
-            $matching[$key] = true;
+            $matching[$key] = ['candidate' => $candidate, 'classification' => $classification];
 
             if (!isset($knownKeys[$key])) {
                 $toStore[] = ['candidate' => $candidate, 'classification' => $classification];
@@ -108,7 +107,6 @@ readonly final class DuplicateCaseRecorder
                 $case->confirmBothReal($now, DuplicateResolvedVia::Form);
             }
 
-            $this->caseRepository->save($case);
             $new[] = $case;
         }
 

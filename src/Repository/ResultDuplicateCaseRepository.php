@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Repository;
 
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
@@ -21,6 +22,42 @@ readonly final class ResultDuplicateCaseRepository
     public function save(ResultDuplicateCase $case): void
     {
         $this->entityManager->persist($case);
+    }
+
+    /**
+     * Native SQL on purpose, for the detection right after a save (DetectDuplicateResultsOnSave): the row is written
+     * at once, inside that detection's savepoint, and a pair somebody stored meanwhile is skipped instead of failing.
+     * Persisted, the case would be written by the flush that follows the save's own - a unique-key failure there
+     * would cost the player the save.
+     */
+    public function insertIfAbsent(ResultDuplicateCase $case): void
+    {
+        $this->entityManager->getConnection()->executeStatement(
+            <<<SQL
+INSERT INTO result_duplicate_case (id, player_id, time_a_id, time_b_id, tier, kind, detected_at, detected_by, snapshot, status, resolved_at, resolved_via)
+VALUES (:id, :playerId, :timeAId, :timeBId, :tier, :kind, :detectedAt, :detectedBy, :snapshot, :status, :resolvedAt, :resolvedVia)
+ON CONFLICT (player_id, time_a_id, time_b_id) DO NOTHING
+SQL,
+            [
+                'id' => $case->id->toString(),
+                'playerId' => $case->player->id->toString(),
+                'timeAId' => $case->timeAId->toString(),
+                'timeBId' => $case->timeBId->toString(),
+                'tier' => $case->tier->value,
+                'kind' => $case->kind->value,
+                'detectedAt' => $case->detectedAt,
+                'detectedBy' => $case->detectedBy->value,
+                'snapshot' => $case->snapshot,
+                'status' => $case->status->value,
+                'resolvedAt' => $case->resolvedAt,
+                'resolvedVia' => $case->resolvedVia?->value,
+            ],
+            [
+                'detectedAt' => Types::DATETIME_IMMUTABLE,
+                'snapshot' => Types::JSON,
+                'resolvedAt' => Types::DATETIME_IMMUTABLE,
+            ],
+        );
     }
 
     /**

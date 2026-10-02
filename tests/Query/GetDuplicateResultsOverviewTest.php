@@ -6,13 +6,13 @@ namespace SpeedPuzzling\Web\Tests\Query;
 
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
-use SpeedPuzzling\Web\Message\DetectDuplicateResults;
 use SpeedPuzzling\Web\Query\GetDuplicateResultsOverview;
+use SpeedPuzzling\Web\Services\DuplicateResults\DailyDuplicateDetection;
 use SpeedPuzzling\Web\Tests\DataFixtures\DuplicateResultsFixture;
 use SpeedPuzzling\Web\Value\DuplicateCaseListTab;
+use SpeedPuzzling\Web\Value\DuplicateDetectedBy;
 use SpeedPuzzling\Web\Value\DuplicateTier;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 final class GetDuplicateResultsOverviewTest extends KernelTestCase
 {
@@ -24,7 +24,7 @@ final class GetDuplicateResultsOverviewTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
 
-        $container->get(MessageBusInterface::class)->dispatch(new DetectDuplicateResults());
+        $container->get(DailyDuplicateDetection::class)->run(DuplicateDetectedBy::Cron);
         $this->overview = $container->get(GetDuplicateResultsOverview::class);
         $this->database = $container->get(Connection::class);
     }

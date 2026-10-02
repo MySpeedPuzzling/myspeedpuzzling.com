@@ -9,13 +9,16 @@ use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleIdTaken;
 use SpeedPuzzling\Web\Message\AddPuzzle;
+use SpeedPuzzling\Web\Query\IsPuzzleInUse;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Services\GenerateManufacturerSlug;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\PuzzleImageNamer;
@@ -33,6 +36,8 @@ readonly final class AddPuzzleHandler
         private GenerateManufacturerSlug $generateManufacturerSlug,
         private PuzzleImageNamer $puzzleImageNamer,
         private PuzzleRepository $puzzleRepository,
+        private IsPuzzleInUse $isPuzzleInUse,
+        private IdLock $idLock,
     ) {
     }
 
@@ -42,6 +47,9 @@ readonly final class AddPuzzleHandler
      */
     public function __invoke(AddPuzzle $message): void
     {
+        // First: a second request with the same id waits here until this one commits, then finds the puzzle below
+        $this->idLock->lockUntilCommit($message->puzzleId);
+
         $player = $this->playerRepository->getByUserIdCreateIfNotExists($message->userId);
 
         // The add form sends the new puzzle's id along: a puzzle with it means the same form arrived again and
@@ -49,29 +57,94 @@ readonly final class AddPuzzleHandler
         $existingPuzzle = $this->puzzleRepository->findById($message->puzzleId);
 
         if ($existingPuzzle !== null) {
-            if ($existingPuzzle->addedByUser?->id->equals($player->id) === true) {
-                return;
+            if ($existingPuzzle->addedByUser?->id->equals($player->id) !== true) {
+                throw new PuzzleIdTaken();
             }
 
-            throw new PuzzleIdTaken();
+            // The result saved with it was refused (e.g. a mistyped piece count made the time impossible), so the
+            // form came back with what the player corrected. Once anything uses the puzzle it stays as it is
+            if ($existingPuzzle->approved === false && $this->isPuzzleInUse->check($existingPuzzle->id->toString()) === false) {
+                $this->correct($existingPuzzle, $message, $player);
+            }
+
+            return;
         }
+
         $now = new DateTimeImmutable();
+        $manufacturer = $this->manufacturer($message->brand, $player, $now);
+        [$puzzlePhotoPath, $puzzleImageRatio] = $this->storePhoto($message, $manufacturer);
 
-        if (Uuid::isValid($message->brand)) {
-            $manufacturer = $this->manufacturerRepository->get($message->brand);
-        } else {
-            $manufacturer = new Manufacturer(
-                Uuid::uuid7(),
-                $message->brand,
-                false,
-                $player,
-                $now,
-                slug: $this->generateManufacturerSlug->fromName($message->brand),
-            );
+        $puzzle = new Puzzle(
+            $message->puzzleId,
+            $message->piecesCount,
+            $message->puzzleName,
+            approved: false,
+            image: $puzzlePhotoPath,
+            imageRatio: $puzzleImageRatio,
+            manufacturer: $manufacturer,
+            addedByUser: $player,
+            addedAt: $now,
+            identificationNumber: $message->puzzleIdentificationNumber,
+            ean: $this->normalizedEan($message->puzzleEan),
+        );
 
-            $this->entityManager->persist($manufacturer);
+        $this->entityManager->persist($puzzle);
+    }
+
+    private function correct(Puzzle $puzzle, AddPuzzle $message, Player $player): void
+    {
+        // The brand typed again is the one this form created the first time - not a second new brand
+        $manufacturer = $puzzle->manufacturer;
+
+        if (
+            Uuid::isValid($message->brand)
+            || $manufacturer === null
+            || mb_strtolower(trim($manufacturer->name)) !== mb_strtolower(trim($message->brand))
+        ) {
+            $manufacturer = $this->manufacturer($message->brand, $player, new DateTimeImmutable());
         }
 
+        [$puzzlePhotoPath, $puzzleImageRatio] = $this->storePhoto($message, $manufacturer);
+
+        $puzzle->correctNewlyAdded(
+            name: $message->puzzleName,
+            piecesCount: $message->piecesCount,
+            manufacturer: $manufacturer,
+            image: $puzzlePhotoPath,
+            imageRatio: $puzzleImageRatio,
+            ean: $this->normalizedEan($message->puzzleEan),
+            identificationNumber: $message->puzzleIdentificationNumber,
+        );
+    }
+
+    /**
+     * @throws ManufacturerNotFound
+     */
+    private function manufacturer(string $brand, Player $player, DateTimeImmutable $now): Manufacturer
+    {
+        if (Uuid::isValid($brand)) {
+            return $this->manufacturerRepository->get($brand);
+        }
+
+        $manufacturer = new Manufacturer(
+            Uuid::uuid7(),
+            $brand,
+            false,
+            $player,
+            $now,
+            slug: $this->generateManufacturerSlug->fromName($brand),
+        );
+
+        $this->entityManager->persist($manufacturer);
+
+        return $manufacturer;
+    }
+
+    /**
+     * @return array{string, float}
+     */
+    private function storePhoto(AddPuzzle $message, Manufacturer $manufacturer): array
+    {
         $extension = $message->puzzlePhoto->guessExtension() ?? 'jpg';
         $puzzlePhotoPath = $this->puzzleImageNamer->generateFilename(
             $manufacturer->name,
@@ -92,20 +165,11 @@ readonly final class AddPuzzleHandler
             fclose($stream);
         }
 
-        $puzzle = new Puzzle(
-            $message->puzzleId,
-            $message->piecesCount,
-            $message->puzzleName,
-            approved: false,
-            image: $puzzlePhotoPath,
-            imageRatio: $puzzleImageRatio,
-            manufacturer: $manufacturer,
-            addedByUser: $player,
-            addedAt: $now,
-            identificationNumber: $message->puzzleIdentificationNumber,
-            ean: $message->puzzleEan !== null ? (ltrim($message->puzzleEan, '0') ?: null) : null,
-        );
+        return [$puzzlePhotoPath, $puzzleImageRatio];
+    }
 
-        $this->entityManager->persist($puzzle);
+    private function normalizedEan(null|string $ean): null|string
+    {
+        return $ean !== null ? (ltrim($ean, '0') ?: null) : null;
     }
 }

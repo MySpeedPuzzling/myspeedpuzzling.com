@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
-use SpeedPuzzling\Web\Message\DetectDuplicateResults;
 use SpeedPuzzling\Web\Message\PlanResultReviewEmails;
+use SpeedPuzzling\Web\Services\DuplicateResults\DailyDuplicateDetection;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\DuplicateDetectedBy;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -82,7 +83,7 @@ final class DuplicateResultsControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
-        $browser->getContainer()->get(MessageBusInterface::class)->dispatch(new DetectDuplicateResults());
+        $browser->getContainer()->get(DailyDuplicateDetection::class)->run(DuplicateDetectedBy::Cron);
 
         return $browser;
     }

@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
 use ApiPlatform\OpenApi\Model\Parameter;
+use ApiPlatform\OpenApi\Model\Response as OpenApiResponse;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiResource(
@@ -27,7 +28,9 @@ use Symfony\Component\Validator\Constraints as Assert;
                     . '(the write scope alone does not read insights; a personal access token always can). '
                     . 'When present, every field inside is null and is_personalized false if there is nothing to predict from. '
                     . 'Send an Idempotency-Key header to retry safely: a request repeating a key already used by the token owner '
-                    . 'creates nothing and answers with the result the first request saved (same status, same body). '
+                    . 'creates nothing and answers with the result the first request saved (same status, same body) - as long as it is the same '
+                    . 'result (puzzle_id, time and finish day); a key reused for a different result is refused with 422 '
+                    . 'application/problem+json, type "/errors/idempotency_key_reused", and nothing is saved. '
                     . 'Without the key, an identical request sent again within 10 seconds is answered the same way.',
                 parameters: [
                     new Parameter(
@@ -38,6 +41,10 @@ use Symfony\Component\Validator\Constraints as Assert;
                         required: false,
                         schema: ['type' => 'string'],
                     ),
+                ],
+                responses: [
+                    '422' => new OpenApiResponse(description: 'Invalid input (application/problem+json with "violations"), a first attempt already recorded '
+                        . '(firstAttempt=true), or an Idempotency-Key already used for a different result (type "/errors/idempotency_key_reused").'),
                 ],
             ),
             security: "is_granted('ROLE_PAT') or is_granted('ROLE_OAUTH2_SOLVING-TIMES:WRITE')",

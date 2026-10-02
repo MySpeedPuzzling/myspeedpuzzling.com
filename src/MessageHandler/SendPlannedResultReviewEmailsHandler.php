@@ -36,7 +36,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * still not undone. What was resolved meanwhile is left out; nothing left (or Tier C alone) = skipped.
  *
  * One transaction for the run, the queued e-mails included (the Doctrine messenger transport) - a failure sends
- * nothing and the next run tries again.
+ * nothing and the next run tries again. The planned contacts are locked for the run (FOR UPDATE SKIP LOCKED), so a
+ * run overlapping a slow one sends only what the slow one did not take.
  */
 #[AsMessageHandler]
 readonly final class SendPlannedResultReviewEmailsHandler

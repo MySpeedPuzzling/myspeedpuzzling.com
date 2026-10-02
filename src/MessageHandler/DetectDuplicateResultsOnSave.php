@@ -31,10 +31,11 @@ use Throwable;
  * - deleted: open cases with that result are closed as gone.
  *
  * The events run synchronously on postFlush, inside the save's transaction, so the new row is visible here.
- * A failure must never cost the player the save: everything runs in a savepoint and every read comes before
- * the first write, so a failing query is rolled back to the savepoint, logged and left for the daily run.
- * Stored here are only pairs that include the result just saved - a row nobody else can see before the commit,
- * so the daily run can never insert the same case at the same time (no unique-key race at the flush).
+ * A failure must never cost the player the save: everything runs in a savepoint, and the new cases are inserted
+ * right there (INSERT .. ON CONFLICT DO NOTHING) instead of being persisted - persisted, they would be written by
+ * the flush after this handler, outside the savepoint, where a failure (a case the daily run stored meanwhile)
+ * fails the save. A failing statement is rolled back to the savepoint, logged and left for the daily run; only the
+ * `gone` updates of loaded cases go through the unit of work, and they cannot conflict.
  */
 #[AsMessageHandler]
 readonly final class DetectDuplicateResultsOnSave
@@ -101,12 +102,16 @@ readonly final class DetectDuplicateResultsOnSave
         $knownKeys = $candidates === [] ? [] : $this->caseRepository->keysReferencing($timeId);
         $recorded = $this->caseRecorder->record($candidates, $knownKeys, DuplicateDetectedBy::Save);
 
+        foreach ($recorded['new'] as $case) {
+            $this->caseRepository->insertIfAbsent($case);
+        }
+
         $this->closeGone($openCases, $recorded['matching']);
     }
 
     /**
      * @param list<ResultDuplicateCase> $openCases
-     * @param array<string, true> $matchingKeys
+     * @param array<string, mixed> $matchingKeys
      */
     private function closeGone(array $openCases, array $matchingKeys): void
     {

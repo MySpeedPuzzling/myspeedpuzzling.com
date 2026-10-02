@@ -11,7 +11,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ResultReviewContact;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Message\ConfirmDuplicateIsReal;
-use SpeedPuzzling\Web\Message\DetectDuplicateResults;
 use SpeedPuzzling\Web\Message\DismissFirstTryReview;
 use SpeedPuzzling\Web\Message\PlanResultReviewEmails;
 use SpeedPuzzling\Web\Message\SendPlannedResultReviewEmails;
@@ -21,11 +20,14 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\ResultAutoRemovalRepository;
 use SpeedPuzzling\Web\Repository\ResultReviewContactRepository;
 use SpeedPuzzling\Web\Results\ResultReviewSendingSummary;
+use SpeedPuzzling\Web\Services\DuplicateResults\DailyDuplicateDetection;
 use SpeedPuzzling\Web\Services\DuplicateResults\ResultEmailsUnsubscribeUrl;
 use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Tests\DataFixtures\DuplicateResultsFixture;
+use SpeedPuzzling\Web\Value\DuplicateDetectedBy;
 use SpeedPuzzling\Web\Value\ResultReviewContactType;
+use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
@@ -125,7 +127,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
         self::assertSame(0, $this->plan());
 
         // The Tier A copy is removed automatically - that is told even to somebody who ignored us
-        $this->messageBus->dispatch(new DetectDuplicateResults());
+        self::getContainer()->get(DailyDuplicateDetection::class)->run(DuplicateDetectedBy::Cron);
         self::assertSame(1, $this->plan());
 
         $weekly = $this->contactsOf(self::DANA)[1];
@@ -148,7 +150,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
         $this->send();
         $this->database->executeStatement("UPDATE result_review_contact SET sent_at = NOW() - INTERVAL '10 days'");
 
-        $this->messageBus->dispatch(new DetectDuplicateResults());
+        self::getContainer()->get(DailyDuplicateDetection::class)->run(DuplicateDetectedBy::Cron);
 
         // Dana was never active - the removal waits on the banner and the review page
         self::assertSame(0, $this->plan());
@@ -280,6 +282,28 @@ final class ResultReviewEmailsTest extends KernelTestCase
         self::assertSame(0, $third->sent, 'Two today already');
         self::assertSame(2, $third->sentTodayBefore);
         self::assertSame(2, $third->stillPlanned);
+    }
+
+    public function testARunLocksThePlannedEmailsSoAnOverlappingRunSkipsThem(): void
+    {
+        $this->plan();
+
+        /** @var DebugDataHolder $debugDataHolder */
+        $debugDataHolder = self::getContainer()->get('doctrine.debug_data_holder');
+        $debugDataHolder->reset();
+
+        $this->send();
+
+        /** @var list<array{sql: string}> $executed */
+        $executed = $debugDataHolder->getData()['default'] ?? [];
+        $plannedQueries = array_values(array_filter(
+            array_column($executed, 'sql'),
+            static fn (string $sql): bool => str_starts_with($sql, 'SELECT id FROM result_review_contact WHERE status'),
+        ));
+
+        // Held until the run commits; another run skips the locked rows instead of mailing them as well
+        self::assertCount(1, $plannedQueries);
+        self::assertStringEndsWith('FOR UPDATE SKIP LOCKED', $plannedQueries[0]);
     }
 
     public function testReactionsAreCreditedToTheLatestEmailOnly(): void

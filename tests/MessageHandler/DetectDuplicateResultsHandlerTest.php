@@ -34,8 +34,10 @@ final class DetectDuplicateResultsHandlerTest extends KernelTestCase
 
         self::assertSame(5, $summary->newCases);
         self::assertSame(0, $summary->goneCases);
-        // Tier A: the copy sent again 7 s later
-        self::assertSame(1, $summary->autoRemoved);
+        // Tier A: the copy sent again 7 s later - answered for the removal, which is not the detection's job
+        self::assertSame([$this->caseIdOf(DuplicateResultsFixture::TIME_CERTAIN_A)], $summary->certainCaseIds);
+        self::assertSame(0, $summary->autoRemoved);
+        self::assertNotFalse($this->database->fetchOne('SELECT 1 FROM puzzle_solving_time WHERE id = :id', ['id' => DuplicateResultsFixture::TIME_CERTAIN_B]));
 
         $twins = DuplicateResultsFixture::PLAYER_TWINS;
         $teammate = DuplicateResultsFixture::PLAYER_TWINS_TEAMMATE;
@@ -164,6 +166,17 @@ final class DetectDuplicateResultsHandlerTest extends KernelTestCase
         );
 
         return $cases;
+    }
+
+    private function caseIdOf(string $timeAId): string
+    {
+        $caseId = $this->database->fetchOne(
+            'SELECT id FROM result_duplicate_case WHERE time_a_id = :id',
+            ['id' => $timeAId],
+        );
+        assert(is_string($caseId));
+
+        return $caseId;
     }
 
     private function statusOf(string $timeAId): string

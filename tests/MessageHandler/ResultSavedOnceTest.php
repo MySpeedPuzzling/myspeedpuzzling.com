@@ -5,12 +5,18 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
+use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Entity\Stopwatch;
+use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\PuzzleIdTaken;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeAlreadySaved;
+use SpeedPuzzling\Web\Exceptions\SolvingTimeIdReused;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeIdTaken;
+use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBeFinished;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\AddPuzzleTracking;
@@ -54,6 +60,70 @@ final class ResultSavedOnceTest extends KernelTestCase
         self::assertSame($timeId->toString(), $refusal->timeId);
         self::assertSame(PuzzleFixture::PUZZLE_1500_02, $refusal->puzzleId);
         self::assertSame(1, $this->countTimes($timeId));
+    }
+
+    public function testTheSameIdWithAnotherTimeOrDayIsAnotherResult(): void
+    {
+        $timeId = Uuid::uuid7();
+        $this->addTime($timeId, finishedAt: new \DateTimeImmutable('2026-09-20'));
+
+        self::assertInstanceOf(SolvingTimeIdReused::class, $this->refusalOf(fn () => $this->addTime($timeId, time: '01:00:01', finishedAt: new \DateTimeImmutable('2026-09-20'))));
+        self::assertInstanceOf(SolvingTimeIdReused::class, $this->refusalOf(fn () => $this->addTime($timeId, finishedAt: new \DateTimeImmutable('2026-09-21'))));
+        self::assertInstanceOf(SolvingTimeIdReused::class, $this->refusalOf(fn () => $this->addTime($timeId, puzzleId: PuzzleFixture::PUZZLE_1500_01, finishedAt: new \DateTimeImmutable('2026-09-20'))));
+
+        // The same puzzle, time and day - another time of that day is still the same entry
+        self::assertInstanceOf(SolvingTimeAlreadySaved::class, $this->refusalOf(fn () => $this->addTime($timeId, finishedAt: new \DateTimeImmutable('2026-09-20 18:00'))));
+        self::assertSame(1, $this->countTimes($timeId));
+    }
+
+    public function testEverySaveLocksItsIdBeforeAnythingElse(): void
+    {
+        /** @var DebugDataHolder $debugDataHolder */
+        $debugDataHolder = self::getContainer()->get('doctrine.debug_data_holder');
+
+        $saves = [
+            'time' => fn (UuidInterface $id) => $this->addTime($id),
+            'tracking' => fn (UuidInterface $id) => $this->addTracking($id, PlayerFixture::PLAYER_REGULAR_USER_ID),
+            'puzzle' => fn (UuidInterface $id) => $this->addPuzzle($id, PlayerFixture::PLAYER_REGULAR_USER_ID),
+        ];
+
+        foreach ($saves as $save => $dispatch) {
+            $id = Uuid::uuid7();
+            $debugDataHolder->reset();
+
+            $dispatch($id);
+
+            /** @var list<array{sql: string, params: array<mixed>}> $executed */
+            $executed = $debugDataHolder->getData()['default'] ?? [];
+            $statements = array_values(array_filter(
+                $executed,
+                static fn (array $query): bool => preg_match('/^"?(SAVEPOINT|RELEASE|START|BEGIN|COMMIT)\b/i', $query['sql']) !== 1,
+            ));
+
+            self::assertNotEmpty($statements, $save);
+            self::assertStringContainsString('pg_advisory_xact_lock', $statements[0]['sql'], $save);
+            self::assertContains($id->toString(), $statements[0]['params'], $save);
+        }
+    }
+
+    public function testAStopwatchThatNeverRanRefusesTheSaveBeforeAnythingIsCreated(): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $stopwatchId = Uuid::uuid7();
+        $player = $entityManager->find(Player::class, PlayerFixture::PLAYER_REGULAR);
+        self::assertNotNull($player);
+        $entityManager->persist(new Stopwatch($stopwatchId, $player, null));
+        $entityManager->flush();
+
+        $timeId = Uuid::uuid7();
+
+        self::assertInstanceOf(StopwatchCouldNotBeFinished::class, $this->refusalOf(fn () => $this->addTime($timeId, stopwatchId: $stopwatchId->toString())));
+
+        // Nothing waits in the entity manager for a later flush either
+        $entityManager->flush();
+
+        self::assertSame(0, $this->countTimes($timeId));
+        self::assertSame('not_started', $this->stopwatchStatus($stopwatchId->toString()));
     }
 
     public function testTheIdOfAnotherPlayersResultIsRefused(): void
@@ -247,6 +317,38 @@ final class ResultSavedOnceTest extends KernelTestCase
         self::assertInstanceOf(PuzzleIdTaken::class, $refusal);
     }
 
+    public function testTheNewPuzzleIsCorrectedByItsAuthorUntilSomethingUsesIt(): void
+    {
+        $puzzleId = Uuid::uuid7();
+        $this->addPuzzle($puzzleId, PlayerFixture::PLAYER_REGULAR_USER_ID, piecesCount: 5000);
+
+        // The result saved with it was refused, the form came back corrected
+        $this->addPuzzle($puzzleId, PlayerFixture::PLAYER_REGULAR_USER_ID, name: 'Sent twice, corrected', piecesCount: 500, ean: '04005556123456');
+
+        /** @var array{name: string, pieces_count: int, ean: string, image: string} $puzzle */
+        $puzzle = $this->database->fetchAssociative('SELECT name, pieces_count, ean, image FROM puzzle WHERE id = :id', ['id' => $puzzleId->toString()]);
+        self::assertSame('Sent twice, corrected', $puzzle['name']);
+        self::assertSame(500, $puzzle['pieces_count']);
+        self::assertSame('4005556123456', $puzzle['ean']);
+        self::assertStringContainsString('sent-twice-corrected-500', $puzzle['image']);
+
+        // Once a result uses it, the puzzle stays as it is
+        $this->addTime(Uuid::uuid7(), puzzleId: $puzzleId->toString(), time: '00:41:00');
+        $this->addPuzzle($puzzleId, PlayerFixture::PLAYER_REGULAR_USER_ID, name: 'Changed afterwards', piecesCount: 1000);
+
+        self::assertSame('Sent twice, corrected', $this->database->fetchOne('SELECT name FROM puzzle WHERE id = :id', ['id' => $puzzleId->toString()]));
+    }
+
+    public function testANewBrandTypedAgainIsNotASecondBrand(): void
+    {
+        $puzzleId = Uuid::uuid7();
+        $this->addPuzzle($puzzleId, PlayerFixture::PLAYER_REGULAR_USER_ID, piecesCount: 5000, brand: 'Brand New Brand');
+        $this->addPuzzle($puzzleId, PlayerFixture::PLAYER_REGULAR_USER_ID, piecesCount: 500, brand: 'Brand New Brand');
+
+        self::assertSame(1, $this->database->fetchOne("SELECT COUNT(*) FROM manufacturer WHERE name = 'Brand New Brand'"));
+        self::assertSame(500, $this->database->fetchOne('SELECT pieces_count FROM puzzle WHERE id = :id', ['id' => $puzzleId->toString()]));
+    }
+
     public function testPreventedSaveIsRecorded(): void
     {
         $timeId = Uuid::uuid7();
@@ -316,8 +418,14 @@ final class ResultSavedOnceTest extends KernelTestCase
         ));
     }
 
-    private function addPuzzle(UuidInterface $puzzleId, string $userId): void
-    {
+    private function addPuzzle(
+        UuidInterface $puzzleId,
+        string $userId,
+        string $name = 'Sent twice',
+        int $piecesCount = 1000,
+        null|string $ean = null,
+        string $brand = ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+    ): void {
         $imagePath = tempnam(sys_get_temp_dir(), 'puzzle_test_') . '.jpg';
         $image = imagecreatetruecolor(10, 10);
         assert($image !== false);
@@ -326,11 +434,11 @@ final class ResultSavedOnceTest extends KernelTestCase
         $this->messageBus->dispatch(new AddPuzzle(
             puzzleId: $puzzleId,
             userId: $userId,
-            puzzleName: 'Sent twice',
-            brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
-            piecesCount: 1000,
+            puzzleName: $name,
+            brand: $brand,
+            piecesCount: $piecesCount,
             puzzlePhoto: new UploadedFile($imagePath, 'box.jpg', 'image/jpeg', null, true),
-            puzzleEan: null,
+            puzzleEan: $ean,
             puzzleIdentificationNumber: null,
         ));
     }

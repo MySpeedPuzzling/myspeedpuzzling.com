@@ -275,6 +275,24 @@ class PuzzleSolvingTime implements EntityWithEvents
     }
 
     /**
+     * Whether a new entry carrying this result's id is this result sent again (docs/features/duplicate-results.md,
+     * Layer 1): the same puzzle, time and day. Anything else - the player went back and corrected the time - is a
+     * different result that merely reuses the id. Without a date on either side the day is the day it was saved.
+     */
+    public function isSameEntryAs(string $puzzleId, null|int $secondsToSolve, null|DateTimeImmutable $finishedAt, DateTimeImmutable $now): bool
+    {
+        if ($this->puzzle->id->toString() !== strtolower($puzzleId) || $this->secondsToSolve !== $secondsToSolve) {
+            return false;
+        }
+
+        if ($this->finishedAt === null && $finishedAt === null) {
+            return true;
+        }
+
+        return ($this->finishedAt ?? $this->trackedAt)->format('Y-m-d') === ($finishedAt ?? $now)->format('Y-m-d');
+    }
+
+    /**
      * Whoever tracked the time plus every registered puzzler of its group.
      *
      * @return list<string>

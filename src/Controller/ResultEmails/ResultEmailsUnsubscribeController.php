@@ -18,8 +18,9 @@ use Symfony\Component\Routing\Attribute\Route;
  * Unsubscribe from the "Your results" e-mails (docs/features/duplicate-results.md, "Sending"), reached through the
  * signed link of the e-mail - no sign-in needed (ResultEmailsUnsubscribeUrl).
  *
- * POST switches the e-mails off: the RFC 8058 one-click POST of mail clients (`List-Unsubscribe-Post`) and the
- * button of the page. GET only shows the page - mail scanners open links, they must not unsubscribe anybody.
+ * POST switches the e-mails off: the RFC 8058 one-click POST of mail clients (`List-Unsubscribe-Post`, body
+ * `List-Unsubscribe=One-Click`) gets a plain 200 - RFC 8058 forbids redirecting it - and the button of the page a
+ * 303 back to the page. GET only shows the page - mail scanners open links, they must not unsubscribe anybody.
  */
 final class ResultEmailsUnsubscribeController extends AbstractController
 {
@@ -45,6 +46,10 @@ final class ResultEmailsUnsubscribeController extends AbstractController
         if ($request->isMethod('POST')) {
             // A deleted player answers 404 (PlayerNotFound)
             $this->messageBus->dispatch(new UnsubscribeFromResultEmails($playerId));
+
+            if ($request->request->getString('List-Unsubscribe') === 'One-Click') {
+                return new Response('Unsubscribed.', Response::HTTP_OK, ['Content-Type' => 'text/plain; charset=UTF-8']);
+            }
 
             return $this->redirect($request->getUri(), Response::HTTP_SEE_OTHER);
         }

@@ -203,6 +203,24 @@ final class DuplicateCheckTest extends KernelTestCase
         self::assertNull($check->duplicates);
     }
 
+    public function testTheFormSentAgainWithAnotherTimeIsCheckedLikeANewResult(): void
+    {
+        $this->scenario->add(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, firstTry: true, comment: 'first copy');
+        $saved = $this->scenario->add(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, comment: 'second copy');
+
+        $check = $this->assessor->check(new FirstTryEntry(
+            actorPlayerId: PlayerFixture::PLAYER_WITH_STRIPE,
+            puzzleId: FirstTryScenario::PUZZLE,
+            memberPlayerIds: [PlayerFixture::PLAYER_WITH_STRIPE],
+            solvedAt: $this->scenario->daysAgo(0),
+            secondsToSolve: self::FIVE_HOURS + 1,
+            newTimeId: $saved,
+        ), firstAttempt: true);
+
+        self::assertNotNull($check->firstTry, 'Not the same entry - the first try held by the first copy counts');
+        self::assertTrue($check->firstTry->blocks(FirstTryResolution::None));
+    }
+
     public function testACopyOfAFirstTryIsNotOfferedToBecomeTheFirstTry(): void
     {
         $this->scenario->add(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, firstTry: true);

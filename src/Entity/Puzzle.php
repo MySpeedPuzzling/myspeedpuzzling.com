@@ -77,6 +77,29 @@ class Puzzle
         $this->approvedAt = $approvedAt;
     }
 
+    /**
+     * The add form sent again after the result in it was refused (e.g. a mistyped piece count made the time
+     * impossible): the player who just added the puzzle corrects it. AddPuzzleHandler allows it only while the
+     * puzzle is unapproved and nothing uses it yet (docs/features/duplicate-results.md, Layer 1).
+     */
+    public function correctNewlyAdded(
+        string $name,
+        int $piecesCount,
+        Manufacturer $manufacturer,
+        string $image,
+        null|float $imageRatio,
+        null|string $ean,
+        null|string $identificationNumber,
+    ): void {
+        $this->name = $name;
+        $this->piecesCount = $piecesCount;
+        $this->manufacturer = $manufacturer;
+        $this->image = $image;
+        $this->imageRatio = $imageRatio;
+        $this->ean = $ean;
+        $this->identificationNumber = $identificationNumber;
+    }
+
     public function updateProductIdentifiers(null|string $ean, null|string $identificationNumber): void
     {
         $this->ean = $ean;

@@ -385,6 +385,7 @@
   "empty_group_error": "Sie können keine Gruppe nur mit sich selbst erstellen, das ist kein Gruppenpuzzeln :-)"
   "empty_group_player": "Einer der Puzzler ist leer - geben Sie seinen Namen oder Code ein oder entfernen Sie ihn."
   "too_high_ppm": "Bitte überprüfen Sie die eingegebene Zeit, es ist unmöglich, das Puzzle so schnell zu lösen! :-) Die Zeit sollte im Format HH:MM:SS eingegeben werden. Die von Ihnen eingegebene Zeit wäre ein neuer Weltrekord! :-)"
+  "could_not_save": "Beim Speichern ist etwas schiefgelaufen. Bitte prüfen Sie Ihre Ergebnisse, bevor Sie es erneut versuchen – das Ergebnis ist möglicherweise schon gespeichert."
   "ppm_warning_title": "Bitte überprüfen Sie Ihre Zeit"
   "ppm_warning_too_fast": "Ihre Zeit scheint sehr schnell zu sein! Bitte überprüfen Sie, ob Sie die Zeit richtig eingegeben haben."
   "ppm_warning_too_slow": "Kurze Kontrolle - haben Sie die Zeit richtig eingegeben? Manchmal werden Stunden und Minuten vertauscht."
@@ -937,6 +938,7 @@
 "flashes":
   "photo_upload_deferred": "Ihre Daten sind gespeichert! Das Foto konnte gerade nicht hochgeladen werden – es wird automatisch hochgeladen, sobald unser Speicher wieder verfügbar ist."
   "stopwatch_already_saved": "Diese Stoppuhren wurden bereits gespeichert."
+  "result_already_saved": "Dieses Ergebnis wurde bereits gespeichert – hier ist es."
   "collection_not_found": "Die gesuchte Sammlung existiert bei uns nicht!"
   "puzzle_removed_from_collection": "Puzzle wurde aus der Sammlung entfernt."
   "puzzle_needs_approve": "Neu hinzugefügte Puzzles werden nach der Genehmigung durch einen Administrator öffentlich angezeigt - normalerweise innerhalb von 24 Stunden nach dem Hinzufügen."

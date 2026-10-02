@@ -368,6 +368,7 @@
   "empty_group_error": "Nelze vytvořit skupinu pouze sám se sebou, to pak není skupinové skládání :-)"
   "empty_group_player": "Jeden z puzzlerů je prázdný - vyplňte jeho jméno nebo kód, případně ho odeberte."
   "too_high_ppm": "Prosím zkontrolujte si zadaný čas, takhle rychle puzzle určitě složit nedokážete! Čas se zadává ve formátu HH:MM:SS. Vámi zadaný čas by byl nový světový rekord! :-)"
+  "could_not_save": "Při ukládání se něco pokazilo. Než to zkusíš znovu, podívej se do svých výsledků – výsledek už tam možná je."
   "ppm_warning_title": "Prosím ověřte zadaný čas"
   "ppm_warning_too_fast": "Váš čas se zdá velmi rychlý! Zkontrolujte prosím, zda jste čas zadali správně."
   "ppm_warning_too_slow": "Jen rychlá kontrola - zadali jste čas správně? Někdy se mohou zaměnit hodiny a minuty."
@@ -957,6 +958,7 @@
 "flashes":
   "photo_upload_deferred": "Vaše data jsou uložena! Fotku se teď nepodařilo nahrát — nahraje se automaticky, jakmile bude naše úložiště opět dostupné."
   "stopwatch_already_saved": "Tyto stopky byly již uloženy."
+  "result_already_saved": "Tenhle výsledek už byl uložený – tady je."
   "puzzle_needs_approve": "Nově přidané puzzle se budou veřejně zobrazovat až po schválení administrátorem - obvykle do 24 hodin od přidání."
   "time_added": "Skládání jsme zaznamenali."
   "time_deleted": "Smazali jsme veškeré důkazy. Nikdo se nikdy nedozví, co se právě stalo!"

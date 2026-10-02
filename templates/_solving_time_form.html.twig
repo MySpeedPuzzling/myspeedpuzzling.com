@@ -27,6 +27,11 @@
         {% set form_start_options = form_start_options|merge({action: form_action}) %}
     {% endif %}
     {{ form_start(solving_time_form, form_start_options) }}
+        {# Add form only: the ids of the new result and of a new puzzle - the same form sent twice saves once #}
+        {% if time_id is defined %}
+            <input type="hidden" name="time_id" value="{{ time_id }}">
+            <input type="hidden" name="new_puzzle_id" value="{{ new_puzzle_id }}">
+        {% endif %}
         {% if return_context|default(null) %}
             <input type="hidden" name="context" value="{{ return_context }}">
         {% endif %}

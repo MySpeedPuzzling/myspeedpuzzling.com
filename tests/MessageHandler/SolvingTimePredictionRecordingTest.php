@@ -184,7 +184,7 @@ final class SolvingTimePredictionRecordingTest extends KernelTestCase
 
     /**
      * Queueing the reconstruction must not clear the entity manager in the middle of the web request
-     * (the add is followed by more work on entities loaded before it, e.g. FinishStopwatch).
+     * (the add can be followed by more work on entities loaded before it, e.g. a second dispatch of the request).
      */
     public function testQueueingAReconstructionKeepsTheEntityManager(): void
     {

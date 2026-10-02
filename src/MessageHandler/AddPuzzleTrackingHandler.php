@@ -11,9 +11,12 @@ use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\PuzzlingTeam;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
+use SpeedPuzzling\Web\Exceptions\SolvingTimeAlreadySaved;
+use SpeedPuzzling\Web\Exceptions\SolvingTimeIdTaken;
 use SpeedPuzzling\Web\Message\AddPuzzleTracking;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
@@ -31,17 +34,33 @@ readonly final class AddPuzzleTrackingHandler
         private ClockInterface $clock,
         private ImageOptimizer $imageOptimizer,
         private PuzzlingTeamResolver $puzzlingTeamResolver,
+        private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
     ) {
     }
 
     /**
      * @throws CouldNotGenerateUniqueCode
      * @throws CanNotAssembleEmptyGroup
+     * @throws SolvingTimeAlreadySaved
+     * @throws SolvingTimeIdTaken
      */
     public function __invoke(AddPuzzleTracking $message): void
     {
-        $puzzle = $this->puzzleRepository->get($message->puzzleId);
         $player = $this->playerRepository->getByUserIdCreateIfNotExists($message->userId);
+
+        // The id travels in the form: a tracking with it means the same form arrived again
+        // (docs/features/duplicate-results.md, Layer 1)
+        $existingTracking = $this->puzzleSolvingTimeRepository->findById($message->trackingId);
+
+        if ($existingTracking !== null) {
+            if ($existingTracking->player->id->equals($player->id)) {
+                throw new SolvingTimeAlreadySaved($existingTracking->id->toString(), $existingTracking->puzzle->id->toString());
+            }
+
+            throw new SolvingTimeIdTaken();
+        }
+
+        $puzzle = $this->puzzleRepository->get($message->puzzleId);
         $group = $this->puzzlersGrouping->assembleGroup($player, $message->groupPlayers);
         $trackingId = $message->trackingId;
         $finishedPuzzlePhotoPath = null;
@@ -78,6 +97,7 @@ readonly final class AddPuzzleTrackingHandler
             firstAttempt: false,
             unboxed: false,
             puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group, usedByPlayerId: $player->id->toString()),
+            createdVia: $message->createdVia,
         );
 
         // Only when a name was typed: touching the team otherwise would load it for nothing

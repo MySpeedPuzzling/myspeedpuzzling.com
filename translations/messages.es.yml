@@ -399,6 +399,7 @@
   "empty_group_error": "No puedes crear un grupo solo contigo, eso no es armado en grupo :-)"
   "empty_group_player": "Uno de los puzzleros está vacío - completa su nombre o código, o elimínalo."
   "too_high_ppm": "Por favor verifica el tiempo que ingresaste, ¡no hay manera de que puedas resolver el rompecabezas tan rápido! :-) El tiempo debe ingresarse en formato HH:MM:SS. ¡El tiempo que ingresaste sería un nuevo récord mundial! :-)"
+  "could_not_save": "Algo salió mal al guardar. Revisa tus resultados antes de volver a intentarlo: es posible que el resultado ya esté guardado."
   "ppm_warning_title": "Por favor verifica tu tiempo"
   "ppm_warning_too_fast": "¡Tu ritmo parece muy rápido! Por favor verifica que hayas ingresado el tiempo correctamente."
   "ppm_warning_too_slow": "Solo una verificación rápida - ¿ingresaste el tiempo correctamente? A veces las horas y los minutos se pueden confundir."
@@ -939,6 +940,7 @@
 "flashes":
   "photo_upload_deferred": "¡Tus datos están guardados! La foto no se pudo subir en este momento — se subirá automáticamente en cuanto nuestro almacenamiento vuelva a estar disponible."
   "stopwatch_already_saved": "Estos cronómetros ya han sido guardados."
+  "result_already_saved": "Este resultado ya estaba guardado; aquí lo tienes."
   "collection_not_found": "¡La colección que buscabas no existe en nuestra plataforma!"
   "puzzle_removed_from_collection": "El puzzle ha sido eliminado de la colección."
   "puzzle_added_to_collection": "El puzzle ha sido añadido a la colección."

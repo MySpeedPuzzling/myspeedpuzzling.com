@@ -7,10 +7,14 @@ namespace SpeedPuzzling\Web\Controller;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
+use SpeedPuzzling\Web\Exceptions\PuzzleIdTaken;
+use SpeedPuzzling\Web\Exceptions\SolvingTimeAlreadySaved;
+use SpeedPuzzling\Web\Exceptions\SolvingTimeIdTaken;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\FormData\PuzzleAddFormData;
 use SpeedPuzzling\Web\FormType\PuzzleAddFormType;
@@ -19,19 +23,22 @@ use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\AddPuzzleToCollection;
 use SpeedPuzzling\Web\Message\AddPuzzleTracking;
 use SpeedPuzzling\Web\Message\CreateCollection;
-use SpeedPuzzling\Web\Message\FinishStopwatch;
+use SpeedPuzzling\Web\Message\RecordDuplicatePrevention;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
+use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\FirstTryAssessment;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -61,6 +68,7 @@ final class PuzzleAddController extends AbstractController
         readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
         readonly private FirstTryFormCheck $firstTryFormCheck,
         readonly private FormPhotoStash $formPhotoStash,
+        readonly private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
     ) {
     }
 
@@ -99,6 +107,11 @@ final class PuzzleAddController extends AbstractController
         $activeStopwatch = null;
         $data = new PuzzleAddFormData();
 
+        // The new result's id and a new puzzle's id travel in the form - rendered on GET, kept through a refused
+        // submit - so the same form sent twice saves once (docs/features/duplicate-results.md, Layer 1)
+        $timeId = $this->submittedIdOrNew($request, 'time_id');
+        $newPuzzleId = $this->submittedIdOrNew($request, 'new_puzzle_id');
+
         if ($puzzleId !== null) {
             $activePuzzle = $this->getPuzzleOverview->byId($puzzleId);
         }
@@ -112,7 +125,11 @@ final class PuzzleAddController extends AbstractController
             $data->timeMinutes = intdiv($totalSeconds % 3600, 60);
             $data->timeSeconds = $totalSeconds % 60;
 
-            if ($activeStopwatch->status === StopwatchStatus::Finished) {
+            // Except the save form of this stopwatch sent again: the handler answers it with the saved result
+            if (
+                $activeStopwatch->status === StopwatchStatus::Finished
+                && ($request->isMethod('POST') === false || $this->puzzleSolvingTimeRepository->findById($timeId) === null)
+            ) {
                 $this->addFlash('warning', $this->translator->trans('flashes.stopwatch_already_saved'));
 
                 return $this->redirectToRoute('my_profile');
@@ -250,50 +267,47 @@ final class PuzzleAddController extends AbstractController
                 $data->finishedAt = null;
             }
 
-            // Step 1: Handle new puzzle creation (all modes)
-            $newPuzzleCreated = false;
-            if (
-                is_string($data->puzzle)
-                && $data->puzzlePiecesCount !== null
-                && Uuid::isValid($data->puzzle) === false
-            ) {
-                $newPuzzleId = Uuid::uuid7();
-
-                // Photo fallback only for Speed/Relax (not Collection)
-                if ($mode !== PuzzleAddMode::Collection && $data->puzzlePhoto === null && $data->finishedPuzzlesPhoto !== null) {
-                    $data->puzzlePhoto = clone $data->finishedPuzzlesPhoto;
-                }
-
-                // The form refuses a new puzzle without a photo (PuzzleAddFormType::applyDynamicRules)
-                if ($data->puzzlePhoto === null) {
-                    throw new \LogicException('A new puzzle reached the handler without a photo.');
-                }
-
-                $this->messageBus->dispatch(
-                    new AddPuzzle(
-                        puzzleId: $newPuzzleId,
-                        userId: $userId,
-                        puzzleName: $data->puzzle,
-                        brand: $data->brand ?? '',
-                        piecesCount: $data->puzzlePiecesCount,
-                        puzzlePhoto: $data->puzzlePhoto,
-                        puzzleEan: $data->puzzleEan,
-                        puzzleIdentificationNumber: $data->puzzleIdentificationNumber,
-                    ),
-                );
-
-                // After adding puzzle, change the data to the puzzle id for further handlers
-                $data->puzzle = $newPuzzleId->toString();
-                $newPuzzleCreated = true;
-
-                $this->addFlash('warning', $this->translator->trans('flashes.puzzle_needs_approve'));
-            }
-
-            // Step 2: Mode-specific handling
             try {
+                // Step 1: Handle new puzzle creation (all modes)
+                if (
+                    is_string($data->puzzle)
+                    && $data->puzzlePiecesCount !== null
+                    && Uuid::isValid($data->puzzle) === false
+                ) {
+                    // Photo fallback only for Speed/Relax (not Collection)
+                    if ($mode !== PuzzleAddMode::Collection && $data->puzzlePhoto === null && $data->finishedPuzzlesPhoto !== null) {
+                        $data->puzzlePhoto = clone $data->finishedPuzzlesPhoto;
+                    }
+
+                    // The form refuses a new puzzle without a photo (PuzzleAddFormType::applyDynamicRules)
+                    if ($data->puzzlePhoto === null) {
+                        throw new \LogicException('A new puzzle reached the handler without a photo.');
+                    }
+
+                    // Sent again, the puzzle is already there and the handler creates nothing
+                    $this->messageBus->dispatch(
+                        new AddPuzzle(
+                            puzzleId: $newPuzzleId,
+                            userId: $userId,
+                            puzzleName: $data->puzzle,
+                            brand: $data->brand ?? '',
+                            piecesCount: $data->puzzlePiecesCount,
+                            puzzlePhoto: $data->puzzlePhoto,
+                            puzzleEan: $data->puzzleEan,
+                            puzzleIdentificationNumber: $data->puzzleIdentificationNumber,
+                        ),
+                    );
+
+                    // After adding puzzle, change the data to the puzzle id for further handlers
+                    $data->puzzle = $newPuzzleId->toString();
+
+                    $this->addFlash('warning', $this->translator->trans('flashes.puzzle_needs_approve'));
+                }
+
+                // Step 2: Mode-specific handling
                 $response = match ($mode) {
-                    PuzzleAddMode::SpeedPuzzling => $this->handleSpeedPuzzling($data, $userId, $groupPlayers, $activeStopwatch, $stopwatchId, $teamName, $firstTryResolution),
-                    PuzzleAddMode::Relax => $this->handleRelax($data, $userId, $groupPlayers, $teamName),
+                    PuzzleAddMode::SpeedPuzzling => $this->handleSpeedPuzzling($data, $timeId, $userId, $groupPlayers, $stopwatchId, $teamName, $firstTryResolution),
+                    PuzzleAddMode::Relax => $this->handleRelax($data, $timeId, $userId, $groupPlayers, $teamName),
                     PuzzleAddMode::Collection => $this->handleCollection($data, $userProfile->playerId),
                 };
 
@@ -301,6 +315,20 @@ final class PuzzleAddController extends AbstractController
 
                 return $response;
             } catch (HandlerFailedException $exception) {
+                $refusal = $exception->getPrevious();
+
+                if ($refusal instanceof SolvingTimeAlreadySaved) {
+                    $this->formPhotoStash->forget($restoredPhotos, $userProfile->playerId);
+
+                    return $this->answerResend($refusal, $userProfile->playerId, $mode, $stopwatchId);
+                }
+
+                // The ids are user input - with fresh ones the next submit goes through
+                if ($refusal instanceof SolvingTimeIdTaken || $refusal instanceof PuzzleIdTaken) {
+                    $timeId = Uuid::uuid7();
+                    $newPuzzleId = Uuid::uuid7();
+                }
+
                 $firstTry = $this->handleException($exception, $addTimeForm) ?? $firstTry;
             }
         }
@@ -323,7 +351,40 @@ final class PuzzleAddController extends AbstractController
             'first_try' => $firstTry,
             'first_try_resolution' => $firstTryResolution->value,
             'kept_photos' => $this->formPhotoStash->keep($addTimeForm, $restoredPhotos, $userProfile->playerId),
+            'time_id' => $timeId->toString(),
+            'new_puzzle_id' => $newPuzzleId->toString(),
         ]);
+    }
+
+    private function submittedIdOrNew(Request $request, string $field): UuidInterface
+    {
+        $submittedId = $request->request->getString($field);
+
+        return Uuid::isValid($submittedId) ? Uuid::fromString($submittedId) : Uuid::uuid7();
+    }
+
+    /**
+     * The form was sent again after its result had been saved (the answer got lost, the button was tapped twice):
+     * nothing new was created, the player lands where the first save would have taken them.
+     */
+    private function answerResend(SolvingTimeAlreadySaved $resend, string $playerId, PuzzleAddMode $mode, null|string $stopwatchId): Response
+    {
+        // A dispatch of its own - the refused add was rolled back with everything written in it
+        $this->messageBus->dispatch(new RecordDuplicatePrevention(
+            playerId: $playerId,
+            kind: DuplicatePreventionKind::ResendCaught,
+            timeId: $resend->timeId,
+            puzzleId: $resend->puzzleId,
+            via: $stopwatchId !== null ? SolvingTimeSource::Stopwatch : SolvingTimeSource::Form,
+        ));
+
+        $this->addFlash('info', $this->translator->trans('flashes.result_already_saved'));
+
+        if ($mode === PuzzleAddMode::Relax) {
+            return $this->redirectToRoute('added_tracking_recap', ['trackingId' => $resend->timeId]);
+        }
+
+        return $this->redirectToRoute('added_time_recap', ['timeId' => $resend->timeId]);
     }
 
     /**
@@ -331,15 +392,13 @@ final class PuzzleAddController extends AbstractController
      */
     private function handleSpeedPuzzling(
         PuzzleAddFormData $data,
+        UuidInterface $timeId,
         string $userId,
         array $groupPlayers,
-        mixed $activeStopwatch,
         null|string $stopwatchId,
         string $teamName,
         FirstTryResolution $firstTryResolution,
     ): Response {
-        $timeId = Uuid::uuid7();
-
         assert($data->puzzle !== null);
 
         $timeString = $data->getTimeAsString();
@@ -360,18 +419,11 @@ final class PuzzleAddController extends AbstractController
                 unboxed: $data->unboxed,
                 teamName: $teamName,
                 firstTryResolution: $firstTryResolution,
+                createdVia: $stopwatchId !== null ? SolvingTimeSource::Stopwatch : SolvingTimeSource::Form,
+                // Finished by the same handler, in the same transaction as the result
+                stopwatchId: $stopwatchId,
             ),
         );
-
-        if ($activeStopwatch !== null && $stopwatchId !== null) {
-            $this->messageBus->dispatch(
-                new FinishStopwatch(
-                    $stopwatchId,
-                    $userId,
-                    $data->puzzle,
-                ),
-            );
-        }
 
         return $this->redirectToRoute('added_time_recap', ['timeId' => $timeId]);
     }
@@ -381,12 +433,11 @@ final class PuzzleAddController extends AbstractController
      */
     private function handleRelax(
         PuzzleAddFormData $data,
+        UuidInterface $trackingId,
         string $userId,
         array $groupPlayers,
         string $teamName,
     ): Response {
-        $trackingId = Uuid::uuid7();
-
         assert($data->puzzle !== null);
 
         $this->messageBus->dispatch(
@@ -399,6 +450,7 @@ final class PuzzleAddController extends AbstractController
                 groupPlayers: $groupPlayers,
                 finishedAt: $data->finishedAt,
                 teamName: $teamName,
+                createdVia: SolvingTimeSource::Form,
             ),
         );
 
@@ -482,7 +534,8 @@ final class PuzzleAddController extends AbstractController
         } elseif ($realException instanceof SuspiciousPpm) {
             $form->addError(new FormError($this->translator->trans('forms.too_high_ppm')));
         } else {
-            $form->addError(new FormError($this->translator->trans('forms.too_high_ppm')));
+            // No plain "try again" - the player first checks whether the result is there already
+            $form->addError(new FormError($this->translator->trans('forms.could_not_save')));
 
             $this->logger->warning('Puzzle time could not be added', [
                 'exception' => $exception,

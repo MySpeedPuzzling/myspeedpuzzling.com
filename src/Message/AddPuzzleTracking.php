@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class AddPuzzleTracking
@@ -21,6 +22,7 @@ readonly final class AddPuzzleTracking
         public null|DateTimeImmutable $finishedAt,
         // Names the pair/team of $groupPlayers when it has no name yet
         public null|string $teamName = null,
+        public null|SolvingTimeSource $createdVia = null,
     ) {
     }
 }

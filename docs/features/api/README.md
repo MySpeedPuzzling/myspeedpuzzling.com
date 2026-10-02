@@ -328,6 +328,7 @@ The favorites link (`player.favorite_players`, a JSON array of player ids - no j
 - `round_id`: optional, nullable. When set, the time is linked to that competition round and automatically to its competition. An invalid or unknown `round_id` returns 404.
 - `PUT` never changes the event link: the payload has no `round_id`/competition field, and the processor carries the time's current competition through to the handler (`PuzzleSolvingTime::modify()` assigns whatever it is given, and the round link is never touched by it). Before 2026-08-19 a `PUT` silently detached the time from its competition.
 - Photo uploads not supported via API (use the website)
+- **`Idempotency-Key` header** (optional, any string, e.g. a UUID the app generates once per result and reuses on every retry): the result id is derived from it - UUIDv5 of `<playerId>|<key>` in a fixed namespace (`CreateSolvingTimeProcessor::IDEMPOTENCY_NAMESPACE`) - so a retry of a request whose answer got lost creates nothing and is answered with the saved result: same status (201), same body, built from the stored result. Keys are per player and never expire. Without the key, an identical request (every field) sent again within 10 s gets the same answer (the add handler's safety net, `GetRecentIdenticalSolvingTime`). Both are logged as `resend_caught` in `result_duplicate_prevention` - see `docs/features/duplicate-results.md`. Results created through the API carry `created_via = api`.
 
 Response (`SolvingTimeResponse`, shared with `PUT …/solving-times/{timeId}`):
 

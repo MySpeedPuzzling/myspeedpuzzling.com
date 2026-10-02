@@ -11,9 +11,11 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleIdTaken;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\GenerateManufacturerSlug;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\PuzzleImageNamer;
@@ -30,15 +32,29 @@ readonly final class AddPuzzleHandler
         private ImageOptimizer $imageOptimizer,
         private GenerateManufacturerSlug $generateManufacturerSlug,
         private PuzzleImageNamer $puzzleImageNamer,
+        private PuzzleRepository $puzzleRepository,
     ) {
     }
 
     /**
      * @throws ManufacturerNotFound
+     * @throws PuzzleIdTaken
      */
     public function __invoke(AddPuzzle $message): void
     {
         $player = $this->playerRepository->getByUserIdCreateIfNotExists($message->userId);
+
+        // The add form sends the new puzzle's id along: a puzzle with it means the same form arrived again and
+        // the puzzle is already there (docs/features/duplicate-results.md, Layer 1)
+        $existingPuzzle = $this->puzzleRepository->findById($message->puzzleId);
+
+        if ($existingPuzzle !== null) {
+            if ($existingPuzzle->addedByUser?->id->equals($player->id) === true) {
+                return;
+            }
+
+            throw new PuzzleIdTaken();
+        }
         $now = new DateTimeImmutable();
 
         if (Uuid::isValid($message->brand)) {

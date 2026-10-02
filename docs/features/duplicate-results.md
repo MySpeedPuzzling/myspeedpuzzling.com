@@ -1,6 +1,6 @@
 # Duplicate results ("saved twice")
 
-GitHub #221 · status: **planned** (analysis 2026-10-01/02, nothing built yet).
+GitHub #221 · status: **P1 (Layer 1) built**, the rest planned (analysis 2026-10-01/02).
 
 Players end up with the same result saved more than once. A copy counts twice in "completed N×", activity, player
 statistics and recaps, feeds Puzzle Insights a second attempt that never happened (attempt numbers, improvement
@@ -145,6 +145,27 @@ exactly like first-try integrity - a case involving them is still detected and s
 - **`puzzle_solving_time.created_via`** (nullable enum: `form`, `stopwatch`, `api`), so the admin overview can show
   which path still produces twins. Today nothing records where a result came from.
 - Every caught re-send is logged (`result_duplicate_prevention`, kind `resend_caught`).
+
+**As built (P1, 2026-10-02):**
+- The ids are plain hidden inputs `time_id` / `new_puzzle_id` next to the Symfony form (like `first_try_resolution`);
+  an invalid or missing value gets a fresh UUIDv7. Relax mode uses `time_id` as the tracking id.
+- Another player's id: `SolvingTimeIdTaken` / `PuzzleIdTaken` → the generic error, both ids regenerated.
+- `resend_caught` is written by a second dispatch (`RecordDuplicatePrevention`) from whoever caught
+  `SolvingTimeAlreadySaved` (add controller, API processor) - the refusing handler's transaction is rolled back, a
+  row written inside it would vanish with it.
+- Safety net = `GetRecentIdenticalSolvingTime` (window `WINDOW_SECONDS` = 10): finish *date*, group compared by
+  `puzzling_team.composition_key` (computed from the group, so nothing is created before the check), a round only when
+  one was chosen explicitly (otherwise it follows from competition + puzzle + group). Runs before the first-try check,
+  so a copy of a first try is answered, not refused as a second first try.
+- Stopwatch: `stopwatchId` on `AddPuzzleSolvingTime`; finished after the result in the same handler (already
+  finished = no-op; still running = paused at the save, then finished; another player's = 403). `FinishStopwatch`
+  had no other user and was removed. The save page keeps refusing an already saved stopwatch (a second tab), except
+  the very same form sent again (its `time_id` exists) - that one lands on its result.
+- Button lock: stays locked when the submit succeeded **with a redirect** (a full-page save); a 422, a network
+  failure and stream/frame answers (edit modal) unlock as before.
+- API: the replay answer is built from the stored result (status 201, same fields as a fresh create).
+- Accepted gap: two requests with the same id in flight at the same moment - the primary key stops the second row,
+  but that request ends in a 500 (the entity manager is closed after the failed flush).
 
 ## Layer 2 - check while adding
 

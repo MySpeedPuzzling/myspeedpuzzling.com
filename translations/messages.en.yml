@@ -441,6 +441,7 @@ forms:
     empty_group_error: "You cannot create a group with yourself only, that's not group assembling :-)"
     empty_group_player: "One of the puzzlers is empty - fill in their name or code, or remove them."
     too_high_ppm: "Please check the time you entered, there is no way you can solve the puzzle that fast! :-) The time should be entered in HH:MM:SS format. The time you entered would be a new world record! :-)"
+    could_not_save: "Something went wrong while saving. Please check your results before you try again – the result may already be there."
     ppm_warning_title: "Please verify your time"
     ppm_warning_too_fast: "Your pace seems very fast! Please double-check your time is entered correctly."
     ppm_warning_too_slow: "Just a quick check - did you enter the time correctly? Sometimes hours and minutes can get mixed up."
@@ -1149,6 +1150,7 @@ player_profile:
 flashes:
     photo_upload_deferred: "Your data is saved! The photo could not be uploaded right now — it will be uploaded automatically as soon as our storage is available again."
     stopwatch_already_saved: "These stopwatches have already been saved."
+    result_already_saved: "This result was already saved – here it is."
     puzzle_needs_approve: "Recently added puzzles will be publicly displayed after approval by an administrator - usually within 24 hours of adding."
     time_added: "We have saved your puzzling time."
     tracking_added: "We have saved your puzzle tracking."

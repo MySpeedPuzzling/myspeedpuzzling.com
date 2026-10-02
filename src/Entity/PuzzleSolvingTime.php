@@ -24,6 +24,7 @@ use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use SpeedPuzzling\Web\Value\TimePredictionMethod;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
 
@@ -135,6 +136,10 @@ class PuzzleSolvingTime implements EntityWithEvents
         #[ManyToOne]
         #[JoinColumn(onDelete: 'RESTRICT')]
         public null|PuzzlingTeam $puzzlingTeam = null,
+        // Where it was saved from (docs/features/duplicate-results.md) - null for results older than the column
+        #[Immutable]
+        #[Column(type: Types::STRING, nullable: true, enumType: SolvingTimeSource::class)]
+        public null|SolvingTimeSource $createdVia = null,
     ) {
         $this->puzzlersCount = $this->calculatePuzzlersCount();
         $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);

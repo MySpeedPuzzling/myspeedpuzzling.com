@@ -19,6 +19,10 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class GuestLinkControllerTest extends WebTestCase
 {
+    // Every result takes another second: identical results saved within seconds would be one result saved twice
+    // (docs/features/duplicate-results.md)
+    private int $savedResults = 0;
+
     public function testGuestIsLinkedOnceTheOtherPlayerConfirms(): void
     {
         $browser = self::createClient();
@@ -114,7 +118,7 @@ final class GuestLinkControllerTest extends WebTestCase
             userId: PlayerFixture::PLAYER_WITH_STRIPE_USER_ID,
             puzzleId: PuzzleFixture::PUZZLE_1500_01,
             competitionId: null,
-            time: '05:00:00',
+            time: sprintf('05:00:%02d', $this->savedResults++),
             comment: null,
             finishedPuzzlesPhoto: null,
             groupPlayers: [$guest],

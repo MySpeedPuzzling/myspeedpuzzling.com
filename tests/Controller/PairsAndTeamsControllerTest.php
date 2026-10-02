@@ -235,13 +235,14 @@ final class PairsAndTeamsControllerTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $bus = self::getContainer()->get(MessageBusInterface::class);
-        foreach (['Grandma', 'Grandma', 'Granma'] as $guest) {
+        // Three different results - identical ones within seconds would be one saved twice
+        foreach (['Grandma', 'Grandma', 'Granma'] as $index => $guest) {
             $bus->dispatch(new AddPuzzleSolvingTime(
                 timeId: Uuid::uuid7(),
                 userId: PlayerFixture::PLAYER_WITH_STRIPE_USER_ID,
                 puzzleId: PuzzleFixture::PUZZLE_1500_01,
                 competitionId: null,
-                time: '05:00:00',
+                time: sprintf('05:00:%02d', $index),
                 comment: null,
                 finishedPuzzlesPhoto: null,
                 groupPlayers: [$guest],

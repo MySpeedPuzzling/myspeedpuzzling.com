@@ -1,0 +1,8 @@
+{#
+    "300 pieces · Brand" under a puzzle name in a ranking row - "pcs" on phones, so more of the brand fits.
+
+    Inputs:
+      - pieces: the piece count
+      - brand: the manufacturer name
+#}
+<span class="lb-pcs-long">{{ 'pieces_count'|trans({'%count%': pieces})|raw }}</span><span class="lb-pcs-short">{{ 'pieces_count_short'|trans({'%count%': pieces})|raw }}</span> · {{ brand }}

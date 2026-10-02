@@ -116,7 +116,7 @@ $lb-tints: (
     font-variant-numeric: tabular-nums;
     font-size: .6875rem;
     line-height: 1.3;
-    color: #8a909c;
+    color: #6c727f;
 
     .bi {
         margin-right: 3px;
@@ -376,9 +376,9 @@ a.lb-name,
 
 .ps-puzzle-meta {
     margin-top: 1px;
-    font-size: .75rem;
+    font-size: .8125rem;
     line-height: 1.3;
-    color: #6c727f;
+    color: #5b616d;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -426,9 +426,9 @@ a.lb-name,
 .ps-date,
 .ps-ppm {
     display: block;
-    font-size: .75rem;
+    font-size: .8125rem;
     line-height: 1.35;
-    color: #6c727f;
+    color: #5b616d;
 }
 
 .ps-date {
@@ -484,16 +484,17 @@ a.lb-name,
 }
 
 .ps-puzzle-sub {
-    font-size: .6875rem;
+    margin-top: 1px;
+    font-size: .75rem;
     line-height: 1.3;
-    color: #8a909c;
+    color: #6c727f;
 }
 
 .ps-puzzle-line {
     margin-top: 4px;
     font-size: .75rem;
     line-height: 1.3;
-    color: #6c727f;
+    color: #5b616d;
 
     a {
         color: #4b5160 !important;
@@ -543,7 +544,7 @@ a.lb-name,
 .player-list-code {
     flex-shrink: 0;
     font-size: .75rem;
-    color: #8a909c;
+    color: #6c727f;
 }
 
 .player-list-count {
@@ -607,13 +608,18 @@ a.lb-name,
     }
 }
 
-// "1st try" on the date line under a time (leaderboard, ladders, recent activity) - no line of its own
-.lb-time-date .lb-first-try {
-    padding: .15em .5em;
-    font-size: .625rem;
+// "1st try" on its own line under the date (leaderboard, ladders, recent activity)
+.lb-first-try-line {
+    display: block;
+    margin-top: 3px;
+    line-height: 1;
+}
+
+.lb-first-try-line .lb-first-try {
+    padding: .2em .55em;
+    font-size: .6875rem;
     font-weight: 500;
     line-height: 1.2;
-    vertical-align: 1px;
 }
 
 // No photo: the country's square flag cropped to the avatar circle, with a hairline so light flags keep their edge
@@ -632,9 +638,9 @@ a.lb-name,
     display: block;
     margin-top: -2px;
     white-space: nowrap;
-    font-size: .6875rem;
+    font-size: .75rem;
     line-height: 1.3;
-    color: #8a909c;
+    color: #6c727f;
     font-variant-numeric: tabular-nums;
 }
 
@@ -649,5 +655,20 @@ a.lb-name,
     .lb-gap {
         display: inline;
         margin-top: 0;
+    }
+}
+
+// "300 pieces" from 576 px up, "300 pcs" on phones (templates/_pieces_brand.html.twig)
+.lb-pcs-short {
+    display: none;
+}
+
+@media (max-width: 575.98px) {
+    .lb-pcs-long {
+        display: none;
+    }
+
+    .lb-pcs-short {
+        display: inline;
     }
 }

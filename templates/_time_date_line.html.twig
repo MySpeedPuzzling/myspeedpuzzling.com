@@ -1,16 +1,14 @@
 {#
-    The line under a time in a ranking: the date it was solved, with a small "1st try" pill before it on the same line - so the
-    first-try mark sits by the time without taking a line of its own (puzzle leaderboard, ladders).
+    The lines under a time in a ranking: the date it was solved, then a small "1st try" pill under it (puzzle leaderboard,
+    ladders, recent activity).
 
     Inputs:
       - time: anything with finishedAt and firstAttempt
 #}
-{%- if time.finishedAt is not null or time.firstAttempt -%}
-    <span class="lb-time-date">
-        {#- 1st try first, so the date stays right under the time -#}
-        {%- if time.firstAttempt -%}<span class="badge rounded-pill bg-info lb-first-try">{{ 'first_attempt'|trans }}</span> {% endif -%}
-        {%- if time.finishedAt is not null -%}
-            <time datetime="{{ time.finishedAt|date('Y-m-d') }}">{{ time.finishedAt|date('d.m.Y') }}</time>
-        {%- endif -%}
-    </span>
+{%- if time.finishedAt is not null -%}
+    <time class="lb-time-date" datetime="{{ time.finishedAt|date('Y-m-d') }}">{{ time.finishedAt|date('d.m.Y') }}</time>
+{%- endif -%}
+{#- 1st try on a line of its own under the date - squeezed next to it, both were hard to read (user feedback) -#}
+{%- if time.firstAttempt -%}
+    <span class="lb-first-try-line"><span class="badge rounded-pill bg-info lb-first-try">{{ 'first_attempt'|trans }}</span></span>
 {%- endif -%}

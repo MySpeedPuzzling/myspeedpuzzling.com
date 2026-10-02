@@ -59,6 +59,7 @@
 "puzzle": "Puzzle"
 "time": "Zeit"
 "pieces_count": "%count%&nbsp;Teile"
+"pieces_count_short": "%count%&nbsp;Teile"
 "show_more": "Mehr anzeigen"
 "show_less": "Weniger anzeigen"
 "puzzle_solved": "gelöst"

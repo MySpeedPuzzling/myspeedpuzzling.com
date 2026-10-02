@@ -59,6 +59,7 @@
 "puzzle": "Puzzle"
 "time": "Čas"
 "pieces_count": "%count%&nbsp;dílků"
+"pieces_count_short": "%count%&nbsp;dílků"
 "show_more": "Zobrazit více"
 "show_less": "Skrýt"
 "puzzle_solved": "poskládáno"

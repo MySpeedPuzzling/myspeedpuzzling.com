@@ -61,6 +61,7 @@
 "puzzle": "パズル"
 "time": "タイム"
 "pieces_count": "%count%&nbsp;ピース"
+"pieces_count_short": "%count%&nbsp;ピース"
 "show_more": "もっと見る"
 "show_less": "閉じる"
 "puzzle_solved": "完了"

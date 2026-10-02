@@ -61,6 +61,7 @@
 "puzzle": "Puzzle"
 "time": "Temps"
 "pieces_count": "%count%&nbsp;pièces"
+"pieces_count_short": "%count%&nbsp;pièces"
 "show_more": "Afficher plus"
 "show_less": "Afficher moins"
 "puzzle_solved": "terminé"

@@ -40,7 +40,7 @@
                     <td class="ps-info">
                         <a class="ps-puzzle-name" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.puzzleName }}</a>
                         <div class="ps-puzzle-meta">
-                            {{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }} · {{ puzzle.manufacturerName }}
+                            {{ include('_pieces_brand.html.twig', {pieces: puzzle.piecesCount, brand: puzzle.manufacturerName}) }}
                         </div>
 
                         {% if puzzle.players|length > 0 %}

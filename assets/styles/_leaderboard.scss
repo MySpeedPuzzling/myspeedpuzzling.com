@@ -12,6 +12,9 @@ $lb-avatar: 28px;
 $lb-avatar-sm: 22px;
 // Under the tier icon: avatar + its 2 px margin + the 3 px gap of .lb-player
 $lb-indent: $lb-avatar + 5px;
+// Three sizes in a row - 14 px what you read (names, times, puzzle names, rank), 12 px what supports it (dates, pieces ·
+// brand, gaps, PPM), 11 px pills - and two colours: #111 and this grey (user feedback: too many sizes and greys)
+$lb-secondary: #5b616d;
 
 // Tint of an avatar without a photo, picked by the last hex digit of the player id
 $lb-tints: (
@@ -32,7 +35,6 @@ $lb-tints: (
 
 .lb-table {
     width: 100%;
-    font-size: .9375rem;
 
     > :not(caption) > * > * {
         padding-top: .375rem;
@@ -96,7 +98,6 @@ $lb-tints: (
     display: block;
     min-width: 2ch;
     font-variant-numeric: tabular-nums;
-    font-size: .8125rem;
     font-weight: 400;
     line-height: $lb-line;
     color: #111;
@@ -114,13 +115,13 @@ $lb-tints: (
     display: block;
     margin-top: -2px;
     font-variant-numeric: tabular-nums;
-    font-size: .6875rem;
+    font-size: .75rem;
     line-height: 1.3;
-    color: #8a909c;
+    color: $lb-secondary;
 
     .bi {
         margin-right: 3px;
-        font-size: .5625rem;
+        font-size: .625rem;
         vertical-align: 1px;
     }
 
@@ -216,12 +217,10 @@ a.lb-name,
 }
 
 .lb-name-guest {
-    color: #4b5160;
+    color: $lb-secondary;
 }
 
 .lb-player-sm {
-    font-size: .875rem;
-
     .lb-avatar {
         width: $lb-avatar-sm;
         height: $lb-avatar-sm;
@@ -269,9 +268,9 @@ a.lb-name,
         align-items: center;
         gap: 3px;
         max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        white-space: normal;
+        text-align: left;
+        overflow-wrap: break-word;
         font-size: .6875rem;
         font-weight: 500;
         line-height: 1.2;
@@ -283,11 +282,9 @@ a.lb-name,
     }
 }
 
-// Small phones: 1px less for names and times keeps more of the name visible
+// Small phones: tighter cell padding keeps more of the name visible
 @media (max-width: 379.98px) {
     .lb-table {
-        font-size: .875rem;
-
         td.rank {
             padding-left: 6px;
         }
@@ -300,14 +297,6 @@ a.lb-name,
             padding-left: 6px;
             padding-right: 8px;
         }
-    }
-
-    .lb-rank {
-        font-size: .75rem;
-    }
-
-    .lb-player-sm {
-        font-size: .8125rem;
     }
 
 }
@@ -360,10 +349,8 @@ a.lb-name,
 }
 
 .custom-table-wrapper .table a.ps-puzzle-name {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    display: block;
+    overflow-wrap: break-word;
     font-weight: 400;
     line-height: 1.25;
     color: #111;
@@ -378,10 +365,8 @@ a.lb-name,
     margin-top: 1px;
     font-size: .75rem;
     line-height: 1.3;
-    color: #6c727f;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    color: $lb-secondary;
+    overflow-wrap: break-word;
 }
 
 .ps-members {
@@ -428,7 +413,7 @@ a.lb-name,
     display: block;
     font-size: .75rem;
     line-height: 1.35;
-    color: #6c727f;
+    color: $lb-secondary;
 }
 
 .ps-date {
@@ -437,8 +422,6 @@ a.lb-name,
 
 @media (max-width: 379.98px) {
     .ps-table {
-        font-size: .875rem;
-
         td.ps-image {
             padding-left: 8px;
         }
@@ -475,28 +458,27 @@ a.lb-name,
     margin-top: 0;
 }
 
-// The puzzle as context under the player (ladders, recent activity): its name on one line, pieces · brand under it
+// The puzzle as context under the player (ladders, recent activity): its name, pieces · brand under it - both wrap,
+// only player names are ever cut (user feedback: cut texts are hard to read)
 .ps-puzzle-line,
 .ps-puzzle-sub {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: break-word;
 }
 
 .ps-puzzle-sub {
-    font-size: .6875rem;
+    margin-top: 1px;
+    font-size: .75rem;
     line-height: 1.3;
-    color: #8a909c;
+    color: $lb-secondary;
 }
 
 .ps-puzzle-line {
     margin-top: 4px;
-    font-size: .75rem;
-    line-height: 1.3;
-    color: #6c727f;
+    line-height: 1.25;
+    color: #111;
 
     a {
-        color: #4b5160 !important;
+        color: #111 !important;
         text-decoration: none !important;
         font-weight: 400;
 
@@ -543,7 +525,7 @@ a.lb-name,
 .player-list-code {
     flex-shrink: 0;
     font-size: .75rem;
-    color: #8a909c;
+    color: $lb-secondary;
 }
 
 .player-list-count {
@@ -607,13 +589,18 @@ a.lb-name,
     }
 }
 
-// "1st try" on the date line under a time (leaderboard, ladders, recent activity) - no line of its own
-.lb-time-date .lb-first-try {
-    padding: .15em .5em;
-    font-size: .625rem;
+// "1st try" on its own line under the date (leaderboard, ladders, recent activity)
+.lb-first-try-line {
+    display: block;
+    margin-top: 3px;
+    line-height: 1;
+}
+
+.lb-first-try-line .lb-first-try {
+    padding: .2em .55em;
+    font-size: .6875rem;
     font-weight: 500;
     line-height: 1.2;
-    vertical-align: 1px;
 }
 
 // No photo: the country's square flag cropped to the avatar circle, with a hairline so light flags keep their edge
@@ -632,16 +619,16 @@ a.lb-name,
     display: block;
     margin-top: -2px;
     white-space: nowrap;
-    font-size: .6875rem;
+    font-size: .75rem;
     line-height: 1.3;
-    color: #8a909c;
+    color: $lb-secondary;
     font-variant-numeric: tabular-nums;
 }
 
 .lb-gaps {
     display: inline-grid;
     // The gaps' own size, so the em of the slots measures their text (+MM:SS with its icon), not the time's
-    font-size: .6875rem;
+    font-size: .75rem;
     grid-template-columns: minmax(4.4em, auto) minmax(4.4em, auto);
     column-gap: 6px;
     justify-items: end;
@@ -649,5 +636,144 @@ a.lb-name,
     .lb-gap {
         display: inline;
         margin-top: 0;
+    }
+}
+
+// "300 pieces" from 576 px up, "300 pcs" on phones (templates/_pieces_brand.html.twig)
+.lb-pcs-short {
+    display: none;
+}
+
+@media (max-width: 575.98px) {
+    .lb-pcs-long {
+        display: none;
+    }
+
+    .lb-pcs-short {
+        display: inline;
+    }
+}
+
+// 14 px for names, times and puzzle names in every ranking row, at every width - one size, no growing on wider
+// screens (user feedback: too many font sizes)
+.lb-table,
+.ps-table,
+.player-list-item {
+    font-size: .875rem;
+}
+
+// Ladders on phones: the row also holds the puzzle image, so the gaps stack under the date instead of widening the time
+// column - the player and puzzle keep the width
+@media (max-width: 575.98px) {
+    .ps-table .lb-gaps {
+        display: block;
+
+        .lb-gap {
+            display: block;
+        }
+
+        .lb-gap:empty {
+            display: none;
+        }
+    }
+}
+
+// The tab's numbers above the leaderboard (PuzzleTimes): fastest · median · the viewer's best (or the average), equal
+// cells in one rounded strip; the viewer's cell is tinted and jumps to their row
+.lb-stats {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    margin-top: .75rem;
+    border: 1px solid #eceef2;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.lb-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    padding: .5rem .625rem .45rem;
+
+    & + & {
+        border-left: 1px solid #eceef2;
+    }
+}
+
+.lb-stat-label {
+    font-size: .75rem;
+    line-height: 1.3;
+    color: $lb-secondary;
+}
+
+.lb-stat-value {
+    font-size: 1rem;
+    line-height: 1.3;
+    color: #111;
+    font-variant-numeric: tabular-nums;
+}
+
+.lb-stat-note {
+    font-size: .75rem;
+    line-height: 1.3;
+    color: #a8393b;
+    font-variant-numeric: tabular-nums;
+}
+
+.lb-stat-mine {
+    background: #fff4f4;
+    text-decoration: none;
+
+    .lb-stat-label {
+        color: #a8393b;
+    }
+
+    &:hover .lb-stat-value,
+    &:focus-visible .lb-stat-value {
+        text-decoration: underline;
+    }
+}
+
+// The viewer's own attempts in one slim block under the numbers
+.lb-mine {
+    margin-top: .5rem;
+    color: #4b566b;
+}
+
+// The parts get the whole width - "All my times" sits under them, so "Latest time … (date)" never breaks for it
+.lb-mine-row {
+    .my-attempts-toggle {
+        margin-top: .125rem;
+    }
+}
+
+// Parts of one sentence that wrap whole: "·" between parts on the same line, none at the start of a line. Every part
+// carries its "·" in the space left of it; the inner box is pulled left by that space and the outer box clips it, so a
+// part that starts a line has its "·" cut away.
+$lb-part-gap: 1.1em;
+
+.lb-parts {
+    overflow: hidden;
+    min-width: 0;
+}
+
+.lb-parts-inner {
+    display: flex;
+    flex-wrap: wrap;
+    margin-left: -$lb-part-gap;
+
+    > * {
+        position: relative;
+        margin-left: $lb-part-gap;
+
+        &::before {
+            content: "·";
+            position: absolute;
+            left: -$lb-part-gap;
+            width: $lb-part-gap;
+            text-align: center;
+        }
     }
 }

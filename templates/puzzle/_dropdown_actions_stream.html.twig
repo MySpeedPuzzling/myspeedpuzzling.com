@@ -5,7 +5,7 @@
     Required variables: puzzle_id, puzzle_statuses
     Optional variables: source_collection_id, context, currentCollectionId, tab
 #}
-<turbo-stream action="replace" target="puzzle-dropdown-actions-{{ puzzle_id }}">
+<turbo-stream action="replace" targets=".puzzle-dropdown-actions-{{ puzzle_id }}">
     <template>
         {{ include('puzzle/_dropdown_actions.html.twig', {
             puzzle_id: puzzle_id,

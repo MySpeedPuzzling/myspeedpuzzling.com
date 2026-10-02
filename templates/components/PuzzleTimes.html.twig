@@ -32,6 +32,48 @@
         </button>
     </div>
 
+    {# The tab's numbers at a glance (docs/features/puzzle-leaderboard-chart.md): the fastest time, the median and the
+       viewer's own best of this tab (with any pair or team in Pair/Team) with their rank - a tap jumps to their row.
+       Without a time of their own the third number is the average. Everything here follows the selected tab. #}
+    {% if this.times|length > 0 %}
+        {% set has_mine = logged_user.profile is not null and this.myFastestAttempt is not null and this.myFastestAttempt.time is not null %}
+        <div class="lb-stats" data-nosnippet>
+            {% if this.leaderTime is not null %}
+                <div class="lb-stat">
+                    <span class="lb-stat-label">{{ 'puzzle_times.stats.fastest'|trans }}</span>
+                    <span class="lb-stat-value">{{ this.leaderTime|puzzlingTime }}</span>
+                </div>
+            {% endif %}
+            {% if this.medianTime and this.times|length > 1 %}
+                <div class="lb-stat">
+                    <span class="lb-stat-label">{{ 'puzzle_times.stats.median'|trans }}</span>
+                    <span class="lb-stat-value">{{ this.medianTime|puzzlingTime }}</span>
+                </div>
+            {% endif %}
+            {% if has_mine %}
+                {% set mine_inner %}
+                    <span class="lb-stat-label">{{ ('puzzle_times.stats.my_best.' ~ this.category)|trans }}</span>
+                    <span class="lb-stat-value">{{ this.myFastestAttempt.time|puzzlingTime }}</span>
+                    {% if this.myRank %}
+                        <span class="lb-stat-note" data-testid="my-rank">{{ 'puzzle_times.stats.rank'|trans({'%rank%': this.myRank, '%total%': this.times|length}) }}</span>
+                    {% endif %}
+                {% endset %}
+                {% if this.myRowKey is not null %}
+                    <a class="lb-stat lb-stat-mine" href="#leaderboard-row-{{ this.myRowKey }}" data-turbo="false" title="{{ 'puzzle_times.my_attempts.jump_to_me'|trans }}">{{ mine_inner }}</a>
+                {% else %}
+                    <div class="lb-stat lb-stat-mine">{{ mine_inner }}</div>
+                {% endif %}
+            {% elseif this.averageTime and this.times|length > 1 %}
+                <div class="lb-stat">
+                    <span class="lb-stat-label">{{ 'puzzle_times.stats.average'|trans }}</span>
+                    <span class="lb-stat-value">{{ this.averageTime|puzzlingTime }}</span>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {# The viewer's own attempts in one slim block under the numbers: how they stand, their latest time, and every
+       attempt with its chart behind a toggle #}
     {% if logged_user.profile is not null and this.myAttempts|length > 0 %}
         {% set myLast = this.myLastAttempt %}
         {% set myBest = this.myFastestAttempt %}
@@ -39,185 +81,151 @@
         {% set isNewPb = attemptsCount > 1 and myLast.time == myBest.time %}
         {% set collapseId = 'my-attempts-collapse-' ~ this.category %}
 
-        <div class="card border-0 shadow-sm mt-3 mb-2">
-            <div class="card-body py-2 px-3 fs-sm">
-                {% if attemptsCount == 1 %}
-                    <div>
-                        <span class="text-muted">{{ 'puzzle_times.my_attempts.my_time'|trans }}</span>
-                        <span class="tabular-nums">{{ myLast.time|puzzlingTime }}</span>
-                        {% if myLast.isEditableBy(logged_user.profile.playerId) %}
-                            {{ include('_edit_time_button.html.twig', {timeId: myLast.timeId, context: 'puzzle-detail'}) }}
+        <div class="lb-mine fs-sm" data-nosnippet>
+            {# One line of parts: latest time, how they stand, the gap to the next milestone. A part that does not fit
+               moves to the next line whole - the "·" shows only between parts sharing a line (.lb-parts) #}
+            <div class="lb-mine-row">
+                <div class="lb-parts">
+                    <div class="lb-parts-inner" data-testid="my-position">
+                        <span>
+                            {%- if attemptsCount == 1 -%}
+                                <span class="text-muted">{{ 'puzzle_times.my_attempts.my_time'|trans }}</span>
+                                <span class="tabular-nums">{{ myLast.time|puzzlingTime }}</span>
+                                {%- if myLast.finishedAt is not null %} <span class="text-muted">({{ myLast.finishedAt|date('d.m.Y') }})</span>{% endif -%}
+                            {%- elseif isNewPb -%}
+                                <i class="bi bi-star-fill text-warning me-1"></i>{{ 'puzzle_times.my_attempts.latest_is_fastest_note'|trans }}
+                            {%- else -%}
+                                <span class="text-muted">{{ 'puzzle_times.my_attempts.latest_time'|trans }}</span>
+                                <span class="tabular-nums">{{ myLast.time|puzzlingTime }}</span>
+                                {%- if myLast.finishedAt is not null %} <span class="text-muted">({{ myLast.finishedAt|date('d.m.Y') }})</span>{% endif -%}
+                            {%- endif -%}
+                            {%- if myLast.isEditableBy(logged_user.profile.playerId) %}
+                                {{ include('_edit_time_button.html.twig', {timeId: myLast.timeId, context: 'puzzle-detail'}) }}
+                            {%- endif -%}
+                        </span>
+                        {% if this.myPercentile is not null %}
+                            <span>{{ ('puzzle_times.my_attempts.faster_than.' ~ this.category)|trans({'%percent%': this.myPercentile}) }}</span>
                         {% endif %}
-                    </div>
-                {% else %}
-                    <div>
-                        <span class="text-muted">{{ 'puzzle_times.my_attempts.latest_time'|trans }}</span>
-                        <span class="tabular-nums">{{ myLast.time|puzzlingTime }}</span>
-                        {% if myLast.finishedAt is not null %}
-                            <span class="text-muted">({{ myLast.finishedAt|date('d.m.Y') }})</span>
-                        {% endif %}
-                    </div>
-                    {% if isNewPb %}
-                        <div class="text-success">
-                            <i class="bi bi-star-fill text-warning me-1"></i>
-                            {{ 'puzzle_times.my_attempts.latest_is_fastest_note'|trans }}
-                        </div>
-                    {% else %}
-                        <div>
-                            <span class="text-muted">{{ 'puzzle_times.my_attempts.fastest_time'|trans }}</span>
-                            <span class="tabular-nums">{{ myBest.time|puzzlingTime }}</span>
-                            {% if myBest.finishedAt is not null %}
-                                <span class="text-muted">({{ myBest.finishedAt|date('d.m.Y') }})</span>
-                            {% endif %}
-                            <i class="bi bi-star-fill text-warning ms-1"></i>
-                        </div>
-                    {% endif %}
-                {% endif %}
-
-                {% if this.myRank %}
-                    {# Where the viewer stands, however far down the leaderboard (docs/features/puzzle-leaderboard-chart.md) #}
-                    <div class="text-muted mt-1" data-testid="my-position">
-                        <span class="text-nowrap">{{ 'puzzle_times.my_attempts.rank'|trans({'%rank%': this.myRank, '%total%': this.times|length}) }}</span>
-                        {%- if this.myPercentile is not null %}
-                            · <span class="text-nowrap">{{ ('puzzle_times.my_attempts.faster_than.' ~ this.category)|trans({'%percent%': this.myPercentile}) }}</span>
-                        {%- endif %}
-                        {%- if this.myTargetRank is not null %}
-                            · <span class="text-nowrap">
+                        {% if this.myTargetRank is not null %}
+                            <span>
                                 {%- if this.myTargetRank == 1 -%}
                                     {{ 'puzzle_times.my_attempts.behind_fastest'|trans({'%time%': this.myTargetGap|puzzlingTime}) }}
                                 {%- else -%}
                                     {{ 'puzzle_times.my_attempts.behind_top'|trans({'%time%': this.myTargetGap|puzzlingTime, '%rank%': this.myTargetRank}) }}
                                 {%- endif -%}
                             </span>
-                        {%- endif %}
+                        {% endif %}
                     </div>
-                {% endif %}
+                </div>
 
                 {% if attemptsCount >= 2 %}
-                    <div class="text-center mt-2">
-                        <button
-                            class="btn btn-link btn-sm p-0 fs-sm text-decoration-none collapsed my-attempts-toggle"
-                            type="button"
-                            data-bs-toggle="collapse"
-                            data-bs-target="#{{ collapseId }}"
-                            aria-expanded="false"
-                            aria-controls="{{ collapseId }}"
-                        >
-                            {{ 'puzzle_times.my_attempts.show_all'|trans({'%count%': attemptsCount}) }}
-                            <i class="bi bi-chevron-down ms-1 collapse-chevron"></i>
-                        </button>
-                    </div>
+                    <button
+                        class="btn btn-link btn-sm p-0 fs-sm text-decoration-none collapsed my-attempts-toggle text-nowrap"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#{{ collapseId }}"
+                        aria-expanded="false"
+                        aria-controls="{{ collapseId }}"
+                    >
+                        {{ 'puzzle_times.my_attempts.show_all'|trans({'%count%': attemptsCount}) }}
+                        <i class="bi bi-chevron-down ms-1 collapse-chevron"></i>
+                    </button>
+                {% endif %}
+            </div>
 
-                    <div class="collapse mt-2" id="{{ collapseId }}">
-                        <div class="attempts-history-list">
-                            {% for row in this.myAttemptsWithContext %}
-                                <div class="attempts-history-entry {% if not loop.first %}border-top pt-2 mt-2{% endif %}">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span>
-                                            <i class="bi bi-calendar3 text-muted me-1"></i>
-                                            {% if row.attempt.finishedAt is not null %}
-                                                <span class="tabular-nums">{{ row.attempt.finishedAt|date('d.m.Y') }}</span>
+            {% if attemptsCount >= 2 %}
+            <div class="collapse mt-2" id="{{ collapseId }}">
+                <div class="attempts-history-list">
+                    {% for row in this.myAttemptsWithContext %}
+                        <div class="attempts-history-entry {% if not loop.first %}border-top pt-2 mt-2{% endif %}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="bi bi-calendar3 text-muted me-1"></i>
+                                    {% if row.attempt.finishedAt is not null %}
+                                        <span class="tabular-nums">{{ row.attempt.finishedAt|date('d.m.Y') }}</span>
+                                    {% else %}
+                                        <span class="text-muted">&mdash;</span>
+                                    {% endif %}
+                                </span>
+                                <span>
+                                    {% if row.isBest %}
+                                        <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.75rem;"></i>
+                                    {% endif %}
+                                    <i class="bi bi-stopwatch text-muted me-1"></i>
+                                    <span class="tabular-nums">{{ row.attempt.time|puzzlingTime }}</span>
+                                    {% if row.attempt.isEditableBy(logged_user.profile.playerId) %}
+                                        {{ include('_edit_time_button.html.twig', {timeId: row.attempt.timeId, context: 'puzzle-detail'}) }}
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            {% set showPrevDelta = row.prevTime is not null %}
+                            {% set showBestDelta = not row.isBest and myBest.time is not null and row.attempt.time is not null %}
+
+                            {% if showPrevDelta or showBestDelta %}
+                                <div class="fs-xs text-end" style="padding-right: 30px;">
+                                    {% if showPrevDelta %}
+                                        {% set delta = row.attempt.time - row.prevTime %}
+                                        <div>
+                                            <i class="bi bi-arrow-return-left text-muted me-1"></i>
+                                            {% if delta < 0 %}
+                                                <span class="text-success tabular-nums">-{{ (delta|abs)|puzzlingTime }}</span>
+                                            {% elseif delta > 0 %}
+                                                <span class="text-danger tabular-nums">+{{ delta|puzzlingTime }}</span>
                                             {% else %}
-                                                <span class="text-muted">&mdash;</span>
-                                            {% endif %}
-                                        </span>
-                                        <span>
-                                            {% if row.isBest %}
-                                                <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.75rem;"></i>
-                                            {% endif %}
-                                            <i class="bi bi-stopwatch text-muted me-1"></i>
-                                            <span class="tabular-nums">{{ row.attempt.time|puzzlingTime }}</span>
-                                            {% if row.attempt.isEditableBy(logged_user.profile.playerId) %}
-                                                {{ include('_edit_time_button.html.twig', {timeId: row.attempt.timeId, context: 'puzzle-detail'}) }}
-                                            {% endif %}
-                                        </span>
-                                    </div>
-
-                                    {% set showPrevDelta = row.prevTime is not null %}
-                                    {% set showBestDelta = not row.isBest and myBest.time is not null and row.attempt.time is not null %}
-
-                                    {% if showPrevDelta or showBestDelta %}
-                                        <div class="fs-xs text-end" style="padding-right: 30px;">
-                                            {% if showPrevDelta %}
-                                                {% set delta = row.attempt.time - row.prevTime %}
-                                                <div>
-                                                    <i class="bi bi-arrow-return-left text-muted me-1"></i>
-                                                    {% if delta < 0 %}
-                                                        <span class="text-success tabular-nums">-{{ (delta|abs)|puzzlingTime }}</span>
-                                                    {% elseif delta > 0 %}
-                                                        <span class="text-danger tabular-nums">+{{ delta|puzzlingTime }}</span>
-                                                    {% else %}
-                                                        <span class="text-muted tabular-nums">+00:00:00</span>
-                                                    {% endif %}
-                                                </div>
-                                            {% endif %}
-
-                                            {% if showBestDelta %}
-                                                {% set delta_best = row.attempt.time - myBest.time %}
-                                                <div>
-                                                    <i class="bi bi-star text-muted me-1" style="font-size: 0.7rem;"></i>
-                                                    <span class="text-danger tabular-nums">+{{ delta_best|puzzlingTime }}</span>
-                                                </div>
+                                                <span class="text-muted tabular-nums">+00:00:00</span>
                                             {% endif %}
                                         </div>
                                     {% endif %}
-                                </div>
-                            {% endfor %}
-                        </div>
 
-                        {% if logged_user.profile.activeMembership %}
-                            <twig:Chart:PlayerPuzzleTimesChart :results="this.myAttempts" bare="true" />
-                        {% else %}
-                            <div class="player-chart-placeholder text-center mt-3">
-                                <button
-                                    class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm mt-5 shadow-custom"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#membersExclusiveModal"
-                                >
-                                    <i class="ci-locked me-1"></i>
-                                    {{ 'membership.members_exclusive_button'|trans }}
-                                </button>
-                            </div>
-                        {% endif %}
+                                    {% if showBestDelta %}
+                                        {% set delta_best = row.attempt.time - myBest.time %}
+                                        <div>
+                                            <i class="bi bi-star text-muted me-1" style="font-size: 0.7rem;"></i>
+                                            <span class="text-danger tabular-nums">+{{ delta_best|puzzlingTime }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                {% if logged_user.profile.activeMembership %}
+                    <twig:Chart:PlayerPuzzleTimesChart :results="this.myAttempts" bare="true" />
+                {% else %}
+                    <div class="player-chart-placeholder text-center mt-3">
+                        <button
+                            class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm mt-5 shadow-custom"
+                            data-bs-toggle="modal"
+                            data-bs-target="#membersExclusiveModal"
+                        >
+                            <i class="ci-locked me-1"></i>
+                            {{ 'membership.members_exclusive_button'|trans }}
+                        </button>
                     </div>
                 {% endif %}
             </div>
+            {% endif %}
         </div>
-
     {% endif %}
 
-    <div class="d-flex align-content-between justify-content-between mt-3" data-nosnippet>
-        <div class="fs-sm">
-            {% if this.times|length > 1 %}
-                {% if this.medianTime %}
-                    <span class="d-inline-flex align-items-center gap-1">
-                        <svg class="stat-icon" width="18" height="18"><use href="/stat-icons-sprite.svg#stat-med"/></svg>
-                        {{ 'median_time'|trans }}
-                        <span class="tabular-nums">{{ this.medianTime|puzzlingTime }}</span>
-                    </span>
-                {% endif %}
-
-                {% if this.averageTime %}
-                    <br>
-                    <span class="d-inline-flex align-items-center gap-1">
-                        <svg class="stat-icon" width="18" height="18"><use href="/stat-icons-sprite.svg#stat-avg"/></svg>
-                        {{ 'average_time'|trans }}
-                        <span class="tabular-nums">{{ this.averageTime|puzzlingTime }}</span>
-                    </span>
-                {% endif %}
-            {% endif %}
-
+    {# The relax count on the left, "My pairs/teams only" and Filters on the right - they wrap below it when both do
+       not fit on one line #}
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2" data-nosnippet>
+        <div class="fs-sm flex-shrink-0">
             {% set categoryRelaxCount = this.category == 'solo' ? this.soloRelaxCount : (this.category == 'duo' ? this.duoRelaxCount : this.groupRelaxCount) %}
             {% if categoryRelaxCount > 0 %}
-                <br><small class="text-muted">
+                <small class="text-muted">
                     <i class="bi bi-cup-hot"></i> {{ 'puzzle.relax_solvings_count'|trans({'%count%': categoryRelaxCount}) }}
                 </small>
             {% endif %}
         </div>
 
+        <div class="d-flex align-items-center gap-3 ms-auto">
         {# Free for every signed-in player, unlike the members' filters next to it (pairs & teams, D7) #}
         {% if logged_user.profile is not null and this.category != 'solo' and (this.times|length > 1 or this.onlyMyTeams) %}
-            <div class="form-check form-switch mb-0 me-3">
+            <div class="form-check form-switch mb-0">
                 <input
                     data-model="onlyMyTeams"
                     type="checkbox"
@@ -314,6 +322,7 @@
                 {% endif %}
             </div>
         {% endif %}
+        </div>
     </div>
 
     <div>
@@ -325,18 +334,6 @@
                 category="{{ this.category }}"
                 title=""
             />
-        {% endif %}
-
-        {% if logged_user.profile is not null and this.myRowKey is not null %}
-            <div class="text-center fs-sm mt-4 mb-3">
-                <a
-                    href="#leaderboard-row-{{ this.myRowKey }}"
-                    class="text-primary"
-                    data-turbo="false"
-                >
-                    {{ 'puzzle_times.my_attempts.jump_to_me'|trans }} <i class="bi bi-arrow-down-short"></i>
-                </a>
-            </div>
         {% endif %}
 
         {% set hiddenRowsCount = this.hiddenRowsCount %}

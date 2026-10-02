@@ -33,7 +33,7 @@
                             {% if this.isOnProfile and item.players is null %}
                                 <a class="ps-puzzle-name" href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">{{ item.puzzleName }}</a>
                                 <div class="ps-puzzle-meta">
-                                    {{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }} · {{ item.manufacturerName }}
+                                    {{ include('_pieces_brand.html.twig', {pieces: item.piecesCount, brand: item.manufacturerName}) }}
                                 </div>
                             {% else %}
                                 <div class="ps-members ps-members-lead">
@@ -50,7 +50,7 @@
                                     <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">{{ item.puzzleName }}</a>
                                 </div>
                                 <div class="ps-puzzle-sub">
-                                    {{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }} · {{ item.manufacturerName }}
+                                    {{ include('_pieces_brand.html.twig', {pieces: item.piecesCount, brand: item.manufacturerName}) }}
                                 </div>
                             {% endif %}
 
@@ -76,10 +76,10 @@
                             </a>
 
                             {# On a feed "1st try" says more at a glance than the PPM (that one is in the result detail) #}
-                            <span class="lb-time-date">
-                                {%- if item.firstAttempt -%}<span class="badge rounded-pill bg-info lb-first-try">{{ 'first_attempt'|trans }}</span> {% endif -%}
-                                {{- item.trackedAt|ago -}}
-                            </span>
+                            <span class="lb-time-date">{{ item.trackedAt|ago }}</span>
+                            {% if item.firstAttempt %}
+                                <span class="lb-first-try-line"><span class="badge rounded-pill bg-info lb-first-try">{{ 'first_attempt'|trans }}</span></span>
+                            {% endif %}
 
                             {% if item.isSpeedMode and logged_user.profile is not null and item.playerId is not same as logged_user.profile.playerId %}
                                 {% set my_best_times = this.myBestTimes %}

@@ -62,8 +62,9 @@ final class PuzzleQrCodeModalControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
 
         $this->assertResponseIsSuccessful();
-        $link = $crawler->filter('a[href="/en/puzzle/' . PuzzleFixture::PUZZLE_500_01 . '/qr-code"]');
-        self::assertCount(1, $link);
-        self::assertSame('nofollow', $link->attr('rel'));
+        // The ⋯ menu is on the page twice - in the header and in the bar that replaces it on scroll
+        $links = $crawler->filter('a[href="/en/puzzle/' . PuzzleFixture::PUZZLE_500_01 . '/qr-code"]');
+        self::assertCount(2, $links);
+        self::assertSame(['nofollow', 'nofollow'], $links->extract(['rel']));
     }
 }

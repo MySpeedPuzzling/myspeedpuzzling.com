@@ -6,6 +6,25 @@ Code: `src/Component/Chart/PuzzleTimesChart.php`, `src/Services/LeaderboardHisto
 `assets/controllers/leaderboard_chart_controller.js`, `src/Component/PuzzleTimes.php`,
 `templates/components/PuzzleTimes.html.twig`, `templates/components/Chart/PuzzleTimesChart.html.twig`.
 
+## Update 2026-10-02: numbers strip and the puzzle header
+
+Jan's redesign of the puzzle page (mobile first, designs on a claude.ai canvas):
+
+- Right under the Solo / Pair / Team tabs a strip of three numbers **for the selected tab**: Fastest · Median · Your best
+  (with "#rank of total", a tap jumps to the viewer's row; with any pair or team in Pair/Team). Without a time of one's own
+  the third number is the Average. It lives in the Live component, so a tab switch re-renders it with the list and chart.
+- The old "my attempts" card became one slim line under the strip: latest time (or "My time") with its edit button, then
+  "faster than N %" and the gap to the next milestone - parts that do not fit move to the next line whole, the "·" shows only
+  between parts on one line (`.lb-parts`) - then "All my times (N)" opening the history and the personal chart as before.
+  The rank moved into the strip (`data-testid="my-rank"`), "Jump to me" into the strip's link.
+- The page header (outside the component): the box in its own proportions (≤ 112 px square on phones, 160 px tablets,
+  340 px wide on desktop - never cropped), name, "500 pieces · Brand" (the piece count stays in the H1), difficulty and
+  badges, then Add time · Stopwatch · ⋯ (every action - wishlist, collections, sell/swap, lend, offers, QR, suggest a
+  change), then Insights / Details toggles. No breadcrumb below 576 px (the meta line links to the same pages).
+- Once those buttons scroll away a compact bar (thumbnail, name ≤ 2 lines, pcs · brand, ⋯ with the same menu) slides in
+  under the site header (`puzzle_bar_controller.js`, `inert` while hidden). The menu is on the page twice, so
+  `puzzle/_dropdown_actions.html.twig` carries a class instead of an id and its stream replaces every copy (`targets`).
+
 ## The problem
 
 Jan, after WS-C capped the table at 100 rows: *"think about the chart … showing only the top 100 would affect the chart a lot … it

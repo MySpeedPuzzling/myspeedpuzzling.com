@@ -123,7 +123,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         // Use PUZZLE_500_01 which is already in collection - test adding to another collection
         $puzzleCardSelector = '#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01;
         $badgesSelector = '#puzzle-badges-' . PuzzleFixture::PUZZLE_500_01;
-        $dropdownActionsSelector = '#puzzle-dropdown-actions-' . PuzzleFixture::PUZZLE_500_01;
+        $dropdownActionsSelector = '.puzzle-dropdown-actions-' . PuzzleFixture::PUZZLE_500_01;
 
         $client->waitForVisibility($puzzleCardSelector);
 
@@ -489,7 +489,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
 
         $puzzleCardSelector = '#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_05;
         $badgesSelector = '#puzzle-badges-' . PuzzleFixture::PUZZLE_500_05;
-        $dropdownActionsSelector = '#puzzle-dropdown-actions-' . PuzzleFixture::PUZZLE_500_05;
+        $dropdownActionsSelector = '.puzzle-dropdown-actions-' . PuzzleFixture::PUZZLE_500_05;
 
         $client->waitForVisibility($puzzleCardSelector);
 

@@ -59,6 +59,7 @@
 "puzzle": "Puzzle"
 "time": "Zeit"
 "pieces_count": "%count%&nbsp;Teile"
+"pieces_count_short": "%count%&nbsp;Teile"
 "show_more": "Mehr anzeigen"
 "show_less": "Weniger anzeigen"
 "puzzle_solved": "gelöst"
@@ -268,6 +269,15 @@
     "by_brand": "Nach Marke stöbern"
     "by_size": "Nach Teilezahl stöbern"
 "puzzle_times":
+  "stats":
+    "fastest": "Schnellste"
+    "median": "Median"
+    "average": "Durchschnitt"
+    "rank": "#%rank% von %total%"
+    "my_best":
+      "solo": "Deine Bestzeit"
+      "duo": "Deine beste Paarzeit"
+      "group": "Deine beste Teamzeit"
   "my_attempts":
     "my_time": "Meine Zeit:"
     "latest_time": "Letzte Zeit:"
@@ -880,6 +890,8 @@
     "too_many_requests": "Sie haben mehrere Links hintereinander angefordert. Bitte prüfen Sie Ihr Postfach (und den Spam-Ordner) und warten Sie einen Moment, bevor Sie einen weiteren anfordern."
     "failed": "Wir konnten die Bestätigungs-E-Mail nicht senden. Bitte versuchen Sie es gleich noch einmal."
 "puzzle_detail":
+  "details": "Details"
+  "more_actions": "Weitere Aktionen"
   "meta":
     "title": "%brand% %name% – %pieces% Teile Puzzle"
     "ean": ", EAN %ean%"

@@ -70,6 +70,22 @@
 
 @import "flag-icons/sass/flag-icons";
 
+// Text grows one step on tablets and one more on desktops - there is the room, and people sit further from the screen
+// (user feedback: desktop needed 133 % zoom). Percentages, never px, so a visitor's own browser text size still applies.
+// Everything sized in rem follows; images, avatars and layout widths (px) stay. Mirrored in the critical CSS
+// of base.html.twig, so the first paint has the same size.
+html {
+    font-size: 100%;
+
+    @media (min-width: 768px) {
+        font-size: 106.25%;
+    }
+
+    @media (min-width: 1200px) {
+        font-size: 112.5%;
+    }
+}
+
 body {
     display: flex;
     flex-direction: column;
@@ -107,6 +123,19 @@ main {
 }
 
 @media (min-width: 992px) {
+    // The menu had no spare width at 992 and 1200 px, so with the bigger root size (see html above) it must not widen:
+    // px gaps between the items, and the toolbar shows icons only until 1400 px (as it does below 992 px) - German,
+    // French and Spanish menus did not fit at 1200 px even before
+    .navbar {
+        --cz-navbar-nav-link-padding-x: 14px;
+    }
+
+    @media (max-width: 1399.98px) {
+        .navbar-toolbar .navbar-tool-text {
+            display: none !important;
+        }
+    }
+
     .navbar-nav .nav-link {
         line-height: 1.2;
         padding-top: 0.25rem !important;
@@ -759,15 +788,271 @@ canvas {
     touch-action: pan-y !important;
 }
 
-.puzzle-detail-image {
-    width: 90px;
+// Puzzle detail (templates/puzzle_detail.html.twig). Phones and tablets: the box · name, pieces · brand, difficulty and
+// badges, then Add time · Stopwatch · ⋯, then the Insights / Details toggles, then the rankings. Desktop (992 px+): the
+// puzzle in a left column (large box, facts, buttons), the rankings right.
+.puzzle-head {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    column-gap: .875rem;
+    align-items: start;
 
     @media (min-width: 768px) {
-        width: 110px;
+        grid-template-columns: 160px minmax(0, 1fr);
+        column-gap: 1rem;
     }
+}
+
+// The whole box in its own proportions, never cropped: as large as fits a 112 px square (160 px on tablets)
+.puzzle-head-image {
+    display: flex;
+    justify-content: center;
 
     img {
-        width: 100%;
+        display: block;
+        width: auto;
+        height: auto;
+        max-width: 112px;
+        max-height: 112px;
+        border-radius: 8px;
+
+        @media (min-width: 768px) {
+            max-width: 160px;
+            max-height: 160px;
+        }
+    }
+}
+
+.puzzle-head-info {
+    min-width: 0;
+    overflow-wrap: break-word;
+}
+
+// "Name" on its own line(s), then "500 pieces · Brand" flowing as one line - the H1 is inline so the brand after it
+// continues its last line
+.puzzle-head-titles {
+    font-size: .875rem;
+    line-height: 1.35;
+    color: $lb-secondary;
+}
+
+.puzzle-head-title {
+    display: inline;
+    margin: 0;
+    font-size: inherit;
+    font-weight: 400;
+    line-height: inherit;
+    color: inherit;
+}
+
+.puzzle-head-name {
+    display: block;
+    margin-bottom: .2rem;
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: #111;
+
+    // Small phones: a long name would take 8+ lines next to the box
+    @media (max-width: 379.98px) {
+        font-size: 1.125rem;
+    }
+
+    @media (min-width: 992px) {
+        font-size: 1.5rem;
+    }
+}
+
+.puzzle-head-pieces a:hover {
+    text-decoration: underline !important;
+}
+
+.puzzle-head-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem .5rem;
+    margin-top: .5rem;
+
+    .badge {
+        margin: 0 !important;
+    }
+}
+
+.puzzle-head-difficulty {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    color: #373f50;
+
+    .diff-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    small {
+        font-size: .8125rem;
+    }
+}
+
+// Add time · Stopwatch · ⋯ - big enough for a thumb
+.puzzle-head-actions {
+    display: flex;
+    gap: .5rem;
+    margin-top: .875rem;
+
+    > .btn {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding-inline: .5rem;
+        white-space: nowrap;
+    }
+}
+
+.puzzle-more-btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-color: #dee2e6;
+    color: #4b566b;
+    font-size: 1.25rem;
+}
+
+// Insights · Details: two quiet toggles on one line instead of a full-width button and a row of its own
+.puzzle-head-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 1.25rem;
+    margin-top: .25rem;
+}
+
+.puzzle-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    min-height: 40px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: .875rem;
+    color: #4b566b;
+
+    &:hover {
+        color: #111;
+    }
+
+    .puzzle-toggle-chevron {
+        font-size: .75em;
+        transition: transform .15s;
+    }
+
+    &:not(.collapsed) .puzzle-toggle-chevron {
+        transform: rotate(180deg);
+    }
+}
+
+.puzzle-details-body {
+    padding-bottom: .25rem;
+    overflow-wrap: anywhere;
+}
+
+// The bar that takes the header's place once its buttons scroll away (puzzle_bar_controller.js)
+.puzzle-bar {
+    position: fixed;
+    top: var(--header-height, 97px);
+    left: 0;
+    right: 0;
+    z-index: 1020;
+    background: #fff;
+    border-bottom: 1px solid #eceef2;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .05);
+    transform: translateY(-110%);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform .2s ease, opacity .2s ease, visibility 0s linear .2s;
+
+    &.is-visible {
+        transform: none;
+        opacity: 1;
+        visibility: visible;
+        transition: transform .2s ease, opacity .2s ease;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        transition: none !important;
+    }
+}
+
+.puzzle-bar-inner {
+    display: flex;
+    align-items: center;
+    gap: .625rem;
+    padding-top: .375rem;
+    padding-bottom: .375rem;
+}
+
+// Its own proportions here too: a box in at most 40 × 44 px
+.puzzle-bar-image {
+    flex-shrink: 0;
+    width: auto;
+    height: auto;
+    max-width: 40px;
+    max-height: 44px;
+    border-radius: 4px;
+}
+
+.puzzle-bar-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+// A reminder of the page's puzzle - the full name is in the header above, so two lines at most here
+.puzzle-bar-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: .875rem;
+    color: #111;
+}
+
+.puzzle-bar-meta {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .75rem;
+    color: $lb-secondary;
+}
+
+@media (min-width: 992px) {
+    .puzzle-layout {
+        display: grid;
+        grid-template-columns: 340px minmax(0, 1fr);
+        column-gap: 2.5rem;
+        align-items: start;
+    }
+
+    .puzzle-head {
+        grid-template-columns: minmax(0, 1fr);
+        row-gap: 1rem;
+    }
+
+    .puzzle-head-image {
+        justify-content: flex-start;
+
+        img {
+            max-width: 100%;
+            max-height: 340px;
+        }
     }
 }
 

@@ -61,6 +61,7 @@
 "puzzle": "パズル"
 "time": "タイム"
 "pieces_count": "%count%&nbsp;ピース"
+"pieces_count_short": "%count%&nbsp;ピース"
 "show_more": "もっと見る"
 "show_less": "閉じる"
 "puzzle_solved": "完了"
@@ -270,6 +271,15 @@
     "by_brand": "ブランドから探す"
     "by_size": "ピース数から探す"
 "puzzle_times":
+  "stats":
+    "fastest": "最速"
+    "median": "中央値"
+    "average": "平均"
+    "rank": "%total%中 #%rank%"
+    "my_best":
+      "solo": "自己ベスト"
+      "duo": "ペアのベスト"
+      "group": "チームのベスト"
   "my_attempts":
     "my_time": "マイタイム:"
     "latest_time": "最新タイム:"
@@ -1035,6 +1045,8 @@
     "too_many_requests": "短時間に何度もリンクをリクエストされました。受信トレイ（と迷惑メールフォルダ）を確認し、少し待ってから再度お試しください。"
     "failed": "確認メールを送信できませんでした。しばらくしてからもう一度お試しください。"
 "puzzle_detail":
+  "details": "詳細"
+  "more_actions": "その他の操作"
   "meta":
     "title": "%brand% %name% – %pieces%ピース パズル"
     "ean": "、JANコード %ean%"

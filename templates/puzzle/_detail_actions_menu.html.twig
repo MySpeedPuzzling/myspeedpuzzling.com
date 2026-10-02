@@ -1,0 +1,38 @@
+{#
+    The puzzle page's ⋯ menu with every action on the puzzle - shown in its header and in the bar that takes the
+    header's place once it scrolls away (puzzle_detail.html.twig). The collection/wishlist/sell/lend part is replaced
+    by turbo streams in every copy at once (puzzle/_dropdown_actions_stream.html.twig).
+
+    Required variables: puzzle, puzzle_statuses, offers_count
+#}
+{# data-nosnippet: Google used the hidden menu labels as the search snippet ("Suggest a change …");
+   it is honoured on div/span/section only, not on the ul #}
+<div class="dropdown puzzle-more" data-nosnippet>
+    <button class="btn btn-outline-secondary puzzle-more-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'puzzle_detail.more_actions'|trans }}" title="{{ 'puzzle_detail.more_actions'|trans }}">
+        <i class="bi bi-three-dots" aria-hidden="true"></i>
+    </button>
+
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li>
+            <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: puzzle.puzzleId}) }}">
+                <i class="ci-add me-1"></i> {{ 'add_solving'|trans }}
+            </a>
+        </li>
+        <li>
+            <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}">
+                <i class="ci-time me-1"></i> {{ 'start_solving'|trans }}
+            </a>
+        </li>
+
+        {% if logged_user.profile is not null %}
+            <li><hr class="dropdown-divider"></li>
+        {% endif %}
+
+        {{ include('puzzle/_dropdown_actions.html.twig', {
+            puzzle_id: puzzle.puzzleId,
+            puzzle_statuses: puzzle_statuses,
+            offer_counts: { (puzzle.puzzleId): offers_count },
+            puzzle_name: puzzle.puzzleName,
+        }) }}
+    </ul>
+</div>

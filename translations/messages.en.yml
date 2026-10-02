@@ -63,6 +63,7 @@ puzzler: "Puzzler"
 puzzle: "Puzzle"
 time: "Time"
 pieces_count: "%count%&nbsp;pieces"
+pieces_count_short: "%count%&nbsp;pcs"
 show_more: "Show more"
 show_less: "Show less"
 puzzle_solved: "completed"
@@ -317,6 +318,15 @@ puzzle_result:
     finished_photo: "Photo of the finished puzzle"
 
 puzzle_times:
+    stats:
+        fastest: "Fastest"
+        median: "Median"
+        average: "Average"
+        rank: "#%rank% of %total%"
+        my_best:
+            solo: "Your best"
+            duo: "Your best pair"
+            group: "Your best team"
     my_attempts:
         my_time: "My time:"
         latest_time: "Latest time:"
@@ -1088,6 +1098,8 @@ edit_profile:
         failed: "We couldn't send the confirmation e-mail. Please try again in a moment."
 
 puzzle_detail:
+    details: "Details"
+    more_actions: "More actions"
     meta:
         title: "%brand% %name% – %pieces% Piece Puzzle"
         ean: ", EAN %ean%"

@@ -161,10 +161,9 @@ final class PuzzleDetailControllerTest extends WebTestCase
             self::assertStringNotContainsString($inventedValue, $html);
         }
 
-        // The whole insights block - toggle row and collapse - stays out of snippets
-        $insights = $crawler->filter('#puzzleInsights')->closest('div[data-nosnippet]');
-        self::assertNotNull($insights);
-        self::assertCount(1, $insights->filter('button[data-bs-target="#puzzleInsights"]'));
+        // The whole insights block - its toggle in the header and the collapse - stays out of snippets
+        self::assertNotNull($crawler->filter('#puzzleInsights')->closest('div[data-nosnippet]'));
+        self::assertCount(1, $crawler->filter('div[data-nosnippet] button[data-bs-target="#puzzleInsights"]'));
 
         // The teaser names what members get, shows only a text-free skeleton and keeps the call to action
         $teaser = $crawler->filter('#puzzleInsights');
@@ -212,8 +211,10 @@ final class PuzzleDetailControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01 . '?return=/en/puzzle&return_title=Database');
 
         $this->assertResponseIsSuccessful();
-        // Honoured on div/span/section only - so on the menu's wrapper, not on the ul
-        self::assertCount(1, $crawler->filter('div.dropdown[data-nosnippet] ul.dropdown-menu'));
+        // Honoured on div/span/section only - so on the menu's wrapper, not on the ul; the same menu is in the header
+        // and in the bar that replaces it on scroll
+        self::assertCount(2, $crawler->filter('div.puzzle-more ul.dropdown-menu'));
+        self::assertCount(2, $crawler->filter('div.puzzle-more[data-nosnippet] ul.dropdown-menu'));
         self::assertCount(1, $crawler->filter('div[data-nosnippet] a.btn[href="/en/puzzle"]'));
 
         $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_UNAPPROVED);
@@ -391,7 +392,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
         self::assertSame($description, $this->metaDescription($crawler));
 
         // The H1 carries no brand (breadcrumb + brand link already show it), "500&nbsp;pieces" stays
-        self::assertSame("Puzzle 1 (500\u{a0}pieces)", $crawler->filter('h1')->text());
+        self::assertSame("Puzzle 1 500\u{a0}pieces", $crawler->filter('h1')->text());
 
         // PUZZLE_500_01 has marketplace offers: the Product JSON-LD describes it with the meta description
         $product = $crawler->filter('script[type="application/ld+json"]')->reduce(
@@ -569,7 +570,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
         self::assertCount(3, self::breadcrumbJsonLd($crawler));
 
         // The piece count stays plain text
-        self::assertSame("Puzzle 16 (4000\u{a0}pieces)", $crawler->filter('h1')->text());
+        self::assertSame("Puzzle 16 4000\u{a0}pieces", $crawler->filter('h1')->text());
         self::assertCount(0, $crawler->filter('h1 a'));
     }
 
@@ -627,7 +628,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
 
         // A puzzle without an embargo shows its product number
         $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
-        self::assertStringContainsString('RB-500-001', $crawler->filter('#main-content .manufacturer-name')->text());
+        self::assertStringContainsString('RB-500-001', $crawler->filter('#main-content #puzzleDetails')->text());
         self::assertSame('RB-500-001', self::productJsonLd($crawler)['sku']);
     }
 
@@ -649,7 +650,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
         self::assertSame($largeImage, $crawler->filter('meta[property="og:image"]')->attr('content'));
         self::assertSame($largeImage, $crawler->filter('meta[name="twitter:image"]')->attr('content'));
         self::assertSame($largeImage, self::productJsonLd($crawler)['image']);
-        self::assertSame($largeImage, $crawler->filter('.puzzle-detail-image a.gallery-item')->attr('href'));
+        self::assertSame($largeImage, $crawler->filter('.puzzle-head-image a.gallery-item')->attr('href'));
         self::assertStringNotContainsString('/original/box-with-exif.jpg', (string) $browser->getResponse()->getContent());
     }
 

@@ -6,7 +6,9 @@
     Optional variables: source_collection_id, context, currentCollectionId, tab
 #}
 {% set context = context|default('detail') %}
-<div id="puzzle-dropdown-actions-{{ puzzle_id }}" style="display: contents;">
+{# A class, not an id: one puzzle's menu can be on a page twice (the puzzle page's header and its scrolled bar) and the
+   stream (_dropdown_actions_stream.html.twig) replaces every copy #}
+<div class="puzzle-dropdown-actions-{{ puzzle_id }}" style="display: contents;">
 {# Handle both cases: logged_user with .profile attribute (from Twig global) or raw User object (from stream response) #}
 {% set hasProfile = logged_user.profile is defined and logged_user.profile is not null %}
 {% if hasProfile %}

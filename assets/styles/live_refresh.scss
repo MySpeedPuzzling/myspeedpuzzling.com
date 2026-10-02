@@ -1,0 +1,103 @@
+// Recent activity feed (templates/components/RecentActivity.html.twig) and its refresh ring
+// (templates/_live_refresh_ring.html.twig, controllers/live_refresh_controller.js, docs/features/live-activity-feed.md)
+
+// Rows past showLimit until "Show more" - a class on the list, which a re-render keeps
+.ra-list:not(.is-expanded) tr.ra-extra {
+    display: none;
+}
+
+.ra-list.is-expanded .ra-show-more {
+    display: none;
+}
+
+// The ring's progress is set by JavaScript once a second: no CSS animation or transition, Chromium would repaint
+// a stroke animation on every frame. 32 px around a 24 px ring keeps the target at WCAG's 24 px minimum.
+.live-refresh-ring {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--bs-primary);
+    cursor: pointer;
+
+    svg {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        // Fills clockwise from 12 o'clock
+        transform: rotate(-90deg);
+    }
+
+    circle {
+        fill: none;
+        stroke-width: 2.5;
+    }
+
+    .live-refresh-track {
+        stroke: rgba(0, 0, 0, .12);
+    }
+
+    .live-refresh-progress {
+        stroke: currentColor;
+    }
+
+    i {
+        position: relative;
+        font-size: 10px;
+        line-height: 1;
+    }
+
+    .live-refresh-icon-play,
+    .live-refresh-icon-retry {
+        display: none;
+    }
+
+    &[data-state="paused"],
+    &[data-state="idle"],
+    &[data-state="failed"] {
+        color: #5b616d;
+
+        .live-refresh-icon-pause {
+            display: none;
+        }
+    }
+
+    &[data-state="paused"] .live-refresh-icon-play,
+    &[data-state="idle"] .live-refresh-icon-play,
+    &[data-state="failed"] .live-refresh-icon-retry {
+        display: inline;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--bs-primary);
+        outline-offset: 1px;
+    }
+}
+
+// The Hub's tabs with the ring at their end; its cell continues the tabs' bottom line
+.live-refresh-tabs {
+    display: flex;
+    // The tabs' own bottom margin (components/_nav.scss), moved here so both bottom lines meet
+    margin-bottom: 1.25rem;
+
+    .nav-tabs {
+        flex: 1 1 auto;
+        min-width: 0;
+        margin-bottom: 0;
+    }
+
+    .live-refresh-tab-end {
+        display: flex;
+        align-items: center;
+        padding-left: 4px;
+        // .nav-tabs defines its border colour on itself, so the variable does not reach this sibling
+        border-bottom: 1px solid #e3e9ef;
+    }
+}

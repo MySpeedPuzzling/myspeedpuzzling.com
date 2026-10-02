@@ -126,6 +126,12 @@ new_badge: "New"
 secret_puzzler_name: "Hidden Puzzler"
 right_now: "Right now"
 live_event_strip: "Now live: %event% – Add & see results"
+live_refresh:
+    pause: "Pause automatic updates"
+    running: "Updates every minute. Click to pause."
+    paused: "Updates paused. Click to resume."
+    idle: "Updates paused while you were away. Click to resume."
+    failed: "Could not update, trying again shortly. Click to retry now."
 
 round_results:
     meta:

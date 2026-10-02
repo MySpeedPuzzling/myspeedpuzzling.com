@@ -20,6 +20,28 @@ final class HubControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
     }
 
+    public function testBothFeedsRefreshThroughOneRingInsteadOfPolling(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/hub');
+
+        $wrapper = $crawler->filter('[data-controller~="live-refresh"]');
+        self::assertCount(1, $wrapper);
+        self::assertCount(1, $wrapper->filter('.live-refresh-ring[aria-pressed="false"][data-live-refresh-target="ring"]'));
+        // A guest has no favourites tab
+        self::assertCount(1, $wrapper->filter('[data-controller~="live"]'));
+        // docs/features/live-activity-feed.md: the library's blind setInterval polled from tabs nobody looked at
+        self::assertCount(0, $crawler->filter('[data-poll]'));
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', '/en/hub');
+
+        // All activity + the favourites tab's lazy placeholder, under the same ring
+        self::assertCount(2, $crawler->filter('[data-controller~="live-refresh"] [data-controller~="live"]'));
+        self::assertCount(0, $crawler->filter('[data-poll]'));
+    }
+
     public function testLoggedInUserCanAccessPage(): void
     {
         $browser = self::createClient();

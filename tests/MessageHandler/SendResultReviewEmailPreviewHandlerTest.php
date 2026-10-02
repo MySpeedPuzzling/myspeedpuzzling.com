@@ -69,7 +69,7 @@ final class SendResultReviewEmailPreviewHandlerTest extends KernelTestCase
         $html = (string) $email->getHtmlBody();
         self::assertMatchesRegularExpression('~href="https?://[^/"]+/' . $locale . '/review-results\?from=rc-' . SendResultReviewEmailPreviewHandler::PREVIEW_CONTACT_ID . '"~', $html);
         self::assertStringContainsString('Disney Family – 01:25:04', $html);
-        self::assertStringContainsString($translator->trans('result_review.removals_heading', domain: 'emails', locale: $locale), $html);
+        self::assertStringContainsString($translator->trans('result_review.removed_heading', domain: 'emails', locale: $locale), $html);
 
         if ($variant === ResultReviewEmailPreviewVariant::Removed) {
             self::assertStringNotContainsString('Circle of Colors', $html);

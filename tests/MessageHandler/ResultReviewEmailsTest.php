@@ -201,7 +201,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
             '~^<https?://[^/]+/en/result-emails/unsubscribe/' . self::DANA . '\?_hash=[^>]+>$~',
             (string) $danaEmail->getHeaders()->get('List-Unsubscribe')?->getBodyAsString(),
         );
-        self::assertSame('Some of your results are saved twice', $danaEmail->getSubject());
+        self::assertSame('Could you check a few of your results?', $danaEmail->getSubject());
 
         $html = (string) $danaEmail->getHtmlBody();
         self::assertStringContainsString('Twins Puzzle', $html);
@@ -212,7 +212,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
         self::assertStringNotContainsString('/undo', $html);
 
         $tomEmail = $this->emailTo('tom@example.com');
-        self::assertSame('Některé tvé výsledky jsou uložené dvakrát', $tomEmail->getSubject());
+        self::assertSame('Zkontroluješ prosím pár svých výsledků?', $tomEmail->getSubject());
         self::assertStringContainsString('/cs/review-results?from=rc-', (string) $tomEmail->getHtmlBody());
         self::assertStringContainsString('uložil ho i někdo další z tvé dvojice/týmu', (string) $tomEmail->getHtmlBody());
     }
@@ -265,11 +265,10 @@ final class ResultReviewEmailsTest extends KernelTestCase
 
         self::assertSame('We tidied up your results', $removalsOnly->getSubject());
         $html = (string) $removalsOnly->getHtmlBody();
-        self::assertStringContainsString('so we removed the extra copy', $html);
-        self::assertStringContainsString('We removed a copy saved by mistake', $html);
-        self::assertStringNotContainsString('saved twice:', $html);
-        self::assertStringNotContainsString('seem to be saved twice', $html);
-        self::assertStringNotContainsString('keep one copy with a single tap', $html);
+        self::assertStringContainsString('Already fixed – we were sure', $html);
+        self::assertStringContainsString('We removed the extra copy', $html);
+        self::assertStringNotContainsString("Please check – we weren't sure", $html);
+        self::assertStringNotContainsString('keep one copy, or tell us both are real', $html);
     }
 
     public function testWhatChangedMeanwhileIsCheckedAgainAtSendTime(): void

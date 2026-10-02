@@ -23,45 +23,58 @@
                     <p>{{ 'result_review.greeting'|trans({'%playerName%': playerName ?? 'Puzzler'}) }}</p>
                     <p>{{ (removed_only ? 'result_review.intro_removed' : (first ? 'result_review.intro_first' : 'result_review.intro_weekly'))|trans }}</p>
 
+                    {# Two clearly separate boxes: what we were not sure about (the player decides) and what we were
+                       sure about and already fixed (undo possible) - inline styles, e-mail clients drop <style> #}
                     {% if not removed_only %}
-                        <p><strong>{{ 'result_review.cases_heading'|trans }}</strong></p>
-                        <ul>
-                            {% for set in sets %}
-                                <li>
-                                    {{ 'result_review.case_line'|trans({
-                                        '%puzzleName%': set.puzzleName,
-                                        '%time%': set.secondsToSolve is not null ? set.secondsToSolve|puzzlingTime : '-',
-                                        '%date%': set.solvedAt|format_date('medium', locale: locale),
-                                    }) }}
-                                    <br><small>{{ ('result_review.kind_' ~ set.lineKind)|trans }}</small>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                        {% if moreSets > 0 %}
-                            <p>{{ 'result_review.more'|trans({'%count%': moreSets}) }}</p>
-                        {% endif %}
+                        <table role="presentation" width="100%" style="width: 100%; margin: 16px 0; background: #fff8e6; border-left: 4px solid #f0a020; border-radius: 6px;">
+                            <tr>
+                                <td style="padding: 14px 16px;">
+                                    <p style="margin: 0 0 6px; font-weight: bold;">{{ 'result_review.check_heading'|trans }}</p>
+                                    <p style="margin: 0 0 10px; font-size: 14px;">{{ 'result_review.check_text'|trans }}</p>
+                                    <ul style="margin: 0 0 10px; padding-left: 20px;">
+                                        {% for set in sets %}
+                                            <li style="margin-bottom: 6px;">
+                                                {{ 'result_review.case_line'|trans({
+                                                    '%puzzleName%': set.puzzleName,
+                                                    '%time%': set.secondsToSolve is not null ? set.secondsToSolve|puzzlingTime : '-',
+                                                    '%date%': set.solvedAt|format_date('medium', locale: locale),
+                                                }) }}
+                                                <br><span style="color: #6b6b6b; font-size: 13px;">{{ ('result_review.kind_' ~ set.lineKind)|trans }}</span>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% if moreSets > 0 %}
+                                        <p style="margin: 0 0 10px; font-size: 14px;">{{ 'result_review.more'|trans({'%count%': moreSets}) }}</p>
+                                    {% endif %}
+                                    <p style="margin: 0; font-size: 14px;">{{ 'result_review.check_action'|trans }}</p>
+                                </td>
+                            </tr>
+                        </table>
                     {% endif %}
 
                     {% if removals is not empty %}
-                        <p><strong>{{ 'result_review.removals_heading'|trans }}</strong></p>
-                        <ul>
-                            {% for removal in removals %}
-                                <li>
-                                    {{ 'result_review.case_line'|trans({
-                                        '%puzzleName%': removal.puzzleName,
-                                        '%time%': removal.secondsToSolve is not null ? removal.secondsToSolve|puzzlingTime : '-',
-                                        '%date%': removal.solvedAt|format_date('medium', locale: locale),
-                                    }) }}
-                                </li>
-                            {% endfor %}
-                        </ul>
-                        {% if moreRemovals > 0 %}
-                            <p>{{ 'result_review.more'|trans({'%count%': moreRemovals}) }}</p>
-                        {% endif %}
-                    {% endif %}
-
-                    {% if not removed_only %}
-                        <p>{{ 'result_review.decide'|trans }}</p>
+                        <table role="presentation" width="100%" style="width: 100%; margin: 16px 0; background: #ecf7ef; border-left: 4px solid #2e9e5b; border-radius: 6px;">
+                            <tr>
+                                <td style="padding: 14px 16px;">
+                                    <p style="margin: 0 0 6px; font-weight: bold;">{{ 'result_review.removed_heading'|trans }}</p>
+                                    <p style="margin: 0 0 10px; font-size: 14px;">{{ 'result_review.removed_text'|trans }}</p>
+                                    <ul style="margin: 0; padding-left: 20px;">
+                                        {% for removal in removals %}
+                                            <li style="margin-bottom: 6px;">
+                                                {{ 'result_review.case_line'|trans({
+                                                    '%puzzleName%': removal.puzzleName,
+                                                    '%time%': removal.secondsToSolve is not null ? removal.secondsToSolve|puzzlingTime : '-',
+                                                    '%date%': removal.solvedAt|format_date('medium', locale: locale),
+                                                }) }}
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% if moreRemovals > 0 %}
+                                        <p style="margin: 10px 0 0; font-size: 14px;">{{ 'result_review.more'|trans({'%count%': moreRemovals}) }}</p>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
                     {% endif %}
 
                     <center>
@@ -69,6 +82,8 @@
                             {{ 'result_review.button'|trans }}
                         </button>
                     </center>
+
+                    <p>{{ 'result_review.thanks'|trans }}<br>{{ 'result_review.signature'|trans }}</p>
 
                     <spacer size-sm="10"></spacer>
 

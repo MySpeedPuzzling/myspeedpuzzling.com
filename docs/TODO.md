@@ -22,9 +22,9 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Marketplace at events (`docs/features/marketplace/11-events.md`)
 
-- [ ] Phase 2: "Going to events" panel on sell/swap lists (own: edit per event; visitors: read-only, links to the
+- [ ] Phase 2 (#228): "Going to events" panel on sell/swap lists (own: edit per event; visitors: read-only, links to the
       filtered marketplace) and a bag icon next to sellers in an event's participant list.
-- [ ] Phase 3: notify a buyer when a puzzle from their wishlist is coming to an event they go to; tell a seller how many
+- [ ] Phase 3 (#229): notify a buyer when a puzzle from their wishlist is coming to an event they go to; tell a seller how many
       people going have one of their listed puzzles on the wishlist (count only); e-mail 3 days before the event.
 - [ ] Links are kept after the event (decision) - nothing reads them yet ("Brought to WJPC 2026" history is an idea).
 - [ ] Measure after the spring 2027 season: sellers marking per event vs sellers going, "Ask to bring it" conversations,

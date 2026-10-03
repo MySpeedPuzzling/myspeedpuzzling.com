@@ -1375,6 +1375,55 @@ players:
         title_world: "Speed puzzlers worldwide"
         title_country: "Puzzlers in %country%"
         summary: "%registered% registered · %active% solved a puzzle in the last 30 days"
+        solves:
+            label: "puzzles solved, last 30 days"
+            up: "Up"
+            down: "Down"
+            change: "%percent%% vs the 30 days before"
+            same: "Same as the 30 days before"
+        pieces:
+            label: "pieces in %month%"
+        median:
+            label: "median best 500"
+            puzzlers: "{0}No 500 times yet|{1}1 puzzler with a 500 time|]1,Inf[%number% puzzlers with a 500 time"
+            faster: "%minutes% min faster than the world"
+            slower: "%minutes% min slower than the world"
+            same: "About the same as the world"
+        events:
+            label: "{1}upcoming event|]1,Inf[upcoming events|{0}upcoming events"
+            link: "See events"
+        sparkline:
+            label: "Puzzles solved per month"
+            caption: "solves per month"
+            bar: "{0}%month%: no puzzles|{1}%month%: 1 puzzle|]1,Inf[%month%: %number% puzzles"
+        small:
+            growing: "Small and growing:"
+            growing_text: "%percent%% more puzzles solved than in the 30 days before."
+            title: "A small community."
+            active: "{0}Every puzzle logged here puts %country% on the map.|{1}1 puzzler solved a puzzle in the last 30 days.|]1,Inf[%count% puzzlers solved a puzzle in the last 30 days."
+        show_more: "Show more"
+        full_list: "See the full list"
+        active:
+            title: "Most active this month"
+            value: "{1}1 puzzle|]1,Inf[%count% puzzles|{0}no puzzles"
+            empty: "No puzzles logged this month yet."
+        followed:
+            title: "Most followed"
+            hint: "★ = in favorites"
+            value: "★ %count%"
+            empty: "Nobody here is in favorites yet."
+        new_faces:
+            title: "New faces"
+            joined: "{0}joined today|{1}joined yesterday|]1,Inf[joined %count% days ago"
+            value: "{1}1 puzzle|]1,Inf[%count% puzzles|{0}no puzzles"
+            empty: "Nobody new in the last 14 days."
+            world_count: "{1}1 puzzler joined in the last 14 days and logged a result|]1,Inf[%number% puzzlers joined in the last 14 days and logged a result"
+            country_note: "Public players with at least one result"
+        fastest_world: "Fastest puzzlers: the leaderboard"
+        fastest_country: "Fastest in %country%: the leaderboard"
+        members_only: "(members only)"
+        browse_world: "{0}Browse all puzzlers|{1}Browse 1 puzzler|]1,Inf[Browse all %number% puzzlers"
+        browse_country: "{0}Browse all puzzlers from %country%|{1}Browse 1 puzzler from %country%|]1,Inf[Browse all %number% puzzlers from %country%"
 
     this_week:
         title: "This week"

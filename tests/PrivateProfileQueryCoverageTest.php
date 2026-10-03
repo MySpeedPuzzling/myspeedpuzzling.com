@@ -34,6 +34,7 @@ final class PrivateProfileQueryCoverageTest extends TestCase
         'Query/GetPlayersForWjpfSync.php' => self::BACKGROUND,
         'Query/GetPlayersPerCountry.php' => self::GLOBAL_RANKING,
         'Query/GetRanking.php' => self::GLOBAL_RANKING,
+        'Query/GetSpotlightPeople.php' => 'Players page list: public profiles only, for everybody - nobody is ranked differently for different viewers.',
         'Query/GetStopwatchMilestones.php' => self::GLOBAL_RANKING,
         'Services/ComparisonSubjectVisibility.php' => 'Write side with an explicit owner id: the owner\'s allow-list row is read in the same statement - handlers never see the ambient viewer.',
         'Services/PrivateProfileAccess.php' => 'The one place that decides.',

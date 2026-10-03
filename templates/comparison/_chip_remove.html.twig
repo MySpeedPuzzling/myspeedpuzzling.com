@@ -1,0 +1,10 @@
+{# Inputs: row_id, label, self (bool) #}
+{% set remove_label = self|default(false) ? 'comparison.line_up.remove_self'|trans : 'comparison.line_up.remove'|trans({'%name%': label}) %}
+<button type="button" class="cmp-chip__remove"
+    aria-label="{{ remove_label }}"
+    title="{{ remove_label }}"
+    data-action="live#action"
+    data-live-action-param="remove"
+    data-live-row-id-param="{{ row_id }}"
+    data-testid="comparison-chip-remove"
+><i class="bi bi-x-lg" aria-hidden="true"></i></button>

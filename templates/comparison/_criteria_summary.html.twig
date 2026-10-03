@@ -1,0 +1,6 @@
+{# "Best times · last 12 months" - what the numbers next to it are counted over. Input: criteria (ComparisonCriteria) #}
+{{- (criteria.times.value == 'first' ? 'comparison.summary.first_tries' : 'comparison.summary.best_times')|trans }} · {% if criteria.period.value == 'custom' -%}
+    {{- criteria.customFrom ? criteria.customFrom|format_date('medium') : '…' }} – {{ criteria.customTo ? criteria.customTo|format_date('medium') : '…' -}}
+{%- else -%}
+    {{- ('comparison.period.' ~ criteria.period.value)|trans -}}
+{%- endif -%}

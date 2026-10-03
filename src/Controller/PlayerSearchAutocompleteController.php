@@ -47,6 +47,9 @@ final class PlayerSearchAutocompleteController extends AbstractController
                 'guest' => false,
                 'country' => $player->playerCountry?->name,
                 'avatar' => $player->playerAvatar !== null ? $this->imageThumbnail->thumbnailUrl($player->playerAvatar, 'puzzle_small') : null,
+                // A private player found by their exact code, hidden from this viewer: a co-puzzler may be added by
+                // code, the compare page does not offer them (docs/features/player-comparison.md "Visibility")
+                'hidden' => $player->isPrivate,
             ], $players));
         }
 

@@ -1,0 +1,119 @@
+{# The compare page (docs/features/player-comparison.md) - mobile first: title, kind switch, line-up, summary, then the
+   puzzles (or the members' charts). From lg up the summary sits in a left column next to the list. Partials live in
+   templates/comparison/, styles in assets/styles/_comparison.scss. #}
+{% set result = this.result %}
+{% set compared_count = this.compared|length %}
+<div {{ attributes.defaults({
+    class: 'cmp',
+    'data-controller': 'comparison-page',
+    'data-comparison-page-url-value': this.pageUrl,
+    'data-testid': 'comparison',
+}) }}>
+    {% if not this.signedIn %}
+        <p class="text-muted">{{ 'comparison.signed_out'|trans }}</p>
+    {% else %}
+        <div class="cmp-head">
+            <h1 class="h3 mb-0">{{ 'comparison.title'|trans }}</h1>
+
+            <span class="text-primary cmp-head__loading" style="display: none;" data-loading="show" role="status">
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                <span class="visually-hidden">{{ 'comparison.loading'|trans }}</span>
+            </span>
+
+            {% if compared_count >= 2 %}
+                <button type="button" class="btn btn-outline-secondary cmp-icon-button ms-auto"
+                    title="{{ 'comparison.share.label'|trans }}"
+                    data-testid="comparison-share"
+                    {{ stimulus_controller('share-link', {
+                        url: this.shareUrl,
+                        title: 'comparison.share.title'|trans,
+                        copiedLabel: 'comparison.share.copied'|trans,
+                    }) }}
+                    {{ stimulus_action('share-link', 'share') }}
+                >
+                    <i class="bi bi-box-arrow-up" aria-hidden="true" {{ stimulus_target('share-link', 'icon') }}></i>
+                    <span class="visually-hidden" aria-live="polite" {{ stimulus_target('share-link', 'label') }}>{{ 'comparison.share.label'|trans }}</span>
+                </button>
+            {% endif %}
+        </div>
+
+        {% if this.isPreview %}
+            {{ include('comparison/_preview_banner.html.twig') }}
+        {% endif %}
+
+        {{ include('comparison/_kind_switch.html.twig') }}
+
+        {{ include('comparison/_line_up.html.twig') }}
+
+        {% if this.notice %}
+            <div class="alert alert-info cmp-notice" role="status" data-testid="comparison-notice">
+                {{ this.notice|trans(this.noticeParameters) }}
+            </div>
+        {% endif %}
+
+        {% if compared_count < 2 or result is null %}
+            {{ include('comparison/_empty_line_up.html.twig') }}
+        {% else %}
+            <div class="row g-3 g-lg-4 cmp-body">
+                <div class="col-lg-5 col-xl-4">
+                    <div class="cmp-aside">
+                        {% if compared_count == 2 %}
+                            {{ include('comparison/_head_to_head.html.twig') }}
+                        {% else %}
+                            {{ include('comparison/_league.html.twig') }}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-lg-7 col-xl-8">
+                    {% if compared_count >= 3 %}
+                        {{ include('comparison/_highlight_picker.html.twig') }}
+                    {% endif %}
+
+                    <div class="cmp-tabs" role="tablist" aria-label="{{ 'comparison.tabs.label'|trans }}">
+                        {% for tab, icon in {puzzles: 'bi-list-ul', charts: 'bi-bar-chart-line'} %}
+                            {% set selected = (tab == 'charts') == this.isCharts %}
+                            <button type="button" role="tab" id="comparison-tab-{{ tab }}"
+                                class="cmp-tab{{ selected ? ' is-active' }}"
+                                aria-selected="{{ selected ? 'true' : 'false' }}"
+                                aria-controls="comparison-panel"
+                                data-action="live#action"
+                                data-live-action-param="changeTab"
+                                data-live-tab-param="{{ tab }}"
+                                data-testid="comparison-tab-{{ tab }}"
+                            >
+                                <i class="bi {{ icon }}" aria-hidden="true"></i>{{ ('comparison.tabs.' ~ tab)|trans }}
+                                {%- if tab == 'charts' and not this.isMember %} <i class="ci-locked cmp-tab__lock" aria-hidden="true"></i>{% endif %}
+                            </button>
+                        {% endfor %}
+                    </div>
+
+                    <div id="comparison-panel" role="tabpanel" aria-labelledby="comparison-tab-{{ this.isCharts ? 'charts' : 'puzzles' }}">
+                        {% if not this.isCharts or this.isMember %}
+                            {{ include('comparison/_filter_row.html.twig') }}
+                        {% endif %}
+
+                        {% if this.isCharts %}
+                            {% if this.isMember %}
+                                <twig:ComparisonCharts :result="this.result" :subjects="this.compared" />
+                            {% else %}
+                                {{ include('comparison/_charts_locked.html.twig') }}
+                            {% endif %}
+                        {% else %}
+                            {{ include('comparison/_results.html.twig') }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if not this.isPreview %}
+            {{ include('comparison/_add_sheet.html.twig') }}
+            {{ include('comparison/_swap_modal.html.twig') }}
+        {% endif %}
+
+        {% if compared_count >= 2 and result is not null %}
+            {{ include('comparison/_filters_modal.html.twig') }}
+        {% endif %}
+    {% endif %}
+</div>

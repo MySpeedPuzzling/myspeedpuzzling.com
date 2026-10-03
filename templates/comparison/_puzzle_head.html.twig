@@ -1,0 +1,19 @@
+{# Image, name, brand · pieces (+ difficulty for members) of a compared puzzle. Inputs: puzzle (ComparisonPuzzle),
+   position (int, first rows load eagerly), solved_label (null|string) #}
+{% from '_difficulty_icon.html.twig' import icon as difficulty_icon %}
+{% set insight = this.insights is not null ? (this.insights.byPuzzle[puzzle.puzzleId] ?? null) : null %}
+<div class="cmp-puzzle">
+    <a class="cmp-puzzle__image" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" tabindex="-1" aria-hidden="true">
+        {{- include('_puzzle_row_image.html.twig', {image: puzzle.image, alt: 'puzzle_img_alt'|trans({'%puzzle%': (puzzle.manufacturerName ~ ' ' ~ puzzle.name)|trim}), position: position, ratio: puzzle.imageRatio}) -}}
+    </a>
+    <div class="cmp-puzzle__text">
+        <a class="cmp-puzzle__name" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.name }}</a>
+        <div class="cmp-puzzle__meta">
+            {%- if puzzle.manufacturerName %}{{ puzzle.manufacturerName }} · {% endif %}{{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw -}}
+            {%- if this.insights is not null and this.insights.withDifficulty %} {{ difficulty_icon(insight ? insight.difficultyTier : null, false, 16) }}{% endif -%}
+        </div>
+    </div>
+    {% if solved_label|default(null) %}
+        <span class="cmp-puzzle__solved">{{ solved_label }}</span>
+    {% endif %}
+</div>

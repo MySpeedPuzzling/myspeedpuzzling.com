@@ -1,0 +1,17 @@
+{# A shared comparison (D13): shown as the recipient may see it, within their cap - nothing is stored until they add it #}
+<div class="cmp-preview" data-testid="comparison-preview">
+    <div class="cmp-preview__text">
+        <i class="bi bi-link-45deg" aria-hidden="true"></i>
+        <span><strong>{{ 'comparison.preview.title'|trans }}</strong> · {{ 'comparison.preview.text'|trans }}</span>
+    </div>
+    <div class="cmp-preview__actions">
+        <button type="button" class="btn btn-primary btn-sm"
+            data-action="live#action"
+            data-live-action-param="addPreview"
+            data-testid="comparison-preview-add"
+        >
+            <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ 'comparison.preview.add'|trans }}
+        </button>
+        <a class="btn btn-link btn-sm" href="{{ path('comparison', {kind: this.activeKind.value}) }}">{{ 'comparison.preview.back'|trans }}</a>
+    </div>
+</div>

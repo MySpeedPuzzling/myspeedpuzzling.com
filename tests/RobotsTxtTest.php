@@ -11,7 +11,7 @@ use Symfony\Component\Routing\RouterInterface;
 /**
  * public/robots.txt keeps crawlers out of URLs that only burn crawl budget (docs/features/seo/
  * research-2026-09.md §5 T2/T3): the QR code modal, editing a collection comment, player statistics
- * with its endless ?month=&year= periods, and the sign-in pages.
+ * with its endless ?month=&year= periods, the compare page, and the sign-in pages.
  *
  * Its rules are hand-written path prefixes, so renaming one of those routes would silently reopen
  * it. Every locale path is therefore built from the router here and checked against the rules of
@@ -36,6 +36,8 @@ final class RobotsTxtTest extends KernelTestCase
             'QR code modal' => ['puzzle_qr_code_modal', ['puzzleId' => self::SAMPLE_ID]],
             'edit collection item comment' => ['edit_collection_item_comment', ['collectionItemId' => self::SAMPLE_ID]],
             'player statistics' => ['player_statistics', ['playerId' => self::SAMPLE_ID]],
+            // The old 1:1 compare page, now a redirect to the compare page (docs/features/player-comparison.md)
+            'old compare page' => ['compare_players', ['opponentPlayerId' => self::SAMPLE_ID]],
         ];
     }
 
@@ -80,6 +82,27 @@ final class RobotsTxtTest extends KernelTestCase
             ]);
 
             self::assertFalse($this->isAllowed($path), sprintf('robots.txt must disallow %s', $path));
+        }
+    }
+
+    /**
+     * The compare page (docs/features/player-comparison.md) is personal and every filter is another URL: it lives at
+     * /{_locale}/compare for every locale - Czech has a prefix there too - and its search endpoint below it.
+     */
+    public function testComparePageIsDisallowedInEveryLocale(): void
+    {
+        $router = $this->router();
+
+        foreach (self::LOCALES as $locale) {
+            $paths = [
+                $router->generate('comparison', ['_locale' => $locale]),
+                $router->generate('comparison', ['_locale' => $locale, 'kind' => 'pairs', 'with' => 'p-' . self::SAMPLE_ID]),
+                $router->generate('comparison_team_search', ['_locale' => $locale, 'kind' => 'teams']),
+            ];
+
+            foreach ($paths as $path) {
+                self::assertFalse($this->isAllowed($path), sprintf('robots.txt must disallow %s', rawurldecode($path)));
+            }
         }
     }
 

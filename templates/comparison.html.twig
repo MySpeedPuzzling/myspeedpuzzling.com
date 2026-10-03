@@ -1,0 +1,10 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'comparison.meta.title'|trans }}{% endblock %}
+
+{# Personal, and every filter is another URL - nothing for a search engine #}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {{ component('Comparison') }}
+{% endblock %}

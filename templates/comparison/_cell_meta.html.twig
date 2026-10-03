@@ -1,0 +1,7 @@
+{# Under a time: the day, and "1st try" or "best of N". Input: cell (ComparisonCell) #}
+<span class="cmp-meta">
+    <span>{{ cell.day|format_date('medium') }}</span>
+    {%- if cell.isFirstTry %} <span class="cmp-badge-first">{{ 'comparison.cell.first_try'|trans }}</span>
+    {%- elseif cell.attempts > 1 %} <span>· {{ 'comparison.cell.best_of'|trans({'%count%': cell.attempts}) }}</span>
+    {%- endif -%}
+</span>

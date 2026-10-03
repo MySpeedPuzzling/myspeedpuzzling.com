@@ -1,0 +1,11 @@
+{# Nobody to compare with yet - one friendly prompt, the add sheet does the rest #}
+<div class="cmp-empty card" data-testid="comparison-empty-line-up">
+    <div class="cmp-empty__icon" aria-hidden="true"><i class="bi bi-people"></i></div>
+    <h2 class="h5 mb-1">{{ ('comparison.empty.' ~ this.activeKind.value ~ '.title')|trans }}</h2>
+    <p class="text-muted mb-3">{{ ('comparison.empty.' ~ this.activeKind.value ~ '.text')|trans }}</p>
+    {% if not this.isPreview %}
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#comparison-add-sheet">
+            <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ ('comparison.empty.' ~ this.activeKind.value ~ '.button')|trans }}
+        </button>
+    {% endif %}
+</div>

@@ -30,6 +30,8 @@ Disallow: /puzzle-stopky
 Disallow: /stopky
 Disallow: /notifikace
 Disallow: /porovnat-s-puzzlerem
+# The compare page is /{_locale}/compare for every locale, Czech included
+Disallow: /cs/compare
 Disallow: /pridat-hrace-k-oblibenym
 Disallow: /odebrat-hrace-z-oblibenych
 Disallow: /clenstvi
@@ -54,6 +56,7 @@ Disallow: /en/puzzle-stopwatch
 Disallow: /en/stopwatch
 Disallow: /en/notifications
 Disallow: /en/compare-with-puzzler
+Disallow: /en/compare
 Disallow: /en/add-player-to-favorites
 Disallow: /en/remove-player-from-favorites
 Disallow: /en/membership
@@ -73,6 +76,7 @@ Disallow: /es/agregar-puzzle
 Disallow: /es/cronometro
 Disallow: /es/notificaciones
 Disallow: /es/comparar-con-puzzlero
+Disallow: /es/compare
 Disallow: /es/anadir-jugador-a-favoritos
 Disallow: /es/eliminar-jugador-de-favoritos
 Disallow: /es/membresia
@@ -91,6 +95,7 @@ Disallow: /fr/ajouter-puzzle
 Disallow: /fr/chronometre
 Disallow: /fr/notifications
 Disallow: /fr/comparer-avec-puzzleur
+Disallow: /fr/compare
 Disallow: /fr/ajouter-joueur-favoris
 Disallow: /fr/retirer-joueur-favoris
 Disallow: /fr/adhesion
@@ -111,6 +116,7 @@ Disallow: /de/puzzle-hinzufuegen
 Disallow: /de/stoppuhr
 Disallow: /de/benachrichtigungen
 Disallow: /de/vergleich-mit-puzzler
+Disallow: /de/compare
 Disallow: /de/spieler-zu-favoriten-hinzufuegen
 Disallow: /de/spieler-aus-favoriten-entfernen
 Disallow: /de/mitgliedschaft
@@ -131,6 +137,7 @@ Disallow: /ja/パズル-ストップウォッチ
 Disallow: /ja/ストップウォッチ
 Disallow: /ja/通知
 Disallow: /ja/比較
+Disallow: /ja/compare
 Disallow: /ja/お気に入りに追加
 Disallow: /ja/お気に入りから削除
 Disallow: /ja/メンバーシップ

@@ -1,0 +1,39 @@
+{# 3+ subjects: the league table - wins (fastest of the line-up on a puzzle), solved, gap (median % behind the fastest) #}
+<section class="card cmp-card cmp-league" aria-labelledby="comparison-league-title" data-testid="comparison-league">
+    <div class="cmp-card__head">
+        <h2 class="cmp-card__title" id="comparison-league-title">{{ 'comparison.league.title'|trans }}</h2>
+        <span class="cmp-card__hint">{{ include('comparison/_criteria_summary.html.twig', {criteria: this.criteria}) }}</span>
+    </div>
+
+    <table class="cmp-league__table">
+        <thead>
+            <tr>
+                <th scope="col" class="cmp-league__pos">#</th>
+                <th scope="col" class="text-start">{{ ('comparison.league.subject_' ~ this.activeKind.value)|trans }}</th>
+                <th scope="col">{{ 'comparison.league.wins'|trans }}</th>
+                <th scope="col">{{ 'comparison.league.solved'|trans }}</th>
+                <th scope="col">{{ 'comparison.league.gap'|trans }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in this.result.league %}
+                {% set label = this.labelOf(row.subject) %}
+                <tr class="{{ row.isSelf ? 'cmp-row-self' }}" data-testid="comparison-league-row">
+                    <td class="cmp-league__pos">{{ row.position }}</td>
+                    <td class="text-start">
+                        <span class="cmp-league__who">
+                            {{ include('comparison/_subject_avatar.html.twig', {subject: this.subjectOf(row.subject), label: label, role: this.roleOf(row.subject), size: 'sm'}) }}
+                            <span class="cmp-league__name">{{ label }}</span>
+                        </span>
+                    </td>
+                    <td class="cmp-league__wins">{{ row.wins }}</td>
+                    <td>{{ row.solved }}</td>
+                    {% set gap_percent = row.gap is null ? null : (row.gap * 100)|round(0) %}
+                    <td>{{ gap_percent is null ? '—' : (gap_percent > 0 ? 'comparison.league.gap_value'|trans({'%percent%': gap_percent}) : 'comparison.league.gap_zero'|trans) }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p class="cmp-note">{{ 'comparison.league.legend'|trans }}</p>
+</section>

@@ -1,0 +1,49 @@
+{# Two subjects: who won more of the puzzles both solved, and by how much on the median puzzle #}
+{% set h2h = this.result.headToHead %}
+{% if h2h is not null %}
+    {% set label_a = this.labelOf(h2h.a) %}
+    {% set label_b = this.labelOf(h2h.b) %}
+    <section class="card cmp-card cmp-h2h" aria-labelledby="comparison-h2h-title" data-testid="comparison-head-to-head">
+        <div class="cmp-card__head">
+            <h2 class="cmp-card__title" id="comparison-h2h-title">{{ 'comparison.h2h.title'|trans }}</h2>
+            <span class="cmp-card__hint">{{ include('comparison/_criteria_summary.html.twig', {criteria: this.criteria}) }}</span>
+        </div>
+
+        <div class="cmp-h2h__grid">
+            {% for side in [{ref: h2h.a, label: label_a, wins: h2h.winsA, role: 'a'}, {ref: h2h.b, label: label_b, wins: h2h.winsB, role: 'b'}] %}
+                <div class="cmp-h2h__side">
+                    {{ include('comparison/_subject_avatar.html.twig', {subject: this.subjectOf(side.ref), label: side.label, role: side.role, size: 'lg'}) }}
+                    <span class="cmp-h2h__name">{{ side.label }}</span>
+                    <span class="cmp-h2h__wins" data-testid="comparison-h2h-wins-{{ side.role }}">{{ side.wins }}</span>
+                </div>
+                {% if loop.first %}
+                    <span class="cmp-h2h__vs">{{ 'comparison.h2h.wins'|trans }}</span>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        {% if h2h.winsA + h2h.winsB + h2h.ties > 0 %}
+            <div class="cmp-h2h__bar" role="img" aria-label="{{ 'comparison.h2h.bar_label'|trans({'%a%': label_a, '%wins_a%': h2h.winsA, '%b%': label_b, '%wins_b%': h2h.winsB, '%count%': h2h.shared}) }}">
+                {% if h2h.winsA > 0 %}<span class="cmp-h2h__bar-a" style="flex: {{ h2h.winsA }}"></span>{% endif %}
+                {% if h2h.ties > 0 %}<span class="cmp-h2h__bar-tie" style="flex: {{ h2h.ties }}"></span>{% endif %}
+                {% if h2h.winsB > 0 %}<span class="cmp-h2h__bar-b" style="flex: {{ h2h.winsB }}"></span>{% endif %}
+            </div>
+        {% endif %}
+
+        <p class="cmp-h2h__line">
+            {{ 'comparison.h2h.shared'|trans({'%count%': h2h.shared}) }}
+            {%- if h2h.faster is not null and h2h.fasterPercent is not null %}
+                {%- set percent = h2h.fasterPercent|round(0) %}
+                · <strong>
+                    {%- if this.isSelf(h2h.faster) and this.subjectOf(h2h.faster).isViewer -%}
+                        {{ 'comparison.h2h.you_faster'|trans({'%percent%': percent}) }}
+                    {%- else -%}
+                        {{ 'comparison.h2h.faster'|trans({'%name%': this.labelOf(h2h.faster), '%percent%': percent}) }}
+                    {%- endif -%}
+                </strong> {{ 'comparison.h2h.on_median'|trans }}
+            {%- elseif h2h.shared > 0 %}
+                · {{ 'comparison.h2h.dead_heat'|trans }}
+            {%- endif %}
+        </p>
+    </section>
+{% endif %}

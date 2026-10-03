@@ -9,9 +9,9 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Query\CountCompetitionResults;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
-use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Query\GetCompetitionPuzzles;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
+use SpeedPuzzling\Web\Query\GetEventAttendance;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
@@ -37,7 +37,7 @@ final class EventDetailController extends AbstractController
     public function __construct(
         readonly private GetCompetitionEvents $getCompetitionEvents,
         readonly private GetCompetitionPuzzles $getCompetitionPuzzles,
-        readonly private GetCompetitionParticipants $getCompetitionParticipants,
+        readonly private GetEventAttendance $getEventAttendance,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
         readonly private GetEditionRounds $getEditionRounds,
@@ -144,14 +144,6 @@ final class EventDetailController extends AbstractController
 
         $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId);
 
-        $playerConnections = [];
-        if ($loggedPlayer !== null) {
-            $playerConnections = $this->getCompetitionParticipants->getPlayerConnections(
-                $competitionId,
-                $loggedPlayer->playerId,
-            );
-        }
-
         // "Add my time from this event" deep link: signed-in, the event is publicly visible (so the
         // add-time picker offers it) and it has already started — no times for an upcoming event.
         $canAddTime = $loggedPlayer !== null
@@ -172,10 +164,7 @@ final class EventDetailController extends AbstractController
                 $puzzles,
             )),
             'puzzle_statuses' => $puzzleStatuses,
-            'is_going' => count($playerConnections) > 0,
-            // "Change" only makes sense while the organizer's list still has someone to switch to
-            'can_change_participant' => count($playerConnections) > 0
-                && $this->getCompetitionParticipants->hasNotConnectedParticipants($competitionId),
+            'attendance' => $this->getEventAttendance->forPlayer($competitionId, $loggedPlayer?->playerId),
             'can_add_time' => $canAddTime,
         ]);
     }

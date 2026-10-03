@@ -5,14 +5,21 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionParticipant;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class JoinCompetitionControllerTest extends WebTestCase
 {
+    private const string UPCOMING_EDITION_URL = '/en/series/euro-jigsaw-jam-series/ejj-69-may-2026';
+
     public function testPickerOffersOnlyUnclaimedNames(): void
     {
         $browser = self::createClient();
@@ -73,6 +80,41 @@ final class JoinCompetitionControllerTest extends WebTestCase
 
         $this->assertResponseRedirects('/en/events/czech-nationals-2024');
         self::assertSame(1, $this->participantRowsOf(PlayerFixture::PLAYER_ADMIN, CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024));
+    }
+
+    public function testJoiningAnEditionReturnsToTheEditionPage(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('GET', '/en/join-event/' . CompetitionSeriesFixture::EDITION_EJJ_69);
+
+        // Never event_detail with the edition's slug - an edition slug is only unique within its series
+        $this->assertResponseRedirects(self::UPCOMING_EDITION_URL);
+        self::assertSame(1, $this->participantRowsOf(PlayerFixture::PLAYER_ADMIN, CompetitionSeriesFixture::EDITION_EJJ_69));
+    }
+
+    public function testPickerOfAnEditionLinksBackToTheEditionPage(): void
+    {
+        $browser = self::createClient();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist(new CompetitionParticipant(
+            id: Uuid::uuid7(),
+            name: 'Listed Edition Puzzler',
+            country: 'de',
+            competition: self::getContainer()->get(CompetitionRepository::class)->get(CompetitionSeriesFixture::EDITION_EJJ_69),
+        ));
+        $entityManager->flush();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('GET', '/en/join-event/' . CompetitionSeriesFixture::EDITION_EJJ_69);
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorExists('select[name="participant_id"]');
+        // The breadcrumb and the back button
+        $this->assertSelectorCount(2, 'a[href="' . self::UPCOMING_EDITION_URL . '"]');
+        $this->assertSelectorNotExists('a[href="/en/events/ejj-69-may-2026"]');
     }
 
     private function participantRowsOf(string $playerId, string $competitionId): int

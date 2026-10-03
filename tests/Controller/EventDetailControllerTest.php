@@ -76,6 +76,41 @@ final class EventDetailControllerTest extends WebTestCase
         $this->assertSelectorNotExists(self::addTimeLinkSelector(CompetitionFixture::COMPETITION_WJPC_2024));
     }
 
+    public function testConnectedParticipantSeesTheyAreGoingAndCanChange(): void
+    {
+        $browser = self::createClient();
+
+        // PLAYER_REGULAR is connected to 'John Regular' of WJPC 2024, 'Jane Unconnected' is still unclaimed
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/events/wjpc-2024');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('span.btn-success', "You're going!");
+        $this->assertSelectorTextContains(
+            sprintf('a.btn-outline-secondary[href="/en/join-event/%s"]', CompetitionFixture::COMPETITION_WJPC_2024),
+            'Change',
+        );
+        $this->assertSelectorExists(sprintf('form[action="/en/leave-event/%s"]', CompetitionFixture::COMPETITION_WJPC_2024));
+    }
+
+    public function testPlayerNotGoingIsOfferedImGoing(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('GET', '/en/events/wjpc-2024');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorNotExists('span.btn-success');
+        $this->assertSelectorTextContains(
+            sprintf('a.btn-primary[href="/en/join-event/%s"]', CompetitionFixture::COMPETITION_WJPC_2024),
+            "I'm going!",
+        );
+        $this->assertSelectorNotExists(sprintf('form[action="/en/leave-event/%s"]', CompetitionFixture::COMPETITION_WJPC_2024));
+    }
+
     public function testMemberSeesDifficultyOfEventPuzzles(): void
     {
         $browser = self::createClient();

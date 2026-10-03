@@ -65,6 +65,57 @@ final class EditionDetailControllerTest extends WebTestCase
         return sprintf('a[href$="?competition=%s"]', $competitionId);
     }
 
+    public function testVisitorIsOfferedImGoing(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', self::UPCOMING_EDITION_URL);
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains(self::joinLinkSelector(CompetitionSeriesFixture::EDITION_EJJ_69), "I'm going!");
+    }
+
+    public function testSignedInPlayerIsOfferedImGoing(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', self::UPCOMING_EDITION_URL);
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains(self::joinLinkSelector(CompetitionSeriesFixture::EDITION_EJJ_69), "I'm going!");
+        $this->assertSelectorNotExists(self::leaveFormSelector(CompetitionSeriesFixture::EDITION_EJJ_69));
+    }
+
+    public function testPlayerWhoJoinedTheEditionSeesTheyAreGoing(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        // The edition has no participant list - "I'm going" joins at once and comes back here
+        $browser->request('GET', '/en/join-event/' . CompetitionSeriesFixture::EDITION_EJJ_69);
+        $this->assertResponseRedirects(self::UPCOMING_EDITION_URL);
+        $browser->followRedirect();
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('span.btn-success', "You're going!");
+        $this->assertSelectorExists(self::leaveFormSelector(CompetitionSeriesFixture::EDITION_EJJ_69));
+        // Nobody on the organizer's list to switch to - no "Change", and "I'm going" is gone
+        $this->assertSelectorNotExists(self::joinLinkSelector(CompetitionSeriesFixture::EDITION_EJJ_69));
+    }
+
+    private static function joinLinkSelector(string $competitionId): string
+    {
+        return sprintf('a[href="/en/join-event/%s"]', $competitionId);
+    }
+
+    private static function leaveFormSelector(string $competitionId): string
+    {
+        return sprintf('form[action="/en/leave-event/%s"]', $competitionId);
+    }
+
     public function testRoundLinksToItsResults(): void
     {
         $browser = self::createClient();

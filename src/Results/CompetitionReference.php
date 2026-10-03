@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 /**
- * A publicly visible competition a puzzle page links to: a standalone event, an edition of a series,
- * or a whole series (a tag moves to the series when its competition is converted into one).
+ * A competition a page links to: a standalone event, an edition of a series, or a whole series (a tag moves
+ * to the series when its competition is converted into one). Puzzle pages link the publicly visible ones;
+ * joining or leaving a competition returns to its page (CompetitionDetailUrl).
  *
  * Routing follows templates/_competition_badge.html.twig: standalone → event_detail, edition →
  * edition_detail (an edition slug is only unique within its series), whole series →

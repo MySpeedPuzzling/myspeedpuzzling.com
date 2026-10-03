@@ -28,9 +28,6 @@ final class CompetitionParticipants
     #[LiveProp]
     public string $competitionId = '';
 
-    #[LiveProp]
-    public string $eventSlug = '';
-
     /** @var array<string> */
     #[LiveProp(writable: true)]
     public array $roundsFilter = [];

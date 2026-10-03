@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDiffere
 use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
+use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,6 +26,7 @@ final class JoinCompetitionController extends AbstractController
     public function __construct(
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly GetCompetitionParticipants $getCompetitionParticipants,
+        private readonly CompetitionDetailUrl $competitionDetailUrl,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
@@ -45,10 +47,12 @@ final class JoinCompetitionController extends AbstractController
     public function __invoke(string $competitionId, Request $request): Response
     {
         $competition = $this->getCompetitionEvents->byId($competitionId);
+        // Every way out leads to the competition's page - for an edition its own page, never event_detail with its slug
+        $competitionUrl = $this->competitionDetailUrl->of($competitionId);
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 
         if ($profile === null) {
-            return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);
+            return $this->redirect($competitionUrl);
         }
 
         if ($request->isMethod('POST')) {
@@ -63,7 +67,7 @@ final class JoinCompetitionController extends AbstractController
                 return $this->redirectToRoute('join_competition', ['competitionId' => $competitionId]);
             }
 
-            return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);
+            return $this->redirect($competitionUrl);
         }
 
         $isGoing = count($this->getCompetitionParticipants->getPlayerConnections($competitionId, $profile->playerId)) > 0;
@@ -78,17 +82,18 @@ final class JoinCompetitionController extends AbstractController
             if ($matchingParticipantId !== null || $hasNotConnected === false) {
                 $this->join($competitionId, $profile->playerId, $matchingParticipantId);
 
-                return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);
+                return $this->redirect($competitionUrl);
             }
         }
 
         if ($hasNotConnected === false) {
             // Already going and nobody left on the list to switch to
-            return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);
+            return $this->redirect($competitionUrl);
         }
 
         return $this->render('join_competition.html.twig', [
             'competition' => $competition,
+            'competition_url' => $competitionUrl,
             'profile' => $profile,
             'profile_country' => CountryCode::fromCode($profile->country),
             'not_connected_participants' => $this->getCompetitionParticipants->getNotConnectedParticipants($competitionId),

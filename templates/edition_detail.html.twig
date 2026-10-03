@@ -222,5 +222,9 @@
         </div>
     {% endif %}
 
-    <twig:CompetitionParticipants competitionId="{{ event.id }}" eventSlug="{{ series.slug }}" />
+    <div class="mt-4 mb-3">
+        {{ include('_event_attendance.html.twig', {competition_id: event.id, attendance: attendance}) }}
+    </div>
+
+    <twig:CompetitionParticipants competitionId="{{ event.id }}" />
 {% endblock %}

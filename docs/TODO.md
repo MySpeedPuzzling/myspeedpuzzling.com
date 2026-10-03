@@ -9,10 +9,7 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Cron row for `myspeedpuzzling:recalculate-community-stats` in `~/www/lily.srv` (`14-59/15`, drafted) - after
       the PR is deployed, the command must exist on the box first. Run it once by hand right after the deploy so the
       page is not empty until the next quarter.
-- [ ] Translations of `players.*` into cs, de, es, fr, ja (English only so far); then drop the dead keys
-      `forms.search_puzzler`, `puzzlers.results_for`, `puzzlers.no_matches_found`, `puzzlers.search_placeholder`,
-      `puzzlers.most_popular`, `puzzlers.by_country`, `puzzlers.most_favorite`, `puzzlers.total_players`,
-      `players_per_country.link`.
+- [x] Translations of `players.*` into cs, de, es, fr, ja; the dead keys of the old page removed (2026-10-03).
 - [ ] Leaderboard "Where you stand": best-time distribution per country with your marker (line for every signed-in
       player, chart for members, like the puzzle page).
 - [ ] Hub rework (Jan, 2026-10-03: catch-up + trending + recent activity of all sorts, digests of other sections,

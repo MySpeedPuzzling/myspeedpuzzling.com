@@ -204,8 +204,8 @@ The foundation (`CommunityScope`, `ViewerCountry`, the three tables, the recalcu
 | S6 | Suggested for you |
 | S7 | "Add your country" nudge |
 
-Each stream owns its own partial, component, query and test files. Translation keys go under `players.<section>.*`.
-English only; the other locales come in one pass at the end.
+Each stream owns its own partial, component, query and test files. Translation keys go under `players.<section>.*`,
+translated into all six locales in one pass at the end.
 
 ## As built (2026-10-03)
 

@@ -495,7 +495,6 @@ forms:
     country_all: "All countries"
     about_me: "About me (bio)"
     avatar: "Avatar/photo"
-    search_puzzler: "Name, player code, or part of..."
     time_format_placeholder: "HH:MM:SS"
     time_required: "Please enter the time"
     hours_short: "hrs"
@@ -1346,16 +1345,9 @@ puzzle_detail:
 puzzlers:
     meta:
         title: "Speed Puzzlers Worldwide"
-        description: "Find speed puzzlers from around the world. Compare solve times, rankings and statistics, and follow your favorite jigsaw puzzle competitors."
+        description: "Meet speed puzzlers from around the world and from your country: who is most active this month, who is on a roll this week, the Country Cup and people worth following."
     title: "Speed Puzzlers"
-    results_for: "Search results for"
-    no_matches_found: "No matches found"
     my_favorites: "My Favorites"
-    most_popular: "Most Popular"
-    by_country: "By Country"
-    most_favorite: "Most Favorite Puzzlers"
-    search_placeholder: "Search by player name or code..."
-    total_players: "Total Players"
 
 players:
     # docs/features/players-page/README.md - one sub-block per section
@@ -1582,7 +1574,6 @@ players_per_country:
         title: "Speed Puzzlers from %country% – Rankings & Times"
         description: "Meet speed puzzlers from %country%: player profiles, fastest jigsaw times and national rankings on MySpeedPuzzling."
     title: "Speed Puzzlers from %country%"
-    link: "Puzzlers per country"
     empty: "No speed puzzler from %country% has a public profile yet."
 
 player_profile:

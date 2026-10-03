@@ -22,6 +22,8 @@
                 <table class="table table-hover ps-table mb-0">
                     <tbody>
                         {% set row_id_prefix = this.favoritesOnly ? 'favorites' : (this.playerId is not null ? 'player' : 'all') %}
+                        {# Members see each puzzle's difficulty on the image's corner (null for everyone else) #}
+                        {% set difficulty_tiers = this.difficultyTiers %}
                         {% for item in this.items %}
                             {% set is_own_row = this.isOnProfile is same as false and logged_user.profile is not null and (
                                 item.players is null
@@ -31,10 +33,14 @@
                             {# The id lets the morph insert a new row at the top instead of rewriting every row below it #}
                             <tr id="activity-{{ row_id_prefix }}-{{ item.id }}" class="{{ is_own_row ? 'table-active-player' }} {{ this.showLimit > 0 and loop.index > this.showLimit ? 'ra-extra' }}" data-controller="row-link" data-action="click->row-link#open">
                                 <td class="ps-image">
-                                    <div class="position-relative">
+                                    <div class="position-relative diff-corner-host">
                                         <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
                                             {{ include('_puzzle_row_image.html.twig', {image: item.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': item.manufacturerName ~ ' ' ~ item.puzzleName}), position: loop.index, ratio: item.puzzleImageRatio}) }}
                                         </a>
+
+                                        {% if difficulty_tiers is not null %}
+                                            {{ include('_difficulty_corner.html.twig', {tier: difficulty_tiers[item.puzzleId] ?? null}) }}
+                                        {% endif %}
 
                                         {% if logged_user.profile is not null and item.isEditableBy(logged_user.profile.playerId) %}
                                             {{ include('_time_actions_menu.html.twig', {

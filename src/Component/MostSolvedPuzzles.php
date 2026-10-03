@@ -7,7 +7,9 @@ namespace SpeedPuzzling\Web\Component;
 use SpeedPuzzling\Web\Query\GetMostSolvedPuzzles as GetMostSolvedPuzzlesQuery;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Results\MostSolvedPuzzle;
+use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\DifficultyTier;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
@@ -28,10 +30,19 @@ final class MostSolvedPuzzles
     #[LiveProp]
     public int $showLimit = 4;
 
+    /** @var null|array<MostSolvedPuzzle> */
+    private null|array $puzzles = null;
+
+    /** @var null|array<string, DifficultyTier> */
+    private null|array $difficultyTiers = null;
+
+    private bool $difficultyTiersResolved = false;
+
     public function __construct(
         readonly private GetMostSolvedPuzzlesQuery $getMostSolvedPuzzles,
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
     ) {
     }
 
@@ -39,6 +50,33 @@ final class MostSolvedPuzzles
      * @return array<MostSolvedPuzzle>
      */
     public function getPuzzles(): array
+    {
+        // The template reads the list more than once
+        return $this->puzzles ??= $this->fetchPuzzles();
+    }
+
+    /**
+     * Difficulty tier of the listed puzzles for the thumbnails' corner - members only, null for everyone else.
+     *
+     * @return null|array<string, DifficultyTier>
+     */
+    public function getDifficultyTiers(): null|array
+    {
+        if ($this->difficultyTiersResolved === false) {
+            $this->difficultyTiers = $this->resolveDifficultyTiers->forViewer(
+                $this->retrieveLoggedUserProfile->getProfile(),
+                array_map(static fn (MostSolvedPuzzle $puzzle): string => $puzzle->puzzleId, $this->getPuzzles()),
+            );
+            $this->difficultyTiersResolved = true;
+        }
+
+        return $this->difficultyTiers;
+    }
+
+    /**
+     * @return array<MostSolvedPuzzle>
+     */
+    private function fetchPuzzles(): array
     {
         return match ($this->timespan) {
             'this_month' => $this->getMostSolvedPuzzles->topInMonth(

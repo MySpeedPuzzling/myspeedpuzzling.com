@@ -12,6 +12,9 @@ use SpeedPuzzling\Web\Results\ActivityCalendarDay;
 use SpeedPuzzling\Web\Results\ActivityCalendarStreak;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\ActivityCalendarStreakCalculator;
+use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\DifficultyTier;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -64,6 +67,13 @@ final class ActivityCalendar
     /** @var list<SolvedPuzzle> */
     public array $selectedDaySolvings = [];
 
+    /**
+     * Difficulty tier of the selected day's puzzles for the images' corner - members only, null for everyone else
+     *
+     * @var null|array<string, DifficultyTier>
+     */
+    public null|array $selectedDayDifficultyTiers = null;
+
     public null|Chart $hourOfDayChart = null;
 
     public function __construct(
@@ -72,6 +82,8 @@ final class ActivityCalendar
         readonly private ActivityCalendarStreakCalculator $streakCalculator,
         readonly private ChartBuilderInterface $chartBuilder,
         readonly private ClockInterface $clock,
+        readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
         $this->streak = new ActivityCalendarStreak(current: 0, longest: 0, currentStreakDates: [], longestStreakDates: []);
     }
@@ -110,6 +122,13 @@ final class ActivityCalendar
         $this->hourOfDayChart = $this->buildHourOfDayChart($this->hourBuckets);
 
         $this->selectedDaySolvings = $this->loadSelectedDaySolvings();
+        // Only once a day is picked - the month grid has no pictures
+        $this->selectedDayDifficultyTiers = $this->selectedDaySolvings === []
+            ? null
+            : $this->resolveDifficultyTiers->forViewer(
+                $this->retrieveLoggedUserProfile->getProfile(),
+                array_map(static fn (SolvedPuzzle $solve): string => $solve->puzzleId, $this->selectedDaySolvings),
+            );
     }
 
     #[LiveAction]

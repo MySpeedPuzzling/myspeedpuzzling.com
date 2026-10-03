@@ -7,7 +7,7 @@
     <div data-modal-size="modal-lg" data-modal-scrollable data-modal-sheet data-modal-history>
         <div class="modal-header pr-modal-header">
             <div class="pr-modal-header-top">
-                {{ include('puzzle_result/_puzzle.html.twig', {result: result, heading: 'h5'}) }}
+                {{ include('puzzle_result/_puzzle.html.twig', {result: result, heading: 'h5', difficulty_tiers: difficulty_tiers}) }}
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'puzzle_result.close'|trans }}"></button>
             </div>
             {{ include('puzzle_result/_head.html.twig', {result: result}) }}

@@ -11,7 +11,9 @@ use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetRoundResults;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
+use SpeedPuzzling\Web\Results\EditionRoundPuzzle;
 use SpeedPuzzling\Web\Results\RoundResultsPage;
+use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\EventTitle;
 
@@ -28,6 +30,7 @@ readonly final class RoundResultsPageBuilder
         private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
         private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private ClockInterface $clock,
+        private ResolveDifficultyTiers $resolveDifficultyTiers,
     ) {
     }
 
@@ -79,6 +82,11 @@ readonly final class RoundResultsPageBuilder
             officialResultsLink: $round->resultsLink !== null
                 ? $round->resultsLink . (str_contains($round->resultsLink, '?') ? '&' : '?') . 'utm_source=myspeedpuzzling'
                 : $event->resultsLink,
+            // Only puzzles whose picture is out - a puzzle still under wraps until the round starts shows no tier
+            difficultyTiers: $this->resolveDifficultyTiers->forViewer($viewer, array_map(
+                static fn (EditionRoundPuzzle $puzzle): string => $puzzle->puzzleId,
+                array_filter($round->puzzles, static fn (EditionRoundPuzzle $puzzle): bool => $puzzle->puzzleImage !== null),
+            )),
         );
     }
 }

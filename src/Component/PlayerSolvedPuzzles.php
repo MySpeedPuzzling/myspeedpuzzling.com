@@ -7,15 +7,16 @@ namespace SpeedPuzzling\Web\Component;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
-use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Results\PlayerRanking;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Value\DifficultyFilter;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\PiecesRange;
 use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
+use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -132,7 +133,7 @@ final class PlayerSolvedPuzzles
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
+        readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
     ) {
     }
 
@@ -208,7 +209,7 @@ final class PlayerSolvedPuzzles
             $this->onlyUnboxed = false;
         }
 
-        $this->difficulty = $this->normalizeDifficulty($this->difficulty);
+        $this->difficulty = DifficultyFilter::normalize($this->difficulty);
 
         $this->ranking = $this->getRanking->allForPlayer($this->playerId);
 
@@ -219,13 +220,15 @@ final class PlayerSolvedPuzzles
 
         // Difficulty is members-only: for everyone else it is not even queried. The whole history, not just the
         // shown rows - the filter needs every tier
-        $this->withDifficulty = $this->hasMembership();
-        $this->difficultyTiers = $this->withDifficulty
-            ? $this->getPuzzleDifficulty->tiersOf(array_map(
+        $difficultyTiers = $this->resolveDifficultyTiers->forViewer(
+            $this->retrieveLoggedUserProfile->getProfile(),
+            array_map(
                 static fn(SolvedPuzzle $puzzle): string => $puzzle->puzzleId,
                 [...$this->allSoloPuzzles, ...$this->allDuoPuzzles, ...$this->allTeamPuzzles],
-            ))
-            : [];
+            ),
+        );
+        $this->withDifficulty = $difficultyTiers !== null;
+        $this->difficultyTiers = $difficultyTiers ?? [];
 
         // Apply filters
         $soloSolvedPuzzles = $this->applyFilters($this->allSoloPuzzles);
@@ -323,35 +326,6 @@ final class PlayerSolvedPuzzles
     private function difficultyOf(SolvedPuzzle $puzzle): int
     {
         return $this->difficultyTiers[$puzzle->puzzleId]->value ?? PuzzleSearchCriteria::UNRATED_DIFFICULTY;
-    }
-
-    /**
-     * @param array<mixed> $difficulty
-     * @return list<string>
-     */
-    private function normalizeDifficulty(array $difficulty): array
-    {
-        $tiers = [];
-
-        foreach ($difficulty as $tier) {
-            if (is_string($tier) === false && is_int($tier) === false) {
-                continue;
-            }
-
-            $tier = (string) $tier;
-
-            if (preg_match('/^\d$/', $tier) !== 1) {
-                continue;
-            }
-
-            if ((int) $tier === PuzzleSearchCriteria::UNRATED_DIFFICULTY || DifficultyTier::tryFrom((int) $tier) !== null) {
-                $tiers[$tier] = $tier;
-            }
-        }
-
-        sort($tiers);
-
-        return $tiers;
     }
 
     private function matchesSearch(SolvedPuzzle $puzzle): bool
@@ -572,17 +546,10 @@ final class PlayerSolvedPuzzles
             }
         }
 
-        $options = [];
-
-        foreach ([...DifficultyTier::cases(), null] as $tier) {
-            $value = (string) ($tier->value ?? PuzzleSearchCriteria::UNRATED_DIFFICULTY);
-
-            if ($present === null || isset($present[$value])) {
-                $options[] = ['value' => $value, 'tier' => $tier];
-            }
-        }
-
-        return $options;
+        return array_values(array_filter(
+            DifficultyFilter::options(),
+            static fn (array $option): bool => $present === null || isset($present[$option['value']]),
+        ));
     }
 
     public function getActiveFiltersCount(): int

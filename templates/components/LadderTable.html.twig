@@ -5,6 +5,8 @@
     <div class="custom-table-wrapper ps-wrapper mt-3 mb-3">
         <table class="table table-hover ps-table mb-0">
             <tbody>
+            {# Members see each puzzle's difficulty on the image's corner (null for everyone else) #}
+            {% set difficulty_tiers = this.difficultyTiers %}
             {% for solving_time in this.items %}
                 {# The viewer's own row - solo, or a pair/team they are a member of (not only the one who tracked it) #}
                 {% set is_own_row = logged_user.profile is not null and (
@@ -16,9 +18,15 @@
                     <td class="rank"><span class="lb-rank">{{ loop.index }}</span></td>
 
                     <td class="ps-image">
-                        <a href="{{ path('puzzle_detail', {puzzleId: solving_time.puzzleId}) }}">
-                            {{ include('_puzzle_row_image.html.twig', {image: solving_time.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': solving_time.manufacturerName ~ ' ' ~ solving_time.puzzleName}), position: loop.index, ratio: solving_time.puzzleImageRatio}) }}
-                        </a>
+                        <div class="diff-corner-host">
+                            <a href="{{ path('puzzle_detail', {puzzleId: solving_time.puzzleId}) }}">
+                                {{ include('_puzzle_row_image.html.twig', {image: solving_time.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': solving_time.manufacturerName ~ ' ' ~ solving_time.puzzleName}), position: loop.index, ratio: solving_time.puzzleImageRatio}) }}
+                            </a>
+
+                            {% if difficulty_tiers is not null %}
+                                {{ include('_difficulty_corner.html.twig', {tier: difficulty_tiers[solving_time.puzzleId] ?? null}) }}
+                            {% endif %}
+                        </div>
                     </td>
 
                     {# On a ladder the player leads, the puzzle is the context under it #}

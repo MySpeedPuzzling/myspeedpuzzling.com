@@ -4,9 +4,10 @@
     Inputs:
       - result: PuzzleResultDetail
       - heading (string, optional): element of the name - the modal's title is an h5, the full page has its own h1
+      - difficulty_tiers (null|array, optional): members get the tier on the image's corner
 #}
 <div class="pr-puzzle">
-    <a class="pr-puzzle-image" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: result.puzzleId}) }}">
+    <a class="pr-puzzle-image diff-corner-host" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: result.puzzleId}) }}">
         {{ lazy_puzzle_image(
             result.puzzleImage,
             'puzzle_small',
@@ -17,6 +18,10 @@
             44,
             result.puzzleImageRatio
         ) }}
+
+        {% if difficulty_tiers|default(null) is not null %}
+            {{ include('_difficulty_corner.html.twig', {tier: difficulty_tiers[result.puzzleId] ?? null, size: 'sm'}) }}
+        {% endif %}
     </a>
     <div class="pr-puzzle-text">
         <{{ heading|default('div') }} class="pr-puzzle-name{{ heading is defined ? ' modal-title' }}">

@@ -22,25 +22,48 @@ System and custom collections, wishlist, unsolved, solved, sell/swap (with the c
 - Icon markup lives once: `_difficulty_icon.html.twig` macro (also used by `_puzzle_item.html.twig`),
   `DifficultyTier::icon()` / `translationKey()`. The sell/swap item wrapper lives once in `sell-swap/_item.html.twig`.
 
-## Profile results (`PlayerSolvedPuzzles`, 2026-10-03)
+## Difficulty on thumbnails (2026-10-03)
 
-The results list on a player's profile, built like the comparison (D19 in `player-comparison.md`).
+Members see the puzzle's tier on the bottom-right corner of its picture, like on the comparison (D19 in
+`player-comparison.md`): `_difficulty_corner.html.twig` inside a `.diff-corner-host` (a link directly inside the host
+is made a flex box, its line box would push the disc below the corner). "Unknown" icon = not rated yet.
 
-- **Tier on the thumbnail's corner** for members: `_difficulty_corner.html.twig` inside the image wrapper
-  (`.diff-corner-host`), opposite the ☰ time menu; "Unknown" icon for a puzzle not rated yet.
-- **Difficulty filter** in the members' part of the filter dropdown: `form-option` checkboxes bound to the writable
-  LiveProp `difficulty` (`data-model="difficulty[]"`, strings, `"0"` = not rated yet as on the puzzle search),
-  normalised in `populate()`, cleared by "Reset", counted in the badge. Applies to solo, pair and team results.
-  Members are offered only the tiers the player has a result in, plus the selected ones (like the piece-count chips);
-  non-members see all seven chips disabled under the "Members exclusive" overlay and the filter is ignored.
-- **The viewer's membership decides**: tiers are queried only for members (`withDifficulty`), guests and free
-  players pay nothing.
-- Data: `GetPuzzleDifficulty::tiersOf()` over the player's **whole** history (the filter needs every tier, and the
-  component already loads all results to filter in PHP). Tier-only rows on purpose: heaviest solver on the dev copy
-  (2,159 puzzles) ~1 ms vs ~12 ms for `GetPuzzleListInsights` (whose solve counts the profile does not show).
-  One query per render, members only.
+| Where | Template | Tiers from |
+|---|---|---|
+| Profile results (solo, pairs, teams) | `_player_solvings.html.twig` | `PlayerSolvedPuzzles` - the whole history |
+| Recent activity (Hub all + favorites, profile, `/recent-activity`, homepage) | `components/RecentActivity` | `RecentActivity::getDifficultyTiers()` |
+| Ladders (`/ladder`, per-pieces ladder) | `components/LadderTable` | `LadderTable::getDifficultyTiers()` |
+| Most solved puzzles (Hub) | `components/MostSolvedPuzzles` | `MostSolvedPuzzles::getDifficultyTiers()` |
+| Marketplace cards | `marketplace/_listing_card` | `MarketplaceListing::getDifficultyTiers()` |
+| Round results | `round_results` | `RoundResultsPage::$difficultyTiers` - **only puzzles whose picture is out**: a puzzle hidden until the round starts shows no tier |
+| Result detail (modal + page) | `puzzle_result/_puzzle` (small disc) | `PuzzleResultDetailController` |
+| Activity calendar, the picked day | `components/ActivityCalendar` | `ActivityCalendar::$selectedDayDifficultyTiers` |
 
-Tests: `tests/Component/PlayerSolvedPuzzlesDifficultyTest.php`, `tests/Query/GetPuzzleDifficultyTest.php`.
+- **One service decides**: `ResolveDifficultyTiers::forViewer($viewer, $puzzleIds)` - `null` for anybody without an
+  active membership (templates test `is not null`; nothing is queried), else `GetPuzzleDifficulty::tiersOf()`:
+  tier-only rows, one query per list. Dev copy 2026-10-03, warm: 20 puzzles 0.04 ms, 100 0.25 ms, 210-500 ~1.4 ms,
+  the heaviest solver's whole history (2,159) ~1 ms (cold up to ~7 ms). `GetPuzzleListInsights` (+ solve counts)
+  was ~12 ms for the same history.
+- Viewer-dependent, so never in a shared cache - none of these pages is HTTP-cached.
+- Turbo-stream re-renders of a marketplace card (reserve / unreserve) carry no tiers: no corner until reload.
+
+### Difficulty filters (members)
+
+`Value\DifficultyFilter` (normalise, options) + `_difficulty_filter_live.html.twig` (checkboxes bound to an array
+LiveProp, `data-model="difficulty[]"`, strings, `"0"` = not rated yet as on the puzzle search). Non-members see the
+chips disabled, and a value they send is ignored.
+
+- **Profile results**: in the members' part of the filter dropdown (under the "Members exclusive" overlay for
+  others); offers only the tiers the player has a result in plus the selected ones (like the piece-count chips);
+  filters in PHP like the other profile filters, cleared by "Reset", counted in the badge.
+- **Marketplace**: `difficulty[]` in the URL like every marketplace filter (`?difficulty[]=5`), all seven chips, a
+  lock button opening `#membersExclusiveModal` for non-members. SQL in `GetMarketplaceListings::difficultyFilter()`
+  (search + count, same meaning as `SearchPuzzle::difficultyFilter()`); dev copy (1,482 listings): a wide choice
+  +2-4 ms on the page query, a narrow one makes it faster.
+
+Tests: `tests/Controller/DifficultyOnThumbnailsTest.php`, `tests/Component/PlayerSolvedPuzzlesDifficultyTest.php`,
+`tests/Component/MarketplaceListingDifficultyFilterTest.php`, `tests/Query/GetMarketplaceListingsTest.php`,
+`tests/Query/GetPuzzleDifficultyTest.php`, `tests/Services/ResolveDifficultyTiersTest.php`.
 
 ## "My list" on the puzzle database (`/en/puzzle?list=...`)
 

@@ -21,7 +21,7 @@
         <h1 class="h4 mb-3">{{ 'puzzle_result.title'|trans }}</h1>
 
         <div class="mb-3">
-            {{ include('puzzle_result/_puzzle.html.twig', {result: result}) }}
+            {{ include('puzzle_result/_puzzle.html.twig', {result: result, difficulty_tiers: difficulty_tiers}) }}
         </div>
 
         <div class="mb-3">

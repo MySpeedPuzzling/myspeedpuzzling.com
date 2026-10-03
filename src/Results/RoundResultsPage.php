@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\EventTitle;
 
 readonly final class RoundResultsPage
@@ -11,6 +12,8 @@ readonly final class RoundResultsPage
     /**
      * @param list<EditionRoundDetail> $rounds rounds of the competition that have a result page, by start
      * @param array<string, list<RoundResult>> $results keyed by puzzle id
+     * @param null|array<string, DifficultyTier> $difficultyTiers of the round's revealed puzzles, members only (null
+     *                                                         for everyone else)
      */
     public function __construct(
         public CompetitionEvent $event,
@@ -24,6 +27,7 @@ readonly final class RoundResultsPage
         public bool $hasStarted,
         public bool $canAddTime,
         public null|string $officialResultsLink,
+        public null|array $difficultyTiers = null,
     ) {
     }
 

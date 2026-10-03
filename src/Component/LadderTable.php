@@ -8,7 +8,10 @@ use SpeedPuzzling\Web\Query\GetFastestGroups;
 use SpeedPuzzling\Web\Query\GetFastestPairs;
 use SpeedPuzzling\Web\Query\GetFastestPlayers;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\DifficultyTier;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
@@ -34,11 +37,18 @@ final class LadderTable
         readonly private GetFastestPlayers $getFastestPlayers,
         readonly private GetFastestPairs $getFastestPairs,
         readonly private GetFastestGroups $getFastestGroups,
+        readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
     /** @var null|list<SolvedPuzzle> */
     private null|array $items = null;
+
+    /** @var null|array<string, DifficultyTier> */
+    private null|array $difficultyTiers = null;
+
+    private bool $difficultyTiersResolved = false;
 
     /**
      * @return list<SolvedPuzzle>
@@ -59,6 +69,24 @@ final class LadderTable
             'groups' => $this->getFastestGroups->perPiecesCount($this->piecesCount, $this->limit, $country),
             default => [],
         });
+    }
+
+    /**
+     * Difficulty tier of the rows' puzzles for the thumbnails' corner - members only, null for everyone else.
+     *
+     * @return null|array<string, DifficultyTier>
+     */
+    public function getDifficultyTiers(): null|array
+    {
+        if ($this->difficultyTiersResolved === false) {
+            $this->difficultyTiers = $this->resolveDifficultyTiers->forViewer(
+                $this->retrieveLoggedUserProfile->getProfile(),
+                array_map(static fn (SolvedPuzzle $item): string => $item->puzzleId, $this->getItems()),
+            );
+            $this->difficultyTiersResolved = true;
+        }
+
+        return $this->difficultyTiers;
     }
 
     /**

@@ -129,7 +129,7 @@
                             <ul class="list-unstyled mb-0">
                                 {% for solve in this.selectedDaySolvings %}
                                     <li class="d-flex align-items-start gap-3 py-2 border-bottom">
-                                        <a href="{{ path('puzzle_detail', {puzzleId: solve.puzzleId}) }}" class="flex-shrink-0">
+                                        <a href="{{ path('puzzle_detail', {puzzleId: solve.puzzleId}) }}" class="flex-shrink-0 diff-corner-host">
                                             {{ lazy_puzzle_image(
                                                 solve.puzzleImage,
                                                 'puzzle_small',
@@ -140,6 +140,10 @@
                                                 null,
                                                 solve.puzzleImageRatio
                                             ) }}
+
+                                            {% if this.selectedDayDifficultyTiers is not null %}
+                                                {{ include('_difficulty_corner.html.twig', {tier: this.selectedDayDifficultyTiers[solve.puzzleId] ?? null}) }}
+                                            {% endif %}
                                         </a>
                                         <div class="flex-grow-1">
                                             <div class="small fw-semibold">

@@ -7,7 +7,9 @@ namespace SpeedPuzzling\Web\Component;
 use SpeedPuzzling\Web\Query\GetPlayerBestSoloTimes;
 use SpeedPuzzling\Web\Query\GetRecentActivity;
 use SpeedPuzzling\Web\Results\RecentActivityItem;
+use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\DifficultyTier;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
@@ -45,10 +47,16 @@ final class RecentActivity
     /** @var null|array<string, int> */
     private null|array $cachedMyBestTimes = null;
 
+    /** @var null|array<string, DifficultyTier> */
+    private null|array $cachedDifficultyTiers = null;
+
+    private bool $difficultyTiersResolved = false;
+
     public function __construct(
         readonly private GetRecentActivity $getRecentActivity,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetPlayerBestSoloTimes $getPlayerBestSoloTimes,
+        readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
     ) {
     }
 
@@ -84,6 +92,24 @@ final class RecentActivity
         )));
 
         return $this->cachedMyBestTimes = $this->getPlayerBestSoloTimes->forPuzzles($profile->playerId, $puzzleIds);
+    }
+
+    /**
+     * Difficulty tier of the listed puzzles for the thumbnails' corner - members only, null for everyone else.
+     *
+     * @return null|array<string, DifficultyTier>
+     */
+    public function getDifficultyTiers(): null|array
+    {
+        if ($this->difficultyTiersResolved === false) {
+            $this->cachedDifficultyTiers = $this->resolveDifficultyTiers->forViewer(
+                $this->retrieveLoggedUserProfile->getProfile(),
+                array_map(static fn (RecentActivityItem $item): string => $item->puzzleId, $this->getItems()),
+            );
+            $this->difficultyTiersResolved = true;
+        }
+
+        return $this->cachedDifficultyTiers;
     }
 
     /**

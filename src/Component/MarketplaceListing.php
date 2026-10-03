@@ -11,8 +11,11 @@ use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\IsHintDismissed;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\MarketplaceListingItem;
+use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\DifficultyFilter;
+use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\HintType;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PiecesRange;
@@ -76,6 +79,14 @@ final class MarketplaceListing
     #[LiveProp(writable: true, url: true)]
     public bool $myOffers = false;
 
+    /**
+     * Difficulty chips (members): tier values as strings, "0" = not rated yet (Value\DifficultyFilter)
+     *
+     * @var list<string>
+     */
+    #[LiveProp(writable: true, url: true)]
+    public array $difficulty = [];
+
     #[LiveProp(writable: true)]
     public string $puzzleId = '';
 
@@ -100,6 +111,11 @@ final class MarketplaceListing
 
     private null|PuzzleOverview $filteredPuzzleOverview = null;
 
+    /** @var null|array<string, DifficultyTier> */
+    private null|array $cachedDifficultyTiers = null;
+
+    private bool $difficultyTiersResolved = false;
+
     public function __construct(
         readonly private GetMarketplaceListings $getMarketplaceListings,
         readonly private GetPuzzleOverview $getPuzzleOverview,
@@ -107,6 +123,7 @@ final class MarketplaceListing
         readonly private IsHintDismissed $isHintDismissed,
         readonly private UrlGeneratorInterface $urlGenerator,
         readonly private TranslatorInterface $translator,
+        readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
     ) {
     }
 
@@ -124,6 +141,8 @@ final class MarketplaceListing
         $this->piecesMin = $range?->minPieces;
         $this->piecesMax = $range?->maxPieces;
         $this->pieces = $range?->toParam();
+        // Comes from the URL as well
+        $this->difficulty = DifficultyFilter::normalize($this->difficulty);
     }
 
     #[PreReRender]
@@ -134,6 +153,8 @@ final class MarketplaceListing
         $this->cachedCount = null;
         $this->filteredPuzzleOverviewLoaded = false;
         $this->filteredPuzzleOverview = null;
+        $this->cachedDifficultyTiers = null;
+        $this->difficultyTiersResolved = false;
 
         $currentHash = $this->computeFilterHash();
 
@@ -169,6 +190,7 @@ final class MarketplaceListing
             sort: $this->sort,
             limit: $this->page * self::PER_PAGE,
             offset: 0,
+            difficultyTiers: $this->getDifficultyFilter(),
         );
 
         return $this->cachedItems;
@@ -193,6 +215,7 @@ final class MarketplaceListing
             sellerCountry: $this->sellerCountry !== '' ? $this->sellerCountry : null,
             sellerId: $this->getMyOffersSellerId(),
             puzzleId: $this->puzzleId !== '' && Uuid::isValid($this->puzzleId) ? $this->puzzleId : null,
+            difficultyTiers: $this->getDifficultyFilter(),
         );
 
         return $this->cachedCount;
@@ -204,6 +227,51 @@ final class MarketplaceListing
     public function getManufacturers(): array
     {
         return $this->getMarketplaceListings->getManufacturersWithActiveListings();
+    }
+
+    /**
+     * Difficulty tier of the listed puzzles for the cards' image corner - members only, null for everyone else.
+     *
+     * @return null|array<string, DifficultyTier>
+     */
+    public function getDifficultyTiers(): null|array
+    {
+        if ($this->difficultyTiersResolved === false) {
+            $this->cachedDifficultyTiers = $this->resolveDifficultyTiers->forViewer(
+                $this->retrieveLoggedUserProfile->getProfile(),
+                array_map(static fn (MarketplaceListingItem $item): string => $item->puzzleId, $this->getItems()),
+            );
+            $this->difficultyTiersResolved = true;
+        }
+
+        return $this->cachedDifficultyTiers;
+    }
+
+    /**
+     * @return list<array{value: string, tier: null|DifficultyTier}>
+     */
+    public function getDifficultyOptions(): array
+    {
+        return DifficultyFilter::options();
+    }
+
+    private function isMember(): bool
+    {
+        return $this->retrieveLoggedUserProfile->getProfile()?->activeMembership === true;
+    }
+
+    /**
+     * The difficulty filter is members-only: for anybody else a difficulty in the URL is ignored.
+     *
+     * @return list<int>
+     */
+    private function getDifficultyFilter(): array
+    {
+        if ($this->difficulty === [] || $this->isMember() === false) {
+            return [];
+        }
+
+        return DifficultyFilter::toInts(DifficultyFilter::normalize($this->difficulty));
     }
 
     public function hasMoreItems(): bool
@@ -360,6 +428,10 @@ final class MarketplaceListing
             $params['myOffers'] = '1';
         }
 
+        if ($this->difficulty !== []) {
+            $params['difficulty'] = $this->difficulty;
+        }
+
         if ($this->puzzleId !== '') {
             return $this->urlGenerator->generate('marketplace_puzzle', array_merge(['puzzleId' => $this->puzzleId], $params));
         }
@@ -391,6 +463,7 @@ final class MarketplaceListing
             $this->search, $this->manufacturer, $this->piecesMin, $this->piecesMax,
             $this->listingType, $this->priceMin, $this->priceMax, $this->condition,
             $this->shipToMyCountry, $this->sellerCountry, $this->sort, $this->myOffers, $this->puzzleId,
+            $this->difficulty,
         ]));
     }
 

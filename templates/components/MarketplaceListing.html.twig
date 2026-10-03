@@ -136,6 +136,26 @@
                     }) }}
                 </div>
 
+                {# Difficulty (members) - the tiers of the puzzle search, "Unknown" = not rated yet #}
+                {% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
+                <div class="mt-2">
+                    <label class="form-label form-label-sm mb-0">
+                        <small>{{ 'puzzle_intelligence.difficulty.filter_label'|trans }}</small>
+                        {% if not is_member %}
+                            <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                <small><i class="ci-locked me-1"></i>{{ 'membership.members_exclusive_button'|trans }}</small>
+                            </button>
+                        {% endif %}
+                    </label>
+                    {{ include('_difficulty_filter_live.html.twig', {
+                        id_prefix: 'marketplace-difficulty',
+                        model: 'difficulty',
+                        options: this.difficultyOptions,
+                        selected: this.difficulty,
+                        locked: not is_member,
+                    }) }}
+                </div>
+
                 <div class="mt-2 d-flex flex-wrap gap-3">
                     {# Ship to my country #}
                     {% set userCountry = this.userCountry %}
@@ -238,9 +258,11 @@
     {% else %}
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
             {% set marketplaceReturnUrl = this.returnUrl %}
+            {# Members see each puzzle's difficulty on the image's corner (null for everyone else) #}
+            {% set difficulty_tiers = this.difficultyTiers %}
             {% for item in items %}
                 <div class="col" id="marketplace-listing-{{ item.itemId }}">
-                    {% include 'marketplace/_listing_card.html.twig' with {item: item, marketplaceReturnUrl: marketplaceReturnUrl} only %}
+                    {% include 'marketplace/_listing_card.html.twig' with {item: item, marketplaceReturnUrl: marketplaceReturnUrl, difficulty_tiers: difficulty_tiers} only %}
                 </div>
             {% endfor %}
         </div>

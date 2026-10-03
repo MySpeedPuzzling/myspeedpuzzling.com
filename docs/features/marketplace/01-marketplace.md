@@ -37,6 +37,7 @@ All filters are persisted in the URL query string so users don't lose their sear
 | `condition` | Select | Like New / Normal / Not So Good / Missing Pieces / All |
 | `ships_to` | Select (country) | Only show sellers who ship to selected country. Pre-filled with logged-in user's country |
 | `sort` | Select | Newest first (default), Price low→high, Price high→low, Search relevance (when search term present) |
+| `difficulty[]` | Chips (members) | Difficulty tiers, `0` = not rated yet - members only, ignored for anybody else; members also see the tier on each card's image (2026-10-03, `docs/features/list-difficulty-and-my-list-filter.md`) |
 
 ### Implementation: Symfony UX Live Component
 

@@ -71,16 +71,24 @@
             {# Row 1: Image + Puzzle info #}
             <div class="d-flex gap-2 mb-1">
                 <div class="flex-shrink-0 text-center" style="width: 90px;">
-                    {{ lazy_puzzle_image(
-                        item.puzzleImage,
-                        'puzzle_small',
-                        item.puzzleName,
-                        999,
-                        90,
-                        'rounded lazy-img-marketplace' ~ (item.reserved ? ' grayscale' : ''),
-                        60,
-                        item.puzzleImageRatio
-                    ) }}
+                    <span class="diff-corner-host">
+                        {{ lazy_puzzle_image(
+                            item.puzzleImage,
+                            'puzzle_small',
+                            item.puzzleName,
+                            999,
+                            90,
+                            'rounded lazy-img-marketplace' ~ (item.reserved ? ' grayscale' : ''),
+                            60,
+                            item.puzzleImageRatio
+                        ) }}
+
+                        {# Members only - the listing passes the tiers; the reserve/unreserve streams do not, the card
+                           shows no difficulty until reload #}
+                        {% if difficulty_tiers|default(null) is not null %}
+                            {{ include('_difficulty_corner.html.twig', {tier: difficulty_tiers[item.puzzleId] ?? null}) }}
+                        {% endif %}
+                    </span>
                 </div>
 
                 <div class="flex-grow-1 min-width-0">

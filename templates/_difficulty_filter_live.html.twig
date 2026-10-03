@@ -1,0 +1,23 @@
+{#
+    Difficulty chips for live components (profile results, marketplace): checkboxes writing the array LiveProp
+    `model` (`data-model="model[]"`), values from Value\DifficultyFilter - a tier, or "0" = not rated yet.
+    Members only: with `locked` the chips are disabled and dimmed, a tap on them opens #membersExclusiveModal.
+
+    Params: id_prefix, model, options (DifficultyFilter::options() or a subset), selected (list<string>), locked (bool)
+#}
+{% from '_difficulty_icon.html.twig' import icon as difficulty_icon %}
+<div class="d-flex flex-wrap align-items-center gap-1{{ locked ? ' opacity-50' }}"
+    {%- if locked %} role="button" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" aria-label="{{ 'membership.members_exclusive_button'|trans }}"{% endif %}>
+    {% for option in options %}
+        <div class="form-check form-option form-check-inline mb-0">
+            <input type="checkbox" class="form-check-input" id="{{ id_prefix }}-{{ option.value }}"
+                   data-model="{{ model }}[]" value="{{ option.value }}"
+                   {{ option.value in selected ? 'checked' }}
+                   {{ locked ? 'disabled' }}>
+            <label for="{{ id_prefix }}-{{ option.value }}" class="form-option-label d-inline-flex align-items-center gap-1">
+                {{ difficulty_icon(option.tier, false, 16) }}
+                {{ option.tier is not null ? option.tier.translationKey|trans : 'puzzle_intelligence.difficulty.tiers.unknown'|trans }}
+            </label>
+        </div>
+    {% endfor %}
+</div>

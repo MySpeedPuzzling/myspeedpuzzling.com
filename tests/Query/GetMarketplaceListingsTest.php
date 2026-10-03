@@ -186,6 +186,36 @@ final class GetMarketplaceListingsTest extends KernelTestCase
         self::assertSame(count($items), $count);
     }
 
+    public function testFilterByDifficulty(): void
+    {
+        $all = $this->query->search(limit: 1000);
+        $puzzleIds = array_values(array_unique(array_map(static fn (MarketplaceListingItem $item): string => $item->puzzleId, $all)));
+        self::assertGreaterThanOrEqual(2, count($puzzleIds));
+
+        // One listed puzzle is Hard, the others are not rated yet
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement('DELETE FROM puzzle_difficulty');
+        $connection->executeStatement(
+            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at) VALUES (:puzzleId, 5, 1.3, 'high', 10, NOW())",
+            ['puzzleId' => $puzzleIds[0]],
+        );
+
+        $hard = $this->query->search(limit: 1000, difficultyTiers: [5]);
+        self::assertNotEmpty($hard);
+        self::assertSame([$puzzleIds[0]], array_values(array_unique(array_map(static fn (MarketplaceListingItem $item): string => $item->puzzleId, $hard))));
+        self::assertSame(count($hard), $this->query->count(difficultyTiers: [5]));
+
+        // 0 = not rated yet
+        $unrated = $this->query->search(limit: 1000, difficultyTiers: [0]);
+        self::assertCount(count($all) - count($hard), $unrated);
+        self::assertNotContains($puzzleIds[0], array_map(static fn (MarketplaceListingItem $item): string => $item->puzzleId, $unrated));
+        self::assertSame(count($unrated), $this->query->count(difficultyTiers: [0]));
+
+        self::assertCount(count($all), $this->query->search(limit: 1000, difficultyTiers: [0, 5]));
+        self::assertSame([], $this->query->search(limit: 1000, difficultyTiers: [1]));
+        self::assertSame(0, $this->query->count(difficultyTiers: [1]));
+    }
+
     public function testEmptyResultWithNonMatchingFilters(): void
     {
         $items = $this->query->search(piecesMin: 999999);

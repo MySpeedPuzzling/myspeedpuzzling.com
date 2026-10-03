@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetPuzzleResultDetail;
+use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,6 +23,7 @@ final class PuzzleResultDetailController extends AbstractController
     public function __construct(
         readonly private GetPuzzleResultDetail $getPuzzleResultDetail,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
     ) {
     }
 
@@ -42,9 +44,9 @@ final class PuzzleResultDetailController extends AbstractController
     )]
     public function __invoke(Request $request, string $timeId): Response
     {
-        $viewerPlayerId = $this->retrieveLoggedUserProfile->getProfile()?->playerId;
+        $viewer = $this->retrieveLoggedUserProfile->getProfile();
 
-        $result = $this->getPuzzleResultDetail->byTimeId($timeId, $viewerPlayerId);
+        $result = $this->getPuzzleResultDetail->byTimeId($timeId, $viewer?->playerId);
 
         $template = $request->headers->get('Turbo-Frame') === 'modal-frame'
             ? 'puzzle_result/_modal.html.twig'
@@ -52,6 +54,8 @@ final class PuzzleResultDetailController extends AbstractController
 
         $response = $this->render($template, [
             'result' => $result,
+            // Members see the puzzle's difficulty on its image (null for everyone else)
+            'difficulty_tiers' => $this->resolveDifficultyTiers->forViewer($viewer, [$result->puzzleId]),
         ]);
 
         // Same URL, two bodies: a cache must never hand the modal to a full-page visit or the other way round

@@ -96,8 +96,15 @@
         <div class="card card-body shadow-sm p-2 mb-3">
             <div class="d-flex align-items-center">
                 <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="flex-shrink-0" style="width: 90px;">
-                    {# Hidden-until-round-starts puzzles come with a null image - the helper renders its placeholder #}
-                    {{ include('_puzzle_row_image.html.twig', {image: puzzle.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': (puzzle.manufacturerName ?? '') ~ ' ' ~ puzzle.puzzleName}), position: loop.index, ratio: puzzle.puzzleImageRatio}) }}
+                    <span class="diff-corner-host">
+                        {# Hidden-until-round-starts puzzles come with a null image - the helper renders its placeholder #}
+                        {{ include('_puzzle_row_image.html.twig', {image: puzzle.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': (puzzle.manufacturerName ?? '') ~ ' ' ~ puzzle.puzzleName}), position: loop.index, ratio: puzzle.puzzleImageRatio}) }}
+
+                        {# Members see the difficulty on the corner - never on a puzzle whose picture is still hidden #}
+                        {% if page.difficultyTiers is not null and puzzle.puzzleImage is not null %}
+                            {{ include('_difficulty_corner.html.twig', {tier: page.difficultyTiers[puzzle.puzzleId] ?? null}) }}
+                        {% endif %}
+                    </span>
                 </a>
 
                 <div class="ps-3 flex-grow-1">

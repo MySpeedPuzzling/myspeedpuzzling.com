@@ -102,23 +102,15 @@
                     {% endif %}
 
                     {# Difficulty - the tiers of the puzzle search, "Unknown" = not rated yet #}
-                    {% from '_difficulty_icon.html.twig' import icon as difficulty_icon %}
                     <div class="mb-3">
                         <small class="text-muted d-block mb-1">{{ 'puzzle_intelligence.difficulty.filter_label'|trans }}</small>
-                        <div class="d-flex flex-wrap align-items-center gap-1">
-                            {% for option in this.difficultyOptions %}
-                                <div class="form-check form-option form-check-inline mb-0">
-                                    <input type="checkbox" class="form-check-input" id="profile-difficulty-{{ option.value }}"
-                                           data-model="difficulty[]" value="{{ option.value }}"
-                                           {{ option.value in this.difficulty ? 'checked' }}
-                                           {{ not isMember ? 'disabled' }}>
-                                    <label for="profile-difficulty-{{ option.value }}" class="form-option-label d-inline-flex align-items-center gap-1">
-                                        {{ difficulty_icon(option.tier, false, 16) }}
-                                        {{ option.tier is not null ? option.tier.translationKey|trans : 'puzzle_intelligence.difficulty.tiers.unknown'|trans }}
-                                    </label>
-                                </div>
-                            {% endfor %}
-                        </div>
+                        {{ include('_difficulty_filter_live.html.twig', {
+                            id_prefix: 'profile-difficulty',
+                            model: 'difficulty',
+                            options: this.difficultyOptions,
+                            selected: this.difficulty,
+                            locked: not isMember,
+                        }) }}
                     </div>
 
                     {# Relax puzzle filter #}

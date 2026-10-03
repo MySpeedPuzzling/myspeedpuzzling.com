@@ -1,1 +1,90 @@
-<div{{ attributes }}></div>
+{# Charts tab of the compare page (docs/features/player-comparison.md "Charts"), members only - the page decides.
+   Each card: title, the takeaway line (ink), the chart - or a short note when the data is too thin - and its HTML legend.
+   Chart texts and tooltips come from ComparisonChartsFactory; comparison_chart_controller.js only places them. #}
+<div{{ attributes.defaults({class: 'cmp-charts', 'data-testid': 'comparison-charts'}) }}>
+    {% set cards = computed.cards %}
+
+    {% for card in cards %}
+        <figure class="card cmp-chart" data-testid="comparison-chart-{{ card.key }}">
+            <h2 class="cmp-chart-title">{{ card.title }}</h2>
+
+            {% if card.takeaway %}
+                <p class="cmp-chart-takeaway" data-testid="comparison-chart-takeaway">{{ card.takeaway }}</p>
+            {% endif %}
+
+            {% if not card.shown %}
+                <p class="cmp-chart-note" data-testid="comparison-chart-note">{{ card.note }}</p>
+            {% elseif card.grid is not null %}
+                {# Head to head: read across - how often the row beat the column; one-hue ramp by the share of wins #}
+                <div class="cmp-h2h-wrap">
+                    <table class="cmp-h2h" data-testid="comparison-h2h">
+                        <caption class="visually-hidden">{{ card.summary }}</caption>
+                        <thead>
+                            <tr>
+                                <td></td>
+                                {% for column in card.grid.columns %}
+                                    <th scope="col" title="{{ column.name }}">
+                                        <span aria-hidden="true">{{ column.abbr }}</span>
+                                        <span class="visually-hidden">{{ column.name }}</span>
+                                    </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in card.grid.rows %}
+                                <tr>
+                                    <th scope="row" class="cmp-h2h-name" title="{{ row.name }}">
+                                        {% if row.role != 'other' %}
+                                            <span class="cmp-key-dot cmp-key-{{ row.role }}" aria-hidden="true"></span>
+                                        {% endif %}
+                                        {{ row.name }}
+                                    </th>
+                                    {% for cell in row.cells %}
+                                        {% if cell.diagonal %}
+                                            <td class="cmp-h2h-self"></td>
+                                        {% elseif cell.step is null %}
+                                            <td class="cmp-h2h-none" title="{{ cell.title }}"><span class="visually-hidden">{{ cell.title }}</span></td>
+                                        {% else %}
+                                            <td class="cmp-h2h-r{{ cell.step }}" title="{{ cell.title }}">{{ cell.wins }}</td>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="cmp-h2h-ramp" aria-hidden="true" data-testid="comparison-chart-legend">
+                    <span>{{ card.grid.rampLow }}</span>
+                    {% for color in card.grid.ramp %}
+                        <i style="background: {{ color }};"></i>
+                    {% endfor %}
+                    <span>{{ card.grid.rampHigh }}</span>
+                </div>
+            {% else %}
+                <div class="cmp-chart-canvas" style="height: {{ card.height }}px;" data-controller="comparison-chart">
+                    {{ render_chart(card.chart, {role: 'img', 'aria-label': card.summary}) }}
+                </div>
+
+                {% if card.axisStart or card.axisEnd %}
+                    <div class="cmp-chart-axis" aria-hidden="true">
+                        <span>{{ card.axisStart }}</span>
+                        <span>{{ card.axisEnd }}</span>
+                    </div>
+                {% endif %}
+
+                <ul class="cmp-chart-legend" data-testid="comparison-chart-legend">
+                    {% for item in card.legend %}
+                        <li><i class="cmp-swatch cmp-swatch-{{ item.shape }}" style="--swatch: {{ item.color }};" aria-hidden="true"></i>{{ item.label }}</li>
+                    {% endfor %}
+                    {% if card.legendNote %}
+                        <li class="cmp-chart-legend-note">{{ card.legendNote }}</li>
+                    {% endif %}
+                </ul>
+            {% endif %}
+        </figure>
+    {% endfor %}
+
+    {% if cards is not empty %}
+        <p class="cmp-charts-foot">{{ 'comparison_charts.footnote'|trans }}</p>
+    {% endif %}
+</div>

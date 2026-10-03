@@ -1,0 +1,374 @@
+// Compare page: the members' charts (components/ComparisonCharts.html.twig) and "Someone at your speed"
+// (components/ComparisonSimilarSpeed.html.twig) - docs/features/player-comparison.md. Emphasis colours: the highlighted
+// A coral, B indigo, everyone else gray; every text in ink, never in a series colour. Readable from 320 px, never
+// scrolls sideways (the head-to-head grid scrolls inside its own box).
+
+$cmp-a: #fe4042;
+$cmp-b: #4e54c8;
+$cmp-ink: #111;
+$cmp-ink-body: #4b566b;
+$cmp-ink-muted: #5b616d;
+$cmp-divider: #eceef2;
+
+// Charts
+
+.cmp-charts {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+}
+
+.cmp-chart {
+    margin: 0;
+    padding: .75rem .75rem .625rem;
+    border: 1px solid $cmp-divider;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
+    min-width: 0;
+}
+
+.cmp-chart-title {
+    margin: 0;
+    font-size: .9375rem;
+    font-weight: 500;
+    line-height: 1.3;
+    color: $cmp-ink;
+}
+
+.cmp-chart-takeaway {
+    margin: .125rem 0 0;
+    font-size: .8125rem;
+    line-height: 1.4;
+    color: $cmp-ink-body;
+}
+
+.cmp-chart-note {
+    margin: .5rem 0 0;
+    font-size: .8125rem;
+    color: $cmp-ink-muted;
+}
+
+.cmp-chart-canvas {
+    position: relative;
+    margin-top: .5rem;
+}
+
+.cmp-chart-axis {
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-top: .125rem;
+    font-size: .75rem;
+    color: $cmp-ink-muted;
+}
+
+.cmp-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem .875rem;
+    margin: .5rem 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: .75rem;
+    color: $cmp-ink-body;
+
+    li {
+        display: inline-flex;
+        align-items: center;
+        gap: .375rem;
+    }
+}
+
+.cmp-chart-legend-note {
+    color: $cmp-ink-muted;
+}
+
+// Legend keys: the mark's own shape - a bar, a dot, a line, the dashed parity line
+.cmp-swatch {
+    display: inline-block;
+    flex-shrink: 0;
+    background: var(--swatch);
+}
+
+.cmp-swatch-bar {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+}
+
+.cmp-swatch-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.cmp-swatch-line {
+    width: 14px;
+    height: 3px;
+    border-radius: 2px;
+}
+
+.cmp-swatch-dash {
+    width: 16px;
+    height: 0;
+    border-top: 2px dashed var(--swatch);
+    background: none;
+}
+
+.cmp-charts-foot {
+    margin: .25rem 0 0;
+    font-size: .75rem;
+    color: $cmp-ink-muted;
+    text-align: center;
+}
+
+// Head to head: an HTML heat map, one-hue indigo ramp; the grid scrolls inside its box on a narrow phone
+
+.cmp-h2h-wrap {
+    margin-top: .5rem;
+    overflow-x: auto;
+}
+
+.cmp-h2h {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 2px;
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+
+    th {
+        padding: 2px 0;
+        font-weight: 500;
+        color: $cmp-ink-muted;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    td {
+        min-width: 30px;
+        height: 32px;
+        border-radius: 4px;
+        color: $cmp-ink;
+        text-align: center;
+    }
+}
+
+.cmp-h2h th.cmp-h2h-name {
+    max-width: 7.5rem;
+    padding-right: .25rem;
+    overflow: hidden;
+    color: $cmp-ink;
+    text-align: left;
+    text-overflow: ellipsis;
+}
+
+.cmp-h2h-self {
+    background: #f3f5f9;
+}
+
+.cmp-h2h-none {
+    background: #fafbfc;
+}
+
+// ComparisonChartsFactory::RAMP; white text only on the two darkest steps
+.cmp-h2h td {
+    &.cmp-h2h-r1 { background: #e9eafb; }
+    &.cmp-h2h-r2 { background: #c9ccf3; }
+    &.cmp-h2h-r3 { background: #a4a8ea; }
+    &.cmp-h2h-r4 { background: #7c81dc; color: #fff; }
+    &.cmp-h2h-r5 { background: #4e54c8; color: #fff; }
+}
+
+.cmp-h2h-ramp {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: .5rem;
+    font-size: .75rem;
+    color: $cmp-ink-muted;
+
+    i {
+        display: inline-block;
+        width: 22px;
+        height: 10px;
+        border-radius: 3px;
+    }
+
+    span:first-child {
+        margin-right: 2px;
+    }
+
+    span:last-child {
+        margin-left: 2px;
+    }
+}
+
+.cmp-key-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 4px;
+    border-radius: 50%;
+    vertical-align: 1px;
+}
+
+.cmp-key-a {
+    background: $cmp-a;
+}
+
+.cmp-key-b {
+    background: $cmp-b;
+}
+
+// Someone at your speed
+
+.cmp-similar-idle {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    padding: .875rem;
+    border: 1px solid #fbdada;
+    border-radius: 12px;
+    background: #fff7f7;
+}
+
+.cmp-similar-head {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+}
+
+.cmp-similar-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(254, 105, 106, .14);
+    color: #d63c42;
+    font-size: 1.25rem;
+}
+
+.cmp-similar-title {
+    margin: 0;
+    font-size: .9375rem;
+    font-weight: 500;
+    color: $cmp-ink;
+}
+
+.cmp-similar-intro {
+    margin: .125rem 0 0;
+    font-size: .8125rem;
+    line-height: 1.4;
+    color: $cmp-ink-muted;
+}
+
+.cmp-similar-added {
+    margin: 0;
+    font-size: .8125rem;
+    color: #2f7a3e;
+}
+
+.cmp-similar-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4375rem;
+    width: 100%;
+    min-height: 44px;
+}
+
+.cmp-similar-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.125rem .875rem 1rem;
+    border: 1px solid $cmp-divider;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
+    text-align: center;
+
+    .player-chip {
+        margin-top: .5rem;
+    }
+}
+
+.cmp-similar-name {
+    margin: .625rem 0 0;
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: $cmp-ink;
+    overflow-wrap: anywhere;
+}
+
+.cmp-similar-meta {
+    margin: .125rem 0 0;
+    font-size: .875rem;
+    color: $cmp-ink-muted;
+}
+
+.cmp-similar-why {
+    display: flex;
+    flex-direction: column;
+    gap: .625rem;
+    width: 100%;
+    margin: 1rem 0 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+
+    li {
+        display: flex;
+        align-items: flex-start;
+        gap: .625rem;
+    }
+}
+
+.cmp-similar-why-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f3f5f9;
+    color: $cmp-ink-body;
+}
+
+.cmp-similar-why-title {
+    font-size: .875rem;
+    line-height: 1.35;
+    color: $cmp-ink;
+}
+
+.cmp-similar-why-detail {
+    font-size: .8125rem;
+    line-height: 1.35;
+    color: $cmp-ink-muted;
+}
+
+.cmp-similar-actions {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    margin-top: 1rem;
+}
+
+.cmp-similar-profile {
+    display: block;
+    margin-top: .25rem;
+    padding: .625rem 0;
+    font-size: .875rem;
+    text-align: center;
+}
+
+.cmp-similar-foot {
+    margin: .375rem 0 0;
+    font-size: .75rem;
+    color: $cmp-ink-muted;
+    text-align: center;
+}

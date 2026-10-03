@@ -89,6 +89,17 @@ Emphasis encoding: highlighted A coral `#fe4042`, highlighted B indigo `#4e54c8`
 bucket; (d) form over time - monthly median pace (% vs line-up) lines, last 12 months; (e) head-to-head grid (3+) -
 HTML table heat map (one-hue indigo ramp). Legends always (HTML legend like the leaderboard chart), texts in ink colours.
 
+(f) **By difficulty** (after pace by piece count; user feedback "compare on which puzzle difficulty"): the dot plot of (c)
+with a row per `DifficultyTier` instead of a piece-count bucket (puzzles without a tier are left out; fewer than 3 rated
+compared puzzles = the "too thin" note), under it the highlighted pair's head to head per tier as an HTML table (tier
+icon + name, A's wins, split bar coral / gray dead heats / indigo, B's wins; each row read out as one sentence "Very
+Hard: You 8 – 3 Kateřina"). Takeaway: each of the pair's best tier against the line-up, counted only on tiers with 2+
+of their compared puzzles and only with two such tiers ("You're strongest on Hard puzzles; Kateřina on Very Easy").
+The tier comes from the same aggregate statement: `GetComparisonResults::forSubjects(…, withDifficulty: true)` on the
+members' Charts tab - one `LEFT JOIN puzzle_difficulty` restricted to rated rows (a sixth of the table), the same join
+the difficulty filter/sort uses. Measured on the prod copy (medians of 25 runs): ten heaviest players +3 ms, about 7 %
+("2+" 41 → 44 ms, "all" 43 → 46.5 ms; joining the whole table cost +6-7 ms), two typical players +0.3 ms.
+
 ### "Someone at your speed" (members)
 
 Nearest 50 players by `player_skill.skill_percentile` at 500 pc (fallback: `player_baseline` at the viewer's most

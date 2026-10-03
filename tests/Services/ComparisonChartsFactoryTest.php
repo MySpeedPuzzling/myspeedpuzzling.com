@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use SpeedPuzzling\Web\Value\ComparisonCriteria;
 use SpeedPuzzling\Web\Value\ComparisonKind;
 use SpeedPuzzling\Web\Value\ComparisonSubjectRef;
+use SpeedPuzzling\Web\Value\DifficultyTier;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -54,17 +55,17 @@ final class ComparisonChartsFactoryTest extends KernelTestCase
         );
     }
 
-    public function testADuelHasFourCardsThreeOrMoreAlsoTheHeadToHeadGrid(): void
+    public function testADuelHasFiveCardsThreeOrMoreAlsoTheHeadToHeadGrid(): void
     {
         [$result, $subjects] = $this->duel();
         self::assertSame(
-            [ComparisonChartCard::LEAD_LAG, ComparisonChartCard::SCATTER, ComparisonChartCard::PACE, ComparisonChartCard::FORM],
+            [ComparisonChartCard::LEAD_LAG, ComparisonChartCard::SCATTER, ComparisonChartCard::PACE, ComparisonChartCard::DIFFICULTY, ComparisonChartCard::FORM],
             array_map(static fn(ComparisonChartCard $card): string => $card->key, $this->factory->cards($result, $subjects)),
         );
 
         [$result, $subjects] = $this->lineUpOfFour();
         self::assertSame(
-            [ComparisonChartCard::LEAD_LAG, ComparisonChartCard::SCATTER, ComparisonChartCard::PACE, ComparisonChartCard::FORM, ComparisonChartCard::MATRIX],
+            [ComparisonChartCard::LEAD_LAG, ComparisonChartCard::SCATTER, ComparisonChartCard::PACE, ComparisonChartCard::DIFFICULTY, ComparisonChartCard::FORM, ComparisonChartCard::MATRIX],
             array_map(static fn(ComparisonChartCard $card): string => $card->key, $this->factory->cards($result, $subjects)),
         );
     }
@@ -243,6 +244,152 @@ final class ComparisonChartsFactoryTest extends KernelTestCase
         self::assertSame('← faster', $card->axisStart);
     }
 
+    public function testByDifficulty(): void
+    {
+        $card = $this->card(ComparisonChartCard::DIFFICULTY, ...$this->difficultyDuel());
+        $chart = $card->chart;
+
+        self::assertInstanceOf(Chart::class, $chart);
+        self::assertSame(Chart::TYPE_SCATTER, $chart->getType());
+        self::assertSame('By difficulty', $card->title);
+        // My best pace against the line-up is on Easy, Anna's on Hard; Very Hard is one puzzle only - not counted
+        self::assertSame('You\'re strongest on Easy puzzles; Anna Novak on Hard', $card->takeaway);
+        self::assertStringContainsString('per difficulty (Easy, Hard, Very Hard)', $card->summary);
+
+        // Easiest first; the unrated puzzle is not on the chart
+        $options = $chart->getOptions();
+        self::assertSame(['Easy', 'Hard', 'Very Hard'], self::at($options, 'scales', 'y', 'labels'));
+        self::assertSame([[-10, '−10%'], [-5, '−5%'], [0, '0'], [5, '+5%'], [10, '+10%']], self::at($options, 'plugins', 'comparisonChart', 'ticks', 'x'));
+        self::assertSame(['axis' => 'x', 'color' => '#aeb4be'], self::at($options, 'plugins', 'comparisonChart', 'zeroLine'));
+
+        $datasets = self::arrayAt($chart->getData(), 'datasets');
+        self::assertSame(['You', 'Anna Novak', 'Rest of the line-up'], [self::at($datasets, 0, 'label'), self::at($datasets, 1, 'label'), self::at($datasets, 2, 'label')]);
+        self::assertSame(ComparisonChartsFactory::COLOR_A, self::at($datasets, 0, 'pointBackgroundColor'));
+        self::assertSame(ComparisonChartsFactory::COLOR_B, self::at($datasets, 1, 'pointBackgroundColor'));
+        self::assertSame(ComparisonChartsFactory::COLOR_OTHER, self::at($datasets, 2, 'pointBackgroundColor'));
+        // Easy: my paces -5.3, +5.3 and -11.1 % → median -5.3 %; Hard: +5.3 and +4.8 % → +5.0 %; Very Hard: a dead heat
+        self::assertSame([['x' => -5.3, 'y' => 'Easy'], ['x' => 5.0, 'y' => 'Hard'], ['x' => 0.0, 'y' => 'Very Hard']], self::at($datasets, 0, 'data'));
+        self::assertSame(['x' => 5.3, 'y' => 'Easy'], self::at($datasets, 1, 'data', 0));
+        self::assertSame(
+            ['title' => 'Easy', 'lines' => ['You: 5% faster than the line-up median', '3 puzzles compared']],
+            self::at($options, 'plugins', 'comparisonChart', 'tooltips', 0, 0),
+        );
+
+        self::assertSame(['You', 'Anna Novak'], array_column($card->legend, 'label'));
+        self::assertSame(['dot', 'dot'], array_column($card->legend, 'shape'));
+        self::assertSame('← faster', $card->axisStart);
+        self::assertSame('slower →', $card->axisEnd);
+        self::assertSame(3 * 40 + 44, $card->height);
+
+        // The head to head per tier, rows matching the chart's
+        $wins = $card->wins;
+        self::assertNotNull($wins);
+        self::assertSame('Head to head: You vs Anna Novak', $wins['title']);
+        self::assertSame([DifficultyTier::Easy, DifficultyTier::Hard, DifficultyTier::VeryHard], array_column($wins['rows'], 'tier'));
+        self::assertSame(
+            ['tier' => DifficultyTier::Easy, 'label' => 'Easy', 'a' => 2, 'b' => 1, 'ties' => 0, 'shared' => 3, 'text' => 'Easy: You 2 – 1 Anna Novak'],
+            $wins['rows'][0],
+        );
+        self::assertSame('Hard: You 0 – 2 Anna Novak', $wins['rows'][1]['text']);
+        self::assertSame('Very Hard: You 0 – 0 Anna Novak · 1 dead heat', $wins['rows'][2]['text']);
+    }
+
+    public function testByDifficultyPutsYouFirst(): void
+    {
+        $card = $this->card(ComparisonChartCard::DIFFICULTY, ...$this->difficultyDuel(highlightA: 'p-' . self::ANNA, highlightB: 'p-' . self::ME));
+
+        self::assertSame('You\'re strongest on Easy puzzles; Anna Novak on Hard', $card->takeaway);
+        $wins = $card->wins;
+        self::assertNotNull($wins);
+        self::assertSame('Head to head: Anna Novak vs You', $wins['title']);
+        self::assertSame('Easy: Anna Novak 1 – 2 You', $wins['rows'][0]['text']);
+    }
+
+    public function testByDifficultyWhenBothAreStrongestOnTheSameTier(): void
+    {
+        $rows = [];
+
+        // Ben and I are faster than Anna and Adam on Hard, slower on Easy
+        foreach (['easy1', 'easy2'] as $puzzle) {
+            foreach ([self::ME => 1000, self::BEN => 1000, self::ANNA => 900, self::CLEO => 900] as $player => $seconds) {
+                $rows[] = $this->time($player, $puzzle, $seconds, tier: 2);
+            }
+        }
+
+        foreach (['hard1', 'hard2'] as $puzzle) {
+            foreach ([self::ME => 1800, self::BEN => 1800, self::ANNA => 2000, self::CLEO => 2000] as $player => $seconds) {
+                $rows[] = $this->time($player, $puzzle, $seconds, tier: 5);
+            }
+        }
+
+        $card = $this->card(ComparisonChartCard::DIFFICULTY, ...$this->comparison($rows, [self::ME, self::ANNA, self::CLEO, self::BEN]));
+
+        self::assertSame('You and Ben Berger are both strongest on Hard puzzles', $card->takeaway);
+        self::assertSame(['You', 'Ben Berger', 'Rest of the line-up'], array_column($card->legend, 'label'));
+        $wins = $card->wins;
+        self::assertNotNull($wins);
+        self::assertSame('Easy: You 0 – 0 Ben Berger · 2 dead heats', $wins['rows'][0]['text']);
+    }
+
+    public function testByDifficultyNamesOnlyWhoComparedTwoTiers(): void
+    {
+        $rows = [];
+
+        // Easy: me and Anna only; Hard: me, Anna and Ben - Ben (B) has one tier, nothing to be strongest against
+        foreach (['easy1' => 900, 'easy2' => 950] as $puzzle => $seconds) {
+            $rows[] = $this->time(self::ME, $puzzle, $seconds, tier: 2);
+            $rows[] = $this->time(self::ANNA, $puzzle, 1000, tier: 2);
+        }
+
+        foreach (['hard1' => 2100, 'hard2' => 2200] as $puzzle => $seconds) {
+            $rows[] = $this->time(self::ME, $puzzle, $seconds, tier: 5);
+            $rows[] = $this->time(self::ANNA, $puzzle, 2000, tier: 5);
+            $rows[] = $this->time(self::BEN, $puzzle, 1900, tier: 5);
+        }
+
+        $card = $this->card(ComparisonChartCard::DIFFICULTY, ...$this->comparison($rows, [self::ME, self::ANNA, self::BEN]));
+
+        self::assertSame('You\'re strongest on Easy puzzles', $card->takeaway);
+        // A tier the two share nothing in keeps its row
+        $wins = $card->wins;
+        self::assertNotNull($wins);
+        self::assertSame(['Easy: no puzzle both solved', 'Hard: You 0 – 2 Ben Berger'], array_column($wins['rows'], 'text'));
+        self::assertSame([0, 2], array_column($wins['rows'], 'shared'));
+    }
+
+    public function testByDifficultyNeedsThreeRatedPuzzles(): void
+    {
+        $rows = [];
+
+        // Plenty compared, but only two of them rated
+        foreach (['p1' => 2, 'p2' => 5, 'p3' => null, 'p4' => null, 'p5' => null] as $puzzle => $tier) {
+            $rows[] = $this->time(self::ME, $puzzle, 900, tier: $tier);
+            $rows[] = $this->time(self::ANNA, $puzzle, 1000, tier: $tier);
+        }
+
+        $card = $this->card(ComparisonChartCard::DIFFICULTY, ...$this->comparison($rows, [self::ME, self::ANNA]));
+
+        self::assertFalse($card->isShown());
+        self::assertNull($card->chart);
+        self::assertNull($card->wins);
+        self::assertSame('Not enough to draw yet – this chart needs at least 3 puzzles compared under these filters.', $card->note);
+
+        // One tier only: drawn, but nobody is "strongest" on anything
+        $rows = [];
+
+        foreach (['p1', 'p2', 'p3'] as $puzzle) {
+            $rows[] = $this->time(self::ME, $puzzle, 900, tier: 4);
+            $rows[] = $this->time(self::ANNA, $puzzle, 1000, tier: 4);
+        }
+
+        $card = $this->card(ComparisonChartCard::DIFFICULTY, ...$this->comparison($rows, [self::ME, self::ANNA]));
+        self::assertTrue($card->isShown());
+        self::assertNull($card->takeaway);
+        $wins = $card->wins;
+        self::assertNotNull($wins);
+        self::assertSame(['Challenging: You 3 – 0 Anna Novak'], array_column($wins['rows'], 'text'));
+    }
+
     public function testFormOverTime(): void
     {
         $card = $this->card(ComparisonChartCard::FORM, ...$this->duel());
@@ -384,6 +531,24 @@ final class ComparisonChartsFactoryTest extends KernelTestCase
     }
 
     /**
+     * Me vs Anna on rated puzzles. Easy: I win two of three (my paces -5.3, +5.3, -11.1 %); Hard: Anna wins both (my
+     * paces +5.3, +4.8 %); Very Hard: one dead heat; plus a puzzle not rated yet that I won by a mile.
+     *
+     * @return array{ComparisonResult, list<ComparisonSubject>}
+     */
+    private function difficultyDuel(null|string $highlightA = null, null|string $highlightB = null): array
+    {
+        $rows = [];
+
+        foreach (['e1' => [900, 1000, 2], 'e2' => [1000, 900, 2], 'e3' => [800, 1000, 2], 'h1' => [2000, 1800, 5], 'h2' => [2200, 2000, 5], 'v1' => [3000, 3000, 6], 'u1' => [500, 900, null]] as $puzzle => [$mine, $annas, $tier]) {
+            $rows[] = $this->time(self::ME, $puzzle, $mine, tier: $tier);
+            $rows[] = $this->time(self::ANNA, $puzzle, $annas, tier: $tier);
+        }
+
+        return $this->comparison($rows, [self::ME, self::ANNA], $highlightA, $highlightB);
+    }
+
+    /**
      * Me, Anna, Adam, Ben (B = Ben, added last). Ben shares only with me and Anna; Adam solved one puzzle alone.
      *
      * @return array{ComparisonResult, list<ComparisonSubject>}
@@ -468,7 +633,7 @@ final class ComparisonChartsFactoryTest extends KernelTestCase
         return [$result, $subjects];
     }
 
-    private function time(string $subjectId, string $puzzleId, int $seconds, string $day = '2026-09-01', int $pieces = 500, null|string $name = null, bool $team = false): ComparisonTimeRow
+    private function time(string $subjectId, string $puzzleId, int $seconds, string $day = '2026-09-01', int $pieces = 500, null|string $name = null, bool $team = false, null|int $tier = null): ComparisonTimeRow
     {
         return new ComparisonTimeRow(
             subject: $team ? ComparisonSubjectRef::team($subjectId) : ComparisonSubjectRef::player($subjectId),
@@ -481,6 +646,7 @@ final class ComparisonChartsFactoryTest extends KernelTestCase
             firstTrySeconds: null,
             firstTryTimeId: null,
             firstTryDay: null,
+            difficultyTier: $tier,
             puzzleName: $name,
         );
     }

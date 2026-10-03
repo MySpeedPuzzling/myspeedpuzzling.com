@@ -35,6 +35,8 @@ use SpeedPuzzling\Web\Value\ComparisonTimes;
  * Measured on the production copy (2026-10-03, warm): ten heaviest players (14.9k times, 8,905 subject×puzzle rows):
  * "2+" (5,167 rows kept) 40 ms, "all" 49 ms, first tries + 12 months + 500-1000 pc + 3 brands + 3 tiers 17 ms; ten
  * heaviest pairs 15 ms; two typical players ~2 ms. Estimated cost ~20k - far below jit_above_cost; keep it there.
+ * The difficulty tier (members' Charts tab, difficulty filter/sort) costs the ten heaviest +3 ms, about 7 % ("2+" 41 → 44
+ * ms, "all" 43 → 46.5 ms, medians of 25 runs), two typical players +0.3 ms.
  *
  * Pass only subjects GetComparisonSubjects reported available: this statement does not decide who may be compared. It
  * still hides the times of players the viewer has hidden (HiddenPlayers), which costs nothing when there are none.
@@ -53,9 +55,12 @@ readonly final class GetComparisonResults
      *                                         the other type are ignored, at most ComparisonLimits::MEMBER are used
      * @param bool $withPuzzleNames also select the puzzle name (sort by name - see ComparisonCriteria::needsPuzzleNames() -
      *                              or the charts, which label every puzzle)
+     * @param bool $withDifficulty also select the difficulty tier (the members' "By difficulty" chart); the criteria ask for
+     *                             it on their own when a member filters or sorts by difficulty - either way it is the same
+     *                             one join, never another statement
      * @return list<ComparisonTimeRow> unordered
      */
-    public function forSubjects(ComparisonKind $kind, array $refs, ComparisonCriteria $criteria, bool $withPuzzleNames = false): array
+    public function forSubjects(ComparisonKind $kind, array $refs, ComparisonCriteria $criteria, bool $withPuzzleNames = false, bool $withDifficulty = false): array
     {
         $isSolo = $kind === ComparisonKind::Solo;
         $subjectIds = [];
@@ -133,12 +138,15 @@ readonly final class GetComparisonResults
             $types['brandIds'] = ArrayParameterType::STRING;
         }
 
-        $withDifficulty = $criteria->needsDifficulty();
+        $withDifficulty = $withDifficulty || $criteria->needsDifficulty();
         $difficultyJoin = '';
         $difficultyColumn = 'NULL::INT AS difficulty_tier';
 
         if ($withDifficulty) {
-            $difficultyJoin = 'LEFT JOIN puzzle_difficulty ON puzzle_difficulty.puzzle_id = puzzle.id';
+            // Only rated rows: about a sixth of puzzle_difficulty has a tier, so the hash this join builds is a sixth too
+            // (ten heaviest players: +3 ms instead of +6-7 ms for the whole table). A row without a tier reads as NULL
+            // either way, so "not rated yet" (IS NULL) means the same.
+            $difficultyJoin = 'LEFT JOIN puzzle_difficulty ON puzzle_difficulty.puzzle_id = puzzle.id AND puzzle_difficulty.difficulty_tier IS NOT NULL';
             $difficultyColumn = 'puzzle_difficulty.difficulty_tier';
             $puzzleConditions .= self::difficultyCondition($criteria->difficultyTiers, $parameters, $types);
         }

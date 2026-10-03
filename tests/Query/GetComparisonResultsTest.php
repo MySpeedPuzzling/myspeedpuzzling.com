@@ -235,6 +235,57 @@ final class GetComparisonResultsTest extends KernelTestCase
         self::assertSame('Night Owls', $named[0]->puzzleName);
     }
 
+    public function testWithDifficultySelectsTiersWithoutChangingTheRows(): void
+    {
+        $rated = $this->seedPuzzle(500);
+        $notYetRated = $this->seedPuzzle(500);
+        $neverComputed = $this->seedPuzzle(1000);
+        $this->seedDifficulty($rated, 5);
+        $this->seedDifficulty($notYetRated, null);
+
+        foreach ([$rated, $notYetRated, $neverComputed] as $puzzle) {
+            $this->seedTime($this->anna, $puzzle, 1500, $this->daysAgo(5));
+            $this->seedTime($this->ben, $puzzle, 1600, $this->daysAgo(4));
+        }
+
+        // Solved by Anna alone: still dropped by "puzzles to show", tier or not
+        $alone = $this->seedPuzzle(500);
+        $this->seedDifficulty($alone, 2);
+        $this->seedTime($this->anna, $alone, 1500, $this->daysAgo(5));
+
+        $refs = [ComparisonSubjectRef::player($this->anna), ComparisonSubjectRef::player($this->ben)];
+        $criteria = ComparisonCriteria::fromUserInput(subjectCount: 2, isMember: true);
+        $plain = $this->query->forSubjects(ComparisonKind::Solo, $refs, $criteria, withPuzzleNames: true);
+        $withDifficulty = $this->query->forSubjects(ComparisonKind::Solo, $refs, $criteria, withPuzzleNames: true, withDifficulty: true);
+
+        self::assertCount(6, $withDifficulty);
+        self::assertEqualsCanonicalizing(self::summary($plain), self::summary($withDifficulty), 'The same rows, only with tiers');
+
+        $tiers = [];
+
+        foreach ($withDifficulty as $row) {
+            $tiers[$row->puzzleId] = $row->difficultyTier;
+        }
+
+        self::assertSame(5, $tiers[$rated]);
+        self::assertArrayHasKey($notYetRated, $tiers);
+        self::assertNull($tiers[$notYetRated], 'Computed, but no tier yet');
+        self::assertArrayHasKey($neverComputed, $tiers);
+        self::assertNull($tiers[$neverComputed]);
+        self::assertArrayNotHasKey($alone, $tiers);
+
+        foreach ($plain as $row) {
+            self::assertNull($row->difficultyTier);
+        }
+
+        // The difficulty filter still reads unrated as "no tier", with the tier selected anyway
+        $unrated = $this->query->forSubjects(ComparisonKind::Solo, $refs, ComparisonCriteria::fromUserInput(subjectCount: 2, isMember: true, difficulty: ['0']), withDifficulty: true);
+        self::assertEqualsCanonicalizing(
+            [$notYetRated, $neverComputed],
+            array_values(array_unique(array_map(static fn(ComparisonTimeRow $row): string => $row->puzzleId, $unrated))),
+        );
+    }
+
     public function testSoloComparesSoloTimesAndPairsCompareExactlyThatSetOfPeople(): void
     {
         $puzzle = $this->seedPuzzle(500);
@@ -329,6 +380,18 @@ final class GetComparisonResultsTest extends KernelTestCase
             static fn(ComparisonTimeRow $row): string => $row->puzzleId,
             array_values($this->rows($playerIds, $criteria)),
         )));
+    }
+
+    /**
+     * @param list<ComparisonTimeRow> $rows
+     * @return list<string>
+     */
+    private static function summary(array $rows): array
+    {
+        return array_map(
+            static fn(ComparisonTimeRow $row): string => implode('/', [$row->subject->toString(), $row->puzzleId, $row->bestSeconds, $row->bestTimeId, $row->attempts]),
+            $rows,
+        );
     }
 
     private function key(string $subjectId, string $puzzleId): string

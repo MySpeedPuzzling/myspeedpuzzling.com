@@ -988,7 +988,7 @@ final class Comparison
 
         $withNames = $this->criteria->needsPuzzleNames() || ($this->isCharts() && $this->isMember);
         $rows = count($refs) >= 2
-            ? $this->getComparisonResults->forSubjects($this->activeKind, $refs, $this->criteria, $withNames)
+            ? $this->getComparisonResults->forSubjects($this->activeKind, $refs, $this->criteria, $withNames, withDifficulty: $this->isCharts() && $this->isMember)
             : [];
 
         // The Duel view of 3+ subjects lists only what the highlighted pair both solved (the builder ignores it for two)

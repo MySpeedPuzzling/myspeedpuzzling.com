@@ -645,7 +645,7 @@ comparison:
         legend_other: "Nejrychlejší je někdo jiný"
         legend_marks: "+ ztráta na nejrychlejšího · — nesloženo"
     charts_locked:
-        inside: "Uvnitř: kdo vede puzzle po puzzle · tvůj čas vs. jejich · tempo podle počtu dílků · forma v čase · tabulka vzájemné bilance"
+        inside: "Uvnitř: kdo vede puzzle po puzzle · tvůj čas vs. jejich · tempo podle počtu dílků · podle obtížnosti · forma v čase · tabulka vzájemné bilance"
     add:
         title_solo: "Přidat hráče"
         title_pairs: "Přidat dvojici"
@@ -3888,6 +3888,24 @@ comparison_charts:
             quickest_item: "%name% u %pieces% dílků"
             single: "Oproti mediánu sestavy u %pieces% dílků: %list%"
             single_item: "%name% %percent%"
+    difficulty:
+        title: "Podle obtížnosti"
+        summary: "Medián tempa oproti mediánu sestavy pro každou obtížnost (%tiers%). Vlevo od nuly rychleji, vpravo pomaleji. Puzzle bez určené obtížnosti se nepočítají."
+        takeaway:
+            both:
+                you: "Nejsilnější jsi v obtížnosti %tier%; %other% v obtížnosti %other_tier%"
+                other: "%name%: nejsilnější v obtížnosti %tier%; %other% v obtížnosti %other_tier%"
+            same:
+                you: "Ty i %other% jste nejsilnější v obtížnosti %tier%"
+                other: "%name% i %other%: nejsilnější v obtížnosti %tier%"
+            single:
+                you: "Nejsilnější jsi v obtížnosti %tier%"
+                other: "%name%: nejsilnější v obtížnosti %tier%"
+        h2h:
+            title: "Vzájemná bilance: %a% vs. %b%"
+            caption: "Vzájemná bilance podle obtížnosti, %a% vs. %b%: výhry u puzzlí složených oběma."
+            row: "%tier%: %a% %wins_a% – %wins_b% %b%"
+            none: "%tier%: žádné společné puzzle"
     form:
         title: "Forma v čase"
         summary: "Měsíční medián tempa oproti mediánu sestavy, %from% – %to%. Nad nulou rychleji."

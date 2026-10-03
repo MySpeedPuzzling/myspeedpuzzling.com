@@ -1063,7 +1063,7 @@
     "legend_other": "ほかの人が最速"
     "legend_marks": "+ 最速との差 · — 未完成"
   "charts_locked":
-    "inside": "内容：パズルごとのリード · あなたと相手のタイム · ピース数別のペース · 調子の推移 · 対戦成績表"
+    "inside": "内容：パズルごとのリード · あなたと相手のタイム · ピース数別のペース · 難易度別 · 調子の推移 · 対戦成績表"
   "add":
     "title_solo": "プレイヤーを追加"
     "title_pairs": "ペアを追加"
@@ -3881,6 +3881,24 @@ comparison_charts:
             quickest_item: "%name%は%pieces%ピース"
             single: "%pieces%ピースでの比較リストの中央値との差：%list%"
             single_item: "%name% %percent%"
+    difficulty:
+        title: "難易度別"
+        summary: "難易度ごと（%tiers%）の、比較リストの中央値に対するペースの中央値。0より左は速く、右は遅いことを示します。難易度が未判定のパズルは含まれません。"
+        takeaway:
+            both:
+                you: "あなたが最も得意なのは難易度「%tier%」、%other%は「%other_tier%」"
+                other: "%name%が最も得意なのは難易度「%tier%」、%other%は「%other_tier%」"
+            same:
+                you: "あなたも%other%も、最も得意なのは難易度「%tier%」"
+                other: "%name%も%other%も、最も得意なのは難易度「%tier%」"
+            single:
+                you: "あなたが最も得意なのは難易度「%tier%」"
+                other: "%name%が最も得意なのは難易度「%tier%」"
+        h2h:
+            title: "対戦成績：%a% vs %b%"
+            caption: "難易度別の対戦成績（%a% vs %b%）：両方が解いたパズルでの勝利数。"
+            row: "%tier%：%a% %wins_a% – %wins_b% %b%"
+            none: "%tier%：共通のパズルなし"
     form:
         title: "調子の推移"
         summary: "比較リストの中央値に対する月ごとのペースの中央値（%from%〜%to%）。0より上は速いことを示します。"

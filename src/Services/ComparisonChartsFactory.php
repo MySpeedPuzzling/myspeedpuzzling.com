@@ -12,6 +12,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\ComparisonChartCard;
 use SpeedPuzzling\Web\Results\ComparisonResult;
 use SpeedPuzzling\Web\Results\ComparisonSubject;
+use SpeedPuzzling\Web\Value\DifficultyTier;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
@@ -37,6 +38,9 @@ readonly final class ComparisonChartsFactory
 
     /** Fewer compared puzzles (bars, dots, months with a value) than this: the chart is too thin to say anything */
     public const int MIN_POINTS = 3;
+
+    /** "Strongest on …" counts only difficulty tiers with at least this many of the subject's compared puzzles */
+    public const int MIN_TIER_PUZZLES = 2;
 
     private const string INK = '#4b566b';
     private const string INK_MUTED = '#5b616d';
@@ -65,8 +69,8 @@ readonly final class ComparisonChartsFactory
     }
 
     /**
-     * Who's ahead, A's time vs B's, pace by piece count, form over time and - with 3+ subjects - the head-to-head grid.
-     * Nothing without a highlighted pair (fewer than two subjects to compare).
+     * Who's ahead, A's time vs B's, pace by piece count, by difficulty, form over time and - with 3+ subjects - the
+     * head-to-head grid. Nothing without a highlighted pair (fewer than two subjects to compare).
      *
      * @param list<ComparisonSubject> $subjects the line-up as the viewer may see it - names come from here
      * @return list<ComparisonChartCard>
@@ -86,6 +90,7 @@ readonly final class ComparisonChartsFactory
             $this->leadLagCard($result, $a, $b),
             $this->scatterCard($result, $a, $b),
             $this->paceCard($result, $names, $roles, $a, $b),
+            $this->difficultyCard($result, $names, $roles, $a, $b),
             $this->formCard($result, $names, $a, $b),
         ];
 
@@ -445,6 +450,44 @@ readonly final class ComparisonChartsFactory
             return new ComparisonChartCard(ComparisonChartCard::PACE, $title, null, $summary, note: $this->tooThin());
         }
 
+        $plot = $this->paceDotPlot(
+            array_column($buckets, 'subjects'),
+            $bucketLabels,
+            array_map(fn(array $bucket): string => $this->trans('pieces', ['%pieces%' => $bucket['label']]), $buckets),
+            $names,
+            $roles,
+            $a,
+            $b,
+        );
+
+        return new ComparisonChartCard(
+            key: ComparisonChartCard::PACE,
+            title: $title,
+            takeaway: $this->paceTakeaway($buckets, $result, $a, $b),
+            summary: $summary,
+            chart: $plot['chart'],
+            height: count($buckets) * 40 + 44,
+            legend: $plot['legend'],
+            axisStart: $this->trans('pace.axis_start'),
+            axisEnd: $this->trans('pace.axis_end'),
+        );
+    }
+
+    /**
+     * The dot plot of pace by piece count and by difficulty: a row per bucket / tier, on it a dot per subject at its
+     * median pace against the line-up - A coral, B indigo, everyone else smaller and gray; left of zero is faster.
+     *
+     * @param list<array<string, array{percent: float, puzzles: int}>> $rows per row (bucket / tier) the subjects' values
+     * @param list<string> $labels the rows' axis labels, in the rows' order
+     * @param list<string> $tooltipTitles in the rows' order
+     * @param array<string, array{name: string, mid: string, isYou: bool}> $names
+     * @param array<string, 'a'|'b'|'other'> $roles
+     * @param array{name: string, mid: string, isYou: bool} $a
+     * @param array{name: string, mid: string, isYou: bool} $b
+     * @return array{chart: Chart, legend: list<array{label: string, color: string, shape: 'bar'|'dot'|'line'|'dash'}>}
+     */
+    private function paceDotPlot(array $rows, array $labels, array $tooltipTitles, array $names, array $roles, array $a, array $b): array
+    {
         /** @var array<'a'|'b'|'other', array{points: list<array{x: float, y: string}>, tooltips: list<array{title: string, lines: list<string>}>}> $groups */
         $groups = [
             'a' => ['points' => [], 'tooltips' => []],
@@ -453,12 +496,12 @@ readonly final class ComparisonChartsFactory
         ];
         $maxAbs = 0.0;
 
-        foreach ($buckets as $index => $bucket) {
-            foreach ($bucket['subjects'] as $ref => $value) {
+        foreach ($rows as $index => $subjects) {
+            foreach ($subjects as $ref => $value) {
                 $role = $roles[$ref] ?? 'other';
-                $groups[$role]['points'][] = ['x' => round($value['percent'], 1), 'y' => $bucketLabels[$index]];
+                $groups[$role]['points'][] = ['x' => round($value['percent'], 1), 'y' => $labels[$index]];
                 $groups[$role]['tooltips'][] = [
-                    'title' => $this->trans('pieces', ['%pieces%' => $bucket['label']]),
+                    'title' => $tooltipTitles[$index],
                     'lines' => [
                         $this->pacePhrase($names[$ref]['name'] ?? '', $value['percent']),
                         $this->trans('pace.puzzles', ['%count%' => $value['puzzles']]),
@@ -513,7 +556,7 @@ readonly final class ComparisonChartsFactory
                 'x' => $this->linearAxis(-$limit, $limit),
                 'y' => [
                     'type' => 'category',
-                    'labels' => $bucketLabels,
+                    'labels' => $labels,
                     'offset' => true,
                     'grid' => ['color' => self::GRID, 'drawTicks' => false, 'offset' => false],
                     'border' => ['display' => false],
@@ -535,17 +578,7 @@ readonly final class ComparisonChartsFactory
             $legend[] = ['label' => $this->trans('rest_of_line_up'), 'color' => self::COLOR_OTHER, 'shape' => 'dot'];
         }
 
-        return new ComparisonChartCard(
-            key: ComparisonChartCard::PACE,
-            title: $title,
-            takeaway: $this->paceTakeaway($buckets, $result, $a, $b),
-            summary: $summary,
-            chart: $chart,
-            height: count($buckets) * 40 + 44,
-            legend: $legend,
-            axisStart: $this->trans('pace.axis_start'),
-            axisEnd: $this->trans('pace.axis_end'),
-        );
+        return ['chart' => $chart, 'legend' => $legend];
     }
 
     /**
@@ -610,6 +643,158 @@ readonly final class ComparisonChartsFactory
         }
 
         return $items === [] ? null : $this->trans('pace.takeaway.quickest', ['%list%' => implode(', ', $items)]);
+    }
+
+    /**
+     * @param array<string, array{name: string, mid: string, isYou: bool}> $names
+     * @param array<string, 'a'|'b'|'other'> $roles
+     * @param array{name: string, mid: string, isYou: bool} $a
+     * @param array{name: string, mid: string, isYou: bool} $b
+     */
+    private function difficultyCard(ComparisonResult $result, array $names, array $roles, array $a, array $b): ComparisonChartCard
+    {
+        $tiers = $this->chartsData->byDifficulty($result);
+        $title = $this->trans('difficulty.title');
+        $tierNames = array_map(fn(array $tier): string => $this->translator->trans($tier['tier']->translationKey()), $tiers);
+        $summary = $this->trans('difficulty.summary', ['%tiers%' => implode(', ', $tierNames)]);
+
+        // Puzzles without a tier are not on this chart: too thin when fewer than MIN_POINTS compared ones have one
+        if (array_sum(array_column($tiers, 'puzzles')) < self::MIN_POINTS) {
+            return new ComparisonChartCard(ComparisonChartCard::DIFFICULTY, $title, null, $summary, note: $this->tooThin());
+        }
+
+        $plot = $this->paceDotPlot(array_column($tiers, 'subjects'), $tierNames, $tierNames, $names, $roles, $a, $b);
+
+        return new ComparisonChartCard(
+            key: ComparisonChartCard::DIFFICULTY,
+            title: $title,
+            takeaway: $this->difficultyTakeaway($tiers, $tierNames, $result, $a, $b),
+            summary: $summary,
+            chart: $plot['chart'],
+            height: count($tiers) * 40 + 44,
+            legend: $plot['legend'],
+            axisStart: $this->trans('pace.axis_start'),
+            axisEnd: $this->trans('pace.axis_end'),
+            wins: $this->difficultyWins($tiers, $tierNames, $a, $b),
+        );
+    }
+
+    /**
+     * "You're strongest on Hard puzzles; Kateřina N. on Very Easy" - for each of the pair the tier of its best median pace
+     * against the line-up, among the tiers where it compared MIN_TIER_PUZZLES or more (and only with two such tiers -
+     * one tier has nothing to be strongest against). You first; nobody with two such tiers: no takeaway.
+     *
+     * @param list<array{tier: DifficultyTier, puzzles: int, subjects: array<string, array{percent: float, puzzles: int}>, wins: array{a: int, b: int, ties: int}}> $tiers
+     * @param list<string> $tierNames
+     * @param array{name: string, mid: string, isYou: bool} $a
+     * @param array{name: string, mid: string, isYou: bool} $b
+     */
+    private function difficultyTakeaway(array $tiers, array $tierNames, ComparisonResult $result, array $a, array $b): null|string
+    {
+        /** @var list<array{subject: array{name: string, mid: string, isYou: bool}, tier: DifficultyTier, name: string}> $strongest */
+        $strongest = [];
+
+        foreach ([[$result->highlightA, $a], [$result->highlightB, $b]] as [$ref, $subject]) {
+            if ($ref === null) {
+                continue;
+            }
+
+            $best = null;
+            $compared = 0;
+
+            foreach ($tiers as $index => $tier) {
+                $value = $tier['subjects'][$ref->toString()] ?? null;
+
+                if ($value === null || $value['puzzles'] < self::MIN_TIER_PUZZLES) {
+                    continue;
+                }
+
+                $compared++;
+
+                if ($best === null || $value['percent'] < $best['percent']) {
+                    $best = ['percent' => $value['percent'], 'tier' => $tier['tier'], 'name' => $tierNames[$index]];
+                }
+            }
+
+            if ($best !== null && $compared >= 2) {
+                $strongest[] = ['subject' => $subject, 'tier' => $best['tier'], 'name' => $best['name']];
+            }
+        }
+
+        // You first (usort keeps A before B otherwise)
+        usort($strongest, static fn(array $x, array $y): int => $y['subject']['isYou'] <=> $x['subject']['isYou']);
+
+        if (count($strongest) === 2) {
+            [$first, $second] = $strongest;
+
+            return $this->subjectTrans($first['tier'] === $second['tier'] ? 'difficulty.takeaway.same' : 'difficulty.takeaway.both', $first['subject'], [
+                '%tier%' => $first['name'],
+                '%other%' => $second['subject']['mid'],
+                '%other_tier%' => $second['name'],
+            ]);
+        }
+
+        if (count($strongest) === 1) {
+            return $this->subjectTrans('difficulty.takeaway.single', $strongest[0]['subject'], ['%tier%' => $strongest[0]['name']]);
+        }
+
+        return null;
+    }
+
+    /**
+     * The highlighted pair's head to head per tier, under the dot plot ("Very Hard: You 8 – 3 Kateřina N."); a tier the
+     * two share no puzzle in stays as a row, so the rows match the chart's. Null when they share no rated puzzle at all.
+     *
+     * @param list<array{tier: DifficultyTier, puzzles: int, subjects: array<string, array{percent: float, puzzles: int}>, wins: array{a: int, b: int, ties: int}}> $tiers
+     * @param list<string> $tierNames
+     * @param array{name: string, mid: string, isYou: bool} $a
+     * @param array{name: string, mid: string, isYou: bool} $b
+     * @return null|array{title: string, caption: string, rows: list<array{tier: DifficultyTier, label: string, a: int, b: int, ties: int, shared: int, text: string}>}
+     */
+    private function difficultyWins(array $tiers, array $tierNames, array $a, array $b): null|array
+    {
+        $rows = [];
+        $sharedTotal = 0;
+
+        foreach ($tiers as $index => $tier) {
+            $wins = $tier['wins'];
+            $shared = $wins['a'] + $wins['b'] + $wins['ties'];
+            $sharedTotal += $shared;
+
+            $text = $shared === 0
+                ? $this->trans('difficulty.h2h.none', ['%tier%' => $tierNames[$index]])
+                : $this->trans('difficulty.h2h.row', [
+                    '%tier%' => $tierNames[$index],
+                    '%a%' => $a['name'],
+                    '%wins_a%' => $wins['a'],
+                    '%wins_b%' => $wins['b'],
+                    '%b%' => $b['name'],
+                ]);
+
+            if ($wins['ties'] > 0) {
+                $text .= ' · ' . $this->trans('lead_lag.ties', ['%count%' => $wins['ties']]);
+            }
+
+            $rows[] = [
+                'tier' => $tier['tier'],
+                'label' => $tierNames[$index],
+                'a' => $wins['a'],
+                'b' => $wins['b'],
+                'ties' => $wins['ties'],
+                'shared' => $shared,
+                'text' => $text,
+            ];
+        }
+
+        if ($sharedTotal === 0) {
+            return null;
+        }
+
+        return [
+            'title' => $this->trans('difficulty.h2h.title', ['%a%' => $a['name'], '%b%' => $b['name']]),
+            'caption' => $this->trans('difficulty.h2h.caption', ['%a%' => $a['name'], '%b%' => $b['name']]),
+            'rows' => $rows,
+        ];
     }
 
     /**

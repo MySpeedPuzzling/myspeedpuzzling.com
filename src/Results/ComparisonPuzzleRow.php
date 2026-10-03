@@ -21,7 +21,7 @@ readonly final class ComparisonPuzzleRow
     public function __construct(
         public string $puzzleId,
         public int $piecesCount,
-        // Only when the criteria needed difficulty (members), else null
+        // Only when the aggregate selected it (members: difficulty filter / sort, charts), else null
         public null|int $difficultyTier,
         // Only when the aggregate selected names (sort by name, charts), else null
         public null|string $puzzleName,

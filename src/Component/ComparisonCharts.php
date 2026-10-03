@@ -12,7 +12,8 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
 /**
  * Members' charts on the Charts tab of the compare page (docs/features/player-comparison.md "Charts"): who's ahead
- * puzzle by puzzle, A's time vs B's, pace by piece count, form over time and - with 3+ subjects - the head-to-head grid.
+ * puzzle by puzzle, A's time vs B's, pace by piece count, by difficulty, form over time and - with 3+ subjects - the
+ * head-to-head grid.
  * Built from the page's result (ComparisonChartsFactory) - no query. The page renders it for members only; a result
  * without a highlighted pair renders nothing.
  */

@@ -647,7 +647,7 @@
     "legend_other": "Mejor tiempo de otra persona"
     "legend_marks": "+ por detrás del más rápido · — sin resolver"
   "charts_locked":
-    "inside": "Incluye: quién va por delante puzzle a puzzle · tu tiempo frente al suyo · ritmo por número de piezas · forma a lo largo del tiempo · cuadro cara a cara"
+    "inside": "Incluye: quién va por delante puzzle a puzzle · tu tiempo frente al suyo · ritmo por número de piezas · por dificultad · forma a lo largo del tiempo · cuadro cara a cara"
   "add":
     "title_solo": "Añadir un jugador"
     "title_pairs": "Añadir una pareja"
@@ -3896,6 +3896,24 @@ comparison_charts:
             quickest_item: "%name% en %pieces% piezas"
             single: "Frente a la mediana de la selección en %pieces% piezas: %list%"
             single_item: "%name% %percent%"
+    difficulty:
+        title: "Por dificultad"
+        summary: "Ritmo mediano frente a la mediana de la selección por dificultad (%tiers%). A la izquierda del cero, más rápido; a la derecha, más lento. Los puzzles sin dificultad calculada no cuentan."
+        takeaway:
+            both:
+                you: "Tu fuerte: dificultad %tier%; el de %other%: %other_tier%"
+                other: "El fuerte de %name%: dificultad %tier%; el de %other%: %other_tier%"
+            same:
+                you: "Tu fuerte y el de %other%: dificultad %tier%"
+                other: "El fuerte de %name% y de %other%: dificultad %tier%"
+            single:
+                you: "Tu fuerte: dificultad %tier%"
+                other: "El fuerte de %name%: dificultad %tier%"
+        h2h:
+            title: "Cara a cara: %a% vs. %b%"
+            caption: "Cara a cara por dificultad, %a% vs. %b%: victorias en los puzzles resueltos por ambos."
+            row: "%tier%: %a% %wins_a% – %wins_b% %b%"
+            none: "%tier%: ningún puzzle en común"
     form:
         title: "Forma a lo largo del tiempo"
         summary: "Ritmo mediano mensual frente a la mediana de la selección, de %from% a %to%. Por encima del cero, más rápido."

@@ -27,7 +27,7 @@ readonly final class ComparisonTimeRow
         public null|int $firstTrySeconds,
         public null|string $firstTryTimeId,
         public null|DateTimeImmutable $firstTryDay,
-        // Only when the criteria need it (a member filtering / sorting by difficulty), else always null
+        // Only when selected (a member filtering / sorting by difficulty, the members' charts), else always null
         public null|int $difficultyTier = null,
         // Only when asked for (sort by name, charts), else always null
         public null|string $puzzleName = null,

@@ -1,6 +1,7 @@
 {# Charts tab of the compare page (docs/features/player-comparison.md "Charts"), members only - the page decides.
    Each card: title, the takeaway line (ink), the chart - or a short note when the data is too thin - and its HTML legend.
    Chart texts and tooltips come from ComparisonChartsFactory; comparison_chart_controller.js only places them. #}
+{% from '_difficulty_icon.html.twig' import icon as difficulty_icon %}
 <div{{ attributes.defaults({class: 'cmp-charts', 'data-testid': 'comparison-charts'}) }}>
     {% set cards = computed.cards %}
 
@@ -80,6 +81,41 @@
                         <li class="cmp-chart-legend-note">{{ card.legendNote }}</li>
                     {% endif %}
                 </ul>
+
+                {% if card.wins is not null %}
+                    {# By difficulty: the highlighted pair's head to head per tier. Each row is read out as one sentence
+                       ("Very Hard: You 8 – 3 Kateřina"); the numbers and the split bar are its picture. #}
+                    <div class="cmp-tier-h2h" data-testid="comparison-difficulty-h2h">
+                        <p class="cmp-tier-h2h-title" aria-hidden="true">{{ card.wins.title }}</p>
+                        <table class="cmp-tier-h2h-table">
+                            <caption class="visually-hidden">{{ card.wins.caption }}</caption>
+                            <tbody>
+                                {% for row in card.wins.rows %}
+                                    <tr title="{{ row.text }}" data-testid="comparison-difficulty-h2h-row">
+                                        <td class="cmp-tier-h2h-icon" aria-hidden="true">{{ difficulty_icon(row.tier, false, 16) }}</td>
+                                        <th scope="row">
+                                            <span aria-hidden="true">{{ row.label }}</span>
+                                            <span class="visually-hidden">{{ row.text }}</span>
+                                        </th>
+                                        {% if row.shared > 0 %}
+                                            <td class="cmp-tier-h2h-num{{ row.a > row.b ? ' is-ahead' }}" aria-hidden="true">{{ row.a }}</td>
+                                            <td class="cmp-tier-h2h-bar" aria-hidden="true">
+                                                <span class="cmp-tier-h2h-split">
+                                                    {%- if row.a > 0 %}<i class="cmp-tier-h2h-a" style="flex: {{ row.a }}"></i>{% endif -%}
+                                                    {%- if row.ties > 0 %}<i class="cmp-tier-h2h-tie" style="flex: {{ row.ties }}"></i>{% endif -%}
+                                                    {%- if row.b > 0 %}<i class="cmp-tier-h2h-b" style="flex: {{ row.b }}"></i>{% endif -%}
+                                                </span>
+                                            </td>
+                                            <td class="cmp-tier-h2h-num{{ row.b > row.a ? ' is-ahead' }}" aria-hidden="true">{{ row.b }}</td>
+                                        {% else %}
+                                            <td class="cmp-tier-h2h-none" colspan="3" aria-hidden="true">–</td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
             {% endif %}
         </figure>
     {% endfor %}

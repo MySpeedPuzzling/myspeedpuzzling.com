@@ -712,7 +712,7 @@ comparison:
         legend_other: "Someone else's fastest"
         legend_marks: "+ behind the fastest · — not solved"
     charts_locked:
-        inside: "Inside: who's ahead puzzle by puzzle · your time vs theirs · pace by piece count · form over time · head-to-head grid"
+        inside: "Inside: who's ahead puzzle by puzzle · your time vs theirs · pace by piece count · by difficulty · form over time · head-to-head grid"
     add:
         title_solo: "Add a player"
         title_pairs: "Add a pair"
@@ -4202,6 +4202,24 @@ comparison_charts:
             quickest_item: "%name% at %pieces% pieces"
             single: "Against the line-up median at %pieces% pieces: %list%"
             single_item: "%name% %percent%"
+    difficulty:
+        title: "By difficulty"
+        summary: "Median pace against the line-up median per difficulty (%tiers%). Left of zero is faster, right is slower. Puzzles without a difficulty rating are left out."
+        takeaway:
+            both:
+                you: "You're strongest on %tier% puzzles; %other% on %other_tier%"
+                other: "%name% is strongest on %tier% puzzles; %other% on %other_tier%"
+            same:
+                you: "You and %other% are both strongest on %tier% puzzles"
+                other: "%name% and %other% are both strongest on %tier% puzzles"
+            single:
+                you: "You're strongest on %tier% puzzles"
+                other: "%name% is strongest on %tier% puzzles"
+        h2h:
+            title: "Head to head: %a% vs %b%"
+            caption: "Head to head per difficulty, %a% vs %b%: wins on the puzzles both solved."
+            row: "%tier%: %a% %wins_a% – %wins_b% %b%"
+            none: "%tier%: no puzzle both solved"
     form:
         title: "Form over time"
         summary: "Monthly median pace against the line-up median, %from% to %to%. Above zero is faster."

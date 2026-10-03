@@ -645,7 +645,7 @@
     "legend_other": "Jemand anderes ist am schnellsten"
     "legend_marks": "+ Rückstand auf die Bestzeit · — nicht gelöst"
   "charts_locked":
-    "inside": "Enthalten: wer Puzzle für Puzzle vorn liegt · Ihre Zeit gegen die der anderen · Tempo nach Teilezahl · Form im Zeitverlauf · Direktvergleich-Raster"
+    "inside": "Enthalten: wer Puzzle für Puzzle vorn liegt · Ihre Zeit gegen die der anderen · Tempo nach Teilezahl · nach Schwierigkeit · Form im Zeitverlauf · Direktvergleich-Raster"
   "add":
     "title_solo": "Spieler hinzufügen"
     "title_pairs": "Paar hinzufügen"
@@ -3896,6 +3896,24 @@ comparison_charts:
             quickest_item: "%name% bei %pieces% Teilen"
             single: "Im Vergleich zum Median der Aufstellung bei %pieces% Teilen: %list%"
             single_item: "%name% %percent%"
+    difficulty:
+        title: "Nach Schwierigkeit"
+        summary: "Median-Tempo im Vergleich zum Median der Aufstellung je Schwierigkeit (%tiers%). Links von null ist schneller, rechts langsamer. Puzzles ohne Schwierigkeitsbewertung zählen nicht."
+        takeaway:
+            both:
+                you: "Am stärksten sind Sie bei Schwierigkeit %tier%; %other% bei %other_tier%"
+                other: "%name% ist am stärksten bei Schwierigkeit %tier%; %other% bei %other_tier%"
+            same:
+                you: "Sie und %other% sind beide bei Schwierigkeit %tier% am stärksten"
+                other: "%name% und %other% sind beide bei Schwierigkeit %tier% am stärksten"
+            single:
+                you: "Am stärksten sind Sie bei Schwierigkeit %tier%"
+                other: "%name% ist am stärksten bei Schwierigkeit %tier%"
+        h2h:
+            title: "Direktvergleich: %a% gegen %b%"
+            caption: "Direktvergleich je Schwierigkeit, %a% gegen %b%: Siege bei den Puzzles, die beide gelöst haben."
+            row: "%tier%: %a% %wins_a% – %wins_b% %b%"
+            none: "%tier%: kein gemeinsames Puzzle"
     form:
         title: "Form im Zeitverlauf"
         summary: "Monatliches Median-Tempo im Vergleich zum Median der Aufstellung, %from% bis %to%. Über null ist schneller."

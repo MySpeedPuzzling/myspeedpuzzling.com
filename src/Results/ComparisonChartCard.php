@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\DifficultyTier;
 use Symfony\UX\Chartjs\Model\Chart;
 
 /**
@@ -16,6 +17,7 @@ readonly final class ComparisonChartCard
     public const string LEAD_LAG = 'lead_lag';
     public const string SCATTER = 'scatter';
     public const string PACE = 'pace';
+    public const string DIFFICULTY = 'difficulty';
     public const string FORM = 'form';
     public const string MATRIX = 'matrix';
 
@@ -29,6 +31,12 @@ readonly final class ComparisonChartCard
      *     rampHigh: string,
      * } $grid the head-to-head table (MATRIX only): `step` 1-5 is the ramp colour of a cell, null = nothing in common
      *   (blank); its legend is the ramp between rampLow and rampHigh
+     * @param null|array{
+     *     title: string,
+     *     caption: string,
+     *     rows: list<array{tier: DifficultyTier, label: string, a: int, b: int, ties: int, shared: int, text: string}>,
+     * } $wins the highlighted pair's head to head per difficulty tier under the chart (DIFFICULTY only, when the two share a
+     *   rated puzzle): `a` / `b` / `ties` split the `shared` puzzles, `text` is the whole row as a sentence
      */
     public function __construct(
         public string $key,
@@ -47,6 +55,7 @@ readonly final class ComparisonChartCard
         // Too little data: the note is shown instead of the chart
         public null|string $note = null,
         public null|array $grid = null,
+        public null|array $wins = null,
     ) {
     }
 

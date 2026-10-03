@@ -122,6 +122,97 @@ $cmp-divider: #eceef2;
     text-align: center;
 }
 
+// By difficulty: the highlighted pair's head to head per tier under the dot plot - tier icon + name, A's wins, the
+// split bar (A coral from the left, dead heats gray, B indigo from the right, like the head-to-head card), B's wins
+
+.cmp-tier-h2h {
+    margin-top: .75rem;
+    padding-top: .625rem;
+    border-top: 1px solid $cmp-divider;
+}
+
+.cmp-tier-h2h-title {
+    margin: 0 0 .25rem;
+    font-size: .8125rem;
+    font-weight: 500;
+    line-height: 1.35;
+    color: $cmp-ink;
+    overflow-wrap: anywhere;
+}
+
+.cmp-tier-h2h-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+
+    th,
+    td {
+        height: 30px;
+        padding: 0;
+        vertical-align: middle;
+    }
+
+    // As narrow as the longest tier name (white-space: nowrap + width: 1%)
+    th {
+        width: 1%;
+        padding-right: .625rem;
+        font-weight: 400;
+        color: $cmp-ink-body;
+        text-align: left;
+        white-space: nowrap;
+    }
+}
+
+// The icon has a cell of its own: next to text inside one cell, Chrome sizes the column too narrow for the longest name
+.cmp-tier-h2h-table td.cmp-tier-h2h-icon {
+    width: 22px;
+
+    .diff-icon {
+        display: block;
+    }
+}
+
+.cmp-tier-h2h-num {
+    width: 1.75rem;
+    color: $cmp-ink-muted;
+    text-align: center;
+
+    &.is-ahead {
+        font-weight: 600;
+        color: $cmp-ink;
+    }
+}
+
+.cmp-tier-h2h-split {
+    display: flex;
+    gap: 2px;
+    height: 8px;
+
+    i {
+        display: block;
+        min-width: 4px;
+        border-radius: 4px;
+    }
+}
+
+.cmp-tier-h2h-a {
+    background: $cmp-a;
+}
+
+.cmp-tier-h2h-b {
+    background: $cmp-b;
+}
+
+.cmp-tier-h2h-tie {
+    background: #c3c8d1;
+}
+
+.cmp-tier-h2h-none {
+    color: $cmp-ink-muted;
+    text-align: center;
+}
+
 // Head to head: an HTML heat map, one-hue indigo ramp; the grid scrolls inside its box on a narrow phone
 
 .cmp-h2h-wrap {

@@ -1054,7 +1054,7 @@ final class Comparison
 
         $withNames = $this->criteria->needsPuzzleNames() || ($this->isCharts() && $this->isMember);
         $rows = count($refs) >= 2
-            ? $this->getComparisonResults->forSubjects($this->activeKind, $refs, $this->criteria, $withNames)
+            ? $this->getComparisonResults->forSubjects($this->activeKind, $refs, $this->criteria, $withNames, withDifficulty: $this->isCharts() && $this->isMember)
             : [];
 
         $result = $this->comparisonBuilder->build($this->compared, $rows, $this->criteria);

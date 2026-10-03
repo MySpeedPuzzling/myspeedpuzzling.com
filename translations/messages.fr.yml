@@ -648,7 +648,7 @@
     "legend_other": "Le plus rapide : quelqu'un d'autre"
     "legend_marks": "+ derrière le plus rapide · — non résolu"
   "charts_locked":
-    "inside": "Au programme : qui mène puzzle par puzzle · votre temps contre le leur · rythme par nombre de pièces · forme au fil du temps · grille des face-à-face"
+    "inside": "Au programme : qui mène puzzle par puzzle · votre temps contre le leur · rythme par nombre de pièces · par difficulté · forme au fil du temps · grille des face-à-face"
   "add":
     "title_solo": "Ajouter un joueur"
     "title_pairs": "Ajouter un duo"
@@ -3898,6 +3898,24 @@ comparison_charts:
             quickest_item: "%name% en %pieces% pièces"
             single: "Par rapport à la médiane de la sélection en %pieces% pièces : %list%"
             single_item: "%name% %percent%"
+    difficulty:
+        title: "Par difficulté"
+        summary: "Rythme médian par rapport à la médiane de la sélection, par difficulté (%tiers%). À gauche de zéro, c'est plus rapide ; à droite, plus lent. Les puzzles sans difficulté calculée ne comptent pas."
+        takeaway:
+            both:
+                you: "Vous brillez surtout en difficulté %tier% ; %other% en %other_tier%"
+                other: "%name% brille surtout en difficulté %tier% ; %other% en %other_tier%"
+            same:
+                you: "Vous et %other% brillez surtout en difficulté %tier%"
+                other: "%name% et %other% brillent surtout en difficulté %tier%"
+            single:
+                you: "Vous brillez surtout en difficulté %tier%"
+                other: "%name% brille surtout en difficulté %tier%"
+        h2h:
+            title: "Face à face : %a% contre %b%"
+            caption: "Face à face par difficulté, %a% contre %b% : victoires sur les puzzles résolus par les deux."
+            row: "%tier% : %a% %wins_a% – %wins_b% %b%"
+            none: "%tier% : aucun puzzle en commun"
     form:
         title: "Forme au fil du temps"
         summary: "Rythme médian mensuel par rapport à la médiane de la sélection, de %from% à %to%. Au-dessus de zéro, c'est plus rapide."

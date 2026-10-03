@@ -95,4 +95,20 @@ readonly final class CatalogueStatsProvider
 
         return $entries;
     }
+
+    /**
+     * After a brand merge: the merged slugs must stop serving their cached hub (it would
+     * show the deleted brand) and start redirecting, and the survivor's counts changed.
+     *
+     * @param list<string> $slugs
+     */
+    public function forgetBrands(array $slugs): void
+    {
+        foreach ($slugs as $slug) {
+            $this->cache->delete('brand_hub_stats_v2_' . $slug);
+        }
+
+        $this->cache->delete('brand_directory_v1');
+        $this->cache->delete('most_popular_brands_v1');
+    }
 }

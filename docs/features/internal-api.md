@@ -28,7 +28,7 @@ INTERNAL_API_TOKEN=dev-secret-just-for-local
 
 ### Reviewer identity
 
-Endpoints that perform *moderation* (currently the puzzle merge queue) record a reviewer on the domain object and notify the affected player. The internal API has no logged-in user, so the player to credit comes from:
+Endpoints that perform *moderation* (the puzzle merge queue and the brand endpoints) record a reviewer on the domain object and notify the affected player. The internal API has no logged-in user, so the player to credit comes from:
 
 ```
 INTERNAL_API_REVIEWER_PLAYER_ID=<player uuid>
@@ -53,6 +53,7 @@ Players report duplicate puzzles; approving a report merges them. **A merge is d
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/internal-api/puzzle-merge-requests` | Review queue: pending requests with every reported puzzle |
+| `POST` | `/internal-api/puzzle-merge-requests` | File a duplicate report yourself (`201` + `{"mergeRequestId"}`) |
 | `POST` | `/internal-api/puzzle-merge-requests/{id}/approve` | Merge the puzzles |
 | `POST` | `/internal-api/puzzle-merge-requests/{id}/reject` | Decline the report |
 
@@ -77,6 +78,47 @@ Blank strings count as absent, so a blank `mergedEan` never blanks a real one.
 **A puzzle may legitimately carry several EANs or catalogue numbers**, held as a comma-separated list, because the same puzzle gets its own code per edition or region. A merge therefore takes the *union* of both records' codes rather than choosing between them, and `mergedEan` may itself be such a list. Never reduce an existing list to a single value — the codes you drop identify real editions, and the record holding them is deleted moments later. The merge likewise carries over any alternative name, cover image or manufacturer that **only** a deleted puzzle had.
 
 Reject body: `rejectionReason` (required). **It is shown to the player who reported the duplicate**, as a notification, so write it for them.
+
+File body: `puzzleIds` (required, at least two distinct puzzle ids; the first is the request's source puzzle). The reviewer
+player is the reporter - like a moderator merging from the approval queue - so nobody is notified about the request or
+its approval. Answers `201` with `{"mergeRequestId": "…"}`; settle it with the approve/reject endpoints above. Use it for
+duplicates no player reported, e.g. the same puzzle left twice under one brand after a brand merge. An unknown puzzle id
+answers `404` and files nothing.
+
+### Brands
+
+Duplicate brands (the same brand created by several players, see [`brand-duplicates.md`](./brand-duplicates.md)) are
+merged here. Both endpoints write a `puzzle_moderation_decision` row (`source = internal_api`) and need
+`INTERNAL_API_REVIEWER_PLAYER_ID`.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/internal-api/manufacturers/{id}/merge` | Fold duplicate brands into the brand `{id}` |
+| `POST` | `/internal-api/manufacturers/{id}/approve` | Approve a genuinely new brand |
+
+Merge body:
+
+| Field | Required | Notes |
+|---|---|---|
+| `mergedManufacturerIds` | yes | List of brand ids to fold in (approved or not); de-duplicated |
+| `name` | no | The survivor's name as the brand itself writes it. Leave out to keep it. Its slug never changes |
+| `decisionConfidence` | no | `high`, `medium` or `low` (stored in the decision's `details`) |
+| `decisionNote` | no | Why - stored as the decision's `note` |
+
+**A brand merge is destructive**: every merged brand is deleted after its puzzles and the change requests proposing it
+move to the survivor. The survivor keeps the logo and EAN prefixes only a merged brand had, becomes approved if a merged
+brand was, and every merged slug answers `301` to the survivor's brand pages from then on (`manufacturer_slug_redirect`).
+One `brand_merged` decision per merged brand holds its id, name, slug, approval and what moved - the only trace of it
+once it is deleted. Pick as survivor the brand whose slug has no `-2` suffix where you can: the survivor's slug is the
+address that stays.
+
+Refusals change nothing: `404` for an unknown brand id, `422` when the survivor is in its own merge list, `409` when an
+approved brand outside the merge has the survivor's final name (merge that one in the same request too).
+
+Approve body (both optional): `name` (fix the spelling on the way), `decisionNote`. Answers `409` when the brand is
+already approved, or when an approved brand of that name (case-insensitive) exists - it is then a duplicate to merge, not
+a new brand. Use it for new brands whose puzzles were approved without them: the approval queue only shows brands with a
+pending puzzle, so those stay hidden from every other player's brand picker until approved here.
 
 ### Examples
 
@@ -114,6 +156,29 @@ curl -X POST "$APP_URL/internal-api/puzzle-merge-requests/019e281a-6b16-7324-826
     "decisionNote": "Same artwork; manufacturer recorded under two spellings."
   }'
 
+# Brands: fold both copies of "Lluneta" into the oldest, under the name the brand uses
+curl -X POST "$APP_URL/internal-api/manufacturers/019a0000-0000-7000-8000-000000000001/merge" \
+  -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mergedManufacturerIds": ["019a0000-0000-7000-8000-000000000002", "019a0000-0000-7000-8000-000000000003"],
+    "name": "Lluneta Puzzles",
+    "decisionConfidence": "high",
+    "decisionNote": "Same name typed by three players; same EAN company prefix."
+  }'
+
+# Brands: approve a new brand whose puzzles are already approved
+curl -X POST "$APP_URL/internal-api/manufacturers/019a0000-0000-7000-8000-000000000004/approve" \
+  -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Pusselbolaget", "decisionNote": "Real publisher, no approved brand of that name."}'
+
+# File a duplicate report, then approve it like any other
+curl -X POST "$APP_URL/internal-api/puzzle-merge-requests" \
+  -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"puzzleIds": ["01977f76-0d5a-73a0-953d-7d655a5c6dc3", "0197acfd-1132-7007-9610-c6ce24443e69"]}'
+
 # Reject: not duplicates at all
 curl -X POST "$APP_URL/internal-api/puzzle-merge-requests/019e32be-0000-7000-8000-000000000001/reject" \
   -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
@@ -147,10 +212,13 @@ ORDER BY performed_at DESC;
 | Status | When | Body |
 |---|---|---|
 | `204 No Content` | Success | empty |
+| `201 Created` | A duplicate report was filed | `{"mergeRequestId": "..."}` |
 | `400 Bad Request` | Body present but not valid JSON object | `{"error": "..."}` |
 | `401 Unauthorized` | Missing / wrong / unconfigured token | `{"error": "..."}` |
 | `400 Bad Request` | Missing/invalid field, or `INTERNAL_API_REVIEWER_PLAYER_ID` unset on a moderation endpoint | `{"error": "..."}` |
-| `404 Not Found` | Unknown `featureRequestId` / `mergeRequestId` | standard Symfony 404 |
+| `404 Not Found` | Unknown `featureRequestId` / `mergeRequestId` / brand / puzzle id | standard Symfony 404 |
+| `409 Conflict` | Brand already approved, or its name is taken by an approved brand | standard Symfony 409 |
+| `422 Unprocessable Entity` | A brand merge that cannot be done (survivor in its own list) | standard Symfony 422 |
 
 ## Adding a new endpoint
 
@@ -180,3 +248,5 @@ The public Swagger UI at `/api/docs` is generated by API Platform from resources
 - `tests/Security/InternalApiAuthenticatorTest.php` — auth tests
 - `src/Entity/PuzzleMergeAudit.php` + `src/Services/PuzzleMergeSnapshotBuilder.php` — merge audit trail
 - `src/Query/GetPuzzleMergeReviewQueue.php` — review queue read model
+- `src/Services/ManufacturerMerger.php` — the one brand merge (also used by the approval queue)
+- `src/EventSubscriber/ManufacturerSlugRedirectSubscriber.php` — merged slugs answer 301

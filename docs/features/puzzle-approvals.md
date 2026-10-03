@@ -50,8 +50,10 @@ other players' unapproved brands are hidden in the picker - so players create th
 For an already approved brand, changing the brand select moves the puzzle (`use_existing`), otherwise `keep`.
 Suggestions (`GetPuzzleApprovals::brandSuggestions`) = approved brands with a similar name or an EAN company
 prefix (`manufacturer.ean_prefix`) matching the puzzle's EAN - the stronger signal. Only an **unapproved** brand
-can be merged away, and only into an **approved** one. A puzzle and a change-request proposal are the only
-references to a brand; a new foreign key to `manufacturer` must be moved in `ApprovePuzzleHandler::mergeBrand()` too.
+can be merged away here, and only into an **approved** one. The merge itself is `ManufacturerMerger`, shared with the
+internal API's brand merge (any brand into any brand) - it also keeps the merged slug as a 301 redirect. A puzzle and a
+change-request proposal are the only references to a brand; a new foreign key to `manufacturer` must be moved in
+`ManufacturerMerger` too. Why brands get duplicated and how they are cleaned up: [`brand-duplicates.md`](brand-duplicates.md).
 
 ## Who decided - `puzzle_moderation_decision`
 

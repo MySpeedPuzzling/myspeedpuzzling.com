@@ -127,6 +127,39 @@ paths:
                 $ref: "#/components/schemas/PuzzleMergeReviewQueue"
         "401":
           $ref: "#/components/responses/Unauthorized"
+    post:
+      summary: File a puzzle duplicate report
+      operationId: submitPuzzleMergeRequest
+      description: |
+        Files a merge request for puzzles no player reported - e.g. the same puzzle
+        left twice under one brand after a brand merge. The reviewer player is the
+        reporter, so nobody is notified. Settle it with the approve/reject endpoints.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PuzzleMergeSubmission"
+      responses:
+        "201":
+          description: Report filed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [mergeRequestId]
+                properties:
+                  mergeRequestId:
+                    type: string
+                    format: uuid
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal-api/puzzle-merge-requests/{mergeRequestId}/approve:
     post:
@@ -188,6 +221,73 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /internal-api/manufacturers/{manufacturerId}/merge:
+    post:
+      summary: Merge duplicate brands into this one
+      operationId: mergeManufacturers
+      description: |
+        Destructive. Every merged brand is deleted after its puzzles and the change
+        requests proposing it move to the survivor (the brand in the path). The
+        survivor keeps the logo and EAN prefixes only a merged brand had, becomes
+        approved if a merged brand was, and every merged slug answers 301 to the
+        survivor's brand pages. One `brand_merged` row per merged brand is written
+        to `puzzle_moderation_decision`.
+
+        The survivor's slug never changes - prefer a survivor without a `-2` suffix.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      parameters:
+        - $ref: "#/components/parameters/ManufacturerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManufacturerMerge"
+      responses:
+        "204":
+          description: Brands merged
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: An approved brand outside the merge already has the survivor's final name - merge it in the same request.
+        "422":
+          description: The survivor is in its own merge list.
+
+  /internal-api/manufacturers/{manufacturerId}/approve:
+    post:
+      summary: Approve a new brand
+      operationId: approveManufacturer
+      description: |
+        For brands whose puzzles were approved without them - the approval queue
+        only shows brands with a pending puzzle. Writes a `brand_approved` row to
+        `puzzle_moderation_decision`.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      parameters:
+        - $ref: "#/components/parameters/ManufacturerId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManufacturerApproval"
+      responses:
+        "204":
+          description: Brand approved
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Already approved, or an approved brand of that name exists (case-insensitive) - merge instead.
+
 components:
   securitySchemes:
     InternalApiBearer:
@@ -202,6 +302,15 @@ components:
       in: path
       required: true
       description: UUID (v7) of the feature request.
+      schema:
+        type: string
+        format: uuid
+
+    ManufacturerId:
+      name: manufacturerId
+      in: path
+      required: true
+      description: UUID of the brand (manufacturer).
       schema:
         type: string
         format: uuid
@@ -346,6 +455,51 @@ components:
           type: [string, "null"]
           description: Why. Stored on the audit row; never shown to players.
 
+    PuzzleMergeSubmission:
+      type: object
+      additionalProperties: false
+      required: [puzzleIds]
+      properties:
+        puzzleIds:
+          type: array
+          minItems: 2
+          description: At least two distinct puzzle ids; the first is the request's source puzzle.
+          items:
+            type: string
+            format: uuid
+
+    ManufacturerMerge:
+      type: object
+      additionalProperties: false
+      required: [mergedManufacturerIds]
+      properties:
+        mergedManufacturerIds:
+          type: array
+          minItems: 1
+          description: Brands to fold into the survivor, approved or not.
+          items:
+            type: string
+            format: uuid
+        name:
+          type: [string, "null"]
+          description: The survivor's name as the brand writes it. Omit or blank to keep it.
+        decisionConfidence:
+          type: [string, "null"]
+          enum: [high, medium, low, null]
+        decisionNote:
+          type: [string, "null"]
+          description: Why. Stored as the decision's note.
+
+    ManufacturerApproval:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: [string, "null"]
+          description: Fix the spelling on the way. Omit or blank to keep it.
+        decisionNote:
+          type: [string, "null"]
+
     PuzzleMergeRejection:
       type: object
       additionalProperties: false
@@ -385,4 +539,4 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
     NotFound:
-      description: Unknown feature request or merge request ID
+      description: Unknown feature request, merge request, brand or puzzle ID

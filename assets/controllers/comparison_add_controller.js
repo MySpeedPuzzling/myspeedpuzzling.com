@@ -2,6 +2,7 @@
 import { Controller } from '@hotwired/stimulus';
 import { Modal } from 'bootstrap';
 import { getComponent } from '@symfony/ux-live-component';
+import { chooseTranslation } from '../translation_choice.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SUGGESTIONS_LIMIT = 12;
@@ -18,7 +19,8 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => 
  * when it cannot (a full line-up offers the swap).
  *
  * Rules kept from the add-time co-puzzler picker: what this controller draws is ignored by re-renders
- * (data-live-ignore), Enter never submits anything, texts come from data attributes. Whoever is in the line-up already
+ * (data-live-ignore), Enter never submits anything, texts come from data attributes (a count's plural form is picked like
+ * PHP picks it - browser_translation() + translation_choice.js). Whoever is in the line-up already
  * (`excluded`), guests and private players hidden from the viewer are never offered.
  */
 export default class extends Controller {
@@ -135,7 +137,7 @@ export default class extends Controller {
         return (Array.isArray(data) ? data : []).map((team) => ({
             ref: team.ref,
             label: team.label,
-            sub: [team.named ? team.members : '', this.textsValue.together.replace('%count%', team.count)].filter(Boolean).join(' · '),
+            sub: [team.named ? team.members : '', this.together(Number(team.count))].filter(Boolean).join(' · '),
             members: team.members,
             avatar: null,
             country: null,
@@ -143,6 +145,13 @@ export default class extends Controller {
             mine: Boolean(team.mine),
             favorite: false,
         }));
+    }
+
+    /** "1 result" / "12 results" - the raw message carries every plural form and the locale of its catalogue */
+    together(count) {
+        const text = this.textsValue.together;
+
+        return text ? (chooseTranslation(text.message, count, text.locale) ?? '') : '';
     }
 
     renderSuggestions() {

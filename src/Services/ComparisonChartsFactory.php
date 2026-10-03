@@ -248,7 +248,8 @@ readonly final class ComparisonChartsFactory
             ? [$a, $ahead, $data['bars'][0]]
             : [$b, $behind, $data['bars'][count($data['bars']) - 1]];
 
-        $lead = $this->subjectTrans('lead_lag.takeaway', $leader, ['%count%' => $count, '%total%' => $total]);
+        // The noun goes with the total: "on 1 of 1 puzzle", "on 37 of 53 puzzles"
+        $lead = $this->subjectTrans('lead_lag.takeaway', $leader, ['%wins%' => $count, '%count%' => $total]);
         $time = $this->shortTime(abs($bar['deltaSeconds']));
         $biggest = $bar['puzzleName'] !== null
             ? $this->trans('lead_lag.takeaway.biggest_on', ['%time%' => $time, '%puzzle%' => $bar['puzzleName']])
@@ -417,7 +418,7 @@ readonly final class ComparisonChartsFactory
 
         $below = count(array_filter($points, static fn(array $point): bool => $point['winner'] === 'a'));
 
-        return $this->subjectTrans('scatter.takeaway.below', $a, ['%count%' => $below, '%total%' => $count]);
+        return $this->subjectTrans('scatter.takeaway.below', $a, ['%wins%' => $below, '%count%' => $count]);
     }
 
     /**

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Message\AddComparisonSubject;
+use SpeedPuzzling\Web\Tests\DataFixtures\ConversationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
@@ -66,10 +67,49 @@ final class ComparisonLauncherTest extends WebTestCase
     {
         $browser = self::createClient();
 
-        foreach (['/en/multiscan', '/en/stopwatch'] as $url) {
+        foreach (['/en/multiscan', '/en/stopwatch', '/en/compare'] as $url) {
             $crawler = $this->page(PlayerFixture::PLAYER_WITH_STRIPE, $url, $browser);
             self::assertCount(0, $crawler->filter('.comparison-launcher'), $url);
             self::assertStringNotContainsString('has-comparison-launcher', (string) $crawler->filter('body')->attr('class'), $url);
+        }
+    }
+
+    /**
+     * The pill must not sit over a form's controls or a chat's composer: those pages opt out with
+     * `hide_comparison_launcher` (base.html.twig)
+     */
+    public function testNoPillOnPagesWhoseMainContentIsAFormOrAChat(): void
+    {
+        $browser = self::createClient();
+        $timeId = $browser->getContainer()->get(Connection::class)->fetchOne(
+            "SELECT id FROM puzzle_solving_time WHERE player_id = :playerId AND puzzling_type = 'solo' ORDER BY id LIMIT 1",
+            ['playerId' => PlayerFixture::PLAYER_WITH_STRIPE],
+        );
+        self::assertIsString($timeId);
+
+        $pages = [
+            '/en/puzzle-add',
+            '/en/puzzle-add?mode=relax',
+            '/en/puzzle-add?mode=collection',
+            '/en/edit-time/' . $timeId,
+            '/en/edit-profile',
+            '/en/edit-profile/change-password',
+            '/en/messages/' . ConversationFixture::CONVERSATION_MARKETPLACE,
+            '/en/feedback',
+            '/en/feature-requests/new',
+            '/en/create-collection',
+        ];
+
+        foreach ($pages as $url) {
+            $crawler = $this->page(PlayerFixture::PLAYER_WITH_STRIPE, $url, $browser);
+            self::assertCount(0, $crawler->filter('.comparison-launcher'), $url);
+            self::assertStringNotContainsString('has-comparison-launcher', (string) $crawler->filter('body')->attr('class'), $url);
+        }
+
+        // …while the browsing pages keep it
+        foreach (['/en/hub', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01, '/en/recent-activity', '/en/pairs-and-teams'] as $url) {
+            $crawler = $this->page(PlayerFixture::PLAYER_WITH_STRIPE, $url, $browser);
+            self::assertCount(1, $crawler->filter('a.comparison-launcher'), $url);
         }
     }
 

@@ -1,5 +1,6 @@
-{# Duel rows of the highlighted pair (A left, B right): the gap pill points at whoever was faster. With 3+ subjects a
-   strip says where A stands in the whole line-up. Input: with_strip (bool) #}
+{# Duel rows of the highlighted pair (A left, B right): the gap pill points at whoever was faster, so it shows the gap
+   without the leaderboard's "+" ("00:07", "12:05", "01:02:05"). With 3+ subjects a strip says where A stands in the
+   whole line-up. Input: with_strip (bool) #}
 {% set result = this.result %}
 {% set a = result.highlightA %}
 {% set b = result.highlightB %}
@@ -21,7 +22,7 @@
                         {% if side == 'b' %}
                             {% if cell_a is not null and cell_b is not null and cell_a.seconds != cell_b.seconds %}
                                 {% set a_wins = cell_a.seconds < cell_b.seconds %}
-                                {% set gap = (cell_a.seconds - cell_b.seconds)|abs|puzzlingTime %}
+                                {% set gap = (cell_a.seconds - cell_b.seconds)|gapTime|slice(1) %}
                                 {% set faster_by = 'comparison.cell.faster_by'|trans({'%name%': this.labelOf(a_wins ? a : b)}) %}
                                 <span class="cmp-gap cmp-gap--{{ a_wins ? 'a' : 'b' }}" title="{{ faster_by }} {{ gap }}">
                                     {%- if a_wins %}<i class="bi bi-chevron-left" aria-hidden="true"></i>{% endif -%}

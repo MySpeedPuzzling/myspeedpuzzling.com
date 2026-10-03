@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\ComparisonSeeding;
@@ -278,6 +279,51 @@ final class ComparisonControllerTest extends WebTestCase
         $private = array_values(array_filter($people, static fn (array $person): bool => $person['key'] === PlayerFixture::PLAYER_PRIVATE));
         self::assertCount(1, $private);
         self::assertTrue($private[0]['hidden']);
+    }
+
+    /**
+     * The Duel view of 3+ subjects is the highlighted pair's head to head: only the puzzles both of them solved, never
+     * a "Not solved" side - while the league table still describes the whole line-up
+     */
+    public function testDuelViewOfALineUpListsOnlyWhatTheHighlightedPairBothSolved(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $day = new DateTimeImmutable('-1 minute');
+
+        // Solved by her and PLAYER_ADMIN only: a card, but not a row of her duel with PLAYER_REGULAR
+        $withoutJohn = $this->seedPuzzle(500, 'Without John');
+        $this->seedTime(PlayerFixture::PLAYER_WITH_STRIPE, $withoutJohn, 1800, $day);
+        $this->seedTime(PlayerFixture::PLAYER_ADMIN, $withoutJohn, 2000, $day);
+        $withJohn = $this->seedPuzzle(500, 'With John');
+        $this->seedTime(PlayerFixture::PLAYER_WITH_STRIPE, $withJohn, 1800, $day);
+        $this->seedTime(PlayerFixture::PLAYER_REGULAR, $withJohn, 1900, $day);
+
+        $url = '/en/compare?kind=solo&a=' . self::STRIPE_REF . '&b=' . self::REGULAR_REF;
+
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Without John', $crawler->filter('[data-testid="comparison-cards"]')->text());
+        $league = $crawler->filter('[data-testid="comparison-league-row"]')->count();
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE player SET comparison_view = 'duel' WHERE id = :id",
+            ['id' => PlayerFixture::PLAYER_WITH_STRIPE],
+        );
+
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $rows = $crawler->filter('[data-testid="comparison-duel-rows"] [data-testid="comparison-row"]');
+        self::assertGreaterThan(0, $rows->count());
+        self::assertStringContainsString('With John', $rows->text());
+        self::assertStringNotContainsString('Without John', $crawler->filter('[data-testid="comparison-duel-rows"]')->text());
+        self::assertCount(0, $rows->filter('.cmp-time--none'), 'Both of the pair solved every listed puzzle');
+        self::assertCount(0, $crawler->filter('[data-testid="comparison-show-more"]'));
+        self::assertSame(
+            $rows->count() === 1 ? '1 puzzle you both solved' : $rows->count() . ' puzzles you both solved',
+            trim($crawler->filter('[data-testid="comparison-total"]')->text()),
+        );
+        self::assertCount($league, $crawler->filter('[data-testid="comparison-league-row"]'));
     }
 
     /**

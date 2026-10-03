@@ -468,10 +468,11 @@
         {% endblock %}
     </head>
     {# The comparison launcher (docs/features/player-comparison.md, D2) - from the viewer's own profile row, no query.
-       Not on the comparison itself, not where a bar already sits at the bottom (multiscan's action bar), and not where
-       a clock runs (the stopwatch, the projected round stopwatch) #}
+       A page opts out with `{% set hide_comparison_launcher = true %}` at its top (outside blocks): the comparison
+       itself, and every page whose main content is a form, a chat, a bar at the bottom or a running clock - the pill
+       would sit over their controls #}
     {% set comparison_launcher = logged_user.profile is not null
-        and currentRoute not in ['comparison', 'multiscan', 'stopwatch', 'stopwatch_puzzle', 'round_stopwatch']
+        and not hide_comparison_launcher|default(false)
         and logged_user.profile.comparisonLineUp.hasOthers() %}
     <body class="lang-{{ app.request.locale }}{{ comparison_launcher ? ' has-comparison-launcher' }}"
           data-controller="pwa-lifecycle gallery file-drop-area datepicker global-search toast{% if ga_tracking is not empty %} analytics{% endif %}"

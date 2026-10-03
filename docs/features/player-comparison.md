@@ -21,8 +21,8 @@ every device), so you keep adding people while browsing and open the comparison 
 | Cap | Per kind. Members **10** subjects (yourself included when present). Free: **Solo = you + 1 other** (you cannot remove yourself), **Pairs = 2**, **Teams = 2**. |
 | Yourself | You are a row like any other (added automatically the first time you open Solo). Members may remove themselves and compare other people. |
 | Free at the cap | Adding another one offers a **swap** (never a dead end) + one quiet line about membership. |
-| D1 Results layout (3+ subjects) | **Three views behind an icon-only switch**, remembered per player (`player.comparison_view`): **Cards** (default; per puzzle a ranked mini-leaderboard), **Table** (matrix: sticky puzzle column, one column per subject, horizontal scroll), **Duel** (rows of the two highlighted subjects + "3rd of 5 · fastest X" strip). With exactly 2 subjects there is no switch - always duel rows. |
-| D2 Launcher | **Floating pill** bottom-right on every page except the comparison itself: 3 newest mini avatars + "Compare" + count. Shown once any line-up holds someone other than you. |
+| D1 Results layout (3+ subjects) | **Three views behind an icon-only switch**, remembered per player (`player.comparison_view`): **Cards** (default; per puzzle a ranked mini-leaderboard), **Table** (matrix: sticky puzzle column, one column per subject, horizontal scroll), **Duel** (rows of the two highlighted subjects + "3rd of 5 · fastest X" strip - only the puzzles **both of them solved**, "N puzzles you both solved"; the league table above still describes the whole line-up; `ComparisonBuilder::build(…, highlightedPairOnly: true)`, never on the Charts tab). With exactly 2 subjects there is no switch - always duel rows, following "puzzles to show". |
+| D2 Launcher | **Floating pill** bottom-right on every page except the comparison itself: 3 newest mini avatars + "Compare" + count. Shown once any line-up holds someone other than you. A page opts out with `{% set hide_comparison_launcher = true %}` at its top (read by `base.html.twig`): the comparison, every page whose main content is a form (add/edit time incl. relax/collection, puzzle change proposal, edit profile + its settings and list-settings pages, marketplace/collection/wishlist/lend-borrow forms, feedback/contact/feature-request forms, event/round/series forms, voucher, API access request), a chat (conversation, new message), a bottom bar (multiscan) or a running clock (stopwatches) - the pill would sit over their controls. New form pages add the line too. |
 | D3 First tries | Filter is **members-only** (consistent with the profile). Everyone sees the "1st try" badge / "best of N" on every time. |
 | D4 Charts | **Members-only**. Free users get the head-to-head card / league table. |
 | D8 "Someone at your speed" | Members-only "Roll the dice": a random player of similar skill. **Never use the word "rival"** in UI or code (reserved for another feature). |
@@ -51,7 +51,7 @@ squeeze the name to 164 px in Czech); **Favorite becomes star-only below 380 px*
 the name). 360 px was not enough: ja "お気に入り"/"メッセージ" and cs "V oblíbených" wrap up to 378 px. The own-profile
 row (Share + Edit profile + ⋯) is unchanged.
 
-## Page `comparison` - `/{locale}/compare/` (cs `/porovnani/`, de `/de/vergleich/`, es `/es/comparar/`, fr `/fr/comparer/`, ja `/ja/比較/` - pick final slugs not colliding with existing routes), `IS_AUTHENTICATED_REMEMBERED`, `noindex`
+## Page `comparison` - `/{_locale}/compare` (the same English slug in every locale, like other newer routes), `IS_AUTHENTICATED_REMEMBERED`, `noindex`
 
 Top to bottom (mobile first, 320-390 px; desktop: line-up + league/head-to-head in a left column, list right):
 
@@ -147,3 +147,51 @@ N puzzles in common, solves this month. "Add to line-up" / "Roll again". No cand
 private-profile cases for the compare page (blocked subject disappears, private subject only for allow-listed
 viewer); `RobotsTxtTest` + `robots.txt` for the new paths (old Disallow lines stay); `PlayerHeaderTest` retargeted to
 the new button/menu item; query budgets.
+
+## As built (2026-10-03)
+
+Built in one PR from four parallel streams (write side, read side, page, charts + similar speed, entry points),
+then integrated and checked in a browser at 375 px and 1280 px against a copy of the production data.
+
+### Write side
+- `ComparisonSubject` entity (`comparison_subject`, two unique constraints), `ComparisonSubjectRepository`,
+  `player.comparison_view` (`ComparisonView`, default cards).
+- Messages `AddComparisonSubject(playerId, subjectRef, ?replaceSubjectId)`, `RemoveComparisonSubject`,
+  `ChangeComparisonView`. Exceptions are Symfony HTTP exceptions (they arrive unwrapped from the bus):
+  `ComparisonSubjectNotAvailable` 404, `ComparisonLineUpFull` 409 (kind + cap, drives the swap prompt),
+  `ComparisonSubjectNotFound` 404, `CanNotRemoveYourselfFromComparison` 403.
+- `ComparisonSubjectVisibility` decides with **explicit** ids as seen by the owner: only the owner's own blocks
+  hide (being blocked by someone never makes them unavailable - the blocked side must never be able to tell);
+  private players only when revealed (allow list counts only without a block either way); a pair/team with a member
+  the owner blocked is unavailable even when the owner is in it.
+- First Solo add into an empty Solo line-up adds the owner too. Already-present → no-op before the cap check.
+- `PuzzlingTeamMemberConversion::mergeInto()` repoints rows to the surviving team; `DeletePlayerHandler` deletes the
+  player's rows (own and as someone else's subject).
+- The viewer's line-up rides on `GetPlayerProfile::byUserId` (`PlayerProfile::$comparisonLineUp`, one sub-select):
+  `count()`, `hasOthers()`, `countForKind()`, `contains()`, `rowIdOf()`, `refsForKind()`, `recent()` (3 newest for the
+  pill, `isMasked` for blocked/unrevealed), `newestKind()`.
+
+### Read side
+- `ComparisonCriteria::fromUserInput()` (+ `ComparisonShow/Times/Period/Sort`), `normalized()` reflected back into the
+  URL, `toQueryParameters()` for share links. Members-only values from free players are dropped silently.
+- `GetComparisonSubjects::byRefs()` (identities, viewer visibility, `isAvailable`), `GetComparisonResults::forSubjects()`
+  (one aggregate statement for up to 10 refs of one kind; 2 typical players ~2 ms, 10 heaviest 40-49 ms on the prod
+  copy), `GetComparisonPuzzles::byIds()` (hydrates the ≤ 50 shown), `ComparisonBuilder` (pure: ranks, ties = no win,
+  wins, league, head-to-head with the geometric median of time ratios, highlight pair, sorting, paging),
+  `ComparisonChartsData` + `ComparisonChartsFactory` (Chart.js models), `FindSimilarSpeedPuzzler` (seeded, 5-8 ms),
+  `SearchComparisonTeams` (`search()` by team name or member name/#code, `forViewer()`).
+
+### UI
+- Page: `ComparisonController` (`comparison`, `/{_locale}/compare`, `noindex`, `private, no-store`) + Live component
+  `Comparison` (URL-mapped flat props, add/remove/swap/view/preview actions, listens to `comparisonAddSubject`),
+  partials in `templates/comparison/`, `_comparison.scss`, Stimulus `comparison_page|sheet|add`.
+  `ComparisonTeamSearchController` (`/{_locale}/compare/teams.json`, `private, no-store`).
+- Charts: `ComparisonCharts` (Twig component) + `comparison_chart_controller.js` + `_comparison-charts.scss`.
+  `ComparisonSimilarSpeed` (Live component; no query before the first roll; membership checked on every roll).
+- Entry points: `AddComparisonSubjectController` / `RemoveComparisonSubjectController` (POST, stateless CSRF ids
+  `comparison_add` / `comparison_remove`, PRG with flash, `return` validated; a full free line-up redirects to
+  `comparison?kind=…&swap=<ref>`), header compare button + Favorite star rule (`PlayerHeader::$compare`), ⋯ menu,
+  team page button, floating pill `templates/comparison_entry/_launcher.html.twig` (not on the compare page, multiscan,
+  stopwatches, form and chat pages; hidden while a modal or the site search is open).
+- Legacy `compare_players` (old 6 locale paths) → `LegacyComparePlayersController` 302 to the `?with=` preview.
+- Removed: `ComparePlayersController`, `PlayersComparison`, `Value\Comparison`, `compare_players.html.twig`.

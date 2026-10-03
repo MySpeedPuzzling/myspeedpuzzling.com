@@ -36,7 +36,7 @@
                             <td class="cmp-table__cell{{ win ? (this.isSelf(subject.ref) ? ' is-win-self' : ' is-win') }}">
                                 {% if cell is not null %}
                                     {{ include('comparison/_time_link.html.twig', {cell: cell, win: win}) }}
-                                    {% if cell.deltaSeconds > 0 %}<span class="cmp-table__delta">+{{ cell.deltaSeconds|puzzlingTime }}</span>{% endif %}
+                                    {% if cell.deltaSeconds > 0 %}<span class="cmp-table__delta">{{ cell.deltaSeconds|gapTime }}</span>{% endif %}
                                 {% else %}
                                     <span class="cmp-table__none" title="{{ 'comparison.cell.not_solved'|trans }}">—<span class="visually-hidden"> {{ 'comparison.cell.not_solved'|trans }}</span></span>
                                 {% endif %}

@@ -1,5 +1,7 @@
 {% extends 'base.html.twig' %}
 
+{% set hide_comparison_launcher = true %}
+
 {% block title %}
     {% if conversation is defined and conversation is not null %}
         {{ 'messaging.conversation_with'|trans({'%name%': recipient.playerName ?? recipient.code}) }}

@@ -17,7 +17,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="mb-3">{{ ('comparison.swap.lead_' ~ this.activeKind.value)|trans({'%cap%': this.cap}) }}</p>
+                    <p class="mb-3">{{ ('comparison.swap.lead_' ~ this.activeKind.value)|trans({'%count%': this.cap}) }}</p>
 
                     <div class="cmp-swap__incoming">
                         {{ include('comparison/_subject_avatar.html.twig', {subject: incoming, label: incoming_label, role: 'b', size: 'lg'}) }}

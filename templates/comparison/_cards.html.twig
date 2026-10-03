@@ -17,7 +17,7 @@
                                 <div class="cmp-rank__top">
                                     <span class="cmp-rank__name">{{ label }}</span>
                                     {{ include('comparison/_time_link.html.twig', {cell: cell, win: cell.rank == 1 and row.solvedBy > 1}) }}
-                                    <span class="cmp-rank__delta">{{ cell.deltaSeconds > 0 ? '+' ~ cell.deltaSeconds|puzzlingTime }}</span>
+                                    <span class="cmp-rank__delta">{{ cell.deltaSeconds > 0 ? cell.deltaSeconds|gapTime }}</span>
                                 </div>
                                 {{ include('comparison/_cell_meta.html.twig', {cell: cell}) }}
                             </div>

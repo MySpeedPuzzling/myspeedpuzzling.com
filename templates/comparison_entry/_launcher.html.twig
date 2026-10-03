@@ -1,8 +1,9 @@
 {#
     The comparison launcher (docs/features/player-comparison.md, D2): a pill on the bottom right of every page while any
     line-up holds somebody other than the viewer - the newest three as mini avatars, "Compare" and how many. Everything
-    comes from the viewer's own profile row (ComparisonLineUp), so it costs no query. base.html.twig decides where it
-    shows (not on the comparison itself, not over another bottom bar) and makes room for it under the footer.
+    comes from the viewer's own profile row (ComparisonLineUp), so it costs no query. base.html.twig renders it and makes
+    room for it under the footer; a page opts out with `{% set hide_comparison_launcher = true %}` (the comparison
+    itself, forms, chats, bottom bars, running clocks).
 
     Inputs:
       - line_up: ComparisonLineUp of the signed-in viewer (hasOthers() is true)

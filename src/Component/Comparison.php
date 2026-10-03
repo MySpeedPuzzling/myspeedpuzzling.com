@@ -358,6 +358,8 @@ final class Comparison
         }
 
         $this->view = $value->value;
+        // The Duel view lists other puzzles than Cards and Table: back to the first page
+        $this->limit = ComparisonCriteria::PAGE_SIZE;
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 
         if ($profile !== null && $profile->comparisonView !== $value) {
@@ -977,7 +979,13 @@ final class Comparison
             ? $this->getComparisonResults->forSubjects($this->activeKind, $refs, $this->criteria, $withNames)
             : [];
 
-        $result = $this->comparisonBuilder->build($this->compared, $rows, $this->criteria);
+        // The Duel view of 3+ subjects lists only what the highlighted pair both solved (the builder ignores it for two)
+        $result = $this->comparisonBuilder->build(
+            $this->compared,
+            $rows,
+            $this->criteria,
+            highlightedPairOnly: $this->isCharts() === false && $this->view === ComparisonView::Duel->value,
+        );
         $this->result = $result;
         $this->reflectCriteria();
 

@@ -807,12 +807,13 @@ $cmp-bleed: 1rem;
     }
 }
 
-// A compared time - a link to the result detail
+// A compared time - a link to the result detail. Times, gaps and pills never break: a name next to them gives way
 .cmp-time {
     display: inline-block;
     color: $gray-700;
     font-size: 1rem;
     text-decoration: none;
+    white-space: nowrap;
 
     &:hover {
         color: $cmp-text;
@@ -829,10 +830,15 @@ $cmp-bleed: 1rem;
     }
 }
 
+// The line under a time may wrap - between its tokens (day, "1st try", "best of N"), never inside one
 .cmp-meta {
     display: block;
     font-size: .75rem;
     color: $cmp-muted;
+
+    &__token {
+        white-space: nowrap;
+    }
 }
 
 .cmp-badge-first {
@@ -1020,9 +1026,11 @@ $cmp-bleed: 1rem;
         text-align: center;
     }
 
+    // The name takes what is left (ellipsis), never the time or the gap: the gap column fits "+01:02:05" (56.5 px in
+    // Rubik at 12 px) so rows stay aligned, and grows for anything wider instead of wrapping
     &__top {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto 58px;
+        grid-template-columns: minmax(0, 1fr) auto minmax(3.625rem, max-content);
         align-items: center;
         gap: .375rem;
         min-height: 22px;
@@ -1041,6 +1049,7 @@ $cmp-bleed: 1rem;
         font-size: .75rem;
         color: $cmp-muted;
         text-align: right;
+        white-space: nowrap;
     }
 
     .cmp-time {
@@ -1183,6 +1192,7 @@ $cmp-bleed: 1rem;
         display: block;
         font-size: .6875rem;
         color: $cmp-muted;
+        white-space: nowrap;
     }
 
     &__none {

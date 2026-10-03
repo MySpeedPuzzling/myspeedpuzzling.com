@@ -1391,6 +1391,16 @@ players:
 
     suggestions:
         title: "Suggested for you"
+        hint: "Why each one is shown"
+        reason:
+            co_puzzler: "Puzzles with %name%"
+            co_puzzler_unnamed: "Puzzles with someone you puzzle with"
+            same_event: "Also at %event%"
+            similar_time: "Similar 500 time (%time%)"
+            puzzles_in_common: "%count% of the same puzzles"
+        favorite: "Favorite"
+        compare: "Compare"
+        in_comparison: "In comparison"
 
     countries:
         title: "Puzzlers around the world"

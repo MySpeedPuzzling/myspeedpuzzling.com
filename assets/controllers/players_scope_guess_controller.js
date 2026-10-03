@@ -41,11 +41,11 @@ export default class extends Controller {
     pick(event) {
         const code = event.target.value;
 
-        if (code === '') {
+        if (code === '' || code === this.currentValue) {
             return;
         }
 
-        visit(this.urlFor(code));
+        visit(code === 'world' ? this.urlValue : this.urlFor(code));
     }
 
     guess() {

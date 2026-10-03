@@ -58,7 +58,9 @@ Measure every release against this baseline with the same Tempo search.
 
 ## Page layout (top to bottom)
 
-1. **Header**: H1, instant search (name or #code), scope switch `World | <home country> | Another country…`.
+1. **Header**: H1, instant search (name or #code), scope switch `World | <home country>` plus a country typeahead
+   (TomSelect, `country_typeahead_controller.js`): World first, then every country by registered puzzlers, flag and
+   count on each option, typing filters. The same typeahead is the directory's "Where".
    - Home country: the signed-in player's profile country.
    - For guests, a guess from `Accept-Language`'s region (`de-AT` → Austria). It is only offered, never applied.
    - Signed in without a country: the guess, plus the "Add your country" nudge.
@@ -81,7 +83,6 @@ Measure every release against this baseline with the same Tempo search.
    "All N countries".
 6. **Country Cup** (this month): per active puzzler (10+ active) or total pieces. The viewer's country is marked and
    added below the top ten when it falls outside it.
-7. **Your favorites**: the signed-in player's favorites (kept from today's page), compact.
 
 Country page `/{_locale}/players-from-country/{cc}`: the same spotlight for that country plus a **directory**:
 
@@ -274,13 +275,23 @@ translated into all six locales in one pass at the end.
 | Search "jan" + counts | 1.0 ms |
 
 **Statements per page view** (`tests/Controller/PlayersPageQueryBudgetTest.php`): the Players page is 5 for a guest
-and 11 signed in (6 of those are what every signed-in request loads, plus Suggested for you and favorites); the
-directory 2, a country page 5, a player card 2.
+and 10 signed in (what every signed-in request loads, plus Suggested for you); the directory 2, a country page 5, a
+player card 2. The viewer's favorites list was dropped from the page (Jan, 2026-10-03) - it lives on the Favorites
+tab of the profile.
 
 **Indexes**: only `custom_pst_finished_at_solo`, for the Hub (see `docs/database-indexes.md`).
 - A plain `finished_at` index was measured and rejected: it made `getOldestResultDate()` 0.6 → 230 ms.
 - No `COALESCE(finished_at, tracked_at)` index: every query using it is narrowed by player, puzzle or team first.
 - The precomputed tables needed none at this traffic.
+
+### Gotchas
+
+- **Never wrap a page section in `<header>`.** The critical CSS in `base.html.twig` gives every `header` element
+  `backdrop-filter: blur(10px)` (meant for the site's top bar). That makes a stacking context, so a dropdown inside it
+  (the country typeahead) paints *under* positioned content further down the page. The Players page uses
+  `<div class="players-header">`.
+- A native `<select>` sizes itself to its longest option ("United Kingdom of Great Britain and Northern Ireland") and
+  pushed the page sideways on phones - the selects and chips cap their width and truncate.
 
 ### Guards
 

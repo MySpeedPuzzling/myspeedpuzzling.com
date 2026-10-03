@@ -18,11 +18,11 @@
 
 {% block content %}
     <div class="players-page" data-controller="players-card">
-        <header class="players-header">
+        <div class="players-header">
             <h1 class="players-title">{{ 'puzzlers.title'|trans }}</h1>
             {{ include('players/_search.html.twig') }}
             {{ include('players/_scope_switch.html.twig') }}
-        </header>
+        </div>
 
         <twig:Players:CountryNudge />
 
@@ -36,6 +36,5 @@
 
         <twig:Players:CountryCup :scope="scope" />
 
-        {{ include('players/_favorites.html.twig') }}
     </div>
 {% endblock %}

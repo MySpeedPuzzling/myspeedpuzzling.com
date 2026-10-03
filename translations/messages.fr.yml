@@ -1137,13 +1137,13 @@
     "title": "Speed puzzleurs du monde entier"
     "description": "Découvrez des speed puzzleurs du monde entier et de votre pays : les plus actifs ce mois-ci, ceux qui sont sur leur lancée cette semaine, la Coupe des nations et des puzzleurs à suivre."
   "title": "Speed Puzzleurs"
-  "my_favorites": "Mes favoris"
 "players":
   "scope":
     "label": "Afficher les puzzleurs de"
     "world": "Monde"
     "another": "Un autre pays…"
     "show": "Afficher"
+    "no_country": "Aucun pays ne correspond"
   "search":
     "submit": "Rechercher"
     "label": "Rechercher des puzzleurs"

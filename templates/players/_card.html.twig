@@ -16,7 +16,7 @@
     {# Shown only inside the Players page's layer (players_card_controller.js closes it) #}
     <button type="button" class="btn-close players-card-close" data-players-card-close aria-label="{{ 'players.card.close'|trans }}"></button>
 
-    <header class="players-card-id">
+    <div class="players-card-id">
         {{ include('_player_avatar.html.twig', {
             player_id: player.playerId,
             name: name,
@@ -32,7 +32,7 @@
                 {%- if player.countryCode %} · {{ player.countryCode.value }}{% endif -%}
             </div>
         </div>
-    </header>
+    </div>
 
     <dl class="players-card-stats">
         <div class="players-card-stat">

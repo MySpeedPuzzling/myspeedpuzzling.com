@@ -15,7 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 /**
  * The Players pages read precomputed tables, one statement per section (docs/features/players-page/README.md,
  * "Performance budgets"). A guest's page is the whole cost; a signed-in page adds what every signed-in request loads
- * (profile, unread counts) plus Suggested for you and the viewer's favorites.
+ * (profile, unread counts) plus Suggested for you.
  */
 final class PlayersPageQueryBudgetTest extends WebTestCase
 {
@@ -62,7 +62,7 @@ final class PlayersPageQueryBudgetTest extends WebTestCase
         $browser->request('GET', '/en/puzzlers');
 
         self::assertResponseIsSuccessful();
-        // the guest's 5 + suggestions + favorites + what every signed-in request loads
-        $this->assertQueryCountAtMost($browser, 11, 'players page, signed in');
+        // the guest's 5 + suggestions + what every signed-in request loads
+        $this->assertQueryCountAtMost($browser, 10, 'players page, signed in');
     }
 }

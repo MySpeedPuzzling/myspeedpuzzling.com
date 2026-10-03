@@ -4,11 +4,12 @@
     languages, filled in by players_scope_guess_controller.js (guest HTML is shared-cached, so the server never varies
     it by Accept-Language).
 
-    Inputs: scope (CommunityScope), home_country (null|CountryCode), scope_countries (list<CountryCode>, by name)
+    Inputs: scope (CommunityScope), home_country (null|CountryCode), scope_countries (list<CommunityScopeStatistics>, most
+    puzzlers first)
 #}
 {% set country_names = {} %}
-{% for country in scope_countries %}
-    {% set country_names = country_names|merge({(country.name): country.value}) %}
+{% for statistics in scope_countries %}
+    {% set country_names = country_names|merge({(statistics.country.name): statistics.country.value}) %}
 {% endfor %}
 <nav class="players-scope"
      aria-label="{{ 'players.scope.label'|trans }}"
@@ -24,27 +25,29 @@
         </a>
         {% if home_country is not null %}
             <a href="{{ path('players', {scope: home_country.name}) }}" class="players-scope-option{{ scope.country == home_country ? ' is-active' }}"{% if scope.country == home_country %} aria-current="page"{% endif %}>
-                <i class="shadow-custom fi fi-{{ home_country.name }}" aria-hidden="true"></i>{{ home_country.value }}
+                <i class="shadow-custom fi fi-{{ home_country.name }}" aria-hidden="true"></i><span class="players-scope-option-name">{{ home_country.value }}</span>
             </a>
         {% endif %}
         {% if scope.country is not null and scope.country != home_country %}
             <a href="{{ path('players', {scope: scope.country.name}) }}" class="players-scope-option is-active" aria-current="page">
-                <i class="shadow-custom fi fi-{{ scope.country.name }}" aria-hidden="true"></i>{{ scope.country.value }}
+                <i class="shadow-custom fi fi-{{ scope.country.name }}" aria-hidden="true"></i><span class="players-scope-option-name">{{ scope.country.value }}</span>
             </a>
         {% endif %}
         <a href="#" class="players-scope-option" hidden data-players-scope-guess-target="chip">
-            <i class="shadow-custom fi" aria-hidden="true" data-players-scope-guess-target="flag"></i><span data-players-scope-guess-target="name"></span>
+            <i class="shadow-custom fi" aria-hidden="true" data-players-scope-guess-target="flag"></i><span class="players-scope-option-name" data-players-scope-guess-target="name"></span>
         </a>
     </div>
 
     <form method="get" action="{{ path('players') }}" class="players-scope-other">
-        <label class="visually-hidden" for="players-scope-select">{{ 'players.scope.another'|trans }}</label>
-        <select id="players-scope-select" name="scope" class="form-select form-select-sm" data-action="players-scope-guess#pick">
-            <option value="">{{ 'players.scope.another'|trans }}</option>
-            {% for country in scope_countries %}
-                <option value="{{ country.name }}"{% if scope.country == country %} selected{% endif %}>{{ country.value }}</option>
-            {% endfor %}
-        </select>
+        <label class="visually-hidden" for="players-scope-select">{{ 'players.scope.label'|trans }}</label>
+        {{ include('players/_country_select.html.twig', {
+            id: 'players-scope-select',
+            name: 'scope',
+            countries: scope_countries,
+            selected: scope.country,
+            world_value: 'world',
+            action: 'players-scope-guess#pick',
+        }) }}
         <noscript><button type="submit" class="btn btn-sm btn-outline-primary">{{ 'players.scope.show'|trans }}</button></noscript>
     </form>
 </nav>

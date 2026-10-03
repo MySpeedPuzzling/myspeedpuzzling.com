@@ -1136,13 +1136,13 @@
     "title": "Speed puzzleros de todo el mundo"
     "description": "Conoce a speed puzzleros de todo el mundo y de tu país: quién es el más activo este mes, quién está en racha esta semana, la Copa de Países y gente a la que vale la pena seguir."
   "title": "Speed Puzzleros"
-  "my_favorites": "Mis Favoritos"
 "players":
   "scope":
     "label": "Mostrar puzzleros de"
     "world": "Todo el mundo"
     "another": "Otro país…"
     "show": "Mostrar"
+    "no_country": "Ningún país coincide"
   "search":
     "submit": "Buscar"
     "label": "Buscar puzzleros"

@@ -31,6 +31,8 @@
 .players-scope-switch {
     display: inline-flex;
     flex-wrap: wrap;
+    max-width: 100%;
+    min-width: 0;
     gap: 2px;
     padding: 3px;
     border-radius: .625rem;
@@ -46,6 +48,8 @@
     color: $gray-700;
     font-size: .9375rem;
     white-space: nowrap;
+    max-width: 100%;
+    min-width: 0;
 
     &:hover {
         color: $gray-900;
@@ -63,14 +67,116 @@
     }
 }
 
+// A long country name ("United Kingdom of Great Britain and Northern Ireland") shortens instead of widening the page -
+// short enough that two chips still share a row on a phone
+.players-scope-option-name {
+    min-width: 0;
+    max-width: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @include media-breakpoint-up(md) {
+        max-width: 16rem;
+    }
+}
+
 .players-scope-other {
     display: flex;
     gap: .5rem;
+    flex: 1 1 15rem;
+    min-width: 0;
+    max-width: 22rem;
+}
 
-    .form-select {
-        width: auto;
-        min-height: 2.5rem;
+// The country typeahead (templates/players/_country_select.html.twig): a native select until TomSelect takes over
+.players-country-select {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 2.5rem;
+    // 16 px: iOS zooms into a smaller control on focus
+    font-size: 1rem;
+}
+
+.ts-wrapper.players-country-select {
+    // TomSelect's Bootstrap theme: the wrapper keeps .form-select's box and caret, the control inside is transparent
+    min-height: 2.5rem;
+    border-radius: .5rem;
+    background-color: $white;
+    font-size: 1rem;
+
+    .ts-control {
+        flex-wrap: nowrap;
+        align-items: center;
+        min-height: 0;
+        padding-top: .375rem;
+        padding-bottom: .375rem;
+        padding-left: .75rem;
+        // Room for the caret - the theme's own !important padding loses to a global rule in app.scss
+        padding-right: 2.25rem !important;
+        font-size: 1rem;
+
+        > .item {
+            flex: 1 1 auto;
+            min-width: 0;
+            max-width: 100%;
+            margin: 0;
+            padding: 0 !important;
+            overflow: hidden;
+            border: 0;
+            background: none !important;
+        }
+
+        > input {
+            position: absolute;
+            top: 0;
+            left: .75rem;
+            width: calc(100% - 3rem) !important;
+            height: 100%;
+            font-size: 1rem;
+        }
     }
+
+    &.input-active .ts-control > .item {
+        opacity: .2;
+    }
+
+    .ts-dropdown {
+        font-size: .9375rem;
+    }
+
+    .ts-dropdown-content {
+        max-height: 18rem;
+    }
+}
+
+.country-option {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    overflow: hidden;
+
+    > .fi,
+    > .bi {
+        flex: none;
+    }
+}
+
+.country-option-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.country-option-count {
+    flex: none;
+    margin-left: auto;
+    font-size: .8125rem;
+    color: $gray-600;
+    font-variant-numeric: tabular-nums;
 }
 
 // One person in a list (templates/players/_person.html.twig), shared by every section

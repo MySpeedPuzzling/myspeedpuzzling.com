@@ -32,14 +32,15 @@
     >
         <div class="players-directory-filter-row">
             {% if not scopeFixed %}
-                <span class="players-directory-field">
+                <span class="players-directory-field players-directory-field-where">
                     <label class="players-directory-field-label" for="players-directory-scope">{{ 'players.directory.where'|trans }}</label>
-                    <select id="players-directory-scope" name="scope" class="form-select form-select-sm">
-                        <option value="">{{ 'players.scope.world'|trans }}</option>
-                        {% for country in this.countries %}
-                            <option value="{{ country.name }}"{% if criteria.scope.country == country %} selected{% endif %}>{{ country.value }}</option>
-                        {% endfor %}
-                    </select>
+                    {{ include('players/_country_select.html.twig', {
+                        id: 'players-directory-scope',
+                        name: 'scope',
+                        countries: this.countries,
+                        selected: criteria.scope.country,
+                        world_value: '',
+                    }) }}
                 </span>
             {% endif %}
             <span class="players-directory-field">

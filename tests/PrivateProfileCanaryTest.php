@@ -221,8 +221,9 @@ final class PrivateProfileCanaryTest extends WebTestCase
             ['favorites' => json_encode([self::OWNER]), 'id' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
 
+        // The follower's own favorites list - the Players page no longer lists favorites
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-        $content = $this->get($browser, '/en/puzzlers');
+        $content = $this->get($browser, '/en/player-favorites/' . PlayerFixture::PLAYER_WITH_STRIPE);
 
         self::assertStringNotContainsString(self::OWNER_NAME, $content);
         self::assertStringContainsString('Hidden Puzzler', $content);

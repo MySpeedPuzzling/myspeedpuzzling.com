@@ -1134,13 +1134,13 @@
     "title": "Speed Puzzler weltweit"
     "description": "Lernen Sie Speed Puzzler aus aller Welt und aus Ihrem Land kennen: wer diesen Monat am aktivsten ist, wer diese Woche in Fahrt ist, der Länderpokal und Menschen, denen es sich zu folgen lohnt."
   "title": "Speed Puzzler"
-  "my_favorites": "Meine Favoriten"
 "players":
   "scope":
     "label": "Puzzler anzeigen aus"
     "world": "Welt"
     "another": "Anderes Land…"
     "show": "Anzeigen"
+    "no_country": "Kein passendes Land"
   "search":
     "submit": "Suchen"
     "label": "Puzzler suchen"

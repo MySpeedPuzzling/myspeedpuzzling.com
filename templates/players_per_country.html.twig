@@ -21,9 +21,9 @@
 
 {% block content %}
     <div class="players-page" data-controller="players-card">
-        <header class="players-header">
+        <div class="players-header">
             <h1 class="players-title">{{ 'players_per_country.title'|trans({'%country%': country.value}) }} <i class="shadow-custom fi fi-{{ country.name }}" aria-hidden="true"></i></h1>
-        </header>
+        </div>
 
         <twig:Players:Spotlight :scope="scope" :browseLink="false" />
 

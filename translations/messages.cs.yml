@@ -1148,13 +1148,13 @@ comparison:
     "title": "Speed puzzleři z celého světa"
     "description": "Poznej speed puzzlery z celého světa i ze své země: kdo je tento měsíc nejaktivnější, kdo je tento týden v ráži, Pohár zemí a lidé, které stojí za to sledovat."
   "title": "Speed puzzleři"
-  "my_favorites": "Moji oblíbení"
 "players":
   "scope":
     "label": "Zobrazit puzzlery z"
     "world": "Svět"
     "another": "Jiná země…"
     "show": "Zobrazit"
+    "no_country": "Žádná země neodpovídá"
   "search":
     "submit": "Hledat"
     "label": "Hledat puzzlery"

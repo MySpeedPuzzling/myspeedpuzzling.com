@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Component\Players;
 
 use SpeedPuzzling\Web\Query\GetCommunityScopeStats;
+use SpeedPuzzling\Web\Results\CommunityScopeStatistics;
 use SpeedPuzzling\Web\Query\GetPlayersDirectory;
 use SpeedPuzzling\Web\Results\PlayersDirectoryPage;
 use SpeedPuzzling\Web\Value\CommunityScope;
-use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\PlayersDirectoryCriteria;
 use SpeedPuzzling\Web\Value\PlayersDirectorySort;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -41,31 +41,26 @@ final class Directory
     }
 
     /**
-     * The "Where" choices: every country with registered puzzlers, by name, plus the current one if it has none.
-     * Not needed (and not read) on a country page.
+     * The "Where" choices: every country with registered puzzlers, most puzzlers first (the country typeahead's order,
+     * World above them in the template), plus the current one if it has none. Not needed (and not read) on a country
+     * page.
      *
-     * @return list<CountryCode>
+     * @return list<CommunityScopeStatistics>
      */
     public function getCountries(): array
     {
-        $countries = [];
-
-        foreach ($this->getCommunityScopeStats->countries() as $statistics) {
-            $country = $statistics->country();
-
-            if ($country !== null) {
-                $countries[$country->name] = $country;
-            }
-        }
-
+        $countries = $this->getCommunityScopeStats->countries();
         $current = $this->criteria->scope->country;
 
         if ($current !== null) {
-            $countries[$current->name] = $current;
-        }
+            foreach ($countries as $statistics) {
+                if ($statistics->country() === $current) {
+                    return $countries;
+                }
+            }
 
-        $countries = array_values($countries);
-        usort($countries, static fn (CountryCode $a, CountryCode $b): int => strcmp($a->value, $b->value));
+            $countries[] = CommunityScopeStatistics::empty($this->criteria->scope);
+        }
 
         return $countries;
     }

@@ -1347,7 +1347,6 @@ puzzlers:
         title: "Speed Puzzlers Worldwide"
         description: "Meet speed puzzlers from around the world and from your country: who is most active this month, who is on a roll this week, the Country Cup and people worth following."
     title: "Speed Puzzlers"
-    my_favorites: "My Favorites"
 
 players:
     # docs/features/players-page/README.md - one sub-block per section
@@ -1356,6 +1355,7 @@ players:
         world: "World"
         another: "Another country…"
         show: "Show"
+        no_country: "No country matches"
 
     search:
         submit: "Search"

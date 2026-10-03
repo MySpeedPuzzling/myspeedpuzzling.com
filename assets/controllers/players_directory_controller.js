@@ -8,7 +8,12 @@ import { visit } from '@hotwired/turbo';
  * starts again from its first 24 cards. Without JavaScript the <noscript> button submits the form.
  */
 export default class extends Controller {
-    apply() {
+    apply(event) {
+        // The country typeahead's own search box sits inside the form - only real fields apply
+        if (event && event.target instanceof HTMLElement && !event.target.getAttribute('name')) {
+            return;
+        }
+
         const form = this.element;
         const url = new URL(form.getAttribute('action'), window.location.origin);
         const parameters = new URLSearchParams();

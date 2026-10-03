@@ -1,0 +1,22 @@
+{#
+    A country select that country_typeahead_controller.js turns into a typeahead: a flag before every name, the number
+    of registered puzzlers after it, World first, then the countries with the most puzzlers. Without JavaScript it is a
+    plain select (docs/features/players-page/README.md).
+
+    Inputs:
+      - id, name (string)
+      - countries (list<CommunityScopeStatistics>): most puzzlers first (GetCommunityScopeStats::countries())
+      - selected (null|CountryCode): null = World
+      - world_value (string): what World submits - 'world' on the Players page, '' in the directory
+      - action (string, optional): data-action of the select
+#}
+<select id="{{ id }}" name="{{ name }}" class="form-select form-select-sm players-country-select"
+        data-controller="country-typeahead"
+        data-country-typeahead-no-results-value="{{ 'players.scope.no_country'|trans }}"
+        {%- if action is defined %} data-action="{{ action }}"{% endif %}>
+    <option value="{{ world_value }}" data-icon="bi bi-globe2"{% if selected is null %} selected{% endif %}>{{ 'players.scope.world'|trans }}</option>
+    {% for statistics in countries %}
+        {% set country = statistics.country %}
+        <option value="{{ country.name }}" data-icon="fi fi-{{ country.name }}" data-count="{{ statistics.registeredPlayers|format_number }}"{% if selected == country %} selected{% endif %}>{{ country.value }}</option>
+    {% endfor %}
+</select>

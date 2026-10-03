@@ -44,6 +44,18 @@
     }
 }
 
+.players-directory-field-where {
+    flex: 1 1 16rem;
+    max-width: 24rem;
+
+    .players-country-select {
+        flex: 1 1 auto;
+        width: auto;
+        min-width: 0;
+        max-width: 100%;
+    }
+}
+
 .players-directory-field-label {
     flex: none;
     font-size: .875rem;

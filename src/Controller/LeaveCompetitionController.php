@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Message\LeaveCompetition;
-use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,7 +18,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class LeaveCompetitionController extends AbstractController
 {
     public function __construct(
-        private readonly GetCompetitionEvents $getCompetitionEvents,
+        private readonly CompetitionDetailUrl $competitionDetailUrl,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
@@ -39,7 +39,8 @@ final class LeaveCompetitionController extends AbstractController
     )]
     public function __invoke(string $competitionId): Response
     {
-        $competition = $this->getCompetitionEvents->byId($competitionId);
+        // Also the 404 of an unknown competition. For an edition its own page, never event_detail with its slug
+        $competitionUrl = $this->competitionDetailUrl->of($competitionId);
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 
         if ($profile !== null) {
@@ -51,6 +52,6 @@ final class LeaveCompetitionController extends AbstractController
             $this->addFlash('success', $this->translator->trans('flashes.competition_leave_success'));
         }
 
-        return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);
+        return $this->redirect($competitionUrl);
     }
 }

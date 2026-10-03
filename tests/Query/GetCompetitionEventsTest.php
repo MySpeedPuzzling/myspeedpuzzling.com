@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Query;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Message\RejectCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
@@ -95,5 +96,31 @@ final class GetCompetitionEventsTest extends KernelTestCase
         self::assertNotContains(CompetitionSeriesFixture::EDITION_EJJ_68, $ids);
         self::assertNotContains(CompetitionSeriesFixture::EDITION_EJJ_69, $ids);
         self::assertNotContains(CompetitionSeriesFixture::EDITION_OFFLINE_1, $ids);
+    }
+
+    public function testReferenceOfStandaloneEventRoutesToEventDetail(): void
+    {
+        $reference = $this->query->referenceById(CompetitionFixture::COMPETITION_WJPC_2024);
+
+        self::assertSame('event_detail', $reference->routeName());
+        self::assertSame(['slug' => 'wjpc-2024'], $reference->routeParameters());
+    }
+
+    public function testReferenceOfEditionRoutesThroughItsSeries(): void
+    {
+        $reference = $this->query->referenceById(CompetitionSeriesFixture::EDITION_EJJ_69);
+
+        self::assertSame('edition_detail', $reference->routeName());
+        self::assertSame(
+            ['seriesSlug' => 'euro-jigsaw-jam-series', 'editionSlug' => 'ejj-69-may-2026'],
+            $reference->routeParameters(),
+        );
+    }
+
+    public function testReferenceOfUnknownCompetitionIsNotFound(): void
+    {
+        $this->expectException(CompetitionNotFound::class);
+
+        $this->query->referenceById('018d0000-0000-0000-0000-00000000dead');
     }
 }

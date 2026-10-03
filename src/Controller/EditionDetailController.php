@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Query\CountCompetitionResults;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
+use SpeedPuzzling\Web\Query\GetEventAttendance;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -30,6 +31,7 @@ final class EditionDetailController extends AbstractController
         readonly private GetCompetitionEvents $getCompetitionEvents,
         readonly private GetCompetitionSeries $getCompetitionSeries,
         readonly private GetEditionRounds $getEditionRounds,
+        readonly private GetEventAttendance $getEventAttendance,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
@@ -100,6 +102,7 @@ final class EditionDetailController extends AbstractController
             ))),
             'puzzle_statuses' => $puzzleStatuses,
             'can_add_time' => $canAddTime,
+            'attendance' => $this->getEventAttendance->forPlayer($competitionId, $loggedPlayer?->playerId),
         ]);
     }
 }

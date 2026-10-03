@@ -7,10 +7,10 @@
 {% block content %}
     {{ include('_breadcrumb.html.twig', {items: [
         {label: 'events.title'|trans, url: path('events')},
-        {label: competition.name, url: path('event_detail', {'slug': competition.slug})},
+        {label: competition.name, url: competition_url},
         {label: 'competition.join.title'|trans({'%competitionName%': ''})},
     ]}) }}
-    {{ include('_return_back_button.html.twig', {fallbackUrl: path('event_detail', {'slug': competition.slug}), fallbackTitle: competition.name}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: competition_url, fallbackTitle: competition.name}) }}
 
     <div class="pb-4">
         <h1 class="h2">{{ 'competition.join.title'|trans({'%competitionName%': competition.name}) }}</h1>

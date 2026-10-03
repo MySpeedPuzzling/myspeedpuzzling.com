@@ -73,6 +73,8 @@ Replaces both the old "Connect my profile" flow (`CompetitionConnectionControlle
 | Logged in, already joined/connected (self-joined) | "You're going ✓" + "Change" link + "Leave" option (soft deletes) |
 | Logged in, already connected (to imported/manual participant) | "You're going ✓" + "Change" link + "Disconnect" option (unlinks, keeps participant record) |
 
+Standalone events (`event_detail`) and series editions (`edition_detail`) render the same partial `templates/_event_attendance.html.twig` (above the participants list), its state from `GetEventAttendance` (one statement for a signed-in player, none for a visitor). Joining, leaving and the picker's links back go to the competition's own page via `CompetitionDetailUrl` — for an edition always `edition_detail`, never `event_detail` with its slug (an edition slug is only unique within its series).
+
 **"Change" link** navigates to the pairing screen where the user can switch which participant they're linked to (pick a different name from the organizer's list). Useful when a user accidentally connected to the wrong participant.
 
 ### Flow After Clicking "I'm Going"

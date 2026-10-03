@@ -9,6 +9,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Results\CompetitionEvent;
+use SpeedPuzzling\Web\Results\CompetitionReference;
 
 /**
  * @phpstan-import-type CompetitionEventDatabaseRow from CompetitionEvent
@@ -41,6 +42,42 @@ readonly final class GetCompetitionEvents
         }
 
         return CompetitionEvent::fromDatabaseRow($data);
+    }
+
+    /**
+     * What a link to the competition's own page needs, whatever its kind or visibility: an edition is
+     * reached through its series (CompetitionReference::routeName()).
+     */
+    public function referenceById(string $competitionId): CompetitionReference
+    {
+        if (Uuid::isValid($competitionId) === false) {
+            throw new CompetitionNotFound();
+        }
+
+        $query = <<<SQL
+SELECT c.name, c.slug, cs.name AS series_name, cs.slug AS series_slug
+FROM competition c
+LEFT JOIN competition_series cs ON cs.id = c.series_id
+WHERE c.id = :id
+SQL;
+
+        /** @var false|array{name: string, slug: null|string, series_name: null|string, series_slug: null|string} $row */
+        $row = $this->database
+            ->executeQuery($query, [
+                'id' => $competitionId,
+            ])
+            ->fetchAssociative();
+
+        if ($row === false) {
+            throw new CompetitionNotFound();
+        }
+
+        return new CompetitionReference(
+            name: $row['name'],
+            slug: $row['slug'],
+            seriesName: $row['series_name'],
+            seriesSlug: $row['series_slug'],
+        );
     }
 
     /**

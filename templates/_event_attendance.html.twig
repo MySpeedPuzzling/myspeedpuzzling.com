@@ -1,0 +1,29 @@
+{#
+    "I'm going" of a competition page - a standalone event (event_detail) and an edition of a series
+    (edition_detail) share it, as they share the whole join flow (docs/features/competitions-management/participants.md).
+    Only the buttons: the including page wraps them and may add its own buttons to the row.
+
+    - competition_id: the competition's id
+    - attendance: SpeedPuzzling\Web\Results\EventAttendance (GetEventAttendance)
+
+    A visitor gets "I'm going" too - joining asks them to sign in first and brings them back.
+#}
+{% if attendance.isGoing %}
+    <span class="btn btn-sm btn-success disabled me-2">
+        <i class="bi bi-check-lg me-1"></i>{{ 'competition.join.you_are_going'|trans }}
+    </span>
+    {% if attendance.canChangeParticipant %}
+        <a href="{{ path('join_competition', {'competitionId': competition_id}) }}" class="btn btn-sm btn-outline-secondary me-1">
+            {{ 'competition.join.change'|trans }}
+        </a>
+    {% endif %}
+    <form method="post" action="{{ path('leave_competition', {'competitionId': competition_id}) }}" class="d-inline">
+        <button type="submit" class="btn btn-sm btn-outline-danger">
+            {{ 'competition.join.leave'|trans }}
+        </button>
+    </form>
+{% else %}
+    <a href="{{ path('join_competition', {'competitionId': competition_id}) }}" class="btn btn-sm btn-primary">
+        <i class="bi bi-person-plus me-1"></i>{{ 'competition.join.im_going'|trans }}
+    </a>
+{% endif %}

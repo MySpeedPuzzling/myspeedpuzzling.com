@@ -1,2 +1,148 @@
-{# Stream S4 builds this (docs/features/players-page/README.md) #}
-<div {{ attributes }} hidden></div>
+{#
+    The Country Cup (docs/features/players-page/README.md, stream S4). Four boards - per active puzzler or total pieces,
+    last month or this month - all rendered here and switched by players_tabs_controller.js without a request; without
+    JavaScript the default board stays. The viewer's country is highlighted and, like the page scope's country, added
+    under the leaders with its real position when it is not among them.
+#}
+{% macro row(row, per_puzzler, minimum) %}
+    <tr class="players-cup-row{{ row.isViewerCountry ? ' is-viewer' }}{{ row.isScopeCountry ? ' is-scope' }}">
+        <td class="players-cup-position">{{ row.position ?? '–' }}</td>
+        <th scope="row" class="players-cup-country">
+            <a href="{{ path('players', {scope: row.country.name}) }}" title="{{ row.country.value }}">
+                <i class="fi fi-{{ row.country.name }}" aria-hidden="true"></i>
+                <span class="players-cup-country-name">{{ row.country.value }}</span>
+            </a>
+            {%- if row.isViewerCountry %}<span class="visually-hidden"> {{ 'players.cup.your_country'|trans }}</span>{% endif -%}
+        </th>
+        <td class="players-cup-bar" aria-hidden="true">
+            {%- if row.position is not null %}<span style="width: {{ row.barPercent }}%"></span>{% endif -%}
+        </td>
+        <td class="players-cup-value">
+            {%- if row.value is null -%}
+                {{ 'players.cup.below_minimum'|trans({'%active%': row.active|format_number, '%minimum%': minimum}) }}
+            {%- elseif per_puzzler -%}
+                {{ row.value|format_number }}<span class="players-cup-detail"> {{ 'players.cup.per_puzzler_detail'|trans({'%active%': row.active|format_number}) }}</span>
+            {%- else -%}
+                {{ row.value|format_number }}<span class="players-cup-detail"> {{ 'players.cup.pieces'|trans }}</span>
+            {%- endif -%}
+        </td>
+    </tr>
+{% endmacro %}
+
+{% if this.hasNumbers %}
+    {% set standings = this.standings %}
+    {% set default_period = this.defaultPeriod %}
+    {% set default_measure = 'per_puzzler' %}
+    {% set viewer_country = this.viewerCountry %}
+    {% set minimum = constant('SpeedPuzzling\\Web\\Results\\CommunityScopeStatistics::CUP_MINIMUM_ACTIVE') %}
+    {% set period_labels = {} %}
+    {% for period in this.periods %}
+        {% set month = this.month(period)|format_date(pattern: 'LLLL') %}
+        {% set period_labels = period_labels|merge({(period.value): (period.value == 'this_month' ? 'players.cup.this_month' : 'players.cup.last_month')|trans({'%month%': month})}) %}
+    {% endfor %}
+    {% set measure_labels = {
+        per_puzzler: 'players.cup.measure.per_puzzler'|trans,
+        total: 'players.cup.measure.total'|trans,
+    } %}
+
+    <section {{ attributes.defaults({class: 'players-section players-cup'}) }}
+             aria-labelledby="players-cup-title"
+             data-controller="players-tabs"
+    >
+        <div class="players-cup-head">
+            <h2 class="players-section-title" id="players-cup-title">{{ 'players.cup.title'|trans }}</h2>
+            <div class="players-cup-switches">
+                <div class="players-tabs" role="tablist" aria-label="{{ 'players.cup.period_label'|trans }}">
+                    {% for period in this.periods %}
+                        {% set selected = period == default_period %}
+                        <button type="button"
+                                class="players-tab"
+                                role="tab"
+                                id="players-cup-tab-{{ period.value }}"
+                                aria-controls="players-cup-boards"
+                                aria-selected="{{ selected ? 'true' : 'false' }}"
+                                tabindex="{{ selected ? '0' : '-1' }}"
+                                data-players-tabs-target="tab"
+                                data-players-tabs-group-param="period"
+                                data-players-tabs-value-param="{{ period.value }}"
+                                data-action="players-tabs#select keydown->players-tabs#navigate"
+                        >{{ period_labels[period.value] }}</button>
+                    {% endfor %}
+                </div>
+                <div class="players-tabs" role="tablist" aria-label="{{ 'players.cup.measure_label'|trans }}">
+                    {% for measure, label in measure_labels %}
+                        {% set selected = measure == default_measure %}
+                        <button type="button"
+                                class="players-tab"
+                                role="tab"
+                                id="players-cup-tab-{{ measure }}"
+                                aria-controls="players-cup-boards"
+                                aria-selected="{{ selected ? 'true' : 'false' }}"
+                                tabindex="{{ selected ? '0' : '-1' }}"
+                                data-players-tabs-target="tab"
+                                data-players-tabs-group-param="measure"
+                                data-players-tabs-value-param="{{ measure }}"
+                                data-action="players-tabs#select keydown->players-tabs#navigate"
+                        >{{ label }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div id="players-cup-boards">
+            {% for board in standings %}
+                {% set per_puzzler = board.measure.value == 'per_puzzler' %}
+                {% set month = this.month(board.period)|format_date(pattern: 'LLLL') %}
+                <div class="players-cup-board"
+                     role="tabpanel"
+                     aria-labelledby="players-cup-tab-{{ board.period.value }} players-cup-tab-{{ board.measure.value }}"
+                     data-players-tabs-target="panel"
+                     data-tab-period="{{ board.period.value }}"
+                     data-tab-measure="{{ board.measure.value }}"
+                     {{- board.period == default_period and board.measure.value == default_measure ? '' : ' hidden' }}
+                >
+                    {% if board.top is empty %}
+                        <p class="players-cup-empty">
+                            {{ (per_puzzler ? 'players.cup.empty_per_puzzler' : 'players.cup.empty_total')|trans({'%minimum%': minimum, '%month%': month}) }}
+                        </p>
+                    {% else %}
+                        <table class="players-cup-table">
+                            <caption class="visually-hidden">{{ measure_labels[board.measure.value] }} · {{ period_labels[board.period.value] }}</caption>
+                            <thead class="visually-hidden">
+                                <tr>
+                                    <th scope="col">{{ 'players.cup.position'|trans }}</th>
+                                    <th scope="col">{{ 'players.cup.country'|trans }}</th>
+                                    <td></td>
+                                    <th scope="col">{{ (per_puzzler ? 'players.cup.column_per_puzzler' : 'players.cup.column_total')|trans }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in board.top %}
+                                    {{ _self.row(row, per_puzzler, minimum) }}
+                                {% endfor %}
+                            </tbody>
+                            {% if board.marked is not empty %}
+                                <tbody class="players-cup-marked">
+                                    {% for row in board.marked %}
+                                        {{ _self.row(row, per_puzzler, minimum) }}
+                                    {% endfor %}
+                                </tbody>
+                            {% endif %}
+                        </table>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <p class="players-cup-note">
+            <span data-players-tabs-target="panel" data-tab-measure="per_puzzler">{{ 'players.cup.note_minimum'|trans({'%minimum%': minimum}) }}</span>
+            {% if viewer_country is not null %}
+                {{ 'players.cup.note_your_country'|trans({'%country%': viewer_country.value}) }}
+            {% elseif this.signedIn %}
+                <a href="{{ path('edit_profile') }}">{{ 'players.cup.note_no_country'|trans }}</a>
+            {% else %}
+                {{ 'players.cup.note_guest'|trans }}
+            {% endif %}
+        </p>
+    </section>
+{% endif %}

@@ -1384,9 +1384,45 @@ players:
 
     countries:
         title: "Puzzlers around the world"
+        order_label: "Order countries by"
+        order:
+            most_active: "Most active"
+            most_puzzlers: "Most puzzlers"
+            rising: "Rising"
+        active_of: "active of %registered%"
+        registered_active: "registered · %active% active"
+        rising_label: "solves vs the 30 days before"
+        trend: "%change%% solves"
+        rising_empty: "No country had %minimum% solves in the 30 days before to compare with."
+        all: "All %count% countries"
+        country: "Country"
+        registered: "Registered"
+        active: "Active"
+        active_hint: "Active: solved a puzzle in the last 30 days."
 
     cup:
         title: "Country Cup"
+        period_label: "Month"
+        this_month: "%month% so far"
+        last_month: "%month% final"
+        measure_label: "Measure"
+        measure:
+            per_puzzler: "Per active puzzler"
+            total: "Total pieces"
+        position: "Position"
+        country: "Country"
+        column_per_puzzler: "Pieces per active puzzler"
+        column_total: "Pieces"
+        your_country: "(your country)"
+        per_puzzler_detail: "per puzzler · %active% active"
+        pieces: "pieces"
+        below_minimum: "%active% active · ranked from %minimum%"
+        empty_per_puzzler: "No country with %minimum% active puzzlers in %month% so far."
+        empty_total: "No pieces in %month% so far."
+        note_minimum: "Countries with at least %minimum% active puzzlers."
+        note_your_country: "Every puzzle you log adds its pieces to %country%."
+        note_no_country: "Add your country and your pieces count for it."
+        note_guest: "Sign in and log a puzzle to add your pieces to your country."
 
     directory:
         title: "All puzzlers"

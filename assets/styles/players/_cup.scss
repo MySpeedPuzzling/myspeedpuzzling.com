@@ -1,1 +1,132 @@
-// Country Cup (stream S4)
+// Country Cup (stream S4): templates/components/Players/CountryCup.html.twig. The tabs (.players-tabs) and the colours
+// come from _countries.scss.
+
+.players-cup-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem 1rem;
+    margin-bottom: .875rem;
+
+    .players-section-title {
+        margin-bottom: 0;
+    }
+}
+
+.players-cup-switches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.players-cup-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .875rem;
+
+    th,
+    td {
+        padding: .1875rem .25rem;
+        vertical-align: middle;
+    }
+
+    .players-cup-position {
+        padding-right: .5rem;
+    }
+}
+
+.players-cup-position {
+    width: 1.75rem;
+    color: $players-countries-muted;
+    font-size: .75rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.players-cup-country {
+    width: 1%;
+    font-weight: 400;
+    white-space: nowrap;
+
+    a {
+        display: flex;
+        align-items: center;
+        gap: .4375rem;
+        max-width: 9.5rem;
+        color: $gray-800;
+    }
+
+    .fi {
+        flex: none;
+        border-radius: 2px;
+        box-shadow: 0 0 0 1px rgba($black, .08);
+    }
+}
+
+.players-cup-country-name {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.players-cup-bar {
+    min-width: 2.5rem;
+
+    > span {
+        display: block;
+        min-width: 2px;
+        height: .75rem;
+        border-radius: 0 .25rem .25rem 0;
+        background: $accent;
+    }
+}
+
+.players-cup-value {
+    width: 1%;
+    color: $gray-700;
+    font-size: .75rem;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+// "per puzzler · 45 active" / "pieces" - only where there is room for it
+.players-cup-detail {
+    display: none;
+
+    @include media-breakpoint-up(sm) {
+        display: inline;
+    }
+}
+
+.players-cup-row {
+    &.is-scope > * {
+        background: $gray-100;
+    }
+
+    &.is-viewer {
+        .players-cup-bar > span {
+            background: $primary;
+        }
+
+        .players-cup-country a,
+        .players-cup-value {
+            color: $gray-800;
+            font-weight: 500;
+        }
+    }
+}
+
+// The viewer's / the scope's country below the leaders
+.players-cup-marked > tr:first-child > * {
+    padding-top: .5rem;
+    border-top: 1px dashed $gray-300;
+}
+
+.players-cup-empty,
+.players-cup-note {
+    margin: .75rem 0 0;
+    color: $players-countries-muted;
+    font-size: .8125rem;
+}

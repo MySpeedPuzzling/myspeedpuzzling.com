@@ -33,9 +33,6 @@ use SpeedPuzzling\Web\Value\TimePredictionSource;
 
 #[Entity]
 #[Index(columns: ['tracked_at'])]
-// Hub "Most active solo players" ranges over a month of finished_at across all results: measured on production-sized
-// data 72 -> 48 ms for a full month, 37 -> 10 ms early in a month (docs/features/players-page/README.md)
-#[Index(columns: ['finished_at'])]
 #[Index(columns: ['puzzlers_count'])]
 #[Index(columns: ['puzzling_type'])]
 #[HasDeleteDomainEvent(PuzzleSolvingTimeDeleted::class)]

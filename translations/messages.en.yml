@@ -3949,6 +3949,109 @@ wjpf:
         confirm: "Connect accounts"
         cancel: "Cancel"
 
+comparison_charts:
+    you: "You"
+    you_mid: "you"
+    unavailable: "No longer available"
+    footnote: "Charts use the same filters as the list."
+    too_thin: "Not enough to draw yet – this chart needs at least %count% puzzles compared under these filters."
+    puzzle_fallback: "%pieces% pc puzzle"
+    pieces: "%pieces% pieces"
+    rest_of_line_up: "Rest of the line-up"
+    time_of: "%name%: %time%"
+    axis:
+        minutes: "%count% min"
+        seconds: "%count% s"
+        percent: "%value%%"
+    lead_lag:
+        title: "Who's ahead, puzzle by puzzle"
+        summary: "Time difference per puzzle between %a% and %b%, sorted from the biggest lead of %a% to the biggest lead of %b%."
+        faster: "%name% faster"
+        faster_by: "%name% faster by %time%"
+        axis_start: "← %name% faster"
+        axis_end: "%name% faster →"
+        shown: "%shown% of %total% shown: the biggest leads and lags"
+        ties: "%count% dead heat|%count% dead heats"
+        takeaway:
+            you: "You lead on %count% of %total% puzzles"
+            other: "%name% leads on %count% of %total% puzzles"
+            level: "All square: ahead on %count% puzzles each, of %total%"
+            biggest: "biggest lead %time%"
+            biggest_on: "biggest lead %time% on %puzzle%"
+    scatter:
+        title:
+            a_you: "Your time vs %name%'s"
+            b_you: "%name%'s time vs yours"
+            other: "%a%'s time vs %b%'s"
+        summary: "Each puzzle both solved as a dot: the time of %a% up, the time of %b% across. Below the dashed line %a% was faster."
+        same_time: "Same time"
+        axis_y:
+            you: "↑ Your time"
+            other: "↑ %name%'s time"
+        axis_x:
+            you: "Your time →"
+            other: "%name%'s time →"
+        takeaway:
+            below:
+                you: "Below the line you were faster: %count% of %total% puzzles"
+                other: "Below the line %name% was faster: %count% of %total% puzzles"
+            longer:
+                you: "You win more often on the longer puzzles, %other% on the shorter ones"
+                other: "%name% wins more often on the longer puzzles, %other% on the shorter ones"
+    pace:
+        title: "Pace by piece count"
+        summary: "Median pace against the line-up median per piece count (%buckets%). Left of zero is faster, right is slower."
+        bucket: "%pieces% pc"
+        faster: "%name%: %percent%% faster than the line-up median"
+        slower: "%name%: %percent%% slower than the line-up median"
+        even: "%name%: on the line-up median"
+        puzzles: "%count% puzzle compared|%count% puzzles compared"
+        axis_start: "← faster"
+        axis_end: "slower →"
+        takeaway:
+            quickest: "Quickest against the line-up: %list%"
+            quickest_item: "%name% at %pieces% pieces"
+            single: "Against the line-up median at %pieces% pieces: %list%"
+            single_item: "%name% %percent%"
+    form:
+        title: "Form over time"
+        summary: "Monthly median pace against the line-up median, %from% to %to%. Above zero is faster."
+        axis_start: "% faster than the line-up median"
+        axis_end: "%from% – %to%"
+        takeaway:
+            gained: "%name% gained %count% point on the line-up since %month%|%name% gained %count% points on the line-up since %month%"
+            lost: "%name% lost %count% point on the line-up since %month%|%name% lost %count% points on the line-up since %month%"
+            steady: "%name% held steady against the line-up since %month%"
+    matrix:
+        title: "Head to head"
+        summary: "Read across: how often each row beat each column, counted on the puzzles both solved."
+        takeaway: "Read across: %row% beat %column% on %count% puzzle|Read across: %row% beat %column% on %count% puzzles"
+        cell: "%row% beat %column% on %wins% of %count% puzzle both solved|%row% beat %column% on %wins% of %count% puzzles both solved"
+        cell_none: "%row% and %column% have no puzzle in common"
+        ramp_low: "Fewer wins"
+        ramp_high: "More"
+
+comparison_similar:
+    title: "Someone at your speed"
+    intro: "A random player with skill close to yours who solved puzzles you did"
+    roll: "Roll the dice"
+    roll_again: "Roll again"
+    add: "Add to line-up"
+    added: "%name% is in your line-up now."
+    view_profile: "View profile"
+    nobody: "Nobody new at your speed right now — solve a few more puzzles and try again"
+    footnote: "Picked from players with public profiles who take part in rankings."
+    tier_title: "Skill tier, %pieces% pieces"
+    reason:
+        speed: "Similar speed"
+        skill: "Top %their%% at %pieces% pieces, you are top %yours%%"
+        baseline: "Usually %their% for %pieces% pieces, you %yours%"
+        shared: "%count% puzzle you both solved|%count% puzzles you both solved"
+        shared_detail: "Enough for a fair head to head"
+        recent: "{0}Nothing solved in the last 30 days|{1}Solved %count% puzzle in the last 30 days|]1,Inf[Solved %count% puzzles in the last 30 days"
+        recent_detail: "Active, so the race stays alive"
+        recent_none_detail: "Last solved within the past year"
+
 puzzle_picker:
     draw:
         caption_1: "Shuffling your shelf…"

@@ -166,12 +166,13 @@ button.player-chip:hover {
     margin: 0;
 }
 
-// "New" on the icon's top edge - centred, so a long word ("Nouveau") never runs into the ⋯ button beside it
+// "New" on the icon's top edge - centred, so a long word ("Nouveau") never runs into the ⋯ button beside it.
+// Three classes on purpose: Bootstrap's `.btn .badge { position: relative }` would otherwise keep it in the button's flow.
 .player-head-compare .more-btn {
     position: relative;
 }
 
-.player-head-compare__new {
+.player-head-compare .more-btn .player-head-compare__new {
     position: absolute;
     top: 0;
     left: 50%;

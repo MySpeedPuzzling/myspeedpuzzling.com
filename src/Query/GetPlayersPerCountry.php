@@ -5,16 +5,13 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
-use SpeedPuzzling\Web\Results\PlayerIdentification;
 use SpeedPuzzling\Web\Results\PlayersPerCountry;
-use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\CountryCode;
 
 readonly final class GetPlayersPerCountry
 {
     public function __construct(
         private Connection $database,
-        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -48,9 +45,9 @@ SQL;
     }
 
     /**
-     * Countries whose players page lists somebody for an anonymous visitor (the same rule as
-     * byCountry() without a viewer). The page is noindex without players, so only these belong
-     * in the sitemap.
+     * Countries whose players page lists somebody for an anonymous visitor (public profiles,
+     * GetPlayersDirectory). The page is noindex without players, so only these belong in the
+     * sitemap.
      *
      * @return list<CountryCode>
      */
@@ -83,45 +80,25 @@ SQL;
     }
 
     /**
-     * @return array<PlayerIdentification>
+     * Whether the country page lists anybody for an anonymous visitor - the page is noindex without public players
+     * (the same rule as countriesWithPublicPlayers(), which feeds the sitemap). Independent of the viewer on purpose.
      */
-    public function byCountry(CountryCode $countryCode): array
+    public function hasPublicPlayers(CountryCode $countryCode): bool
     {
-        $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
-
         $query = <<<SQL
-SELECT
-    id AS player_id,
-    name AS player_name,
-    code AS player_code,
-    country AS player_country,
-    avatar AS player_avatar
-FROM player
-WHERE player.country = :countryCode
-    AND player.is_private = false
-    {$notHidden}
-ORDER BY name
+SELECT EXISTS (
+    SELECT 1
+    FROM player
+    WHERE country = :countryCode
+        AND is_private = false
+)
 SQL;
 
-        $data = $this->database
+        return (bool) $this->database
             ->executeQuery($query, [
                 'countryCode' => $countryCode->name,
             ])
-            ->fetchAllAssociative();
-
-        return array_map(static function (array $row): PlayerIdentification {
-            /**
-             * @var array{
-             *     player_id: string,
-             *     player_code: string,
-             *     player_name: null|string,
-             *     player_country: null|string,
-             *     player_avatar: null|string,
-             * } $row
-             */
-
-            return PlayerIdentification::fromDatabaseRow($row);
-        }, $data);
+            ->fetchOne();
     }
 
     /**

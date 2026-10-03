@@ -1390,6 +1390,40 @@ players:
 
     directory:
         title: "All puzzlers"
+        title_country: "All puzzlers from %country%"
+        meta_description: "Browse every speed puzzler with a public profile on MySpeedPuzzling: who is most active this month, who competes in events and who swaps puzzles."
+        where: "Where"
+        sort_label: "Sort"
+        sorts:
+            active: "Most active this month"
+            recent: "Recently active"
+            newest: "Newest"
+            followed: "Most followed"
+            name: "A–Z"
+        filters_label: "Show only"
+        filter:
+            active: "Active this month"
+            events: "Competes in events"
+            swaps: "Swaps puzzles"
+            instagram: "On Instagram"
+        apply: "Apply"
+        count: "{0}No puzzlers|{1}1 puzzler|]1,Inf[%number% puzzlers"
+        showing: "showing %shown%"
+        card:
+            this_month: "this month"
+            best500: "best 500"
+            favorites: "in favorites"
+            events: "Events"
+            swaps: "Swaps"
+            instagram: "Instagram"
+            quiet: "Quiet this month"
+        show_more: "Show more"
+        limit_reached: "Showing the first %shown%. The filters above narrow the list down."
+        empty: "No puzzler has a public profile yet."
+        empty_filtered: "Nobody matches all of these filters yet."
+        clear_filters: "Clear the filters"
+        back: "Back to Players"
+        back_country: "Players in %country%"
 
     nudge:
         title: "You're not on the map yet"

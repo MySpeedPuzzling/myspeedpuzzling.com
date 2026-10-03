@@ -43,6 +43,34 @@ final class GetCommunityScopeStats implements ResetInterface
     }
 
     /**
+     * The scope's numbers and the world's in one statement - the spotlight sets a country against the world. For the
+     * world both are the same row; a scope nobody computed yet is empty.
+     *
+     * @return array{scope: CommunityScopeStatistics, world: CommunityScopeStatistics}
+     */
+    public function forScopeWithWorld(CommunityScope $scope): array
+    {
+        $rows = $this->database
+            ->executeQuery(
+                'SELECT ' . self::COLUMNS . ' FROM community_scope_stats WHERE scope IN (:scope, :world)',
+                ['scope' => $scope->key(), 'world' => CommunityScope::WORLD],
+            )
+            ->fetchAllAssociative();
+
+        $byScope = [];
+
+        foreach ($rows as $row) {
+            /** @var array{scope: string, registered_players: int|string, active30d: int|string, solves30d: int|string, solves_prev30d: int|string, active_this_month: int|string, pieces_this_month: int|string, active_last_month: int|string, pieces_last_month: int|string, median_best500_seconds: null|int|string, puzzlers_with500: int|string, monthly_solves: string, new_faces14d: int|string, computed_at: string} $row */
+            $byScope[$row['scope']] = CommunityScopeStatistics::fromDatabaseRow($row);
+        }
+
+        return [
+            'scope' => $byScope[$scope->key()] ?? CommunityScopeStatistics::empty($scope),
+            'world' => $byScope[CommunityScope::WORLD] ?? CommunityScopeStatistics::empty(CommunityScope::world()),
+        ];
+    }
+
+    /**
      * Every country with at least one registered player, most registered first. Rows whose code is not a known
      * country are left out.
      *

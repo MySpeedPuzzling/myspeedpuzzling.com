@@ -106,6 +106,29 @@ readonly final class CommunityScopeStatistics
     }
 
     /**
+     * A country with fewer active puzzlers than this gets the spotlight's "small and growing" note
+     */
+    public const int SMALL_COMMUNITY_ACTIVE = 15;
+
+    public function isSmallCommunity(): bool
+    {
+        return $this->scope->isWorld() === false && $this->active30d < self::SMALL_COMMUNITY_ACTIVE;
+    }
+
+    /**
+     * How many seconds faster this scope's median best 500 is than another scope's (the world): positive = faster,
+     * negative = slower; null when either has no 500 time.
+     */
+    public function medianBest500FasterThan(self $other): null|int
+    {
+        if ($this->medianBest500Seconds === null || $other->medianBest500Seconds === null) {
+            return null;
+        }
+
+        return $other->medianBest500Seconds - $this->medianBest500Seconds;
+    }
+
+    /**
      * Pieces placed this month per active puzzler - the Country Cup's default measure. Null below the minimum of
      * active puzzlers, so one very busy person cannot top the Cup.
      */

@@ -34,6 +34,23 @@ every device), so you keep adding people while browsing and open the comparison 
 | D14 | No feature flag - public immediately. |
 | D15 | All 6 locales in the same delivery. |
 
+### Header actions (D11) - measured 2026-10-03 in all 6 locales (real CSS, Rubik, mobile emulation)
+
+Smallest width where every label stays on one line with full padding (Message present, worst of favorite/favorite_on):
+
+| Row | en | cs | de | es | fr | ja | all 6 |
+|---|---|---|---|---|---|---|---|
+| Fav label + Msg + compare icon + ⋯ | 344 | 364 | 343 | 341 | 330 | **379** | **379** |
+| Star + Msg + compare icon + ⋯ | 291 | 277 | 298 | 287 | 291 | 306 | **306** |
+| Fav label + Msg + compare text + ⋯ | 405 | **424** | 423 | 407 | 396 | 406 | 424 |
+| No Message: Fav label + compare icon + ⋯ | 234 | 267 | 226 | 234 | 220 | 254 | 267 |
+
+So: **compare is icon-only everywhere** (a text label fits all locales only from 424 px, and at 768-991 px it would
+squeeze the name to 164 px in Czech); **Favorite becomes star-only below 380 px** when the row also holds Message
+(`max-width: 379.98px` + `:has(> .player-head-message)`; the label sits in its own span, `aria-label`/`title` carry
+the name). 360 px was not enough: ja "お気に入り"/"メッセージ" and cs "V oblíbených" wrap up to 378 px. The own-profile
+row (Share + Edit profile + ⋯) is unchanged.
+
 ## Page `comparison` - `/{locale}/compare/` (cs `/porovnani/`, de `/de/vergleich/`, es `/es/comparar/`, fr `/fr/comparer/`, ja `/ja/比較/` - pick final slugs not colliding with existing routes), `IS_AUTHENTICATED_REMEMBERED`, `noindex`
 
 Top to bottom (mobile first, 320-390 px; desktop: line-up + league/head-to-head in a left column, list right):

@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\DeletePlayer;
 use SpeedPuzzling\Web\Query\GetModerationActions;
+use SpeedPuzzling\Web\Tests\DataFixtures\ComparisonSubjectFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ModerationActionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -216,6 +217,63 @@ final class DeletePlayerHandlerTest extends KernelTestCase
         self::assertSame('Speedsters', $connection->fetchOne('SELECT name FROM puzzling_team WHERE id = :id', ['id' => $guestPairId]));
     }
 
+    public function testComparisonLineUpsFollowTheMergedPair(): void
+    {
+        $connection = $this->entityManager->getConnection();
+        $private = $this->entityManager->find(Player::class, PlayerFixture::PLAYER_PRIVATE);
+        self::assertNotNull($private);
+
+        // PLAYER_WITH_STRIPE compares the account pair (ComparisonSubjectFixture::STRIPE_PAIR)
+        $accountPairId = $connection->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => PuzzleSolvingTimeFixture::TIME_12]);
+        self::assertIsString($accountPairId);
+
+        $this->messageBus->dispatch(new AddPuzzleSolvingTime(
+            timeId: $guestTimeId = Uuid::uuid7(),
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            puzzleId: PuzzleFixture::PUZZLE_1500_01,
+            competitionId: null,
+            time: '03:00:00',
+            comment: null,
+            finishedPuzzlesPhoto: null,
+            groupPlayers: [$private->name ?? $private->code],
+            finishedAt: null,
+            firstAttempt: false,
+            unboxed: false,
+        ));
+        $guestPairId = $connection->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => $guestTimeId->toString()]);
+        self::assertIsString($guestPairId);
+
+        // PLAYER_ADMIN compares both pairs, PLAYER_WITH_FAVORITES the guest one only
+        $this->insertComparisonRow(PlayerFixture::PLAYER_ADMIN, $accountPairId);
+        $adminGuestRow = $this->insertComparisonRow(PlayerFixture::PLAYER_ADMIN, $guestPairId);
+        $favoritesRow = $this->insertComparisonRow(PlayerFixture::PLAYER_WITH_FAVORITES, $guestPairId);
+
+        $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_PRIVATE));
+
+        // The account pair merged into the guest one: same row, now comparing the survivor
+        self::assertSame($guestPairId, $connection->fetchOne('SELECT subject_team_id FROM comparison_subject WHERE id = :id', ['id' => ComparisonSubjectFixture::STRIPE_PAIR]));
+        // Who had both keeps one
+        self::assertSame(
+            [['id' => $adminGuestRow, 'subject_team_id' => $guestPairId]],
+            $connection->fetchAllAssociative('SELECT id, subject_team_id FROM comparison_subject WHERE player_id = :id AND subject_team_id IS NOT NULL', ['id' => PlayerFixture::PLAYER_ADMIN]),
+        );
+        self::assertSame($guestPairId, $connection->fetchOne('SELECT subject_team_id FROM comparison_subject WHERE id = :id', ['id' => $favoritesRow]));
+    }
+
+    public function testDeletingAPlayerRemovesTheirLineUpsAndTheirPlaceInOthers(): void
+    {
+        $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_REGULAR));
+
+        $connection = $this->entityManager->getConnection();
+
+        self::assertSame(0, $connection->fetchOne('SELECT COUNT(*) FROM comparison_subject WHERE player_id = :id OR subject_player_id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]));
+        // Their pair lives on (with them as a guest) and so does its place in other line-ups
+        self::assertSame(
+            [ComparisonSubjectFixture::STRIPE_SELF, ComparisonSubjectFixture::STRIPE_ADMIN, ComparisonSubjectFixture::STRIPE_PAIR],
+            $connection->fetchFirstColumn('SELECT id FROM comparison_subject WHERE player_id = :id ORDER BY added_at, id', ['id' => PlayerFixture::PLAYER_WITH_STRIPE]),
+        );
+    }
+
     public function testRemovesSolvingTimeWhenOwnerHasNoOtherTeamMemberWithPlayerId(): void
     {
         // TIME_06: PLAYER_REGULAR solo solve (team = null) — should be hard-deleted
@@ -263,5 +321,17 @@ final class DeletePlayerHandlerTest extends KernelTestCase
 
         self::assertCount(1, $history);
         self::assertNull($history[0]->adminName);
+    }
+
+    private function insertComparisonRow(string $ownerId, string $teamId): string
+    {
+        $id = Uuid::uuid7()->toString();
+
+        $this->entityManager->getConnection()->executeStatement(
+            'INSERT INTO comparison_subject (id, player_id, subject_team_id, added_at) VALUES (:id, :owner, :team, NOW())',
+            ['id' => $id, 'owner' => $ownerId, 'team' => $teamId],
+        );
+
+        return $id;
     }
 }

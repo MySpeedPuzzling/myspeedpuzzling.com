@@ -165,6 +165,26 @@ final class GuestLinkTest extends KernelTestCase
         self::assertSame(3, $this->database->fetchOne('SELECT COUNT(*) FROM puzzling_team_member WHERE team_id = :id', ['id' => $team]));
     }
 
+    public function testComparisonLineUpsFollowTheGuestPairIntoTheRealOne(): void
+    {
+        $guestPair = $this->teamIdOf($this->addTime(['Michael']));
+        $realPair = $this->teamIdOf($this->addTime(['#player3']));
+
+        // PLAYER_REGULAR compares the guest pair; PLAYER_ADMIN compares both
+        $regularRow = $this->insertComparisonRow(PlayerFixture::PLAYER_REGULAR, $guestPair);
+        $this->insertComparisonRow(PlayerFixture::PLAYER_ADMIN, $guestPair);
+        $adminRealRow = $this->insertComparisonRow(PlayerFixture::PLAYER_ADMIN, $realPair);
+
+        $requestId = $this->ask('g:michael', '#player3');
+        $this->messageBus->dispatch(new AnswerGuestLink($requestId, self::ASKED, true));
+
+        self::assertSame($realPair, $this->database->fetchOne('SELECT subject_team_id FROM comparison_subject WHERE id = :id', ['id' => $regularRow]));
+        self::assertSame(
+            [$adminRealRow],
+            $this->database->fetchFirstColumn('SELECT id FROM comparison_subject WHERE player_id = :id', ['id' => PlayerFixture::PLAYER_ADMIN]),
+        );
+    }
+
     private function ask(string $guestKey, string $code): string
     {
         $requestId = Uuid::uuid7();
@@ -217,5 +237,17 @@ final class GuestLinkTest extends KernelTestCase
         );
 
         return $names;
+    }
+
+    private function insertComparisonRow(string $ownerId, string $teamId): string
+    {
+        $id = Uuid::uuid7()->toString();
+
+        $this->database->executeStatement(
+            'INSERT INTO comparison_subject (id, player_id, subject_team_id, added_at) VALUES (:id, :owner, :team, NOW())',
+            ['id' => $id, 'owner' => $ownerId, 'team' => $teamId],
+        );
+
+        return $id;
     }
 }

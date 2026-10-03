@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Entity\CollectionItem;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionSeries;
+use SpeedPuzzling\Web\Entity\ComparisonSubject;
 use SpeedPuzzling\Web\Entity\Conversation;
 use SpeedPuzzling\Web\Entity\ConversationReport;
 use SpeedPuzzling\Web\Entity\DigestEmailLog;
@@ -86,6 +87,7 @@ final class DeletePlayerHandler
         $this->deletePlayerOwnedRows($playerId);
         $this->deleteUserBlocks($playerId);
         $this->deletePrivateProfileViewers($playerId);
+        $this->deleteComparisonSubjects($playerId);
         $this->anonymizeConversations($player, $playerName);
         $this->anonymizeChatMessages($player, $playerName);
         $this->anonymizeFeatureRequests($player, $playerName);
@@ -287,6 +289,17 @@ final class DeletePlayerHandler
     {
         $this->entityManager->createQuery(
             'DELETE FROM ' . PrivateProfileViewer::class . ' ppv WHERE ppv.owner = :p OR ppv.viewer = :p',
+        )->setParameter('p', $playerId)->execute();
+    }
+
+    /**
+     * The player's own comparison line-ups, and the player as somebody else's subject. Their pairs/teams stay in
+     * other line-ups: the team lives on with the player as a guest (PuzzlingTeamMemberConversion::playerToGuest()).
+     */
+    private function deleteComparisonSubjects(string $playerId): void
+    {
+        $this->entityManager->createQuery(
+            'DELETE FROM ' . ComparisonSubject::class . ' cs WHERE cs.player = :p OR cs.subjectPlayer = :p',
         )->setParameter('p', $playerId)->execute();
     }
 

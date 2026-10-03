@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
+use SpeedPuzzling\Web\Value\ComparisonView;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\FreeTrial;
@@ -63,6 +64,8 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     free_trial_ends_at?: null|string,
  *     modal_impressions?: null|string,
  *     leaderboard_chart_view?: null|string,
+ *     comparison_view?: null|string,
+ *     comparison_line_up?: null|string,
  *  }
  */
 readonly final class PlayerProfile
@@ -159,6 +162,12 @@ readonly final class PlayerProfile
          * profile only, everybody else's says Distribution.
          */
         public LeaderboardChartView $leaderboardChartView = LeaderboardChartView::Distribution,
+        /**
+         * The signed-in player's own profile only (docs/features/player-comparison.md): how a comparison of 3+
+         * subjects lists its puzzles, and their line-ups - everybody else's profile says Cards and an empty line-up.
+         */
+        public ComparisonView $comparisonView = ComparisonView::Cards,
+        public ComparisonLineUp $comparisonLineUp = new ComparisonLineUp(),
     ) {
     }
 
@@ -327,7 +336,88 @@ readonly final class PlayerProfile
             modalImpressions: $modalImpressions,
             freeTrialOldEnoughAt: $freeTrialOldEnoughAt,
             leaderboardChartView: LeaderboardChartView::tryFrom($row['leaderboard_chart_view'] ?? '') ?? LeaderboardChartView::Distribution,
+            comparisonView: ComparisonView::tryFrom($row['comparison_view'] ?? '') ?? ComparisonView::Cards,
+            comparisonLineUp: self::comparisonLineUpFromJson(
+                $row['comparison_line_up'] ?? null,
+                $hiddenPlayerIds,
+                $revealedPrivatePlayerIds,
+            ),
         );
+    }
+
+    /**
+     * A recent subject the viewer may not see - one they blocked, or private and not revealed to them - keeps its
+     * place in the launcher as a generic icon, never with a name or a face. Being blocked BY somebody changes nothing
+     * (docs/features/player-blocklist.md).
+     *
+     * @param list<string> $hiddenPlayerIds
+     * @param list<string> $revealedPrivatePlayerIds
+     */
+    private static function comparisonLineUpFromJson(null|string $json, array $hiddenPlayerIds, array $revealedPrivatePlayerIds): ComparisonLineUp
+    {
+        if ($json === null) {
+            return new ComparisonLineUp();
+        }
+
+        try {
+            $decoded = Json::decode($json, true);
+        } catch (JsonException) {
+            return new ComparisonLineUp();
+        }
+
+        if (is_array($decoded) === false) {
+            return new ComparisonLineUp();
+        }
+
+        $items = [];
+        /** @var array<int, ComparisonLineUpRecentSubject> $recent */
+        $recent = [];
+
+        /**
+         * @var array{
+         *     id: string,
+         *     subject_player_id: null|string,
+         *     subject_team_id: null|string,
+         *     team_size: null|int,
+         *     added_at: string,
+         *     is_self: bool,
+         *     recent: null|int,
+         *     subject: null|array{name: null|string, code: string, avatar: null|string, country: null|string, is_private: bool},
+         * } $entry
+         */
+        foreach ($decoded as $entry) {
+            $item = ComparisonLineUpItem::fromDatabaseRow($entry);
+            $items[] = $item;
+
+            if ($entry['recent'] === null || $item->isSelf) {
+                continue;
+            }
+
+            $subject = $entry['subject'];
+
+            if ($item->ref->isPlayer() === false || $subject === null) {
+                $recent[$entry['recent']] = new ComparisonLineUpRecentSubject($item->ref, $item->kind);
+                continue;
+            }
+
+            $playerId = $item->ref->id;
+            $masked = in_array($playerId, $hiddenPlayerIds, true)
+                || ($subject['is_private'] && in_array($playerId, $revealedPrivatePlayerIds, true) === false);
+
+            $recent[$entry['recent']] = $masked
+                ? new ComparisonLineUpRecentSubject($item->ref, $item->kind, isMasked: true)
+                : new ComparisonLineUpRecentSubject(
+                    ref: $item->ref,
+                    kind: $item->kind,
+                    name: $subject['name'] ?? '#' . strtoupper($subject['code']),
+                    avatar: $subject['avatar'],
+                    countryCode: CountryCode::fromCode($subject['country']),
+                );
+        }
+
+        ksort($recent);
+
+        return new ComparisonLineUp($items, array_values($recent));
     }
 
     public function isInReferralProgram(): bool

@@ -1,0 +1,189 @@
+{# The filter sheet: every change applies at once (the list behind it and the count on the button follow), the button
+   only closes the sheet. Members-only groups stay visible for everyone, with a "Members" tag and a lock that opens the
+   membership modal - never hidden, never blurred. The server drops members-only values of free players anyway. #}
+{% set criteria = this.criteria %}
+{% set is_member = this.isMember %}
+{% set subjects_count = this.compared|length %}
+{% set members_tag %}<span class="cmp-members-tag"><i class="ci-locked" aria-hidden="true"></i>{{ 'membership.members_exclusive_short'|trans }}</span>{% endset %}
+<div class="modal fade cmp-sheet" id="comparison-filters" tabindex="-1" aria-labelledby="comparison-filters-title" aria-hidden="true" data-testid="comparison-filters">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="comparison-filters-title"><i class="bi bi-sliders me-1" aria-hidden="true"></i>{{ 'comparison.filters.title'|trans }}</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+            </div>
+
+            <div class="modal-body">
+                {# Puzzles to show #}
+                <fieldset class="cmp-fieldset">
+                    <legend>{{ 'comparison.filters.show'|trans }}</legend>
+                    <div class="cmp-chips">
+                        {% for show in (subjects_count >= 3 ? ['everyone', 'two_plus', 'all'] : ['everyone', 'all']) %}
+                            {% set on = criteria.show.value == show %}
+                            <button type="button" class="cmp-pill{{ on ? ' is-on' }}" aria-pressed="{{ on ? 'true' : 'false' }}"
+                                data-action="live#action" data-live-action-param="chooseShow" data-live-value-param="{{ show }}"
+                                data-testid="comparison-show-{{ show }}">
+                                {{- ('comparison.show.' ~ (show == 'everyone' and subjects_count == 2 ? 'both' : show))|trans -}}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+
+                {# Times: best / first tries only (members) #}
+                <fieldset class="cmp-fieldset">
+                    <legend>{{ 'comparison.filters.times'|trans }} {% if not is_member %}{{ members_tag }}{% endif %}</legend>
+                    <div class="cmp-chips" role="group">
+                        {% for times in ['best', 'first'] %}
+                            {% set on = criteria.times.value == times %}
+                            {% if is_member or times == 'best' %}
+                                <button type="button" class="cmp-pill{{ on ? ' is-on' }}" aria-pressed="{{ on ? 'true' : 'false' }}"
+                                    data-action="live#action" data-live-action-param="chooseTimes" data-live-value-param="{{ times }}">
+                                    {{- ('comparison.times.' ~ times)|trans -}}
+                                </button>
+                            {% else %}
+                                <button type="button" class="cmp-pill cmp-pill--locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                    <i class="ci-locked" aria-hidden="true"></i>{{ ('comparison.times.' ~ times)|trans }}
+                                </button>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </fieldset>
+
+                {# Solved in: presets for everyone, a custom range for members #}
+                <fieldset class="cmp-fieldset">
+                    <legend>{{ 'comparison.filters.period'|trans }}</legend>
+                    <div class="cmp-chips">
+                        {% for period in ['all', '12m', '6m', '3m'] %}
+                            {% set on = criteria.period.value == period and not this.customRange %}
+                            <button type="button" class="cmp-pill{{ on ? ' is-on' }}" aria-pressed="{{ on ? 'true' : 'false' }}"
+                                data-action="live#action" data-live-action-param="choosePeriod" data-live-value-param="{{ period }}">
+                                {{- ('comparison.period.' ~ period)|trans -}}
+                            </button>
+                        {% endfor %}
+                        {% if is_member %}
+                            {% set on = criteria.period.value == 'custom' or this.customRange %}
+                            <button type="button" class="cmp-pill{{ on ? ' is-on' }}" aria-pressed="{{ on ? 'true' : 'false' }}"
+                                data-action="live#action" data-live-action-param="choosePeriod" data-live-value-param="custom" data-testid="comparison-period-custom">
+                                {{- 'comparison.period.custom'|trans -}}
+                            </button>
+                        {% else %}
+                            <button type="button" class="cmp-pill cmp-pill--locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                <i class="ci-locked" aria-hidden="true"></i>{{ 'comparison.period.custom'|trans }} {{ members_tag }}
+                            </button>
+                        {% endif %}
+                    </div>
+
+                    {% if is_member and (criteria.period.value == 'custom' or this.customRange) %}
+                        {# Kept away from re-renders: flatpickr puts its own display input next to these #}
+                        <div class="row g-2 mt-1" data-live-ignore data-controller="datepicker">
+                            {% for bound in ['from', 'to'] %}
+                                <div class="col-6">
+                                    <label class="form-label fs-sm mb-1" for="comparison-{{ bound }}">{{ ('comparison.filters.' ~ bound)|trans }}</label>
+                                    <input type="text" id="comparison-{{ bound }}" class="form-control form-control-sm date-picker"
+                                        data-model="on(change)|{{ bound }}"
+                                        value="{{ bound == 'from' ? this.from : this.to }}"
+                                        autocomplete="off"
+                                        data-datepicker-options="{{ {dateFormat: 'Y-m-d', altInput: true, altFormat: 'j. n. Y', altInputClass: 'form-control form-control-sm', maxDate: 'today', static: true}|json_encode }}">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </fieldset>
+
+                {# Pieces #}
+                <fieldset class="cmp-fieldset">
+                    <legend>{{ 'pieces_filter.label'|trans }}</legend>
+                    {{ include('_pieces_filter_live.html.twig', {
+                        id_prefix: 'comparison-pieces',
+                        pieces_model: 'pieces',
+                        min_model: 'piecesMin',
+                        max_model: 'piecesMax',
+                        current: this.pieces,
+                        min_value: this.piecesMin,
+                        max_value: this.piecesMax,
+                    }) }}
+                </fieldset>
+
+                {# Brand (members): the option list is fetched on first focus from the cached filter-options endpoint #}
+                <fieldset class="cmp-fieldset">
+                    <legend>{{ 'comparison.filters.brand'|trans }} {% if not is_member %}{{ members_tag }}{% endif %}</legend>
+                    {% if is_member %}
+                        <div data-live-ignore>
+                            <select
+                                id="comparison-brand"
+                                class="form-select"
+                                multiple
+                                aria-label="{{ 'comparison.filters.brand'|trans }}"
+                                data-placeholder="{{ 'comparison.filters.brand_placeholder'|trans }}"
+                                data-controller="tomselect-sync"
+                                data-model="on(change)|brands"
+                                data-tomselect-sync-options-url-value="{{ path('puzzle_search_filter_options') }}"
+                                data-tomselect-sync-options-key-value="manufacturers"
+                            >
+                                {% for brand_id, brand in this.selectedBrands %}
+                                    <option value="{{ brand_id }}" selected{% if brand.logo %} data-data="{{ {logo: brand.logo}|json_encode|e('html_attr') }}"{% endif %}>{{ brand.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    {% else %}
+                        <button type="button" class="cmp-locked-field" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                            <i class="ci-locked" aria-hidden="true"></i>{{ 'comparison.filters.brand_placeholder'|trans }}
+                        </button>
+                    {% endif %}
+                </fieldset>
+
+                {# Difficulty (members) - same tiers and "not rated yet" as the puzzle search #}
+                {% from '_difficulty_icon.html.twig' import icon as difficulty_icon %}
+                <fieldset class="cmp-fieldset">
+                    <legend>{{ 'puzzle_intelligence.difficulty.tier_label'|trans }} {% if not is_member %}{{ members_tag }}{% endif %}</legend>
+                    <div class="cmp-chips">
+                        {% for option in this.difficultyOptions %}
+                            {% set on = option.value in criteria.difficultyTiers %}
+                            {% set option_label = option.tier is not null ? option.tier.translationKey|trans : 'puzzle_intelligence.difficulty.tiers.unknown'|trans %}
+                            {% if is_member %}
+                                <button type="button" class="cmp-pill{{ on ? ' is-on' }}" aria-pressed="{{ on ? 'true' : 'false' }}"
+                                    data-action="live#action" data-live-action-param="toggleDifficulty" data-live-tier-param="{{ option.value }}">
+                                    {{ difficulty_icon(option.tier, false, 16) }}{{ option_label }}
+                                </button>
+                            {% else %}
+                                <button type="button" class="cmp-pill cmp-pill--locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                    {{ difficulty_icon(option.tier, false, 16) }}{{ option_label }}
+                                </button>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </fieldset>
+
+                {# Sort #}
+                <fieldset class="cmp-fieldset mb-0">
+                    <legend>{{ 'comparison.filters.sort'|trans }}</legend>
+                    <div class="cmp-chips">
+                        {% for sort in ['recent', 'lead', 'lag', 'name', 'pieces', 'difficulty'] %}
+                            {% set on = criteria.sort.value == sort %}
+                            {% if sort != 'difficulty' or is_member %}
+                                <button type="button" class="cmp-pill{{ on ? ' is-on' }}" aria-pressed="{{ on ? 'true' : 'false' }}"
+                                    data-action="live#action" data-live-action-param="chooseSort" data-live-value-param="{{ sort }}">
+                                    {{- ('comparison.sort.' ~ sort)|trans -}}
+                                </button>
+                            {% else %}
+                                <button type="button" class="cmp-pill cmp-pill--locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                    <i class="ci-locked" aria-hidden="true"></i>{{ ('comparison.sort.' ~ sort)|trans }} {{ members_tag }}
+                                </button>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% if criteria.sort.value in ['lead', 'lag'] and this.result.highlightA is not null and this.result.highlightB is not null %}
+                        <p class="form-text mb-0">{{ 'comparison.filters.lead_hint'|trans({'%a%': this.labelOf(this.result.highlightA), '%b%': this.labelOf(this.result.highlightB)}) }}</p>
+                    {% endif %}
+                </fieldset>
+            </div>
+
+            <div class="modal-footer justify-content-between">
+                <a class="btn btn-link btn-sm text-muted" href="{{ path('comparison', this.isPreview ? {kind: this.activeKind.value, with: this.with} : {kind: this.activeKind.value}) }}">{{ 'comparison.filters.reset'|trans }}</a>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" data-testid="comparison-filters-apply">
+                    {{ 'comparison.filters.apply'|trans({'%count%': this.result.total}) }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

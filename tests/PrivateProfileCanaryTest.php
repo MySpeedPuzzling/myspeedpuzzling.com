@@ -96,6 +96,40 @@ final class PrivateProfileCanaryTest extends WebTestCase
     }
 
     /**
+     * The compare page (docs/features/player-comparison.md): a shared comparison of her - solo, or her pair with a public
+     * player - names her for the friend only. Strangers get the pair with her masked, and her alone not at all.
+     */
+    public function testComparePageNamesHerForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $pairId = self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id',
+            ['id' => PuzzleSolvingTimeFixture::TIME_12],
+        );
+        self::assertIsString($pairId);
+
+        $urls = [
+            'solo' => '/en/compare?kind=solo&with=p-' . self::OWNER,
+            'pair' => '/en/compare?kind=pairs&with=t-' . $pairId,
+        ];
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+
+            foreach ($urls as $what => $url) {
+                self::assertStringNotContainsString(self::OWNER_NAME, $this->get($browser, $url), "A signed-in stranger ({$who}) is shown a private player ({$what}).");
+            }
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+
+        foreach ($urls as $what => $url) {
+            self::assertStringContainsString(self::OWNER_NAME, $this->get($browser, $url), "The allowed friend does not see the private player ({$what}).");
+            self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+        }
+    }
+
+    /**
      * Her own results do not exist for anybody she did not allow - a page about one player cannot be masked.
      */
     public function testResultDetailOfHerSoloTimeExistsForTheFriendOnly(): void

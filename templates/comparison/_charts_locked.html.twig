@@ -1,0 +1,9 @@
+{# Charts are members-only (D4): the site's members placeholder, one button, and a quiet line of what is inside #}
+<div class="card cmp-card cmp-charts-locked" data-testid="comparison-charts-locked">
+    <div class="puzzle-detail-chart-placeholder text-center">
+        <button type="button" class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm mt-4 shadow-custom" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+            <i class="ci-locked me-1" aria-hidden="true"></i>{{ 'membership.members_exclusive_button'|trans }}
+        </button>
+    </div>
+    <p class="cmp-note mb-0">{{ 'comparison.charts_locked.inside'|trans }}</p>
+</div>

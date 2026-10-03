@@ -1,0 +1,44 @@
+{# Quick filters: the sheet with everything, First tries (members), solved in, sort - one line that scrolls inside
+   itself on a phone #}
+{% set criteria = this.criteria %}
+{% set filters_count = this.activeFiltersCount %}
+{% set first_tries = criteria.times.value == 'first' %}
+<div class="cmp-filters" data-testid="comparison-filter-row">
+    <button type="button" class="cmp-pill cmp-pill--primary" data-bs-toggle="modal" data-bs-target="#comparison-filters" data-testid="comparison-filters-button">
+        <i class="bi bi-sliders" aria-hidden="true"></i>{{ 'comparison.filters.button'|trans }}
+        {%- if filters_count > 0 %} <span class="cmp-pill__count">{{ filters_count }}</span>{% endif %}
+    </button>
+
+    {% if this.isMember %}
+        <button type="button" class="cmp-pill{{ first_tries ? ' is-on' }}" aria-pressed="{{ first_tries ? 'true' : 'false' }}"
+            data-action="live#action" data-live-action-param="toggleFirstTries" data-testid="comparison-first-tries">
+            {% if first_tries %}<i class="bi bi-check2" aria-hidden="true"></i>{% endif %}{{ 'comparison.filters.first_tries'|trans }}
+        </button>
+    {% else %}
+        <button type="button" class="cmp-pill cmp-pill--locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal"
+            aria-label="{{ 'comparison.filters.first_tries_locked'|trans }}" data-testid="comparison-first-tries-locked">
+            <i class="ci-locked" aria-hidden="true"></i>{{ 'comparison.filters.first_tries'|trans }}
+        </button>
+    {% endif %}
+
+    <label class="visually-hidden" for="comparison-period">{{ 'comparison.filters.period'|trans }}</label>
+    <select id="comparison-period" class="form-select cmp-pill cmp-pill--select{{ criteria.period.value != 'all' ? ' is-on' }}" data-model="period">
+        <option value="">{{ 'comparison.period.all'|trans }}</option>
+        {% for period in ['12m', '6m', '3m'] %}
+            <option value="{{ period }}" {{ criteria.period.value == period ? 'selected' }}>{{ ('comparison.period.' ~ period)|trans }}</option>
+        {% endfor %}
+        {% if criteria.period.value == 'custom' %}
+            <option value="custom" selected>{{ 'comparison.period.custom'|trans }}</option>
+        {% endif %}
+    </select>
+
+    <label class="visually-hidden" for="comparison-sort">{{ 'comparison.filters.sort'|trans }}</label>
+    <select id="comparison-sort" class="form-select cmp-pill cmp-pill--select" data-model="sort">
+        {% for sort in ['recent', 'lead', 'lag', 'name', 'pieces'] %}
+            <option value="{{ sort == 'recent' ? '' : sort }}" {{ criteria.sort.value == sort ? 'selected' }}>{{ ('comparison.sort.' ~ sort)|trans }}</option>
+        {% endfor %}
+        {% if this.isMember %}
+            <option value="difficulty" {{ criteria.sort.value == 'difficulty' ? 'selected' }}>{{ 'comparison.sort.difficulty'|trans }}</option>
+        {% endif %}
+    </select>
+</div>

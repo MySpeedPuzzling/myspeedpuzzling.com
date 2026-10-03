@@ -1,0 +1,22 @@
+{# Solo · Pairs · Teams - like is only compared with like (docs/features/player-comparison.md). The look of the add-time
+   form's switch (.copuzzler-switch), one line down to 320 px #}
+<div class="copuzzler-switch cmp-kind-switch" role="group" aria-label="{{ 'comparison.kind.label'|trans }}" data-testid="comparison-kind-switch">
+    {% for kind, heads in {solo: 1, pairs: 2, teams: 3} %}
+        {% set active = this.activeKind.value == kind %}
+        <button type="button"
+            class="copuzzler-switch__option"
+            aria-pressed="{{ active ? 'true' : 'false' }}"
+            data-action="live#action"
+            data-live-action-param="changeKind"
+            data-live-kind-param="{{ kind }}"
+            data-testid="comparison-kind-{{ kind }}"
+        >
+            <span class="copuzzler-switch__icons" aria-hidden="true">
+                {%- for i in 1..heads %}<i class="ci-user"></i>{% endfor -%}
+            </span>
+            <span class="copuzzler-switch__label">
+                {{- ('comparison.kind.' ~ kind)|trans }} <span class="cmp-kind-switch__count">{{ this.kindCounts[kind] }}</span>
+            </span>
+        </button>
+    {% endfor %}
+</div>

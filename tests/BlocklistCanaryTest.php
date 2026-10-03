@@ -111,6 +111,48 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
+     * The compare page (docs/features/player-comparison.md) checks visibility on every read: a shared comparison never
+     * shows the blocker the player they blocked, and one who was in their line-up before the block turns into a neutral
+     * "No longer available" chip - no name, no id.
+     */
+    public function testComparePageNeverShowsTheBlockerAPlayerTheyBlocked(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/compare?kind=solo&with=p-' . self::BLOCKER . ',p-' . self::BLOCKED;
+        $database = self::getContainer()->get(Connection::class);
+
+        foreach ([self::BLOCKER, self::BLOCKED] as $subjectId) {
+            $database->executeStatement(
+                'INSERT INTO comparison_subject (id, player_id, subject_player_id, added_at) VALUES (:id, :owner, :subject, NOW())',
+                ['id' => Uuid::uuid7()->toString(), 'owner' => self::BLOCKER, 'subject' => $subjectId],
+            );
+        }
+
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED_NAME, (string) $browser->getResponse()->getContent(), 'No canary: the shared comparison does not show the player to anyone.');
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+
+        foreach ([$url, '/en/compare?kind=solo'] as $blockerUrl) {
+            $crawler = $browser->request('GET', $blockerUrl);
+            self::assertResponseIsSuccessful();
+            // The layout echoes the URL the blocker typed (language links, feedback) - the page itself must not know them
+            $content = $crawler->filter('[data-testid="comparison"]')->outerHtml();
+            self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+            self::assertStringNotContainsString(self::BLOCKED_NAME, (string) $browser->getResponse()->getContent(), 'The blocker is shown a player they blocked.');
+        }
+
+        self::assertSelectorExists('[data-testid="comparison-chip-unavailable"]');
+    }
+
+    /**
      * @return iterable<string, array{string}>
      */
     public static function providePlayerListingPages(): iterable

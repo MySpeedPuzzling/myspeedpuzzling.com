@@ -20,6 +20,7 @@ final class PrivateProfileQueryCoverageTest extends TestCase
 
     /** Files allowed to read the raw column, besides going through PrivateProfileAccess */
     private const array RAW_COLUMN = [
+        'Query/FindSimilarSpeedPuzzler.php' => 'A random suggestion of somebody at your speed offers public profiles only - the same pool for every viewer, like a global ranking.',
         'Query/GetAffiliateSupporters.php' => 'Public supporters list of somebody else\'s profile - stays public-only.',
         'Query/GetFastestGroups.php' => 'HAVING keeps a group only if a member is public - the same rows and positions for every viewer; names on them go through the service.',
         'Query/GetFastestPairs.php' => 'HAVING keeps a pair only if a member is public - the same rows and positions for every viewer; names on them go through the service.',

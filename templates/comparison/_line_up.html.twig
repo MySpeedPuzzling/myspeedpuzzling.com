@@ -1,0 +1,58 @@
+{# The line-up of the active kind: a chip per subject (scrolls sideways inside its strip, never the page), "+ Add", and
+   "n / cap" under it. A subject this viewer may no longer see is a neutral chip that can only be removed; subjects over
+   the free cap (a membership ended) wait in one locked chip. #}
+<div class="cmp-lineup-wrap">
+    <div class="cmp-lineup" data-testid="comparison-line-up">
+        {% for chip in this.chips %}
+            {% set subject = chip.subject %}
+            {% set label = this.labelOf(subject.ref) %}
+            {% if subject.isAvailable %}
+                <span class="cmp-chip{{ subject.isSelf ? ' cmp-chip--self' }}" data-testid="comparison-chip">
+                    {{ include('comparison/_subject_avatar.html.twig', {subject: subject, label: label, role: this.roleOf(subject.ref)}) }}
+                    <span class="cmp-chip__name">{{ label }}</span>
+                    {% if subject.isTeam and subject.includesViewer %}
+                        <span class="cmp-tag">{{ 'comparison.youre_in_it'|trans }}</span>
+                    {% endif %}
+                    {% if chip.removable %}
+                        {{ include('comparison/_chip_remove.html.twig', {row_id: chip.rowId, label: label, self: subject.isViewer}) }}
+                    {% endif %}
+                </span>
+            {% else %}
+                <span class="cmp-chip cmp-chip--unavailable" data-testid="comparison-chip-unavailable">
+                    {{ include('comparison/_subject_avatar.html.twig', {subject: subject, label: label, role: null}) }}
+                    <span class="cmp-chip__name">{{ 'comparison.unavailable'|trans }}</span>
+                    {% if chip.removable %}
+                        {{ include('comparison/_chip_remove.html.twig', {row_id: chip.rowId, label: label}) }}
+                    {% endif %}
+                </span>
+            {% endif %}
+        {% endfor %}
+
+        {% if this.lockedCount > 0 %}
+            <button type="button" class="cmp-chip cmp-chip--locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-testid="comparison-chip-locked">
+                <i class="ci-locked" aria-hidden="true"></i>
+                {{ 'comparison.line_up.locked'|trans({'%count%': this.lockedCount}) }}
+            </button>
+        {% endif %}
+
+        {% if not this.isPreview %}
+            <button type="button" class="cmp-chip cmp-chip--add" data-bs-toggle="modal" data-bs-target="#comparison-add-sheet" data-testid="comparison-add">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>{{ 'comparison.line_up.add'|trans }}
+            </button>
+        {% endif %}
+    </div>
+</div>
+
+<div class="cmp-capline">
+    {% if this.isPreview %}
+        <span>{{ 'comparison.preview.caps'|trans }}</span>
+    {% elseif this.isMember %}
+        <span>{{ 'comparison.line_up.kept'|trans }}</span>
+    {% else %}
+        {# The one quiet line about membership #}
+        <button type="button" class="btn btn-link cmp-capline__members" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-testid="comparison-members-line">
+            {{ 'comparison.line_up.members_line'|trans({'%count%': constant('SpeedPuzzling\\Web\\Value\\ComparisonLimits::MEMBER')}) }}
+        </button>
+    {% endif %}
+    <span class="cmp-capline__count" data-testid="comparison-cap">{{ 'comparison.line_up.count'|trans({'%count%': this.lineUpCount, '%cap%': this.cap}) }}</span>
+</div>

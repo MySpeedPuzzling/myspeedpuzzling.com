@@ -255,6 +255,22 @@ SQL,
             ['survivor' => $survivingTeamId, 'teamId' => $teamId],
         );
 
+        // Comparison line-ups holding the merged team compare the survivor from now on - other players' rows, so
+        // one statement rather than loading them. Whoever has both keeps the survivor's row; the other one goes
+        // with the delete below (ON DELETE CASCADE)
+        $this->connection->executeStatement(
+            <<<SQL
+UPDATE comparison_subject
+SET subject_team_id = :survivor
+WHERE subject_team_id = :teamId
+    AND NOT EXISTS (
+        SELECT 1 FROM comparison_subject already
+        WHERE already.player_id = comparison_subject.player_id AND already.subject_team_id = :survivor
+    )
+SQL,
+            ['survivor' => $survivingTeamId, 'teamId' => $teamId],
+        );
+
         $this->connection->executeStatement('DELETE FROM puzzling_team WHERE id = :teamId', ['teamId' => $teamId]);
     }
 }

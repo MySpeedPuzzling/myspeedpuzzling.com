@@ -46,6 +46,7 @@ SELECT
     CASE WHEN {$isPrivate} THEN NULL ELSE country END AS player_country,
     code AS player_code,
     CASE WHEN {$isPrivate} THEN NULL ELSE avatar END AS player_avatar,
+    {$isPrivate} AS is_private,
     (
       CASE
         WHEN LOWER(code) = LOWER(:searchQuery) THEN 6 -- Exact match on code with diacritics
@@ -98,6 +99,8 @@ SQL;
              *     player_name: null|string,
              *     player_country: null|string,
              *     player_code: string,
+             *     player_avatar: null|string,
+             *     is_private: bool,
              * } $row
              */
 

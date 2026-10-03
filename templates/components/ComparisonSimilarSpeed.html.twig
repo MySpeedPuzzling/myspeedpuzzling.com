@@ -1,0 +1,148 @@
+{# "Someone at your speed" in the add sheet of the compare page (docs/features/player-comparison.md D8), members.
+   Idle card → "Roll the dice" → a random player of similar skill with the reasons why, "Add to line-up" (emits
+   comparisonAddSubject up to the page) and "Roll again". Nothing is queried before the first roll. #}
+<div{{ attributes.defaults({class: 'cmp-similar', 'data-testid': 'comparison-similar'}) }}>
+    {% if logged_user.profile is not null %}
+        {% if not this.hasRolled() %}
+            <div class="cmp-similar-idle">
+                <div class="cmp-similar-head">
+                    <span class="cmp-similar-icon" aria-hidden="true"><i class="bi bi-dice-5"></i></span>
+                    <div>
+                        <h3 class="cmp-similar-title">{{ 'comparison_similar.title'|trans }}</h3>
+                        <p class="cmp-similar-intro">{{ 'comparison_similar.intro'|trans }}</p>
+                    </div>
+                </div>
+
+                {% if this.addedPlayerName %}
+                    <p class="cmp-similar-added" role="status" data-testid="comparison-similar-added">
+                        <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                        {{ 'comparison_similar.added'|trans({'%name%': this.addedPlayerName}) }}
+                    </p>
+                {% endif %}
+
+                {% if this.isMember() %}
+                    <button
+                        type="button"
+                        class="btn btn-primary cmp-similar-btn"
+                        data-action="live#action"
+                        data-live-action-param="roll"
+                        data-loading="addAttribute(disabled)"
+                        data-testid="comparison-similar-roll"
+                    >
+                        <i class="bi bi-dice-5" aria-hidden="true"></i>
+                        {{ 'comparison_similar.roll'|trans }}
+                    </button>
+                {% else %}
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary cmp-similar-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#membersExclusiveModal"
+                        data-testid="comparison-similar-locked"
+                    >
+                        <i class="ci-locked" aria-hidden="true"></i>
+                        {{ 'membership.members_exclusive_button'|trans }}
+                    </button>
+                {% endif %}
+            </div>
+        {% else %}
+            {% set candidate = this.candidate %}
+
+            {% if candidate is null %}
+                <div class="cmp-similar-idle" data-testid="comparison-similar-nobody">
+                    <div class="cmp-similar-head">
+                        <span class="cmp-similar-icon" aria-hidden="true"><i class="bi bi-dice-5"></i></span>
+                        <div>
+                            <h3 class="cmp-similar-title">{{ 'comparison_similar.title'|trans }}</h3>
+                            <p class="cmp-similar-intro">{{ 'comparison_similar.nobody'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                {% set name = candidate.playerName ?? ('#' ~ candidate.playerCode) %}
+                {% set viewer_top = this.viewerTopPercent(candidate) %}
+
+                <div class="cmp-similar-card" data-testid="comparison-similar-candidate">
+                    {{ include('_player_avatar.html.twig', {
+                        player_id: candidate.playerId,
+                        name: name,
+                        avatar: candidate.playerAvatar,
+                        country_code: candidate.playerCountry ? candidate.playerCountry.name : null,
+                        country_name: candidate.playerCountry ? candidate.playerCountry.value : null,
+                        size: 'xl',
+                    }) }}
+
+                    <h3 class="cmp-similar-name">{{ name }}</h3>
+                    <p class="cmp-similar-meta">#{{ candidate.playerCode }}{% if candidate.playerCountry %} · {{ candidate.playerCountry.value }}{% endif %}</p>
+
+                    {% if candidate.skillTier %}
+                        {% set tier = candidate.skillTier.name|lower %}
+                        <span class="player-chip player-chip-tier" style="--chip-color: var(--rank-{{ tier }})" title="{{ 'comparison_similar.tier_title'|trans({'%pieces%': candidate.piecesCount}) }}">
+                            <svg class="rank-icon" width="16" height="16" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-{{ tier }}"/></svg>
+                            {{ ('puzzle_intelligence.skill.tiers.' ~ tier)|trans }}
+                        </span>
+                    {% endif %}
+
+                    <ul class="cmp-similar-why">
+                        <li>
+                            <span class="cmp-similar-why-icon" aria-hidden="true"><i class="bi bi-bar-chart"></i></span>
+                            <div>
+                                <div class="cmp-similar-why-title">{{ 'comparison_similar.reason.speed'|trans }}</div>
+                                {% if candidate.topPercent is not null and viewer_top is not null %}
+                                    <div class="cmp-similar-why-detail" data-testid="comparison-similar-skill">{{ 'comparison_similar.reason.skill'|trans({'%their%': candidate.topPercent, '%yours%': viewer_top, '%pieces%': candidate.piecesCount}) }}</div>
+                                {% elseif candidate.baselineSeconds is not null and candidate.viewerBaselineSeconds is not null %}
+                                    <div class="cmp-similar-why-detail" data-testid="comparison-similar-baseline">{{ 'comparison_similar.reason.baseline'|trans({'%their%': candidate.baselineSeconds|puzzlingTime, '%yours%': candidate.viewerBaselineSeconds|puzzlingTime, '%pieces%': candidate.piecesCount}) }}</div>
+                                {% endif %}
+                            </div>
+                        </li>
+                        <li>
+                            <span class="cmp-similar-why-icon" aria-hidden="true"><i class="bi bi-list-ul"></i></span>
+                            <div>
+                                <div class="cmp-similar-why-title" data-testid="comparison-similar-shared">{{ 'comparison_similar.reason.shared'|trans({'%count%': candidate.sharedPuzzles}) }}</div>
+                                <div class="cmp-similar-why-detail">{{ 'comparison_similar.reason.shared_detail'|trans }}</div>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="cmp-similar-why-icon" aria-hidden="true"><i class="bi bi-calendar3"></i></span>
+                            <div>
+                                <div class="cmp-similar-why-title" data-testid="comparison-similar-recent">{{ 'comparison_similar.reason.recent'|trans({'%count%': candidate.recentSolves}) }}</div>
+                                <div class="cmp-similar-why-detail">{{ (candidate.recentSolves > 0 ? 'comparison_similar.reason.recent_detail' : 'comparison_similar.reason.recent_none_detail')|trans }}</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="cmp-similar-actions">
+                    <button
+                        type="button"
+                        class="btn btn-primary cmp-similar-btn"
+                        data-action="live#action"
+                        data-live-action-param="add"
+                        data-loading="addAttribute(disabled)"
+                        data-testid="comparison-similar-add"
+                    >
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                        {{ 'comparison_similar.add'|trans }}
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-outline-primary cmp-similar-btn"
+                        data-action="live#action"
+                        data-live-action-param="roll"
+                        data-loading="addAttribute(disabled)"
+                        data-testid="comparison-similar-roll-again"
+                    >
+                        <i class="bi bi-dice-5" aria-hidden="true"></i>
+                        {{ 'comparison_similar.roll_again'|trans }}
+                    </button>
+                </div>
+
+                <a class="cmp-similar-profile" href="{{ path('player_profile', {playerId: candidate.playerId}) }}" data-turbo-frame="_top">
+                    {{ 'comparison_similar.view_profile'|trans }}
+                </a>
+            {% endif %}
+
+            <p class="cmp-similar-foot">{{ 'comparison_similar.footnote'|trans }}</p>
+        {% endif %}
+    {% endif %}
+</div>

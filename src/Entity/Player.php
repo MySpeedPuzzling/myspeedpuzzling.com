@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerIsNotInFavorites;
 use SpeedPuzzling\Web\Doctrine\SellSwapListSettingsDoctrineType;
 use SpeedPuzzling\Web\Value\CollectionDisplayMode;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
+use SpeedPuzzling\Web\Value\ComparisonView;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
@@ -177,6 +178,11 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::STRING, enumType: LeaderboardChartView::class, options: ['default' => 'distribution'])]
     public LeaderboardChartView $leaderboardChartView = LeaderboardChartView::Distribution;
+
+    // How a comparison of 3+ subjects lists its puzzles (docs/features/player-comparison.md)
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, enumType: ComparisonView::class, options: ['default' => 'cards'])]
+    public ComparisonView $comparisonView = ComparisonView::Cards;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
@@ -432,6 +438,11 @@ class Player
     public function changeLeaderboardChartView(LeaderboardChartView $view): void
     {
         $this->leaderboardChartView = $view;
+    }
+
+    public function changeComparisonView(ComparisonView $view): void
+    {
+        $this->comparisonView = $view;
     }
 
     public function joinReferralProgram(DateTimeImmutable $now): void

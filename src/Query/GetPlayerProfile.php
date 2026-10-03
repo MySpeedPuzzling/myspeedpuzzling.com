@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Results\ComparisonLineUp;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
@@ -113,6 +114,7 @@ SQL;
     public function byUserId(string $userId): PlayerProfile
     {
         $revealedIds = PrivateProfileAccess::sqlRevealedIdsOf('player');
+        $comparisonLineUp = self::sqlComparisonLineUpOf('player');
 
         $query = <<<SQL
 SELECT
@@ -160,6 +162,8 @@ SELECT
     membership.trial_ends_at AS free_trial_ends_at,
     (SELECT json_object_agg(impression.modal, impression.displayed_at) FROM player_modal_impression impression WHERE impression.player_id = player.id) AS modal_impressions,
     player.leaderboard_chart_view,
+    player.comparison_view,
+    {$comparisonLineUp} AS comparison_line_up,
     (membership.ends_at IS NULL AND membership.billing_period_ends_at IS NOT NULL) AS has_active_stripe_subscription,
     GREATEST(
         COALESCE(membership.ends_at, membership.billing_period_ends_at, '1970-01-01'::timestamp),
@@ -185,5 +189,56 @@ SQL;
         }
 
         return PlayerProfile::fromDatabaseRow($row, $this->clock->now());
+    }
+
+    /**
+     * The viewer's comparison line-ups (docs/features/player-comparison.md) for their own profile row - the launcher,
+     * the profile/team buttons and the comparison's kind switch then cost no query. Every row as a ref; the newest
+     * subjects other than the viewer (`recent` = 1, 2, 3) also with what a mini avatar needs - masking happens in
+     * PlayerProfile, against the hidden and revealed ids of this same row.
+     */
+    private static function sqlComparisonLineUpOf(string $viewerAlias): string
+    {
+        $recentLimit = ComparisonLineUp::RECENT_LIMIT;
+
+        return <<<SQL
+(
+        SELECT json_agg(json_build_object(
+            'id', line_up.id,
+            'subject_player_id', line_up.subject_player_id,
+            'subject_team_id', line_up.subject_team_id,
+            'team_size', line_up.team_size,
+            'added_at', line_up.added_at,
+            'is_self', line_up.is_self,
+            'recent', CASE WHEN line_up.is_self = false AND line_up.recent_rank <= {$recentLimit} THEN line_up.recent_rank END,
+            'subject', CASE WHEN subject.id IS NOT NULL THEN json_build_object(
+                'name', subject.name,
+                'code', subject.code,
+                'avatar', subject.avatar,
+                'country', subject.country,
+                'is_private', subject.is_private
+            ) END
+        ) ORDER BY line_up.added_at, line_up.id)
+        FROM (
+            SELECT
+                comparison_subject.id,
+                comparison_subject.subject_player_id,
+                comparison_subject.subject_team_id,
+                team.size AS team_size,
+                comparison_subject.added_at,
+                COALESCE(comparison_subject.subject_player_id = comparison_subject.player_id, false) AS is_self,
+                ROW_NUMBER() OVER (
+                    PARTITION BY comparison_subject.subject_player_id IS NOT DISTINCT FROM comparison_subject.player_id
+                    ORDER BY comparison_subject.added_at DESC, comparison_subject.id DESC
+                ) AS recent_rank
+            FROM comparison_subject
+            LEFT JOIN puzzling_team team ON team.id = comparison_subject.subject_team_id
+            WHERE comparison_subject.player_id = {$viewerAlias}.id
+        ) line_up
+        LEFT JOIN player subject ON subject.id = line_up.subject_player_id
+            AND line_up.is_self = false
+            AND line_up.recent_rank <= {$recentLimit}
+    )
+SQL;
     }
 }

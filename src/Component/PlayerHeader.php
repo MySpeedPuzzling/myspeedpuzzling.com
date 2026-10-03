@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Query\HasExistingConversation;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Results\PlayerSkillResult;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\ComparisonSubjectRef;
 use SpeedPuzzling\Web\Value\PlayerHeaderTab;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
@@ -47,6 +48,16 @@ final class PlayerHeader
 
     public bool $canMessage = false;
 
+    /**
+     * The compare button and its ⋯ menu items (docs/features/player-comparison.md, D11): 'add' (not in the viewer's
+     * Solo line-up - a POST form), 'open' (in it - a link to the comparison), 'sign_in' (a guest) or null (own profile,
+     * hidden private profile). Decided from the viewer's own profile row - no query.
+     */
+    public null|string $compare = null;
+
+    /** ComparisonSubjectRef::toString() of this player - what the add/remove forms send */
+    public null|string $comparisonRef = null;
+
     /** 'tier' | 'no_tier_yet' | 'locked' | null - see tierChip() */
     public null|string $tierChip = null;
 
@@ -81,6 +92,16 @@ final class PlayerHeader
                 PlayerHeaderTab::cases(),
                 fn (PlayerHeaderTab $tab): bool => $tab->isOwnerOnly() === false || $this->isOwnProfile,
             ));
+        }
+
+        if ($this->isOwnProfile === false && $this->isHidden === false) {
+            $ref = ComparisonSubjectRef::player($player->playerId);
+            $this->comparisonRef = $ref->toString();
+            $this->compare = match (true) {
+                $viewer === null => 'sign_in',
+                $viewer->comparisonLineUp->contains($ref) => 'open',
+                default => 'add',
+            };
         }
 
         if ($viewer !== null && $this->isOwnProfile === false) {

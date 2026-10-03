@@ -1,0 +1,55 @@
+{# Table view (3+): a column per subject, the puzzle column stays while the times scroll sideways inside the box #}
+{% set result = this.result %}
+<div class="cmp-table-wrap" role="region" aria-label="{{ 'comparison.view.table'|trans }}" tabindex="0" data-testid="comparison-table">
+    <table class="cmp-table">
+        <thead>
+            <tr>
+                <th scope="col" class="cmp-table__puzzle">{{ 'comparison.table.puzzle'|trans }}</th>
+                {% for subject in this.compared %}
+                    {% set label = this.labelOf(subject.ref) %}
+                    <th scope="col" class="cmp-table__subject">
+                        <span class="cmp-table__who">
+                            {{ include('comparison/_subject_avatar.html.twig', {subject: subject, label: label, role: this.roleOf(subject.ref), size: 'sm'}) }}
+                            <span class="cmp-table__name">{{ label }}</span>
+                        </span>
+                    </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in result.page %}
+                {% set puzzle = this.puzzles[row.puzzleId] ?? null %}
+                {% if puzzle is not null %}
+                    <tr data-testid="comparison-row">
+                        <th scope="row" class="cmp-table__puzzle">
+                            <a class="cmp-table__puzzle-link" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                {{- lazy_puzzle_image(puzzle.image, 'puzzle_small', '', loop.index, 40, 'rounded-1 cmp-table__image', 40, puzzle.imageRatio) -}}
+                                <span class="cmp-table__puzzle-text">
+                                    <span class="cmp-table__puzzle-name">{{ puzzle.name }}</span>
+                                    <span class="cmp-table__pieces">{{ 'pieces_count_short'|trans({'%count%': puzzle.piecesCount})|raw }}</span>
+                                </span>
+                            </a>
+                        </th>
+                        {% for subject in this.compared %}
+                            {% set cell = row.cell(subject.ref) %}
+                            {% set win = cell is not null and cell.rank == 1 and row.solvedBy > 1 %}
+                            <td class="cmp-table__cell{{ win ? (this.isSelf(subject.ref) ? ' is-win-self' : ' is-win') }}">
+                                {% if cell is not null %}
+                                    {{ include('comparison/_time_link.html.twig', {cell: cell, win: win}) }}
+                                    {% if cell.deltaSeconds > 0 %}<span class="cmp-table__delta">{{ cell.deltaSeconds|gapTime }}</span>{% endif %}
+                                {% else %}
+                                    <span class="cmp-table__none" title="{{ 'comparison.cell.not_solved'|trans }}">—<span class="visually-hidden"> {{ 'comparison.cell.not_solved'|trans }}</span></span>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<p class="cmp-legend">
+    <span><span class="cmp-legend__swatch cmp-legend__swatch--self" aria-hidden="true"></span>{{ 'comparison.table.legend_self'|trans }}</span>
+    <span><span class="cmp-legend__swatch cmp-legend__swatch--other" aria-hidden="true"></span>{{ 'comparison.table.legend_other'|trans }}</span>
+    <span>{{ 'comparison.table.legend_marks'|trans }}</span>
+</p>

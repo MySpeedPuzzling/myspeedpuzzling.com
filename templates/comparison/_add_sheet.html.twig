@@ -1,0 +1,63 @@
+{# The add sheet of the active line-up. Costs nothing until it is opened: the search (TomSelect) and the suggestions are
+   fetched by comparison_add_controller.js on first use - players via player_search_autocomplete and
+   /my-co-puzzlers.json (Solo), pairs/teams via comparison_team_search. What JavaScript draws is kept away from
+   re-renders (data-live-ignore); the values on the sheet follow the line-up, and the sheet closes when it changes. #}
+{% set kind = this.activeKind.value %}
+<div class="modal fade cmp-sheet" id="comparison-add-sheet" tabindex="-1" aria-labelledby="comparison-add-title" aria-hidden="true"
+    data-testid="comparison-add-sheet"
+    data-controller="comparison-sheet comparison-add"
+    data-comparison-sheet-revision-value="{{ this.lineUpRevision }}"
+    data-comparison-add-kind-value="{{ kind }}"
+    data-comparison-add-search-url-value="{{ kind == 'solo' ? path('player_search_autocomplete', {format: 'co-puzzler'}) : path('comparison_team_search', {kind: kind}) }}"
+    data-comparison-add-suggestions-url-value="{{ kind == 'solo' ? path('my_co_puzzlers') : path('comparison_team_search', {kind: kind}) }}"
+    data-comparison-add-excluded-value="{{ this.lineUpRefs|json_encode }}"
+    data-comparison-add-texts-value="{{ {
+        searchPlaceholder: ('comparison.add.search_placeholder_' ~ kind)|trans,
+        noResults: 'comparison.add.no_results'|trans,
+        noSuggestions: ('comparison.add.no_suggestions_' ~ kind)|trans,
+        loading: 'comparison.loading'|trans,
+        youreInIt: 'comparison.youre_in_it'|trans,
+        favorite: 'comparison.add.favorite'|trans,
+        together: browser_translation('comparison.add.together'),
+        add: 'comparison.add.add_label'|trans,
+    }|json_encode }}"
+>
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="comparison-add-title">{{ ('comparison.add.title_' ~ kind)|trans }}</h2>
+                <span class="cmp-sheet__count">{{ 'comparison.line_up.count'|trans({'%count%': this.lineUpCount, '%cap%': this.cap}) }}</span>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="cmp-add-search" data-live-ignore>
+                    <label class="visually-hidden" for="comparison-add-search">{{ ('comparison.add.search_label_' ~ kind)|trans }}</label>
+                    <input type="text" id="comparison-add-search" autocomplete="off" data-comparison-add-target="search"
+                        placeholder="{{ ('comparison.add.search_placeholder_' ~ kind)|trans }}">
+                </div>
+
+                {% if kind == 'solo' %}
+                    {% if this.isMember %}
+                        <div class="cmp-sheet__section">
+                            <twig:ComparisonSimilarSpeed loading="lazy" :excludedPlayerIds="this.excludedPlayerIds" />
+                        </div>
+                    {% else %}
+                        <button type="button" class="cmp-locked-line" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-testid="comparison-similar-locked">
+                            <i class="bi bi-dice-5" aria-hidden="true"></i>
+                            <span>{{ 'comparison.add.similar_locked'|trans }}</span>
+                            <span class="cmp-members-tag"><i class="ci-locked" aria-hidden="true"></i>{{ 'membership.members_exclusive_short'|trans }}</span>
+                        </button>
+                    {% endif %}
+                {% endif %}
+
+                <div class="cmp-sheet__label">{{ ('comparison.add.suggestions_' ~ kind)|trans }}</div>
+                <div data-live-ignore>
+                    <div class="cmp-options" data-comparison-add-target="suggestions" aria-live="polite"></div>
+                </div>
+
+                <p class="cmp-sheet__foot">{{ ('comparison.add.hint_' ~ kind)|trans }}</p>
+            </div>
+        </div>
+    </div>
+</div>

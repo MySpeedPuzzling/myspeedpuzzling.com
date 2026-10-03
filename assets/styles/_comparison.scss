@@ -1,0 +1,1432 @@
+//
+// Compare page (docs/features/player-comparison.md) - mobile first, 320 px without sideways page scroll: the line-up and
+// the quick filters scroll inside their own strip, the table view inside its box. Targets are 44 px where a finger
+// lands on them. Highlighted pair: A coral, B indigo, everybody else grey.
+//
+
+$cmp-a: #fe4042;
+$cmp-b: $accent;
+$cmp-text: #111;
+$cmp-muted: #5b616d;
+$cmp-line: #eceef2;
+$cmp-self-tint: rgba($primary, .08);
+$cmp-b-tint: #eef0fb;
+
+.cmp {
+    font-variant-numeric: tabular-nums;
+}
+
+.cmp-head {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: 44px;
+    margin-bottom: .75rem;
+
+    &__loading {
+        line-height: 1;
+    }
+}
+
+.cmp-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 1.125rem;
+}
+
+// --- Shared comparison (preview) --------------------------------------------------------------------------------------
+
+.cmp-preview {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-bottom: .75rem;
+    padding: .625rem .75rem;
+    border-radius: 10px;
+    background: $cmp-b-tint;
+    font-size: .875rem;
+    color: $gray-800;
+
+    &__text {
+        display: flex;
+        gap: .375rem;
+        min-width: 0;
+
+        .bi {
+            color: $cmp-b;
+            font-size: 1.125rem;
+            line-height: 1.2;
+        }
+    }
+
+    &__actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .25rem;
+
+        .btn {
+            min-height: 36px;
+        }
+    }
+}
+
+// --- Kind switch ------------------------------------------------------------------------------------------------------
+
+.cmp-kind-switch {
+    max-width: 440px;
+    margin-bottom: .75rem;
+
+    .copuzzler-switch__option {
+        min-height: 52px;
+        cursor: pointer;
+
+        &[aria-pressed="true"] {
+            background: rgba($primary, .08);
+            color: $primary;
+            font-weight: 600;
+        }
+    }
+
+    &__count {
+        display: inline-block;
+        min-width: 1.25rem;
+        margin-left: .125rem;
+        padding: 0 .3rem;
+        border-radius: 999px;
+        background: $gray-200;
+        color: $gray-700;
+        font-size: .75rem;
+        font-weight: 500;
+        line-height: 1.25rem;
+    }
+
+    [aria-pressed="true"] &__count {
+        background: rgba($primary, .15);
+        color: darken($primary, 18%);
+    }
+}
+
+// --- Avatars ----------------------------------------------------------------------------------------------------------
+
+.cmp-avatar {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    border-radius: 50%;
+
+    .lb-avatar {
+        margin-right: 0;
+    }
+
+    &__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #eef0f4;
+        color: #4b5160;
+        font-size: .9375rem;
+
+        &--unavailable {
+            background: $gray-200;
+            color: $gray-600;
+        }
+    }
+
+    &--sm {
+        .lb-avatar,
+        .cmp-avatar__icon {
+            width: 22px;
+            height: 22px;
+        }
+
+        .lb-avatar-img {
+            font-size: .6875rem;
+        }
+
+        .cmp-avatar__icon {
+            font-size: .75rem;
+        }
+
+        .lb-flag.fi {
+            width: 12px;
+            height: 9px;
+            line-height: 9px;
+        }
+    }
+
+    &--lg {
+        .cmp-avatar__icon {
+            width: 34px;
+            height: 34px;
+            font-size: 1.125rem;
+        }
+    }
+}
+
+// The highlighted pair: a ring in its colour, white gap in between
+.cmp-ring-a {
+    box-shadow: 0 0 0 2px $white, 0 0 0 4px $cmp-a;
+}
+
+.cmp-ring-b {
+    box-shadow: 0 0 0 2px $white, 0 0 0 4px $cmp-b;
+}
+
+.cmp-dot {
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+
+    &--a {
+        background: $cmp-a;
+    }
+
+    &--b {
+        background: $cmp-b;
+    }
+}
+
+.cmp-tag {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    height: 18px;
+    padding: 0 .4rem;
+    border-radius: 999px;
+    background: rgba($primary, .12);
+    color: darken($primary, 22%);
+    font-size: .6875rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.cmp-members-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: .2rem;
+    height: 20px;
+    padding: 0 .45rem;
+    border-radius: 999px;
+    background: $gray-200;
+    color: $cmp-muted;
+    font-size: .6875rem;
+    font-weight: 500;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+// --- Line-up strip ----------------------------------------------------------------------------------------------------
+
+// The page's container pads 1rem on each side: the strips scroll edge to edge on a phone
+$cmp-bleed: 1rem;
+
+.cmp-lineup-wrap {
+    position: relative;
+    margin: 0 (-$cmp-bleed);
+
+    // A hint that the strip goes on
+    &::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 24px;
+        background: linear-gradient(90deg, rgba($white, 0), $white 85%);
+        pointer-events: none;
+    }
+}
+
+.cmp-lineup {
+    display: flex;
+    gap: .5rem;
+    padding: .375rem 1.5rem .375rem $cmp-bleed;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.cmp-chip {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: .4375rem;
+    height: 44px;
+    max-width: 240px;
+    padding: 0 .25rem 0 .5rem;
+    border: 1px solid $gray-300;
+    border-radius: 999px;
+    background: $white;
+    color: $cmp-text;
+    font-size: .875rem;
+    white-space: nowrap;
+
+    &__name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &--self {
+        border-color: transparent;
+        background: $cmp-self-tint;
+        padding-right: .75rem;
+    }
+
+    &--unavailable {
+        border-style: dashed;
+        color: $cmp-muted;
+    }
+
+    &--locked {
+        gap: .375rem;
+        padding: 0 .875rem;
+        background: $gray-100;
+        color: $cmp-muted;
+        cursor: pointer;
+    }
+
+    &--add {
+        gap: .375rem;
+        padding: 0 .875rem;
+        border: 1px dashed $primary;
+        color: darken($primary, 14%);
+        font-weight: 500;
+        cursor: pointer;
+
+        &:hover {
+            background: rgba($primary, .06);
+        }
+    }
+
+    &__remove {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 32px;
+        height: 32px;
+        margin-left: -.125rem;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: $gray-600;
+        font-size: .8125rem;
+
+        &:hover {
+            background: $gray-200;
+            color: $gray-800;
+        }
+    }
+
+    &:focus-visible,
+    &__remove:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: 2px;
+    }
+}
+
+.cmp-capline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    min-height: 28px;
+    font-size: .75rem;
+    color: $cmp-muted;
+
+    &__members {
+        padding: 0;
+        font-size: .75rem;
+        text-align: left;
+    }
+
+    &__count {
+        flex: 0 0 auto;
+    }
+}
+
+.cmp-notice {
+    margin: .5rem 0 0;
+    padding: .5rem .75rem;
+    font-size: .875rem;
+}
+
+// --- Cards and summary ------------------------------------------------------------------------------------------------
+
+.cmp-body {
+    margin-top: .25rem;
+}
+
+.cmp-card {
+    border: 1px solid $cmp-line;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
+
+    &__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: .125rem .5rem;
+        margin-bottom: .5rem;
+    }
+
+    &__title {
+        margin: 0;
+        font-size: .9375rem;
+        font-weight: 500;
+        color: $cmp-text;
+    }
+
+    &__hint {
+        font-size: .75rem;
+        color: $cmp-muted;
+    }
+}
+
+@include media-breakpoint-up(lg) {
+    .cmp-aside {
+        position: sticky;
+        top: calc(var(--header-height, 97px) + 1rem);
+    }
+}
+
+.cmp-h2h {
+    padding: .75rem .875rem;
+
+    &__grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: .5rem;
+    }
+
+    &__side {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: .375rem;
+        min-width: 0;
+    }
+
+    &__name {
+        max-width: 100%;
+        overflow: hidden;
+        font-size: .8125rem;
+        color: $cmp-text;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__wins {
+        font-size: 2rem;
+        font-weight: 600;
+        line-height: 1;
+        color: $cmp-text;
+    }
+
+    &__vs {
+        font-size: .8125rem;
+        font-weight: 500;
+        color: $cmp-muted;
+    }
+
+    &__bar {
+        display: flex;
+        gap: 2px;
+        height: 8px;
+        margin-top: .75rem;
+
+        span {
+            display: block;
+            border-radius: 4px;
+        }
+    }
+
+    &__bar-a {
+        background: $cmp-a;
+    }
+
+    &__bar-b {
+        background: $cmp-b;
+    }
+
+    &__bar-tie {
+        background: #c3c8d1;
+    }
+
+    &__line {
+        margin: .625rem 0 0;
+        font-size: .8125rem;
+        text-align: center;
+        color: $gray-700;
+
+        strong {
+            font-weight: 500;
+            color: $cmp-text;
+        }
+    }
+}
+
+.cmp-league {
+    padding: .75rem 0 .625rem;
+
+    .cmp-card__head {
+        padding: 0 .875rem;
+    }
+
+    &__table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: .875rem;
+
+        th {
+            padding: .375rem;
+            font-size: .75rem;
+            font-weight: 500;
+            color: $cmp-muted;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: .4375rem .375rem;
+            border-top: 1px solid $cmp-line;
+            color: $gray-700;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        th:first-child,
+        td:first-child {
+            padding-left: .875rem;
+        }
+
+        th:last-child,
+        td:last-child {
+            padding-right: .875rem;
+        }
+
+        .cmp-row-self td {
+            background: $cmp-self-tint;
+        }
+    }
+
+    &__pos {
+        width: 1%;
+        color: $cmp-muted;
+        text-align: left !important;
+    }
+
+    &__who {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        min-width: 0;
+        max-width: 150px;
+
+        @include media-breakpoint-up(sm) {
+            max-width: 260px;
+        }
+    }
+
+    &__name {
+        min-width: 0;
+        overflow: hidden;
+        color: $cmp-text;
+        text-overflow: ellipsis;
+    }
+
+    &__wins {
+        font-weight: 600;
+        color: $cmp-text !important;
+    }
+}
+
+.cmp-note {
+    margin: .5rem .875rem 0;
+    font-size: .75rem;
+    line-height: 1.45;
+    color: $cmp-muted;
+}
+
+// --- Highlighted pair picker (3+) -------------------------------------------------------------------------------------
+
+.cmp-highlight {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+
+    &__side {
+        display: flex;
+        flex: 1 1 0;
+        align-items: center;
+        gap: .375rem;
+        min-width: 0;
+
+        .form-select {
+            min-height: 40px;
+            min-width: 0;
+        }
+    }
+
+    &__vs {
+        font-size: .8125rem;
+        color: $cmp-muted;
+    }
+
+    &__hint {
+        margin: .25rem 0 0;
+        font-size: .75rem;
+        color: $cmp-muted;
+    }
+}
+
+// --- Tabs -------------------------------------------------------------------------------------------------------------
+
+.cmp-tabs {
+    display: flex;
+    margin-top: .75rem;
+    border-bottom: 1px solid #e3e6ec;
+}
+
+.cmp-tab {
+    display: inline-flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    gap: .375rem;
+    height: 44px;
+    margin-bottom: -1px;
+    padding: 0 .5rem;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: $gray-700;
+    font-size: .875rem;
+    font-weight: 500;
+    white-space: nowrap;
+
+    &.is-active {
+        border-bottom-color: $primary;
+        color: darken($primary, 14%);
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: -2px;
+    }
+
+    &__lock {
+        font-size: .75rem;
+        color: $gray-600;
+    }
+}
+
+// --- Quick filters ----------------------------------------------------------------------------------------------------
+
+.cmp-filters {
+    display: flex;
+    align-items: center;
+    gap: .375rem;
+    margin: 0 (-$cmp-bleed);
+    padding: .625rem $cmp-bleed .125rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    @include media-breakpoint-up(sm) {
+        flex-wrap: wrap;
+        margin: 0;
+        padding-left: 0;
+        padding-right: 0;
+    }
+}
+
+.cmp-pill {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: .3125rem;
+    min-height: 36px;
+    padding: 0 .75rem;
+    border: 1px solid $gray-300;
+    border-radius: 999px;
+    background: $white;
+    color: $gray-700;
+    font-size: .8125rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover {
+        border-color: $gray-500;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: 2px;
+    }
+
+    &.is-on {
+        border-color: $primary;
+        background: rgba($primary, .06);
+        color: darken($primary, 14%);
+    }
+
+    &--primary {
+        border-color: $primary;
+        color: darken($primary, 14%);
+        font-weight: 500;
+    }
+
+    &__count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 .3125rem;
+        border-radius: 9px;
+        background: $primary;
+        color: $white;
+        font-size: .6875rem;
+    }
+
+    &--locked {
+        background: $gray-100;
+        color: $cmp-muted;
+
+        .diff-icon {
+            opacity: .55;
+        }
+    }
+
+    // A select dressed as a pill
+    &--select {
+        width: auto;
+        padding-right: 2rem;
+        background-position: right .625rem center;
+        background-size: 12px 9px;
+    }
+}
+
+.cmp-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+
+    .cmp-pill {
+        min-height: 40px;
+    }
+
+    .diff-icon {
+        flex: 0 0 auto;
+    }
+}
+
+// --- List -------------------------------------------------------------------------------------------------------------
+
+.cmp-listhead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-top: .75rem;
+    font-size: .75rem;
+    color: $cmp-muted;
+}
+
+.cmp-view-switch {
+    flex: 0 0 auto;
+
+    .btn {
+        min-width: 44px;
+        min-height: 36px;
+    }
+}
+
+.cmp-tap-hint {
+    margin: .125rem 0 .5rem;
+    font-size: .75rem;
+    color: $cmp-muted;
+}
+
+.cmp-empty,
+.cmp-empty-list {
+    margin-top: .75rem;
+    padding: 1.25rem 1rem;
+    text-align: center;
+}
+
+.cmp-empty {
+    border: 1px dashed $gray-400;
+    border-radius: 10px;
+
+    &__icon {
+        font-size: 2rem;
+        color: $primary;
+    }
+}
+
+.cmp-empty-list {
+    border-radius: 10px;
+    background: $gray-100;
+    font-size: .875rem;
+}
+
+.cmp-more {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 0 1.5rem;
+
+    .btn {
+        min-height: 44px;
+    }
+}
+
+// A compared time - a link to the result detail. Times, gaps and pills never break: a name next to them gives way
+.cmp-time {
+    display: inline-block;
+    color: $gray-700;
+    font-size: 1rem;
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover {
+        color: $cmp-text;
+        text-decoration: underline;
+    }
+
+    &.is-win {
+        font-weight: 600;
+        color: $cmp-text;
+    }
+
+    &--none {
+        color: $gray-500;
+    }
+}
+
+// The line under a time may wrap - between its tokens (day, "1st try", "best of N"), never inside one
+.cmp-meta {
+    display: block;
+    font-size: .75rem;
+    color: $cmp-muted;
+
+    &__token {
+        white-space: nowrap;
+    }
+}
+
+.cmp-badge-first {
+    display: inline-flex;
+    align-items: center;
+    height: 18px;
+    padding: 0 .375rem;
+    border-radius: 999px;
+    background: #e5f1ff;
+    color: #1d5fa8;
+    font-size: .6875rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+// Image, name and meta of a compared puzzle
+.cmp-puzzle {
+    display: flex;
+    align-items: center;
+    gap: .625rem;
+    min-width: 0;
+
+    &__image {
+        flex: 0 0 auto;
+    }
+
+    &__text {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    &__name {
+        display: -webkit-box;
+        overflow: hidden;
+        color: $cmp-text;
+        font-size: .875rem;
+        line-height: 1.3;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    &__meta {
+        font-size: .75rem;
+        color: $cmp-muted;
+
+        .diff-icon {
+            vertical-align: -3px;
+        }
+    }
+
+    &__solved {
+        flex: 0 0 auto;
+        align-self: flex-start;
+        font-size: .75rem;
+        color: $cmp-muted;
+        white-space: nowrap;
+    }
+}
+
+// Duel rows: A left, B right, the gap pill in between points at the faster one
+.cmp-duel-head {
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: 0 0 .375rem;
+    font-size: .75rem;
+    color: $cmp-muted;
+
+    span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.cmp-duel-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.cmp-duel {
+    padding: .75rem 0;
+    border-top: 1px solid $cmp-line;
+
+    &__times {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: .5rem;
+        margin-top: .5rem;
+    }
+
+    &__side {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+
+        &--b {
+            align-items: flex-end;
+            text-align: right;
+        }
+    }
+}
+
+.cmp-gap {
+    display: inline-flex;
+    align-items: center;
+    gap: .125rem;
+    height: 24px;
+    padding: 0 .5rem;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 600;
+    white-space: nowrap;
+
+    &--a {
+        background: #ffe9e9;
+        color: #a8282b;
+    }
+
+    &--b {
+        background: #e9eafb;
+        color: #353a99;
+    }
+
+    &--tie {
+        background: $gray-200;
+        color: $cmp-muted;
+        font-weight: 500;
+    }
+}
+
+.cmp-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem;
+    margin: .5rem 0 0;
+    padding: .375rem .5rem;
+    border-radius: 6px;
+    background: $gray-100;
+    font-size: .75rem;
+    color: $cmp-muted;
+}
+
+// Cards view (3+)
+.cmp-cards {
+    display: grid;
+    gap: .75rem;
+
+    @include media-breakpoint-up(xl) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.cmp-puzzle-card {
+    padding: .75rem .75rem .625rem;
+}
+
+.cmp-rank {
+    margin: .625rem 0 0;
+    padding: 0;
+    list-style: none;
+
+    &__row {
+        display: grid;
+        grid-template-columns: 16px 22px minmax(0, 1fr);
+        align-items: start;
+        gap: .5rem;
+        padding: .4375rem .375rem;
+        border-top: 1px solid $cmp-line;
+
+        &.cmp-row-self {
+            border-radius: 6px;
+            background: $cmp-self-tint;
+        }
+    }
+
+    &__pos {
+        font-size: .75rem;
+        line-height: 22px;
+        color: $cmp-muted;
+        text-align: center;
+    }
+
+    // The name takes what is left (ellipsis), never the time or the gap: the gap column fits "+01:02:05" (56.5 px in
+    // Rubik at 12 px) so rows stay aligned, and grows for anything wider instead of wrapping
+    &__top {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(3.625rem, max-content);
+        align-items: center;
+        gap: .375rem;
+        min-height: 22px;
+    }
+
+    &__name {
+        min-width: 0;
+        overflow: hidden;
+        font-size: .875rem;
+        color: $cmp-text;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__delta {
+        font-size: .75rem;
+        color: $cmp-muted;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .cmp-time {
+        font-size: .9375rem;
+    }
+}
+
+.cmp-not-solved {
+    margin: .375rem 0 0;
+    padding: .375rem .375rem 0;
+    border-top: 1px solid $cmp-line;
+    font-size: .75rem;
+    color: $cmp-muted;
+}
+
+// Table view (3+): the puzzle column stays, the rest scrolls inside the box
+.cmp-table-wrap {
+    position: relative;
+    margin: 0 (-$cmp-bleed);
+    overflow-x: auto;
+    border-top: 1px solid $cmp-line;
+    -webkit-overflow-scrolling: touch;
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: -2px;
+    }
+
+    @include media-breakpoint-up(sm) {
+        margin: 0;
+    }
+}
+
+.cmp-table {
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: .8125rem;
+
+    th,
+    td {
+        padding: .5rem .375rem;
+        border-bottom: 1px solid $cmp-line;
+        vertical-align: middle;
+    }
+
+    thead th {
+        font-weight: 400;
+        background: $white;
+    }
+
+    &__puzzle {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        width: 136px;
+        min-width: 136px;
+        max-width: 136px;
+        padding-left: $cmp-bleed !important;
+
+        @include media-breakpoint-up(sm) {
+            padding-left: .375rem !important;
+        }
+        background: $white;
+        box-shadow: inset -1px 0 0 #e3e6ec, 6px 0 8px -6px rgba(0, 0, 0, .18);
+        text-align: left;
+        font-weight: 400;
+    }
+
+    &__puzzle-link {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        color: $cmp-text;
+    }
+
+    &__image {
+        flex: 0 0 auto;
+    }
+
+    &__puzzle-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    &__puzzle-name {
+        display: -webkit-box;
+        overflow: hidden;
+        line-height: 1.25;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    &__pieces {
+        font-size: .6875rem;
+        color: $cmp-muted;
+    }
+
+    &__subject {
+        min-width: 84px;
+        text-align: right;
+    }
+
+    &__who {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: .1875rem;
+    }
+
+    &__name {
+        max-width: 76px;
+        overflow: hidden;
+        color: $cmp-text;
+        font-size: .6875rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__cell {
+        text-align: right;
+        white-space: nowrap;
+
+        .cmp-time {
+            display: block;
+            font-size: .8125rem;
+        }
+
+        &.is-win-self {
+            background: $cmp-self-tint;
+        }
+
+        &.is-win {
+            background: $cmp-b-tint;
+        }
+    }
+
+    &__delta {
+        display: block;
+        font-size: .6875rem;
+        color: $cmp-muted;
+        white-space: nowrap;
+    }
+
+    &__none {
+        color: $gray-500;
+    }
+}
+
+.cmp-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem .875rem;
+    margin: .75rem 0 0;
+    font-size: .75rem;
+    color: $cmp-muted;
+
+    > span {
+        display: inline-flex;
+        align-items: center;
+        gap: .375rem;
+    }
+
+    &__swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+
+        &--self {
+            background: rgba($primary, .18);
+        }
+
+        &--other {
+            background: #e3e5f8;
+        }
+    }
+}
+
+.cmp-charts-locked {
+    margin-top: .75rem;
+    padding: .75rem .75rem 1rem;
+
+    .cmp-note {
+        margin: .75rem 0 0;
+    }
+}
+
+// --- Sheets (add, filters, swap) --------------------------------------------------------------------------------------
+
+.cmp-sheet {
+    .modal-header {
+        gap: .5rem;
+    }
+
+    &__count {
+        margin-left: auto;
+        font-size: .8125rem;
+        color: $cmp-muted;
+    }
+
+    &__label {
+        margin: 1rem 0 .5rem;
+        font-size: .75rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: $gray-600;
+    }
+
+    &__section {
+        margin-top: .75rem;
+    }
+
+    &__foot {
+        margin: 1rem 0 0;
+        font-size: .75rem;
+        color: $cmp-muted;
+    }
+}
+
+.cmp-add-search {
+    .ts-control {
+        min-height: 44px;
+        font-size: 1rem;
+    }
+}
+
+.cmp-options {
+    display: flex;
+    flex-direction: column;
+    gap: .375rem;
+
+    &__status {
+        margin: 0;
+        font-size: .875rem;
+        color: $cmp-muted;
+    }
+}
+
+.cmp-option {
+    display: flex;
+    align-items: center;
+    gap: .625rem;
+    width: 100%;
+    min-height: 48px;
+    padding: .375rem .625rem;
+    border: 1px solid $gray-300;
+    border-radius: 10px;
+    background: $white;
+    color: $cmp-text;
+    font-size: .875rem;
+    text-align: left;
+
+    &:hover {
+        border-color: $primary;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: 2px;
+    }
+
+    &--result {
+        min-height: 0;
+        padding: .125rem 0;
+        border: 0;
+        background: transparent;
+    }
+
+    &__avatar {
+        flex: 0 0 auto;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+
+        &--icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #eef0f4;
+            color: #4b5160;
+            font-weight: 600;
+
+            .fi {
+                width: 100%;
+                height: 100%;
+                background-size: cover;
+            }
+        }
+    }
+
+    &__text {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    &__name,
+    &__sub {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__sub {
+        font-size: .75rem;
+        color: $cmp-muted;
+    }
+
+    &__star {
+        color: #f6b500;
+    }
+
+    &__plus {
+        flex: 0 0 auto;
+        color: $primary;
+    }
+}
+
+.cmp-locked-line,
+.cmp-locked-field {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    width: 100%;
+    min-height: 44px;
+    padding: .375rem .75rem;
+    border: 1px dashed $gray-400;
+    border-radius: 10px;
+    background: $gray-100;
+    color: $cmp-muted;
+    font-size: .875rem;
+    text-align: left;
+
+    span:not(.cmp-members-tag) {
+        flex: 1 1 auto;
+    }
+}
+
+.cmp-locked-line {
+    margin-top: .75rem;
+}
+
+.cmp-fieldset {
+    margin-bottom: 1.25rem;
+
+    legend {
+        display: flex;
+        align-items: center;
+        gap: .375rem;
+        margin-bottom: .5rem;
+        font-size: .875rem;
+        font-weight: 600;
+        color: $gray-800;
+    }
+
+    .flatpickr-wrapper {
+        display: block;
+    }
+}
+
+.cmp-swap {
+    &__incoming {
+        display: flex;
+        align-items: center;
+        gap: .625rem;
+    }
+
+    &__members {
+        margin-top: 1.25rem;
+        padding: .75rem;
+        border-radius: 10px;
+        background: $gray-100;
+        font-size: .875rem;
+    }
+}

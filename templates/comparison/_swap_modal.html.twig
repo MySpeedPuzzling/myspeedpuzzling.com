@@ -1,0 +1,77 @@
+{# The line-up has no room for who was just added (its cap - free or member): swap one out, or keep it - never a dead
+   end. Members may swap themselves out too. Always on the page, so it closes properly; comparison_sheet_controller.js
+   opens it while there is somebody to swap in and tells the component when it was closed. #}
+{% set incoming = this.swapSubject %}
+<div class="modal fade cmp-sheet" id="comparison-swap" tabindex="-1" aria-labelledby="comparison-swap-title" aria-hidden="true"
+    data-testid="comparison-swap"
+    data-controller="comparison-sheet"
+    data-comparison-sheet-open-value="{{ incoming is not null ? 'true' : 'false' }}"
+    data-comparison-sheet-close-action-value="dismissSwap"
+>
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            {% if incoming is not null %}
+                {% set incoming_label = this.labelOf(incoming.ref) %}
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="comparison-swap-title">{{ 'comparison.swap.title'|trans({'%name%': incoming_label}) }}</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">{{ ('comparison.swap.lead_' ~ this.activeKind.value)|trans({'%count%': this.cap}) }}</p>
+
+                    <div class="cmp-swap__incoming">
+                        {{ include('comparison/_subject_avatar.html.twig', {subject: incoming, label: incoming_label, role: 'b', size: 'lg'}) }}
+                        <span class="fw-medium">{{ incoming_label }}</span>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-3">
+                        {% if this.lineUpCount < this.cap %}
+                            {# Room again (removed elsewhere meanwhile): a plain add #}
+                            <button type="button" class="btn btn-primary"
+                                data-action="live#action"
+                                data-live-action-param="add"
+                                data-live-ref-param="{{ incoming.ref.toString }}"
+                                data-testid="comparison-swap-add"
+                            >{{ 'comparison.swap.add'|trans({'%name%': incoming_label}) }}</button>
+                        {% else %}
+                        {% for candidate in this.swapCandidates %}
+                            {% set candidate_label = candidate.subject.isAvailable ? this.labelOf(candidate.subject.ref) : 'comparison.unavailable'|trans %}
+                            <button type="button" class="btn btn-primary"
+                                data-action="live#action"
+                                data-live-action-param="add"
+                                data-live-ref-param="{{ incoming.ref.toString }}"
+                                data-live-replace-row-id-param="{{ candidate.rowId }}"
+                                data-testid="comparison-swap-confirm"
+                            >
+                                {{ (candidate.subject.isViewer ? 'comparison.swap.confirm_self' : 'comparison.swap.confirm')|trans({'%old%': candidate_label, '%new%': incoming_label}) }}
+                            </button>
+                        {% endfor %}
+                        {% endif %}
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-testid="comparison-swap-keep">
+                            {%- if this.lineUpCount < this.cap -%}
+                                {{ 'comparison.swap.not_now'|trans }}
+                            {%- elseif this.swapCandidates|length == 1 -%}
+                                {{ 'comparison.swap.keep'|trans({'%name%': this.swapCandidates[0].subject.isAvailable ? this.labelOf(this.swapCandidates[0].subject.ref) : 'comparison.unavailable'|trans}) }}
+                            {%- else -%}
+                                {{ 'comparison.swap.keep_line_up'|trans }}
+                            {%- endif -%}
+                        </button>
+                    </div>
+
+                    {% if not this.isMember %}
+                        <div class="cmp-swap__members">
+                            <p class="mb-2">{{ 'comparison.swap.members_text'|trans({'%count%': constant('SpeedPuzzling\\Web\\Value\\ComparisonLimits::MEMBER')}) }}</p>
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                {%- if logged_user.profile is not null and logged_user.profile.canStartFreeTrial -%}
+                                    {{ 'free_trial.modal.button'|trans({'%days%': constant('SpeedPuzzling\\Web\\Value\\FreeTrial::DAYS')}) }}
+                                {%- else -%}
+                                    {{ 'membership.modal.cta'|trans }}
+                                {%- endif -%}
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>

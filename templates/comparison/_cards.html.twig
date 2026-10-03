@@ -1,0 +1,36 @@
+{# Cards view (3+): per puzzle a ranked mini-leaderboard of the line-up #}
+{% set result = this.result %}
+<div class="cmp-cards" data-testid="comparison-cards">
+    {% for row in result.page %}
+        {% set puzzle = this.puzzles[row.puzzleId] ?? null %}
+        {% if puzzle is not null %}
+            <article class="card cmp-card cmp-puzzle-card" data-testid="comparison-row">
+                {{ include('comparison/_puzzle_head.html.twig', {puzzle: puzzle, position: loop.index, solved_label: 'comparison.cell.solved_of'|trans({'%count%': row.solvedBy, '%total%': result.subjects|length})}) }}
+
+                <ol class="cmp-rank">
+                    {% for cell in row.ranked %}
+                        {% set label = this.labelOf(cell.subject) %}
+                        <li class="cmp-rank__row{{ this.isSelf(cell.subject) ? ' cmp-row-self' }}">
+                            <span class="cmp-rank__pos">{{ cell.rank }}</span>
+                            {{ include('comparison/_subject_avatar.html.twig', {subject: this.subjectOf(cell.subject), label: label, role: this.roleOf(cell.subject), size: 'sm'}) }}
+                            <div class="cmp-rank__body">
+                                <div class="cmp-rank__top">
+                                    <span class="cmp-rank__name">{{ label }}</span>
+                                    {{ include('comparison/_time_link.html.twig', {cell: cell, win: cell.rank == 1 and row.solvedBy > 1}) }}
+                                    <span class="cmp-rank__delta">{{ cell.deltaSeconds > 0 ? cell.deltaSeconds|gapTime }}</span>
+                                </div>
+                                {{ include('comparison/_cell_meta.html.twig', {cell: cell}) }}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ol>
+
+                {% if row.notSolvedBy is not empty %}
+                    <p class="cmp-not-solved">
+                        {{- 'comparison.cell.not_solved_by'|trans({'%names%': row.notSolvedBy|map(ref => this.labelOf(ref))|join(', ')}) -}}
+                    </p>
+                {% endif %}
+            </article>
+        {% endif %}
+    {% endfor %}
+</div>

@@ -1,5 +1,7 @@
 {% extends 'base.html.twig' %}
 
+{% set hide_comparison_launcher = true %}
+
 {% block title %}{{ 'competition.stopwatch.title'|trans }} - {{ round.name }} - {{ competition.name }}{% endblock %}
 
 {% block header %}{% endblock %}

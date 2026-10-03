@@ -59,12 +59,15 @@
 @import 'auth';
 @import 'multiscan';
 @import 'leaderboard';
+@import 'comparison';
 @import 'compact-bar';
 @import 'player-header';
 @import 'puzzle-result';
 @import 'favorite-puzzlers';
+@import 'comparison-charts';
 @import 'dynamic-modal';
 @import 'footer';
+@import 'comparison-entry';
 
 // Native app platform styles
 @import 'native';

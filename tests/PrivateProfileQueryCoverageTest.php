@@ -20,6 +20,7 @@ final class PrivateProfileQueryCoverageTest extends TestCase
 
     /** Files allowed to read the raw column, besides going through PrivateProfileAccess */
     private const array RAW_COLUMN = [
+        'Query/FindSimilarSpeedPuzzler.php' => 'A random suggestion of somebody at your speed offers public profiles only - the same pool for every viewer, like a global ranking.',
         'Query/GetAffiliateSupporters.php' => 'Public supporters list of somebody else\'s profile - stays public-only.',
         'Query/GetFastestGroups.php' => 'HAVING keeps a group only if a member is public - the same rows and positions for every viewer; names on them go through the service.',
         'Query/GetFastestPairs.php' => 'HAVING keeps a pair only if a member is public - the same rows and positions for every viewer; names on them go through the service.',
@@ -27,12 +28,13 @@ final class PrivateProfileQueryCoverageTest extends TestCase
         'Query/GetFavoritePlayers.php' => self::GLOBAL_RANKING,
         'Query/GetPlayerConnections.php' => 'Also reports the raw setting (is_private_profile) for the API\'s is_private field; masking uses the service.',
         'Query/GetPlayerIdsForSitemap.php' => self::BACKGROUND,
-        'Query/GetPlayerProfile.php' => 'byUserId() is the signed-in player\'s own profile; byId() also reports the raw setting as is_private_profile. Masking uses the service.',
+        'Query/GetPlayerProfile.php' => 'byUserId() is the signed-in player\'s own profile (its comparison line-up avatars are masked in PlayerProfile against the revealed ids of that same row); byId() also reports the raw setting as is_private_profile. Masking uses the service.',
         'Query/GetPlayerRatingRanking.php' => self::GLOBAL_RANKING,
         'Query/GetPlayersForWjpfSync.php' => self::BACKGROUND,
         'Query/GetPlayersPerCountry.php' => self::GLOBAL_RANKING,
         'Query/GetRanking.php' => self::GLOBAL_RANKING,
         'Query/GetStopwatchMilestones.php' => self::GLOBAL_RANKING,
+        'Services/ComparisonSubjectVisibility.php' => 'Write side with an explicit owner id: the owner\'s allow-list row is read in the same statement - handlers never see the ambient viewer.',
         'Services/PrivateProfileAccess.php' => 'The one place that decides.',
         'Services/PuzzleIntelligence/MspRatingCalculator.php' => self::BACKGROUND,
         'Services/PuzzleIntelligence/PuzzleIntelligenceRecalculator.php' => self::BACKGROUND,

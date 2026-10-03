@@ -1,0 +1,8 @@
+{# Under a time: the day, and "1st try" or "best of N". Each token stays on one line, the line breaks only between
+   them. Input: cell (ComparisonCell) #}
+<span class="cmp-meta">
+    <span class="cmp-meta__token">{{ cell.day|format_date('medium') }}</span>
+    {%- if cell.isFirstTry %} <span class="cmp-badge-first">{{ 'comparison.cell.first_try'|trans }}</span>
+    {%- elseif cell.attempts > 1 %} <span class="cmp-meta__token">· {{ 'comparison.cell.best_of'|trans({'%count%': cell.attempts}) }}</span>
+    {%- endif -%}
+</span>

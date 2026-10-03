@@ -1,0 +1,2 @@
+{# A compared time - opens the result detail (all attempts) in the modal. Inputs: cell, win (bool) #}
+<a class="cmp-time{{ win|default(false) ? ' is-win' }}" href="{{ path('puzzle_result_detail', {timeId: cell.timeId}) }}" data-turbo-frame="modal-frame" rel="nofollow">{{ cell.seconds|puzzlingTime }}</a>

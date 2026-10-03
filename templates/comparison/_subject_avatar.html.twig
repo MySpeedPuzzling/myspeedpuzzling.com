@@ -1,0 +1,22 @@
+{#
+    Avatar of a compared subject: the player's avatar (photo, flag or initial), a people icon for a pair/team, a neutral
+    icon for one that is no longer available. The highlighted pair gets its ring: A coral, B indigo.
+
+    Inputs: subject (ComparisonSubject), label (string), role (null|'a'|'b'), size ('' | 'sm' | 'lg')
+#}
+{%- set size = size|default('') -%}
+<span class="cmp-avatar{{ size ? ' cmp-avatar--' ~ size }}{{ role|default(null) ? ' cmp-ring-' ~ role }}">
+    {%- if not subject.isAvailable -%}
+        <span class="cmp-avatar__icon cmp-avatar__icon--unavailable" aria-hidden="true"><i class="bi bi-person-dash"></i></span>
+    {%- elseif subject.isTeam -%}
+        <span class="cmp-avatar__icon" aria-hidden="true"><i class="bi bi-people-fill"></i></span>
+    {%- else -%}
+        {{- include('_player_avatar.html.twig', {
+            player_id: subject.playerId,
+            name: label,
+            avatar: subject.playerAvatar,
+            country_code: subject.playerCountry ? subject.playerCountry.name : null,
+            size: size,
+        }) -}}
+    {%- endif -%}
+</span>

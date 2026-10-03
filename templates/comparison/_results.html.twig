@@ -1,0 +1,76 @@
+{# The compared puzzles: duel rows for two subjects, the remembered view (Cards / Table / Duel) for 3+. The Duel view of
+   3+ lists only the puzzles both highlighted subjects solved (result.highlightedPairOnly) #}
+{% set result = this.result %}
+{% set subjects_count = result.subjects|length %}
+{% set view = this.listView %}
+{% set view_icons = {cards: 'bi:view-stacked', table: 'bi:table', duel: 'bi:arrow-left-right'} %}
+{# "you both" only when you yourself are one of the pair - not your pair or team #}
+{% set pair_with_you = result.highlightedPairOnly and (this.subjectOf(result.highlightA).isViewer|default(false) or this.subjectOf(result.highlightB).isViewer|default(false)) %}
+
+<div class="cmp-listhead">
+    <span class="cmp-listhead__count" data-testid="comparison-total">
+        {%- if result.highlightedPairOnly -%}
+            {{- (pair_with_you ? 'comparison.list.count_pair_you' : 'comparison.list.count_pair')|trans({'%count%': result.total}) -}}
+            {%- if result.criteria.show.value == 'everyone' %} · {{ 'comparison.show.everyone'|trans }}{% endif -%}
+        {%- else -%}
+            {{- 'comparison.list.count'|trans({'%count%': result.total}) }} · {{ ('comparison.show.' ~ (subjects_count == 2 and result.criteria.show.value == 'everyone' ? 'both' : result.criteria.show.value))|trans -}}
+        {%- endif -%}
+    </span>
+
+    {% if subjects_count >= 3 %}
+        <div class="btn-group btn-group-sm lb-chart-switch cmp-view-switch" role="group" aria-label="{{ 'comparison.view.label'|trans }}" data-testid="comparison-view-switch">
+            {% for option, icon in view_icons %}
+                {% set option_label = ('comparison.view.' ~ option)|trans %}
+                <button type="button"
+                    class="btn{{ option == view ? ' active' }}"
+                    aria-pressed="{{ option == view ? 'true' : 'false' }}"
+                    aria-label="{{ option_label }}"
+                    title="{{ option_label }}"
+                    data-action="live#action"
+                    data-live-action-param="changeView"
+                    data-live-view-param="{{ option }}"
+                    data-testid="comparison-view-{{ option }}"
+                >{{ ux_icon(icon, {'aria-hidden': 'true'}) }}</button>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+{% if result.isEmpty %}
+    <div class="cmp-empty-list" data-testid="comparison-empty-results">
+        {% if result.highlightedPairOnly and this.activeFiltersCount == 0 %}
+            <p class="mb-2">{{ (pair_with_you ? 'comparison.list.none_pair_you' : 'comparison.list.none_pair')|trans }}</p>
+            <button type="button" class="btn btn-outline-primary btn-sm" data-action="live#action" data-live-action-param="changeView" data-live-view-param="cards" data-testid="comparison-empty-cards">
+                {{ 'comparison.list.to_cards'|trans }}
+            </button>
+        {% elseif result.criteria.show.value != 'all' and not result.highlightedPairOnly %}
+            <p class="mb-2">{{ (subjects_count == 2 ? 'comparison.list.none_shared_both' : 'comparison.list.none_shared')|trans }}</p>
+            <button type="button" class="btn btn-outline-primary btn-sm" data-action="live#action" data-live-action-param="showAll" data-testid="comparison-empty-show-all">
+                {{ 'comparison.list.show_all'|trans }}
+            </button>
+        {% elseif this.activeFiltersCount > 0 %}
+            <p class="mb-2">{{ 'comparison.list.none_filtered'|trans }}</p>
+            <a class="btn btn-outline-primary btn-sm" href="{{ path('comparison', this.isPreview ? {kind: this.activeKind.value, with: this.with} : {kind: this.activeKind.value}) }}">{{ 'comparison.filters.reset'|trans }}</a>
+        {% else %}
+            <p class="mb-0">{{ 'comparison.list.none_at_all'|trans }}</p>
+        {% endif %}
+    </div>
+{% else %}
+    <p class="cmp-tap-hint">{{ 'comparison.list.tap_hint'|trans }}</p>
+
+    {% if view == 'cards' %}
+        {{ include('comparison/_cards.html.twig') }}
+    {% elseif view == 'table' %}
+        {{ include('comparison/_table.html.twig') }}
+    {% else %}
+        {{ include('comparison/_duel_rows.html.twig', {with_strip: subjects_count >= 3}) }}
+    {% endif %}
+
+    {% if result.hasMore %}
+        <div class="cmp-more">
+            <button type="button" class="btn btn-outline-secondary" data-action="live#action" data-live-action-param="showMore" data-testid="comparison-show-more">
+                {{ 'comparison.list.show_more'|trans({'%count%': min(result.remaining, constant('SpeedPuzzling\\Web\\Value\\ComparisonCriteria::PAGE_SIZE'))}) }}
+            </button>
+        </div>
+    {% endif %}
+{% endif %}

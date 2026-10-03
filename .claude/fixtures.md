@@ -95,6 +95,22 @@ Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 ### Team Solving
 - `PLAYER_REGULAR` & `PLAYER_PRIVATE` are a pair (`puzzling_team`, unnamed) with two times: TIME_12 (PUZZLE_1000_01) and TIME_41 (PUZZLE_1000_03), both tracked by PLAYER_REGULAR. Nobody else has pair/team history. Note PLAYER_REGULAR blocks PLAYER_PRIVATE (`UserBlockFixture`)
 
+### Comparison line-ups (`ComparisonSubjectFixture`)
+Persistent "Compare" line-ups (`comparison_subject`, docs/features/player-comparison.md), ids `018d0013-…`:
+
+| Const | Owner | Subject | Kind | Added |
+|-------|-------|---------|------|-------|
+| `REGULAR_SELF` | PLAYER_REGULAR (free) | PLAYER_REGULAR (self) | Solo | -5 days |
+| `REGULAR_STRIPE` | PLAYER_REGULAR | PLAYER_WITH_STRIPE | Solo | -5 days |
+| `STRIPE_SELF` | PLAYER_WITH_STRIPE (member) | PLAYER_WITH_STRIPE (self) | Solo | -4 days |
+| `STRIPE_ADMIN` | PLAYER_WITH_STRIPE | PLAYER_ADMIN | Solo | -4 days |
+| `STRIPE_REGULAR` | PLAYER_WITH_STRIPE | PLAYER_REGULAR | Solo | -2 days |
+| `STRIPE_PAIR` | PLAYER_WITH_STRIPE | the PLAYER_REGULAR & PLAYER_PRIVATE pair (TIME_12's team) | Pairs | -1 day |
+
+PLAYER_REGULAR's Solo line-up is exactly at the free cap (you + 1 other) - any further Solo add is "full" unless it swaps
+`REGULAR_STRIPE`. PLAYER_ADMIN and PLAYER_WITH_FAVORITES start with empty line-ups. Rows sharing a second are ordered
+by id, so `*_SELF` comes first. PLAYER_REGULAR cannot add the `STRIPE_PAIR` pair himself (he blocks PLAYER_PRIVATE).
+
 ### Lending Relationships
 - `PLAYER_WITH_STRIPE` lends to: `PLAYER_REGULAR`, `PLAYER_WITH_FAVORITES`, "Jane Doe" (non-registered)
 - `PLAYER_REGULAR` lends to: `PLAYER_WITH_STRIPE`
@@ -263,6 +279,7 @@ Seller settings: `PLAYER_WITH_STRIPE` has ISO currency **GBP** (listings eligibl
 | Public collection | PLAYER_WITH_STRIPE |
 | Favorite players set | PLAYER_WITH_FAVORITES |
 | Team solving experience | PLAYER_REGULAR, PLAYER_PRIVATE |
+| Comparison line-ups | PLAYER_REGULAR (Solo at the free cap), PLAYER_WITH_STRIPE (Solo + Pairs) |
 | Multiple collections | PLAYER_WITH_STRIPE (2), PLAYER_REGULAR (2) |
 | Puzzle in 3 collections | PLAYER_WITH_STRIPE: PUZZLE_500_02 (system + PUBLIC + STRIPE_TREFL) |
 | Borrowed + in collection | PLAYER_WITH_STRIPE: PUZZLE_1500_02 (borrowed + in system collection) |

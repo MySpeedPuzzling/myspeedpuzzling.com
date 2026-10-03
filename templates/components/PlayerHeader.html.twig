@@ -103,21 +103,47 @@
                         <i class="ci-edit me-1" aria-hidden="true"></i> {{ 'menu.edit_profile'|trans }}
                     </a>
                 {% else %}
-                    {# Filled while the player is in the viewer's favorites - a toggle that shows its state #}
+                    {# Filled while the player is in the viewer's favorites - a toggle that shows its state. Below 380 px,
+                       next to Message, only its star: the label is in aria-label/title (_player-header.scss) #}
                     {% if this.isInViewersFavorites %}
-                        <a class="btn btn-primary" data-turbo-prefetch="false" rel="nofollow" href="{{ path('remove_player_from_favorite', {playerId: player.playerId, return: return_path}) }}" title="{{ 'profile.remove_from_favorites'|trans }}" aria-label="{{ 'profile.remove_from_favorites'|trans }}">
-                            <i class="bi bi-star-fill me-1" aria-hidden="true"></i> {{ 'player_header.favorite_on'|trans }}
+                        <a class="btn btn-primary player-head-favorite" data-turbo-prefetch="false" rel="nofollow" href="{{ path('remove_player_from_favorite', {playerId: player.playerId, return: return_path}) }}" title="{{ 'profile.remove_from_favorites'|trans }}" aria-label="{{ 'profile.remove_from_favorites'|trans }}">
+                            <i class="bi bi-star-fill me-1" aria-hidden="true"></i> <span class="player-head-favorite-label">{{ 'player_header.favorite_on'|trans }}</span>
                         </a>
                     {% else %}
-                        <a class="btn btn-outline-primary" data-turbo-prefetch="false" rel="nofollow" href="{{ path('add_player_to_favorite', {playerId: player.playerId, return: return_path}) }}" title="{{ 'profile.add_to_favorites'|trans }}" aria-label="{{ 'profile.add_to_favorites'|trans }}">
-                            <i class="bi bi-star me-1" aria-hidden="true"></i> {{ 'player_header.favorite'|trans }}
+                        <a class="btn btn-outline-primary player-head-favorite" data-turbo-prefetch="false" rel="nofollow" href="{{ path('add_player_to_favorite', {playerId: player.playerId, return: return_path}) }}" title="{{ 'profile.add_to_favorites'|trans }}" aria-label="{{ 'profile.add_to_favorites'|trans }}">
+                            <i class="bi bi-star me-1" aria-hidden="true"></i> <span class="player-head-favorite-label">{{ 'player_header.favorite'|trans }}</span>
                         </a>
                     {% endif %}
 
                     {% if this.canMessage %}
-                        <a class="btn btn-outline-primary" href="{{ path('start_conversation', {recipientId: player.playerId}) }}" data-turbo="true" data-turbo-frame="modal-frame" rel="nofollow">
+                        <a class="btn btn-outline-primary player-head-message" href="{{ path('start_conversation', {recipientId: player.playerId}) }}" data-turbo="true" data-turbo-frame="modal-frame" rel="nofollow">
                             <i class="bi bi-envelope me-1" aria-hidden="true"></i> {{ 'player_header.message'|trans }}
                         </a>
+                    {% endif %}
+
+                    {# Compare: an icon in every locale - a label fits all six only from 424 px (docs/features/player-comparison.md, D11) #}
+                    {% if this.compare == 'add' %}
+                        {{ include('comparison_entry/_subject_form.html.twig', {
+                            action: 'add',
+                            subject: this.comparisonRef,
+                            form_class: 'player-head-compare',
+                            button_class: 'btn btn-outline-secondary more-btn',
+                            icon: 'bi-arrow-left-right',
+                            label: 'player_header.compare'|trans,
+                            icon_only: true,
+                        }) }}
+                    {% elseif this.compare == 'open' %}
+                        <div class="player-head-compare">
+                            <a class="btn btn-outline-secondary more-btn is-active" href="{{ path('comparison', {kind: 'solo'}) }}" title="{{ 'player_header.compare_open'|trans }}" aria-label="{{ 'player_header.compare_open'|trans }}">
+                                <i class="bi bi-arrow-left-right" aria-hidden="true"></i>
+                            </a>
+                        </div>
+                    {% elseif this.compare == 'sign_in' %}
+                        <div class="player-head-compare">
+                            <a class="btn btn-outline-secondary more-btn" rel="nofollow" href="{{ path('login', {return: return_path}) }}" title="{{ 'player_header.compare'|trans }}" aria-label="{{ 'player_header.compare'|trans }}">
+                                <i class="bi bi-arrow-left-right" aria-hidden="true"></i>
+                            </a>
+                        </div>
                     {% endif %}
                 {% endif %}
 

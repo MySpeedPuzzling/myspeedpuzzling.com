@@ -35,6 +35,7 @@ final class PrivateProfileQueryCoverageTest extends TestCase
         'Query/GetPlayersPerCountry.php' => self::GLOBAL_RANKING,
         'Query/GetRanking.php' => self::GLOBAL_RANKING,
         'Query/GetStopwatchMilestones.php' => self::GLOBAL_RANKING,
+        'Query/GetSuggestedPlayers.php' => 'Players page list: public profiles only, for everybody - nobody is ranked differently for different viewers.',
         'Services/ComparisonSubjectVisibility.php' => 'Write side with an explicit owner id: the owner\'s allow-list row is read in the same statement - handlers never see the ambient viewer.',
         'Services/PrivateProfileAccess.php' => 'The one place that decides.',
         'Services/PuzzleIntelligence/MspRatingCalculator.php' => self::BACKGROUND,

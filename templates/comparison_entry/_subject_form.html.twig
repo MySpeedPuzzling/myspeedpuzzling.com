@@ -9,6 +9,7 @@
       - label: what the button does
       - button_class, form_class (optional), icon (bootstrap icon class)
       - icon_only (bool, optional): the label goes into aria-label and title instead
+      - new_badge (bool, optional): the "New" badge - after the label, or on the icon's top edge when icon_only
 #}
 {%- set icon_only = icon_only|default(false) -%}
 {%- set token_id = action == 'add'
@@ -20,5 +21,6 @@
     <input type="hidden" name="return" value="{{ app.request.requestUri }}">
     <button type="submit" class="{{ button_class }}"{% if icon_only %} aria-label="{{ label }}" title="{{ label }}"{% endif %}>
         <i class="bi {{ icon }}{{ icon_only ? '' : ' me-1' }}" aria-hidden="true"></i>{% if not icon_only %} {{ label }}{% endif %}
+        {%- if new_badge|default(false) %}{{ include('comparison_entry/_new_badge.html.twig', {on_icon: icon_only}) }}{% endif %}
     </button>
 </form>

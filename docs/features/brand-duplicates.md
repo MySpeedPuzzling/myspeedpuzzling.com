@@ -54,6 +54,19 @@ generic codes - every PusselParet puzzle carries the same EAN); the same puzzle 
 artists and distributors typed as the brand (Hinkler's Mindbogglers, Jumbo's Wasgij, Sure-Lox artists) are "your call",
 never "certain".
 
+## Cleanup 2026-10-03
+
+Driven through the internal API, credited to Jan, report in `cleanup-report-2026-10-03.md` next to the survey:
+2,277 → 2,057 brands (217 merged, 3 empty ones deleted, 35 real brands approved), unapproved 213 → 57, and no two brands
+share a name ignoring case and spacing any more. 137 puzzle merge requests were filed for the puzzles that were twice
+under the merged brands - left to community review, not approved.
+
+Policy used for the researched groups (web + EAN prefix per group): a line, series, artist, licence, retailer or
+imprint typed as the brand is merged into the publisher when the EANs confirm it (Mindbogglers → Hinkler, Anne Geddes →
+Sure-Lox, Windows Spotlight → Spin Master, placeholders like "none", "???", "Unbekannt" → Unknown). Kept apart or left to
+Jan: box brands of their own with a history (Big Ben), series that moved publisher (Boynton), medium-evidence pairs and
+the display name of renamed companies (D-Toys / Roovi) - listed in the report.
+
 ## Merging
 
 `ManufacturerMerger` is the one brand merge - the approval queue's `merge_into` brand choice and the internal API both use

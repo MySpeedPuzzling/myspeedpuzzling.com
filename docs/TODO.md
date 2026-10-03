@@ -246,16 +246,18 @@ Shipped 2026-09-25. Design: [`features/puzzle-approvals.md`](features/puzzle-app
 - [ ] Tell the adder when their puzzle is approved or merged (notification type + `GetNotifications` branch)
 - [ ] Count approvals in `GetModerators` (reads `reviewed_by_id` today; `puzzle_moderation_decision` has everything)
 - [ ] A read-only history page over `puzzle_moderation_decision` (who decided what, filter by player)
-- [ ] Unapproved brands on production: 213 (2026-10-03), 158 of them with only approved puzzles, so the queue never shows them - cleanup via the internal API, see [Duplicate brands](#duplicate-brands)
+- [ ] Unapproved brands on production: 57 after the 2026-10-03 cleanup (was 213), 10 of them without a pending puzzle, so the queue never shows them - see [Duplicate brands](#duplicate-brands)
 
 ## Duplicate brands
 
 Design + survey: [`features/brand-duplicates.md`](features/brand-duplicates.md). Merge API shipped 2026-10-03.
 
-- [ ] Merge the 99 "certain" groups of the 2026-10-03 survey (`~/Downloads/msp-brand-duplicates-2026-10-03/`), then the 50 puzzles left twice under one brand; decide the 44 likely + 44 your-call groups
-- [ ] Approve or merge the remaining unapproved brands that have no pending puzzle
+- [x] Cleanup 2026-10-03 (report: `~/Downloads/msp-brand-duplicates-2026-10-03/cleanup-report-2026-10-03.md`): 2,277 → 2,057 brands, 217 merged, 3 empty deleted, 35 approved; no two brands share a name ignoring case/spacing any more
+- [ ] Community review of the 137 puzzle merge requests filed by the cleanup (`/admin/puzzle-merge-requests`)
+- [ ] Jan's calls from the report: D-Toys/Roovi display name, Big Ben, generic "Jigsaw puzzle" names, Miniwan, Valo, Zdeko, Canadian Art Prints, Whitman Guild, Boynton, Britto/Scenic; 4 Renoir puzzles to re-brand to MarMa
+- [ ] Approve or merge the 10 unapproved brands that have no pending puzzle
 - [x] Hardening: one brand resolver for `AddPuzzleHandler` (incl. multiscan quick-add) / `AddPuzzleToCompetitionRoundHandler` - `ManufacturerResolver`, case + spacing only (2026-10-03)
-- [ ] Hardening: unique index on the normalised brand name (race-safe insert) - needs the identical-key duplicates merged first
+- [ ] Hardening: unique index on the normalised brand name (race-safe insert) - possible now: zero collisions since the 2026-10-03 cleanup
 - [x] Hardening: every brand picker lists unapproved brands too (2026-10-03)
 - [ ] Hardening: approval queue suggests unapproved twins and refuses "approve" for a same-key approved brand
 - [x] Hardening: brand picker's client-side match compares the plain name (exact, else a single prefix match), not `includes()` on the option HTML (2026-10-03)

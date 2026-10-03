@@ -1378,6 +1378,16 @@ players:
 
     this_week:
         title: "This week"
+        title_country: "This week in %country%"
+        hint: "Most puzzles in the last 7 days"
+        on_a_roll: "On a roll"
+        puzzles: "%count% puzzle this week|%count% puzzles this week"
+        pieces: "%pieces% pieces"
+        chip:
+            personal_best: "New best on %pieces% pieces"
+            puzzles_milestone: "Reached %puzzles% puzzles"
+            pieces_milestone: "%pieces% pieces placed"
+            first_result: "First puzzle logged"
 
     suggestions:
         title: "Suggested for you"

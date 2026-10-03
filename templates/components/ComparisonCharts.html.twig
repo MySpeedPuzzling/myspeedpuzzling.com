@@ -17,8 +17,8 @@
                 <p class="cmp-chart-note" data-testid="comparison-chart-note">{{ card.note }}</p>
             {% elseif card.grid is not null %}
                 {# Head to head: read across - how often the row beat the column; one-hue ramp by the share of wins #}
-                <div class="cmp-h2h-wrap">
-                    <table class="cmp-h2h" data-testid="comparison-h2h">
+                <div class="cmp-matrix-wrap">
+                    <table class="cmp-matrix" data-testid="comparison-h2h">
                         <caption class="visually-hidden">{{ card.summary }}</caption>
                         <thead>
                             <tr>
@@ -34,7 +34,7 @@
                         <tbody>
                             {% for row in card.grid.rows %}
                                 <tr>
-                                    <th scope="row" class="cmp-h2h-name" title="{{ row.name }}">
+                                    <th scope="row" class="cmp-matrix-name" title="{{ row.name }}">
                                         {% if row.role != 'other' %}
                                             <span class="cmp-key-dot cmp-key-{{ row.role }}" aria-hidden="true"></span>
                                         {% endif %}
@@ -42,11 +42,11 @@
                                     </th>
                                     {% for cell in row.cells %}
                                         {% if cell.diagonal %}
-                                            <td class="cmp-h2h-self"></td>
+                                            <td class="cmp-matrix-self"></td>
                                         {% elseif cell.step is null %}
-                                            <td class="cmp-h2h-none" title="{{ cell.title }}"><span class="visually-hidden">{{ cell.title }}</span></td>
+                                            <td class="cmp-matrix-none" title="{{ cell.title }}"><span class="visually-hidden">{{ cell.title }}</span></td>
                                         {% else %}
-                                            <td class="cmp-h2h-r{{ cell.step }}" title="{{ cell.title }}">{{ cell.wins }}</td>
+                                            <td class="cmp-matrix-r{{ cell.step }}" title="{{ cell.title }}">{{ cell.wins }}</td>
                                         {% endif %}
                                     {% endfor %}
                                 </tr>
@@ -54,7 +54,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="cmp-h2h-ramp" aria-hidden="true" data-testid="comparison-chart-legend">
+                <div class="cmp-matrix-ramp" aria-hidden="true" data-testid="comparison-chart-legend">
                     <span>{{ card.grid.rampLow }}</span>
                     {% for color in card.grid.ramp %}
                         <i style="background: {{ color }};"></i>

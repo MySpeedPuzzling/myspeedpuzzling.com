@@ -215,12 +215,15 @@ $cmp-divider: #eceef2;
 
 // Head to head: an HTML heat map, one-hue indigo ramp; the grid scrolls inside its box on a narrow phone
 
-.cmp-h2h-wrap {
+.cmp-matrix-wrap {
+    max-width: 100%;
+    min-width: 0;
     margin-top: .5rem;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
 }
 
-.cmp-h2h {
+.cmp-matrix {
     width: 100%;
     border-collapse: separate;
     border-spacing: 2px;
@@ -244,7 +247,7 @@ $cmp-divider: #eceef2;
     }
 }
 
-.cmp-h2h th.cmp-h2h-name {
+.cmp-matrix th.cmp-matrix-name {
     max-width: 7.5rem;
     padding-right: .25rem;
     overflow: hidden;
@@ -253,24 +256,24 @@ $cmp-divider: #eceef2;
     text-overflow: ellipsis;
 }
 
-.cmp-h2h-self {
+.cmp-matrix-self {
     background: #f3f5f9;
 }
 
-.cmp-h2h-none {
+.cmp-matrix-none {
     background: #fafbfc;
 }
 
 // ComparisonChartsFactory::RAMP; white text only on the two darkest steps
-.cmp-h2h td {
-    &.cmp-h2h-r1 { background: #e9eafb; }
-    &.cmp-h2h-r2 { background: #c9ccf3; }
-    &.cmp-h2h-r3 { background: #a4a8ea; }
-    &.cmp-h2h-r4 { background: #7c81dc; color: #fff; }
-    &.cmp-h2h-r5 { background: #4e54c8; color: #fff; }
+.cmp-matrix td {
+    &.cmp-matrix-r1 { background: #e9eafb; }
+    &.cmp-matrix-r2 { background: #c9ccf3; }
+    &.cmp-matrix-r3 { background: #a4a8ea; }
+    &.cmp-matrix-r4 { background: #7c81dc; color: #fff; }
+    &.cmp-matrix-r5 { background: #4e54c8; color: #fff; }
 }
 
-.cmp-h2h-ramp {
+.cmp-matrix-ramp {
     display: flex;
     align-items: center;
     gap: 4px;

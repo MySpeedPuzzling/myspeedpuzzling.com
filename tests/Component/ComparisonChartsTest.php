@@ -68,9 +68,9 @@ final class ComparisonChartsTest extends KernelTestCase
         self::assertCount(1, $grid);
         self::assertStringContainsString('Read across', $grid->filter('caption')->text());
         self::assertCount(3, $grid->filter('tbody tr'));
-        self::assertCount(3, $grid->filter('td.cmp-h2h-self'));
+        self::assertCount(3, $grid->filter('td.cmp-matrix-self'));
         self::assertSame(['You', 'Anna Novak', 'Ben Berger'], $grid->filter('tbody th')->each(static fn(Crawler $name): string => trim($name->text())));
-        self::assertCount(1, $crawler->filter('.cmp-h2h-ramp'));
+        self::assertCount(1, $crawler->filter('.cmp-matrix-ramp'));
 
         self::assertStringContainsString('Charts use the same filters as the list.', $crawler->text());
     }

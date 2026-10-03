@@ -39,10 +39,7 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector);
 
         // Open the dropdown menu on the puzzle card
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         // Wait for dropdown to open
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
@@ -94,10 +91,7 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector);
 
         // Open the dropdown menu
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -145,10 +139,7 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector);
 
         // Open the dropdown menu
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -213,10 +204,7 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector);
 
         // Open the dropdown menu
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -312,10 +300,7 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector);
 
         // Open the dropdown menu
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -375,12 +360,7 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         // Wait for the specific card
         $client->waitForVisibility($puzzleCardSelector);
 
-        // Scroll to the card to ensure it's in view
-        $client->executeScript("document.querySelector('" . $puzzleCardSelector . "').scrollIntoView({block: 'center'});");
-        usleep(300000);
-
-        // Open the dropdown menu using JavaScript to ensure we click the right element
-        $client->executeScript("document.querySelector('" . $puzzleCardSelector . " .dropdown-toggle').click();");
+        self::openCardMenu($client, $puzzleCardSelector);
 
         // Wait for dropdown to appear
         usleep(500000);
@@ -442,10 +422,7 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector);
 
         // Open the dropdown menu
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -508,10 +485,7 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector);
 
         // Open the dropdown menu
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -575,10 +549,7 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector);
 
         // Open the dropdown menu
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -626,10 +597,7 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector);
 
         // Open the dropdown menu
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 

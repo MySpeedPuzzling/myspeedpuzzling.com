@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Panther\PuzzleLibrary;
 
+use Facebook\WebDriver\WebDriver;
+use Facebook\WebDriver\WebDriverBy;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\Panther\AbstractPantherTestCase;
+use Symfony\Component\Panther\Client;
 
 /**
  * Tests for puzzle list page (/en/puzzle) dropdown actions with Turbo Streams.
@@ -42,10 +45,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         $badgesSelector = '#puzzle-badges-' . PuzzleFixture::PUZZLE_4000;
 
         // "Puzzle 16" = PUZZLE_4000; the search re-renders the list via LiveComponent
-        $client->getCrawler()
-            ->filter('.filters input[type="search"]')
-            ->first()
-            ->sendKeys('Puzzle 16');
+        self::searchPuzzles($client, 'Puzzle 16');
 
         $client->waitForVisibility($puzzleCardSelector);
 
@@ -53,10 +53,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         self::assertSelectorNotExists($badgesSelector . ' .badge.border-warning');
 
         // Open dropdown and click "Add to Wishlist"
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -82,10 +79,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         self::assertSelectorExists($badgesSelector . ' .badge.border-warning');
 
         // Open dropdown and click "Remove from Wishlist"
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -131,10 +125,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         self::assertSelectorExists($badgesSelector . ' .badge.border-primary');
 
         // Count initial remove buttons
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -167,10 +158,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         self::assertSelectorExists($badgesSelector . ' .badge.border-primary');
 
         // Open dropdown, check we have more remove buttons now
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -214,10 +202,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         $badgesSelector = '#puzzle-badges-' . PuzzleFixture::PUZZLE_4000;
 
         // "Puzzle 16" = PUZZLE_4000; the search re-renders the list via LiveComponent
-        $client->getCrawler()
-            ->filter('.filters input[type="search"]')
-            ->first()
-            ->sendKeys('Puzzle 16');
+        self::searchPuzzles($client, 'Puzzle 16');
 
         $client->waitForVisibility($puzzleCardSelector);
 
@@ -225,10 +210,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         self::assertSelectorNotExists($badgesSelector . ' .badge.border-dark');
 
         // Click "Borrowed from" link
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -259,10 +241,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         self::assertSelectorExists($badgesSelector . ' .badge.border-info');
 
         // Click "Pass" link
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -321,10 +300,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
 
         // This puzzle is already in collection, so we'll test lend instead
         // Open dropdown and click "Lend" link (puzzle must be in collection)
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -355,10 +331,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         self::assertGreaterThan(0, $lentBadges->count(), 'Should have lent badge after lending');
 
         // Click "Return" button (owner marks as returned)
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -404,10 +377,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         self::assertSelectorNotExists($badgesSelector . ' .badge.border-danger');
 
         // Click "Add to sell/swap" link
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -449,10 +419,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         self::assertSelectorExists($badgesSelector . ' .badge.border-danger');
 
         // Click "Remove from sell/swap" button
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -497,10 +464,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         self::assertSelectorExists($badgesSelector . ' .badge.border-primary');
 
         // Open dropdown, assert 1 remove button
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -534,10 +498,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         self::assertSelectorExists($badgesSelector . ' .badge.border-primary');
 
         // Open dropdown, assert 2 remove buttons
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
@@ -556,14 +517,28 @@ final class PuzzlesTest extends AbstractPantherTestCase
         self::assertSelectorExists($badgesSelector . ' .badge.border-primary');
 
         // Open dropdown, assert only 1 remove button remains
-        $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-toggle')
-            ->first()
-            ->click();
+        self::openCardMenu($client, $puzzleCardSelector);
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
         $removeButtons = $client->getCrawler()->filter($dropdownActionsSelector . ' form[action*="collections"][action*="remove"]');
         self::assertCount(1, $removeButtons, 'Should have 1 remove button after removing from one collection');
+    }
+
+    /**
+     * Types into the puzzle search and waits for the render of the WHOLE query. The input is debounced, so typing can
+     * render a part of it first ("Puzzle 1" lists PUZZLE_4000 too) and the card is then replaced by the next render
+     * while the test already clicks in it ("stale element reference"). `search` is a URL prop: Live writes it to the
+     * address after its render, and nothing may be in flight any more.
+     */
+    private static function searchPuzzles(Client $client, string $query): void
+    {
+        $client->getCrawler()
+            ->filter('.filters input[type="search"]')
+            ->first()
+            ->sendKeys($query);
+
+        $client->wait(10)->until(static fn (WebDriver $driver): bool => str_contains(urldecode($driver->getCurrentURL()), 'search=' . $query)
+            && $driver->findElements(WebDriverBy::cssSelector('[aria-busy="true"]')) === []);
     }
 }

@@ -18,10 +18,13 @@ that would otherwise be forgotten. Newest section on top.
       (`_comparison.scss`) and the charts' grid table (`_comparison-charts.scss`) - the card's padding lands on the table.
 - [ ] Site topbar at 320 px: the language/feedback row overflows by 15-35 px in de/fr/es/ja on every page (not
       compare-specific; measured on the homepage 2026-10-03).
-- [ ] Panther: `UnsolvedListTest::testOwnerCanBorrowPuzzleFromPlayerViaTurboStream` and
-      `SystemCollectionTest::testOwnerCanBorrowPuzzleFromPlayer` fail - the floating "Compare" launcher pill covers the
-      lending ⋯ button (`ElementClickInterceptedException`, found 2026-10-03). Real users may hit it too at the
-      bottom of the screen.
+- [x] Panther suite red (found 2026-10-03, fixed the same day, 62/62 green). Only one test was about the launcher,
+      and it was test-only: WebDriver scrolls an element just to the window's edge, under the pill (or the sticky
+      header at the top) - people scroll it clear, every page has room for the pill under the footer. Cards are now
+      opened through `AbstractPantherTestCase::openCardMenu()` (card in the middle of the window, real click). The
+      SystemCollection failure was a **real bug**: "Borrow from player" on a collection page answered 500 after
+      saving the borrow (stream rendered without the card) - fixed, `BorrowPuzzleControllerTest`. PuzzlesTest raced
+      the debounced Live search (`searchPuzzles()` waits for the whole query's render).
 
 ## Player header (#224)
 
@@ -232,7 +235,7 @@ Shipped with #214, thumbnails + profile/marketplace filters 2026-10-03 (d8b3183d
 - [ ] Round results show no tier for a puzzle without any picture either (the gate is "picture is out", the cheap proxy for "revealed") - expose the hide state from `GetEditionRounds` if that ever matters
 - [ ] Sort by difficulty on the profile results and the marketplace (the comparison has it) - not asked for yet
 - [ ] Costs were measured on the dev copy only - check the Hub, `/ladder` and the marketplace in Tempo a week after the deploy
-- [ ] `templates/_most_solved_puzzle.html.twig` is included nowhere - delete it
+- [x] `templates/_most_solved_puzzle.html.twig` deleted - unused since the Hub's Most solved became a component (efc8b2b4)
 
 ## Social login hardening
 

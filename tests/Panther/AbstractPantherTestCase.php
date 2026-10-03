@@ -54,6 +54,28 @@ abstract class AbstractPantherTestCase extends PantherTestCase
     }
 
     /**
+     * Opens a puzzle card's ⋯ menu the way a person does: with the card in the middle of the window. WebDriver's own
+     * scroll-into-view stops as soon as the element touches the window's edge, which is where fixed things sit - the
+     * sticky site header at the top, the comparison launcher pill at the bottom right - and the click then lands on
+     * them ("element click intercepted"). Still a real WebDriver click, so a toggle covered in the middle of the
+     * window fails the test.
+     */
+    protected static function openCardMenu(Client $client, string $cardSelector): void
+    {
+        $toggleSelector = $cardSelector . ' .dropdown-toggle';
+
+        $client->executeScript(
+            'document.querySelector(arguments[0]).scrollIntoView({block: "center", inline: "nearest"});',
+            [$toggleSelector],
+        );
+
+        $client->getCrawler()
+            ->filter($toggleSelector)
+            ->first()
+            ->click();
+    }
+
+    /**
      * Log in a user for E2E testing.
      *
      * Uses a test-only endpoint that bypasses the login form and creates

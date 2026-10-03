@@ -24,6 +24,22 @@
             <i class="ci-add me-1"></i>{{ 'pairs_and_teams.add_time'|trans }}
         </a>
     {% endif %}
+
+    {# The comparison of pairs/teams (docs/features/player-comparison.md) - its state rides on the viewer's profile row #}
+    {% if comparison == 'add' %}
+        {{ include('comparison_entry/_subject_form.html.twig', {
+            action: 'add',
+            subject: comparison_ref,
+            form_class: 'team-compare',
+            button_class: 'btn btn-sm btn-outline-primary',
+            icon: 'bi-arrow-left-right',
+            label: 'comparison_entry.add'|trans,
+        }) }}
+    {% elseif comparison == 'open' %}
+        <a class="btn btn-sm btn-outline-primary team-compare" href="{{ path('comparison', {kind: team.isPair ? 'pairs' : 'teams'}) }}">
+            <i class="bi bi-check2 me-1" aria-hidden="true"></i>{{ 'comparison_entry.in_comparison_open'|trans }}
+        </a>
+    {% endif %}
 </div>
 
 <p class="text-muted mb-4" data-testid="team-members">

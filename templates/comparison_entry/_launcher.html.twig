@@ -1,0 +1,40 @@
+{#
+    The comparison launcher (docs/features/player-comparison.md, D2): a pill on the bottom right of every page while any
+    line-up holds somebody other than the viewer - the newest three as mini avatars, "Compare" and how many. Everything
+    comes from the viewer's own profile row (ComparisonLineUp), so it costs no query. base.html.twig decides where it
+    shows (not on the comparison itself, not over another bottom bar) and makes room for it under the footer.
+
+    Inputs:
+      - line_up: ComparisonLineUp of the signed-in viewer (hasOthers() is true)
+      - just_added: bool - right after "Add to comparison": the pill pops in (never under reduced motion)
+#}
+{% set count = line_up.count() %}
+{% set kind = line_up.newestKind() %}
+{% if not is_web() %}
+    {# No footer in the apps: room under the page's last content instead #}
+    <div class="comparison-launcher-spacer" aria-hidden="true"></div>
+{% endif %}
+<a class="comparison-launcher{{ just_added ? ' is-new' }}" href="{{ path('comparison', kind is not null ? {kind: kind.value} : {}) }}"
+   aria-label="{{ 'comparison_entry.launcher_label'|trans({'%count%': count}) }}" data-nosnippet>
+    <span class="comparison-launcher-faces" aria-hidden="true">
+        {%- for subject in line_up.recent() -%}
+            {%- if subject.isTeam() -%}
+                <span class="comparison-launcher-face comparison-launcher-face-icon"><i class="bi bi-people-fill"></i></span>
+            {%- elseif subject.isMasked -%}
+                <span class="comparison-launcher-face comparison-launcher-face-icon"><i class="bi bi-person-fill"></i></span>
+            {%- else -%}
+                {# Too small for the flag on a photo's corner: the photo, else the round flag, else the initial #}
+                <span class="comparison-launcher-face">
+                    {{- include('_player_avatar.html.twig', {
+                        player_id: subject.ref.id,
+                        name: subject.name,
+                        avatar: subject.avatar,
+                        country_code: subject.avatar is null and subject.countryCode is not null ? subject.countryCode.name : null,
+                    }) -}}
+                </span>
+            {%- endif -%}
+        {%- endfor -%}
+    </span>
+    <span class="comparison-launcher-text">{{ 'comparison_entry.launcher'|trans }}</span>
+    <span class="comparison-launcher-count" aria-hidden="true">{{ count }}</span>
+</a>

@@ -1,0 +1,13 @@
+{#
+    The flash after "Add to comparison" (AddComparisonSubjectController::ADDED_FLASH): the usual success alert, plus the
+    way to the comparison - the visitor stays on the page they were browsing.
+
+    Inputs: added ({message: string, kind: null|string})
+#}
+<div class="container mt-3">
+    <div class="alert-dismissible mb-0 fade show alert alert-success" role="alert">
+        {{ added.message }}
+        <a class="alert-link text-nowrap" href="{{ path('comparison', added.kind ? {kind: added.kind} : {}) }}">{{ 'comparison_entry.open'|trans }}</a>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ 'forms.close'|trans }}"></button>
+    </div>
+</div>

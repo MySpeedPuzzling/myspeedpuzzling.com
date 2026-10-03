@@ -467,7 +467,13 @@
         </script>
         {% endblock %}
     </head>
-    <body class="lang-{{ app.request.locale }}"
+    {# The comparison launcher (docs/features/player-comparison.md, D2) - from the viewer's own profile row, no query.
+       Not on the comparison itself, not where a bar already sits at the bottom (multiscan's action bar), and not where
+       a clock runs (the stopwatch, the projected round stopwatch) #}
+    {% set comparison_launcher = logged_user.profile is not null
+        and currentRoute not in ['comparison', 'multiscan', 'stopwatch', 'stopwatch_puzzle', 'round_stopwatch']
+        and logged_user.profile.comparisonLineUp.hasOthers() %}
+    <body class="lang-{{ app.request.locale }}{{ comparison_launcher ? ' has-comparison-launcher' }}"
           data-controller="pwa-lifecycle gallery file-drop-area datepicker global-search toast{% if ga_tracking is not empty %} analytics{% endif %}"
           {% if ga_tracking is not empty %}data-analytics-tracking-id-value="{{ ga_tracking }}"{% endif %}>
         <a href="#main-content" class="visually-hidden-focusable">{{ 'forms.skip_to_content'|trans }}</a>
@@ -815,6 +821,9 @@
 
             {# hasPreviousSession guard: reading app.flashes starts a session, which stamps
                Set-Cookie + Cache-Control: private on every anonymous/crawler response #}
+            {% set comparison_added_flash = constant('SpeedPuzzling\\Web\\Controller\\AddComparisonSubjectController::ADDED_FLASH') %}
+            {# The launcher pops in only right after something was added - not on every page view #}
+            {% set comparison_just_added = comparison_launcher and app.request.hasPreviousSession and app.session.flashBag.peek(comparison_added_flash) is not empty %}
             {% for label in app.request.hasPreviousSession ? ['success', 'danger', 'warning', 'info'] : [] %}
                 {% for message in app.flashes(label) %}
                     <div class="container mt-3">
@@ -824,6 +833,10 @@
                         </div>
                     </div>
                 {% endfor %}
+            {% endfor %}
+            {# "Kateřina added to your comparison" + the way there (AddComparisonSubjectController) #}
+            {% for added in app.request.hasPreviousSession ? app.flashes(comparison_added_flash) : [] %}
+                {{ include('comparison_entry/_added_flash.html.twig', {added: added}) }}
             {% endfor %}
 
             {% block full_content %}
@@ -846,6 +859,10 @@
         </footer>
         {% endif %}
         {% endblock %}
+
+        {% if comparison_launcher %}
+            {{ include('comparison_entry/_launcher.html.twig', {line_up: logged_user.profile.comparisonLineUp, just_added: comparison_just_added}) }}
+        {% endif %}
 
         {# Announcement modals (docs/features/announcement-modals.md): at most one, once per player ever.
            Calling announcement_modal() claims it for this page view - keep this the only call. #}

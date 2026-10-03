@@ -158,6 +158,48 @@ button.player-chip:hover {
     }
 }
 
+// Compare (docs/features/player-comparison.md, D11): an icon in every locale, 44 × 44 like ⋯ - a label would fit all six
+// locales only from 424 px. A form (add) or a link (open, sign in), in a box of its own so the row's .btn rules miss it.
+.player-head-actions > .player-head-compare {
+    flex: 0 0 auto;
+    display: flex;
+    margin: 0;
+}
+
+// In the viewer's line-up: tinted like a switched-on toggle, a tap opens the comparison
+.player-head-compare .more-btn.is-active {
+    background: #fff0f0;
+    border-color: #f5b5b6;
+    color: $player-tab-active;
+
+    &:hover,
+    &:focus-visible {
+        background: #ffe3e3;
+        border-color: $player-tab-active;
+        color: $player-tab-active;
+    }
+}
+
+// Below 380 px Favorite is its star alone when the row also holds Message - measured in all 6 locales (Rubik, real CSS):
+// with its label the row needs up to 379 px (ja "お気に入り"/"メッセージ", cs "V oblíbených"), star-only 306 px; without
+// Message it needs at most 267 px and keeps the label. aria-label/title name the button.
+@media (max-width: 379.98px) {
+    .player-head-actions:has(> .player-head-message) > .player-head-favorite {
+        flex: 0 0 44px;
+        width: 44px;
+        padding: 0;
+        font-size: 1.25rem;
+
+        .bi {
+            margin-right: 0 !important;
+        }
+
+        .player-head-favorite-label {
+            @include visually-hidden;
+        }
+    }
+}
+
 .player-head-tabs {
     margin-top: .75rem;
 

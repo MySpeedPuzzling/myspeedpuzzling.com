@@ -47,6 +47,10 @@ return App::config([
                 // The footer's "Turn it on" form for players who switched the newsletter off sits
                 // on every page they open - a session-backed token would write the session each time
                 'newsletter-turn-on',
+                // "Add to / Remove from comparison" sit in the player header and on the pair/team page,
+                // pages a player opens all the time - a session-backed token would write the session on each
+                'comparison_add',
+                'comparison_remove',
             ],
         ],
     ],

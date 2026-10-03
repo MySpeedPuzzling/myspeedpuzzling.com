@@ -985,7 +985,6 @@ faq:
 profile:
     add_to_favorites: "Add to favorites"
     remove_from_favorites: "Remove from favorites"
-    compare: "Compare times"
     no_puzzles_solved: "No puzzles solved? Give it a go and see how you do! We believe, you can do it!"
     not_filled: "Not filled"
     avatar: "Avatar"
@@ -4859,6 +4858,23 @@ digest_emails:
         done: "Done – you won't get e-mails about new messages any more. Your messages still arrive on MySpeedPuzzling as usual."
         settings_hint: "You can switch them on again any time in your profile settings under \"Messaging & Notifications\"."
 
+comparison_entry:
+    add: "Add to comparison"
+    remove: "Remove from comparison"
+    open: "Open comparison"
+    in_comparison_open: "In comparison · Open"
+    launcher: "Compare"
+    launcher_label: "Open comparison, %count% in your line-up"
+    flash:
+        added: "%name% added to your comparison."
+        added_unnamed: "Added to your comparison."
+        added_pair: "Pair added to your comparison."
+        added_team: "Team added to your comparison."
+        removed: "Removed from your comparison."
+        not_available: "This puzzler or team is not available for comparing."
+        cannot_remove_yourself: "You stay in your own comparison - removing yourself is for members."
+        try_again: "Something went wrong, please try again."
+
 player_header:
     pages: "Player pages"
     tabs:
@@ -4881,3 +4897,5 @@ player_header:
     no_tier_yet_title: "Not enough %pieces%-piece results for a skill tier yet"
     tier_locked_title: "Skill tiers are for members"
     more_actions: "More actions"
+    compare: "Add to comparison"
+    compare_open: "Open comparison"

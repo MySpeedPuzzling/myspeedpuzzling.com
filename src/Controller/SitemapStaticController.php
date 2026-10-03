@@ -31,6 +31,7 @@ final class SitemapStaticController extends AbstractController
         'data_deletion',
         'puzzles',
         'players',
+        'players_directory',
         'recent_activity',
         'terms_of_service',
         // 'hub' is deliberately missing: it is `noindex, follow` (a dashboard, not a landing page)

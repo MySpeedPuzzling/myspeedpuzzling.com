@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Value\CommunityScope;
+use SpeedPuzzling\Web\Value\PlayersDirectoryCriteria;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,7 +13,8 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * "Browse all puzzlers" (docs/features/players-page/README.md, stream S5): the directory of the world or one country
- * with filters and sorts. The Players page's lists link here for their full version.
+ * with filters and sorts. The Players page's lists link here for their full version. Only the bare world page is
+ * indexable; every query string is a noindex variant of it.
  */
 final class PlayersDirectoryController extends AbstractController
 {
@@ -29,8 +31,11 @@ final class PlayersDirectoryController extends AbstractController
     )]
     public function __invoke(Request $request): Response
     {
+        $scope = CommunityScope::fromQuery($request->query->get('scope'));
+
         return $this->render('players/directory.html.twig', [
-            'scope' => CommunityScope::fromQuery($request->query->get('scope')),
+            'scope' => $scope,
+            'criteria' => PlayersDirectoryCriteria::fromQuery($request->query->all(), $scope),
         ]);
     }
 }

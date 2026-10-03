@@ -12,7 +12,8 @@ use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * UserBlockFixture: PLAYER_REGULAR blocks PLAYER_PRIVATE (country "us").
+ * The people of a country page are listed by GetPlayersDirectory (GetPlayersDirectoryTest); this covers what decides
+ * whether the page is for the index and in the sitemap. PLAYER_PRIVATE is the only player from "us".
  */
 final class GetPlayersPerCountryTest extends KernelTestCase
 {
@@ -22,34 +23,6 @@ final class GetPlayersPerCountryTest extends KernelTestCase
     {
         self::bootKernel();
         $this->query = self::getContainer()->get(GetPlayersPerCountry::class);
-    }
-
-    public function testByCountryLeavesOutPrivatePlayers(): void
-    {
-        self::assertNotContains(PlayerFixture::PLAYER_PRIVATE, $this->playerIdsIn(CountryCode::us));
-    }
-
-    public function testByCountryLeavesOutThePlayerTheViewerBlocks(): void
-    {
-        // The fixture's blocked player is a private profile, which the listing leaves out anyway
-        self::getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE player SET is_private = false WHERE id = :id',
-            ['id' => PlayerFixture::PLAYER_PRIVATE],
-        );
-
-        $everyone = $this->playerIdsIn(CountryCode::us);
-        self::assertContains(PlayerFixture::PLAYER_PRIVATE, $everyone);
-
-        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
-
-        self::assertSame(
-            array_values(array_diff($everyone, [PlayerFixture::PLAYER_PRIVATE])),
-            $this->playerIdsIn(CountryCode::us),
-        );
-
-        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_ADMIN);
-
-        self::assertSame($everyone, $this->playerIdsIn(CountryCode::us));
     }
 
     public function testCountriesWithPublicPlayersLeaveOutCountriesOfPrivatePlayersOnly(): void
@@ -70,11 +43,21 @@ final class GetPlayersPerCountryTest extends KernelTestCase
         self::assertContains(CountryCode::us, $this->query->countriesWithPublicPlayers());
     }
 
-    /**
-     * @return list<string>
-     */
-    private function playerIdsIn(CountryCode $countryCode): array
+    public function testHasPublicPlayersFollowsTheSameRuleForEveryViewer(): void
     {
-        return array_values(array_map(static fn ($p) => $p->playerId, $this->query->byCountry($countryCode)));
+        self::assertTrue($this->query->hasPublicPlayers(CountryCode::cz));
+        self::assertFalse($this->query->hasPublicPlayers(CountryCode::us));
+        self::assertFalse($this->query->hasPublicPlayers(CountryCode::aq));
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE player SET is_private = false WHERE id = :id',
+            ['id' => PlayerFixture::PLAYER_PRIVATE],
+        );
+
+        self::assertTrue($this->query->hasPublicPlayers(CountryCode::us));
+
+        // PLAYER_REGULAR blocks PLAYER_PRIVATE - robots must not depend on who looks
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+        self::assertTrue($this->query->hasPublicPlayers(CountryCode::us));
     }
 }

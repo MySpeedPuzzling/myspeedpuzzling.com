@@ -1,2 +1,147 @@
-{# Stream S5 builds this (docs/features/players-page/README.md) #}
-<div {{ attributes }}></div>
+{#
+    The directory of puzzlers (docs/features/players-page/README.md, "Browse all"): a filter bar, "N puzzlers", cards,
+    Show more. The filter bar is a plain GET form; players_directory_controller.js applies every change at once and
+    lands back here (#players-directory), the <noscript> button covers browsers without JavaScript. Filter, sort and
+    "Show more" URLs are noindex variants, so the links carry rel="nofollow".
+
+    Props: criteria (PlayersDirectoryCriteria), scopeFixed (bool - a country page: no "Where", no country on cards)
+#}
+{%- set page = computed.page -%}
+{%- set filters = [
+    {name: 'active', on: criteria.activeThisMonth, label: 'players.directory.filter.active'|trans},
+    {name: 'events', on: criteria.competesInEvents, label: 'players.directory.filter.events'|trans},
+    {name: 'swaps', on: criteria.swapsPuzzles, label: 'players.directory.filter.swaps'|trans},
+    {name: 'instagram', on: criteria.onInstagram, label: 'players.directory.filter.instagram'|trans},
+] -%}
+{%- set sort_labels = {
+    active: 'players.directory.sorts.active'|trans,
+    recent: 'players.directory.sorts.recent'|trans,
+    newest: 'players.directory.sorts.newest'|trans,
+    followed: 'players.directory.sorts.followed'|trans,
+    name: 'players.directory.sorts.name'|trans,
+} -%}
+<section {{ attributes.defaults({class: 'players-section players-directory', id: 'players-directory'}) }}
+    {%- if scopeFixed %} aria-labelledby="players-directory-title"{% else %} aria-label="{{ 'players.directory.title'|trans }}"{% endif %}>
+    {% if scopeFixed %}
+        <h2 class="players-section-title" id="players-directory-title">{{ 'players.directory.title'|trans }}</h2>
+    {% endif %}
+
+    <form method="get" action="{{ this.formAction }}" class="players-directory-filters"
+          data-controller="players-directory"
+          data-action="change->players-directory#apply"
+    >
+        <div class="players-directory-filter-row">
+            {% if not scopeFixed %}
+                <span class="players-directory-field">
+                    <label class="players-directory-field-label" for="players-directory-scope">{{ 'players.directory.where'|trans }}</label>
+                    <select id="players-directory-scope" name="scope" class="form-select form-select-sm">
+                        <option value="">{{ 'players.scope.world'|trans }}</option>
+                        {% for country in this.countries %}
+                            <option value="{{ country.name }}"{% if criteria.scope.country == country %} selected{% endif %}>{{ country.value }}</option>
+                        {% endfor %}
+                    </select>
+                </span>
+            {% endif %}
+            <span class="players-directory-field">
+                <label class="players-directory-field-label" for="players-directory-sort">{{ 'players.directory.sort_label'|trans }}</label>
+                <select id="players-directory-sort" name="sort" class="form-select form-select-sm">
+                    {% for sort in this.sorts %}
+                        <option value="{{ sort.isDefault ? '' : sort.value }}"{% if criteria.sort == sort %} selected{% endif %}>{{ sort_labels[sort.value] }}</option>
+                    {% endfor %}
+                </select>
+            </span>
+        </div>
+
+        <fieldset class="players-directory-chips">
+            <legend class="visually-hidden">{{ 'players.directory.filters_label'|trans }}</legend>
+            {% for filter in filters %}
+                <label class="players-directory-chip">
+                    <input type="checkbox" class="players-directory-chip-input" name="{{ filter.name }}" value="1"{% if filter.on %} checked{% endif %}>
+                    <span class="players-directory-chip-text">
+                        <i class="bi bi-check-lg players-directory-chip-check" aria-hidden="true"></i>{{ filter.label }}
+                    </span>
+                </label>
+            {% endfor %}
+        </fieldset>
+
+        <noscript><div><button type="submit" class="btn btn-sm btn-outline-primary">{{ 'players.directory.apply'|trans }}</button></div></noscript>
+    </form>
+
+    {% if page.total > 0 %}
+        <p class="players-directory-count">
+            {{- 'players.directory.count'|trans({'%count%': page.total, '%number%': page.total|format_number}) -}}
+            {%- if page.hasMore %} · {{ 'players.directory.showing'|trans({'%shown%': page.cards|length|format_number}) }}{% endif -%}
+        </p>
+
+        <div class="players-directory-grid">
+            {% for card in page.cards %}
+                {%- set name = card.playerName ?? ('#' ~ card.playerCode) -%}
+                <a class="players-directory-card"
+                   id="players-directory-card-{{ loop.index }}"
+                   href="{{ path('player_profile', {playerId: card.playerId}) }}"
+                   data-action="players-card#open"
+                   data-players-card-url-param="{{ path('player_card', {playerId: card.playerId}) }}"
+                >
+                    <span class="players-directory-card-top">
+                        {{- include('_player_avatar.html.twig', {
+                            player_id: card.playerId,
+                            name: name,
+                            avatar: card.playerAvatar,
+                            country_code: card.playerCountry is null ? null : card.playerCountry.name,
+                            country_name: card.playerCountry is null ? null : card.playerCountry.value,
+                            size: 'lg',
+                        }) -}}
+                        <span class="players-directory-card-who">
+                            <span class="players-directory-card-name">{{ name }}</span>
+                            {%- if not scopeFixed and card.playerCountry is not null -%}
+                                <span class="players-directory-card-country">{{ card.playerCountry.value }}</span>
+                            {%- endif -%}
+                        </span>
+                    </span>
+                    <span class="players-directory-card-numbers">
+                        <span class="players-directory-card-number">
+                            <span class="players-directory-card-value">{{ card.solvesThisMonth|format_number }}</span>
+                            <span class="players-directory-card-label">{{ 'players.directory.card.this_month'|trans }}</span>
+                        </span>
+                        <span class="players-directory-card-number">
+                            <span class="players-directory-card-value">{{ card.best500Seconds is null ? '–' : card.best500Seconds|puzzlingTime }}</span>
+                            <span class="players-directory-card-label">{{ 'players.directory.card.best500'|trans }}</span>
+                        </span>
+                        <span class="players-directory-card-number">
+                            <span class="players-directory-card-value">{{ card.favoritesCount|format_number }}</span>
+                            <span class="players-directory-card-label">{{ 'players.directory.card.favorites'|trans }}</span>
+                        </span>
+                    </span>
+                    {%- if card.competesInEvents or card.swapsPuzzles or card.onInstagram or card.solvesThisMonth == 0 -%}
+                        <span class="players-directory-card-chips">
+                            {%- if card.competesInEvents -%}<span class="players-directory-card-chip">{{ 'players.directory.card.events'|trans }}</span>{%- endif -%}
+                            {%- if card.swapsPuzzles -%}<span class="players-directory-card-chip">{{ 'players.directory.card.swaps'|trans }}</span>{%- endif -%}
+                            {%- if card.onInstagram -%}<span class="players-directory-card-chip">{{ 'players.directory.card.instagram'|trans }}</span>{%- endif -%}
+                            {%- if card.solvesThisMonth == 0 -%}<span class="players-directory-card-chip is-quiet">{{ 'players.directory.card.quiet'|trans }}</span>{%- endif -%}
+                        </span>
+                    {%- endif -%}
+                </a>
+            {% endfor %}
+        </div>
+
+        {% set show_more_url = this.showMoreUrl(page) %}
+        {% if show_more_url is not null %}
+            <div class="players-directory-more">
+                <a class="btn btn-outline-primary" href="{{ show_more_url }}" rel="nofollow">{{ 'players.directory.show_more'|trans }}</a>
+            </div>
+        {% elseif page.hasMore %}
+            <p class="players-directory-note">{{ 'players.directory.limit_reached'|trans({'%shown%': page.cards|length|format_number}) }}</p>
+        {% endif %}
+    {% else %}
+        <div class="players-directory-empty">
+            {% if criteria.hasFilters %}
+                <p class="mb-2">{{ 'players.directory.empty_filtered'|trans }}</p>
+                <a href="{{ this.clearFiltersUrl }}" rel="nofollow">{{ 'players.directory.clear_filters'|trans }}</a>
+            {% elseif criteria.scope.country is not null %}
+                <p class="mb-0">{{ 'players_per_country.empty'|trans({'%country%': criteria.scope.country.value}) }}</p>
+            {% else %}
+                <p class="mb-0">{{ 'players.directory.empty'|trans }}</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</section>

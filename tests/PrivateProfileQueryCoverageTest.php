@@ -31,6 +31,7 @@ final class PrivateProfileQueryCoverageTest extends TestCase
         'Query/GetPlayerIdsForSitemap.php' => self::BACKGROUND,
         'Query/GetPlayerProfile.php' => 'byUserId() is the signed-in player\'s own profile (its comparison line-up avatars are masked in PlayerProfile against the revealed ids of that same row); byId() also reports the raw setting as is_private_profile. Masking uses the service.',
         'Query/GetPlayerRatingRanking.php' => self::GLOBAL_RANKING,
+        'Query/GetPlayersDirectory.php' => 'Players page list: public profiles only, for everybody - nobody is ranked differently for different viewers.',
         'Query/GetPlayersForWjpfSync.php' => self::BACKGROUND,
         'Query/GetPlayersOnARoll.php' => 'Players page list: public profiles only, for everybody - nobody is ranked differently for different viewers.',
         'Query/GetPlayersPerCountry.php' => self::GLOBAL_RANKING,

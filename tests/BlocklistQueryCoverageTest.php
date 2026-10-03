@@ -58,6 +58,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetPlayerIdsForSitemap' => self::BACKGROUND,
         'GetPlayerProfile' => 'Is the gate: byId() answers PlayerNotFound for a hidden player.',
         'GetPlayersForWjpfSync' => self::BACKGROUND,
+        'GetPlayersPerCountry' => 'Countries and counts only (sitemap, country filters, the country page\'s robots rule) - no player identity; the country page lists people through GetPlayersDirectory.',
         'GetPlayerStatistics' => self::OWN_DATA,
         'GetPlayersWithUnreadMessages' => 'Filters on user_block itself (predates HiddenPlayers).',
         'GetPrivateProfileViewers' => 'The owner\'s own allow list and its notification fan-out - the owner named every player on it.',

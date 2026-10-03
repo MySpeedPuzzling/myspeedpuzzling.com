@@ -56,7 +56,11 @@ final class ComparisonControllerTest extends WebTestCase
         self::assertCount(3, $crawler->filter('[data-testid="comparison-league-row"]'));
         self::assertCount(0, $crawler->filter('[data-testid="comparison-head-to-head"]'));
         self::assertCount(1, $crawler->filter('[data-testid="comparison-view-switch"]'));
-        self::assertCount(1, $crawler->filter('[data-testid="comparison-highlight"]'));
+        // Table by default; the pair picker only where the pair matters (lead/lag sort, charts) - not above the list
+        self::assertCount(1, $crawler->filter('[data-testid="comparison-table"]'));
+        self::assertCount(0, $crawler->filter('[data-testid^="comparison-pair-"]'));
+        // "+ Add" first, seen without scrolling the strip
+        self::assertSame('comparison-add', $crawler->filter('[data-testid="comparison-line-up"] > *')->first()->attr('data-testid'));
         // Members remove themselves too
         self::assertCount(3, $crawler->filter('[data-testid="comparison-chip-remove"]'));
         self::assertGreaterThan(0, $crawler->filter('[data-testid="comparison-row"]')->count());
@@ -105,8 +109,12 @@ final class ComparisonControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-testid="comparison-members-line"]'));
         self::assertCount(1, $crawler->filter('[data-testid="comparison-first-tries-locked"]'));
         self::assertCount(1, $crawler->filter('[data-testid="comparison-similar-locked"]'));
-        // Exactly two subjects: always duel rows
+        // Exactly two subjects: always side-by-side rows, no view switch
         self::assertCount(1, $crawler->filter('[data-testid="comparison-duel-rows"]'));
+        self::assertSame('Each time is their best on that puzzle. Tap a time for all attempts', trim($crawler->filter('[data-testid="comparison-explain"]')->text()));
+        // No tier for free players - not on the picture, not after the pieces
+        self::assertCount(0, $crawler->filter('[data-testid="difficulty-corner"]'));
+        self::assertCount(0, $crawler->filter('[data-testid="comparison-row"] .diff-icon'));
     }
 
     public function testMembersOnlyValuesInTheUrlAreDroppedForFreePlayers(): void
@@ -282,48 +290,84 @@ final class ComparisonControllerTest extends WebTestCase
     }
 
     /**
-     * The Duel view of 3+ subjects is the highlighted pair's head to head: only the puzzles both of them solved, never
-     * a "Not solved" side - while the league table still describes the whole line-up
+     * Table view (the default for 3+): every time with the day it was solved, "1st try" when it is the first try,
+     * "fastest of N tries" when it is the best of several; the header row is copied into the pinned strip by
+     * comparison_table_controller.js, so the strip is server-rendered empty and kept away from re-renders
      */
-    public function testDuelViewOfALineUpListsOnlyWhatTheHighlightedPairBothSolved(): void
+    public function testTableCellsSayWhatEachTimeIs(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-        $day = new DateTimeImmutable('-1 minute');
+        $day = new DateTimeImmutable('2026-09-21 12:00:00');
 
-        // Solved by her and PLAYER_ADMIN only: a card, but not a row of her duel with PLAYER_REGULAR
-        $withoutJohn = $this->seedPuzzle(500, 'Without John');
-        $this->seedTime(PlayerFixture::PLAYER_WITH_STRIPE, $withoutJohn, 1800, $day);
-        $this->seedTime(PlayerFixture::PLAYER_ADMIN, $withoutJohn, 2000, $day);
-        $withJohn = $this->seedPuzzle(500, 'With John');
-        $this->seedTime(PlayerFixture::PLAYER_WITH_STRIPE, $withJohn, 1800, $day);
-        $this->seedTime(PlayerFixture::PLAYER_REGULAR, $withJohn, 1900, $day);
+        $puzzle = $this->seedPuzzle(500, 'Three tries');
+        // Her best of three tries, not her first
+        $this->seedTime(PlayerFixture::PLAYER_WITH_STRIPE, $puzzle, 2400, $day->modify('-20 days'), firstAttempt: true);
+        $this->seedTime(PlayerFixture::PLAYER_WITH_STRIPE, $puzzle, 1800, $day);
+        $this->seedTime(PlayerFixture::PLAYER_WITH_STRIPE, $puzzle, 2000, $day->modify('-10 days'));
+        // His only time, his first try
+        $this->seedTime(PlayerFixture::PLAYER_ADMIN, $puzzle, 1900, $day->modify('-1 day'), firstAttempt: true);
 
-        $url = '/en/compare?kind=solo&a=' . self::STRIPE_REF . '&b=' . self::REGULAR_REF;
-
-        $crawler = $browser->request('GET', $url);
+        $crawler = $browser->request('GET', '/en/compare?kind=solo&sort=name');
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('Without John', $crawler->filter('[data-testid="comparison-cards"]')->text());
-        $league = $crawler->filter('[data-testid="comparison-league-row"]')->count();
 
-        self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE player SET comparison_view = 'duel' WHERE id = :id",
-            ['id' => PlayerFixture::PLAYER_WITH_STRIPE],
-        );
+        $block = $crawler->filter('[data-controller="comparison-table"]');
+        self::assertCount(1, $block);
+        $float = $block->filter('[data-comparison-table-target="float"]');
+        self::assertSame('true', $float->attr('aria-hidden'));
+        self::assertNotNull($float->attr('data-live-ignore'));
+        self::assertSame('', trim($float->html()));
+        self::assertSame('Each time is their best on that puzzle. Tap a time for all attempts', trim($crawler->filter('[data-testid="comparison-explain"]')->text()));
 
-        $crawler = $browser->request('GET', $url);
+        $row = $crawler->filter('[data-testid="comparison-row"]')->reduce(static fn (Crawler $row): bool => str_contains($row->text(), 'Three tries'));
+        self::assertCount(1, $row);
+        $cells = $row->filter('td');
+        // Line-up order: herself, PLAYER_ADMIN, PLAYER_REGULAR
+        self::assertSame('00:30:00 Sep 21, 2026 fastest of 3 tries', self::squash($cells->eq(0)->text()));
+        self::assertSame('00:31:40 +01:40 Sep 20, 2026 1st try', self::squash($cells->eq(1)->text()));
+        self::assertSame('— Not solved', self::squash($cells->eq(2)->text()));
+
+        // First tries only (members): her first try, no "fastest of"
+        $crawler = $browser->request('GET', '/en/compare?kind=solo&sort=name&times=first');
+        self::assertSame('Each time is their first try on that puzzle. Tap a time for all attempts', trim($crawler->filter('[data-testid="comparison-explain"]')->text()));
+        $row = $crawler->filter('[data-testid="comparison-row"]')->reduce(static fn (Crawler $row): bool => str_contains($row->text(), 'Three tries'));
+        self::assertSame('00:40:00 +08:20 Sep 1, 2026 1st try', self::squash($row->filter('td')->eq(0)->text()));
+
+        // Members: the tier on the thumbnail's corner, with its name
+        $corner = $crawler->filter('[data-testid="comparison-row"] [data-testid="difficulty-corner"]');
+        self::assertGreaterThan(0, $corner->count());
+        self::assertStringStartsWith('Difficulty: ', (string) $corner->first()->attr('aria-label'));
+        self::assertNotSame('', (string) $corner->first()->attr('title'));
+    }
+
+    /**
+     * Ties are said, so the head to head adds up: wins + wins + ties = the puzzles both solved
+     */
+    public function testHeadToHeadStatesTheTies(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $day = new DateTimeImmutable('-1 day');
+
+        foreach (['Tie one', 'Tie two'] as $name) {
+            $puzzle = $this->seedPuzzle(500, $name);
+            $this->seedTime(PlayerFixture::PLAYER_REGULAR, $puzzle, 1500, $day);
+            $this->seedTime(PlayerFixture::PLAYER_WITH_STRIPE, $puzzle, 1500, $day);
+        }
+
+        $crawler = $browser->request('GET', '/en/compare?kind=solo');
         self::assertResponseIsSuccessful();
-        $rows = $crawler->filter('[data-testid="comparison-duel-rows"] [data-testid="comparison-row"]');
-        self::assertGreaterThan(0, $rows->count());
-        self::assertStringContainsString('With John', $rows->text());
-        self::assertStringNotContainsString('Without John', $crawler->filter('[data-testid="comparison-duel-rows"]')->text());
-        self::assertCount(0, $rows->filter('.cmp-time--none'), 'Both of the pair solved every listed puzzle');
-        self::assertCount(0, $crawler->filter('[data-testid="comparison-show-more"]'));
-        self::assertSame(
-            $rows->count() === 1 ? '1 puzzle you both solved' : $rows->count() . ' puzzles you both solved',
-            trim($crawler->filter('[data-testid="comparison-total"]')->text()),
-        );
-        self::assertCount($league, $crawler->filter('[data-testid="comparison-league-row"]'));
+
+        $card = $crawler->filter('[data-testid="comparison-head-to-head"]');
+        $ties = (int) trim($card->filter('[data-testid="comparison-h2h-ties"]')->text());
+        self::assertGreaterThanOrEqual(2, $ties);
+        self::assertStringEndsWith($ties . ' ties', trim($card->filter('[data-testid="comparison-h2h-ties"]')->text()));
+        $winsA = (int) $card->filter('[data-testid="comparison-h2h-wins-a"]')->text();
+        $winsB = (int) $card->filter('[data-testid="comparison-h2h-wins-b"]')->text();
+        $shared = (int) trim($card->filter('.cmp-h2h__line')->text());
+
+        self::assertSame($shared, $winsA + $winsB + $ties);
+        self::assertCount($shared, $crawler->filter('[data-testid="comparison-row"]'));
     }
 
     /**
@@ -368,6 +412,11 @@ final class ComparisonControllerTest extends WebTestCase
         self::assertGreaterThan(0, $crawler->filter('[data-testid="comparison-row"]')->count());
 
         self::assertSame($twoSubjects, $this->queryCount($browser), 'The compare page must cost the same at 2 and 10 subjects');
+    }
+
+    private static function squash(string $text): string
+    {
+        return trim((string) preg_replace('/\s+/', ' ', $text));
     }
 
     /**

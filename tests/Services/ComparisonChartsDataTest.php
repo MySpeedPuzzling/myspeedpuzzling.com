@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Services\ComparisonChartsData;
 use SpeedPuzzling\Web\Value\ComparisonCriteria;
 use SpeedPuzzling\Web\Value\ComparisonKind;
 use SpeedPuzzling\Web\Value\ComparisonSubjectRef;
+use SpeedPuzzling\Web\Value\DifficultyTier;
 
 final class ComparisonChartsDataTest extends TestCase
 {
@@ -128,6 +129,64 @@ final class ComparisonChartsDataTest extends TestCase
         self::assertArrayNotHasKey('p-' . self::BEN, $pace[1]['subjects']);
     }
 
+    public function testByDifficulty(): void
+    {
+        $result = $this->comparison([
+            // Easy, everybody: line-up median 1000 → me -10 %, Anna 0 %, Ben +10 %; I beat Ben
+            $this->time(self::ME, 'easy1', 900, tier: 2),
+            $this->time(self::ANNA, 'easy1', 1000, tier: 2),
+            $this->time(self::BEN, 'easy1', 1100, tier: 2),
+            // Easy, me and Ben: median 950 → me +5.26 %, Ben -5.26 %; Ben beats me
+            $this->time(self::ME, 'easy2', 1000, tier: 2),
+            $this->time(self::BEN, 'easy2', 900, tier: 2),
+            // Hard, me and Anna on the same time - nothing between me and Ben here
+            $this->time(self::ME, 'hard', 2000, tier: 5),
+            $this->time(self::ANNA, 'hard', 2000, tier: 5),
+            // Not rated yet: left out
+            $this->time(self::ME, 'unrated', 500),
+            $this->time(self::BEN, 'unrated', 1000),
+            // Very hard, but mine alone: nothing compared, no row
+            $this->time(self::ME, 'solo', 3000, tier: 6),
+        ]);
+
+        $tiers = $this->charts->byDifficulty($result);
+
+        self::assertSame([DifficultyTier::Easy, DifficultyTier::Hard], array_column($tiers, 'tier'));
+        self::assertSame([2, 1], array_column($tiers, 'puzzles'));
+
+        $easy = $tiers[0]['subjects'];
+        self::assertEqualsWithDelta(-2.368, $easy['p-' . self::ME]['percent'], 1e-3, 'Median of -10 % and +5.26 %');
+        self::assertSame(2, $easy['p-' . self::ME]['puzzles']);
+        self::assertEqualsWithDelta(0.0, $easy['p-' . self::ANNA]['percent'], 1e-9);
+        self::assertSame(1, $easy['p-' . self::ANNA]['puzzles']);
+        self::assertEqualsWithDelta(2.368, $easy['p-' . self::BEN]['percent'], 1e-3);
+        // Me (A) vs Ben (B, added last)
+        self::assertSame(['a' => 1, 'b' => 1, 'ties' => 0], $tiers[0]['wins']);
+
+        self::assertSame(['p-' . self::ME, 'p-' . self::ANNA], array_keys($tiers[1]['subjects']));
+        self::assertSame(['a' => 0, 'b' => 0, 'ties' => 0], $tiers[1]['wins'], 'Ben did not solve it');
+    }
+
+    public function testByDifficultyCountsDeadHeatsAndNeedsTiers(): void
+    {
+        $result = $this->comparison([
+            $this->time(self::ME, 'p1', 1000, tier: 6),
+            $this->time(self::ANNA, 'p1', 1000, tier: 6),
+            $this->time(self::ME, 'p2', 900, tier: 6),
+            $this->time(self::ANNA, 'p2', 1000, tier: 6),
+        ], [self::ME, self::ANNA]);
+
+        $tiers = $this->charts->byDifficulty($result);
+
+        self::assertCount(1, $tiers);
+        self::assertSame(DifficultyTier::VeryHard, $tiers[0]['tier']);
+        self::assertSame(['a' => 1, 'b' => 0, 'ties' => 1], $tiers[0]['wins']);
+
+        // The aggregate did not select tiers: nothing to show
+        $withoutTiers = $this->comparison([$this->time(self::ME, 'p1', 900), $this->time(self::ANNA, 'p1', 1000)], [self::ME, self::ANNA]);
+        self::assertSame([], $this->charts->byDifficulty($withoutTiers));
+    }
+
     public function testFormOverTheLastTwelveMonths(): void
     {
         $now = new DateTimeImmutable('2026-10-15 10:00:00');
@@ -181,6 +240,7 @@ final class ComparisonChartsDataTest extends TestCase
         self::assertCount(1, $all['scatter']['points']);
         self::assertSame(1, $all['leadLag']['aheadCount']);
         self::assertSame('500', $all['pace'][0]['key']);
+        self::assertSame([], $all['difficulty']);
         self::assertCount(ComparisonChartsData::FORM_MONTHS, $all['form']['months']);
         self::assertSame(1, $all['matrix']['cells']['p-' . self::ME]['p-' . self::ANNA]['wins']);
     }
@@ -205,7 +265,7 @@ final class ComparisonChartsDataTest extends TestCase
         );
     }
 
-    private function time(string $playerId, string $puzzleId, int $seconds, string $day = '2026-09-01', int $pieces = 500): ComparisonTimeRow
+    private function time(string $playerId, string $puzzleId, int $seconds, string $day = '2026-09-01', int $pieces = 500, null|int $tier = null): ComparisonTimeRow
     {
         return new ComparisonTimeRow(
             subject: ComparisonSubjectRef::player($playerId),
@@ -218,6 +278,7 @@ final class ComparisonChartsDataTest extends TestCase
             firstTrySeconds: null,
             firstTryTimeId: null,
             firstTryDay: null,
+            difficultyTier: $tier,
         );
     }
 }

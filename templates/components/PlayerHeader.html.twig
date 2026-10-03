@@ -131,17 +131,20 @@
                             icon: 'bi-arrow-left-right',
                             label: 'player_header.compare'|trans,
                             icon_only: true,
+                            new_badge: true,
                         }) }}
                     {% elseif this.compare == 'open' %}
                         <div class="player-head-compare">
                             <a class="btn btn-outline-secondary more-btn is-active" href="{{ path('comparison', {kind: 'solo'}) }}" title="{{ 'player_header.compare_open'|trans }}" aria-label="{{ 'player_header.compare_open'|trans }}">
                                 <i class="bi bi-arrow-left-right" aria-hidden="true"></i>
+                                {{- include('comparison_entry/_new_badge.html.twig', {on_icon: true}) }}
                             </a>
                         </div>
                     {% elseif this.compare == 'sign_in' %}
                         <div class="player-head-compare">
                             <a class="btn btn-outline-secondary more-btn" rel="nofollow" href="{{ path('login', {return: return_path}) }}" title="{{ 'player_header.compare'|trans }}" aria-label="{{ 'player_header.compare'|trans }}">
                                 <i class="bi bi-arrow-left-right" aria-hidden="true"></i>
+                                {{- include('comparison_entry/_new_badge.html.twig', {on_icon: true}) }}
                             </a>
                         </div>
                     {% endif %}

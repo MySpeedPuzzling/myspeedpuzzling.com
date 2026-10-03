@@ -21,9 +21,9 @@ every device), so you keep adding people while browsing and open the comparison 
 | Cap | Per kind. Members **10** subjects (yourself included when present). Free: **Solo = you + 1 other** (you cannot remove yourself), **Pairs = 2**, **Teams = 2**. |
 | Yourself | You are a row like any other (added automatically the first time you open Solo). Members may remove themselves and compare other people. |
 | At the cap | Adding another one offers a **swap** (never a dead end) - free players and members alike, from the page's add sheet and from the entry points (`?swap=`). Members may swap themselves out; free players stay in their Solo line-up. Free players also get one quiet line about membership. |
-| D1 Results layout (3+ subjects) | **Three views behind an icon-only switch**, remembered per player (`player.comparison_view`): **Cards** (default; per puzzle a ranked mini-leaderboard), **Table** (matrix: sticky puzzle column, one column per subject, horizontal scroll), **Duel** (rows of the two highlighted subjects + "3rd of 5 · fastest X" strip - only the puzzles **both of them solved**, "N puzzles you both solved"; the league table above still describes the whole line-up; `ComparisonBuilder::build(…, highlightedPairOnly: true)`, never on the Charts tab). With exactly 2 subjects there is no switch - always duel rows, following "puzzles to show". |
+| D1 Results layout (3+ subjects) | **Two views - Table (default, first) and Cards** - behind a segmented switch with icon + text label ("Table", "Cards"; one line at 320 px in all 6 locales: 134-167 px wide, measured 2026-10-03), remembered per player (`player.comparison_view`, default `table`). **Table**: sticky puzzle column, one column per subject, horizontal scroll inside its box, header row pinned under the site header while the page scrolls. **Cards**: per puzzle a ranked mini-leaderboard. With exactly 2 subjects there is no switch - always side-by-side rows (`_duel_rows.html.twig`), following "puzzles to show". **The Duel view (3+) was removed on 2026-10-03 after user feedback**: it listed only what the highlighted pair both solved under a league table counting the whole line-up, so "N puzzles you both solved" and the wins above it never added up, and people did not understand which pair it followed. Every stored `duel` (and every other value - nobody had chosen deliberately yet) was reset to `table` by `Version20261003113151`. |
 | D2 Launcher | **Floating pill** bottom-right on every page except the comparison itself: 3 newest mini avatars + "Compare" + count. Shown once any line-up holds someone other than you. A page opts out with `{% set hide_comparison_launcher = true %}` at its top (read by `base.html.twig`): the comparison, every page whose main content is a form (add/edit time incl. relax/collection, puzzle change proposal, edit profile + its settings and list-settings pages, marketplace/collection/wishlist/lend-borrow forms, feedback/contact/feature-request forms, event/round/series forms, voucher, API access request), a chat (conversation, new message), a bottom bar (multiscan) or a running clock (stopwatches) - the pill would sit over their controls. New form pages add the line too. |
-| D3 First tries | Filter is **members-only** (consistent with the profile). Everyone sees the "1st try" badge / "best of N" on every time. |
+| D3 First tries | Filter is **members-only** (consistent with the profile). Everyone sees the "1st try" badge / "fastest of N tries" on every time, and a line above the list says what every time is: "Each time is their best on that puzzle." / "… their first try on that puzzle." ("best of N" alone was unclear - "which attempts are we comparing?"). |
 | D4 Charts | **Members-only**. Free users get the head-to-head card / league table. |
 | D8 "Someone at your speed" | Members-only "Roll the dice": a random player of similar skill. **Never use the word "rival"** in UI or code (reserved for another feature). |
 | D9 Old URL | `/compare-with-puzzler/{id}/` → **302** to the no-write preview `?with=<you>,<them>` with "Keep in line-up". |
@@ -33,6 +33,10 @@ every device), so you keep adding people while browsing and open the comparison 
 | D13 Share | "Share" on the page copies a link with the subjects + filters (`?with=…`). Opening it (signed-in) shows that comparison as a **preview** (no write) with "Add to my line-up" (merge up to the cap). The recipient's own visibility rules and caps apply. |
 | D14 | No feature flag - public immediately. |
 | D15 | All 6 locales in the same delivery. |
+| D16 Pair picker (2026-10-03) | The highlighted pair (`a`/`b` URL props) is picked **only where it matters**, as a plain sentence with two selects (word order per locale, `_pair_picker.html.twig`): at the top of the **Charts** tab "Compare [You ▾] with [Vanja ▾]", and on the **Puzzles** tab only while the sort is a lead/lag and there are 3+ subjects: "Biggest lead: [You ▾] vs [Vanja ▾]". The sort options say whose ("Biggest lead: You"). Never above the tabs, no explanatory hint; the A/B coral/indigo rings are drawn only where the pair is in play (two subjects, the charts, a lead/lag sort). |
+| D17 Clear (2026-10-03) | "Clear" at the end of the caption row ("7 / 10 · Clear"), only when the shown line-up has someone besides you; tapping it asks inline in the same row - "Remove all 6? **Yes, clear** · Cancel" (one render of state, `Comparison::askClear()`; Cancel is a plain re-render, any other action forgets the question). `ClearComparisonLineUp(playerId, kind)` (same `SerializedByLock` key as the adds) deletes the owner's rows of that kind; Solo keeps the owner's own row for everyone - clearing means "nobody to compare with", back to the empty state. Never in a shared preview. |
+| D18 "+ Add" first (2026-10-03) | The dashed "+ Add" chip leads the line-up strip, so it is seen without scrolling the strip on a phone. |
+| D19 Difficulty on the thumbnail (2026-10-03) | Members see the puzzle's difficulty tier on the bottom-right corner of its thumbnail (cards, rows and the table's puzzle column) instead of a small icon after "Brand · pieces": `_difficulty_corner.html.twig` + `.diff-corner` in `_user.scss` (white disc, tier name as tooltip and accessible name; reusable on any thumbnail inside a `.diff-corner-host` - the site had no thumbnail-corner pattern before). Free players see no tier there, as before. |
 
 ### Header actions (D11) - measured 2026-10-03 in all 6 locales (real CSS, Rubik, mobile emulation)
 
@@ -57,12 +61,12 @@ Top to bottom (mobile first, 320-390 px; desktop: line-up + league/head-to-head 
 
 1. Title "Compare" + Share icon button.
 2. Kind switch Solo · Pairs · Teams (look of `.copuzzler-switch`, counts per kind, one line at 320 px).
-3. Line-up strip of the active kind: chips (avatar or people icon, short name, "You're in it" tag for own pairs/teams, ×), dashed "+ Add", "n / cap". A subject no longer visible to the viewer = neutral "No longer available" chip (row id only).
-4. Summary: 2 subjects → **head-to-head card** (wins split bar in coral #fe4042 / indigo #4e54c8, "N puzzles you both solved · X is N % faster on the median puzzle"); 3+ → **league table** (# · subject · Wins · Solved · Gap = median % behind the fastest; your row tinted). Free for everyone.
+3. Line-up strip of the active kind: dashed "+ Add" first, then chips (avatar or people icon, short name, "You're in it" tag for own pairs/teams, ×); under it "n / cap · Clear" (D17). A subject no longer visible to the viewer = neutral "No longer available" chip (row id only).
+4. Summary: 2 subjects → **head-to-head card** (wins split bar in coral #fe4042 / indigo #4e54c8 with ties in grey, "N puzzles solved by both · 3 ties · X is N % faster on the median puzzle" - the ties are stated so wins + wins + ties visibly make N); 3+ → **league table** (# · subject · Wins · Solved · Gap = median % behind the fastest; your row tinted; "N puzzles had a shared fastest time - nobody won them" under it when there are any). Free for everyone.
 5. Tabs Puzzles | Charts (Charts: members; free users see the existing members placeholder pattern with one button).
-6. Quick filter row: Filters (n) · First tries (members, lock for free) · period ▾ · sort ▾; view switch (3+ subjects) on the list header row.
-7. Results (50 per "Show more"). Tapping a time opens the existing `puzzle_result_detail` modal (all attempts).
-8. Highlight picker ("You vs Kateřina ▾", or any two when you're not in the line-up) drives Duel view, the lead/lag sort and the 2-series charts.
+6. Quick filter row: Filters (n) · First tries (members, lock for free) · period ▾ · sort ▾; under it the pair picker while a lead/lag sort is on (3+, D16); view switch (3+ subjects) on the list header row, then the line saying what every time is (D3).
+7. Results (50 per "Show more"). Tapping a time opens the existing `puzzle_result_detail` modal (all attempts). Every time shows the day it was solved and "1st try" / "fastest of N tries" - in the table stacked under the time and its gap, one token per line.
+8. Charts tab: the pair picker at its top ("Compare [You ▾] with [Kateřina ▾]", any two when you're not in the line-up) - the 2-series charts follow it.
 
 ### Filters (URL is the state; flat scalar Live props + `normalizeState()` like `PuzzleSearch`; members-only values stripped server-side)
 
@@ -89,6 +93,17 @@ Emphasis encoding: highlighted A coral `#fe4042`, highlighted B indigo `#4e54c8`
 bucket; (d) form over time - monthly median pace (% vs line-up) lines, last 12 months; (e) head-to-head grid (3+) -
 HTML table heat map (one-hue indigo ramp). Legends always (HTML legend like the leaderboard chart), texts in ink colours.
 
+(f) **By difficulty** (after pace by piece count; user feedback "compare on which puzzle difficulty"): the dot plot of (c)
+with a row per `DifficultyTier` instead of a piece-count bucket (puzzles without a tier are left out; fewer than 3 rated
+compared puzzles = the "too thin" note), under it the highlighted pair's head to head per tier as an HTML table (tier
+icon + name, A's wins, split bar coral / gray dead heats / indigo, B's wins; each row read out as one sentence "Very
+Hard: You 8 – 3 Kateřina"). Takeaway: each of the pair's best tier against the line-up, counted only on tiers with 2+
+of their compared puzzles and only with two such tiers ("You're strongest on Hard puzzles; Kateřina on Very Easy").
+The tier comes from the same aggregate statement: `GetComparisonResults::forSubjects(…, withDifficulty: true)` on the
+members' Charts tab - one `LEFT JOIN puzzle_difficulty` restricted to rated rows (a sixth of the table), the same join
+the difficulty filter/sort uses. Measured on the prod copy (medians of 25 runs): ten heaviest players +3 ms, about 7 %
+("2+" 41 → 44 ms, "all" 43 → 46.5 ms; joining the whole table cost +6-7 ms), two typical players +0.3 ms.
+
 ### "Someone at your speed" (members)
 
 Nearest 50 players by `player_skill.skill_percentile` at 500 pc (fallback: `player_baseline` at the viewer's most
@@ -106,7 +121,11 @@ N puzzles in common, solves this month. "Add to line-up" / "Roll again". No cand
 - Day: `COALESCE(pst.finished_at, pst.tracked_at)`, tie-break `pst.tracked_at`, then `pst.id`.
 - First try: `first_attempt = true`, earliest if several (legacy duplicates); none → "—".
 - Per (subject, puzzle): attempts, best time + its id + day, first-try time + id + day.
-- Wins: the unique fastest subject of a puzzle solved by ≥ 2 subjects (ties = no win).
+- Wins: the unique fastest subject of a puzzle solved by ≥ 2 subjects (ties = no win). The numbers add up: Σ wins +
+  ties (`ComparisonResult::$ties`, a shared fastest time) + puzzles only one subject solved ("all puzzles") = listed
+  puzzles; head to head: wins A + wins B + ties = puzzles both solved. Checked on the prod copy 2026-10-03 for real pairs
+  (155 and 260 shared, best / first tries / 12 months) and a trio (2+ / all / everyone) - all consistent; ties are rare
+  but real (1.7 % of pairs with 20+ shared puzzles have one, at most 2).
 - Gap: median over the subject's compared puzzles of (time / fastest time − 1).
 
 ## Visibility (fail towards hiding; re-checked on every read, never only at add time)
@@ -129,7 +148,7 @@ N puzzles in common, solves this month. "Add to line-up" / "Roll again". No cand
   `(player_id, subject_player_id)` and `(player_id, subject_team_id)`.
 - Team merges (`PuzzlingTeamMemberConversion::mergeInto()`) repoint rows to the surviving team before deleting the
   merged one (skip owners who already have the survivor); `DeletePlayerHandler` deletes the owner's rows explicitly.
-- `player.comparison_view` (cards|table|duel, default cards) via `ChangeComparisonView`.
+- `player.comparison_view` (table|cards, default table) via `ChangeComparisonView`.
 - The viewer's line-up rides on the profile row (`GetPlayerProfile::byUserId`, one sub-select like
   `hidden_player_ids`): subject ids per kind + the 3 newest for the pill (avatar/initial/tint or people icon) →
   launcher, header button state and team page state cost **0 extra queries**.
@@ -156,9 +175,9 @@ then integrated and checked in a browser at 375 px and 1280 px against a copy of
 
 ### Write side
 - `ComparisonSubject` entity (`comparison_subject`, two unique constraints), `ComparisonSubjectRepository`,
-  `player.comparison_view` (`ComparisonView`, default cards).
+  `player.comparison_view` (`ComparisonView`, default table since 2026-10-03).
 - Messages `AddComparisonSubject(playerId, subjectRef, ?replaceSubjectId)`, `RemoveComparisonSubject`,
-  `ChangeComparisonView`. Exceptions are Symfony HTTP exceptions (they arrive unwrapped from the bus):
+  `ChangeComparisonView`, `ClearComparisonLineUp(playerId, kind)` (D17). Exceptions are Symfony HTTP exceptions (they arrive unwrapped from the bus):
   `ComparisonSubjectNotAvailable` 404, `ComparisonLineUpFull` 409 (kind + cap, drives the swap prompt),
   `ComparisonSubjectNotFound` 404, `CanNotRemoveYourselfFromComparison` 403.
 - `ComparisonSubjectVisibility` decides with **explicit** ids as seen by the owner: only the owner's own blocks
@@ -179,8 +198,8 @@ then integrated and checked in a browser at 375 px and 1280 px against a copy of
   URL, `toQueryParameters()` for share links. Members-only values from free players are dropped silently.
 - `GetComparisonSubjects::byRefs()` (identities, viewer visibility, `isAvailable`), `GetComparisonResults::forSubjects()`
   (one aggregate statement for up to 10 refs of one kind; 2 typical players ~2 ms, 10 heaviest 40-49 ms on the prod
-  copy), `GetComparisonPuzzles::byIds()` (hydrates the ≤ 50 shown), `ComparisonBuilder` (pure: ranks, ties = no win,
-  wins, league, head-to-head with the geometric median of time ratios, highlight pair, sorting, paging),
+  copy), `GetComparisonPuzzles::byIds()` (hydrates the shown page), `ComparisonBuilder` (pure: ranks, ties = no win,
+  wins, ties, league, head-to-head with the geometric median of time ratios, highlight pair, sorting, paging),
   `ComparisonChartsData` + `ComparisonChartsFactory` (Chart.js models), `FindSimilarSpeedPuzzler` (seeded, 5-8 ms),
   `SearchComparisonTeams` (`search()` by team name or member name/#code, `forViewer()`).
 
@@ -198,3 +217,71 @@ then integrated and checked in a browser at 375 px and 1280 px against a copy of
   stopwatches, form and chat pages; hidden while a modal or the site search is open).
 - Legacy `compare_players` (old 6 locale paths) → `LegacyComparePlayersController` 302 to the `?with=` preview.
 - Removed: `ComparePlayersController`, `PlayersComparison`, `Value\Comparison`, `compare_players.html.twig`.
+
+### Feedback round (2026-10-03, same day)
+
+- **Duel view removed** (D1), views Table (default) + Cards with text labels; migration `Version20261003113151` sets
+  the column default to `table` and rewrites every stored value to `table`.
+- **Pair picker** moved out from above the tabs to where the pair matters (D16); the "The Duel view, the lead and lag
+  sort and the charts follow this pair." hint is gone.
+- **Table**: pinned header (`comparison_table_controller.js`): the table scrolls sideways in its own box, which clips
+  a sticky `<thead>`, so the real header row is copied into a zero-height sticky strip above the box
+  (`top: var(--header-height)`, data-live-ignore, aria-hidden), shown while the real header is under the site header,
+  columns sized from the real ones via `<col>`s, `scrollLeft` kept in step; its first column is sticky too. Re-copied on
+  every re-render (MutationObserver on the real `<thead>`), re-measured on any size change (ResizeObserver). Checked
+  in Chrome at 375 px: pins at 97 px, widths and offsets match, unpins after the table. Cells show the date and
+  "1st try" / "fastest of N tries" stacked (columns 84-116 px in the 6 locales).
+- **"best of N" → "fastest of N tries"** + the line above the list (D3).
+- **Bug: "Show more" stuck at 100.** Live writes every prop into its non-multiple `<select data-model>` after each
+  render and reads the select back; a null `sort`/`period` matches no option, the browser falls back to the first
+  option `""`, and from then on every request re-sent `updated: {sort: "", period: ""}`. Their `onUpdated` hook
+  (`onFilterUpdated`) reset `limit` to 50 *before* `showMore()` added 50 - every click rendered page two again
+  (reproduced on the old code: rows 50 → 100 → 100 → 100 of 168). Fix: paging belongs to a list (`$pagedList` = kind +
+  compared subjects + normalized filters): the same list keeps its pages whatever a request carries, another list
+  starts on page one; no hook resets paging any more, and `onPeriodUpdated` acts only on a real change (the same
+  re-sent `""` used to close the members' custom range on the next interaction). Regression test drives the component
+  the way the browser does, select read-back included (`ComparisonTest::modelsTheBrowserResends()`).
+- **Bug: "wins don't add up".** No counting error (verified on real data, see "Data rules"); the gaps were ties drawn
+  only as a grey bar segment and the Duel view's pair-only list under a whole-line-up league. Ties are now stated in
+  the head to head and under the league table.
+- **Clear** (D17), **"+ Add" first** (D18), **difficulty on the thumbnail** for members (D19).
+- League table: the name column takes what the numbers leave and ends in an ellipsis, so no locale's column labels
+  push the page sideways at 320 px.
+
+### Add sheet (feedback round, 2026-10-03)
+
+`templates/comparison/_add_sheet.html.twig` + `comparison_add_controller.js`; nothing is fetched before the sheet opens
+(the page's first render runs no query for it - `ComparisonAddSheetTest`).
+
+- **Solo lists** - `comparison_people` (`/{_locale}/compare/people.json`, `ComparisonPeopleController`):
+  `{favorites, coPuzzlers}` from **one** statement (`GetComparisonPeople::forViewer()`): **every** favorite by name
+  (the sheet shows 8, then "Show all (N)" and, from 9 favorites on, a client-side filter "Search your favorites" - no
+  request) and up to 6 non-favorite people the viewer shares the most pair/team results with ("People you puzzle with";
+  pairs/teams with a blocked member or archived by the viewer count for nobody, guests never). Only who an add would
+  accept: nobody the viewer blocked, no private profile hidden from them (allow list reveals), never the viewer.
+- **Solo search** - `comparison_player_search` (`/{_locale}/compare/players.json?query=`, `ComparisonPlayerSearchController`):
+  `SearchPlayers::fulltext()` (15), a leading `#` is stripped (codes), private players hidden from the viewer are left
+  out even by exact code. Pairs/Teams keep `comparison_team_search`.
+- **One JSON shape** for both (`ComparisonPersonOptions`): `ref, id, label, code, country, countryName, avatar, favorite`
+  + `tier` **only for members** - the leaderboards' rule (`_leaderboard_player.html.twig`): the 500-piece tier,
+  `unknown` without one, `locked` for a player who opted out of rankings; one statement for every list of a response
+  (`GetComparisonPeople::skillTierIcons()`). Query count is flat in the number of favorites.
+- **Drawing**: avatars are `_player_avatar.html.twig` in JS (`.cmp-avatar--lg` + `.lb-avatar-lg`: photo + corner flag,
+  else the round flag `lb-avatar-flag`, else the initial on the id's tint); tier icons are `<template>`s rendered once by
+  `skill_icon()` in the sheet (members: every tier + unknown + locked, everybody else only `locked`) and cloned; the
+  global search's `ci-star-filled text-warning` marks favorites in the search results. Whoever is already in the line-up
+  stays listed as **"Added"** (disabled, also in the search) - rows never move under a finger. Rows are 44 px, built once
+  per load and reused by the filter (images never reload); three placeholder rows hold the space while loading.
+
+### Pull-to-refresh vs. scrolling (installed PWA)
+
+`pwa_lifecycle_controller.js` armed its pull-to-refresh on every touch while `window.scrollY === 0` and then called
+`preventDefault()` on every downward `touchmove`. Inside an open modal the page behind stays at 0, so a sheet scrolled
+down could never be scrolled back up ("after Add, I can't scroll up"), and a sideways swipe over a table drifting a
+few pixels down lost its scroll ("touch works worse in the PWA"). The decisions now live in `assets/pull_to_refresh.js`
+(tested under node, `PullToRefreshGestureTest`): nothing is armed while a modal / offcanvas / `dialog` / the site search
+is open, nor when the finger lands in an element scrolled itself, in a sideways-scrolling container or under
+`[data-ptr-ignore]`; the first 8 px decide the direction and only a clearly vertical downward move (≤ 1:2 sideways,
+`touchmove` still cancelable) becomes a pull - other gestures are never prevented. The browser (non-PWA) has no
+pull-to-refresh of ours; `.modal, .modal-body { overscroll-behavior-y: contain }` (app.scss) keeps the sheet's scroll
+from chaining to the page.

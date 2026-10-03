@@ -69,12 +69,14 @@
                         button_class: 'dropdown-item',
                         icon: 'bi-arrow-left-right',
                         label: 'comparison_entry.add'|trans,
+                        new_badge: true,
                     }) }}
                 </li>
             {% elseif header.compare == 'open' %}
                 <li>
                     <a class="dropdown-item" href="{{ path('comparison', {kind: 'solo'}) }}">
                         <i class="bi bi-arrow-left-right me-1" aria-hidden="true"></i> {{ 'comparison_entry.open'|trans }}
+                        {{- include('comparison_entry/_new_badge.html.twig') }}
                     </a>
                 </li>
                 <li>
@@ -90,6 +92,7 @@
                 <li>
                     <a class="dropdown-item" rel="nofollow" href="{{ path('login', {return: return_path}) }}">
                         <i class="bi bi-arrow-left-right me-1" aria-hidden="true"></i> {{ 'comparison_entry.add'|trans }}
+                        {{- include('comparison_entry/_new_badge.html.twig') }}
                     </a>
                 </li>
             {% endif %}

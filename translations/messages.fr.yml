@@ -520,6 +520,11 @@
     "kept": "Conservée pour vous sur tous vos appareils"
     "members_line": "Les membres comparent jusqu'à %count% à la fois"
     "count": "%count% / %cap%"
+    "clear": "Vider"
+    "clear_title": "Vider cette sélection"
+    "clear_confirm": "Retirer 1 de la sélection ?|Retirer les %count% ?"
+    "clear_yes": "Oui, vider"
+    "clear_cancel": "Annuler"
   "notice":
     "not_available": "Celui-ci ne peut pas être comparé."
     "not_found": "Il ne figure plus dans votre sélection."
@@ -528,6 +533,7 @@
     "preview_added_full": "Ajoutés à votre sélection : %count% - elle est maintenant complète."
     "preview_full": "Votre sélection est complète - rien n'a été ajouté."
     "preview_nothing_new": "Ils sont déjà tous dans votre sélection."
+    "clear_failed": "La sélection n'a pas pu être vidée. Veuillez réessayer."
   "empty":
     "solo":
       "title": "Avec qui voulez-vous vous comparer ?"
@@ -550,6 +556,7 @@
     "faster": "%name% : %percent% % plus rapide"
     "on_median": "sur le puzzle médian"
     "dead_heat": "égalité parfaite sur le puzzle médian"
+    "ties": "1 égalité|%count% égalités"
   "league":
     "title": "Classement"
     "subject_solo": "Joueur"
@@ -561,6 +568,7 @@
     "gap_value": "+%percent% %"
     "gap_zero": "0 %"
     "legend": "Victoires – le plus rapide de la sélection sur un puzzle. Écart – de combien chacun est en général derrière le plus rapide (médiane)."
+    "ties": "1 puzzle avec un meilleur temps partagé : personne ne le gagne.|%count% puzzles avec un meilleur temps partagé : personne ne les gagne."
   "summary":
     "best_times": "Meilleurs temps"
     "first_tries": "Premières tentatives"
@@ -573,8 +581,9 @@
   "highlight":
     "a": "Premier mis en avant"
     "b": "Second mis en avant"
-    "vs": "vs"
-    "hint": "La vue Duel, le tri par avance et retard et les graphiques portent sur ces deux-là."
+    "charts": "Comparer %a% avec %b%"
+    "lead": "Plus grande avance : %a% vs %b%"
+    "lag": "Plus grand retard : %a% vs %b%"
   "tabs":
     "label": "Comparaison"
     "puzzles": "Puzzles"
@@ -605,8 +614,8 @@
     "all": "Tous les puzzles"
   "sort":
     "recent": "Récents"
-    "lead": "Plus grande avance"
-    "lag": "Plus grand retard"
+    "lead": "Plus grande avance : %name%"
+    "lag": "Plus grand retard : %name%"
     "name": "Nom"
     "pieces": "Pièces"
     "difficulty": "Difficulté"
@@ -614,40 +623,32 @@
     "label": "Affichage de la liste"
     "cards": "Cartes"
     "table": "Tableau"
-    "duel": "Duel"
   "list":
     "count": "{0}Aucun puzzle|{1}1 puzzle|]1,Inf[%count% puzzles"
-    "count_pair_you": "{0}Aucun puzzle résolu par vous deux|{1}1 puzzle résolu par vous deux|]1,Inf[%count% puzzles résolus par vous deux"
-    "count_pair": "{0}Aucun puzzle résolu par les deux|{1}1 puzzle résolu par les deux|]1,Inf[%count% puzzles résolus par les deux"
     "tap_hint": "Touchez un temps pour voir toutes les tentatives"
     "show_more": "Afficher 1 de plus|Afficher %count% de plus"
     "none_shared_both": "Pas encore de puzzle résolu par les deux."
     "none_shared": "Pas encore de puzzle résolu par au moins deux de la sélection."
-    "none_pair_you": "Pas encore de puzzle résolu par vous deux."
-    "none_pair": "Pas encore de puzzle résolu par eux deux."
-    "to_cards": "Afficher toute la sélection"
     "show_all": "Afficher tous les puzzles"
     "none_filtered": "Rien ne correspond à ces filtres."
     "none_at_all": "Pas encore de temps à comparer."
+    "explain_best": "Chaque temps est le meilleur de chacun sur ce puzzle."
+    "explain_first": "Chaque temps est la première tentative de chacun sur ce puzzle."
   "cell":
     "first_try": "1ère tentative"
-    "best_of": "meilleur sur %count%"
     "not_solved": "Non résolu"
     "not_solved_by": "Non résolu : %names%"
     "faster_by": "%name% plus rapide de"
     "tie": "Égalité"
-    "place": "%name% : #%rank% sur %count%"
-    "fastest_of_line_up": "le plus rapide de la sélection"
-    "fastest": "le plus rapide : %name% %time%"
-    "solved_by": "Résolu par 1|Résolu par %count%"
     "solved_of": "Résolu par %count% sur %total%"
+    "fastest_of": "le plus rapide de %count% tentatives"
   "table":
     "puzzle": "Puzzle"
     "legend_self": "Le plus rapide : vous"
     "legend_other": "Le plus rapide : quelqu'un d'autre"
     "legend_marks": "+ derrière le plus rapide · — non résolu"
   "charts_locked":
-    "inside": "Au programme : qui mène puzzle par puzzle · votre temps contre le leur · rythme par nombre de pièces · forme au fil du temps · grille des face-à-face"
+    "inside": "Au programme : qui mène puzzle par puzzle · votre temps contre le leur · rythme par nombre de pièces · par difficulté · forme au fil du temps · grille des face-à-face"
   "add":
     "title_solo": "Ajouter un joueur"
     "title_pairs": "Ajouter un duo"
@@ -662,7 +663,12 @@
     "no_suggestions_solo": "Personne à suggérer pour l'instant - recherchez par nom ou #code."
     "no_suggestions_pairs": "Aucun de vos duos à ajouter - recherchez n'importe quel duo ci-dessus."
     "no_suggestions_teams": "Aucune de vos équipes à ajouter - recherchez n'importe quelle équipe ci-dessus."
-    "suggestions_solo": "Vos favoris et co-puzzleurs"
+    "favorites_heading": "Vos favoris (%count%)"
+    "favorites_filter": "Rechercher dans vos favoris"
+    "favorites_show_all": "Tout afficher (%count%)"
+    "favorites_no_match": "Aucun de vos favoris ne correspond."
+    "co_puzzlers_heading": "Avec qui vous faites des puzzles"
+    "added": "Dans la sélection"
     "suggestions_pairs": "Vos duos"
     "suggestions_teams": "Vos équipes"
     "favorite": "Favori"
@@ -3892,6 +3898,24 @@ comparison_charts:
             quickest_item: "%name% en %pieces% pièces"
             single: "Par rapport à la médiane de la sélection en %pieces% pièces : %list%"
             single_item: "%name% %percent%"
+    difficulty:
+        title: "Par difficulté"
+        summary: "Rythme médian par rapport à la médiane de la sélection, par difficulté (%tiers%). À gauche de zéro, c'est plus rapide ; à droite, plus lent. Les puzzles sans difficulté calculée ne comptent pas."
+        takeaway:
+            both:
+                you: "Vous brillez surtout en difficulté %tier% ; %other% en %other_tier%"
+                other: "%name% brille surtout en difficulté %tier% ; %other% en %other_tier%"
+            same:
+                you: "Vous et %other% brillez surtout en difficulté %tier%"
+                other: "%name% et %other% brillent surtout en difficulté %tier%"
+            single:
+                you: "Vous brillez surtout en difficulté %tier%"
+                other: "%name% brille surtout en difficulté %tier%"
+        h2h:
+            title: "Face à face : %a% contre %b%"
+            caption: "Face à face par difficulté, %a% contre %b% : victoires sur les puzzles résolus par les deux."
+            row: "%tier% : %a% %wins_a% – %wins_b% %b%"
+            none: "%tier% : aucun puzzle en commun"
     form:
         title: "Forme au fil du temps"
         summary: "Rythme médian mensuel par rapport à la médiane de la sélection, de %from% à %to%. Au-dessus de zéro, c'est plus rapide."

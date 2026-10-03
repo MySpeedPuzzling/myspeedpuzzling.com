@@ -66,10 +66,6 @@
                 </div>
 
                 <div class="col-lg-7 col-xl-8">
-                    {% if compared_count >= 3 %}
-                        {{ include('comparison/_highlight_picker.html.twig') }}
-                    {% endif %}
-
                     <div class="cmp-tabs" role="tablist" aria-label="{{ 'comparison.tabs.label'|trans }}">
                         {% for tab, icon in {puzzles: 'bi-list-ul', charts: 'bi-bar-chart-line'} %}
                             {% set selected = (tab == 'charts') == this.isCharts %}
@@ -89,8 +85,17 @@
                     </div>
 
                     <div id="comparison-panel" role="tabpanel" aria-labelledby="comparison-tab-{{ this.isCharts ? 'charts' : 'puzzles' }}">
+                        {# The pair only where something follows it: the charts (at their top) and a lead/lag sort (next to it) #}
+                        {% if this.pairPickerPlace == 'charts' %}
+                            {{ include('comparison/_pair_picker.html.twig', {sentence: 'comparison.highlight.charts', testid: 'comparison-pair-charts'}) }}
+                        {% endif %}
+
                         {% if not this.isCharts or this.isMember %}
                             {{ include('comparison/_filter_row.html.twig') }}
+                        {% endif %}
+
+                        {% if this.pairPickerPlace == 'puzzles' %}
+                            {{ include('comparison/_pair_picker.html.twig', {sentence: 'comparison.highlight.' ~ this.criteria.sort.value, testid: 'comparison-pair-sort'}) }}
                         {% endif %}
 
                         {% if this.isCharts %}

@@ -353,14 +353,56 @@ $cmp-bleed: 1rem;
     font-size: .75rem;
     color: $cmp-muted;
 
+    // The left text gives way (wraps) - "n / cap · Clear" never does
+    > :first-child {
+        min-width: 0;
+    }
+
     &__members {
         padding: 0;
         font-size: .75rem;
         text-align: left;
+        white-space: normal;
     }
 
-    &__count {
+    &__end {
+        display: inline-flex;
         flex: 0 0 auto;
+        align-items: center;
+        gap: .375rem;
+        margin-left: auto;
+    }
+
+    // "Clear" and its inline "Yes / Cancel": quiet text buttons, but a finger-sized target
+    &__action {
+        min-height: 32px;
+        padding: 0 .25rem;
+        border: 0;
+        color: $gray-700;
+        font-size: .75rem;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+
+        &:hover {
+            color: $cmp-text;
+        }
+
+        &--danger {
+            color: #b42318;
+            font-weight: 600;
+
+            &:hover {
+                color: darken(#b42318, 8%);
+            }
+        }
+    }
+
+    &__confirm {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0 .375rem;
+        color: $cmp-text;
     }
 }
 
@@ -474,6 +516,21 @@ $cmp-bleed: 1rem;
         background: #c3c8d1;
     }
 
+    // "3 ties" - the grey of the bar, so the three numbers visibly add up to the puzzles both solved
+    &__ties {
+        white-space: nowrap;
+    }
+
+    &__tie-swatch {
+        display: inline-block;
+        width: 10px;
+        height: 8px;
+        margin-right: .25rem;
+        border-radius: 4px;
+        background: #c3c8d1;
+        vertical-align: 1px;
+    }
+
     &__line {
         margin: .625rem 0 0;
         font-size: .8125rem;
@@ -537,16 +594,19 @@ $cmp-bleed: 1rem;
         text-align: left !important;
     }
 
+    // The name column takes what the numbers leave (max-width: 0 + width: 100%) and ends in an ellipsis - the table
+    // never pushes the page sideways, whatever the locale's column labels ("Victorias Resueltos Diferencia")
+    &__subject {
+        width: 100%;
+        max-width: 0;
+    }
+
     &__who {
         display: flex;
         align-items: center;
         gap: .5rem;
         min-width: 0;
-        max-width: 150px;
-
-        @include media-breakpoint-up(sm) {
-            max-width: 260px;
-        }
+        max-width: 260px;
     }
 
     &__name {
@@ -569,35 +629,34 @@ $cmp-bleed: 1rem;
     color: $cmp-muted;
 }
 
-// --- Highlighted pair picker (3+) -------------------------------------------------------------------------------------
+// --- Pair picker (3+): a sentence with two selects - top of the Charts tab, next to a lead/lag sort -------------------
 
-.cmp-highlight {
+.cmp-pair {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: .5rem;
+    gap: .375rem;
+    margin-top: .625rem;
+    font-size: .8125rem;
+    color: $gray-700;
 
     &__side {
-        display: flex;
-        flex: 1 1 0;
+        display: inline-flex;
         align-items: center;
-        gap: .375rem;
+        gap: .3125rem;
+        max-width: 100%;
         min-width: 0;
 
         .form-select {
-            min-height: 40px;
+            width: auto;
+            max-width: 10rem;
+            min-height: 36px;
             min-width: 0;
+            padding-top: .25rem;
+            padding-bottom: .25rem;
+            font-size: .8125rem;
+            text-overflow: ellipsis;
         }
-    }
-
-    &__vs {
-        font-size: .8125rem;
-        color: $cmp-muted;
-    }
-
-    &__hint {
-        margin: .25rem 0 0;
-        font-size: .75rem;
-        color: $cmp-muted;
     }
 }
 
@@ -759,17 +818,31 @@ $cmp-bleed: 1rem;
     color: $cmp-muted;
 }
 
+.cmp-listhead__count {
+    min-width: 0;
+}
+
+// Table first, then Cards - icon + label, one line at 320 px in every locale (widest: es "Tabla" + "Tarjetas")
 .cmp-view-switch {
     flex: 0 0 auto;
 
     .btn {
-        min-width: 44px;
+        gap: .3125rem;
         min-height: 36px;
+        padding: .25rem .625rem;
+        font-size: .8125rem;
+        white-space: nowrap;
+    }
+
+    svg {
+        width: 14px;
+        height: 14px;
     }
 }
 
-.cmp-tap-hint {
-    margin: .125rem 0 .5rem;
+// What every time is ("their best" / "their first try") + tap for all tries
+.cmp-explain {
+    margin: .25rem 0 .5rem;
     font-size: .75rem;
     color: $cmp-muted;
 }
@@ -839,6 +912,37 @@ $cmp-bleed: 1rem;
     &__token {
         white-space: nowrap;
     }
+
+    // Inline: "Sep 21, 2026 · fastest of 3 tries" - the dot belongs to the token before it, so a wrapped line never
+    // starts with it
+    &:not(.cmp-meta--stacked) .cmp-meta__token:has(+ .cmp-meta__tries)::after {
+        content: " ·";
+    }
+
+    // Table cells: a token per line, small, aligned like the cell; "fastest of N tries" may break inside itself so long
+    // languages do not widen every column
+    &--stacked {
+        font-size: .6875rem;
+        line-height: 1.3;
+
+        .cmp-meta__token {
+            display: block;
+        }
+
+        .cmp-meta__tries {
+            width: max-content;
+            max-width: 6.5rem;
+            margin-left: auto;
+            white-space: normal;
+        }
+
+        .cmp-badge-first {
+            height: 16px;
+            margin-top: .125rem;
+            font-size: .625rem;
+            line-height: 16px;
+        }
+    }
 }
 
 .cmp-badge-first {
@@ -898,7 +1002,7 @@ $cmp-bleed: 1rem;
     }
 }
 
-// Duel rows: A left, B right, the gap pill in between points at the faster one
+// Two subjects: side-by-side rows, A left, B right, the gap pill in between points at the faster one
 .cmp-duel-head {
     display: flex;
     justify-content: space-between;
@@ -971,19 +1075,6 @@ $cmp-bleed: 1rem;
         color: $cmp-muted;
         font-weight: 500;
     }
-}
-
-.cmp-strip {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: .375rem;
-    margin: .5rem 0 0;
-    padding: .375rem .5rem;
-    border-radius: 6px;
-    background: $gray-100;
-    font-size: .75rem;
-    color: $cmp-muted;
 }
 
 // Cards view (3+)
@@ -1065,7 +1156,48 @@ $cmp-bleed: 1rem;
     color: $cmp-muted;
 }
 
-// Table view (3+): the puzzle column stays, the rest scrolls inside the box
+// Table view (3+): the puzzle column stays, the rest scrolls inside the box; the header row stays under the site header
+// while the page scrolls (comparison_table_controller.js copies it into the pinned strip)
+.cmp-table-block {
+    position: relative;
+}
+
+// Zero height and sticky: it rides along the table's top edge, its content hangs below it over the first rows
+.cmp-table-float {
+    position: sticky;
+    top: var(--header-height, 97px);
+    z-index: 3;
+    height: 0;
+    margin: 0 (-$cmp-bleed);
+
+    @include media-breakpoint-up(sm) {
+        margin: 0;
+    }
+
+    &__scroller {
+        position: absolute;
+        top: 0;
+        right: 0;
+        left: 0;
+        overflow: hidden;
+        visibility: hidden;
+        background: $white;
+        box-shadow: 0 2px 4px -2px rgba(0, 0, 0, .18);
+    }
+
+    &.is-pinned &__scroller {
+        visibility: visible;
+    }
+
+    .cmp-table {
+        table-layout: fixed;
+    }
+
+    th {
+        border-bottom: 1px solid $cmp-line;
+    }
+}
+
 .cmp-table-wrap {
     position: relative;
     margin: 0 (-$cmp-bleed);
@@ -1126,6 +1258,7 @@ $cmp-bleed: 1rem;
         color: $cmp-text;
     }
 
+    &__thumb,
     &__image {
         flex: 0 0 auto;
     }
@@ -1271,20 +1404,79 @@ $cmp-bleed: 1rem;
     }
 }
 
+// The add sheet (_add_sheet.html.twig, comparison_add_controller.js draws its rows): a phone list - 44 px rows, a
+// hairline between them, avatars and tier icons exactly as on the leaderboards (.cmp-avatar + .lb-avatar-lg, skill_icon)
 .cmp-add-search {
+    // A search field (the input's .form-control moves to TomSelect's wrapper), not a select: no caret
     .ts-control {
         min-height: 44px;
+        // 16 px - iOS zooms into a smaller input on focus
         font-size: 1rem;
+    }
+
+    // _tom-select.scss computes this padding from unitless `0` variables, which makes it invalid (= 0) everywhere
+    .ts-wrapper .ts-control {
+        padding-right: .75rem !important;
+    }
+
+    .ts-control input {
+        min-width: 0;
+        text-overflow: ellipsis;
+    }
+
+    // The results are rows of the lists: TomSelect's own padding would double theirs
+    .ts-dropdown .option {
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .ts-dropdown-content {
+        max-height: min(55vh, 22rem);
+        overscroll-behavior: contain;
+    }
+}
+
+.cmp-add-lists {
+    // Three rows: the placeholders hold the space while the lists load
+    min-height: 132px;
+}
+
+.cmp-add-filter {
+    min-height: 44px;
+    margin-bottom: .25rem;
+    font-size: 1rem;
+}
+
+.cmp-add-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    margin-top: .25rem;
+    border: 0;
+    border-radius: 8px;
+    background: $gray-100;
+    color: $cmp-text;
+    font-size: .875rem;
+    font-weight: 500;
+
+    &:hover {
+        background: $gray-200;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: 2px;
     }
 }
 
 .cmp-options {
     display: flex;
     flex-direction: column;
-    gap: .375rem;
 
     &__status {
-        margin: 0;
+        margin: .25rem 0 0;
         font-size: .875rem;
         color: $cmp-muted;
     }
@@ -1295,53 +1487,64 @@ $cmp-bleed: 1rem;
     align-items: center;
     gap: .625rem;
     width: 100%;
-    min-height: 48px;
-    padding: .375rem .625rem;
-    border: 1px solid $gray-300;
-    border-radius: 10px;
-    background: $white;
+    min-height: 44px;
+    padding: .25rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
     color: $cmp-text;
     font-size: .875rem;
+    line-height: 1.25;
     text-align: left;
 
-    &:hover {
-        border-color: $primary;
+    & + & {
+        border-top: 1px solid $cmp-line;
+    }
+
+    &:hover:not(:disabled) {
+        background: $gray-100;
     }
 
     &:focus-visible {
         outline: 2px solid $primary;
-        outline-offset: 2px;
+        outline-offset: -2px;
+    }
+
+    // Already in the line-up: listed where it was, says so, cannot be picked twice
+    &.is-added {
+        cursor: default;
     }
 
     &--result {
-        min-height: 0;
-        padding: .125rem 0;
+        padding: .25rem 0;
         border: 0;
-        background: transparent;
     }
 
-    &__avatar {
-        flex: 0 0 auto;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        object-fit: cover;
+    &--skeleton {
+        pointer-events: none;
 
-        &--icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            background: #eef0f4;
-            color: #4b5160;
-            font-weight: 600;
-
-            .fi {
-                width: 100%;
-                height: 100%;
-                background-size: cover;
-            }
+        span:first-child {
+            flex: 0 0 auto;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: $gray-200;
         }
+
+        span:last-child {
+            width: 45%;
+            height: .75rem;
+            border-radius: 4px;
+            background: $gray-200;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            animation: cmp-skeleton-pulse 1.2s ease-in-out infinite alternate;
+        }
+    }
+
+    .cmp-avatar {
+        flex: 0 0 auto;
     }
 
     &__text {
@@ -1351,8 +1554,21 @@ $cmp-bleed: 1rem;
         min-width: 0;
     }
 
-    &__name,
+    // Tier icon · star · name on one line, like a leaderboard row
+    &__name {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        min-width: 0;
+
+        .rank-icon {
+            flex-shrink: 0;
+        }
+    }
+
+    &__label,
     &__sub {
+        min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1364,12 +1580,30 @@ $cmp-bleed: 1rem;
     }
 
     &__star {
-        color: #f6b500;
+        flex-shrink: 0;
+        font-size: .8125rem;
     }
 
     &__plus {
         flex: 0 0 auto;
         color: $primary;
+        font-size: 1.125rem;
+    }
+
+    &__added {
+        display: inline-flex;
+        align-items: center;
+        gap: .2rem;
+        flex: 0 0 auto;
+        color: $cmp-muted;
+        font-size: .75rem;
+        white-space: nowrap;
+    }
+}
+
+@keyframes cmp-skeleton-pulse {
+    to {
+        opacity: .45;
     }
 }
 

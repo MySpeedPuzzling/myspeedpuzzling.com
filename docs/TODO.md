@@ -13,6 +13,11 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Scatter chart scale follows the longest time; one marathon solve squeezes the rest - consider clipping at p95.
 - [ ] "Puzzles they solved that you haven't" (show = all) could link to the wishlist - idea from the review.
 - [ ] Measure usage after a few weeks (line-up sizes per kind, views, similar-speed rolls, share links opened).
+- [ ] Charts tab at 320 px: the head-to-head grid card pushes the page ~60 px sideways with 7 subjects (measured
+      2026-10-03; `.cmp-chart` / `.cmp-h2h-wrap`). Also `.cmp-h2h` is two things: the head-to-head card
+      (`_comparison.scss`) and the charts' grid table (`_comparison-charts.scss`) - the card's padding lands on the table.
+- [ ] Site topbar at 320 px: the language/feedback row overflows by 15-35 px in de/fr/es/ja on every page (not
+      compare-specific; measured on the homepage 2026-10-03).
 
 ## Player header (#224)
 

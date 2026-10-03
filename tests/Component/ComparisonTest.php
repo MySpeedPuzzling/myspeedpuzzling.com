@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Component;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use SpeedPuzzling\Web\Component\Comparison;
 use SpeedPuzzling\Web\Tests\DataFixtures\ComparisonSubjectFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -33,24 +34,162 @@ final class ComparisonTest extends WebTestCase
         $client = self::createClient();
         TestingLogin::asPlayer($client, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $crawler = $this->mount($client, ['kind' => 'solo'])->call('changeView', ['view' => 'table'])->render()->crawler();
-
+        // Table is the default, first in the switch, both with a visible label
+        $crawler = $this->mount($client, ['kind' => 'solo'])->render()->crawler();
         self::assertCount(1, $crawler->filter('[data-testid="comparison-table"]'));
+        self::assertSame(['Table', 'Cards'], $crawler->filter('[data-testid="comparison-view-switch"] button')->each(
+            static fn (Crawler $button): string => trim($button->text()),
+        ));
         self::assertSame('true', $crawler->filter('[data-testid="comparison-view-table"]')->attr('aria-pressed'));
-        self::assertSame('Table', $crawler->filter('[data-testid="comparison-view-table"]')->attr('aria-label'));
-        self::assertSame('table', $this->storedView(PlayerFixture::PLAYER_WITH_STRIPE));
+
+        $crawler = $this->mount($client, ['kind' => 'solo'])->call('changeView', ['view' => 'cards'])->render()->crawler();
+
+        self::assertCount(1, $crawler->filter('[data-testid="comparison-cards"]'));
+        self::assertSame('true', $crawler->filter('[data-testid="comparison-view-cards"]')->attr('aria-pressed'));
+        self::assertSame('cards', $this->storedView(PlayerFixture::PLAYER_WITH_STRIPE));
 
         // A new page opens on it
         $client->request('GET', '/en/compare?kind=solo');
-        self::assertSelectorExists('[data-testid="comparison-table"]');
+        self::assertSelectorExists('[data-testid="comparison-cards"]');
 
-        $crawler = $this->mount($client, ['kind' => 'solo'])->call('changeView', ['view' => 'duel'])->render()->crawler();
-        self::assertCount(1, $crawler->filter('[data-testid="comparison-duel-rows"]'));
-        self::assertSame('duel', $this->storedView(PlayerFixture::PLAYER_WITH_STRIPE));
+        // The removed Duel view and nonsense change nothing
+        foreach (['duel', 'pie'] as $view) {
+            $this->mount($client, ['kind' => 'solo'])->call('changeView', ['view' => $view]);
+            self::assertSame('cards', $this->storedView(PlayerFixture::PLAYER_WITH_STRIPE));
+        }
+    }
 
-        // Nonsense changes nothing
-        $this->mount($client, ['kind' => 'solo'])->call('changeView', ['view' => 'pie']);
-        self::assertSame('duel', $this->storedView(PlayerFixture::PLAYER_WITH_STRIPE));
+    /**
+     * Bug (2026-10-03): "150 puzzles in common", 100 listed, "Show more" then did nothing. After every render Live writes
+     * each prop into its non-multiple <select data-model> and reads the select back: a null sort/period matches no option,
+     * the browser falls back to the first option "", and every following request re-sends `sort: ""` / `period: ""` as
+     * updated props. Their onUpdated hook reset the paging before showMore() ran - every click rendered page two again.
+     * This drives the component the way the browser does, selects included.
+     */
+    public function testShowMoreListsEveryPuzzleEvenWithTheSelectsResentByTheBrowser(): void
+    {
+        $client = self::createClient();
+        // Free: Solo = himself + PLAYER_WITH_STRIPE - side-by-side rows of the two
+        TestingLogin::asPlayer($client, PlayerFixture::PLAYER_REGULAR);
+        $this->seedSharedPuzzles(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE, 160);
+
+        $crawler = $client->request('GET', '/en/compare?kind=solo');
+        self::assertResponseIsSuccessful();
+        $total = self::listedTotal($crawler);
+        self::assertGreaterThanOrEqual(160, $total);
+        self::assertSame($total, (int) trim($crawler->filter('[data-testid="comparison-head-to-head"] .cmp-h2h__line')->text()), 'The head to head says the same number');
+
+        $rows = [50];
+
+        while ($crawler->filter('[data-testid="comparison-show-more"]')->count() > 0) {
+            self::assertLessThan(10, count($rows), '"Show more" never gets to the end');
+            $crawler = $this->browserAction($client, $crawler, 'showMore');
+            $rows[] = $crawler->filter('[data-testid="comparison-row"]')->count();
+        }
+
+        self::assertSame(range(50, intdiv($total, 50) * 50, 50), array_slice($rows, 0, intdiv($total, 50)), 'Every click adds a page');
+        self::assertSame($total, $rows[array_key_last($rows)], 'Everything listed in the end');
+        self::assertSame($total, self::listedTotal($crawler));
+    }
+
+    /**
+     * The "Show more" pages belong to one list: another sort or filter starts on the first page again, the same list
+     * (the view switch) keeps them
+     */
+    public function testAnotherListStartsOnItsFirstPage(): void
+    {
+        $client = self::createClient();
+        TestingLogin::asPlayer($client, PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->seedSharedPuzzles(PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_ADMIN, 160);
+
+        $component = $this->mount($client, ['kind' => 'solo']);
+        $component->call('showMore')->call('showMore');
+        self::assertCount(150, $component->render()->crawler()->filter('[data-testid="comparison-row"]'));
+
+        self::assertCount(150, $component->call('changeView', ['view' => 'cards'])->render()->crawler()->filter('[data-testid="comparison-row"]'));
+
+        self::assertCount(50, $component->call('chooseSort', ['value' => 'pieces'])->render()->crawler()->filter('[data-testid="comparison-row"]'));
+    }
+
+    /**
+     * The pair (3+ subjects) only where something follows it: the charts and a lead/lag sort - worded plainly
+     */
+    public function testThePairPickerSitsWhereThePairMatters(): void
+    {
+        $client = self::createClient();
+        TestingLogin::asPlayer($client, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $component = $this->mount($client, ['kind' => 'solo']);
+        $crawler = $component->render()->crawler();
+        self::assertCount(0, $crawler->filter('[data-testid^="comparison-pair-"]'), 'Not for a plain list');
+        self::assertCount(0, $crawler->filter('.cmp-ring-a, .cmp-ring-b'), 'Nobody marked as A or B while the pair plays no part');
+        // The sort says whose lead it is
+        self::assertSame('Biggest lead: You', trim($crawler->filter('#comparison-sort option[value="lead"]')->text()));
+
+        $crawler = $component->call('chooseSort', ['value' => 'lead'])->render()->crawler();
+        $line = $crawler->filter('[data-testid="comparison-pair-sort"]');
+        self::assertCount(1, $line);
+        self::assertStringStartsWith('Biggest lead:', trim($line->text()));
+        self::assertCount(2, $line->filter('select'));
+        self::assertSame('p-' . PlayerFixture::PLAYER_WITH_STRIPE, $line->filter('#comparison-pair-a option[selected]')->attr('value'));
+        self::assertGreaterThan(0, $crawler->filter('.cmp-ring-a')->count());
+        self::assertGreaterThan(0, $crawler->filter('.cmp-ring-b')->count());
+
+        $crawler = $component->call('changeTab', ['tab' => 'charts'])->render()->crawler();
+        self::assertCount(0, $crawler->filter('[data-testid="comparison-pair-sort"]'));
+        $charts = $crawler->filter('[data-testid="comparison-pair-charts"]');
+        self::assertCount(1, $charts);
+        self::assertStringStartsWith('Compare', trim($charts->text()));
+        self::assertStringContainsString(' with ', $charts->text());
+
+        // Two subjects: nothing to pick
+        TestingLogin::asPlayer($client, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $this->mount($client, ['kind' => 'solo', 'sort' => 'lead'])->render()->crawler();
+        self::assertCount(0, $crawler->filter('[data-testid^="comparison-pair-"]'));
+    }
+
+    public function testClearingTheLineUpAsksFirst(): void
+    {
+        $client = self::createClient();
+        TestingLogin::asPlayer($client, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $component = $this->mount($client, ['kind' => 'solo']);
+        $crawler = $component->render()->crawler();
+        self::assertCount(1, $crawler->filter('[data-testid="comparison-clear"]'));
+        self::assertCount(0, $crawler->filter('[data-testid="comparison-clear-confirm"]'));
+
+        $crawler = $component->call('askClear')->render()->crawler();
+        self::assertSame('Remove all 2? Yes, clear Cancel', self::squash($crawler->filter('[data-testid="comparison-clear-confirm"]')->text()));
+        self::assertSame(4, $this->lineUpSize(PlayerFixture::PLAYER_WITH_STRIPE), 'Asking removes nothing');
+
+        // Cancel is a plain re-render: the question is gone, nothing changed
+        $crawler = $component->refresh()->render()->crawler();
+        self::assertCount(0, $crawler->filter('[data-testid="comparison-clear-confirm"]'));
+        self::assertCount(1, $crawler->filter('[data-testid="comparison-clear"]'));
+
+        $crawler = $component->call('clear')->render()->crawler();
+        self::assertSame(['You'], self::chipNames($crawler));
+        self::assertCount(1, $crawler->filter('[data-testid="comparison-empty-line-up"]'));
+        self::assertCount(0, $crawler->filter('[data-testid="comparison-clear"]'), 'Nobody left to clear');
+        // Her own Solo row stays, the Pairs line-up is another line-up
+        self::assertSame(2, $this->lineUpSize(PlayerFixture::PLAYER_WITH_STRIPE));
+    }
+
+    public function testNothingToClearInASharedComparison(): void
+    {
+        $client = self::createClient();
+        TestingLogin::asPlayer($client, PlayerFixture::PLAYER_ADMIN);
+
+        $component = $this->mount($client, ['with' => self::STRIPE_REF . ',' . self::REGULAR_REF]);
+        self::assertCount(0, $component->render()->crawler()->filter('[data-testid="comparison-clear"]'));
+
+        // Even when called directly: a preview writes nothing
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'INSERT INTO comparison_subject (id, player_id, subject_player_id, added_at) VALUES (gen_random_uuid(), :owner, :owner, NOW()), (gen_random_uuid(), :owner, :other, NOW())',
+            ['owner' => PlayerFixture::PLAYER_ADMIN, 'other' => PlayerFixture::PLAYER_REGULAR],
+        );
+        $component->call('clear');
+        self::assertSame(2, $this->lineUpSize(PlayerFixture::PLAYER_ADMIN));
     }
 
     public function testAddingSomebodyBringsYouIntoTheSoloLineUpToo(): void
@@ -316,6 +455,95 @@ final class ComparisonTest extends WebTestCase
 
         self::assertCount(0, $crawler->filter('[data-testid="comparison-line-up"]'));
         self::assertSame(2, $this->lineUpSize(PlayerFixture::PLAYER_REGULAR));
+    }
+
+    /**
+     * A live action the way the browser sends it: the props of the last render + the models the browser re-sends on its
+     * own (see modelsTheBrowserResends())
+     */
+    private function browserAction(KernelBrowser $client, Crawler $crawler, string $action): Crawler
+    {
+        $root = $crawler->filter('[data-testid="comparison"]');
+        $props = json_decode((string) $root->attr('data-live-props-value'), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($props);
+
+        $client->request('POST', '/en/_components/Comparison/' . $action, [
+            'data' => json_encode(['props' => $props, 'updated' => self::modelsTheBrowserResends($root, $props), 'args' => []], JSON_THROW_ON_ERROR),
+        ]);
+        self::assertResponseIsSuccessful();
+
+        return new Crawler((string) $client->getResponse()->getContent(), 'http://localhost/');
+    }
+
+    /**
+     * What live_controller.js (synchronizeValueOfModelFields) marks as changed after a render without anybody touching a
+     * thing: it writes each prop into its non-multiple <select data-model> - `${value}`, so null is "null" - and reads the
+     * select back; a value no option has leaves the browser on the first option, and anything !== the prop is re-sent.
+     *
+     * @param array<mixed> $props
+     * @return array<string, string>
+     */
+    private static function modelsTheBrowserResends(Crawler $root, array $props): array
+    {
+        $updated = [];
+
+        foreach ($root->filter('select[data-model]:not([multiple])') as $select) {
+            assert($select instanceof \DOMElement);
+            $directive = $select->getAttribute('data-model');
+            $model = substr($directive, (int) strrpos('|' . $directive, '|'));
+            $prop = $props[$model] ?? null;
+            $written = match (true) {
+                $prop === null => 'null',
+                is_bool($prop) => $prop ? 'true' : 'false',
+                is_scalar($prop) => (string) $prop,
+                default => '',
+            };
+            $options = (new Crawler($select))->filter('option')->each(static fn (Crawler $option): string => (string) $option->attr('value'));
+            $value = in_array($written, $options, true) ? $written : ($options[0] ?? '');
+
+            if ($value !== $prop) {
+                $updated[$model] = $value;
+            }
+        }
+
+        return $updated;
+    }
+
+    /**
+     * Times both solved, one puzzle each - a list long enough to page through
+     */
+    private function seedSharedPuzzles(string $playerA, string $playerB, int $count): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            <<<SQL
+WITH puzzles AS (
+    INSERT INTO puzzle (id, pieces_count, name, approved, is_available)
+    SELECT gen_random_uuid(), 500 + g, 'Shared ' || g, true, true FROM generate_series(1, :count) AS g
+    RETURNING id
+),
+solvers (player_id, seconds) AS (VALUES (CAST(:a AS UUID), 1800), (CAST(:b AS UUID), 1900))
+INSERT INTO puzzle_solving_time (id, player_id, puzzle_id, seconds_to_solve, tracked_at, finished_at, verified, first_attempt, suspicious, puzzling_type, puzzlers_count)
+SELECT gen_random_uuid(), solvers.player_id, puzzles.id, solvers.seconds, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', true, true, false, 'solo', 1
+FROM puzzles CROSS JOIN solvers
+SQL,
+            ['count' => $count, 'a' => $playerA, 'b' => $playerB],
+            ['count' => ParameterType::INTEGER],
+        );
+    }
+
+    /**
+     * "163 puzzles · Solved by both" → 163
+     */
+    private static function listedTotal(Crawler $crawler): int
+    {
+        self::assertSame(1, preg_match('/^(\d+) puzzles/', trim($crawler->filter('[data-testid="comparison-total"]')->text()), $match));
+
+        return (int) $match[1];
+    }
+
+    private static function squash(string $text): string
+    {
+        return trim((string) preg_replace('/\s+/', ' ', $text));
     }
 
     /**

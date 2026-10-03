@@ -166,6 +166,23 @@ button.player-chip:hover {
     margin: 0;
 }
 
+// "New" on the icon's top edge - centred, so a long word ("Nouveau") never runs into the ⋯ button beside it
+.player-head-compare .more-btn {
+    position: relative;
+}
+
+.player-head-compare__new {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -55%);
+    padding: .125rem .3rem;
+    font-size: .5625rem;
+    line-height: 1;
+    letter-spacing: .02em;
+    pointer-events: none;
+}
+
 // In the viewer's line-up: tinted like a switched-on toggle, a tap opens the comparison
 .player-head-compare .more-btn.is-active {
     background: #fff0f0;

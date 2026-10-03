@@ -10,8 +10,10 @@ use SpeedPuzzling\Web\Exceptions\CanNotRemoveYourselfFromComparison;
 use SpeedPuzzling\Web\Exceptions\ComparisonLineUpFull;
 use SpeedPuzzling\Web\Exceptions\ComparisonSubjectNotAvailable;
 use SpeedPuzzling\Web\Exceptions\ComparisonSubjectNotFound;
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\AddComparisonSubject;
 use SpeedPuzzling\Web\Message\ChangeComparisonView;
+use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
 use SpeedPuzzling\Web\Message\RemoveComparisonSubject;
 use SpeedPuzzling\Web\Query\GetComparisonLineUp;
 use SpeedPuzzling\Web\Query\GetComparisonPuzzles;
@@ -65,6 +67,12 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  *
  * Actions never throw at the visitor: the domain exceptions of the line-up become a quiet inline notice (a full
  * line-up opens the swap prompt instead, for members too), anonymous `/_components` calls do nothing.
+ *
+ * "Show more" pages belong to one list ($pagedList): any request that lists the same puzzles keeps them, a different
+ * list (filters, sort, kind, line-up) starts on its first page. Never reset the paging in a prop's onUpdated hook: Live
+ * re-sends the value of every non-multiple <select data-model> after each render whenever its option value differs from
+ * the prop ("" for a null sort/period), so such a hook runs on every request - it used to undo each "Show more" (the
+ * list never grew past its second page).
  */
 #[AsLiveComponent]
 final class Comparison
@@ -74,6 +82,9 @@ final class Comparison
     public const string TAB_PUZZLES = 'puzzles';
 
     public const string TAB_CHARTS = 'charts';
+
+    /** The list of exactly two subjects: side-by-side rows (not a ComparisonView - there is no switch) */
+    public const string PAIR_ROWS = 'pair';
 
     /** The subjects one shared link may carry, every kind together */
     public const int MAX_SHARED_REFS = 30;
@@ -107,7 +118,7 @@ final class Comparison
     public bool $customRange = false;
 
     /** A PiecesRange param, the single source of truth for the two bounds below (like PuzzleSearch) */
-    #[LiveProp(writable: true, url: true, onUpdated: 'onFilterUpdated')]
+    #[LiveProp(writable: true, url: true)]
     public null|string $pieces = null;
 
     #[LiveProp(writable: true, onUpdated: 'onPiecesBoundsUpdated')]
@@ -121,7 +132,7 @@ final class Comparison
      *
      * @var list<string>
      */
-    #[LiveProp(writable: true, url: true, onUpdated: 'onFilterUpdated')]
+    #[LiveProp(writable: true, url: true)]
     public array $brands = [];
 
     /**
@@ -132,14 +143,17 @@ final class Comparison
     #[LiveProp(url: true)]
     public array $difficulty = [];
 
-    #[LiveProp(writable: true, url: true, onUpdated: 'onFilterUpdated')]
+    #[LiveProp(writable: true, url: true)]
     public null|string $sort = null;
 
-    /** The highlighted pair (ComparisonSubjectRef strings) - set for 3+ subjects, where the picker shows it */
-    #[LiveProp(writable: true, url: new UrlMapping(as: 'a'), onUpdated: 'onFilterUpdated')]
+    /**
+     * The highlighted pair (ComparisonSubjectRef strings) - set for 3+ subjects, where the pair picker shows it (top of
+     * the Charts tab, next to a lead/lag sort)
+     */
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'a'))]
     public null|string $highlightA = null;
 
-    #[LiveProp(writable: true, url: new UrlMapping(as: 'b'), onUpdated: 'onFilterUpdated')]
+    #[LiveProp(writable: true, url: new UrlMapping(as: 'b'))]
     public null|string $highlightB = null;
 
     /** Preview of a shared comparison: comma separated refs - nothing is written until "Add to my line-up" */
@@ -154,9 +168,13 @@ final class Comparison
     #[LiveProp]
     public int $limit = ComparisonCriteria::PAGE_SIZE;
 
-    /** Cards / Table / Duel for 3+ subjects, remembered on the player (ChangeComparisonView) */
+    /** Which list the "Show more" pages belong to (listKey()) - another list starts on its first page */
     #[LiveProp]
-    public string $view = 'cards';
+    public string $pagedList = '';
+
+    /** Table / Cards for 3+ subjects, remembered on the player (ChangeComparisonView) */
+    #[LiveProp]
+    public string $view = 'table';
 
     // --- Computed per request in load(), read by the templates ------------------------------------------------------
 
@@ -184,6 +202,12 @@ final class Comparison
 
     /** "n / cap" */
     public int $lineUpCount = 0;
+
+    /** Rows "Clear" removes: the shown line-up of the viewer, except their own Solo row - 0 hides "Clear" */
+    public int $clearableCount = 0;
+
+    /** "Clear" was tapped: this render asks "Remove all N?" - any other request forgets it */
+    public bool $confirmingClear = false;
 
     public int $cap = ComparisonLimits::FREE;
 
@@ -292,18 +316,19 @@ final class Comparison
 
     // --- Prop hooks --------------------------------------------------------------------------------------------------
 
-    public function onFilterUpdated(): void
-    {
-        $this->limit = ComparisonCriteria::PAGE_SIZE;
-    }
-
     /**
-     * The quick select of the period: a preset closes the custom range
+     * The quick select of the period: a preset closes the custom range. Live re-sends the select's "" for a null period
+     * with every request (see the class comment) - only a real change of the period counts.
      */
-    public function onPeriodUpdated(): void
+    public function onPeriodUpdated(mixed $previous): void
     {
+        $previousPeriod = ComparisonPeriod::tryFrom(is_string($previous) ? $previous : '');
+
+        if ($previousPeriod === ComparisonPeriod::tryFrom((string) $this->period)) {
+            return;
+        }
+
         $this->customRange = $this->period === ComparisonPeriod::Custom->value;
-        $this->onFilterUpdated();
     }
 
     public function onDateUpdated(): void
@@ -311,14 +336,11 @@ final class Comparison
         if ($this->from !== null || $this->to !== null) {
             $this->period = ComparisonPeriod::Custom->value;
         }
-
-        $this->onFilterUpdated();
     }
 
     public function onPiecesBoundsUpdated(): void
     {
         $this->pieces = PiecesRange::fromBounds($this->piecesMin, $this->piecesMax)?->toParam();
-        $this->onFilterUpdated();
     }
 
     // --- Actions -----------------------------------------------------------------------------------------------------
@@ -336,7 +358,6 @@ final class Comparison
         $this->highlightA = null;
         $this->highlightB = null;
         $this->swap = null;
-        $this->limit = ComparisonCriteria::PAGE_SIZE;
     }
 
     #[LiveAction]
@@ -357,9 +378,8 @@ final class Comparison
             return;
         }
 
+        // The same puzzles either way - the "Show more" pages stay
         $this->view = $value->value;
-        // The Duel view lists other puzzles than Cards and Table: back to the first page
-        $this->limit = ComparisonCriteria::PAGE_SIZE;
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 
         if ($profile !== null && $profile->comparisonView !== $value) {
@@ -371,7 +391,6 @@ final class Comparison
     public function chooseShow(#[LiveArg] string $value): void
     {
         $this->show = ComparisonShow::tryFrom($value)?->value;
-        $this->onFilterUpdated();
     }
 
     /**
@@ -387,7 +406,6 @@ final class Comparison
     public function chooseTimes(#[LiveArg] string $value): void
     {
         $this->times = ComparisonTimes::tryFrom($value)?->value;
-        $this->onFilterUpdated();
     }
 
     #[LiveAction]
@@ -407,15 +425,12 @@ final class Comparison
             $this->from = null;
             $this->to = null;
         }
-
-        $this->onFilterUpdated();
     }
 
     #[LiveAction]
     public function chooseSort(#[LiveArg] string $value): void
     {
         $this->sort = ComparisonSort::tryFrom($value)?->value;
-        $this->onFilterUpdated();
     }
 
     #[LiveAction]
@@ -432,7 +447,6 @@ final class Comparison
         }
 
         $this->difficulty = $tiers;
-        $this->onFilterUpdated();
     }
 
     #[LiveAction]
@@ -492,7 +506,6 @@ final class Comparison
 
         try {
             $this->messageBus->dispatch(new RemoveComparisonSubject($profile->playerId, $rowId));
-            $this->limit = ComparisonCriteria::PAGE_SIZE;
         } catch (CanNotRemoveYourselfFromComparison) {
             $this->notice = 'comparison.notice.cannot_remove_self';
         } catch (ComparisonSubjectNotFound) {
@@ -504,6 +517,39 @@ final class Comparison
     public function dismissSwap(): void
     {
         $this->swap = null;
+    }
+
+    /**
+     * "Clear" of the line-up: this render asks to confirm, inline - "Yes" is clear(), "Cancel" a plain re-render
+     */
+    #[LiveAction]
+    public function askClear(): void
+    {
+        $this->confirmingClear = true;
+    }
+
+    /**
+     * Throws the shown line-up away (the active kind) - in Solo you stay, with nobody to compare with
+     */
+    #[LiveAction]
+    public function clear(): void
+    {
+        $profile = $this->retrieveLoggedUserProfile->getProfile();
+        $kind = ComparisonKind::tryFrom((string) $this->kind);
+
+        // A shared comparison is not the viewer's line-up - there is nothing of theirs to clear
+        if ($profile === null || $kind === null || $this->with !== null) {
+            return;
+        }
+
+        try {
+            $this->messageBus->dispatch(new ClearComparisonLineUp($profile->playerId, $kind));
+            $this->swap = null;
+            $this->highlightA = null;
+            $this->highlightB = null;
+        } catch (PlayerNotFound) {
+            $this->notice = 'comparison.notice.clear_failed';
+        }
     }
 
     /**
@@ -569,7 +615,6 @@ final class Comparison
         $this->with = null;
         $this->highlightA = null;
         $this->highlightB = null;
-        $this->limit = ComparisonCriteria::PAGE_SIZE;
 
         if ($full && $swapCandidate !== null) {
             $this->swap = $swapCandidate;
@@ -597,12 +642,17 @@ final class Comparison
     }
 
     /**
-     * 'a' (coral) / 'b' (indigo) for the highlighted pair, null for everybody else
+     * 'a' (coral) / 'b' (indigo) for the highlighted pair, null for everybody else. With 3+ subjects only where the pair
+     * is in play (the pair picker is shown) - elsewhere two coloured rings would mark people for no reason.
      */
     public function roleOf(ComparisonSubjectRef $ref): null|string
     {
         // Nobody is highlighted while there is nothing to compare
         if ($this->result === null || count($this->result->subjects) < 2) {
+            return null;
+        }
+
+        if (count($this->result->subjects) >= 3 && $this->getPairPickerPlace() === null) {
             return null;
         }
 
@@ -628,15 +678,32 @@ final class Comparison
     }
 
     /**
-     * Duel rows (exactly two subjects) or the remembered view (3+)
+     * The remembered view (Table or Cards) for 3+ subjects; 'pair' for exactly two - their side-by-side rows, no switch
      */
     public function getListView(): string
     {
         if ($this->result === null || count($this->result->subjects) <= 2) {
-            return ComparisonView::Duel->value;
+            return self::PAIR_ROWS;
         }
 
         return $this->view;
+    }
+
+    /**
+     * The pair picker belongs to what follows the pair (3+ subjects; with two there is nothing to pick): the members'
+     * charts, and the lead/lag sort of the list
+     */
+    public function getPairPickerPlace(): null|string
+    {
+        if ($this->result === null || count($this->result->subjects) < 3) {
+            return null;
+        }
+
+        if ($this->isCharts()) {
+            return $this->isMember ? self::TAB_CHARTS : null;
+        }
+
+        return $this->criteria->sort->needsHighlightPair() ? self::TAB_PUZZLES : null;
     }
 
     /**
@@ -699,7 +766,7 @@ final class Comparison
         $this->isMember = $profile->activeMembership;
         $this->cap = ComparisonLimits::forMembership($this->isMember);
         $this->tab = $this->tab === self::TAB_CHARTS ? self::TAB_CHARTS : null;
-        $this->view = (ComparisonView::tryFrom($this->view) ?? ComparisonView::Cards)->value;
+        $this->view = (ComparisonView::tryFrom($this->view) ?? ComparisonView::Table)->value;
         $this->customRange = $this->customRange && $this->isMember;
 
         $viewerRef = ComparisonSubjectRef::player($profile->playerId);
@@ -831,6 +898,13 @@ final class Comparison
                 }
 
                 $this->swapCandidates[] = ['rowId' => $item->rowId, 'subject' => $this->subjectFor($item->ref, $kind)];
+            }
+        }
+
+        foreach ($kindItems as $item) {
+            // In Solo you stay - clearing it means nobody to compare with
+            if ($kind !== ComparisonKind::Solo || $item->isSelf === false) {
+                $this->clearableCount++;
             }
         }
 
@@ -968,36 +1042,22 @@ final class Comparison
     {
         $refs = array_map(static fn (ComparisonSubject $subject): ComparisonSubjectRef => $subject->ref, $this->compared);
 
-        $this->criteria = ComparisonCriteria::fromUserInput(
-            subjectCount: count($refs),
-            isMember: $this->isMember,
-            show: $this->show,
-            times: $this->times,
-            period: $this->period,
-            from: $this->from,
-            to: $this->to,
-            pieces: $this->pieces,
-            brands: $this->brands,
-            difficulty: $this->difficulty,
-            sort: $this->sort,
-            highlightA: $this->highlightA,
-            highlightB: $this->highlightB,
-            offset: 0,
-            limit: $this->limit,
-        );
+        $this->criteria = $this->criteriaFor(count($refs), $this->limit);
+        $listKey = $this->listKey($refs);
+
+        // Another list than the one "Show more" grew starts on its first page; the same list keeps its pages
+        if ($this->pagedList !== '' && $this->pagedList !== $listKey && $this->criteria->limit !== ComparisonCriteria::PAGE_SIZE) {
+            $this->criteria = $this->criteriaFor(count($refs), ComparisonCriteria::PAGE_SIZE);
+        }
+
+        $this->pagedList = $listKey;
 
         $withNames = $this->criteria->needsPuzzleNames() || ($this->isCharts() && $this->isMember);
         $rows = count($refs) >= 2
-            ? $this->getComparisonResults->forSubjects($this->activeKind, $refs, $this->criteria, $withNames)
+            ? $this->getComparisonResults->forSubjects($this->activeKind, $refs, $this->criteria, $withNames, withDifficulty: $this->isCharts() && $this->isMember)
             : [];
 
-        // The Duel view of 3+ subjects lists only what the highlighted pair both solved (the builder ignores it for two)
-        $result = $this->comparisonBuilder->build(
-            $this->compared,
-            $rows,
-            $this->criteria,
-            highlightedPairOnly: $this->isCharts() === false && $this->view === ComparisonView::Duel->value,
-        );
+        $result = $this->comparisonBuilder->build($this->compared, $rows, $this->criteria);
         $this->result = $result;
         $this->reflectCriteria();
 
@@ -1015,6 +1075,46 @@ final class Comparison
 
         $this->pageUrl = $this->urlGenerator->generate('comparison', $this->urlParameters(forShare: false));
         $this->shareUrl = $this->urlGenerator->generate('comparison', $this->urlParameters(forShare: true), UrlGeneratorInterface::ABSOLUTE_URL);
+    }
+
+    private function criteriaFor(int $subjectCount, int $limit): ComparisonCriteria
+    {
+        return ComparisonCriteria::fromUserInput(
+            subjectCount: $subjectCount,
+            isMember: $this->isMember,
+            show: $this->show,
+            times: $this->times,
+            period: $this->period,
+            from: $this->from,
+            to: $this->to,
+            pieces: $this->pieces,
+            brands: $this->brands,
+            difficulty: $this->difficulty,
+            sort: $this->sort,
+            highlightA: $this->highlightA,
+            highlightB: $this->highlightB,
+            offset: 0,
+            limit: $limit,
+        );
+    }
+
+    /**
+     * What decides which puzzles are listed, in which order: the kind, the compared subjects and the applied filters.
+     * Normalized values only, so whatever spelling a request carries for "no sort" ("" or null) is the same list. The
+     * highlighted pair is left out: picking another pair re-orders a lead/lag list, the shown pages may stay.
+     *
+     * @param list<ComparisonSubjectRef> $refs
+     */
+    private function listKey(array $refs): string
+    {
+        $parameters = $this->criteria->toQueryParameters();
+        unset($parameters['highlightA'], $parameters['highlightB']);
+
+        return md5((string) json_encode([
+            $this->activeKind->value,
+            array_map(static fn (ComparisonSubjectRef $ref): string => $ref->toString(), $refs),
+            $parameters,
+        ]));
     }
 
     /**
@@ -1199,6 +1299,7 @@ final class Comparison
         $this->chips = [];
         $this->lockedCount = 0;
         $this->lineUpCount = 0;
+        $this->clearableCount = 0;
         $this->compared = [];
         $this->result = null;
         $this->puzzles = [];

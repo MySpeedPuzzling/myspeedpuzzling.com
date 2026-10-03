@@ -1,0 +1,14 @@
+{#
+    A puzzle's difficulty tier on the bottom-right corner of its thumbnail: a small white round badge with the tier
+    icon, the tier name as its tooltip and accessible name. Put it inside the thumbnail's positioned wrapper
+    (.diff-corner-host). Members only - the caller decides (non-members see no tier at all there).
+    Inputs: tier (null|DifficultyTier, null = not rated yet), size ('sm' for thumbnails under ~48 px)
+#}
+{% from '_difficulty_icon.html.twig' import icon as difficulty_icon %}
+{% set tier_name = tier is not null ? tier.translationKey|trans : 'puzzle_intelligence.difficulty.tiers.unknown'|trans %}
+{% set small = size|default('') == 'sm' %}
+<span class="diff-corner{{ small ? ' diff-corner--sm' }}" role="img" title="{{ tier_name }}"
+    aria-label="{{ 'puzzle_intelligence.difficulty.tier_label'|trans }}: {{ tier_name }}"
+    data-testid="difficulty-corner">
+    {{- difficulty_icon(tier, false, small ? 12 : 16) -}}
+</span>

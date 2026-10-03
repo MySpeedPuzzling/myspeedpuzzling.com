@@ -584,6 +584,11 @@ comparison:
         kept: "Kept for you on every device"
         members_line: "Members compare up to %count% at once"
         count: "%count% / %cap%"
+        clear: "Clear"
+        clear_title: "Empty this line-up"
+        clear_confirm: "Remove 1 from the line-up?|Remove all %count%?"
+        clear_yes: "Yes, clear"
+        clear_cancel: "Cancel"
     notice:
         not_available: "This one can't be compared."
         not_found: "That one is no longer in your line-up."
@@ -592,6 +597,7 @@ comparison:
         preview_added_full: "Added to your line-up: %count% - now it is full."
         preview_full: "Your line-up is full - nothing was added."
         preview_nothing_new: "They are all in your line-up already."
+        clear_failed: "The line-up could not be cleared. Please try again."
     empty:
         solo:
             title: "Who do you want to compare with?"
@@ -614,6 +620,7 @@ comparison:
         faster: "%name% is %percent% % faster"
         on_median: "on the median puzzle"
         dead_heat: "a dead heat on the median puzzle"
+        ties: "1 tie|%count% ties"
     league:
         title: "League table"
         subject_solo: "Player"
@@ -625,6 +632,7 @@ comparison:
         gap_value: "+%percent% %"
         gap_zero: "0 %"
         legend: "Wins – the fastest of the line-up on a puzzle. Gap – how far behind the fastest each one typically is (median)."
+        ties: "1 puzzle had a shared fastest time - nobody won it.|%count% puzzles had a shared fastest time - nobody won them."
     summary:
         best_times: "Best times"
         first_tries: "First tries"
@@ -637,8 +645,9 @@ comparison:
     highlight:
         a: "Highlighted first"
         b: "Highlighted second"
-        vs: "vs"
-        hint: "The Duel view, the lead and lag sort and the charts follow this pair."
+        charts: "Compare %a% with %b%"
+        lead: "Biggest lead: %a% vs %b%"
+        lag: "Biggest lag: %a% vs %b%"
     tabs:
         label: "Comparison"
         puzzles: "Puzzles"
@@ -669,8 +678,8 @@ comparison:
         all: "All puzzles"
     sort:
         recent: "Recent"
-        lead: "Biggest lead"
-        lag: "Biggest lag"
+        lead: "Biggest lead: %name%"
+        lag: "Biggest lag: %name%"
         name: "Name"
         pieces: "Pieces"
         difficulty: "Difficulty"
@@ -678,40 +687,32 @@ comparison:
         label: "List view"
         cards: "Cards"
         table: "Table"
-        duel: "Duel"
     list:
         count: "{0}No puzzles|{1}1 puzzle|]1,Inf[%count% puzzles"
-        count_pair_you: "{0}No puzzles you both solved|{1}1 puzzle you both solved|]1,Inf[%count% puzzles you both solved"
-        count_pair: "{0}No puzzles solved by both|{1}1 puzzle solved by both|]1,Inf[%count% puzzles solved by both"
         tap_hint: "Tap a time for all attempts"
         show_more: "Show 1 more|Show %count% more"
         none_shared_both: "No puzzle solved by both yet."
         none_shared: "No puzzle solved by two or more of the line-up yet."
-        none_pair_you: "No puzzle you both solved yet."
-        none_pair: "No puzzle solved by both of them yet."
-        to_cards: "Show the whole line-up"
         show_all: "Show all puzzles"
         none_filtered: "Nothing matches these filters."
         none_at_all: "No times to compare yet."
+        explain_best: "Each time is their best on that puzzle."
+        explain_first: "Each time is their first try on that puzzle."
     cell:
         first_try: "1st try"
-        best_of: "best of %count%"
         not_solved: "Not solved"
         not_solved_by: "Not solved: %names%"
         faster_by: "%name% faster by"
         tie: "Tie"
-        place: "%name%: #%rank% of %count%"
-        fastest_of_line_up: "the fastest of the line-up"
-        fastest: "fastest: %name% %time%"
-        solved_by: "Solved by 1|Solved by %count%"
         solved_of: "%count% of %total% solved"
+        fastest_of: "fastest of %count% tries"
     table:
         puzzle: "Puzzle"
         legend_self: "Your fastest in the line-up"
         legend_other: "Someone else's fastest"
         legend_marks: "+ behind the fastest · — not solved"
     charts_locked:
-        inside: "Inside: who's ahead puzzle by puzzle · your time vs theirs · pace by piece count · form over time · head-to-head grid"
+        inside: "Inside: who's ahead puzzle by puzzle · your time vs theirs · pace by piece count · by difficulty · form over time · head-to-head grid"
     add:
         title_solo: "Add a player"
         title_pairs: "Add a pair"
@@ -726,7 +727,12 @@ comparison:
         no_suggestions_solo: "Nobody to suggest yet - search by name or #code."
         no_suggestions_pairs: "None of your pairs to add - search for any pair above."
         no_suggestions_teams: "None of your teams to add - search for any team above."
-        suggestions_solo: "Your favorites and co-puzzlers"
+        favorites_heading: "Your favorites (%count%)"
+        favorites_filter: "Search your favorites"
+        favorites_show_all: "Show all (%count%)"
+        favorites_no_match: "None of your favorites matches."
+        co_puzzlers_heading: "People you puzzle with"
+        added: "Added"
         suggestions_pairs: "Your pairs"
         suggestions_teams: "Your teams"
         favorite: "Favorite"
@@ -4196,6 +4202,24 @@ comparison_charts:
             quickest_item: "%name% at %pieces% pieces"
             single: "Against the line-up median at %pieces% pieces: %list%"
             single_item: "%name% %percent%"
+    difficulty:
+        title: "By difficulty"
+        summary: "Median pace against the line-up median per difficulty (%tiers%). Left of zero is faster, right is slower. Puzzles without a difficulty rating are left out."
+        takeaway:
+            both:
+                you: "You're strongest on %tier% puzzles; %other% on %other_tier%"
+                other: "%name% is strongest on %tier% puzzles; %other% on %other_tier%"
+            same:
+                you: "You and %other% are both strongest on %tier% puzzles"
+                other: "%name% and %other% are both strongest on %tier% puzzles"
+            single:
+                you: "You're strongest on %tier% puzzles"
+                other: "%name% is strongest on %tier% puzzles"
+        h2h:
+            title: "Head to head: %a% vs %b%"
+            caption: "Head to head per difficulty, %a% vs %b%: wins on the puzzles both solved."
+            row: "%tier%: %a% %wins_a% – %wins_b% %b%"
+            none: "%tier%: no puzzle both solved"
     form:
         title: "Form over time"
         summary: "Monthly median pace against the line-up median, %from% to %to%. Above zero is faster."

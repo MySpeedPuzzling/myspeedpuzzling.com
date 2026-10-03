@@ -936,6 +936,11 @@
     "kept": "どのデバイスでも保存されます"
     "members_line": "メンバーは一度に最大%count%件まで比較できます"
     "count": "%count% / %cap%"
+    "clear": "クリア"
+    "clear_title": "この比較リストを空にする"
+    "clear_confirm": "%count%件をすべて外しますか？"
+    "clear_yes": "はい、クリア"
+    "clear_cancel": "キャンセル"
   "notice":
     "not_available": "これは比較できません。"
     "not_found": "それはもう比較リストにありません。"
@@ -944,6 +949,7 @@
     "preview_added_full": "%count%件を比較リストに追加しました。これで上限です。"
     "preview_full": "比較リストがいっぱいのため、何も追加されませんでした。"
     "preview_nothing_new": "すべてすでに比較リストに入っています。"
+    "clear_failed": "比較リストをクリアできませんでした。もう一度お試しください。"
   "empty":
     "solo":
       "title": "誰と比べますか？"
@@ -966,6 +972,7 @@
     "faster": "%name%が%percent%%速い"
     "on_median": "（中央値のパズルで）"
     "dead_heat": "中央値のパズルでは互角"
+    "ties": "同タイム%count%回"
   "league":
     "title": "順位表"
     "subject_solo": "プレイヤー"
@@ -977,6 +984,7 @@
     "gap_value": "+%percent%%"
     "gap_zero": "0%"
     "legend": "勝利 – そのパズルで比較リスト中最速だった回数。差 – 最速からどれだけ遅れているか（中央値）。"
+    "ties": "最速タイムが並んだパズル%count%個は、誰の勝利にもなりません。"
   "summary":
     "best_times": "ベストタイム"
     "first_tries": "初回タイム"
@@ -989,8 +997,9 @@
   "highlight":
     "a": "ハイライト（1つ目）"
     "b": "ハイライト（2つ目）"
-    "vs": "vs"
-    "hint": "1対1表示、リード／ビハインドの並べ替え、グラフはこの組み合わせに従います。"
+    "charts": "%a% と %b% を比較"
+    "lead": "最大リード：%a% vs %b%"
+    "lag": "最大ビハインド：%a% vs %b%"
   "tabs":
     "label": "比較"
     "puzzles": "パズル"
@@ -1021,8 +1030,8 @@
     "all": "すべてのパズル"
   "sort":
     "recent": "最新"
-    "lead": "最大リード"
-    "lag": "最大ビハインド"
+    "lead": "最大リード：%name%"
+    "lag": "最大ビハインド：%name%"
     "name": "名前"
     "pieces": "ピース数"
     "difficulty": "難易度"
@@ -1030,40 +1039,32 @@
     "label": "表示形式"
     "cards": "カード"
     "table": "表"
-    "duel": "1対1"
   "list":
     "count": "{0}パズルなし|]0,Inf[%count%個のパズル"
-    "count_pair_you": "{0}2人とも解いたパズルはありません|]0,Inf[2人とも解いたパズル%count%個"
-    "count_pair": "{0}両方が解いたパズルはありません|]0,Inf[両方が解いたパズル%count%個"
     "tap_hint": "タイムをタップするとすべての記録を表示します"
     "show_more": "さらに%count%件表示"
     "none_shared_both": "両方が解いたパズルはまだありません。"
     "none_shared": "比較リストの複数が解いたパズルはまだありません。"
-    "none_pair_you": "2人とも解いたパズルはまだありません。"
-    "none_pair": "両者とも解いたパズルはまだありません。"
-    "to_cards": "比較リスト全体を表示"
     "show_all": "すべてのパズルを表示"
     "none_filtered": "このフィルターに一致するものはありません。"
     "none_at_all": "比較できるタイムはまだありません。"
+    "explain_best": "各タイムはそのパズルでのそれぞれのベストです。"
+    "explain_first": "各タイムはそのパズルでのそれぞれの初回です。"
   "cell":
     "first_try": "初回"
-    "best_of": "%count%回中ベスト"
     "not_solved": "未完成"
     "not_solved_by": "未完成：%names%"
     "faster_by": "%name%の方が速い："
     "tie": "同タイム"
-    "place": "%name%：%count%中%rank%位"
-    "fastest_of_line_up": "比較リストで最速"
-    "fastest": "最速：%name% %time%"
-    "solved_by": "完成：%count%"
     "solved_of": "%count%/%total%が完成"
+    "fastest_of": "%count%回中最速"
   "table":
     "puzzle": "パズル"
     "legend_self": "あなたが最速"
     "legend_other": "ほかの人が最速"
     "legend_marks": "+ 最速との差 · — 未完成"
   "charts_locked":
-    "inside": "内容：パズルごとのリード · あなたと相手のタイム · ピース数別のペース · 調子の推移 · 対戦成績表"
+    "inside": "内容：パズルごとのリード · あなたと相手のタイム · ピース数別のペース · 難易度別 · 調子の推移 · 対戦成績表"
   "add":
     "title_solo": "プレイヤーを追加"
     "title_pairs": "ペアを追加"
@@ -1078,7 +1079,12 @@
     "no_suggestions_solo": "おすすめはまだありません。名前か#コードで検索してください。"
     "no_suggestions_pairs": "追加できる自分のペアはありません。上の検索でどのペアでも探せます。"
     "no_suggestions_teams": "追加できる自分のチームはありません。上の検索でどのチームでも探せます。"
-    "suggestions_solo": "お気に入りと協力者"
+    "favorites_heading": "お気に入り (%count%)"
+    "favorites_filter": "お気に入りを検索"
+    "favorites_show_all": "すべて表示 (%count%)"
+    "favorites_no_match": "一致するお気に入りはいません。"
+    "co_puzzlers_heading": "一緒にパズルをする人"
+    "added": "追加済み"
     "suggestions_pairs": "自分のペア"
     "suggestions_teams": "自分のチーム"
     "favorite": "お気に入り"
@@ -3881,6 +3887,24 @@ comparison_charts:
             quickest_item: "%name%は%pieces%ピース"
             single: "%pieces%ピースでの比較リストの中央値との差：%list%"
             single_item: "%name% %percent%"
+    difficulty:
+        title: "難易度別"
+        summary: "難易度ごと（%tiers%）の、比較リストの中央値に対するペースの中央値。0より左は速く、右は遅いことを示します。難易度が未判定のパズルは含まれません。"
+        takeaway:
+            both:
+                you: "あなたが最も得意なのは難易度「%tier%」、%other%は「%other_tier%」"
+                other: "%name%が最も得意なのは難易度「%tier%」、%other%は「%other_tier%」"
+            same:
+                you: "あなたも%other%も、最も得意なのは難易度「%tier%」"
+                other: "%name%も%other%も、最も得意なのは難易度「%tier%」"
+            single:
+                you: "あなたが最も得意なのは難易度「%tier%」"
+                other: "%name%が最も得意なのは難易度「%tier%」"
+        h2h:
+            title: "対戦成績：%a% vs %b%"
+            caption: "難易度別の対戦成績（%a% vs %b%）：両方が解いたパズルでの勝利数。"
+            row: "%tier%：%a% %wins_a% – %wins_b% %b%"
+            none: "%tier%：共通のパズルなし"
     form:
         title: "調子の推移"
         summary: "比較リストの中央値に対する月ごとのペースの中央値（%from%〜%to%）。0より上は速いことを示します。"

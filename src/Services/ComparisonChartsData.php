@@ -7,15 +7,17 @@ namespace SpeedPuzzling\Web\Services;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Results\ComparisonPuzzleRow;
 use SpeedPuzzling\Web\Results\ComparisonResult;
+use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\PiecesRange;
 
 /**
- * Plain data for the five comparison charts (docs/features/player-comparison.md "Charts", members) - built from the
+ * Plain data for the six comparison charts (docs/features/player-comparison.md "Charts", members) - built from the
  * same rows as the list, no query. No Chart.js configuration here: the UI turns these arrays into charts. Subjects are
  * keyed by their ref string; `roles` says which one is the highlighted A (coral), B (indigo) or anybody else (gray).
  *
  * Puzzle names are on the rows only when the aggregate selected them (GetComparisonResults $withPuzzleNames) - ask for
- * them on the Charts tab, or labels fall back to whatever the UI shows for a nameless puzzle.
+ * them on the Charts tab, or labels fall back to whatever the UI shows for a nameless puzzle. The same goes for the
+ * difficulty tier ($withDifficulty): without it "by difficulty" has nothing to show.
  *
  * "Pace" = how much slower (+) or faster (−) than the line-up's median time on that puzzle, in %, counted on puzzles at
  * least two subjects solved; a subject's value for a bucket / month is the median of its paces there.
@@ -34,6 +36,7 @@ readonly final class ComparisonChartsData
      *     leadLag: array{a: null|string, b: null|string, bars: list<array{puzzleId: string, puzzleName: null|string, piecesCount: int, aSeconds: int, bSeconds: int, deltaSeconds: int}>, aheadCount: int, behindCount: int, tiedCount: int},
      *     scatter: array{a: null|string, b: null|string, points: list<array{puzzleId: string, puzzleName: null|string, piecesCount: int, aSeconds: int, bSeconds: int, winner: 'a'|'b'|'tie'}>, maxSeconds: int},
      *     pace: list<array{key: string, label: string, subjects: array<string, array{percent: float, puzzles: int}>}>,
+     *     difficulty: list<array{tier: DifficultyTier, puzzles: int, subjects: array<string, array{percent: float, puzzles: int}>, wins: array{a: int, b: int, ties: int}}>,
      *     form: array{months: list<string>, series: array<string, list<null|float>>},
      *     matrix: array{subjects: list<string>, cells: array<string, array<string, array{wins: int, shared: int, share: null|float}>>, maxShared: int},
      * }
@@ -45,6 +48,7 @@ readonly final class ComparisonChartsData
             'leadLag' => $this->leadLag($result),
             'scatter' => $this->scatter($result),
             'pace' => $this->paceByPieces($result),
+            'difficulty' => $this->byDifficulty($result),
             'form' => $this->form($result, $now),
             'matrix' => $this->matrix($result),
         ];
@@ -199,6 +203,81 @@ readonly final class ComparisonChartsData
         }
 
         return $buckets;
+    }
+
+    /**
+     * (f) By difficulty: per DifficultyTier (easiest first) and subject the median pace, like pace by piece count, plus
+     * the highlighted pair's head to head there - how often each of the two was faster on the puzzles both solved.
+     * Puzzles without a tier (not rated yet) are left out, and so are tiers without a compared puzzle. `puzzles` = the
+     * compared puzzles of the tier.
+     *
+     * @return list<array{tier: DifficultyTier, puzzles: int, subjects: array<string, array{percent: float, puzzles: int}>, wins: array{a: int, b: int, ties: int}}>
+     */
+    public function byDifficulty(ComparisonResult $result): array
+    {
+        /** @var array<int, array<string, list<float>>> $paces */
+        $paces = [];
+        /** @var array<int, int> $puzzles */
+        $puzzles = [];
+        /** @var array<int, array{a: int, b: int, ties: int}> $wins */
+        $wins = [];
+
+        foreach ($this->paces($result) as [$row, $subjectPaces]) {
+            $tier = $row->difficultyTier !== null ? DifficultyTier::tryFrom($row->difficultyTier) : null;
+
+            if ($tier === null) {
+                continue;
+            }
+
+            $puzzles[$tier->value] = ($puzzles[$tier->value] ?? 0) + 1;
+            $wins[$tier->value] ??= ['a' => 0, 'b' => 0, 'ties' => 0];
+
+            foreach ($subjectPaces as $subject => $pace) {
+                $paces[$tier->value][$subject][] = $pace;
+            }
+
+            $cellA = $result->highlightA !== null ? $row->cell($result->highlightA) : null;
+            $cellB = $result->highlightB !== null ? $row->cell($result->highlightB) : null;
+
+            if ($cellA !== null && $cellB !== null) {
+                $outcome = match ($cellA->seconds <=> $cellB->seconds) {
+                    -1 => 'a',
+                    1 => 'b',
+                    default => 'ties',
+                };
+                $wins[$tier->value][$outcome]++;
+            }
+        }
+
+        $tiers = [];
+
+        foreach (DifficultyTier::cases() as $tier) {
+            if (isset($puzzles[$tier->value]) === false) {
+                continue;
+            }
+
+            $subjects = [];
+
+            foreach ($result->subjects as $subject) {
+                $values = $paces[$tier->value][$subject->toString()] ?? [];
+
+                if ($values !== []) {
+                    $subjects[$subject->toString()] = [
+                        'percent' => (float) ComparisonBuilder::median($values),
+                        'puzzles' => count($values),
+                    ];
+                }
+            }
+
+            $tiers[] = [
+                'tier' => $tier,
+                'puzzles' => $puzzles[$tier->value],
+                'subjects' => $subjects,
+                'wins' => $wins[$tier->value] ?? ['a' => 0, 'b' => 0, 'ties' => 0],
+            ];
+        }
+
+        return $tiers;
     }
 
     /**

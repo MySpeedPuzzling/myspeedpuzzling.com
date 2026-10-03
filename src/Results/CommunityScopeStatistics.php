@@ -117,4 +117,16 @@ readonly final class CommunityScopeStatistics
 
         return intdiv($this->piecesThisMonth, $this->activeThisMonth);
     }
+
+    /**
+     * The same measure for last month - the Cup's final standings, shown in the first days of a month.
+     */
+    public function piecesPerActivePuzzlerLastMonth(): null|int
+    {
+        if ($this->activeLastMonth < self::CUP_MINIMUM_ACTIVE) {
+            return null;
+        }
+
+        return intdiv($this->piecesLastMonth, $this->activeLastMonth);
+    }
 }

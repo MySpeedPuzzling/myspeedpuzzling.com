@@ -7,17 +7,24 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\CommunityScopeStatistics;
 use SpeedPuzzling\Web\Value\CommunityScope;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Reads community_scope_stats (docs/features/players-page/README.md). Aggregates without player identity - no
  * blocklist or private-profile filtering applies.
+ *
+ * countries() is read by the page's scope switch, the country tiles and the Country Cup - remembered for the request,
+ * so the three cost one statement (reset between requests: FrankenPHP worker mode).
  */
-readonly final class GetCommunityScopeStats
+final class GetCommunityScopeStats implements ResetInterface
 {
     private const string COLUMNS = 'scope, registered_players, active30d, solves30d, solves_prev30d, active_this_month, pieces_this_month, active_last_month, pieces_last_month, median_best500_seconds, puzzlers_with500, monthly_solves, new_faces14d, computed_at';
 
+    /** @var null|list<CommunityScopeStatistics> */
+    private null|array $countries = null;
+
     public function __construct(
-        private Connection $database,
+        readonly private Connection $database,
     ) {
     }
 
@@ -43,6 +50,10 @@ readonly final class GetCommunityScopeStats
      */
     public function countries(): array
     {
+        if ($this->countries !== null) {
+            return $this->countries;
+        }
+
         $rows = $this->database
             ->executeQuery('SELECT ' . self::COLUMNS . " FROM community_scope_stats WHERE scope <> 'world' ORDER BY registered_players DESC, scope")
             ->fetchAllAssociative();
@@ -58,6 +69,11 @@ readonly final class GetCommunityScopeStats
             }
         }
 
-        return $countries;
+        return $this->countries = $countries;
+    }
+
+    public function reset(): void
+    {
+        $this->countries = null;
     }
 }

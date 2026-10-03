@@ -6,9 +6,8 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Players page (`docs/features/players-page/README.md`)
 
-- [ ] Cron row for `myspeedpuzzling:recalculate-community-stats` in `~/www/lily.srv` (`14-59/15`, drafted) - after
-      the PR is deployed, the command must exist on the box first. Run it once by hand right after the deploy so the
-      page is not empty until the next quarter.
+- [x] Cron row for `myspeedpuzzling:recalculate-community-stats` in `~/www/lily.srv` (`14-59/15`, lily.srv b3ea25c);
+      first run by hand right after the deploy: 3.37 s, 11,493 players, 85 scopes, 1,334 moments (2026-10-03).
 - [x] Translations of `players.*` into cs, de, es, fr, ja; the dead keys of the old page removed (2026-10-03).
 - [ ] Leaderboard "Where you stand": best-time distribution per country with your marker (line for every signed-in
       player, chart for members, like the puzzle page).

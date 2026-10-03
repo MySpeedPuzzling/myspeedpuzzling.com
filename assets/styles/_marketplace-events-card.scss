@@ -1,0 +1,133 @@
+// Marketplace at events: the event page card (_event_offers.html.twig). See docs/features/marketplace/11-events.md
+// Mobile first: icon left, text right, the faces + button wrap under the text. Variants: highlighted right after
+// "I'm going" (F2) and the dashed empty card a seller gets when nothing is on the way yet.
+
+$event-offers-border: #e3e6ec;
+$event-offers-bg: #fcfcfe;
+$event-offers-coral-soft: mix($primary, $white, 12%);
+$event-offers-highlight-bg: mix($primary, $white, 6%);
+$event-offers-highlight-border: mix($primary, $white, 40%);
+$event-offers-face: 28px;
+
+.event-offers-card {
+    --event-offers-bg: #{$event-offers-bg};
+    margin-bottom: 1.5rem;
+    padding: .875rem 1rem;
+    border: 1px solid $event-offers-border;
+    border-radius: .75rem;
+    background: var(--event-offers-bg);
+    color: $gray-700;
+}
+
+.event-offers-card-main {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+}
+
+.event-offers-card-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: $event-offers-coral-soft;
+    color: $primary;
+    font-size: 1.125rem;
+}
+
+.event-offers-card-content {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.event-offers-card-title {
+    margin: .125rem 0 .25rem;
+    color: $gray-900;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: break-word;
+}
+
+.event-offers-card-text {
+    margin-bottom: 0;
+    font-size: $font-size-sm;
+    overflow-wrap: break-word;
+}
+
+.event-offers-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem .75rem;
+    margin-top: .75rem;
+}
+
+// Up to four faces, overlapping, each on a ring of the card's own background
+.event-offers-card-faces {
+    display: inline-flex;
+    align-items: center;
+}
+
+.event-offers-card-face {
+    position: relative;
+    display: inline-flex;
+    width: $event-offers-face;
+    height: $event-offers-face;
+    border-radius: 50%;
+    background: $white;
+    box-shadow: 0 0 0 2px var(--event-offers-bg);
+
+    & + & {
+        margin-left: -8px;
+    }
+
+    // The first (who brings the most) on top
+    &:nth-child(1) { z-index: 4; }
+    &:nth-child(2) { z-index: 3; }
+    &:nth-child(3) { z-index: 2; }
+    &:nth-child(4) { z-index: 1; }
+
+    .lb-avatar {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+    }
+}
+
+.event-offers-card-footer {
+    margin: .75rem 0 0;
+    padding-top: .625rem;
+    border-top: 1px solid $event-offers-border;
+    font-size: $font-size-sm;
+    overflow-wrap: break-word;
+}
+
+.event-offers-card-link {
+    font-weight: 500;
+    text-decoration: underline;
+}
+
+// Right after "I'm going" (F2): the card is the next step
+.event-offers-card-highlighted {
+    --event-offers-bg: #{$event-offers-highlight-bg};
+    border-color: $event-offers-highlight-border;
+
+    .event-offers-card-icon {
+        background: $white;
+    }
+
+    .event-offers-card-footer {
+        border-top-color: rgba($primary, .25);
+    }
+}
+
+// A seller and nothing on the way yet: an invitation, not an announcement
+.event-offers-card-empty {
+    --event-offers-bg: #{$white};
+    border-style: dashed;
+    border-color: $gray-400;
+}

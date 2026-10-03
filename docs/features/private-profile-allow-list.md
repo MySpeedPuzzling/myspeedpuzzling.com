@@ -69,6 +69,8 @@ sees "Hidden Puzzler" somewhere is a bug report; a stranger who sees a name is a
 Left as is, deliberately (the player acts in public or bilaterally): marketplace seller / reserved
 for, transaction ratings, feature-request author, conversations, lending counterparties, organiser
 tooling, own data export.
+The "Marketplace at events" card on event pages (seller avatars, `GetEventOffers`) follows the marketplace
+seller rule - the same page already lists the participants (docs/features/marketplace/11-events.md).
 
 ### Tests
 

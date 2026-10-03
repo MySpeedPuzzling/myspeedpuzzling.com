@@ -58,6 +58,8 @@
                         {{ form_row(form.publishedOnMarketplace) }}
                     </div>
 
+                    {{ include('sell-swap/_event_fields.html.twig') }}
+
                     <div class="d-flex justify-content-between">
                         <a href="{{ cancelUrl }}" class="btn btn-secondary">
                             {{ 'forms.cancel'|trans }}

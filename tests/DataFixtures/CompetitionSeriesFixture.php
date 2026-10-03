@@ -110,6 +110,7 @@ final class CompetitionSeriesFixture extends Fixture implements DependentFixture
             series: $series,
         );
         $manager->persist($edition69);
+        $this->addReference(self::EDITION_EJJ_69, $edition69);
 
         $round69 = new CompetitionRound(
             id: Uuid::fromString(self::ROUND_EJJ_69),
@@ -158,6 +159,7 @@ final class CompetitionSeriesFixture extends Fixture implements DependentFixture
             series: $offlineSeries,
         );
         $manager->persist($offlineEdition);
+        $this->addReference(self::EDITION_OFFLINE_1, $offlineEdition);
 
         $soloRound = new CompetitionRound(
             id: Uuid::fromString(self::ROUND_OFFLINE_SOLO),
@@ -216,6 +218,7 @@ final class CompetitionSeriesFixture extends Fixture implements DependentFixture
             series: $pastOnlySeries,
         );
         $manager->persist($pastOnlyEdition);
+        $this->addReference(self::EDITION_PAST_ONLY_1, $pastOnlyEdition);
 
         $pastOnlyRound = new CompetitionRound(
             id: Uuid::fromString(self::ROUND_PAST_ONLY),

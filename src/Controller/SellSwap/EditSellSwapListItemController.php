@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\FormData\AddToSellSwapListFormData;
 use SpeedPuzzling\Web\FormType\AddToSellSwapListFormType;
 use SpeedPuzzling\Web\Message\EditSellSwapListItem;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
+use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -35,6 +36,7 @@ final class EditSellSwapListItemController extends AbstractController
         readonly private GetCollectionItems $getCollectionItems,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
+        readonly private GetMarketplaceEvents $getMarketplaceEvents,
     ) {
     }
 
@@ -80,7 +82,19 @@ final class EditSellSwapListItemController extends AbstractController
         $formData->comment = $item->comment;
         $formData->publishedOnMarketplace = $item->publishedOnMarketplace;
 
-        $form = $this->createForm(AddToSellSwapListFormType::class, $formData);
+        // Marketplace events the seller goes to, each with whether this listing is marked for it - one query
+        $marketplaceEvents = [];
+        foreach ($this->getMarketplaceEvents->forListingSeller($loggedPlayer->playerId, $itemId) as $listingEvent) {
+            $marketplaceEvents[] = $listingEvent->event;
+
+            if ($listingEvent->bringing) {
+                $formData->eventIds[] = $listingEvent->event->competitionId;
+            }
+        }
+
+        $form = $this->createForm(AddToSellSwapListFormType::class, $formData, [
+            'marketplace_events' => $marketplaceEvents,
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -93,6 +107,7 @@ final class EditSellSwapListItemController extends AbstractController
                     condition: $formData->condition,
                     comment: $formData->comment,
                     publishedOnMarketplace: $formData->publishedOnMarketplace,
+                    eventIds: $form->has('eventIds') ? array_values($formData->eventIds) : null,
                 ),
             );
 
@@ -141,6 +156,7 @@ final class EditSellSwapListItemController extends AbstractController
         $templateParams = [
             'form' => $form,
             'item' => $item,
+            'marketplace_events' => $marketplaceEvents,
             'context' => $request->query->getString('context', 'detail'),
             'collection_id' => $request->query->getString('collection_id', ''),
         ];
@@ -152,6 +168,7 @@ final class EditSellSwapListItemController extends AbstractController
         return $this->render('sell-swap/edit_item.html.twig', [
             'form' => $form,
             'item' => $item,
+            'marketplace_events' => $marketplaceEvents,
             'cancelUrl' => $this->generateUrl('sell_swap_list_detail', ['playerId' => $loggedPlayer->playerId]),
         ]);
     }

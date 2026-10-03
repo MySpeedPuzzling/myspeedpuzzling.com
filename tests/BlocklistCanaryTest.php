@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
@@ -166,5 +167,7 @@ final class BlocklistCanaryTest extends WebTestCase
         yield 'player search' => ['/en/player-search-autocomplete/?query=Sarah'];
         yield 'marketplace' => ['/en/marketplace'];
         yield 'feature requests' => ['/en/feature-requests'];
+        // The marketplace card's seller faces (docs/features/marketplace/11-events.md) and the participants below it
+        yield 'event page with the marketplace card' => ['/en/events/' . MarketplaceEventFixture::COMPETITION_SWAP_FAIR_SLUG];
     }
 }

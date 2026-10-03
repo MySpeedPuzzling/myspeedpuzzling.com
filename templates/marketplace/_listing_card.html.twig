@@ -1,5 +1,29 @@
+{#
+    A marketplace listing. `event` (optional) = the event chosen in the marketplace's "Pick up at an event" filter:
+    the card then says "Bringing" or offers "Ask to bring it" for that event, instead of the labels
+    "Bringing to …" (everyone) and "Seller goes to …" (only the viewer it was computed for) -
+    docs/features/marketplace/11-events.md. The reserve/unreserve streams render it without an event.
+#}
+{% set viewer = logged_user.profile %}
+{% set chosen_event = event|default(null) %}
+{% set is_own_listing = viewer is not null and viewer.playerId is same as item.sellerId %}
+{% set reserved_for_viewer = item.reserved and viewer is not null and item.reservedForPlayerId is not null and item.reservedForPlayerId == viewer.playerId %}
+{# The event the viewer picks up the puzzle they reserved at #}
+{% set reserved_at_event = reserved_for_viewer ? (chosen_event is not null ? (item.bringing ? chosen_event : null) : item.bringingTo) : null %}
+{# "Ask to bring it" - to this event #}
+{% set ask_event = chosen_event is not null ? (item.bringing ? null : chosen_event) : item.sellerGoesTo %}
+{% if is_own_listing or (item.reserved and not reserved_for_viewer) %}
+    {% set ask_event = null %}
+{% endif %}
 <div class="card h-100 shadow position-relative">
-    {% if item.reserved %}
+    {% if reserved_at_event is not null %}
+        {% set reserved_label = 'marketplace_events.label.reserved_for_you'|trans({'%event%': reserved_at_event.shortName, '%date%': event_dates(reserved_at_event.dateFrom, reserved_at_event.dateTo)}) %}
+        <div class="position-absolute start-0 top-0 mpe-reserved-for-you" style="z-index: 2;">
+            <span class="badge bg-dark text-light px-2 py-1 mt-2 mpe-badge" style="border-radius: 0 0 0.375rem 0; font-size: 0.8rem;" title="{{ reserved_label }}">
+                {{- 'marketplace_events.label.reserved_for_you'|trans({'%event%': '<span class="mpe-badge-event">' ~ reserved_at_event.shortName|e ~ '</span>', '%date%': event_dates(reserved_at_event.dateFrom, reserved_at_event.dateTo)|e})|raw -}}
+            </span>
+        </div>
+    {% elseif item.reserved %}
         <div class="position-absolute start-0 top-0" style="z-index: 2;">
             {% if logged_user.profile is not null and logged_user.profile.playerId is same as item.sellerId and item.reservedForPlayerName is not null %}
                 <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.itemId}) }}"
@@ -135,6 +159,30 @@
             </div>
         </a>
 
+        {# Marketplace at events #}
+        {% if chosen_event is not null %}
+            {% if item.bringing %}
+                <div class="mb-1">
+                    <span class="badge bg-dark mpe-badge" data-testid="listing-bringing"><i class="bi bi-bag-check me-1"></i>{{ 'marketplace_events.label.bringing'|trans }}</span>
+                </div>
+            {% endif %}
+        {% elseif item.bringingTo is not null or (item.sellerGoesTo is not null and viewer is not null) %}
+            <div class="mb-1 d-flex flex-column align-items-start gap-1 mw-100">
+                {% if item.bringingTo is not null %}
+                    {% set bringing_to = item.bringingTo %}
+                    <span class="badge bg-dark mpe-badge" data-testid="listing-bringing-to" title="{{ 'marketplace_events.label.bringing_to'|trans({'%event%': bringing_to.name, '%date%': event_dates(bringing_to.dateFrom, bringing_to.dateTo)}) }}">
+                        {{- 'marketplace_events.label.bringing_to'|trans({'%event%': '<span class="mpe-badge-event">' ~ bringing_to.shortName|e ~ '</span>', '%date%': event_dates(bringing_to.dateFrom, bringing_to.dateTo)|e})|raw -}}
+                    </span>
+                {% endif %}
+                {% if item.sellerGoesTo is not null and viewer is not null %}
+                    {% set seller_goes_to = item.sellerGoesTo %}
+                    <span class="badge mpe-badge mpe-badge-outline" data-testid="listing-seller-goes-to" title="{{ 'marketplace_events.label.seller_goes_to'|trans({'%event%': seller_goes_to.name, '%date%': event_dates(seller_goes_to.dateFrom, seller_goes_to.dateTo)}) }}">
+                        {{- 'marketplace_events.label.seller_goes_to'|trans({'%event%': '<span class="mpe-badge-event">' ~ seller_goes_to.shortName|e ~ '</span>', '%date%': event_dates(seller_goes_to.dateFrom, seller_goes_to.dateTo)|e})|raw -}}
+                    </span>
+                {% endif %}
+            </div>
+        {% endif %}
+
         {# Row 2: Comment #}
         {% if item.comment %}
             {% if item.comment|length > 80 %}
@@ -165,6 +213,23 @@
                 </a>
             {% endif %}
         </div>
+
+        {# "Ask to bring it" - a contact message with the request filled in; guests sign in first, like for "Contact seller" #}
+        {% if ask_event is not null %}
+            {% if viewer is not null %}
+                <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.itemId, event: ask_event.competitionId}) }}"
+                   class="btn btn-primary btn-xs w-100 mt-2"
+                   data-testid="listing-ask-to-bring"
+                   data-turbo="true"
+                   data-turbo-frame="modal-frame">
+                    <i class="bi bi-chat-dots me-1"></i>{{ 'marketplace_events.label.ask_to_bring'|trans }}
+                </a>
+            {% else %}
+                <a href="{{ path('login', {return: marketplaceReturnUrl|default(path('marketplace'))}) }}" rel="nofollow" class="btn btn-primary btn-xs w-100 mt-2" data-testid="listing-ask-to-bring">
+                    <i class="bi bi-chat-dots me-1"></i>{{ 'marketplace_events.label.ask_to_bring'|trans }}
+                </a>
+            {% endif %}
+        {% endif %}
     </div>
 
     {% if logged_user.profile is not null and logged_user.profile.playerId is not same as item.sellerId %}

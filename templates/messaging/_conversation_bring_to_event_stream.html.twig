@@ -1,0 +1,24 @@
+{#
+    BringListingToEventController's answer on the conversation page: the "Bring to event" menu with its new state, the
+    Reserve / Sold actions when the listing got reserved, and the toast.
+
+    Parameters: those of _conversation_bring_to_event.html.twig + message, reserved_now (bool)
+#}
+<turbo-stream action="update" target="conversation-bring-to-event-{{ item_id }}">
+    <template>
+        {{ include('messaging/_conversation_bring_to_event.html.twig') }}
+    </template>
+</turbo-stream>
+
+{% if reserved_now %}
+    <turbo-stream action="update" target="conversation-listing-actions-{{ item_id }}">
+        <template>
+            {{ include('messaging/_conversation_listing_actions.html.twig', {
+                puzzle_context: {itemId: item_id, reserved: true},
+                other_player: {id: buyer_id},
+            }) }}
+        </template>
+    </turbo-stream>
+{% endif %}
+
+{{ include('_toast_stream.html.twig', {message: message}) }}

@@ -1,0 +1,267 @@
+// Marketplace at events: the "What will you bring?" picker and the listing form field. See docs/features/marketplace/11-events.md
+
+$event-offers-line: #e3e9ef;
+$event-offers-soft: #f3f5f9;
+$event-offers-dark: #2b3445;
+// The confirmation after "I'm going": green text on its tint is 5.4:1
+$event-offers-success: #17784f;
+$event-offers-success-soft: #e8faf2;
+
+// ---- The picker page (templates/marketplace/event_offers_picker.html.twig) ----
+
+.event-offers-picker {
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+.event-offers-picker-joined {
+    display: flex;
+    gap: .75rem;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: .75rem .875rem;
+    border-radius: .5rem;
+    background: $event-offers-success-soft;
+    color: $event-offers-success;
+
+    strong {
+        font-weight: 500;
+    }
+}
+
+.event-offers-picker-joined-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 1.875rem;
+    height: 1.875rem;
+    border-radius: 50%;
+    background: $success;
+    color: #fff;
+}
+
+.event-offers-picker-eyebrow {
+    margin-bottom: .25rem;
+    color: $gray-600;
+    font-size: .75rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.event-offers-picker-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+    margin-bottom: .625rem;
+}
+
+.event-offers-picker-search {
+    flex: 1 1 12.5rem;
+    min-width: 0;
+}
+
+.event-offers-picker-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    align-items: center;
+}
+
+.event-offers-picker-count {
+    margin-left: .25rem;
+    color: $gray-600;
+    font-size: .8125rem;
+    white-space: nowrap;
+}
+
+.event-offers-picker-list {
+    overflow: hidden;
+    border: 1px solid $event-offers-line;
+    border-radius: .5rem;
+}
+
+.event-offers-picker-row + .event-offers-picker-row {
+    border-top: 1px solid $event-offers-line;
+}
+
+.event-offers-picker-label {
+    display: grid;
+    grid-template-columns: 1.25rem 2.875rem minmax(0, 1fr);
+    gap: .375rem .75rem;
+    align-items: center;
+    margin: 0;
+    padding: .5625rem .75rem;
+    background: #fff;
+    cursor: pointer;
+
+    &:has(.event-offers-picker-check:checked) {
+        background: #fffafa;
+    }
+
+    @include media-breakpoint-up(sm) {
+        grid-template-columns: 1.25rem 2.875rem minmax(0, 1fr) auto;
+    }
+}
+
+.event-offers-picker-check {
+    margin: 0;
+}
+
+.event-offers-picker-thumb {
+    display: flex;
+    justify-content: center;
+}
+
+.event-offers-picker-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.event-offers-picker-name {
+    color: $event-offers-dark;
+    font-size: .875rem;
+    font-weight: 500;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.event-offers-picker-sub {
+    color: $gray-600;
+    font-size: .75rem;
+}
+
+// Phone: the badges go under the name, desktop: a column on the right
+.event-offers-picker-badges {
+    display: flex;
+    flex-wrap: wrap;
+    grid-column: 3;
+    gap: .25rem;
+    align-items: center;
+
+    @include media-breakpoint-up(sm) {
+        flex-direction: column;
+        grid-column: auto;
+        align-items: flex-end;
+    }
+
+    .badge {
+        font-size: .6875rem;
+        font-weight: 500;
+    }
+}
+
+.event-offers-picker-also-at {
+    background: $event-offers-dark;
+    color: #fff;
+}
+
+.event-offers-picker-no-match {
+    margin: .75rem 0 0;
+    font-size: .875rem;
+}
+
+.event-offers-picker-empty {
+    padding: 1rem;
+    border: 1px dashed $event-offers-line;
+    border-radius: .5rem;
+}
+
+.event-offers-picker-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: .875rem;
+}
+
+// ---- The listing form field (templates/sell-swap/_event_fields.html.twig) ----
+
+.marketplace-events-form-check {
+    display: flex;
+    gap: .5625rem;
+    align-items: flex-start;
+    margin: 0;
+    padding: .5rem .625rem;
+    border: 1px solid $event-offers-line;
+    border-radius: .375rem;
+    background: #fff;
+
+    & + & {
+        margin-top: .375rem;
+    }
+
+    .form-check-input {
+        flex: none;
+        margin: .1875rem 0 0;
+    }
+
+    .form-check-label {
+        min-width: 0;
+        cursor: pointer;
+    }
+}
+
+.marketplace-events-form-name {
+    display: block;
+    color: $event-offers-dark;
+    font-weight: 500;
+}
+
+.marketplace-events-form-meta {
+    display: block;
+    color: $gray-600;
+    font-size: .8125rem;
+}
+
+.marketplace-events-form-hint {
+    margin-top: .375rem;
+    color: $gray-600;
+    font-size: .75rem;
+}
+
+.marketplace-events-form-note {
+    display: flex;
+    gap: .625rem;
+    align-items: flex-start;
+    padding: .625rem .75rem;
+    border-radius: .375rem;
+    background: $event-offers-soft;
+    font-size: .8125rem;
+
+    .bi {
+        flex: none;
+        margin-top: .125rem;
+        color: #d63c42;
+    }
+}
+
+// ---- "Bring to event" in a conversation (templates/messaging/_conversation_bring_to_event.html.twig) ----
+
+.conversation-bring-menu {
+    max-width: min(20rem, calc(100vw - 2rem));
+
+    .dropdown-header {
+        padding-top: .375rem;
+        padding-bottom: .375rem;
+        border-bottom: 0;
+        background: $event-offers-soft;
+        color: $gray-600;
+        font-size: .75rem;
+        white-space: normal;
+    }
+
+    .dropdown-item {
+        white-space: normal;
+    }
+}
+
+.conversation-bring-menu-going {
+    display: block;
+    margin-top: .125rem;
+    color: $event-offers-success;
+    font-weight: 400;
+    text-transform: none;
+}

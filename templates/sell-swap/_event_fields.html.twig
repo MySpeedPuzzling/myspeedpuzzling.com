@@ -1,0 +1,56 @@
+{#
+    Marketplace at events in the listing form (docs/features/marketplace/11-events.md): "I'm bringing it to" - one
+    checkbox per marketplace event the seller goes to - and a friendly reminder either way. Shared by the add form
+    (page + modal) and the edit form (page + modal).
+
+    Inputs:
+      - form: the listing form (AddToSellSwapListFormType) - has `eventIds` only when the seller goes to an event
+      - marketplace_events: list<MarketplaceEvent> the field was built from
+#}
+<div class="mb-4 marketplace-events-form">
+    {% if form.eventIds is defined %}
+        {% set events_by_id = {} %}
+        {% for marketplace_event in marketplace_events|default([]) %}
+            {% set events_by_id = events_by_id|merge({(marketplace_event.competitionId): marketplace_event}) %}
+        {% endfor %}
+
+        <fieldset>
+            <legend class="form-label mb-2">{{ 'marketplace_events.form.field_label'|trans }}</legend>
+            {% for choice in form.eventIds %}
+                {% set marketplace_event = events_by_id[choice.vars.value] ?? null %}
+                <div class="marketplace-events-form-check form-check">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           id="{{ choice.vars.id }}"
+                           name="{{ choice.vars.full_name }}"
+                           value="{{ choice.vars.value }}"
+                           {% if choice.vars.checked %}checked{% endif %}>
+                    <label class="form-check-label" for="{{ choice.vars.id }}">
+                        <span class="marketplace-events-form-name">{{ choice.vars.label }}</span>
+                        {% if marketplace_event is not null %}
+                            <span class="marketplace-events-form-meta">
+                                {{ event_dates(marketplace_event.dateFrom, marketplace_event.dateTo) }}
+                                {%- if marketplace_event.location %} · {% if marketplace_event.countryCode %}<span class="shadow-custom fi fi-{{ marketplace_event.countryCode.name }} me-1"></span>{% endif %}{{ marketplace_event.location }}{% endif %}
+                            </span>
+                        {% endif %}
+                    </label>
+                </div>
+                {% do choice.setRendered() %}
+            {% endfor %}
+            {{ form_errors(form.eventIds) }}
+        </fieldset>
+
+        <p class="marketplace-events-form-hint mb-0">
+            {{ 'marketplace_events.form.reminder_going'|trans }}
+            <a href="{{ path('events') }}" data-turbo-frame="_top">{{ 'marketplace_events.form.upcoming_events'|trans }}</a>
+        </p>
+    {% else %}
+        <div class="marketplace-events-form-note">
+            <i class="bi bi-geo-alt" aria-hidden="true"></i>
+            <span>
+                {{ 'marketplace_events.form.reminder'|trans }}
+                <a href="{{ path('events') }}" data-turbo-frame="_top">{{ 'marketplace_events.form.upcoming_events'|trans }}</a>
+            </span>
+        </div>
+    {% endif %}
+</div>

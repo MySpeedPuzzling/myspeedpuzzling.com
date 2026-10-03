@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
 use SpeedPuzzling\Web\Message\EditSellSwapListItem;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
+use SpeedPuzzling\Web\Services\ListingEventLinks;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -14,6 +15,7 @@ readonly final class EditSellSwapListItemHandler
 {
     public function __construct(
         private SellSwapListItemRepository $sellSwapListItemRepository,
+        private ListingEventLinks $listingEventLinks,
     ) {
     }
 
@@ -34,5 +36,9 @@ readonly final class EditSellSwapListItemHandler
         $item->changeCondition($message->condition);
         $item->changeComment($message->comment);
         $item->changePublishedOnMarketplace($message->publishedOnMarketplace);
+
+        if ($message->eventIds !== null) {
+            $this->listingEventLinks->syncWithListingForm($item, $message->eventIds);
+        }
     }
 }

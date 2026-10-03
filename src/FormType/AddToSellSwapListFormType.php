@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\AddToSellSwapListFormData;
+use SpeedPuzzling\Web\Results\MarketplaceEvent;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 use Symfony\Component\Form\AbstractType;
@@ -76,12 +77,37 @@ final class AddToSellSwapListFormType extends AbstractType
             'required' => false,
             'help' => 'sell_swap_list.form.publish_on_marketplace_help',
         ]);
+
+        /** @var list<MarketplaceEvent> $marketplaceEvents */
+        $marketplaceEvents = $options['marketplace_events'];
+
+        // Marketplace at events (docs/features/marketplace/11-events.md): only for a seller going to one
+        if ($marketplaceEvents !== []) {
+            $names = [];
+            foreach ($marketplaceEvents as $event) {
+                $names[$event->competitionId] = $event->reference->displayName();
+            }
+
+            $builder->add('eventIds', ChoiceType::class, [
+                'label' => 'marketplace_events.form.field_label',
+                'required' => false,
+                'expanded' => true,
+                'multiple' => true,
+                'choices' => array_keys($names),
+                'choice_value' => static fn (null|string $competitionId): string => (string) $competitionId,
+                'choice_label' => static fn (string $competitionId): string => $names[$competitionId] ?? $competitionId,
+                'choice_translation_domain' => false,
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
             'data_class' => AddToSellSwapListFormData::class,
+            // list<MarketplaceEvent> - the marketplace events the seller goes to (GetMarketplaceEvents::forPlayer())
+            'marketplace_events' => [],
         ]);
+        $resolver->setAllowedTypes('marketplace_events', 'array');
     }
 }

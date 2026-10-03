@@ -1,0 +1,29 @@
+{#
+    "Marketplace at events" banner (HintType::MarketplaceAtEvents, docs/features/marketplace/11-events.md), on the
+    marketplace and on the player's own sell/swap list until dismissed.
+    Expects: banner (Value\MarketplaceEventsBanner), state (Results\MarketplaceEventsHintState)
+#}
+{% set nearest_event = state.nearestEvent %}
+<div class="mpe-banner mb-3 d-flex align-items-start gap-2"
+     data-testid="marketplace-events-banner"
+     data-banner="{{ banner.value }}"
+     {{ stimulus_controller('dismiss-hint', {url: path('dismiss_hint'), type: 'marketplace_at_events'}) }}
+>
+    <i class="bi bi-geo-alt fs-5 flex-shrink-0" aria-hidden="true"></i>
+    <div class="flex-grow-1 min-width-0">
+        {% if banner.value == 'seller' %}
+            <div class="mpe-banner-title">{{ 'marketplace_events.banner.seller_title'|trans }}</div>
+            <p class="mb-2">{{ 'marketplace_events.banner.seller_text'|trans }}</p>
+            <a href="{{ path('events') }}" class="btn btn-sm btn-dark">{{ 'marketplace_events.banner.seller_button'|trans }}</a>
+        {% elseif banner.value == 'going' and nearest_event is not null %}
+            <div class="mpe-banner-title">{{ 'marketplace_events.banner.going_title'|trans({'%event%': nearest_event.reference.displayName(), '%date%': event_dates(nearest_event.dateFrom, nearest_event.dateTo)}) }}</div>
+            <p class="mb-2">{{ 'marketplace_events.banner.going_text'|trans }}</p>
+            <a href="{{ path('event_offers_picker', {competitionId: nearest_event.competitionId}) }}" class="btn btn-sm btn-dark">{{ 'marketplace_events.banner.going_button'|trans }}</a>
+        {% elseif banner.value == 'buyer' and nearest_event is not null %}
+            <div class="mpe-banner-title">{{ 'marketplace_events.banner.buyer_title'|trans({'%event%': nearest_event.reference.displayName()}) }}</div>
+            <p class="mb-2">{{ 'marketplace_events.banner.buyer_text'|trans({'%count%': state.broughtByOthers}) }}</p>
+            <a href="{{ path('marketplace', {event: nearest_event.competitionId}) }}" class="btn btn-sm btn-dark">{{ 'marketplace_events.banner.buyer_button'|trans }}</a>
+        {% endif %}
+    </div>
+    <button type="button" class="btn-close flex-shrink-0" aria-label="{{ 'forms.close'|trans }}" {{ stimulus_action('dismiss-hint', 'dismiss') }}></button>
+</div>

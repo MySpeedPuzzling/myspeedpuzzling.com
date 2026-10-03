@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionPuzzles;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetEventAttendance;
+use SpeedPuzzling\Web\Query\GetEventOffers;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
@@ -19,9 +20,11 @@ use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Services\EventJustJoinedFlash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\EventTitle;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -38,6 +41,7 @@ final class EventDetailController extends AbstractController
         readonly private GetCompetitionEvents $getCompetitionEvents,
         readonly private GetCompetitionPuzzles $getCompetitionPuzzles,
         readonly private GetEventAttendance $getEventAttendance,
+        readonly private GetEventOffers $getEventOffers,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
         readonly private GetEditionRounds $getEditionRounds,
@@ -63,6 +67,7 @@ final class EventDetailController extends AbstractController
     public function __invoke(
         #[MapEntity(mapping: ['slug' => 'slug'])] Competition $competition,
         #[CurrentUser] null|UserInterface $user,
+        Request $request,
     ): Response {
         if ($competition->series !== null && $competition->series->slug !== null && $competition->slug !== null) {
             return $this->redirectToRoute('edition_detail', [
@@ -150,6 +155,9 @@ final class EventDetailController extends AbstractController
             && $competitionEvent->startsAfter($this->clock->now()) === false
             && $isPubliclyVisible;
 
+        // Marketplace card: one query on a marketplace event, none anywhere else (docs/features/marketplace/11-events.md)
+        $eventOffers = $this->getEventOffers->forEventPage($competitionEvent, $isPubliclyVisible, $loggedPlayer?->playerId);
+
         return $this->render('event_detail.html.twig', [
             'event' => $competitionEvent,
             'event_title' => $eventTitle,
@@ -166,6 +174,8 @@ final class EventDetailController extends AbstractController
             'puzzle_statuses' => $puzzleStatuses,
             'attendance' => $this->getEventAttendance->forPlayer($competitionId, $loggedPlayer?->playerId),
             'can_add_time' => $canAddTime,
+            'event_offers' => $eventOffers,
+            'event_offers_just_joined' => $eventOffers !== null && EventJustJoinedFlash::take($request, $competitionId),
         ]);
     }
 }

@@ -70,6 +70,13 @@
 @import 'comparison-entry';
 @import 'players';
 
+// Marketplace at events (docs/features/marketplace/11-events.md)
+@import 'marketplace-events-card';
+
+@import 'marketplace-events-picker';
+
+@import 'marketplace-events-listing';
+
 // Native app platform styles
 @import 'native';
 

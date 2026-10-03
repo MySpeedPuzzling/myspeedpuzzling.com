@@ -5,10 +5,16 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Component;
 
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\CompetitionNotEligibleForMarketplace;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Query\GetEventsWithSellersGoing;
+use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
 use SpeedPuzzling\Web\Query\GetMarketplaceListings;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\IsHintDismissed;
+use SpeedPuzzling\Web\Results\EventWithSellersGoing;
+use SpeedPuzzling\Web\Results\MarketplaceEvent;
+use SpeedPuzzling\Web\Results\MarketplaceListingsCount;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\MarketplaceListingItem;
 use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
@@ -87,6 +93,18 @@ final class MarketplaceListing
     #[LiveProp(writable: true, url: true)]
     public array $difficulty = [];
 
+    /**
+     * "Pick up at an event" (docs/features/marketplace/11-events.md): a marketplace event's competition id - the
+     * going sellers' listings only, bringing first, shipping filters off. Anything that is not a marketplace event
+     * counts as no event (getChosenEvent()).
+     */
+    #[LiveProp(writable: true, url: true)]
+    public string $event = '';
+
+    /** With an event: only the listings the sellers are bringing */
+    #[LiveProp(writable: true, url: true)]
+    public bool $onlyBringing = false;
+
     #[LiveProp(writable: true)]
     public string $puzzleId = '';
 
@@ -105,7 +123,14 @@ final class MarketplaceListing
     /** @var null|array<MarketplaceListingItem> */
     private null|array $cachedItems = null;
 
-    private null|int $cachedCount = null;
+    private null|MarketplaceListingsCount $cachedCounts = null;
+
+    /** @var null|list<EventWithSellersGoing> */
+    private null|array $cachedEventChoices = null;
+
+    private bool $chosenEventResolved = false;
+
+    private null|MarketplaceEvent $chosenEvent = null;
 
     private bool $filteredPuzzleOverviewLoaded = false;
 
@@ -124,6 +149,8 @@ final class MarketplaceListing
         readonly private UrlGeneratorInterface $urlGenerator,
         readonly private TranslatorInterface $translator,
         readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
+        readonly private GetEventsWithSellersGoing $getEventsWithSellersGoing,
+        readonly private GetMarketplaceEvents $getMarketplaceEvents,
     ) {
     }
 
@@ -143,6 +170,7 @@ final class MarketplaceListing
         $this->pieces = $range?->toParam();
         // Comes from the URL as well
         $this->difficulty = DifficultyFilter::normalize($this->difficulty);
+        $this->event = strtolower(trim($this->event));
     }
 
     #[PreReRender]
@@ -150,7 +178,9 @@ final class MarketplaceListing
     {
         $this->normalizePieces();
         $this->cachedItems = null;
-        $this->cachedCount = null;
+        $this->cachedCounts = null;
+        $this->chosenEventResolved = false;
+        $this->chosenEvent = null;
         $this->filteredPuzzleOverviewLoaded = false;
         $this->filteredPuzzleOverview = null;
         $this->cachedDifficultyTiers = null;
@@ -184,13 +214,16 @@ final class MarketplaceListing
             priceMax: $this->priceMax,
             condition: $this->getConditionEnum(),
             shipsToCountry: $this->getShipsToCountry(),
-            sellerCountry: $this->sellerCountry !== '' ? $this->sellerCountry : null,
+            sellerCountry: $this->getSellerCountry(),
             sellerId: $this->getMyOffersSellerId(),
             puzzleId: $this->puzzleId !== '' && Uuid::isValid($this->puzzleId) ? $this->puzzleId : null,
             sort: $this->sort,
             limit: $this->page * self::PER_PAGE,
             offset: 0,
             difficultyTiers: $this->getDifficultyFilter(),
+            event: $this->getChosenEvent()?->competitionId,
+            onlyBringing: $this->onlyBringing,
+            viewerId: $this->retrieveLoggedUserProfile->getProfile()?->playerId,
         );
 
         return $this->cachedItems;
@@ -198,11 +231,19 @@ final class MarketplaceListing
 
     public function getResultCount(): int
     {
-        if ($this->cachedCount !== null) {
-            return $this->cachedCount;
+        return $this->getCounts()->total;
+    }
+
+    /**
+     * The count - and with an event both parts of the list (bringing / to ask), from the same statement.
+     */
+    public function getCounts(): MarketplaceListingsCount
+    {
+        if ($this->cachedCounts !== null) {
+            return $this->cachedCounts;
         }
 
-        $this->cachedCount = $this->getMarketplaceListings->count(
+        $this->cachedCounts = $this->getMarketplaceListings->countParts(
             searchTerm: $this->search !== '' ? $this->search : null,
             manufacturerId: $this->manufacturer !== '' ? $this->manufacturer : null,
             piecesMin: $this->piecesMin,
@@ -212,13 +253,71 @@ final class MarketplaceListing
             priceMax: $this->priceMax,
             condition: $this->getConditionEnum(),
             shipsToCountry: $this->getShipsToCountry(),
-            sellerCountry: $this->sellerCountry !== '' ? $this->sellerCountry : null,
+            sellerCountry: $this->getSellerCountry(),
             sellerId: $this->getMyOffersSellerId(),
             puzzleId: $this->puzzleId !== '' && Uuid::isValid($this->puzzleId) ? $this->puzzleId : null,
             difficultyTiers: $this->getDifficultyFilter(),
+            event: $this->getChosenEvent()?->competitionId,
+            onlyBringing: $this->onlyBringing,
         );
 
-        return $this->cachedCount;
+        return $this->cachedCounts;
+    }
+
+    /**
+     * The select's options: upcoming marketplace events sellers with published listings are going to (cached for
+     * every visitor, GetEventsWithSellersGoing).
+     *
+     * @return list<EventWithSellersGoing>
+     */
+    public function getEventChoices(): array
+    {
+        if ($this->cachedEventChoices === null) {
+            $this->cachedEventChoices = $this->getEventsWithSellersGoing->all();
+        }
+
+        return $this->cachedEventChoices;
+    }
+
+    /**
+     * The chosen marketplace event, or null - for no event and for anything that is not a marketplace event
+     * (an online or past event, a typo): the marketplace then ignores it. Found among the select's options; only an
+     * event missing there (the cached options are up to 10 minutes old) costs a lookup.
+     */
+    public function getChosenEvent(): null|MarketplaceEvent
+    {
+        if ($this->chosenEventResolved === false) {
+            $this->chosenEvent = $this->resolveChosenEvent();
+            $this->chosenEventResolved = true;
+        }
+
+        return $this->chosenEvent;
+    }
+
+    private function resolveChosenEvent(): null|MarketplaceEvent
+    {
+        if ($this->event === '' || Uuid::isValid($this->event) === false) {
+            return null;
+        }
+
+        foreach ($this->getEventChoices() as $choice) {
+            if ($choice->event->competitionId === $this->event) {
+                return $choice->event;
+            }
+        }
+
+        try {
+            return $this->getMarketplaceEvents->byId($this->event);
+        } catch (CompetitionNotEligibleForMarketplace) {
+            return null;
+        }
+    }
+
+    #[LiveAction]
+    public function clearEvent(): void
+    {
+        $this->event = '';
+        $this->onlyBringing = false;
     }
 
     /**
@@ -352,13 +451,25 @@ final class MarketplaceListing
         }
     }
 
+    /**
+     * Shipping filters are off while an event is chosen - a hand-over in person.
+     */
     private function getShipsToCountry(): null|string
     {
-        if ($this->shipToMyCountry === false) {
+        if ($this->shipToMyCountry === false || $this->getChosenEvent() !== null) {
             return null;
         }
 
         return $this->getUserCountry();
+    }
+
+    private function getSellerCountry(): null|string
+    {
+        if ($this->sellerCountry === '' || $this->getChosenEvent() !== null) {
+            return null;
+        }
+
+        return $this->sellerCountry;
     }
 
     private function getMyOffersSellerId(): null|string
@@ -432,6 +543,14 @@ final class MarketplaceListing
             $params['difficulty'] = $this->difficulty;
         }
 
+        if ($this->event !== '') {
+            $params['event'] = $this->event;
+
+            if ($this->onlyBringing) {
+                $params['onlyBringing'] = '1';
+            }
+        }
+
         if ($this->puzzleId !== '') {
             return $this->urlGenerator->generate('marketplace_puzzle', array_merge(['puzzleId' => $this->puzzleId], $params));
         }
@@ -463,7 +582,7 @@ final class MarketplaceListing
             $this->search, $this->manufacturer, $this->piecesMin, $this->piecesMax,
             $this->listingType, $this->priceMin, $this->priceMax, $this->condition,
             $this->shipToMyCountry, $this->sellerCountry, $this->sort, $this->myOffers, $this->puzzleId,
-            $this->difficulty,
+            $this->difficulty, $this->event, $this->onlyBringing,
         ]));
     }
 

@@ -226,5 +226,12 @@
         {{ include('_event_attendance.html.twig', {competition_id: event.id, attendance: attendance}) }}
     </div>
 
+    {{ include('_event_offers.html.twig', {
+        offers: event_offers,
+        competition_id: event.id,
+        attendance: attendance,
+        just_joined: event_offers_just_joined,
+    }) }}
+
     <twig:CompetitionParticipants competitionId="{{ event.id }}" />
 {% endblock %}

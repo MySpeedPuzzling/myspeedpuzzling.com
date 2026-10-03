@@ -57,6 +57,12 @@ return App::config([
                 'global_improvement_ratio_snapshot_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // Marketplace at events: the upcoming events sellers are going to, with
+                // their bringing / to-ask counts (GetEventsWithSellersGoing) - the same
+                // for every visitor, 10 minutes, keyed by the day.
+                'marketplace_events_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
             ],
         ],
     ],

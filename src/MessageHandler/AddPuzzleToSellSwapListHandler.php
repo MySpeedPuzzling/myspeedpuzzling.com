@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Message\AddPuzzleToSellSwapList;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
+use SpeedPuzzling\Web\Services\ListingEventLinks;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -23,6 +24,7 @@ readonly final class AddPuzzleToSellSwapListHandler
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
         private SellSwapListItemRepository $sellSwapListItemRepository,
+        private ListingEventLinks $listingEventLinks,
     ) {
     }
 
@@ -49,6 +51,11 @@ readonly final class AddPuzzleToSellSwapListHandler
             $existingItem->changeCondition($message->condition);
             $existingItem->changeComment($message->comment);
             $existingItem->changePublishedOnMarketplace($message->publishedOnMarketplace);
+
+            if ($message->eventIds !== null) {
+                $this->listingEventLinks->syncWithListingForm($existingItem, $message->eventIds);
+            }
+
             return;
         }
 
@@ -65,5 +72,9 @@ readonly final class AddPuzzleToSellSwapListHandler
         );
 
         $this->sellSwapListItemRepository->save($sellSwapListItem);
+
+        if ($message->eventIds !== null) {
+            $this->listingEventLinks->syncWithListingForm($sellSwapListItem, $message->eventIds);
+        }
     }
 }

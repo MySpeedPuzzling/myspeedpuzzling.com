@@ -5,16 +5,21 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Messaging;
 
 use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
+use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Exceptions\ConversationRequestAlreadyPending;
 use SpeedPuzzling\Web\Message\MarkMessagesAsRead;
 use SpeedPuzzling\Web\Message\SendMessage;
 use SpeedPuzzling\Web\Message\StartConversation;
+use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
 use SpeedPuzzling\Web\Query\GetMessages;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
+use SpeedPuzzling\Web\Results\PlayerProfile;
+use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Services\EventDateFormatter;
 use SpeedPuzzling\Web\Services\MercureTopicCollector;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\ConversationStatus;
@@ -41,6 +46,8 @@ final class StartMarketplaceConversationController extends AbstractController
         readonly private PlayerRepository $playerRepository,
         readonly private GetMessages $getMessages,
         readonly private MercureTopicCollector $mercureTopicCollector,
+        readonly private GetMarketplaceEvents $getMarketplaceEvents,
+        readonly private EventDateFormatter $eventDateFormatter,
     ) {
     }
 
@@ -75,6 +82,11 @@ final class StartMarketplaceConversationController extends AbstractController
 
         $loggedPlayerEntity = $this->playerRepository->get($loggedPlayer->playerId);
         $recipientEntity = $this->playerRepository->get($recipientId);
+
+        // "Ask to bring it" (?event=): the request written for the buyer, who can still edit it
+        $prefillMessage = $request->isMethod('GET')
+            ? $this->askToBringMessage($request, $loggedPlayer, $sellSwapListItem, $puzzle)
+            : null;
 
         $existingConversation = $this->conversationRepository->findActiveByPlayersAndListing(
             $loggedPlayerEntity,
@@ -128,6 +140,7 @@ final class StartMarketplaceConversationController extends AbstractController
                     'conversation' => $existingConversation,
                     'messages' => $messages,
                     'is_recipient' => $isRecipient,
+                    'prefill_message' => $prefillMessage,
                 ],
             );
         }
@@ -136,6 +149,7 @@ final class StartMarketplaceConversationController extends AbstractController
             'recipient' => $recipient,
             'sell_swap_list_item' => $sellSwapListItem,
             'puzzle' => $puzzle,
+            'prefill_message' => $prefillMessage,
         ];
 
         if ($request->isMethod('POST')) {
@@ -192,5 +206,39 @@ final class StartMarketplaceConversationController extends AbstractController
             $isModal ? 'messaging/start_marketplace_conversation_modal.html.twig' : 'messaging/start_conversation.html.twig',
             $templateParams,
         );
+    }
+
+    /**
+     * Marketplace at events (docs/features/marketplace/11-events.md): "Could you bring … to … (date)?" in the buyer's
+     * language - only when the event is a marketplace event the listing's seller is going to, otherwise nothing.
+     */
+    private function askToBringMessage(
+        Request $request,
+        PlayerProfile $buyer,
+        SellSwapListItem $sellSwapListItem,
+        PuzzleOverview $puzzle,
+    ): null|string {
+        $eventId = $request->query->get('event');
+        $sellerId = $sellSwapListItem->player->id->toString();
+
+        if (is_string($eventId) === false || $eventId === '' || $sellerId === $buyer->playerId) {
+            return null;
+        }
+
+        foreach ($this->getMarketplaceEvents->forPlayer($sellerId) as $event) {
+            if ($event->competitionId !== strtolower($eventId)) {
+                continue;
+            }
+
+            $locale = $buyer->locale ?? $request->getLocale();
+
+            return $this->translator->trans('marketplace_events.chat.prefill', [
+                '%puzzle%' => $puzzle->puzzleName,
+                '%event%' => $event->reference->displayName(),
+                '%date%' => $this->eventDateFormatter->format($event->dateFrom, $event->dateTo, $locale),
+            ], locale: $locale);
+        }
+
+        return null;
     }
 }

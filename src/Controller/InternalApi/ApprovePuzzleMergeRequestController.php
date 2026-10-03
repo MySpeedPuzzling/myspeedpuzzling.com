@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
-use SpeedPuzzling\Web\Value\MergeDecisionConfidence;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -46,8 +45,8 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
 
         $body = InternalApiJsonBody::parse($request);
 
-        $survivorPuzzleId = self::requiredString($body, 'survivorPuzzleId');
-        $mergedName = self::requiredString($body, 'mergedName');
+        $survivorPuzzleId = InternalApiJsonBody::requiredString($body, 'survivorPuzzleId');
+        $mergedName = InternalApiJsonBody::requiredString($body, 'mergedName');
         $mergedPiecesCount = $body['mergedPiecesCount'] ?? null;
 
         if (is_int($mergedPiecesCount) === false || $mergedPiecesCount <= 0) {
@@ -59,61 +58,16 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
             reviewerId: $this->reviewerPlayerId,
             survivorPuzzleId: $survivorPuzzleId,
             mergedName: $mergedName,
-            mergedEan: self::optionalString($body, 'mergedEan'),
-            mergedIdentificationNumber: self::optionalString($body, 'mergedIdentificationNumber'),
+            mergedEan: InternalApiJsonBody::optionalString($body, 'mergedEan'),
+            mergedIdentificationNumber: InternalApiJsonBody::optionalString($body, 'mergedIdentificationNumber'),
             mergedPiecesCount: $mergedPiecesCount,
-            mergedManufacturerId: self::optionalString($body, 'mergedManufacturerId'),
-            selectedImagePuzzleId: self::optionalString($body, 'selectedImagePuzzleId'),
+            mergedManufacturerId: InternalApiJsonBody::optionalString($body, 'mergedManufacturerId'),
+            selectedImagePuzzleId: InternalApiJsonBody::optionalString($body, 'selectedImagePuzzleId'),
             decisionSource: MergeDecisionSource::InternalApi,
-            decisionConfidence: self::confidence($body),
-            decisionNote: self::optionalString($body, 'decisionNote'),
+            decisionConfidence: InternalApiJsonBody::confidence($body),
+            decisionNote: InternalApiJsonBody::optionalString($body, 'decisionNote'),
         ));
 
         return new Response(null, Response::HTTP_NO_CONTENT);
-    }
-
-    /**
-     * @param array<string, mixed> $body
-     */
-    private static function requiredString(array $body, string $key): string
-    {
-        $value = $body[$key] ?? null;
-
-        if (is_string($value) === false || trim($value) === '') {
-            throw new BadRequestHttpException(sprintf('"%s" is required.', $key));
-        }
-
-        return $value;
-    }
-
-    /**
-     * @param array<string, mixed> $body
-     */
-    private static function optionalString(array $body, string $key): null|string
-    {
-        $value = $body[$key] ?? null;
-
-        if (is_string($value) === false || trim($value) === '') {
-            return null;
-        }
-
-        return $value;
-    }
-
-    /**
-     * @param array<string, mixed> $body
-     */
-    private static function confidence(array $body): null|MergeDecisionConfidence
-    {
-        $value = self::optionalString($body, 'decisionConfidence');
-
-        if ($value === null) {
-            return null;
-        }
-
-        return MergeDecisionConfidence::tryFrom($value) ?? throw new BadRequestHttpException(sprintf(
-            '"decisionConfidence" must be one of: %s.',
-            implode(', ', array_column(MergeDecisionConfidence::cases(), 'value')),
-        ));
     }
 }

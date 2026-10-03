@@ -14,8 +14,8 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzle;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
-use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\ManufacturerMerger;
 use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleApprovalBrandChoice;
@@ -35,7 +35,7 @@ readonly final class ApprovePuzzleHandler
         private PuzzleRepository $puzzleRepository,
         private PlayerRepository $playerRepository,
         private ManufacturerRepository $manufacturerRepository,
-        private PuzzleChangeRequestRepository $puzzleChangeRequestRepository,
+        private ManufacturerMerger $manufacturerMerger,
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
         private ClockInterface $clock,
     ) {
@@ -102,7 +102,7 @@ readonly final class ApprovePuzzleHandler
         }
 
         if ($message->brandChoice === PuzzleApprovalBrandChoice::MergeInto && $currentBrand !== null && $targetBrand !== null) {
-            $movedPuzzles = $this->mergeBrand($currentBrand, $targetBrand);
+            $merged = $this->manufacturerMerger->merge($currentBrand, $targetBrand);
 
             $this->puzzleModerationDecisionRecorder->record(
                 action: PuzzleModerationAction::BrandMerged,
@@ -114,7 +114,8 @@ readonly final class ApprovePuzzleHandler
                     'mergedManufacturerId' => $currentBrand->id->toString(),
                     'mergedManufacturerName' => $currentBrand->name,
                     'intoManufacturerName' => $targetBrand->name,
-                    'movedPuzzles' => $movedPuzzles,
+                    'movedPuzzles' => $merged['movedPuzzles'],
+                    'redirectedSlugs' => $merged['redirectedSlugs'],
                 ],
             );
         }
@@ -185,39 +186,6 @@ readonly final class ApprovePuzzleHandler
 
                 return $target;
         }
-    }
-
-    /**
-     * Folds a duplicate brand into an approved one: its puzzles and the change
-     * requests proposing it move over, what only the duplicate knew is kept, and
-     * the duplicate is deleted. A puzzle and a change request proposal are the
-     * only things that reference a brand - a new reference must be moved here too.
-     *
-     * @return int number of puzzles moved
-     */
-    private function mergeBrand(Manufacturer $duplicate, Manufacturer $into): int
-    {
-        $puzzles = $this->puzzleRepository->findByManufacturer($duplicate);
-
-        foreach ($puzzles as $puzzle) {
-            $puzzle->manufacturer = $into;
-        }
-
-        foreach ($this->puzzleChangeRequestRepository->findByProposedManufacturer($duplicate) as $changeRequest) {
-            $changeRequest->proposedManufacturerMergedInto($into);
-        }
-
-        if ($into->logo === null && $duplicate->logo !== null) {
-            $into->logo = $duplicate->logo;
-        }
-
-        if ($into->eanPrefix === null && $duplicate->eanPrefix !== null) {
-            $into->eanPrefix = $duplicate->eanPrefix;
-        }
-
-        $this->manufacturerRepository->delete($duplicate);
-
-        return count($puzzles);
     }
 
     private static function nullIfBlank(null|string $value): null|string

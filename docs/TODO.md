@@ -242,7 +242,18 @@ Shipped 2026-09-25. Design: [`features/puzzle-approvals.md`](features/puzzle-app
 - [ ] Tell the adder when their puzzle is approved or merged (notification type + `GetNotifications` branch)
 - [ ] Count approvals in `GetModerators` (reads `reviewed_by_id` today; `puzzle_moderation_decision` has everything)
 - [ ] A read-only history page over `puzzle_moderation_decision` (who decided what, filter by player)
-- [ ] 196 unapproved brands on production, 158 of them held as merge candidates (`/root/brand-merge-proposal-2026-09-17.json` on the box) - the queue now handles them one puzzle at a time
+- [ ] Unapproved brands on production: 213 (2026-10-03), 158 of them with only approved puzzles, so the queue never shows them - cleanup via the internal API, see [Duplicate brands](#duplicate-brands)
+
+## Duplicate brands
+
+Design + survey: [`features/brand-duplicates.md`](features/brand-duplicates.md). Merge API shipped 2026-10-03.
+
+- [ ] Merge the 99 "certain" groups of the 2026-10-03 survey (`~/Downloads/msp-brand-duplicates-2026-10-03/`), then the 50 puzzles left twice under one brand; decide the 44 likely + 44 your-call groups
+- [ ] Approve or merge the remaining unapproved brands that have no pending puzzle
+- [ ] Hardening: one brand resolver (normalised key + unique index) for `AddPuzzleHandler` / `AddPuzzleToCompetitionRoundHandler` - needs the identical-key duplicates merged first
+- [ ] Hardening: approval queue suggests unapproved twins and refuses "approve" for a same-key approved brand
+- [ ] Hardening: brand picker's client-side match uses `includes()` on the option HTML - "Pussel" silently selects "Sverigepussel"
+- [ ] Hardening: no brand may sit unapproved without anyone being asked (queue shows brands without a pending puzzle)
 
 ## Image storage (bucket audit 2026-09-22)
 

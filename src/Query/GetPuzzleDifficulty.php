@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\PuzzleDifficultyResult;
+use SpeedPuzzling\Web\Value\DifficultyTier;
 
 readonly final class GetPuzzleDifficulty
 {
@@ -88,5 +89,45 @@ SQL;
         }
 
         return $results;
+    }
+
+    /**
+     * Just the tier of every rated puzzle among these - a puzzle missing from the result is not rated yet.
+     * For lists that need the tier of a player's whole history (the profile results): the tier-only rows
+     * cost ~1 ms for the heaviest solver (2,159 puzzles), joining the statistics too ~12 ms (dev copy, 2026-10-03).
+     *
+     * @param array<string> $puzzleIds duplicates are fine
+     *
+     * @return array<string, DifficultyTier>
+     */
+    public function tiersOf(array $puzzleIds): array
+    {
+        if ($puzzleIds === []) {
+            return [];
+        }
+
+        $query = <<<SQL
+SELECT pd.puzzle_id, pd.difficulty_tier
+FROM puzzle_difficulty pd
+WHERE pd.puzzle_id = ANY(:puzzleIds)
+    AND pd.difficulty_tier IS NOT NULL
+SQL;
+
+        /** @var list<array{puzzle_id: string, difficulty_tier: int|string}> $rows */
+        $rows = $this->database->executeQuery($query, [
+            'puzzleIds' => '{' . implode(',', array_unique($puzzleIds)) . '}',
+        ])->fetchAllAssociative();
+
+        $tiers = [];
+
+        foreach ($rows as $row) {
+            $tier = DifficultyTier::tryFrom((int) $row['difficulty_tier']);
+
+            if ($tier !== null) {
+                $tiers[$row['puzzle_id']] = $tier;
+            }
+        }
+
+        return $tiers;
     }
 }

@@ -10,10 +10,15 @@
                 {% set is_owner = logged_user.profile is not null and logged_user.profile.playerId is same as puzzle.playerId %}
                 <tr class="{{ puzzle.suspicious ? 'table-warning' }}" data-controller="row-link" data-action="click->row-link#open">
                     <td class="ps-image">
-                        <div class="position-relative">
+                        <div class="position-relative diff-corner-host">
                             <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
                                 {{ include('_puzzle_row_image.html.twig', {image: puzzle.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}), position: loop.index, ratio: puzzle.puzzleImageRatio}) }}
                             </a>
+
+                            {# Members see the puzzle's difficulty on the image's corner, like on the comparison #}
+                            {% if this.withDifficulty %}
+                                {{ include('_difficulty_corner.html.twig', {tier: this.difficultyTiers[puzzle.puzzleId] ?? null}) }}
+                            {% endif %}
 
                             {# Share / edit / delete, like in the recent activity - whoever tracked the time and every group member #}
                             {% if logged_user.profile is not null and puzzle.isEditableBy(logged_user.profile.playerId) %}

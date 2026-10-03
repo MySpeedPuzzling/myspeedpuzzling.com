@@ -22,6 +22,26 @@ System and custom collections, wishlist, unsolved, solved, sell/swap (with the c
 - Icon markup lives once: `_difficulty_icon.html.twig` macro (also used by `_puzzle_item.html.twig`),
   `DifficultyTier::icon()` / `translationKey()`. The sell/swap item wrapper lives once in `sell-swap/_item.html.twig`.
 
+## Profile results (`PlayerSolvedPuzzles`, 2026-10-03)
+
+The results list on a player's profile, built like the comparison (D19 in `player-comparison.md`).
+
+- **Tier on the thumbnail's corner** for members: `_difficulty_corner.html.twig` inside the image wrapper
+  (`.diff-corner-host`), opposite the ☰ time menu; "Unknown" icon for a puzzle not rated yet.
+- **Difficulty filter** in the members' part of the filter dropdown: `form-option` checkboxes bound to the writable
+  LiveProp `difficulty` (`data-model="difficulty[]"`, strings, `"0"` = not rated yet as on the puzzle search),
+  normalised in `populate()`, cleared by "Reset", counted in the badge. Applies to solo, pair and team results.
+  Members are offered only the tiers the player has a result in, plus the selected ones (like the piece-count chips);
+  non-members see all seven chips disabled under the "Members exclusive" overlay and the filter is ignored.
+- **The viewer's membership decides**: tiers are queried only for members (`withDifficulty`), guests and free
+  players pay nothing.
+- Data: `GetPuzzleDifficulty::tiersOf()` over the player's **whole** history (the filter needs every tier, and the
+  component already loads all results to filter in PHP). Tier-only rows on purpose: heaviest solver on the dev copy
+  (2,159 puzzles) ~1 ms vs ~12 ms for `GetPuzzleListInsights` (whose solve counts the profile does not show).
+  One query per render, members only.
+
+Tests: `tests/Component/PlayerSolvedPuzzlesDifficultyTest.php`, `tests/Query/GetPuzzleDifficultyTest.php`.
+
 ## "My list" on the puzzle database (`/en/puzzle?list=...`)
 
 Single select (`tomselect-sync` with pre-rendered, per-viewer options - never the shared cached filter-options endpoint).

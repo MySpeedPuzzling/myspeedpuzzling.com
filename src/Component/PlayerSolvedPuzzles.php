@@ -7,10 +7,13 @@ namespace SpeedPuzzling\Web\Component;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Results\PlayerRanking;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\PiecesRange;
+use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -80,6 +83,14 @@ final class PlayerSolvedPuzzles
     #[LiveProp(writable: true)]
     public string $speedUnit = 'ppm';
 
+    /**
+     * Difficulty tiers (members) as the checkboxes send them; "0" = not rated yet, like on the puzzle search
+     *
+     * @var list<string>
+     */
+    #[LiveProp(writable: true)]
+    public array $difficulty = [];
+
     /** @var array<array<SolvedPuzzle>> */
     public array $teamSolvedPuzzles = [];
 
@@ -97,6 +108,16 @@ final class PlayerSolvedPuzzles
     /** @var array<PlayerRanking> */
     public array $ranking = [];
 
+    // The viewer is a member: the tiers are loaded and shown on the thumbnails, the difficulty filter applies
+    public bool $withDifficulty = false;
+
+    /**
+     * Tier of every rated puzzle in the player's results (members only); a puzzle missing here is not rated yet
+     *
+     * @var array<string, DifficultyTier>
+     */
+    public array $difficultyTiers = [];
+
     /** @var array<SolvedPuzzle> */
     private array $allSoloPuzzles = [];
 
@@ -111,6 +132,7 @@ final class PlayerSolvedPuzzles
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
     ) {
     }
 
@@ -158,6 +180,7 @@ final class PlayerSolvedPuzzles
         $this->speedValue = null;
         $this->speedComparison = 'faster';
         $this->speedUnit = 'ppm';
+        $this->difficulty = [];
     }
 
     #[PostMount]
@@ -185,12 +208,24 @@ final class PlayerSolvedPuzzles
             $this->onlyUnboxed = false;
         }
 
+        $this->difficulty = $this->normalizeDifficulty($this->difficulty);
+
         $this->ranking = $this->getRanking->allForPlayer($this->playerId);
 
         // Fetch all puzzles (unfiltered)
         $this->allSoloPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($this->playerId);
         $this->allDuoPuzzles = $this->getPlayerSolvedPuzzles->duoByPlayerId($this->playerId);
         $this->allTeamPuzzles = $this->getPlayerSolvedPuzzles->teamByPlayerId($this->playerId);
+
+        // Difficulty is members-only: for everyone else it is not even queried. The whole history, not just the
+        // shown rows - the filter needs every tier
+        $this->withDifficulty = $this->hasMembership();
+        $this->difficultyTiers = $this->withDifficulty
+            ? $this->getPuzzleDifficulty->tiersOf(array_map(
+                static fn(SolvedPuzzle $puzzle): string => $puzzle->puzzleId,
+                [...$this->allSoloPuzzles, ...$this->allDuoPuzzles, ...$this->allTeamPuzzles],
+            ))
+            : [];
 
         // Apply filters
         $soloSolvedPuzzles = $this->applyFilters($this->allSoloPuzzles);
@@ -271,10 +306,52 @@ final class PlayerSolvedPuzzles
                 if ($this->matchesSpeedFilter($puzzle->time, $puzzle->piecesCount) === false) {
                     return false;
                 }
+
+                // Difficulty filter
+                if ($this->difficulty !== [] && in_array((string) $this->difficultyOf($puzzle), $this->difficulty, true) === false) {
+                    return false;
+                }
             }
 
             return true;
         });
+    }
+
+    /**
+     * The tier value, PuzzleSearchCriteria::UNRATED_DIFFICULTY for a puzzle without one yet
+     */
+    private function difficultyOf(SolvedPuzzle $puzzle): int
+    {
+        return $this->difficultyTiers[$puzzle->puzzleId]->value ?? PuzzleSearchCriteria::UNRATED_DIFFICULTY;
+    }
+
+    /**
+     * @param array<mixed> $difficulty
+     * @return list<string>
+     */
+    private function normalizeDifficulty(array $difficulty): array
+    {
+        $tiers = [];
+
+        foreach ($difficulty as $tier) {
+            if (is_string($tier) === false && is_int($tier) === false) {
+                continue;
+            }
+
+            $tier = (string) $tier;
+
+            if (preg_match('/^\d$/', $tier) !== 1) {
+                continue;
+            }
+
+            if ((int) $tier === PuzzleSearchCriteria::UNRATED_DIFFICULTY || DifficultyTier::tryFrom((int) $tier) !== null) {
+                $tiers[$tier] = $tier;
+            }
+        }
+
+        sort($tiers);
+
+        return $tiers;
     }
 
     private function matchesSearch(SolvedPuzzle $puzzle): bool
@@ -476,6 +553,38 @@ final class PlayerSolvedPuzzles
         }));
     }
 
+    /**
+     * Difficulty chips. Members get only the tiers the player has a result in (+ "not rated yet") - plus the
+     * selected ones, so a selection never hides its own chip, like the piece-count chips. Everyone else sees
+     * all of them, locked.
+     *
+     * @return list<array{value: string, tier: null|DifficultyTier}>
+     */
+    public function getDifficultyOptions(): array
+    {
+        $present = null;
+
+        if ($this->withDifficulty) {
+            $present = array_flip($this->difficulty);
+
+            foreach ([...$this->allSoloPuzzles, ...$this->allDuoPuzzles, ...$this->allTeamPuzzles] as $puzzle) {
+                $present[(string) $this->difficultyOf($puzzle)] = true;
+            }
+        }
+
+        $options = [];
+
+        foreach ([...DifficultyTier::cases(), null] as $tier) {
+            $value = (string) ($tier->value ?? PuzzleSearchCriteria::UNRATED_DIFFICULTY);
+
+            if ($present === null || isset($present[$value])) {
+                $options[] = ['value' => $value, 'tier' => $tier];
+            }
+        }
+
+        return $options;
+    }
+
     public function getActiveFiltersCount(): int
     {
         $count = 0;
@@ -521,6 +630,10 @@ final class PlayerSolvedPuzzles
             }
 
             if ($this->speedValue !== null) {
+                $count++;
+            }
+
+            if ($this->difficulty !== []) {
                 $count++;
             }
         }

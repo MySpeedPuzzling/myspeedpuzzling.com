@@ -238,6 +238,11 @@ $skill-legend: #1a1a2e;
   position: relative;
   display: inline-flex;
   flex: 0 0 auto;
+
+  // A link around the picture would be a line box - its descender gap pushed the disc 6 px below the picture's corner
+  > a {
+    display: flex;
+  }
 }
 
 .diff-corner {

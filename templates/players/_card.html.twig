@@ -1,0 +1,210 @@
+{#
+    The player card (docs/features/players-page/README.md, stream S1), the stat card: who, six public numbers, the
+    12-month activity strip (members only), chips, then Favorite · Compare · Profile. Rendered inside
+    <turbo-frame id="player-card">, in the Players page's popover / bottom sheet and on the card's own page. Links
+    that leave the card carry data-turbo-frame="_top"; Favorite and Compare stay in the frame and come back to it.
+
+    Inputs (PlayerCardController): player (PlayerProfile), card (PlayerCard), viewer_is_member (bool),
+    favorite ('on' | 'off' | 'sign_in' | null = own card), compare ('add' | 'open' | 'sign_in' | null),
+    comparison_ref (string), activity (list of {month, solved} - members only)
+#}
+{%- set name = player.playerName ?? ('#' ~ player.code|upper) -%}
+{%- set profile_path = path('player_profile', {playerId: player.playerId}) -%}
+{%- set card_path = path('player_card', {playerId: player.playerId}) -%}
+{%- set no_value -%}<span aria-hidden="true">–</span><span class="visually-hidden">{{ 'players.card.none'|trans }}</span>{%- endset -%}
+<article class="players-card" aria-labelledby="players-card-name">
+    {# Shown only inside the Players page's layer (players_card_controller.js closes it) #}
+    <button type="button" class="btn-close players-card-close" data-players-card-close aria-label="{{ 'players.card.close'|trans }}"></button>
+
+    <header class="players-card-id">
+        {{ include('_player_avatar.html.twig', {
+            player_id: player.playerId,
+            name: name,
+            avatar: player.avatar,
+            country_code: player.countryCode ? player.countryCode.name : null,
+            country_name: player.countryCode ? player.countryCode.value : null,
+            size: 'lg',
+        }) }}
+        <div class="players-card-who">
+            <h2 class="players-card-name" id="players-card-name">{{ name }}</h2>
+            <div class="players-card-meta">
+                <span class="players-card-code">#{{ player.code|upper }}</span>
+                {%- if player.countryCode %} · {{ player.countryCode.value }}{% endif -%}
+            </div>
+        </div>
+    </header>
+
+    <dl class="players-card-stats">
+        <div class="players-card-stat">
+            <dt>{{ 'players.card.solved'|trans }}</dt>
+            <dd>{{ card.solvedTotal|format_number }}</dd>
+        </div>
+        <div class="players-card-stat">
+            <dt>{{ 'players.card.pieces'|trans }}</dt>
+            <dd title="{{ card.piecesTotal|format_number }}">
+                {%- if card.piecesTotal >= 999500 -%}
+                    {{ 'players.card.millions'|trans({'%count%': (card.piecesTotal / 1000000)|round(1)|format_number}) }}
+                {%- elseif card.piecesTotal >= 10000 -%}
+                    {{ 'players.card.thousands'|trans({'%count%': (card.piecesTotal / 1000)|round|format_number}) }}
+                {%- else -%}
+                    {{ card.piecesTotal|format_number }}
+                {%- endif -%}
+            </dd>
+        </div>
+        <div class="players-card-stat">
+            <dt>{{ 'players.card.favorites'|trans }}</dt>
+            <dd>{{ card.favoritesCount|format_number }}</dd>
+        </div>
+        <div class="players-card-stat">
+            <dt>{{ 'players.card.best500'|trans }}</dt>
+            <dd>{{ card.best500Seconds is null ? no_value : card.best500Seconds|puzzlingTime }}</dd>
+        </div>
+        <div class="players-card-stat">
+            <dt>{{ 'players.card.best1000'|trans }}</dt>
+            <dd>{{ card.best1000Seconds is null ? no_value : card.best1000Seconds|puzzlingTime }}</dd>
+        </div>
+        <div class="players-card-stat">
+            <dt>{{ 'players.card.last_solve'|trans }}</dt>
+            <dd>{{ card.lastSolvedAt is null ? no_value : card.lastSolvedAt|ago }}</dd>
+        </div>
+    </dl>
+
+    {# Members see the strip; everyone else a blurred stand-in (no real numbers in the markup) under a lock #}
+    {% if viewer_is_member %}
+        {% set busiest = card.busiestMonth %}
+        {% set described = [] %}
+        {% for bar in activity %}
+            {% set described = described|merge([bar.month|format_date(pattern: 'LLL yyyy') ~ ': ' ~ bar.solved]) %}
+        {% endfor %}
+        <div class="players-card-activity">
+            <div class="players-card-bars" role="img" aria-label="{{ 'players.card.activity_label'|trans }}: {{ described|join(', ') }}">
+                {%- for bar in activity -%}
+                    <i style="height: {{ (bar.solved / busiest * 100)|round }}%" title="{{ 'players.card.activity_bar'|trans({'%month%': bar.month|format_date(pattern: 'LLLL yyyy'), '%count%': bar.solved}) }}"></i>
+                {%- endfor -%}
+            </div>
+            {% if activity is not empty %}
+                <div class="players-card-activity-labels" aria-hidden="true">
+                    <span>{{ 'players.card.activity_label'|trans }} · {{ (activity|first).month|format_date(pattern: 'LLL') }}</span>
+                    <span>{{ (activity|last).month|format_date(pattern: 'LLL') }}</span>
+                </div>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="players-card-activity is-locked">
+            <div class="players-card-locked">
+                <div class="players-card-bars" aria-hidden="true">
+                    {%- for height in [35, 50, 30, 60, 45, 70, 55, 40, 65, 80, 60, 90] -%}
+                        <i style="height: {{ height }}%"></i>
+                    {%- endfor -%}
+                </div>
+                <button type="button" class="players-card-unlock" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                    <i class="ci-locked" aria-hidden="true"></i>
+                    {{ 'membership.members_exclusive_button'|trans }}
+                </button>
+            </div>
+            <div class="players-card-activity-labels" aria-hidden="true">
+                <span>{{ 'players.card.activity_label'|trans }}</span>
+            </div>
+        </div>
+    {% endif %}
+
+    {# Chips: the rating is public; the tier is for members, never for a player who opted out of rankings #}
+    {% set tier_chip = null %}
+    {% if not card.rankingOptedOut %}
+        {% if not viewer_is_member %}
+            {% set tier_chip = player.isPrivateProfile ? null : 'locked' %}
+        {% elseif card.skillTier is not null %}
+            {% set tier_chip = 'tier' %}
+        {% elseif not player.isPrivateProfile %}
+            {% set tier_chip = 'no_tier_yet' %}
+        {% endif %}
+    {% endif %}
+    {% if card.mspRating is not null or tier_chip is not null or card.competesInEvents or card.swapsPuzzles or card.onInstagram %}
+        <ul class="players-card-chips">
+            {% if card.mspRating is not null %}
+                <li class="players-card-chip">{{ 'players.card.rating'|trans({'%rating%': card.mspRating}) }}</li>
+            {% endif %}
+            {% if tier_chip == 'tier' %}
+                {% set tier = card.skillTier.name|lower %}
+                <li class="players-card-chip players-card-chip-tier" style="--chip-color: var(--rank-{{ tier }})">
+                    <svg class="rank-icon" width="14" height="14" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-{{ tier }}"/></svg>
+                    {{ ('puzzle_intelligence.skill.tiers.' ~ tier)|trans }}
+                </li>
+            {% elseif tier_chip == 'no_tier_yet' %}
+                <li class="players-card-chip">{{ 'player_header.no_tier_yet'|trans }}</li>
+            {% elseif tier_chip == 'locked' %}
+                <li>
+                    <button type="button" class="players-card-chip players-card-chip-locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" title="{{ 'player_header.tier_locked_title'|trans }}">
+                        <i class="ci-locked" aria-hidden="true"></i>
+                        {{ 'players.card.tier_locked'|trans }}
+                    </button>
+                </li>
+            {% endif %}
+            {% if card.competesInEvents %}
+                <li class="players-card-chip"><i class="bi bi-calendar-event" aria-hidden="true"></i> {{ 'players.card.competes'|trans }}</li>
+            {% endif %}
+            {% if card.swapsPuzzles %}
+                <li class="players-card-chip"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> {{ 'players.card.swaps'|trans }}</li>
+            {% endif %}
+            {% if card.onInstagram %}
+                <li class="players-card-chip"><i class="bi bi-instagram" aria-hidden="true"></i> {{ 'players.card.instagram'|trans }}</li>
+            {% endif %}
+        </ul>
+    {% endif %}
+
+    {# What Favorite / Compare just did. Read only by a visitor with a session - reading starts one otherwise #}
+    {% if app.request.hasPreviousSession %}
+        {% set comparison_added_flash = constant('SpeedPuzzling\\Web\\Controller\\AddComparisonSubjectController::ADDED_FLASH') %}
+        {% for label in ['success', 'info', 'warning', 'danger'] %}
+            {% for message in app.flashes(label) %}
+                <p class="players-card-notice players-card-notice-{{ label }}" role="status">{{ message }}</p>
+            {% endfor %}
+        {% endfor %}
+        {% for added in app.flashes(comparison_added_flash) %}
+            <p class="players-card-notice players-card-notice-success" role="status">
+                {{ added.message }}
+                <a href="{{ path('comparison', added.kind ? {kind: added.kind} : {}) }}" data-turbo-frame="_top">{{ 'comparison_entry.open'|trans }}</a>
+            </p>
+        {% endfor %}
+    {% endif %}
+
+    <div class="players-card-actions{{ favorite is null ? ' is-own' }}">
+        {% if favorite == 'on' %}
+            <a class="btn btn-sm players-card-action players-card-favorite is-on" href="{{ path('remove_player_from_favorite', {playerId: player.playerId, return: card_path}) }}" rel="nofollow" data-turbo-prefetch="false" title="{{ 'profile.remove_from_favorites'|trans }}" aria-label="{{ 'profile.remove_from_favorites'|trans }}">
+                <i class="bi bi-star-fill" aria-hidden="true"></i> {{ 'players.card.favorite_on'|trans }}
+            </a>
+        {% elseif favorite == 'off' %}
+            <a class="btn btn-sm btn-outline-secondary players-card-action players-card-favorite" href="{{ path('add_player_to_favorite', {playerId: player.playerId, return: card_path}) }}" rel="nofollow" data-turbo-prefetch="false" title="{{ 'profile.add_to_favorites'|trans }}" aria-label="{{ 'profile.add_to_favorites'|trans }}">
+                <i class="bi bi-star" aria-hidden="true"></i> {{ 'players.card.favorite'|trans }}
+            </a>
+        {% elseif favorite == 'sign_in' %}
+            {# Signing in comes back to the profile with the player in favorites (the route asks for sign-in first) #}
+            <a class="btn btn-sm btn-outline-secondary players-card-action players-card-favorite" href="{{ path('add_player_to_favorite', {playerId: player.playerId, return: profile_path}) }}" rel="nofollow" data-turbo-prefetch="false" data-turbo-frame="_top" title="{{ 'profile.add_to_favorites'|trans }}" aria-label="{{ 'profile.add_to_favorites'|trans }}">
+                <i class="bi bi-star" aria-hidden="true"></i> {{ 'players.card.favorite'|trans }}
+            </a>
+        {% endif %}
+
+        {% if compare == 'add' %}
+            {{ include('comparison_entry/_subject_form.html.twig', {
+                action: 'add',
+                subject: comparison_ref,
+                form_class: 'players-card-action-form',
+                button_class: 'btn btn-sm btn-outline-secondary players-card-action',
+                icon: 'bi-arrow-left-right',
+                label: 'players.card.compare'|trans,
+            }) }}
+        {% elseif compare == 'open' %}
+            <a class="btn btn-sm btn-outline-secondary players-card-action is-on" href="{{ path('comparison', {kind: 'solo'}) }}" data-turbo-frame="_top" title="{{ 'player_header.compare_open'|trans }}">
+                <i class="bi bi-arrow-left-right" aria-hidden="true"></i> {{ 'players.card.compare_open'|trans }}
+            </a>
+        {% elseif compare == 'sign_in' %}
+            <a class="btn btn-sm btn-outline-secondary players-card-action" href="{{ path('login', {return: profile_path}) }}" rel="nofollow" data-turbo-frame="_top">
+                <i class="bi bi-arrow-left-right" aria-hidden="true"></i> {{ 'players.card.compare'|trans }}
+            </a>
+        {% endif %}
+
+        <a class="btn btn-sm btn-primary players-card-action players-card-profile" href="{{ profile_path }}" data-turbo-frame="_top">
+            {{ 'players.card.profile'|trans }} <i class="ci-arrow-right" aria-hidden="true"></i>
+        </a>
+    </div>
+</article>

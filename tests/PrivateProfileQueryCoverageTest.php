@@ -20,6 +20,7 @@ final class PrivateProfileQueryCoverageTest extends TestCase
 
     /** Files allowed to read the raw column, besides going through PrivateProfileAccess */
     private const array RAW_COLUMN = [
+        'Services/Community/CommunityStatsCalculator.php' => 'Counts public newcomers per scope (community_scope_stats.new_faces14d) - an aggregate without identity, the raw setting decides who is counted.',
         'Query/FindSimilarSpeedPuzzler.php' => 'A random suggestion of somebody at your speed offers public profiles only - the same pool for every viewer, like a global ranking.',
         'Query/GetAffiliateSupporters.php' => 'Public supporters list of somebody else\'s profile - stays public-only.',
         'Query/GetFastestGroups.php' => 'HAVING keeps a group only if a member is public - the same rows and positions for every viewer; names on them go through the service.',
@@ -30,10 +31,14 @@ final class PrivateProfileQueryCoverageTest extends TestCase
         'Query/GetPlayerIdsForSitemap.php' => self::BACKGROUND,
         'Query/GetPlayerProfile.php' => 'byUserId() is the signed-in player\'s own profile (its comparison line-up avatars are masked in PlayerProfile against the revealed ids of that same row); byId() also reports the raw setting as is_private_profile. Masking uses the service.',
         'Query/GetPlayerRatingRanking.php' => self::GLOBAL_RANKING,
+        'Query/GetPlayersDirectory.php' => 'Players page list: public profiles only, for everybody - nobody is ranked differently for different viewers.',
         'Query/GetPlayersForWjpfSync.php' => self::BACKGROUND,
+        'Query/GetPlayersOnARoll.php' => 'Players page list: public profiles only, for everybody - nobody is ranked differently for different viewers.',
         'Query/GetPlayersPerCountry.php' => self::GLOBAL_RANKING,
         'Query/GetRanking.php' => self::GLOBAL_RANKING,
+        'Query/GetSpotlightPeople.php' => 'Players page list: public profiles only, for everybody - nobody is ranked differently for different viewers.',
         'Query/GetStopwatchMilestones.php' => self::GLOBAL_RANKING,
+        'Query/GetSuggestedPlayers.php' => 'Players page list: public profiles only, for everybody - nobody is ranked differently for different viewers.',
         'Services/ComparisonSubjectVisibility.php' => 'Write side with an explicit owner id: the owner\'s allow-list row is read in the same statement - handlers never see the ambient viewer.',
         'Services/PrivateProfileAccess.php' => 'The one place that decides.',
         'Services/PuzzleIntelligence/MspRatingCalculator.php' => self::BACKGROUND,

@@ -36,6 +36,8 @@ final class RobotsTxtTest extends KernelTestCase
             'QR code modal' => ['puzzle_qr_code_modal', ['puzzleId' => self::SAMPLE_ID]],
             'edit collection item comment' => ['edit_collection_item_comment', ['collectionItemId' => self::SAMPLE_ID]],
             'player statistics' => ['player_statistics', ['playerId' => self::SAMPLE_ID]],
+            // The Players page's player card (docs/features/players-page/README.md)
+            'player card' => ['player_card', ['playerId' => self::SAMPLE_ID]],
             // The old 1:1 compare page, now a redirect to the compare page (docs/features/player-comparison.md)
             'old compare page' => ['compare_players', ['opponentPlayerId' => self::SAMPLE_ID]],
         ];

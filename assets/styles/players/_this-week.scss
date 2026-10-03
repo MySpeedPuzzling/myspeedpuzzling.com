@@ -1,0 +1,91 @@
+// This week (stream S3): On a roll - a slim strip of people cards under the spotlight
+.players-week-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .25rem 1rem;
+    margin-bottom: .75rem;
+
+    .players-section-title {
+        margin-bottom: 0;
+    }
+}
+
+.players-week-hint {
+    font-size: .8125rem;
+    color: $gray-600;
+}
+
+.players-week-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @include media-breakpoint-up(md) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+// Phones show three people (ThisWeek::PEOPLE_ON_PHONES); "Show more" reveals the rest, already rendered
+@include media-breakpoint-down(md) {
+    .players-week-list:not(.is-expanded) .players-week-card:nth-child(n + 4) {
+        display: none;
+    }
+}
+
+.players-week-card {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    min-width: 0;
+    padding: .875rem;
+    border: 1px solid $border-color;
+    border-radius: .75rem;
+    background: $white;
+}
+
+.players-week-kind {
+    display: flex;
+    align-items: center;
+    gap: .375rem;
+    font-size: .75rem;
+    font-weight: 500;
+    color: $accent;
+
+    i {
+        display: block;
+        flex: none;
+        width: .5rem;
+        height: .5rem;
+        border-radius: 50%;
+        background: $accent;
+    }
+}
+
+.players-week-line {
+    margin: 0;
+    font-size: .875rem;
+    color: $gray-800;
+
+    small {
+        display: block;
+        font-size: .75rem;
+        color: $gray-600;
+    }
+}
+
+.players-week-more {
+    margin-top: .75rem;
+
+    @include media-breakpoint-up(md) {
+        display: none;
+    }
+}
+
+.players-week-list.is-expanded + .players-week-more {
+    display: none;
+}

@@ -1,0 +1,98 @@
+// Suggested for you (stream S6): a card per person - the person, the reason, Favorite + Compare.
+// One column on phones, two from sm, four from lg; cards after the fourth only from lg (two rows of four).
+.players-suggestions-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .25rem 1rem;
+    margin-bottom: .75rem;
+
+    .players-section-title {
+        margin-bottom: 0;
+    }
+}
+
+.players-suggestions-hint {
+    margin: 0;
+    font-size: .8125rem;
+    color: $gray-600;
+}
+
+.players-suggestions-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @include media-breakpoint-up(sm) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @include media-breakpoint-up(lg) {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.players-suggestion {
+    display: flex;
+    flex-direction: column;
+    gap: .625rem;
+    min-width: 0;
+    padding: .875rem;
+    border: 1px solid $border-color;
+    border-radius: .75rem;
+    background: $white;
+
+    &.players-suggestion-extra {
+        display: none;
+
+        @include media-breakpoint-up(lg) {
+            display: flex;
+        }
+    }
+}
+
+.players-suggestion-reason {
+    display: flex;
+    align-items: flex-start;
+    gap: .375rem;
+    margin: 0;
+    padding: .3125rem .5rem;
+    border-radius: .375rem;
+    background: rgba($accent, .08);
+    color: $gray-700;
+    font-size: .8125rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+
+    .bi {
+        flex: none;
+        margin-top: .0625rem;
+        color: $accent;
+    }
+}
+
+.players-suggestion-actions {
+    display: flex;
+    gap: .375rem;
+    margin-top: auto;
+
+    > .btn,
+    > .players-suggestion-compare {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    // Two buttons side by side fit a 200 px card (two columns from 500 px, four at 992 px)
+    .btn {
+        --#{$prefix}btn-padding-x: .5rem;
+        white-space: nowrap;
+    }
+
+    .players-suggestion-compare .btn {
+        width: 100%;
+    }
+}

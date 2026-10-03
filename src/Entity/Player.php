@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Doctrine\SellSwapListSettingsDoctrineType;
 use SpeedPuzzling\Web\Value\CollectionDisplayMode;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\ComparisonView;
+use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
@@ -295,6 +296,15 @@ class Player
     public function updateStripeCustomerId(string $stripeCustomerId): void
     {
         $this->stripeCustomerId = $stripeCustomerId;
+    }
+
+    /**
+     * "Add your country" (docs/features/players-page/README.md): the one-field way to the same column the edit-profile
+     * form writes, so the player shows up on their country's pages and counts in the Country Cup.
+     */
+    public function changeCountry(CountryCode $country): void
+    {
+        $this->country = $country->name;
     }
 
     public function changeLocale(string $locale): void

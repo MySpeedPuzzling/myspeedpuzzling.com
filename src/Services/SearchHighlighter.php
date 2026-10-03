@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+/**
+ * Marks the searched words in a text. The Twig function `highlight()` is registered as HTML-safe, so everything it
+ * returns is escaped here - the matches and the text around them (player and puzzle names are user input).
+ */
 readonly final class SearchHighlighter
 {
     public function highlight(null|string|int $text, null|string $query): string
@@ -12,14 +16,14 @@ readonly final class SearchHighlighter
         $query = trim((string) $query);
 
         if ($text === '' || $query === '') {
-            return $text;
+            return self::escape($text);
         }
 
         // Normalize and split the query into individual words.
         $normalizedQuery = $this->normalize($query);
         $queryWords = array_filter(explode(' ', $normalizedQuery));
         if (empty($queryWords)) {
-            return $text;
+            return self::escape($text);
         }
 
         // Split the text on spaces
@@ -55,7 +59,7 @@ readonly final class SearchHighlighter
         }
 
         if ($matches === []) {
-            return $word;
+            return self::escape($word);
         }
 
         // Merge any overlapping or adjacent matches.
@@ -66,16 +70,16 @@ readonly final class SearchHighlighter
         $currentPos = 0;
         foreach ($mergedMatches as $match) {
             // Append the part before the match.
-            $result .= mb_substr($word, $currentPos, $match['start'] - $currentPos, 'UTF-8');
+            $result .= self::escape(mb_substr($word, $currentPos, $match['start'] - $currentPos, 'UTF-8'));
             // Append the highlighted substring.
             $matchedText = mb_substr($word, $match['start'], $match['length'], 'UTF-8');
             $result .= '<span class="search-highlight">'
-                . htmlspecialchars($matchedText, ENT_QUOTES, 'UTF-8')
+                . self::escape($matchedText)
                 . '</span>';
             $currentPos = $match['start'] + $match['length'];
         }
         // Append any remaining part of the word.
-        $result .= mb_substr($word, $currentPos, null, 'UTF-8');
+        $result .= self::escape(mb_substr($word, $currentPos, null, 'UTF-8'));
 
         return $result;
     }
@@ -108,6 +112,11 @@ readonly final class SearchHighlighter
         }
 
         return $merged;
+    }
+
+    private static function escape(string $text): string
+    {
+        return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
     }
 
     private function normalize(string $input): string

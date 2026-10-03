@@ -1,0 +1,71 @@
+{#
+    Suggested for you (docs/features/players-page/README.md, stream S6): a card per person with the reason they are
+    suggested, Favorite and Compare. Signed-in players only; nothing at all when there is nobody to suggest.
+    Favorite / Compare are the player header's own endpoints (add_player_to_favorite with ?return=, comparison_add),
+    so they work without JavaScript and come back to this page.
+#}
+{% if suggestions is not empty %}
+    {% set return_path = app.request.requestUri %}
+    <section {{ attributes.defaults({class: 'players-section players-suggestions', id: 'players-suggestions'}) }} aria-labelledby="players-suggestions-title">
+        <div class="players-suggestions-head">
+            <h2 class="players-section-title" id="players-suggestions-title">{{ 'players.suggestions.title'|trans }}</h2>
+            <p class="players-suggestions-hint">{{ 'players.suggestions.hint'|trans }}</p>
+        </div>
+
+        <ul class="players-suggestions-list">
+            {% for suggestion in suggestions %}
+                {% set reason = suggestion.reason.value %}
+                <li class="players-suggestion{{ loop.index > constant('SpeedPuzzling\\Web\\Component\\Players\\Suggestions::MOBILE_VISIBLE') ? ' players-suggestion-extra' }}">
+                    {{ include('players/_person.html.twig', {player: suggestion}) }}
+
+                    <p class="players-suggestion-reason">
+                        {% if reason == 'co_puzzler' %}
+                            <i class="bi bi-people" aria-hidden="true"></i>
+                            <span>
+                                {%- if suggestion.coPuzzlerName is not null -%}
+                                    {{ 'players.suggestions.reason.co_puzzler'|trans({'%name%': suggestion.coPuzzlerName}) }}
+                                {%- else -%}
+                                    {{ 'players.suggestions.reason.co_puzzler_unnamed'|trans }}
+                                {%- endif -%}
+                            </span>
+                        {% elseif reason == 'same_event' %}
+                            <i class="bi bi-trophy" aria-hidden="true"></i>
+                            <span>{{ 'players.suggestions.reason.same_event'|trans({'%event%': suggestion.eventName}) }}</span>
+                        {% elseif reason == 'similar_time' %}
+                            <i class="bi bi-stopwatch" aria-hidden="true"></i>
+                            <span>{{ 'players.suggestions.reason.similar_time'|trans({'%time%': suggestion.best500Seconds|default(0)|puzzlingTime}) }}</span>
+                        {% else %}
+                            <i class="bi bi-puzzle" aria-hidden="true"></i>
+                            <span>{{ 'players.suggestions.reason.puzzles_in_common'|trans({'%count%': suggestion.sharedPuzzles|default(0)|format_number}) }}</span>
+                        {% endif %}
+                    </p>
+
+                    <div class="players-suggestion-actions">
+                        <a class="btn btn-sm btn-outline-primary"
+                           href="{{ path('add_player_to_favorite', {playerId: suggestion.playerId, return: return_path}) }}"
+                           data-turbo-prefetch="false"
+                           rel="nofollow"
+                        >
+                            <i class="bi bi-star me-1" aria-hidden="true"></i>{{ 'players.suggestions.favorite'|trans }}
+                        </a>
+
+                        {% if this.isInComparison(suggestion.playerId) %}
+                            <a class="btn btn-sm btn-outline-secondary" href="{{ path('comparison', {kind: 'solo'}) }}">
+                                <i class="bi bi-arrow-left-right me-1" aria-hidden="true"></i>{{ 'players.suggestions.in_comparison'|trans }}
+                            </a>
+                        {% else %}
+                            {{ include('comparison_entry/_subject_form.html.twig', {
+                                action: 'add',
+                                subject: this.comparisonRef(suggestion.playerId),
+                                form_class: 'players-suggestion-compare',
+                                button_class: 'btn btn-sm btn-outline-secondary',
+                                icon: 'bi-arrow-left-right',
+                                label: 'players.suggestions.compare'|trans,
+                            }) }}
+                        {% endif %}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
+{% endif %}

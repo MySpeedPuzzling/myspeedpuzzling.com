@@ -53,6 +53,9 @@
         <div class="mb-3">
             {{ include('onboarding/_getting_started_card.html.twig', {progress: getting_started, folded: false}) }}
         </div>
+    {% elseif is_own_profile %}
+        {# "Add your country" while the player has none - a newcomer's checklist asks for it already (docs/features/players-page/README.md) #}
+        <twig:Players:CountryNudge class="mb-3" />
     {% endif %}
 
     {% if player.isPrivate and (logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId) %}

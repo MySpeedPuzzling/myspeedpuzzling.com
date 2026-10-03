@@ -1,0 +1,409 @@
+// Player card (stream S1): templates/players/_card.html.twig in the layer of players_card_controller.js - a popover
+// from 576 px up, a bottom sheet below - and on the card's own page.
+
+// The layer covers the viewport without catching clicks; only the card (and the sheet's scrim) does. Under the
+// Bootstrap modal (1050+), so the members modal opened from the card sits on top of it.
+.players-card-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 1045;
+    pointer-events: none;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.players-card-scrim {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba($gray-900, .35);
+    pointer-events: auto;
+
+    .is-sheet & {
+        display: block;
+    }
+}
+
+.players-card-dialog {
+    position: fixed;
+    width: 340px;
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: .875rem;
+    background: $white;
+    box-shadow: 0 12px 40px rgba($gray-900, .22), 0 0 0 1px rgba($gray-900, .08);
+    pointer-events: auto;
+
+    &:focus {
+        outline: none;
+    }
+
+    &:focus-visible {
+        box-shadow: 0 12px 40px rgba($gray-900, .22), 0 0 0 2px rgba($primary, .6);
+    }
+
+    // Phones: the full width at the bottom, with a grab handle
+    .is-sheet & {
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: auto;
+        max-width: none;
+        max-height: 85vh;
+        border-radius: 1rem 1rem 0 0;
+        padding-bottom: env(safe-area-inset-bottom);
+
+        &::before {
+            content: "";
+            display: block;
+            width: 36px;
+            height: 4px;
+            margin: .5rem auto 0;
+            border-radius: 4px;
+            background: $gray-400;
+        }
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .players-card-dialog {
+        animation: players-card-pop .14s ease-out;
+    }
+
+    .is-sheet .players-card-dialog {
+        animation: players-card-rise .22s cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .is-sheet .players-card-scrim {
+        animation: players-card-fade .2s ease-out;
+    }
+}
+
+@keyframes players-card-pop {
+    from {
+        opacity: 0;
+        transform: translateY(4px) scale(.98);
+    }
+}
+
+@keyframes players-card-rise {
+    from {
+        transform: translateY(100%);
+    }
+}
+
+@keyframes players-card-fade {
+    from {
+        opacity: 0;
+    }
+}
+
+.players-card-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 22rem;
+}
+
+// The card itself
+.players-card {
+    position: relative;
+    display: grid;
+    gap: .875rem;
+    padding: 1rem;
+    color: $gray-700;
+    font-size: .875rem;
+    line-height: 1.45;
+}
+
+// × only inside the layer - the card's own page has nothing to close
+.players-card-close {
+    display: none;
+
+    .players-card-layer & {
+        display: block;
+        position: absolute;
+        top: .75rem;
+        right: .75rem;
+    }
+}
+
+.players-card-id {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-width: 0;
+    padding-right: 1.75rem;
+
+    .lb-avatar {
+        width: 48px;
+        height: 48px;
+        margin-right: 0;
+
+        .lb-avatar-img {
+            font-size: 1.25rem;
+        }
+    }
+}
+
+.players-card-who {
+    min-width: 0;
+}
+
+.players-card-name {
+    margin: 0;
+    color: $gray-800;
+    font-size: 1.0625rem;
+    font-weight: 500;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.players-card-meta {
+    color: $gray-600;
+    font-size: .8125rem;
+}
+
+.players-card-code {
+    font-family: $font-family-monospace;
+    font-size: .75rem;
+}
+
+// Six numbers, three a row: the value over its label (dt comes first in the markup, for screen readers)
+.players-card-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .625rem .5rem;
+    margin: 0;
+
+    dt {
+        color: $gray-600;
+        font-size: .6875rem;
+        font-weight: 400;
+    }
+
+    dd {
+        margin: 0;
+        color: $gray-800;
+        font-size: 1.0625rem;
+        font-weight: 500;
+        line-height: 1.15;
+        font-variant-numeric: tabular-nums;
+        overflow-wrap: anywhere;
+    }
+}
+
+.players-card-stat {
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-end;
+    min-width: 0;
+}
+
+// 12 months of puzzles, the current month in the accent colour
+.players-card-activity {
+    display: grid;
+    gap: .25rem;
+}
+
+.players-card-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 34px;
+
+    i {
+        flex: 1;
+        display: block;
+        min-height: 2px;
+        border-radius: 2px 2px 0 0;
+        background: #c9cde9;
+
+        &:last-child {
+            background: $accent;
+        }
+    }
+}
+
+.players-card-activity-labels {
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    color: $gray-600;
+    font-size: .6875rem;
+}
+
+// Not a member: made-up bars, blurred, under a lock
+.players-card-locked {
+    position: relative;
+    border-radius: .5rem;
+    overflow: hidden;
+
+    .players-card-bars {
+        filter: blur(3px);
+        opacity: .55;
+    }
+}
+
+.players-card-unlock {
+    position: absolute;
+    inset: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: .3125rem;
+    width: fit-content;
+    height: fit-content;
+    margin: auto;
+    padding: .1875rem .625rem;
+    border: 1px solid $gray-300;
+    border-radius: 999px;
+    background: $white;
+    color: $gray-800;
+    font-size: .75rem;
+    font-weight: 500;
+
+    &:hover {
+        color: $gray-900;
+        border-color: $gray-500;
+    }
+}
+
+.players-card-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.players-card-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    padding: .125rem .5rem;
+    border: 0;
+    border-radius: 999px;
+    background: $gray-200;
+    color: $gray-700;
+    font-family: inherit;
+    font-size: .75rem;
+    line-height: 1.5;
+}
+
+.players-card-chip-tier {
+    background: color-mix(in srgb, var(--chip-color) 14%, #fff);
+    color: $gray-800;
+
+    .rank-icon {
+        color: var(--chip-color);
+    }
+}
+
+.players-card-chip-locked {
+    border: 1px dashed #c9d1dc;
+    background: $white;
+    color: $gray-600;
+
+    &:hover {
+        color: $gray-800;
+    }
+}
+
+// What Favorite / Compare just did
+.players-card-notice {
+    margin: 0;
+    padding: .4375rem .75rem;
+    border-radius: .5rem;
+    background: rgba($success, .12);
+    color: #1f6b4a;
+    font-size: .8125rem;
+
+    a {
+        font-weight: 500;
+        white-space: nowrap;
+    }
+}
+
+.players-card-notice-warning {
+    background: rgba($warning, .16);
+    color: #7a4a14;
+}
+
+.players-card-notice-danger {
+    background: rgba($danger, .1);
+    color: #a32646;
+}
+
+// Favorite · Compare · Profile → (a long label wraps inside its button, never cut)
+.players-card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.2fr;
+    gap: .375rem;
+
+    &.is-own {
+        grid-template-columns: 1fr;
+    }
+}
+
+.players-card-action-form {
+    display: flex;
+    margin: 0;
+}
+
+.players-card-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .25rem;
+    width: 100%;
+    min-height: 2.5rem;
+    padding: .375rem .375rem;
+    font-size: .8125rem;
+    line-height: 1.2;
+    white-space: normal;
+}
+
+.players-card-favorite.is-on {
+    border: 1px solid #f1d27a;
+    background: #fff3cd;
+    color: #6b5310;
+
+    &:hover {
+        background: #ffecb0;
+        color: #4d3b0b;
+    }
+}
+
+.players-card-unavailable {
+    padding-right: 2.75rem;
+}
+
+// The card's own page (a direct visit)
+.players-card-page {
+    max-width: 26rem;
+    margin: 0 auto;
+
+    .players-card {
+        border-radius: .875rem;
+        box-shadow: 0 2px 12px rgba($gray-900, .1), 0 0 0 1px rgba($gray-900, .06);
+    }
+}
+
+.players-card-page-back {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    margin-bottom: .75rem;
+    font-size: .875rem;
+}
+
+.players-card-page-title {
+    margin-bottom: .75rem;
+    font-size: 1.25rem;
+}

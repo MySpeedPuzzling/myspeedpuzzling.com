@@ -1,0 +1,53 @@
+{#
+    This week (docs/features/players-page/README.md, stream S3): On a roll - people summarized over 7 days, never single
+    results (the Hub owns the feed). Each card: the person with up to two moment chips, the puzzles and the pieces.
+    Nothing at all when nobody in the scope solved anything this week.
+
+    Phones show the first PEOPLE_ON_PHONES cards; "Show more" reveals the rest, which is already rendered
+    (_this-week.scss hides it, show-more-recent-activity puts .is-expanded on the list).
+#}
+{% set people = this.people %}
+{% if people is not empty %}
+    {% set people_on_phones = constant('SpeedPuzzling\\Web\\Component\\Players\\ThisWeek::PEOPLE_ON_PHONES') %}
+    <section {{ attributes.defaults({class: 'players-section players-week', 'data-controller': 'show-more-recent-activity'}) }} aria-labelledby="players-week-title">
+        <div class="players-week-head">
+            <h2 class="players-section-title" id="players-week-title">
+                {% if scope.isWorld %}
+                    {{ 'players.this_week.title'|trans }}
+                {% else %}
+                    {{ 'players.this_week.title_country'|trans({'%country%': scope.country.value}) }}
+                {% endif %}
+            </h2>
+            <span class="players-week-hint">{{ 'players.this_week.hint'|trans }}</span>
+        </div>
+
+        <ul class="players-week-list" data-show-more-recent-activity-target="list">
+            {% for person in people %}
+                {%- set chips = [] %}
+                {%- for chip in person.chips %}
+                    {%- if chip.type.value == 'personal_best' %}
+                        {%- set chips = chips|merge(['players.this_week.chip.personal_best'|trans({'%pieces%': chip.piecesCount})]) %}
+                    {%- elseif chip.type.value == 'puzzles_milestone' %}
+                        {%- set chips = chips|merge(['players.this_week.chip.puzzles_milestone'|trans({'%puzzles%': chip.value|format_number})]) %}
+                    {%- elseif chip.type.value == 'pieces_milestone' %}
+                        {%- set chips = chips|merge(['players.this_week.chip.pieces_milestone'|trans({'%pieces%': chip.compactValue})]) %}
+                    {%- elseif chip.type.value == 'first_result' %}
+                        {%- set chips = chips|merge(['players.this_week.chip.first_result'|trans]) %}
+                    {%- endif %}
+                {%- endfor %}
+                <li class="players-week-card">
+                    <span class="players-week-kind"><i aria-hidden="true"></i>{{ 'players.this_week.on_a_roll'|trans }}</span>
+                    {{ include('players/_person.html.twig', {player: person, chips: chips}) }}
+                    <p class="players-week-line">
+                        {{ 'players.this_week.puzzles'|trans({'%count%': person.puzzles}) }}
+                        <small>{{ 'players.this_week.pieces'|trans({'%pieces%': person.pieces|format_number}) }}</small>
+                    </p>
+                </li>
+            {% endfor %}
+        </ul>
+
+        {% if people|length > people_on_phones %}
+            <button type="button" class="btn btn-outline-primary btn-sm players-week-more" data-action="show-more-recent-activity#revealRows">{{ 'show_more'|trans }}</button>
+        {% endif %}
+    </section>
+{% endif %}

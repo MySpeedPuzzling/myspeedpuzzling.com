@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The player card as a page of its own: the card's URL opened directly (a new tab, no JavaScript). The profile is the
+    page to index.
+#}
+
+{% block title %}{{ 'players.card.meta_title'|trans({'%name%': player.playerName ?? ('#' ~ player.code|upper)}) }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+
+{% block canonical %}
+    <link rel="canonical" href="{{ url('player_profile', {playerId: player.playerId}) }}">
+{% endblock %}
+
+{% block hreflang %}{% endblock %}
+
+{% block content %}
+    <div class="players-card-page">
+        <a class="players-card-page-back" href="{{ path('players') }}">
+            <i class="ci-arrow-left" aria-hidden="true"></i> {{ 'puzzlers.title'|trans }}
+        </a>
+
+        <h1 class="players-card-page-title">{{ 'players.card.title'|trans }}</h1>
+
+        <turbo-frame id="player-card">
+            {{ include('players/_card.html.twig') }}
+        </turbo-frame>
+    </div>
+{% endblock %}

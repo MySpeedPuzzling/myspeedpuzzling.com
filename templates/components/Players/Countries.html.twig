@@ -1,0 +1,122 @@
+{#
+    Puzzlers around the world (docs/features/players-page/README.md, stream S4): twelve country tiles in three orders,
+    all rendered here and switched by players_tabs_controller.js without a request - without JavaScript "Most active"
+    stays. Then every country in a compact list. The same at every scope; the scope's country is marked.
+#}
+{% macro tile(statistics, order, scope) %}
+    {%- set country = statistics.country -%}
+    {%- set change = statistics.solvesChangePercent -%}
+    {%- set current = scope.country == country -%}
+    <li>
+        <a class="players-tile{{ current ? ' is-current' }}" href="{{ path('players', {scope: country.name}) }}" title="{{ country.value }}"{% if current %} aria-current="true"{% endif %}>
+            <span class="players-tile-name">
+                <i class="fi fi-{{ country.name }}" aria-hidden="true"></i>
+                <span class="players-tile-country">{{ country.value }}</span>
+            </span>
+            {% if order == 'rising' %}
+                <span class="players-tile-value">{{ change > 0 ? '+' }}{{ change|format_number }}%</span>
+                <span class="players-tile-label">{{ 'players.countries.rising_label'|trans }}</span>
+            {% elseif order == 'most_puzzlers' %}
+                <span class="players-tile-value">{{ statistics.registeredPlayers|format_number }}</span>
+                <span class="players-tile-label">{{ 'players.countries.registered_active'|trans({'%active%': statistics.active30d|format_number}) }}</span>
+            {% else %}
+                <span class="players-tile-value">{{ statistics.active30d|format_number }}</span>
+                <span class="players-tile-label">{{ 'players.countries.active_of'|trans({'%registered%': statistics.registeredPlayers|format_number}) }}</span>
+            {% endif %}
+            {% if order != 'rising' and change is not null %}
+                <span class="players-tile-trend{{ change > 0 ? ' is-up' : (change < 0 ? ' is-down') }}">
+                    {%- if change > 0 -%}
+                        <span aria-hidden="true">▲ </span><span class="visually-hidden">+</span>
+                    {%- elseif change < 0 -%}
+                        <span aria-hidden="true">▼ </span><span class="visually-hidden">-</span>
+                    {%- else -%}
+                        ±
+                    {%- endif -%}
+                    {{ 'players.countries.trend'|trans({'%change%': change|abs|format_number}) }}
+                </span>
+            {% endif %}
+        </a>
+    </li>
+{% endmacro %}
+
+{% set countries = this.countries %}
+{% if countries is not empty %}
+    {% set orders = {
+        most_active: this.mostActive,
+        most_puzzlers: this.mostPuzzlers,
+        rising: this.rising,
+    } %}
+    <section {{ attributes.defaults({class: 'players-section players-countries'}) }}
+             aria-labelledby="players-countries-title"
+             data-controller="players-tabs"
+    >
+        <div class="players-countries-head">
+            <h2 class="players-section-title" id="players-countries-title">{{ 'players.countries.title'|trans }}</h2>
+            <div class="players-tabs" role="tablist" aria-label="{{ 'players.countries.order_label'|trans }}">
+                {% for order in orders|keys %}
+                    <button type="button"
+                            class="players-tab"
+                            role="tab"
+                            id="players-countries-tab-{{ order }}"
+                            aria-controls="players-countries-{{ order }}"
+                            aria-selected="{{ loop.first ? 'true' : 'false' }}"
+                            tabindex="{{ loop.first ? '0' : '-1' }}"
+                            data-players-tabs-target="tab"
+                            data-players-tabs-group-param="order"
+                            data-players-tabs-value-param="{{ order }}"
+                            data-action="players-tabs#select keydown->players-tabs#navigate"
+                    >{{ ('players.countries.order.' ~ order)|trans }}</button>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% for order, tiles in orders %}
+            <div id="players-countries-{{ order }}"
+                 role="tabpanel"
+                 aria-labelledby="players-countries-tab-{{ order }}"
+                 data-players-tabs-target="panel"
+                 data-tab-order="{{ order }}"
+                 {{- loop.first ? '' : ' hidden' }}
+            >
+                {% if tiles is empty %}
+                    <p class="players-countries-empty">{{ 'players.countries.rising_empty'|trans({'%minimum%': constant('SpeedPuzzling\\Web\\Services\\Community\\CountryRankings::RISING_MINIMUM_PREVIOUS_SOLVES')}) }}</p>
+                {% else %}
+                    <ul class="players-tiles">
+                        {% for statistics in tiles %}
+                            {{ _self.tile(statistics, order, scope) }}
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <details class="players-countries-all">
+            <summary>{{ 'players.countries.all'|trans({'%count%': countries|length}) }}</summary>
+            <table class="players-countries-table">
+                <thead>
+                    <tr>
+                        <th scope="col">{{ 'players.countries.country'|trans }}</th>
+                        <th scope="col" class="players-countries-number">{{ 'players.countries.registered'|trans }}</th>
+                        <th scope="col" class="players-countries-number">{{ 'players.countries.active'|trans }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for statistics in countries %}
+                        {% set current = scope.country == statistics.country %}
+                        <tr{% if current %} class="is-current"{% endif %}>
+                            <th scope="row">
+                                <a href="{{ path('players', {scope: statistics.country.name}) }}"{% if current %} aria-current="true"{% endif %}>
+                                    <i class="fi fi-{{ statistics.country.name }}" aria-hidden="true"></i>
+                                    <span>{{ statistics.country.value }}</span>
+                                </a>
+                            </th>
+                            <td class="players-countries-number">{{ statistics.registeredPlayers|format_number }}</td>
+                            <td class="players-countries-number">{{ statistics.active30d|format_number }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p class="players-countries-hint">{{ 'players.countries.active_hint'|trans }}</p>
+        </details>
+    </section>
+{% endif %}

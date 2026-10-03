@@ -1,0 +1,89 @@
+// "Add your country" nudge (stream S7, templates/components/Players/CountryNudge.html.twig). A warm, quiet banner:
+// phones stack the sentence over a full-width select + Save, wider screens put the form on the right.
+.players-nudge {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .75rem 1rem;
+    padding: .875rem 1rem;
+    border: 1px solid tint-color($warning, 60%);
+    border-radius: .625rem;
+    background: tint-color($warning, 87%);
+    color: $gray-700;
+    font-size: .875rem;
+
+    // One row: the close button sits after the form
+    @include media-breakpoint-up(md) {
+        padding-right: 2.75rem;
+    }
+}
+
+.players-nudge-text {
+    display: flex;
+    flex: 1 1 16rem;
+    gap: .5rem;
+    min-width: 0;
+    margin: 0;
+    // Phones: only the sentence shares the top row with the close button, the form below gets the full width
+    padding-right: 1.75rem;
+
+    @include media-breakpoint-up(md) {
+        padding-right: 0;
+    }
+
+    strong {
+        font-weight: 500;
+        color: $gray-900;
+    }
+}
+
+.players-nudge-icon {
+    flex: none;
+    color: $primary;
+    font-size: 1rem;
+    line-height: 1.3;
+}
+
+.players-nudge-form {
+    display: flex;
+    flex: 1 1 100%;
+    gap: .5rem;
+
+    .form-select {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .btn {
+        flex: none;
+    }
+
+    @include media-breakpoint-up(md) {
+        flex: 0 1 auto;
+        margin-left: auto;
+
+        .form-select {
+            width: 15rem;
+        }
+    }
+}
+
+.players-nudge-error {
+    flex: 1 1 100%;
+    margin: 0;
+    color: shade-color($danger, 30%);
+}
+
+// 32 px tap target in the top corner on phones, centred on the right edge from md up
+.players-nudge-close {
+    position: absolute;
+    top: .25rem;
+    right: .25rem;
+    padding: .625rem;
+
+    @include media-breakpoint-up(md) {
+        top: 50%;
+        transform: translateY(-50%);
+    }
+}

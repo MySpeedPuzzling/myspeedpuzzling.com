@@ -1,0 +1,307 @@
+// Spotlight (stream S2): the world or one country - numbers and a sparkline, then three people lists
+// (templates/components/Players/Spotlight.html.twig)
+
+// Small print on white needs 4.5:1 - $gray-600 has 3.6:1
+$players-spotlight-muted: #6b7488;
+$players-spotlight-up: #1f8a5c;
+$players-spotlight-down: #b4532a;
+
+.players-spotlight-card {
+    overflow: hidden;
+    border: 1px solid $gray-300;
+    border-radius: .875rem;
+    background: $white;
+}
+
+// Head: title + stats on the left, the sparkline on the right (below them on phones)
+.players-spotlight-head {
+    display: grid;
+    gap: 1rem;
+    padding: 1.125rem 1rem;
+    border-bottom: 1px solid $gray-300;
+    background: linear-gradient(180deg, $gray-100 0%, $white 100%);
+
+    @include media-breakpoint-up(md) {
+        grid-template-columns: minmax(0, 1fr) 15rem;
+        align-items: end;
+        padding: 1.375rem 1.5rem;
+    }
+
+    @include media-breakpoint-up(lg) {
+        grid-template-columns: minmax(0, 1fr) 16.25rem;
+    }
+}
+
+.players-spotlight-intro {
+    display: grid;
+    gap: .875rem;
+    min-width: 0;
+}
+
+.players-spotlight-title {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+
+    h2 {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+}
+
+.players-spotlight-heading {
+    min-width: 0;
+}
+
+// The globe or the flag next to the title, 44 × 33 px
+.players-spotlight-emblem {
+    flex: none;
+    width: 2.75rem;
+    height: 2.0625rem;
+    border-radius: .25rem;
+    box-shadow: 0 0 0 1px rgba($black, .08);
+
+    // Two classes outweigh flag-icons' own .fi size, wherever its stylesheet lands
+    &.fi {
+        width: 2.75rem;
+        height: 2.0625rem;
+        line-height: 2.0625rem;
+        background-size: cover;
+    }
+}
+
+.players-spotlight-globe {
+    display: grid;
+    place-items: center;
+    background: rgba($accent, .1);
+    color: $accent;
+    font-size: 1.375rem;
+}
+
+.players-spotlight-summary {
+    margin: 0;
+    font-size: .875rem;
+    color: $players-spotlight-muted;
+}
+
+// The numbers: the value on top, the label and a detail line under it (the label comes first in the markup)
+.players-spotlight-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem 1.125rem;
+    margin: 0;
+
+    @include media-breakpoint-up(lg) {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    dt {
+        order: 1;
+        font-size: .75rem;
+        font-weight: 400;
+        color: $players-spotlight-muted;
+    }
+
+    dd {
+        margin: 0;
+    }
+}
+
+.players-spotlight-stat {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.players-spotlight-stat-value {
+    order: 0;
+    font-size: 1.375rem;
+    font-weight: 500;
+    line-height: 1.15;
+    color: $gray-800;
+    font-variant-numeric: tabular-nums;
+}
+
+.players-spotlight-stat-detail {
+    order: 2;
+    font-size: .75rem;
+    font-weight: 500;
+    color: $players-spotlight-muted;
+
+    &.is-up {
+        color: $players-spotlight-up;
+    }
+
+    &.is-down {
+        color: $players-spotlight-down;
+    }
+}
+
+// Sparkline: plain bars, the current month in the accent colour
+.players-spotlight-spark {
+    display: grid;
+    gap: .25rem;
+    margin: 0;
+}
+
+.players-spotlight-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 3.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.players-spotlight-bar {
+    flex: 1;
+    border-radius: 3px 3px 0 0;
+    background: rgba($accent, .3);
+
+    &.is-current {
+        background: $accent;
+    }
+}
+
+.players-spotlight-spark-labels {
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    font-size: .6875rem;
+    color: $players-spotlight-muted;
+}
+
+// "Small and growing"
+.players-spotlight-note {
+    margin: 1rem 1rem 0;
+    padding: .75rem .875rem;
+    border: 1px solid #cbe9d8;
+    border-radius: .625rem;
+    background: #eef8f2;
+    color: #1d4d36;
+    font-size: .875rem;
+
+    strong {
+        font-weight: 500;
+        color: #173d2b;
+    }
+
+    @include media-breakpoint-up(md) {
+        margin: 1rem 1.5rem 0;
+    }
+}
+
+// The three lists: stacked on phones and tablets, side by side from lg
+.players-spotlight-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+
+    @include media-breakpoint-up(lg) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.players-spotlight-column {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    min-width: 0;
+    padding: 1rem;
+    border-top: 1px solid $gray-300;
+
+    &:first-child {
+        border-top: 0;
+    }
+
+    @include media-breakpoint-up(md) {
+        padding: 1rem 1.5rem;
+    }
+
+    @include media-breakpoint-up(lg) {
+        padding: 1rem 1.125rem;
+        border-top: 0;
+        border-left: 1px solid $gray-300;
+
+        &:first-child {
+            border-left: 0;
+        }
+    }
+}
+
+.players-spotlight-column-title {
+    margin: 0;
+    font-size: .8125rem;
+    font-weight: 500;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: $players-spotlight-muted;
+}
+
+.players-spotlight-column-hint {
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.players-spotlight-list {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: .875rem;
+}
+
+// Rows 6-10 wait for "Show more" - a class on the column, which stays
+.players-spotlight-column:not(.is-expanded) {
+    .players-spotlight-extra,
+    .players-spotlight-full {
+        display: none;
+    }
+}
+
+.players-spotlight-column.is-expanded .players-spotlight-more {
+    display: none;
+}
+
+.players-spotlight-more,
+.players-spotlight-full {
+    align-self: flex-start;
+    padding: .25rem 0;
+    font-size: .8125rem;
+    font-weight: 500;
+}
+
+.players-spotlight-more {
+    border: 0;
+    background: none;
+    color: $primary;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.players-spotlight-empty,
+.players-spotlight-count {
+    margin: 0;
+    font-size: .75rem;
+    color: $players-spotlight-muted;
+}
+
+.players-spotlight-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .625rem 1.125rem;
+    padding: .75rem 1rem;
+    border-top: 1px solid $gray-300;
+    background: $gray-100;
+    font-size: .875rem;
+
+    @include media-breakpoint-up(md) {
+        padding: .75rem 1.5rem;
+    }
+}

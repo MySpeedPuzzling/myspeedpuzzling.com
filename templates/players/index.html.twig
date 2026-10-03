@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The Players page (docs/features/players-page/README.md). Order: find someone -> the spotlight on the world or one
+    country -> this week -> people for you -> the countries. Each section is a component that loads its own data.
+#}
+
+{% block title %}{{ 'puzzlers.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'puzzlers.meta.description'|trans }}{% endblock %}
+{% block robots %}
+    {# Only the clean page is indexable - a scope or a search is a variant of it (canonical from base.html.twig) #}
+    {% if app.request.query.count > 0 %}
+        <meta name="robots" content="noindex, follow">
+    {% else %}
+        <meta name="robots" content="index, follow">
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <div class="players-page" data-controller="players-card">
+        <header class="players-header">
+            <h1 class="players-title">{{ 'puzzlers.title'|trans }}</h1>
+            {{ include('players/_search.html.twig') }}
+            {{ include('players/_scope_switch.html.twig') }}
+        </header>
+
+        <twig:Players:CountryNudge />
+
+        <twig:Players:Spotlight :scope="scope" />
+
+        <twig:Players:ThisWeek :scope="scope" />
+
+        <twig:Players:Suggestions />
+
+        <twig:Players:Countries :scope="scope" />
+
+        <twig:Players:CountryCup :scope="scope" />
+
+        {{ include('players/_favorites.html.twig') }}
+    </div>
+{% endblock %}

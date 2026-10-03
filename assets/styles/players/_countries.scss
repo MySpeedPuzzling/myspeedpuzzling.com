@@ -1,0 +1,228 @@
+// Country tiles (stream S4): templates/components/Players/Countries.html.twig
+
+// Small grey text: #6b7488 keeps 4.6:1 on white at 12 px, where $gray-600 does not reach AA
+$players-countries-muted: #6b7488;
+$players-countries-up: #1f8a5c;
+$players-countries-down: #b4532a;
+
+// Client-side tabs (players_tabs_controller.js), shared by the tiles and the Country Cup - the scope switch's look,
+// one size smaller
+.players-tabs {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 3px;
+    border-radius: .5rem;
+    background: $gray-200;
+}
+
+.players-tab {
+    border: 0;
+    border-radius: .375rem;
+    padding: .3125rem .625rem;
+    background: none;
+    color: $gray-700;
+    font-size: .8125rem;
+    line-height: 1.4;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover {
+        color: $gray-900;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: 1px;
+    }
+
+    &[aria-selected="true"] {
+        background: $white;
+        color: $gray-800;
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgba($black, .08);
+    }
+}
+
+.players-countries-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem 1rem;
+    margin-bottom: .875rem;
+
+    .players-section-title {
+        margin-bottom: 0;
+    }
+}
+
+.players-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .625rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @include media-breakpoint-up(md) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    @include media-breakpoint-up(lg) {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    > li {
+        display: flex;
+        min-width: 0;
+    }
+}
+
+.players-tile {
+    display: grid;
+    flex: 1;
+    align-content: start;
+    gap: .25rem;
+    min-width: 0;
+    padding: .75rem;
+    border: 1px solid $gray-300;
+    border-radius: .625rem;
+    background: $white;
+    color: $gray-700;
+    text-decoration: none;
+
+    &:hover {
+        border-color: #c4ccd8;
+        background: $gray-100;
+        color: $gray-700;
+    }
+
+    &.is-current {
+        border-color: $primary;
+        box-shadow: inset 0 0 0 1px $primary;
+    }
+}
+
+.players-tile-name {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    color: $gray-800;
+    font-size: .875rem;
+    font-weight: 500;
+
+    .fi {
+        flex: none;
+        font-size: 1rem;
+        border-radius: 2px;
+        box-shadow: 0 0 0 1px rgba($black, .08);
+    }
+}
+
+.players-tile-country {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.players-tile-value {
+    color: $gray-800;
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+.players-tile-label {
+    color: $players-countries-muted;
+    font-size: .75rem;
+}
+
+.players-tile-trend {
+    color: $players-countries-muted;
+    font-size: .75rem;
+    font-weight: 500;
+
+    &.is-up {
+        color: $players-countries-up;
+    }
+
+    &.is-down {
+        color: $players-countries-down;
+    }
+}
+
+.players-countries-empty {
+    margin: 0;
+    color: $players-countries-muted;
+    font-size: .875rem;
+}
+
+// "All N countries"
+.players-countries-all {
+    margin-top: 1rem;
+
+    > summary {
+        width: fit-content;
+        color: $primary;
+        font-size: .875rem;
+        cursor: pointer;
+    }
+}
+
+.players-countries-table {
+    width: 100%;
+    max-width: 30rem;
+    margin-top: .75rem;
+    font-size: .875rem;
+
+    th,
+    td {
+        padding: .3125rem .5rem;
+        border-bottom: 1px solid $gray-200;
+    }
+
+    thead th {
+        color: $players-countries-muted;
+        font-size: .75rem;
+        font-weight: 500;
+    }
+
+    tbody th {
+        font-weight: 400;
+
+        a {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            color: $gray-800;
+        }
+
+        .fi {
+            flex: none;
+            border-radius: 2px;
+            box-shadow: 0 0 0 1px rgba($black, .08);
+        }
+    }
+
+    tr.is-current th a {
+        font-weight: 500;
+    }
+}
+
+.players-countries-number {
+    width: 1%;
+    color: $gray-700;
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.players-countries-hint {
+    margin: .5rem 0 0;
+    color: $players-countries-muted;
+    font-size: .75rem;
+}

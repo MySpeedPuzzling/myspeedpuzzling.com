@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The 422 answer of SetMyCountryController ("Add your country", docs/features/players-page/README.md): the code sent
+    is not a country. Only a tampered or outdated form gets here, so the page is just the form again.
+#}
+
+{% block title %}{{ 'players.nudge.page_title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="players-page">
+        <header class="players-header">
+            <h1 class="players-title">{{ 'players.nudge.page_title'|trans }}</h1>
+        </header>
+
+        <twig:Players:CountryNudge :invalid="true" />
+
+        <p class="mb-0">
+            <a href="{{ path('players') }}"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'players.nudge.back'|trans }}</a>
+        </p>
+    </div>
+{% endblock %}

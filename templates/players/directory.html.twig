@@ -1,0 +1,50 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "Browse all puzzlers" (docs/features/players-page/README.md, stream S5). The world or one country (?scope=), with
+    the directory's filters and sorts. Only the bare world page is for the index; a scope, a filter, a sort or a longer
+    page is a variant of it (canonical from base.html.twig).
+#}
+
+{% block title %}
+    {%- if scope.isWorld -%}
+        {{ 'players.directory.title'|trans }}
+    {%- else -%}
+        {{ 'players.directory.title_country'|trans({'%country%': scope.country.value}) }}
+    {%- endif -%}
+{% endblock %}
+{% block meta_description %}{{ 'players.directory.meta_description'|trans }}{% endblock %}
+{% block robots %}
+    {% if app.request.query.count > 0 %}
+        <meta name="robots" content="noindex, follow">
+    {% else %}
+        <meta name="robots" content="index, follow">
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <div class="players-page" data-controller="players-card">
+        <header class="players-header">
+            <h1 class="players-title">
+                {%- if scope.isWorld -%}
+                    {{ 'players.directory.title'|trans }}
+                {%- else -%}
+                    {{ 'players.directory.title_country'|trans({'%country%': scope.country.value}) }} <i class="shadow-custom fi fi-{{ scope.country.name }}" aria-hidden="true"></i>
+                {%- endif -%}
+            </h1>
+        </header>
+
+        <twig:Players:Directory :criteria="criteria" />
+
+        <p class="players-directory-back">
+            <a href="{{ path('players', scope.isWorld ? {} : {scope: scope.queryValue}) }}">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                {% if scope.isWorld %}
+                    {{ 'players.directory.back'|trans }}
+                {% else %}
+                    {{ 'players.directory.back_country'|trans({'%country%': scope.country.value}) }}
+                {% endif %}
+            </a>
+        </p>
+    </div>
+{% endblock %}

@@ -1,18 +1,39 @@
 {% extends 'base.html.twig' %}
 
+{#
+    A country's puzzlers (docs/features/players-page/README.md, stream S5): the spotlight on the country, then its
+    directory with the country fixed, then the way back to the Players page at that scope.
+#}
+
 {% block title %}{{ 'players_per_country.meta.title'|trans({'%country%': country.value}) }}{% endblock %}
 {% block meta_description %}{{ 'players_per_country.meta.description'|trans({'%country%': country.value}) }}{% endblock %}
-{# Every country code has a page; one without a single public player is thin content - still a 200, but not for the index #}
-{% block robots %}{% if players is empty %}<meta name="robots" content="noindex, follow">{% else %}{{ parent() }}{% endif %}{% endblock %}
+{#
+    Every country code has a page; one without a single public player is thin content - still a 200, but not for the
+    index. A filter, a sort or a longer page is a variant of the country page (canonical from base.html.twig).
+#}
+{% block robots %}
+    {%- if not has_public_players or app.request.query.count > 0 -%}
+        <meta name="robots" content="noindex, follow">
+    {%- else -%}
+        {{ parent() }}
+    {%- endif -%}
+{% endblock %}
 
 {% block content %}
-    <h1>{{ 'players_per_country.title'|trans({'%country%': country.value}) }} <i class="shadow-custom fi fi-{{ country.name }}"></i></h1>
+    <div class="players-page" data-controller="players-card">
+        <header class="players-header">
+            <h1 class="players-title">{{ 'players_per_country.title'|trans({'%country%': country.value}) }} <i class="shadow-custom fi fi-{{ country.name }}" aria-hidden="true"></i></h1>
+        </header>
 
-    {% if players is empty %}
-        <p class="text-muted">{{ 'players_per_country.empty'|trans({'%country%': country.value}) }}</p>
-    {% endif %}
+        <twig:Players:Spotlight :scope="scope" :browseLink="false" />
 
-    {% for player in players %}
-        {{ include('_player_list_item.html.twig', {player: player}) }}
-    {% endfor %}
+        <twig:Players:Directory :criteria="criteria" :scopeFixed="true" />
+
+        <p class="players-directory-back">
+            <a href="{{ path('players', {scope: country.name}) }}">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                {{ 'players.directory.back_country'|trans({'%country%': country.value}) }}
+            </a>
+        </p>
+    </div>
 {% endblock %}

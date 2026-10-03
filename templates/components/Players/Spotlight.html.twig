@@ -1,0 +1,234 @@
+{#
+    The spotlight on the world or one country (docs/features/players-page/README.md, stream S2): the scope's numbers
+    and a sparkline, then Most active this month · Most followed · New faces - five rows each, "Show more" reveals the
+    other five already in the page (players_spotlight_more_controller.js), then a link to the full list - and links to
+    the leaderboard and the directory. Every number comes from the precomputed community tables.
+#}
+{% set statistics = this.statistics %}
+{% set world = this.world %}
+{% set people = this.people %}
+{% set upcoming_events = this.upcomingEvents %}
+{% set sparkline = this.sparkline %}
+{% set visible_rows = this.visibleRows %}
+{% set country = scope.country %}
+{% set change = statistics.solvesChangePercent %}
+{% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
+
+<section {{ attributes.defaults({class: 'players-section players-spotlight'}) }} aria-labelledby="players-spotlight-title">
+    <div class="players-spotlight-card">
+        <div class="players-spotlight-head">
+            <div class="players-spotlight-intro">
+                <div class="players-spotlight-title">
+                    {% if country is null %}
+                        <span class="players-spotlight-emblem players-spotlight-globe" aria-hidden="true"><i class="bi bi-globe2"></i></span>
+                    {% else %}
+                        <span class="players-spotlight-emblem fi fi-{{ country.name }}" aria-hidden="true"></span>
+                    {% endif %}
+                    <div class="players-spotlight-heading">
+                        <h2 id="players-spotlight-title">
+                            {%- if country is null -%}
+                                {{ 'players.spotlight.title_world'|trans }}
+                            {%- else -%}
+                                {{ 'players.spotlight.title_country'|trans({'%country%': country.value}) }}
+                            {%- endif -%}
+                        </h2>
+                        <p class="players-spotlight-summary">
+                            {{ 'players.spotlight.summary'|trans({'%registered%': statistics.registeredPlayers|format_number, '%active%': statistics.active30d|format_number}) }}
+                        </p>
+                    </div>
+                </div>
+
+                <dl class="players-spotlight-stats">
+                    <div class="players-spotlight-stat">
+                        <dt>{{ 'players.spotlight.solves.label'|trans }}</dt>
+                        <dd class="players-spotlight-stat-value">{{ statistics.solves30d|format_number }}</dd>
+                        {% if change is not null %}
+                            <dd class="players-spotlight-stat-detail{{ change > 0 ? ' is-up' : (change < 0 ? ' is-down') }}">
+                                {% if change == 0 %}
+                                    {{ 'players.spotlight.solves.same'|trans }}
+                                {% else %}
+                                    <span aria-hidden="true">{{ change > 0 ? '▲' : '▼' }}</span>
+                                    <span class="visually-hidden">{{ change > 0 ? 'players.spotlight.solves.up'|trans : 'players.spotlight.solves.down'|trans }}</span>
+                                    {{ 'players.spotlight.solves.change'|trans({'%percent%': change|abs}) }}
+                                {% endif %}
+                            </dd>
+                        {% endif %}
+                    </div>
+
+                    <div class="players-spotlight-stat">
+                        <dt>{{ 'players.spotlight.pieces.label'|trans({'%month%': this.month|format_date(pattern: 'LLLL', timezone: false)}) }}</dt>
+                        <dd class="players-spotlight-stat-value" title="{{ statistics.piecesThisMonth|format_number }}">{{ this.compactNumber(statistics.piecesThisMonth) }}</dd>
+                    </div>
+
+                    {% if statistics.medianBest500Seconds is not null %}
+                        <div class="players-spotlight-stat">
+                            <dt>{{ 'players.spotlight.median.label'|trans }}</dt>
+                            <dd class="players-spotlight-stat-value">{{ statistics.medianBest500Seconds|puzzlingTime }}</dd>
+                            {% if country is null %}
+                                <dd class="players-spotlight-stat-detail">
+                                    {{ 'players.spotlight.median.puzzlers'|trans({'%count%': statistics.puzzlersWith500, '%number%': statistics.puzzlersWith500|format_number}) }}
+                                </dd>
+                            {% else %}
+                                {% set faster = statistics.medianBest500FasterThan(world) %}
+                                {% if faster is not null %}
+                                    {% set minutes = (faster|abs / 60)|round %}
+                                    <dd class="players-spotlight-stat-detail{{ faster > 0 and minutes > 0 ? ' is-up' }}">
+                                        {% if minutes == 0 %}
+                                            {{ 'players.spotlight.median.same'|trans }}
+                                        {% elseif faster > 0 %}
+                                            {{ 'players.spotlight.median.faster'|trans({'%minutes%': minutes}) }}
+                                        {% else %}
+                                            {{ 'players.spotlight.median.slower'|trans({'%minutes%': minutes}) }}
+                                        {% endif %}
+                                    </dd>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    <div class="players-spotlight-stat">
+                        <dt>{{ 'players.spotlight.events.label'|trans({'%count%': upcoming_events}) }}</dt>
+                        <dd class="players-spotlight-stat-value">{{ upcoming_events|format_number }}</dd>
+                        {% if upcoming_events > 0 %}
+                            <dd class="players-spotlight-stat-detail">
+                                <a href="{{ path('events', {timePeriod: 'upcoming', country: scope.queryValue}) }}">{{ 'players.spotlight.events.link'|trans }} <span aria-hidden="true">→</span></a>
+                            </dd>
+                        {% endif %}
+                    </div>
+                </dl>
+            </div>
+
+            {% if sparkline is not empty %}
+                <figure class="players-spotlight-spark">
+                    <ol class="players-spotlight-bars" role="list" aria-label="{{ 'players.spotlight.sparkline.label'|trans }}">
+                        {% for bar in sparkline %}
+                            {% set bar_label = 'players.spotlight.sparkline.bar'|trans({
+                                '%month%': bar.month|format_date(pattern: 'LLLL yyyy', timezone: false),
+                                '%count%': bar.solves,
+                                '%number%': bar.solves|format_number,
+                            }) %}
+                            <li class="players-spotlight-bar{{ bar.current ? ' is-current' }}" style="height: {{ bar.height }}%" title="{{ bar_label }}">
+                                <span class="visually-hidden">{{ bar_label }}</span>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                    <figcaption class="players-spotlight-spark-labels">
+                        <span aria-hidden="true">{{ (sparkline|first).month|format_date(pattern: 'LLL', timezone: false) }}</span>
+                        <span>{{ 'players.spotlight.sparkline.caption'|trans }}</span>
+                        <span aria-hidden="true">{{ (sparkline|last).month|format_date(pattern: 'LLL', timezone: false) }}</span>
+                    </figcaption>
+                </figure>
+            {% endif %}
+        </div>
+
+        {% if statistics.isSmallCommunity %}
+            {# A small country is a community at its start, never an empty box #}
+            <p class="players-spotlight-note">
+                {% if change is not null and change > 0 %}
+                    <strong>{{ 'players.spotlight.small.growing'|trans }}</strong>
+                    {{ 'players.spotlight.small.growing_text'|trans({'%percent%': change}) }}
+                {% else %}
+                    <strong>{{ 'players.spotlight.small.title'|trans }}</strong>
+                {% endif %}
+                {{ 'players.spotlight.small.active'|trans({'%count%': statistics.active30d, '%country%': country.value}) }}
+            </p>
+        {% endif %}
+
+        <div class="players-spotlight-columns">
+            {% for list in [
+                {key: 'active', people: people.mostActive},
+                {key: 'followed', people: people.mostFollowed},
+                {key: 'newest', people: people.newFaces},
+            ] %}
+                <div class="players-spotlight-column" data-controller="players-spotlight-more" data-list="{{ list.key }}">
+                    <h3 class="players-spotlight-column-title">
+                        {% if list.key == 'active' %}
+                            {{ 'players.spotlight.active.title'|trans }}
+                        {% elseif list.key == 'followed' %}
+                            {{ 'players.spotlight.followed.title'|trans }}
+                            <span class="players-spotlight-column-hint">· {{ 'players.spotlight.followed.hint'|trans }}</span>
+                        {% else %}
+                            {{ 'players.spotlight.new_faces.title'|trans }}
+                        {% endif %}
+                    </h3>
+
+                    {% if list.people is empty %}
+                        <p class="players-spotlight-empty">
+                            {% if list.key == 'active' %}
+                                {{ 'players.spotlight.active.empty'|trans }}
+                            {% elseif list.key == 'followed' %}
+                                {{ 'players.spotlight.followed.empty'|trans }}
+                            {% else %}
+                                {{ 'players.spotlight.new_faces.empty'|trans }}
+                            {% endif %}
+                        </p>
+                    {% else %}
+                        <ol class="players-spotlight-list" role="list">
+                            {% for person in list.people %}
+                                <li{% if loop.index > visible_rows %} class="players-spotlight-extra" data-players-spotlight-more-target="extra"{% endif %}>
+                                    {% if list.key == 'active' %}
+                                        {{ include('players/_person.html.twig', {
+                                            player: person,
+                                            rank: person.rank,
+                                            value: 'players.spotlight.active.value'|trans({'%count%': person.solvesThisMonth}),
+                                        }, with_context: false) }}
+                                    {% elseif list.key == 'followed' %}
+                                        {{ include('players/_person.html.twig', {
+                                            player: person,
+                                            rank: person.rank,
+                                            value: 'players.spotlight.followed.value'|trans({'%count%': person.favoritesCount}),
+                                        }, with_context: false) }}
+                                    {% else %}
+                                        {{ include('players/_person.html.twig', {
+                                            player: person,
+                                            value: 'players.spotlight.new_faces.value'|trans({'%count%': person.solvedTotal}),
+                                            chips: ['players.spotlight.new_faces.joined'|trans({'%count%': this.daysSinceJoined(person)})],
+                                        }, with_context: false) }}
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ol>
+
+                        {% if list.people|length > visible_rows %}
+                            <button type="button" class="players-spotlight-more" data-action="players-spotlight-more#reveal">{{ 'players.spotlight.show_more'|trans }}</button>
+                            <a class="players-spotlight-full" href="{{ path('players_directory', {scope: scope.queryValue, sort: list.key}) }}">{{ 'players.spotlight.full_list'|trans }} <span aria-hidden="true">→</span></a>
+                        {% endif %}
+                    {% endif %}
+
+                    {% if list.key == 'newest' %}
+                        {% if country is not null %}
+                            <p class="players-spotlight-count">{{ 'players.spotlight.new_faces.country_note'|trans }}</p>
+                        {% elseif statistics.newFaces14d > 0 %}
+                            <p class="players-spotlight-count">{{ 'players.spotlight.new_faces.world_count'|trans({'%count%': statistics.newFaces14d, '%number%': statistics.newFaces14d|format_number}) }}</p>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="players-spotlight-foot">
+            {% if country is null %}
+                <a href="{{ path('ladder') }}">{{ 'players.spotlight.fastest_world'|trans }} <span aria-hidden="true">→</span></a>
+            {% elseif is_member %}
+                <a href="{{ path('ladder_country', {countryCode: country.name}) }}">{{ 'players.spotlight.fastest_country'|trans({'%country%': country.value}) }} <span aria-hidden="true">→</span></a>
+            {% else %}
+                {# The country leaderboard is for members: the lock says so up front and the tap opens the members modal #}
+                <a href="{{ path('ladder_country', {countryCode: country.name}) }}" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                    {{- 'players.spotlight.fastest_country'|trans({'%country%': country.value}) }}
+                    <i class="ci-locked" aria-hidden="true"></i><span class="visually-hidden">{{ 'players.spotlight.members_only'|trans }}</span>
+                </a>
+            {% endif %}
+
+            {% if browseLink %}
+                {# No number: registered_players counts private profiles too, which the directory never lists #}
+                <a href="{{ path('players_directory', {scope: scope.queryValue}) }}">
+                    {%- if country is null -%}
+                        {{ 'players.spotlight.browse_world'|trans }}
+                    {%- else -%}
+                        {{ 'players.spotlight.browse_country'|trans({'%country%': country.value}) }}
+                    {%- endif %} <span aria-hidden="true">→</span>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</section>

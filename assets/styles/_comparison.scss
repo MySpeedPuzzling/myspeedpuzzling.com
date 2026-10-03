@@ -1404,20 +1404,79 @@ $cmp-bleed: 1rem;
     }
 }
 
+// The add sheet (_add_sheet.html.twig, comparison_add_controller.js draws its rows): a phone list - 44 px rows, a
+// hairline between them, avatars and tier icons exactly as on the leaderboards (.cmp-avatar + .lb-avatar-lg, skill_icon)
 .cmp-add-search {
+    // A search field (the input's .form-control moves to TomSelect's wrapper), not a select: no caret
     .ts-control {
         min-height: 44px;
+        // 16 px - iOS zooms into a smaller input on focus
         font-size: 1rem;
+    }
+
+    // _tom-select.scss computes this padding from unitless `0` variables, which makes it invalid (= 0) everywhere
+    .ts-wrapper .ts-control {
+        padding-right: .75rem !important;
+    }
+
+    .ts-control input {
+        min-width: 0;
+        text-overflow: ellipsis;
+    }
+
+    // The results are rows of the lists: TomSelect's own padding would double theirs
+    .ts-dropdown .option {
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .ts-dropdown-content {
+        max-height: min(55vh, 22rem);
+        overscroll-behavior: contain;
+    }
+}
+
+.cmp-add-lists {
+    // Three rows: the placeholders hold the space while the lists load
+    min-height: 132px;
+}
+
+.cmp-add-filter {
+    min-height: 44px;
+    margin-bottom: .25rem;
+    font-size: 1rem;
+}
+
+.cmp-add-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    margin-top: .25rem;
+    border: 0;
+    border-radius: 8px;
+    background: $gray-100;
+    color: $cmp-text;
+    font-size: .875rem;
+    font-weight: 500;
+
+    &:hover {
+        background: $gray-200;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: 2px;
     }
 }
 
 .cmp-options {
     display: flex;
     flex-direction: column;
-    gap: .375rem;
 
     &__status {
-        margin: 0;
+        margin: .25rem 0 0;
         font-size: .875rem;
         color: $cmp-muted;
     }
@@ -1428,53 +1487,64 @@ $cmp-bleed: 1rem;
     align-items: center;
     gap: .625rem;
     width: 100%;
-    min-height: 48px;
-    padding: .375rem .625rem;
-    border: 1px solid $gray-300;
-    border-radius: 10px;
-    background: $white;
+    min-height: 44px;
+    padding: .25rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
     color: $cmp-text;
     font-size: .875rem;
+    line-height: 1.25;
     text-align: left;
 
-    &:hover {
-        border-color: $primary;
+    & + & {
+        border-top: 1px solid $cmp-line;
+    }
+
+    &:hover:not(:disabled) {
+        background: $gray-100;
     }
 
     &:focus-visible {
         outline: 2px solid $primary;
-        outline-offset: 2px;
+        outline-offset: -2px;
+    }
+
+    // Already in the line-up: listed where it was, says so, cannot be picked twice
+    &.is-added {
+        cursor: default;
     }
 
     &--result {
-        min-height: 0;
-        padding: .125rem 0;
+        padding: .25rem 0;
         border: 0;
-        background: transparent;
     }
 
-    &__avatar {
-        flex: 0 0 auto;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        object-fit: cover;
+    &--skeleton {
+        pointer-events: none;
 
-        &--icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            background: #eef0f4;
-            color: #4b5160;
-            font-weight: 600;
-
-            .fi {
-                width: 100%;
-                height: 100%;
-                background-size: cover;
-            }
+        span:first-child {
+            flex: 0 0 auto;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: $gray-200;
         }
+
+        span:last-child {
+            width: 45%;
+            height: .75rem;
+            border-radius: 4px;
+            background: $gray-200;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            animation: cmp-skeleton-pulse 1.2s ease-in-out infinite alternate;
+        }
+    }
+
+    .cmp-avatar {
+        flex: 0 0 auto;
     }
 
     &__text {
@@ -1484,8 +1554,21 @@ $cmp-bleed: 1rem;
         min-width: 0;
     }
 
-    &__name,
+    // Tier icon · star · name on one line, like a leaderboard row
+    &__name {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        min-width: 0;
+
+        .rank-icon {
+            flex-shrink: 0;
+        }
+    }
+
+    &__label,
     &__sub {
+        min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1497,12 +1580,30 @@ $cmp-bleed: 1rem;
     }
 
     &__star {
-        color: #f6b500;
+        flex-shrink: 0;
+        font-size: .8125rem;
     }
 
     &__plus {
         flex: 0 0 auto;
         color: $primary;
+        font-size: 1.125rem;
+    }
+
+    &__added {
+        display: inline-flex;
+        align-items: center;
+        gap: .2rem;
+        flex: 0 0 auto;
+        color: $cmp-muted;
+        font-size: .75rem;
+        white-space: nowrap;
+    }
+}
+
+@keyframes cmp-skeleton-pulse {
+    to {
+        opacity: .45;
     }
 }
 

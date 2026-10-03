@@ -4,27 +4,38 @@ import { Modal } from 'bootstrap';
 import { getComponent } from '@symfony/ux-live-component';
 import { chooseTranslation } from '../translation_choice.js';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const SUGGESTIONS_LIMIT = 12;
+// "Your favorites (N)" shows this many rows, then "Show all (N)"; with more favorites than that it gets a filter too
+const FAVORITES_PREVIEW = 8;
 
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[char]));
 
+/** Case and accent insensitive - "kate" finds "Kateřina", "#ab1" and "ab1" find the code */
+const fold = (value) => String(value ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/^#/, '');
+
 /**
- * The add sheet of the compare page (docs/features/player-comparison.md). Costs nothing until the sheet opens: then the
- * suggestions are fetched once (Solo: the viewer's favorites and co-puzzlers from /my-co-puzzlers.json; Pairs/Teams:
- * their own pairs/teams) and TomSelect is loaded for the search (2+ characters, 250 ms throttle, never opens on focus).
- * Picking somebody closes the sheet and runs the live component's `add` action - the component decides, and says so
- * when it cannot (a full line-up offers the swap).
+ * The add sheet of the compare page (docs/features/player-comparison.md "Add sheet"). Costs nothing until the sheet
+ * opens: then its lists are fetched once - Solo: ALL the viewer's favorites and a few people they puzzle with
+ * (comparison_people); Pairs/Teams: their own pairs/teams - and TomSelect is loaded for the search (2+ characters,
+ * 250 ms throttle, never opens on focus). Picking somebody closes the sheet and runs the live component's `add` action -
+ * the component decides, and says so when it cannot (a full line-up offers the swap).
+ *
+ * "Your favorites (N)": the first 8 rows, "Show all (N)" for the rest and, from 9 favorites on, a filter of their own
+ * (instant, no request). Whoever is in the line-up already (`excluded`) stays listed, marked "Added" - rows never move
+ * under a finger. Rows are built once per load and reused by the filter, so their images never reload.
+ *
+ * Avatars are _player_avatar.html.twig in JavaScript (same classes, same rules: photo + corner flag, else the round
+ * flag, else the initial on the player's tint); skill tier icons are cloned from the <template>s the sheet renders with
+ * the leaderboards' skill_icon() - members get a player's tier (`tier` in the JSON), everybody else the lock.
  *
  * Rules kept from the add-time co-puzzler picker: what this controller draws is ignored by re-renders
- * (data-live-ignore), Enter never submits anything, texts come from data attributes (a count's plural form is picked like
- * PHP picks it - browser_translation() + translation_choice.js). Whoever is in the line-up already
- * (`excluded`), guests and private players hidden from the viewer are never offered.
+ * (data-live-ignore), Enter never submits anything, texts come from data attributes (a count's plural form is picked
+ * like PHP picks it - browser_translation() + translation_choice.js). Guests and private players hidden from the viewer
+ * are never offered (the endpoints leave them out).
  */
 export default class extends Controller {
-    static targets = ['search', 'suggestions'];
+    static targets = ['search', 'suggestions', 'tierIcon'];
 
     static values = {
         kind: String,
@@ -35,8 +46,7 @@ export default class extends Controller {
     };
 
     connect() {
-        this.suggestions = null;
-        this.suggestionsPromise = null;
+        this.reset();
         this.onShow = () => {
             this.loadSuggestions();
             this.ensureSearch();
@@ -55,6 +65,15 @@ export default class extends Controller {
         this.tomSelect = null;
     }
 
+    reset() {
+        this.lists = null;
+        this.listsPromise = null;
+        this.rows = new Map();
+        this.favoritesExpanded = false;
+        this.favoritesQuery = '';
+        this.favorites = null;
+    }
+
     // --- values follow the line-up (re-renders change them) ---------------------------------------------------------
 
     kindValueChanged(kind, previous) {
@@ -62,9 +81,8 @@ export default class extends Controller {
             return;
         }
 
-        this.suggestions = null;
-        this.suggestionsPromise = null;
-        this.suggestionsTarget.replaceChildren();
+        this.reset();
+        this.renderLoading();
 
         if (this.tomSelect) {
             this.tomSelect.clear(true);
@@ -74,23 +92,31 @@ export default class extends Controller {
         }
     }
 
+    /** Somebody was added or removed: their row says so (the rows stay where they are) */
     excludedValueChanged() {
-        if (this.connected && this.suggestions !== null) {
-            this.renderSuggestions();
+        if (!this.connected || this.lists === null) {
+            return;
         }
+
+        if (this.favorites !== null) {
+            this.renderFavoriteRows();
+        }
+
+        this.element.querySelectorAll('[data-list="plain"]').forEach((list) => {
+            list.replaceChildren(...this.plainItems(list.dataset.section).map((item) => this.rowFor(item)));
+        });
     }
 
-    // --- suggestions -----------------------------------------------------------------------------------------------
+    // --- lists -----------------------------------------------------------------------------------------------------
 
     loadSuggestions() {
-        if (this.suggestionsPromise !== null) {
-            return this.suggestionsPromise;
+        if (this.listsPromise !== null) {
+            return this.listsPromise;
         }
 
         const kind = this.kindValue;
-        this.renderStatus(this.textsValue.loading);
 
-        this.suggestionsPromise = fetch(this.suggestionsUrlValue, {
+        this.listsPromise = fetch(this.suggestionsUrlValue, {
             headers: { Accept: 'application/json' },
             credentials: 'same-origin',
         })
@@ -100,37 +126,43 @@ export default class extends Controller {
                     return;
                 }
 
-                this.suggestions = kind === 'solo' ? this.peopleFromCoPuzzlers(data) : this.teamsFromSearch(data);
-                this.renderSuggestions();
+                this.lists = kind === 'solo'
+                    ? {
+                        favorites: (data.favorites || []).map((person) => this.personItem(person)),
+                        coPuzzlers: (data.coPuzzlers || []).map((person) => this.personItem(person)),
+                    }
+                    : { teams: this.teamsFromSearch(data) };
+                this.renderLists();
             })
             .catch(() => {
-                // The search still works without suggestions
-                this.suggestions = [];
-                this.renderSuggestions();
+                // The search still works without the lists
+                if (kind === this.kindValue) {
+                    this.lists = kind === 'solo' ? { favorites: [], coPuzzlers: [] } : { teams: [] };
+                    this.renderLists();
+                }
             });
 
-        return this.suggestionsPromise;
+        return this.listsPromise;
     }
 
-    /** Favorites first, then whoever the viewer puzzles with most - registered and visible players only */
-    peopleFromCoPuzzlers(data) {
-        const people = (data.people || []).filter((person) => !person.guest
-            && UUID.test(person.key || '')
-            // A private co-puzzler is only known by the code once typed - not offered here
-            && !String(person.label || '').startsWith('#'));
+    personItem(person) {
+        const code = String(person.code || '');
 
-        people.sort((a, b) => Number(Boolean(b.favorite)) - Number(Boolean(a.favorite)));
-
-        return people.map((person) => ({
-            ref: `p-${person.key.toLowerCase()}`,
+        return {
+            ref: person.ref,
+            id: String(person.id || ''),
             label: person.label,
-            sub: person.code ? `#${person.code}` : '',
+            sub: code !== '' && person.label !== `#${code}` ? `#${code}` : '',
             avatar: person.avatar,
             country: person.country,
+            countryName: person.countryName,
+            // Absent for anybody but a member: the leaderboards' lock
+            tier: person.tier ?? 'locked',
+            favorite: Boolean(person.favorite),
             team: false,
             mine: false,
-            favorite: Boolean(person.favorite),
-        }));
+            search: fold(`${person.label} ${code}`),
+        };
     }
 
     teamsFromSearch(data) {
@@ -139,8 +171,6 @@ export default class extends Controller {
             label: team.label,
             sub: [team.named ? team.members : '', this.together(Number(team.count))].filter(Boolean).join(' · '),
             members: team.members,
-            avatar: null,
-            country: null,
             team: true,
             mine: Boolean(team.mine),
             favorite: false,
@@ -149,69 +179,249 @@ export default class extends Controller {
 
     /** "1 result" / "12 results" - the raw message carries every plural form and the locale of its catalogue */
     together(count) {
-        const text = this.textsValue.together;
+        return this.choose(this.textsValue.together, count);
+    }
 
+    choose(text, count) {
         return text ? (chooseTranslation(text.message, count, text.locale) ?? '') : '';
     }
 
-    renderSuggestions() {
-        const excluded = new Set(this.excludedValue);
-        const items = (this.suggestions || []).filter((item) => !excluded.has(item.ref)).slice(0, SUGGESTIONS_LIMIT);
+    renderLoading() {
+        this.suggestionsTarget.setAttribute('aria-busy', 'true');
+        this.suggestionsTarget.replaceChildren(...[1, 2, 3].map(() => {
+            const row = document.createElement('div');
+            row.className = 'cmp-option cmp-option--skeleton';
+            row.setAttribute('aria-hidden', 'true');
+            row.innerHTML = '<span></span><span></span>';
 
-        if (items.length === 0) {
-            this.renderStatus(this.textsValue.noSuggestions);
+            return row;
+        }));
+    }
+
+    renderLists() {
+        this.rows = new Map();
+        this.favorites = null;
+        this.suggestionsTarget.setAttribute('aria-busy', 'false');
+
+        const sections = this.kindValue === 'solo'
+            ? [this.favoritesSection(), this.plainSection('coPuzzlers', this.textsValue.coPuzzlersHeading)]
+            : [this.plainSection('teams', this.textsValue.teamsHeading)];
+        const shown = sections.filter((section) => section !== null);
+
+        if (shown.length === 0) {
+            const status = document.createElement('p');
+            status.className = 'cmp-options__status';
+            status.textContent = this.textsValue.noSuggestions;
+            this.suggestionsTarget.replaceChildren(status);
 
             return;
         }
 
-        this.suggestionsTarget.replaceChildren(...items.map((item) => {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'cmp-option';
-            button.dataset.ref = item.ref;
-            button.setAttribute('aria-label', `${this.textsValue.add} ${item.label}`);
-            button.innerHTML = this.optionHtml(item, true);
-            button.addEventListener('click', () => this.pick(item.ref));
+        this.suggestionsTarget.replaceChildren(...shown);
 
-            return button;
-        }));
+        if (this.favorites !== null) {
+            this.renderFavoriteRows();
+        }
     }
 
-    renderStatus(text) {
-        const status = document.createElement('p');
-        status.className = 'cmp-options__status';
-        status.textContent = text;
-        this.suggestionsTarget.replaceChildren(status);
+    favoritesSection() {
+        const items = this.lists.favorites;
+
+        if (items.length === 0) {
+            return null;
+        }
+
+        const section = this.section('favorites', this.choose(this.textsValue.favoritesHeading, items.length));
+        const list = this.list('favorites');
+        const empty = document.createElement('p');
+        empty.className = 'cmp-options__status';
+        empty.hidden = true;
+        empty.textContent = this.textsValue.favoritesNoMatch;
+
+        if (items.length > FAVORITES_PREVIEW) {
+            const filter = document.createElement('input');
+            filter.type = 'search';
+            filter.className = 'form-control cmp-add-filter';
+            filter.autocomplete = 'off';
+            filter.enterKeyHint = 'search';
+            filter.placeholder = this.textsValue.favoritesFilter;
+            filter.setAttribute('aria-label', this.textsValue.favoritesFilter);
+            filter.setAttribute('aria-controls', list.id);
+            filter.dataset.action = 'input->comparison-add#filterFavorites keydown.enter->comparison-add#closeKeyboard';
+            filter.dataset.testid = 'comparison-add-favorites-filter';
+            section.append(filter);
+        }
+
+        section.append(list, empty);
+
+        const more = document.createElement('button');
+        more.type = 'button';
+        more.className = 'cmp-add-more';
+        more.textContent = this.choose(this.textsValue.favoritesShowAll, items.length);
+        more.dataset.action = 'comparison-add#showAllFavorites';
+        more.dataset.testid = 'comparison-add-favorites-more';
+        section.append(more);
+
+        this.favorites = { list, empty, more };
+
+        return section;
     }
 
-    optionHtml(item, withPlus) {
-        const avatar = this.avatarHtml(item);
-        const tags = [
-            item.mine ? `<span class="cmp-tag">${escapeHtml(this.textsValue.youreInIt)}</span>` : '',
-            item.favorite ? '<i class="bi bi-star-fill cmp-option__star" aria-hidden="true"></i>' : '',
-        ].join('');
+    plainSection(name, heading) {
+        if (this.plainItems(name).length === 0) {
+            return null;
+        }
+
+        const section = this.section(name, heading);
+        const list = this.list(name);
+        list.dataset.list = 'plain';
+        list.replaceChildren(...this.plainItems(name).map((item) => this.rowFor(item)));
+        section.append(list);
+
+        return section;
+    }
+
+    plainItems(name) {
+        return (this.lists && this.lists[name]) || [];
+    }
+
+    section(name, heading) {
+        const section = document.createElement('section');
+        section.className = 'cmp-add-section';
+        section.dataset.testid = `comparison-add-${name}`;
+
+        const title = document.createElement('h3');
+        title.className = 'cmp-sheet__label';
+        title.id = `comparison-add-${name}-heading`;
+        title.textContent = heading || '';
+        section.setAttribute('aria-labelledby', title.id);
+        section.append(title);
+
+        return section;
+    }
+
+    list(name) {
+        const list = document.createElement('div');
+        list.className = 'cmp-options';
+        list.id = `comparison-add-${name}-list`;
+        list.dataset.section = name;
+
+        return list;
+    }
+
+    renderFavoriteRows() {
+        const { list, empty, more } = this.favorites;
+        const all = this.lists.favorites;
+        const query = fold(this.favoritesQuery);
+        const filtering = query !== '';
+        const matches = filtering ? all.filter((item) => item.search.includes(query)) : all;
+        const shown = filtering || this.favoritesExpanded ? matches : matches.slice(0, FAVORITES_PREVIEW);
+
+        list.replaceChildren(...shown.map((item) => this.rowFor(item)));
+        empty.hidden = !(filtering && matches.length === 0);
+        more.hidden = filtering || this.favoritesExpanded || all.length <= FAVORITES_PREVIEW;
+    }
+
+    filterFavorites(event) {
+        this.favoritesQuery = event.target.value;
+        this.renderFavoriteRows();
+    }
+
+    /** Enter only closes the phone keyboard over the filtered list - nothing to submit */
+    closeKeyboard(event) {
+        event.preventDefault();
+        event.target.blur();
+    }
+
+    showAllFavorites() {
+        this.favoritesExpanded = true;
+        this.renderFavoriteRows();
+
+        // The button is gone: the focus goes to the first row it revealed, the page does not move
+        const revealed = Array.from(this.favorites.list.children).slice(FAVORITES_PREVIEW).find((row) => !row.disabled);
+        revealed?.focus({ preventScroll: true });
+    }
+
+    pickOption(event) {
+        const ref = event.currentTarget.dataset.ref;
+
+        if (ref && !event.currentTarget.disabled) {
+            this.pick(ref);
+        }
+    }
+
+    /** One node per person and state - the filter moves them around instead of drawing (and loading) them again */
+    rowFor(item) {
+        const added = this.excludedValue.includes(item.ref);
+        const cached = this.rows.get(item.ref);
+
+        if (cached && cached.added === added) {
+            return cached.node;
+        }
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `cmp-option${added ? ' is-added' : ''}`;
+        button.dataset.ref = item.ref;
+        button.dataset.action = 'comparison-add#pickOption';
+        button.dataset.testid = 'comparison-add-option';
+        button.disabled = added;
+        button.setAttribute('aria-label', added ? `${item.label} - ${this.textsValue.added}` : `${this.textsValue.add} ${item.label}`);
+        button.innerHTML = this.optionHtml(item, { added, plus: true, star: false });
+        this.rows.set(item.ref, { added, node: button });
+
+        return button;
+    }
+
+    optionHtml(item, { added, plus, star }) {
+        const tier = item.team ? '' : this.tierIconHtml(item.tier);
+        const favorite = star && item.favorite
+            ? `<i class="ci-star-filled text-warning cmp-option__star" aria-hidden="true"></i><span class="visually-hidden">${escapeHtml(this.textsValue.favorite)}:</span>`
+            : '';
         const sub = item.sub ? `<span class="cmp-option__sub">${escapeHtml(item.sub)}</span>` : '';
-        const plus = withPlus ? '<i class="bi bi-plus-lg cmp-option__plus" aria-hidden="true"></i>' : '';
+        const tag = item.mine ? `<span class="cmp-tag">${escapeHtml(this.textsValue.youreInIt)}</span>` : '';
+        let trailing = '';
 
-        return `${avatar}<span class="cmp-option__text"><span class="cmp-option__name">${escapeHtml(item.label)}</span>${sub}</span>${tags}${plus}`;
+        if (added) {
+            trailing = `<span class="cmp-option__added"><i class="bi bi-check-lg" aria-hidden="true"></i>${escapeHtml(this.textsValue.added)}</span>`;
+        } else if (plus) {
+            trailing = '<i class="bi bi-plus-lg cmp-option__plus" aria-hidden="true"></i>';
+        }
+
+        return `${this.avatarHtml(item)}<span class="cmp-option__text"><span class="cmp-option__name">${tier}${favorite}<span class="cmp-option__label">${escapeHtml(item.label)}</span></span>${sub}</span>${tag}${trailing}`;
     }
 
+    /** The sheet's <template> of that tier - rendered by skill_icon(), so it is the leaderboards' icon */
+    tierIconHtml(tier) {
+        const template = this.tierIconTargets.find((candidate) => candidate.dataset.tier === tier);
+
+        return template ? template.innerHTML.trim() : '';
+    }
+
+    /** _player_avatar.html.twig (size lg) inside the compared subjects' wrapper (_subject_avatar.html.twig) */
     avatarHtml(item) {
         if (item.team) {
-            return '<span class="cmp-option__avatar cmp-option__avatar--icon" aria-hidden="true"><i class="bi bi-people-fill"></i></span>';
+            return '<span class="cmp-avatar cmp-avatar--lg" aria-hidden="true"><span class="cmp-avatar__icon"><i class="bi bi-people-fill"></i></span></span>';
         }
+
+        const country = String(item.country || '').toLowerCase().replace(/[^a-z]/g, '');
+        const title = item.countryName ? ` title="${escapeHtml(item.countryName)}"` : '';
+        let inner;
 
         if (item.avatar) {
-            return `<img class="cmp-option__avatar" src="${escapeHtml(item.avatar)}" alt="" loading="lazy">`;
+            inner = `<img class="lb-avatar-img" src="${escapeHtml(item.avatar)}" alt="" loading="lazy" decoding="async">`
+                + (country ? `<span class="lb-flag fi fi-${country}"${title}></span>` : '');
+        } else if (country) {
+            // No photo: the round flag is the avatar (and then no flag on the corner)
+            inner = `<span class="lb-avatar-img lb-avatar-flag fi fis fi-${country}"${title}></span>`;
+        } else {
+            // The tint is picked by the last hex digit of the player id - a player keeps their colour on every page
+            const tint = /[0-9a-f]$/.test(item.id) ? item.id.slice(-1) : 'guest';
+            const initial = (Array.from(String(item.label || '').replace(/^#+|#+$/g, ''))[0] || '').toUpperCase();
+            inner = `<span class="lb-avatar-img lb-avatar-initial lb-tint-${tint}" aria-hidden="true">${escapeHtml(initial)}</span>`;
         }
 
-        if (item.country) {
-            return `<span class="cmp-option__avatar cmp-option__avatar--icon" aria-hidden="true"><span class="fi fis fi-${escapeHtml(String(item.country).replace(/[^a-z]/gi, ''))}"></span></span>`;
-        }
-
-        const initial = String(item.label || '').replace(/^#/, '').charAt(0).toUpperCase();
-
-        return `<span class="cmp-option__avatar cmp-option__avatar--icon" aria-hidden="true">${escapeHtml(initial)}</span>`;
+        return `<span class="cmp-avatar cmp-avatar--lg"><span class="lb-avatar lb-avatar-lg">${inner}</span></span>`;
     }
 
     // --- search ----------------------------------------------------------------------------------------------------
@@ -233,6 +443,8 @@ export default class extends Controller {
                 valueField: 'ref',
                 labelField: 'label',
                 searchField: ['label', 'sub', 'members'],
+                // Whoever is in the line-up is found too, marked "Added" - and cannot be picked twice
+                disabledField: 'disabled',
                 maxItems: 1,
                 maxOptions: 20,
                 placeholder: this.textsValue.searchPlaceholder,
@@ -241,10 +453,10 @@ export default class extends Controller {
                 loadThrottle: 250,
                 // The server found them (accents, member codes) - do not filter its answer again
                 score: () => () => 1,
-                shouldLoad: (query) => query.trim().replace(/^#/, '').length >= 2,
+                shouldLoad: (query) => fold(query).length >= 2,
                 load: (query, callback) => this.search(query, callback),
                 render: {
-                    option: (item) => `<div class="cmp-option cmp-option--result">${this.optionHtml(item, false)}</div>`,
+                    option: (item) => `<div class="cmp-option cmp-option--result${item.disabled ? ' is-added' : ''}">${this.optionHtml(item, { added: item.disabled, plus: false, star: true })}</div>`,
                     item: (item) => `<div>${escapeHtml(item.label)}</div>`,
                     no_results: () => `<div class="no-results">${escapeHtml(this.textsValue.noResults)}</div>`,
                     loading: () => `<div class="no-results">${escapeHtml(this.textsValue.loading)}</div>`,
@@ -295,28 +507,17 @@ export default class extends Controller {
 
                 const excluded = new Set(this.excludedValue);
                 const items = kind === 'solo'
-                    ? (Array.isArray(data) ? data : [])
-                        .filter((person) => !person.guest && !person.hidden && UUID.test(person.key || ''))
-                        .map((person) => ({
-                            ref: `p-${person.key.toLowerCase()}`,
-                            label: person.label,
-                            sub: person.code && person.label !== `#${person.code}` ? `#${person.code}` : '',
-                            avatar: person.avatar,
-                            country: person.country,
-                            team: false,
-                            mine: false,
-                            favorite: false,
-                        }))
+                    ? (Array.isArray(data) ? data : []).map((person) => this.personItem(person))
                     : this.teamsFromSearch(data);
 
                 this.tomSelect.clearOptions();
-                callback(items.filter((item) => !excluded.has(item.ref)));
+                callback(items.map((item) => ({ ...item, disabled: excluded.has(item.ref) })));
             })
             .catch(() => callback());
     }
 
     focusSearch() {
-        // A phone keyboard over the suggestions is worse than one more tap
+        // A phone keyboard over the lists is worse than one more tap
         if (this.tomSelect && window.matchMedia('(min-width: 576px)').matches) {
             this.tomSelect.focus();
         }

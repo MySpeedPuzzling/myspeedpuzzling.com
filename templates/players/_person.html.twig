@@ -9,6 +9,7 @@
       - value (string, optional): right-hand text, e.g. "14 puzzles"
       - rank (int, optional)
       - chips (list<string>, optional): short labels under the name, e.g. the person's moments this week
+      - highlight_query (string, optional): marks the searched text in the name (instant search)
 #}
 {%- set country_code = player.playerCountry is null ? null : (player.playerCountry.name ?? player.playerCountry) -%}
 {%- set country_name = player.playerCountry is null ? null : (player.playerCountry.value ?? null) -%}
@@ -30,7 +31,7 @@
         size: 'lg',
     }) -}}
     <span class="players-person-main">
-        <span class="players-person-name">{{ name }}</span>
+        <span class="players-person-name">{{ highlight_query|default(null) ? highlight(name, highlight_query) : name }}</span>
         {%- if chips is defined and chips is not empty -%}
             <span class="players-person-chips">
                 {%- for chip in chips -%}

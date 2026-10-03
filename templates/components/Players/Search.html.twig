@@ -1,0 +1,77 @@
+{#
+    Instant search (docs/features/players-page/README.md, stream S1). The input updates `query` while typing; the
+    form is a plain GET to the Players page, so without JavaScript Enter shows the same results (`?search=`). With
+    JavaScript, Enter only re-renders. Every result is the shared person row, which opens the player card - except a
+    private player found by their exact code: masked, no card.
+#}
+<div {{ attributes.defaults({class: 'players-search'}) }}>
+    <form class="players-search-form" method="get" action="{{ path('players') }}" role="search" data-action="live#$render:prevent">
+        {% if scope %}
+            <input type="hidden" name="scope" value="{{ scope }}">
+        {% endif %}
+        <label class="players-search-field">
+            <i class="ci-search players-search-icon" aria-hidden="true"></i>
+            <span class="visually-hidden">{{ 'players.search.label'|trans }}</span>
+            <input
+                type="search"
+                name="search"
+                class="players-search-input"
+                value="{{ query }}"
+                placeholder="{{ 'players.search.placeholder'|trans }}"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                enterkeyhint="search"
+                maxlength="100"
+                data-model="debounce(250)|query"
+            >
+        </label>
+        <noscript>
+            <button type="submit" class="btn btn-primary">{{ 'players.search.submit'|trans }}</button>
+        </noscript>
+    </form>
+
+    {% set players = this.empty or this.tooShort ? [] : this.players %}
+
+    {# Announced while typing: the hint, the empty state or how many were found #}
+    <div class="players-search-status" role="status">
+        {%- if this.tooShort -%}
+            <p class="players-search-message">{{ 'players.search.too_short'|trans }}</p>
+        {%- elseif not this.empty and players is empty -%}
+            <p class="players-search-message">{{ 'players.search.no_match'|trans({'%query%': this.searchString}) }}</p>
+        {%- elseif players is not empty -%}
+            <span class="visually-hidden">{{ 'players.search.found'|trans({'%count%': players|length}) }}</span>
+        {%- endif -%}
+    </div>
+
+    {% if players is not empty %}
+        {% set solved_totals = this.solvedTotals %}
+        <ul class="players-search-results">
+            {% for player in players %}
+                <li class="players-search-result">
+                    {% if player.isPrivate %}
+                        {# Found by the exact code they handed out - nothing else about them, and no card #}
+                        <span class="players-person players-search-hidden">
+                            {{- include('_player_avatar.html.twig', {player_id: player.playerId, name: '#' ~ player.playerCode, hidden: true, size: 'lg'}) -}}
+                            <span class="players-person-main">
+                                <span class="players-person-name">{{ 'secret_puzzler_name'|trans }}</span>
+                                <span class="players-person-chips"><span class="players-person-chip">#{{ player.playerCode|upper }}</span></span>
+                            </span>
+                        </span>
+                    {% else %}
+                        {{ include('players/_person.html.twig', {
+                            player: player,
+                            chips: ['#' ~ player.playerCode|upper],
+                            value: solved_totals[player.playerId] is defined ? 'players.search.puzzles'|trans({'%count%': solved_totals[player.playerId]}) : null,
+                            highlight_query: this.searchString,
+                        }, with_context = false) }}
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+
+        {% if this.hasMore %}
+            <p class="players-search-more">{{ 'players.search.more'|trans({'%count%': constant('SpeedPuzzling\\Web\\Component\\Players\\Search::LIMIT')}) }}</p>
+        {% endif %}
+    {% endif %}
+</div>

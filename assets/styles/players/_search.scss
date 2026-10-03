@@ -1,1 +1,94 @@
-// Instant search (stream S1)
+// Instant search (stream S1): components/Players/Search.html.twig - the field, then the results as person rows
+.players-search {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    max-width: 40rem;
+}
+
+.players-search-form {
+    display: flex;
+    gap: .5rem;
+}
+
+.players-search-field {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    height: 44px;
+    margin: 0;
+    padding: 0 .75rem;
+    border: 1px solid $gray-300;
+    border-radius: .5rem;
+    background: $white;
+    cursor: text;
+
+    &:focus-within {
+        border-color: rgba($primary, .6);
+        box-shadow: 0 0 0 .2rem rgba($primary, .15);
+    }
+}
+
+.players-search-icon {
+    flex: none;
+    color: $gray-600;
+}
+
+.players-search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: $gray-800;
+    // 16 px - iOS zooms into a smaller input on focus
+    font-size: 1rem;
+
+    &::placeholder {
+        color: $gray-500;
+    }
+}
+
+.players-search-status:empty {
+    display: none;
+}
+
+.players-search-message,
+.players-search-more {
+    margin: 0;
+    font-size: .875rem;
+    color: $gray-600;
+}
+
+.players-search-results {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid $gray-300;
+    border-radius: .625rem;
+    overflow: hidden;
+    background: $white;
+}
+
+.players-search-result {
+    & + & {
+        border-top: 1px solid $gray-300;
+    }
+
+    .players-person {
+        padding: .5625rem .75rem;
+    }
+
+    a.players-person:hover,
+    a.players-person:focus-visible {
+        background: $gray-100;
+    }
+}
+
+// A private player found by their exact code: no link, no card
+.players-search-hidden .players-person-name {
+    color: $gray-600;
+}

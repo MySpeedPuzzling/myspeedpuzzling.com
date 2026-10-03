@@ -775,9 +775,11 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('players') %}active{% endif %}" href="{{ path('players') }}">
-                                    <i class="me-1 me-lg-0 bi bi-people"></i>
+                                    <i class="me-1 me-lg-0 bi bi-people position-relative">
+                                        <span class="d-none d-lg-inline badge bg-primary position-absolute translate-middle-y fst-normal" style="font-size: .55em; top: 6px; left: 100%;">{{ 'new_badge'|trans }}</span>
+                                    </i>
                                     <small class="d-none d-lg-block">{{ 'menu.players'|trans }}</small>
-                                    <span class="d-lg-none">{{ 'menu.players'|trans }}</span>
+                                    <span class="d-lg-none">{{ 'menu.players'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></span>
                                 </a>
                             </li>
                             <li class="nav-item">

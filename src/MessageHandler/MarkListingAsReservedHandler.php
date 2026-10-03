@@ -11,8 +11,7 @@ use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
 use SpeedPuzzling\Web\Message\MarkListingAsReserved;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
-use SpeedPuzzling\Web\Services\SystemMessageSender;
-use SpeedPuzzling\Web\Value\SystemMessageType;
+use SpeedPuzzling\Web\Services\ListingReservation;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -21,7 +20,7 @@ readonly final class MarkListingAsReservedHandler
     public function __construct(
         private SellSwapListItemRepository $sellSwapListItemRepository,
         private PlayerRepository $playerRepository,
-        private SystemMessageSender $systemMessageSender,
+        private ListingReservation $listingReservation,
     ) {
     }
 
@@ -46,13 +45,7 @@ readonly final class MarkListingAsReservedHandler
             $reservedForPlayerId = $this->resolvePlayerFromInput($message->reservedForInput);
         }
 
-        $item->markAsReserved($reservedForPlayerId);
-
-        $this->systemMessageSender->sendToAllConversations(
-            $item,
-            SystemMessageType::ListingReserved,
-            $reservedForPlayerId,
-        );
+        $this->listingReservation->reserve($item, $reservedForPlayerId);
     }
 
     private function resolvePlayerFromInput(string $input): null|UuidInterface

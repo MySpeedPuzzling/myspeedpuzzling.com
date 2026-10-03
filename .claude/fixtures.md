@@ -145,6 +145,30 @@ Seller settings: `PLAYER_WITH_STRIPE` has ISO currency **GBP** (listings eligibl
 - **PUZZLE_1000_01**: 2 offers (SELLSWAP_03 reserved + SELLSWAP_11 not reserved) — mixed reservation status
 - **PUZZLE_1000_02**: 2 offers (SELLSWAP_05 + SELLSWAP_12), **all reserved** — only-reserved puzzle
 
+## Marketplace at events (`MarketplaceEventFixture`)
+
+Sellers bringing listings to in-person events (`docs/features/marketplace/11-events.md`), ids `018d0014-…`. The roles:
+**seller A** = `PLAYER_WITH_STRIPE` (member, SELLSWAP_01-07), **seller B** = `PLAYER_ADMIN` (member, SELLSWAP_08-13),
+**buyer C** = `PLAYER_REGULAR` (no listings, no membership). All participant rows are self-joined (`source = self_joined`).
+
+| Const | What |
+|-------|------|
+| `COMPETITION_SWAP_FAIR` | "Puzzle Swap Fair" - standalone, in person, approved, Olomouc (cz), +21 days 10:00-18:00, slug `COMPETITION_SWAP_FAIR_SLUG` = `puzzle-swap-fair`, no shortcut (short name = name). **Qualifies** |
+| `PARTICIPANT_FAIR_SELLER_A` | A going to the fair - **brings SELLSWAP_01 + SELLSWAP_02** (`sell_swap_list_item_event` rows) |
+| `PARTICIPANT_FAIR_SELLER_B` | B going to the fair - nothing marked (all 5 published listings are "ask to bring it"; SELLSWAP_10 is unpublished) |
+| `PARTICIPANT_FAIR_BUYER_C` | C going to the fair |
+| `PARTICIPANT_PAST_SELLER_A` | A going to `EDITION_PAST_ONLY_1` (in person, -45 days) - **SELLSWAP_07 still marked for it**: a history row that must stay invisible |
+| `PARTICIPANT_ONLINE_SELLER_B` | B going to `EDITION_EJJ_69` (online, +30 days) - never a marketplace event |
+| `PARTICIPANT_EDITION_SELLER_A` | A going to `EDITION_OFFLINE_1` (in person, +14 days, series `SERIES_OFFLINE` approved) - **qualifies**, nothing marked |
+
+Marketplace events overall (`GetMarketplaceEvents::SQL_QUALIFIES`): `EDITION_OFFLINE_1` (+14), `COMPETITION_SWAP_FAIR` (+21),
+`COMPETITION_WJPC_2024` (+30), `COMPETITION_CZECH_NATIONALS_2024` (+60). Not: everything online, `COMPETITION_UNAPPROVED`,
+the unapproved series' edition, the past editions. `forPlayer()`: A = [EDITION_OFFLINE_1, SWAP_FAIR], B = [SWAP_FAIR],
+C = [SWAP_FAIR, WJPC_2024] (C is also `PARTICIPANT_CONNECTED` of WJPC), PLAYER_WITH_FAVORITES = [WJPC_2024],
+PLAYER_PRIVATE = [WJPC_2024]. Nobody but the players above goes to the fair.
+
+`CompetitionSeriesFixture` registers `EDITION_EJJ_69`, `EDITION_OFFLINE_1` and `EDITION_PAST_ONLY_1` as references for this.
+
 ## Wishlists
 
 | Player | Puzzles |
@@ -197,6 +221,7 @@ Seller settings: `PLAYER_WITH_STRIPE` has ISO currency **GBP** (listings eligibl
 | `COMPETITION_CZECH_NATIONALS_2024` | Czech National Championship 2024 | Brno, CZ | National Championship |
 | `COMPETITION_UNAPPROVED` | Unapproved Puzzle Event | Vienna, AT | none |
 | `COMPETITION_RECURRING_ONLINE` | Euro Jigsaw Jam | Online | none (legacy recurring) |
+| `MarketplaceEventFixture::COMPETITION_SWAP_FAIR` | Puzzle Swap Fair | Olomouc, CZ | none (see "Marketplace at events") |
 
 ### Competition Series
 
@@ -276,6 +301,7 @@ Seller settings: `PLAYER_WITH_STRIPE` has ISO currency **GBP** (listings eligibl
 | Owns lent puzzles | PLAYER_WITH_STRIPE, PLAYER_REGULAR |
 | Holds borrowed puzzle | PLAYER_REGULAR, PLAYER_WITH_FAVORITES, PLAYER_WITH_STRIPE |
 | Sell/swap listings | PLAYER_WITH_STRIPE, PLAYER_ADMIN |
+| Going to a marketplace event | PLAYER_WITH_STRIPE (Swap Fair, bringing 2 + Meetup #1), PLAYER_ADMIN (Swap Fair, nothing marked), PLAYER_REGULAR (Swap Fair + WJPC) |
 | Public collection | PLAYER_WITH_STRIPE |
 | Favorite players set | PLAYER_WITH_FAVORITES |
 | Team solving experience | PLAYER_REGULAR, PLAYER_PRIVATE |

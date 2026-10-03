@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Messaging;
 
 use SpeedPuzzling\Web\Message\MarkMessagesAsRead;
+use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
 use SpeedPuzzling\Web\Query\GetMessages;
 use SpeedPuzzling\Web\Query\GetTransactionRatings;
 use SpeedPuzzling\Web\Results\MessagesPage;
@@ -27,6 +28,7 @@ final class ConversationDetailController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private MercureTopicCollector $mercureTopicCollector,
         readonly private GetTransactionRatings $getTransactionRatings,
+        readonly private GetMarketplaceEvents $getMarketplaceEvents,
     ) {
     }
 
@@ -102,6 +104,17 @@ final class ConversationDetailController extends AbstractController
         $isSeller = $conversation->sellSwapListItem !== null
             && $conversation->sellSwapListItem->player->id->toString() === $loggedPlayer->playerId;
 
+        // "Bring to event" (docs/features/marketplace/11-events.md): the seller's marketplace events for this listing -
+        // one query, only for a member seller of a published listing
+        $bringToEvent = [];
+        if ($isSeller && $loggedPlayer->activeMembership && $conversation->sellSwapListItem->publishedOnMarketplace) {
+            $bringToEvent = $this->getMarketplaceEvents->forListingSeller(
+                sellerId: $loggedPlayer->playerId,
+                listItemId: $conversation->sellSwapListItem->id->toString(),
+                otherPlayerId: $otherPlayer?->id->toString(),
+            );
+        }
+
         $ratingInfo = null;
         if ($conversation->puzzle !== null && $conversation->sellSwapListItem === null) {
             $initiator = $conversation->initiator;
@@ -126,6 +139,7 @@ final class ConversationDetailController extends AbstractController
             'is_recipient' => $isRecipient,
             'puzzle_context' => $puzzleContext,
             'is_seller' => $isSeller,
+            'bring_to_event' => $bringToEvent,
             'rating_info' => $ratingInfo,
         ]);
     }

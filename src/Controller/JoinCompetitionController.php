@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDifferentPlayer;
 use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
+use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
+use SpeedPuzzling\Web\Results\CompetitionEvent;
+use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\EventJustJoined;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,6 +35,8 @@ final class JoinCompetitionController extends AbstractController
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
+        private readonly GetMarketplaceEvents $getMarketplaceEvents,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -58,16 +65,27 @@ final class JoinCompetitionController extends AbstractController
         if ($request->isMethod('POST')) {
             $participantId = $request->request->getString('participant_id');
 
-            if ($participantId !== '') {
-                $this->join($competitionId, $profile->playerId, $participantId);
-            } elseif ($request->request->getBoolean('self_join')) {
-                $this->join($competitionId, $profile->playerId, null);
-            } else {
+            if ($participantId === '' && $request->request->getBoolean('self_join') === false) {
                 // Picker submitted without a name — never fall through to joining under the profile name
                 return $this->redirectToRoute('join_competition', ['competitionId' => $competitionId]);
             }
 
-            return $this->redirect($competitionUrl);
+            // Already going = "Change" (claiming another row of the organizer's list), no new join: no marketplace
+            // follow-up. Only asked where a follow-up could happen at all.
+            $wasGoing = $this->mightBeMarketplaceEvent($competition)
+                && $this->getMarketplaceEvents->isPlayerGoing($competition->id, $profile->playerId);
+
+            $joined = $this->join($competitionId, $profile->playerId, $participantId !== '' ? $participantId : null);
+
+            if ($wasGoing) {
+                if ($joined) {
+                    $this->addFlash('success', $this->translator->trans('flashes.competition_join_success'));
+                }
+
+                return $this->redirect($competitionUrl);
+            }
+
+            return $this->afterJoin($joined, $competition, $profile, $competitionUrl);
         }
 
         $isGoing = count($this->getCompetitionParticipants->getPlayerConnections($competitionId, $profile->playerId)) > 0;
@@ -80,9 +98,9 @@ final class JoinCompetitionController extends AbstractController
                 : null;
 
             if ($matchingParticipantId !== null || $hasNotConnected === false) {
-                $this->join($competitionId, $profile->playerId, $matchingParticipantId);
+                $joined = $this->join($competitionId, $profile->playerId, $matchingParticipantId);
 
-                return $this->redirect($competitionUrl);
+                return $this->afterJoin($joined, $competition, $profile, $competitionUrl);
             }
         }
 
@@ -101,7 +119,10 @@ final class JoinCompetitionController extends AbstractController
         ]);
     }
 
-    private function join(string $competitionId, string $playerId, null|string $participantId): void
+    /**
+     * @return bool whether the player joined
+     */
+    private function join(string $competitionId, string $playerId, null|string $participantId): bool
     {
         try {
             $this->messageBus->dispatch(new JoinCompetition(
@@ -110,13 +131,64 @@ final class JoinCompetitionController extends AbstractController
                 participantId: $participantId,
             ));
 
-            $this->addFlash('success', $this->translator->trans('flashes.competition_join_success'));
+            return true;
         } catch (HandlerFailedException $e) {
             if ($e->getPrevious() instanceof CompetitionParticipantAlreadyConnectedToDifferentPlayer) {
                 $this->addFlash('danger', $this->translator->trans('flashes.competition_duplicate_connection'));
-            } else {
-                throw $e;
+
+                return false;
             }
+
+            throw $e;
         }
+    }
+
+    /**
+     * Where "I'm going" leads (docs/features/marketplace/11-events.md). Not a marketplace event (online, over, not
+     * public, undated) - the event page as always. A marketplace event: members with a published listing go on to
+     * "What will you bring?" (F1), everybody else back to the event page with the marketplace card highlighted (F2).
+     * One query after a successful new join to a dated in-person event that is not over (GetMarketplaceEvents decides
+     * the rest), none otherwise - plus, for a POST, the attendance check before the join.
+     */
+    private function afterJoin(bool $joined, CompetitionEvent $competition, PlayerProfile $profile, string $competitionUrl): Response
+    {
+        if ($joined === false) {
+            return $this->redirect($competitionUrl);
+        }
+
+        $followUp = $this->mightBeMarketplaceEvent($competition)
+            ? $this->getMarketplaceEvents->joinFollowUp($competition->id, $profile->playerId, $profile->activeMembership)
+            : ['qualifies' => false, 'hasPublishedListings' => false];
+
+        if ($followUp['qualifies'] && $profile->activeMembership && $followUp['hasPublishedListings']) {
+            // The picker opens with its own "You're going to …!" confirmation - no flash on top of it
+            return $this->redirectToRoute('event_offers_picker', [
+                'competitionId' => $competition->id,
+                'joined' => 1,
+            ]);
+        }
+
+        $this->addFlash('success', $this->translator->trans('flashes.competition_join_success'));
+
+        if ($followUp['qualifies']) {
+            $this->addFlash(EventJustJoined::FLASH, $competition->id);
+        }
+
+        return $this->redirect($competitionUrl);
+    }
+
+    /**
+     * What the competition row already tells without a query: online, undated and past events are never marketplace
+     * events. Only a cheap pre-check - GetMarketplaceEvents::SQL_QUALIFIES stays the rule (visibility included).
+     */
+    private function mightBeMarketplaceEvent(CompetitionEvent $competition): bool
+    {
+        if ($competition->isOnline || $competition->dateFrom === null) {
+            return false;
+        }
+
+        $lastDay = $competition->dateTo ?? $competition->dateFrom;
+
+        return $lastDay->format('Y-m-d') >= $this->clock->now()->format('Y-m-d');
     }
 }

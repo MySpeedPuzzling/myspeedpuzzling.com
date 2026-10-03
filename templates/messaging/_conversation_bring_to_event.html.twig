@@ -1,0 +1,65 @@
+{#
+    "Bring to event" next to Reserve / Sold in a conversation about a listing (docs/features/marketplace/11-events.md):
+    one group per marketplace event the seller goes to (nearest first) - "Bring it to the event" (checked and disabled
+    once it is brought) and, while the listing is not reserved, "Bring it and reserve it for <buyer>". Rendered by the
+    conversation page and re-rendered by BringListingToEventController's stream; reserve / sold streams leave it alone.
+
+    Parameters:
+    - item_id: the listing
+    - reserved: whether the listing is reserved
+    - events: list<MarketplaceEventForListing> (GetMarketplaceEvents::forListingSeller())
+    - buyer_id, buyer_name: the other player of the conversation (null when their account is gone)
+#}
+{% set token = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\SellSwap\\BringListingToEventController::CSRF_TOKEN_ID')) %}
+<div class="dropdown">
+    <button class="btn btn-outline-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-bag me-1" aria-hidden="true"></i> {{ 'marketplace_events.chat.bring_to_event'|trans }}
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end conversation-bring-menu">
+        {% for listing_event in events %}
+            {% set marketplace_event = listing_event.event %}
+            {% if not loop.first %}
+                <li><hr class="dropdown-divider"></li>
+            {% endif %}
+            <li>
+                <h6 class="dropdown-header">
+                    {{ marketplace_event.reference.displayName() }} · {{ event_dates(marketplace_event.dateFrom, marketplace_event.dateTo) }}
+                    {%- if listing_event.otherPlayerGoing and buyer_name is not null %}
+                        <span class="conversation-bring-menu-going">{{ 'marketplace_events.chat.other_going_too'|trans({'%name%': buyer_name}) }}</span>
+                    {%- endif %}
+                </h6>
+            </li>
+            <li>
+                {% if listing_event.bringing %}
+                    <span class="dropdown-item disabled" aria-disabled="true">
+                        <i class="bi bi-check2-square me-1" aria-hidden="true"></i> {{ 'marketplace_events.chat.bring_it'|trans }}
+                    </span>
+                {% else %}
+                    <form action="{{ path('sell_swap_bring_to_event', {itemId: item_id}) }}" method="post" data-turbo="true">
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <input type="hidden" name="competition_id" value="{{ marketplace_event.competitionId }}">
+                        <input type="hidden" name="context" value="conversation">
+                        <input type="hidden" name="other_player_id" value="{{ buyer_id }}">
+                        <button type="submit" class="dropdown-item">
+                            <i class="bi bi-bag me-1" aria-hidden="true"></i> {{ 'marketplace_events.chat.bring_it'|trans }}
+                        </button>
+                    </form>
+                {% endif %}
+            </li>
+            {% if not reserved and buyer_id is not null %}
+                <li>
+                    <form action="{{ path('sell_swap_bring_to_event', {itemId: item_id}) }}" method="post" data-turbo="true">
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <input type="hidden" name="competition_id" value="{{ marketplace_event.competitionId }}">
+                        <input type="hidden" name="reserve_for_player_id" value="{{ buyer_id }}">
+                        <input type="hidden" name="context" value="conversation">
+                        <input type="hidden" name="other_player_id" value="{{ buyer_id }}">
+                        <button type="submit" class="dropdown-item">
+                            <i class="bi bi-bookmark-check me-1" aria-hidden="true"></i> {{ 'marketplace_events.chat.bring_and_reserve'|trans({'%name%': buyer_name}) }}
+                        </button>
+                    </form>
+                </li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+</div>

@@ -53,7 +53,8 @@ final class JoinCompetitionControllerTest extends WebTestCase
 
         $browser->request('GET', '/en/join-event/' . CompetitionFixture::COMPETITION_WJPC_2024);
 
-        $this->assertResponseRedirects('/en/events/wjpc-2024');
+        // An in-person event and a member with offers: on to "What will you bring?" (JoinMarketplaceFollowUpTest)
+        $this->assertResponseRedirects('/en/events/' . CompetitionFixture::COMPETITION_WJPC_2024 . '/what-i-bring?joined=1');
         self::assertSame(PlayerFixture::PLAYER_ADMIN, $database->fetchOne(
             'SELECT player_id FROM competition_participant WHERE id = :id',
             ['id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED],
@@ -78,7 +79,8 @@ final class JoinCompetitionControllerTest extends WebTestCase
 
         $browser->request('GET', '/en/join-event/' . CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024);
 
-        $this->assertResponseRedirects('/en/events/czech-nationals-2024');
+        // An in-person event and a member with offers: on to "What will you bring?" (JoinMarketplaceFollowUpTest)
+        $this->assertResponseRedirects('/en/events/' . CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024 . '/what-i-bring?joined=1');
         self::assertSame(1, $this->participantRowsOf(PlayerFixture::PLAYER_ADMIN, CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024));
     }
 

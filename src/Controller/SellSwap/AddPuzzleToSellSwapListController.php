@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\FormData\AddToSellSwapListFormData;
 use SpeedPuzzling\Web\FormType\AddToSellSwapListFormType;
 use SpeedPuzzling\Web\Message\AddPuzzleToSellSwapList;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
+use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
@@ -35,6 +36,7 @@ final class AddPuzzleToSellSwapListController extends AbstractController
         readonly private GetCollectionItems $getCollectionItems,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
+        readonly private GetMarketplaceEvents $getMarketplaceEvents,
     ) {
     }
 
@@ -62,8 +64,15 @@ final class AddPuzzleToSellSwapListController extends AbstractController
 
         $isInSellSwapList = $this->getSellSwapListItems->isPuzzleInSellSwapList($loggedPlayer->playerId, $puzzleId);
 
+        // The form is only shown to members adding a new listing - nobody else pays for the events query
+        $marketplaceEvents = $loggedPlayer->activeMembership && $isInSellSwapList === false
+            ? $this->getMarketplaceEvents->forPlayer($loggedPlayer->playerId)
+            : [];
+
         $formData = new AddToSellSwapListFormData();
-        $form = $this->createForm(AddToSellSwapListFormType::class, $formData);
+        $form = $this->createForm(AddToSellSwapListFormType::class, $formData, [
+            'marketplace_events' => $marketplaceEvents,
+        ]);
         $form->handleRequest($request);
 
         // Handle POST - add to sell/swap list
@@ -88,6 +97,7 @@ final class AddPuzzleToSellSwapListController extends AbstractController
                 condition: $formData->condition,
                 comment: $formData->comment,
                 publishedOnMarketplace: $formData->publishedOnMarketplace,
+                eventIds: $form->has('eventIds') ? array_values($formData->eventIds) : null,
             ));
 
             // Check if this is a Turbo request
@@ -144,6 +154,7 @@ final class AddPuzzleToSellSwapListController extends AbstractController
             'puzzle' => $puzzle,
             'form' => $form,
             'is_in_sell_swap_list' => $isInSellSwapList,
+            'marketplace_events' => $marketplaceEvents,
             'context' => $request->query->getString('context', 'detail'),
             'collection_id' => $request->query->getString('collection_id', ''),
         ];

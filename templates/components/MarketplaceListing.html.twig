@@ -1,4 +1,8 @@
 <div {{ attributes }}>
+    {# Marketplace at events (docs/features/marketplace/11-events.md): an event picked = the going sellers' listings,
+       bringing first, shipping filters off #}
+    {% set chosen_event = this.chosenEvent %}
+
     {# Filters #}
     <div class="card shadow-sm mb-3">
         <div class="card-body py-2">
@@ -87,8 +91,9 @@
                         </select>
                     </div>
 
-                    {# Seller country #}
-                    <div class="col-6 col-md-3 col-lg-3 country-select-wrapper" data-live-ignore>
+                    {# Seller country - off while an event is chosen (the wrapper inside is live-ignored, so hide this one) #}
+                    <div class="col-6 col-md-3 col-lg-3{{ chosen_event is not null ? ' d-none' }}" data-testid="marketplace-seller-country">
+                    <div class="country-select-wrapper" data-live-ignore>
                         <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.country'|trans }}</small></label>
                         <select
                             data-model="on(change)|sellerCountry"
@@ -104,6 +109,7 @@
                                 </optgroup>
                             {% endfor %}
                         </select>
+                    </div>
                     </div>
 
                     {# Sort #}
@@ -121,6 +127,35 @@
                         </select>
                     </div>
                 </div>
+
+                {# Pick up at an event - only when some seller with published listings is going somewhere #}
+                {% set event_choices = this.eventChoices %}
+                {% if event_choices is not empty or chosen_event is not null %}
+                    <div class="mt-2 mpe-filter">
+                        <label class="form-label form-label-sm mb-0" for="marketplaceEventFilter">
+                            <small><i class="bi bi-geo-alt me-1"></i>{{ 'marketplace_events.marketplace.filter_label'|trans }}</small>
+                        </label>
+                        <select id="marketplaceEventFilter" data-model="event" class="form-select form-select-sm">
+                            <option value="">{{ 'marketplace_events.marketplace.any_event'|trans }}</option>
+                            {% for choice in event_choices %}
+                                {% set choice_event = choice.event %}
+                                {% set is_chosen = chosen_event is not null and chosen_event.competitionId == choice_event.competitionId %}
+                                <option value="{{ choice_event.competitionId }}" {{ is_chosen ? 'selected' }}>
+                                    {{- choice_event.shortName }} — {{ event_dates(choice_event.dateFrom, choice_event.dateTo) }}
+                                    {%- if choice_event.location %} · {{ choice_event.location }}{% endif %}
+                                    {%- if choice.bringingCount > 0 %} — {{ 'marketplace_events.marketplace.coming'|trans({'%count%': choice.bringingCount}) }}{% endif %}
+                                    {%- if choice.askCount > 0 %}{{ choice.bringingCount > 0 ? ' · ' : ' — ' }}{{ 'marketplace_events.marketplace.to_ask'|trans({'%count%': choice.askCount}) }}{% endif -%}
+                                </option>
+                            {% endfor %}
+                            {# A marketplace event not among the (cached) options yet, from a link #}
+                            {% if chosen_event is not null and event_choices|filter(c => c.event.competitionId == chosen_event.competitionId) is empty %}
+                                <option value="{{ chosen_event.competitionId }}" selected>
+                                    {{- chosen_event.shortName }} — {{ event_dates(chosen_event.dateFrom, chosen_event.dateTo) -}}
+                                </option>
+                            {% endif %}
+                        </select>
+                    </div>
+                {% endif %}
 
                 {# Pieces #}
                 <div class="mt-2">
@@ -157,9 +192,9 @@
                 </div>
 
                 <div class="mt-2 d-flex flex-wrap gap-3">
-                    {# Ship to my country #}
+                    {# Ship to my country - off while an event is chosen #}
                     {% set userCountry = this.userCountry %}
-                    <div class="form-check">
+                    <div class="form-check{{ chosen_event is not null ? ' d-none' }}" data-testid="marketplace-ship-to-my-country">
                         <input
                             type="checkbox"
                             data-model="shipToMyCountry"
@@ -213,6 +248,39 @@
         {% endif %}
     {% endif %}
 
+    {# The chosen event #}
+    {% if chosen_event is not null %}
+        {% set counts = this.counts %}
+        {% set event_route = chosen_event.reference.routeName() %}
+        <div class="mpe-context mb-3" data-testid="marketplace-event-context">
+            <div class="d-flex align-items-start justify-content-between gap-2">
+                <div class="min-width-0">
+                    <div class="mpe-context-title">
+                        <i class="bi bi-geo-alt-fill me-1"></i>
+                        {%- if event_route is not null -%}
+                            <a href="{{ path(event_route, chosen_event.reference.routeParameters()) }}">{{ chosen_event.reference.displayName() }}</a>
+                        {%- else -%}
+                            {{ chosen_event.reference.displayName() }}
+                        {%- endif -%}
+                    </div>
+                    <div class="mpe-context-meta">
+                        {%- if chosen_event.countryCode is not null %}<span class="fi fi-{{ chosen_event.countryCode.name }} me-1"></span>{% endif -%}
+                        {%- if chosen_event.location %}{{ chosen_event.location }} · {% endif -%}
+                        {{ event_dates(chosen_event.dateFrom, chosen_event.dateTo) }}
+                        {%- if counts.bringing > 0 %} · {{ 'marketplace_events.marketplace.coming'|trans({'%count%': counts.bringing}) }}{% endif -%}
+                        {%- if counts.toAsk > 0 %} · {{ 'marketplace_events.marketplace.to_ask'|trans({'%count%': counts.toAsk}) }}{% endif -%}
+                    </div>
+                    <div class="mpe-context-meta"><i class="bi bi-people me-1"></i>{{ 'marketplace_events.marketplace.context_hint'|trans }}</div>
+                </div>
+                <button type="button" class="btn-close btn-close-white flex-shrink-0" aria-label="{{ 'marketplace_events.marketplace.any_event'|trans }}" title="{{ 'marketplace_events.marketplace.any_event'|trans }}" data-action="live#action" data-live-action-param="clearEvent"></button>
+            </div>
+            <div class="form-check mt-2 mb-0">
+                <input type="checkbox" data-model="onlyBringing" class="form-check-input" id="onlyBringingFilter" {{ this.onlyBringing ? 'checked' }}>
+                <label class="form-check-label" for="onlyBringingFilter">{{ 'marketplace_events.marketplace.only_bringing'|trans }}</label>
+            </div>
+        </div>
+    {% endif %}
+
     {# Settings checklist for logged users with active membership (dismissable in marketplace) #}
     {% if logged_user.profile is not null and logged_user.profile.activeMembership and not this.settingsChecklistDismissed %}
         {% set sellSwapSettings = logged_user.profile.sellSwapListSettings %}
@@ -260,9 +328,16 @@
             {% set marketplaceReturnUrl = this.returnUrl %}
             {# Members see each puzzle's difficulty on the image's corner (null for everyone else) #}
             {% set difficulty_tiers = this.difficultyTiers %}
+            {# One list under an event: what they are bringing, then a divider, then what to ask them to bring #}
+            {% set bringing_on_page = chosen_event is not null ? items|filter(i => i.bringing)|length : 0 %}
             {% for item in items %}
+                {% if bringing_on_page > 0 and loop.index0 == bringing_on_page %}
+                    <div class="col-12 mpe-divider" role="separator" data-testid="marketplace-event-divider">
+                        <span>{{ 'marketplace_events.marketplace.divider'|trans({'%count%': this.counts.toAsk}) }}</span>
+                    </div>
+                {% endif %}
                 <div class="col" id="marketplace-listing-{{ item.itemId }}">
-                    {% include 'marketplace/_listing_card.html.twig' with {item: item, marketplaceReturnUrl: marketplaceReturnUrl, difficulty_tiers: difficulty_tiers} only %}
+                    {% include 'marketplace/_listing_card.html.twig' with {item: item, marketplaceReturnUrl: marketplaceReturnUrl, difficulty_tiers: difficulty_tiers, event: chosen_event} only %}
                 </div>
             {% endfor %}
         </div>

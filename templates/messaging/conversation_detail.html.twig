@@ -85,8 +85,22 @@
                 </div>
 
                 {% if is_seller and puzzle_context.itemId is defined %}
-                    <div class="d-flex flex-wrap gap-1" id="conversation-listing-actions-{{ puzzle_context.itemId }}">
-                        {{ include('messaging/_conversation_listing_actions.html.twig') }}
+                    <div class="d-flex flex-wrap gap-1">
+                        <div class="d-flex flex-wrap gap-1" id="conversation-listing-actions-{{ puzzle_context.itemId }}">
+                            {{ include('messaging/_conversation_listing_actions.html.twig') }}
+                        </div>
+                        {# Its own target: the reserve / sold streams re-render the actions above without the seller's events #}
+                        {% if bring_to_event|default([]) is not empty %}
+                            <div id="conversation-bring-to-event-{{ puzzle_context.itemId }}">
+                                {{ include('messaging/_conversation_bring_to_event.html.twig', {
+                                    item_id: puzzle_context.itemId,
+                                    reserved: puzzle_context.reserved,
+                                    events: bring_to_event,
+                                    buyer_id: other_player is not null ? other_player.id.toString() : null,
+                                    buyer_name: other_player is not null ? (other_player.name ?? other_player.code) : null,
+                                }, with_context = false) }}
+                            </div>
+                        {% endif %}
                     </div>
                 {% endif %}
             </div>

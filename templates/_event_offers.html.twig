@@ -1,0 +1,121 @@
+{#
+    Marketplace at events: the card of an event page (docs/features/marketplace/11-events.md, "E2"), between the
+    "I'm going" row and the participants - on event_detail and edition_detail alike.
+
+    - offers: null|SpeedPuzzling\Web\Results\EventOffersSummary (GetEventOffers::forEventPage()) - null = not a
+      marketplace event, no card and no query
+    - competition_id: the competition's id
+    - attendance: SpeedPuzzling\Web\Results\EventAttendance
+    - just_joined: bool - the viewer has just clicked "I'm going" (F2): highlighted, in buyer wording
+
+    Who is who: "member" = active membership, "seller" = a member with published offers, "going" = attendance.
+    With offers on the way everybody gets the card; a seller gets their own line under it, F2 an invitation to sell.
+    With none, only a seller gets a card - the empty one, asking them to bring something.
+#}
+{% if offers is not null %}
+    {%- set member = logged_user.profile is not null and logged_user.profile.activeMembership -%}
+    {%- set seller = member and offers.viewerPublishedCount > 0 -%}
+    {%- set going = attendance.isGoing -%}
+    {%- set picker_url = path('event_offers_picker', {competitionId: competition_id}) -%}
+
+    {% if offers.totalCount > 0 %}
+        {# %puzzles% counts what is packed - or, when nothing is, what buyers can ask for; %more% what they can ask for on top #}
+        {%- set body_parameters = {
+            '%count%': offers.sellersCount,
+            '%puzzles%': 'marketplace_events.card.puzzles_phrase'|trans({'%count%': offers.bringingCount > 0 ? offers.bringingCount : offers.askCount}),
+            '%more%': 'marketplace_events.card.more_phrase'|trans({'%count%': offers.askCount}),
+        } -%}
+
+        {# The viewer's own line: a seller's offers here, or - right after "I'm going" - how to sell here too #}
+        {%- set footer -%}
+            {%- if seller and going -%}
+                {%- if offers.viewerBringingCount > 0 -%}
+                    {{ 'marketplace_events.card.you_bring'|trans({'%count%': offers.viewerBringingCount}) }}
+                    <a href="{{ picker_url }}" class="event-offers-card-link">{{ 'marketplace_events.card.change'|trans }}</a>
+                {%- else -%}
+                    {{ 'marketplace_events.card.nothing_marked'|trans }}
+                    <a href="{{ picker_url }}" class="event-offers-card-link">{{ 'marketplace_events.card.choose_what_you_pack'|trans }}</a>
+                {%- endif -%}
+            {%- elseif seller -%}
+                {{ 'marketplace_events.card.seller_not_going'|trans }}
+            {%- elseif just_joined and not member -%}
+                {%- set link -%}
+                    <a href="{{ path('membership') }}" class="event-offers-card-link">{{ 'marketplace_events.card.non_member_link'|trans }}</a>
+                {%- endset -%}
+                {{ 'marketplace_events.card.non_member_line'|trans({'%link%': link})|raw }}
+            {%- elseif just_joined -%}
+                {%- set link -%}
+                    <a href="{{ path('sell_swap_list_detail', {playerId: logged_user.profile.playerId}) }}" class="event-offers-card-link">{{ 'marketplace_events.card.member_no_listings_link'|trans }}</a>
+                {%- endset -%}
+                {{ 'marketplace_events.card.member_no_listings'|trans({'%link%': link})|raw }}
+            {%- endif -%}
+        {%- endset -%}
+
+        <section class="event-offers-card{{ just_joined ? ' event-offers-card-highlighted' }}" aria-labelledby="event-offers-title" data-testid="event-offers">
+            <div class="event-offers-card-main">
+                <span class="event-offers-card-icon" aria-hidden="true"><i class="bi bi-bag"></i></span>
+                <div class="event-offers-card-content">
+                    <h2 class="event-offers-card-title" id="event-offers-title">
+                        {%- if just_joined -%}
+                            {{ 'marketplace_events.card.title_just_joined'|trans }}
+                        {%- else -%}
+                            {{ 'marketplace_events.card.title'|trans }}
+                        {%- endif -%}
+                    </h2>
+                    <p class="event-offers-card-text">
+                        {%- if offers.bringingCount > 0 and offers.askCount > 0 -%}
+                            {{ 'marketplace_events.card.body_both'|trans(body_parameters) }}
+                        {%- elseif offers.bringingCount > 0 -%}
+                            {{ 'marketplace_events.card.body_bringing_only'|trans(body_parameters) }}
+                        {%- else -%}
+                            {{ 'marketplace_events.card.body_ask_only'|trans(body_parameters) }}
+                        {%- endif -%}
+                        {%- if just_joined %} {{ 'marketplace_events.card.body_just_joined_suffix'|trans }}{% endif -%}
+                    </p>
+                    <div class="event-offers-card-actions">
+                        {% if offers.sellers is not empty %}
+                            {# The text says how many - the faces are decoration, names on hover. Too small for the flag
+                               on a photo's corner: the photo, else the round flag, else the initial #}
+                            <span class="event-offers-card-faces" aria-hidden="true">
+                                {%- for seller_face in offers.sellers -%}
+                                    <span class="event-offers-card-face" title="{{ seller_face.displayName }}">
+                                        {{- include('_player_avatar.html.twig', {
+                                            player_id: seller_face.playerId,
+                                            name: seller_face.displayName,
+                                            avatar: seller_face.avatar,
+                                            country_code: seller_face.avatar is null and seller_face.country is not null ? seller_face.country.name : null,
+                                        }) -}}
+                                    </span>
+                                {%- endfor -%}
+                            </span>
+                        {% endif %}
+                        <a href="{{ path('marketplace', {event: competition_id}) }}" class="btn btn-sm btn-primary">
+                            {{- 'marketplace_events.card.see_whats_coming'|trans -}}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% if footer|trim is not empty %}
+                <p class="event-offers-card-footer">{{ footer }}</p>
+            {% endif %}
+        </section>
+    {% elseif seller %}
+        <section class="event-offers-card event-offers-card-empty" aria-labelledby="event-offers-title" data-testid="event-offers">
+            <div class="event-offers-card-main">
+                <span class="event-offers-card-icon" aria-hidden="true"><i class="bi bi-bag"></i></span>
+                <div class="event-offers-card-content">
+                    <h2 class="event-offers-card-title" id="event-offers-title">{{ 'marketplace_events.card.title_seller_empty'|trans }}</h2>
+                    <p class="event-offers-card-text">{{ 'marketplace_events.card.body_seller_empty'|trans }}</p>
+                    {% if going %}
+                        <div class="event-offers-card-actions">
+                            <a href="{{ picker_url }}" class="btn btn-sm btn-primary">{{ 'marketplace_events.card.choose_puzzles'|trans }}</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% if not going %}
+                <p class="event-offers-card-footer">{{ 'marketplace_events.card.seller_empty_not_going'|trans }}</p>
+            {% endif %}
+        </section>
+    {% endif %}
+{% endif %}

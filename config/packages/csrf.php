@@ -51,6 +51,10 @@ return App::config([
                 // pages a player opens all the time - a session-backed token would write the session on each
                 'comparison_add',
                 'comparison_remove',
+                // Marketplace at events (docs/features/marketplace/11-events.md): the picker's Save and the "Bring to
+                // event" menu, which sits on every conversation page a seller opens
+                'event_offers_picker',
+                'sell_swap_bring_to_event',
             ],
         ],
     ],

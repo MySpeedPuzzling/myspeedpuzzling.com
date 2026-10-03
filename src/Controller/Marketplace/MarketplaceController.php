@@ -6,11 +6,14 @@ namespace SpeedPuzzling\Web\Controller\Marketplace;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Query\GetMarketplaceEventsHintState;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\IsHintDismissed;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\HintType;
+use SpeedPuzzling\Web\Value\MarketplaceEventsBanner;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -20,6 +23,7 @@ final class MarketplaceController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private IsHintDismissed $isHintDismissed,
         readonly private GetPuzzleOverview $getPuzzleOverview,
+        readonly private GetMarketplaceEventsHintState $getMarketplaceEventsHintState,
     ) {
     }
 
@@ -47,13 +51,37 @@ final class MarketplaceController extends AbstractController
         name: 'marketplace_puzzle',
         methods: ['GET'],
     )]
-    public function __invoke(string $puzzleId = ''): Response
+    public function __invoke(Request $request, string $puzzleId = ''): Response
     {
         $disclaimerDismissed = false;
+        $eventsHintState = null;
+        $eventsBanner = null;
+        // "Pick up at an event" is a filtered view of the marketplace - kept out of the index, links followed
+        $eventFilter = $request->query->all()['event'] ?? '';
 
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         if ($loggedPlayer !== null) {
-            $disclaimerDismissed = ($this->isHintDismissed)($loggedPlayer->playerId, HintType::MarketplaceDisclaimer);
+            // Both banners of the page in one query; the events banner's state only while it is not dismissed
+            $dismissed = $this->isHintDismissed->dismissedAmong(
+                $loggedPlayer->playerId,
+                HintType::MarketplaceDisclaimer,
+                HintType::MarketplaceAtEvents,
+            );
+            $disclaimerDismissed = in_array(HintType::MarketplaceDisclaimer, $dismissed, true);
+
+            if (in_array(HintType::MarketplaceAtEvents, $dismissed, true) === false) {
+                $eventsHintState = $this->getMarketplaceEventsHintState->forPlayer($loggedPlayer->playerId);
+                $eventsBanner = $eventsHintState->banner($loggedPlayer->activeMembership);
+
+                // "See what's coming" while already looking at it
+                if (
+                    $eventsBanner === MarketplaceEventsBanner::Buyer
+                    && is_string($eventFilter)
+                    && strtolower($eventFilter) === $eventsHintState->nearestEvent?->competitionId
+                ) {
+                    $eventsBanner = null;
+                }
+            }
         }
 
         $puzzleOverview = null;
@@ -73,6 +101,9 @@ final class MarketplaceController extends AbstractController
             'disclaimer_dismissed' => $disclaimerDismissed,
             'puzzle_id' => $puzzleId,
             'puzzle_overview' => $puzzleOverview,
+            'events_banner' => $eventsBanner,
+            'events_hint_state' => $eventsHintState,
+            'noindex' => $eventFilter !== '',
         ]);
     }
 }

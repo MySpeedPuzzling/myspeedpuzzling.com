@@ -3,6 +3,8 @@
 {% block title %}{% if puzzle_overview is not null %}{{ 'marketplace.meta.title_puzzle'|trans({'%brand%': puzzle_overview.manufacturerName, '%puzzle%': puzzle_overview.puzzleName}) }}{% else %}{{ 'marketplace.meta.title'|trans }}{% endif %}{% endblock %}
 {% block meta_description %}{% if puzzle_overview is not null %}{{ 'marketplace.meta.description_puzzle'|trans({'%brand%': puzzle_overview.manufacturerName, '%puzzle%': puzzle_overview.puzzleName}) }}{% else %}{{ 'marketplace.meta.description'|trans }}{% endif %}{% endblock %}
 
+{% block robots %}{% if noindex %}<meta name="robots" content="noindex, follow">{% else %}{{ parent() }}{% endif %}{% endblock %}
+
 {% block content %}
     {{ include('_return_back_button.html.twig') }}
 
@@ -31,6 +33,10 @@
                 <button type="button" class="btn-close ms-2 flex-shrink-0" aria-label="{{ 'forms.close'|trans }}" {{ stimulus_action('dismiss-hint', 'dismiss') }}></button>
             {% endif %}
         </div>
+    {% endif %}
+
+    {% if events_banner is not null %}
+        {{ include('marketplace/_events_banner.html.twig', {banner: events_banner, state: events_hint_state}) }}
     {% endif %}
 
     <twig:MarketplaceListing :puzzleId="puzzle_id" :puzzleOverview="puzzle_overview" />

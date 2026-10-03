@@ -28,6 +28,8 @@
     {{ form_row(form.publishedOnMarketplace) }}
 </div>
 
+{{ include('sell-swap/_event_fields.html.twig') }}
+
 <div class="d-grid gap-2 d-sm-flex">
     <button type="submit" class="btn btn-primary flex-grow-1">
         <i class="bi bi-shop me-1"></i> {{ 'sell_swap_list.add.button'|trans }}

@@ -1,0 +1,160 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "What will you bring to the event?" (EventOffersPickerController, docs/features/marketplace/11-events.md): the
+    seller's published listings, ticked = brought to this event. `joined` = the next step right after "I'm going" (F1).
+    Search, "Select all", "Clear" and the counter run in the browser (event_offers_picker_controller.js) - without
+    JavaScript the list and Save still work.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set event_name = event.reference.displayName() %}
+
+{% block title %}{{ 'marketplace_events.picker.title'|trans({'%event%': event_name}) }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {% set event_url = event.reference.routeName() is not null ? path(event.reference.routeName(), event.reference.routeParameters()) : path('events') %}
+    {% set settings = logged_user.profile.sellSwapListSettings %}
+    {% set currency = settings is not null ? (settings.customCurrency ?? (settings.currency != 'custom' ? settings.currency : '')) : '' %}
+    {% set selected_count = choices|filter(choice => choice.bringing)|length %}
+
+    <div class="event-offers-picker">
+        {% if joined %}
+            <div class="event-offers-picker-joined" role="status">
+                <span class="event-offers-picker-joined-icon" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+                <span>
+                    <strong>{{ 'marketplace_events.picker.joined_title'|trans({'%event%': event_name}) }}</strong>
+                    {{ 'marketplace_events.picker.joined_text'|trans }}
+                </span>
+            </div>
+            <p class="event-offers-picker-eyebrow">{{ 'marketplace_events.picker.optional'|trans }}</p>
+            <h1 class="h4 mb-2">{{ 'marketplace_events.picker.joined_heading'|trans }}</h1>
+        {% else %}
+            <h1 class="h4 mb-2">{{ 'marketplace_events.picker.title'|trans({'%event%': event_name}) }}</h1>
+        {% endif %}
+
+        <p class="text-muted mb-3">{{ 'marketplace_events.picker.intro'|trans }}</p>
+
+        {% if choices is empty %}
+            <div class="event-offers-picker-empty">
+                <p class="mb-2">{{ 'marketplace_events.picker.no_listings'|trans }}</p>
+                <a href="{{ path('sell_swap_list_detail', {playerId: logged_user.profile.playerId}) }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-shop me-1" aria-hidden="true"></i>{{ 'sell_swap_list.title'|trans }}
+                </a>
+            </div>
+
+            <div class="mt-3">
+                <a href="{{ event_url }}" class="btn btn-link px-0">
+                    {{ (joined ? 'marketplace_events.picker.skip' : 'marketplace_events.picker.cancel')|trans }}
+                </a>
+            </div>
+        {% else %}
+            <div data-controller="event-offers-picker"
+                 data-event-offers-picker-selected-text-value="{{ browser_translation('marketplace_events.picker.selected')|json_encode }}">
+                {# Outside the form: Enter in the search must never save #}
+                <div class="event-offers-picker-toolbar">
+                    <input type="search"
+                           class="form-control form-control-sm event-offers-picker-search"
+                           placeholder="{{ 'marketplace_events.picker.search'|trans({'%count%': choices|length}) }}"
+                           aria-label="{{ 'marketplace_events.picker.search'|trans({'%count%': choices|length}) }}"
+                           autocomplete="off"
+                           data-event-offers-picker-target="search"
+                           data-action="input->event-offers-picker#filter keydown.enter->event-offers-picker#ignoreEnter">
+                    <div class="event-offers-picker-actions">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-action="event-offers-picker#selectAll">
+                            {{ 'marketplace_events.picker.select_all'|trans }}
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-action="event-offers-picker#clear">
+                            {{ 'marketplace_events.picker.clear'|trans }}
+                        </button>
+                        <span class="event-offers-picker-count" aria-live="polite" data-event-offers-picker-target="count">
+                            {{- 'marketplace_events.picker.selected'|trans({'%count%': selected_count}) -}}
+                        </span>
+                    </div>
+                </div>
+
+                <form method="post" action="{{ path('event_offers_picker', {competitionId: event.competitionId, joined: joined ? 1 : null}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Marketplace\\EventOffersPickerController::CSRF_TOKEN_ID')) }}">
+
+                    <ul class="event-offers-picker-list list-unstyled mb-0">
+                        {% for choice in choices %}
+                            <li class="event-offers-picker-row"
+                                data-event-offers-picker-target="row"
+                                data-search="{{ [choice.puzzleName, choice.manufacturerName, choice.piecesCount]|join(' ')|lower }}">
+                                <label class="event-offers-picker-label" for="event-offer-{{ choice.itemId }}">
+                                    <input type="checkbox"
+                                           class="form-check-input event-offers-picker-check"
+                                           id="event-offer-{{ choice.itemId }}"
+                                           name="listings[]"
+                                           value="{{ choice.itemId }}"
+                                           data-event-offers-picker-target="checkbox"
+                                           data-action="change->event-offers-picker#update"
+                                           {% if choice.bringing %}checked{% endif %}>
+
+                                    <span class="event-offers-picker-thumb">
+                                        {{ lazy_puzzle_image(
+                                            choice.image,
+                                            'puzzle_small',
+                                            choice.puzzleName,
+                                            loop.index,
+                                            46,
+                                            'rounded' ~ (choice.reserved ? ' grayscale' : ''),
+                                            46,
+                                            choice.imageRatio
+                                        ) }}
+                                    </span>
+
+                                    <span class="event-offers-picker-info">
+                                        <span class="event-offers-picker-name">{{ choice.puzzleName }}</span>
+                                        <span class="event-offers-picker-sub">
+                                            {%- if choice.manufacturerName %}{{ choice.manufacturerName }} · {% endif -%}
+                                            {{ choice.piecesCount }} {{ 'marketplace.pcs'|trans }} · {{ ('sell_swap_list.condition.' ~ choice.condition.value)|trans }}
+                                        </span>
+                                    </span>
+
+                                    <span class="event-offers-picker-badges">
+                                        {% if choice.listingType.value != 'free' and choice.listingType.value != 'swap' and choice.price is not null and choice.price > 0 %}
+                                            <span class="badge bg-light text-dark border">{{ choice.price }} {{ currency }}</span>
+                                        {% endif %}
+                                        {% if choice.listingType.value == 'sell' %}
+                                            <span class="badge bg-success">{{ 'sell_swap_list.listing_type.sell'|trans }}</span>
+                                        {% elseif choice.listingType.value == 'swap' %}
+                                            <span class="badge bg-info">{{ 'sell_swap_list.listing_type.swap'|trans }}</span>
+                                        {% elseif choice.listingType.value == 'free' %}
+                                            <span class="badge bg-danger">{{ 'sell_swap_list.listing_type.free'|trans }}</span>
+                                        {% else %}
+                                            <span class="badge bg-primary">{{ 'sell_swap_list.listing_type.both'|trans }}</span>
+                                        {% endif %}
+                                        {% if choice.reserved %}
+                                            <span class="badge bg-dark">{{ 'sell_swap_list.reserved'|trans }}</span>
+                                        {% endif %}
+                                        {% for other_event in choice.alsoAt %}
+                                            <span class="badge event-offers-picker-also-at">
+                                                <i class="bi bi-bag me-1" aria-hidden="true"></i>{{ 'marketplace_events.picker.also_at'|trans({'%event%': other_event}) }}
+                                            </span>
+                                        {% endfor %}
+                                    </span>
+                                </label>
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                    <p class="event-offers-picker-no-match text-muted" data-event-offers-picker-target="noMatch" hidden>
+                        {{ 'marketplace_events.picker.no_match'|trans }}
+                    </p>
+
+                    <div class="event-offers-picker-footer">
+                        <a href="{{ event_url }}" class="btn btn-link px-0">
+                            {{ (joined ? 'marketplace_events.picker.skip' : 'marketplace_events.picker.cancel')|trans }}
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'marketplace_events.picker.save'|trans }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

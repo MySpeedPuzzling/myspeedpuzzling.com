@@ -1,0 +1,97 @@
+// Marketplace at events: the marketplace event filter, labels and banner. See docs/features/marketplace/11-events.md
+// Dark = the theme's darkest slate, like the footer: white text 12.6:1, the muted line 6.6:1.
+
+$mpe-dark:       $gray-900;
+$mpe-muted-dark: #c5ccd8;
+
+// A badge whose event name ellipsizes while the rest ("Bringing to", the date) stays readable.
+// pre keeps the spaces between the flex items (the text around the name)
+.mpe-badge {
+  display: inline-flex;
+  align-items: baseline;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: pre;
+  font-size: .7rem;
+  font-weight: $font-weight-medium;
+}
+
+.mpe-badge-event {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mpe-badge-outline {
+  border: 1px solid $mpe-dark;
+  background-color: $white;
+  color: $mpe-dark;
+}
+
+.mpe-reserved-for-you {
+  max-width: calc(100% - 2.5rem); // clear of the contact / menu button in the top right corner
+}
+
+// The chosen event above the results
+.mpe-context {
+  padding: .75rem 1rem;
+  border-radius: $border-radius-lg;
+  background-color: $mpe-dark;
+  color: $white;
+  font-size: $font-size-sm;
+
+  a {
+    color: $white;
+    text-decoration: underline;
+  }
+
+  .form-check-input {
+    border-color: $mpe-muted-dark;
+  }
+}
+
+.mpe-context-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-base;
+}
+
+.mpe-context-meta {
+  color: $mpe-muted-dark;
+}
+
+// Between what the sellers are bringing and what to ask them to bring
+.mpe-divider {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  color: $gray-600;
+  font-size: $font-size-sm;
+  text-align: center;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1 1 0;
+    min-width: 1rem;
+    border-top: 1px dashed $gray-400;
+  }
+}
+
+// The banner on the marketplace and on the seller's own sell/swap list
+.mpe-banner {
+  padding: .75rem 1rem;
+  border: 1px solid $mpe-dark;
+  border-left-width: .25rem;
+  border-radius: $border-radius-lg;
+  background-color: $white;
+  font-size: $font-size-sm;
+}
+
+.mpe-banner-title {
+  font-weight: $font-weight-semibold;
+  color: $mpe-dark;
+}

@@ -112,7 +112,7 @@
                           data-turbo="true"
                           data-turbo-frame="modal-frame"
                           class="d-flex gap-2">
-                        <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput"></textarea>
+                        <textarea name="message" class="form-control" rows="{{ prefill_message|default(null) is not null ? 3 : 1 }}" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput">{{ prefill_message|default('') }}</textarea>
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-send"></i>
                         </button>
@@ -173,7 +173,7 @@
                   data-turbo-frame="modal-frame">
                 <div class="mb-3">
                     <label for="message" class="form-label">{{ 'messaging.message_label'|trans }}</label>
-                    <textarea name="message" id="message" class="form-control" rows="3" maxlength="2000" required placeholder="{{ 'messaging.write_message_placeholder'|trans }}"></textarea>
+                    <textarea name="message" id="message" class="form-control" rows="3" maxlength="2000" required placeholder="{{ 'messaging.write_message_placeholder'|trans }}">{{ prefill_message|default('') }}</textarea>
                     <div class="form-text">{{ 'messaging.max_characters'|trans }}</div>
                     <div class="form-text d-none d-md-block"><i class="bi bi-info-circle me-1"></i>{{ 'messaging.shift_enter_hint'|trans }}</div>
                 </div>

@@ -52,6 +52,10 @@
         </div>
     </div>
 
+    {% if events_banner|default(null) is not null %}
+        {{ include('marketplace/_events_banner.html.twig', {banner: events_banner, state: events_hint_state}) }}
+    {% endif %}
+
     {% if isOwnProfile and (settings is null or not settings.currency and not settings.customCurrency or settings.shippingCountries is empty) %}
         {% include 'sell-swap/_settings_checklist.html.twig' with {
             settings: settings,

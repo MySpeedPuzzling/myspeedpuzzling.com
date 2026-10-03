@@ -23,4 +23,11 @@ final class AddToSellSwapListFormData
     public null|string $comment = null;
 
     public bool $publishedOnMarketplace = true;
+
+    /**
+     * Competition ids - the "I'm bringing it to" checkboxes, only on the form when the seller goes to a marketplace event
+     *
+     * @var array<string>
+     */
+    public array $eventIds = [];
 }

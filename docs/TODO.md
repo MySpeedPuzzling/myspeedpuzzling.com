@@ -4,6 +4,21 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Marketplace at events (`docs/features/marketplace/11-events.md`)
+
+- [ ] Phase 2: "Going to events" panel on sell/swap lists (own: edit per event; visitors: read-only, links to the
+      filtered marketplace) and a bag icon next to sellers in an event's participant list.
+- [ ] Phase 3: notify a buyer when a puzzle from their wishlist is coming to an event they go to; tell a seller how many
+      people going have one of their listed puzzles on the wishlist (count only); e-mail 3 days before the event.
+- [ ] Links are kept after the event (decision) - nothing reads them yet ("Brought to WJPC 2026" history is an idea).
+- [ ] Measure after the spring 2027 season: sellers marking per event vs sellers going, "Ask to bring it" conversations,
+      listings sold to a buyer who went to the same event (`sold_swapped_item` + participants).
+- [ ] Event pages still format dates with `_event_date_range.html.twig` ("10.-11.10."); the new labels use the
+      locale-aware `event_dates()` - unify the event pages one day.
+- [ ] Marketplace filter panel: the Sort select is squeezed to ~90 px ("Ne…" for "Newest") on desktop - pre-existing,
+      seen during the review (also on `main`).
+- [ ] German pre-filled buyer message uses the site's formal "Sie" - between hobbyists "du" may read warmer; Jan to decide.
+
 ## Compare line-ups (`docs/features/player-comparison.md`)
 
 - [ ] Guests can't open a shared comparison link (sign-in first). Consider a public read-only view if members share

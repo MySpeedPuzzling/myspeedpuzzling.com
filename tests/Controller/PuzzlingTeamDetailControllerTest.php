@@ -80,6 +80,50 @@ final class PuzzlingTeamDetailControllerTest extends WebTestCase
         self::assertCount(1, $crawler->selectLink('Add time'));
     }
 
+    public function testSignedInVisitorCanAddThePairToTheComparison(): void
+    {
+        $browser = self::createClient();
+        // PLAYER_ADMIN's line-ups are empty
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $crawler = $browser->request('GET', '/en/teams/' . $this->fixturePairId());
+
+        $form = $crawler->filter('form.team-compare');
+        self::assertCount(1, $form);
+        self::assertSame('/en/compare/add', $form->attr('action'));
+        self::assertSame('t-' . $this->fixturePairId(), $form->filter('input[name="subject"]')->attr('value'));
+        self::assertSame('/en/teams/' . $this->fixturePairId(), $form->filter('input[name="return"]')->attr('value'));
+        self::assertStringContainsString('Add to comparison', $form->text());
+    }
+
+    public function testPairInTheLineUpLinksItsComparison(): void
+    {
+        $browser = self::createClient();
+        // PLAYER_WITH_STRIPE has this pair in the Pairs line-up
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $browser->request('GET', '/en/teams/' . $this->fixturePairId());
+
+        self::assertCount(0, $crawler->filter('form.team-compare'));
+        $link = $crawler->filter('a.team-compare');
+        self::assertCount(1, $link);
+        self::assertSame('/en/compare?kind=pairs', $link->attr('href'));
+        self::assertSame('In comparison · Open', trim($link->text()));
+    }
+
+    public function testCompareIsOfferedOnlyWhereItWouldBeAccepted(): void
+    {
+        $browser = self::createClient();
+
+        // Guests: nothing (no form, no session on a shared page)
+        $crawler = $browser->request('GET', '/en/teams/' . $this->fixturePairId());
+        self::assertCount(0, $crawler->filter('.team-compare'));
+
+        // PLAYER_REGULAR is in this pair but blocks PLAYER_PRIVATE - the line-up would refuse it (ComparisonSubjectVisibility)
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', '/en/teams/' . $this->fixturePairId());
+        $this->assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('.team-compare'));
+    }
+
     public function testVisitorWithoutMembershipSeesNoStats(): void
     {
         $browser = self::createClient();

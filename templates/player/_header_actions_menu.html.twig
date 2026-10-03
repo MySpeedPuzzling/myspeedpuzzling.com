@@ -60,10 +60,36 @@
                 </li>
             {% endif %}
             <li><hr class="dropdown-divider"></li>
-            {% if not player.isPrivate %}
+            {# The comparison (docs/features/player-comparison.md, D11) - header.compare follows the viewer's line-up #}
+            {% if header.compare == 'add' %}
                 <li>
-                    <a class="dropdown-item" data-turbo-prefetch="false" rel="nofollow" href="{{ path('compare_players', {opponentPlayerId: player.playerId}) }}">
-                        <i class="ci-compare me-1" aria-hidden="true"></i> {{ 'profile.compare'|trans }}
+                    {{ include('comparison_entry/_subject_form.html.twig', {
+                        action: 'add',
+                        subject: header.comparisonRef,
+                        button_class: 'dropdown-item',
+                        icon: 'bi-arrow-left-right',
+                        label: 'comparison_entry.add'|trans,
+                    }) }}
+                </li>
+            {% elseif header.compare == 'open' %}
+                <li>
+                    <a class="dropdown-item" href="{{ path('comparison', {kind: 'solo'}) }}">
+                        <i class="bi bi-arrow-left-right me-1" aria-hidden="true"></i> {{ 'comparison_entry.open'|trans }}
+                    </a>
+                </li>
+                <li>
+                    {{ include('comparison_entry/_subject_form.html.twig', {
+                        action: 'remove',
+                        subject: header.comparisonRef,
+                        button_class: 'dropdown-item',
+                        icon: 'bi-x-lg',
+                        label: 'comparison_entry.remove'|trans,
+                    }) }}
+                </li>
+            {% elseif header.compare == 'sign_in' %}
+                <li>
+                    <a class="dropdown-item" rel="nofollow" href="{{ path('login', {return: return_path}) }}">
+                        <i class="bi bi-arrow-left-right me-1" aria-hidden="true"></i> {{ 'comparison_entry.add'|trans }}
                     </a>
                 </li>
             {% endif %}

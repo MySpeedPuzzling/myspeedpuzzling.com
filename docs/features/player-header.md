@@ -64,9 +64,19 @@ bar with it while scrolling a form. Visitors never reach these pages (403/404). 
 |---|---|---|---|---|
 | Name | real name or `#CODE` | same | "Hidden Puzzler" | same rules |
 | Chips | tier rules · Member · Private profile (if private) | tier rules · Member | none | locked tier · Member |
-| Buttons | Share · Edit profile | Favorite · Message (if `canMessage`) | Favorite · Message (if `canMessage`) | Favorite (→ sign-in) |
-| ⋯ menu | Share profile, Edit profile, Who can see my profile (if private) / Export data, Referral Program | Add to/Remove from favorites, Send message (if `canMessage`) / Compare times (not on private), Share profile / Block player | same | Add to favorites, Compare times, Share profile |
+| Buttons | Share · Edit profile | Favorite · Message (if `canMessage`) · compare icon | Favorite · Message (if `canMessage`) | Favorite (→ sign-in) · compare icon (→ sign-in) |
+| ⋯ menu | Share profile, Edit profile, Who can see my profile (if private) / Export data, Referral Program | Add to/Remove from favorites, Send message (if `canMessage`) / Add to comparison - or Open comparison + Remove from comparison, Share profile / Block player | no comparison items | Add to favorites, Add to comparison (→ sign-in), Share profile |
 | Tabs | 5 | 4 (no Favorites) | none | 4 |
+
+**Compare** (docs/features/player-comparison.md, D11) - `PlayerHeader::$compare`, decided from the viewer's own profile
+row (`comparisonLineUp`, no query): `add` = not in the viewer's Solo line-up → a POST form (`comparison_add`, stateless
+CSRF, `return` = this page) whose icon button adds and comes back with a flash linking the comparison; `open` = in it →
+a link to `comparison?kind=solo`, tinted (`.is-active`); `sign_in` = a guest → `login?return=` this page; null = own
+profile or a hidden private profile. Always an icon (44 × 44, `.more-btn` look, label in `aria-label` + `title`)
+between Message and ⋯ - a label would fit all six locales only from 424 px. **Favorite folds to its star below 380 px
+when the row also holds Message** (`@media (max-width: 379.98px)` + `.player-head-actions:has(> .player-head-message)`;
+the label is `.player-head-favorite-label`, visually hidden; `aria-label`/`title` name it). Re-measured on the built
+header in all 6 locales × {Message + favorite off, Message + favorite on, guest} × 320-1200 px: always one 44 px row.
 
 `canMessage` = signed in, not own, and `allowDirectMessages` or an accepted conversation (`HasExistingConversation`,
 queried only when DMs are off). It moved from `PlayerProfileController` into the component, so Message works on every

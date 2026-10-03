@@ -25,6 +25,13 @@ final class PlayerHeaderTest extends WebTestCase
         self::assertCount(1, $actions->filter('a.btn-outline-primary[href*="/en/add-player-to-favorites/' . PlayerFixture::PLAYER_WITH_STRIPE . '"]'));
         self::assertCount(1, $actions->filter('a.btn[href="/en/messages/new/' . PlayerFixture::PLAYER_WITH_STRIPE . '"][data-turbo-frame="modal-frame"]'));
 
+        // Favorite, Message, compare, ⋯ - in this order; Favorite can fold to its star next to Message (_player-header.scss)
+        $known = ['player-head-favorite', 'player-head-message', 'player-head-compare', 'more-menu'];
+        self::assertSame($known, $actions->children()->each(
+            static fn (Crawler $child): string => array_values(array_intersect($known, explode(' ', (string) $child->attr('class'))))[0] ?? '?',
+        ));
+        self::assertSame('Favorite', trim($actions->filter('.player-head-favorite .player-head-favorite-label')->text()));
+
         // Favorites are personal: not a tab on someone else's pages
         self::assertSame(['Profile', 'Statistics', 'Calendar', 'Library'], $this->tabLabels($crawler));
         self::assertSame('page', $crawler->filter('.player-head-tabs .player-tab.active')->attr('aria-current'));
@@ -122,8 +129,105 @@ final class PlayerHeaderTest extends WebTestCase
         self::assertSame('Hidden Puzzler', trim($crawler->filter('h1.player-head-name')->text()));
         self::assertCount(0, $crawler->filter('.player-head-chips'));
         self::assertCount(0, $crawler->filter('.player-tabs'));
-        self::assertCount(0, $crawler->filter('[href*="/compare-with-puzzler/"]'));
+        // Nothing to compare: no button, no menu items
+        self::assertCount(0, $crawler->filter('.player-head-compare'));
+        self::assertCount(0, $crawler->filter('.dropdown-menu [href^="/login?return="]'));
+        self::assertStringNotContainsString('comparison', $crawler->filter('.player-head .dropdown-menu')->text());
         self::assertCount(1, $crawler->filter('.player-head-actions[data-compact-bar-target="head"]'));
+    }
+
+    public function testCompareAddsSomebodyNotInTheViewersLineUp(): void
+    {
+        // PLAYER_ADMIN's line-ups are empty
+        $crawler = $this->page(PlayerFixture::PLAYER_ADMIN, '/en/puzzle-library/' . PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $form = $crawler->filter('.player-head-actions > form.player-head-compare');
+        self::assertCount(1, $form);
+        self::assertSame('/en/compare/add', $form->attr('action'));
+        self::assertSame('post', $form->attr('method'));
+        self::assertSame('p-' . PlayerFixture::PLAYER_WITH_STRIPE, $form->filter('input[name="subject"]')->attr('value'));
+        self::assertSame('/en/puzzle-library/' . PlayerFixture::PLAYER_WITH_STRIPE, $form->filter('input[name="return"]')->attr('value'));
+        self::assertNotEmpty($form->filter('input[name="_token"]')->attr('value'));
+
+        // An icon only: the label is its name
+        $button = $form->filter('button[type="submit"].more-btn');
+        self::assertSame('Add to comparison', $button->attr('aria-label'));
+        self::assertSame('Add to comparison', $button->attr('title'));
+        self::assertSame('', trim($button->text()));
+
+        // The ⋯ menu - in the header and in the compact bar - offers the same, without ids
+        foreach (['.player-head', '.player-bar'] as $where) {
+            $menu = $crawler->filter($where . ' .dropdown-menu');
+            self::assertCount(1, $menu->filter('form[action="/en/compare/add"] button.dropdown-item'), $where);
+            self::assertStringContainsString('Add to comparison', $menu->text(), $where);
+            self::assertCount(0, $menu->filter('form[action="/en/compare/remove"]'), $where);
+            self::assertCount(0, $menu->filter('[id]'), $where);
+        }
+
+        // The old 1:1 page is gone from the header
+        self::assertCount(0, $crawler->filter('[href*="/compare-with-puzzler/"]'));
+    }
+
+    public function testCompareOpensTheComparisonWhenTheyAreInTheLineUp(): void
+    {
+        // PLAYER_WITH_STRIPE has PLAYER_ADMIN in the Solo line-up
+        $crawler = $this->page(PlayerFixture::PLAYER_WITH_STRIPE, '/en/player-profile/' . PlayerFixture::PLAYER_ADMIN);
+
+        self::assertCount(0, $crawler->filter('.player-head-actions form.player-head-compare'));
+        $link = $crawler->filter('.player-head-actions > .player-head-compare > a.more-btn.is-active');
+        self::assertCount(1, $link);
+        self::assertSame('/en/compare?kind=solo', $link->attr('href'));
+        self::assertSame('Open comparison', $link->attr('title'));
+        self::assertSame('Open comparison', $link->attr('aria-label'));
+
+        $menu = $crawler->filter('.player-head .dropdown-menu');
+        self::assertCount(1, $menu->filter('a.dropdown-item[href="/en/compare?kind=solo"]'));
+        $remove = $menu->filter('form[action="/en/compare/remove"]');
+        self::assertCount(1, $remove);
+        self::assertSame('p-' . PlayerFixture::PLAYER_ADMIN, $remove->filter('input[name="subject"]')->attr('value'));
+        self::assertStringContainsString('Remove from comparison', $remove->text());
+        self::assertCount(0, $menu->filter('form[action="/en/compare/add"]'));
+    }
+
+    public function testGuestIsAskedToSignInFirst(): void
+    {
+        $crawler = $this->page(null, '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR);
+
+        // Back to the profile after signing in
+        $link = $crawler->filter('.player-head-actions > .player-head-compare > a.more-btn');
+        self::assertCount(1, $link);
+        self::assertStringStartsWith('/login?return=', (string) $link->attr('href'));
+        self::assertStringContainsString(PlayerFixture::PLAYER_REGULAR, rawurldecode((string) $link->attr('href')));
+        self::assertSame('Add to comparison', $link->attr('aria-label'));
+        self::assertSame($link->attr('href'), $crawler->filter('.player-head .dropdown-menu a[href^="/login?return="]')->attr('href'));
+
+        // No forms for guests - the page stays the same for every guest
+        self::assertCount(0, $crawler->filter('form[action^="/en/compare/"]'));
+        self::assertCount(0, $crawler->filter('.player-head-message'));
+    }
+
+    public function testOwnProfileHasNoCompare(): void
+    {
+        $crawler = $this->page(PlayerFixture::PLAYER_WITH_STRIPE, '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE);
+
+        self::assertCount(0, $crawler->filter('.player-head-compare'));
+        self::assertCount(0, $crawler->filter('form[action^="/en/compare/"]'));
+        self::assertCount(0, $crawler->filter('.player-head-favorite'));
+    }
+
+    public function testPrivateProfileHiddenFromTheViewerHasNoCompare(): void
+    {
+        $browser = self::createClient();
+
+        // PLAYER_ADMIN is not on PLAYER_PRIVATE's allow list
+        $crawler = $this->page(PlayerFixture::PLAYER_ADMIN, '/en/player-profile/' . PlayerFixture::PLAYER_PRIVATE, $browser);
+
+        self::assertCount(0, $crawler->filter('.player-head-compare'));
+        self::assertCount(0, $crawler->filter('form[action^="/en/compare/"]'));
+
+        // …while PLAYER_WITH_FAVORITES, who is on it, may compare her
+        $crawler = $this->page(PlayerFixture::PLAYER_WITH_FAVORITES, '/en/player-profile/' . PlayerFixture::PLAYER_PRIVATE, $browser);
+        self::assertCount(1, $crawler->filter('.player-head-actions > form.player-head-compare'));
     }
 
     public function testRankingOptOutHidesTheTierChipCompletely(): void

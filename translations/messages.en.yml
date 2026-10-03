@@ -1402,7 +1402,20 @@ players:
         title: "All puzzlers"
 
     nudge:
-        title: "You're not on the map yet"
+        title: "You're not on the map yet."
+        text: "Add your country to appear among its puzzlers and count in the Country Cup."
+        # %country% is filled in by the browser with the country picked in the select
+        text_named: "Add your country to appear among %country%'s puzzlers and count in the Country Cup."
+        label: "Your country"
+        choose: "Choose your country"
+        save: "Save"
+        dismiss: "Don't show this again"
+        page_title: "Add your country"
+        unknown_country: "We couldn't find that country. Please choose it from the list."
+        back: "Back to puzzlers"
+        flash:
+            saved: "Saved: you're now among %country%'s puzzlers."
+            try_again: "That didn't go through. Please try again."
 
 players_per_country:
     meta:

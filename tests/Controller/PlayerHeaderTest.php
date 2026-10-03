@@ -153,13 +153,16 @@ final class PlayerHeaderTest extends WebTestCase
         $button = $form->filter('button[type="submit"].more-btn');
         self::assertSame('Add to comparison', $button->attr('aria-label'));
         self::assertSame('Add to comparison', $button->attr('title'));
-        self::assertSame('', trim($button->text()));
+        // No label text - only the "New" badge on its top edge, hidden from screen readers (the name is the label)
+        self::assertSame('New', trim($button->text()));
+        self::assertSame('true', $button->filter('.player-head-compare__new')->attr('aria-hidden'));
 
         // The ⋯ menu - in the header and in the compact bar - offers the same, without ids
         foreach (['.player-head', '.player-bar'] as $where) {
             $menu = $crawler->filter($where . ' .dropdown-menu');
             self::assertCount(1, $menu->filter('form[action="/en/compare/add"] button.dropdown-item'), $where);
             self::assertStringContainsString('Add to comparison', $menu->text(), $where);
+            self::assertCount(1, $menu->filter('form[action="/en/compare/add"] button.dropdown-item .badge'), $where . ': "New"');
             self::assertCount(0, $menu->filter('form[action="/en/compare/remove"]'), $where);
             self::assertCount(0, $menu->filter('[id]'), $where);
         }

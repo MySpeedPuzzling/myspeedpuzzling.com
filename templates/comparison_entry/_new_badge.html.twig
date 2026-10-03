@@ -1,0 +1,6 @@
+{# The "New" badge of the comparison entry points (footer, header icon, ⋯ menu). on_icon: sits on the icon button's top edge #}
+{%- if on_icon|default(false) -%}
+    <span class="badge bg-primary player-head-compare__new" aria-hidden="true">{{ 'new_badge'|trans }}</span>
+{%- else -%}
+    <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span>
+{%- endif -%}

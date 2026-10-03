@@ -32,7 +32,8 @@ final class SiteFooterTest extends WebTestCase
         self::assertCount(1, $footer->filter('.footer-newsletter form[action="/en/newsletter/subscribe"]'));
         self::assertCount(4, $footer->filter('.footer-popular details.footer-popular-group'));
         self::assertSame(['Discover', 'Track', 'Learn', 'MySpeedPuzzling'], $footer->filter('.footer-columns h2')->each(static fn (Crawler $heading): string => $heading->text()));
-        self::assertCount(4, $footer->filter('.footer-columns .badge'), 'The "New" badges stay');
+        self::assertCount(5, $footer->filter('.footer-columns .badge'), 'The "New" badges stay');
+        self::assertCount(1, $footer->filter('.footer-columns a[href="/en/compare"] .badge'), 'Compare is new');
         self::assertCount(0, $footer->filter('.footer-newsletter-off'));
     }
 

@@ -25,11 +25,11 @@ final class ChangeComparisonViewHandlerTest extends KernelTestCase
         $this->getPlayerProfile = self::getContainer()->get(GetPlayerProfile::class);
     }
 
-    public function testDefaultIsCardsAndTheChoiceIsStored(): void
+    public function testDefaultIsTableAndTheChoiceIsStored(): void
     {
-        self::assertSame(ComparisonView::Cards, $this->getPlayerProfile->byUserId(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID)->comparisonView);
+        self::assertSame(ComparisonView::Table, $this->getPlayerProfile->byUserId(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID)->comparisonView);
 
-        foreach ([ComparisonView::Table, ComparisonView::Duel, ComparisonView::Cards] as $view) {
+        foreach ([ComparisonView::Cards, ComparisonView::Table] as $view) {
             $this->messageBus->dispatch(new ChangeComparisonView(PlayerFixture::PLAYER_WITH_STRIPE, $view));
 
             // The signed-in player's profile row carries it - no query of its own
@@ -39,25 +39,28 @@ final class ChangeComparisonViewHandlerTest extends KernelTestCase
 
     public function testOnlyTheViewersOwnProfileCarriesTheChoice(): void
     {
-        $this->messageBus->dispatch(new ChangeComparisonView(PlayerFixture::PLAYER_WITH_STRIPE, ComparisonView::Table));
+        $this->messageBus->dispatch(new ChangeComparisonView(PlayerFixture::PLAYER_WITH_STRIPE, ComparisonView::Cards));
 
-        self::assertSame(ComparisonView::Cards, $this->getPlayerProfile->byId(PlayerFixture::PLAYER_WITH_STRIPE)->comparisonView);
+        self::assertSame(ComparisonView::Table, $this->getPlayerProfile->byId(PlayerFixture::PLAYER_WITH_STRIPE)->comparisonView);
     }
 
-    public function testAnUnknownStoredValueReadsAsCards(): void
+    /**
+     * 'duel' too - the Duel view was removed (the migration rewrote every stored value, a stale one must not break)
+     */
+    public function testAnUnknownStoredValueReadsAsTable(): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE player SET comparison_view = 'pie' WHERE id = :id",
+            "UPDATE player SET comparison_view = 'duel' WHERE id = :id",
             ['id' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
 
-        self::assertSame(ComparisonView::Cards, $this->getPlayerProfile->byUserId(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID)->comparisonView);
+        self::assertSame(ComparisonView::Table, $this->getPlayerProfile->byUserId(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID)->comparisonView);
     }
 
     public function testUnknownPlayer(): void
     {
         $this->expectException(PlayerNotFound::class);
 
-        $this->messageBus->dispatch(new ChangeComparisonView('00000000-0000-0000-0000-000000000099', ComparisonView::Duel));
+        $this->messageBus->dispatch(new ChangeComparisonView('00000000-0000-0000-0000-000000000099', ComparisonView::Cards));
     }
 }

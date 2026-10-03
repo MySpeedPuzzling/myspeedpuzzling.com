@@ -1,6 +1,5 @@
-{# Duel rows of the highlighted pair (A left, B right): the gap pill points at whoever was faster, so it shows the gap
-   without the leaderboard's "+" ("00:07", "12:05", "01:02:05"). With 3+ subjects a strip says where A stands in the
-   whole line-up. Input: with_strip (bool) #}
+{# Exactly two subjects: side-by-side rows (A left, B right) - the gap pill points at whoever was faster, so it shows the
+   gap without the leaderboard's "+" ("00:07", "12:05", "01:02:05"). Lists what "puzzles to show" says. #}
 {% set result = this.result %}
 {% set a = result.highlightA %}
 {% set b = result.highlightB %}
@@ -48,23 +47,6 @@
                         </div>
                     {% endfor %}
                 </div>
-
-                {% if with_strip and row.solvedBy >= 3 %}
-                    {% set fastest = row.ranked|first %}
-                    <p class="cmp-strip">
-                        <i class="bi bi-people" aria-hidden="true"></i>
-                        {% if cell_a is not null %}
-                            {{ 'comparison.cell.place'|trans({'%name%': this.labelOf(a), '%rank%': cell_a.rank, '%count%': row.solvedBy}) }} ·
-                            {% if cell_a.rank == 1 %}
-                                {{ 'comparison.cell.fastest_of_line_up'|trans }}
-                            {% else %}
-                                {{ 'comparison.cell.fastest'|trans({'%name%': this.labelOf(fastest.subject), '%time%': fastest.seconds|puzzlingTime}) }}
-                            {% endif %}
-                        {% else %}
-                            {{ 'comparison.cell.solved_by'|trans({'%count%': row.solvedBy}) }} · {{ 'comparison.cell.fastest'|trans({'%name%': this.labelOf(fastest.subject), '%time%': fastest.seconds|puzzlingTime}) }}
-                        {% endif %}
-                    </p>
-                {% endif %}
             </li>
         {% endif %}
     {% endfor %}

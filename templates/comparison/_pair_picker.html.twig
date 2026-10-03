@@ -1,0 +1,20 @@
+{# The highlighted pair of 3+ subjects - what the charts and the lead/lag sort follow - as a plain sentence with two
+   selects in it ("Compare [You ▾] with [Vanja ▾]"). The sentence comes from the translations with %a% / %b% where the
+   selects go, so every language keeps its own word order; the selects themselves are escaped here.
+   Inputs: sentence (translation key), testid #}
+{% set selects = {} %}
+{% for side, value in {a: this.highlightA, b: this.highlightB} %}
+    {% set select %}
+        <span class="cmp-pair__side">
+            <span class="cmp-dot cmp-dot--{{ side }}" aria-hidden="true"></span>
+            <label class="visually-hidden" for="comparison-pair-{{ side }}">{{ ('comparison.highlight.' ~ side)|trans }}</label>
+            <select id="comparison-pair-{{ side }}" class="form-select form-select-sm" data-model="highlight{{ side|upper }}" data-testid="comparison-pair-{{ side }}">
+                {% for subject in this.compared %}
+                    <option value="{{ subject.ref.toString }}" {{ value == subject.ref.toString ? 'selected' }}>{{ this.labelOf(subject.ref) }}</option>
+                {% endfor %}
+            </select>
+        </span>
+    {%- endset %}
+    {% set selects = selects|merge({('%' ~ side ~ '%'): select ~ ''}) %}
+{% endfor %}
+<div class="cmp-pair" data-testid="{{ testid }}">{{ sentence|trans(selects)|raw }}</div>

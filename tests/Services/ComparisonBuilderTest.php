@@ -80,7 +80,7 @@ final class ComparisonBuilderTest extends TestCase
         $both = $this->builder->build($subjects, $rows, $this->criteria(2));
         self::assertSame(['p-' . self::ME, 'p-' . self::ANNA], array_map(static fn(ComparisonSubjectRef $ref): string => $ref->toString(), $both->subjects));
         self::assertSame(['both'], array_map(static fn(ComparisonPuzzleRow $row): string => $row->puzzleId, $both->rows));
-        self::assertTrue($both->isDuel());
+        self::assertTrue($both->hasTwoSubjects());
 
         $all = $this->builder->build($subjects, $rows, $this->criteria(2, show: 'all'));
         self::assertCount(2, $all->rows);
@@ -308,96 +308,99 @@ final class ComparisonBuilderTest extends TestCase
         self::assertSame(0, $last->remaining);
     }
 
-    public function testHighlightedPairOnlyListsWhatBothSolvedAndKeepsTheSummaries(): void
-    {
-        $rows = [
-            // Both of the pair (me and Anna)
-            $this->time(self::ME, 'both-old', 1000, day: '2026-08-01'),
-            $this->time(self::ANNA, 'both-old', 1100, day: '2026-08-01'),
-            $this->time(self::BEN, 'both-old', 900, day: '2026-08-01'),
-            $this->time(self::ME, 'both-new', 1300, day: '2026-09-10'),
-            $this->time(self::ANNA, 'both-new', 1200, day: '2026-09-10'),
-            // Solved by 2+ of the line-up, but not by both of the pair
-            $this->time(self::ME, 'me-ben', 800, day: '2026-09-20'),
-            $this->time(self::BEN, 'me-ben', 900, day: '2026-09-20'),
-            $this->time(self::ANNA, 'anna-cleo', 700, day: '2026-09-15'),
-            $this->time(self::CLEO, 'anna-cleo', 600, day: '2026-09-15'),
-            $this->time(self::BEN, 'ben-cleo', 1000, day: '2026-09-05'),
-            $this->time(self::CLEO, 'ben-cleo', 1100, day: '2026-09-05'),
-        ];
-        $lineUp = $this->lineUp(self::ME, self::ANNA, self::BEN, self::CLEO);
-        $criteria = $this->criteria(4, highlightA: 'p-' . self::ME, highlightB: 'p-' . self::ANNA);
-
-        $all = $this->builder->build($lineUp, $rows, $criteria);
-        $pair = $this->builder->build($lineUp, $rows, $criteria, highlightedPairOnly: true);
-
-        self::assertFalse($all->highlightedPairOnly);
-        self::assertSame(5, $all->total);
-
-        self::assertTrue($pair->highlightedPairOnly);
-        self::assertSame(2, $pair->total);
-        self::assertSame(['both-new', 'both-old'], $pair->pagePuzzleIds, 'Still sorted (most recent first)');
-        self::assertSame(['both-new', 'both-old'], array_map(static fn(ComparisonPuzzleRow $row): string => $row->puzzleId, $pair->rows));
-        self::assertFalse($pair->hasMore);
-        self::assertSame(0, $pair->remaining);
-
-        // The summaries keep describing the whole line-up
-        self::assertEquals($all->league, $pair->league);
-        self::assertEquals($all->headToHead, $pair->headToHead);
-        self::assertSame($all->beats, $pair->beats);
-        self::assertSame($all->shared, $pair->shared);
-        $mine = array_values(array_filter($pair->league, static fn(ComparisonLeagueRow $row): bool => $row->subject->id === self::ME));
-        self::assertSame(3, $mine[0]->solved, 'The league counts every shown puzzle, not only the pair list');
-    }
-
-    public function testHighlightedPairOnlyPagesThePairList(): void
+    /**
+     * "150 puzzles in common" must visibly be wins A + wins B + ties - an equal time is nobody's win, and the head to head
+     * says how many there were (docs/features/player-comparison.md, "Data rules")
+     */
+    public function testHeadToHeadNumbersAddUpToThePuzzlesBothSolved(): void
     {
         $rows = [];
 
-        for ($i = 1; $i <= 70; $i++) {
-            $day = (new DateTimeImmutable('2026-01-01'))->modify("+{$i} days")->format('Y-m-d');
-            $rows[] = $this->time(self::ME, sprintf('p%03d', $i), 1000, day: $day);
-            // Anna solved every other one of them, Ben all of them
-            $rows[] = $this->time(self::BEN, sprintf('p%03d', $i), 1200, day: $day);
-
-            if ($i % 2 === 0) {
-                $rows[] = $this->time(self::ANNA, sprintf('p%03d', $i), 1100, day: $day);
-            }
+        foreach (range(1, 150) as $i) {
+            $puzzleId = sprintf('p%03d', $i);
+            // 88 wins for me, 59 for Anna, 3 equal times
+            $mine = match (true) {
+                $i <= 88 => 900,
+                $i <= 147 => 1100,
+                default => 1000,
+            };
+            $rows[] = $this->time(self::ME, $puzzleId, $mine);
+            $rows[] = $this->time(self::ANNA, $puzzleId, 1000);
         }
 
-        $lineUp = $this->lineUp(self::ME, self::ANNA, self::BEN);
+        // Solved by one of them only: listed with "all puzzles", never part of the head to head
+        $rows[] = $this->time(self::ME, 'only-mine', 700);
 
-        $first = $this->builder->build($lineUp, $rows, $this->criteria(3, highlightA: 'p-' . self::ME, highlightB: 'p-' . self::ANNA), highlightedPairOnly: true);
-        self::assertSame(35, $first->total);
-        self::assertCount(35, $first->page);
-        self::assertFalse($first->hasMore);
-        self::assertSame('p070', $first->pagePuzzleIds[0]);
+        $both = $this->builder->build($this->lineUp(self::ME, self::ANNA), $rows, $this->criteria(2));
+        $h2h = $both->headToHead;
 
-        foreach ($first->page as $row) {
-            self::assertNotNull($row->cell(ComparisonSubjectRef::player(self::ANNA)), $row->puzzleId);
-            self::assertNotNull($row->cell(ComparisonSubjectRef::player(self::ME)), $row->puzzleId);
-        }
+        self::assertNotNull($h2h);
+        self::assertSame(88, $h2h->winsA);
+        self::assertSame(59, $h2h->winsB);
+        self::assertSame(3, $h2h->ties);
+        self::assertSame(150, $h2h->shared);
+        self::assertSame(150, $both->total, 'The list is the puzzles both solved');
+        self::assertSame(3, $both->ties);
+        self::assertSame($both->total, $h2h->winsA + $h2h->winsB + $h2h->ties);
+        self::assertSame($both->total, self::wins($both->league) + $both->ties);
 
-        // Ben with me: 70 shared puzzles, paged by 50
-        $ben = $this->builder->build($lineUp, $rows, $this->criteria(3, highlightA: 'p-' . self::ME, highlightB: 'p-' . self::BEN), highlightedPairOnly: true);
-        self::assertSame(70, $ben->total);
-        self::assertCount(50, $ben->page);
-        self::assertTrue($ben->hasMore);
-        self::assertSame(20, $ben->remaining);
+        $all = $this->builder->build($this->lineUp(self::ME, self::ANNA), $rows, $this->criteria(2, show: 'all'));
+        self::assertSame(151, $all->total);
+        self::assertSame(150, $all->headToHead?->shared, 'The head to head counts what both solved, whatever is listed');
+        self::assertSame(3, $all->ties, 'A single solver is no tie');
+        self::assertSame($all->total, self::wins($all->league) + $all->ties + 1, '+ the one puzzle only I solved');
     }
 
-    public function testHighlightedPairOnlyChangesNothingForTwoSubjects(): void
+    /**
+     * A line-up: the wins of everyone + the ties for the fastest time (+ the puzzles only one solved, with "all
+     * puzzles") are the listed puzzles - a tie further down the ranking still has a winner
+     */
+    public function testLeagueWinsAndTiesAddUpToTheListedPuzzles(): void
     {
         $rows = [
-            $this->time(self::ME, 'both', 1000),
-            $this->time(self::ANNA, 'both', 1100),
-            $this->time(self::ME, 'mine', 1000),
+            // Anna wins
+            $this->time(self::ME, 'p1', 1100),
+            $this->time(self::ANNA, 'p1', 1000),
+            $this->time(self::BEN, 'p1', 1200),
+            // Me and Ben share the fastest time: a tie, nobody wins
+            $this->time(self::ME, 'p2', 900),
+            $this->time(self::BEN, 'p2', 900),
+            $this->time(self::ANNA, 'p2', 950),
+            // Anna and Ben share the second place: I still win
+            $this->time(self::ME, 'p3', 800),
+            $this->time(self::ANNA, 'p3', 1000),
+            $this->time(self::BEN, 'p3', 1000),
+            // Two of us, the same time: a tie
+            $this->time(self::ANNA, 'p4', 700),
+            $this->time(self::BEN, 'p4', 700),
+            // Only Ben
+            $this->time(self::BEN, 'p5', 600),
         ];
+        $lineUp = $this->lineUp(self::ME, self::ANNA, self::BEN);
 
-        $result = $this->builder->build($this->lineUp(self::ME, self::ANNA), $rows, $this->criteria(2, show: 'all'), highlightedPairOnly: true);
+        $default = $this->builder->build($lineUp, $rows, $this->criteria(3));
+        self::assertSame(4, $default->total, 'Solved by 2+');
+        self::assertSame(2, $default->ties);
+        self::assertSame(2, self::wins($default->league));
+        self::assertSame($default->total, self::wins($default->league) + $default->ties);
 
-        self::assertFalse($result->highlightedPairOnly);
-        self::assertSame(2, $result->total, 'Two subjects: their duel rows follow "puzzles to show"');
+        $all = $this->builder->build($lineUp, $rows, $this->criteria(3, show: 'all'));
+        self::assertSame(5, $all->total);
+        self::assertSame(2, $all->ties);
+        self::assertSame($all->total, self::wins($all->league) + $all->ties + 1, '+ the puzzle only Ben solved');
+
+        // First tries count the same way, over the first tries
+        $firstTries = [
+            $this->time(self::ME, 'p1', 800, firstTrySeconds: 1000, firstTryTimeId: 'me-p1'),
+            $this->time(self::ANNA, 'p1', 900, firstTrySeconds: 1000, firstTryTimeId: 'anna-p1'),
+            $this->time(self::ME, 'p2', 800, firstTrySeconds: 800, firstTryTimeId: 'me-p2'),
+            $this->time(self::ANNA, 'p2', 700, firstTrySeconds: 900, firstTryTimeId: 'anna-p2'),
+        ];
+        $first = $this->builder->build($this->lineUp(self::ME, self::ANNA), $firstTries, $this->criteria(2, isMember: true, times: 'first'));
+        self::assertSame(1, $first->ties, 'Equal first tries, whatever the best times');
+        self::assertSame(1, $first->headToHead?->winsA);
+        self::assertSame(0, $first->headToHead->winsB);
+        self::assertSame(2, $first->headToHead->shared);
     }
 
     public function testPairsAndTeamsAreSelfWhenTheViewerIsIn(): void
@@ -500,6 +503,14 @@ final class ComparisonBuilderTest extends TestCase
             offset: $offset,
             limit: $limit,
         );
+    }
+
+    /**
+     * @param list<ComparisonLeagueRow> $league
+     */
+    private static function wins(array $league): int
+    {
+        return array_sum(array_map(static fn(ComparisonLeagueRow $row): int => $row->wins, $league));
     }
 
     /**

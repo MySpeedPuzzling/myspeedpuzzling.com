@@ -3,6 +3,8 @@
 {% set criteria = this.criteria %}
 {% set filters_count = this.activeFiltersCount %}
 {% set first_tries = criteria.times.value == 'first' %}
+{# Lead / lag say whose: "Biggest lead: You" (the first of the highlighted pair) #}
+{% set sort_parameters = {'%name%': this.result.highlightA ? this.labelOf(this.result.highlightA) : ''} %}
 <div class="cmp-filters" data-testid="comparison-filter-row">
     <button type="button" class="cmp-pill cmp-pill--primary" data-bs-toggle="modal" data-bs-target="#comparison-filters" data-testid="comparison-filters-button">
         <i class="bi bi-sliders" aria-hidden="true"></i>{{ 'comparison.filters.button'|trans }}
@@ -35,7 +37,7 @@
     <label class="visually-hidden" for="comparison-sort">{{ 'comparison.filters.sort'|trans }}</label>
     <select id="comparison-sort" class="form-select cmp-pill cmp-pill--select" data-model="sort">
         {% for sort in ['recent', 'lead', 'lag', 'name', 'pieces'] %}
-            <option value="{{ sort == 'recent' ? '' : sort }}" {{ criteria.sort.value == sort ? 'selected' }}>{{ ('comparison.sort.' ~ sort)|trans }}</option>
+            <option value="{{ sort == 'recent' ? '' : sort }}" {{ criteria.sort.value == sort ? 'selected' }}>{{ ('comparison.sort.' ~ sort)|trans(sort_parameters) }}</option>
         {% endfor %}
         {% if this.isMember %}
             <option value="difficulty" {{ criteria.sort.value == 'difficulty' ? 'selected' }}>{{ 'comparison.sort.difficulty'|trans }}</option>

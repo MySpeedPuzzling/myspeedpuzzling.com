@@ -164,9 +164,9 @@ readonly final class PlayerProfile
         public LeaderboardChartView $leaderboardChartView = LeaderboardChartView::Distribution,
         /**
          * The signed-in player's own profile only (docs/features/player-comparison.md): how a comparison of 3+
-         * subjects lists its puzzles, and their line-ups - everybody else's profile says Cards and an empty line-up.
+         * subjects lists its puzzles, and their line-ups - everybody else's profile says Table and an empty line-up.
          */
-        public ComparisonView $comparisonView = ComparisonView::Cards,
+        public ComparisonView $comparisonView = ComparisonView::Table,
         public ComparisonLineUp $comparisonLineUp = new ComparisonLineUp(),
     ) {
     }
@@ -336,7 +336,7 @@ readonly final class PlayerProfile
             modalImpressions: $modalImpressions,
             freeTrialOldEnoughAt: $freeTrialOldEnoughAt,
             leaderboardChartView: LeaderboardChartView::tryFrom($row['leaderboard_chart_view'] ?? '') ?? LeaderboardChartView::Distribution,
-            comparisonView: ComparisonView::tryFrom($row['comparison_view'] ?? '') ?? ComparisonView::Cards,
+            comparisonView: ComparisonView::tryFrom($row['comparison_view'] ?? '') ?? ComparisonView::Table,
             comparisonLineUp: self::comparisonLineUpFromJson(
                 $row['comparison_line_up'] ?? null,
                 $hiddenPlayerIds,

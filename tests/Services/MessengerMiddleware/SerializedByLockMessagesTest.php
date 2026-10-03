@@ -7,7 +7,9 @@ namespace SpeedPuzzling\Web\Tests\Services\MessengerMiddleware;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Message\AddComparisonSubject;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
+use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
+use SpeedPuzzling\Web\Value\ComparisonKind;
 
 final class SerializedByLockMessagesTest extends TestCase
 {
@@ -33,5 +35,8 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame('comparison-line-up-018d0000-0000-0000-0000-00000000000a', $key);
         self::assertSame($key, (new AddComparisonSubject(strtolower($owner), 't-018d0000-0000-0000-0000-00000000000c', '018d0000-0000-0000-0000-00000000000d'))->lockKey());
         self::assertNotSame($key, (new AddComparisonSubject('018d0000-0000-0000-0000-00000000000e', 'p-018d0000-0000-0000-0000-00000000000b'))->lockKey());
+
+        // "Clear" waits for the adds of the same owner and they for it - an add never lands half way through a clear
+        self::assertSame($key, (new ClearComparisonLineUp($owner, ComparisonKind::Pairs))->lockKey());
     }
 }

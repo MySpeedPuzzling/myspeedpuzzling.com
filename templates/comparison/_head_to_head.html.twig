@@ -1,6 +1,8 @@
-{# Two subjects: who won more of the puzzles both solved, and by how much on the median puzzle #}
+{# Two subjects: who won more of the puzzles both solved, and by how much on the median puzzle. The numbers add up on
+   screen: wins A + wins B + ties (equal times, the grey part of the bar) = the puzzles both solved #}
 {% set h2h = this.result.headToHead %}
 {% if h2h is not null %}
+    {% set ties_text = h2h.ties > 0 ? 'comparison.h2h.ties'|trans({'%count%': h2h.ties}) : null %}
     {% set label_a = this.labelOf(h2h.a) %}
     {% set label_b = this.labelOf(h2h.b) %}
     <section class="card cmp-card cmp-h2h" aria-labelledby="comparison-h2h-title" data-testid="comparison-head-to-head">
@@ -23,7 +25,7 @@
         </div>
 
         {% if h2h.winsA + h2h.winsB + h2h.ties > 0 %}
-            <div class="cmp-h2h__bar" role="img" aria-label="{{ 'comparison.h2h.bar_label'|trans({'%a%': label_a, '%wins_a%': h2h.winsA, '%b%': label_b, '%wins_b%': h2h.winsB, '%count%': h2h.shared}) }}">
+            <div class="cmp-h2h__bar" role="img" aria-label="{{ 'comparison.h2h.bar_label'|trans({'%a%': label_a, '%wins_a%': h2h.winsA, '%b%': label_b, '%wins_b%': h2h.winsB, '%count%': h2h.shared}) }}{{ ties_text ? ', ' ~ ties_text }}">
                 {% if h2h.winsA > 0 %}<span class="cmp-h2h__bar-a" style="flex: {{ h2h.winsA }}"></span>{% endif %}
                 {% if h2h.ties > 0 %}<span class="cmp-h2h__bar-tie" style="flex: {{ h2h.ties }}"></span>{% endif %}
                 {% if h2h.winsB > 0 %}<span class="cmp-h2h__bar-b" style="flex: {{ h2h.winsB }}"></span>{% endif %}
@@ -32,6 +34,7 @@
 
         <p class="cmp-h2h__line">
             {{ 'comparison.h2h.shared'|trans({'%count%': h2h.shared}) }}
+            {%- if ties_text %} · <span class="cmp-h2h__ties" data-testid="comparison-h2h-ties"><span class="cmp-h2h__tie-swatch" aria-hidden="true"></span>{{ ties_text }}</span>{% endif %}
             {%- if h2h.faster is not null and h2h.fasterPercent is not null %}
                 {%- set percent = h2h.fasterPercent|round(0) %}
                 · <strong>

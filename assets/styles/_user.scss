@@ -232,6 +232,36 @@ $skill-legend: #1a1a2e;
   flex-shrink: 0;
 }
 
+// The difficulty tier on a thumbnail's bottom-right corner (_difficulty_corner.html.twig) - a white disc keeps every tier
+// colour readable on any picture, the thin ring separates it from a white box art
+.diff-corner-host {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.diff-corner {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: $white;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .12), 0 1px 2px rgba(0, 0, 0, .15);
+  pointer-events: auto;
+
+  &--sm {
+    right: -3px;
+    bottom: -3px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
 // Fix Bootstrap Icons baseline alignment in flex containers
 .bi {
   line-height: 1;

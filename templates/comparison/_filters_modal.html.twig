@@ -154,7 +154,8 @@
                     </div>
                 </fieldset>
 
-                {# Sort #}
+                {# Sort - lead / lag say whose ("Biggest lead: You") #}
+                {% set sort_parameters = {'%name%': this.result.highlightA ? this.labelOf(this.result.highlightA) : ''} %}
                 <fieldset class="cmp-fieldset mb-0">
                     <legend>{{ 'comparison.filters.sort'|trans }}</legend>
                     <div class="cmp-chips">
@@ -163,11 +164,11 @@
                             {% if sort != 'difficulty' or is_member %}
                                 <button type="button" class="cmp-pill{{ on ? ' is-on' }}" aria-pressed="{{ on ? 'true' : 'false' }}"
                                     data-action="live#action" data-live-action-param="chooseSort" data-live-value-param="{{ sort }}">
-                                    {{- ('comparison.sort.' ~ sort)|trans -}}
+                                    {{- ('comparison.sort.' ~ sort)|trans(sort_parameters) -}}
                                 </button>
                             {% else %}
                                 <button type="button" class="cmp-pill cmp-pill--locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
-                                    <i class="ci-locked" aria-hidden="true"></i>{{ ('comparison.sort.' ~ sort)|trans }} {{ members_tag }}
+                                    <i class="ci-locked" aria-hidden="true"></i>{{ ('comparison.sort.' ~ sort)|trans(sort_parameters) }} {{ members_tag }}
                                 </button>
                             {% endif %}
                         {% endfor %}

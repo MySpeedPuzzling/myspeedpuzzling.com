@@ -9,7 +9,7 @@
         <thead>
             <tr>
                 <th scope="col" class="cmp-league__pos">#</th>
-                <th scope="col" class="text-start">{{ ('comparison.league.subject_' ~ this.activeKind.value)|trans }}</th>
+                <th scope="col" class="text-start cmp-league__subject">{{ ('comparison.league.subject_' ~ this.activeKind.value)|trans }}</th>
                 <th scope="col">{{ 'comparison.league.wins'|trans }}</th>
                 <th scope="col">{{ 'comparison.league.solved'|trans }}</th>
                 <th scope="col">{{ 'comparison.league.gap'|trans }}</th>
@@ -20,7 +20,7 @@
                 {% set label = this.labelOf(row.subject) %}
                 <tr class="{{ row.isSelf ? 'cmp-row-self' }}" data-testid="comparison-league-row">
                     <td class="cmp-league__pos">{{ row.position }}</td>
-                    <td class="text-start">
+                    <td class="text-start cmp-league__subject">
                         <span class="cmp-league__who">
                             {{ include('comparison/_subject_avatar.html.twig', {subject: this.subjectOf(row.subject), label: label, role: this.roleOf(row.subject), size: 'sm'}) }}
                             <span class="cmp-league__name">{{ label }}</span>
@@ -36,4 +36,8 @@
     </table>
 
     <p class="cmp-note">{{ 'comparison.league.legend'|trans }}</p>
+    {# So the wins add up to the listed puzzles: a shared fastest time is nobody's win #}
+    {% if this.result.ties > 0 %}
+        <p class="cmp-note" data-testid="comparison-league-ties">{{ 'comparison.league.ties'|trans({'%count%': this.result.ties}) }}</p>
+    {% endif %}
 </section>

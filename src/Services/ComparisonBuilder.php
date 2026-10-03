@@ -30,18 +30,17 @@ use SpeedPuzzling\Web\Value\ComparisonTimes;
  * - Sort: recent = latest day among the compared cells; lead / lag = A − B seconds (puzzles one of them has not solved
  *   follow, most recent first); name = natural, case-insensitive; pieces ascending; difficulty hardest first, unrated
  *   last.
- * - Highlighted pair only (the Duel view of 3+ subjects): the list - rows, page, total - holds just the puzzles both
- *   highlighted subjects solved, while the league table, head to head and the matrix keep describing the whole line-up
- *   under its "puzzles to show". With two subjects the flag changes nothing: their duel rows follow "puzzles to show".
+ * - The numbers add up (docs/features/player-comparison.md, "Data rules"): the wins of everyone + the ties (a shared
+ *   fastest time) + the puzzles only one subject solved ("all puzzles") = the listed puzzles; head to head: wins A +
+ *   wins B + ties = the puzzles both solved.
  */
 readonly final class ComparisonBuilder
 {
     /**
      * @param list<ComparisonSubject> $subjects the line-up in its order, oldest added first; unavailable ones are skipped
      * @param list<ComparisonTimeRow> $rows GetComparisonResults::forSubjects() for the available subjects
-     * @param bool $highlightedPairOnly list only the puzzles both highlighted subjects solved (3+ subjects)
      */
-    public function build(array $subjects, array $rows, ComparisonCriteria $criteria, bool $highlightedPairOnly = false): ComparisonResult
+    public function build(array $subjects, array $rows, ComparisonCriteria $criteria): ComparisonResult
     {
         $refs = [];
         $self = null;
@@ -65,11 +64,8 @@ readonly final class ComparisonBuilder
         $puzzleRows = self::sorted($puzzleRows, $criteria->sort);
         [$beats, $shared] = self::matrix($refs, $puzzleRows);
 
-        $pairOnly = $highlightedPairOnly && count($refs) >= 3 && $highlightA !== null && $highlightB !== null;
-        $listRows = $pairOnly ? self::solvedByBoth($puzzleRows, $highlightA, $highlightB) : $puzzleRows;
-
-        $total = count($listRows);
-        $page = array_slice($listRows, $criteria->offset, $criteria->limit);
+        $total = count($puzzleRows);
+        $page = array_slice($puzzleRows, $criteria->offset, $criteria->limit);
         $shownUntil = min($total, $criteria->offset + $criteria->limit);
 
         return new ComparisonResult(
@@ -78,7 +74,7 @@ readonly final class ComparisonBuilder
             self: $self,
             highlightA: $highlightA,
             highlightB: $highlightB,
-            rows: $listRows,
+            rows: $puzzleRows,
             page: $page,
             pagePuzzleIds: array_map(static fn(ComparisonPuzzleRow $row): string => $row->puzzleId, $page),
             total: $total,
@@ -88,7 +84,7 @@ readonly final class ComparisonBuilder
             headToHead: $highlightA !== null && $highlightB !== null ? self::headToHead($highlightA, $highlightB, $puzzleRows) : null,
             beats: $beats,
             shared: $shared,
-            highlightedPairOnly: $pairOnly,
+            ties: self::ties($puzzleRows),
         );
     }
 
@@ -302,17 +298,21 @@ readonly final class ComparisonBuilder
     }
 
     /**
-     * The puzzles both of the pair solved, in the given order
+     * Puzzles compared by 2+ subjects where nobody wins: the fastest time is shared
      *
      * @param list<ComparisonPuzzleRow> $rows
-     * @return list<ComparisonPuzzleRow>
      */
-    private static function solvedByBoth(array $rows, ComparisonSubjectRef $a, ComparisonSubjectRef $b): array
+    private static function ties(array $rows): int
     {
-        return array_values(array_filter(
-            $rows,
-            static fn(ComparisonPuzzleRow $row): bool => $row->cell($a) !== null && $row->cell($b) !== null,
-        ));
+        $ties = 0;
+
+        foreach ($rows as $row) {
+            if ($row->winner === null && count($row->cells) >= 2) {
+                $ties++;
+            }
+        }
+
+        return $ties;
     }
 
     /**

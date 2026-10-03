@@ -1,8 +1,11 @@
-{# Under a time: the day, and "1st try" or "best of N". Each token stays on one line, the line breaks only between
-   them. Input: cell (ComparisonCell) #}
-<span class="cmp-meta">
+{# Under a time: the day it was solved, "1st try" when the shown time is the subject's first try, and "fastest of N tries"
+   when it is the best of several (never with "first tries only": there the time is the first try, whatever came after).
+   Inline (cards, rows): one line that breaks only between its tokens, the "·" stays at the end of a line. Stacked
+   (table cells): a token per line, aligned like the cell. Inputs: cell (ComparisonCell), stacked (bool, optional) #}
+{% set stacked = stacked|default(false) %}
+{% set show_tries = this.criteria.times.value != 'first' and cell.attempts > 1 %}
+<span class="cmp-meta{{ stacked ? ' cmp-meta--stacked' }}">
     <span class="cmp-meta__token">{{ cell.day|format_date('medium') }}</span>
-    {%- if cell.isFirstTry %} <span class="cmp-badge-first">{{ 'comparison.cell.first_try'|trans }}</span>
-    {%- elseif cell.attempts > 1 %} <span class="cmp-meta__token">· {{ 'comparison.cell.best_of'|trans({'%count%': cell.attempts}) }}</span>
-    {%- endif -%}
+    {%- if cell.isFirstTry %} <span class="cmp-meta__token"><span class="cmp-badge-first">{{ 'comparison.cell.first_try'|trans }}</span></span>{% endif -%}
+    {%- if show_tries %} <span class="cmp-meta__token cmp-meta__tries">{{ 'comparison.cell.fastest_of'|trans({'%count%': cell.attempts}) }}</span>{% endif -%}
 </span>

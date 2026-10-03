@@ -1,8 +1,15 @@
-{# The line-up of the active kind: a chip per subject (scrolls sideways inside its strip, never the page), "+ Add", and
-   "n / cap" under it. A subject this viewer may no longer see is a neutral chip that can only be removed; subjects over
-   the free cap (a membership ended) wait in one locked chip. #}
+{# The line-up of the active kind: "+ Add" first (seen without scrolling the strip on a phone), a chip per subject (the
+   strip scrolls sideways inside itself, never the page), and "n / cap" + "Clear" under it. A subject this viewer may no
+   longer see is a neutral chip that can only be removed; subjects over the free cap (a membership ended) wait in one
+   locked chip. #}
 <div class="cmp-lineup-wrap">
     <div class="cmp-lineup" data-testid="comparison-line-up">
+        {% if not this.isPreview %}
+            <button type="button" class="cmp-chip cmp-chip--add" data-bs-toggle="modal" data-bs-target="#comparison-add-sheet" data-testid="comparison-add">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>{{ 'comparison.line_up.add'|trans }}
+            </button>
+        {% endif %}
+
         {% for chip in this.chips %}
             {% set subject = chip.subject %}
             {% set label = this.labelOf(subject.ref) %}
@@ -34,25 +41,41 @@
                 {{ 'comparison.line_up.locked'|trans({'%count%': this.lockedCount}) }}
             </button>
         {% endif %}
-
-        {% if not this.isPreview %}
-            <button type="button" class="cmp-chip cmp-chip--add" data-bs-toggle="modal" data-bs-target="#comparison-add-sheet" data-testid="comparison-add">
-                <i class="bi bi-plus-lg" aria-hidden="true"></i>{{ 'comparison.line_up.add'|trans }}
-            </button>
-        {% endif %}
     </div>
 </div>
 
-<div class="cmp-capline">
-    {% if this.isPreview %}
-        <span>{{ 'comparison.preview.caps'|trans }}</span>
-    {% elseif this.isMember %}
-        <span>{{ 'comparison.line_up.kept'|trans }}</span>
+<div class="cmp-capline" aria-live="polite">
+    {% if this.confirmingClear and this.clearableCount > 0 %}
+        {# Inline confirmation: "Yes" clears, "Cancel" is a plain re-render (this state lives one render only) #}
+        <span class="cmp-capline__confirm" data-testid="comparison-clear-confirm">
+            <span>{{ 'comparison.line_up.clear_confirm'|trans({'%count%': this.clearableCount}) }}</span>
+            <button type="button" class="btn btn-link cmp-capline__action cmp-capline__action--danger" data-action="live#action" data-live-action-param="clear" data-testid="comparison-clear-yes">
+                {{- 'comparison.line_up.clear_yes'|trans -}}
+            </button>
+            <button type="button" class="btn btn-link cmp-capline__action" data-action="live#$render" data-testid="comparison-clear-cancel">
+                {{- 'comparison.line_up.clear_cancel'|trans -}}
+            </button>
+        </span>
     {% else %}
-        {# The one quiet line about membership #}
-        <button type="button" class="btn btn-link cmp-capline__members" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-testid="comparison-members-line">
-            {{ 'comparison.line_up.members_line'|trans({'%count%': constant('SpeedPuzzling\\Web\\Value\\ComparisonLimits::MEMBER')}) }}
-        </button>
+        {% if this.isPreview %}
+            <span>{{ 'comparison.preview.caps'|trans }}</span>
+        {% elseif this.isMember %}
+            <span>{{ 'comparison.line_up.kept'|trans }}</span>
+        {% else %}
+            {# The one quiet line about membership #}
+            <button type="button" class="btn btn-link cmp-capline__members" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-testid="comparison-members-line">
+                {{ 'comparison.line_up.members_line'|trans({'%count%': constant('SpeedPuzzling\\Web\\Value\\ComparisonLimits::MEMBER')}) }}
+            </button>
+        {% endif %}
+        <span class="cmp-capline__end">
+            <span class="cmp-capline__count" data-testid="comparison-cap">{{ 'comparison.line_up.count'|trans({'%count%': this.lineUpCount, '%cap%': this.cap}) }}</span>
+            {% if this.clearableCount > 0 and not this.isPreview %}
+                <span aria-hidden="true">·</span>
+                <button type="button" class="btn btn-link cmp-capline__action" title="{{ 'comparison.line_up.clear_title'|trans }}"
+                    data-action="live#action" data-live-action-param="askClear" data-testid="comparison-clear">
+                    {{- 'comparison.line_up.clear'|trans -}}
+                </button>
+            {% endif %}
+        </span>
     {% endif %}
-    <span class="cmp-capline__count" data-testid="comparison-cap">{{ 'comparison.line_up.count'|trans({'%count%': this.lineUpCount, '%cap%': this.cap}) }}</span>
 </div>

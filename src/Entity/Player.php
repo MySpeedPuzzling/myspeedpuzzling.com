@@ -181,8 +181,8 @@ class Player
 
     // How a comparison of 3+ subjects lists its puzzles (docs/features/player-comparison.md)
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
-    #[Column(type: Types::STRING, enumType: ComparisonView::class, options: ['default' => 'cards'])]
-    public ComparisonView $comparisonView = ComparisonView::Cards;
+    #[Column(type: Types::STRING, enumType: ComparisonView::class, options: ['default' => 'table'])]
+    public ComparisonView $comparisonView = ComparisonView::Table;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]

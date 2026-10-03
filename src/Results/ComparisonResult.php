@@ -10,8 +10,7 @@ use SpeedPuzzling\Web\Value\ComparisonSubjectRef;
 /**
  * The comparison view model (ComparisonBuilder): the shown puzzles sorted, the page window to render, and the summary
  * blocks. Everything is counted over the shown puzzles (after filters and "puzzles to show"), so the summary always
- * describes the list below it - except in the Duel view of 3+ subjects ($highlightedPairOnly), whose list narrows down
- * to the puzzles both highlighted subjects solved while the summaries keep describing the whole line-up.
+ * describes the list below it: the wins of everyone plus $ties plus the puzzles only one subject solved make $total.
  */
 readonly final class ComparisonResult
 {
@@ -40,8 +39,8 @@ readonly final class ComparisonResult
         public null|ComparisonHeadToHead $headToHead,
         public array $beats,
         public array $shared,
-        // The list holds only the puzzles both highlighted subjects solved (Duel view, 3+ subjects)
-        public bool $highlightedPairOnly = false,
+        // Puzzles solved by 2+ subjects whose fastest time is shared - nobody wins them
+        public int $ties = 0,
     ) {
     }
 
@@ -50,7 +49,10 @@ readonly final class ComparisonResult
         return $this->total === 0;
     }
 
-    public function isDuel(): bool
+    /**
+     * Exactly two subjects: a head-to-head card and side-by-side rows instead of the league table and the views
+     */
+    public function hasTwoSubjects(): bool
     {
         return count($this->subjects) === 2;
     }

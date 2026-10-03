@@ -79,25 +79,46 @@ export default class extends Controller {
         };
 
 
+        // A typed name that is an existing brand selects it instead of creating a new one. Compared with
+        // the plain brand `name` - never `text`, which is the option's HTML incl. the logo and "(123)",
+        // where "Pussel" was found inside "Sverigepussel". An exact name wins; otherwise the only
+        // brand whose name starts with the text ("ravensbur" → Ravensburger); otherwise a new brand.
+        // The server matches a typed name against every brand again (ManufacturerResolver).
         event.detail.options.create = (input) => {
             const tom = this.brandTarget.tomselect;
+            const typed = this.normalizeBrandName(input);
 
-            const normalizedInput = this.removeDiacritics(input).toLowerCase();
+            if (typed !== '') {
+                let exactMatch = null;
+                const prefixMatches = [];
 
-            for (const [value, optionData] of Object.entries(tom.options)) {
-                const normalizedOption = this.removeDiacritics(optionData.text).toLowerCase();
+                for (const [value, optionData] of Object.entries(tom.options)) {
+                    // Options created from typed text carry no `name`
+                    if (typeof optionData.name !== 'string') {
+                        continue;
+                    }
 
-                // Partial matching: e.g. "ravensbur" matches "Ravensburger (499)"
-                if (normalizedOption.includes(normalizedInput)) {
-                    // Instead of creating a new brand, select the existing one
-                    tom.addItem(value);
+                    const name = this.normalizeBrandName(optionData.name);
+
+                    if (name === typed) {
+                        exactMatch = value;
+                        break;
+                    }
+
+                    if (name.startsWith(typed)) {
+                        prefixMatches.push(value);
+                    }
+                }
+
+                const match = exactMatch ?? (prefixMatches.length === 1 ? prefixMatches[0] : null);
+
+                if (match !== null) {
+                    tom.addItem(match);
 
                     return false;
                 }
             }
 
-            // Otherwise, if no partial match found, create a new item
-            // This is the original behaviour
             return {
                 value: input,
                 text: input,
@@ -467,6 +488,11 @@ export default class extends Controller {
         return str.normalize('NFD').replace(/\p{M}/gu, '');
     }
 
+    // Diacritics, case and spacing do not tell two brand names apart
+    normalizeBrandName(str) {
+        return this.removeDiacritics(str).trim().replace(/\s+/g, ' ').toLowerCase();
+    }
+
     // === Barcode Scanner Methods ===
 
     openScanner(event) {
@@ -559,7 +585,7 @@ export default class extends Controller {
 
         // Add brand option if not exists
         if (!brandTom.getOption(brand.id)) {
-            brandTom.addOption({ value: brand.id, text: brand.name });
+            brandTom.addOption({ value: brand.id, text: brand.name, name: brand.name });
         }
 
         // Set brand value - this triggers fetchPuzzleOptions via onBrandValueChanged
@@ -584,7 +610,7 @@ export default class extends Controller {
 
             // Add brand option if not exists, then select it
             if (!brandTom.getOption(brand.id)) {
-                brandTom.addOption({ value: brand.id, text: brand.name });
+                brandTom.addOption({ value: brand.id, text: brand.name, name: brand.name });
             }
 
             // Setting brand value triggers the normal flow
@@ -614,7 +640,7 @@ export default class extends Controller {
 
         // Add brand option if not exists, then select it
         if (!brandTom.getOption(brand.id)) {
-            brandTom.addOption({ value: brand.id, text: brand.name });
+            brandTom.addOption({ value: brand.id, text: brand.name, name: brand.name });
         }
         brandTom.setValue(brand.id);
 

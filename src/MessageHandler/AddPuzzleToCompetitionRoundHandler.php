@@ -9,7 +9,6 @@ use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
-use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
@@ -17,11 +16,10 @@ use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
-use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
-use SpeedPuzzling\Web\Services\GenerateManufacturerSlug;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
+use SpeedPuzzling\Web\Services\ManufacturerResolver;
 use SpeedPuzzling\Web\Services\PuzzleImageNamer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -34,11 +32,10 @@ readonly final class AddPuzzleToCompetitionRoundHandler
         private CompetitionRoundPuzzleRepository $competitionRoundPuzzleRepository,
         private PuzzleRepository $puzzleRepository,
         private PlayerRepository $playerRepository,
-        private ManufacturerRepository $manufacturerRepository,
+        private ManufacturerResolver $manufacturerResolver,
         private Filesystem $filesystem,
         private ClockInterface $clock,
         private ImageOptimizer $imageOptimizer,
-        private GenerateManufacturerSlug $generateManufacturerSlug,
         private PuzzleImageNamer $puzzleImageNamer,
         private GetCompetitionRounds $getCompetitionRounds,
     ) {
@@ -93,19 +90,7 @@ readonly final class AddPuzzleToCompetitionRoundHandler
         $player = $this->playerRepository->getByUserIdCreateIfNotExists($message->userId);
         $now = $this->clock->now();
 
-        if (Uuid::isValid($message->brand)) {
-            $manufacturer = $this->manufacturerRepository->get($message->brand);
-        } else {
-            $manufacturer = new Manufacturer(
-                Uuid::uuid7(),
-                $message->brand,
-                false,
-                $player,
-                $now,
-                slug: $this->generateManufacturerSlug->fromName($message->brand),
-            );
-            $this->entityManager->persist($manufacturer);
-        }
+        $manufacturer = $this->manufacturerResolver->resolve($message->brand, $player, $now);
 
         $puzzleId = Uuid::uuid7();
         $puzzlePhotoPath = null;

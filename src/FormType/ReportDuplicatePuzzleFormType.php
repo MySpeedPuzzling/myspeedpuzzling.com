@@ -31,9 +31,11 @@ final class ReportDuplicatePuzzleFormType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $manufacturerChoices = [];
-        foreach ($this->getManufacturers->onlyApprovedOrAddedByPlayer() as $manufacturer) {
-            $manufacturerChoices["{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount})"] = $manufacturer->manufacturerId;
+        // Every brand, approved or not: the duplicate often sits under a duplicate, still unapproved brand
+        // Keyed by id: two brands of the same name and count must not swallow each other as label keys
+        $manufacturerLabels = [];
+        foreach ($this->getManufacturers->allIncludingUnapproved() as $manufacturer) {
+            $manufacturerLabels[$manufacturer->manufacturerId] = "{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount})";
         }
 
         $builder
@@ -49,7 +51,8 @@ final class ReportDuplicatePuzzleFormType extends AbstractType
                 'label' => 'puzzle_report.form.search_manufacturer',
                 'required' => false,
                 'autocomplete' => true,
-                'choices' => $manufacturerChoices,
+                'choices' => array_keys($manufacturerLabels),
+                'choice_label' => static fn (string $manufacturerId): string => $manufacturerLabels[$manufacturerId],
                 'placeholder' => 'puzzle_report.form.search_manufacturer_placeholder',
                 'choice_translation_domain' => false,
                 'attr' => [

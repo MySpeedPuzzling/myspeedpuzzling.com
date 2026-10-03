@@ -236,6 +236,17 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
         self::assertSame('Brand New Manufacturer', $puzzle->manufacturer?->name);
     }
 
+    public function testATypedBrandNameIsTheExistingBrandIgnoringCaseAndSpacing(): void
+    {
+        self::assertSame(ManufacturerFixture::MANUFACTURER_TREFL, $this->newPuzzleBrandId('  trefl '));
+
+        // Unapproved and added by PLAYER_REGULAR - found for anybody
+        self::assertSame(
+            ManufacturerFixture::MANUFACTURER_UNAPPROVED,
+            $this->newPuzzleBrandId('unknown  BRAND', PlayerFixture::PLAYER_WITH_STRIPE_USER_ID),
+        );
+    }
+
     public function testAddExistingPuzzleToSeriesEditionRound(): void
     {
         $roundPuzzleId = Uuid::uuid7();
@@ -257,5 +268,25 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
 
         self::assertSame(PuzzleFixture::PUZZLE_300, $roundPuzzle->puzzle->id->toString());
         self::assertSame(CompetitionSeriesFixture::ROUND_EJJ_69, $roundPuzzle->round->id->toString());
+    }
+
+    private function newPuzzleBrandId(string $brand, string $userId = PlayerFixture::PLAYER_REGULAR_USER_ID): null|string
+    {
+        $roundPuzzleId = Uuid::uuid7();
+
+        $this->messageBus->dispatch(new AddPuzzleToCompetitionRound(
+            roundPuzzleId: $roundPuzzleId,
+            roundId: CompetitionRoundFixture::ROUND_CZECH_FINAL,
+            userId: $userId,
+            brand: $brand,
+            puzzle: 'Round puzzle with a typed brand',
+            piecesCount: 500,
+            puzzlePhoto: null,
+            puzzleEan: null,
+            puzzleIdentificationNumber: null,
+            hideUntilRoundStarts: false,
+        ));
+
+        return $this->roundPuzzleRepository->get($roundPuzzleId->toString())->puzzle->manufacturer?->id->toString();
     }
 }

@@ -695,10 +695,14 @@ final class MultiscanTray
                 puzzleEan: $ean->digits,
                 puzzleIdentificationNumber: null,
             ));
-        } catch (HandlerFailedException $e) {
-            $this->resolveError = $e->getPrevious() instanceof ManufacturerNotFound
-                ? 'multiscan.resolve.error.brand_not_found'
-                : 'multiscan.resolve.error.create_failed';
+        } catch (ManufacturerNotFound) {
+            // The picked brand is gone (merged or deleted since the sheet opened). Not wrapped:
+            // UnwrapHttpExceptionMiddleware rethrows a handler's HTTP exception as it is
+            $this->resolveError = 'multiscan.resolve.error.brand_not_found';
+            $this->quickAddOpen = true;
+            return;
+        } catch (HandlerFailedException) {
+            $this->resolveError = 'multiscan.resolve.error.create_failed';
             $this->quickAddOpen = true;
             return;
         }
@@ -897,7 +901,8 @@ final class MultiscanTray
             return $this->manufacturers;
         }
 
-        $list = $this->getManufacturers->onlyApprovedOrAddedByPlayer();
+        // Every brand, approved or not - one left out gets typed again as a new brand
+        $list = $this->getManufacturers->allIncludingUnapproved();
         usort($list, static fn (ManufacturerOverview $a, ManufacturerOverview $b): int => strcasecmp($a->manufacturerName, $b->manufacturerName));
 
         return $this->manufacturers = $list;
@@ -1002,25 +1007,15 @@ final class MultiscanTray
     }
 
     /**
-     * Quick-add brand: a typed name that matches a known brand (case-insensitive) is that brand,
-     * otherwise the dropdown pick, otherwise the typed name as a new brand. Never a duplicate of
-     * an existing manufacturer just because somebody typed "Ravensburger" again.
+     * Quick-add brand: the typed name, otherwise the dropdown pick. AddPuzzleHandler turns a typed name
+     * that is an existing brand (ignoring case and spacing, approved or not) into that brand
+     * (ManufacturerResolver) - never a duplicate just because somebody typed "Ravensburger" again.
      */
     private function resolveBrandInput(): string
     {
         $typed = trim($this->newBrandName);
 
-        if ($typed !== '') {
-            foreach ($this->brandOptions() as $brand) {
-                if (strcasecmp($brand->manufacturerName, $typed) === 0) {
-                    return $brand->manufacturerId;
-                }
-            }
-
-            return $typed;
-        }
-
-        return trim($this->newBrand);
+        return $typed !== '' ? $typed : trim($this->newBrand);
     }
 
     private function requireMember(): PlayerProfile

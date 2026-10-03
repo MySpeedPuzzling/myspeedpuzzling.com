@@ -6,7 +6,6 @@ namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\RoundPuzzleFormData;
 use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
-use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -27,7 +26,6 @@ final class RoundPuzzleFormType extends AbstractType
 {
     public function __construct(
         private readonly BrandChoicesBuilder $brandChoicesBuilder,
-        private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly TranslatorInterface $translator,
         private readonly UrlGeneratorInterface $urlGenerator,
     ) {
@@ -38,9 +36,7 @@ final class RoundPuzzleFormType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $profile = $this->retrieveLoggedUserProfile->getProfile();
-        assert($profile !== null);
-        $brandChoices = $this->brandChoicesBuilder->build($profile->playerId, null);
+        $brandChoices = $this->brandChoicesBuilder->build();
 
         $builder->add('brand', TextType::class, [
             'label' => 'forms.brand',
@@ -56,7 +52,8 @@ final class RoundPuzzleFormType extends AbstractType
                 'options' => $brandChoices,
                 'closeAfterSelect' => true,
                 'createOnBlur' => true,
-                'searchField' => ['text', 'eanPrefix'],
+                // Never `text`: that one is markup, so typing "img" or a puzzle count matched brands
+                'searchField' => ['name', 'eanPrefix'],
             ],
             'attr' => [
                 'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete'),

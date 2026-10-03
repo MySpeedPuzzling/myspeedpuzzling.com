@@ -16,13 +16,17 @@ readonly final class BrandChoicesBuilder
     }
 
     /**
-     * @return array<array{value: string, text: string, eanPrefix: string}>
+     * Every brand, approved or not - a brand missing here gets typed again and becomes a
+     * duplicate (docs/features/brand-duplicates.md). `text` is the option's HTML; `name` is the
+     * plain brand name the picker compares typed text against.
+     *
+     * @return array<array{value: string, text: string, name: string, eanPrefix: string}>
      */
-    public function build(string $playerId, null|string $extraManufacturerId = null): array
+    public function build(): array
     {
         $brandChoices = [];
 
-        foreach ($this->getManufacturers->onlyApprovedOrAddedByPlayer($playerId, $extraManufacturerId) as $manufacturer) {
+        foreach ($this->getManufacturers->allIncludingUnapproved() as $manufacturer) {
             $img = '';
             if ($manufacturer->manufacturerLogo !== null) {
                 $img = <<<HTML
@@ -33,16 +37,20 @@ readonly final class BrandChoicesBuilder
 HTML;
             }
 
+            // Rendered as HTML, and the name is whatever a player typed
+            $name = htmlspecialchars($manufacturer->manufacturerName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
             $html = <<<HTML
 <div class="py-1 d-flex low-line-height align-items-center">
     <div class="icon me-2">{$img}</div>
-    <div class="pe-1">{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount})</div>
+    <div class="pe-1">{$name} ({$manufacturer->puzzlesCount})</div>
 </div>
 HTML;
 
             $brandChoices[] = [
                 'value' => $manufacturer->manufacturerId,
                 'text' => $html,
+                'name' => $manufacturer->manufacturerName,
                 'eanPrefix' => $manufacturer->manufacturerEanPrefix ?? '',
             ];
         }

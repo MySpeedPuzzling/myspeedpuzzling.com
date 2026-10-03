@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Component;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Component\MultiscanTray;
 use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -204,6 +205,29 @@ final class MultiscanTrayTest extends WebTestCase
         self::assertSame(PuzzleFixture::EAN_UNKNOWN, $row['ean']);
         self::assertSame('018d0002-0000-0000-0000-000000000001', $row['manufacturer_id'], 'brand prefilled from the EAN prefix');
         self::assertNotNull($row['image'], 'a new puzzle always carries its box photo');
+    }
+
+    public function testQuickAddTypedBrandIsAnExistingBrandEvenAnotherPlayersUnapprovedOne(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        // "Unknown Brand" is unapproved and PLAYER_REGULAR's - typed over the brand the EAN prefix picked
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_UNKNOWN]);
+        $tray->call('toggleQuickAdd');
+        $tray->set('newName', 'Scanned box');
+        $tray->set('newPiecesCount', '1000');
+        $tray->set('newBrandName', '  unknown   BRAND ');
+        $tray->call('createPuzzle', files: ['photo' => self::boxPhoto()]);
+
+        self::assertSame('resolved', self::rows($tray)[0]['state']);
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        self::assertSame(
+            ManufacturerFixture::MANUFACTURER_UNAPPROVED,
+            $database->fetchOne('SELECT manufacturer_id FROM puzzle WHERE id = :id', ['id' => self::rows($tray)[0]['puzzleId']]),
+        );
     }
 
     public function testQuickAddRefusesANewPuzzleWithoutAPhotoAndKeepsEverything(): void

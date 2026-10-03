@@ -254,10 +254,13 @@ Design + survey: [`features/brand-duplicates.md`](features/brand-duplicates.md).
 
 - [ ] Merge the 99 "certain" groups of the 2026-10-03 survey (`~/Downloads/msp-brand-duplicates-2026-10-03/`), then the 50 puzzles left twice under one brand; decide the 44 likely + 44 your-call groups
 - [ ] Approve or merge the remaining unapproved brands that have no pending puzzle
-- [ ] Hardening: one brand resolver (normalised key + unique index) for `AddPuzzleHandler` / `AddPuzzleToCompetitionRoundHandler` - needs the identical-key duplicates merged first
+- [x] Hardening: one brand resolver for `AddPuzzleHandler` (incl. multiscan quick-add) / `AddPuzzleToCompetitionRoundHandler` - `ManufacturerResolver`, case + spacing only (2026-10-03)
+- [ ] Hardening: unique index on the normalised brand name (race-safe insert) - needs the identical-key duplicates merged first
+- [x] Hardening: every brand picker lists unapproved brands too (2026-10-03)
 - [ ] Hardening: approval queue suggests unapproved twins and refuses "approve" for a same-key approved brand
-- [ ] Hardening: brand picker's client-side match uses `includes()` on the option HTML - "Pussel" silently selects "Sverigepussel"
+- [x] Hardening: brand picker's client-side match compares the plain name (exact, else a single prefix match), not `includes()` on the option HTML (2026-10-03)
 - [ ] Hardening: no brand may sit unapproved without anyone being asked (queue shows brands without a pending puzzle)
+- [x] Internal API: delete an empty brand (`POST /internal-api/manufacturers/{id}/delete`, 2026-10-03)
 
 ## Image storage (bucket audit 2026-09-22)
 

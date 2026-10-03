@@ -13,6 +13,10 @@ use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 
 readonly final class ManufacturerRepository
 {
+    // Read by Postgres and PCRE alike (ManufacturerResolver::cleanName()): ASCII whitespace only - their ideas of
+    // Unicode whitespace differ, and no byte of a multibyte UTF-8 character ever matches
+    public const string WHITESPACE_PATTERN = '[ \t\n\r]+';
+
     public function __construct(
         private EntityManagerInterface $entityManager,
     ) {
@@ -68,6 +72,45 @@ readonly final class ManufacturerRepository
         }
 
         return (int) $queryBuilder->getQuery()->getSingleScalarResult() > 0;
+    }
+
+    /**
+     * The brand a typed name means: the same name ignoring case and spacing - trimmed, inner whitespace
+     * collapsed, lowercased, on both sides (no other normalisation: "Puzzle Bug" is not "PuzzleBug").
+     * Approved, unapproved, whoever added it. Among several: approved first, then the one with the most
+     * puzzles, then the oldest. Both sides go through the same SQL expression, so they always agree.
+     * A sequential scan of ~2,300 short names - no index needed.
+     */
+    public function findByNameIgnoringCase(string $name): null|Manufacturer
+    {
+        $query = <<<SQL
+SELECT manufacturer.id
+FROM manufacturer
+WHERE LOWER(BTRIM(REGEXP_REPLACE(manufacturer.name, :whitespace, ' ', 'g')))
+    = LOWER(BTRIM(REGEXP_REPLACE(:name, :whitespace, ' ', 'g')))
+ORDER BY
+    manufacturer.approved DESC,
+    (SELECT COUNT(*) FROM puzzle WHERE puzzle.manufacturer_id = manufacturer.id) DESC,
+    manufacturer.added_at ASC NULLS FIRST,
+    manufacturer.id ASC
+LIMIT 1
+SQL;
+
+        $id = $this->entityManager->getConnection()->fetchOne($query, [
+            'name' => $name,
+            'whitespace' => self::WHITESPACE_PATTERN,
+        ]);
+
+        if (!is_string($id)) {
+            return null;
+        }
+
+        return $this->entityManager->find(Manufacturer::class, Uuid::fromString($id));
+    }
+
+    public function save(Manufacturer $manufacturer): void
+    {
+        $this->entityManager->persist($manufacturer);
     }
 
     public function delete(Manufacturer $manufacturer): void

@@ -8,8 +8,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
 use SpeedPuzzling\Web\Services\CompetitionChoicesBuilder;
-use SpeedPuzzling\Web\Results\PuzzleOverview;
-use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CompetitionChoices;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use Symfony\Component\Form\AbstractType;
@@ -37,7 +35,6 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
 {
     public function __construct(
         readonly private BrandChoicesBuilder $brandChoicesBuilder,
-        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private UrlGeneratorInterface $urlGenerator,
         readonly private CompetitionChoicesBuilder $competitionChoicesBuilder,
@@ -49,16 +46,7 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $userProfile = $this->retrieveLoggedUserProfile->getProfile();
-        // Must not be null - solving time is allowed only to logged-in users
-        assert($userProfile !== null);
-
-        /** @var null|PuzzleOverview $activePuzzle */
-        $activePuzzle = $options['active_puzzle'];
-
-        $extraManufacturerId = $activePuzzle?->manufacturerId;
-
-        $brandChoices = $this->brandChoicesBuilder->build($userProfile->playerId, $extraManufacturerId);
+        $brandChoices = $this->brandChoicesBuilder->build();
 
         // The competition this time is linked to is always offered, even when it is not publicly
         // visible (any more) — otherwise the control renders empty and a re-save detaches the time
@@ -96,7 +84,8 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
                 'options' => $brandChoices,
                 'closeAfterSelect' => true,
                 'createOnBlur' => false,
-                'searchField' => ['text', 'eanPrefix'],
+                // Never `text`: that one is markup, so typing "img" or a puzzle count matched brands
+                'searchField' => ['name', 'eanPrefix'],
             ],
             'attr' => [
                 'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete'),
@@ -245,7 +234,6 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => EditPuzzleSolvingTimeFormData::class,
-            'active_puzzle' => null,
             // The competition the edited time is currently linked to (server-derived by the controller,
             // never from the request) — the picker always offers it, see CompetitionChoicesBuilder
             'current_competition_id' => null,

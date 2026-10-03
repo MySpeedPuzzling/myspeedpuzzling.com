@@ -60,4 +60,10 @@ readonly final class PuzzleChangeRequestRepository
         return $this->entityManager->getRepository(PuzzleChangeRequest::class)
             ->findBy(['proposedManufacturer' => $manufacturer]);
     }
+
+    public function countByProposedManufacturer(Manufacturer $manufacturer): int
+    {
+        return $this->entityManager->getRepository(PuzzleChangeRequest::class)
+            ->count(['proposedManufacturer' => $manufacturer]);
+    }
 }

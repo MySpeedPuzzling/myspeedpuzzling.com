@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
-use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
@@ -15,12 +14,11 @@ use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleIdTaken;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Query\IsPuzzleInUse;
-use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
-use SpeedPuzzling\Web\Services\GenerateManufacturerSlug;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
+use SpeedPuzzling\Web\Services\ManufacturerResolver;
 use SpeedPuzzling\Web\Services\PuzzleImageNamer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -30,10 +28,9 @@ readonly final class AddPuzzleHandler
     public function __construct(
         private EntityManagerInterface $entityManager,
         private PlayerRepository $playerRepository,
-        private ManufacturerRepository $manufacturerRepository,
+        private ManufacturerResolver $manufacturerResolver,
         private Filesystem $filesystem,
         private ImageOptimizer $imageOptimizer,
-        private GenerateManufacturerSlug $generateManufacturerSlug,
         private PuzzleImageNamer $puzzleImageNamer,
         private PuzzleRepository $puzzleRepository,
         private IsPuzzleInUse $isPuzzleInUse,
@@ -71,7 +68,7 @@ readonly final class AddPuzzleHandler
         }
 
         $now = new DateTimeImmutable();
-        $manufacturer = $this->manufacturer($message->brand, $player, $now);
+        $manufacturer = $this->manufacturerResolver->resolve($message->brand, $player, $now);
         [$puzzlePhotoPath, $puzzleImageRatio] = $this->storePhoto($message, $manufacturer);
 
         $puzzle = new Puzzle(
@@ -91,18 +88,13 @@ readonly final class AddPuzzleHandler
         $this->entityManager->persist($puzzle);
     }
 
+    /**
+     * @throws ManufacturerNotFound
+     */
     private function correct(Puzzle $puzzle, AddPuzzle $message, Player $player): void
     {
-        // The brand typed again is the one this form created the first time - not a second new brand
-        $manufacturer = $puzzle->manufacturer;
-
-        if (
-            Uuid::isValid($message->brand)
-            || $manufacturer === null
-            || mb_strtolower(trim($manufacturer->name)) !== mb_strtolower(trim($message->brand))
-        ) {
-            $manufacturer = $this->manufacturer($message->brand, $player, new DateTimeImmutable());
-        }
+        // The brand typed again finds the one this form created the first time - not a second new brand
+        $manufacturer = $this->manufacturerResolver->resolve($message->brand, $player, new DateTimeImmutable());
 
         [$puzzlePhotoPath, $puzzleImageRatio] = $this->storePhoto($message, $manufacturer);
 
@@ -115,29 +107,6 @@ readonly final class AddPuzzleHandler
             ean: $this->normalizedEan($message->puzzleEan),
             identificationNumber: $message->puzzleIdentificationNumber,
         );
-    }
-
-    /**
-     * @throws ManufacturerNotFound
-     */
-    private function manufacturer(string $brand, Player $player, DateTimeImmutable $now): Manufacturer
-    {
-        if (Uuid::isValid($brand)) {
-            return $this->manufacturerRepository->get($brand);
-        }
-
-        $manufacturer = new Manufacturer(
-            Uuid::uuid7(),
-            $brand,
-            false,
-            $player,
-            $now,
-            slug: $this->generateManufacturerSlug->fromName($brand),
-        );
-
-        $this->entityManager->persist($manufacturer);
-
-        return $manufacturer;
     }
 
     /**

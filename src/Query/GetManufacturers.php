@@ -16,9 +16,40 @@ readonly final class GetManufacturers
     }
 
     /**
+     * Every brand, approved or not, whoever added it - for the pickers where a player chooses the
+     * brand of a puzzle. A brand left out there gets typed again and becomes a duplicate
+     * (docs/features/brand-duplicates.md).
+     *
+     * @return array<ManufacturerOverview>
+     */
+    public function allIncludingUnapproved(): array
+    {
+        return $this->overviews('true', []);
+    }
+
+    /**
+     * Approved brands, plus the player's own and one extra brand when given - for public lists
+     * (search filters) and the admin pages that suggest approved brands only.
+     *
      * @return array<ManufacturerOverview>
      */
     public function onlyApprovedOrAddedByPlayer(null|string $playerId = null, null|string $extraManufacturerId = null): array
+    {
+        return $this->overviews(
+            '(manufacturer.approved = true OR manufacturer.added_by_user_id = :playerId OR manufacturer.id = :extraManufacturerId)',
+            [
+                'playerId' => $playerId,
+                'extraManufacturerId' => $extraManufacturerId,
+            ],
+        );
+    }
+
+    /**
+     * @param array<string, null|string> $parameters
+     *
+     * @return array<ManufacturerOverview>
+     */
+    private function overviews(string $condition, array $parameters): array
     {
         $query = <<<SQL
 SELECT
@@ -30,16 +61,13 @@ SELECT
     COUNT(puzzle.id) AS puzzles_count
 FROM manufacturer
 LEFT JOIN puzzle ON puzzle.manufacturer_id = manufacturer.id
-WHERE (manufacturer.approved = true OR manufacturer.added_by_user_id = :playerId OR manufacturer.id = :extraManufacturerId)
+WHERE {$condition}
 GROUP BY manufacturer.id
 ORDER BY COUNT(puzzle.id) DESC, manufacturer.name ASC
 SQL;
 
         $data = $this->database
-            ->executeQuery($query, [
-                'playerId' => $playerId,
-                'extraManufacturerId' => $extraManufacturerId,
-            ])
+            ->executeQuery($query, $parameters)
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): ManufacturerOverview {

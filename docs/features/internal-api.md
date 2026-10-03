@@ -88,13 +88,14 @@ answers `404` and files nothing.
 ### Brands
 
 Duplicate brands (the same brand created by several players, see [`brand-duplicates.md`](./brand-duplicates.md)) are
-merged here. Both endpoints write a `puzzle_moderation_decision` row (`source = internal_api`) and need
+merged here. Every endpoint writes a `puzzle_moderation_decision` row (`source = internal_api`) and needs
 `INTERNAL_API_REVIEWER_PLAYER_ID`.
 
 | Method | Path | Purpose |
 |---|---|---|
 | `POST` | `/internal-api/manufacturers/{id}/merge` | Fold duplicate brands into the brand `{id}` |
 | `POST` | `/internal-api/manufacturers/{id}/approve` | Approve a genuinely new brand |
+| `POST` | `/internal-api/manufacturers/{id}/delete` | Delete a brand nothing uses any more |
 
 Merge body:
 
@@ -118,7 +119,14 @@ approved brand outside the merge has the survivor's final name (merge that one i
 Approve body (both optional): `name` (fix the spelling on the way), `decisionNote`. Answers `409` when the brand is
 already approved, or when an approved brand of that name (case-insensitive) exists - it is then a duplicate to merge, not
 a new brand. Use it for new brands whose puzzles were approved without them: the approval queue only shows brands with a
-pending puzzle, so those stay hidden from every other player's brand picker until approved here.
+pending puzzle, so those stay unreviewed until approved here.
+
+Delete body (optional): `decisionNote`. For an empty brand, e.g. a copy whose only puzzle was moved or merged away.
+Answers `409` while anything still points at it - a puzzle, a change request proposing it, or a merged brand's slug
+redirecting to it (the database would quietly null the proposal and cascade the redirect away); merge it into the right
+brand instead, which moves all of those. The deleted brand's slug gets no redirect (there is nothing to send it to) and
+is free for a new brand again. One `brand_deleted` decision holds its name, slug, approval and `added_at` - the only
+trace of it.
 
 ### Examples
 
@@ -173,6 +181,12 @@ curl -X POST "$APP_URL/internal-api/manufacturers/019a0000-0000-7000-8000-000000
   -H "Content-Type: application/json" \
   -d '{"name": "Pusselbolaget", "decisionNote": "Real publisher, no approved brand of that name."}'
 
+# Brands: delete an empty copy (409 if anything still uses it)
+curl -X POST "$APP_URL/internal-api/manufacturers/019a0000-0000-7000-8000-000000000005/delete" \
+  -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"decisionNote": "Typo copy of Trefl, its only puzzle was merged away."}'
+
 # File a duplicate report, then approve it like any other
 curl -X POST "$APP_URL/internal-api/puzzle-merge-requests" \
   -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
@@ -217,7 +231,7 @@ ORDER BY performed_at DESC;
 | `401 Unauthorized` | Missing / wrong / unconfigured token | `{"error": "..."}` |
 | `400 Bad Request` | Missing/invalid field, or `INTERNAL_API_REVIEWER_PLAYER_ID` unset on a moderation endpoint | `{"error": "..."}` |
 | `404 Not Found` | Unknown `featureRequestId` / `mergeRequestId` / brand / puzzle id | standard Symfony 404 |
-| `409 Conflict` | Brand already approved, or its name is taken by an approved brand | standard Symfony 409 |
+| `409 Conflict` | Brand already approved, or its name is taken by an approved brand, or a brand to delete is still in use | standard Symfony 409 |
 | `422 Unprocessable Entity` | A brand merge that cannot be done (survivor in its own list) | standard Symfony 422 |
 
 ## Adding a new endpoint

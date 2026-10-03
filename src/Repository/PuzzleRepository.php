@@ -44,4 +44,9 @@ readonly final class PuzzleRepository
     {
         return $this->entityManager->getRepository(Puzzle::class)->findBy(['manufacturer' => $manufacturer]);
     }
+
+    public function countByManufacturer(Manufacturer $manufacturer): int
+    {
+        return $this->entityManager->getRepository(Puzzle::class)->count(['manufacturer' => $manufacturer]);
+    }
 }

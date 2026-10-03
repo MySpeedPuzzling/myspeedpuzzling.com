@@ -134,8 +134,6 @@ final class EditTimeController extends AbstractController
             // Server-derived from the access-checked row, never from the request: the picker must
             // keep offering the linked competition even when it is not publicly selectable
             'current_competition_id' => $solvedPuzzle->competitionId,
-            // The brand of the result's own puzzle is always offered
-            'active_puzzle' => $storedPuzzle,
             'can_change_puzzle' => $canChangePuzzle,
         ]);
         // A photo kept from a refused submit goes back into its empty file input first (FormPhotoStash)

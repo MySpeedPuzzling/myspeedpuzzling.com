@@ -137,7 +137,10 @@ Paths, in order:
   both places; quick-add answers "take a photo of the box first" / "not a usable photo" inline and keeps
   everything typed. See "Quick-add photo and never losing the tray" below. Lands unapproved but usable immediately, like the
   add form today. A "Open the full form" link leads to `puzzle_add?ean=…` in a new tab for the rare
-  case someone wants everything (identification number, alternative name).
+  case someone wants everything (identification number, alternative name). The brand select lists every
+  brand, approved or not; a brand typed into the text field instead goes to `AddPuzzle` as text and
+  `ManufacturerResolver` makes it the existing brand of that name (case and spacing ignored) before it
+  would create a new one (`docs/features/brand-duplicates.md`).
 - **Skip for now** — the row moves to a separate **Unresolved** section under the actionable list,
   with its own count, tappable later. The main list therefore always equals "what the batch will
   touch", and the box is not lost. Unresolved rows survive an apply.

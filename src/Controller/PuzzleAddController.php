@@ -232,7 +232,6 @@ final class PuzzleAddController extends AbstractController
         }
 
         $addTimeForm = $this->createForm(PuzzleAddFormType::class, $data, [
-            'active_puzzle' => $activePuzzle,
             'collections' => $collections,
             'has_active_membership' => $hasActiveMembership,
         ]);

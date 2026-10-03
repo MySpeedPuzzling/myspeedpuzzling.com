@@ -8,8 +8,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\PuzzleAddFormData;
 use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
 use SpeedPuzzling\Web\Services\CompetitionChoicesBuilder;
-use SpeedPuzzling\Web\Results\PuzzleOverview;
-use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\CompetitionChoices;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
@@ -39,7 +37,6 @@ final class PuzzleAddFormType extends AbstractType
 {
     public function __construct(
         readonly private BrandChoicesBuilder $brandChoicesBuilder,
-        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private UrlGeneratorInterface $urlGenerator,
         readonly private CompetitionChoicesBuilder $competitionChoicesBuilder,
@@ -51,16 +48,7 @@ final class PuzzleAddFormType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $userProfile = $this->retrieveLoggedUserProfile->getProfile();
-        // Must not be null - solving time is allowed only to logged-in users
-        assert($userProfile !== null);
-
-        /** @var null|PuzzleOverview $activePuzzle */
-        $activePuzzle = $options['active_puzzle'];
-
-        $extraManufacturerId = $activePuzzle?->manufacturerId;
-
-        $brandChoices = $this->brandChoicesBuilder->build($userProfile->playerId, $extraManufacturerId);
+        $brandChoices = $this->brandChoicesBuilder->build();
 
         /** @var null|string $currentCompetitionId */
         $currentCompetitionId = $options['current_competition_id'] ?? null;
@@ -90,7 +78,8 @@ final class PuzzleAddFormType extends AbstractType
                 'options' => $brandChoices,
                 'closeAfterSelect' => true,
                 'createOnBlur' => true,
-                'searchField' => ['text', 'eanPrefix'],
+                // Never `text`: that one is markup, so typing "img" or a puzzle count matched brands
+                'searchField' => ['name', 'eanPrefix'],
             ],
             'attr' => [
                 'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete'),
@@ -334,7 +323,6 @@ final class PuzzleAddFormType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => PuzzleAddFormData::class,
-            'active_puzzle' => null,
             'collections' => [],
             'has_active_membership' => true,
             // The competition the edited time is linked to — always offered by the picker (edit form);

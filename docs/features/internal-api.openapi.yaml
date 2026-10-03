@@ -288,6 +288,38 @@ paths:
         "409":
           description: Already approved, or an approved brand of that name exists (case-insensitive) - merge instead.
 
+  /internal-api/manufacturers/{manufacturerId}/delete:
+    post:
+      summary: Delete a brand nothing uses any more
+      operationId: deleteManufacturer
+      description: |
+        For an empty brand, e.g. a copy whose only puzzle was moved or merged away.
+        Refused while a puzzle uses it, a change request proposes it or a merged
+        brand's slug redirects to it - merge it into the right brand instead. Its
+        slug gets no redirect. Writes a `brand_deleted` row to
+        `puzzle_moderation_decision` (name, slug, approval, added_at).
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      parameters:
+        - $ref: "#/components/parameters/ManufacturerId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManufacturerDeletion"
+      responses:
+        "204":
+          description: Brand deleted
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Still in use (puzzles, change requests proposing it, merged slugs redirecting to it) - merge instead.
+
 components:
   securitySchemes:
     InternalApiBearer:
@@ -497,6 +529,13 @@ components:
         name:
           type: [string, "null"]
           description: Fix the spelling on the way. Omit or blank to keep it.
+        decisionNote:
+          type: [string, "null"]
+
+    ManufacturerDeletion:
+      type: object
+      additionalProperties: false
+      properties:
         decisionNote:
           type: [string, "null"]
 

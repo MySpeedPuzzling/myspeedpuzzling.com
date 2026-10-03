@@ -17,4 +17,5 @@ enum PuzzleModerationAction: string
     case PuzzleApproved = 'puzzle_approved';
     case BrandApproved = 'brand_approved';
     case BrandMerged = 'brand_merged';
+    case BrandDeleted = 'brand_deleted';
 }

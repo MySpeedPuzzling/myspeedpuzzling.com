@@ -31,7 +31,7 @@ class CommunityPlayerStats
         #[Id]
         #[Immutable]
         #[OneToOne]
-        #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
+        #[JoinColumn(onDelete: 'CASCADE')]
         public Player $player,
         #[Immutable]
         #[Column(type: Types::INTEGER)]
@@ -77,7 +77,7 @@ class CommunityPlayerStats
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $lastSolvedAt,
         #[Immutable]
-        #[Column(type: Types::JSON, options: ['jsonb' => true])]
+        #[Column(type: Types::JSONB)]
         public array $monthlySolves,
         // How many players have this one in favorites - the count only, never who
         #[Immutable]

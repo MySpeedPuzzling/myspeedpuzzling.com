@@ -61,7 +61,7 @@ class CommunityScopeStats
         #[Column(type: Types::INTEGER)]
         public int $puzzlersWith500,
         #[Immutable]
-        #[Column(type: Types::JSON, options: ['jsonb' => true])]
+        #[Column(type: Types::JSONB)]
         public array $monthlySolves,
         // Public players registered in the last 14 days with at least one result
         #[Immutable]

@@ -147,7 +147,11 @@ SQL;
         };
     }
 
-    private static function competesInEventsSql(string $playerColumn): string
+    /**
+     * "Competes in events" - connected to a publicly visible event. One definition for the directory filter, its chips
+     * and the player card (GetPlayerCard).
+     */
+    public static function competesInEventsSql(string $playerColumn): string
     {
         $visible = IsCompetitionPubliclyVisible::SQL_CONDITION;
 

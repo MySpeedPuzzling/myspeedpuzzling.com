@@ -14,6 +14,8 @@ use SpeedPuzzling\Web\Value\PlayerMomentType;
  */
 readonly final class PlayerMomentChip
 {
+    public const int MIN_PIECES_FOR_BEST = 300;
+
     public function __construct(
         public PlayerMomentType $type,
         // Personal best: the piece count it is the best on
@@ -65,13 +67,19 @@ readonly final class PlayerMomentChip
     /**
      * The most notable chips first, at most $limit, never two with the same wording: a personal best on 500 or 1000
      * pieces > a puzzles milestone > a pieces milestone > another personal best > the first result. Among equals the
-     * latest wins - for milestones that is also the highest one.
+     * latest wins - for milestones that is also the highest one. A personal best on a small puzzle (below
+     * MIN_PIECES_FOR_BEST) is left out - "New best on 88 pieces" is noise in a summary of somebody's week.
      *
      * @param list<self> $chips
      * @return list<self>
      */
     public static function mostNotable(array $chips, int $limit): array
     {
+        $chips = array_values(array_filter(
+            $chips,
+            static fn (self $chip): bool => $chip->type !== PlayerMomentType::PersonalBest || ($chip->piecesCount ?? 0) >= self::MIN_PIECES_FOR_BEST,
+        ));
+
         usort(
             $chips,
             static fn (self $a, self $b): int => [$a->notability(), $b->occurredAt] <=> [$b->notability(), $a->occurredAt],

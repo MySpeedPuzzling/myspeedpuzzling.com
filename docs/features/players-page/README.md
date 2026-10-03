@@ -207,8 +207,89 @@ The foundation (`CommunityScope`, `ViewerCountry`, the three tables, the recalcu
 Each stream owns its own partial, component, query and test files. Translation keys go under `players.<section>.*`.
 English only; the other locales come in one pass at the end.
 
+## As built (2026-10-03)
+
+### Routes and URLs
+
+| Route | Path (en) | Notes |
+|-------|-----------|-------|
+| `players` | `/en/puzzlers` | `?scope=cz` re-scopes everything (unknown codes = World); `?search=` is the instant search's state. Only the bare URL is indexable |
+| `players_directory` | `/en/puzzlers/all` | `scope`, `sort` (`active` default, `recent`, `newest`, `followed`, `name`), `active=1`, `events=1`, `swaps=1`, `instagram=1`, `limit` (steps of 24, max 480). The bare world page is indexable and in the static sitemap; any query string is `noindex` |
+| `players_per_country` | `/en/players-from-country/{cc}` | Spotlight (without its "Browse all" link) + the directory with the country fixed. `noindex` without public players or with a query string |
+| `player_card` | `/en/puzzler-card/{id}` | Turbo Frame `player-card`; a direct visit is a minimal `noindex` page, canonical = the profile, `Vary: Turbo-Frame`. 404 for hidden players and for private players the viewer may not see. Disallowed in `robots.txt` |
+| `set_my_country` | `/en/puzzlers/my-country` | POST, CSRF, signed in. `SetPlayerCountry` → `Player::changeCountry()` |
+
+### Section notes
+
+- **Scope switch.** World + home country (the profile's; for guests a guess from `navigator.languages` in
+  `assets/country_guess.js`, shared with the nudge) + "Another country…".
+- **Spotlight.** 3 statements: scope and world numbers, upcoming events (`IsCompetitionPubliclyVisible`), and the
+  three lists in one `UNION ALL`. For non-members the country leaderboard link is locked and opens the members modal.
+- **This week.** On a roll plus up to 2 moment chips (`PlayerMomentChip::mostNotable()`):
+  - a personal best on 500 or 1000 > a puzzles milestone > a pieces milestone > another personal best > the first
+    result
+  - personal bests below 300 pieces are never a chip
+- **Suggested for you.** Reasons in this order: puzzles with someone you puzzle with, same event, similar 500 time
+  (±7 %, never for ranking opt-outs), 10+ puzzles in common.
+  - "In common" is counted only for a daily pool of 30 active puzzlers, because counting it against everybody cost
+    ~280 ms.
+  - Blocks are excluded in both directions. The order is seeded by date and viewer, so it holds for the day.
+- **Countries and Cup.**
+  - The tiles' three orders and the Cup's four boards are rendered once and switched client side
+    (`players_tabs_controller.js`).
+  - In the first 7 days of a month the Cup opens on the last month.
+  - `GetCommunityScopeStats::countries()` is memoized per request (`ResetInterface`).
+- **"Competes in events".** One definition, `GetPlayersDirectory::competesInEventsSql()`: connected to a publicly
+  visible event. It is used by the directory and the card.
+- **Nudge.** `HintType::PlayersCountryNudge`. It is also shown on the player's own profile when the Getting started
+  checklist is not.
+
+### Measured
+
+**Production, read-only, 2026-10-03** (532k results): the lists computed live would cost ~350 ms per page view, see
+"Data model".
+
+**The recalculation cron**, run as the real command on a copy of production (523k results):
+- 2.8 s per run, moment detection included
+- a second run rewrites 0 player rows
+- 1,028 personal bests, 108 puzzles milestones, 40 pieces milestones and 135 first results were in the 14-day window
+  on production
+
+**Page queries**, timed on the same copy, warm, median of 15 runs:
+
+| Query | Median |
+|-------|--------|
+| Countries (scope switch + tiles + Cup, once) | 0.8 ms |
+| Scope + world numbers | 0.2 ms |
+| Upcoming events | 0.1 ms |
+| Spotlight people: World / US / CZ | 11.7 / 7.6 / 7.2 ms |
+| This week: World / CZ | 3.0 / 2.1 ms |
+| Directory World: default sort | 17.0 ms |
+| Directory World: most followed | 15.5 ms |
+| Directory World: events + swaps | 2.1 ms |
+| Directory World: by name, 480 rows | 21.9 ms |
+| Directory US active | 4.9 ms |
+| Player card, heaviest player, member | 1.0 ms |
+| Suggestions: heaviest / most teams / most events / light viewer | 15.4 / 22.5 / 30.8 / 14.1 ms |
+| Search "jan" + counts | 1.0 ms |
+
+**Statements per page view** (`tests/Controller/PlayersPageQueryBudgetTest.php`): the Players page is 5 for a guest
+and 11 signed in (6 of those are what every signed-in request loads, plus Suggested for you and favorites); the
+directory 2, a country page 5, a player card 2.
+
+**Indexes**: only `custom_pst_finished_at_solo`, for the Hub (see `docs/database-indexes.md`).
+- A plain `finished_at` index was measured and rejected: it made `getOldestResultDate()` 0.6 → 230 ms.
+- No `COALESCE(finished_at, tracked_at)` index: every query using it is narrowed by player, puzzle or team first.
+- The precomputed tables needed none at this traffic.
+
+### Guards
+
+- `tests/PlayersPageCanaryTest.php` rebuilds the stats and pushes the tested player to the top of every list, then:
+  - blocks: the blocked player is everywhere for a bystander and nowhere for the blocker
+  - private profiles: in no people list for anybody, the friend on the allow list included
+  - the card: only the friend may open a private player's card, and the blocker gets a 404
+- Every person-listing query is in `PrivateProfileQueryCoverageTest::RAW_COLUMN` (public-only for everybody).
+
 ## Out of scope / follow-ups
 
-- Leaderboard "Where you stand" (best-time distribution per country with your marker).
-- The Hub rework: digests and "See all" into Players, moments as feed items with likes and comments.
-- The player card on leaderboards, the feed and puzzle pages.
+Tracked in `docs/TODO.md` → "Players page".

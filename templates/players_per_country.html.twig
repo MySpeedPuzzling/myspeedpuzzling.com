@@ -25,7 +25,7 @@
             <h1 class="players-title">{{ 'players_per_country.title'|trans({'%country%': country.value}) }} <i class="shadow-custom fi fi-{{ country.name }}" aria-hidden="true"></i></h1>
         </header>
 
-        <twig:Players:Spotlight :scope="scope" />
+        <twig:Players:Spotlight :scope="scope" :browseLink="false" />
 
         <twig:Players:Directory :criteria="criteria" :scopeFixed="true" />
 

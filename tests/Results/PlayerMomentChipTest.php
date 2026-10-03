@@ -58,6 +58,17 @@ final class PlayerMomentChipTest extends TestCase
         self::assertSame(['personal_best:1000', 'personal_best:500'], self::labels(PlayerMomentChip::mostNotable($chips, 2)));
     }
 
+    public function testAPersonalBestOnASmallPuzzleIsNoChip(): void
+    {
+        $chips = [
+            self::chip(PlayerMomentType::PersonalBest, daysAgo: 1, piecesCount: 88),
+            self::chip(PlayerMomentType::PersonalBest, daysAgo: 2, piecesCount: 299),
+            self::chip(PlayerMomentType::FirstResult, daysAgo: 3),
+        ];
+
+        self::assertSame(['first_result'], self::labels(PlayerMomentChip::mostNotable($chips, 2)));
+    }
+
     public function testNothingHappenedIsNoChip(): void
     {
         self::assertSame([], PlayerMomentChip::mostNotable([], 2));

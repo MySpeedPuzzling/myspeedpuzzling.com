@@ -219,13 +219,16 @@
                 </a>
             {% endif %}
 
-            <a href="{{ path('players_directory', {scope: scope.queryValue}) }}">
-                {%- if country is null -%}
-                    {{ 'players.spotlight.browse_world'|trans({'%count%': statistics.registeredPlayers, '%number%': statistics.registeredPlayers|format_number}) }}
-                {%- else -%}
-                    {{ 'players.spotlight.browse_country'|trans({'%count%': statistics.registeredPlayers, '%number%': statistics.registeredPlayers|format_number, '%country%': country.value}) }}
-                {%- endif %} <span aria-hidden="true">→</span>
-            </a>
+            {% if browseLink %}
+                {# No number: registered_players counts private profiles too, which the directory never lists #}
+                <a href="{{ path('players_directory', {scope: scope.queryValue}) }}">
+                    {%- if country is null -%}
+                        {{ 'players.spotlight.browse_world'|trans }}
+                    {%- else -%}
+                        {{ 'players.spotlight.browse_country'|trans({'%country%': country.value}) }}
+                    {%- endif %} <span aria-hidden="true">→</span>
+                </a>
+            {% endif %}
         </div>
     </div>
 </section>

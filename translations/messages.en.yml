@@ -1453,8 +1453,8 @@ players:
         fastest_world: "Fastest puzzlers: the leaderboard"
         fastest_country: "Fastest in %country%: the leaderboard"
         members_only: "(members only)"
-        browse_world: "{0}Browse all puzzlers|{1}Browse 1 puzzler|]1,Inf[Browse all %number% puzzlers"
-        browse_country: "{0}Browse all puzzlers from %country%|{1}Browse 1 puzzler from %country%|]1,Inf[Browse all %number% puzzlers from %country%"
+        browse_world: "Browse all puzzlers"
+        browse_country: "Browse all puzzlers from %country%"
 
     this_week:
         title: "This week"

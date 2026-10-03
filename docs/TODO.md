@@ -4,6 +4,25 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Players page (`docs/features/players-page/README.md`)
+
+- [ ] Cron row for `myspeedpuzzling:recalculate-community-stats` in `~/www/lily.srv` (`14-59/15`, drafted) - after
+      the PR is deployed, the command must exist on the box first. Run it once by hand right after the deploy so the
+      page is not empty until the next quarter.
+- [ ] Translations of `players.*` into cs, de, es, fr, ja (English only so far); then drop the dead keys
+      `forms.search_puzzler`, `puzzlers.results_for`, `puzzlers.no_matches_found`, `puzzlers.search_placeholder`,
+      `puzzlers.most_popular`, `puzzlers.by_country`, `puzzlers.most_favorite`, `puzzlers.total_players`,
+      `players_per_country.link`.
+- [ ] Leaderboard "Where you stand": best-time distribution per country with your marker (line for every signed-in
+      player, chart for members, like the puzzle page).
+- [ ] Hub rework (Jan, 2026-10-03: catch-up + trending + recent activity of all sorts, digests of other sections,
+      likes/comments later): "See all" from Hub people widgets into Players, `player_moment` rows as feed items.
+- [ ] Player card on leaderboards, the feed and puzzle pages (avatar/name taps; a puzzle leaderboard row tap stays the
+      result detail).
+- [ ] Measure after a few weeks: Players visitors per day against the 53 baseline (Tempo), Favorite/Compare started
+      from the card, the share of new sign-ups with a country.
+- [ ] Remove the "New" badges from the menu and footer Players links once the page is not new any more.
+
 ## Compare line-ups (`docs/features/player-comparison.md`)
 
 - [ ] Guests can't open a shared comparison link (sign-in first). Consider a public read-only view if members share

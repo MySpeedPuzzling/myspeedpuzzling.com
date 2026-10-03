@@ -34,6 +34,9 @@ final class Spotlight
 
     public CommunityScope $scope;
 
+    /** "Browse all puzzlers" in the footer - off on the country page, where the directory follows right below */
+    public bool $browseLink = true;
+
     /** @var null|array{scope: CommunityScopeStatistics, world: CommunityScopeStatistics} */
     private null|array $numbers = null;
 

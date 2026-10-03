@@ -35,9 +35,11 @@ readonly final class GetPlayerCard
     {
         $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
         $monthlySolves = $withActivity ? 's.monthly_solves' : 'NULL';
+        $competesInEvents = GetPlayersDirectory::competesInEventsSql('p.id');
 
         // A player registered since the last cron run has no stats row yet: zeros. Rating and tier are left out for
-        // a player who opted out of rankings. "Competes in events": joined an event, or logged a result at one.
+        // a player who opted out of rankings. "Competes in events" is the directory's definition: connected to a
+        // publicly visible event.
         $query = <<<SQL
 SELECT
     COALESCE(s.solved_total, 0) AS solved_total,
@@ -50,10 +52,7 @@ SELECT
     p.ranking_opted_out,
     CASE WHEN p.ranking_opted_out THEN NULL ELSE elo.elo_rating END AS elo_rating,
     CASE WHEN p.ranking_opted_out THEN NULL ELSE skill.skill_tier END AS skill_tier,
-    (
-        EXISTS (SELECT 1 FROM competition_participant cp WHERE cp.player_id = p.id AND cp.deleted_at IS NULL)
-        OR EXISTS (SELECT 1 FROM puzzle_solving_time pst WHERE pst.player_id = p.id AND pst.competition_id IS NOT NULL)
-    ) AS competes_in_events,
+    {$competesInEvents} AS competes_in_events,
     EXISTS (SELECT 1 FROM sell_swap_list_item ssi WHERE ssi.player_id = p.id) AS swaps_puzzles,
     COALESCE(TRIM(p.instagram), '') <> '' AS on_instagram
 FROM player p

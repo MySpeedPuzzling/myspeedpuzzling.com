@@ -20,6 +20,7 @@ final class PrivateProfileQueryCoverageTest extends TestCase
 
     /** Files allowed to read the raw column, besides going through PrivateProfileAccess */
     private const array RAW_COLUMN = [
+        'Services/Community/CommunityStatsCalculator.php' => 'Counts public newcomers per scope (community_scope_stats.new_faces14d) - an aggregate without identity, the raw setting decides who is counted.',
         'Query/FindSimilarSpeedPuzzler.php' => 'A random suggestion of somebody at your speed offers public profiles only - the same pool for every viewer, like a global ranking.',
         'Query/GetAffiliateSupporters.php' => 'Public supporters list of somebody else\'s profile - stays public-only.',
         'Query/GetFastestGroups.php' => 'HAVING keeps a group only if a member is public - the same rows and positions for every viewer; names on them go through the service.',

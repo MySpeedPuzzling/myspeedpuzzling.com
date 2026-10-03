@@ -1,0 +1,45 @@
+{#
+    One person in a Players page list (docs/features/players-page/README.md): avatar with the flag, name, optional
+    chips under the name, an optional value on the right and an optional rank. It is a link to the profile; with
+    JavaScript, players_card_controller.js (on .players-page) opens the player card instead.
+
+    Inputs:
+      - player: anything with playerId, playerName, playerCode, playerCountry (CountryCode, a plain code or null) and
+                playerAvatar (optional)
+      - value (string, optional): right-hand text, e.g. "14 puzzles"
+      - rank (int, optional)
+      - chips (list<string>, optional): short labels under the name, e.g. the person's moments this week
+#}
+{%- set country_code = player.playerCountry is null ? null : (player.playerCountry.name ?? player.playerCountry) -%}
+{%- set country_name = player.playerCountry is null ? null : (player.playerCountry.value ?? null) -%}
+{%- set name = player.playerName ?? ('#' ~ player.playerCode) -%}
+<a class="players-person"
+   href="{{ path('player_profile', {playerId: player.playerId}) }}"
+   data-action="players-card#open"
+   data-players-card-url-param="{{ path('player_card', {playerId: player.playerId}) }}"
+>
+    {%- if rank is defined and rank -%}
+        <span class="players-person-rank">{{ rank }}</span>
+    {%- endif -%}
+    {{- include('_player_avatar.html.twig', {
+        player_id: player.playerId,
+        name: name,
+        avatar: player.playerAvatar ?? null,
+        country_code: country_code,
+        country_name: country_name,
+        size: 'lg',
+    }) -}}
+    <span class="players-person-main">
+        <span class="players-person-name">{{ name }}</span>
+        {%- if chips is defined and chips is not empty -%}
+            <span class="players-person-chips">
+                {%- for chip in chips -%}
+                    <span class="players-person-chip">{{ chip }}</span>
+                {%- endfor -%}
+            </span>
+        {%- endif -%}
+    </span>
+    {%- if value is defined and value -%}
+        <span class="players-person-value">{{ value }}</span>
+    {%- endif -%}
+</a>

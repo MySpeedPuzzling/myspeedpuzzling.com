@@ -1,0 +1,14 @@
+{# Stream S2 builds this out (docs/features/players-page/README.md) #}
+{% set statistics = this.statistics %}
+<section {{ attributes.defaults({class: 'players-section players-spotlight'}) }} aria-labelledby="players-spotlight-title">
+    <h2 class="players-section-title" id="players-spotlight-title">
+        {% if scope.isWorld %}
+            {{ 'players.spotlight.title_world'|trans }}
+        {% else %}
+            {{ 'players.spotlight.title_country'|trans({'%country%': scope.country.value}) }}
+        {% endif %}
+    </h2>
+    <p class="players-spotlight-summary">
+        {{ 'players.spotlight.summary'|trans({'%registered%': statistics.registeredPlayers|format_number, '%active%': statistics.active30d|format_number}) }}
+    </p>
+</section>

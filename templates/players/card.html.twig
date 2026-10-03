@@ -1,0 +1,8 @@
+{# The player card (stream S1 builds it out): rendered into <turbo-frame id="player-card"> #}
+<turbo-frame id="player-card">
+    <div class="players-card">
+        <a href="{{ path('player_profile', {playerId: player.playerId}) }}" data-turbo-frame="_top">
+            {{ player.isPrivate ? 'secret_puzzler_name'|trans : (player.playerName ?? ('#' ~ player.code)) }}
+        </a>
+    </div>
+</turbo-frame>

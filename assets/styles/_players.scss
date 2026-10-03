@@ -1,0 +1,12 @@
+// The Players page (docs/features/players-page/README.md). One partial per section, so the build streams never
+// edit the same file.
+@import 'players/page';
+@import 'players/search';
+@import 'players/card';
+@import 'players/spotlight';
+@import 'players/this-week';
+@import 'players/suggestions';
+@import 'players/countries';
+@import 'players/cup';
+@import 'players/directory';
+@import 'players/nudge';

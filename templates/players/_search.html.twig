@@ -1,0 +1,26 @@
+{# Search by name or #code (stream S1 makes it instant) #}
+<div class="players-search">
+    {{ form_start(search_form, {'action': path('players'), 'method': 'POST'}) }}
+        <div class="input-group players-search-group">
+            {{ form_widget(search_form.search, {'attr': {'class': 'form-control'}}) }}
+            <button class="btn btn-primary btn-icon" type="submit" aria-label="{{ 'players.search.submit'|trans }}">
+                <i class="ci-search"></i>
+            </button>
+        </div>
+        {{ form_errors(search_form.search) }}
+    {{ form_end(search_form) }}
+
+    {% if search_string is not null %}
+        <p class="mt-3">
+            {{ 'puzzlers.results_for'|trans }}: <strong>{{ search_string }}</strong>
+        </p>
+
+        {% if found_players is not empty %}
+            {% for found_player in found_players %}
+                {{ include('_player_list_item.html.twig', {player: found_player, highlight_query: search_string}) }}
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-warning">{{ 'puzzlers.no_matches_found'|trans }}</div>
+        {% endif %}
+    {% endif %}
+</div>

@@ -1357,6 +1357,43 @@ puzzlers:
     search_placeholder: "Search by player name or code..."
     total_players: "Total Players"
 
+players:
+    # docs/features/players-page/README.md - one sub-block per section
+    scope:
+        label: "Show puzzlers from"
+        world: "World"
+        another: "Another country…"
+        show: "Show"
+
+    search:
+        submit: "Search"
+
+    card:
+        title: "Puzzler card"
+
+    spotlight:
+        title_world: "Speed puzzlers worldwide"
+        title_country: "Puzzlers in %country%"
+        summary: "%registered% registered · %active% solved a puzzle in the last 30 days"
+
+    this_week:
+        title: "This week"
+
+    suggestions:
+        title: "Suggested for you"
+
+    countries:
+        title: "Puzzlers around the world"
+
+    cup:
+        title: "Country Cup"
+
+    directory:
+        title: "All puzzlers"
+
+    nudge:
+        title: "You're not on the map yet"
+
 players_per_country:
     meta:
         title: "Speed Puzzlers from %country% – Rankings & Times"

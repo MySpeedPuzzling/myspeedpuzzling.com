@@ -1,0 +1,13 @@
+{# Stream S4 turns this into tiles (docs/features/players-page/README.md) #}
+<section {{ attributes.defaults({class: 'players-section players-countries'}) }} aria-labelledby="players-countries-title">
+    <h2 class="players-section-title" id="players-countries-title">{{ 'players.countries.title'|trans }}</h2>
+    <ul class="list-inline">
+        {% for statistics in this.countries %}
+            <li class="list-inline-item">
+                <a href="{{ path('players', {scope: statistics.country.name}) }}">
+                    <i class="shadow-custom fi fi-{{ statistics.country.name }}" aria-hidden="true"></i> {{ statistics.country.value }} ({{ statistics.registeredPlayers }})
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+</section>

@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'players.directory.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+
+{% block content %}
+    <div class="players-page" data-controller="players-card">
+        <h1>{{ 'players.directory.title'|trans }}</h1>
+        <twig:Players:Directory :scope="scope" />
+    </div>
+{% endblock %}

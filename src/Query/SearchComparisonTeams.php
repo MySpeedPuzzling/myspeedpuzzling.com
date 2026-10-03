@@ -20,9 +20,11 @@ use SpeedPuzzling\Web\Value\ComparisonKind;
  *
  * Only pairs/teams with at least one valid time (nothing to compare otherwise), and only those GetComparisonSubjects
  * would show: no member hidden by the blocklist (even when the viewer is in it), and a registered member the viewer
- * may see unless the viewer is a member. Members match like SearchPlayers: public (and revealed) players by name or
- * code, a private one only by their exact player code; at most MATCHED_PLAYERS best-matching players are followed -
- * a very common name narrows down by typing more. Hidden players never match.
+ * may see unless the viewer is a member. Members match by name or code when the viewer may see them: public players,
+ * private ones who revealed themselves to the viewer (allow list) and the viewer. Unlike SearchPlayers, a private
+ * player hidden from the viewer is never found - not even by the exact #code, which would tie the code to every
+ * pair/team they are in. At most MATCHED_PLAYERS best-matching players are followed - a very common name narrows down
+ * by typing more. Hidden players never match.
  *
  * Measured on the production copy (2026-10-03): 3+ characters < 4 ms, 1-2 characters ~16 ms (the player name scan
  * without trigrams, like SearchPlayers). Following every matching player instead took 380 ms, almost all of it JIT
@@ -61,15 +63,10 @@ matched_players AS MATERIALIZED (
     SELECT player.id
     FROM player
     WHERE (
-        (
-            (
-                LOWER(player.name) LIKE LOWER(:like) OR LOWER(player.code) LIKE LOWER(:like)
-                OR LOWER({$unaccent}(player.name)) LIKE LOWER(unaccent(:like)) OR LOWER({$unaccent}(player.code)) LIKE LOWER(unaccent(:like))
-            )
-            AND {$isPrivate} = false
+            LOWER(player.name) LIKE LOWER(:like) OR LOWER(player.code) LIKE LOWER(:like)
+            OR LOWER({$unaccent}(player.name)) LIKE LOWER(unaccent(:like)) OR LOWER({$unaccent}(player.code)) LIKE LOWER(unaccent(:like))
         )
-        OR LOWER(player.code) = LOWER(:term)
-    )
+        AND ({$isPrivate} = false OR player.id = CAST(:viewerId AS UUID))
         {$notHidden}
     ORDER BY
         (LOWER(player.code) = LOWER(:term)) DESC,

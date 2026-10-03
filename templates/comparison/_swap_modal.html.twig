@@ -1,6 +1,6 @@
-{# The line-up has no room for who was just added (a free cap): swap one out, or keep it - never a dead end. Always on
-   the page, so it closes properly; comparison_sheet_controller.js opens it while there is somebody to swap in and tells
-   the component when it was closed. #}
+{# The line-up has no room for who was just added (its cap - free or member): swap one out, or keep it - never a dead
+   end. Members may swap themselves out too. Always on the page, so it closes properly; comparison_sheet_controller.js
+   opens it while there is somebody to swap in and tells the component when it was closed. #}
 {% set incoming = this.swapSubject %}
 <div class="modal fade cmp-sheet" id="comparison-swap" tabindex="-1" aria-labelledby="comparison-swap-title" aria-hidden="true"
     data-testid="comparison-swap"
@@ -8,7 +8,7 @@
     data-comparison-sheet-open-value="{{ incoming is not null ? 'true' : 'false' }}"
     data-comparison-sheet-close-action-value="dismissSwap"
 >
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             {% if incoming is not null %}
                 {% set incoming_label = this.labelOf(incoming.ref) %}
@@ -43,7 +43,7 @@
                                 data-live-replace-row-id-param="{{ candidate.rowId }}"
                                 data-testid="comparison-swap-confirm"
                             >
-                                {{ 'comparison.swap.confirm'|trans({'%old%': candidate_label, '%new%': incoming_label}) }}
+                                {{ (candidate.subject.isViewer ? 'comparison.swap.confirm_self' : 'comparison.swap.confirm')|trans({'%old%': candidate_label, '%new%': incoming_label}) }}
                             </button>
                         {% endfor %}
                         {% endif %}

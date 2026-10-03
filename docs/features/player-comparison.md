@@ -20,7 +20,7 @@ every device), so you keep adding people while browsing and open the comparison 
 | Kinds | **Like with like**: three separate line-ups - **Solo** (players' solo times), **Pairs** (exact pairs = `puzzling_team.size = 2`), **Teams** (exact teams, size ≥ 3). A segmented switch Solo · Pairs · Teams (with counts) picks which one is compared. Never mixed. |
 | Cap | Per kind. Members **10** subjects (yourself included when present). Free: **Solo = you + 1 other** (you cannot remove yourself), **Pairs = 2**, **Teams = 2**. |
 | Yourself | You are a row like any other (added automatically the first time you open Solo). Members may remove themselves and compare other people. |
-| Free at the cap | Adding another one offers a **swap** (never a dead end) + one quiet line about membership. |
+| At the cap | Adding another one offers a **swap** (never a dead end) - free players and members alike, from the page's add sheet and from the entry points (`?swap=`). Members may swap themselves out; free players stay in their Solo line-up. Free players also get one quiet line about membership. |
 | D1 Results layout (3+ subjects) | **Three views behind an icon-only switch**, remembered per player (`player.comparison_view`): **Cards** (default; per puzzle a ranked mini-leaderboard), **Table** (matrix: sticky puzzle column, one column per subject, horizontal scroll), **Duel** (rows of the two highlighted subjects + "3rd of 5 · fastest X" strip - only the puzzles **both of them solved**, "N puzzles you both solved"; the league table above still describes the whole line-up; `ComparisonBuilder::build(…, highlightedPairOnly: true)`, never on the Charts tab). With exactly 2 subjects there is no switch - always duel rows, following "puzzles to show". |
 | D2 Launcher | **Floating pill** bottom-right on every page except the comparison itself: 3 newest mini avatars + "Compare" + count. Shown once any line-up holds someone other than you. A page opts out with `{% set hide_comparison_launcher = true %}` at its top (read by `base.html.twig`): the comparison, every page whose main content is a form (add/edit time incl. relax/collection, puzzle change proposal, edit profile + its settings and list-settings pages, marketplace/collection/wishlist/lend-borrow forms, feedback/contact/feature-request forms, event/round/series forms, voucher, API access request), a chat (conversation, new message), a bottom bar (multiscan) or a running clock (stopwatches) - the pill would sit over their controls. New form pages add the line too. |
 | D3 First tries | Filter is **members-only** (consistent with the profile). Everyone sees the "1st try" badge / "best of N" on every time. |
@@ -118,8 +118,9 @@ N puzzles in common, solves this month. "Add to line-up" / "Roll again". No cand
   member; otherwise private members masked (name → "Private puzzler"-style mask used elsewhere).
 - Handlers resolve visibility with **explicit** ids (viewer id, `GetUserBlocks`, allow list) - never the ambient
   security-token based `HiddenPlayers`/`PrivateProfileAccess` (they see nobody under async/console).
-- Pickers never offer something the handler would refuse (unrevealed private players only by exact #code and only
-  when revealed; guests are never subjects on their own).
+- Pickers never offer something the handler would refuse: a private player hidden from the viewer is never found
+  (the pairs/teams search does not match them even by the exact #code - that would tie the code to their pairs);
+  revealed ones (allow list) and the viewer are found like anybody else; guests are never subjects on their own.
 
 ## Model
 
@@ -165,6 +166,8 @@ then integrated and checked in a browser at 375 px and 1280 px against a copy of
   private players only when revealed (allow list counts only without a block either way); a pair/team with a member
   the owner blocked is unavailable even when the owner is in it.
 - First Solo add into an empty Solo line-up adds the owner too. Already-present → no-op before the cap check.
+  `AddComparisonSubject` is `SerializedByLock` (`comparison-line-up-<owner>`): two adds of one owner never overlap,
+  so the cap cannot be exceeded by a race.
 - `PuzzlingTeamMemberConversion::mergeInto()` repoints rows to the surviving team; `DeletePlayerHandler` deletes the
   player's rows (own and as someone else's subject).
 - The viewer's line-up rides on `GetPlayerProfile::byUserId` (`PlayerProfile::$comparisonLineUp`, one sub-select):

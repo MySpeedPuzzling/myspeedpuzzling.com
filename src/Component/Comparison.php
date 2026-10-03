@@ -63,8 +63,8 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * puzzles (+ list insights for members). Everything is computed once per request in load(); components are not shared
  * services, so nothing outlives the request.
  *
- * Actions never throw at the visitor: the domain exceptions of the line-up become a quiet inline notice (a full free
- * line-up opens the swap prompt instead), anonymous `/_components` calls do nothing.
+ * Actions never throw at the visitor: the domain exceptions of the line-up become a quiet inline notice (a full
+ * line-up opens the swap prompt instead, for members too), anonymous `/_components` calls do nothing.
  */
 #[AsLiveComponent]
 final class Comparison
@@ -442,8 +442,8 @@ final class Comparison
     }
 
     /**
-     * Puts a player or pair/team into the viewer's line-up (the add sheet). A free line-up at its cap opens the swap
-     * prompt for it; with `replaceRowId` (the prompt's answer) that row makes room.
+     * Puts a player or pair/team into the viewer's line-up (the add sheet). A line-up at its cap opens the swap prompt
+     * for it - for members too, never a dead end; with `replaceRowId` (the prompt's answer) that row makes room.
      */
     #[LiveAction]
     public function add(#[LiveArg] string $ref, #[LiveArg] null|string $replaceRowId = null): void
@@ -461,15 +461,15 @@ final class Comparison
 
         $outcome = $this->dispatchAdd($profile->playerId, $subjectRef, $replaceRowId);
 
-        if ($outcome === 'full' && $profile->activeMembership === false) {
-            // Never a dead end: offer the swap
+        if ($outcome === 'full') {
+            // Never a dead end: offer the swap, like the entry points do (`?swap=`)
             $this->swap = $subjectRef->toString();
 
             return;
         }
 
         $this->swap = null;
-        $this->setOutcomeNotice($outcome, $profile->activeMembership);
+        $this->setOutcomeNotice($outcome);
     }
 
     /**
@@ -518,7 +518,9 @@ final class Comparison
             return;
         }
 
-        $this->load();
+        // Only who is shown - the comparison itself is built once, for the render after the adds
+        $this->loadSubjects();
+        $this->loaded = false;
 
         if ($this->isPreview === false) {
             return;
@@ -569,7 +571,7 @@ final class Comparison
         $this->highlightB = null;
         $this->limit = ComparisonCriteria::PAGE_SIZE;
 
-        if ($full && $profile->activeMembership === false && $swapCandidate !== null) {
+        if ($full && $swapCandidate !== null) {
             $this->swap = $swapCandidate;
         }
 
@@ -580,9 +582,6 @@ final class Comparison
             default => 'comparison.notice.preview_nothing_new',
         };
         $this->noticeParameters = ['%count%' => $added];
-
-        // Render the viewer's own line-up now
-        $this->loaded = false;
     }
 
     // --- Template helpers --------------------------------------------------------------------------------------------
@@ -676,11 +675,23 @@ final class Comparison
     private function load(): void
     {
         $this->loaded = true;
+        $profile = $this->loadSubjects();
+
+        if ($profile !== null) {
+            $this->loadComparison($profile);
+        }
+    }
+
+    /**
+     * Who is shown - the viewer's line-up of the active kind or the shared preview - without comparing them yet
+     */
+    private function loadSubjects(): null|PlayerProfile
+    {
         $this->resetComputed();
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 
         if ($profile === null) {
-            return;
+            return null;
         }
 
         $this->signedIn = true;
@@ -699,7 +710,7 @@ final class Comparison
             $this->loadLineUp($viewerRef);
         }
 
-        $this->loadComparison($profile);
+        return $profile;
     }
 
     /**
@@ -814,6 +825,7 @@ final class Comparison
 
         if ($this->swapSubject !== null) {
             foreach ($kindItems as $item) {
+                // Members may swap out anybody, themselves included; without a membership you stay in your Solo line-up
                 if ($item->isSelf && $this->isMember === false) {
                     continue;
                 }
@@ -1159,7 +1171,8 @@ final class Comparison
         } catch (CanNotRemoveYourselfFromComparison) {
             return 'self';
         } catch (HandlerFailedException $exception) {
-            // Two taps racing each other: the other one added it
+            // Adds of one owner wait for each other (SerializedByLock), so a double tap finds it there; only a team merge
+            // repointing a row to this pair/team at the same moment can still hit the unique constraint - it is there
             if ($exception->getWrappedExceptions(UniqueConstraintViolationException::class, true) !== []) {
                 return 'already_added';
             }
@@ -1168,16 +1181,14 @@ final class Comparison
         }
     }
 
-    private function setOutcomeNotice(string $outcome, bool $isMember): void
+    private function setOutcomeNotice(string $outcome): void
     {
         $this->notice = match ($outcome) {
-            'full' => 'comparison.notice.full',
             'not_available' => 'comparison.notice.not_available',
             'not_found' => 'comparison.notice.not_found',
             'self' => 'comparison.notice.cannot_remove_self',
             default => null,
         };
-        $this->noticeParameters = ['%cap%' => ComparisonLimits::forMembership($isMember)];
     }
 
     private function resetComputed(): void

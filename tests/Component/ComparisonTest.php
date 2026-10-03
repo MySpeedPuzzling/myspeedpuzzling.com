@@ -121,7 +121,7 @@ final class ComparisonTest extends WebTestCase
         self::assertSame(2, $this->lineUpSize(PlayerFixture::PLAYER_REGULAR));
     }
 
-    public function testAMemberAtTheCapIsToldSo(): void
+    public function testAMemberAtTheCapGetsTheSwapAndMaySwapThemselvesOut(): void
     {
         $client = self::createClient();
         TestingLogin::asPlayer($client, PlayerFixture::PLAYER_WITH_STRIPE);
@@ -139,10 +139,28 @@ final class ComparisonTest extends WebTestCase
             );
         }
 
-        $crawler = $this->mount($client, ['kind' => 'solo'])->call('add', ['ref' => 'p-' . PlayerFixture::PLAYER_WITH_FAVORITES])->render()->crawler();
+        $component = $this->mount($client, ['kind' => 'solo']);
+        $crawler = $component->call('add', ['ref' => 'p-' . PlayerFixture::PLAYER_WITH_FAVORITES])->render()->crawler();
 
-        self::assertSame('Your line-up is full (10). Remove someone first.', trim($crawler->filter('[data-testid="comparison-notice"]')->text()));
+        // Never a dead end, for members neither: the same swap prompt as the entry points' `?swap=`
+        $swap = $crawler->filter('[data-testid="comparison-swap"]');
+        self::assertSame('true', $swap->attr('data-comparison-sheet-open-value'));
+        self::assertCount(0, $crawler->filter('[data-testid="comparison-notice"]'));
+        self::assertStringContainsString('Your comparison holds up to 10 players.', $swap->text());
+        self::assertCount(0, $swap->filter('.cmp-swap__members'), 'No membership line for a member');
+
+        // Any of the ten makes room - yourself included
+        $confirm = $crawler->filter('[data-testid="comparison-swap-confirm"]');
+        self::assertCount(10, $confirm);
+        self::assertSame('Swap yourself out for Michael Johnson', trim($confirm->first()->text()));
+        self::assertSame(ComparisonSubjectFixture::STRIPE_SELF, $confirm->first()->attr('data-live-replace-row-id-param'));
+
+        $crawler = $component->call('add', ['ref' => 'p-' . PlayerFixture::PLAYER_WITH_FAVORITES, 'replaceRowId' => ComparisonSubjectFixture::STRIPE_SELF])->render()->crawler();
+
         self::assertSame('false', $crawler->filter('[data-testid="comparison-swap"]')->attr('data-comparison-sheet-open-value'));
+        self::assertSame(10, $this->lineUpSize(PlayerFixture::PLAYER_WITH_STRIPE) - 1, 'Solo is still full, the pair line-up holds one');
+        self::assertContains('Michael Johnson', self::chipNames($crawler));
+        self::assertNotContains('You', self::chipNames($crawler));
     }
 
     public function testRemovingSomebody(): void

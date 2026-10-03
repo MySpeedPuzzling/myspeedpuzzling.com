@@ -8,7 +8,8 @@ that would otherwise be forgotten. Newest section on top.
 
 - [ ] Guests can't open a shared comparison link (sign-in first). Consider a public read-only view if members share
       links outside the site.
-- [ ] Caps are not race-proof: two simultaneous adds can exceed a cap by one (unique constraints stop duplicates).
+- [x] Caps are not race-proof: two simultaneous adds can exceed a cap by one - `AddComparisonSubject` is
+      `SerializedByLock` per owner now.
 - [ ] Scatter chart scale follows the longest time; one marathon solve squeezes the rest - consider clipping at p95.
 - [ ] "Puzzles they solved that you haven't" (show = all) could link to the wishlist - idea from the review.
 - [ ] Measure usage after a few weeks (line-up sizes per kind, views, similar-speed rolls, share links opened).

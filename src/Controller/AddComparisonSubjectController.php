@@ -89,7 +89,8 @@ final class AddComparisonSubjectController extends AbstractController
         } catch (ComparisonSubjectNotAvailable | ComparisonSubjectNotFound) {
             return $this->notAvailable($returnUrl);
         } catch (UniqueConstraintViolationException) {
-            // A double submit: the other request has just put it there - the same outcome
+            // Adds of one owner wait for each other (SerializedByLock), so a double submit finds it there; only a team
+            // merge repointing a row to this pair/team at the same moment can still collide - it is there, the same outcome
         } catch (HandlerFailedException $exception) {
             if ($this->isDuplicate($exception) === false) {
                 throw $exception;

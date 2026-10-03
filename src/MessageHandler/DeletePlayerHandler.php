@@ -295,6 +295,8 @@ final class DeletePlayerHandler
     /**
      * The player's own comparison line-ups, and the player as somebody else's subject. Their pairs/teams stay in
      * other line-ups: the team lives on with the player as a guest (PuzzlingTeamMemberConversion::playerToGuest()).
+     * Deleted here although both FKs cascade, like the blocks and allow-list rows above: the purge does not rely on
+     * the schema, and as one bulk statement - the rows are never loaded one by one.
      */
     private function deleteComparisonSubjects(string $playerId): void
     {

@@ -76,7 +76,7 @@ final class SearchComparisonTeamsTest extends KernelTestCase
         self::assertSame([], $this->query->search('Eva', ComparisonKind::Pairs, $this->viewer), 'Guests are no search handle');
     }
 
-    public function testPrivateMembersOnlyByExactCodeAndMasked(): void
+    public function testPrivateMembersAreFoundOnlyWhenRevealedAndMaskedOtherwise(): void
     {
         $private = $this->seedPlayer('Pete Hidden', private: true, code: 'pete77');
         $public = $this->seedPlayer('Paula Seen');
@@ -84,15 +84,41 @@ final class SearchComparisonTeamsTest extends KernelTestCase
 
         $this->signIn();
 
+        // Not even the exact #code: it would tie a private code to their pairs
+        self::assertSame([], $this->query->search('#pete77', ComparisonKind::Pairs, $this->viewer));
+        self::assertSame([], $this->query->search('pete77', ComparisonKind::Pairs, $this->viewer));
         self::assertSame([], $this->query->search('Pete Hidden', ComparisonKind::Pairs, $this->viewer));
-        self::assertSame([], $this->query->search('pete7', ComparisonKind::Pairs, $this->viewer));
 
-        $results = $this->query->search('#pete77', ComparisonKind::Pairs, $this->viewer);
+        // Found through the public partner - with the private one masked
+        $results = $this->query->search('Paula Seen', ComparisonKind::Pairs, $this->viewer);
         self::assertSame([$pair], $this->ids($results));
         self::assertNull($results[0]->members[0]->playerName);
         self::assertTrue($results[0]->members[0]->isPrivate);
         self::assertSame('PETE77', $results[0]->members[0]->playerCode);
         self::assertSame('Paula Seen', $results[0]->members[1]->playerName);
+
+        // Revealed to the viewer (allow list): found like anybody else, unmasked
+        $this->seedAllowList($private, $this->viewer);
+        $this->signIn();
+
+        $results = $this->query->search('#pete77', ComparisonKind::Pairs, $this->viewer);
+        self::assertSame([$pair], $this->ids($results));
+        self::assertSame('Pete Hidden', $results[0]->members[0]->playerName);
+        self::assertFalse($results[0]->members[0]->isPrivate);
+        self::assertSame([$pair], $this->ids($this->query->search('Pete Hidden', ComparisonKind::Pairs, $this->viewer)));
+    }
+
+    public function testAPrivateViewerFindsTheirOwnPairsByTheirCode(): void
+    {
+        $viewer = $this->seedPlayer('Ivo Incognito', private: true, code: 'ivo-incognito', userId: 'auth0|comparison-team-search-private');
+        $partner = $this->seedPlayer('Paula Partner');
+        $pair = $this->teamWithTimes([$viewer, $partner], times: 1);
+
+        TestingViewer::signIn(self::getContainer(), $viewer);
+
+        $results = $this->query->search('#ivo-incognito', ComparisonKind::Pairs, $viewer);
+        self::assertSame([$pair], $this->ids($results));
+        self::assertTrue($results[0]->includesViewer);
     }
 
     public function testInvisibleTeamsAreNeverOffered(): void
@@ -114,7 +140,7 @@ final class SearchComparisonTeamsTest extends KernelTestCase
         $this->signIn();
 
         self::assertSame([$visible], $this->ids($this->query->search('Ocelots', ComparisonKind::Pairs, $this->viewer)));
-        self::assertSame([$visible], $this->ids($this->query->search('#ocelot-pete', ComparisonKind::Pairs, $this->viewer)));
+        self::assertSame([], $this->query->search('#ocelot-pete', ComparisonKind::Pairs, $this->viewer), 'An unrevealed private code never matches');
         self::assertSame([], $this->query->search('Bob Ocelot', ComparisonKind::Pairs, $this->viewer), 'A hidden player never matches');
     }
 

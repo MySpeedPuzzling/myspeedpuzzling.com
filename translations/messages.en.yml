@@ -585,7 +585,6 @@ comparison:
         members_line: "Members compare up to %count% at once"
         count: "%count% / %cap%"
     notice:
-        full: "Your line-up is full (%cap%). Remove someone first."
         not_available: "This one can't be compared."
         not_found: "That one is no longer in your line-up."
         cannot_remove_self: "Without a membership you stay in your own Solo line-up."
@@ -739,10 +738,11 @@ comparison:
         hint_teams: "Your own teams are marked \"You're in it\" - compare them to see which one is the fastest."
     swap:
         title: "Compare with %name% instead?"
-        lead_solo: "Your comparison holds you and one other player."
-        lead_pairs: "Your comparison holds %count% pair.|Your comparison holds %count% pairs."
-        lead_teams: "Your comparison holds %count% team.|Your comparison holds %count% teams."
+        lead_solo: "Your comparison holds up to %count% player.|Your comparison holds up to %count% players."
+        lead_pairs: "Your comparison holds up to %count% pair.|Your comparison holds up to %count% pairs."
+        lead_teams: "Your comparison holds up to %count% team.|Your comparison holds up to %count% teams."
         confirm: "Swap %old% for %new%"
+        confirm_self: "Swap yourself out for %new%"
         add: "Add %name%"
         keep: "Keep %name%"
         keep_line_up: "Keep my line-up"

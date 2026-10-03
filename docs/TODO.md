@@ -18,6 +18,10 @@ that would otherwise be forgotten. Newest section on top.
       (`_comparison.scss`) and the charts' grid table (`_comparison-charts.scss`) - the card's padding lands on the table.
 - [ ] Site topbar at 320 px: the language/feedback row overflows by 15-35 px in de/fr/es/ja on every page (not
       compare-specific; measured on the homepage 2026-10-03).
+- [ ] Panther: `UnsolvedListTest::testOwnerCanBorrowPuzzleFromPlayerViaTurboStream` and
+      `SystemCollectionTest::testOwnerCanBorrowPuzzleFromPlayer` fail - the floating "Compare" launcher pill covers the
+      lending ⋯ button (`ElementClickInterceptedException`, found 2026-10-03). Real users may hit it too at the
+      bottom of the screen.
 
 ## Player header (#224)
 
@@ -219,11 +223,16 @@ Phase 1 shipped 2026-09-29: [`features/auth-ux-redesign.md`](features/auth-ux-re
 - [ ] 16px inputs site-wide, then drop `maximum-scale=1` - [#216](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues/216)
 - [ ] `/welcome?return=` (spec §5.4) - not built; registration still ends on the welcome page
 
-## Difficulty on puzzle lists
+## Difficulty on puzzle lists and thumbnails
 
-Shipped with #214. Design: [`features/list-difficulty-and-my-list-filter.md`](features/list-difficulty-and-my-list-filter.md).
+Shipped with #214, thumbnails + profile/marketplace filters 2026-10-03 (d8b3183d, b39d8e30). Design: [`features/list-difficulty-and-my-list-filter.md`](features/list-difficulty-and-my-list-filter.md).
 
 - [ ] Turbo-stream re-renders of list items (reserve, move, lend, ...) drop the difficulty icon, solve count and `data-difficulty-tier` until reload - pass `puzzle_insights` for the one puzzle in the stream callers if it ever matters
+- [ ] Same for the marketplace card re-rendered by the reserve / unreserve streams (`sell-swap/_mark_reserved_stream`, `_remove_reservation_stream`): no corner until reload - resolve the one puzzle's tier with `ResolveDifficultyTiers` there
+- [ ] Round results show no tier for a puzzle without any picture either (the gate is "picture is out", the cheap proxy for "revealed") - expose the hide state from `GetEditionRounds` if that ever matters
+- [ ] Sort by difficulty on the profile results and the marketplace (the comparison has it) - not asked for yet
+- [ ] Costs were measured on the dev copy only - check the Hub, `/ladder` and the marketplace in Tempo a week after the deploy
+- [ ] `templates/_most_solved_puzzle.html.twig` is included nowhere - delete it
 
 ## Social login hardening
 

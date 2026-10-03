@@ -1,15 +1,19 @@
-{# The add sheet of the active line-up. Costs nothing until it is opened: the search (TomSelect) and the suggestions are
-   fetched by comparison_add_controller.js on first use - players via player_search_autocomplete and
-   /my-co-puzzlers.json (Solo), pairs/teams via comparison_team_search. What JavaScript draws is kept away from
-   re-renders (data-live-ignore); the values on the sheet follow the line-up, and the sheet closes when it changes. #}
+{# The add sheet of the active line-up (docs/features/player-comparison.md "Add sheet"). Costs nothing until it is
+   opened: the search (TomSelect) and the lists are fetched by comparison_add_controller.js on first use - Solo:
+   comparison_people (ALL favorites + a few people the viewer puzzles with) and comparison_player_search; Pairs/Teams:
+   comparison_team_search. What JavaScript draws is kept away from re-renders (data-live-ignore); the values on the sheet
+   follow the line-up, and the sheet closes when it changes.
+   The skill tier icons are rendered here once, by the leaderboards' own macro, and cloned by the controller: members get
+   every tier, everybody else the lock the leaderboards show them. #}
+{% from 'puzzle_intelligence/_macros.html.twig' import skill_icon %}
 {% set kind = this.activeKind.value %}
 <div class="modal fade cmp-sheet" id="comparison-add-sheet" tabindex="-1" aria-labelledby="comparison-add-title" aria-hidden="true"
     data-testid="comparison-add-sheet"
     data-controller="comparison-sheet comparison-add"
     data-comparison-sheet-revision-value="{{ this.lineUpRevision }}"
     data-comparison-add-kind-value="{{ kind }}"
-    data-comparison-add-search-url-value="{{ kind == 'solo' ? path('player_search_autocomplete', {format: 'co-puzzler'}) : path('comparison_team_search', {kind: kind}) }}"
-    data-comparison-add-suggestions-url-value="{{ kind == 'solo' ? path('my_co_puzzlers') : path('comparison_team_search', {kind: kind}) }}"
+    data-comparison-add-search-url-value="{{ kind == 'solo' ? path('comparison_player_search') : path('comparison_team_search', {kind: kind}) }}"
+    data-comparison-add-suggestions-url-value="{{ kind == 'solo' ? path('comparison_people') : path('comparison_team_search', {kind: kind}) }}"
     data-comparison-add-excluded-value="{{ this.lineUpRefs|json_encode }}"
     data-comparison-add-texts-value="{{ {
         searchPlaceholder: ('comparison.add.search_placeholder_' ~ kind)|trans,
@@ -20,8 +24,21 @@
         favorite: 'comparison.add.favorite'|trans,
         together: browser_translation('comparison.add.together'),
         add: 'comparison.add.add_label'|trans,
+        added: 'comparison.add.added'|trans,
+        teamsHeading: kind == 'solo' ? null : ('comparison.add.suggestions_' ~ kind)|trans,
+        favoritesHeading: browser_translation('comparison.add.favorites_heading'),
+        favoritesFilter: 'comparison.add.favorites_filter'|trans,
+        favoritesShowAll: browser_translation('comparison.add.favorites_show_all'),
+        favoritesNoMatch: 'comparison.add.favorites_no_match'|trans,
+        coPuzzlersHeading: 'comparison.add.co_puzzlers_heading'|trans,
     }|json_encode }}"
 >
+    {% if kind == 'solo' %}
+        {% for tier in this.isMember ? ['legend', 'master', 'expert', 'advanced', 'proficient', 'apprentice', 'enthusiast', 'unknown', 'locked'] : ['locked'] %}
+            <template data-comparison-add-target="tierIcon" data-tier="{{ tier }}">{{ skill_icon(tier, 16) }}</template>
+        {% endfor %}
+    {% endif %}
+
     <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header">
@@ -33,7 +50,7 @@
             <div class="modal-body">
                 <div class="cmp-add-search" data-live-ignore>
                     <label class="visually-hidden" for="comparison-add-search">{{ ('comparison.add.search_label_' ~ kind)|trans }}</label>
-                    <input type="text" id="comparison-add-search" autocomplete="off" data-comparison-add-target="search"
+                    <input type="text" id="comparison-add-search" class="form-control" autocomplete="off" data-comparison-add-target="search"
                         placeholder="{{ ('comparison.add.search_placeholder_' ~ kind)|trans }}">
                 </div>
 
@@ -51,9 +68,12 @@
                     {% endif %}
                 {% endif %}
 
-                <div class="cmp-sheet__label">{{ ('comparison.add.suggestions_' ~ kind)|trans }}</div>
+                {# Solo: "Your favorites (N)" (8 rows, "Show all", a filter from 9 favorites on) + "People you puzzle with";
+                   Pairs/Teams: the viewer's own. Three placeholder rows hold the space until the lists arrive. #}
                 <div data-live-ignore>
-                    <div class="cmp-options" data-comparison-add-target="suggestions" aria-live="polite"></div>
+                    <div class="cmp-add-lists" data-comparison-add-target="suggestions" data-testid="comparison-add-lists" aria-busy="true">
+                        {% for i in 1..3 %}<div class="cmp-option cmp-option--skeleton" aria-hidden="true"><span></span><span></span></div>{% endfor %}
+                    </div>
                 </div>
 
                 <p class="cmp-sheet__foot">{{ ('comparison.add.hint_' ~ kind)|trans }}</p>

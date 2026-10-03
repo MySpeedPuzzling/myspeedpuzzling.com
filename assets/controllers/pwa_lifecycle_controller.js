@@ -1,9 +1,12 @@
 import { Controller } from '@hotwired/stimulus';
+import { canStartPull, PullGesture } from '../pull_to_refresh.js';
 
 const STALE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
 const PULL_THRESHOLD = 70; // px to trigger refresh
 const PULL_RESISTANCE = 2.8; // damping factor — increases resistance as you pull further
 const INDICATOR_SIZE = 36; // px — diameter of the circular indicator
+// Layers with their own scrolling over the page: while one is open, a finger moving down scrolls it, never the page
+const OVERLAY_SELECTOR = '.modal.show, .offcanvas.show, .offcanvas.showing, dialog[open]';
 
 export default class extends Controller {
     connect() {
@@ -73,10 +76,11 @@ export default class extends Controller {
         }
     }
 
+    // Which touches may become a pull and when one is: assets/pull_to_refresh.js (tested under node). This controller
+    // only reads the page for it and draws the indicator.
     _initPullToRefresh() {
-        this._pullStartY = 0;
+        this._gesture = new PullGesture();
         this._pullDistance = 0;
-        this._pulling = false;
         this._thresholdReached = false;
 
         this._injectStyles();
@@ -85,10 +89,12 @@ export default class extends Controller {
         this._onTouchStart = this._handleTouchStart.bind(this);
         this._onTouchMove = this._handleTouchMove.bind(this);
         this._onTouchEnd = this._handleTouchEnd.bind(this);
+        this._onTouchCancel = this._handleTouchCancel.bind(this);
 
         document.addEventListener('touchstart', this._onTouchStart, { passive: true });
         document.addEventListener('touchmove', this._onTouchMove, { passive: false });
         document.addEventListener('touchend', this._onTouchEnd, { passive: true });
+        document.addEventListener('touchcancel', this._onTouchCancel, { passive: true });
     }
 
     _injectStyles() {
@@ -173,6 +179,7 @@ export default class extends Controller {
         document.removeEventListener('touchstart', this._onTouchStart);
         document.removeEventListener('touchmove', this._onTouchMove);
         document.removeEventListener('touchend', this._onTouchEnd);
+        document.removeEventListener('touchcancel', this._onTouchCancel);
 
         if (this._indicator && this._indicator.parentNode) {
             this._indicator.parentNode.removeChild(this._indicator);
@@ -180,29 +187,50 @@ export default class extends Controller {
     }
 
     _handleTouchStart(event) {
-        if (window.scrollY === 0) {
-            this._pullStartY = event.touches[0].clientY;
-            this._pulling = true;
-            this._pullDistance = 0;
-            this._thresholdReached = false;
-            this._indicator.classList.remove('is-settling', 'is-refreshing');
-            this._indicator.classList.add('is-pulling');
+        const touch = event.touches[0];
+
+        if (!touch) {
+            return;
         }
+
+        this._gesture.start(touch.clientX, touch.clientY, canStartPull(event.target, {
+            scrollY: window.scrollY,
+            overlayOpen: this._overlayOpen(),
+            styleOf: (element) => window.getComputedStyle(element),
+        }), event.touches.length);
+    }
+
+    _overlayOpen() {
+        const body = document.body;
+
+        return body.classList.contains('modal-open')
+            || body.classList.contains('global-search-shown')
+            || document.querySelector(OVERLAY_SELECTOR) !== null;
     }
 
     _handleTouchMove(event) {
-        if (!this._pulling) return;
+        if (this._gesture.state === 'idle') return;
 
-        const y = event.touches[0].clientY;
-        const delta = y - this._pullStartY;
+        const touch = event.touches[0];
+        const wasPulling = this._gesture.pulling;
 
-        if (delta < 0 || window.scrollY > 0) {
-            this._pulling = false;
-            this._resetIndicator();
+        if (!touch || !this._gesture.move(touch.clientX, touch.clientY, { scrollY: window.scrollY, cancelable: event.cancelable })) {
+            if (wasPulling) {
+                this._resetIndicator();
+            }
+
             return;
         }
 
         event.preventDefault();
+
+        if (!wasPulling) {
+            this._thresholdReached = false;
+            this._indicator.classList.remove('is-settling', 'is-refreshing');
+            this._indicator.classList.add('is-pulling');
+        }
+
+        const delta = this._gesture.distance;
 
         // Progressive resistance — gets harder the further you pull
         this._pullDistance = delta / (PULL_RESISTANCE + (delta / 300));
@@ -229,9 +257,21 @@ export default class extends Controller {
         }
     }
 
+    _handleTouchCancel() {
+        if (this._gesture.pulling) {
+            this._resetIndicator();
+        }
+
+        this._gesture.cancel();
+    }
+
     _handleTouchEnd() {
-        if (!this._pulling) return;
-        this._pulling = false;
+        if (!this._gesture.pulling) {
+            this._gesture.cancel();
+            return;
+        }
+
+        this._gesture.end();
 
         if (this._pullDistance >= PULL_THRESHOLD) {
             // Settle into refreshing position

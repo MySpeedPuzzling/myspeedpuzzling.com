@@ -198,3 +198,41 @@ then integrated and checked in a browser at 375 px and 1280 px against a copy of
   stopwatches, form and chat pages; hidden while a modal or the site search is open).
 - Legacy `compare_players` (old 6 locale paths) → `LegacyComparePlayersController` 302 to the `?with=` preview.
 - Removed: `ComparePlayersController`, `PlayersComparison`, `Value\Comparison`, `compare_players.html.twig`.
+
+### Add sheet (feedback round, 2026-10-03)
+
+`templates/comparison/_add_sheet.html.twig` + `comparison_add_controller.js`; nothing is fetched before the sheet opens
+(the page's first render runs no query for it - `ComparisonAddSheetTest`).
+
+- **Solo lists** - `comparison_people` (`/{_locale}/compare/people.json`, `ComparisonPeopleController`):
+  `{favorites, coPuzzlers}` from **one** statement (`GetComparisonPeople::forViewer()`): **every** favorite by name
+  (the sheet shows 8, then "Show all (N)" and, from 9 favorites on, a client-side filter "Search your favorites" - no
+  request) and up to 6 non-favorite people the viewer shares the most pair/team results with ("People you puzzle with";
+  pairs/teams with a blocked member or archived by the viewer count for nobody, guests never). Only who an add would
+  accept: nobody the viewer blocked, no private profile hidden from them (allow list reveals), never the viewer.
+- **Solo search** - `comparison_player_search` (`/{_locale}/compare/players.json?query=`, `ComparisonPlayerSearchController`):
+  `SearchPlayers::fulltext()` (15), a leading `#` is stripped (codes), private players hidden from the viewer are left
+  out even by exact code. Pairs/Teams keep `comparison_team_search`.
+- **One JSON shape** for both (`ComparisonPersonOptions`): `ref, id, label, code, country, countryName, avatar, favorite`
+  + `tier` **only for members** - the leaderboards' rule (`_leaderboard_player.html.twig`): the 500-piece tier,
+  `unknown` without one, `locked` for a player who opted out of rankings; one statement for every list of a response
+  (`GetComparisonPeople::skillTierIcons()`). Query count is flat in the number of favorites.
+- **Drawing**: avatars are `_player_avatar.html.twig` in JS (`.cmp-avatar--lg` + `.lb-avatar-lg`: photo + corner flag,
+  else the round flag `lb-avatar-flag`, else the initial on the id's tint); tier icons are `<template>`s rendered once by
+  `skill_icon()` in the sheet (members: every tier + unknown + locked, everybody else only `locked`) and cloned; the
+  global search's `ci-star-filled text-warning` marks favorites in the search results. Whoever is already in the line-up
+  stays listed as **"Added"** (disabled, also in the search) - rows never move under a finger. Rows are 44 px, built once
+  per load and reused by the filter (images never reload); three placeholder rows hold the space while loading.
+
+### Pull-to-refresh vs. scrolling (installed PWA)
+
+`pwa_lifecycle_controller.js` armed its pull-to-refresh on every touch while `window.scrollY === 0` and then called
+`preventDefault()` on every downward `touchmove`. Inside an open modal the page behind stays at 0, so a sheet scrolled
+down could never be scrolled back up ("after Add, I can't scroll up"), and a sideways swipe over a table drifting a
+few pixels down lost its scroll ("touch works worse in the PWA"). The decisions now live in `assets/pull_to_refresh.js`
+(tested under node, `PullToRefreshGestureTest`): nothing is armed while a modal / offcanvas / `dialog` / the site search
+is open, nor when the finger lands in an element scrolled itself, in a sideways-scrolling container or under
+`[data-ptr-ignore]`; the first 8 px decide the direction and only a clearly vertical downward move (≤ 1:2 sideways,
+`touchmove` still cancelable) becomes a pull - other gestures are never prevented. The browser (non-PWA) has no
+pull-to-refresh of ours; `.modal, .modal-body { overscroll-behavior-y: contain }` (app.scss) keeps the sheet's scroll
+from chaining to the page.

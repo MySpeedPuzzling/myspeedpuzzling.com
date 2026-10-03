@@ -35,6 +35,10 @@ final class BorrowPuzzleForm extends AbstractController
     #[LiveProp]
     public string $context = 'detail';
 
+    // The collection page the modal was opened from - its card is replaced after borrowing (context collection-detail)
+    #[LiveProp]
+    public string $collectionId = '';
+
     public function __construct(
         readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
         readonly private GetFavoritePlayers $getFavoritePlayers,

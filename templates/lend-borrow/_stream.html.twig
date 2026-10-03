@@ -47,18 +47,20 @@
     </turbo-stream>
     {% endif %}
 {% elseif context|default('detail') == 'collection-detail' %}
-    {# Collection detail page: replace the whole card #}
-    {% set coll_id = collection_id|default('__system_collection__') %}
-    {{ include('_library_item_stream.html.twig', {
-        action: 'replace',
-        page_context: 'collection',
-        item: item,
-        puzzle_statuses: puzzle_statuses,
-        logged_user: logged_user,
-        isOwnProfile: true,
-        source_collection_id: coll_id,
-        currentCollectionId: coll_id,
-    }) }}
+    {# Collection detail page: replace the whole card (no card = nothing to replace, the toast still says what happened) #}
+    {% if item|default(null) is not null %}
+        {% set coll_id = collection_id|default('__system_collection__') %}
+        {{ include('_library_item_stream.html.twig', {
+            action: 'replace',
+            page_context: 'collection',
+            item: item,
+            puzzle_statuses: puzzle_statuses,
+            logged_user: logged_user,
+            isOwnProfile: true,
+            source_collection_id: coll_id,
+            currentCollectionId: coll_id,
+        }) }}
+    {% endif %}
 {% elseif context|default('detail') == 'unsolved-detail' %}
     {# Unsolved puzzles page #}
     {% if is_owner|default(false) and item is defined %}

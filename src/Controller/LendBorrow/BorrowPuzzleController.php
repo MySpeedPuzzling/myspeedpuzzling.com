@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\FormData\BorrowPuzzleFormData;
 use SpeedPuzzling\Web\FormType\BorrowPuzzleFormType;
 use SpeedPuzzling\Web\Message\BorrowPuzzleFromPlayer;
 use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
+use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
@@ -39,6 +40,7 @@ final class BorrowPuzzleController extends AbstractController
         readonly private GetWishListItems $getWishListItems,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
+        readonly private GetCollectionItems $getCollectionItems,
     ) {
     }
 
@@ -125,6 +127,18 @@ final class BorrowPuzzleController extends AbstractController
                 // For list context (from wishlist page), fetch remaining count
                 if ($context === 'list') {
                     $templateParams['remaining_count'] = $this->getWishListItems->countByPlayerId($loggedPlayer->playerId);
+                } elseif ($context === 'collection-detail') {
+                    // Collection page: the whole card is replaced, with its new "borrowed" badge
+                    $collectionId = $request->request->getString('collection_id');
+                    // __system_collection__ marks the system collection - null in the query
+                    $collectionIdForQuery = ($collectionId !== '' && $collectionId !== '__system_collection__') ? $collectionId : null;
+
+                    $templateParams['item'] = $this->getCollectionItems->getByPuzzleIdAndPlayerId(
+                        $puzzleId,
+                        $loggedPlayer->playerId,
+                        $collectionIdForQuery,
+                    );
+                    $templateParams['collection_id'] = $collectionId;
                 } elseif ($context === 'unsolved-detail') {
                     // For unsolved-detail context: user is owner (tracking borrow source)
                     // Fetch unsolved item for card replacement with updated badges
@@ -160,6 +174,7 @@ final class BorrowPuzzleController extends AbstractController
             'form' => $form,
             'is_already_borrowed' => $isAlreadyBorrowed,
             'context' => $request->query->getString('context', 'detail'),
+            'collection_id' => $request->query->getString('collection_id'),
         ];
 
         // Turbo Frame request - return frame content only

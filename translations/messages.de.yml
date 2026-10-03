@@ -4417,7 +4417,7 @@ onboarding:
         everything_else: "Privatsphäre, Benachrichtigungen und alles andere: Avatar-Menü → <a href=\"%link%\">Profil bearbeiten</a>."
     checklist:
         title: "Erste Schritte"
-        progress: "bisher %logged% von %required%"
+        progress: "%done% von %total%"
         dismiss: "Ausblenden"
         guide_link: "So funktioniert alles"
         step:

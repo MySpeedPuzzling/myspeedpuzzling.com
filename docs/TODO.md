@@ -28,9 +28,8 @@ Shipped: [`features/player-header.md`](features/player-header.md).
       Align the API (count only) or accept the difference
 - [ ] The favorite toggle is still a GET link (`ToggleFavoritePlayerController`, `rel="nofollow"`, no CSRF) - a POST
       button would be the honest form now that it is a primary action on 12 pages
-- [ ] Found while screenshotting, not caused by #224: `onboarding.checklist.progress` was overwritten by the free trial
-      (`cf819693`) with `%logged%`/`%required%`, but `onboarding/_getting_started_card.html.twig` passes
-      `%done%`/`%total%` - the card shows "%logged% of %required% so far" (en, cs, de at least)
+- [x] Found while screenshotting, not caused by #224: `onboarding.checklist.progress` was overwritten by the free trial
+      (`cf819693`) with `%logged%`/`%required%` in en, cs, de - restored, guarded by `HubControllerTest`
 - [ ] Found while screenshotting, not caused by #224: the site topbar (`.topbar-text.text-nowrap`) is wider than
       320 px in German and for admins - the page scrolls sideways there
 

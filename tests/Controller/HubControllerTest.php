@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class HubControllerTest extends WebTestCase
 {
@@ -84,6 +85,26 @@ final class HubControllerTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/hub');
         self::assertCount(0, $crawler->filter('.getting-started'));
+    }
+
+    public function testGettingStartedCountShowsNumbersInEveryLocale(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/hub');
+        self::assertMatchesRegularExpression('/^\d+ of \d+$/', trim($crawler->filter('.getting-started-count')->text()));
+
+        // The free trial once rewrote this text with its own placeholders - the card showed "%logged% of %required%"
+        $translator = self::getContainer()->get(TranslatorInterface::class);
+
+        foreach (['cs', 'de', 'en', 'es', 'fr', 'ja'] as $locale) {
+            $text = $translator->trans('onboarding.checklist.progress', ['%done%' => 3, '%total%' => 7], locale: $locale);
+
+            self::assertStringNotContainsString('%', $text, $locale);
+            self::assertStringContainsString('3', $text, $locale);
+            self::assertStringContainsString('7', $text, $locale);
+        }
     }
 
     public function testCardStaysOpenUntilTheFirstPuzzleIsLogged(): void

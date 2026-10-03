@@ -4724,7 +4724,7 @@ onboarding:
         everything_else: "Privacy, notifications and everything else: avatar menu → <a href=\"%link%\">Edit profile</a>."
     checklist:
         title: "Getting started"
-        progress: "%logged% of %required% so far"
+        progress: "%done% of %total%"
         dismiss: "Hide"
         guide_link: "How it all works"
         step:

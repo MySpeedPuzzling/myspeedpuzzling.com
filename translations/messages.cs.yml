@@ -4415,7 +4415,7 @@ onboarding:
         everything_else: "Soukromí, oznámení a vše ostatní: menu u avataru → <a href=\"%link%\">Upravit profil</a>."
     checklist:
         title: "První kroky"
-        progress: "zatím %logged% z %required%"
+        progress: "%done% ze %total%"
         dismiss: "Skrýt"
         guide_link: "Jak to celé funguje"
         step:

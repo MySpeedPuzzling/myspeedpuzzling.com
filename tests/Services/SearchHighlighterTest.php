@@ -37,5 +37,9 @@ final class SearchHighlighterTest extends TestCase
         yield ['Paní Trňasová', 'ani trn', 'P<span class="search-highlight">aní</span> <span class="search-highlight">Trň</span>asová'];
         yield ['Pani Trnasova', 'aní trň', 'P<span class="search-highlight">ani</span> <span class="search-highlight">Trn</span>asova'];
         yield ['Home Home', 'ho h', '<span class="search-highlight">Ho</span>me <span class="search-highlight">Ho</span>me'];
+        // Registered as HTML-safe in Twig: the text around the match is escaped too, not only the match
+        yield ['<b>Jan</b> & co', 'jan', '&lt;b&gt;<span class="search-highlight">Jan</span>&lt;/b&gt; &amp; co'];
+        yield ['<img src=x onerror=alert(1)>', 'zzz', '&lt;img src=x onerror=alert(1)&gt;'];
+        yield ['<i>Ann</i>', '', '&lt;i&gt;Ann&lt;/i&gt;'];
     }
 }

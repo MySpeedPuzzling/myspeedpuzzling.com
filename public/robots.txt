@@ -174,6 +174,15 @@ Disallow: /ja/コレクションコメント編集
 Disallow: /fr/modifier-commentaire-collection
 Disallow: /de/sammlungs-kommentar-bearbeiten
 
+# Player card on the Players page: a Turbo Frame fragment, the page itself is
+# noindex with the profile as canonical.
+Disallow: /karta-puzzlera/
+Disallow: /en/puzzler-card/
+Disallow: /es/tarjeta-jugador/
+Disallow: /ja/プレイヤーカード/
+Disallow: /fr/carte-joueur/
+Disallow: /de/puzzler-karte/
+
 # Player statistics: every ?month=&year= period is its own noindex URL.
 Disallow: /statistiky-hrace
 Disallow: /en/player-statistics

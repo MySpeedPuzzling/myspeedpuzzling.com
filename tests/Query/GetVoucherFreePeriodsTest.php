@@ -44,7 +44,8 @@ final class GetVoucherFreePeriodsTest extends KernelTestCase
         self::assertCount(1, $periods);
         self::assertSame(VoucherFixture::VOUCHER_AVAILABLE_CODE, $periods[0]->voucherCode);
         self::assertSame(1, $periods[0]->months);
-        self::assertTrue($periods[0]->hasStarted($now));
+        // The start is stored to the whole second (rounded), so it can land a moment after $now - look a second later
+        self::assertTrue($periods[0]->hasStarted($now->modify('+1 second')));
 
         // Once the free months are over, there is nothing left to explain
         self::assertSame([], $this->getVoucherFreePeriods->notEndedForPlayer($playerId, $now->modify('+2 months')));

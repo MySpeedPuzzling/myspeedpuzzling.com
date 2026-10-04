@@ -4,11 +4,6 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
-## Difficulty sort (`docs/features/list-difficulty-and-my-list-filter.md`)
-
-- [ ] Translate `sorting.default_order` ("Default order", the collection pages' sort) into cs, de, es, fr, ja - the
-      other labels of that select are translated already.
-
 ## EAN codes in the catalogue (2026-10-04)
 
 - [x] "Suggest a change" refuses codes that are not EAN/UPC codes, each one of a comma-separated list

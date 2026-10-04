@@ -46,7 +46,7 @@ Guidance for each agent:
 - Match tone/formality of surrounding translations in that locale.
 - ICU/placeholder tokens (`{count}`, `%name%`, `|`) must be copied verbatim.
 - Do NOT invent keys that aren't in the JSON. Do NOT touch `filled` locales.
-- Language rule for the project: features are English-only unless translation is explicitly requested, but this skill IS the explicit request — translate every missing locale.
+- Language rule for the project: a finished feature ships its new keys in all 6 locales (CLAUDE.md) — translate every missing locale.
 
 ### 4. Verify
 

@@ -271,6 +271,7 @@
   "slowest_ppm": "最遅PPM"
   "easiest": "簡単な順"
   "hardest": "難しい順"
+  "default_order": "標準の並び順"
 "puzzle_overview":
   "meta":
     "title": "ジグソーパズルデータベースと完成タイム"

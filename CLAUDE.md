@@ -246,7 +246,7 @@ Active feature flags are documented in `docs/features/feature_flags.md`. **Alway
 - **Statistics & Charts**: Detailed analytics with Chart.js visualizations
 - **Social Features**: Player favorites, collections, and activity feeds
 - **Premium Membership**: Stripe-powered subscription management
-- **Multi-language**: When adding new features, always do it only in English unless explicitly asked to translate to other locales 
+- **Multi-language**: Build and iterate on a feature in English (`messages.en.yml`). Once the implementation is done - before opening the PR or completing a feature request - add every translation key the job introduced to all 6 locales (cs, de, es, fr, ja next to en), so no locale is left falling back to English; check that every new key exists in all of them
 
 ### Puzzle Insights System
 - **Batch computation**: All insights metrics (difficulty, skill, rating) are computed every 15 minutes via `myspeedpuzzling:recalculate-puzzle-intelligence` console command, NOT event-driven

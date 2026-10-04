@@ -272,6 +272,7 @@
   "slowest_ppm": "PPM le plus lent"
   "easiest": "Plus faciles d'abord"
   "hardest": "Plus difficiles d'abord"
+  "default_order": "Ordre par défaut"
 "puzzle_overview":
   "meta":
     "title": "Base de données de puzzles et temps"

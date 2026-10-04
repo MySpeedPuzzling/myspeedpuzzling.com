@@ -132,8 +132,12 @@ readonly final class AddPuzzleTrackingHandler
 
         $this->entityManager->persist($solvingTime);
 
-        // Relax tracking counts toward achievements (Zen Puzzler) and earns XP too.
-        $this->commandBus->dispatch(new RecalculateBadgesForPlayer($player->id->toString()));
+        // Relax tracking counts toward achievements (Zen Puzzler) and earns XP too - for every registered member of a
+        // pair/team result, not only whoever saved it
+        foreach ($solvingTime->memberPlayerIds() as $memberPlayerId) {
+            $this->commandBus->dispatch(new RecalculateBadgesForPlayer($memberPlayerId));
+        }
+
         $this->commandBus->dispatch(new AwardXpForSolvingTime($trackingId->toString()));
     }
 }

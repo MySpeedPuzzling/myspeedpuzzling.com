@@ -586,12 +586,16 @@ class PuzzleSolvingTime implements EntityWithEvents
         );
 
         $this->puzzle = $newPuzzle;
+        // The pieces of the puzzle it really was - XP of the result is priced on them (docs/features/xp-levels/README.md)
+        $this->piecesCountSnapshot = $newPuzzle->piecesCount;
         $this->forgetPrediction();
     }
 
     public function migrateToPuzzle(Puzzle $newPuzzle): void
     {
         $this->puzzle = $newPuzzle;
+        // One merged chain must not mix two piece counts nothing could ever correct
+        $this->piecesCountSnapshot = $newPuzzle->piecesCount;
 
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $newPuzzle->id),

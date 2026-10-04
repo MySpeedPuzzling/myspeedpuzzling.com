@@ -173,8 +173,9 @@ SQL;
         string $playerId,
     ): SpeedPercentile {
         if (XpCalculator::isImplausiblyFast($piecesCount, $secondsToSolve)) {
-            // Silent guard: no speed bonus, no user-facing accusation — just ops visibility.
-            $this->logger->warning('XP speed bonus denied by plausibility guard', [
+            // Silent guard: no speed bonus, no user-facing accusation — just ops visibility. Info, not warning: a full
+            // rebuild replays every implausible solve, and warnings become Sentry issues
+            $this->logger->info('XP speed bonus denied by plausibility guard', [
                 'solvingTimeId' => $solvingTimeId,
                 'playerId' => $playerId,
                 'piecesCount' => $piecesCount,

@@ -339,8 +339,9 @@ final class EditTimeController extends AbstractController
             'pace_check' => $paceCheck,
             'pace_confirmed' => $paceConfirmed,
             'kept_photos' => $this->formPhotoStash->keep($editTimeForm, $restoredPhotos, $player->playerId),
-            // Delete dialog warning: how much XP disappears with this solve (0 = hide line).
-            'xp_delete_warning' => $this->xpFeatureGate->isVisibleFor($player)
+            // Delete dialog warning: how much XP disappears with this solve (0 = hide line). Only the tracker gets the
+            // dialog (docs/features/group-time-editing.md), so a group member editing the time costs no query
+            'xp_delete_warning' => $solvedPuzzle->playerId === $player->playerId && $this->xpFeatureGate->isVisibleFor($player)
                 ? max($this->getXpEntriesForSolve->totalForPlayerAndSolvingTime($player->playerId, $timeId), 0)
                 : 0,
         ];

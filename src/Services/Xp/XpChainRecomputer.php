@@ -536,8 +536,9 @@ SQL;
         }
 
         if (XpCalculator::isImplausiblyFast($solve['pieces'], $seconds)) {
-            // Silent guard: no speed bonus, no user-facing accusation — ops visibility only.
-            $this->logger->warning('XP speed bonus denied by plausibility guard', [
+            // Silent guard: no speed bonus, no user-facing accusation — ops visibility only. Info, not warning: a
+            // replay of every implausible solve (rebuild, backfill) must not become Sentry issues
+            $this->logger->info('XP speed bonus denied by plausibility guard', [
                 'solvingTimeId' => $solve['id'],
                 'playerId' => $participantId,
                 'piecesCount' => $solve['pieces'],

@@ -26,6 +26,7 @@ use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
+use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -202,6 +203,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         }
 
         $membersBeforeEdit = $solvingTime->memberPlayerIds();
+        $puzzleIdBeforeEdit = $solvingTime->puzzle->id->toString();
 
         // Time verification: the entry a mark is about, before the edit changes it (null unless flagged)
         $markedEntryBeforeEdit = $this->markedTimeEditRecheck->entryBeforeEdit($solvingTime);
@@ -285,9 +287,24 @@ readonly final class EditPuzzleSolvingTimeHandler
             ));
         }
 
-        $this->commandBus->dispatch(new RecalculateBadgesForPlayer($currentPlayer->id->toString()));
-        // Edit is semantically delete+re-add for XP — rebuild the affected chains.
-        $this->commandBus->dispatch(new RecalculateXpChainForSolve($message->puzzleSolvingTimeId));
+        // Every member may edit a group time (docs/features/group-time-editing.md): the tracker, whoever was in the
+        // group before and whoever is in it now
+        $affectedPlayerIds = array_values(array_unique([...$membersBeforeEdit, ...$solvingTime->memberPlayerIds()]));
+
+        foreach ($affectedPlayerIds as $affectedPlayerId) {
+            $this->commandBus->dispatch(new RecalculateBadgesForPlayer($affectedPlayerId));
+        }
+
+        if ($solvingTime->puzzle->id->toString() === $puzzleIdBeforeEdit) {
+            // Edit is semantically delete+re-add for XP — rebuild the affected chains.
+            $this->commandBus->dispatch(new RecalculateXpChainForSolve($message->puzzleSolvingTimeId));
+        } else {
+            // Moved to another puzzle: the chain on the puzzle it left changes too (a repeat there may be the first
+            // solve now), which the chain rebuild of the moved result does not see - full rebuilds do
+            foreach ($affectedPlayerIds as $affectedPlayerId) {
+                $this->commandBus->dispatch(new RecalculateXpForPlayer($affectedPlayerId));
+            }
+        }
     }
 
     /**

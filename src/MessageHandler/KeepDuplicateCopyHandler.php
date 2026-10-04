@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\DuplicateCaseChanged;
 use SpeedPuzzling\Web\Exceptions\DuplicateCaseNotFound;
+use SpeedPuzzling\Web\Message\CompensateXpForDeletedSolve;
 use SpeedPuzzling\Web\Message\KeepDuplicateCopy;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
@@ -21,6 +22,7 @@ use SpeedPuzzling\Web\Services\FirstTry\FirstTryAssessor;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
 use SpeedPuzzling\Web\Value\FirstTryEntry;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * "Keep this one" / "Delete my copy" on a set of copies (docs/features/duplicate-results.md, "Review page"):
@@ -45,6 +47,7 @@ readonly final class KeepDuplicateCopyHandler
         private SolvingTimeRoundResolver $roundResolver,
         private ResultReviewReactions $resultReviewReactions,
         private ClockInterface $clock,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -92,7 +95,13 @@ readonly final class KeepDuplicateCopyHandler
         }
 
         foreach ($deleted as $copy) {
+            $copyPuzzleId = $copy->puzzle->id->toString();
+
             $this->puzzleSolvingTimeRepository->delete($copy);
+
+            // Every member of a pair/team copy earned XP for it (docs/features/xp-levels/README.md) - compensated
+            // like a result deleted by hand
+            $this->messageBus->dispatch(new CompensateXpForDeletedSolve($copy->id->toString(), $copyPuzzleId));
         }
 
         $this->resultReviewReactions->recordFor($player->id->toString());

@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use SpeedPuzzling\Web\Services\Session\PostgresSessionHandler;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotAcceptableHttpException;
+use Symfony\Component\HttpKernel\Exception\UnsupportedMediaTypeHttpException;
 
 return App::config([
     'framework' => [
@@ -53,6 +56,16 @@ return App::config([
         ],
         'php_errors' => [
             'log' => true,
+        ],
+        // A request the client got wrong, already answered with its 4xx: a bot's garbage body, an API
+        // client sending the wrong format, an internal-API call missing a field. Symfony logs uncaught
+        // 4xx at error, which made each one a Sentry issue; info keeps them out (warning and above
+        // become issues). Only the log level changes - unlike Sentry's ignore_exceptions, which
+        // drops an event when ANY exception of its chain matches.
+        'exceptions' => [
+            BadRequestHttpException::class => ['log_level' => 'info'],
+            NotAcceptableHttpException::class => ['log_level' => 'info'],
+            UnsupportedMediaTypeHttpException::class => ['log_level' => 'info'],
         ],
         'trusted_headers' => ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix'],
         'trusted_proxies' => '%env(TRUSTED_PROXIES)%',

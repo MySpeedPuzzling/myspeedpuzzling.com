@@ -243,3 +243,11 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   (nothing else read those two there); lend/borrow lists have no filter and render no `data-search`.
 - **Phase 1b - the wishlist list query** reads the two key columns and is ~4 % slower on the heaviest wishlist
   (655 items, 9.7 → 10.1 ms, same plan); accepted - folding the names per item in PHP would cost far more.
+- **Phase 4 - filing in waves, high confidence only:** the research (2026-10-05, production read-only) found 407
+  high-confidence language tags of the 554 untagged names, 3 main-title swaps (the English title is the other name),
+  54 jammed-name splits and 45 language-duplicate merges. They are filed through the internal API in waves of about
+  100 (merges, splits and swaps first, then tags) so the moderation queue (120-250 items a month normally) is not
+  flooded; medium/low-confidence rows (111 names spelled the same in Czech and Slovak, 22 without a clear language) are
+  not filed in the first round. Every filing re-reads the puzzle first; puzzles with a pending request are skipped and
+  listed. Nothing is approved by the delivering agent.
+

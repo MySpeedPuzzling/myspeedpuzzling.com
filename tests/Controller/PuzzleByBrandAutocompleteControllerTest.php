@@ -40,7 +40,7 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
     {
         $browser = self::createClient();
         self::getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE puzzle SET name = :name, alternative_name = :alternativeName, identification_number = :code, ean = :ean WHERE id = :id',
+            "UPDATE puzzle SET name = :name, alternative_names = jsonb_build_array(jsonb_build_object('name', CAST(:alternativeName AS TEXT), 'language', 'cs')), identification_number = :code, ean = :ean WHERE id = :id",
             [
                 'name' => '<img src=x onerror=alert(1)>',
                 'alternativeName' => '<b onmouseover=alert(2)>Kočky</b>',

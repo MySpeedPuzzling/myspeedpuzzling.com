@@ -386,11 +386,25 @@ final class PuzzleNamesTest extends TestCase
         $names->assertFormLimits();
     }
 
+    public function testAListAMergeLeftOverTheCapMayShrinkButNotGrow(): void
+    {
+        $names = static fn (int $count): PuzzleNames => new PuzzleNames(array_map(
+            static fn (int $i): PuzzleName => new PuzzleName('Name ' . $i, null),
+            range(1, $count),
+        ));
+
+        $names(PuzzleNames::FORM_MAX_NAMES + 4)->assertFormLimits(loadedCount: PuzzleNames::FORM_MAX_NAMES + 5);
+        $names(PuzzleNames::FORM_MAX_NAMES + 5)->assertFormLimits(loadedCount: PuzzleNames::FORM_MAX_NAMES + 5);
+
+        $this->expectException(InvalidPuzzleValues::class);
+        $names(PuzzleNames::FORM_MAX_NAMES + 6)->assertFormLimits(loadedCount: PuzzleNames::FORM_MAX_NAMES + 5);
+    }
+
     public function testANameLongerThan255CharactersIsRefusedFromAForm(): void
     {
         $names = new PuzzleNames([new PuzzleName(str_repeat('ř', 256), 'cs')]);
 
         $this->expectException(InvalidPuzzleValues::class);
-        $names->assertFormLimits();
+        $names->assertFormLimits(loadedCount: 5);
     }
 }

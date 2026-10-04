@@ -69,7 +69,9 @@ readonly final class ApprovePuzzleHandler
         // Validates every value before it changes anything - the record, the image included, gets the final brand
         $change = $this->puzzleRecordUpdater->update($puzzle, new PuzzleRecordValues(
             name: $message->name,
-            alternativeName: $message->alternativeName,
+            nameLanguage: $puzzle->nameLanguage,
+            // The form's single alternative name field edits one name of the list
+            alternativeNames: $puzzle->alternativeNames()->withLegacyAlternativeName($message->alternativeName),
             manufacturerId: ($targetBrand ?? $currentBrand)?->id->toString(),
             piecesCount: $message->piecesCount,
             ean: $message->ean,

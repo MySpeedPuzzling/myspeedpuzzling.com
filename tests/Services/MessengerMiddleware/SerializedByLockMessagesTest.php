@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Message\EditPuzzle;
 use SpeedPuzzling\Web\Message\LinkEanToPuzzle;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
 use SpeedPuzzling\Web\Value\ComparisonKind;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -57,7 +58,7 @@ final class SerializedByLockMessagesTest extends TestCase
     {
         $puzzleId = '018D0003-0000-0000-0000-000000000001';
         $key = 'puzzle-018d0003-0000-0000-0000-000000000001';
-        $values = new PuzzleRecordValues(name: 'Puzzle', alternativeName: null, manufacturerId: null, piecesCount: 500, ean: null, identificationNumber: null);
+        $values = new PuzzleRecordValues(name: 'Puzzle', nameLanguage: null, alternativeNames: new PuzzleNames(), manufacturerId: null, piecesCount: 500, ean: null, identificationNumber: null);
 
         self::assertSame($key, (new EditPuzzle($puzzleId, 'editor', $values))->lockKey());
         self::assertSame($key, (new ApprovePuzzle($puzzleId, 'reviewer', 'Puzzle', 500, null, null))->lockKey());

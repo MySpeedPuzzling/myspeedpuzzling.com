@@ -18,6 +18,8 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
 use SpeedPuzzling\Web\Value\PuzzleHistoryEntryKind;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
+use SpeedPuzzling\Web\Value\PuzzleName;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -41,7 +43,8 @@ final class GetPuzzleHistoryTest extends KernelTestCase
             editorId: PlayerFixture::PLAYER_ADMIN,
             values: new PuzzleRecordValues(
                 name: 'Puzzle 2 (2024 edition)',
-                alternativeName: null,
+                nameLanguage: null,
+                alternativeNames: new PuzzleNames(),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 piecesCount: 500,
                 ean: '4005556123456',
@@ -108,7 +111,11 @@ final class GetPuzzleHistoryTest extends KernelTestCase
             editorId: PlayerFixture::PLAYER_ADMIN,
             values: new PuzzleRecordValues(
                 name: 'Puzzle 7',
-                alternativeName: 'KOUZELNÁ ZAHRADA',
+                nameLanguage: null,
+                alternativeNames: new PuzzleNames([
+                    new PuzzleName('KOUZELNÁ ZAHRADA', 'cs'),
+                    new PuzzleName(PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'de'),
+                ]),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                 piecesCount: 1000,
                 ean: null,

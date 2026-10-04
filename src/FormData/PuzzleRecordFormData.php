@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Results\PuzzleChangeRequestOverview;
 use SpeedPuzzling\Web\Results\PuzzleRecord;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleImageChoice;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints\Callback;
@@ -57,11 +58,23 @@ final class PuzzleRecordFormData
     #[Length(max: 2000)]
     public null|string $note = null;
 
+    // Not form fields: the names the form was loaded with - the single alternative name field edits one of them
+    public null|string $loadedNameLanguage = null;
+
+    public PuzzleNames $loadedAlternativeNames;
+
+    public function __construct()
+    {
+        $this->loadedAlternativeNames = new PuzzleNames();
+    }
+
     public static function fromPuzzle(PuzzleRecord $puzzle): self
     {
         $data = new self();
         $data->name = $puzzle->name;
         $data->alternativeName = $puzzle->alternativeNames->legacyAlternativeName();
+        $data->loadedNameLanguage = $puzzle->nameLanguage;
+        $data->loadedAlternativeNames = $puzzle->alternativeNames;
         $data->manufacturerId = $puzzle->manufacturerId;
         $data->piecesCount = $puzzle->piecesCount;
         $data->ean = $puzzle->ean;
@@ -79,6 +92,8 @@ final class PuzzleRecordFormData
         $data = new self();
         $data->name = $request->hasNameChange() ? $request->proposedName : $request->puzzleName;
         $data->alternativeName = $request->puzzleAlternativeNames->legacyAlternativeName();
+        $data->loadedNameLanguage = $request->puzzleNameLanguage;
+        $data->loadedAlternativeNames = $request->puzzleAlternativeNames;
         $data->manufacturerId = $request->hasManufacturerChange() ? $request->proposedManufacturerId : $request->puzzleManufacturerId;
         $data->piecesCount = $request->hasPiecesCountChange() ? $request->proposedPiecesCount : $request->puzzlePiecesCount;
         $data->ean = $request->hasEanChange() ? $request->proposedEan : $request->puzzleEan;
@@ -98,7 +113,8 @@ final class PuzzleRecordFormData
 
         return new PuzzleRecordValues(
             name: $this->name,
-            alternativeName: $this->alternativeName,
+            nameLanguage: $this->loadedNameLanguage,
+            alternativeNames: $this->loadedAlternativeNames->withLegacyAlternativeName($this->alternativeName),
             manufacturerId: $this->manufacturerId,
             piecesCount: $this->piecesCount,
             ean: $this->ean,

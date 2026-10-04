@@ -20,8 +20,10 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use SpeedPuzzling\Web\Value\PuzzleImageChoice;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
-use SpeedPuzzling\Web\Value\PuzzleReportStatus;
+use SpeedPuzzling\Web\Value\PuzzleName;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
+use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -123,7 +125,8 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             reviewed: new PuzzleRecordValues(
                 name: '  Admin Corrected Name ',
-                alternativeName: 'Alternative Title',
+                nameLanguage: null,
+                alternativeNames: new PuzzleNames([new PuzzleName('Alternative Title', null)]),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                 piecesCount: 1000,
                 ean: '4005556123452',
@@ -173,7 +176,8 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             reviewed: new PuzzleRecordValues(
                 name: 'Puzzle 1',
-                alternativeName: null,
+                nameLanguage: null,
+                alternativeNames: new PuzzleNames(),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 piecesCount: 500,
                 ean: null,
@@ -202,7 +206,8 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             reviewed: new PuzzleRecordValues(
                 name: 'New Image Puzzle',
-                alternativeName: null,
+                nameLanguage: null,
+                alternativeNames: new PuzzleNames(),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 piecesCount: 500,
                 ean: '4005556123456',
@@ -235,7 +240,8 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 reviewed: new PuzzleRecordValues(
                     name: 'Must Not Be Saved',
-                    alternativeName: null,
+                    nameLanguage: null,
+                    alternativeNames: new PuzzleNames(),
                     manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                     piecesCount: 500,
                     ean: null,

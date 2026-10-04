@@ -10,20 +10,22 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Value\PuzzleImageChoice;
-use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
+use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
- * Saves a puzzle's catalogue record - name, other names, brand, pieces, codes and image. The one place
- * that does it for a change request approval (ApprovePuzzleChangeRequestHandler) and a moderator's direct
- * edit (EditPuzzleHandler).
+ * Saves a puzzle's catalogue record - every name with its language, brand, pieces, codes and image. The one
+ * place that does it for a change request approval (ApprovePuzzleChangeRequestHandler), the approval of a new
+ * puzzle (ApprovePuzzleHandler) and a moderator's direct edit (EditPuzzleHandler).
  *
- * Every value is checked before the first change: a handler that throws after mutating still has its
- * changes flushed by a later flush in the same request. The caller records the returned before/after
- * snapshots in the decision log - they are what the puzzle's history shows.
+ * First of all the record version the form was loaded with is compared with the puzzle (PuzzleRecordVersion) -
+ * a save over somebody else's newer one is refused. Every value is checked before the first change: a handler
+ * that throws after mutating still has its changes flushed by a later flush in the same request. The caller
+ * records the returned before/after snapshots in the decision log - they are what the puzzle's history shows.
  */
 readonly final class PuzzleRecordUpdater
 {
@@ -41,6 +43,7 @@ readonly final class PuzzleRecordUpdater
      *
      * @return array{before: array<string, null|string|int|list<array{name: string, language: null|string}>>, after: array<string, null|string|int|list<array{name: string, language: null|string}>>}
      *
+     * @throws PuzzleChangedMeanwhile The record changed after the form was loaded
      * @throws InvalidPuzzleValues
      * @throws ManufacturerNotFound
      */
@@ -50,6 +53,8 @@ readonly final class PuzzleRecordUpdater
         null|string $proposedImage = null,
         null|float $proposedImageRatio = null,
     ): array {
+        PuzzleRecordVersion::assertUnchanged($puzzle, $values->recordVersion);
+
         $name = trim($values->name);
 
         if ($name === '' || $values->piecesCount <= 0) {
@@ -68,24 +73,15 @@ readonly final class PuzzleRecordUpdater
             throw new InvalidPuzzleValues('Choose the image to upload.');
         }
 
-        // The forms' single "Alternative name" field edits one name of the list (until the names editor comes)
-        $alternativeNames = $puzzle->alternativeNames()->withLegacyAlternativeName($values->alternativeName);
-
-        if (mb_strlen(PuzzleNames::cleanName($values->alternativeName ?? '')) > PuzzleNames::MAX_NAME_LENGTH) {
-            throw new InvalidPuzzleValues(sprintf('A name can be at most %d characters long.', PuzzleNames::MAX_NAME_LENGTH));
-        }
-
         // Only a growing list can break the cap - a merge may have left more names, editing or removing one must work
-        if ($alternativeNames->count() > $puzzle->alternativeNames()->count()) {
-            $alternativeNames->assertFormLimits();
-        }
+        $values->alternativeNames->assertFormLimits(loadedCount: $puzzle->alternativeNames()->count());
 
         // --- validated, now apply ---
 
         $before = self::snapshot($puzzle);
 
         // First of the changes: it refuses a name too long before anything is changed
-        $puzzle->changeNames($name, $puzzle->nameLanguage, $alternativeNames, $this->clock->now());
+        $puzzle->changeNames($name, $values->nameLanguage, $values->alternativeNames, $this->clock->now());
         $puzzle->manufacturer = $manufacturer;
         $puzzle->piecesCount = $values->piecesCount;
         $puzzle->updateProductIdentifiers(

@@ -30,8 +30,10 @@ A newly added puzzle almost always carries somebody's solving time, so it can ne
    `ApprovePuzzleHandler` (the file gets the SEO name of the *final* brand). EAN and brand code may hold several
    comma-separated codes - never reduce such a list.
 2. **Merge** into the puzzle it duplicates. "Is it already in the catalogue?" shows what a search found - **similar
-   puzzles, not duplicates**: any shared EAN, or the same piece count and a similar name (trigram,
-   `custom_puzzle_name_trgm`, ~30 ms on production data). One title is printed by many brands (prod 2026-10-04:
+   puzzles, not duplicates**: any shared EAN (the `e:` lines of the search keys, leading zeros aside -
+   `custom_puzzle_search_codes_trgm`), or the same piece count and a similar name - every name of the new puzzle
+   against every name of the other, main titles and other names alike (trigram; the main titles through
+   `custom_puzzle_name_trgm`), ~20 ms on production data. One title is printed by many brands (prod 2026-10-04:
    Pintoo's "Tropical Paradise" 500 matched five other brands' "Tropical Paradise" 500), so each candidate says how
    likely it is (`PuzzleDuplicateCandidate::likelihood()`): shared EAN = very likely, same brand (or a brand the new
    brand probably duplicates, `brandSuggestions()`) = compare the box, another brand = usually a different puzzle -

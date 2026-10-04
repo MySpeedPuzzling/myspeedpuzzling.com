@@ -164,6 +164,20 @@ final class EventOffersPickerControllerTest extends WebTestCase
         self::assertSame(self::FAIR_PICKER, $crawler->filter('form[method="post"]')->attr('action'));
     }
 
+    public function testSearchReadsEveryNameOfThePuzzleFolded(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', self::FAIR_PICKER);
+
+        // SELLSWAP_05 is PUZZLE_1000_02 - "Puzzle 7", Czech "Kouzelná zahrada", German "Zauberhafter Garten"
+        self::assertSame(
+            "\npuzzle 7\nkouzelna zahrada\nzauberhafter garten\ntrefl\n1000\n",
+            $this->row($crawler, SellSwapListItemFixture::SELLSWAP_05)->attr('data-search'),
+        );
+    }
+
     public function testJoinedModeConfirmsTheJoinAndOffersSkip(): void
     {
         $browser = self::createClient();

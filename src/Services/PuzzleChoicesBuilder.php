@@ -7,17 +7,33 @@ namespace SpeedPuzzling\Web\Services;
 use SpeedPuzzling\Web\Results\AutocompletePuzzle;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
+use SpeedPuzzling\Web\Value\PuzzleName;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Options of the puzzle picker (add-time, edit-time, add-to-round and report-duplicate forms). Tom Select shows
  * `text` as HTML (`options_as_html`) and names and codes are player-typed: every value is escaped where the HTML is
  * built, like BrandChoicesBuilder does (a Twig render per option cost ~25 ms on Ravensburger's 6,000 puzzles).
- * Tom Select searches `search` (the form types point `searchField` at it): only what identifies the puzzle, plain
- * text - no markup, no labels, no locale.
+ * Tom Select searches the plain-text fields of SEARCH_FIELDS - what identifies the puzzle, no markup, no labels,
+ * no locale.
  */
 readonly final class PuzzleChoicesBuilder
 {
+    /**
+     * Tom Select's `searchField` for these options, weighted. Its scoring (@orchidjs/sifter) adds up, per field,
+     * the typed word's share of the field's length (+0.5 when the field starts with it) times the weight - one long
+     * field of every name would push a puzzle with five names below a puzzle with one for the very same title. So the
+     * main title is a field of its own and weighs most, the other names come next: a typed main title ranks every
+     * puzzle of that title alike, however many names it has, and an exact other name beats a longer main title
+     * that merely starts with it. Codes and the piece count weigh least.
+     */
+    public const array SEARCH_FIELDS = [
+        ['field' => 'name', 'weight' => 3],
+        ['field' => 'names', 'weight' => 2],
+        ['field' => 'codes', 'weight' => 1],
+        ['field' => 'piecesCount', 'weight' => 1],
+    ];
+
     public function __construct(
         private ImageThumbnailTwigExtension $imageThumbnail,
         private TranslatorInterface $translator,
@@ -27,7 +43,7 @@ readonly final class PuzzleChoicesBuilder
     /**
      * @param iterable<AutocompletePuzzle|PuzzleOverview> $puzzles
      *
-     * @return list<array{value: string, text: string, search: string, piecesCount: int}>
+     * @return list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int}>
      */
     public function build(iterable $puzzles, string $locale): array
     {
@@ -38,13 +54,6 @@ readonly final class PuzzleChoicesBuilder
 
         foreach ($puzzles as $puzzle) {
             $alternativeName = $puzzle->puzzleAlternativeNames->legacyAlternativeName();
-            $search = implode(' ', array_filter([
-                $puzzle->puzzleName,
-                $alternativeName,
-                $puzzle->puzzleIdentificationNumber,
-                $puzzle->puzzleEan,
-                (string) $puzzle->piecesCount,
-            ], static fn (null|string $value): bool => $value !== null && $value !== ''));
 
             $image = self::escape($puzzle->puzzleImage !== null
                 ? $this->imageThumbnail->thumbnailUrl($puzzle->puzzleImage, 'puzzle_small')
@@ -78,7 +87,15 @@ HTML;
             $options[] = [
                 'value' => $puzzle->puzzleId,
                 'text' => $text,
-                'search' => $search,
+                'name' => $puzzle->puzzleName,
+                'names' => implode("\n", array_map(
+                    static fn (PuzzleName $name): string => $name->name,
+                    $puzzle->puzzleAlternativeNames->all(),
+                )),
+                'codes' => implode("\n", array_filter(
+                    [$puzzle->puzzleEan, $puzzle->puzzleIdentificationNumber],
+                    static fn (null|string $code): bool => $code !== null && $code !== '',
+                )),
                 'piecesCount' => $puzzle->piecesCount,
             ];
         }

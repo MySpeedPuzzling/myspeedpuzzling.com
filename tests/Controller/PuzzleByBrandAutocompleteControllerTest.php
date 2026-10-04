@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -28,12 +29,36 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
         self::assertNotEmpty($data);
 
         foreach ($data as $option) {
-            // The form types point Tom Select's `searchField` at this - `text` is markup and must never be searched
-            self::assertNotSame('', $option['search']);
-            self::assertStringNotContainsStringIgnoringCase('pieces', $option['search']);
-            self::assertStringNotContainsString('<', $option['search']);
-            self::assertStringContainsString((string) $option['piecesCount'], $option['search']);
+            // The form types point Tom Select's `searchField` at these - `text` is markup and must never be searched
+            foreach (PuzzleChoicesBuilder::SEARCH_FIELDS as $searchField) {
+                self::assertArrayHasKey($searchField['field'], $option);
+            }
+
+            self::assertNotSame('', $option['name']);
+
+            foreach ([$option['name'], $option['names'], $option['codes']] as $searchable) {
+                self::assertStringNotContainsStringIgnoringCase('pieces', $searchable);
+                self::assertStringNotContainsString('<', $searchable);
+            }
         }
+    }
+
+    public function testEveryNameAndEveryCodeIsSearchable(): void
+    {
+        $browser = self::createClient();
+
+        // Names of other boxes in their own field, so their number never weighs on a typed main title
+        $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_TREFL);
+        $option = self::option($browser, PuzzleFixture::PUZZLE_1000_02);
+        self::assertSame('Puzzle 7', $option['name']);
+        self::assertSame(PuzzleFixture::NAME_CS_MAGIC_GARDEN . "\n" . PuzzleFixture::NAME_DE_MAGIC_GARDEN, $option['names']);
+
+        // Both editions' barcodes and brand codes
+        $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER);
+        $option = self::option($browser, PuzzleFixture::PUZZLE_1000_05);
+        self::assertSame(PuzzleFixture::EANS_PUZZLE_1000_05 . "\n" . PuzzleFixture::BRAND_CODES_PUZZLE_1000_05, $option['codes']);
+        self::assertSame('', $option['names']);
+        self::assertSame(1000, $option['piecesCount']);
     }
 
     public function testPlayerTypedNamesAndCodesAreEscaped(): void
@@ -65,8 +90,10 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
                 self::assertStringNotContainsString($markup, $option['text']);
             }
 
-            // Plain text: Tom Select only searches it, never renders it
-            self::assertSame('<img src=x onerror=alert(1)> <b onmouseover=alert(2)>Kočky</b> <script>alert(3)</script> "><svg onload=alert(4)> 500', $option['search']);
+            // Plain text: Tom Select only searches these, never renders them
+            self::assertSame('<img src=x onerror=alert(1)>', $option['name']);
+            self::assertSame('<b onmouseover=alert(2)>Kočky</b>', $option['names']);
+            self::assertSame("\"><svg onload=alert(4)>\n<script>alert(3)</script>", $option['codes']);
         }
 
         self::assertStringContainsString('&lt;b onmouseover=alert(2)&gt;Kočky&lt;/b&gt; <small>(&lt;img src=x onerror=alert(1)&gt;)</small>', $option['text']);
@@ -152,18 +179,18 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
     }
 
     /**
-     * @return list<array{value: string, text: string, search: string, piecesCount: int}>
+     * @return list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int}>
      */
     private static function options(KernelBrowser $browser): array
     {
-        /** @var array{results: list<array{value: string, text: string, search: string, piecesCount: int}>} $data */
+        /** @var array{results: list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int}>} $data */
         $data = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
 
         return $data['results'];
     }
 
     /**
-     * @return array{value: string, text: string, search: string, piecesCount: int}
+     * @return array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int}
      */
     private static function option(KernelBrowser $browser, string $puzzleId): array
     {

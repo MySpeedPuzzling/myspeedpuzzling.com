@@ -332,21 +332,6 @@ td.rank {
     }
 }
 
-@media (max-width: 768px) {
-    .input-group.puzzle-filter {
-        display: block;
-        box-shadow: none !important;
-    }
-
-    .input-group.puzzle-filter .form-control,
-    .input-group.puzzle-filter .form-select {
-        display: block;
-        width: 100%;
-        border-radius: 5px !important;
-        margin-top: 5px;
-    }
-}
-
 .icon-with-text {
     position: relative;
     display: inline-block;

@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import TomSelect from 'tom-select';
+import { searchKeyMatcher } from '../search_fold.js';
 
 /**
  * Collection Filter Controller
@@ -12,7 +13,7 @@ import TomSelect from 'tom-select';
  */
 export default class extends Controller {
     static targets = [
-        "item",              // Each filterable collection item
+        "item",              // Each filterable collection item - data-search holds its stored search keys (names + codes)
         "search",            // Text search input
         "manufacturer",      // Manufacturer select dropdown
         "piecesChip",        // Piece-count chips - data-min / data-max (empty = unbounded) fill the inputs below
@@ -153,7 +154,7 @@ export default class extends Controller {
     }
 
     filter() {
-        const searchTerm = this.normalizeString(this.hasSearchTarget ? this.searchTarget.value : '');
+        const matchesSearch = searchKeyMatcher(this.hasSearchTarget ? this.searchTarget.value : '');
         const manufacturer = this.hasManufacturerTarget ? this.manufacturerTarget.value : '';
         const piecesRange = this.getSelectedPiecesRange();
         const difficultyTiers = this.getSelectedDifficultyTiers();
@@ -163,7 +164,7 @@ export default class extends Controller {
         let visibleCount = 0;
 
         this.itemTargets.forEach(item => {
-            const isVisible = this.itemMatchesFilters(item, searchTerm, manufacturer, piecesRange, difficultyTiers, listingType, priceRange);
+            const isVisible = this.itemMatchesFilters(item, matchesSearch, manufacturer, piecesRange, difficultyTiers, listingType, priceRange);
             item.style.display = isVisible ? '' : 'none';
             if (isVisible) visibleCount++;
         });
@@ -172,19 +173,10 @@ export default class extends Controller {
         this.updateNoResultsMessage(visibleCount === 0);
     }
 
-    itemMatchesFilters(item, searchTerm, manufacturer, piecesRange, difficultyTiers, listingType, priceRange) {
-        // Text search - matches name, alternative name, code, or EAN
-        if (searchTerm) {
-            const name = this.normalizeString(item.dataset.puzzleName || '');
-            const altName = this.normalizeString(item.dataset.puzzleAlternativeName || '');
-            const code = this.normalizeString(item.dataset.puzzleCode || '');
-            const ean = this.normalizeString(item.dataset.ean || '');
-
-            const matchesSearch = name.includes(searchTerm) ||
-                                  altName.includes(searchTerm) ||
-                                  code.includes(searchTerm) ||
-                                  ean.includes(searchTerm);
-            if (!matchesSearch) return false;
+    itemMatchesFilters(item, matchesSearch, manufacturer, piecesRange, difficultyTiers, listingType, priceRange) {
+        // Text search - every name of the puzzle, its barcodes and brand codes, folded by the server
+        if (!matchesSearch(item.dataset.search)) {
+            return false;
         }
 
         // Manufacturer filter
@@ -345,10 +337,5 @@ export default class extends Controller {
         }
 
         this.filter();
-    }
-
-    normalizeString(str) {
-        if (!str) return '';
-        return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     }
 }

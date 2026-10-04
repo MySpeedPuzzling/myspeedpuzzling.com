@@ -36,8 +36,8 @@ SELECT
     p.id as puzzle_id,
     p.name as puzzle_name,
     p.alternative_names as puzzle_alternative_names,
-    p.identification_number as puzzle_identification_number,
-    p.ean,
+    p.search_names,
+    p.search_codes,
     p.pieces_count,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS image_ratio,
@@ -55,7 +55,7 @@ WHERE ci.player_id = :playerId
         OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
       )
   )
-GROUP BY p.id, p.name, p.alternative_names, p.identification_number, p.ean, p.pieces_count, m.name
+GROUP BY p.id, p.name, p.alternative_names, p.search_names, p.search_codes, p.pieces_count, m.name
 ORDER BY added_at DESC
 SQL;
 
@@ -68,8 +68,8 @@ SQL;
              *     puzzle_id: string,
              *     puzzle_name: string,
              *     puzzle_alternative_names: string,
-             *     puzzle_identification_number: string|null,
-             *     ean: string|null,
+             *     search_names: null|string,
+             *     search_codes: null|string,
              *     pieces_count: int,
              *     image: string|null,
              *     image_ratio: string|null,
@@ -82,8 +82,8 @@ SQL;
                 puzzleId: $row['puzzle_id'],
                 puzzleName: $row['puzzle_name'],
                 puzzleAlternativeNames: PuzzleNames::fromJson($row['puzzle_alternative_names']),
-                puzzleIdentificationNumber: $row['puzzle_identification_number'],
-                ean: $row['ean'],
+                searchNames: $row['search_names'],
+                searchCodes: $row['search_codes'],
                 piecesCount: $row['pieces_count'],
                 manufacturerName: $row['manufacturer_name'],
                 image: $row['image'],
@@ -127,8 +127,8 @@ SELECT
     p.id as puzzle_id,
     p.name as puzzle_name,
     p.alternative_names as puzzle_alternative_names,
-    p.identification_number as puzzle_identification_number,
-    p.ean,
+    p.search_names,
+    p.search_codes,
     p.pieces_count,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS image_ratio,
@@ -147,7 +147,7 @@ WHERE ci.player_id = :playerId
         OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
       )
   )
-GROUP BY p.id, p.name, p.alternative_names, p.identification_number, p.ean, p.pieces_count, m.name
+GROUP BY p.id, p.name, p.alternative_names, p.search_names, p.search_codes, p.pieces_count, m.name
 SQL;
 
         $data = $this->database
@@ -162,8 +162,8 @@ SQL;
          *     puzzle_id: string,
          *     puzzle_name: string,
          *     puzzle_alternative_names: string,
-         *     puzzle_identification_number: string|null,
-         *     ean: string|null,
+         *     search_names: null|string,
+         *     search_codes: null|string,
          *     pieces_count: int,
          *     image: string|null,
          *     image_ratio: string|null,
@@ -176,8 +176,8 @@ SQL;
             puzzleId: $data['puzzle_id'],
             puzzleName: $data['puzzle_name'],
             puzzleAlternativeNames: PuzzleNames::fromJson($data['puzzle_alternative_names']),
-            puzzleIdentificationNumber: $data['puzzle_identification_number'],
-            ean: $data['ean'],
+            searchNames: $data['search_names'],
+            searchCodes: $data['search_codes'],
             piecesCount: $data['pieces_count'],
             manufacturerName: $data['manufacturer_name'],
             image: $data['image'],

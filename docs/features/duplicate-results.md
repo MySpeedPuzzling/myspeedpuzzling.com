@@ -570,8 +570,9 @@ Ships right after the backfill, **before** Layers 2–3 reach players, so the st
   again). Puzzle FKs cascade, so an approved merge removes the signal.
 - **Scored** (2026-10-02, after the first look at the 458 pairs on a copy of production: the list was led by multi-puzzle
   boxes, advent calendars and events - one time logged on every puzzle). The candidate statement also returns both
-  records' names, EANs, catalogue numbers, the trigram similarity of the unaccented lower-case names/alternative names
-  (or one name inside the other, ≥ 5 characters), brand, approval, results (`puzzle_statistics`), when they were added
+  records' names, EANs, catalogue numbers, the best trigram similarity of the unaccented lower-case names - each name of
+  one record (main title and every other name) against each of the other - (or one name inside the other,
+  ≥ 5 characters), brand, approval, results (`puzzle_statistics`), when they were added
   - for the found pairs only, the statement stays ~1 s. `DuplicatePuzzleSignalScoring` (pure) sums points: same EAN
   +50 (comma lists compared as tokens, no leading zeros), same catalogue number or one record's number inside the
   other's EAN +40, similar name 50 × similarity from 0.5 (name inside the other +30), same brand +10, not approved +15,

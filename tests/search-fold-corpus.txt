@@ -1,0 +1,184 @@
+# Texts tests/SearchFoldParityTest.php folds with SearchText::fold() (PHP) and assets/search_fold.js (node) - both must
+# give the same result for every line. One text per line, empty lines and lines starting with "# " are skipped,
+# \u{XXXX} stands for the character (invisible ones, combining marks, whitespace that a line cannot hold).
+
+# Fixtures: puzzle names, other names, brands, codes
+Puzzle 1
+Puzzle 2
+Puzzle 3
+Puzzle 4
+Puzzle 5
+Puzzle 6
+Puzzle 7
+Puzzle 8
+Puzzle 9
+Puzzle 10
+Puzzle 11
+Puzzle 12
+Puzzle 13
+Puzzle 14
+Puzzle 15
+Puzzle 16
+Puzzle 17
+Puzzle 18
+Puzzle 19
+Puzzle 20
+Puzzle Hidden Image
+Kouzelná zahrada
+Kouzelna zahrada
+Zauberhafter Garten
+魔法の庭
+Ravensburger
+Trefl
+Unknown Brand
+RB-500-001
+RB-1000-001
+17481, 19748-2
+4005556174812, 4005556197484
+4005556123456
+04005556147090
+4005556-147090
+X002ROECA7
+
+# Names from the catalogue
+Children’s Fairyland
+Elétrico N°28
+Floral Shadows and Floating Light 花影浮光
+Das Löwenpaar
+Würzige Weltkarte
+Kůň ve výběhu
+Harry Potter and the Sorcerer‘s Stone
+Little Café
+Por siempre jamás-Ariel
+Japan rêverie
+O Vale dos Balões
+Frühstück bei Tiffany
+Snapshots from Vällingby
+心花朵朵開
+Strassentüftel
+Faîtes des crêpes
+Disney Pix Collection – Pixar
+Leão
+Autumn Date 赴秋約
+Mummi høstdag
+Impossible: Třpytivé Vánoce (Jolly Christmas)
+Fødselsdag Hakkebaklesiogen
+Öschinensee, Schweiz
+Bassin aux Nymphéas
+ガウディの庭　グエル公園 Park Guell
+Constelações
+I 🖤 Stickers
+Harry Potter: Mladý kouzelník
+清鄒一桂橅宋苑畫榴下雄雞拼圖
+Moje útočiště č.4: Šicí koutek
+Pláž McCrae, Autrálie
+
+# Czech, Slovak
+Příliš žluťoučký kůň úpěl ďábelské ódy
+PŘÍLIŠ ŽLUŤOUČKÝ KŮŇ ÚPĚL ĎÁBELSKÉ ÓDY
+Ťuk, ťuk - ŘEŘICHA
+Ľudová pieseň, Ĺ ŕ ô ä
+
+# German
+Straße
+GROSSE STRAẞE
+Äpfel, Öl, Übel
+
+# Polish
+Łódź
+Zażółć gęślą jaźń
+ŁĄKA ŚWIĘTEGO ŹDŹBŁA
+
+# French
+Œuvre d'art, cœur
+Ça, Noël, à l'été, Ægée
+L’Île aux Oiseaux
+
+# Spanish, Portuguese, Catalan
+Mañana, ¿Qué pasó? ¡Olé!
+Ação e coração
+Col·lecció
+
+# Nordic, Icelandic
+Ørsted
+Ærø
+Blåbærsyltetøy
+Þórshöfn, Íslenska, Ðe
+Smörgåsbord
+
+# Turkish
+İstanbul
+ISPARTA ılık
+Çiğdem ŞİŞLİ
+
+# Hungarian, Romanian, Baltic, Vietnamese
+Őrség, Űrhajó
+Ştefan, Țară, Şcoală
+Ķēķis, Ļaudis, Ņ
+Đà Nẵng, Phở
+Ħamrun, Ġgantija
+
+# Full-width and half-width forms
+ＡＢＣ　１２３
+％＿＼４
+Ｐｕｚｚｌｅ　Ｇａｒｄｅｎ
+ｶﾞｳﾃﾞｨ ﾊﾟｽﾞﾙ
+ﾟﾞ
+
+# Ligatures, digraphs, compatibility letters
+ﬁsh ﬂower ﬀ ﬃ ﬄ ﬅ ﬆ
+Ǆ ǅ ǆ Ǉ ǈ ǉ Ǌ ǋ ǌ
+Ĳssel ĳ
+ℌ ℏ ℇ 𝚤 𝚥
+𝐀𝐁𝐂 𝒳𝒴𝒵
+Ⅻ ⅻ ①②③ ⑴
+㎏ ㎡ ℃ ™ ℡
+K Å Ω
+
+# Japanese, Chinese, Korean
+ジグソーパズル
+ジグソーパズル　1000ピース
+パズル（テスト）
+직소 퍼즐
+
+# Cyrillic, Greek, Arabic, Hebrew
+Пазл ЁЖИК
+Україна Ї Є
+Србија Ђ Ћ
+ΟΔΥΣΣΕΥΣ
+Σίσυφος ΣΑΣ ΣΣ
+Ἀθῆναι
+أحجية الصور
+פאזל
+
+# Punctuation, numbers, symbols
+“Quoted” «guillemets» „Czech“ ‚single‘
+A/B; C|D
+50% off_now\path
+10 000 pieces
+1,000-piece puzzle
+N°28 №5
+Rock & Roll + more = fun!
+Tom's 'puzzle' "time"
+— – ‐ ‒ ― −
+
+# Emoji
+👨‍👩‍👧 family
+🇨🇿 flag
+❤️ heart
+🧩 1000
+
+# Whitespace, invisible and combining characters
+\u{0020} leading and trailing \u{0020}
+tab	separated	words
+non\u{00A0}breaking\u{2003}em\u{3000}ideographic
+zero\u{200B}width\u{200C}non\u{200D}joiner
+soft\u{00AD}hyphen
+right\u{200F}to\u{200E}left
+byte\u{FEFF}order
+next\u{0085}line
+line\u{2028}separator\u{2029}paragraph
+e\u{0301}clair
+q\u{0303} n\u{0308} ŋ\u{0308}
+A\u{030A}ngstro\u{0308}m
+\u{0000}null\u{0007}bell\u{001B}escape

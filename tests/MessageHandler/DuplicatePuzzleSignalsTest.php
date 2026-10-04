@@ -208,6 +208,21 @@ final class DuplicatePuzzleSignalsTest extends KernelTestCase
         self::assertLessThan($summary->pairs, $summary->strongPairs);
     }
 
+    public function testEveryNameOfBothRecordsIsCompared(): void
+    {
+        // The same box entered twice: in English, and under its Spanish title that the first record already knows
+        $this->changePuzzle(PuzzleFixture::PUZZLE_1500_01, 'Soft Cans', otherNames: ['Lata sobre lata', 'Weiche Dosen']);
+        $this->changePuzzle(PuzzleFixture::PUZZLE_1500_02, 'Lata sobre lata');
+        $this->add(PuzzleFixture::PUZZLE_1500_01, '02:22:22');
+        $this->add(PuzzleFixture::PUZZLE_1500_02, '02:22:22');
+
+        $this->detect();
+
+        $otherName = $this->scoreOf(PuzzleFixture::PUZZLE_1500_01);
+        self::assertContains('similar_name', $otherName['reasons']);
+        self::assertEqualsWithDelta(1.0, $otherName['name_similarity'], 0.001);
+    }
+
     public function testOpenSignalsAreScoredAgainDecidedOnesKeepTheirScore(): void
     {
         $this->changePuzzle(PuzzleFixture::PUZZLE_1500_01, 'Formule 1 Monaco');
@@ -233,11 +248,19 @@ final class DuplicatePuzzleSignalsTest extends KernelTestCase
         self::assertSame($dismissed, $this->scoreOf(PuzzleFixture::PUZZLE_1000_04));
     }
 
-    private function changePuzzle(string $puzzleId, string $name, null|string $ean = null): void
+    /**
+     * @param list<string> $otherNames
+     */
+    private function changePuzzle(string $puzzleId, string $name, null|string $ean = null, array $otherNames = []): void
     {
         $this->database->executeStatement(
-            'UPDATE puzzle SET name = :name, alternative_name = NULL, alternative_names = \'[]\', ean = COALESCE(:ean, ean) WHERE id = :id',
-            ['name' => $name, 'ean' => $ean, 'id' => $puzzleId],
+            'UPDATE puzzle SET name = :name, alternative_names = :otherNames, ean = COALESCE(:ean, ean) WHERE id = :id',
+            [
+                'name' => $name,
+                'otherNames' => json_encode(array_map(static fn (string $otherName): array => ['name' => $otherName, 'language' => null], $otherNames), JSON_THROW_ON_ERROR),
+                'ean' => $ean,
+                'id' => $puzzleId,
+            ],
         );
     }
 

@@ -1,15 +1,6 @@
 <div
     id="puzzle-list-item-{{ puzzle.puzzleId }}"
     class="position-relative col-12 col-lg-6"
-    data-puzzle-filter-target="puzzleItem"
-    data-pieces-count="{{ puzzle.piecesCount }}"
-    data-puzzle-name="{{ puzzle.puzzleName }}"
-    data-puzzle-code="{{ puzzle.puzzleIdentificationNumber }}"
-    data-puzzle-alternative-name="{{ puzzle.puzzleAlternativeNames.legacyAlternativeName() }}"
-    data-manufacturer="{{ puzzle.manufacturerName }}"
-    data-available="{{ puzzle.isAvailable ? 1 : 0 }}"
-    data-has-time="{{ puzzle.solvedTimes > 0 ? 1 : 0 }}"
-    data-tags="{{ (tags[puzzle.puzzleId] ?? [])|json_encode }}"
 >
     <div class="card card-body shadow p-2 puzzle-list-item">
         <div class="d-flex">

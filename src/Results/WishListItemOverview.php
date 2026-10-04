@@ -14,8 +14,9 @@ readonly final class WishListItemOverview
         public string $puzzleId,
         public string $puzzleName,
         public PuzzleNames $puzzleAlternativeNames,
-        public null|string $puzzleIdentificationNumber,
-        public null|string $ean,
+        // The stored search keys - every name, every code, folded - that the list's search filter reads
+        public null|string $searchNames,
+        public null|string $searchCodes,
         public int $piecesCount,
         public null|string $manufacturerName,
         public null|string $image,

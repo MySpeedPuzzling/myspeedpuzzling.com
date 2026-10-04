@@ -15,7 +15,9 @@ use SpeedPuzzling\Web\Value\DifficultyFilter;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\PiecesRange;
 use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
+use SpeedPuzzling\Web\Value\PuzzleSearchKeys;
 use SpeedPuzzling\Web\Value\Puzzler;
+use SpeedPuzzling\Web\Value\SearchText;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -288,8 +290,11 @@ final class PlayerSolvedPuzzles
     {
         $isMember = $this->hasMembership();
         $piecesRange = PiecesRange::parse($this->piecesCountRange);
+        $search = SearchText::fold($this->searchQuery ?? '');
+        // A puzzle comes back once per result - its names are folded once
+        $searchableTexts = [];
 
-        return array_filter($puzzles, function (SolvedPuzzle $puzzle) use ($isMember, $piecesRange): bool {
+        return array_filter($puzzles, function (SolvedPuzzle $puzzle) use ($isMember, $piecesRange, $search, &$searchableTexts): bool {
             // FREE FILTERS - available to everyone
 
             // Manufacturer filter
@@ -307,8 +312,8 @@ final class PlayerSolvedPuzzles
                 return false;
             }
 
-            // Search query filter (name, code, alternative name)
-            if ($this->searchQuery !== null && $this->searchQuery !== '' && $this->matchesSearch($puzzle) === false) {
+            // Search: every name of the puzzle and its brand code, folded like what was typed
+            if ($search !== '' && str_contains($searchableTexts[$puzzle->puzzleId] ??= self::searchableText($puzzle), $search) === false) {
                 return false;
             }
 
@@ -347,33 +352,14 @@ final class PlayerSolvedPuzzles
         return $this->difficultyTiers[$puzzle->puzzleId]->value ?? PuzzleSearchCriteria::UNRATED_DIFFICULTY;
     }
 
-    private function matchesSearch(SolvedPuzzle $puzzle): bool
+    /**
+     * One line per name (main title first) and the brand code as printed, each folded (SearchText) - a typed text
+     * never matches across two of them.
+     */
+    private static function searchableText(SolvedPuzzle $puzzle): string
     {
-        if ($this->searchQuery === null || $this->searchQuery === '') {
-            return true;
-        }
-
-        $normalizedQuery = $this->normalizeString($this->searchQuery);
-        $searchFields = [
-            $puzzle->puzzleName,
-            $puzzle->puzzleAlternativeNames->legacyAlternativeName(),
-            $puzzle->puzzleIdentificationNumber,
-        ];
-
-        foreach ($searchFields as $field) {
-            if ($field !== null && str_contains($this->normalizeString($field), $normalizedQuery)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function normalizeString(string $string): string
-    {
-        $normalized = transliterator_transliterate('NFD; [:Nonspacing Mark:] Remove; NFC;', $string);
-
-        return mb_strtolower($normalized !== false ? $normalized : $string);
+        return PuzzleSearchKeys::names($puzzle->puzzleName, $puzzle->puzzleAlternativeNames)
+            . SearchText::fold($puzzle->puzzleIdentificationNumber ?? '') . "\n";
     }
 
     private function matchesDateRange(DateTimeImmutable $finishedAt): bool

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
+use SpeedPuzzling\Web\Value\SearchText;
 
 /**
  * One row of the "What will you bring?" picker (GetEventOfferChoices): a published listing of the seller, whether it is
@@ -20,6 +21,8 @@ readonly final class EventOfferChoice
         public string $itemId,
         public string $puzzleId,
         public string $puzzleName,
+        // The puzzle's stored search key: every name, folded
+        public null|string $searchNames,
         public int $piecesCount,
         public null|string $manufacturerName,
         public null|string $image,
@@ -31,5 +34,14 @@ readonly final class EventOfferChoice
         public bool $bringing,
         public array $alsoAt,
     ) {
+    }
+
+    /**
+     * What the picker's search reads (event_offers_picker_controller.js): every name of the puzzle, its brand and its
+     * piece count, one per line, folded like the typed words (SearchText).
+     */
+    public function searchText(): string
+    {
+        return ($this->searchNames ?? "\n") . SearchText::fold($this->manufacturerName ?? '') . "\n" . $this->piecesCount . "\n";
     }
 }

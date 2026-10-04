@@ -141,7 +141,7 @@ final readonly class PuzzleSearchResponseProvider implements ProviderInterface
     }
 
     /**
-     * Barcode lookup: exact match with zero tolerance, no count query (the
+     * Barcode lookup (SearchPuzzle::allByEan(): the code within the EAN list, leading zeros tolerated), no count query (the
      * handful of matches is paginated in memory, the response shape stays the same).
      */
     private function byEan(string $ean, int $page, int $limit, null|Request $request): PuzzleListResponse

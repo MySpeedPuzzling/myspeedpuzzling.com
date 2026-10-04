@@ -51,12 +51,12 @@ export default class extends Controller {
 
         toastElement.innerHTML = `
             <div class="d-flex">
-                <div class="toast-body">
-                    ${message}
-                </div>
+                <div class="toast-body"></div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
         `;
+        // Plain text: a message can carry a puzzle name a player typed (multiscan's "already in the tray")
+        toastElement.querySelector('.toast-body').textContent = message;
 
         return toastElement;
     }

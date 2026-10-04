@@ -6,7 +6,8 @@ storing, searching and showing all of them. The step-by-step build is in [implem
 The interactive proposal with demos and the full review lives at https://claude.ai/artifact/2Jw17VQ8xrEPYa6cZ9mdNG
 (private to Jan).
 
-Status: **planned, nothing built** (decisions taken 2026-10-04).
+Status: **in delivery** (decisions taken 2026-10-04; phase 0 shipped 2026-10-04). Decisions taken during delivery are
+listed at the end under "Delivery decisions".
 
 ## Decisions (Jan, 2026-10-04)
 
@@ -184,3 +185,18 @@ keys empty on purpose - a hidden placeholder must not be searchable; the reveal 
 - **JSON or array columns for codes:** would change every read query for no search gain.
 - **Editions** (pairing a name, EAN and brand code per box): players rarely know the pairing and nothing needs it yet;
   the JSON shape leaves room for an `edition` key.
+
+## Delivery decisions
+
+Taken by the delivering agent where the plan left room (2026-10-04 onwards).
+
+- **Phase 0 - picker option HTML is escaped in PHP** (`PuzzleChoicesBuilder`, `htmlspecialchars` like
+  `BrandChoicesBuilder`), not by a Twig partial per option: one render per option cost ~25 ms on Ravensburger's 6,000
+  puzzles. The picker's Tom Select renderer escapes every option that does not come from the server (typed new
+  brands/puzzles, also when a refused form comes back). Organisers adding puzzles to a round get their own
+  competition's secret puzzles (`?competition=`, `COMPETITION_EDIT`); nobody else does. Code matching: a part of a
+  code only from 5 letters/digits, shorter terms match a whole code only (`PuzzleCodeSearch`).
+- **Phase 0 - two stored XSS sinks outside the plan fixed with it:** stopwatch milestone labels (player names) and the
+  toast body (multiscan puts a puzzle name into it) are rendered as text.
+- **Phase 1b - the puzzle query object is `PuzzleSearchQuery`** (`SearchQuery` already exists for the players search).
+

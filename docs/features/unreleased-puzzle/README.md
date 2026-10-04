@@ -74,7 +74,7 @@ Every query that selects a puzzle image was updated. The full list:
 - `GetLastSolvedPuzzle.php` (3 methods)
 
 **Tier 2 (consistency):**
-- `GetPuzzlesOverview.php`, `GetPuzzleTracking.php`
+- `GetPuzzlesOverview.php` (deleted 2026-10, it had no reader left), `GetPuzzleTracking.php`
 - `GetLentPuzzles.php`, `GetBorrowedPuzzles.php`
 - `GetWishListItems.php`, `GetUnsolvedPuzzles.php`
 - `GetSoldSwappedHistory.php`, `GetConversations.php`

@@ -1,5 +1,10 @@
 import { Controller } from '@hotwired/stimulus';
 
+// Milestone labels are player names: whatever a player typed is escaped before it goes into innerHTML
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[char]));
+
 export default class extends Controller {
     static targets = [
         'hours', 'minutes', 'seconds',
@@ -360,12 +365,12 @@ export default class extends Controller {
         const timeStr = this._formatMilestoneTime(milestone.timeSeconds);
         const starIcon = milestone.type === 'favorite' ? '<i class="ci-star-filled text-warning me-1"></i>' : '';
         const rankStr = milestone.rank ? `<span class="stopwatch-milestone-rank">#${milestone.rank}</span> ` : '';
-        this.milestoneLabelTarget.innerHTML = `${starIcon}${rankStr}${milestone.label} <span class="stopwatch-milestone-time">${timeStr}</span>`;
+        this.milestoneLabelTarget.innerHTML = `${starIcon}${rankStr}${escapeHtml(milestone.label)} <span class="stopwatch-milestone-time">${timeStr}</span>`;
         this.milestoneProgressTarget.style.width = `${progress}%`;
 
         if (this.hasMilestoneAvatarTarget) {
             if (milestone.avatar) {
-                this.milestoneAvatarTarget.innerHTML = `<img src="${milestone.avatar}" alt="" class="rounded-circle" style="width: 28px; height: 28px; object-fit: cover;">`;
+                this.milestoneAvatarTarget.innerHTML = `<img src="${escapeHtml(milestone.avatar)}" alt="" class="rounded-circle" style="width: 28px; height: 28px; object-fit: cover;">`;
                 this.milestoneAvatarTarget.classList.remove('d-none');
             } else {
                 this.milestoneAvatarTarget.classList.add('d-none');

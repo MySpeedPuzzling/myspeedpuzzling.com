@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -104,6 +105,33 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
         self::assertContains(PuzzleFixture::PUZZLE_500_02, array_column(self::options($browser), 'value'));
 
         $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER . '&competition=' . CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024);
+        self::assertNotContains(PuzzleFixture::PUZZLE_500_02, array_column(self::options($browser), 'value'));
+    }
+
+    public function testMaintainerWhoIsNoAdminGetsTheSecretPuzzlesOfTheirCompetition(): void
+    {
+        $browser = self::createClient();
+        self::hide(PuzzleFixture::PUZZLE_500_02);
+
+        // PLAYER_REGULAR maintains COMPETITION_UNAPPROVED - put the secret puzzle into a round of it
+        $connection = self::getContainer()->get(Connection::class);
+        $roundId = Uuid::uuid7()->toString();
+        $connection->executeStatement(
+            "INSERT INTO competition_round (id, name, minutes_limit, starts_at, competition_id) VALUES (:id, 'Final', 60, '2999-01-01 10:00:00', :competition)",
+            ['id' => $roundId, 'competition' => CompetitionFixture::COMPETITION_UNAPPROVED],
+        );
+        $connection->executeStatement(
+            'INSERT INTO competition_round_puzzle (id, round_id, puzzle_id) VALUES (:id, :round, :puzzle)',
+            ['id' => Uuid::uuid7()->toString(), 'round' => $roundId, 'puzzle' => PuzzleFixture::PUZZLE_500_02],
+        );
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER . '&competition=' . CompetitionFixture::COMPETITION_UNAPPROVED);
+        self::assertContains(PuzzleFixture::PUZZLE_500_02, array_column(self::options($browser), 'value'));
+
+        // Another player naming the same competition gets nothing secret
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+        $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER . '&competition=' . CompetitionFixture::COMPETITION_UNAPPROVED);
         self::assertNotContains(PuzzleFixture::PUZZLE_500_02, array_column(self::options($browser), 'value'));
     }
 

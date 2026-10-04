@@ -6,6 +6,11 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => 
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[char]));
 
+// Options built by the server (BrandChoicesBuilder, PuzzleChoicesBuilder) or from server data carry `name` (brands)
+// or `search` (puzzles) and an HTML `text` escaped where it was built. Any other option is text a player typed - a
+// new brand or puzzle, also when a refused form comes back with it - and is escaped here.
+const renderOption = (trustedKey) => (item, escape) => `<div>${typeof item[trustedKey] === 'string' ? item.text : escape(item.text ?? item.value ?? '')}</div>`;
+
 export default class extends Controller {
     static targets = ['brand', 'puzzle', 'newPuzzle', 'scannerModal', 'scannerMessage', 'eanInput', 'eanClear', 'eanErrors', 'hideOptions'];
 
@@ -73,6 +78,9 @@ export default class extends Controller {
     }
 
     _onBrandConnect(event) {
+        event.detail.options.render.option = renderOption('name');
+        event.detail.options.render.item = renderOption('name');
+
         event.detail.options.onChange = (value) => {
             this.onBrandValueChanged(value);
         };
@@ -129,12 +137,15 @@ export default class extends Controller {
 
             return {
                 value: input,
-                text: escapeHtml(input),
+                text: input,
             };
         };
     }
 
     _onPuzzleConnect(event) {
+        event.detail.options.render.option = renderOption('search');
+        event.detail.options.render.item = renderOption('search');
+
         const addNewPuzzleMessage = this.addNewPuzzleMessageValue || 'Add new puzzle:';
         event.detail.options.render.option_create = function(data, escape) {
             return '<div class="create py-2"><i class="ci-add small"></i> ' + addNewPuzzleMessage + ' <strong>' + escape(data.input) + '</strong></div>';
@@ -143,13 +154,6 @@ export default class extends Controller {
         event.detail.options.onChange = (value) => {
             this.onPuzzleValueChanged(value);
         };
-
-        if (this.allowNewValue) {
-            event.detail.options.create = (input) => ({
-                value: input,
-                text: escapeHtml(input),
-            });
-        }
 
         event.detail.options.onInitialize = () => {
             this.handleInitialValues();
@@ -391,7 +395,7 @@ export default class extends Controller {
         // and clear the (possibly also restored) puzzle value.
         if (this.brandTarget.value && !brandTomSelect.getValue()) {
             if (!brandTomSelect.getOption(this.brandTarget.value)) {
-                brandTomSelect.addOption({ value: this.brandTarget.value, text: escapeHtml(this.brandTarget.value) });
+                brandTomSelect.addOption({ value: this.brandTarget.value, text: this.brandTarget.value });
             }
             brandTomSelect.addItem(this.brandTarget.value, true);
         }

@@ -19,8 +19,9 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
  * Its puzzles and the change requests proposing it move over, what only the
  * duplicate knew is kept (logo, EAN prefixes, approval), its slug keeps answering
  * as a redirect to the survivor, and the duplicate is deleted. A puzzle and a
- * change request proposal are the only things that reference a brand - a new
- * reference must be moved here too. Callers validate first: this only applies.
+ * change request (its proposal, and its snapshot of the puzzle's original brand -
+ * a bare id without a foreign key) are the only things that reference a brand - a
+ * new reference must be moved here too. Callers validate first: this only applies.
  */
 readonly final class ManufacturerMerger
 {
@@ -35,7 +36,7 @@ readonly final class ManufacturerMerger
     }
 
     /**
-     * @return array{movedPuzzles: int, movedChangeRequests: int, redirectedSlugs: list<string>, approvedByMerge: bool}
+     * @return array{movedPuzzles: int, movedChangeRequests: int, repointedChangeRequestOriginals: int, redirectedSlugs: list<string>, approvedByMerge: bool}
      */
     public function merge(Manufacturer $duplicate, Manufacturer $into): array
     {
@@ -53,6 +54,14 @@ readonly final class ManufacturerMerger
 
         foreach ($changeRequests as $changeRequest) {
             $changeRequest->proposedManufacturerMergedInto($into);
+        }
+
+        // The snapshot of the brand a puzzle had when the request was filed - no foreign key, so
+        // nothing would ever tell it the brand is gone
+        $changeRequestOriginals = $this->puzzleChangeRequestRepository->findByOriginalManufacturer($duplicate);
+
+        foreach ($changeRequestOriginals as $changeRequest) {
+            $changeRequest->originalManufacturerMergedInto($into);
         }
 
         if ($into->logo === null && $duplicate->logo !== null) {
@@ -92,6 +101,7 @@ readonly final class ManufacturerMerger
         return [
             'movedPuzzles' => count($puzzles),
             'movedChangeRequests' => count($changeRequests),
+            'repointedChangeRequestOriginals' => count($changeRequestOriginals),
             'redirectedSlugs' => $redirectedSlugs,
             'approvedByMerge' => $approvedByMerge,
         ];

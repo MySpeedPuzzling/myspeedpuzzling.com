@@ -117,6 +117,7 @@ readonly final class MergeManufacturersHandler
                     'intoManufacturerPreviousName' => $newName !== null ? $previousName : null,
                     'movedPuzzles' => $merged['movedPuzzles'],
                     'movedChangeRequests' => $merged['movedChangeRequests'],
+                    'repointedChangeRequestOriginals' => $merged['repointedChangeRequestOriginals'],
                     'redirectedSlugs' => $merged['redirectedSlugs'],
                     'approvedByMerge' => $merged['approvedByMerge'],
                     'decisionConfidence' => $message->decisionConfidence?->value,

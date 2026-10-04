@@ -62,6 +62,12 @@ final class MergeManufacturersHandlerTest extends KernelTestCase
         $changeRequest = $this->entityManager->find(PuzzleChangeRequest::class, PuzzleReportFixture::CHANGE_REQUEST_WITH_IMAGE);
         self::assertSame(ManufacturerFixture::MANUFACTURER_TREFL, $changeRequest?->proposedManufacturer?->id->toString());
 
+        // ...and its snapshot of the puzzle's original brand points at the survivor, not at the deleted brand
+        self::assertSame(ManufacturerFixture::MANUFACTURER_TREFL, $changeRequest->originalManufacturerId?->toString());
+        self::assertSame([], $this->entityManager->getRepository(PuzzleChangeRequest::class)->findBy([
+            'originalManufacturerId' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+        ]));
+
         $survivor = $this->manufacturer(ManufacturerFixture::MANUFACTURER_TREFL);
         self::assertNotNull($survivor);
         self::assertSame('Trefl', $survivor->name);

@@ -61,6 +61,15 @@ readonly final class PuzzleChangeRequestRepository
             ->findBy(['proposedManufacturer' => $manufacturer]);
     }
 
+    /**
+     * @return array<PuzzleChangeRequest>
+     */
+    public function findByOriginalManufacturer(Manufacturer $manufacturer): array
+    {
+        return $this->entityManager->getRepository(PuzzleChangeRequest::class)
+            ->findBy(['originalManufacturerId' => $manufacturer->id]);
+    }
+
     public function countByProposedManufacturer(Manufacturer $manufacturer): int
     {
         return $this->entityManager->getRepository(PuzzleChangeRequest::class)

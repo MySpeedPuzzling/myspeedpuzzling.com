@@ -78,7 +78,7 @@ class PuzzleChangeRequest
         #[Immutable]
         #[Column]
         public string $originalName = '',
-        #[Immutable]
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: UuidType::NAME, nullable: true)]
         public null|UuidInterface $originalManufacturerId = null,
         #[Immutable]
@@ -128,5 +128,15 @@ class PuzzleChangeRequest
     public function proposedManufacturerMergedInto(Manufacturer $into): void
     {
         $this->proposedManufacturer = $into;
+    }
+
+    /**
+     * The brand the puzzle had when this was submitted was merged into another one - it is the same
+     * brand under its surviving record. Left on the deleted id, the review would show the original
+     * brand as "not set" and a brand change that the merge already made.
+     */
+    public function originalManufacturerMergedInto(Manufacturer $into): void
+    {
+        $this->originalManufacturerId = $into->id;
     }
 }

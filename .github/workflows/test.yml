@@ -14,8 +14,20 @@ env:
 
 jobs:
   tests:
+    name: tests (${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
     container: ghcr.io/myspeedpuzzling/web-base-php85:main
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {shard: 1, total: 3}
+          - {shard: 2, total: 3}
+          - {shard: 3, total: 3}
+          - {shard: 1, total: 4}
+          - {shard: 2, total: 4}
+          - {shard: 3, total: 4}
+          - {shard: 4, total: 4}
     services:
       postgres:
           image: postgres:16
@@ -58,7 +70,7 @@ jobs:
           run: npm run dev
       # One worker per CPU (4 on the hosted runner), each on its own clone of the
       # test database - see tests/bootstrap.php
-      -   run: vendor/bin/paratest --testsuite "Project Test Suite"
+      -   run: vendor/bin/paratest --testsuite "Project Test Suite" --shard=${{ matrix.shard }}/${{ matrix.total }} --shard-test-distribution=round-robin
 
   # DISABLED 2026-07-30 (issue #147 / PR #172): the Panther-managed `php -S`
   # server this job relies on serves requests with stale per-test DATABASE_URLs

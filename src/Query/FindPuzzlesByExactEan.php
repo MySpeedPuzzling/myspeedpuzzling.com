@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Services\PuzzleTextSearch;
 use SpeedPuzzling\Web\Value\Ean;
 
 /**
- * Write-side guard of multiscan linking and quick-add: every puzzle whose
- * stored code list (comma-separated, leading zeros tolerated) carries the code
- * - INCLUDING hidden puzzles, so nobody can link a code to a secret competition
- * puzzle or create a duplicate of it. Never used for display.
+ * Write-side guard of multiscan linking and quick-add: every puzzle that
+ * carries the code as one of its EANs (leading zeros tolerated, the search key
+ * of PuzzleTextSearch) - INCLUDING hidden puzzles, so nobody can link a code to
+ * a secret competition puzzle or create a duplicate of it. Never used for display.
  */
 readonly final class FindPuzzlesByExactEan
 {
@@ -25,29 +26,22 @@ readonly final class FindPuzzlesByExactEan
      */
     public function ids(Ean $ean): array
     {
-        $normalized = $ean->normalized();
+        $textSearch = PuzzleTextSearch::fromUserInput($ean->digits);
+        $barcodeCondition = $textSearch->barcodeCondition('puzzle');
 
-        if ($normalized === '') {
+        if ($barcodeCondition === null) {
             return [];
         }
 
         $query = <<<SQL
 SELECT puzzle.id
 FROM puzzle
-WHERE puzzle.ean LIKE :pattern
-  AND EXISTS (
-      SELECT 1
-      FROM unnest(string_to_array(replace(puzzle.ean, ' ', ''), ',')) AS part
-      WHERE ltrim(part, '0') = :normalized
-  )
+WHERE {$barcodeCondition}
 SQL;
 
         /** @var list<string> $ids */
         $ids = $this->database
-            ->executeQuery($query, [
-                'pattern' => '%' . $normalized . '%',
-                'normalized' => $normalized,
-            ])
+            ->executeQuery($query, $textSearch->parameters())
             ->fetchFirstColumn();
 
         return $ids;

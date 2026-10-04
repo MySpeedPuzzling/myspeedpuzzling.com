@@ -16,13 +16,22 @@ use Symfony\Component\HttpFoundation\Request;
  * truncated links, unknown sorts, premium filters from non-members, or a
  * "my list" filter from guests.
  * Everything is normalized here so querying stays graceful.
+ *
+ * Sorting: `chosenSort` is what the visitor picked (null = nothing), `sortBy`
+ * the order that applies - without a pick the best match while a term is
+ * typed, the most solved otherwise. "Best match" without a term means nothing
+ * and counts as no pick.
  */
 final readonly class PuzzleSearchCriteria
 {
     public const int PAGE_SIZE = 20;
 
+    public const string BEST_MATCH = 'best-match';
+
+    public const string MOST_SOLVED = 'most-solved';
+
     /** @var list<string> */
-    public const array VALID_SORTS = ['most-solved', 'least-solved', 'a-z', 'z-a', 'easiest', 'hardest'];
+    public const array VALID_SORTS = [self::BEST_MATCH, self::MOST_SOLVED, 'least-solved', 'a-z', 'z-a', 'easiest', 'hardest'];
 
     /** @var list<string> */
     public const array PREMIUM_SORTS = ['easiest', 'hardest'];
@@ -43,6 +52,7 @@ final readonly class PuzzleSearchCriteria
         public null|string $tagId,
         public array $difficultyTiers,
         public string $sortBy,
+        public null|string $chosenSort,
         public null|PuzzleSearchList $list,
     ) {
     }
@@ -56,13 +66,16 @@ final readonly class PuzzleSearchCriteria
         null|string $pieces,
         null|string $tagId,
         array $difficultyTiers,
-        string $sortBy,
+        null|string $sortBy,
         bool $isMember,
         null|string $list = null,
         bool $isLoggedIn = false,
     ): self {
-        if (in_array($sortBy, self::VALID_SORTS, true) === false) {
-            $sortBy = 'most-solved';
+        $hasSearchTerm = PuzzleSearchQuery::fromUserInput($search)->isEmpty() === false;
+        $chosenSort = in_array($sortBy, self::VALID_SORTS, true) ? $sortBy : null;
+
+        if ($chosenSort === self::BEST_MATCH && $hasSearchTerm === false) {
+            $chosenSort = null;
         }
 
         // Difficulty filtering and difficulty sorting are members-only; the UI hides
@@ -70,8 +83,8 @@ final readonly class PuzzleSearchCriteria
         if ($isMember === false) {
             $difficultyTiers = [];
 
-            if (in_array($sortBy, self::PREMIUM_SORTS, true)) {
-                $sortBy = 'most-solved';
+            if (in_array($chosenSort, self::PREMIUM_SORTS, true)) {
+                $chosenSort = null;
             }
         }
 
@@ -88,7 +101,8 @@ final readonly class PuzzleSearchCriteria
             pieces: PiecesRange::parse($pieces)?->toParam(),
             tagId: self::normalizeUuid($tagId),
             difficultyTiers: self::normalizeDifficultyTiers($difficultyTiers),
-            sortBy: $sortBy,
+            sortBy: $chosenSort ?? self::defaultSort($hasSearchTerm),
+            chosenSort: $chosenSort,
             list: $parsedList,
         );
     }
@@ -103,7 +117,7 @@ final readonly class PuzzleSearchCriteria
             pieces: is_string($query['pieces'] ?? null) ? $query['pieces'] : null,
             tagId: is_string($query['tag'] ?? null) ? $query['tag'] : null,
             difficultyTiers: is_array($query['difficultyTiers'] ?? null) ? $query['difficultyTiers'] : [],
-            sortBy: is_string($query['sortBy'] ?? null) ? $query['sortBy'] : 'most-solved',
+            sortBy: is_string($query['sortBy'] ?? null) ? $query['sortBy'] : null,
             isMember: $isMember,
             list: is_string($query['list'] ?? null) ? $query['list'] : null,
             isLoggedIn: $isLoggedIn,
@@ -121,8 +135,16 @@ final readonly class PuzzleSearchCriteria
             && $this->pieces === null
             && $this->tagId === null
             && $this->difficultyTiers === []
-            && $this->sortBy === 'most-solved'
+            && $this->sortBy === self::MOST_SOLVED
             && $this->list === null;
+    }
+
+    /**
+     * Whether a search term was typed - one that matches something, not only spaces or control characters
+     */
+    public function hasSearchTerm(): bool
+    {
+        return $this->search !== null && PuzzleSearchQuery::fromUserInput($this->search)->isEmpty() === false;
     }
 
     public function piecesRange(): PiecesRange
@@ -159,7 +181,7 @@ final readonly class PuzzleSearchCriteria
             $parameters['difficultyTiers'] = $this->difficultyTiers;
         }
 
-        if ($this->sortBy !== 'most-solved') {
+        if ($this->sortBy !== self::defaultSort($this->hasSearchTerm())) {
             $parameters['sortBy'] = $this->sortBy;
         }
 
@@ -168,6 +190,11 @@ final readonly class PuzzleSearchCriteria
         }
 
         return $parameters;
+    }
+
+    private static function defaultSort(bool $hasSearchTerm): string
+    {
+        return $hasSearchTerm ? self::BEST_MATCH : self::MOST_SOLVED;
     }
 
     private static function normalizeUuid(null|string $value): null|string

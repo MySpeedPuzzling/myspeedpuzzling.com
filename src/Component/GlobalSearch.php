@@ -9,6 +9,8 @@ use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Results\PlayerIdentification;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Value\PiecesRange;
+use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
+use SpeedPuzzling\Web\Value\PuzzleSearchQuery;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\ComponentToolsTrait;
@@ -19,6 +21,11 @@ final class GlobalSearch
 {
     use DefaultActionTrait;
     use ComponentToolsTrait;
+
+    /**
+     * The best matches shown; "Show all N results" leads to the catalogue for the rest
+     */
+    public const int PUZZLES_LIMIT = 15;
 
     public function __construct(
         readonly private SearchPuzzle $searchPuzzle,
@@ -33,6 +40,8 @@ final class GlobalSearch
      * @var null|list<PuzzleOverview>
      */
     private null|array $puzzle = null;
+
+    private null|int $puzzleCount = null;
 
     /**
      * @return list<PlayerIdentification>
@@ -57,21 +66,40 @@ final class GlobalSearch
             return $this->puzzle;
         }
 
-        $query = trim($this->query);
-
-        if ($query === '') {
+        // Nothing that folds to a term (spaces, invisible characters) would list the whole catalogue
+        if (PuzzleSearchQuery::fromUserInput($this->query)->isEmpty()) {
             return [];
         }
 
         $this->puzzle = $this->searchPuzzle->byUserInput(
             brandId: null,
-            search: $query,
+            search: $this->query,
             pieces: PiecesRange::any(),
             tag: null,
-            limit: 15,
+            sortBy: PuzzleSearchCriteria::BEST_MATCH,
+            limit: self::PUZZLES_LIMIT,
         );
 
         return $this->puzzle;
+    }
+
+    /**
+     * Every puzzle the query matches - counted by a query only when the shown ones may not be all of them
+     */
+    public function getPuzzleCount(): int
+    {
+        $shown = count($this->getPuzzle());
+
+        if ($shown < self::PUZZLES_LIMIT) {
+            return $shown;
+        }
+
+        return $this->puzzleCount ??= $this->searchPuzzle->countByUserInput(
+            brandId: null,
+            search: $this->query,
+            pieces: PiecesRange::any(),
+            tag: null,
+        );
     }
 
     public function onQueryUpdated(string $previousValue): void

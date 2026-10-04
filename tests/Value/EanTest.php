@@ -69,16 +69,4 @@ final class EanTest extends TestCase
         yield 'letters only' => ['abc'];
         yield 'all zeros' => ['0000000000000'];
     }
-
-    public function testIsListedInHandlesCommaSeparatedListsAndLeadingZeros(): void
-    {
-        $ean = Ean::from('4005556123452');
-
-        self::assertTrue($ean->isListedIn('4005556123452'));
-        self::assertTrue($ean->isListedIn('4005556147090, 4005556123452'));
-        self::assertTrue($ean->isListedIn('04005556123452'));
-        self::assertFalse($ean->isListedIn('40055561234520'));
-        self::assertFalse($ean->isListedIn('4005556147090'));
-        self::assertFalse($ean->isListedIn(null));
-    }
 }

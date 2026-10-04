@@ -8,12 +8,10 @@ use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Value\Ean;
 
 /**
- * The puzzles a scanned code may mean, exact matches first.
- *
- * Reuses the tolerant lookup of the single scanner (SearchPuzzle::allByEan -
- * substring match, leading zeros stripped, hidden puzzles excluded) and puts the
- * puzzles whose code list literally carries the scanned code before the
- * substring matches, so the tray's silent auto-pick is deterministic.
+ * The puzzles a scanned code means: the lookup of the single scanner
+ * (SearchPuzzle::allByEan - the code is one of the puzzle's EANs, leading zeros
+ * stripped, never a part of a longer code; hidden puzzles excluded), most
+ * solved first, so the tray's silent auto-pick is deterministic.
  */
 readonly final class GetMultiscanCandidates
 {
@@ -27,19 +25,6 @@ readonly final class GetMultiscanCandidates
      */
     public function forEan(Ean $ean): array
     {
-        $candidates = $this->searchPuzzle->allByEan($ean->digits);
-
-        $exact = [];
-        $loose = [];
-
-        foreach ($candidates as $candidate) {
-            if ($ean->isListedIn($candidate->puzzleEan)) {
-                $exact[] = $candidate;
-            } else {
-                $loose[] = $candidate;
-            }
-        }
-
-        return [...$exact, ...$loose];
+        return $this->searchPuzzle->allByEan($ean->digits);
     }
 }

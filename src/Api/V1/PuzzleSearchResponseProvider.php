@@ -68,7 +68,8 @@ final readonly class PuzzleSearchResponseProvider implements ProviderInterface
         $manufacturer = $this->stringValue($operation, 'manufacturer');
         $piecesMin = $this->intValue($operation, 'pieces_min', null);
         $piecesMax = $this->intValue($operation, 'pieces_max', null);
-        $sort = $this->stringValue($operation, 'sort') ?? 'most-solved';
+        // The API default stays the most solved first, also with a query (best-match is asked for explicitly)
+        $sort = $this->stringValue($operation, 'sort') ?? PuzzleSearchCriteria::MOST_SOLVED;
         $difficultyTokens = $this->listValue($operation, 'difficulty');
 
         if ($piecesMin !== null && $piecesMax !== null && $piecesMin > $piecesMax) {
@@ -99,7 +100,8 @@ final readonly class PuzzleSearchResponseProvider implements ProviderInterface
             isMember: $this->tokenOwner->isMember(),
         );
 
-        if ($criteria->sortBy !== $sort) {
+        // sort=best-match without a query falls back to the most solved, which is no membership matter
+        if (in_array($sort, PuzzleSearchCriteria::PREMIUM_SORTS, true) && $criteria->sortBy !== $sort) {
             throw new AccessDeniedHttpException(sprintf('sort=%s requires an active membership.', $sort));
         }
 
@@ -141,7 +143,7 @@ final readonly class PuzzleSearchResponseProvider implements ProviderInterface
     }
 
     /**
-     * Barcode lookup (SearchPuzzle::allByEan(): the code within the EAN list, leading zeros tolerated), no count query (the
+     * Barcode lookup (SearchPuzzle::allByEan(): one of the puzzle's EANs exactly, leading zeros tolerated), no count query (the
      * handful of matches is paginated in memory, the response shape stays the same).
      */
     private function byEan(string $ean, int $page, int $limit, null|Request $request): PuzzleListResponse

@@ -55,6 +55,31 @@ internal API's brand merge (any brand into any brand) - it also keeps the merged
 change-request proposal are the only references to a brand; a new foreign key to `manufacturer` must be moved in
 `ManufacturerMerger` too. Why brands get duplicated and how they are cleaned up: [`brand-duplicates.md`](brand-duplicates.md).
 
+## Change requests - the review form
+
+A player's "Suggest a change" (`PuzzleChangeRequest`) is reviewed at `/admin/puzzle-change-requests/{id}`
+(`PuzzleChangeRequestDetailController`, GET + POST - a refused form comes back with what the reviewer typed, 422).
+A pending request is approved through a form holding **the whole puzzle**: name, alternative name, brand, pieces,
+EAN, brand code and image - every field editable, whether the player proposed it or not
+(`ReviewPuzzleChangeRequestFormType`).
+
+- **Prefilled**: the proposed value where the player proposed a change, the puzzle as it is now everywhere else
+  (`ReviewPuzzleChangeRequestFormData::prefilled()`). "Current" is the live puzzle; when it changed since the proposal,
+  the value at the time is shown too.
+- **The proposal never mixes with the reviewer's edits**: a proposed field shows *Current* and *Proposed by the player*
+  next to the input, and `change_request_review_controller.js` marks every field live - *Proposed* (orange, the
+  proposal goes in), *Your edit* (indigo `accent` - the theme's primary is too close to orange), *Keeping current*
+  (the proposal is struck through) - with "Use proposed" / "Keep current" / "Undo my edit" links. Above the approve
+  button a summary lists what approving saves and which proposals are not applied.
+- **Image**: keep current / the proposed image / upload a new one (`PuzzleChangeRequestImageChoice`; picking a file
+  selects upload and previews it). The file gets the SEO name built from the *final* brand, name and pieces.
+- The EAN goes through `EanList` like the add form (codes the puzzle already carries pass).
+
+`ApprovePuzzleChangeRequest` carries the reviewer's values as `ReviewedPuzzleValues`; the internal API still sends
+`selectedFields` (those fields as proposed, the rest unchanged), which the handler turns into the same values - one
+apply path. The decision log keeps `before` / `after` of every field and the image choice (+ `selectedFields` from
+the internal API).
+
 ## Who decided - `puzzle_moderation_decision`
 
 Jan: "we must always know who approved/rejected merge request and change request and same for the approvals".
@@ -73,7 +98,7 @@ change request is deleted outright with its reporter (`ON DELETE CASCADE`).
 - **No foreign keys**, on purpose: requests, puzzles and brands get deleted (merges, cascades) and so do players.
   The decider's id, name and code are copied in; the puzzle's name too.
 - `source` = `admin_ui` / `internal_api` (`MergeDecisionSource`; the internal API sets it for merge approve + reject).
-- `note` = rejection reason / merge decision note; `details` (JSON) = what changed (selected fields, before/after,
+- `note` = rejection reason / merge decision note; `details` (JSON) = what changed (before/after, image choice, selected fields,
   merged ids, brand merge counts).
 - Backfilled by migration `Version20260925165131` from every change / merge request decided before it existed
   (`details.backfilled = true`; a merge rejected via the internal API before the log existed shows `admin_ui`,

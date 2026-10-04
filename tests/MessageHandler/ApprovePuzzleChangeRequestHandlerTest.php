@@ -6,18 +6,24 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
+use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Entity\PuzzleModerationDecision;
+use SpeedPuzzling\Web\Exceptions\InvalidPuzzleChangeRequestApproval;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
+use SpeedPuzzling\Web\Value\PuzzleChangeRequestImageChoice;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
+use SpeedPuzzling\Web\Value\ReviewedPuzzleValues;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
@@ -104,26 +110,133 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         self::assertSame('1234567890123', $puzzle->ean);
     }
 
-    public function testOverrideValuesAreUsedInsteadOfProposed(): void
+    public function testTheReviewAppliesEveryFieldAsTheReviewerSetIt(): void
     {
-        // Approve name with an override value
-        $this->messageBus->dispatch(
-            new ApprovePuzzleChangeRequest(
-                changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
-                reviewerId: PlayerFixture::PLAYER_ADMIN,
-                selectedFields: ['name', 'ean'],
-                overrides: [
-                    'name' => 'Admin Corrected Name',
-                    'ean' => '9999999999999',
-                ],
+        // The player proposed a name and an EAN - the reviewer corrects those and changes fields nobody proposed
+        $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
+            changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            reviewed: new ReviewedPuzzleValues(
+                name: '  Admin Corrected Name ',
+                alternativeName: 'Alternative Title',
+                manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
+                piecesCount: 1000,
+                ean: '4005556123452',
+                identificationNumber: ' ',
             ),
-        );
+        ));
+
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
 
         $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01);
-
-        // Overridden values should be used
         self::assertSame('Admin Corrected Name', $puzzle->name);
-        self::assertSame('9999999999999', $puzzle->ean);
+        self::assertSame('Alternative Title', $puzzle->alternativeName);
+        self::assertSame(ManufacturerFixture::MANUFACTURER_TREFL, $puzzle->manufacturer?->id->toString());
+        self::assertSame(1000, $puzzle->piecesCount);
+        self::assertSame('4005556123452', $puzzle->ean);
+        self::assertNull($puzzle->identificationNumber);
+
+        $decision = $entityManager->getRepository(PuzzleModerationDecision::class)->findOneBy([
+            'action' => PuzzleModerationAction::ChangeRequestApproved,
+        ]);
+        self::assertNotNull($decision);
+        self::assertArrayNotHasKey('selectedFields', $decision->details ?? []);
+        self::assertSame('keep', $decision->details['image'] ?? null);
+        $before = $decision->details['before'] ?? null;
+        $after = $decision->details['after'] ?? null;
+        self::assertIsArray($before);
+        self::assertIsArray($after);
+        self::assertSame('RB-500-001', $before['identificationNumber'] ?? null);
+        self::assertSame('Admin Corrected Name', $after['name'] ?? null);
+    }
+
+    public function testTheReviewUploadsADifferentImage(): void
+    {
+        $imagePath = tempnam(sys_get_temp_dir(), 'puzzle_test_') . '.jpg';
+        $image = imagecreatetruecolor(20, 10);
+        assert($image !== false);
+        imagejpeg($image, $imagePath);
+
+        $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
+            changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            reviewed: new ReviewedPuzzleValues(
+                name: 'Puzzle 1',
+                alternativeName: null,
+                manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+                piecesCount: 500,
+                ean: null,
+                identificationNumber: 'RB-500-001',
+                image: PuzzleChangeRequestImageChoice::Upload,
+                uploadedImage: new UploadedFile($imagePath, 'box.jpg', 'image/jpeg', null, true),
+            ),
+        ));
+
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01);
+        self::assertNotNull($puzzle->image);
+        $this->filesToCleanup[] = $puzzle->image;
+
+        self::assertStringContainsString('ravensburger-puzzle-1-500', $puzzle->image);
+        self::assertTrue($this->filesystem->fileExists($puzzle->image));
+        self::assertSame(2.0, $puzzle->imageRatio);
+    }
+
+    public function testKeepingTheCurrentImageIgnoresTheProposedOne(): void
+    {
+        $imageBefore = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_02)->image;
+
+        $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
+            changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_WITH_IMAGE,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            reviewed: new ReviewedPuzzleValues(
+                name: 'New Image Puzzle',
+                alternativeName: null,
+                manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+                piecesCount: 500,
+                ean: '4005556123456',
+                identificationNumber: null,
+                image: PuzzleChangeRequestImageChoice::Keep,
+            ),
+        ));
+
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_02);
+        self::assertSame('New Image Puzzle', $puzzle->name);
+        self::assertSame($imageBefore, $puzzle->image);
+    }
+
+    /**
+     * @return iterable<string, array{PuzzleChangeRequestImageChoice}>
+     */
+    public static function imageChoicesWithoutAnImage(): iterable
+    {
+        yield 'proposed image, none was proposed' => [PuzzleChangeRequestImageChoice::Proposed];
+        yield 'upload without a file' => [PuzzleChangeRequestImageChoice::Upload];
+    }
+
+    #[DataProvider('imageChoicesWithoutAnImage')]
+    public function testAnImageChoiceWithoutAnImageIsRefusedBeforeAnythingChanges(PuzzleChangeRequestImageChoice $image): void
+    {
+        try {
+            $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
+                changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                reviewed: new ReviewedPuzzleValues(
+                    name: 'Must Not Be Saved',
+                    alternativeName: null,
+                    manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+                    piecesCount: 500,
+                    ean: null,
+                    identificationNumber: null,
+                    image: $image,
+                ),
+            ));
+            self::fail('The approval should have been refused.');
+        } catch (InvalidPuzzleChangeRequestApproval) {
+        }
+
+        self::assertSame('Puzzle 1', $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01)->name);
+        self::assertSame(PuzzleReportStatus::Pending, $this->changeRequestRepository->get(PuzzleReportFixture::CHANGE_REQUEST_PENDING)->status);
     }
 
     public function testApprovingWithImageRenamesProposalToSeoName(): void

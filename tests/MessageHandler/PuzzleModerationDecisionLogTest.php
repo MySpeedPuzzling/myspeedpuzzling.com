@@ -39,7 +39,6 @@ final class PuzzleModerationDecisionLogTest extends KernelTestCase
             changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             selectedFields: ['name'],
-            overrides: [],
         ));
 
         $decision = $this->onlyDecision(['changeRequestId' => Uuid::fromString(PuzzleReportFixture::CHANGE_REQUEST_PENDING)]);

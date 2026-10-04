@@ -5,25 +5,24 @@
 {% block content %}
     {% include '_return_back_button.html.twig' with {fallbackUrl: path('admin_puzzle_change_requests'), fallbackTitle: 'Change requests'} %}
 
-    {% set pending = request.status.value == 'pending' %}
+    {% set pending = form is not null %}
 
     {% set fields = [] %}
     {% if request.hasNameChange() %}
-        {% set fields = fields|merge([{key: 'name', label: 'Name', original: request.originalName, proposed: request.proposedName, input: 'text'}]) %}
+        {% set fields = fields|merge([{key: 'name', label: 'Name', original: request.originalName, proposed: request.proposedName}]) %}
     {% endif %}
     {% if request.hasManufacturerChange() %}
-        {% set fields = fields|merge([{key: 'manufacturer', label: 'Manufacturer', original: request.originalManufacturerName, proposed: request.proposedManufacturerName, input: null}]) %}
+        {% set fields = fields|merge([{key: 'manufacturer', label: 'Manufacturer', original: request.originalManufacturerName, proposed: request.proposedManufacturerName}]) %}
     {% endif %}
     {% if request.hasPiecesCountChange() %}
-        {% set fields = fields|merge([{key: 'piecesCount', label: 'Pieces', original: request.originalPiecesCount, proposed: request.proposedPiecesCount, input: 'number'}]) %}
+        {% set fields = fields|merge([{key: 'piecesCount', label: 'Pieces', original: request.originalPiecesCount, proposed: request.proposedPiecesCount}]) %}
     {% endif %}
     {% if request.hasEanChange() %}
-        {% set fields = fields|merge([{key: 'ean', label: 'EAN', original: request.originalEan, proposed: request.proposedEan, input: 'text'}]) %}
+        {% set fields = fields|merge([{key: 'ean', label: 'EAN', original: request.originalEan, proposed: request.proposedEan}]) %}
     {% endif %}
     {% if request.hasIdentificationNumberChange() %}
-        {% set fields = fields|merge([{key: 'identificationNumber', label: 'Brand Code', original: request.originalIdentificationNumber, proposed: request.proposedIdentificationNumber, input: 'text'}]) %}
+        {% set fields = fields|merge([{key: 'identificationNumber', label: 'Brand Code', original: request.originalIdentificationNumber, proposed: request.proposedIdentificationNumber}]) %}
     {% endif %}
-    {% set fieldsCount = fields|length + (request.hasImageChange() ? 1 : 0) %}
 
     <div class="row">
         <div class="col-lg-8">
@@ -61,130 +60,69 @@
                     </div>
 
                     {% if pending %}
-                    <form action="{{ path('admin_approve_puzzle_change_request', {id: request.id}) }}"
-                          method="post"
-                          data-controller="change-request-fields"
-                          data-action="change->change-request-fields#update">
-                    {% endif %}
+                        {{ include('admin/_puzzle_change_request_review.html.twig') }}
+                    {% else %}
+                        <h2 class="h5 mb-3">Proposed Changes</h2>
 
-                    <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
-                        <h2 class="h5 mb-0">Proposed Changes</h2>
-                        {% if pending and fieldsCount > 1 %}
-                            <div class="form-check mb-0">
-                                <input type="checkbox"
-                                       class="form-check-input"
-                                       id="selectAll"
-                                       checked
-                                       data-change-request-fields-target="selectAll"
-                                       data-action="change->change-request-fields#toggleAll">
-                                <label class="form-check-label small" for="selectAll">
-                                    All <span class="text-muted" data-change-request-fields-target="selectedCount">{{ fieldsCount }}/{{ fieldsCount }}</span>
-                                </label>
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    {% if pending and fieldsCount > 0 %}
-                        <p class="small text-muted mb-3">
-                            Untick a field to leave it unchanged. Proposed values can be corrected before approving.
-                        </p>
-                    {% endif %}
-
-                    {% for field in fields %}
-                        <div class="border rounded-3 p-3 mb-3" data-change-request-fields-target="field">
-                            {% if pending %}
-                                <div class="form-check mb-2">
-                                    <input type="checkbox"
-                                           class="form-check-input"
-                                           id="field_{{ field.key }}"
-                                           name="field_{{ field.key }}"
-                                           value="1"
-                                           checked
-                                           data-change-request-fields-target="checkbox">
-                                    <label class="form-check-label fw-semibold" for="field_{{ field.key }}">{{ field.label }}</label>
-                                </div>
-                            {% else %}
+                        {% for field in fields %}
+                            <div class="border rounded-3 p-3 mb-3">
                                 <div class="fw-semibold mb-2">{{ field.label }}</div>
-                            {% endif %}
-
-                            <div class="row g-2">
-                                <div class="col-12 col-md-6">
-                                    <div class="small text-muted mb-1">Current</div>
-                                    <div class="text-break">
-                                        {% if field.original is null or field.original == '' %}
-                                            <span class="text-muted fst-italic">Not set</span>
-                                        {% else %}
-                                            {{ field.original }}
-                                        {% endif %}
+                                <div class="row g-2">
+                                    <div class="col-12 col-md-6">
+                                        <div class="small text-muted mb-1">When proposed</div>
+                                        <div class="text-break">
+                                            {% if field.original is null or field.original == '' %}
+                                                <span class="text-muted fst-italic">Not set</span>
+                                            {% else %}
+                                                {{ field.original }}
+                                            {% endif %}
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    {% if pending and field.input %}
-                                        <label class="d-block small text-muted mb-1" for="override_{{ field.key }}">Proposed</label>
-                                        <input type="{{ field.input }}"
-                                               {% if field.input == 'number' %}inputmode="numeric"{% endif %}
-                                               id="override_{{ field.key }}"
-                                               name="override_{{ field.key }}"
-                                               value="{{ field.proposed }}"
-                                               class="form-control border-warning">
-                                    {% else %}
+                                    <div class="col-12 col-md-6">
                                         <div class="small text-muted mb-1">Proposed</div>
                                         <div class="text-break bg-warning bg-opacity-10 rounded px-2 py-1 fw-semibold">{{ field.proposed }}</div>
-                                    {% endif %}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    {% endfor %}
+                        {% endfor %}
 
-                    {% if request.hasImageChange() %}
-                        <div class="border rounded-3 p-3 mb-3" data-change-request-fields-target="field">
-                            {% if pending %}
-                                <div class="form-check mb-2">
-                                    <input type="checkbox"
-                                           class="form-check-input"
-                                           id="field_image"
-                                           name="field_image"
-                                           value="1"
-                                           checked
-                                           data-change-request-fields-target="checkbox">
-                                    <label class="form-check-label fw-semibold" for="field_image">Image</label>
-                                </div>
-                            {% else %}
+                        {% if request.hasImageChange() %}
+                            <div class="border rounded-3 p-3 mb-3">
                                 <div class="fw-semibold mb-2">Image</div>
-                            {% endif %}
 
-                            {# Side by side even on phones - the point is to compare the two #}
-                            <div class="row g-2 gallery">
-                                <div class="col-6">
-                                    <div class="small text-muted mb-1">Current</div>
-                                    {% if request.originalImage %}
-                                        <a class="gallery-item d-block" href="{{ uploaded_asset(request.originalImage) }}">
-                                            <img src="{{ request.originalImage|puzzle_image('puzzle_small') }}"
-                                                 alt="Current image"
-                                                 class="img-thumbnail w-100"
+                                {# Side by side even on phones - the point is to compare the two #}
+                                <div class="row g-2 gallery">
+                                    <div class="col-6">
+                                        <div class="small text-muted mb-1">When proposed</div>
+                                        {% if request.originalImage %}
+                                            <a class="gallery-item d-block" href="{{ uploaded_asset(request.originalImage) }}">
+                                                <img src="{{ request.originalImage|puzzle_image('puzzle_small') }}"
+                                                     alt="Image when proposed"
+                                                     class="img-thumbnail w-100"
+                                                     style="max-height: 180px; object-fit: contain;">
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted fst-italic">No image</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="small text-muted mb-1">Proposed</div>
+                                        <a class="gallery-item d-block" href="{{ uploaded_asset(request.proposedImage) }}">
+                                            <img src="{{ request.proposedImage|puzzle_image('puzzle_small') }}"
+                                                 alt="Proposed image"
+                                                 class="img-thumbnail w-100 border-warning"
                                                  style="max-height: 180px; object-fit: contain;">
                                         </a>
-                                    {% else %}
-                                        <span class="text-muted fst-italic">No image</span>
-                                    {% endif %}
-                                </div>
-                                <div class="col-6">
-                                    <div class="small text-muted mb-1">Proposed</div>
-                                    <a class="gallery-item d-block" href="{{ uploaded_asset(request.proposedImage) }}">
-                                        <img src="{{ request.proposedImage|puzzle_image('puzzle_small') }}"
-                                             alt="Proposed image"
-                                             class="img-thumbnail w-100 border-warning"
-                                             style="max-height: 180px; object-fit: contain;">
-                                    </a>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    {% endif %}
+                        {% endif %}
 
-                    {% if not request.hasAnyChange() %}
-                        <div class="alert alert-info">
-                            No changes were proposed. The user may have submitted the form without modifications.
-                        </div>
+                        {% if not request.hasAnyChange() %}
+                            <div class="alert alert-info">
+                                No changes were proposed. The user may have submitted the form without modifications.
+                            </div>
+                        {% endif %}
                     {% endif %}
 
                     {# Rejection reason if rejected #}
@@ -195,22 +133,6 @@
                         </div>
                     {% endif %}
 
-                    {# Action buttons for pending requests #}
-                    {% if pending %}
-                        <div class="d-grid d-sm-flex gap-2 pt-3 mt-2 border-top">
-                            <button type="submit" class="btn btn-success" data-change-request-fields-target="approveButton">
-                                <i class="bi bi-check-lg me-1"></i> Approve selected
-                            </button>
-
-                            <button type="button"
-                                    class="btn btn-outline-danger"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#rejectModal">
-                                <i class="bi bi-x-lg me-1"></i> Reject
-                            </button>
-                        </div>
-                    </form>
-                    {% endif %}
                 </div>
             </div>
         </div>

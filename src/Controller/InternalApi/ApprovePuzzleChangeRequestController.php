@@ -17,7 +17,7 @@ use Symfony\Component\Routing\Requirement\Requirement;
 
 /**
  * Approves a puzzle change request ("suggest a change"), applying only the fields named in
- * `selectedFields` - like the admin review, where unticked fields stay unchanged. An empty list
+ * `selectedFields` as proposed - the rest of the puzzle stays as it is. An empty list
  * approves a proposal that is already satisfied (e.g. a brand fix a brand merge made) without
  * touching the puzzle. The player who proposed it is notified either way.
  */

@@ -2790,6 +2790,7 @@ admin:
         source: "Started from"
     puzzle_change_request:
         approved: "Change request has been approved and puzzle updated."
+        already_reviewed: "This change request had already been reviewed by someone else."
         rejected: "Change request has been rejected."
         rejection_reason_required: "Rejection reason is required."
     puzzle_approval:

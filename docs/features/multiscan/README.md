@@ -236,5 +236,18 @@ Evidence:
 - Speed: zbar needs ~11 ms for a 640×480 frame and ~31 ms for a 720p frame on an M-series Mac. Android Chrome's
   default camera stream is 640×480.
 
+Reading rules (`barcode_scanner_controller.js`):
+- A code is accepted after 10 identical reads, and zbar's `quality > 8` (more than 8 scan lines agree within the frame)
+  now applies on Android too. The native detector reports no quality.
+- A frame that reads two different codes counts for nothing (two boxes in view, or a misread).
+- One decode per camera frame (`requestVideoFrameCallback`, falling back to `requestAnimationFrame`, plus a 250 ms
+  safety tick), so the 10 reads are 10 different frames.
+- A scan-loop generation guard keeps a quick stop + start from running two loops.
+- Vertical scanning stays on (Jan, 2026-10-04): zbar's `X_DENSITY = 0` would be ~2× faster but cannot read a box
+  held sideways.
+- Checked with Chrome's fake camera: a single code is accepted after exactly 10 frames (~0.47 s), two codes in view are
+  never accepted, continuous mode decodes 29-30 times a second from a 30 fps camera, and still does after a stop +
+  start.
+
 Second line of defence: the add form and "Suggest a change" refuse `45555…` / `045555…` codes with the full code
 as a suggestion (`Value\EanList`).

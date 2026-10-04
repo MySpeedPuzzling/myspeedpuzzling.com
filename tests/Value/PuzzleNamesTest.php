@@ -206,6 +206,11 @@ final class PuzzleNamesTest extends TestCase
             [['name' => 'SEASHELLS', 'language' => null]],
             [['name' => 'Seashells', 'language' => null]],
         ];
+        yield 'names that differ only by an apostrophe are one name' => [
+            [['name' => "Peggy's Riverside", 'language' => null], ['name' => 'Where´s Wally?', 'language' => null]],
+            [['name' => 'Peggy’s Riverside', 'language' => 'en'], ['name' => 'Wheres Wally?', 'language' => null]],
+            [['name' => 'Peggy’s Riverside', 'language' => 'en'], ['name' => 'Where´s Wally?', 'language' => null]],
+        ];
         yield 'numeric names stay apart and in order' => [
             [['name' => '1000', 'language' => null], ['name' => '12', 'language' => null]],
             [['name' => '1000', 'language' => 'cs']],
@@ -229,6 +234,9 @@ final class PuzzleNamesTest extends TestCase
             ['name' => 'Muscheln', 'language' => null],
             ['name' => 'Conchas', 'language' => 'pt-BR'],
         ], $names->cleanedFor('Seashells')->toArray());
+
+        // The main title with another apostrophe is the main title
+        self::assertSame([], PuzzleNames::fromArray([['name' => 'Where’s Wally?', 'language' => 'cs']])->cleanedFor("Where's Wally?")->toArray());
     }
 
     public function testCleanName(): void

@@ -118,9 +118,9 @@ export default class extends Controller {
             this.rowsTarget.append(row);
         });
 
-        if (this.mainLanguageSelectTarget.value !== '') {
-            this.showMainLanguage();
-        }
+        // Back as loaded: the language shows only when the box has no English title
+        this.mainLanguageTarget.hidden = this.mainLanguageSelectTarget.value === '';
+        this.mainLanguageToggleTarget.hidden = !this.mainLanguageTarget.hidden;
 
         this.changed();
     }

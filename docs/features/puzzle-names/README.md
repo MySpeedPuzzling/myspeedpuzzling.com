@@ -243,3 +243,21 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   (nothing else read those two there); lend/borrow lists have no filter and render no `data-search`.
 - **Phase 1b - the wishlist list query** reads the two key columns and is ~4 % slower on the heaviest wishlist
   (655 items, 9.7 → 10.1 ms, same plan); accepted - folding the names per item in PHP would cost far more.
+- **Phase 3A - the names editor** (`templates/puzzle/_names_editor.html.twig`, `names_editor_controller.js`,
+  `PuzzleNamesType`): rows are renumbered 0, 1, 2... after every add / remove / swap / split, so the list is saved in the
+  order shown (Symfony's collection would otherwise keep the old keys' order). The "does not look English" warning
+  (a letter outside ASCII) shows only while the main title has no language - choosing "The box has no English title"
+  answers it. "Make main title": the old main title takes the row's place in the main title's language (a "Set its
+  language" note when it has none), the promoted name's language becomes the main title's unless it is English. A
+  language tag outside the curated list (`pt-BR`) is offered on the name that has it and moves with "Make main title".
+- **Phase 3A - stale forms:** `PuzzleRecordVersion` = the first 16 hex of sha256 over the whole record (names with
+  languages and order, brand id, pieces, codes, stored image); `null` = not checked (internal API, a form rendered by
+  the release before). The change-request read model computes it from the stored image, not the embargo-masked one.
+  `PuzzleChangedMeanwhile` extends `UnprocessableEntityHttpException` instead of `#[WithHttpStatus]`:
+  `UnwrapHttpExceptionMiddleware` hands only HTTP exceptions to the caller as themselves.
+- **Phase 3A - locks:** `EditPuzzle`, `ApprovePuzzle`, `ApprovePuzzleChangeRequest` (gains `puzzleId`, checked by the
+  handler, looked up by the internal API), `ApprovePuzzleMergeRequest` (the survivor only - the middleware takes one
+  key; the merged puzzles are deleted by the merge), `LinkEanToPuzzle` and `AddPuzzle` (corrects the puzzle it added).
+- **Phase 3A - transition:** `PuzzleRecordFormType` option `names_editor` (moderator edit on, change-request review
+  still on the single fields until 3B switches it); `PuzzleNames::withLegacyAlternativeName()` goes with the last
+  single-field form.

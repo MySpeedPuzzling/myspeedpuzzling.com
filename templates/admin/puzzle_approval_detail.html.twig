@@ -176,8 +176,6 @@
 
             {# 2. Approve #}
             {% set approve_fields = [
-                {label: 'Name', widget: form.name, help: null, current: puzzle.puzzleName, currentValue: puzzle.puzzleName},
-                {label: 'Alternative name', widget: form.alternativeName, help: 'Another title the puzzle is sold under, if any', current: puzzle.alternativeNames.legacyAlternativeName(), currentValue: puzzle.alternativeNames.legacyAlternativeName()},
                 {label: 'Pieces', widget: form.piecesCount, help: null, current: puzzle.piecesCount, currentValue: puzzle.piecesCount},
                 {label: 'EAN', widget: form.ean, help: 'Comma-separated - one code per edition or region.', current: puzzle.ean, currentValue: puzzle.ean},
                 {label: 'Brand code', widget: form.identificationNumber, help: 'Comma-separated', current: puzzle.identificationNumber, currentValue: puzzle.identificationNumber},
@@ -191,7 +189,7 @@
 
             {{ form_start(form, {attr: {
                 'data-controller': 'puzzle-record',
-                'data-action': 'change->puzzle-record#update input->puzzle-record#update kept-photo:removed->puzzle-record#update',
+                'data-action': 'change->puzzle-record#update input->puzzle-record#update kept-photo:removed->puzzle-record#update names-editor:change->puzzle-record#update',
                 'data-puzzle-record-proposed-label-value': 'Proposed',
                 'data-puzzle-record-edit-label-value': 'Your edit',
                 'data-puzzle-record-kept-label-value': 'Keeping current',
@@ -202,6 +200,10 @@
 
                 {{ form_errors(form) }}
 
+                {{ include('admin/_puzzle_record_names.html.twig', {
+                    names: form.names,
+                    current: {name: puzzle.puzzleName, nameLanguage: puzzle.nameLanguage, alternativeNames: puzzle.alternativeNames.toArray()},
+                }) }}
                 {{ include('admin/_puzzle_record_fields.html.twig', {fields: approve_fields}) }}
 
                 {# Brand: an approved brand is kept or swapped; a new one needs a decision #}

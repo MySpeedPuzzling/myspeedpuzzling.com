@@ -179,7 +179,7 @@ final class EditPuzzleControllerTest extends WebTestCase
         ]);
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
-        self::assertSelectorTextContains('form', 'This puzzle was changed while you were editing it. Reload to see the current state.');
+        self::assertSelectorTextContains('form[data-controller~="puzzle-record"]', 'This puzzle was changed while you were editing it. Reload to see the current state.');
         self::assertSame(
             'Typed Over The Old Record',
             $crawler->filter('form[data-controller~="puzzle-record"]')->form()->getValues()['puzzle_record_form[names][name]'],

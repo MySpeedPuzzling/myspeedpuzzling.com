@@ -61,7 +61,7 @@ final class SerializedByLockMessagesTest extends TestCase
         $values = new PuzzleRecordValues(name: 'Puzzle', nameLanguage: null, alternativeNames: new PuzzleNames(), manufacturerId: null, piecesCount: 500, ean: null, identificationNumber: null);
 
         self::assertSame($key, (new EditPuzzle($puzzleId, 'editor', $values))->lockKey());
-        self::assertSame($key, (new ApprovePuzzle($puzzleId, 'reviewer', 'Puzzle', 500, null, null))->lockKey());
+        self::assertSame($key, (new ApprovePuzzle($puzzleId, 'reviewer', 'Puzzle', null, new PuzzleNames(), 500, null, null))->lockKey());
         self::assertSame($key, (new ApprovePuzzleChangeRequest('change-request', $puzzleId, 'reviewer'))->lockKey());
         self::assertSame($key, (new ApprovePuzzleMergeRequest('merge-request', 'reviewer', $puzzleId, 'Puzzle', null, null, 500, null, null))->lockKey());
         self::assertSame($key, (new LinkEanToPuzzle($puzzleId, 'player', '4005556147090'))->lockKey());

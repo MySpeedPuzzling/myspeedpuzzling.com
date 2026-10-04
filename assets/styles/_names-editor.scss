@@ -64,6 +64,7 @@
     .btn {
       font-size: .8rem;
       padding: .15rem .55rem;
+      background: $white;
     }
   }
 
@@ -80,7 +81,7 @@
   // Name, language, "Make main title", remove - on a phone the name and × on one line, language and the button under
   &__row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(7rem, 11rem) auto auto;
+    grid-template-columns: minmax(0, 1fr) minmax(8rem, 13rem) auto auto;
     grid-template-areas: "name lang mk rm";
     gap: .4rem;
     align-items: center;
@@ -128,20 +129,21 @@
     color: $gray-600;
   }
 
+  // On a phone: the name and × on one line, its language and "Make main title" under it, a line between two names
   @media (max-width: 560px) {
+    &__rows {
+      gap: .75rem;
+    }
+
     &__row {
-      grid-template-columns: minmax(0, 1fr) auto;
-      grid-template-areas: "name rm" "lang mk";
-    }
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      grid-template-areas: "name name rm" "lang mk mk";
+      row-gap: .35rem;
 
-    &__row-language {
-      justify-self: start;
-      width: auto;
-      max-width: 100%;
-    }
-
-    &__make-main {
-      justify-self: end;
+      & + & {
+        padding-top: .75rem;
+        border-top: 1px dashed $gray-300;
+      }
     }
   }
 }

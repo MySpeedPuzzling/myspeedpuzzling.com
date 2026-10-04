@@ -50,7 +50,7 @@ final class PuzzleApprovalControllerTest extends WebTestCase
 
         $crawler = $browser->request('GET', self::URL);
         $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form([
-            'approve_puzzle_form[alternativeName]' => 'Twenty',
+            'approve_puzzle_form[names][nameLanguage]' => 'cs',
             'approve_puzzle_form[brandChoice]' => 'approve',
             'approve_puzzle_form[note]' => 'New photo, the player\'s was blurry',
         ]);
@@ -63,7 +63,7 @@ final class PuzzleApprovalControllerTest extends WebTestCase
 
         $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_UNAPPROVED);
         self::assertTrue($puzzle->approved);
-        self::assertSame('Twenty', $puzzle->alternativeName);
+        self::assertSame('cs', $puzzle->nameLanguage);
         self::assertNotNull($puzzle->image);
         self::assertStringContainsString('puzzle-20-1000', $puzzle->image);
         self::assertSame(2.0, $puzzle->imageRatio);
@@ -81,11 +81,9 @@ final class PuzzleApprovalControllerTest extends WebTestCase
     }
 
     /**
-     * Approving without touching the single "Alternative name" field keeps every other name: the field is prefilled
-     * with the one name the old forms knew (the Czech one, not simply the first), and applied unchanged it changes
-     * nothing. Left empty it would remove that name.
+     * The names editor is prefilled with every name in order, its language included - approved untouched, nothing changes
      */
-    public function testApprovingWithoutTouchingTheAlternativeNameKeepsEveryName(): void
+    public function testApprovingWithoutTouchingTheNamesKeepsEveryName(): void
     {
         $browser = $this->signedInAdmin();
         $names = [
@@ -101,7 +99,11 @@ final class PuzzleApprovalControllerTest extends WebTestCase
 
         $crawler = $browser->request('GET', self::URL);
         $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form();
-        self::assertSame('Dvacet dílků', $form->getValues()['approve_puzzle_form[alternativeName]']);
+        $values = $form->getValues();
+        self::assertSame('Twenty Pieces', $values['approve_puzzle_form[names][alternativeNames][0][name]']);
+        self::assertSame('', $values['approve_puzzle_form[names][alternativeNames][0][language]']);
+        self::assertSame('Dvacet dílků', $values['approve_puzzle_form[names][alternativeNames][1][name]']);
+        self::assertSame('cs', $values['approve_puzzle_form[names][alternativeNames][1][language]']);
 
         $browser->submit($form, ['approve_puzzle_form[brandChoice]' => 'approve']);
 
@@ -110,6 +112,62 @@ final class PuzzleApprovalControllerTest extends WebTestCase
         $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_UNAPPROVED);
         self::assertTrue($puzzle->approved);
         self::assertSame($names, $puzzle->alternativeNames()->toArray());
+        self::assertNull($puzzle->nameLanguage);
+    }
+
+    public function testTheModeratorSetsTheNamesBeforeApproving(): void
+    {
+        $browser = $this->signedInAdmin();
+
+        $crawler = $browser->request('GET', self::URL);
+        $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form(['approve_puzzle_form[brandChoice]' => 'approve']);
+
+        // The player typed the Czech box's title: the moderator adds the English one and makes it the main title
+        $values = $form->getPhpValues();
+        self::assertIsArray($values['approve_puzzle_form']);
+        $values['approve_puzzle_form']['names'] = [
+            'name' => 'Twenty Pieces',
+            'nameLanguage' => '',
+            'alternativeNames' => [
+                ['name' => 'Puzzle 20', 'language' => 'cs'],
+                ['name' => 'Zwanzig Teile', 'language' => 'de'],
+            ],
+        ];
+        $browser->request('POST', self::URL, $values);
+
+        self::assertResponseRedirects('/admin/puzzle-approvals');
+
+        $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_UNAPPROVED);
+        self::assertTrue($puzzle->approved);
+        self::assertSame('Twenty Pieces', $puzzle->name);
+        self::assertSame([
+            ['name' => 'Puzzle 20', 'language' => 'cs'],
+            ['name' => 'Zwanzig Teile', 'language' => 'de'],
+        ], $puzzle->alternativeNames()->toArray());
+    }
+
+    public function testAnApprovalOfAPuzzleChangedMeanwhileIsRefused(): void
+    {
+        $browser = $this->signedInAdmin();
+
+        $crawler = $browser->request('GET', self::URL);
+        $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form(['approve_puzzle_form[brandChoice]' => 'approve']);
+
+        // A moderator edits the puzzle directly in the meantime
+        $edit = $browser->request('GET', '/admin/puzzles/' . PuzzleFixture::PUZZLE_UNAPPROVED . '/edit');
+        $browser->submit($edit->filter('form[data-controller~="puzzle-record"]')->form(), [
+            'puzzle_record_form[piecesCount]' => '1020',
+        ]);
+        self::assertResponseRedirects();
+
+        $browser->submit($form);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        self::assertSelectorTextContains('form[data-controller~="puzzle-record"]', 'This puzzle was changed while you were editing it. Reload to see the current state.');
+
+        $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_UNAPPROVED);
+        self::assertFalse($puzzle->approved);
+        self::assertSame(1020, $puzzle->piecesCount);
     }
 
     public function testANewBrandNeedsADecision(): void

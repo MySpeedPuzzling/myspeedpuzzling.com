@@ -6,16 +6,17 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Manufacturer;
-use SpeedPuzzling\Web\Entity\PuzzleModerationDecision;
 use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Entity\PuzzleModerationDecision;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleApproval;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyApproved;
 use SpeedPuzzling\Web\Message\ApprovePuzzle;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
-use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleApprovalBrandChoice;
+use SpeedPuzzling\Web\Value\PuzzleModerationAction;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -113,6 +114,8 @@ final class ApprovePuzzleHandlerTest extends KernelTestCase
                 puzzleId: PuzzleFixture::PUZZLE_500_01,
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 name: 'Anything',
+                nameLanguage: null,
+                alternativeNames: new PuzzleNames(),
                 piecesCount: 500,
                 ean: null,
                 identificationNumber: null,
@@ -152,6 +155,8 @@ final class ApprovePuzzleHandlerTest extends KernelTestCase
             puzzleId: PuzzleFixture::PUZZLE_UNAPPROVED,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             name: $name,
+            nameLanguage: null,
+            alternativeNames: new PuzzleNames(),
             piecesCount: $piecesCount,
             ean: $ean,
             identificationNumber: $identificationNumber,

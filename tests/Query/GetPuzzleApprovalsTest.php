@@ -9,8 +9,8 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Message\ApprovePuzzle;
-use SpeedPuzzling\Web\Results\PuzzleDuplicateCandidate;
 use SpeedPuzzling\Web\Query\GetPuzzleApprovals;
+use SpeedPuzzling\Web\Results\PuzzleDuplicateCandidate;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -52,6 +52,8 @@ final class GetPuzzleApprovalsTest extends KernelTestCase
             puzzleId: PuzzleFixture::PUZZLE_UNAPPROVED,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             name: 'Puzzle 20',
+            nameLanguage: null,
+            alternativeNames: new PuzzleNames(),
             piecesCount: 1000,
             ean: null,
             identificationNumber: null,

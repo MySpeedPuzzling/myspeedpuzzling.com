@@ -43,7 +43,7 @@ readonly final class PuzzleChoicesBuilder
     /**
      * @param iterable<AutocompletePuzzle|PuzzleOverview> $puzzles
      *
-     * @return list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int}>
+     * @return list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int, search: string}>
      */
     public function build(iterable $puzzles, string $locale): array
     {
@@ -97,6 +97,16 @@ HTML;
                     static fn (null|string $code): bool => $code !== null && $code !== '',
                 )),
                 'piecesCount' => $puzzle->piecesCount,
+                // Blue-green: a page of the previous release searches (and trusts) `search`, the old one field of
+                // the main name, one other name, the codes and the piece count - never in SEARCH_FIELDS, dropped in
+                // phase 1c
+                'search' => implode(' ', array_filter([
+                    $puzzle->puzzleName,
+                    $alternativeName,
+                    $puzzle->puzzleIdentificationNumber,
+                    $puzzle->puzzleEan,
+                    (string) $puzzle->piecesCount,
+                ], static fn (null|string $value): bool => $value !== null && $value !== '')),
             ];
         }
 

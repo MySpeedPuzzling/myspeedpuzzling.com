@@ -36,7 +36,10 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
 
             self::assertNotSame('', $option['name']);
 
-            foreach ([$option['name'], $option['names'], $option['codes']] as $searchable) {
+            // `search`: what a page of the previous release searches during a blue-green deploy (dropped in 1c)
+            self::assertStringContainsString((string) $option['piecesCount'], $option['search']);
+
+            foreach ([$option['name'], $option['names'], $option['codes'], $option['search']] as $searchable) {
                 self::assertStringNotContainsStringIgnoringCase('pieces', $searchable);
                 self::assertStringNotContainsString('<', $searchable);
             }
@@ -94,6 +97,7 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
             self::assertSame('<img src=x onerror=alert(1)>', $option['name']);
             self::assertSame('<b onmouseover=alert(2)>Kočky</b>', $option['names']);
             self::assertSame("\"><svg onload=alert(4)>\n<script>alert(3)</script>", $option['codes']);
+            self::assertSame('<img src=x onerror=alert(1)> <b onmouseover=alert(2)>Kočky</b> <script>alert(3)</script> "><svg onload=alert(4)> 500', $option['search']);
         }
 
         self::assertStringContainsString('&lt;b onmouseover=alert(2)&gt;Kočky&lt;/b&gt; <small>(&lt;img src=x onerror=alert(1)&gt;)</small>', $option['text']);
@@ -179,18 +183,18 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
     }
 
     /**
-     * @return list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int}>
+     * @return list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int, search: string}>
      */
     private static function options(KernelBrowser $browser): array
     {
-        /** @var array{results: list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int}>} $data */
+        /** @var array{results: list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int, search: string}>} $data */
         $data = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
 
         return $data['results'];
     }
 
     /**
-     * @return array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int}
+     * @return array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int, search: string}
      */
     private static function option(KernelBrowser $browser, string $puzzleId): array
     {

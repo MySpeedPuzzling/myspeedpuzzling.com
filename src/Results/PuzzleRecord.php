@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 
 /**
  * A puzzle's catalogue record as it is now, for moderators: nothing hidden (the image of a puzzle still
@@ -15,7 +16,7 @@ readonly final class PuzzleRecord
     public function __construct(
         public string $puzzleId,
         public string $name,
-        public null|string $alternativeName,
+        public PuzzleNames $alternativeNames,
         public null|string $manufacturerId,
         public null|string $manufacturerName,
         public bool $manufacturerApproved,
@@ -48,7 +49,7 @@ readonly final class PuzzleRecord
         return new self(
             puzzleId: $puzzleId,
             name: $name,
-            alternativeName: is_string($row['alternative_name']) ? $row['alternative_name'] : null,
+            alternativeNames: PuzzleNames::fromJson(is_string($row['alternative_names']) ? $row['alternative_names'] : null),
             manufacturerId: is_string($row['manufacturer_id']) ? $row['manufacturer_id'] : null,
             manufacturerName: is_string($row['manufacturer_name']) ? $row['manufacturer_name'] : null,
             manufacturerApproved: $row['manufacturer_approved'] === true,

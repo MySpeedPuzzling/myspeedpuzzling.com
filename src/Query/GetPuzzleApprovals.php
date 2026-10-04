@@ -180,6 +180,7 @@ SQL,
 SELECT
     p.id AS puzzle_id,
     p.name AS puzzle_name,
+    p.alternative_names,
     p.pieces_count,
     p.image,
     p.ean,

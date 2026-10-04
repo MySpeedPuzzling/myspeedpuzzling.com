@@ -42,7 +42,6 @@ readonly final class GetComparisonPuzzles
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name,
-    puzzle.alternative_name,
     manufacturer.name AS manufacturer_name,
     puzzle.pieces_count,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > CAST(:now AS TIMESTAMP) THEN NULL ELSE puzzle.image END AS image,
@@ -57,7 +56,6 @@ SQL;
          * @var list<array{
          *     puzzle_id: string,
          *     name: string,
-         *     alternative_name: null|string,
          *     manufacturer_name: null|string,
          *     pieces_count: int,
          *     image: null|string,
@@ -76,7 +74,6 @@ SQL;
             $byId[strtolower($row['puzzle_id'])] = new ComparisonPuzzle(
                 puzzleId: $row['puzzle_id'],
                 name: $row['name'],
-                alternativeName: $row['alternative_name'],
                 manufacturerName: $row['manufacturer_name'],
                 piecesCount: (int) $row['pieces_count'],
                 image: $row['image'],

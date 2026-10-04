@@ -20,7 +20,7 @@ final class GetComparisonPuzzlesTest extends KernelTestCase
         $query = self::getContainer()->get(GetComparisonPuzzles::class);
 
         $brand = $this->seedManufacturer('Comparison Brand');
-        $first = $this->seedPuzzle(500, name: 'Lighthouse', manufacturerId: $brand, image: 'puzzles/lighthouse.jpg', imageRatio: 1.25, alternativeName: 'Maják');
+        $first = $this->seedPuzzle(500, name: 'Lighthouse', manufacturerId: $brand, image: 'puzzles/lighthouse.jpg', imageRatio: 1.25);
         $second = $this->seedPuzzle(1000, name: 'Surprise', manufacturerId: $brand, hideImageUntil: $now->modify('+7 days'), image: 'puzzles/surprise.jpg', imageRatio: 0.8);
         $hidden = $this->seedPuzzle(1000, name: 'Not yet', hideUntil: $now->modify('+7 days'));
         $noBrand = $this->seedPuzzle(300, name: 'Brandless');
@@ -30,7 +30,6 @@ final class GetComparisonPuzzlesTest extends KernelTestCase
         self::assertSame([$second, $first, $noBrand], array_keys($puzzles));
 
         self::assertSame('Lighthouse', $puzzles[$first]->name);
-        self::assertSame('Maják', $puzzles[$first]->alternativeName);
         self::assertSame('Comparison Brand', $puzzles[$first]->manufacturerName);
         self::assertSame(500, $puzzles[$first]->piecesCount);
         self::assertSame('puzzles/lighthouse.jpg', $puzzles[$first]->image);

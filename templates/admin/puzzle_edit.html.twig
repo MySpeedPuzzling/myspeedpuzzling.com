@@ -9,7 +9,7 @@
 
     {% set edit_fields = [
         {label: 'Name', widget: form.name, help: null, current: puzzle.name, currentValue: puzzle.name},
-        {label: 'Alternative name', widget: form.alternativeName, help: null, current: puzzle.alternativeName, currentValue: puzzle.alternativeName},
+        {label: 'Alternative name', widget: form.alternativeName, help: null, current: puzzle.alternativeNames.legacyAlternativeName(), currentValue: puzzle.alternativeNames.legacyAlternativeName()},
         {label: 'Brand', widget: form.manufacturerId, help: null, current: puzzle.manufacturerName, currentValue: puzzle.manufacturerId},
         {label: 'Pieces', widget: form.piecesCount, help: null, current: puzzle.piecesCount, currentValue: puzzle.piecesCount},
         {label: 'EAN', widget: form.ean, help: 'Comma-separated - one code per edition or region. Never reduce the list.', current: puzzle.ean, currentValue: puzzle.ean},

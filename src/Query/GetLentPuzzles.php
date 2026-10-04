@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\LentPuzzleOverview;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 
 readonly final class GetLentPuzzles
 {
@@ -30,7 +31,7 @@ SELECT
     lp.current_holder_name as holder_text_name,
     p.id as puzzle_id,
     p.name as puzzle_name,
-    p.alternative_name as puzzle_alternative_name,
+    p.alternative_names as puzzle_alternative_names,
     p.pieces_count,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS image_ratio,
@@ -58,7 +59,7 @@ SQL;
              *     holder_text_name: string|null,
              *     puzzle_id: string,
              *     puzzle_name: string,
-             *     puzzle_alternative_name: string|null,
+             *     puzzle_alternative_names: string,
              *     pieces_count: int,
              *     image: string|null,
              *     image_ratio: string|null,
@@ -73,7 +74,7 @@ SQL;
                 lentPuzzleId: $row['lent_puzzle_id'],
                 puzzleId: $row['puzzle_id'],
                 puzzleName: $row['puzzle_name'],
-                puzzleAlternativeName: $row['puzzle_alternative_name'],
+                puzzleAlternativeNames: PuzzleNames::fromJson($row['puzzle_alternative_names']),
                 piecesCount: $row['pieces_count'],
                 manufacturerName: $row['manufacturer_name'],
                 image: $row['image'],
@@ -127,7 +128,7 @@ SELECT
     lp.current_holder_name as holder_text_name,
     p.id as puzzle_id,
     p.name as puzzle_name,
-    p.alternative_name as puzzle_alternative_name,
+    p.alternative_names as puzzle_alternative_names,
     p.pieces_count,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS image_ratio,
@@ -149,7 +150,7 @@ SQL;
          *     holder_text_name: string|null,
          *     puzzle_id: string,
          *     puzzle_name: string,
-         *     puzzle_alternative_name: string|null,
+         *     puzzle_alternative_names: string,
          *     pieces_count: int,
          *     image: string|null,
          *     image_ratio: string|null,
@@ -171,7 +172,7 @@ SQL;
             lentPuzzleId: $row['lent_puzzle_id'],
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
-            puzzleAlternativeName: $row['puzzle_alternative_name'],
+            puzzleAlternativeNames: PuzzleNames::fromJson($row['puzzle_alternative_names']),
             piecesCount: $row['pieces_count'],
             manufacturerName: $row['manufacturer_name'],
             image: $row['image'],

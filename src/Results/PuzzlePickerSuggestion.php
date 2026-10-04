@@ -23,7 +23,6 @@ readonly final class PuzzlePickerSuggestion
     public function __construct(
         public string $puzzleId,
         public string $puzzleName,
-        public null|string $puzzleAlternativeName,
         public null|string $puzzleIdentificationNumber,
         public null|string $puzzleEan,
         public null|string $manufacturerId,
@@ -63,7 +62,6 @@ readonly final class PuzzlePickerSuggestion
      * @param array{
      *     puzzle_id: string,
      *     puzzle_name: string,
-     *     puzzle_alternative_name: null|string,
      *     puzzle_identification_number: null|string,
      *     puzzle_ean: null|string,
      *     manufacturer_id: null|string,
@@ -96,7 +94,6 @@ readonly final class PuzzlePickerSuggestion
         return new self(
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
-            puzzleAlternativeName: $row['puzzle_alternative_name'],
             puzzleIdentificationNumber: $row['puzzle_identification_number'],
             puzzleEan: $row['puzzle_ean'],
             manufacturerId: $row['manufacturer_id'],

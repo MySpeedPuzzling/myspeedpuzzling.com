@@ -37,9 +37,11 @@ final class PuzzleByBrandAutocompleteController extends AbstractController
         $results = [];
 
         foreach ($this->searchPuzzle->byBrandId($brandSearch) as $puzzle) {
-            if ($request->getLocale() === 'cs' && $puzzle->puzzleAlternativeName !== null) {
+            $alternativeName = $puzzle->puzzleAlternativeNames->legacyAlternativeName();
+
+            if ($request->getLocale() === 'cs' && $alternativeName !== null) {
                 $puzzleName = <<<HTML
-{$puzzle->puzzleAlternativeName} <small>({$puzzle->puzzleName})</small>
+{$alternativeName} <small>({$puzzle->puzzleName})</small>
 HTML;
             } else {
                 $puzzleName = $puzzle->puzzleName;
@@ -77,7 +79,7 @@ HTML;
             // matched every puzzle. Only what identifies the puzzle belongs here - no labels, no locale.
             $search = implode(' ', array_filter([
                 $puzzle->puzzleName,
-                $puzzle->puzzleAlternativeName,
+                $alternativeName,
                 $puzzle->puzzleIdentificationNumber,
                 $puzzle->puzzleEan,
                 (string) $puzzle->piecesCount,

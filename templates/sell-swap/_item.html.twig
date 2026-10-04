@@ -19,7 +19,7 @@
      data-difficulty-score="{{ insight is not null and insight.difficultyScore is not null ? insight.difficultyScore|number_format(4, '.', '') : '' }}"
      {% endif %}
      data-puzzle-name="{{ item.puzzleName }}"
-     data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"
+     data-puzzle-alternative-name="{{ item.puzzleAlternativeNames.legacyAlternativeName() ?? '' }}"
      data-puzzle-code="{{ item.puzzleIdentificationNumber ?? '' }}"
      data-ean="{{ item.ean ?? '' }}"
      data-manufacturer="{{ item.manufacturerName ?? '' }}"

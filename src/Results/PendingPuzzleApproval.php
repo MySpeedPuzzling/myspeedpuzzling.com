@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 
 /**
  * A newly added puzzle waiting in the approval queue.
@@ -14,6 +15,7 @@ readonly final class PendingPuzzleApproval
     public function __construct(
         public string $puzzleId,
         public string $puzzleName,
+        public PuzzleNames $alternativeNames,
         public int $piecesCount,
         public null|string $image,
         public null|string $ean,
@@ -42,6 +44,7 @@ readonly final class PendingPuzzleApproval
          * @var array{
          *     puzzle_id: string,
          *     puzzle_name: string,
+         *     alternative_names: string,
          *     pieces_count: int,
          *     image: null|string,
          *     ean: null|string,
@@ -63,6 +66,7 @@ readonly final class PendingPuzzleApproval
         return new self(
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
+            alternativeNames: PuzzleNames::fromJson($row['alternative_names']),
             piecesCount: $row['pieces_count'],
             image: $row['image'],
             ean: $row['ean'],

@@ -42,6 +42,7 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
  *     id: string,
  *     name: string,
  *     alternative_name: null|string,
+ *     alternative_names: list<array{name: string, language: null|string}>,
  *     manufacturer: array{id: string, name: string},
  *     pieces_count: int,
  *     image: null|string,
@@ -527,7 +528,7 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $this->assertSame(['count', 'total', 'page', 'limit', 'has_more', 'puzzles'], array_keys($raw));
         $card = $this->firstRawCard($browser);
         $this->assertSame(
-            ['id', 'name', 'alternative_name', 'manufacturer', 'pieces_count', 'image', 'ean', 'identification_number', 'is_available', 'is_approved', 'statistics', 'difficulty', 'prediction', 'solves'],
+            ['id', 'name', 'alternative_name', 'alternative_names', 'manufacturer', 'pieces_count', 'image', 'ean', 'identification_number', 'is_available', 'is_approved', 'statistics', 'difficulty', 'prediction', 'solves'],
             array_keys($card),
         );
         $rawStatistics = $card['statistics'];
@@ -539,6 +540,7 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $this->assertSame(PuzzleFixture::PUZZLE_500_01, $puzzle['id']);
         $this->assertSame('Puzzle 1', $puzzle['name']);
         $this->assertNull($puzzle['alternative_name']);
+        $this->assertSame([], $puzzle['alternative_names']);
         $this->assertSame(['id' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER, 'name' => 'Ravensburger'], $puzzle['manufacturer']);
         $this->assertSame(500, $puzzle['pieces_count']);
         $this->assertNull($puzzle['ean']);

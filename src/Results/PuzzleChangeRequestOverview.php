@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
 readonly final class PuzzleChangeRequestOverview
@@ -21,7 +22,7 @@ readonly final class PuzzleChangeRequestOverview
         public null|string $puzzleImage,
         public null|float $puzzleImageRatio,
         public null|string $puzzleManufacturerName,
-        public null|string $puzzleAlternativeName,
+        public PuzzleNames $puzzleAlternativeNames,
         public null|string $puzzleManufacturerId,
         public null|string $puzzleEan,
         public null|string $puzzleIdentificationNumber,
@@ -81,7 +82,7 @@ readonly final class PuzzleChangeRequestOverview
             puzzleImage: is_string($row['puzzle_image']) ? $row['puzzle_image'] : null,
             puzzleImageRatio: is_numeric($row['puzzle_image_ratio'] ?? null) ? (float) $row['puzzle_image_ratio'] : null,
             puzzleManufacturerName: is_string($row['puzzle_manufacturer_name']) ? $row['puzzle_manufacturer_name'] : null,
-            puzzleAlternativeName: is_string($row['puzzle_alternative_name'] ?? null) ? $row['puzzle_alternative_name'] : null,
+            puzzleAlternativeNames: PuzzleNames::fromJson(is_string($row['puzzle_alternative_names'] ?? null) ? $row['puzzle_alternative_names'] : null),
             puzzleManufacturerId: is_string($row['puzzle_manufacturer_id'] ?? null) ? $row['puzzle_manufacturer_id'] : null,
             puzzleEan: is_string($row['puzzle_ean'] ?? null) ? $row['puzzle_ean'] : null,
             puzzleIdentificationNumber: is_string($row['puzzle_identification_number'] ?? null) ? $row['puzzle_identification_number'] : null,

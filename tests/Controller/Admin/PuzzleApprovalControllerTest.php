@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleModerationDecision;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Field\FileFormField;
@@ -75,6 +78,38 @@ final class PuzzleApprovalControllerTest extends WebTestCase
         self::assertNotNull($decision);
         self::assertSame('New photo, the player\'s was blurry', $decision->note);
         self::assertSame('upload', $decision->details['image'] ?? null);
+    }
+
+    /**
+     * Approving without touching the single "Alternative name" field keeps every other name: the field is prefilled
+     * with the one name the old forms knew (the Czech one, not simply the first), and applied unchanged it changes
+     * nothing. Left empty it would remove that name.
+     */
+    public function testApprovingWithoutTouchingTheAlternativeNameKeepsEveryName(): void
+    {
+        $browser = $this->signedInAdmin();
+        $names = [
+            ['name' => 'Twenty Pieces', 'language' => null],
+            ['name' => 'Dvacet dílků', 'language' => 'cs'],
+        ];
+        $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
+        $puzzle = $entityManager->find(Puzzle::class, PuzzleFixture::PUZZLE_UNAPPROVED);
+        self::assertNotNull($puzzle);
+        $puzzle->changeNames($puzzle->name, $puzzle->nameLanguage, PuzzleNames::fromArray($names), new DateTimeImmutable());
+        $entityManager->flush();
+        $entityManager->clear();
+
+        $crawler = $browser->request('GET', self::URL);
+        $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form();
+        self::assertSame('Dvacet dílků', $form->getValues()['approve_puzzle_form[alternativeName]']);
+
+        $browser->submit($form, ['approve_puzzle_form[brandChoice]' => 'approve']);
+
+        self::assertResponseRedirects('/admin/puzzle-approvals');
+
+        $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_UNAPPROVED);
+        self::assertTrue($puzzle->approved);
+        self::assertSame($names, $puzzle->alternativeNames()->toArray());
     }
 
     public function testANewBrandNeedsADecision(): void

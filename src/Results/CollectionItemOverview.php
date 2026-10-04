@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 
 readonly final class CollectionItemOverview
 {
@@ -12,7 +13,7 @@ readonly final class CollectionItemOverview
         public string $collectionItemId,
         public string $puzzleId,
         public string $puzzleName,
-        public null|string $puzzleAlternativeName,
+        public PuzzleNames $puzzleAlternativeNames,
         public null|string $puzzleIdentificationNumber,
         public null|string $ean,
         public int $piecesCount,

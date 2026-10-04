@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
+use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleIntelligenceFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class AddedTrackingRecapControllerTest extends WebTestCase
@@ -30,6 +35,30 @@ final class AddedTrackingRecapControllerTest extends WebTestCase
         $browser->request('GET', '/en/tracking-added/' . PuzzleSolvingTimeFixture::TIME_01);
 
         $this->assertResponseIsSuccessful();
+    }
+
+    /**
+     * Until the names display ships, the recap shows the one other name of old: the Czech one, not simply the first
+     */
+    public function testShowsTheCzechOtherName(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
+        $puzzle = $entityManager->find(Puzzle::class, PuzzleFixture::PUZZLE_500_01);
+        self::assertNotNull($puzzle);
+        $puzzle->changeNames($puzzle->name, $puzzle->nameLanguage, PuzzleNames::fromArray([
+            ['name' => 'Puzzle One', 'language' => null],
+            ['name' => 'Hádanka jedna', 'language' => 'cs'],
+        ]), new DateTimeImmutable());
+        $entityManager->flush();
+        $entityManager->clear();
+
+        $browser->request('GET', '/en/tracking-added/' . PuzzleSolvingTimeFixture::TIME_01);
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextSame('h3.card-title + p', 'Hádanka jedna');
     }
 
     public function testCollectionCtaIsShownForPuzzleNotInCollection(): void

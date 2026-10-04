@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 
 final class PuzzlesSorterTest extends TestCase
 {
@@ -204,7 +205,7 @@ final class PuzzlesSorterTest extends TestCase
             playerCountry: null,
             puzzleId: $puzzleId,
             puzzleName: $puzzleId,
-            puzzleAlternativeName: null,
+            puzzleAlternativeNames: new PuzzleNames(),
             manufacturerName: 'Manufacturer',
             piecesCount: 500,
             time: $time,

@@ -27,7 +27,6 @@ SELECT
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     puzzle.name AS puzzle_name,
-    puzzle.alternative_name AS puzzle_alternative_name,
     puzzle_statistics.solved_times_count AS solved_times,
     puzzle_statistics.average_time_solo,
     puzzle_statistics.fastest_time_solo,
@@ -53,7 +52,6 @@ SQL;
              * @var array{
              *     puzzle_id: string,
              *     puzzle_name: string,
-             *     puzzle_alternative_name: null|string,
              *     puzzle_image: null|string,
              *     puzzle_image_ratio: null|string,
              *     solved_times: int,
@@ -84,7 +82,6 @@ SELECT
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     puzzle.name AS puzzle_name,
-    puzzle.alternative_name AS puzzle_alternative_name,
     count(puzzle_solving_time.puzzle_id) AS solved_times,
     AVG(CASE WHEN team IS NULL THEN seconds_to_solve END) AS average_time_solo,
     MIN(CASE WHEN team IS NULL THEN seconds_to_solve END) AS fastest_time_solo,
@@ -114,7 +111,6 @@ SQL;
              * @var array{
              *     puzzle_id: string,
              *     puzzle_name: string,
-             *     puzzle_alternative_name: null|string,
              *     puzzle_image: null|string,
              *     puzzle_image_ratio: null|string,
              *     solved_times: int,

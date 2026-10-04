@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\Puzzler;
 
 readonly final class SolvedPuzzle
@@ -18,7 +19,7 @@ readonly final class SolvedPuzzle
         public null|CountryCode $playerCountry,
         public string $puzzleId,
         public string $puzzleName,
-        public null|string $puzzleAlternativeName,
+        public PuzzleNames $puzzleAlternativeNames,
         public string $manufacturerName,
         public int $piecesCount,
         public null|int $time,
@@ -61,7 +62,7 @@ readonly final class SolvedPuzzle
      *     player_country: null|string,
      *     puzzle_id: string,
      *     puzzle_name: string,
-     *     puzzle_alternative_name: null|string,
+     *     puzzle_alternative_names: string,
      *     manufacturer_name: string,
      *     puzzle_image: null|string,
      *     puzzle_image_ratio: null|string,
@@ -113,7 +114,7 @@ readonly final class SolvedPuzzle
             playerCountry: CountryCode::fromCode($row['player_country']),
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
-            puzzleAlternativeName: $row['puzzle_alternative_name'],
+            puzzleAlternativeNames: PuzzleNames::fromJson($row['puzzle_alternative_names']),
             manufacturerName: $row['manufacturer_name'],
             piecesCount: $row['pieces_count'],
             time: $row['time'],

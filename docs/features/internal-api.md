@@ -57,7 +57,7 @@ Players report duplicate puzzles; approving a report merges them. **A merge is d
 | `POST` | `/internal-api/puzzle-merge-requests/{id}/approve` | Merge the puzzles |
 | `POST` | `/internal-api/puzzle-merge-requests/{id}/reject` | Decline the report |
 
-`GET` takes `limit` (1-100, default 25) and `offset`. It returns `totalPending` plus, per request, every candidate puzzle with its name, piece count, EAN, catalogue number, manufacturer, **a ready-to-fetch `imageUrl`**, and the weight of its history (`solvedTimesCount`, `collectionItemsCount`, …). Whether two puzzles are the same product is usually settled by comparing the artwork, so the image URL is the point of the endpoint. `actionable` is false when fewer than two of the reported puzzles still exist (an earlier merge already deleted one) — such a request cannot be merged, only rejected.
+`GET` takes `limit` (1-100, default 25) and `offset`. It returns `totalPending` plus, per request, every candidate puzzle with its name, its other names (`alternativeNames`: `[{"name", "language"}]` in order, language a BCP 47 tag or null; `alternativeName` keeps the one other name of old - the first Czech one, else the first), piece count, EAN, catalogue number, manufacturer, **a ready-to-fetch `imageUrl`**, and the weight of its history (`solvedTimesCount`, `collectionItemsCount`, …). Whether two puzzles are the same product is usually settled by comparing the artwork, so the image URL is the point of the endpoint. `actionable` is false when fewer than two of the reported puzzles still exist (an earlier merge already deleted one) — such a request cannot be merged, only rejected.
 
 Approve body:
 

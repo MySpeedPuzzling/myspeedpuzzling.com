@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
 use SpeedPuzzling\Web\Query\GetMarketplaceListings;
 use SpeedPuzzling\Web\Results\MarketplaceListingItem;
+use SpeedPuzzling\Web\Tests\ChangesPuzzleRecords;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -21,6 +22,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetMarketplaceListingsTest extends KernelTestCase
 {
+    use ChangesPuzzleRecords;
+
     private GetMarketplaceListings $query;
 
     protected function setUp(): void
@@ -503,27 +506,43 @@ final class GetMarketplaceListingsTest extends KernelTestCase
         self::assertSame([], $this->query->search(searchTerm: '1000'));
         self::assertSame(0, $this->query->count(searchTerm: '1000'));
 
-        $this->updatePuzzle(PuzzleFixture::PUZZLE_500_03, ['name' => 'Kingdom 1000']);
+        self::renamePuzzle(PuzzleFixture::PUZZLE_500_03, 'Kingdom 1000');
         $items = $this->query->search(searchTerm: '1000', sort: 'relevance', limit: 100);
 
         self::assertSame([PuzzleFixture::PUZZLE_500_03], self::puzzleIds($items));
         self::assertSame(count($items), $this->query->count(searchTerm: '1000'));
     }
 
-    public function testExactEanEndingInZeroIsTheMostRelevant(): void
+    public function testExactEanIsMoreRelevantThanALongerCodeContainingIt(): void
     {
-        // On a tie the newer listing comes first: PUZZLE_1000_01 is listed 4 and 15 days ago, PUZZLE_500_02 18 days ago
-        $this->updatePuzzle(PuzzleFixture::PUZZLE_500_02, ['ean' => '4005556123450']);
-        $this->updatePuzzle(PuzzleFixture::PUZZLE_1000_01, ['ean' => '4005556123450, 4005556000017']);
+        // PUZZLE_1000_01 is listed 4 and 15 days ago, PUZZLE_500_02 18 days ago: the match beats the newer listing
+        self::changePuzzleEan(PuzzleFixture::PUZZLE_500_02, '4005556123450');
+        self::changePuzzleEan(PuzzleFixture::PUZZLE_1000_01, '40055561234501, 4005556000017');
 
-        foreach (['4005556123450', '23450'] as $search) {
-            $items = $this->query->search(searchTerm: $search, sort: 'relevance', limit: 100);
+        $items = $this->query->search(searchTerm: '4005556123450', sort: 'relevance', limit: 100);
+        self::assertSame([PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_1000_01], self::puzzleIds($items));
+        self::assertSame(count($items), $this->query->count(searchTerm: '4005556123450'));
 
-            self::assertSame([PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_1000_01], self::puzzleIds($items), $search);
-            self::assertSame(count($items), $this->query->count(searchTerm: $search));
-        }
+        // A part of both codes: the same tier, so the newer listing first
+        $items = $this->query->search(searchTerm: '23450', sort: 'relevance', limit: 100);
+        self::assertSame([PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_500_02], self::puzzleIds($items));
+        self::assertSame(count($items), $this->query->count(searchTerm: '23450'));
 
         self::assertSame([], $this->query->search(searchTerm: '3450'));
+    }
+
+    public function testEveryNameOfAPuzzleIsSearched(): void
+    {
+        // Listed PUZZLE_1000_02 is also "Kouzelná zahrada" (cs) and "Zauberhafter Garten" (de)
+        foreach (['kouzelna', 'ZAUBERHAFTER', 'zahrada'] as $search) {
+            $items = $this->query->search(searchTerm: $search, sort: 'relevance', limit: 100);
+
+            self::assertSame([PuzzleFixture::PUZZLE_1000_02], self::puzzleIds($items), $search);
+            self::assertSame(count($items), $this->query->count(searchTerm: $search), $search);
+        }
+
+        // Spaces only are no search
+        self::assertSame($this->query->count(), $this->query->count(searchTerm: '   '));
     }
 
     /**
@@ -534,16 +553,6 @@ final class GetMarketplaceListingsTest extends KernelTestCase
     private static function puzzleIds(array $items): array
     {
         return array_values(array_unique(array_map(static fn (MarketplaceListingItem $item): string => $item->puzzleId, $items)));
-    }
-
-    /**
-     * @param array<string, string> $columns
-     */
-    private function updatePuzzle(string $puzzleId, array $columns): void
-    {
-        $assignments = implode(', ', array_map(static fn (string $column): string => "$column = :$column", array_keys($columns)));
-
-        self::getContainer()->get(Connection::class)->executeStatement("UPDATE puzzle SET $assignments WHERE id = :id", [...$columns, 'id' => $puzzleId]);
     }
 
     /**

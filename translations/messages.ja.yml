@@ -259,6 +259,7 @@
   "all_pieces": "すべてのピース数"
 "sorting":
   "sort_by": "並び順"
+  "best_match": "関連度順"
   "newest_times": "最新"
   "oldest_times": "最古"
   "fastest_times": "最速"
@@ -1668,6 +1669,7 @@
   "info": "新しい検索へようこそ！パズル名、ean、またはコードで検索。プレイヤーを名前またはコードで検索。フィードバックをお聞かせください。"
   "no_player_found": "プレイヤーが見つかりません :-("
   "no_puzzle_found": "パズルが見つかりません :-("
+  "show_all_puzzles": "%count%件の結果をすべて表示"
 "membership_payment_cancelled":
   "meta":
     "title": "支払いキャンセル"

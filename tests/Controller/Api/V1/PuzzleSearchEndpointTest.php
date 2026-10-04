@@ -221,6 +221,45 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $this->assertSame([], $response['puzzles']);
     }
 
+    public function testEanLookupNeverMatchesALongerCodeContainingIt(): void
+    {
+        $browser = $this->createApiClient();
+        $this->authenticatePat($browser, PlayerFixture::PLAYER_REGULAR);
+
+        // PUZZLE_500_02 carries 4005556123456; the code without its check digit is a part of it, not a barcode
+        $browser->request('GET', self::ENDPOINT, ['ean' => '400555612345']);
+        $this->assertResponseIsSuccessful();
+        $this->assertSame(0, $this->decode($browser)['total']);
+    }
+
+    /**
+     * sort=best-match is an addition: the default stays the most solved first, also with a query
+     */
+    public function testBestMatchSortRanksTheWholeNameFirst(): void
+    {
+        $browser = $this->createApiClient();
+        $this->authenticatePat($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', self::ENDPOINT, ['query' => 'Puzzle 1', 'sort' => 'best-match', 'limit' => 100]);
+        $this->assertResponseIsSuccessful();
+        $bestMatch = $this->ids($this->decode($browser));
+        $this->assertSame(PuzzleFixture::PUZZLE_500_01, $bestMatch[0]); // "Puzzle 1" - the others only start with it
+
+        $browser->request('GET', self::ENDPOINT, ['query' => 'Puzzle 1', 'limit' => 100]);
+        $this->assertResponseIsSuccessful();
+        $default = $this->ids($this->decode($browser));
+        $browser->request('GET', self::ENDPOINT, ['query' => 'Puzzle 1', 'sort' => 'most-solved', 'limit' => 100]);
+        $this->assertSame($this->ids($this->decode($browser)), $default);
+        $this->assertEqualsCanonicalizing($bestMatch, $default);
+
+        // Without a query there is nothing to match: the most solved first, for everyone
+        $browser->request('GET', self::ENDPOINT, ['sort' => 'best-match', 'limit' => 100]);
+        $this->assertResponseIsSuccessful();
+        $withoutQuery = $this->ids($this->decode($browser));
+        $browser->request('GET', self::ENDPOINT, ['limit' => 100]);
+        $this->assertSame($this->ids($this->decode($browser)), $withoutQuery);
+    }
+
     public function testEanCannotBeCombinedWithOtherFilters(): void
     {
         $browser = $this->createApiClient();
@@ -845,7 +884,7 @@ final class PuzzleSearchEndpointTest extends WebTestCase
 
         $parameters = $this->assertOpenApiHasParameters($browser, self::ENDPOINT, self::PARAMETER_NAMES);
 
-        $this->assertSame(['most-solved', 'least-solved', 'a-z', 'z-a', 'easiest', 'hardest'], $parameters['sort']['schema']['enum'] ?? null);
+        $this->assertSame(['best-match', 'most-solved', 'least-solved', 'a-z', 'z-a', 'easiest', 'hardest'], $parameters['sort']['schema']['enum'] ?? null);
         $this->assertSame('most-solved', $parameters['sort']['schema']['default'] ?? null);
         /** @var array{items?: array{enum?: list<string>}} $difficultySchema */
         $difficultySchema = $parameters['difficulty']['schema'];

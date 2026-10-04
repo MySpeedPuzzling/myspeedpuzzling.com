@@ -78,8 +78,12 @@ final class PuzzleSearch
     #[LiveProp(writable: true, url: true)]
     public array $difficultyTiers = [];
 
+    /**
+     * The sort the visitor picked - null until they pick one: then the best match applies while a term is typed,
+     * the most solved otherwise (PuzzleSearchCriteria). The URL carries a pick only.
+     */
     #[LiveProp(writable: true, url: true)]
-    public string $sortBy = 'most-solved';
+    public null|string $sortBy = null;
 
     /**
      * "Only puzzles from my ..." (see PuzzleSearchList) - signed-in players only,
@@ -131,7 +135,7 @@ final class PuzzleSearch
         private readonly CacheInterface $cache,
     ) {
         $this->puzzleStatuses = UserPuzzleStatuses::empty();
-        $this->criteria = PuzzleSearchCriteria::fromUserInput(null, null, null, null, [], 'most-solved', false);
+        $this->criteria = PuzzleSearchCriteria::fromUserInput(null, null, null, null, [], null, false);
     }
 
     public function onPiecesBoundsUpdated(): void
@@ -209,7 +213,7 @@ final class PuzzleSearch
         $this->piecesMax = $piecesRange->maxPieces;
         $this->tagId = $this->criteria->tagId;
         $this->difficultyTiers = array_map(strval(...), $this->criteria->difficultyTiers);
-        $this->sortBy = $this->criteria->sortBy;
+        $this->sortBy = $this->criteria->chosenSort;
         $this->list = $this->criteria->list?->value();
     }
 
@@ -397,17 +401,31 @@ final class PuzzleSearch
     }
 
     /**
+     * The order that applies - the picked one, or the default for the typed term
+     */
+    public function getActiveSort(): string
+    {
+        return $this->criteria->sortBy;
+    }
+
+    /**
+     * "Best match" only while a term is typed
+     *
      * @return list<array{value: string, label: string, premium: bool}>
      */
     public function getSortOptions(): array
     {
+        $sorts = $this->criteria->hasSearchTerm()
+            ? PuzzleSearchCriteria::VALID_SORTS
+            : array_values(array_diff(PuzzleSearchCriteria::VALID_SORTS, [PuzzleSearchCriteria::BEST_MATCH]));
+
         return array_map(
             static fn (string $sort): array => [
                 'value' => $sort,
                 'label' => 'sorting.' . str_replace('-', '_', $sort),
                 'premium' => in_array($sort, PuzzleSearchCriteria::PREMIUM_SORTS, true),
             ],
-            PuzzleSearchCriteria::VALID_SORTS,
+            $sorts,
         );
     }
 
@@ -515,7 +533,7 @@ final class PuzzleSearch
             $item->expiresAfter(3600);
             $pieces = PiecesRange::any();
 
-            $puzzles = $this->searchPuzzle->byUserInput(null, null, $pieces, null, 'most-solved', 0);
+            $puzzles = $this->searchPuzzle->byUserInput(null, null, $pieces, null, PuzzleSearchCriteria::MOST_SOLVED, 0);
             $puzzleIds = array_map(static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId, $puzzles);
 
             return [

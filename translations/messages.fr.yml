@@ -260,6 +260,7 @@
   "all_pieces": "Toutes les pièces"
 "sorting":
   "sort_by": "Trier par"
+  "best_match": "Meilleure correspondance"
   "newest_times": "Plus récents"
   "oldest_times": "Plus anciens"
   "fastest_times": "Plus rapides"
@@ -1589,6 +1590,7 @@
   "info": "Bienvenue nouvelle recherche ! Recherchez par nom de puzzle, ean ou code. Recherchez un joueur par nom ou code. Veuillez nous faire part de vos commentaires."
   "no_player_found": "Aucun joueur trouvé :-("
   "no_puzzle_found": "Aucun puzzle trouvé :-("
+  "show_all_puzzles": "Voir %count% résultat|Voir les %count% résultats"
 "claim_voucher":
   "title": "Utiliser un bon"
   "intro": "Saisissez le code de votre bon pour profiter des avantages de l'adhésion."

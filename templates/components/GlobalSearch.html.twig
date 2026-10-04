@@ -118,6 +118,14 @@
                         </div>
                     </div>
                 {% endfor %}
+
+                {% if computed.puzzle|length > 0 %}
+                    <p class="text-center mt-2 mb-0">
+                        <a class="btn btn-sm btn-outline-primary" data-turbo-frame="_top" href="{{ path('puzzles', {search: this.query}) }}">
+                            {{ 'global_search.show_all_puzzles'|trans({'%count%': computed.puzzleCount}) }}
+                        </a>
+                    </p>
+                {% endif %}
             </div>
         {% endif %}
 

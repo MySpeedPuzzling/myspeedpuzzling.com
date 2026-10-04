@@ -236,6 +236,44 @@ final class PuzzleSearchTest extends WebTestCase
         }
     }
 
+    public function testATypedTermIsOrderedByBestMatchUntilAnotherSortIsPicked(): void
+    {
+        $client = self::createClient();
+        $component = $this->search($client, null, ['search' => 'puzzle 1']);
+        $crawler = new Crawler($component->refresh()->render()->toString());
+
+        // The whole name "Puzzle 1" before "Puzzle 10".."Puzzle 19", whatever their solves
+        self::assertSame('best-match', $this->activeSort($crawler));
+        self::assertSame('puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01, $crawler->filter('[id^="puzzle-list-item-"]')->first()->attr('id'));
+        self::assertNull($this->puzzleSearchOf($component)->sortBy, 'Nothing picked - the URL carries no sort');
+
+        $component->call('changeSortBy', ['sort' => 'a-z']);
+        self::assertSame('a-z', $this->activeSort(new Crawler($component->render()->toString())));
+
+        // The pick stays when the term goes, and "Best match" is no longer offered
+        $component->set('search', '');
+        $crawler = new Crawler($component->render()->toString());
+        self::assertSame('a-z', $this->activeSort($crawler));
+        self::assertCount(0, $crawler->filter('[data-live-sort-param="best-match"]'));
+        self::assertSame('a-z', $this->puzzleSearchOf($component)->sortBy);
+    }
+
+    public function testBrowsingIsMostSolvedFirstWithoutBestMatch(): void
+    {
+        $client = self::createClient();
+        $component = $this->search($client, null, ['sortBy' => 'best-match']);
+        $crawler = new Crawler($component->render()->toString());
+
+        self::assertSame('most-solved', $this->activeSort($crawler));
+        self::assertCount(0, $crawler->filter('[data-live-sort-param="best-match"]'));
+        self::assertNull($this->puzzleSearchOf($component)->sortBy);
+    }
+
+    private function activeSort(Crawler $crawler): null|string
+    {
+        return $crawler->filter('[data-live-action-param="changeSortBy"].active')->attr('data-live-sort-param');
+    }
+
     /**
      * The instance rebuilt from the props of the last response, with its puzzles loaded as a render would
      */

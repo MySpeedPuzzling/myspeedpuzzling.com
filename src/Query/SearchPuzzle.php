@@ -11,8 +11,8 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Results\AutocompletePuzzle;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Services\PuzzleTextSearch;
 use SpeedPuzzling\Web\Value\PiecesRange;
-use SpeedPuzzling\Web\Value\PuzzleCodeSearch;
 use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
 use SpeedPuzzling\Web\Value\PuzzleSearchList;
 use SpeedPuzzling\Web\Value\PuzzleSearchListKind;
@@ -47,6 +47,9 @@ readonly final class SearchPuzzle
 
         [$listCondition, $listParams] = self::listFilter($list, $listPlayerId);
 
+        $textSearch = PuzzleTextSearch::fromUserInput($search);
+        $textCondition = self::andCondition($textSearch->condition('puzzle'));
+
         $query = <<<SQL
 SELECT
     COUNT(DISTINCT puzzle.id) AS count
@@ -58,26 +61,15 @@ WHERE
     AND (:brandId::uuid IS NULL OR manufacturer_id = :brandId)
     AND (:minPieces::int IS NULL OR pieces_count >= :minPieces)
     AND (:maxPieces::int IS NULL OR pieces_count <= :maxPieces)
-    AND (
-        puzzle.alternative_name ILIKE :searchFullLikeQuery
-        OR puzzle.name ILIKE :searchFullLikeQuery
-        OR immutable_unaccent(puzzle.alternative_name) ILIKE immutable_unaccent(:searchFullLikeQuery)
-        OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchFullLikeQuery)
-        OR identification_number ILIKE :codeSearchLikeQuery
-        OR ean ILIKE :eanSearchLikeQuery
-   )
+    {$textCondition}
     AND (:useTags = false OR tag_puzzle.tag_id IN(:tag))
     {$difficultyCondition}
     {$listCondition}
 SQL;
 
-        $codeSearch = PuzzleCodeSearch::fromUserInput($search);
-
         $params = [
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-            'searchFullLikeQuery' => "%$search%",
-            'codeSearchLikeQuery' => $codeSearch->codePattern(),
-            'eanSearchLikeQuery' => $codeSearch->eanPattern(),
+            ...$textSearch->parameters(),
             'brandId' => $brandId,
             'minPieces' => $pieces->minPieces,
             'maxPieces' => $pieces->maxPieces,
@@ -127,13 +119,28 @@ SQL;
             throw new ManufacturerNotFound();
         }
 
-        if (in_array($sortBy, ['most-solved', 'least-solved', 'a-z', 'z-a', 'easiest', 'hardest'], true) === false) {
+        if (in_array($sortBy, PuzzleSearchCriteria::VALID_SORTS, true) === false) {
             $sortBy = 'most-solved';
         }
 
         [$difficultyJoin, $difficultyCondition, $ratedTiers] = self::difficultyFilter($difficultyTiers);
 
         [$listCondition, $listParams] = self::listFilter($list, $listPlayerId);
+
+        $textSearch = PuzzleTextSearch::fromUserInput($search);
+        $textCondition = self::andCondition($textSearch->condition('puzzle'));
+        $matchScore = $textSearch->score('puzzle');
+
+        // Every other sort keeps the match as its tiebreak
+        $orderBy = match ($sortBy) {
+            'best-match' => 'pb.match_score DESC, solved_times DESC, pb.puzzle_name, m.name',
+            'least-solved' => 'solved_times ASC, pb.match_score DESC, pb.puzzle_name, m.name',
+            'a-z' => 'pb.puzzle_name, pb.match_score DESC, m.name, pb.pieces_count',
+            'z-a' => 'pb.puzzle_name DESC, pb.match_score DESC, m.name DESC, pb.pieces_count',
+            'easiest' => 'pdi.difficulty_score ASC NULLS LAST, pb.match_score DESC, pb.puzzle_name',
+            'hardest' => 'pdi.difficulty_score DESC NULLS LAST, pb.match_score DESC, pb.puzzle_name',
+            default => 'solved_times DESC, pb.match_score DESC, pb.puzzle_name, m.name',
+        };
 
         $query = <<<SQL
 WITH puzzle_base AS (
@@ -150,31 +157,7 @@ WITH puzzle_base AS (
         puzzle.ean AS puzzle_ean,
         puzzle.identification_number AS puzzle_identification_number,
         puzzle.hide_image_until,
-        CASE
-            WHEN puzzle.alternative_name ILIKE :searchQuery
-              OR puzzle.name ILIKE :searchQuery
-              OR puzzle.identification_number ILIKE :codeSearchQuery
-              OR ltrim(puzzle.ean, '0') = :eanSearchQuery THEN 7
-            WHEN immutable_unaccent(puzzle.alternative_name) ILIKE immutable_unaccent(:searchQuery)
-              OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchQuery) THEN 6
-            WHEN puzzle.identification_number ILIKE :codeSearchEndLikeQuery
-              OR puzzle.identification_number ILIKE :codeSearchStartLikeQuery
-              OR puzzle.ean ILIKE :eanSearchEndLikeQuery
-              OR puzzle.ean ILIKE :eanSearchStartLikeQuery THEN 5
-            WHEN puzzle.alternative_name ILIKE :searchEndLikeQuery
-              OR puzzle.alternative_name ILIKE :searchStartLikeQuery
-              OR puzzle.name ILIKE :searchEndLikeQuery
-              OR puzzle.name ILIKE :searchStartLikeQuery THEN 4
-            WHEN immutable_unaccent(puzzle.alternative_name) ILIKE immutable_unaccent(:searchEndLikeQuery)
-              OR immutable_unaccent(puzzle.alternative_name) ILIKE immutable_unaccent(:searchStartLikeQuery)
-              OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchEndLikeQuery)
-              OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchStartLikeQuery) THEN 3
-            WHEN puzzle.identification_number ILIKE :codeSearchLikeQuery
-              OR puzzle.ean ILIKE :eanSearchLikeQuery THEN 2
-            WHEN puzzle.alternative_name ILIKE :searchFullLikeQuery
-              OR puzzle.name ILIKE :searchFullLikeQuery THEN 1
-            ELSE 0
-        END AS match_score
+        {$matchScore} AS match_score
     FROM puzzle
     LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
     {$difficultyJoin}
@@ -183,14 +166,7 @@ WITH puzzle_base AS (
         AND (:brandId::uuid IS NULL OR manufacturer_id = :brandId)
         AND (:minPieces::int IS NULL OR pieces_count >= :minPieces)
         AND (:maxPieces::int IS NULL OR pieces_count <= :maxPieces)
-        AND (
-            puzzle.alternative_name ILIKE :searchFullLikeQuery
-            OR puzzle.name ILIKE :searchFullLikeQuery
-            OR immutable_unaccent(puzzle.alternative_name) ILIKE immutable_unaccent(:searchFullLikeQuery)
-            OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchFullLikeQuery)
-            OR puzzle.identification_number ILIKE :codeSearchLikeQuery
-            OR puzzle.ean ILIKE :eanSearchLikeQuery
-        )
+        {$textCondition}
         AND (:useTags = 0 OR tag_puzzle.tag_id IN(:tag))
         {$difficultyCondition}
         {$listCondition}
@@ -221,44 +197,13 @@ FROM puzzle_base pb
 LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = pb.puzzle_id
 LEFT JOIN puzzle_difficulty pdi ON pdi.puzzle_id = pb.puzzle_id
 INNER JOIN manufacturer m ON pb.manufacturer_id = m.id
+ORDER BY {$orderBy}
+LIMIT :limit OFFSET :offset
 SQL;
-        if ($sortBy === 'most-solved') {
-            $query .= ' ORDER BY solved_times DESC, pb.match_score DESC, pb.puzzle_name, m.name ';
-        }
-
-        if ($sortBy === 'least-solved') {
-            $query .= ' ORDER BY solved_times ASC, pb.match_score DESC, pb.puzzle_name, m.name ';
-        }
-
-        if ($sortBy === 'a-z') {
-            $query .= ' ORDER BY pb.puzzle_name, pb.match_score DESC, m.name, pb.pieces_count ';
-        }
-
-        if ($sortBy === 'z-a') {
-            $query .= ' ORDER BY pb.puzzle_name DESC, pb.match_score DESC, m.name DESC, pb.pieces_count ';
-        }
-
-        if ($sortBy === 'easiest') {
-            $query .= ' ORDER BY pdi.difficulty_score ASC NULLS LAST, pb.match_score DESC, pb.puzzle_name ';
-        }
-
-        if ($sortBy === 'hardest') {
-            $query .= ' ORDER BY pdi.difficulty_score DESC NULLS LAST, pb.match_score DESC, pb.puzzle_name ';
-        }
-
-         $query .= ' LIMIT :limit OFFSET :offset';
-
-        $codeSearch = PuzzleCodeSearch::fromUserInput($search);
 
         $params = [
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-            'searchQuery' => $search,
-            'searchStartLikeQuery' => "%$search",
-            'searchEndLikeQuery' => "$search%",
-            'searchFullLikeQuery' => "%$search%",
-            'codeSearchLikeQuery' => $codeSearch->codePattern(),
-            'eanSearchLikeQuery' => $codeSearch->eanPattern(),
-            ...$codeSearch->scoreParameters(),
+            ...$textSearch->parameters(),
             'brandId' => $brandId,
             'limit' => $limit,
             'minPieces' => $pieces->minPieces,
@@ -312,6 +257,11 @@ SQL;
 
             return PuzzleOverview::fromDatabaseRow($row);
         }, $data);
+    }
+
+    private static function andCondition(string $condition): string
+    {
+        return $condition === '' ? '' : 'AND ' . $condition;
     }
 
     /**
@@ -410,9 +360,9 @@ SQL;
     }
 
     /**
-     * Every puzzle whose barcode (list) contains the given EAN, leading zeros
-     * tolerated (barcode scanners and typed-in codes differ in exactly that) -
-     * a code shorter than 5 digits only as the whole column (PuzzleCodeSearch).
+     * Every puzzle that carries the given barcode as one of its EANs, leading
+     * zeros tolerated (barcode scanners and typed-in codes differ in exactly
+     * that) - never a longer code containing it (PuzzleTextSearch).
      * Secret competition puzzles (hide_until in the future) are never returned;
      * an embargoed image (hide_image_until) comes back null.
      *
@@ -420,9 +370,10 @@ SQL;
      */
     public function allByEan(string $ean): array
     {
-        $eanPattern = PuzzleCodeSearch::fromUserInput($ean)->eanPattern();
+        $textSearch = PuzzleTextSearch::fromUserInput($ean);
+        $barcodeCondition = $textSearch->barcodeCondition('puzzle');
 
-        if ($eanPattern === null) {
+        if ($barcodeCondition === null) {
             return [];
         }
 
@@ -452,7 +403,7 @@ FROM puzzle
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
 LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = puzzle.id
 WHERE
-    puzzle.ean LIKE :eanPattern
+    {$barcodeCondition}
     AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
 ORDER BY solved_times DESC, puzzle.name, manufacturer.name
 SQL;
@@ -460,7 +411,7 @@ SQL;
         $rows = $this->database
             ->executeQuery($query, [
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-                'eanPattern' => $eanPattern,
+                ...$textSearch->parameters(),
             ])
             ->fetchAllAssociative();
 
@@ -539,7 +490,7 @@ WHERE
         OR puzzle.hide_until <= :now::timestamp
         {$secretPuzzlesOfCompetition}
     )
-ORDER BY COALESCE(puzzle.alternative_name, puzzle.name) ASC, manufacturer_name ASC, pieces_count ASC
+ORDER BY puzzle.name ASC, manufacturer_name ASC, pieces_count ASC
 SQL;
 
         $data = $this->database

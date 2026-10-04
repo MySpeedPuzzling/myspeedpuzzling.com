@@ -70,25 +70,6 @@ readonly final class Ean
     }
 
     /**
-     * Whether a stored puzzle.ean value (possibly a comma-separated list of codes,
-     * possibly with leading zeros) carries this code.
-     */
-    public function isListedIn(null|string $storedEan): bool
-    {
-        if ($storedEan === null) {
-            return false;
-        }
-
-        foreach (explode(',', $storedEan) as $part) {
-            if (ltrim(trim($part), '0') === $this->normalized()) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * GS1 modulo-10: weights 3,1,3,1… applied from the right-most data digit.
      */
     private static function checkDigit(string $data): int

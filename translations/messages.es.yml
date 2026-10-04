@@ -259,6 +259,7 @@
   "all_pieces": "Todas las piezas"
 "sorting":
   "sort_by": "Ordenar por"
+  "best_match": "Mejor coincidencia"
   "newest_times": "Más nuevos"
   "oldest_times": "Más antiguos"
   "fastest_times": "Más rápidos"
@@ -1579,6 +1580,7 @@
   "info": "¡Bienvenida nueva búsqueda! Busca por nombre del puzzle, ean o código. Busca jugador por nombre o código. Por favor déjanos saber tus comentarios."
   "no_player_found": "No se encontró jugador :-("
   "no_puzzle_found": "No se encontró puzzle :-("
+  "show_all_puzzles": "Ver %count% resultado|Ver los %count% resultados"
 "added_tracking_recap":
   "meta":
     "title": "Puzzle registrado"

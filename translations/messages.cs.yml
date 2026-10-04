@@ -258,6 +258,7 @@
   "all_pieces": "Všechny dílky"
 "sorting":
   "sort_by": "Řadit podle"
+  "best_match": "Nejlepší shoda"
   "newest_times": "Nejnovější"
   "oldest_times": "Nejstarší"
   "fastest_times": "Nejrychlejší"
@@ -1587,6 +1588,7 @@ comparison:
   "info": "Přivítejte nové vyhledávání! Vyhledávejte podle názvu puzzle, EAN nebo kódu. Hledejte hráče podle jména nebo kódu. Dejte nám prosím vědět vaši zpětnou vazbu."
   "no_player_found": "Nenalezen žádný hráč :-("
   "no_puzzle_found": "Nenalezeny žádné puzzle :-("
+  "show_all_puzzles": "Zobrazit %count% výsledek|Zobrazit všechny %count% výsledky|Zobrazit všech %count% výsledků"
 "claim_voucher":
   "title": "Uplatnit voucher"
   "intro": "Zadejte kód voucheru a získejte výhody členství."

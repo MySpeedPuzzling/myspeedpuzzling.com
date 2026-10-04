@@ -98,6 +98,64 @@ final class PuzzleSearchCriteriaTest extends TestCase
         self::assertArrayNotHasKey('list', $asGuest->toQueryParameters());
     }
 
+    public function testBestMatchIsTheDefaultWhileATermIsTyped(): void
+    {
+        $typed = self::sorted('cat', null);
+        self::assertSame(PuzzleSearchCriteria::BEST_MATCH, $typed->sortBy);
+        self::assertNull($typed->chosenSort);
+        self::assertTrue($typed->hasSearchTerm());
+        self::assertArrayNotHasKey('sortBy', $typed->toQueryParameters());
+        self::assertEquals($typed, PuzzleSearchCriteria::fromRequest(Request::create('/', 'GET', $typed->toQueryParameters()), isMember: false));
+
+        foreach ([null, '', '   ', "\u{200B}"] as $nothing) {
+            $browsing = self::sorted($nothing, null);
+            self::assertSame(PuzzleSearchCriteria::MOST_SOLVED, $browsing->sortBy);
+            self::assertFalse($browsing->hasSearchTerm());
+            self::assertArrayNotHasKey('sortBy', $browsing->toQueryParameters());
+        }
+
+        self::assertTrue(self::sorted(null, null)->isDefault());
+    }
+
+    public function testAPickedSortStaysWhateverIsTyped(): void
+    {
+        $picked = self::sorted('cat', PuzzleSearchCriteria::MOST_SOLVED);
+        self::assertSame(PuzzleSearchCriteria::MOST_SOLVED, $picked->sortBy);
+        self::assertSame(PuzzleSearchCriteria::MOST_SOLVED, $picked->chosenSort);
+        self::assertSame(PuzzleSearchCriteria::MOST_SOLVED, $picked->toQueryParameters()['sortBy']);
+        self::assertEquals($picked, PuzzleSearchCriteria::fromRequest(Request::create('/', 'GET', $picked->toQueryParameters()), isMember: false));
+
+        self::assertSame('a-z', self::sorted(null, 'a-z')->sortBy);
+        self::assertSame('a-z', self::sorted('cat', 'a-z')->sortBy);
+
+        // The pick is kept for when a term is typed; the URL of the page left as it is
+        $mostSolvedWhileBrowsing = self::sorted(null, PuzzleSearchCriteria::MOST_SOLVED);
+        self::assertSame(PuzzleSearchCriteria::MOST_SOLVED, $mostSolvedWhileBrowsing->chosenSort);
+        self::assertArrayNotHasKey('sortBy', $mostSolvedWhileBrowsing->toQueryParameters());
+        self::assertTrue($mostSolvedWhileBrowsing->isDefault());
+    }
+
+    public function testBestMatchWithoutATermAndUnknownSortsAreNoPick(): void
+    {
+        foreach ([[null, PuzzleSearchCriteria::BEST_MATCH], ['  ', PuzzleSearchCriteria::BEST_MATCH], [null, 'newest'], [null, '']] as [$search, $sort]) {
+            $criteria = self::sorted($search, $sort);
+
+            self::assertNull($criteria->chosenSort);
+            self::assertSame(PuzzleSearchCriteria::MOST_SOLVED, $criteria->sortBy);
+        }
+
+        self::assertSame(PuzzleSearchCriteria::BEST_MATCH, self::sorted('cat', 'newest')->sortBy);
+    }
+
+    public function testDifficultySortOfANonMemberFallsBackToTheDefault(): void
+    {
+        self::assertSame(PuzzleSearchCriteria::BEST_MATCH, self::sorted('cat', 'easiest')->sortBy);
+        self::assertNull(self::sorted('cat', 'easiest')->chosenSort);
+        self::assertSame(PuzzleSearchCriteria::MOST_SOLVED, self::sorted(null, 'hardest')->sortBy);
+
+        self::assertSame('easiest', self::sorted('cat', 'easiest', isMember: true)->sortBy);
+    }
+
     public function testNotRatedYetIsAMembersOnlyDifficultyValue(): void
     {
         $member = PuzzleSearchCriteria::fromUserInput(null, null, null, null, ['0', '3', '9', '-1', 'x'], 'most-solved', true);
@@ -135,5 +193,10 @@ final class PuzzleSearchCriteriaTest extends TestCase
         if ($canonical !== null) {
             self::assertSame($canonical, $criteria->toQueryParameters()['pieces']);
         }
+    }
+
+    private static function sorted(null|string $search, null|string $sortBy, bool $isMember = false): PuzzleSearchCriteria
+    {
+        return PuzzleSearchCriteria::fromUserInput(null, $search, null, null, [], $sortBy, $isMember);
     }
 }

@@ -300,6 +300,7 @@ filters:
 
 sorting:
     sort_by: "Sort by"
+    best_match: "Best match"
     newest_times: "Newest"
     oldest_times: "Oldest"
     fastest_times: "Fastest"
@@ -1818,6 +1819,7 @@ global_search:
     info: "Welcome new search! Search by puzzle name, ean or code. Search player by name or code. Please let us know your feedback."
     no_player_found: "No player found :-("
     no_puzzle_found: "No puzzle found :-("
+    show_all_puzzles: "Show %count% result|Show all %count% results"
 
 claim_voucher:
     title: "Claim voucher"

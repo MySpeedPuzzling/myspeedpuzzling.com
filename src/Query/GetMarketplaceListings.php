@@ -13,8 +13,8 @@ use SpeedPuzzling\Web\Results\MarketplaceEvent;
 use SpeedPuzzling\Web\Results\MarketplaceListingItem;
 use SpeedPuzzling\Web\Results\MarketplaceListingsCount;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PuzzleTextSearch;
 use SpeedPuzzling\Web\Value\ListingType;
-use SpeedPuzzling\Web\Value\PuzzleCodeSearch;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
 
@@ -150,7 +150,8 @@ JOIN player pl ON ssli.player_id = pl.id';
         bool $onlyBringing = false,
         null|string $viewerId = null,
     ): array {
-        $hasSearch = $searchTerm !== null && $searchTerm !== '';
+        $textSearch = PuzzleTextSearch::fromUserInput($searchTerm);
+        $hasSearch = $textSearch->isEmpty() === false;
         $event = self::validUuid($event);
         $viewerId = self::validUuid($viewerId);
 
@@ -181,35 +182,7 @@ JOIN player pl ON ssli.player_id = pl.id';
 
         if ($hasSearch && $sort === 'relevance') {
             $matchScore = ',
-    CASE
-        WHEN p.alternative_name ILIKE :searchQuery
-          OR p.name ILIKE :searchQuery
-          OR p.identification_number ILIKE :codeSearchQuery
-          OR ltrim(p.ean, \'0\') = :eanSearchQuery THEN 7
-        WHEN immutable_unaccent(p.alternative_name) ILIKE immutable_unaccent(:searchQuery)
-          OR immutable_unaccent(p.name) ILIKE immutable_unaccent(:searchQuery) THEN 6
-        WHEN p.identification_number ILIKE :codeSearchEndLikeQuery
-          OR p.identification_number ILIKE :codeSearchStartLikeQuery
-          OR p.ean ILIKE :eanSearchEndLikeQuery
-          OR p.ean ILIKE :eanSearchStartLikeQuery THEN 5
-        WHEN p.alternative_name ILIKE :searchEndLikeQuery
-          OR p.alternative_name ILIKE :searchStartLikeQuery
-          OR p.name ILIKE :searchEndLikeQuery
-          OR p.name ILIKE :searchStartLikeQuery THEN 4
-        WHEN immutable_unaccent(p.alternative_name) ILIKE immutable_unaccent(:searchEndLikeQuery)
-          OR immutable_unaccent(p.alternative_name) ILIKE immutable_unaccent(:searchStartLikeQuery)
-          OR immutable_unaccent(p.name) ILIKE immutable_unaccent(:searchEndLikeQuery)
-          OR immutable_unaccent(p.name) ILIKE immutable_unaccent(:searchStartLikeQuery) THEN 3
-        WHEN p.identification_number ILIKE :codeSearchLikeQuery
-          OR p.ean ILIKE :eanSearchLikeQuery THEN 2
-        WHEN p.alternative_name ILIKE :searchFullLikeQuery
-          OR p.name ILIKE :searchFullLikeQuery THEN 1
-        ELSE 0
-    END AS match_score';
-            $params['searchQuery'] = $searchTerm;
-            $params['searchStartLikeQuery'] = '%' . $searchTerm;
-            $params['searchEndLikeQuery'] = $searchTerm . '%';
-            $params = [...$params, ...PuzzleCodeSearch::fromUserInput($searchTerm)->scoreParameters()];
+    ' . $textSearch->score('p') . ' AS match_score';
         }
 
         // Sorting by difficulty reads the score through the tier filter's join (a PK lookup), or joins it itself.
@@ -469,20 +442,12 @@ SQL;
         $params = [];
         $types = [];
 
-        if ($searchTerm !== null && $searchTerm !== '') {
+        $textSearch = PuzzleTextSearch::fromUserInput($searchTerm);
+
+        if ($textSearch->isEmpty() === false) {
             $conditions .= '
-    AND (
-        p.alternative_name ILIKE :searchFullLikeQuery
-        OR p.name ILIKE :searchFullLikeQuery
-        OR immutable_unaccent(p.alternative_name) ILIKE immutable_unaccent(:searchFullLikeQuery)
-        OR immutable_unaccent(p.name) ILIKE immutable_unaccent(:searchFullLikeQuery)
-        OR p.identification_number ILIKE :codeSearchLikeQuery
-        OR p.ean ILIKE :eanSearchLikeQuery
-    )';
-            $codeSearch = PuzzleCodeSearch::fromUserInput($searchTerm);
-            $params['searchFullLikeQuery'] = '%' . $searchTerm . '%';
-            $params['codeSearchLikeQuery'] = $codeSearch->codePattern();
-            $params['eanSearchLikeQuery'] = $codeSearch->eanPattern();
+    AND ' . $textSearch->condition('p');
+            $params = [...$params, ...$textSearch->parameters()];
         }
 
         if ($manufacturerId !== null && $manufacturerId !== '') {

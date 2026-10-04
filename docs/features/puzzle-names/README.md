@@ -87,14 +87,14 @@ EAN lines (`e:`) hold digits without leading zeros; brand-code lines (`c:`) hold
 matter: 167 brand codes equal some stored EAN. A code that is not an EAN ("X002ROECA7") is a `c:` line, never folded
 to digits.
 
-**Query.** `SearchQuery::fromUserInput()` folds, then escapes `\ % _`, then builds the patterns. An empty query after
+**Query.** `PuzzleSearchQuery::fromUserInput()` folds, then escapes `\ % _`, then builds the patterns. An empty query after
 folding means no text filter at all (browsing). Indexes: `custom_puzzle_search_names_trgm` and
 `custom_puzzle_search_codes_trgm` (GIN `gin_trgm_ops`), created in the migration, mirrored in
 `tests/bootstrap.php`, registered in `docs/database-indexes.md`.
 
 | Rank | Match | Pattern |
 |---|---|---|
-| 6 | exact EAN or brand code | `search_codes LIKE '%\ne:4005556147090\n%'` (or `\nc:…\n`) |
+| 6 | exact EAN or brand code | `search_codes LIKE '%e:4005556147090\n%'` (or `c:…\n`; a tag always starts a line) |
 | 5 | a whole name | `search_names LIKE '%\nq\n%'` |
 | 4 | a name starts with it | `search_names LIKE '%\nq%'` |
 | 3 | a word starts with it | `search_names LIKE '% q%'` |
@@ -199,4 +199,20 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
 - **Phase 0 - two stored XSS sinks outside the plan fixed with it:** stopwatch milestone labels (player names) and the
   toast body (multiscan puts a puzzle name into it) are rendered as text.
 - **Phase 1b - the puzzle query object is `PuzzleSearchQuery`** (`SearchQuery` already exists for the players search).
+- **Phase 1b - code patterns without the newline before the tag** (`%e:…\n%`, `%c:…\n%`): a line holds no colon after
+  its tag, so the tag always starts a line and the patterns match the same rows - but the trigram index no longer reads
+  the posting lists of the tag letter, which is in nearly every key (exact EAN 67 → 43 index pages).
+- **Phase 1b - the barcode lookups** (`allByEan`, `FindPuzzlesByExactEan`, so multiscan) ask the index for a code line
+  ending with the number (`search_codes LIKE '%4005556147090\n%'`) and check the whole `\ne:…\n` line on the rows it
+  finds (`strpos`): the same rows as `LIKE '%e:…\n%'`, 34 index pages instead of 43 - as cheap as the old substring
+  lookup on `ean`, which was not exact.
+- **Phase 1b - only the tests a query has**: `PuzzleTextSearch` leaves out the test of a pattern the query has none of
+  (instead of binding NULL), and a part of a code (5+) covers the whole-code tests in the WHERE condition, so those are
+  left out there (one bitmap index scan less; the score keeps them for tier 6).
+- **Phase 1b - sort state**: the catalogue's `sortBy` URL/live prop is what the visitor picked (null = nothing). Without
+  a pick the best match applies while a term is typed, the most solved otherwise; a pick stays until another one (also
+  when the term is cleared); "Best match" is offered only while a term is typed and is no pick without one. The shared
+  first-page cache still serves only the term-less most-solved view (unchanged key).
+- **Phase 1b - "Show all N results"** in the header search is shown whenever it found a puzzle (also when all of them
+  are among the 15): it leads to the catalogue with its filters.
 

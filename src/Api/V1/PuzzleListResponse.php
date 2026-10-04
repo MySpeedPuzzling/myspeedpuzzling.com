@@ -37,9 +37,10 @@ use Symfony\Component\Validator\Constraints\Type;
                 tags: ['Puzzles'],
                 summary: 'Search the puzzle catalog or look a puzzle up by barcode',
                 description: 'Returns puzzle cards - the same catalog as the website\'s puzzle search. '
-                    . 'Without any filter the whole catalog is listed (most solved first); "query" searches names, '
-                    . 'alternative names, identification numbers and barcodes accent-insensitively; "ean" is an exact '
-                    . 'barcode lookup (leading zeros tolerated) and cannot be combined with the other filters. '
+                    . 'Without any filter the whole catalog is listed (most solved first); "query" searches every name '
+                    . 'of a puzzle (all languages), identification numbers and barcodes, ignoring accents and case; '
+                    . 'sort=best-match orders by how well it matched. "ean" is an exact barcode lookup (leading zeros '
+                    . 'tolerated, never a part of a longer code) and cannot be combined with the other filters. '
                     . 'Secret competition puzzles are never returned and an embargoed image is null until its release. '
                     . 'Every card carries three insight objects that are always present and null when the token is not '
                     . 'entitled to them: "difficulty" (token owner must be a member), "prediction" (member who has not '
@@ -61,7 +62,7 @@ use Symfony\Component\Validator\Constraints\Type;
                 'query' => new QueryParameter(
                     key: 'query',
                     schema: ['type' => 'string', 'minLength' => 2, 'maxLength' => 100],
-                    description: 'Free-text search (2-100 characters): puzzle name and alternative name (accent-insensitive), identification number, barcode substring - the same matching as the website search box. Surrounding whitespace is ignored; an empty value is the same as omitting the parameter.',
+                    description: 'Free-text search (2-100 characters): every name of the puzzle (main title and the names of its other boxes, all languages), identification number, barcode - the same matching as the website search box, ignoring accents, case and full-width forms. A part of a code matches from 5 letters/digits on, a shorter term a whole code only. Surrounding whitespace is ignored; an empty value is the same as omitting the parameter.',
                     constraints: [new Length(min: 2, max: 100)],
                     castToNativeType: true,
                     castFn: [QueryParameterCaster::class, 'trim'],
@@ -69,7 +70,7 @@ use Symfony\Component\Validator\Constraints\Type;
                 'ean' => new QueryParameter(
                     key: 'ean',
                     schema: ['type' => 'string', 'pattern' => '^\d{8,14}$'],
-                    description: 'Exact barcode (EAN/UPC, 8-14 digits) lookup; leading zeros are tolerated. Mutually exclusive with query, manufacturer, pieces_min, pieces_max, sort and difficulty (422 when combined).',
+                    description: 'Exact barcode (EAN/UPC, 8-14 digits) lookup: puzzles that carry this code as one of their barcodes, leading zeros tolerated - never a longer code that contains it. Mutually exclusive with query, manufacturer, pieces_min, pieces_max, sort and difficulty (422 when combined).',
                     constraints: [new Regex(pattern: '/^\d{8,14}$/', message: 'ean must be 8 to 14 digits.')],
                 ),
                 'manufacturer' => new QueryParameter(
@@ -95,7 +96,7 @@ use Symfony\Component\Validator\Constraints\Type;
                 'sort' => new QueryParameter(
                     key: 'sort',
                     schema: ['type' => 'string', 'enum' => PuzzleSearchCriteria::VALID_SORTS, 'default' => 'most-solved'],
-                    description: 'Sort order. easiest and hardest (by difficulty score) are members-only: 403 for a non-member or a client_credentials token.',
+                    description: 'Sort order, most-solved by default (also with a query). best-match: how well "query" matched - the exact barcode or identification number, a whole name, a name starting with it, a word starting with it, a name containing it, a part of a code - then most solved; without a query the same as most-solved. easiest and hardest (by difficulty score) are members-only: 403 for a non-member or a client_credentials token.',
                     constraints: [new Choice(choices: PuzzleSearchCriteria::VALID_SORTS)],
                 ),
                 'difficulty' => new QueryParameter(

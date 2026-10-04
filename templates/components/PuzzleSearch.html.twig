@@ -129,7 +129,7 @@
                 <i class="bi-sort-up"></i>
                 {{ 'sorting.sort_by'|trans }}:
                 {% for option in this.sortOptions %}
-                    {% if option.value == this.sortBy %}{{ option.label|trans }}{% endif %}
+                    {% if option.value == this.activeSort %}{{ option.label|trans }}{% endif %}
                 {% endfor %}
             </button>
 
@@ -137,7 +137,7 @@
                 {% for option in this.sortOptions %}
                     {% if not option.premium or (logged_user.profile is not null and logged_user.profile.activeMembership) %}
                         <button type="button"
-                                class="dropdown-item {{ this.sortBy == option.value ? 'active' }}"
+                                class="dropdown-item {{ this.activeSort == option.value ? 'active' }}"
                                 data-action="live#action"
                                 data-live-action-param="changeSortBy"
                                 data-live-sort-param="{{ option.value }}">

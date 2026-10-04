@@ -108,7 +108,7 @@ final class GetPuzzleHistoryTest extends KernelTestCase
             editorId: PlayerFixture::PLAYER_ADMIN,
             values: new PuzzleRecordValues(
                 name: 'Puzzle 7',
-                alternativeName: 'Kouzelná zahrádka',
+                alternativeName: 'KOUZELNÁ ZAHRADA',
                 manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                 piecesCount: 1000,
                 ean: null,
@@ -122,7 +122,7 @@ final class GetPuzzleHistoryTest extends KernelTestCase
         self::assertEquals([new PuzzleHistoryChange(
             'Other names',
             'Kouzelná zahrada (cs), Zauberhafter Garten (de)',
-            'Kouzelná zahrádka (cs), Zauberhafter Garten (de)',
+            'KOUZELNÁ ZAHRADA (cs), Zauberhafter Garten (de)',
         )], $edit->changes);
     }
 

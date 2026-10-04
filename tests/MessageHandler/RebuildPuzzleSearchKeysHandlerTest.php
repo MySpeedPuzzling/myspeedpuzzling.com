@@ -7,8 +7,11 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use PDO;
+use PDOException;
 use SpeedPuzzling\Web\Message\RebuildPuzzleSearchKeys;
 use SpeedPuzzling\Web\Query\GetPuzzlesForSearchKeys;
+use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -49,6 +52,41 @@ final class RebuildPuzzleSearchKeysHandlerTest extends KernelTestCase
 
         self::assertSame(0, $this->rebuild($puzzleIds));
         self::assertSame($expected, $this->keysOf($puzzleIds));
+    }
+
+    public function testTheBatchIsLockedSoAnEditMeanwhileWaitsForIt(): void
+    {
+        // The database of this test process (tests/bootstrap.php points every ParaTest worker at its own)
+        $databaseUrl = $_ENV['DATABASE_URL'] ?? null;
+        self::assertIsString($databaseUrl);
+        $url = parse_url($databaseUrl);
+        self::assertIsArray($url);
+
+        $otherRequest = new PDO(
+            sprintf('pgsql:host=%s;port=%d;dbname=%s', $url['host'] ?? 'postgres', $url['port'] ?? 5432, ltrim($url['path'] ?? '', '/')),
+            $url['user'] ?? null,
+            $url['pass'] ?? null,
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
+        );
+
+        // In a transaction, as the handler is in the doctrine_transaction middleware
+        $lockCode = self::getContainer()->get(EntityManagerInterface::class)->wrapInTransaction(
+            static function () use ($otherRequest): null|string {
+                $puzzles = self::getContainer()->get(PuzzleRepository::class)->findByIdsForUpdate([PuzzleFixture::PUZZLE_1000_02]);
+                self::assertCount(1, $puzzles);
+
+                // Another connection - another request - cannot take the row until the batch commits
+                try {
+                    $otherRequest->query(sprintf("SELECT id FROM puzzle WHERE id = '%s' FOR UPDATE NOWAIT", PuzzleFixture::PUZZLE_1000_02));
+                } catch (PDOException $exception) {
+                    return (string) $exception->getCode();
+                }
+
+                return null;
+            },
+        );
+
+        self::assertSame('55P03', $lockCode, 'lock_not_available: the row is locked by the batch');
     }
 
     public function testThePuzzlesAreReadInBatchesById(): void

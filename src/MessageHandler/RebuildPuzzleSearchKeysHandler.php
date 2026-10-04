@@ -10,6 +10,10 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * Returns how many of the puzzles got a different key - an unchanged key is no write, so running it again is cheap.
+ *
+ * The batch is locked for update: a moderator's edit or a merge committing between loading the batch and its flush
+ * would otherwise get its fresh key overwritten by one built from the names as they were loaded. Now it waits for the
+ * batch (one batch of 500 takes ~0.15 s on a copy of production), or the batch reads its result.
  */
 #[AsMessageHandler]
 readonly final class RebuildPuzzleSearchKeysHandler
@@ -23,7 +27,7 @@ readonly final class RebuildPuzzleSearchKeysHandler
     {
         $changed = 0;
 
-        foreach ($this->puzzleRepository->findByIds($message->puzzleIds) as $puzzle) {
+        foreach ($this->puzzleRepository->findByIdsForUpdate($message->puzzleIds) as $puzzle) {
             $keys = [$puzzle->searchNames, $puzzle->searchCodes];
 
             $puzzle->refreshSearchKeys();

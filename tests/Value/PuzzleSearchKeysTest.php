@@ -67,6 +67,9 @@ final class PuzzleSearchKeysTest extends TestCase
         yield 'two numbers separated by a space only' => ['4005556147090 4005555001997', null, "\ne:4005556147090\ne:4005555001997\n"];
         yield 'two numbers around a lone dash' => ['4005556147090 - 4005555001997', null, "\ne:4005556147090\ne:4005555001997\n"];
         yield 'junk in the EAN field is a brand-code line, never digits' => ['X002ROECA7, None, -, 4005556147090', null, "\ne:4005556147090\nc:x002roeca7\nc:none\n"];
+        yield 'full-width digits and separators' => ['４００５５５６１４７０９０，４００５５５５００１９９７', null, "\ne:4005556147090\ne:4005555001997\n"];
+        yield 'the > printed after the digits under a barcode' => ['5012269036039>', null, "\ne:5012269036039\n"];
+        yield 'digits of another script are no barcode' => ['٤٠٠٥٥٥٦١٤٧٠٩٠', null, null];
         yield 'only zeros is no code' => ['0000', null, null];
         yield 'duplicates once' => ['4005556147090, 04005556147090', 'RB-500, rb 500', "\ne:4005556147090\nc:rb500\n"];
         yield 'a brand code equal to an EAN is a c: line' => ['4005556147090', '4005556147090', "\ne:4005556147090\nc:4005556147090\n"];

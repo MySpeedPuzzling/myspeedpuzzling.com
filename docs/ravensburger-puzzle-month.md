@@ -69,15 +69,16 @@ INSERT INTO puzzle (id, pieces_count, name, approved, image, image_ratio, manufa
 VALUES ('$ID', 500, 'Puzzle Month #2', true, NULL, NULL, '2e6ea6b1-6ef8-46d7-8445-fd2d77cfd09c',
     NULL, NULL, now(), NULL, NULL, false,
     '2099-01-01 00:00:00', '2099-01-01 00:00:00');" </dev/null
+docker compose exec -T web php bin/console myspeedpuzzling:rebuild-puzzle-search-keys </dev/null
 ```
 
 Adjust `pieces_count` and the name. If the launch date is already known, put it in both
 embargo columns instead of 2099 and the puzzle reveals itself with no further action.
 
-The search keys (`search_names`, `search_codes`) stay empty on purpose - a hidden placeholder must
-not be searchable. The reveal goes through a change request, and its approval builds the keys
-(`Puzzle::changeNames()`, docs/features/puzzle-names/). A placeholder that reveals itself by date
-without one becomes searchable with the next `myspeedpuzzling:rebuild-puzzle-search-keys`.
+The INSERT leaves the search keys (`search_names`, `search_codes`) empty - the entity builds them,
+SQL does not (docs/features/puzzle-names/). The rebuild after it gives the placeholder its keys like
+every other puzzle, so no puzzle is ever left without them. That does not make it findable: the
+placeholder stays secret through `hide_until`, which every search query filters on.
 
 Note the `docker compose exec -T` + heredoc gotcha from the production notes: when scripting
 this over ssh, put the commands in a file on the box and run it with `</dev/null`, or the

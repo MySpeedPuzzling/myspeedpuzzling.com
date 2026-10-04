@@ -126,8 +126,9 @@ readonly final class PuzzleNames implements Countable
 
     /**
      * The single "Alternative name" field of the moderator forms applied onto the list: unchanged value = unchanged
-     * list, blank = that name removed, another value = that name renamed (its language kept). A puzzle without names
-     * gets it as its first, in Czech when it has a letter only Czech uses.
+     * list, blank = that name removed, another value = that name replaced - keeping its language when it is the same
+     * name re-spelled (accents, case), otherwise in Czech when it has a letter only Czech uses, else without one. A
+     * puzzle without names gets it as its first, tagged the same way.
      */
     public function withLegacyAlternativeName(null|string $value): self
     {
@@ -138,7 +139,9 @@ readonly final class PuzzleNames implements Countable
             return $value === '' ? $this : new self([new PuzzleName($value, self::guessedLanguage($value))]);
         }
 
-        if ($value === self::cleanName($this->names[$index]->name)) {
+        $replaced = $this->names[$index];
+
+        if ($value === self::cleanName($replaced->name)) {
             return $this;
         }
 
@@ -150,7 +153,10 @@ readonly final class PuzzleNames implements Countable
             return new self(array_values($names));
         }
 
-        $names[$index] = new PuzzleName($value, $names[$index]->language);
+        $names[$index] = new PuzzleName(
+            $value,
+            SearchText::fold($value) === SearchText::fold($replaced->name) ? $replaced->language : self::guessedLanguage($value),
+        );
 
         return new self(array_values($names));
     }

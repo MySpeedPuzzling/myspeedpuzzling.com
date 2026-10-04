@@ -462,8 +462,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         self::assertIsArray($survivorAfter);
         self::assertSame('Survivor Name', $survivorAfter['name']);
         self::assertSame([
-            ['name' => 'Doomed Duplicate', 'language' => null],
             ['name' => 'Odsouzený duplikát', 'language' => 'cs'],
+            ['name' => 'Doomed Duplicate', 'language' => null],
             ['name' => 'Puzzle 4', 'language' => null],
         ], $survivorAfter['alternativeNames']);
     }
@@ -547,23 +547,58 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         self::assertSame('1234567890123, 9999999999999', $survivorPuzzle->ean);
         self::assertSame('KEEP-ME, SECOND-EDITION', $survivorPuzzle->identificationNumber);
         self::assertSame("\ne:1234567890123\ne:9999999999999\nc:keepme\nc:secondedition\n", $survivorPuzzle->searchCodes);
-        // Every name of both puzzles stays findable: the survivor's own first, then the merged puzzle's main title
-        // and names, then the survivor's previous main title
+        // Every name of both puzzles stays findable: the survivor's own first, then the merged puzzle's other names,
+        // then its main title, then the survivor's previous main title
         self::assertSame('Survivor Name', $survivorPuzzle->name);
         self::assertSame([
             ['name' => 'Survivor Alternativé', 'language' => 'cs'],
-            ['name' => 'Puzzle 5', 'language' => null],
             ['name' => 'Duplicate Alternative', 'language' => null],
+            ['name' => 'Puzzle 5', 'language' => null],
             ['name' => 'Puzzle 4', 'language' => null],
         ], $survivorPuzzle->alternativeNames);
         self::assertSame('Survivor Alternativé', $survivorPuzzle->alternativeName);
         self::assertSame(
-            "\nsurvivor name\nsurvivor alternative\npuzzle 5\nduplicate alternative\npuzzle 4\n",
+            "\nsurvivor name\nsurvivor alternative\nduplicate alternative\npuzzle 5\npuzzle 4\n",
             $survivorPuzzle->searchNames,
         );
         self::assertNotNull($survivorPuzzle->namesChangedAt);
         // Everything else still belongs to the survivor alone
         self::assertSame('puzzles/survivor-cover.jpg', $survivorPuzzle->image);
+    }
+
+    public function testAMergedPuzzlesBoxNameComesBeforeItsMainTitle(): void
+    {
+        // A duplicate added under the English title with the Czech box name, merged into a survivor without names
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $duplicatePuzzle->changeNames('Magic Morning 1000', null, new PuzzleNames([new PuzzleName('Kouzelné ráno', null)]), new DateTimeImmutable());
+        $this->entityManager->flush();
+
+        $this->approveMerge($this->submitMergeRequest(), mergedName: 'Puzzle 4');
+
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        self::assertSame([
+            ['name' => 'Kouzelné ráno', 'language' => null],
+            ['name' => 'Magic Morning 1000', 'language' => null],
+        ], $survivorPuzzle->alternativeNames);
+        self::assertSame('Kouzelné ráno', $survivorPuzzle->alternativeName);
+    }
+
+    public function testAMainTitlePickedFromTheOtherNamesKeepsItsLanguage(): void
+    {
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $duplicatePuzzle->changeNames('Puzzle 5', null, new PuzzleNames([new PuzzleName('Kouzelné ráno', 'cs')]), new DateTimeImmutable());
+        $this->entityManager->flush();
+
+        $this->approveMerge($this->submitMergeRequest(), mergedName: 'Kouzelné ráno');
+
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        self::assertSame('Kouzelné ráno', $survivorPuzzle->name);
+        self::assertSame('cs', $survivorPuzzle->nameLanguage);
+        self::assertSame([
+            ['name' => 'Puzzle 5', 'language' => null],
+            ['name' => 'Puzzle 4', 'language' => null],
+        ], $survivorPuzzle->alternativeNames);
+        self::assertSame("\nkouzelne rano\npuzzle 5\npuzzle 4\n", $survivorPuzzle->searchNames);
     }
 
     public function testMergeWithTheMergedPuzzlesTitleKeepsTheSurvivorsTitleAsAnOtherName(): void
@@ -614,6 +649,23 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         self::assertSame([['name' => 'Puzzle 5', 'language' => null]], $survivorPuzzle->alternativeNames);
         self::assertSame("\npuzzle 4\npuzzle 5\n", $survivorPuzzle->searchNames);
     }
+    private function approveMerge(string $mergeRequestId, string $mergedName): void
+    {
+        $this->messageBus->dispatch(
+            new ApprovePuzzleMergeRequest(
+                mergeRequestId: $mergeRequestId,
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+                mergedName: $mergedName,
+                mergedEan: null,
+                mergedIdentificationNumber: null,
+                mergedPiecesCount: 500,
+                mergedManufacturerId: null,
+                selectedImagePuzzleId: null,
+            ),
+        );
+    }
+
     private function submitMergeRequest(): string
     {
         $mergeRequestId = Uuid::uuid7()->toString();

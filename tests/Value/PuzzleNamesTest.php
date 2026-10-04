@@ -134,15 +134,35 @@ final class PuzzleNamesTest extends TestCase
         yield 'the same value with spaces around: unchanged' => [$names, '  Mušle ', $names];
         yield 'blank: the Czech name removed' => [$names, '  ', [$names[0], $names[2]]];
         yield 'null: the Czech name removed' => [$names, null, [$names[0], $names[2]]];
-        yield 'another value: the Czech name renamed, still Czech' => [
+        yield 'the same name re-spelled: its language kept' => [
+            $names,
+            'MUŠLE',
+            [$names[0], ['name' => 'MUŠLE', 'language' => 'cs'], $names[2]],
+        ];
+        yield 'the same name with its accents fixed: its language kept' => [
+            [['name' => 'Musle', 'language' => 'cs']],
+            'Mušle',
+            [['name' => 'Mušle', 'language' => 'cs']],
+        ];
+        yield 'another name with a letter only Czech uses: Czech' => [
+            $names,
+            'Lastury moře',
+            [$names[0], ['name' => 'Lastury moře', 'language' => 'cs'], $names[2]],
+        ];
+        yield 'another name without one: no language, never the replaced name\'s' => [
             $names,
             'Lastury',
-            [$names[0], ['name' => 'Lastury', 'language' => 'cs'], $names[2]],
+            [$names[0], ['name' => 'Lastury', 'language' => null], $names[2]],
         ];
-        yield 'without a Czech name the first one is edited, its language kept' => [
+        yield 'without a Czech name the first one is edited' => [
             [$names[0], $names[2]],
             'Meeresmuscheln',
-            [['name' => 'Meeresmuscheln', 'language' => 'de'], $names[2]],
+            [['name' => 'Meeresmuscheln', 'language' => null], $names[2]],
+        ];
+        yield 'without a Czech name, a re-spelling keeps the first one\'s language' => [
+            [$names[0], $names[2]],
+            'muscheln',
+            [['name' => 'muscheln', 'language' => 'de'], $names[2]],
         ];
         yield 'empty list, Czech letters: a Czech name' => [[], 'Kouzelná zahrada s řekou', [['name' => 'Kouzelná zahrada s řekou', 'language' => 'cs']]];
         yield 'empty list, accents Czech shares with others: no language' => [[], 'Café à Paris', [['name' => 'Café à Paris', 'language' => null]]];

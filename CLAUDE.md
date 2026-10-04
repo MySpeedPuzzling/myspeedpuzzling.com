@@ -25,13 +25,14 @@ To just run the quality gates / tests without publishing any host port (avoids c
 ```bash
 POSTGRES_PORT=55432 docker compose up -d --no-deps postgres   # only if postgres isn't already up
 docker compose run --rm --no-deps web composer run phpstan
-docker compose run --rm --no-deps web vendor/bin/phpunit --exclude-group panther
+docker compose run --rm --no-deps web vendor/bin/paratest --testsuite "Project Test Suite"
 ```
 
 If a service was created but ended up detached from the network (e.g. an aborted `up`), reconnecting can fail on the same host-port bind — recreate it with a free port instead: `POSTGRES_PORT=55432 docker compose up -d --no-deps --force-recreate postgres`.
 
 ### Testing & Quality
-- `vendor/bin/phpunit --exclude-group panther` - Run PHP unit tests (excluding slow Panther browser tests)
+- `vendor/bin/paratest --testsuite "Project Test Suite"` - Run PHP tests (excluding slow Panther browser tests) in parallel, one worker per CPU, each on its own clone of the test database (`speedpuzzling_test_<N>`, see `tests/bootstrap.php`) - what CI runs
+- `vendor/bin/phpunit --testsuite "Project Test Suite"` - The same tests serially; use `vendor/bin/phpunit <file>` for a single test file
 - `vendor/bin/phpunit` - Run all tests including Panther (only when explicitly asked)
 - `composer run phpstan` - Run PHPStan static analysis (max level)
 - `composer run cs` - Check coding standards with PHPCS
@@ -284,7 +285,7 @@ Active feature flags are documented in `docs/features/feature_flags.md`. **Alway
 - When running commands for Javascript environment, ALWAYS run them in the running docker container prefixed with `docker compose exec js-watch` to make sure it runs in javascript docker container.
 - **DO NOT manually rebuild JavaScript assets** in development - the `js-watch` Docker service automatically watches and rebuilds assets when files change.
 - For database structure, analyse Doctrine ORM entities - it represents the database structure
-- After changing PHP code ALWAYS run checks to make sure everything works: `docker compose exec web composer run phpstan`, `docker compose exec web composer run cs-fix`, `docker compose exec web vendor/bin/phpunit --exclude-group panther`, `docker compose exec web php bin/console doctrine:schema:validate`, `docker compose exec web php bin/console cache:warmup`.
+- After changing PHP code ALWAYS run checks to make sure everything works: `docker compose exec web composer run phpstan`, `docker compose exec web composer run cs-fix`, `docker compose exec web vendor/bin/paratest --testsuite "Project Test Suite"`, `docker compose exec web php bin/console doctrine:schema:validate`, `docker compose exec web php bin/console cache:warmup`.
 - When renaming database tables (in doctrine migrations), always make sure to go through the raw SQL Queries (in directory `src/Query/`) and if the table was renamed, update the queries.
 - Never run migrations "doctrine:migrations:migrate" yourself - leave it to me or ask explicitely
 - Never write migrations yourself - always generate them using command, unless explicitely asked to create custom index or something like that, because Doctrine no longer needs comments like `DC2Type:datetime_immutable` - we have newest version of doctrine

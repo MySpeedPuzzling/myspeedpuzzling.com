@@ -5,6 +5,10 @@ declare(strict_types=1);
 use SpeedPuzzling\Web\Tests\TestDouble\NullMercureHub;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\Mercure\HubInterface;
+use Symfony\Component\PasswordHasher\Hasher\NativePasswordHasher;
+use Symfony\Component\PropertyInfo\PropertyInfoCacheExtractor;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return static function (ContainerConfigurator $configurator): void {
     $services = $configurator->services();
@@ -30,6 +34,19 @@ return static function (ContainerConfigurator $configurator): void {
 
     // Fails a test whose form POST answers 200 - Turbo Drive would discard it in the browser
     $services->set(\SpeedPuzzling\Web\Tests\TestDouble\SilentFormSubmissionGuard::class)->tag('kernel.event_subscriber');
+
+    // OAuth2 client secrets: bcrypt at its lowest cost. The fixtures store plaintext
+    // secrets, which the bundle re-hashes on every token request - at the default cost
+    // 13 that made each OAuth2 test spend ~half a second hashing.
+    $services->set('league.oauth2_server.password_hasher', NativePasswordHasher::class)
+        ->args([null, null, 4]);
+
+    // FrameworkBundle drops the PropertyInfo cache in debug mode. Production has it; in
+    // the suite every kernel boot re-parsed the doc blocks behind each Live Component
+    // prop (phpDocumentor's ContextFactory) - an eighth of the suite's CPU time.
+    $services->set('property_info.cache', PropertyInfoCacheExtractor::class)
+        ->decorate('property_info')
+        ->args([service('property_info.cache.inner'), service('cache.property_info')]);
 
     // Mercure test double
     $services->set(NullMercureHub::class);

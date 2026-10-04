@@ -220,7 +220,6 @@ jobs:
   # red commit never reaches production.
   docker:
       name: docker image
-      if: github.event_name == 'push'
       runs-on: ubuntu-latest
       permissions:
           contents: read
@@ -233,7 +232,7 @@ jobs:
       outputs:
           image: ${{ steps.meta.outputs.tags }}
       env:
-          BUILD_ASSETS_IMAGE: ghcr.io/myspeedpuzzling/website:build-assets
+          BUILD_ASSETS_IMAGE: ghcr.io/myspeedpuzzling/website:${{ github.event_name == 'push' && 'build-assets' || 'build-assets-pr-check' }}
       steps:
           -   uses: actions/checkout@v7
 
@@ -295,11 +294,11 @@ jobs:
               with:
                   context: .
                   target: app
-                  push: true
+                  push: ${{ github.event_name == 'push' }}
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
                   cache-from: type=registry,ref=ghcr.io/myspeedpuzzling/website:buildcache
-                  cache-to: type=registry,ref=ghcr.io/myspeedpuzzling/website:buildcache,mode=max
+                  cache-to: ${{ github.event_name == 'push' && 'type=registry,ref=ghcr.io/myspeedpuzzling/website:buildcache,mode=max' || '' }}
                   build-args: |
                       APP_VERSION=${{ github.sha }}
                       BUILD_ASSETS_IMAGE=${{ env.BUILD_ASSETS_IMAGE }}
@@ -315,7 +314,7 @@ jobs:
               with:
                   context: .
                   target: build-assets
-                  push: true
+                  push: ${{ github.event_name == 'push' }}
                   tags: ${{ env.BUILD_ASSETS_IMAGE }}
                   cache-from: type=registry,ref=ghcr.io/myspeedpuzzling/website:buildcache
                   build-args: |
@@ -327,7 +326,6 @@ jobs:
                       github_token=${{ secrets.GITHUB_TOKEN }}
 
   deploy:
-      if: github.event_name == 'push'
       # coding-standards stays advisory (continue-on-error), as before
       needs:
           - tests
@@ -342,9 +340,6 @@ jobs:
       concurrency:
           group: deploy-prod
           cancel-in-progress: false
-      environment:
-          name: prod
-          url: https://myspeedpuzzling.com
       steps:
           -   name: Checkout
               uses: actions/checkout@v7
@@ -376,10 +371,10 @@ jobs:
 
           -   name: Tag the image as main
               if: steps.guard.outputs.deploy == 'true'
-              run: docker buildx imagetools create --tag ghcr.io/myspeedpuzzling/website:main "${{ needs.docker.outputs.image }}"
+              run: docker buildx imagetools create ${{ github.event_name == 'push' && '' || '--dry-run' }} --tag ghcr.io/myspeedpuzzling/website:main "${{ github.event_name == 'push' && needs.docker.outputs.image || 'ghcr.io/myspeedpuzzling/website:main' }}"
 
           -   name: Trigger lily deploy (HMAC webhook)
-              if: steps.guard.outputs.deploy == 'true'
+              if: steps.guard.outputs.deploy == 'true' && github.event_name == 'push'
               env:
                   SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
               run: |
@@ -391,7 +386,7 @@ jobs:
                     --data-raw "$BODY"
 
           -   name: Create Sentry release
-              if: steps.guard.outputs.deploy == 'true'
+              if: steps.guard.outputs.deploy == 'true' && github.event_name == 'push'
               uses: getsentry/action-release@v3
               env:
                   SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN }}"

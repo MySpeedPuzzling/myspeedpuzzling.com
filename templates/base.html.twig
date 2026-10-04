@@ -430,9 +430,9 @@
                     "@type": "Organization",
                     "@id": "https://myspeedpuzzling.com/#organization",
                     "name": "MySpeedPuzzling",
-                    "url": {{ url('homepage', {'_locale': 'en'})|json_encode|raw }},
-                    "logo": {{ absolute_url(asset('img/speedpuzzling-logo.png'))|json_encode|raw }},
-                    "description": {{ 'homepage.meta.description'|trans({}, 'messages', 'en')|json_encode|raw }},
+                    "url": {{ url('homepage', {'_locale': 'en'})|json_ld }},
+                    "logo": {{ absolute_url(asset('img/speedpuzzling-logo.png'))|json_ld }},
+                    "description": {{ 'homepage.meta.description'|trans({}, 'messages', 'en')|json_ld }},
                     "sameAs": [
                         "https://www.instagram.com/myspeedpuzzling/",
                         "https://github.com/MySpeedPuzzling/myspeedpuzzling.com"
@@ -457,11 +457,11 @@
                 {
                     "@type": "WebSite",
                     "@id": "https://myspeedpuzzling.com/#website",
-                    "url": {{ url('homepage', {'_locale': 'en'})|json_encode|raw }},
+                    "url": {{ url('homepage', {'_locale': 'en'})|json_ld }},
                     "name": "MySpeedPuzzling",
                     "alternateName": ["My Speed Puzzling", "Speed Puzzling"],
                     "publisher": {"@id": "https://myspeedpuzzling.com/#organization"},
-                    "inLanguage": {{ app.request.locale|json_encode|raw }}
+                    "inLanguage": {{ app.request.locale|json_ld }}
                 }
             ]
         }

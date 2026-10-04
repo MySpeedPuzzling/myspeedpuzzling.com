@@ -856,7 +856,7 @@
   "meta":
     "title": "%brand% %name% – Puzzle de %pieces% piezas"
     "title_with_local_name": "%brand% %name% (%local_name%) – Puzzle de %pieces% piezas"
-    "name_with_local_name": "%name% (%local_name%)"
+    "name_with_local_name_description": "%name% / %local_name%"
     "ean": ", EAN %ean%"
     "description": "%brand% %name% – puzzle de %pieces% piezas%ean%. Aún no hay tiempos: registra el tuyo y sé el primero en MySpeedPuzzling."
     "description_no_solo_times": "%brand% %name% – puzzle de %pieces% piezas%ean%. Aún no hay tiempos en solitario: registra el tuyo y sé el primero en MySpeedPuzzling."
@@ -868,7 +868,7 @@
     "facts":
       "ean": "EAN"
       "product_number": "Referencia"
-      "also_known_as": "Otro nombre"
+      "also_known_as": "También conocido como"
       "used_at": "Utilizado en"
     "times":
       "solves": "Resoluciones"

@@ -1113,7 +1113,7 @@
   "meta":
     "title": "%brand% %name% – Puzzle %pieces% pièces"
     "title_with_local_name": "%brand% %name% (%local_name%) – Puzzle %pieces% pièces"
-    "name_with_local_name": "%name% (%local_name%)"
+    "name_with_local_name_description": "%name% / %local_name%"
     "ean": ", EAN %ean%"
     "description": "%brand% %name% – puzzle de %pieces% pièces%ean%. Aucun temps pour l'instant – enregistrez le vôtre et soyez le premier sur MySpeedPuzzling."
     "description_no_solo_times": "%brand% %name% – puzzle de %pieces% pièces%ean%. Aucun temps en solo pour l'instant – enregistrez le vôtre et soyez le premier sur MySpeedPuzzling."

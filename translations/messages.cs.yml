@@ -1124,7 +1124,7 @@ comparison:
   "meta":
     "title": "%brand% %name% – puzzle %pieces% dílků"
     "title_with_local_name": "%brand% %name% (%local_name%) – puzzle %pieces% dílků"
-    "name_with_local_name": "%name% (%local_name%)"
+    "name_with_local_name_description": "%name% / %local_name%"
     "ean": ", EAN %ean%"
     "description": "%brand% %name% – puzzle %pieces% dílků%ean%. Zatím žádné časy skládání – zapiš ten svůj a buď první na MySpeedPuzzling."
     "description_no_solo_times": "%brand% %name% – puzzle %pieces% dílků%ean%. Zatím žádné sólo časy – zapiš ten svůj a buď první na MySpeedPuzzling."

@@ -23,25 +23,25 @@
 {
     "@context": "https://schema.org",
     "@type": "EventSeries",
-    "name": {{ series.name|json_encode|raw }},
-    "url": {{ url('competition_series_detail', {'slug': series.slug})|json_encode|raw }}
+    "name": {{ series.name|json_ld }},
+    "url": {{ url('competition_series_detail', {'slug': series.slug})|json_ld }}
     {%- if series.description %},
-    "description": {{ series.description|json_encode|raw }}
+    "description": {{ series.description|json_ld }}
     {%- endif %}
     {%- if series.logo %},
     {# The large metadata-stripped preset (1200 px JPEG; Google wants event images >= 720 px wide) - never
        the uploaded original, older uploads may still carry EXIF/GPS #}
-    "image": {{ series.logo|thumbnail('puzzle_large')|json_encode|raw }}
+    "image": {{ series.logo|thumbnail('puzzle_large')|json_ld }}
     {%- endif %}
     {%- if not series.isOnline and series.location %},
     "location": {
         "@type": "Place",
-        "name": {{ series.location|json_encode|raw }},
+        "name": {{ series.location|json_ld }},
         "address": {
             "@type": "PostalAddress",
-            "addressLocality": {{ series.location|json_encode|raw }}
+            "addressLocality": {{ series.location|json_ld }}
             {%- if series.locationCountryCode %},
-            "addressCountry": {{ series.locationCountryCode.name|upper|json_encode|raw }}
+            "addressCountry": {{ series.locationCountryCode.name|upper|json_ld }}
             {%- endif %}
         }
     }
@@ -49,7 +49,7 @@
     {%- if series.addedByPlayerName %},
     "organizer": {
         "@type": "Person",
-        "name": {{ series.addedByPlayerName|json_encode|raw }}
+        "name": {{ series.addedByPlayerName|json_ld }}
     }
     {%- endif %}
     {%- if jsonld_editions|length > 0 %},
@@ -57,10 +57,10 @@
         {%- for edition in jsonld_editions %}
         {
             "@type": "Event",
-            "name": {{ edition.name|json_encode|raw }},
-            "url": {{ url('edition_detail', {'seriesSlug': series.slug, 'editionSlug': edition.editionSlug})|json_encode|raw }}
+            "name": {{ edition.name|json_ld }},
+            "url": {{ url('edition_detail', {'seriesSlug': series.slug, 'editionSlug': edition.editionSlug})|json_ld }}
             {%- if edition.startsAt %},
-            "startDate": {{ edition.startsAt|date('Y-m-d')|json_encode|raw }}
+            "startDate": {{ edition.startsAt|date('Y-m-d')|json_ld }}
             {%- endif %}
         }{{ loop.last ? '' : ',' }}
         {%- endfor %}

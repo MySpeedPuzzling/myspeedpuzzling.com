@@ -1325,7 +1325,7 @@ puzzle_detail:
     meta:
         title: "%brand% %name% – %pieces% Piece Puzzle"
         title_with_local_name: "%brand% %name% (%local_name%) – %pieces% Piece Puzzle"
-        name_with_local_name: "%name% (%local_name%)"
+        name_with_local_name_description: "%name% / %local_name%"
         ean: ", EAN %ean%"
         description: "%brand% %name% – %pieces%-piece jigsaw puzzle%ean%. No solve times yet – log yours and be the first on MySpeedPuzzling."
         description_no_solo_times: "%brand% %name% – %pieces%-piece jigsaw puzzle%ean%. No solo times yet – log yours and be the first on MySpeedPuzzling."

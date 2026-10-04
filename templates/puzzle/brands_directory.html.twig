@@ -18,13 +18,13 @@
             {
                 "@type": "ListItem",
                 "position": 1,
-                "name": {{ 'puzzle_detail.breadcrumb.database'|trans|json_encode|raw }},
-                "item": {{ url('puzzles')|json_encode|raw }}
+                "name": {{ 'puzzle_detail.breadcrumb.database'|trans|json_ld }},
+                "item": {{ url('puzzles')|json_ld }}
             },
             {
                 "@type": "ListItem",
                 "position": 2,
-                "name": {{ 'brand_directory.title'|trans|json_encode|raw }}
+                "name": {{ 'brand_directory.title'|trans|json_ld }}
             }
         ]
     }
@@ -33,9 +33,9 @@
     {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        "name": {{ 'brand_directory.meta.title'|trans|json_encode|raw }},
-        "description": {{ directory_meta_description|json_encode|raw }},
-        "url": {{ url('puzzle_brands')|json_encode|raw }}
+        "name": {{ 'brand_directory.meta.title'|trans|json_ld }},
+        "description": {{ directory_meta_description|json_ld }},
+        "url": {{ url('puzzle_brands')|json_ld }}
     }
     </script>
 {% endblock %}

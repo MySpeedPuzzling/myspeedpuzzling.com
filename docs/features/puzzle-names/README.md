@@ -256,15 +256,24 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
 - **Phase 2 - puzzle page:** the second line sits inside the H1, right under the main title span (the H1 stays
   inline with "500 pieces · Brand" after it), so a Czech page's H1 holds the Czech name too. "Also known as" lists
   every name as "name · language" (`LanguageTag::displayName()`: Symfony Intl, a tag Intl has no locale for = base
-  language + region/script/variant in brackets; untagged = "language not set" with `lang=""`) in the Details block -
-  for everyone, like the codes there - and in the guests' "About this puzzle". The ` – MySpeedPuzzling` suffix is a
+  language + region/script/variant in brackets; untagged = "language not set" with `lang=""`) in the Details block
+  for signed-in players and in the guests' "About this puzzle" - once per page. The ` – MySpeedPuzzling` suffix is a
   `title_suffix` block in `base.html.twig` (`og:title` / `twitter:title` reuse it); only the puzzle page empties it.
-- **Phase 2 - meta description:** no new variants - `%name%` becomes `puzzle_detail.meta.name_with_local_name`
-  ("Main (Local)", Japanese with full-width brackets), so all four sentences and the Product description get it.
+- **Phase 2 - meta description:** no new variants - `%name%` becomes
+  `puzzle_detail.meta.name_with_local_name_description` ("Main / Local", Japanese "Main／Local"), so all four sentences
+  and the Product description get it. Not "Main (Local)" like the title: two sentences put "(500 pieces…)" right
+  after the name, and a dash would meet the " – 500-piece jigsaw puzzle" of the other two.
+- **Phase 2 - structured data escaping:** every JSON-LD value in every template goes through the `json_ld` filter
+  (`JsonLdTwigExtension`: `JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT`). Names are player-typed, and
+  `json_encode` left `<!--<script>` alone - the HTML parser then swallowed the rest of the page into the script element.
+  Ordinary data comes out the same, `& ' "` as `\u` escapes.
 - **Phase 2 - GTINs** (`EanList::gtins()`): every stored code with a right check digit, EAN-13 / UPC-A as `gtin13`
   (13 digits, a UPC-A with its preceding zero as schema.org's `gtin13` says), EAN-8 as `gtin8`; one value as a string,
-  several as an array. Only 7-8 and 11-13 significant digits: the field also holds ISBN-like and catalogue numbers
-  (171 ten-digit values on production), and padding those would pass every tenth by chance.
+  several as an array. Only 8 and 11-13 significant digits: the field also holds ISBN-like and catalogue numbers
+  (171 ten-digit values on production), and padding those would pass every tenth by chance; an EAN-8 starting with 0
+  (7 digits stored) is GS1's restricted circulation range, never a GTIN.
+- **Phase 2 - cache:** `initial_puzzles_v5` (`PuzzleSearch`) - `PuzzleOverview` gained `nameLanguage`, and an old
+  container reading a new entry (Redis is shared across blue-green) fails on the unknown property.
 - **Phase 2 - picker label:** `main <small lang="xx">(local)</small>` in every locale from the viewer language
   (replaces the Czech pages' rule that put the other name first). Puzzles without a name in that language cost no
   fold, so Ravensburger's 6,000 options stay as cheap as before.

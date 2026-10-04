@@ -56,32 +56,32 @@
             {
                 "@type": "ListItem",
                 "position": 1,
-                "name": {{ 'puzzle_detail.breadcrumb.database'|trans|json_encode|raw }},
-                "item": {{ url('puzzles')|json_encode|raw }}
+                "name": {{ 'puzzle_detail.breadcrumb.database'|trans|json_ld }},
+                "item": {{ url('puzzles')|json_ld }}
             },
             {
                 "@type": "ListItem",
                 "position": 2,
-                "name": {{ brand.brandName|json_encode|raw }},
-                "item": {{ url('brand_puzzles', {slug: brand.slug})|json_encode|raw }}
+                "name": {{ brand.brandName|json_ld }},
+                "item": {{ url('brand_puzzles', {slug: brand.slug})|json_ld }}
             },
             {% if is_first_page %}
             {
                 "@type": "ListItem",
                 "position": 3,
-                "name": {{ combination_name|json_encode|raw }}
+                "name": {{ combination_name|json_ld }}
             }
             {% else %}
             {
                 "@type": "ListItem",
                 "position": 3,
-                "name": {{ combination_name|json_encode|raw }},
-                "item": {{ url('brand_pieces_puzzles', {slug: brand.slug, pieces: stats.piecesCount})|json_encode|raw }}
+                "name": {{ combination_name|json_ld }},
+                "item": {{ url('brand_pieces_puzzles', {slug: brand.slug, pieces: stats.piecesCount})|json_ld }}
             },
             {
                 "@type": "ListItem",
                 "position": 4,
-                "name": {{ 'catalogue.pagination.page'|trans({'%page%': pagination.page})|json_encode|raw }}
+                "name": {{ 'catalogue.pagination.page'|trans({'%page%': pagination.page})|json_ld }}
             }
             {% endif %}
         ]
@@ -91,12 +91,12 @@
     {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        "name": {{ brand_pieces_title|json_encode|raw }},
-        "description": {{ brand_pieces_meta_description|json_encode|raw }},
-        "url": {{ (is_first_page ? url('brand_pieces_puzzles', {slug: brand.slug, pieces: stats.piecesCount}) : url('brand_pieces_puzzles_page', {slug: brand.slug, pieces: stats.piecesCount, page: pagination.page}))|json_encode|raw }},
+        "name": {{ brand_pieces_title|json_ld }},
+        "description": {{ brand_pieces_meta_description|json_ld }},
+        "url": {{ (is_first_page ? url('brand_pieces_puzzles', {slug: brand.slug, pieces: stats.piecesCount}) : url('brand_pieces_puzzles_page', {slug: brand.slug, pieces: stats.piecesCount, page: pagination.page}))|json_ld }},
         "about": {
             "@type": "Brand",
-            "name": {{ brand.brandName|json_encode|raw }}
+            "name": {{ brand.brandName|json_ld }}
         }
     }
     </script>

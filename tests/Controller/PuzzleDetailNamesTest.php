@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use DateTimeImmutable;
+use Dom\HTMLDocument;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Tests\ChangesPuzzleRecords;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -35,18 +36,20 @@ final class PuzzleDetailNamesTest extends WebTestCase
         // No " – MySpeedPuzzling": Google shows the site name on its own
         self::assertSame('Trefl Puzzle 7 (Kouzelná zahrada) – puzzle 1000 dílků', $crawler->filter('title')->text());
         self::assertSame('Trefl Puzzle 7 (Kouzelná zahrada) – puzzle 1000 dílků', $crawler->filter('meta[property="og:title"]')->attr('content'));
-        self::assertStringStartsWith('Trefl Puzzle 7 (Kouzelná zahrada) ', (string) $crawler->filter('meta[name="description"]')->attr('content'));
+        // The description has brackets of its own ("(1000 dílků): …") - the names are joined without any
+        self::assertStringStartsWith('Trefl Puzzle 7 / Kouzelná zahrada ', (string) $crawler->filter('meta[name="description"]')->attr('content'));
         self::assertSame('MySpeedPuzzling', $crawler->filter('meta[property="og:site_name"]')->attr('content'));
 
         self::assertSame(['Puzzle 7', 'cs', 'Kouzelná zahrada'], self::headNames($crawler));
 
-        // The page language first, then the other tagged names - in Czech
-        $expected = ['Kouzelná zahrada · čeština', 'Zauberhafter Garten · němčina'];
-        self::assertSame($expected, self::otherNames($crawler->filter('#puzzleDetails')));
-        self::assertSame($expected, self::otherNames($crawler->filter('section.puzzle-summary')));
-        self::assertSame(['cs', 'de'], $crawler->filter('#puzzleDetails .puzzle-other-name > span[lang]')->each(
+        // The page language first, then the other tagged names - in Czech; guests get them once, in "About this
+        // puzzle", not in Details too
+        $summary = $crawler->filter('section.puzzle-summary');
+        self::assertSame(['Kouzelná zahrada · čeština', 'Zauberhafter Garten · němčina'], self::otherNames($summary));
+        self::assertSame(['cs', 'de'], $summary->filter('.puzzle-other-name > span[lang]')->each(
             static fn (Crawler $name): string => (string) $name->attr('lang'),
         ));
+        self::assertCount(0, $crawler->filter('#puzzleDetails .puzzle-other-name'));
     }
 
     public function testCzechPageOfAPuzzleWithoutACzechNameKeepsTheTitleAsItWas(): void
@@ -129,9 +132,10 @@ final class PuzzleDetailNamesTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_300);
 
         $this->assertResponseIsSuccessful();
-        self::assertSame(['Kouzelna zahrada · language not set'], self::otherNames($crawler->filter('#puzzleDetails')));
+        $summary = $crawler->filter('section.puzzle-summary');
+        self::assertSame(['Kouzelna zahrada · language not set'], self::otherNames($summary));
         // lang="" - the language is not known
-        self::assertSame('', $crawler->filter('#puzzleDetails .puzzle-other-name > span')->first()->attr('lang'));
+        self::assertSame('', $summary->filter('.puzzle-other-name > span')->first()->attr('lang'));
         // Never a second line: an untagged name is in no language
         self::assertSame(['Puzzle 11', null, null], self::headNames($crawler));
     }
@@ -172,8 +176,54 @@ final class PuzzleDetailNamesTest extends WebTestCase
         self::assertSame(['4005556175895', '0036000291452'], $product['gtin13']);
         self::assertSame('96385074', $product['gtin8']);
         self::assertIsString($product['description']);
-        self::assertStringStartsWith('Ravensburger Puzzle 1 (Bavorská romance) ', $product['description']);
+        self::assertStringStartsWith('Ravensburger Puzzle 1 / Bavorská romance ', $product['description']);
         self::assertSame('Ravensburger Puzzle 1 (Bavorská romance) – puzzle 500 dílků', $crawler->filter('title')->text());
+    }
+
+    /**
+     * Names are player-typed and go into the structured data: `<!--<script>` there made the HTML parser swallow the
+     * rest of the page into the script element (json_encode leaves `<!--` alone). json_ld escapes `< > & ' "`.
+     */
+    public function testStructuredDataKeepsThePageWholeWhateverTheNames(): void
+    {
+        $browser = self::createClient();
+        $name = 'Kočka & myš <!--<script> "1" it\'s';
+        $otherName = 'Kočka & myš <!--<script> dvě';
+        // PUZZLE_500_01 has marketplace offers - the Product block renders next to the breadcrumb one
+        self::renamePuzzle(PuzzleFixture::PUZZLE_500_01, $name, PuzzleNames::fromArray([
+            ['name' => $otherName, 'language' => 'cs'],
+        ]));
+
+        $browser->request('GET', '/puzzle/' . PuzzleFixture::PUZZLE_500_01);
+        $this->assertResponseIsSuccessful();
+
+        $document = HTMLDocument::createFromString((string) $browser->getResponse()->getContent(), LIBXML_NOERROR);
+
+        // The page did not end inside a script element
+        self::assertSame($name, $document->querySelector('h1 .puzzle-head-name')?->textContent);
+        self::assertNotNull($document->querySelector('section.puzzle-summary'));
+
+        $blocks = [];
+        foreach ($document->querySelectorAll('script[type="application/ld+json"]') as $script) {
+            /** @var array<string, mixed> $data */
+            $data = json_decode((string) $script->textContent, true, flags: JSON_THROW_ON_ERROR);
+            // The site's own block is an @graph without a type of its own
+            $type = $data['@type'] ?? '@graph';
+            self::assertIsString($type);
+            $blocks[$type] = $data;
+        }
+
+        self::assertSame(['@graph', 'Product', 'BreadcrumbList'], array_keys($blocks));
+        self::assertSame($name, $blocks['Product']['name']);
+        self::assertSame([$otherName], $blocks['Product']['alternateName']);
+        self::assertIsString($blocks['Product']['description']);
+        self::assertStringStartsWith('Ravensburger ' . $name . ' / ' . $otherName . ' ', $blocks['Product']['description']);
+
+        /** @var list<array{name: string}> $levels */
+        $levels = $blocks['BreadcrumbList']['itemListElement'];
+        $current = end($levels);
+        self::assertIsArray($current);
+        self::assertSame($name, $current['name']);
     }
 
     public function testProductDataWithoutAValidBarcodeHasNoGtin(): void

@@ -100,5 +100,7 @@ final class EanListTest extends TestCase
     {
         self::assertSame(['gtin8' => [], 'gtin13' => []], EanList::gtins(null));
         self::assertSame(['gtin8' => [], 'gtin13' => []], EanList::gtins('None, 4005556147091, 1005290289'));
+        // A valid EAN-8 of the restricted circulation range (starts with 0): a shop's own code, never a GTIN
+        self::assertSame(['gtin8' => [], 'gtin13' => []], EanList::gtins('01234565'));
     }
 }

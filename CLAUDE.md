@@ -308,3 +308,4 @@ try {
 ```
 Instead just call `$puzzle = $this->getPuzzleOverview->byId($puzzleId);` and let it bubble.
 - To check in twig template that user has active membership, use `{% if logged_user.profile.activeMembership %}` - this is safe when 100% sure that user is logged in. When need to check in that he is logged as well, use `{% if logged_user.profile is not null and logged_user.profile.activeMembership %}`.
+- Every value inside `<script type="application/ld+json">` goes through the Twig filter `json_ld` (`JsonLdTwigExtension`), never `|json_encode|raw`: it escapes `< > & ' "`, so a player-typed `<!--<script>` in a name cannot swallow the rest of the page.

@@ -57,28 +57,28 @@
 {
     "@context": "https://schema.org",
     "@type": "Event",
-    "name": {{ event.name|json_encode|raw }},
-    "url": {{ url('event_detail', {'slug': event.slug})|json_encode|raw }},
-    "startDate": {{ event.dateFrom|date('Y-m-d')|json_encode|raw }},
+    "name": {{ event.name|json_ld }},
+    "url": {{ url('event_detail', {'slug': event.slug})|json_ld }},
+    "startDate": {{ event.dateFrom|date('Y-m-d')|json_ld }},
     "eventStatus": "https://schema.org/EventScheduled",
-    "eventAttendanceMode": {{ (event.isOnline ? 'https://schema.org/OnlineEventAttendanceMode' : 'https://schema.org/OfflineEventAttendanceMode')|json_encode|raw }}
+    "eventAttendanceMode": {{ (event.isOnline ? 'https://schema.org/OnlineEventAttendanceMode' : 'https://schema.org/OfflineEventAttendanceMode')|json_ld }}
     {%- if event.dateTo %},
-    "endDate": {{ event.dateTo|date('Y-m-d')|json_encode|raw }}
+    "endDate": {{ event.dateTo|date('Y-m-d')|json_ld }}
     {%- endif %}
     {%- if event.isOnline %},
     "location": {
         "@type": "VirtualLocation",
-        "url": {{ (event.registrationLink ?? event.resultsLink ?? url('event_detail', {'slug': event.slug}))|json_encode|raw }}
+        "url": {{ (event.registrationLink ?? event.resultsLink ?? url('event_detail', {'slug': event.slug}))|json_ld }}
     }
     {%- elseif event.location %},
     "location": {
         "@type": "Place",
-        "name": {{ event.location|json_encode|raw }},
+        "name": {{ event.location|json_ld }},
         "address": {
             "@type": "PostalAddress",
-            "addressLocality": {{ event.location|json_encode|raw }}
+            "addressLocality": {{ event.location|json_ld }}
             {%- if event.locationCountryCode %},
-            "addressCountry": {{ event.locationCountryCode.name|upper|json_encode|raw }}
+            "addressCountry": {{ event.locationCountryCode.name|upper|json_ld }}
             {%- endif %}
         }
     }
@@ -86,17 +86,17 @@
     {%- if event.logo %},
     {# The large metadata-stripped preset (1200 px JPEG; Google wants event images >= 720 px wide) - never
        the uploaded original, older uploads may still carry EXIF/GPS #}
-    "image": {{ event.logo|thumbnail('puzzle_large')|json_encode|raw }}
+    "image": {{ event.logo|thumbnail('puzzle_large')|json_ld }}
     {%- endif %}
     {# description is a Google-recommended Event property - always emit,
        falling back to the same text as the meta description. organizer is
        deliberately NOT emitted: added_by_player is the submitter (often an
        admin), not the organizer - see docs/features/seo/TODO.md #14. #}
-    ,"description": {{ (event.description ? event.description|striptags : block('meta_description')|trim)|json_encode|raw }}
+    ,"description": {{ (event.description ? event.description|striptags : block('meta_description')|trim)|json_ld }}
     {%- if event.registrationLink %},
     "offers": {
         "@type": "Offer",
-        "url": {{ event.registrationLink|json_encode|raw }}
+        "url": {{ event.registrationLink|json_ld }}
     }
     {%- endif %}
 }

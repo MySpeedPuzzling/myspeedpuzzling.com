@@ -44,28 +44,28 @@
 {
     "@context": "https://schema.org",
     "@type": "Event",
-    "name": {{ event_title.name|json_encode|raw }},
-    "url": {{ edition_url|json_encode|raw }},
-    "startDate": {{ event.dateFrom|date('Y-m-d')|json_encode|raw }},
+    "name": {{ event_title.name|json_ld }},
+    "url": {{ edition_url|json_ld }},
+    "startDate": {{ event.dateFrom|date('Y-m-d')|json_ld }},
     "eventStatus": "https://schema.org/EventScheduled",
-    "eventAttendanceMode": {{ (series.isOnline ? 'https://schema.org/OnlineEventAttendanceMode' : 'https://schema.org/OfflineEventAttendanceMode')|json_encode|raw }}
+    "eventAttendanceMode": {{ (series.isOnline ? 'https://schema.org/OnlineEventAttendanceMode' : 'https://schema.org/OfflineEventAttendanceMode')|json_ld }}
     {%- if event.dateTo %},
-    "endDate": {{ event.dateTo|date('Y-m-d')|json_encode|raw }}
+    "endDate": {{ event.dateTo|date('Y-m-d')|json_ld }}
     {%- endif %}
     {%- if series.isOnline %},
     "location": {
         "@type": "VirtualLocation",
-        "url": {{ (event.registrationLink ?? event.resultsLink ?? edition_url)|json_encode|raw }}
+        "url": {{ (event.registrationLink ?? event.resultsLink ?? edition_url)|json_ld }}
     }
     {%- elseif event.location %},
     "location": {
         "@type": "Place",
-        "name": {{ event.location|json_encode|raw }},
+        "name": {{ event.location|json_ld }},
         "address": {
             "@type": "PostalAddress",
-            "addressLocality": {{ event.location|json_encode|raw }}
+            "addressLocality": {{ event.location|json_ld }}
             {%- if event.locationCountryCode %},
-            "addressCountry": {{ event.locationCountryCode.name|upper|json_encode|raw }}
+            "addressCountry": {{ event.locationCountryCode.name|upper|json_ld }}
             {%- endif %}
         }
     }
@@ -73,19 +73,19 @@
     {%- if edition_image %},
     {# The large metadata-stripped preset (1200 px JPEG; Google wants event images >= 720 px wide) - never
        the uploaded original, older uploads may still carry EXIF/GPS #}
-    "image": {{ edition_image|thumbnail('puzzle_large')|json_encode|raw }}
+    "image": {{ edition_image|thumbnail('puzzle_large')|json_ld }}
     {%- endif %}
     {%- if event.description %},
-    "description": {{ event.description|json_encode|raw }}
+    "description": {{ event.description|json_ld }}
     {%- endif %},
     "organizer": {
         "@type": "Organization",
-        "name": {{ series.name|json_encode|raw }}
+        "name": {{ series.name|json_ld }}
     }
     {%- if event.registrationLink %},
     "offers": {
         "@type": "Offer",
-        "url": {{ event.registrationLink|json_encode|raw }}
+        "url": {{ event.registrationLink|json_ld }}
     }
     {%- endif %}
 }

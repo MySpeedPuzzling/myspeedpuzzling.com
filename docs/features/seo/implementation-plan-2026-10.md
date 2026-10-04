@@ -336,12 +336,13 @@ country, so one URL is one HTML for every guest. Design of record: `docs/feature
 - **Title** `puzzle_detail.meta.title_with_local_name`: "Ravensburger Circle of Colors: Seashells (Kruh barev: Mušle)
   – puzzle 500 dílků"; without a name in that language the title of A4. **No ` – MySpeedPuzzling` suffix on puzzle
   pages** (`title_suffix` block in `base.html.twig`, `og:title` follows; `og:site_name` stays).
-- **Meta description** (and the Product description): the A4 sentences with "Main (Local)" as the name
-  (`puzzle_detail.meta.name_with_local_name`).
+- **Meta description** (and the Product description): the A4 sentences with "Main / Local" as the name
+  (`puzzle_detail.meta.name_with_local_name_description`).
 - **H1** stays the main title, the local name a second line inside it (`lang`); "Also known as" lists every name with
-  its language in Details and in "About this puzzle".
+  its language - guests (crawlers) in "About this puzzle", signed-in players in Details.
 - **Product JSON-LD** (still only with marketplace offers): `alternateName` = every other name; `gtin13` / `gtin8` =
-  every stored code with a right check digit (`EanList::gtins()`, UPC-A padded to 13).
+  every stored code with a right check digit (`EanList::gtins()`, UPC-A padded to 13). Every JSON-LD value on the
+  site goes through the `json_ld` filter (`<` `>` `&` `'` `"` as `\u` escapes - a name with `<!--<script>` broke the page).
 - **Sitemap** `lastmod` = latest of added, approved, `names_changed_at`, last solve (`GetPuzzleIdsForSitemap`, both
   sitemaps; same plan, measured).
 - Hreflang and canonical untouched. Follow-up: index coverage per language in Search Console (`docs/TODO.md`).

@@ -34,10 +34,10 @@
         {% for item in faq_items %}
         {
             "@type": "Question",
-            "name": {{ ('faq.question_' ~ item)|trans(faq_params)|striptags|json_encode|raw }},
+            "name": {{ ('faq.question_' ~ item)|trans(faq_params)|striptags|json_ld }},
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": {{ ('faq.answer_' ~ item)|trans(faq_params)|striptags|json_encode|raw }}
+                "text": {{ ('faq.answer_' ~ item)|trans(faq_params)|striptags|json_ld }}
             }
         }{% if not loop.last %},{% endif %}
 

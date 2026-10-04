@@ -13,7 +13,7 @@
 {% set puzzle_meta_parameters = {
     '%brand%': puzzle.manufacturerName,
     '%name%': page_local_name is not null
-        ? 'puzzle_detail.meta.name_with_local_name'|trans({'%name%': puzzle.puzzleName, '%local_name%': page_local_name.name})
+        ? 'puzzle_detail.meta.name_with_local_name_description'|trans({'%name%': puzzle.puzzleName, '%local_name%': page_local_name.name})
         : puzzle.puzzleName,
     '%pieces%': puzzle.piecesCount,
     '%ean%': puzzle_meta_ean,
@@ -108,41 +108,41 @@
     {
         "@context": "https://schema.org",
         "@type": "Product",
-        "name": {{ puzzle.puzzleName|json_encode|raw }},
+        "name": {{ puzzle.puzzleName|json_ld }},
         {% if not puzzle.puzzleAlternativeNames.isEmpty() %}
-        "alternateName": {{ puzzle.puzzleAlternativeNames.all()|map(other => other.name)|json_encode|raw }},
+        "alternateName": {{ puzzle.puzzleAlternativeNames.all()|map(other => other.name)|json_ld }},
         {% endif %}
         "brand": {
             "@type": "Brand",
-            "name": {{ puzzle.manufacturerName|json_encode|raw }}
+            "name": {{ puzzle.manufacturerName|json_ld }}
         },
         {% if puzzle.puzzleImage is not null and not is_image_hidden %}
-        "image": {{ absolute_url(puzzle.puzzleImage|thumbnail('puzzle_large'))|json_encode|raw }},
+        "image": {{ absolute_url(puzzle.puzzleImage|thumbnail('puzzle_large'))|json_ld }},
         {% endif %}
         {# The codes stay out while the image is embargoed, as everywhere else on the page. Only barcodes with a right
            check digit, each one (EanList::gtins()) #}
         {% if not is_image_hidden %}
             {% for gtin_property, gtins in puzzle_gtins(puzzle.puzzleEan) %}
                 {% if gtins is not empty %}
-        "{{ gtin_property }}": {{ (gtins|length == 1 ? gtins|first : gtins)|json_encode|raw }},
+        "{{ gtin_property }}": {{ (gtins|length == 1 ? gtins|first : gtins)|json_ld }},
                 {% endif %}
             {% endfor %}
         {% endif %}
         {% if puzzle.puzzleIdentificationNumber is not null and not is_image_hidden %}
-        "sku": {{ puzzle.puzzleIdentificationNumber|json_encode|raw }},
-        "mpn": {{ puzzle.puzzleIdentificationNumber|json_encode|raw }},
+        "sku": {{ puzzle.puzzleIdentificationNumber|json_ld }},
+        "mpn": {{ puzzle.puzzleIdentificationNumber|json_ld }},
         {% endif %}
-        "description": {{ puzzle_meta_description|json_encode|raw }},
-        "url": {{ url('puzzle_detail', {puzzleId: puzzle.puzzleId})|json_encode|raw }},
+        "description": {{ puzzle_meta_description|json_ld }},
+        "url": {{ url('puzzle_detail', {puzzleId: puzzle.puzzleId})|json_ld }},
         "offers": [
             {% for offer in marketplace_offers %}
             {
                 "@type": "Offer",
-                "price": {{ offer.price|json_encode|raw }},
-                "priceCurrency": {{ offer.currency|json_encode|raw }},
-                "itemCondition": {{ offer.condition.toSchemaOrgCondition|json_encode|raw }},
+                "price": {{ offer.price|json_ld }},
+                "priceCurrency": {{ offer.currency|json_ld }},
+                "itemCondition": {{ offer.condition.toSchemaOrgCondition|json_ld }},
                 "availability": "https://schema.org/InStock",
-                "url": {{ url('marketplace_puzzle', {puzzleId: puzzle.puzzleId})|json_encode|raw }}
+                "url": {{ url('marketplace_puzzle', {puzzleId: puzzle.puzzleId})|json_ld }}
             }{% if not loop.last %},{% endif %}
             {% endfor %}
         ],
@@ -150,7 +150,7 @@
             {
                 "@type": "PropertyValue",
                 "name": "Number of pieces",
-                "value": {{ puzzle.piecesCount|json_encode|raw }}
+                "value": {{ puzzle.piecesCount|json_ld }}
             }
         ]
     }
@@ -165,8 +165,8 @@
             {
                 "@type": "ListItem",
                 "position": {{ loop.index }},
-                "name": {{ level.name|json_encode|raw }}{% if level.url is not null %},
-                "item": {{ absolute_url(level.url)|json_encode|raw }}{% endif %}
+                "name": {{ level.name|json_ld }}{% if level.url is not null %},
+                "item": {{ absolute_url(level.url)|json_ld }}{% endif %}
 
             }{% if not loop.last %},{% endif %}
             {% endfor %}
@@ -347,7 +347,8 @@
 
             {# Like the EAN: a secret puzzle's product number would give it away while its image is embargoed #}
             {% set has_codes = not is_image_hidden and (puzzle.puzzleIdentificationNumber is not null or puzzle.puzzleEan) %}
-            {% set has_other_names = not puzzle.puzzleAlternativeNames.isEmpty() %}
+            {# "Also known as": guests (and crawlers) get it in "About this puzzle" at the bottom, once #}
+            {% set has_other_names = not show_seo_sections and not puzzle.puzzleAlternativeNames.isEmpty() %}
             {% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
             <div class="puzzle-head-toggles" data-nosnippet>
                 <button class="puzzle-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#puzzleInsights" aria-expanded="false" aria-controls="puzzleInsights">

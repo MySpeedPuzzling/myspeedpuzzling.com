@@ -1110,7 +1110,7 @@
   "meta":
     "title": "%brand% %name% – %pieces% Teile Puzzle"
     "title_with_local_name": "%brand% %name% (%local_name%) – %pieces% Teile Puzzle"
-    "name_with_local_name": "%name% (%local_name%)"
+    "name_with_local_name_description": "%name% / %local_name%"
     "ean": ", EAN %ean%"
     "description": "%brand% %name% – %pieces%-teiliges Puzzle%ean%. Noch keine Legezeiten – erfassen Sie jetzt die erste auf MySpeedPuzzling."
     "description_no_solo_times": "%brand% %name% – %pieces%-teiliges Puzzle%ean%. Noch keine Solozeiten – erfassen Sie jetzt die erste auf MySpeedPuzzling."

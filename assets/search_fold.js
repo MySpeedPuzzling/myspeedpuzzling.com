@@ -62,19 +62,27 @@ const LATIN_EXCEPTIONS = new Map(
 
 const latinToAscii = (letter) => LATIN_EXCEPTIONS.get(letter) ?? letter.normalize('NFD').replace(/\p{M}+/gu, '');
 
+// Apostrophes and what is typed for one: ' ` ´ ʹ ʼ ‘ ’ ‛ ′ and the full-width ＇
+const APOSTROPHES = /['`\u00B4\u02B9\u02BC\u2018\u2019\u201B\u2032\uFF07]+/g;
+
 /**
- * SearchText::fold(): NFKC (full-width `％４Ａ` become ASCII, ligatures split), Latin letters to ASCII, lower case, NFC,
- * every whitespace run one space (PCRE's Unicode `\s` is White_Space, U+0085 included, plus the separators), control
- * and format characters removed, trimmed.
+ * SearchText::fold(): apostrophes removed ("where's" = "where´s" = "wheres") before NFKC and after it, NFKC (full-width
+ * `％４Ａ` become ASCII, ligatures split), Latin letters to ASCII, lower case, NFC, every whitespace run one space
+ * (PCRE's Unicode `\s` is White_Space, U+0085 included, and still the old space U+180E, plus the separators), control
+ * and format characters removed, a combining mark with no letter before it removed (NFKC turns `˘` into a space and
+ * the mark), trimmed.
  */
 export function foldSearchText(text) {
     return String(text ?? '')
+        .replace(APOSTROPHES, '')
         .normalize('NFKC')
         .replace(/\p{Script=Latin}/gu, latinToAscii)
         .toLowerCase()
         .normalize('NFC')
-        .replace(/[\p{White_Space}\p{Z}]+/gu, ' ')
+        .replace(APOSTROPHES, '')
+        .replace(/[\p{White_Space}\p{Z}\u180E]+/gu, ' ')
         .replace(/[\p{Cc}\p{Cf}]+/gu, '')
+        .replace(/(^| )\p{M}+/gu, '$1')
         .replace(/ {2,}/g, ' ')
         .replace(/^ | $/g, '');
 }

@@ -70,8 +70,10 @@ names of 255 characters (a merge never throws on the cap), sets `names_changed_a
 
 ## Search
 
-**One fold, in PHP.** `SearchText::fold()` = ICU `NFKC; [:Latin:] Latin-ASCII; Lower(); NFC` + control characters
-removed + whitespace collapsed. NFKC turns full-width `％＿＼４` into ASCII *before* escaping, Latin-ASCII handles
+**One fold, in PHP.** `SearchText::fold()` = apostrophes removed (`` ' ’ ‘ ´ ` ʼ ʹ ′ ‛ ＇ ``, before and after NFKC:
+"Where's", "Where´s", "Wheres" are one name) + ICU `NFKC; [:Latin:] Latin-ASCII; Lower(); NFC` + control characters
+removed + a combining mark with no letter before it removed (NFKC makes `˘ ¨ ¸` a space and a mark) + whitespace
+collapsed. NFKC turns full-width `％＿＼４` into ASCII *before* escaping, Latin-ASCII handles
 `Łódź → lodz`, `Straße → strasse`, `Ørsted → orsted`, non-Latin scripts stay as they are (half-width katakana are
 normalised by NFKC). Postgres never folds puzzle text for search, so stored keys and queries cannot disagree.
 `SearchText::VERSION` is bumped whenever the fold changes; then `myspeedpuzzling:rebuild-puzzle-search-keys` runs.
@@ -221,12 +223,20 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   text also matches a code without its separators ("RB-1000" finds `c:rb1000001`, only on code lines) besides the
   barcode without leading zeros. Dead `puzzle_filter_controller.js` and `wjpc_filter_controller.js` went with the
   attributes they read.
+- **Phase 1b - fold version 2** (production data: `´` in 25 names became a space and a stray accent, curly
+  apostrophes kept "peggy’s" apart from a typed "peggy's"): apostrophe look-alikes are removed before and after NFKC,
+  and a combining mark at the start or after a space goes. Names differing only by an apostrophe now fold equal and
+  `PuzzleNames` keeps one of them - intended, they are one name. The browser fold mirrors it (all 286,719 code points
+  alone, between two letters and after a space fold alike; PCRE still counts U+180E as a space, so the browser does).
+  `myspeedpuzzling:rebuild-puzzle-search-keys` runs after the deploy.
 - **Phase 1b - picker fields:** options carry `name` (main title), `names` (the other names), `codes` (EANs + brand
   codes as stored) and `piecesCount`, searched with weights 3 / 2 / 1 / 1 (`PuzzleChoicesBuilder::SEARCH_FIELDS`).
   Tom Select's scoring (@orchidjs/sifter) divides a typed word's length by the field's length, so one field of every
   name ranked a five-name puzzle below a one-name puzzle of the same title; separate fields rank them alike
-  (`PuzzlePickerRankingTest` runs the real library). No `search` key any more: `name` marks a server-built option
-  for the escaping renderer, as it already did for brands.
+  (`PuzzlePickerRankingTest` runs the real library). `name` marks a server-built option for the escaping renderer,
+  as it already did for brands. Blue-green: options keep the old joined `search` text for one more release (not in
+  `SEARCH_FIELDS`) and the renderer trusts `search` too, so a page of either release works with options of the
+  other; phase 1c drops both.
 - **Phase 1b - approval queue duplicates** compare barcodes through the search keys (leading zeros aside; junk in the
   EAN column no longer matches junk) and every name against every name; the statement got faster (28-48 → ~19 ms).
 - **Phase 1b - library lists** select `search_names` + `search_codes` in place of `ean` + `identification_number`

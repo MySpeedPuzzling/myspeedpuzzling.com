@@ -37,6 +37,17 @@ final class PuzzleSearchKeysTest extends TestCase
         self::assertSame("\nmagic garden\nkouzelna zahrada\n", PuzzleSearchKeys::names('Magic  Garden', $alternatives));
     }
 
+    public function testNamesKeyHoldsNoApostrophe(): void
+    {
+        self::assertSame("\nwheres wally?\n", PuzzleSearchKeys::names('Where´s Wally?', PuzzleNames::fromArray([
+            ['name' => "Where's Wally?", 'language' => null],
+            ['name' => 'Where’s Wally?', 'language' => 'en'],
+        ])));
+        self::assertSame("\npeggys riverside\n1970s\n", PuzzleSearchKeys::names('Peggy’s Riverside', PuzzleNames::fromArray([
+            ['name' => '1970‘s', 'language' => null],
+        ])));
+    }
+
     public function testNamesKeyOfAPuzzleWithoutOtherNames(): void
     {
         self::assertSame("\nstrasse? strasse\n", PuzzleSearchKeys::names('Straße? Strasse', new PuzzleNames()));

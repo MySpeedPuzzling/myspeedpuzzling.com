@@ -42,6 +42,13 @@ final class SearchTextTest extends TestCase
         yield 'empty string' => ['', ''];
         yield 'only whitespace' => [" \t\n ", ''];
         yield 'invalid UTF-8 does not fail' => ["Caf\xE9", 'caf?'];
+        yield 'straight apostrophe removed' => ["Where's Wally?", 'wheres wally?'];
+        yield 'acute accent used as apostrophe removed, not left as a stray mark' => ['Where´s Wally?', 'wheres wally?'];
+        yield 'curly apostrophes removed' => ['Peggy’s Riverside 1970‘s', 'peggys riverside 1970s'];
+        yield 'every apostrophe look-alike removed' => ["O`Ne\u{02BC}il\u{02B9}l \u{201B}n\u{2032} ＇t", 'oneill n t'];
+        yield 'apostrophe that NFKC makes removed' => ['ŉ', 'n'];
+        yield 'spacing accents leave a space, never a mark without a letter' => ['a˘b a˚b a˜b a¨b a¯b a¸b a˝b', 'a b a b a b a b a b a b a b'];
+        yield 'combining mark at the start or after a space removed' => ["\u{0301}mark x \u{0308}\u{0301}y e\u{0301}", 'mark x y e'];
     }
 
     public function testFoldedTextNeverHoldsANewline(): void
@@ -51,7 +58,7 @@ final class SearchTextTest extends TestCase
 
     public function testFoldIsIdempotent(): void
     {
-        $once = SearchText::fold('Straße ﬁsh Łódź ｶﾀｶﾅ ％Ａ');
+        $once = SearchText::fold('Straße ﬁsh Łódź ｶﾀｶﾅ ％Ａ Where´s ˘x');
 
         self::assertSame($once, SearchText::fold($once));
     }

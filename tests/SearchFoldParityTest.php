@@ -97,6 +97,19 @@ final class SearchFoldParityTest extends TestCase
         yield 'something else' => [['magic', 'puzzle 8', '4005556174813', 'kouzelny', '%', '_', 'e:4005556174812x'], false];
     }
 
+    public function testApostrophesAreNeverNeededToFindAName(): void
+    {
+        $key = PuzzleSearchKeys::names('Where´s Wally?', new PuzzleNames([new PuzzleName('Peggy’s Riverside', null)]));
+        $queries = ['wheres wally', "where's", 'WHERE’S WALLY?', 'where´s', "peggy's", 'peggys riverside', 'where s'];
+
+        $matches = $this->runInNode([], array_map(
+            static fn (string $query): array => ['query' => $query, 'key' => $key],
+            $queries,
+        ))['matches'];
+
+        self::assertSame([true, true, true, true, true, true, false], $matches);
+    }
+
     /**
      * @return list<string>
      */

@@ -221,7 +221,34 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  /internal-api/manufacturers/{manufacturerId}/merge:
+  /internal-api/puzzle-change-requests/{changeRequestId}/reject:
+    post:
+      summary: Reject a puzzle change request
+      operationId: rejectPuzzleChangeRequest
+      description: |
+        Declines a "suggest a change" proposal. The reason is delivered to the player
+        who proposed it, as a notification, so it should be written for them.
+        Does not check the status - send pending requests only.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      parameters:
+        - $ref: "#/components/parameters/ChangeRequestId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PuzzleChangeRejection"
+      responses:
+        "204":
+          description: Request rejected
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
     post:
       summary: Merge duplicate brands into this one
       operationId: mergeManufacturers
@@ -352,6 +379,15 @@ components:
       in: path
       required: true
       description: UUID (v7) of the puzzle merge request.
+      schema:
+        type: string
+        format: uuid
+
+    ChangeRequestId:
+      name: changeRequestId
+      in: path
+      required: true
+      description: UUID (v7) of the puzzle change request.
       schema:
         type: string
         format: uuid
@@ -548,6 +584,16 @@ components:
           type: string
           minLength: 1
           description: Shown to the player who reported the duplicate, as a notification.
+
+    PuzzleChangeRejection:
+      type: object
+      additionalProperties: false
+      required: [rejectionReason]
+      properties:
+        rejectionReason:
+          type: string
+          minLength: 1
+          description: Shown to the player who proposed the change, as a notification.
 
     Error:
       type: object

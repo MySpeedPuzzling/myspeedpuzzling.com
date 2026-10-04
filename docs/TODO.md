@@ -4,6 +4,16 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## EAN codes in the catalogue (2026-10-04)
+
+- [x] "Suggest a change" refuses codes that are not EAN/UPC codes, each one of a comma-separated list
+      (`Value\EanList`); codes the puzzle already carries pass, so legacy junk never blocks another change.
+      Ravensburger `4005555…`/`4005556…` typed without its two zeros (`45555…`) is refused with the full code suggested.
+- [ ] Same check on the add-puzzle form (10 puzzles hold a `45555…` code, the newest added 2026-10-03).
+- [ ] Fix the stored `45555…` / `045556…` codes to the full `400555…` (9 of the 11 lack the full code, so a box scan misses them).
+- [ ] 16 pending change requests carry a code the new check would refuse - review them with that in mind.
+- [ ] Where the `45555…` form comes from is still unknown - an e-mail to the player who proposed most of them was drafted for Jan (2026-10-04).
+
 ## Players page (`docs/features/players-page/README.md`)
 
 - [x] Cron row for `myspeedpuzzling:recalculate-community-stats` in `~/www/lily.srv` (`14-59/15`, lily.srv b3ea25c);

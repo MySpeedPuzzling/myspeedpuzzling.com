@@ -78,6 +78,7 @@ final class ProposeChangesController extends AbstractController
         $proposeFormData->manufacturerId = $puzzle->manufacturerId;
         $proposeFormData->piecesCount = $puzzle->piecesCount;
         $proposeFormData->ean = $puzzle->puzzleEan;
+        $proposeFormData->currentEan = $puzzle->puzzleEan;
         $proposeFormData->identificationNumber = $puzzle->puzzleIdentificationNumber;
 
         $proposeForm = $this->createForm(ProposePuzzleChangesFormType::class, $proposeFormData);

@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormData;
 
+use SpeedPuzzling\Web\Value\EanList;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\Image;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Positive;
 use Symfony\Component\Validator\Constraints\Range;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
+#[Callback('validateEan')]
 final class ProposePuzzleChangesFormData
 {
     #[NotBlank]
@@ -27,6 +31,11 @@ final class ProposePuzzleChangesFormData
     #[Length(max: 100)]
     public null|string $ean = null;
 
+    /**
+     * The puzzle's EAN list as it is now (not a form field) - its codes pass even when invalid
+     */
+    public null|string $currentEan = null;
+
     #[Length(max: 100)]
     public null|string $identificationNumber = null;
 
@@ -36,4 +45,18 @@ final class ProposePuzzleChangesFormData
         mimeTypesMessage: 'Please upload a valid image (JPEG, PNG, or WebP, up to 20 MB).'
     )]
     public null|UploadedFile $photo = null;
+
+    public function validateEan(ExecutionContextInterface $context): void
+    {
+        foreach (EanList::invalidCodes($this->ean ?? '', $this->currentEan) as $invalid) {
+            $violation = $invalid['suggestion'] === null
+                ? $context->buildViolation('ean_invalid')
+                : $context->buildViolation('ean_missing_zeros')->setParameter('%suggestion%', $invalid['suggestion']);
+
+            $violation
+                ->setParameter('%code%', $invalid['code'])
+                ->atPath('ean')
+                ->addViolation();
+        }
+    }
 }

@@ -85,7 +85,17 @@ its approval. Answers `201` with `{"mergeRequestId": "…"}`; settle it with the
 duplicates no player reported, e.g. the same puzzle left twice under one brand after a brand merge. An unknown puzzle id
 answers `404` and files nothing.
 
-### Brands
+### Puzzle change requests
+
+Players propose corrections to a puzzle ("Suggest a change": name, brand, pieces, EAN, catalogue number, photo).
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/internal-api/puzzle-change-requests/{id}/reject` | Decline the proposal |
+
+Reject body: `rejectionReason` (required). **It is shown to the player who proposed the change**, as a notification, so
+write it for them. Only send pending requests - like the merge-request reject, it does not check the status.
+
 
 Duplicate brands (the same brand created by several players, see [`brand-duplicates.md`](./brand-duplicates.md)) are
 merged here. Every endpoint writes a `puzzle_moderation_decision` row (`source = internal_api`) and needs

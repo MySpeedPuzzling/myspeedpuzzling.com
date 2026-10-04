@@ -53,12 +53,13 @@ export default class extends Controller {
             return;
         }
 
+        const labels = this.languageLabels();
         const promotedLanguage = this.languageSelect(row).value;
         const oldMain = this.mainTarget.value.trim();
 
         if (oldMain !== '') {
             const demoted = this.newRow(oldMain);
-            this.copyLanguage(this.mainLanguageSelectTarget, this.languageSelect(demoted));
+            this.setLanguage(this.languageSelect(demoted), this.mainLanguageSelectTarget.value, labels);
             demoted.dataset.wasMain = '';
             row.replaceWith(demoted);
         } else {
@@ -66,7 +67,7 @@ export default class extends Controller {
         }
 
         this.mainTarget.value = promoted;
-        this.copyLanguage(this.languageSelect(row), this.mainLanguageSelectTarget, promotedLanguage === 'en' ? '' : promotedLanguage);
+        this.setLanguage(this.mainLanguageSelectTarget, promotedLanguage === 'en' ? '' : promotedLanguage, labels);
 
         if (this.mainLanguageSelectTarget.value !== '') {
             this.showMainLanguage();
@@ -93,7 +94,7 @@ export default class extends Controller {
     // The title printed on a box without an English one: it goes to the other names, the moderator types the English title
     moveToOtherNames() {
         const row = this.newRow(this.mainTarget.value.trim());
-        this.copyLanguage(this.mainLanguageSelectTarget, this.languageSelect(row));
+        this.setLanguage(this.languageSelect(row), this.mainLanguageSelectTarget.value, this.languageLabels());
         row.dataset.wasMain = '';
         this.rowsTarget.prepend(row);
 
@@ -101,6 +102,27 @@ export default class extends Controller {
         this.mainLanguageSelectTarget.value = '';
         this.changed();
         this.mainTarget.focus();
+    }
+
+    // Every name as given - {name, nameLanguage, alternativeNames: [{name, language}]}, e.g. "Undo my edit"
+    load(names) {
+        const labels = this.languageLabels();
+
+        this.mainTarget.value = names.name || '';
+        this.setLanguage(this.mainLanguageSelectTarget, names.nameLanguage || '', labels);
+
+        this.rowTargets.forEach((row) => row.remove());
+        (names.alternativeNames || []).forEach((alternative) => {
+            const row = this.newRow(alternative.name || '');
+            this.setLanguage(this.languageSelect(row), alternative.language || '', labels);
+            this.rowsTarget.append(row);
+        });
+
+        if (this.mainLanguageSelectTarget.value !== '') {
+            this.showMainLanguage();
+        }
+
+        this.changed();
     }
 
     showMainLanguage() {
@@ -156,14 +178,24 @@ export default class extends Controller {
         return row;
     }
 
-    // Selects the source's language on the target - an option the target lacks (a tag outside the list) is copied over
-    copyLanguage(source, target, value = source.value) {
-        if (value !== '' && !Array.from(target.options).some((option) => option.value === value)) {
-            const sourceOption = Array.from(source.options).find((option) => option.value === value);
-            target.add(new Option(sourceOption ? sourceOption.text : value, value));
+    // Every language the editor's selects offer, value → label - a tag outside the list is offered only where a name has it
+    languageLabels() {
+        const labels = new Map();
+
+        [this.mainLanguageSelectTarget, ...this.rowTargets.map((row) => this.languageSelect(row))].forEach((select) => {
+            Array.from(select.options).forEach((option) => labels.set(option.value, option.text));
+        });
+
+        return labels;
+    }
+
+    // An option the select lacks (a tag outside the list, moved from another name) is added with its label
+    setLanguage(select, value, labels) {
+        if (value !== '' && !Array.from(select.options).some((option) => option.value === value)) {
+            select.add(new Option(labels.get(value) || value, value));
         }
 
-        target.value = value;
+        select.value = value;
     }
 
     renumber() {

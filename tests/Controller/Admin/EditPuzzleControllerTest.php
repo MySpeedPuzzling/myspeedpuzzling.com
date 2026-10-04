@@ -68,12 +68,12 @@ final class EditPuzzleControllerTest extends WebTestCase
 
         $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form();
         $values = $form->getValues();
-        self::assertSame('Puzzle 1', $values['puzzle_record_form[name]']);
+        self::assertSame('Puzzle 1', $values['puzzle_record_form[names][name]']);
         self::assertSame('RB-500-001', $values['puzzle_record_form[identificationNumber]']);
         self::assertArrayNotHasKey('puzzle_record_form[image]', $values);
 
         $browser->submit($form, [
-            'puzzle_record_form[name]' => 'Puzzle 1 - Edited',
+            'puzzle_record_form[names][name]' => 'Puzzle 1 - Edited',
             'puzzle_record_form[piecesCount]' => '520',
             'puzzle_record_form[note]' => 'Counted the pieces',
         ]);
@@ -100,18 +100,94 @@ final class EditPuzzleControllerTest extends WebTestCase
         $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form();
 
         $crawler = $browser->submit($form, [
-            'puzzle_record_form[name]' => 'Typed By The Moderator',
+            'puzzle_record_form[names][name]' => 'Typed By The Moderator',
             'puzzle_record_form[ean]' => '1234567890123',
         ]);
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
         self::assertSame(
             'Typed By The Moderator',
-            $crawler->filter('form[data-controller~="puzzle-record"]')->form()->getValues()['puzzle_record_form[name]'],
+            $crawler->filter('form[data-controller~="puzzle-record"]')->form()->getValues()['puzzle_record_form[names][name]'],
         );
 
         $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_500_01);
         self::assertSame('Puzzle 1', $puzzle->name);
+    }
+
+    public function testEveryNameIsEditedInTheNamesEditorAndTheLanguageChangeIsInTheHistory(): void
+    {
+        $browser = $this->signedInAdmin();
+        $editUrl = '/admin/puzzles/' . PuzzleFixture::PUZZLE_1000_02 . '/edit';
+
+        $crawler = $browser->request('GET', $editUrl);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('[data-puzzle-record-target="field"][data-names] [data-controller="names-editor"]');
+        self::assertSelectorNotExists('input[name="puzzle_record_form[alternativeName]"]');
+
+        $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form();
+        $values = $form->getValues();
+        self::assertSame(PuzzleFixture::NAME_CS_MAGIC_GARDEN, $values['puzzle_record_form[names][alternativeNames][0][name]']);
+        self::assertSame('cs', $values['puzzle_record_form[names][alternativeNames][0][language]']);
+        self::assertSame('de', $values['puzzle_record_form[names][alternativeNames][1][language]']);
+
+        // What the editor sends after "Make main title" on the Czech name and "+ Add a name" (rows renumbered in order)
+        $phpValues = $form->getPhpValues();
+        self::assertIsArray($phpValues['puzzle_record_form']);
+        $phpValues['puzzle_record_form']['names'] = [
+            'name' => PuzzleFixture::NAME_CS_MAGIC_GARDEN,
+            'nameLanguage' => 'cs',
+            'alternativeNames' => [
+                ['name' => 'Puzzle 7', 'language' => ''],
+                ['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de'],
+                ['name' => 'Jardín mágico', 'language' => 'es'],
+                ['name' => '', 'language' => 'fr'],
+            ],
+        ];
+        $browser->request('POST', $editUrl, $phpValues);
+        self::assertResponseRedirects('/en/puzzle/' . PuzzleFixture::PUZZLE_1000_02);
+
+        $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_1000_02);
+        self::assertSame(PuzzleFixture::NAME_CS_MAGIC_GARDEN, $puzzle->name);
+        self::assertSame('cs', $puzzle->nameLanguage);
+        self::assertSame([
+            ['name' => 'Puzzle 7', 'language' => null],
+            ['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de'],
+            ['name' => 'Jardín mágico', 'language' => 'es'],
+        ], $puzzle->alternativeNames);
+
+        $browser->request('GET', '/admin/puzzles/' . PuzzleFixture::PUZZLE_1000_02 . '/history');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('article table', 'Name language');
+        self::assertSelectorTextContains('article table', 'Jardín mágico (es)');
+    }
+
+    public function testASaveOverAPuzzleChangedMeanwhileIsRefusedWithTheFormKept(): void
+    {
+        $browser = $this->signedInAdmin();
+
+        $crawler = $browser->request('GET', self::EDIT_URL);
+        $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form();
+
+        // Another moderator saves first
+        $browser->submit($crawler->filter('form[data-controller~="puzzle-record"]')->form(), [
+            'puzzle_record_form[piecesCount]' => '520',
+        ]);
+        self::assertResponseRedirects();
+
+        $crawler = $browser->submit($form, [
+            'puzzle_record_form[names][name]' => 'Typed Over The Old Record',
+        ]);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        self::assertSelectorTextContains('form', 'This puzzle was changed while you were editing it. Reload to see the current state.');
+        self::assertSame(
+            'Typed Over The Old Record',
+            $crawler->filter('form[data-controller~="puzzle-record"]')->form()->getValues()['puzzle_record_form[names][name]'],
+        );
+
+        $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_500_01);
+        self::assertSame('Puzzle 1', $puzzle->name);
+        self::assertSame(520, $puzzle->piecesCount);
     }
 
     public function testAnUnknownPuzzleIsNotFound(): void

@@ -62,7 +62,7 @@ bin/console myspeedpuzzling:recalculate-badges [--backfill]
 
 - `--player=UUID` — single player, no stagger.
 - `--backfill` — 2-second stagger between players via `DelayStamp` so outbound email volume is spread out smoothly.
-- No flag — immediate dispatch for every player; fitting for a 15-minute cron.
+- No flag — immediate dispatch for every player (one async message each, ~7,600 on 2026-10-04); the daily safety-net cron.
 
 ### Data model
 
@@ -131,14 +131,13 @@ Not currently offered. If player frustration over email volume surfaces, add a `
 
 ## Cron
 
-Schedule the same way as the puzzle-intelligence recalc (every 15 minutes):
+A daily safety net - every add/edit/delete of a time already dispatches the player's recalculation, so the cron only
+heals drift (manually granted badges, paths that are not live-wired). Not every 15 minutes: one run puts one message per
+player with times on the `async` queue the transactional e-mails share. The production row (lily.srv) is in
+`docs/features/xp-levels/README.md` §Cron.
+
+On first deploy, seed existing players with (staggered, no e-mails - see `launch-runbook.md`):
 
 ```
-*/15 * * * * docker compose exec web php bin/console myspeedpuzzling:recalculate-badges
-```
-
-On first deploy, seed existing players with:
-
-```
-docker compose exec web php bin/console myspeedpuzzling:recalculate-badges --backfill
+docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer bin/console myspeedpuzzling:recalculate-badges --backfill
 ```

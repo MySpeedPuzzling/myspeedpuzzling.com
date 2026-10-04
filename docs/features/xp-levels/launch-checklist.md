@@ -25,7 +25,7 @@ _Last updated: 2026-07-13 — implementation COMPLETE (all phases P0–P8 of imp
   - Every digest email footer links to **notification settings** (plus signed one-click unsubscribe); the weekly
     digest is **disableable in notification settings** via the `contentDigestFrequency` preference (weekly/daily/none).
   - Sending mechanics/channel: **defined in `docs/features/content-digest/README.md`** (dedicated
-    `digest_emails` Messenger queue + rate-paced consumer, `notifications` mailer transport).
+    `content_digest_emails` Messenger queue + rate-paced consumer, `notifications` mailer transport).
 - Milestone visuals (levels 10/20/30/40/50): **CSS-only gradient rings** from the brand palette — no art dependency.
 - Level-up / launch share cards: **distinct new design** (background art needed from Jan, see §2).
 - Freshly added catalog puzzles: **no pending-XP window** — full trust, XP settles immediately; junk cleanup relies on delete-cascading XP removal.

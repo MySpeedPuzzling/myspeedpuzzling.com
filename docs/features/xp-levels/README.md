@@ -68,7 +68,7 @@ any drift (e.g. after puzzle merges or ownership transfers, which are not live-w
 16 tiered achievement types + admin-granted Early Adopter (DB value `supporter`).
 Achievement Points are denormalized to `player.achievement_points` — BadgeEvaluator
 re-anchors the absolute total on every evaluation (badge writes happen nowhere else),
-so the 15-minute recalc cron self-heals any drift (e.g. manually granted badges); the
+so the daily recalc cron self-heals any drift (e.g. manually granted badges); the
 AP ladder and every AP display read the column, never aggregate the badge table.
 Metrics live in `GetPlayerStatsSnapshot` (owner counters batched in one FILTER-aggregate
 query), conditions in `src/BadgeConditions/`. `BadgeEvaluator` persists gap-filled tiers
@@ -120,18 +120,26 @@ celebrations, leaderboards, share cards and digests for that player; XP accrues
 silently and everything returns on re-enable. Deliberately NOT a generic
 "gamification" flag.
 
-## Cron (production — add to the spare.srv crontab)
+## Cron (production — lily.srv)
+
+Production is `lily.srv` (`/srv/myspeedpuzzling`, spare.srv is decommissioned). App crons live in the
+lily.srv infra repo, `apps/myspeedpuzzling/cron.d/myspeedpuzzling` (installed by `deploy.sh`, `CRON_TZ=Europe/Prague`,
+every job a one-off `compose run --rm --no-deps messenger-consumer` wrapped in `lily-cron-run` + `sentry-cli monitors
+run`). Add these rows **in the same change that deploys this branch** - before that the commands do not exist in the
+production image and every run would fail. Minutes are picked so no two one-off containers start together (see the
+file's header; free minutes as of 2026-10-04: :01 :06 :12 :16 :21 :27 :31 :36 :42 :46 :51 :57).
 
 ```cron
-# XP bonus settlements — every 15 min, AFTER the puzzle-intelligence recalc
-*/15 * * * * docker compose --file /deployment/speedpuzzling/docker-compose.yml run --rm messenger-consumer sentry-cli monitors run --schedule "*/15 * * * *" settle-xp-bonuses -- bin/console myspeedpuzzling:settle-xp-bonuses
-
-# Achievements recalc — every 15 min (existing badges command)
-*/15 * * * * docker compose --file /deployment/speedpuzzling/docker-compose.yml run --rm messenger-consumer sentry-cli monitors run --schedule "*/15 * * * *" recalculate-badges -- bin/console myspeedpuzzling:recalculate-badges
-
-# Weekly content digest — Sundays 17:00 UTC (content-digest README §13; digest-consumer
-# compose service must exist before first ramp)
-0 17 * * 0 docker compose --file /deployment/speedpuzzling/docker-compose.yml run --rm messenger-consumer sentry-cli monitors run --schedule "0 17 * * 0" send-content-digest-weekly -- bin/console myspeedpuzzling:send-content-digest weekly
+# XP bonus settlements (docs/features/xp-levels/README.md in the app repo) - every 15 min, 4 min AFTER
+# recalculate-puzzle-intelligence (:02/:17/:32/:47), whose difficulty/speed numbers it settles against
+6-59/15 * * * * root lily-cron-run myspeedpuzzling settle-xp-bonuses -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "6-59/15 * * * *" --timezone "Europe/Prague" --failure-issue-threshold 2 settle-xp-bonuses -- bin/console myspeedpuzzling:settle-xp-bonuses >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
+# Achievements safety net - once a day. Every add/edit/delete of a time already dispatches the player's
+# recalculation; a run dispatches one async message per player with times (~7,600 on 2026-10-04), so
+# every 15 min would put ~730k messages a day on the queue the transactional e-mails share
+16 3 * * * root lily-cron-run myspeedpuzzling recalculate-badges -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "16 3 * * *" --timezone "Europe/Prague" recalculate-badges -- bin/console myspeedpuzzling:recalculate-badges >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
+# Weekly content digest - Sundays 18:01 Prague (CRON_TZ is supported on lily, so no DST drift any more);
+# needs the digest-consumer service (content-digest README §13) before the first run
+1 18 * * 0 root lily-cron-run myspeedpuzzling send-content-digest-weekly -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "1 18 * * 0" --timezone "Europe/Prague" send-content-digest-weekly -- bin/console myspeedpuzzling:send-content-digest weekly >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
 ```
 
 ## Feature flag
@@ -139,3 +147,68 @@ silently and everything returns on re-enable. Deliberately NOT a generic
 `xp-system` — `src/Services/Xp/XpFeatureGate.php`, admin-only visibility + full email
 suppression while active. Surface checklist: `leak-inventory.md`. Registry:
 `docs/features/feature_flags.md`. Removal = launch day (see `launch-runbook.md`).
+
+## Rebase onto main 2026-10-04 — what changed, what is open
+
+Main gained ~330 commits while this branch waited. Adapted in the rebase (own commits on top of the branch):
+
+- **E-mail address**: `player.email` is gone on main - the three mail handlers ask `PlayerAccountEmail`, the recipient
+  queries join `user_account` (the only address a player has).
+- **Result write paths main added** now keep the ledger and achievements in step (`XpAndBadgesWiringTest`):
+  automatic duplicate removal and "keep this copy" compensate the deleted copies, Undo of a removal and an accepted
+  guest link run full rebuilds (`RecalculateXpForPlayer`), a puzzle merge rebuilds the chain of every moved result, an
+  edit that moves a result to another puzzle rebuilds its members fully (the chain it left changes too), add / edit
+  recalculate achievements of every registered member (any member may edit a group time now), and
+  `moveToPuzzle()` / `migrateToPuzzle()` take the new puzzle's pieces count into `pieces_count_snapshot`.
+- **Privacy**: XP / AP ladders and the holders lists leave out players the viewer blocks (`HiddenPlayers`, inside
+  the ranking) and stay closed to private players for everybody (global rankings); the XP ring follows the allow
+  list (`PrivateProfileAccess::sqlIsPrivate()`); the digest's favourites block applies the recipient's blocks and the
+  allow list in SQL; the public share card of a private player carries `#CODE`, never the name (`-hidden` path).
+- **Auth / Turbo**: `IS_AUTHENTICATED_REMEMBERED` instead of `_FULLY` (remember-me visitors were bounced to the login,
+  the reveal POST was silently lost); links in the achievement modal leave the frame, a non-frame visit of the modal
+  URL redirects to the achievement page.
+- **E-mails**: `email_document` + preheaders (6 locales); the unsubscribe follows main's contract
+  (`ContentDigestUnsubscribeUrl`, never expires, `/{_locale}/weekly-digest/unsubscribe/{id}`, one-click 200 / button
+  303, `no-store`); the reveal mail goes through the `notifications` transport; the queue is `content_digest_emails`
+  (main's unread-messages digest owns `digest_emails_*`); routine bounces and the plausibility guard log at `info`.
+
+**Open - decisions for Jan:**
+
+1. `emailNotificationsEnabled` is still the global kill-switch of the digest and the reveal mail (README §4 of the
+   content digest). On main it now means "unread-messages digest" only and its one-click unsubscribe flips it - so
+   unsubscribing from message e-mails silently stops the weekly digest too. Proposal: digest + reveal gated by
+   `contentDigestFrequency` only, plus a digest switch on main's token e-mail preferences page (`email_preferences`).
+2. The achievement congratulation e-mail has no switch and no `List-Unsubscribe`, and goes through the transactional
+   transport. Proposal: its own switch (or the digest's), RFC 8058 headers, `notifications` transport.
+3. Sending pace: the digest staggers 250 ms (2–4 mails/s), the reveal 2 s on the shared `async` worker, no daily cap.
+   Main's bulk-ish mails go through `DelayedEmailQueue` (1/min, 1,000/day guard) because of Seznam / Apple reputation.
+   Routing both through it would also make the separate digest consumer unnecessary.
+4. XP ring on the profile: main's new `PlayerHeader` already shows the avatar, so the ring's own 52 px avatar is a
+   second one. Proposal: put the ring on the header's avatar (design call).
+5. `XpCalculator::FULL_FORMULA_FROM` is `2026-08-01` - set it to launch-day midnight at launch (runbook §3).
+6. The settings form offers "Daily" but the daily digest is not built (daily subscribers get the weekly one).
+
+**Open - follow-ups (no decision needed):**
+
+- Production: `content_digest_emails` consumer + `deploy.sh` restart + the cron rows above, in lily.srv, with the merge.
+- Per-page cost after launch: the header ring runs `GetXpProfile` on every signed-in page; the estimate / receipt /
+  celebration re-query the opt-out. Carry `xp_total`, `level`, `experience_system_opted_out` on the viewer's
+  `PlayerProfile` row (main's zero-query pattern).
+- One subscriber on main's result events (`PuzzleSolvingTimeDeleted` / `Modified` / `MovedToOtherPuzzle`) would cover
+  future write paths without per-handler dispatches; plus an XP safety-net cron that rebuilds players with entries on
+  results that are gone, suspicious or no longer theirs (nothing heals XP today).
+- A result id that comes back after deletion (Undo, a resent form, an API idempotency key) has compensated history:
+  the award skips it and a chain rebuild keeps the compensation. Undo uses full rebuilds now; the proper fix drops a
+  net-zero history with a compensation line in `awardForNewSolve()` / `rebuildPair()`.
+- `XpLedger::append()` reads and writes `player.xp_total` without a lock - a recompute next to the consumer can lose
+  an update (`SerializedByLock`).
+- First-try achievement counts the tracker's rows only; main makes a pair/team first try everybody's (one per person
+  per puzzle). Piece-count achievements read the live pieces count, XP the snapshot. Moderator piece-count fixes and
+  SQL-set `suspicious` flags never touch XP (runbook: `myspeedpuzzling:recalculate-xp --player`).
+- API returns badges regardless of membership / opt-out, the web shows them to members only.
+- E-mail polish: Inky buttons for the calls to action, `p.small-print`, the digest's settings link to the token
+  preferences page (`EmailPreferencesLinkGenerator`), a hosted hero image instead of the 185 KB inline PNG, no stored
+  body for `xp_reveal` in the audit log, a real plural in `badges_earned.title`.
+- `CleanupEmailAuditLogsHandler` re-dispatches its next batch inside the open transaction, so the batches are still
+  one transaction - loop in the command instead.
+- Canary tests get `xp_leaderboard` + `achievement_detail` on launch day (`feature_flags.md`).

@@ -17,7 +17,7 @@ untouched. To avoid naming collisions, everything in this feature is named **con
 are also untouched — they keep their immediate path through the `async` transport.
 
 _Last updated: 2026-07-11. Verified against Symfony 8.0.4/8.0.5 vendor code and the production
-deployment at `spare.srv:/deployment/speedpuzzling`._
+deployment at `spare.srv:/deployment/speedpuzzling` (decommissioned since - production is lily.srv, see §13)._
 
 ---
 
@@ -74,7 +74,8 @@ warm-up, only domain warm-up (§14).
 - **Preferences UI**: `MessagingSettingsFormType` on the edit-profile page; `Player.newsletterEnabled`
   exists (unused by any sender — reserved for the future newsletter).
 - **Cron pattern**: host crontab on spare.srv wrapping console commands in
-  `sentry-cli monitors run` via `docker compose run --rm messenger-consumer`.
+  `sentry-cli monitors run` via `docker compose run --rm messenger-consumer` (since 2026-07: lily.srv's
+  `apps/myspeedpuzzling/cron.d/myspeedpuzzling`, same pattern plus `lily-cron-run` and `--no-deps`, see §13).
 - **DNS**: SPF (`include:spf.seznam.cz`) on all three domains; DMARC `p=quarantine` on root,
   `p=none` on `notify.`/`news.` subdomains (tightening plan in §14).
 - **Absolute URLs from workers**: `config/packages/routing.php` sets `default_uri` from `APP_URL` —
@@ -87,8 +88,8 @@ host cron (17:00 daily / Sun 18:00 weekly, Sentry-monitored)
   └─ myspeedpuzzling:send-content-digest <daily|weekly>
        • eligibility SQL (preferences + NOT EXISTS content_digest_log for period + no-activity rule)
        • dispatches SendPlayerContentDigest(playerId, type, periodKey) per player
-         with DelayStamp stagger (index × 250 ms) → queue `digest_emails`
-            └─ dedicated digest-consumer container: messenger:consume digest_emails
+         with DelayStamp stagger (index × 250 ms) → queue `content_digest_emails`
+            └─ dedicated digest-consumer container: messenger:consume content_digest_emails
                  SendPlayerContentDigestHandler:
                    1. re-check eligibility (player, email, preference, period log)
                    2. staleness guard (drop silently if period too old)
@@ -132,10 +133,13 @@ this app), so multiple consumers share one window out of the box. Note: a rate-l
 blocks its whole worker while throttled — which is fine only because the digest consumer is dedicated (D3).
 
 **D3 — Dedicated `digest-consumer` container in production.** Copy of `messenger-consumer` running
-`messenger:consume digest_emails --time-limit 3600 --memory-limit 256M` (§13). Rejected: consuming
-`async digest_emails` from one worker (priority order) — workable, but a slow digest drain shares
+`messenger:consume content_digest_emails --time-limit 3600 --memory-limit 256M` (§13). Rejected: consuming
+`async content_digest_emails` from one worker (priority order) — workable, but a slow digest drain shares
 one thread with everything async, memory/restart behavior couples the two, and D2's future rate
 limiter would stall async messages.
+
+_Queue rename (2026-10-04 rebase): the queue was `digest_emails` until main shipped the unread-messages
+digest's own `digest_emails_*` routes and services - `content_digest_emails` keeps the two apart._
 
 **D4 — No suppression table in v1.** With a relay, recipient-stage failures (mailbox unknown/full)
 surface asynchronously as bounce emails to the sender mailbox, not at SMTP submission — a
@@ -194,8 +198,8 @@ existing file):
 ```php
 'transports' => [
     // ... existing sync / failed / async ...
-    'digest_emails' => [
-        'dsn' => '%env(MESSENGER_TRANSPORT_DSN)%?auto_setup=false&queue_name=digest_emails',
+    'content_digest_emails' => [
+        'dsn' => '%env(MESSENGER_TRANSPORT_DSN)%?auto_setup=false&queue_name=content_digest_emails',
         'retry_strategy' => [
             'max_retries' => 5,
             'delay' => 60_000,        // 1 min
@@ -206,7 +210,7 @@ existing file):
 ],
 'routing' => [
     // ... existing ...
-    SendPlayerContentDigest::class => 'digest_emails',
+    SendPlayerContentDigest::class => 'content_digest_emails',
 ],
 ```
 
@@ -217,7 +221,7 @@ the 4h delay is safe (`redeliver_timeout` only applies to in-flight rows, not pe
 `config/packages/dev/messenger.php` — route `SendPlayerContentDigest::class => 'sync'`
 (mirrors `PrepareDigestEmailForPlayer`; dev runs no consumer).
 
-`config/packages/test/messenger.php` — add `'digest_emails' => ['dsn' => 'in-memory://']` to
+`config/packages/test/messenger.php` — add `'content_digest_emails' => ['dsn' => 'in-memory://']` to
 transports and `SendPlayerContentDigest::class => 'sync'` to routing.
 
 ## 6. Retry & failure handling
@@ -335,17 +339,17 @@ surfaces never-emailed data (favorites' activity — currently in-app notificati
 
 ## 10. Unsubscribe & headers (required before first bulk send)
 
-No signed-URL pattern exists in the codebase yet; use Symfony **`UriSigner`** (autowired, signs with
-`APP_SECRET`, built-in expiry):
+Brought in line with main's signed-unsubscribe pattern on the 2026-10-04 rebase (`DigestEmailsUnsubscribeUrl`,
+`ResultEmailsUnsubscribeUrl` - docs/features/transactional-emails.md):
 
-- Handler embeds
-  `$uriSigner->sign($urlGenerator->generate('unsubscribe_content_digest', ['playerId' => …], ABSOLUTE_URL), new \DateInterval('P30D'))`.
-- `src/Controller/UnsubscribeContentDigestController.php` — single-action, public
-  (security config already grants `PUBLIC_ACCESS` to `^/`; no firewall changes), single
-  non-localized path `/unsubscribe/content-digest/{playerId}`. Verifies `checkRequest()`, dispatches
-  `ChangeContentDigestFrequency($playerId, None)`, renders a localized confirmation page. Accepts
-  **POST** for RFC 8058 one-click; GET shows a confirm button (protects against link prefetchers
-  unsubscribing users).
+- `ContentDigestUnsubscribeUrl::forPlayer($playerId, $locale)` signs route `content_digest_unsubscribe`
+  (`/{_locale}/weekly-digest/unsubscribe/{playerId}`, uuid requirement) with `UriSigner` and **no expiry** - an
+  unsubscribe link in an old e-mail must keep working. The XP reveal e-mail carries the same link.
+- `UnsubscribeContentDigestController` - same contract as `DigestEmailsUnsubscribeController`: verifies
+  `checkRequest()`; **POST** dispatches `ChangeContentDigestFrequency($playerId, None)` and answers the RFC 8058
+  one-click POST (`List-Unsubscribe=One-Click`) with a plain-text 200 (RFC 8058 forbids a redirect) and the page's
+  button with a 303 back to the page; **GET** only shows the page (subscribed: confirm button, else done) with
+  `Cache-Control: no-store` - mail scanners open links and must never unsubscribe anybody.
 - Every digest email carries:
   - `List-Unsubscribe: <https://…signed url…>` (+ optional `mailto:`)
   - `List-Unsubscribe-Post: List-Unsubscribe=One-Click`
@@ -392,52 +396,43 @@ including `messenger_messages`, for minutes):
 queue-bloat territory; optionally set per-table autovacuum
 (`autovacuum_vacuum_scale_factor = 0.01, threshold = 1000`) and watch `n_dead_tup`.
 
-## 13. Production rollout (spare.srv)
+## 13. Production rollout (lily.srv)
+
+_Rewritten 2026-10-04 for lily.srv (spare.srv, which the original plan targeted, is decommissioned). Infra changes live
+in the lily.srv repo, `apps/myspeedpuzzling/` - never hand-edit `/srv/myspeedpuzzling` on the box._
 
 **Throughput reality**: single-threaded consumer ≈ 150–450 ms/message (render + queries + SMTP) →
 sustained 2–4 msg/s; plan capacity at 2/s. 20k drains in ~2h47m at 2/s. A second consumer becomes
 necessary around ≥25k/day within a 2-hour window — at that point add the rate limiter (D2) so both
 consumers share one Redis-backed window.
 
-**New compose service** (`/deployment/speedpuzzling/docker-compose.yml`) — copy of
-`messenger-consumer` with only the command changed:
+**New compose service** (`apps/myspeedpuzzling/compose.yaml`) — a copy of `messenger-consumer`
+(same image, `env_file` and `environment` block) with only the command changed. Without it
+`SendPlayerContentDigest` messages pile up in the `content_digest_emails` queue - `messenger-consumer`
+consumes `async` only:
 
 ```yaml
 digest-consumer:
-    image: ghcr.io/myspeedpuzzling/website:main
+    image: ghcr.io/myspeedpuzzling/website:${IMAGE_TAG:-main}
     restart: always
-    command: "bash -c 'wait-for-it postgres:5432 -- sleep 5 && bin/console messenger:consume digest_emails -vv --time-limit 3600 --memory-limit 256M'"
-    healthcheck:
-        test: pgrep -f "messenger:consume" > /dev/null || exit 1
-        start_period: 15s
-        timeout: 5s
-        interval: 30s
-        retries: 3
+    command: "bash -c 'php bin/wait-for-database 60 && exec bin/console messenger:consume content_digest_emails --time-limit 3600 --memory-limit 256M'"
+    env_file:
+        - .env
     environment:
         # identical to messenger-consumer — copy the block verbatim
-    networks:
-        - internal
 ```
 
-**`deploy.sh`** — the workers section only recreates `messenger-consumer`; without this change the
-digest consumer would run a stale image after every deploy:
+**`deploy.sh`** — step 6 restarts the workers with the new image and a fresh `.env`; the digest
+consumer must be in that list or it keeps running the previous release:
 
 ```bash
-docker compose stop messenger-consumer digest-consumer
-LOGS_START=$(expr $(date +%s))
-docker compose up --detach --force-recreate --remove-orphans messenger-consumer digest-consumer || docker compose logs --since $LOGS_START messenger-consumer digest-consumer
+restart_consumers messenger-consumer digest-consumer
 ```
 
-**Cron** (`/deployment/speedpuzzling` host crontab, existing sentry-cli pattern):
-
-```cron
-0 16 * * * docker compose --file /deployment/speedpuzzling/docker-compose.yml run --rm messenger-consumer sentry-cli monitors run --schedule "0 16 * * *" send-content-digest-daily -- bin/console myspeedpuzzling:send-content-digest daily
-0 17 * * 0 docker compose --file /deployment/speedpuzzling/docker-compose.yml run --rm messenger-consumer sentry-cli monitors run --schedule "0 17 * * 0" send-content-digest-weekly -- bin/console myspeedpuzzling:send-content-digest weekly
-```
-
-Times are UTC — the host runs `Etc/UTC` and its cron does not support `CRON_TZ` (both verified on
-spare.srv), so Prague send times drift ±1h with DST (see D5). A wrapper script checking local time
-is the escape hatch if exact Prague times ever matter.
+**Cron** (`apps/myspeedpuzzling/cron.d/myspeedpuzzling`): the row is in
+`docs/features/xp-levels/README.md` §Cron. lily's cron file sets `CRON_TZ=Europe/Prague`, so the
+weekly digest fires at 18:01 Prague all year (D5's ±1h DST drift was a spare.srv limitation).
+The daily digest (Phase 3, not built) would follow the same pattern.
 
 ## 14. Reputation plan
 
@@ -500,7 +495,7 @@ absorbs the newsletter too.
 **Phase 1 — pipeline (no emails sent yet)**
 - [x] `ContentDigestFrequency` enum + `Player.contentDigestFrequency` column + generated migration
 - [x] `ContentDigestLog` entity + repository (persist-only) + generated migration
-- [x] `SendPlayerContentDigest` message + `digest_emails` transport + routing (base/dev/test config)
+- [x] `SendPlayerContentDigest` message + `content_digest_emails` transport + routing (base/dev/test config)
 - [x] `SendPlayerContentDigestHandler` (eligibility re-check, staleness guard, direct transport send,
       failure classification per §6, log row) — note: 554 is treated as TRANSIENT (bubbles to retry)
       because it cannot be distinguished from MAIL FROM relay-denied at submission time
@@ -536,7 +531,8 @@ absorbs the newsletter too.
 1. **Email Profi outbound cap** — ask Seznam support for the fair-use ceiling per identity/day
    (blocking only for full 20k volume, not for ramp-up).
 2. ~~Host cron timezone~~ — resolved: spare.srv runs `Etc/UTC`, installed cron has no `CRON_TZ`
-   support; schedules are UTC with DST drift (D5, §13).
+   support; schedules are UTC with DST drift (D5, §13). Moot on lily.srv: its cron file sets
+   `CRON_TZ=Europe/Prague`, so the weekly digest fires at a fixed Prague time.
 3. **Unread-messages digest consolidation** — fold into the daily content digest ("max one
    MySpeedPuzzling email per day") or keep separate? Recommended: keep separate for v1, revisit
    after complaint-rate data exists.

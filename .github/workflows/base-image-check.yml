@@ -15,6 +15,7 @@ env:
 
 jobs:
   inputs:
+      if: false
       runs-on: ubuntu-latest
       container: ghcr.io/myspeedpuzzling/web-base-php85:main
       steps:
@@ -143,6 +144,7 @@ jobs:
                   exit $fail
 
   production-image:
+      if: false
       runs-on: ubuntu-latest
       steps:
           -   uses: actions/checkout@v7
@@ -177,3 +179,19 @@ jobs:
                   docker run --rm --entrypoint php local/website:candidate bin/console about
                   docker run --rm --entrypoint php local/website:candidate -r 'echo implode(",", array_intersect(["HEIC","AVIF","WEBP","SVG","JPEG","PNG"], (new Imagick())->queryFormats())), "\n";'
                   docker run --rm --entrypoint sh local/website:candidate -c 'frankenphp version; ls /app/public/build | wc -l; test -s /app/public/build/entrypoints.json && echo entrypoints-ok; which inkscape wkhtmltopdf rsvg-convert sentry-cli'
+
+  pull-timing:
+      runs-on: ubuntu-latest
+      steps:
+          -   name: Cold pulls, alternating
+              run: |
+                  for round in 1 2 3; do
+                      for tag in main slim-zstd; do
+                          docker image prune -af > /dev/null; docker builder prune -af > /dev/null 2>&1 || true
+                          start=$(date +%s.%N)
+                          docker pull -q ghcr.io/myspeedpuzzling/web-base-php85:$tag > /dev/null
+                          end=$(date +%s.%N)
+                          printf 'round %s  %-10s %5.1fs\n' $round $tag "$(echo "$end - $start" | bc)"
+                      done
+                  done
+                  docker image ls --format '{{.Repository}}:{{.Tag}} {{.Size}}'

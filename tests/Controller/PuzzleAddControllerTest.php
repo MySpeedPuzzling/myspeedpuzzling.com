@@ -393,6 +393,56 @@ final class PuzzleAddControllerTest extends WebTestCase
         self::assertSame(1, $database->fetchOne("SELECT COUNT(*) FROM puzzle WHERE name = 'Mistyped Pieces Puzzle'"));
     }
 
+    public function testInvalidEanOfANewPuzzleIsRefusedKeepingThePhotoWithAClearButton(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $database = self::getContainer()->get(Connection::class);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $newPuzzleId = $crawler->filter('input[name="new_puzzle_id"]')->attr('value');
+        $ids = ['time_id' => $crawler->filter('input[name="time_id"]')->attr('value'), 'new_puzzle_id' => $newPuzzleId];
+
+        $submission = $this->submissionOf($crawler);
+        $submission['puzzle'] = 'Pets of Palm Springs';
+        $submission['puzzlePiecesCount'] = '500';
+        $submission['puzzleEan'] = '45555011897';
+
+        $crawler = $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, ...$ids], ['puzzle_add_form' => ['puzzlePhoto' => $this->boxPhoto()]]);
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertFalse($database->fetchOne('SELECT 1 FROM puzzle WHERE id = :id', ['id' => $newPuzzleId]), 'nothing is saved');
+        self::assertStringContainsString('looks like 4005555011897 with two zeros missing', $crawler->filter('[data-time-form-autocomplete-target="eanErrors"]')->text());
+        self::assertCount(1, $crawler->filter('[data-action="click->time-form-autocomplete#clearEan"]'));
+        // The box photo stays attached for the next submit
+        self::assertSame('box.jpg', trim($crawler->filter('.file-drop-message')->first()->text()));
+
+        $submission['puzzleEan'] = '4005555011897';
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, ...$ids], ['puzzle_add_form' => ['puzzlePhoto' => $this->boxPhoto()]]);
+
+        $this->assertResponseRedirects();
+        self::assertSame('4005555011897', $database->fetchOne('SELECT ean FROM puzzle WHERE id = :id', ['id' => $newPuzzleId]));
+    }
+
+    public function testInvalidEanLeftInTheHiddenFieldDoesNotBlockAResultOfAnExistingPuzzle(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $ids = ['time_id' => $crawler->filter('input[name="time_id"]')->attr('value'), 'new_puzzle_id' => $crawler->filter('input[name="new_puzzle_id"]')->attr('value')];
+
+        $submission = $this->submissionOf($crawler);
+        $submission['puzzleEan'] = '45555011897';
+
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, ...$ids]);
+
+        $this->assertResponseRedirects();
+    }
+
     public function testInvalidTimeIdIsReplacedWithAFreshOne(): void
     {
         $browser = self::createClient();

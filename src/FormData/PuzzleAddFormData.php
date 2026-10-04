@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormData;
 
 use DateTimeImmutable;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -111,6 +113,21 @@ final class PuzzleAddFormData
             $context->buildViolation('finished_at_required_for_speed')
                 ->atPath('finishedAt')
                 ->addViolation();
+        }
+    }
+
+    #[Callback]
+    public function validatePuzzleEan(ExecutionContextInterface $context): void
+    {
+        // Only a new puzzle takes the code - shown exactly then (`hide_new_puzzle`), so a code left
+        // hidden in the field (e.g. from a scan) never blocks saving a result of an existing puzzle
+        $addsNewPuzzle = $this->puzzle !== null
+            && trim($this->puzzle) !== ''
+            && Uuid::isValid($this->puzzle) === false
+            && $this->brand !== null;
+
+        if ($addsNewPuzzle) {
+            EanList::addViolations($context, 'puzzleEan', $this->puzzleEan, null);
         }
     }
 }

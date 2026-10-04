@@ -221,6 +221,52 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /internal-api/puzzle-change-requests:
+    post:
+      summary: File a puzzle change proposal
+      operationId: submitPuzzleChangeRequest
+      description: |
+        Files the same review item a player's "Suggest a change" creates, as the reviewer
+        player. A field left out keeps the puzzle's current value. `ean` is the whole
+        comma-separated list as it should end up; every code not already on the puzzle
+        must be a valid EAN/UPC.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PuzzleChangeProposal"
+      responses:
+        "201":
+          description: Proposal filed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [changeRequestId]
+                properties:
+                  changeRequestId:
+                    type: string
+                    format: uuid
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: The puzzle already has a pending change or merge request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
   /internal-api/puzzle-change-requests/{changeRequestId}/reject:
     post:
       summary: Reject a puzzle change request
@@ -584,6 +630,29 @@ components:
           type: string
           minLength: 1
           description: Shown to the player who reported the duplicate, as a notification.
+
+    PuzzleChangeProposal:
+      type: object
+      additionalProperties: false
+      required: [puzzleId]
+      properties:
+        puzzleId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        manufacturerId:
+          type: string
+          format: uuid
+        piecesCount:
+          type: integer
+          minimum: 10
+          maximum: 25000
+        ean:
+          type: string
+          description: The whole comma-separated list as it should end up.
+        identificationNumber:
+          type: string
 
     PuzzleChangeRejection:
       type: object

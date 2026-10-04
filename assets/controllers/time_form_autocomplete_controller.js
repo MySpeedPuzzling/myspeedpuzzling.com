@@ -2,7 +2,7 @@ import { Controller } from '@hotwired/stimulus';
 import * as bootstrap from 'bootstrap';
 
 export default class extends Controller {
-    static targets = ['brand', 'puzzle', 'newPuzzle', 'scannerModal', 'scannerMessage', 'eanInput', 'hideOptions'];
+    static targets = ['brand', 'puzzle', 'newPuzzle', 'scannerModal', 'scannerMessage', 'eanInput', 'eanClear', 'eanErrors', 'hideOptions'];
 
     static values = {
         eanSearchUrl: String,
@@ -494,6 +494,24 @@ export default class extends Controller {
     }
 
     // === Barcode Scanner Methods ===
+
+    /**
+     * Empties a refused EAN code together with its error - the rest of the form stays as it is.
+     */
+    clearEan() {
+        this.eanInputTarget.value = '';
+        this.eanInputTarget.classList.remove('is-invalid');
+
+        if (this.hasEanErrorsTarget) {
+            this.eanErrorsTarget.replaceChildren();
+        }
+
+        if (this.hasEanClearTarget) {
+            this.eanClearTarget.remove();
+        }
+
+        this.eanInputTarget.focus();
+    }
 
     openScanner(event) {
         event.preventDefault();

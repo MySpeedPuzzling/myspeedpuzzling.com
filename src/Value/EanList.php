@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value;
 
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
+
 /**
  * The EAN field of a puzzle: one or more codes, comma-separated (one per edition or region).
  *
@@ -59,6 +61,27 @@ readonly final class EanList
         }
 
         return $invalid;
+    }
+
+    /**
+     * One violation per invalid code, on the given field (messages in the validators domain).
+     */
+    public static function addViolations(
+        ExecutionContextInterface $context,
+        string $path,
+        null|string $input,
+        null|string $alreadyListed,
+    ): void {
+        foreach (self::invalidCodes($input ?? '', $alreadyListed) as $invalid) {
+            $violation = $invalid['suggestion'] === null
+                ? $context->buildViolation('ean_invalid')
+                : $context->buildViolation('ean_missing_zeros')->setParameter('%suggestion%', $invalid['suggestion']);
+
+            $violation
+                ->setParameter('%code%', $invalid['code'])
+                ->atPath($path)
+                ->addViolation();
+        }
     }
 
     private static function key(string $code): string

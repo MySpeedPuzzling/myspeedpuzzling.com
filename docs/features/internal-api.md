@@ -91,11 +91,21 @@ Players propose corrections to a puzzle ("Suggest a change": name, brand, pieces
 
 | Method | Path | Purpose |
 |---|---|---|
+| `POST` | `/internal-api/puzzle-change-requests` | File a proposal yourself (`201` + `{"changeRequestId"}`) |
 | `POST` | `/internal-api/puzzle-change-requests/{id}/reject` | Decline the proposal |
+
+File body: `puzzleId` (required) and any of `name`, `manufacturerId`, `piecesCount`, `ean`, `identificationNumber`. **A
+field left out keeps the puzzle's current value**, so the review shows only what the proposal changes; `ean` is the whole
+comma-separated list as it should end up, and every code not already on the puzzle must be a valid EAN/UPC. The reviewer
+player is the reporter. Answers `400` for an invalid field or when nothing differs, `404` for an unknown puzzle and `409`
+when the puzzle already has a pending change or merge request (the web form allows one at a time too). No photo. Use it
+for catalogue corrections found by an analysis, so they go through moderator review instead of a database write - the
+`puzzle-change-proposal` skill wraps it.
 
 Reject body: `rejectionReason` (required). **It is shown to the player who proposed the change**, as a notification, so
 write it for them. Only send pending requests - like the merge-request reject, it does not check the status.
 
+### Brands
 
 Duplicate brands (the same brand created by several players, see [`brand-duplicates.md`](./brand-duplicates.md)) are
 merged here. Every endpoint writes a `puzzle_moderation_decision` row (`source = internal_api`) and needs

@@ -135,8 +135,16 @@
                                         <i class="bi-upc-scan"></i>
                                     </button>
                                 {% endif %}
+                                {# A refused code: one tap empties the field, everything else (photo included) stays #}
+                                {% if solving_time_form.puzzleEan.vars.errors|length > 0 %}
+                                    <button type="button" class="btn btn-outline-danger"
+                                            data-time-form-autocomplete-target="eanClear"
+                                            data-action="click->time-form-autocomplete#clearEan">
+                                        <i class="bi-x-lg me-1"></i>{{ 'forms.clear_ean'|trans }}
+                                    </button>
+                                {% endif %}
                             </div>
-                            {{ form_errors(solving_time_form.puzzleEan) }}
+                            <div data-time-form-autocomplete-target="eanErrors">{{ form_errors(solving_time_form.puzzleEan) }}</div>
                             {{ form_help(solving_time_form.puzzleEan) }}
                             {{ form_row(solving_time_form.puzzleIdentificationNumber) }}
 

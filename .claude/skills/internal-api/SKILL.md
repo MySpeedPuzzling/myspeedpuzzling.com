@@ -37,6 +37,7 @@ All endpoints are `POST`, return `204 No Content` on success, accept optional JS
 | `/internal-api/feature-requests/{id}/mark-in-progress` | Transition feature request → `in_progress` |
 | `/internal-api/feature-requests/{id}/mark-completed` | Transition feature request → `completed` |
 | `/internal-api/feature-requests/{id}/mark-declined` | Transition feature request → `declined` |
+| `/internal-api/puzzle-change-requests` | File a change proposal - see the `puzzle-change-proposal` skill |
 | `/internal-api/puzzle-change-requests/{id}/reject` | Reject a "suggest a change" proposal - body `{"rejectionReason": "..."}` (required, shown to the player) |
 
 Puzzle merge-request and brand endpoints: see `docs/features/internal-api.md`.

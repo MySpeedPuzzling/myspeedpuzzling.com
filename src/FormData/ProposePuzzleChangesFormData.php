@@ -48,15 +48,6 @@ final class ProposePuzzleChangesFormData
 
     public function validateEan(ExecutionContextInterface $context): void
     {
-        foreach (EanList::invalidCodes($this->ean ?? '', $this->currentEan) as $invalid) {
-            $violation = $invalid['suggestion'] === null
-                ? $context->buildViolation('ean_invalid')
-                : $context->buildViolation('ean_missing_zeros')->setParameter('%suggestion%', $invalid['suggestion']);
-
-            $violation
-                ->setParameter('%code%', $invalid['code'])
-                ->atPath('ean')
-                ->addViolation();
-        }
+        EanList::addViolations($context, 'ean', $this->ean, $this->currentEan);
     }
 }

@@ -29,8 +29,8 @@ Consequences:
   piece counts). Every scan needs a disambiguation step, ideally silent.
 - Members already fix EANs through change requests. Multiscan makes that instant and in context.
 
-Existing pieces reused as-is: `barcode_scanner_controller.js` (native `BarcodeDetector`, zbar
-polyfill, checksum + 10-frame confirmation), `SearchPuzzle::allByEan()` (substring match, zeros
+Existing pieces reused as-is: `barcode_scanner_controller.js` (zbar decoder on every platform - see "Decoder" at the end,
+checksum + 10-frame confirmation), `SearchPuzzle::allByEan()` (substring match, zeros
 tolerated, hidden puzzles excluded), `GetUserPuzzleStatuses` (one query → solved / in library /
 wishlist / lent / borrowed / listed, with `lentPuzzleIds`), the single-puzzle handlers
 (`AddPuzzleToCollection`, `AddPuzzleToWishList`, `LendPuzzleToPlayer`, `BorrowPuzzleFromPlayer`,
@@ -209,3 +209,45 @@ Requiring a camera step inside a scanning session must never cost the scanned pi
   scan, a remembered pick is kept only when it is still one of that code's candidates. On phones, opening the
   camera can make the browser drop the page; this brings everything back ("N scanned puzzles are back").
 
+
+## Decoder: zbar on every platform (2026-10-04)
+
+`barcode_scanner_controller.js` (multiscan, the add-time form, the global search) decodes with our own zbar
+(`@undecaf/zbar-wasm` + `@undecaf/barcode-detector-polyfill`) on every platform. The browser's own
+`BarcodeDetector` is used only when zbar cannot be loaded.
+
+Why: Android's built-in detector (Google's barcode engine behind Chrome and Samsung Internet) sometimes reads the
+left half of an EAN-13 with the wrong parity. Every G-coded digit comes back as the L-coded digit one bar module
+away, so the first digit becomes 0 and the result is a *different code that still passes the check digit*.
+Ravensburger `4005555011897` came back as `0045555011897` (stored without leading zeros as `45555011897`), a Blitz
+Puzzle `3770039925052` as `0778649925052`. Our 10-identical-reads rule does not help, because the misread is
+stable on a given box and phone. In multiscan the wrong code matched nothing, the player picked the puzzle by name
+and `LinkEanToPuzzle` proposed it as an extra code.
+
+Evidence:
+- Eight of the nine players who entered such codes scan with Android Chrome or Samsung Internet. Jan's iPhone
+  (zbar) never reproduced it, and one player reproduced it at will on her box.
+- Across every stored and proposed code (25k), only these two misread forms occur (16 cases, 15 of them
+  Ravensburger `4005555`).
+- A simulation with 301 catalogue codes × 30 random print and camera distortions:
+  - zbar: 4,792 correct reads, 2 wrong, never this parity misread.
+  - zxing-cpp (`zxing-wasm` 3.1.4): 5,475 correct, 37 wrong, 11 of them exactly this misread.
+  - So zxing is not the alternative: it reads more, but also misreads more.
+- Speed: zbar needs ~11 ms for a 640×480 frame and ~31 ms for a 720p frame on an M-series Mac. Android Chrome's
+  default camera stream is 640×480.
+
+Reading rules (`barcode_scanner_controller.js`):
+- A code is accepted after 10 identical reads, and zbar's `quality > 8` (more than 8 scan lines agree within the frame)
+  now applies on Android too. The native detector reports no quality.
+- A frame that reads two different codes counts for nothing (two boxes in view, or a misread).
+- One decode per camera frame (`requestVideoFrameCallback`, falling back to `requestAnimationFrame`, plus a 250 ms
+  safety tick), so the 10 reads are 10 different frames.
+- A scan-loop generation guard keeps a quick stop + start from running two loops.
+- Vertical scanning stays on (Jan, 2026-10-04): zbar's `X_DENSITY = 0` would be ~2× faster but cannot read a box
+  held sideways.
+- Checked with Chrome's fake camera: a single code is accepted after exactly 10 frames (~0.47 s), two codes in view are
+  never accepted, continuous mode decodes 29-30 times a second from a 30 fps camera, and still does after a stop +
+  start.
+
+Second line of defence: the add form and "Suggest a change" refuse `45555…` / `045555…` codes with the full code
+as a suggestion (`Value\EanList`).

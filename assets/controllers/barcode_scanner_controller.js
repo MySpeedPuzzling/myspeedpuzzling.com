@@ -166,31 +166,32 @@ export default class extends Controller {
         }
     }
 
-    async _ensureBarcodeDetector() {
-        if (this._polyfillLoaded) return;
+    async _detectorClass() {
+        if (this._Detector !== undefined) return this._Detector;
 
-        // Load zbar-wasm first, then the polyfill that depends on it
-        await this._loadScript('https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js');
-        await this._loadScript('https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js');
-
-        const polyfillAvailable = typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-
+        // Our own decoder (zbar) on every platform, even where the browser has a BarcodeDetector:
+        // Android's (Google's engine in Chrome and Samsung Internet) reads some EAN-13 left halves with
+        // the wrong parity and returns another code that still passes the check digit - Ravensburger
+        // 4005555011897 as 0045555011897, stored as 45555011897
+        // (docs/features/multiscan/README.md "Decoder: zbar on every platform").
+        // The browser's own detector is only the fallback when zbar cannot be loaded.
         try {
-            if (window.BarcodeDetector && typeof window.BarcodeDetector.getSupportedFormats === 'function') {
-                const formats = await window.BarcodeDetector.getSupportedFormats();
-                if (formats.indexOf('ean_13') === -1 && polyfillAvailable) {
-                    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-                }
-            } else if (polyfillAvailable) {
-                window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-            }
+            // Load zbar-wasm first, then the polyfill that depends on it
+            await this._loadScript('https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js');
+            await this._loadScript('https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js');
         } catch (e) {
-            if (polyfillAvailable) {
-                window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-            }
+            console.error('Barcode decoder could not be loaded:', e);
         }
 
-        this._polyfillLoaded = true;
+        if (typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill) {
+            this._Detector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+        } else if (window.BarcodeDetector) {
+            this._Detector = window.BarcodeDetector;
+        } else {
+            this._Detector = null;
+        }
+
+        return this._Detector;
     }
 
     _loadScript(src) {
@@ -213,24 +214,26 @@ export default class extends Controller {
             const mod = await import('barcoder');
             this._Barcoder = mod.default;
         }
-        await this._ensureBarcodeDetector();
+        const Detector = await this._detectorClass();
 
-        if (typeof BarcodeDetector === 'undefined') {
+        if (Detector === null) {
             console.error('BarcodeDetector is not available');
             return;
         }
 
-        const barcodeDetector = new BarcodeDetector({ formats: ['ean_8', 'ean_13'] });
+        const barcodeDetector = new Detector({ formats: ['ean_8', 'ean_13'] });
         const ctx = this.overlayTarget.getContext('2d');
+        // A stop followed by a quick restart must not leave the old loop running next to the new one
+        const generation = this.scanGeneration = (this.scanGeneration || 0) + 1;
 
         const scanFrame = async () => {
-            if (!this.scanning) {
+            if (!this.scanning || generation !== this.scanGeneration) {
                 return;
             }
 
             if (this.paused) {
                 // Keep the stream alive, skip detection while the host handles a result
-                requestAnimationFrame(scanFrame);
+                this._onNextFrame(scanFrame);
                 return;
             }
 
@@ -243,6 +246,8 @@ export default class extends Controller {
 
                     let barcode = barcodes[0];
                     const code = barcode.rawValue;
+                    // A frame that reads two different codes is not trusted at all: two boxes in view, or a misread
+                    const sameCodeOnly = barcodes.every(b => b.rawValue === code);
 
                     // Draw bounding polygon if corner points are provided.
                     if (barcode.cornerPoints && barcode.cornerPoints.length > 0) {
@@ -257,7 +262,7 @@ export default class extends Controller {
                         ctx.stroke();
                     }
 
-                    if (this._Barcoder.validate(code) && (barcode.quality === undefined || barcode.quality > 8)) {
+                    if (sameCodeOnly && this._Barcoder.validate(code) && (barcode.quality === undefined || barcode.quality > 8)) {
                         const now = Date.now();
                         // Only push if at least X...ms have elapsed since the last push.
                         if (!this.lastPushTime || now - this.lastPushTime >= 2) {
@@ -285,10 +290,40 @@ export default class extends Controller {
                 console.error('Barcode detection error:', error);
             }
 
-            requestAnimationFrame(scanFrame);
+            this._onNextFrame(scanFrame);
         };
 
         scanFrame();
+    }
+
+    /**
+     * Decode each camera frame once: requestAnimationFrame can fire twice for the same frame, and a frame
+     * decoded twice would count twice towards the 10 matching reads.
+     */
+    _onNextFrame(callback) {
+        const video = this.videoTarget;
+
+        if (typeof video.requestVideoFrameCallback !== 'function') {
+            requestAnimationFrame(callback);
+            return;
+        }
+
+        let called = false;
+        const run = () => {
+            if (!called) {
+                called = true;
+                callback();
+            }
+        };
+        const handle = video.requestVideoFrameCallback(run);
+
+        // Never stall when a browser stops reporting frames - fall back to decoding what is on screen
+        window.setTimeout(() => {
+            if (!called) {
+                video.cancelVideoFrameCallback(handle);
+                run();
+            }
+        }, 250);
     }
 
     stopScanning() {

@@ -77,16 +77,18 @@
 
 .players-suggestion-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: .375rem;
     margin-top: auto;
 
+    // Two equal buttons side by side while both labels fit; one under the other once they don't (four columns at
+    // 992 px leave a card ~200 px wide, "Zu Favoriten" + "Vergleichen" need more)
     > .btn,
     > .players-suggestion-compare {
         flex: 1 1 0;
-        min-width: 0;
+        min-width: max-content;
     }
 
-    // Two buttons side by side fit a 200 px card (two columns from 500 px, four at 992 px)
     .btn {
         --#{$prefix}btn-padding-x: .5rem;
         white-space: nowrap;

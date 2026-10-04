@@ -82,7 +82,7 @@
         {% set totalPages = this.totalPages %}
         {% if totalPages > 1 %}
             <nav>
-                <ul class="pagination justify-content-center mt-3 mb-0">
+                <ul class="pagination flex-wrap justify-content-center mt-3 mb-0">
                     <li class="page-item {{ this.page <= 1 ? 'disabled' : '' }}">
                         <button class="page-link"
                             data-action="live#action"

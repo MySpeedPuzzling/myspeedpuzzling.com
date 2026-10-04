@@ -39,7 +39,7 @@
                 </h3>
 
                 <div class="row">
-                    <div class="col-sm-6">
+                    <div class="col-sm-6 col-md-12 col-xl-6">
                         {% if not series_item.isOnline %}
                             {% if series_item.locationCountryCode %}
                                 <span class="shadow-custom fi fi-{{ series_item.locationCountryCode.name }} me-2"></span>
@@ -61,7 +61,7 @@
                     </div>
 
                     {% if series_item.link %}
-                        <div class="col-sm-6 mt-2 mt-sm-0">
+                        <div class="col-sm-6 col-md-12 col-xl-6 mt-2 mt-sm-0 mt-md-2 mt-xl-0">
                             <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ series_item.link }}">
                                 <i class="bi bi-info-circle me-1"></i>{{ 'events.website_link'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
                             </a>

@@ -30,7 +30,7 @@
             </h1>
         </div>
 
-        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+        <div class="d-flex flex-wrap align-items-center justify-content-sm-end gap-2">
             {% if isOwnProfile and visibility.value == 'public' %}
                 {{ include('_share_button.html.twig', {share_url: url('lend_borrow_list_detail', {playerId: player.playerId})}) }}
             {% endif %}

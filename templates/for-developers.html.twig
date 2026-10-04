@@ -18,7 +18,7 @@
                     <h5>{{ 'for_developers.card_api_docs_title'|trans }}</h5>
                     <p class="text-muted mb-3">{{ 'for_developers.card_api_docs_description'|trans }}</p>
                     <div class="mt-auto">
-                        <a href="{{ path('api_doc', {_format: 'html'}) }}" class="btn btn-primary btn-shadow" target="_blank">
+                        <a href="{{ path('api_doc', {_format: 'html'}) }}" class="btn btn-primary btn-shadow text-wrap" target="_blank">
                             <i class="bi bi-box-arrow-up-right me-1"></i> {{ 'for_developers.card_api_docs_button'|trans }}
                         </a>
                     </div>
@@ -32,7 +32,7 @@
                     <h5>{{ 'for_developers.card_demo_title'|trans }}</h5>
                     <p class="text-muted mb-3">{{ 'for_developers.card_demo_description'|trans }}</p>
                     <div class="mt-auto">
-                        <a href="https://oauth2-demo.myspeedpuzzling.com" class="btn btn-outline-primary" target="_blank" rel="noopener">
+                        <a href="https://oauth2-demo.myspeedpuzzling.com" class="btn btn-outline-primary text-wrap" target="_blank" rel="noopener">
                             <i class="bi bi-box-arrow-up-right me-1"></i> {{ 'for_developers.card_demo_button'|trans }}
                         </a>
                     </div>
@@ -46,7 +46,7 @@
                     <h5>{{ 'for_developers.card_source_title'|trans }}</h5>
                     <p class="text-muted mb-3">{{ 'for_developers.card_source_description'|trans }}</p>
                     <div class="mt-auto">
-                        <a href="https://github.com/MySpeedPuzzling/oauth2-client-demo-application" class="btn btn-outline-primary" target="_blank" rel="noopener">
+                        <a href="https://github.com/MySpeedPuzzling/oauth2-client-demo-application" class="btn btn-outline-primary text-wrap" target="_blank" rel="noopener">
                             <i class="bi bi-github me-1"></i> {{ 'for_developers.card_source_button'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
                         </a>
                     </div>
@@ -64,7 +64,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
                         <i class="bi bi-key fs-4 text-primary me-3"></i>
-                        <h5 class="mb-0">{{ 'for_developers.auth_pat_title'|trans }}</h5>
+                        <h5 class="mb-0 text-break">{{ 'for_developers.auth_pat_title'|trans }}</h5>
                     </div>
                     <p class="text-muted mb-2">{{ 'for_developers.auth_pat_description'|trans|raw }}</p>
                     <p class="text-muted mb-0 fs-sm"><code>Authorization: Token msp_pat_...</code></p>
@@ -76,7 +76,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
                         <i class="bi bi-person-badge fs-4 text-primary me-3"></i>
-                        <h5 class="mb-0">{{ 'for_developers.auth_code_title'|trans }}</h5>
+                        <h5 class="mb-0 text-break">{{ 'for_developers.auth_code_title'|trans }}</h5>
                     </div>
                     <p class="text-muted mb-0">{{ 'for_developers.auth_code_description'|trans }}</p>
                 </div>
@@ -87,7 +87,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
                         <i class="bi bi-hdd-network fs-4 text-primary me-3"></i>
-                        <h5 class="mb-0">{{ 'for_developers.auth_client_title'|trans }}</h5>
+                        <h5 class="mb-0 text-break">{{ 'for_developers.auth_client_title'|trans }}</h5>
                     </div>
                     <p class="text-muted mb-0">{{ 'for_developers.auth_client_description'|trans }}</p>
                 </div>
@@ -463,15 +463,15 @@ HTTP/1.1 200 OK
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
                         <i class="bi bi-key fs-4 text-primary me-3"></i>
-                        <h5 class="mb-0">{{ 'for_developers.get_started_personal_title'|trans }}</h5>
+                        <h5 class="mb-0 text-break">{{ 'for_developers.get_started_personal_title'|trans }}</h5>
                     </div>
                     <p class="text-muted mb-3">{{ 'for_developers.get_started_personal_description'|trans }}</p>
                     {% if logged_user.profile is not null %}
-                        <a href="{{ path('edit_profile') }}" class="btn btn-primary btn-sm">
+                        <a href="{{ path('edit_profile') }}" class="btn btn-primary btn-sm text-wrap">
                             <i class="bi bi-gear me-1"></i> {{ 'for_developers.get_started_personal_button'|trans }}
                         </a>
                     {% else %}
-                        <a href="{{ path('my_profile') }}" class="btn btn-primary btn-sm">
+                        <a href="{{ path('my_profile') }}" class="btn btn-primary btn-sm text-wrap">
                             <i class="bi bi-box-arrow-in-right me-1"></i> {{ 'for_developers.sign_in'|trans }}
                         </a>
                     {% endif %}
@@ -483,15 +483,15 @@ HTTP/1.1 200 OK
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
                         <i class="bi bi-building fs-4 text-primary me-3"></i>
-                        <h5 class="mb-0">{{ 'for_developers.get_started_app_title'|trans }}</h5>
+                        <h5 class="mb-0 text-break">{{ 'for_developers.get_started_app_title'|trans }}</h5>
                     </div>
                     <p class="text-muted mb-3">{{ 'for_developers.get_started_app_description'|trans }}</p>
                     {% if logged_user.profile is not null %}
-                        <a href="{{ path('request_api_access') }}" class="btn btn-primary btn-sm">
+                        <a href="{{ path('request_api_access') }}" class="btn btn-primary btn-sm text-wrap">
                             <i class="bi bi-send me-1"></i> {{ 'for_developers.get_started_app_button'|trans }}
                         </a>
                     {% else %}
-                        <a href="{{ path('my_profile') }}" class="btn btn-primary btn-sm">
+                        <a href="{{ path('my_profile') }}" class="btn btn-primary btn-sm text-wrap">
                             <i class="bi bi-box-arrow-in-right me-1"></i> {{ 'for_developers.sign_in_to_request'|trans }}
                         </a>
                     {% endif %}

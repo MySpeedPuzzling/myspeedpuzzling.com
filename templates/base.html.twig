@@ -569,7 +569,7 @@
                         {% endif %}
 
                         <a data-turbo="true" rel="nofollow" class="topbar-link" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="modal-frame"{% endif %}>
-                            <i class="ci-mail"></i> {{ 'menu.feedback'|trans }}
+                            <i class="ci-mail"></i> <span class="topbar-feedback-label">{{ 'menu.feedback'|trans }}</span>
                         </a>
 
                         <a class="ms-2 ms-sm-3 topbar-link" href="{{ path('membership') }}">

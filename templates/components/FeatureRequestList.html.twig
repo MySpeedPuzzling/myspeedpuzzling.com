@@ -1,8 +1,8 @@
 <div {{ attributes }}>
     {# Filter & Sort Bar #}
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-        {# Status filter tabs #}
-        <div class="btn-group btn-group-sm" role="group" aria-label="{{ 'feature_requests.filter.all_statuses'|trans }}" style="font-size: 0.75rem;">
+        {# Status filter tabs - on a 320 px phone they scroll sideways instead of widening the page #}
+        <div class="btn-group btn-group-sm" role="group" aria-label="{{ 'feature_requests.filter.all_statuses'|trans }}" style="font-size: 0.75rem; max-width: 100%; overflow-x: auto;">
             <input type="radio" class="btn-check" name="status-filter" id="status-filter-all" value="" data-model="status" {{ this.status == '' ? 'checked' }}>
             <label class="btn btn-outline-secondary text-nowrap" for="status-filter-all">{{ 'feature_requests.filter.all_statuses'|trans }}</label>
 

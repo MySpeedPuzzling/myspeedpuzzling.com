@@ -71,8 +71,11 @@ EAN, brand code and image - every field editable, whether the player proposed it
   proposal goes in), *Your edit* (indigo `accent` - the theme's primary is too close to orange), *Keeping current*
   (the proposal is struck through) - with "Use proposed" / "Keep current" / "Undo my edit" links. Above the approve
   button a summary lists what approving saves and which proposals are not applied.
-- **Image**: keep current / the proposed image / upload a new one (`PuzzleChangeRequestImageChoice`; picking a file
-  selects upload and previews it). The file gets the SEO name built from the *final* brand, name and pieces.
+- **Image**: keep current / the proposed image (radios only when an image was proposed; thumbnails open in the
+  lightbox), and a drop area (`file-drop-area`, cropping via `image-editor` like the add form). A dropped photo is used
+  automatically (`PuzzleChangeRequestImageChoice::Upload`, `ReviewPuzzleChangeRequestFormData::imageChoice()`) - picking
+  keep / proposed again drops it. The field is `puzzlePhoto` so `FormPhotoStash` keeps it on a refused submit. The file
+  gets the SEO name built from the *final* brand, name and pieces.
 - The EAN goes through `EanList` like the add form (codes the puzzle already carries pass).
 
 `ApprovePuzzleChangeRequest` carries the reviewer's values as `ReviewedPuzzleValues`; the internal API still sends

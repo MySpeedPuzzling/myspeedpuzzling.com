@@ -4,6 +4,8 @@ import { Controller } from '@hotwired/stimulus';
 // with it - the player's proposal, the reviewer's own edit, or the current value kept although something was
 // proposed - and the summary above the approve button lists it, so an edit is never mistaken for the proposal.
 // A field carries data-current (and data-proposed when the player proposed it) as raw form values.
+// The image field's value is "keep" / "proposed" (radios) or "upload" - a photo in its drop area (chosen, or kept
+// from a refused submit) is used instead of either, and picking keep / proposed again drops that photo.
 export default class extends Controller {
     static targets = ['field', 'summary'];
     static values = {
@@ -13,6 +15,7 @@ export default class extends Controller {
         changesHeading: String,
         keptHeading: String,
         noChanges: String,
+        dropText: String,
     };
 
     // Proposed = orange, the reviewer's edit = indigo (the theme's primary is too close to orange to tell apart)
@@ -29,10 +32,6 @@ export default class extends Controller {
 
     connect() {
         this.update();
-    }
-
-    disconnect() {
-        this.revokePreview();
     }
 
     update() {
@@ -65,22 +64,10 @@ export default class extends Controller {
         this.update();
     }
 
-    photoChosen(event) {
-        const field = this.fieldOf(event.target);
-        const file = event.target.files && event.target.files[0];
-        const preview = field.querySelector('[data-role="upload-preview"]');
-        const placeholder = field.querySelector('[data-role="upload-placeholder"]');
-
-        this.revokePreview();
-
-        if (file) {
-            this.setValue(field, 'upload');
-            this.previewUrl = URL.createObjectURL(file);
-            preview.src = this.previewUrl;
-        }
-
-        preview.classList.toggle('d-none', !file);
-        placeholder.classList.toggle('d-none', Boolean(file));
+    // Picking keep / proposed is a choice against the uploaded photo
+    imageChosen(event) {
+        this.clearUpload(this.fieldOf(event.target));
+        this.update();
     }
 
     // proposed: the proposal goes in · edit: the reviewer's own value · kept: proposed, but the current value stays
@@ -117,13 +104,19 @@ export default class extends Controller {
             field.classList.add('border-2', this.constructor.borderClasses[state]);
         }
 
+        const value = this.valueOf(field);
+
         // A proposal that is not going in is struck through
-        field.querySelectorAll('[data-role="proposed-value"]').forEach((element) => {
+        field.querySelectorAll('[data-role~="proposed-value"]').forEach((element) => {
             element.classList.toggle('text-decoration-line-through', state === 'kept');
             element.classList.toggle('opacity-50', state === 'kept');
         });
 
-        const value = this.valueOf(field);
+        // An uploaded photo is used instead of the image options
+        field.querySelectorAll('[data-role~="image-option"]').forEach((element) => {
+            element.classList.toggle('opacity-50', value === 'upload');
+        });
+
         this.toggleRole(field, 'use-proposed', 'proposed' in field.dataset && value !== (field.dataset.proposed || '').trim());
         this.toggleRole(field, 'use-current', value !== (field.dataset.current || '').trim());
         this.toggleRole(field, 'current-hint', state === 'edit');
@@ -175,21 +168,17 @@ export default class extends Controller {
     }
 
     valueOf(field) {
-        const radios = field.querySelectorAll('input[type="radio"]');
-
-        if (radios.length > 0) {
-            const checked = Array.from(radios).find((radio) => radio.checked);
-            return checked ? checked.value : '';
+        if (this.uploadOf(field)) {
+            return this.hasUpload(field) ? 'upload' : this.checkedImage(field);
         }
 
         return (this.inputOf(field).value || '').trim();
     }
 
     setValue(field, value) {
-        const radios = field.querySelectorAll('input[type="radio"]');
-
-        if (radios.length > 0) {
-            radios.forEach((radio) => {
+        if (this.uploadOf(field)) {
+            this.clearUpload(field);
+            field.querySelectorAll('input[type="radio"]').forEach((radio) => {
                 radio.checked = radio.value === value;
             });
             return;
@@ -205,6 +194,46 @@ export default class extends Controller {
         }
     }
 
+    checkedImage(field) {
+        const checked = field.querySelector('input[type="radio"]:checked');
+        return checked ? checked.value : 'keep';
+    }
+
+    uploadOf(field) {
+        return field.querySelector('.file-drop-input');
+    }
+
+    hasUpload(field) {
+        const input = this.uploadOf(field);
+        const token = field.querySelector('[data-kept-photo-target="token"]');
+
+        return (input.files && input.files.length > 0) || Boolean(token && token.value);
+    }
+
+    // Back to an empty drop area: no file, no kept photo, no crop button
+    clearUpload(field) {
+        if (!this.hasUpload(field)) {
+            return;
+        }
+
+        const area = field.querySelector('.file-drop-area');
+        const icon = area.querySelector('[data-role="drop-icon"]');
+        const token = area.querySelector('[data-kept-photo-target="token"]');
+
+        this.uploadOf(field).value = '';
+
+        if (token) {
+            token.value = '';
+        }
+
+        area.querySelector('[data-kept-photo-target="note"]')?.remove();
+        area.querySelector('.file-drop-edit-btn')?.remove();
+
+        icon.className = 'file-drop-icon';
+        icon.innerHTML = '<i class="ci-cloud-upload"></i>';
+        area.querySelector('.file-drop-message').textContent = this.dropTextValue;
+    }
+
     inputOf(field) {
         return field.querySelector('select[name], textarea[name], input[name]:not([type="file"])');
     }
@@ -214,15 +243,8 @@ export default class extends Controller {
     }
 
     toggleRole(field, role, visible) {
-        field.querySelectorAll(`[data-role="${role}"]`).forEach((element) => {
+        field.querySelectorAll(`[data-role~="${role}"]`).forEach((element) => {
             element.classList.toggle('d-none', !visible);
         });
-    }
-
-    revokePreview() {
-        if (this.previewUrl) {
-            URL.revokeObjectURL(this.previewUrl);
-            this.previewUrl = null;
-        }
     }
 }

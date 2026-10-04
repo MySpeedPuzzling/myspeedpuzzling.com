@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\FormType\ReviewPuzzleChangeRequestFormType;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
+use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use SpeedPuzzling\Web\Value\ReviewedPuzzleValues;
@@ -26,7 +27,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The review of a change request. A pending one is approved through a form holding the whole puzzle
  * (every field editable, the player's proposal prefilled and marked), posted back here so a refused
- * form comes back with what the reviewer typed.
+ * form comes back with what the reviewer typed - an uploaded photo included (FormPhotoStash).
  */
 final class PuzzleChangeRequestDetailController extends AbstractController
 {
@@ -35,6 +36,7 @@ final class PuzzleChangeRequestDetailController extends AbstractController
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
+        private readonly FormPhotoStash $formPhotoStash,
     ) {
     }
 
@@ -64,10 +66,14 @@ final class PuzzleChangeRequestDetailController extends AbstractController
             ReviewPuzzleChangeRequestFormData::prefilled($changeRequest),
             ['has_proposed_image' => $changeRequest->hasImageChange()],
         );
+
+        $player = $this->retrieveLoggedUserProfile->getProfile() ?? throw $this->createAccessDeniedException();
+
+        $restoredPhotos = $this->formPhotoStash->restore($request, $form, $player->playerId);
         $form->handleRequest($request);
+        $this->formPhotoStash->reportLost($form, $restoredPhotos);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $player = $this->retrieveLoggedUserProfile->getProfile() ?? throw $this->createAccessDeniedException();
             $data = $form->getData();
 
             assert($data->name !== null && $data->piecesCount !== null);
@@ -83,16 +89,18 @@ final class PuzzleChangeRequestDetailController extends AbstractController
                         piecesCount: $data->piecesCount,
                         ean: $data->ean,
                         identificationNumber: $data->identificationNumber,
-                        image: $data->image,
-                        uploadedImage: $data->photo,
+                        image: $data->imageChoice(),
+                        uploadedImage: $data->puzzlePhoto,
                     ),
                 ));
             } catch (PuzzleChangeRequestAlreadyReviewed) {
+                $this->formPhotoStash->forget($restoredPhotos, $player->playerId);
                 $this->addFlash('warning', $this->translator->trans('admin.puzzle_change_request.already_reviewed'));
 
                 return $this->redirectToRoute('admin_puzzle_change_request_detail', ['id' => $id]);
             }
 
+            $this->formPhotoStash->forget($restoredPhotos, $player->playerId);
             $this->addFlash('success', $this->translator->trans('admin.puzzle_change_request.approved'));
 
             return $this->redirectToRoute('admin_puzzle_change_requests');
@@ -101,6 +109,7 @@ final class PuzzleChangeRequestDetailController extends AbstractController
         return $this->render('admin/puzzle_change_request_detail.html.twig', [
             'request' => $changeRequest,
             'form' => $form,
+            'kept_photos' => $this->formPhotoStash->keep($form, $restoredPhotos, $player->playerId),
         ]);
     }
 }

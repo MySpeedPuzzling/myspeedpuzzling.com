@@ -25,116 +25,112 @@
     {% endif %}
 
     <div class="row">
-        <div class="col-lg-8">
-            <div class="card shadow mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center gap-2 px-3 px-md-4">
-                    <h1 class="h4 mb-0">Change Request</h1>
-                    {% if pending %}
-                        <span class="badge bg-warning text-dark">Pending</span>
-                    {% elseif request.status.value == 'approved' %}
-                        <span class="badge bg-success">Approved</span>
-                    {% else %}
-                        <span class="badge bg-danger">Rejected</span>
-                    {% endif %}
-                </div>
+        {# No card around the form - on a phone the field cards are enough #}
+        <div class="col-lg-8 mb-4">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                <h1 class="h4 mb-0">Change Request</h1>
+                {% if pending %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                {% elseif request.status.value == 'approved' %}
+                    <span class="badge bg-success">Approved</span>
+                {% else %}
+                    <span class="badge bg-danger">Rejected</span>
+                {% endif %}
+            </div>
 
-                <div class="card-body px-3 px-md-4">
-                    {# Puzzle info header #}
-                    <div class="d-flex align-items-center gap-3 mb-4 p-2 p-md-3 bg-light rounded">
-                        {% if request.puzzleImage %}
-                            <img src="{{ request.puzzleImage|puzzle_image('puzzle_small') }}"
-                                 alt="{{ request.puzzleName }}"
-                                 class="rounded flex-shrink-0"
-                                 style="max-height: 64px; max-width: 90px;">
-                        {% endif %}
-                        <div class="min-w-0">
-                            <h2 class="h6 mb-1 text-break">
-                                <a href="{{ path('puzzle_detail', {puzzleId: request.puzzleId}) }}" target="_blank">
-                                    {{ request.puzzleName }}
-                                </a>
-                            </h2>
-                            <p class="mb-0 text-muted small">
-                                {{ request.puzzleManufacturerName }} &bull; {{ request.puzzlePiecesCount }} pieces
-                            </p>
-                        </div>
-                    </div>
-
-                    {% if pending %}
-                        {{ include('admin/_puzzle_change_request_review.html.twig') }}
-                    {% else %}
-                        <h2 class="h5 mb-3">Proposed Changes</h2>
-
-                        {% for field in fields %}
-                            <div class="border rounded-3 p-3 mb-3">
-                                <div class="fw-semibold mb-2">{{ field.label }}</div>
-                                <div class="row g-2">
-                                    <div class="col-12 col-md-6">
-                                        <div class="small text-muted mb-1">When proposed</div>
-                                        <div class="text-break">
-                                            {% if field.original is null or field.original == '' %}
-                                                <span class="text-muted fst-italic">Not set</span>
-                                            {% else %}
-                                                {{ field.original }}
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-md-6">
-                                        <div class="small text-muted mb-1">Proposed</div>
-                                        <div class="text-break bg-warning bg-opacity-10 rounded px-2 py-1 fw-semibold">{{ field.proposed }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-
-                        {% if request.hasImageChange() %}
-                            <div class="border rounded-3 p-3 mb-3">
-                                <div class="fw-semibold mb-2">Image</div>
-
-                                {# Side by side even on phones - the point is to compare the two #}
-                                <div class="row g-2 gallery">
-                                    <div class="col-6">
-                                        <div class="small text-muted mb-1">When proposed</div>
-                                        {% if request.originalImage %}
-                                            <a class="gallery-item d-block" href="{{ uploaded_asset(request.originalImage) }}">
-                                                <img src="{{ request.originalImage|puzzle_image('puzzle_small') }}"
-                                                     alt="Image when proposed"
-                                                     class="img-thumbnail w-100"
-                                                     style="max-height: 180px; object-fit: contain;">
-                                            </a>
-                                        {% else %}
-                                            <span class="text-muted fst-italic">No image</span>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="small text-muted mb-1">Proposed</div>
-                                        <a class="gallery-item d-block" href="{{ uploaded_asset(request.proposedImage) }}">
-                                            <img src="{{ request.proposedImage|puzzle_image('puzzle_small') }}"
-                                                 alt="Proposed image"
-                                                 class="img-thumbnail w-100 border-warning"
-                                                 style="max-height: 180px; object-fit: contain;">
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endif %}
-
-                        {% if not request.hasAnyChange() %}
-                            <div class="alert alert-info">
-                                No changes were proposed. The user may have submitted the form without modifications.
-                            </div>
-                        {% endif %}
-                    {% endif %}
-
-                    {# Rejection reason if rejected #}
-                    {% if request.status.value == 'rejected' and request.rejectionReason %}
-                        <div class="alert alert-danger mt-4 text-break">
-                            <strong>Rejection Reason:</strong><br>
-                            {{ request.rejectionReason }}
-                        </div>
-                    {% endif %}
-
+            {# Puzzle info header #}
+            <div class="d-flex align-items-center gap-3 mb-3 p-2 p-md-3 bg-light rounded">
+                {% if request.puzzleImage %}
+                    <img src="{{ request.puzzleImage|puzzle_image('puzzle_small') }}"
+                         alt="{{ request.puzzleName }}"
+                         class="rounded flex-shrink-0"
+                         style="max-height: 64px; max-width: 90px;">
+                {% endif %}
+                <div class="min-w-0">
+                    <h2 class="h6 mb-1 text-break">
+                        <a href="{{ path('puzzle_detail', {puzzleId: request.puzzleId}) }}" target="_blank">
+                            {{ request.puzzleName }}
+                        </a>
+                    </h2>
+                    <p class="mb-0 text-muted small">
+                        {{ request.puzzleManufacturerName }} &bull; {{ request.puzzlePiecesCount }} pieces
+                    </p>
                 </div>
             </div>
+
+            {% if pending %}
+                {{ include('admin/_puzzle_change_request_review.html.twig') }}
+            {% else %}
+                <h2 class="h5 mb-3">Proposed Changes</h2>
+
+                {% for field in fields %}
+                    <div class="border rounded-3 p-3 mb-3 shadow-sm">
+                        <div class="fw-semibold mb-2">{{ field.label }}</div>
+                        <div class="row g-2">
+                            <div class="col-12 col-md-6">
+                                <div class="small text-muted mb-1">When proposed</div>
+                                <div class="text-break">
+                                    {% if field.original is null or field.original == '' %}
+                                        <span class="text-muted fst-italic">Not set</span>
+                                    {% else %}
+                                        {{ field.original }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="small text-muted mb-1">Proposed</div>
+                                <div class="text-break bg-warning bg-opacity-10 rounded px-2 py-1 fw-semibold">{{ field.proposed }}</div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+
+                {% if request.hasImageChange() %}
+                    <div class="border rounded-3 p-3 mb-3 shadow-sm">
+                        <div class="fw-semibold mb-2">Image</div>
+
+                        {# Side by side even on phones - the point is to compare the two #}
+                        <div class="row g-2 gallery">
+                            <div class="col-6">
+                                <div class="small text-muted mb-1">When proposed</div>
+                                {% if request.originalImage %}
+                                    <a class="gallery-item d-block" href="{{ uploaded_asset(request.originalImage) }}">
+                                        <img src="{{ request.originalImage|puzzle_image('puzzle_small') }}"
+                                             alt="Image when proposed"
+                                             class="img-thumbnail w-100"
+                                             style="max-height: 180px; object-fit: contain;">
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted fst-italic">No image</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-6">
+                                <div class="small text-muted mb-1">Proposed</div>
+                                <a class="gallery-item d-block" href="{{ uploaded_asset(request.proposedImage) }}">
+                                    <img src="{{ request.proposedImage|puzzle_image('puzzle_small') }}"
+                                         alt="Proposed image"
+                                         class="img-thumbnail w-100 border-warning"
+                                         style="max-height: 180px; object-fit: contain;">
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if not request.hasAnyChange() %}
+                    <div class="alert alert-info">
+                        No changes were proposed. The user may have submitted the form without modifications.
+                    </div>
+                {% endif %}
+            {% endif %}
+
+            {# Rejection reason if rejected #}
+            {% if request.status.value == 'rejected' and request.rejectionReason %}
+                <div class="alert alert-danger mt-4 text-break">
+                    <strong>Rejection Reason:</strong><br>
+                    {{ request.rejectionReason }}
+                </div>
+            {% endif %}
         </div>
 
         <div class="col-lg-4">

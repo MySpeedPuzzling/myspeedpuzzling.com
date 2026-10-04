@@ -45,9 +45,10 @@ final class ReviewPuzzleChangeRequestFormData
     #[Length(max: 100)]
     public null|string $identificationNumber = null;
 
+    // Keep or Proposed - an uploaded photo is used instead of either (the name FormPhotoStash knows)
     public PuzzleChangeRequestImageChoice $image = PuzzleChangeRequestImageChoice::Keep;
 
-    public null|UploadedFile $photo = null;
+    public null|UploadedFile $puzzlePhoto = null;
 
     /**
      * What the player proposed where they proposed something, the puzzle as it is now everywhere else.
@@ -67,15 +68,16 @@ final class ReviewPuzzleChangeRequestFormData
         return $data;
     }
 
+    /**
+     * The image the reviewer picked: an uploaded photo always wins over the keep / proposed choice.
+     */
+    public function imageChoice(): PuzzleChangeRequestImageChoice
+    {
+        return $this->puzzlePhoto !== null ? PuzzleChangeRequestImageChoice::Upload : $this->image;
+    }
+
     public function validate(ExecutionContextInterface $context): void
     {
         EanList::addViolations($context, 'ean', $this->ean, $this->currentEan);
-
-        if ($this->image === PuzzleChangeRequestImageChoice::Upload && $this->photo === null) {
-            $context->buildViolation('Choose the image to upload.')
-                ->disableTranslation()
-                ->atPath('photo')
-                ->addViolation();
-        }
     }
 }

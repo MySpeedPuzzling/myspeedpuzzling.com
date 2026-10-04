@@ -42,10 +42,6 @@ final class ReviewPuzzleChangeRequestFormType extends AbstractType
                 . ($manufacturer->manufacturerApproved ? '' : ' - not approved');
         }
 
-        $imageChoices = $options['has_proposed_image']
-            ? PuzzleChangeRequestImageChoice::cases()
-            : [PuzzleChangeRequestImageChoice::Keep, PuzzleChangeRequestImageChoice::Upload];
-
         $builder
             ->add('name', TextType::class)
             ->add('alternativeName', TextType::class, [
@@ -71,23 +67,23 @@ final class ReviewPuzzleChangeRequestFormType extends AbstractType
             ->add('identificationNumber', TextType::class, [
                 'required' => false,
             ])
-            ->add('image', EnumType::class, [
-                'class' => PuzzleChangeRequestImageChoice::class,
-                'choices' => $imageChoices,
-                'choice_label' => static fn (PuzzleChangeRequestImageChoice $choice): string => match ($choice) {
-                    PuzzleChangeRequestImageChoice::Keep => 'Keep current',
-                    PuzzleChangeRequestImageChoice::Proposed => 'Proposed by the player',
-                    PuzzleChangeRequestImageChoice::Upload => 'Upload a new one',
-                },
-                'expanded' => true,
-            ])
-            ->add('photo', FileType::class, [
+            ->add('puzzlePhoto', FileType::class, [
                 'required' => false,
                 'constraints' => [PuzzleBoxPhoto::constraint()],
-                'attr' => [
-                    'accept' => 'image/*',
-                ],
             ]);
+
+        // Without a proposed image there is nothing to choose - the current one stays unless a photo is uploaded
+        if ($options['has_proposed_image']) {
+            $builder->add('image', EnumType::class, [
+                'class' => PuzzleChangeRequestImageChoice::class,
+                'choices' => [PuzzleChangeRequestImageChoice::Keep, PuzzleChangeRequestImageChoice::Proposed],
+                'choice_label' => static fn (PuzzleChangeRequestImageChoice $choice): string => match ($choice) {
+                    PuzzleChangeRequestImageChoice::Proposed => 'Proposed by the player',
+                    default => 'Keep current',
+                },
+                'expanded' => true,
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void

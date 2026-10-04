@@ -38,6 +38,9 @@ export default class extends Controller {
         if (this.hasMessageTarget) {
             this.messageTarget.textContent = this.dropTextValue;
         }
+
+        // "kept-photo:removed" - for a form that reacts to its photo going (the change request review)
+        this.dispatch('removed');
     }
 
     forget() {

@@ -1,0 +1,113 @@
+{#
+    The names editor (docs/features/puzzle-names/README.md, "Writing names and codes"): the main title in its own slot,
+    its language behind a quiet link, the other names as rows (name, language, "Make main title", remove) and
+    "+ Add a name". names_editor_controller.js adds, removes and swaps rows and shows the warnings; it never blocks a
+    save. A 422 re-render brings the rows back from what was sent.
+
+    Required: names - the PuzzleNamesType child of the form (e.g. form.names)
+    Optional: max_names - how many other names "+ Add a name" allows (default PuzzleNames::FORM_MAX_NAMES; a puzzle that
+              has more after a merge keeps them, the button is just hidden)
+#}
+{% import _self as names_editor %}
+
+{% macro row(entry) %}
+    <div class="names-editor__row" data-names-editor-target="row">
+        {{ form_widget(entry.name, {attr: {
+            class: 'names-editor__row-name',
+            'aria-label': 'puzzle_names.name'|trans,
+            'data-role': 'name',
+        }}) }}
+        {{ form_widget(entry.language, {attr: {
+            class: 'names-editor__row-language',
+            'aria-label': 'puzzle_names.language'|trans,
+            'data-role': 'language',
+        }}) }}
+        <button type="button" class="btn btn-outline-secondary btn-sm names-editor__make-main" data-action="names-editor#makeMain">
+            {{- 'puzzle_names.make_main_title'|trans -}}
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm names-editor__remove" data-action="names-editor#remove" aria-label="{{ 'puzzle_names.remove_name'|trans }}" title="{{ 'puzzle_names.remove_name'|trans }}">
+            <span aria-hidden="true">&times;</span>
+        </button>
+        <div class="names-editor__row-note" data-role="duplicate" hidden>{{ 'puzzle_names.same_as_another_name'|trans }}</div>
+        <div class="names-editor__row-note names-editor__row-note--warning" data-role="was-main" hidden>{{ 'puzzle_names.was_main_title'|trans }}</div>
+        {{ form_errors(entry.name) }}
+        {{ form_errors(entry.language) }}
+    </div>
+{% endmacro %}
+
+{% set max_names = max_names|default(constant('SpeedPuzzling\\Web\\Value\\PuzzleNames::FORM_MAX_NAMES')) %}
+{% set main_language_set = names.nameLanguage.vars.value is not empty %}
+
+<div class="names-editor"
+     data-controller="names-editor"
+     data-action="input->names-editor#update change->names-editor#update"
+     data-names-editor-max-names-value="{{ max_names }}"
+     data-names-editor-collection-name-value="{{ names.alternativeNames.vars.full_name }}"
+     data-names-editor-collection-id-value="{{ names.alternativeNames.vars.id }}">
+
+    <div class="names-editor__main">
+        <div class="names-editor__label-row">
+            <label class="form-label fw-semibold mb-0" for="{{ names.name.vars.id }}">{{ 'puzzle_names.main_title'|trans }}</label>
+            <span class="names-editor__hint">{{ 'puzzle_names.main_title_hint'|trans }}</span>
+        </div>
+
+        {{ form_widget(names.name, {attr: {
+            class: 'names-editor__main-input',
+            'data-names-editor-target': 'main',
+        }}) }}
+        {{ form_errors(names.name) }}
+
+        <div class="names-editor__warning" data-names-editor-target="splitWarning" hidden>
+            <span>{{ 'puzzle_names.several_names_warning'|trans }}</span>
+            <button type="button" class="btn btn-sm btn-outline-warning" data-action="names-editor#split">{{ 'puzzle_names.split'|trans }}</button>
+        </div>
+
+        <div class="names-editor__warning" data-names-editor-target="englishWarning" hidden>
+            <span>{{ 'puzzle_names.not_english_warning'|trans }}</span>
+            <button type="button" class="btn btn-sm btn-outline-warning" data-action="names-editor#moveToOtherNames">{{ 'puzzle_names.move_to_other_names'|trans }}</button>
+        </div>
+
+        <button type="button"
+                class="btn btn-link btn-sm p-0 names-editor__quiet-link"
+                data-names-editor-target="mainLanguageToggle"
+                data-action="names-editor#showMainLanguage"
+                {% if main_language_set %}hidden{% endif %}>
+            {{- 'puzzle_names.no_english_title'|trans -}}
+        </button>
+
+        <div class="names-editor__main-language" data-names-editor-target="mainLanguage" {% if not main_language_set %}hidden{% endif %}>
+            <label class="form-label small mb-0" for="{{ names.nameLanguage.vars.id }}">{{ 'puzzle_names.main_title_language'|trans }}</label>
+            {{ form_widget(names.nameLanguage, {attr: {
+                class: 'form-select-sm names-editor__main-language-select',
+                'data-names-editor-target': 'mainLanguageSelect',
+            }}) }}
+            {{ form_errors(names.nameLanguage) }}
+        </div>
+    </div>
+
+    <div class="names-editor__others">
+        <span class="form-label fw-semibold d-block mb-2">{{ 'puzzle_names.other_names'|trans }}</span>
+        {{ form_errors(names.alternativeNames) }}
+
+        <div class="names-editor__rows" data-names-editor-target="rows">
+            {%- for entry in names.alternativeNames -%}
+                {{ names_editor.row(entry) }}
+            {%- endfor -%}
+        </div>
+
+        <p class="names-editor__empty" data-names-editor-target="empty" {% if names.alternativeNames|length > 0 %}hidden{% endif %}>
+            {{- 'puzzle_names.no_other_names'|trans -}}
+        </p>
+
+        <button type="button" class="btn btn-outline-primary btn-sm names-editor__add" data-names-editor-target="add" data-action="names-editor#add">
+            {{- 'puzzle_names.add_name'|trans -}}
+        </button>
+
+        <template data-names-editor-target="template">
+            {{- names_editor.row(names.alternativeNames.vars.prototype) -}}
+        </template>
+    </div>
+</div>
+
+{# Every row is rendered above - without rows the list itself would be left for form_rest() #}
+{% do names.alternativeNames.setRendered %}

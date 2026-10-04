@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\PuzzleNames;
+use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 
 /**
  * A puzzle's catalogue record as it is now, for moderators: nothing hidden (the image of a puzzle still
@@ -16,6 +17,8 @@ readonly final class PuzzleRecord
     public function __construct(
         public string $puzzleId,
         public string $name,
+        // The main title's language when the box has no English title
+        public null|string $nameLanguage,
         public PuzzleNames $alternativeNames,
         public null|string $manufacturerId,
         public null|string $manufacturerName,
@@ -49,6 +52,7 @@ readonly final class PuzzleRecord
         return new self(
             puzzleId: $puzzleId,
             name: $name,
+            nameLanguage: is_string($row['name_language'] ?? null) ? $row['name_language'] : null,
             alternativeNames: PuzzleNames::fromJson(is_string($row['alternative_names']) ? $row['alternative_names'] : null),
             manufacturerId: is_string($row['manufacturer_id']) ? $row['manufacturer_id'] : null,
             manufacturerName: is_string($row['manufacturer_name']) ? $row['manufacturer_name'] : null,
@@ -64,6 +68,23 @@ readonly final class PuzzleRecord
             addedByCode: is_string($row['added_by_code']) ? $row['added_by_code'] : null,
             hideUntil: is_string($row['hide_until']) ? new DateTimeImmutable($row['hide_until']) : null,
             hideImageUntil: is_string($row['hide_image_until']) ? new DateTimeImmutable($row['hide_image_until']) : null,
+        );
+    }
+
+    /**
+     * What a form editing this record sends back (PuzzleRecordVersion)
+     */
+    public function recordVersion(): string
+    {
+        return PuzzleRecordVersion::of(
+            name: $this->name,
+            nameLanguage: $this->nameLanguage,
+            alternativeNames: $this->alternativeNames,
+            manufacturerId: $this->manufacturerId,
+            piecesCount: $this->piecesCount,
+            ean: $this->ean,
+            identificationNumber: $this->identificationNumber,
+            image: $this->image,
         );
     }
 }

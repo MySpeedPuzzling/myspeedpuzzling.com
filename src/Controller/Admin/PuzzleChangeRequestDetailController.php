@@ -78,6 +78,7 @@ final class PuzzleChangeRequestDetailController extends AbstractController
             try {
                 $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
                     changeRequestId: $id,
+                    puzzleId: $changeRequest->puzzleId,
                     reviewerId: $player->playerId,
                     reviewed: $data->toValues(),
                     decisionNote: $data->note,

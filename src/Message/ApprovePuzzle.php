@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Message;
 
+use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 use SpeedPuzzling\Web\Value\PuzzleApprovalBrandChoice;
+use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
-readonly final class ApprovePuzzle
+/**
+ * Approves a newly added puzzle with the moderator's corrections - locked per puzzle like every change of its record.
+ */
+readonly final class ApprovePuzzle implements SerializedByLock
 {
     public function __construct(
         public string $puzzleId,
@@ -26,5 +31,10 @@ readonly final class ApprovePuzzle
         // Why - kept in the puzzle's history
         public null|string $note = null,
     ) {
+    }
+
+    public function lockKey(): string
+    {
+        return PuzzleRecordVersion::lockKey($this->puzzleId);
     }
 }

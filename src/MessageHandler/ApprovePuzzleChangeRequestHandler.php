@@ -63,6 +63,11 @@ readonly final class ApprovePuzzleChangeRequestHandler
     {
         $changeRequest = $this->puzzleChangeRequestRepository->get($message->changeRequestId);
 
+        // The message was locked on this puzzle - another one would not keep concurrent saves apart
+        if ($changeRequest->puzzle->id->toString() !== strtolower($message->puzzleId)) {
+            throw new PuzzleChangeRequestNotFound();
+        }
+
         if ($changeRequest->status !== PuzzleReportStatus::Pending) {
             throw new PuzzleChangeRequestAlreadyReviewed();
         }

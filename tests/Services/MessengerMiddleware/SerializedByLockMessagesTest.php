@@ -5,11 +5,20 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Services\MessengerMiddleware;
 
 use PHPUnit\Framework\TestCase;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddComparisonSubject;
+use SpeedPuzzling\Web\Message\AddPuzzle;
+use SpeedPuzzling\Web\Message\ApprovePuzzle;
+use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
+use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
 use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
+use SpeedPuzzling\Web\Message\EditPuzzle;
+use SpeedPuzzling\Web\Message\LinkEanToPuzzle;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
 use SpeedPuzzling\Web\Value\ComparisonKind;
+use SpeedPuzzling\Web\Value\PuzzleRecordValues;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class SerializedByLockMessagesTest extends TestCase
 {
@@ -38,5 +47,32 @@ final class SerializedByLockMessagesTest extends TestCase
 
         // "Clear" waits for the adds of the same owner and they for it - an add never lands half way through a clear
         self::assertSame($key, (new ClearComparisonLineUp($owner, ComparisonKind::Pairs))->lockKey());
+    }
+
+    /**
+     * Every message that changes a puzzle's record waits for the others on the same puzzle - the record version check
+     * (PuzzleRecordVersion) runs inside the transaction, so two saves must not check at the same moment
+     */
+    public function testEveryChangeOfAPuzzleRecordLocksThePuzzle(): void
+    {
+        $puzzleId = '018D0003-0000-0000-0000-000000000001';
+        $key = 'puzzle-018d0003-0000-0000-0000-000000000001';
+        $values = new PuzzleRecordValues(name: 'Puzzle', alternativeName: null, manufacturerId: null, piecesCount: 500, ean: null, identificationNumber: null);
+
+        self::assertSame($key, (new EditPuzzle($puzzleId, 'editor', $values))->lockKey());
+        self::assertSame($key, (new ApprovePuzzle($puzzleId, 'reviewer', 'Puzzle', 500, null, null))->lockKey());
+        self::assertSame($key, (new ApprovePuzzleChangeRequest('change-request', $puzzleId, 'reviewer'))->lockKey());
+        self::assertSame($key, (new ApprovePuzzleMergeRequest('merge-request', 'reviewer', $puzzleId, 'Puzzle', null, null, 500, null, null))->lockKey());
+        self::assertSame($key, (new LinkEanToPuzzle($puzzleId, 'player', '4005556147090'))->lockKey());
+        self::assertSame($key, (new AddPuzzle(
+            Uuid::fromString($puzzleId),
+            'player',
+            'Puzzle',
+            'Brand',
+            500,
+            new UploadedFile(__FILE__, 'box.jpg', test: true),
+            null,
+            null,
+        ))->lockKey());
     }
 }

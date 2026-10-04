@@ -31,6 +31,7 @@ readonly final class GetPuzzleRecord
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name,
+    puzzle.name_language,
     puzzle.alternative_names,
     puzzle.pieces_count,
     puzzle.ean,

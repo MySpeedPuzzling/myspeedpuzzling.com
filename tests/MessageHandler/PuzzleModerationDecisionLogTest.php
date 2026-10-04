@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Message\RejectPuzzleChangeRequest;
 use SpeedPuzzling\Web\Message\RejectPuzzleMergeRequest;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
@@ -37,6 +38,7 @@ final class PuzzleModerationDecisionLogTest extends KernelTestCase
     {
         $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
             changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+            puzzleId: PuzzleFixture::PUZZLE_500_01,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             selectedFields: ['name'],
         ));

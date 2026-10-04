@@ -69,6 +69,7 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         $this->messageBus->dispatch(
             new ApprovePuzzleChangeRequest(
                 changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+                puzzleId: PuzzleFixture::PUZZLE_500_01,
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 selectedFields: ['name', 'ean'],
             ),
@@ -97,6 +98,7 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         $this->messageBus->dispatch(
             new ApprovePuzzleChangeRequest(
                 changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+                puzzleId: PuzzleFixture::PUZZLE_500_01,
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 selectedFields: ['ean'],
             ),
@@ -117,6 +119,7 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         // The player proposed a name and an EAN - the reviewer corrects those and changes fields nobody proposed
         $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
             changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+            puzzleId: PuzzleFixture::PUZZLE_500_01,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             reviewed: new PuzzleRecordValues(
                 name: '  Admin Corrected Name ',
@@ -166,6 +169,7 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
 
         $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
             changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+            puzzleId: PuzzleFixture::PUZZLE_500_01,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             reviewed: new PuzzleRecordValues(
                 name: 'Puzzle 1',
@@ -194,6 +198,7 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
 
         $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
             changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_WITH_IMAGE,
+            puzzleId: PuzzleFixture::PUZZLE_500_02,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             reviewed: new PuzzleRecordValues(
                 name: 'New Image Puzzle',
@@ -226,6 +231,7 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         try {
             $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
                 changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+                puzzleId: PuzzleFixture::PUZZLE_500_01,
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 reviewed: new PuzzleRecordValues(
                     name: 'Must Not Be Saved',
@@ -256,6 +262,7 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         $this->messageBus->dispatch(
             new ApprovePuzzleChangeRequest(
                 changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_WITH_IMAGE,
+                puzzleId: PuzzleFixture::PUZZLE_500_02,
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 selectedFields: ['name', 'manufacturer', 'piecesCount', 'image'],
             ),
@@ -290,6 +297,7 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         $this->messageBus->dispatch(
             new ApprovePuzzleChangeRequest(
                 changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_WITH_IMAGE,
+                puzzleId: PuzzleFixture::PUZZLE_500_02,
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 selectedFields: ['name', 'manufacturer', 'piecesCount', 'image'],
             ),
@@ -311,6 +319,7 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         // A proposal already satisfied by something else (a brand merge): approve it, apply nothing
         $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
             changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+            puzzleId: PuzzleFixture::PUZZLE_500_01,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             selectedFields: [],
             decisionSource: MergeDecisionSource::InternalApi,
@@ -337,6 +346,7 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
 
         $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
             changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_APPROVED,
+            puzzleId: PuzzleFixture::PUZZLE_500_02,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
         ));
     }

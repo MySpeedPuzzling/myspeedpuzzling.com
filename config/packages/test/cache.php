@@ -18,10 +18,14 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 // Same for the hardest / easiest puzzle lists, built from the rated puzzles a
 // test seeds and DAMA rolls back, for the global improvement ratio snapshots, and for
 // the marketplace's events with sellers going (built from rows a test adds).
+//
+// ParaTest workers (TEST_TOKEN 1..N) run side by side: each keeps its own filesystem
+// pools, so one worker's cached stats never leak into another worker's tests.
 return App::config([
     'framework' => [
         'cache' => [
             'app' => 'cache.adapter.filesystem',
+            'directory' => '%kernel.cache_dir%/pools%env(default::TEST_TOKEN)%',
             'pools' => [
                 'solve_time_distribution_cache' => [
                     'adapters' => ['cache.adapter.array'],

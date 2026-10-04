@@ -13,15 +13,23 @@ env:
     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/speedpuzzling_test?serverVersion=16&charset=utf8
 
 jobs:
+  # The suite runs as 3 parallel jobs (ParaTest shards, test classes dealt out
+  # round-robin), each with one worker per CPU. ~60s of every job is fixed cost
+  # (containers, checkout, caches, database build), so a 4th shard bought nothing.
   tests:
+    name: tests (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
     container: ghcr.io/myspeedpuzzling/web-base-php85:main
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     services:
       postgres:
           image: postgres:16
           env:
               POSTGRES_PASSWORD: postgres
-          options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+          options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
           ports:
               - 5432:5432
     steps:
@@ -56,7 +64,8 @@ jobs:
           run: npm install
       -   if: steps.webpack-cache.outputs.cache-hit != 'true'
           run: npm run dev
-      -   run: vendor/bin/phpunit --testsuite "Project Test Suite"
+      # Each worker gets its own clone of the test database - see tests/bootstrap.php
+      -   run: vendor/bin/paratest --testsuite "Project Test Suite" --shard=${{ matrix.shard }}/3 --shard-test-distribution=round-robin
 
   # DISABLED 2026-07-30 (issue #147 / PR #172): the Panther-managed `php -S`
   # server this job relies on serves requests with stale per-test DATABASE_URLs
@@ -75,7 +84,7 @@ jobs:
           env:
               POSTGRES_PASSWORD: postgres
               POSTGRES_DB: speedpuzzling
-          options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+          options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
           ports:
               - 5432:5432
     env:
@@ -180,7 +189,7 @@ jobs:
               env:
                   POSTGRES_PASSWORD: postgres
                   POSTGRES_DB: speedpuzzling_test
-              options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+              options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
               ports:
                   - 5432:5432
       steps:

@@ -22,6 +22,14 @@ $currentDatabaseHash = TestingDatabaseCaching::calculateDirectoriesHash(
     __DIR__ . '/DataFixtures',
 );
 
+// ParaTest (vendor/bin/paratest) runs the suite in several processes at once, each
+// with its own TEST_TOKEN (1..N). They take turns here: the first one builds the
+// database if it is stale, then every worker gets its own copy of it, cloned from the
+// template - DAMA's per-test transactions keep the copies as clean as the original.
+$databaseLock = fopen(__DIR__ . '/.database.lock', 'c');
+assert($databaseLock !== false);
+flock($databaseLock, LOCK_EX);
+
 if (
     TestingDatabaseCaching::isCacheUpToDate($cacheFilePath, $currentDatabaseHash) === false
 ) {
@@ -29,6 +37,15 @@ if (
     file_put_contents($cacheFilePath, $currentDatabaseHash);
     createPantherTemplateDatabase();
 }
+
+$workerToken = getenv('TEST_TOKEN');
+
+if (is_string($workerToken) && $workerToken !== '') {
+    useWorkerDatabase($workerToken);
+}
+
+flock($databaseLock, LOCK_UN);
+fclose($databaseLock);
 
 
 function bootstrapDatabase(string $cacheFilePath): void
@@ -107,6 +124,52 @@ function createPantherTemplateDatabase(): void
 
     // Mark as template for faster cloning
     $pdo->exec("UPDATE pg_database SET datistemplate = TRUE WHERE datname = '$templateDb'");
+}
+
+/**
+ * Points this worker process at its own database, a fresh clone of the template
+ * (`<dbname>_<token>`). Cloned on every run, so a rebuilt template can never leave a
+ * worker on stale data.
+ */
+function useWorkerDatabase(string $token): void
+{
+    if (preg_match('/^\d+$/', $token) !== 1) {
+        throw new LogicException(sprintf('Unexpected TEST_TOKEN "%s"', $token));
+    }
+
+    $dbConfig = parseDatabaseUrl();
+    $templateDb = $dbConfig['dbname'] . '_template';
+    $workerDb = $dbConfig['dbname'] . '_' . $token;
+
+    $pdo = new PDO(
+        sprintf('pgsql:host=%s;port=%d;dbname=postgres', $dbConfig['host'], $dbConfig['port']),
+        $dbConfig['user'],
+        $dbConfig['password'],
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
+    );
+
+    $templateExists = $pdo->query("SELECT 1 FROM pg_database WHERE datname = '$templateDb'")?->fetchColumn();
+
+    if ($templateExists === false) {
+        createPantherTemplateDatabase();
+    }
+
+    $pdo->exec("DROP DATABASE IF EXISTS \"$workerDb\" WITH (FORCE)");
+    $pdo->exec("CREATE DATABASE \"$workerDb\" TEMPLATE \"$templateDb\"");
+
+    $databaseUrl = $_ENV['DATABASE_URL'] ?? $_SERVER['DATABASE_URL'] ?? getenv('DATABASE_URL');
+    assert(is_string($databaseUrl));
+    $workerDatabaseUrl = preg_replace(
+        '~/' . preg_quote($dbConfig['dbname'], '~') . '(?=\?|$)~',
+        '/' . $workerDb,
+        $databaseUrl,
+        1,
+    );
+    assert(is_string($workerDatabaseUrl) && $workerDatabaseUrl !== $databaseUrl);
+
+    $_ENV['DATABASE_URL'] = $workerDatabaseUrl;
+    $_SERVER['DATABASE_URL'] = $workerDatabaseUrl;
+    putenv('DATABASE_URL=' . $workerDatabaseUrl);
 }
 
 function createPostgresExtensions(): void

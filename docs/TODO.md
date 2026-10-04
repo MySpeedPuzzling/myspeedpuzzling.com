@@ -11,8 +11,13 @@ that would otherwise be forgotten. Newest section on top.
       Ravensburger `4005555…`/`4005556…` typed without its two zeros (`45555…`) is refused with the full code suggested.
 - [ ] Same check on the add-puzzle form (10 puzzles hold a `45555…` code, the newest added 2026-10-03).
 - [ ] Fix the stored `45555…` / `045556…` codes to the full `400555…` (9 of the 11 lack the full code, so a box scan misses them).
-- [ ] 16 pending change requests carry a code the new check would refuse - review them with that in mind.
-- [ ] Where the `45555…` form comes from is still unknown - an e-mail to the player who proposed most of them was drafted for Jan (2026-10-04).
+- [x] The 12 pending change requests that changed only the EAN, to an invalid code, rejected via the internal API
+      ("The proposed EAN is not valid EAN barcode", 2026-10-04).
+- [ ] 4 pending ones carry an invalid code but change other fields too - manual review
+      (`019df4f1-d64d-7179-b8ef-0e5ab1f77b56`, `019e4530-f7ca-72a3-b365-c2df422784e1`, `019e98f1-dc2a-7225-9842-257ab9cd377e`,
+      `019ea2a3-e359-724c-9327-76f86c03c125`).
+- [ ] Where the `45555…` form comes from is still unknown - 9 players in 7 countries since 2024-03; e-mail asking them
+      drafted for Jan (2026-10-04).
 
 ## Players page (`docs/features/players-page/README.md`)
 

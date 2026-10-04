@@ -48,6 +48,11 @@
         </properties>
     </rule>
 
+    <!-- Files that did not change since the last run are not checked again (CI keeps the cache
+         between runs, see .github/workflows/test.yml), the rest several at a time -->
+    <arg name="cache" value="var/phpcs.cache"/>
+    <arg name="parallel" value="8"/>
+
     <!-- Show progress -->
     <arg name="colors"/>
     <arg value="sp"/>

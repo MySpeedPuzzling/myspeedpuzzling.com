@@ -11,7 +11,7 @@ passed) is gone. Measured 2026-10-04: push to main → lily webhook ~2 min, → 
 |---|---|---|
 | `tests (1/3..3/3)` | PR + main | ParaTest shards (`--shard=i/3`, round-robin), one worker per CPU, each worker on its own clone of the test database (`tests/bootstrap.php`) |
 | `phpstan`, `migrations-up-to-date` | PR + main | gates |
-| `coding-standards` | PR + main | advisory (`continue-on-error`), never blocks a deploy |
+| `coding-standards` | PR + main | advisory (`continue-on-error`), never blocks a deploy; plain PHP on the runner (`setup-php`), not the app image |
 | `docker` | main | builds the production image **while the gates run**, pushes `website:sha-<commit>` only, plus `website:build-assets` |
 | `verified` | same-repo PRs | after every gate passed: uploads an artifact `verified-tree-<tree sha>` for the tree the PR run tested (the PR merged into main) |
 | `plan` | main | is there such an artifact for this commit's tree? |
@@ -25,6 +25,22 @@ Both deploy jobs run `.github/actions/deploy-production`: skip if the commit is
 pushes can finish out of order), otherwise `docker buildx imagetools create` the
 commit's image as `website:main` (registry-side copy) and fire the lily webhook
 (`{"app":"myspeedpuzzling","tag":"main"}`). A red commit never reaches `main`.
+
+## PHPStan and PHPCS (measured 2026-10-04)
+
+Measured side by side on the runners (throwaway workflow on `ci/static-analysis-speed`):
+
+- **PHPStan stays in the app image.** It is a gate, and it must report what it reports locally. On the bare runner,
+  PHP was 8.5.11 with a different extension set, and the result cache never matched
+  (`metaExtensions`: phpstan-symfony hashes the dumped container, which differed between runs there). Inside the image
+  the result cache works: a typical commit takes 5-7s, against ~50s for a full analysis.
+  - A full analysis runs whenever the container changes, e.g. any new service class. That is the case where
+    `phpstan` can become the slowest gate.
+  - `cache:warmup --no-optional-warmers` takes 3s instead of 10s; PHPStan only needs the container dump.
+  - "Used memory" sums the parallel workers. 2 GB on a full run is not near any limit.
+- **PHPCS runs on plain PHP (`setup-php`), with its cache** (`phpcs.xml`: `cache` + `parallel`). PHPCS only reads
+  tokens, so the image's extensions do not matter. Job time: 66-103s down to ~17s.
+- The job containers' `Initialize containers` step (pulling the ~640 MB base image) is 25-48s of every other job.
 
 ## Carried build assets
 

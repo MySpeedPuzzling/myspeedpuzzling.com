@@ -284,7 +284,11 @@ readonly final class AddPuzzleSolvingTimeHandler
             ));
         }
 
-        $this->commandBus->dispatch(new RecalculateBadgesForPlayer($player->id->toString()));
+        // Every registered member of a pair/team result counts it, not only whoever saved it
+        foreach ($solvingTime->memberPlayerIds() as $memberPlayerId) {
+            $this->commandBus->dispatch(new RecalculateBadgesForPlayer($memberPlayerId));
+        }
+
         $this->commandBus->dispatch(new AwardXpForSolvingTime($solvingTimeId->toString()));
     }
 

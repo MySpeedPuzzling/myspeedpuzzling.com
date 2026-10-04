@@ -11,6 +11,8 @@ use SpeedPuzzling\Web\Exceptions\AutoRemovalCanNotBeUndone;
 use SpeedPuzzling\Web\Exceptions\AutoRemovalNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
+use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Message\UndoAutoRemoval;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -23,6 +25,7 @@ use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
 use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * Undo of an automatic removal: the copy comes back with its own id and everything it had, the case becomes
@@ -50,6 +53,7 @@ readonly final class UndoAutoRemovalHandler
         private ResultReviewReactions $resultReviewReactions,
         private ClockInterface $clock,
         private PlayerRepository $playerRepository,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -116,5 +120,13 @@ readonly final class UndoAutoRemovalHandler
         }
 
         $this->resultReviewReactions->recordFor($removal->player->id->toString());
+
+        // The same id comes back: its XP was compensated at the removal, and neither a re-award (the id already
+        // has ledger history) nor a chain rebuild (keeps compensations) gives it back - the full rebuild does
+        // (docs/features/xp-levels/README.md). Badges follow the restored result too
+        foreach ($time->memberPlayerIds() as $memberPlayerId) {
+            $this->messageBus->dispatch(new RecalculateXpForPlayer($memberPlayerId));
+            $this->messageBus->dispatch(new RecalculateBadgesForPlayer($memberPlayerId));
+        }
     }
 }

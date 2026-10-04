@@ -326,10 +326,82 @@ jobs:
                   secrets: |
                       github_token=${{ secrets.GITHUB_TOKEN }}
 
-  deploy:
-      if: github.event_name == 'push'
-      # coding-standards stays advisory (continue-on-error), as before
+  # PRs from this repository only: records that this exact tree - the PR merged
+  # into main, which is what pull_request runs test - passed every gate. When the
+  # squash merge produces the same tree (main did not move in between), the main
+  # pipeline deploys without waiting for the gates again (`deploy-fast`).
+  verified:
+      if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
       needs:
+          - tests
+          - phpstan
+          - migrations-up-to-date
+      runs-on: ubuntu-latest
+      permissions:
+          contents: read
+      steps:
+          -   name: Tree of the tested commit
+              id: tree
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  tree="$(gh api "repos/${GITHUB_REPOSITORY}/git/commits/${GITHUB_SHA}" --jq .tree.sha)"
+                  echo "tree=${tree}" >> "$GITHUB_OUTPUT"
+                  echo "${GITHUB_SHA}" > verified-commit.txt
+          -   uses: actions/upload-artifact@v7
+              with:
+                  name: verified-tree-${{ steps.tree.outputs.tree }}
+                  path: verified-commit.txt
+                  retention-days: 30
+
+  # Main only: did a PR run of this workflow already pass every gate on exactly
+  # this tree? Runs alongside the gates, so a direct push waits for nothing extra.
+  plan:
+      if: github.event_name == 'push'
+      runs-on: ubuntu-latest
+      permissions:
+          contents: read
+          actions: read
+      outputs:
+          verified: ${{ steps.check.outputs.verified }}
+      steps:
+          -   name: Look for a passed PR run of this exact tree
+              id: check
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  verified=false
+                  tree="$(gh api "repos/${GITHUB_REPOSITORY}/git/commits/${GITHUB_SHA}" --jq .tree.sha || true)"
+                  if [ -n "$tree" ]; then
+                      # Same-repository PR runs only (a fork's run cannot vouch for anything)
+                      runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=verified-tree-${tree}" \
+                          --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_repository_id == ${{ github.repository_id }}) | .workflow_run.id] | unique | .[]' || true)"
+                      for run in $runs; do
+                          # ...of this very workflow, on a pull_request
+                          origin="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run}" --jq '.path + " " + .event' || true)"
+                          if [ "$origin" = ".github/workflows/test.yml pull_request" ]; then
+                              verified=true
+                              echo "::notice::Tree ${tree} already passed every gate in PR run ${run} - deploying without waiting for the gates"
+                              break
+                          fi
+                      done
+                  fi
+                  echo "Tree ${tree:-unknown}: verified=${verified}"
+                  echo "verified=${verified}" >> "$GITHUB_OUTPUT"
+
+  deploy:
+      # The gates' results are checked by hand because `plan` may fail (API
+      # hiccup) - that must not block a normal deploy. coding-standards stays
+      # advisory (continue-on-error), as before.
+      if: >-
+          ${{ !cancelled() && github.event_name == 'push'
+          && needs.tests.result == 'success'
+          && needs.phpstan.result == 'success'
+          && needs.migrations-up-to-date.result == 'success'
+          && needs.docker.result == 'success'
+          && needs.plan.outputs.verified != 'true' }}
+      needs:
+          - plan
           - tests
           - phpstan
           - migrations-up-to-date
@@ -343,57 +415,61 @@ jobs:
           group: deploy-prod
           cancel-in-progress: false
       outputs:
-          deployed: ${{ steps.guard.outputs.deploy }}
+          deployed: ${{ steps.deploy.outputs.deployed }}
       environment:
           name: prod
           url: https://myspeedpuzzling.com
       steps:
-          -   name: Login to GHCR
-              uses: docker/login-action@v4
+          -   uses: actions/checkout@v7
               with:
-                  registry: ghcr.io
-                  username: ${{ github.repository_owner }}
-                  password: ${{ secrets.GITHUB_TOKEN }}
+                  sparse-checkout: .github/actions
+          -   id: deploy
+              uses: ./.github/actions/deploy-production
+              with:
+                  image: ${{ needs.docker.outputs.image }}
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+                  webhook-secret: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
 
-          # Pipelines of quick successive pushes can finish out of order - never
-          # roll production back to an older commit. Anything unexpected (no label,
-          # unknown commit) deploys, like before.
-          -   name: Skip when production already runs a newer commit
-              id: guard
-              env:
-                  GH_TOKEN: ${{ github.token }}
-              run: |
-                  live="$(docker buildx imagetools inspect ghcr.io/myspeedpuzzling/website:main --format '{{ index .Image.Config.Labels "org.opencontainers.image.revision" }}' || true)"
-                  status="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${live}...${GITHUB_SHA}" --jq .status || true)"
-                  echo "Production runs ${live:-unknown}, this commit is ${status:-unknown} relative to it"
-                  if [ "$status" = "behind" ]; then
-                      echo "::notice::Production already runs ${live}, a newer commit - not deploying ${GITHUB_SHA}"
-                      echo "deploy=false" >> "$GITHUB_OUTPUT"
-                  else
-                      echo "deploy=true" >> "$GITHUB_OUTPUT"
-                  fi
-
-          -   name: Tag the image as main
-              if: steps.guard.outputs.deploy == 'true'
-              run: docker buildx imagetools create --tag ghcr.io/myspeedpuzzling/website:main "${{ needs.docker.outputs.image }}"
-
-          -   name: Trigger lily deploy (HMAC webhook)
-              if: steps.guard.outputs.deploy == 'true'
-              env:
-                  SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
-              run: |
-                  BODY='{"app":"myspeedpuzzling","tag":"main"}'
-                  SIG="$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$SECRET" | sed 's/^.* //')"
-                  curl -fsS -X POST https://deploy.lily.srv.thedevs.cz/hooks/myspeedpuzzling \
-                    -H 'Content-Type: application/json' \
-                    -H "X-Hub-Signature-256: sha256=$SIG" \
-                    --data-raw "$BODY"
+  # The same deploy as above, but for a tree a PR run already verified: only
+  # the image has to be ready. The gates above still run, as a second opinion.
+  deploy-fast:
+      if: github.event_name == 'push' && needs.plan.outputs.verified == 'true'
+      needs:
+          - plan
+          - docker
+      runs-on: ubuntu-latest
+      permissions:
+          contents: read
+          packages: write
+          deployments: write
+      concurrency:
+          group: deploy-prod
+          cancel-in-progress: false
+      outputs:
+          deployed: ${{ steps.deploy.outputs.deployed }}
+      environment:
+          name: prod
+          url: https://myspeedpuzzling.com
+      steps:
+          -   uses: actions/checkout@v7
+              with:
+                  sparse-checkout: .github/actions
+          -   id: deploy
+              uses: ./.github/actions/deploy-production
+              with:
+                  image: ${{ needs.docker.outputs.image }}
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+                  webhook-secret: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
 
   # Its own job: the action is a Docker image that a job pulls before its first
-  # step - inside `deploy` that held the webhook back by ~8s
+  # step - inside a deploy job that held the webhook back by ~8s
   sentry-release:
-      needs: deploy
-      if: needs.deploy.outputs.deployed == 'true'
+      needs:
+          - deploy
+          - deploy-fast
+      if: >-
+          ${{ !cancelled()
+          && (needs.deploy.outputs.deployed == 'true' || needs.deploy-fast.outputs.deployed == 'true') }}
       runs-on: ubuntu-latest
       permissions:
           contents: read

@@ -10,6 +10,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
@@ -20,6 +21,7 @@ use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Services\PuzzleImageNamer;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\NotificationType;
+use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -39,12 +41,18 @@ readonly final class ApprovePuzzleChangeRequestHandler
 
     /**
      * @throws PuzzleChangeRequestNotFound
+     * @throws PuzzleChangeRequestAlreadyReviewed
      * @throws PuzzleNotFound
      * @throws PlayerNotFound
      */
     public function __invoke(ApprovePuzzleChangeRequest $message): void
     {
         $changeRequest = $this->puzzleChangeRequestRepository->get($message->changeRequestId);
+
+        if ($changeRequest->status !== PuzzleReportStatus::Pending) {
+            throw new PuzzleChangeRequestAlreadyReviewed();
+        }
+
         $puzzle = $this->puzzleRepository->get($changeRequest->puzzle->id->toString());
         $reviewer = $this->playerRepository->get($message->reviewerId);
 
@@ -119,9 +127,11 @@ readonly final class ApprovePuzzleChangeRequestHandler
         $this->puzzleModerationDecisionRecorder->record(
             action: PuzzleModerationAction::ChangeRequestApproved,
             decidedBy: $reviewer,
+            source: $message->decisionSource,
             puzzleId: $puzzle->id,
             puzzleName: $puzzle->name,
             changeRequestId: $changeRequest->id,
+            note: $message->decisionNote,
             details: [
                 'selectedFields' => $selectedFields,
                 'overrides' => $message->overrides,

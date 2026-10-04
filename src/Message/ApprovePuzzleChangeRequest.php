@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Message;
 
+use SpeedPuzzling\Web\Value\MergeDecisionSource;
+
 readonly final class ApprovePuzzleChangeRequest
 {
     /**
@@ -15,6 +17,8 @@ readonly final class ApprovePuzzleChangeRequest
         public string $reviewerId,
         public array $selectedFields = [],
         public array $overrides = [],
+        public MergeDecisionSource $decisionSource = MergeDecisionSource::AdminUi,
+        public null|string $decisionNote = null,
     ) {
     }
 }

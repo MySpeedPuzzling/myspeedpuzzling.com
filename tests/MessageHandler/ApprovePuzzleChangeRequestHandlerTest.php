@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
+use SpeedPuzzling\Web\Entity\PuzzleModerationDecision;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
+use SpeedPuzzling\Web\Value\MergeDecisionSource;
+use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -178,5 +183,42 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
 
         // Verify the SEO file exists (from first approval)
         self::assertTrue($this->filesystem->fileExists($firstImagePath));
+    }
+
+    public function testApprovingNoFieldLeavesThePuzzleAndRecordsWhereTheDecisionCameFrom(): void
+    {
+        $puzzleNameBefore = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01)->name;
+
+        // A proposal already satisfied by something else (a brand merge): approve it, apply nothing
+        $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
+            changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            selectedFields: [],
+            decisionSource: MergeDecisionSource::InternalApi,
+            decisionNote: 'Brand already fixed by a merge',
+        ));
+
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+
+        self::assertSame(PuzzleReportStatus::Approved, $this->changeRequestRepository->get(PuzzleReportFixture::CHANGE_REQUEST_PENDING)->status);
+        self::assertSame($puzzleNameBefore, $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01)->name);
+
+        $decision = $entityManager->getRepository(PuzzleModerationDecision::class)->findOneBy([
+            'action' => PuzzleModerationAction::ChangeRequestApproved,
+        ]);
+        self::assertNotNull($decision);
+        self::assertSame(MergeDecisionSource::InternalApi, $decision->source);
+        self::assertSame('Brand already fixed by a merge', $decision->note);
+    }
+
+    public function testAReviewedRequestIsNeverApprovedAgain(): void
+    {
+        $this->expectException(PuzzleChangeRequestAlreadyReviewed::class);
+
+        $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
+            changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_APPROVED,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+        ));
     }
 }

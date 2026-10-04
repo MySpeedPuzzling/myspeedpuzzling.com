@@ -46,9 +46,9 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * A checksum that fails again on the page that was just reloaded is not
  * staleness but a bug - a prop that does not survive the JSON round trip through
  * the browser, web replicas disagreeing on APP_SECRET. A short-lived cookie
- * remembers the reload per page path; a repeat failure within that window is left
- * alone and surfaces as the uncaught 400 it always was (logged as an error, so in
- * Sentry), which also rules out a reload loop.
+ * remembers the reload per page path; a repeat failure within that window is
+ * logged as an error here (so in Sentry) and left to answer the uncaught 400 it
+ * always was, which also rules out a reload loop.
  */
 final readonly class StaleLiveComponentPageSubscriber implements EventSubscriberInterface
 {
@@ -120,6 +120,14 @@ final readonly class StaleLiveComponentPageSubscriber implements EventSubscriber
         $pagePath = explode('?', $pageUrl->path, 2)[0];
 
         if ($request->cookies->get(self::RELOAD_COOKIE) === $pagePath) {
+            // Logged here because Symfony logs an uncaught 400 at info only (framework.php)
+            $this->logger->error('Live component checksum failed again right after the page was reloaded', [
+                'component' => $request->attributes->get('_live_component'),
+                'action' => $request->attributes->get('_live_action'),
+                'page' => $pageUrl->path,
+                'exception' => $exception,
+            ]);
+
             return;
         }
 

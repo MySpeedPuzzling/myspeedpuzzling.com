@@ -61,7 +61,8 @@ return App::config([
         // client sending the wrong format, an internal-API call missing a field. Symfony logs uncaught
         // 4xx at error, which made each one a Sentry issue; info keeps them out (warning and above
         // become issues). Only the log level changes - unlike Sentry's ignore_exceptions, which
-        // drops an event when ANY exception of its chain matches.
+        // drops an event when ANY exception of its chain matches. Code that knows a 400 means a bug
+        // logs it at error itself (StaleLiveComponentPageSubscriber).
         'exceptions' => [
             BadRequestHttpException::class => ['log_level' => 'info'],
             NotAcceptableHttpException::class => ['log_level' => 'info'],

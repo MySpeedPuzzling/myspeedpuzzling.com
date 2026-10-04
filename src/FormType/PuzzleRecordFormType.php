@@ -44,15 +44,42 @@ final class PuzzleRecordFormType extends AbstractType
                 . ($manufacturer->manufacturerApproved ? '' : ' - not approved');
         }
 
+        self::addRecordFields($builder);
+
+        $builder->add('manufacturerId', ChoiceType::class, [
+            'autocomplete' => true,
+            'choices' => array_keys($manufacturerLabels),
+            'choice_label' => static fn (string $manufacturerId): string => $manufacturerLabels[$manufacturerId],
+        ]);
+
+        // Without a proposed image there is nothing to choose - the current one stays unless a photo is uploaded
+        if ($options['has_proposed_image']) {
+            $builder->add('image', EnumType::class, [
+                'class' => PuzzleImageChoice::class,
+                'choices' => [PuzzleImageChoice::Keep, PuzzleImageChoice::Proposed],
+                'choice_label' => static fn (PuzzleImageChoice $choice): string => match ($choice) {
+                    PuzzleImageChoice::Proposed => 'Proposed by the player',
+                    default => 'Keep current',
+                },
+                'expanded' => true,
+            ]);
+        }
+    }
+
+    /**
+     * The record's fields every moderator form shares - name, alternative name, pieces, codes, a new photo and the
+     * note. The brand differs: the record form picks any brand, the approval settles a new one (ApprovePuzzleFormType).
+     *
+     * @template TData
+     *
+     * @param FormBuilderInterface<TData> $builder
+     */
+    public static function addRecordFields(FormBuilderInterface $builder): void
+    {
         $builder
             ->add('name', TextType::class)
             ->add('alternativeName', TextType::class, [
                 'required' => false,
-            ])
-            ->add('manufacturerId', ChoiceType::class, [
-                'autocomplete' => true,
-                'choices' => array_keys($manufacturerLabels),
-                'choice_label' => static fn (string $manufacturerId): string => $manufacturerLabels[$manufacturerId],
             ])
             ->add('piecesCount', IntegerType::class, [
                 'attr' => [
@@ -79,19 +106,6 @@ final class PuzzleRecordFormType extends AbstractType
                     'rows' => 2,
                 ],
             ]);
-
-        // Without a proposed image there is nothing to choose - the current one stays unless a photo is uploaded
-        if ($options['has_proposed_image']) {
-            $builder->add('image', EnumType::class, [
-                'class' => PuzzleImageChoice::class,
-                'choices' => [PuzzleImageChoice::Keep, PuzzleImageChoice::Proposed],
-                'choice_label' => static fn (PuzzleImageChoice $choice): string => match ($choice) {
-                    PuzzleImageChoice::Proposed => 'Proposed by the player',
-                    default => 'Keep current',
-                },
-                'expanded' => true,
-            ]);
-        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void

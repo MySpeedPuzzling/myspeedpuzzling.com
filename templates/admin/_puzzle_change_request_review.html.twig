@@ -49,15 +49,8 @@
 ] %}
 
 {{ form_start(form, {attr: {
-    'data-controller': 'puzzle-record image-editor',
+    'data-controller': 'puzzle-record',
     'data-action': 'change->puzzle-record#update input->puzzle-record#update kept-photo:removed->puzzle-record#update',
-    'data-puzzle-record-drop-text-value': 'forms.drop_file'|trans,
-    'data-image-editor-title-value': 'image_editor.title'|trans,
-    'data-image-editor-rotate-left-value': 'image_editor.rotate_left'|trans,
-    'data-image-editor-rotate-right-value': 'image_editor.rotate_right'|trans,
-    'data-image-editor-cancel-value': 'forms.cancel'|trans,
-    'data-image-editor-apply-value': 'image_editor.apply'|trans,
-    'data-image-editor-edit-value': 'forms.edit'|trans,
     'data-puzzle-record-proposed-label-value': 'Proposed',
     'data-puzzle-record-edit-label-value': 'Your edit',
     'data-puzzle-record-kept-label-value': 'Keeping current',
@@ -74,12 +67,13 @@
         <span class="badge bg-accent">Your edit</span>.
     </p>
 
-    {{ include('admin/_puzzle_record_fields.html.twig', {
-        fields: review_fields,
+    {{ include('admin/_puzzle_record_fields.html.twig', {fields: review_fields}) }}
+    {{ include('admin/_puzzle_record_image.html.twig', {
         current_image: request.puzzleImage,
         proposed_image: request.hasImageChange() ? request.proposedImage : null,
         kept_photo: kept_photos.puzzlePhoto ?? null,
     }) }}
+    {{ include('admin/_puzzle_record_note.html.twig') }}
 
     <div class="pt-3 mt-2 border-top">
         <div class="small mb-3" data-puzzle-record-target="summary" aria-live="polite"></div>

@@ -1,11 +1,11 @@
 {#
     The field cards of a puzzle's record in the moderators' forms (puzzle_record_controller.js marks them): the
-    review of a change request - the player's proposal shown and marked per field - and the direct edit, which has
-    no proposal. A photo dropped in the image field is used instead of the current / proposed one (kept on a
-    refused submit by FormPhotoStash, cropped with image-editor like on the add form).
+    review of a change request - the player's proposal shown and marked per field - the direct edit and the
+    approval of a new puzzle, which have no proposal. The image card and the note are their own partials
+    (_puzzle_record_image, _puzzle_record_note) so a page can put a card of its own in between.
 
-    Required variables: form, fields (label, widget, help, proposed, current, currentValue, proposedShown,
-    proposedValue, original, originalDiffers), current_image, proposed_image (null without one), kept_photo
+    Required variables: fields (label, widget, help, proposed, current, currentValue, proposedShown,
+    proposedValue, original, originalDiffers)
 #}
 {% import 'admin/_puzzle_macros.html.twig' as macros %}
 
@@ -56,77 +56,3 @@
         </div>
     </div>
 {% endfor %}
-
-{# Image: keep current / the proposed one - a photo dropped below is used instead of either #}
-{% set image_proposed = proposed_image is not null %}
-<div class="border rounded-3 p-3 mb-3 shadow-sm {{ image_proposed ? 'border-2 border-warning' : '' }}"
-     data-puzzle-record-target="field"
-     data-label="Image"
-     data-current="keep"
-     {% if image_proposed %}data-proposed="proposed"{% endif %}>
-    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-        <span class="form-label fw-semibold mb-0">Image</span>
-        <span class="badge {{ image_proposed ? 'bg-warning text-dark' : 'd-none' }}" data-role="badge">{{ image_proposed ? 'Proposed' }}</span>
-    </div>
-
-    <div class="row g-2 gallery">
-        {% if form.image is defined %}
-            {% for choice in form.image %}
-                {% set proposed_choice = choice.vars.value == 'proposed' %}
-                <div class="col-6">
-                    <div class="border rounded-3 p-2 h-100 {{ proposed_choice ? 'bg-warning bg-opacity-10' }}"
-                         data-role="image-option{{ proposed_choice ? ' proposed-value' }}">
-                        {{ form_widget(choice, {attr: {'data-action': 'change->puzzle-record#imageChosen'}}) }}
-                        <div class="mt-2">
-                            {{ proposed_choice
-                                ? macros.thumbnail(proposed_image, 'Proposed image')
-                                : macros.thumbnail(current_image, 'Current image') }}
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-        {% else %}
-            <div class="col-12 col-sm-6">
-                <div class="border rounded-3 p-2 h-100" data-role="image-option">
-                    <div class="small text-muted mb-2">Current</div>
-                    {{ macros.thumbnail(current_image, 'Current image') }}
-                </div>
-            </div>
-        {% endif %}
-
-        <div class="col-12 {{ form.image is defined ? '' : 'col-sm-6' }}">
-            <div class="file-drop-area rounded-3 h-100 d-flex flex-column justify-content-center align-items-center" {{ include('photo_stash/_kept_photo_attributes.html.twig', {photo: kept_photo}) }}>
-                {# data-role stays put - file_drop_area_controller rewrites this element's class for its preview #}
-                <div class="file-drop-icon" data-role="drop-icon">
-                    {% if kept_photo is not null %}
-                        {{ include('photo_stash/_kept_photo_preview.html.twig', {photo: kept_photo}) }}
-                    {% else %}
-                        <i class="ci-cloud-upload"></i>
-                    {% endif %}
-                </div>
-                <span class="file-drop-message" data-kept-photo-target="message">{{ kept_photo is not null ? kept_photo.fileName : 'forms.drop_file'|trans }}</span>
-                {{ form_widget(form.puzzlePhoto, {attr: {class: 'file-drop-input', accept: 'image/*'}}) }}
-                <button type="button" class="file-drop-btn btn btn-outline-primary btn-sm">{{ 'forms.choose_file'|trans }}</button>
-                <div class="small text-muted mt-2">A new image is used instead {{ form.image is defined ? 'of both above' : 'of the current one' }}.</div>
-                {{ include('photo_stash/_kept_photo_input.html.twig', {photo: kept_photo, field: 'puzzlePhoto'}) }}
-            </div>
-            {{ form_errors(form.puzzlePhoto) }}
-        </div>
-    </div>
-
-    <div class="d-flex flex-wrap gap-3 mt-2">
-        {% if image_proposed %}
-            <button type="button" class="btn btn-link btn-sm p-0 d-none" data-role="use-proposed" data-action="puzzle-record#useProposed">Use proposed</button>
-        {% endif %}
-        <button type="button" class="btn btn-link btn-sm p-0 {{ image_proposed ? '' : 'd-none' }}" data-role="use-current" data-action="puzzle-record#useCurrent">
-            {{ image_proposed ? 'Keep current' : 'Undo my edit' }}
-        </button>
-    </div>
-</div>
-
-{# Kept in the puzzle's history next to the change #}
-<div class="mb-3">
-    {{ form_label(form.note, 'Note for the history (optional)', {label_attr: {class: 'form-label fw-semibold'}}) }}
-    {{ form_widget(form.note, {attr: {placeholder: 'Why - e.g. "EAN checked on the box photo"'}}) }}
-    {{ form_errors(form.note) }}
-</div>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\BrandSuggestion;
 use SpeedPuzzling\Web\Results\PendingPuzzleApproval;
 use SpeedPuzzling\Web\Results\PuzzleDuplicateCandidate;
@@ -68,13 +69,17 @@ SQL,
     }
 
     /**
-     * Puzzles that are probably the same product: any shared EAN (a puzzle may
-     * hold several, comma-separated), or the same piece count and a similar name
-     * (trigram, served by custom_puzzle_name_trgm). ~30 ms on production data.
+     * Similar puzzles in the catalogue - candidates to compare, not duplicates: any shared EAN (a puzzle may
+     * hold several, comma-separated), or the same piece count and a similar name (trigram, served by
+     * custom_puzzle_name_trgm). A shared EAN first, then the same brand - one title is printed by many brands,
+     * so a name match from another brand is usually another puzzle. ~30 ms on production data.
+     *
+     * @param list<string> $suggestedBrandIds Brands a new brand probably duplicates (brandSuggestions()) - their
+     *                                        puzzles count as the same brand
      *
      * @return list<PuzzleDuplicateCandidate>
      */
-    public function possibleDuplicates(string $puzzleId, int $limit = 5): array
+    public function possibleDuplicates(string $puzzleId, array $suggestedBrandIds = [], int $limit = 6): array
     {
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
@@ -83,6 +88,7 @@ WITH src AS (
         id,
         name,
         pieces_count,
+        manufacturer_id,
         array_remove(string_to_array(regexp_replace(COALESCE(ean, ''), '\s', '', 'g'), ','), '') AS eans
     FROM puzzle
     WHERE id = :puzzleId
@@ -97,7 +103,10 @@ SELECT
     m.name AS manufacturer_name,
     p.approved,
     COALESCE(ps.solved_times_count, 0) AS solved_times,
-    (array_remove(string_to_array(regexp_replace(COALESCE(p.ean, ''), '\s', '', 'g'), ','), '') && src.eans) AS same_ean
+    (array_remove(string_to_array(regexp_replace(COALESCE(p.ean, ''), '\s', '', 'g'), ','), '') && src.eans) AS same_ean,
+    (p.manufacturer_id IS NOT DISTINCT FROM src.manufacturer_id) AS same_brand,
+    (p.manufacturer_id = ANY(:suggestedBrandIds::uuid[])) AS suggested_brand,
+    similarity(p.name, src.name) AS name_similarity
 FROM puzzle p
 CROSS JOIN src
 LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
@@ -108,10 +117,18 @@ WHERE p.id <> src.id
             AND array_remove(string_to_array(regexp_replace(p.ean, '\s', '', 'g'), ','), '') && src.eans)
         OR (p.pieces_count = src.pieces_count AND p.name % src.name)
     )
-ORDER BY same_ean DESC, similarity(p.name, src.name) DESC, p.approved DESC
+ORDER BY
+    same_ean DESC,
+    COALESCE(p.manufacturer_id IS NOT DISTINCT FROM src.manufacturer_id OR p.manufacturer_id = ANY(:suggestedBrandIds::uuid[]), false) DESC,
+    name_similarity DESC,
+    p.approved DESC
 LIMIT :limit
 SQL,
-            ['puzzleId' => $puzzleId, 'limit' => $limit],
+            [
+                'puzzleId' => $puzzleId,
+                'limit' => $limit,
+                'suggestedBrandIds' => '{' . implode(',', array_filter($suggestedBrandIds, Uuid::isValid(...))) . '}',
+            ],
         );
 
         return array_map(PuzzleDuplicateCandidate::fromDatabaseRow(...), $rows);

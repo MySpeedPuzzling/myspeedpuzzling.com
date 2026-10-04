@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleApproval;
+use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyApproved;
@@ -17,8 +18,11 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\ManufacturerMerger;
 use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
+use SpeedPuzzling\Web\Services\PuzzleRecordUpdater;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleApprovalBrandChoice;
+use SpeedPuzzling\Web\Value\PuzzleImageChoice;
+use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -36,6 +40,7 @@ readonly final class ApprovePuzzleHandler
         private PlayerRepository $playerRepository,
         private ManufacturerRepository $manufacturerRepository,
         private ManufacturerMerger $manufacturerMerger,
+        private PuzzleRecordUpdater $puzzleRecordUpdater,
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
         private ClockInterface $clock,
     ) {
@@ -47,6 +52,7 @@ readonly final class ApprovePuzzleHandler
      * @throws ManufacturerNotFound
      * @throws PuzzleAlreadyApproved
      * @throws InvalidPuzzleApproval
+     * @throws InvalidPuzzleValues
      */
     public function __invoke(ApprovePuzzle $message): void
     {
@@ -57,32 +63,21 @@ readonly final class ApprovePuzzleHandler
             throw new PuzzleAlreadyApproved();
         }
 
-        $name = trim($message->name);
-
-        if ($name === '' || $message->piecesCount <= 0) {
-            throw new InvalidPuzzleApproval('Name and pieces count are required.');
-        }
-
         $currentBrand = $puzzle->manufacturer;
         $targetBrand = $this->resolveTargetBrand($message, $currentBrand);
 
-        // --- validated, now apply ---
-
-        $before = [
-            'name' => $puzzle->name,
-            'piecesCount' => $puzzle->piecesCount,
-            'ean' => $puzzle->ean,
-            'identificationNumber' => $puzzle->identificationNumber,
-            'manufacturerId' => $currentBrand?->id->toString(),
-            'manufacturerName' => $currentBrand?->name,
-        ];
-
-        $puzzle->name = $name;
-        $puzzle->piecesCount = $message->piecesCount;
-        $puzzle->updateProductIdentifiers(
-            ean: self::nullIfBlank($message->ean),
-            identificationNumber: self::nullIfBlank($message->identificationNumber),
-        );
+        // Validates every value before it changes anything - the record, the image included, gets the final brand
+        $change = $this->puzzleRecordUpdater->update($puzzle, new PuzzleRecordValues(
+            name: $message->name,
+            alternativeName: $message->alternativeName,
+            manufacturerId: ($targetBrand ?? $currentBrand)?->id->toString(),
+            piecesCount: $message->piecesCount,
+            ean: $message->ean,
+            identificationNumber: $message->identificationNumber,
+            image: $message->uploadedImage !== null ? PuzzleImageChoice::Upload : PuzzleImageChoice::Keep,
+            uploadedImage: $message->uploadedImage,
+        ));
+        $name = $puzzle->name;
 
         if ($message->brandChoice === PuzzleApprovalBrandChoice::Approve && $currentBrand !== null) {
             $currentBrand->approved = true;
@@ -95,10 +90,6 @@ readonly final class ApprovePuzzleHandler
                 manufacturerId: $currentBrand->id,
                 details: ['manufacturerName' => $currentBrand->name],
             );
-        }
-
-        if ($targetBrand !== null) {
-            $puzzle->manufacturer = $targetBrand;
         }
 
         if ($message->brandChoice === PuzzleApprovalBrandChoice::MergeInto && $currentBrand !== null && $targetBrand !== null) {
@@ -122,24 +113,19 @@ readonly final class ApprovePuzzleHandler
 
         $puzzle->approve($reviewer, $this->clock->now());
 
+        $note = $message->note !== null ? trim($message->note) : '';
+
         $this->puzzleModerationDecisionRecorder->record(
             action: PuzzleModerationAction::PuzzleApproved,
             decidedBy: $reviewer,
             puzzleId: $puzzle->id,
             puzzleName: $name,
             manufacturerId: $puzzle->manufacturer?->id,
+            note: $note !== '' ? $note : null,
             details: [
                 'brandChoice' => $message->brandChoice->value,
-                'before' => $before,
-                'after' => [
-                    'name' => $puzzle->name,
-                    'piecesCount' => $puzzle->piecesCount,
-                    'ean' => $puzzle->ean,
-                    'identificationNumber' => $puzzle->identificationNumber,
-                    'manufacturerId' => $puzzle->manufacturer?->id->toString(),
-                    'manufacturerName' => $puzzle->manufacturer?->name,
-                ],
-            ],
+                'image' => $message->uploadedImage !== null ? PuzzleImageChoice::Upload->value : PuzzleImageChoice::Keep->value,
+            ] + $change,
         );
     }
 
@@ -186,16 +172,5 @@ readonly final class ApprovePuzzleHandler
 
                 return $target;
         }
-    }
-
-    private static function nullIfBlank(null|string $value): null|string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $value = trim($value);
-
-        return $value === '' ? null : $value;
     }
 }

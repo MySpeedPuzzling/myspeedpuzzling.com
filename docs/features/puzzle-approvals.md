@@ -10,8 +10,7 @@ moderators.
 | Route | What |
 |-------|------|
 | `GET /admin/puzzle-approvals` (`admin_puzzle_approvals`) | Queue of pending puzzles (all unapproved, newest first), 50 per page. No "approved" tab by design - who approved what lives in `puzzle_moderation_decision` |
-| `GET /admin/puzzle-approvals/{puzzleId}` (`admin_puzzle_approval_detail`) | One puzzle: its data, likely duplicates, the approve form |
-| `POST …/{puzzleId}/approve` (`admin_approve_puzzle`) | `ApprovePuzzle` (CSRF `approve-puzzle-{id}`) |
+| `GET/POST /admin/puzzle-approvals/{puzzleId}` (`admin_puzzle_approval_detail`) | One puzzle: its data, similar puzzles in the catalogue, the approve form (posts back here - a refused form comes back with what was typed and the dropped photo, 422) |
 | `POST …/{puzzleId}/merge` (`admin_merge_unapproved_puzzle`) | Files a merge request and opens the merge review (CSRF `merge-puzzle-{id}`) |
 | `GET/POST /admin/puzzles/{puzzleId}/edit` (`admin_edit_puzzle`) | A moderator's direct edit of any puzzle (below) |
 | `GET /admin/puzzles/{puzzleId}/history` (`admin_puzzle_history`) | The puzzle's history: every decision about it, read only (below) |
@@ -24,11 +23,20 @@ approving new puzzles is the same job of looking after the catalogue. The `acces
 
 A newly added puzzle almost always carries somebody's solving time, so it can never simply be deleted.
 
-1. **Approve**, correcting name, pieces, EAN and brand code on the way (like a change request). EAN and brand
-   code may hold several comma-separated codes - never reduce such a list.
-2. **Merge** into the puzzle it duplicates. The detail page lists likely duplicates (any shared EAN, or the same
-   piece count and a similar name - trigram, `custom_puzzle_name_trgm`, ~30 ms on production data) with a
-   "Merge with this" button, plus a field to paste any puzzle's address or id. Merging files a
+1. **Approve**, correcting the record on the way - the moderators' record form (`ApprovePuzzleFormType`, sharing
+   `PuzzleRecordFormType::addRecordFields()` and the field / image / note partials): name, alternative name, pieces,
+   EAN, brand code, **a new photo of the box** (drop area + crop, `FormPhotoStash`) and a note for the history; every
+   changed field is marked *Your edit*, the summary lists the corrections. Saved by `PuzzleRecordUpdater` inside
+   `ApprovePuzzleHandler` (the file gets the SEO name of the *final* brand). EAN and brand code may hold several
+   comma-separated codes - never reduce such a list.
+2. **Merge** into the puzzle it duplicates. "Is it already in the catalogue?" shows what a search found - **similar
+   puzzles, not duplicates**: any shared EAN, or the same piece count and a similar name (trigram,
+   `custom_puzzle_name_trgm`, ~30 ms on production data). One title is printed by many brands (prod 2026-10-04:
+   Pintoo's "Tropical Paradise" 500 matched five other brands' "Tropical Paradise" 500), so each candidate says how
+   likely it is (`PuzzleDuplicateCandidate::likelihood()`): shared EAN = very likely, same brand (or a brand the new
+   brand probably duplicates, `brandSuggestions()`) = compare the box, another brand = usually a different puzzle -
+   those are folded away in a `<details>`. Each has "It's the same puzzle - merge", plus a field to paste any
+   puzzle's address or id. Merging files a
    `SubmitPuzzleMergeRequest` with the moderator as reporter and redirects to the **existing merge review**
    (`?return=` back to the queue), where survivor, name, codes and image are settled and every solving time,
    collection item, listing, etc. moves over (`ApprovePuzzleMergeRequestHandler`, audited in `puzzle_merge_audit`).
@@ -63,7 +71,8 @@ A player's "Suggest a change" (`PuzzleChangeRequest`) is reviewed at `/admin/puz
 (`PuzzleChangeRequestDetailController`, GET + POST - a refused form comes back with what the reviewer typed, 422).
 A pending request is approved through a form holding **the whole puzzle**: name, alternative name, brand, pieces,
 EAN, brand code and image - every field editable, whether the player proposed it or not. The form is the puzzle's
-record form (`PuzzleRecordFormType` + `PuzzleRecordFormData`, field cards in `admin/_puzzle_record_fields.html.twig`),
+record form (`PuzzleRecordFormType` + `PuzzleRecordFormData`; partials `admin/_puzzle_record_fields` / `_image` (carries
+`image-editor` itself) / `_note`),
 shared with the direct edit below.
 
 - **Prefilled**: the proposed value where the player proposed a change, the puzzle as it is now everywhere else

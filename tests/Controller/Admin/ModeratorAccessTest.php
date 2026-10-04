@@ -179,8 +179,8 @@ final class ModeratorAccessTest extends WebTestCase
         self::assertResponseIsSuccessful();
 
         $form = $crawler->selectButton('Approve puzzle')->form([
-            'name' => 'Puzzle 20 corrected',
-            'brand_choice' => 'approve',
+            'approve_puzzle_form[name]' => 'Puzzle 20 corrected',
+            'approve_puzzle_form[brandChoice]' => 'approve',
         ]);
         $browser->submit($form);
         self::assertResponseRedirects('/admin/puzzle-approvals');

@@ -1,0 +1,6 @@
+{# The optional note of a moderator's form - kept in the puzzle's history next to the change #}
+<div class="mb-3">
+    {{ form_label(form.note, 'Note for the history (optional)', {label_attr: {class: 'form-label fw-semibold'}}) }}
+    {{ form_widget(form.note, {attr: {placeholder: 'Why - e.g. "EAN checked on the box photo"'}}) }}
+    {{ form_errors(form.note) }}
+</div>

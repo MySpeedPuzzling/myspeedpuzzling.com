@@ -1,0 +1,5 @@
+// The approval of a new puzzle (templates/admin/puzzle_approval_detail.html.twig): approving the new brand needs
+// no existing brand to merge into or move to
+.approval-brand:has(input[value="approve"]:checked) .approval-brand-target {
+    display: none;
+}

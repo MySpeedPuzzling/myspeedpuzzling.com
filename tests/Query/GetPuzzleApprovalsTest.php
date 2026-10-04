@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Manufacturer;
+use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Message\ApprovePuzzle;
+use SpeedPuzzling\Web\Results\PuzzleDuplicateCandidate;
 use SpeedPuzzling\Web\Query\GetPuzzleApprovals;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -70,6 +75,51 @@ final class GetPuzzleApprovalsTest extends KernelTestCase
             $this->query->brandSuggestions(ManufacturerFixture::MANUFACTURER_UNAPPROVED, '4005556000000'),
         );
         self::assertNotContains(ManufacturerFixture::MANUFACTURER_UNAPPROVED, $suggestedIds);
+    }
+
+    public function testSimilarPuzzlesOfTheSameBrandComeBeforeTheSameTitleFromAnotherBrand(): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $newBrand = $entityManager->find(Manufacturer::class, ManufacturerFixture::MANUFACTURER_UNAPPROVED);
+        $trefl = $entityManager->find(Manufacturer::class, ManufacturerFixture::MANUFACTURER_TREFL);
+
+        $sameBrand = new Puzzle(id: Uuid::uuid7(), piecesCount: 1000, name: 'Puzzle 20 Deluxe', approved: true, manufacturer: $newBrand);
+        $otherBrand = new Puzzle(id: Uuid::uuid7(), piecesCount: 1000, name: 'Puzzle 20', approved: true, manufacturer: $trefl);
+        $entityManager->persist($sameBrand);
+        $entityManager->persist($otherBrand);
+        $entityManager->flush();
+
+        $candidates = $this->candidatesById($this->query->possibleDuplicates(PuzzleFixture::PUZZLE_UNAPPROVED));
+        $order = array_keys($candidates);
+
+        self::assertSame($sameBrand->id->toString(), $order[0]);
+        self::assertSame('possible', $candidates[$sameBrand->id->toString()]->likelihood());
+        // The same title from another brand is usually another puzzle
+        self::assertSame('unlikely', $candidates[$otherBrand->id->toString()]->likelihood());
+        self::assertTrue($candidates[$otherBrand->id->toString()]->sameName());
+
+        // Unless that brand is the one the new brand probably duplicates
+        $candidates = $this->candidatesById($this->query->possibleDuplicates(
+            PuzzleFixture::PUZZLE_UNAPPROVED,
+            [ManufacturerFixture::MANUFACTURER_TREFL],
+        ));
+        self::assertSame('possible', $candidates[$otherBrand->id->toString()]->likelihood());
+    }
+
+    /**
+     * @param list<PuzzleDuplicateCandidate> $candidates
+     *
+     * @return array<string, PuzzleDuplicateCandidate>
+     */
+    private function candidatesById(array $candidates): array
+    {
+        $byId = [];
+
+        foreach ($candidates as $candidate) {
+            $byId[$candidate->puzzleId] = $candidate;
+        }
+
+        return $byId;
     }
 
     private function findPending(string $puzzleId): null|object

@@ -16,7 +16,6 @@ export default class extends Controller {
         changesHeading: String,
         keptHeading: String,
         noChanges: String,
-        dropText: String,
     };
 
     // Proposed = orange, the moderator's edit = indigo (the theme's primary is too close to orange to tell apart)
@@ -232,7 +231,7 @@ export default class extends Controller {
 
         icon.className = 'file-drop-icon';
         icon.innerHTML = '<i class="ci-cloud-upload"></i>';
-        area.querySelector('.file-drop-message').textContent = this.dropTextValue;
+        area.querySelector('.file-drop-message').textContent = area.dataset.dropText || '';
     }
 
     inputOf(field) {

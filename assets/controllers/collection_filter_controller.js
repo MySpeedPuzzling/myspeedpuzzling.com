@@ -77,6 +77,10 @@ export default class extends Controller {
             plugins: { clear_button: { title: '' } },
         });
 
+        // Without the empty option the browser selects the first remaining one (the most common brand), and Tom
+        // Select would take it as the chosen brand - as in marketplace_brand_filter_controller.js
+        this.tomSelect.clear(true);
+
         this.tomSelect.on('change', () => {
             this.tomSelect.blur();
         });

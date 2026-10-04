@@ -123,8 +123,11 @@ final class SearchPuzzleCodesTest extends KernelTestCase
     {
         $candidates = self::getContainer()->get(GetMultiscanCandidates::class);
 
-        // PUZZLE_4000 and PUZZLE_5000 share one code (an ambiguous scan)
-        self::assertEqualsCanonicalizing(
+        // PUZZLE_4000 and PUZZLE_5000 share one code (an ambiguous scan) - with the same name and no solves the id
+        // decides, so the tray's auto-pick is the same on every scan
+        self::renamePuzzle(PuzzleFixture::PUZZLE_4000, 'Twin Tower');
+        self::renamePuzzle(PuzzleFixture::PUZZLE_5000, 'Twin Tower');
+        self::assertSame(
             [PuzzleFixture::PUZZLE_4000, PuzzleFixture::PUZZLE_5000],
             self::ids($candidates->forEan(Ean::from(PuzzleFixture::EAN_SHARED_4000_5000))),
         );

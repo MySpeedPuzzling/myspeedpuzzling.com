@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class AddPuzzle
@@ -19,6 +20,8 @@ readonly final class AddPuzzle
         public UploadedFile $puzzlePhoto,
         public null|string $puzzleEan,
         public null|string $puzzleIdentificationNumber,
+        // Names of other boxes of the puzzle (docs/features/puzzle-names/) - no form sends them yet
+        public PuzzleNames $alternativeNames = new PuzzleNames(),
     ) {
     }
 }

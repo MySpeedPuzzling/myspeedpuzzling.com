@@ -79,6 +79,7 @@ readonly final class AddPuzzleHandler
             image: $puzzlePhotoPath,
             imageRatio: $puzzleImageRatio,
             manufacturer: $manufacturer,
+            alternativeNames: $message->alternativeNames,
             addedByUser: $player,
             addedAt: $now,
             identificationNumber: $message->puzzleIdentificationNumber,
@@ -93,19 +94,23 @@ readonly final class AddPuzzleHandler
      */
     private function correct(Puzzle $puzzle, AddPuzzle $message, Player $player): void
     {
+        $now = new DateTimeImmutable();
+
         // The brand typed again finds the one this form created the first time - not a second new brand
-        $manufacturer = $this->manufacturerResolver->resolve($message->brand, $player, new DateTimeImmutable());
+        $manufacturer = $this->manufacturerResolver->resolve($message->brand, $player, $now);
 
         [$puzzlePhotoPath, $puzzleImageRatio] = $this->storePhoto($message, $manufacturer);
 
         $puzzle->correctNewlyAdded(
             name: $message->puzzleName,
+            alternativeNames: $message->alternativeNames,
             piecesCount: $message->piecesCount,
             manufacturer: $manufacturer,
             image: $puzzlePhotoPath,
             imageRatio: $puzzleImageRatio,
             ean: $this->normalizedEan($message->puzzleEan),
             identificationNumber: $message->puzzleIdentificationNumber,
+            now: $now,
         );
     }
 

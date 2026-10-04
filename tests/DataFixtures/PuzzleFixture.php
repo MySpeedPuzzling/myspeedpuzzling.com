@@ -12,6 +12,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 
 final class PuzzleFixture extends Fixture implements DependentFixtureInterface
 {
@@ -266,7 +267,7 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
         bool $isAvailable = false,
         null|string $identificationNumber = null,
         null|string $ean = null,
-        null|string $alternativeName = null,
+        PuzzleNames $alternativeNames = new PuzzleNames(),
         null|\DateTimeImmutable $hideImageUntil = null,
     ): Puzzle {
         return new Puzzle(
@@ -276,7 +277,7 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
             approved: $approved,
             image: null,
             manufacturer: $manufacturer,
-            alternativeName: $alternativeName,
+            alternativeNames: $alternativeNames,
             addedByUser: $addedByUser,
             addedAt: $this->clock->now(),
             identificationNumber: $identificationNumber,

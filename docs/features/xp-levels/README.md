@@ -172,21 +172,66 @@ Main gained ~330 commits while this branch waited. Adapted in the rebase (own co
   303, `no-store`); the reveal mail goes through the `notifications` transport; the queue is `content_digest_emails`
   (main's unread-messages digest owns `digest_emails_*`); routine bounces and the plausibility guard log at `info`.
 
-**Open - decisions for Jan:**
+**Decided by Jan 2026-10-04 - to build in the follow-up sessions** (this session only caught up with main):
 
-1. `emailNotificationsEnabled` is still the global kill-switch of the digest and the reveal mail (README §4 of the
-   content digest). On main it now means "unread-messages digest" only and its one-click unsubscribe flips it - so
-   unsubscribing from message e-mails silently stops the weekly digest too. Proposal: digest + reveal gated by
-   `contentDigestFrequency` only, plus a digest switch on main's token e-mail preferences page (`email_preferences`).
-2. The achievement congratulation e-mail has no switch and no `List-Unsubscribe`, and goes through the transactional
-   transport. Proposal: its own switch (or the digest's), RFC 8058 headers, `notifications` transport.
-3. Sending pace: the digest staggers 250 ms (2–4 mails/s), the reveal 2 s on the shared `async` worker, no daily cap.
-   Main's bulk-ish mails go through `DelayedEmailQueue` (1/min, 1,000/day guard) because of Seznam / Apple reputation.
-   Routing both through it would also make the separate digest consumer unnecessary.
-4. XP ring on the profile: main's new `PlayerHeader` already shows the avatar, so the ring's own 52 px avatar is a
-   second one. Proposal: put the ring on the header's avatar (design call).
-5. `XpCalculator::FULL_FORMULA_FROM` is `2026-08-01` - set it to launch-day midnight at launch (runbook §3).
-6. The settings form offers "Daily" but the daily digest is not built (daily subscribers get the weekly one).
+1. **Per-type e-mail settings.** The weekly digest is its own e-mail type with its own switch and its own
+   unsubscribe, separate from the unread-messages digest (`emailNotificationsEnabled`), which stops gating it. XP and
+   achievements are content *of* the weekly digest. → Digest eligibility = the digest switch only (drop
+   `email_notifications_enabled` from `GetPlayersForContentDigest` / `SendPlayerContentDigestHandler`); the digest
+   switch also appears on main's per-type token page (`email_preferences`, `EditEmailPreferences`) next to the
+   newsletter, the unread-messages digest and the result e-mails.
+2. **No per-achievement e-mails.** One initial e-mail at launch (the XP reveal), afterwards new achievements reach
+   players only through the weekly digest (its "achievements earned" block / members-only teaser already exists).
+   → Remove `SendBadgeNotificationEmail` + handler + `emails/badges_earned.html.twig` + the `badges_earned.*` keys;
+   `RecalculateBadgesForPlayerHandler` keeps persisting badges and stops mailing. The reveal mail is gated by the
+   digest switch (its unsubscribe link is the digest's).
+3. **Monday, ~12k recipients, the whole Monday.** Puzzlers are busy over weekends, so the digest goes out on Monday
+   about the week that just ended.
+   - **Period bug to fix first:** `SendContentDigestConsoleCommand` builds `DigestPeriod::weeklyFor(now)` - the
+     *current* ISO week. Run on a Monday it would mail an empty digest for the week that just started. It must use
+     the previous, completed week (`weeklyFor(now - 7 days)`); the staleness TTL (week end + 3 days) still fits.
+   - **Pacing over the day instead of 250 ms bursts:** the command spreads the `DelayStamp`s evenly over a send window
+     (e.g. 07:00-19:00 Prague, 12 h for ~12k = one every ~3.6 s, ~1,000/h), computed from the recipient count, on the
+     dedicated `content_digest_emails` transport/consumer. Most engaged first (README §14 ramp), so early bounces /
+     complaints show on the best addresses.
+   - **Quality guard:** a circuit breaker in the handler - when permanent failures (550-553) or deferrals of the
+     current run cross a threshold, stop sending (remaining messages ack as skipped, logged at warning once) instead
+     of burning the domain's reputation; per-run counts from `content_digest_log` / `email_audit_log` on an admin
+     line.
+   - **Open input:** Seznam Email Profi's fair-use ceiling per day (content-digest README, open question 1). If 12k/day
+     is above it, the bulk stream needs its own sending provider; the window logic stays the same.
+   - Cron: `1 7 * * 1` (Monday 07:01 Prague) instead of Sunday 18:01.
+4. **Duplicate avatar under the profile header** - a leftover, not an avatar-rework bug as such: the branch's profile
+   wraps its *own* 52 px avatar in `XpRing` below main's new `PlayerHeader`, which renders the avatar itself. → Put
+   `XpRing` around the header's avatar (`player-head-avatar` in `components/PlayerHeader.html.twig`, also the
+   compact bar if wanted) and delete the extra block in `player_profile.html.twig`; needs a visual check → feedback
+   session.
+5. **Launch fully on day 1 of the deploy** - see "Formula cutoff" below.
+6. **Weekly digest only, never daily.** `ContentDigestFrequency` (none / daily / weekly) was built for a daily digest
+   that never came (the command refuses `daily`, but the settings form offers it, and "daily" players are treated as
+   weekly). → Replace it with a boolean `player.weekly_digest_enabled` (default true) - fits item 1. The column is
+   not in production yet, so the branch migration `Version20260713151509` can simply be changed (local databases that
+   already ran it need it re-run by hand). Remove the `daily` argument, `DigestPeriod` stays weekly-only.
+7. **Badges recalculation** - a separate low-priority queue, or a cron if a full run stays under 15 minutes: to be
+   measured on the local near-production database. The cheap queue: a `low_priority` Doctrine transport consumed by
+   the existing worker as `messenger:consume async low_priority` (Symfony drains the transports in that order, so
+   transactional mail on `async` always goes first) - no new container. Measure on a *scratch copy* of the dev
+   database (a run writes badge rows): wall time of `myspeedpuzzling:recalculate-badges` with the messages routed
+   `sync`, plus the same for `myspeedpuzzling:xp-backfill`.
+
+**Formula cutoff (`XpCalculator::FULL_FORMULA_FROM`).** XP for history is deliberately smaller than XP for new
+solves: a solve *logged* (`tracked_at`) before the cutoff earns the base + difficulty + unboxed parts only, one logged
+from the cutoff on also the incentives - speed bonus, weekly boost (+50 % for the first 5 solves of an ISO week),
+daily warm-up (+2) and the ex-post difficulty / speed settlements (`SettleXpBonuses` only looks at solves after it).
+The incentives reward behaviour the player could see and react to, so they must not be paid retroactively - otherwise
+every past week of every veteran gets boosts and the launch ladder is flooded. Today the cutoff is a hard-coded
+`2026-08-01`, i.e. already two months of history would count as "new". Proposal for "fully live from the deploy": the
+cutoff becomes the moment the feature reaches production, set by the deploy itself - a migration stores `NOW()` once
+(e.g. `xp_settings.full_formula_from`, read through a small cached service instead of the constant; tests insert
+their own value). Every solve logged before the deploy is history, every solve after it gets the full formula, the
+launch backfill (`myspeedpuzzling:xp-backfill`) can run any time after the deploy, and nobody has to remember to edit a
+constant. With "fully live", `XP_SYSTEM_ADMIN_ONLY` ships as `0` (or the gate is removed before the merge) and the
+reveal mail goes out the same day.
 
 **Open - follow-ups (no decision needed):**
 

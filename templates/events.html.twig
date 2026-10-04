@@ -5,14 +5,14 @@
 {% block meta_description %}{{ 'events.meta.description'|trans }}{% endblock %}
 
 {% block content %}
-    <div class="d-flex align-items-center mb-3">
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
         <h1 class="mb-0">{{ 'events.heading'|trans }}</h1>
         {% if is_granted('IS_AUTHENTICATED_REMEMBERED') %}
-            <a href="{{ path('add_competition', {return: path('events'), return_title: 'events.title'|trans}) }}" class="btn btn-sm btn-outline-primary ms-3">
+            <a href="{{ path('add_competition', {return: path('events'), return_title: 'events.title'|trans}) }}" class="btn btn-sm btn-outline-primary">
                 <i class="bi bi-plus-lg me-1"></i>{{ 'competition.add_event'|trans }}
             </a>
         {% endif %}
-        <a href="{{ path('for_organizers') }}" class="ms-3 small text-muted">
+        <a href="{{ path('for_organizers') }}" class="small text-muted">
             <i class="bi bi-info-circle me-1"></i>{{ 'events.more_info_for_organizers'|trans }}
         </a>
     </div>
@@ -121,7 +121,7 @@
                                 </h3>
 
                                 <div class="row">
-                                    <div class="col-sm-6">
+                                    <div class="col-sm-6 col-md-12 col-xl-6">
                                         {% if event.locationCountryCode %}
                                             <span class="shadow-custom fi fi-{{ event.locationCountryCode.name }} me-2"></span>
                                         {% endif %}
@@ -138,7 +138,7 @@
                                     </div>
 
                                     {% if event.link or event.registrationLink or event.resultsLink %}
-                                        <div class="col-sm-6 mt-2 mt-sm-0">
+                                        <div class="col-sm-6 col-md-12 col-xl-6 mt-2 mt-sm-0 mt-md-2 mt-xl-0">
                                             {% if event.link %}
                                                 <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.link }}">
                                                     <i class="bi bi-info-circle me-1"></i>{{ 'events.website_link'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>

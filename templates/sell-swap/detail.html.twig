@@ -36,7 +36,7 @@
             </p>
         </div>
 
-        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+        <div class="d-flex flex-wrap align-items-center justify-content-sm-end gap-2">
             {% if isOwnProfile %}
                 {{ include('multiscan/_entry_button.html.twig', {params: {}, label: 'multiscan.entry.library', title: 'multiscan.entry.library_title'}) }}
             {% endif %}

@@ -53,6 +53,11 @@
     @include media-breakpoint-up(lg) {
         justify-content: flex-start;
     }
+
+    // Each button takes a row of its own before its label wraps (fr/es on a 320 px phone)
+    .btn {
+        white-space: normal;
+    }
 }
 
 // Generated brand illustrations (white background baked in) - the rounded
@@ -142,6 +147,11 @@
     line-height: 1.1;
     letter-spacing: -.02em;
     color: $primary;
+
+    // A seven-digit total at 44 px is wider than the card on a 320 px phone
+    @media (max-width: 359.98px) {
+        font-size: 2.375rem;
+    }
 }
 
 .homepage-counter-label {

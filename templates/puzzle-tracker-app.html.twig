@@ -267,7 +267,7 @@
             {{ include('_catalogue_numbers.html.twig', {catalogue: catalogue, variant: 'cards'}) }}
 
             <p class="text-center mt-4 mb-0">
-                <a href="{{ path('puzzles') }}" class="btn btn-primary btn-shadow">{{ 'puzzle_tracker_app.database.cta'|trans }}</a>
+                <a href="{{ path('puzzles') }}" class="btn btn-primary btn-shadow text-wrap">{{ 'puzzle_tracker_app.database.cta'|trans }}</a>
             </p>
         </div>
     </section>
@@ -307,7 +307,7 @@
             <div class="text-center col-lg-8 mx-auto">
                 <h2 class="mb-3">{{ 'puzzle_tracker_app.cta.title'|trans }}</h2>
                 <p class="lead text-muted mb-4">{{ 'puzzle_tracker_app.cta.description'|trans }}</p>
-                <a href="{{ path('my_profile') }}" class="btn btn-primary btn-lg btn-shadow">
+                <a href="{{ path('my_profile') }}" class="btn btn-primary btn-lg btn-shadow text-wrap">
                     {{ 'puzzle_tracker_app.cta.button'|trans }}
                 </a>
                 <p class="text-muted small mt-3">{{ 'puzzle_tracker_app.cta.note'|trans }}</p>

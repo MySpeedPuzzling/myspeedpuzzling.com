@@ -464,11 +464,12 @@ td.rank {
         }
     }
 
+    // 8 px: the Spanish menu next to a signed-in player's toolbar was 13 px wider than the screen at 992 px
     @media (min-width: 992px) and (max-width: 1100px) {
         .nav-item {
             a {
-                padding-left: 10px !important;
-                padding-right: 10px !important;
+                padding-left: 8px !important;
+                padding-right: 8px !important;
                 font-size: 15px !important;
             }
         }
@@ -910,7 +911,9 @@ canvas {
     }
 }
 
-// Add time · Stopwatch · ⋯ - big enough for a thumb
+// Add time · Stopwatch · ⋯ - big enough for a thumb. A long label (fr "Commencer l'assemblage") takes a second line
+// inside its button instead of running out of it, and a button never gets narrower than its longest word; both
+// buttons stay the same height
 .puzzle-head-actions {
     display: flex;
     gap: .5rem;
@@ -918,13 +921,26 @@ canvas {
 
     > .btn {
         flex: 1 1 0;
-        min-width: 0;
         min-height: 44px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         padding-inline: .5rem;
-        white-space: nowrap;
+        line-height: 1.2;
+        text-align: center;
+        white-space: normal;
+    }
+
+    // ⋯ stays a 44 px square, centred next to two-line buttons
+    > .more-menu {
+        align-self: center;
+    }
+
+    // A 320 px phone: the icons make room for the longest words
+    @media (max-width: 359.98px) {
+        > .btn > i {
+            display: none;
+        }
     }
 }
 
@@ -1212,6 +1228,9 @@ canvas {
         padding-top: 0;
         font-size: .75rem;
         color: $lb-secondary;
+        // The times stay on one line, a long label takes two (es on a 320 px phone)
+        white-space: normal;
+        vertical-align: bottom;
 
         // The icons of the leaderboard strip above
         .bi,
@@ -1283,6 +1302,23 @@ canvas {
 .accordion-faq .accordion-item {
     border: 0 !important;
     border-radius: 0 !important;
+}
+
+// A question showing a button ("What does the [Add my time] button do?") - on a narrow phone its label wraps inside it
+.accordion-faq .accordion-button .btn {
+    white-space: normal;
+}
+
+// Buttons keep their label on one line ($btn-white-space: nowrap) - except a button as wide as its container already:
+// it cannot grow, so a long translation wraps inside it instead of running out of it
+.d-grid > .btn,
+.btn.w-100 {
+    white-space: normal;
+}
+
+// Privacy policy, terms, data deletion: a written-out URL breaks instead of widening the page on a phone
+.terms-of-service {
+    overflow-wrap: break-word;
 }
 
 .global-search-overlay {
@@ -1695,6 +1731,16 @@ header {
     header .container {
         padding: 0 5px !important;
     }
+
+    // "Envoyer un commentaire · Adhésion · FR" is wider than a 320 px phone (de, es, fr, ja - more with the admin key
+    // or the trial badge): feedback shows its icon only (the label stays for screen readers), membership its label only
+    .topbar-feedback-label {
+        @include visually-hidden;
+    }
+
+    .topbar .topbar-link > .ci-user-circle {
+        display: none;
+    }
 }
 
 .no-caret::after {
@@ -1707,6 +1753,13 @@ header {
     @media (min-width: 500px) {
         width: 90px;
     }
+}
+
+// The text next to an event's logo gives way to it: a one-word name ("Norrlandsmästerskapen") breaks instead of
+// pushing the logo off the screen
+.flex-fill:has(+ .event-image) {
+    min-width: 0;
+    overflow-wrap: break-word;
 }
 
 // Live-event strip at the top of the sticky header - the whole strip is one link

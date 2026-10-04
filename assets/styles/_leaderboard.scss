@@ -272,7 +272,9 @@ a.lb-name,
         max-width: 100%;
         white-space: normal;
         text-align: left;
-        overflow-wrap: break-word;
+        // anywhere, not break-word: a one-word event name ("SpeedPuzzling.com") must break too, in a flex box
+        // break-word does not let the text shrink below its longest word
+        overflow-wrap: anywhere;
         font-size: .6875rem;
         font-weight: 500;
         line-height: 1.2;

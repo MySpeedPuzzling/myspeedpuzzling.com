@@ -191,7 +191,7 @@
     <div class="mt-4 mb-3">
         {{ include('_event_attendance.html.twig', {competition_id: event.id, attendance: attendance}) }}
         {% if can_add_time %}
-            <a href="{{ path('puzzle_add', {competition: event.id}) }}" class="btn btn-sm btn-outline-primary ms-1">
+            <a href="{{ path('puzzle_add', {competition: event.id}) }}" class="btn btn-sm btn-outline-primary ms-1 text-wrap">
                 <i class="bi bi-stopwatch me-1"></i>{{ 'events.add_my_time'|trans }}
             </a>
         {% endif %}

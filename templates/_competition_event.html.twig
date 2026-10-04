@@ -33,7 +33,7 @@
                 </h3>
 
                 <div class="row">
-                    <div class="col-sm-6">
+                    <div class="col-sm-6 col-md-12 col-xl-6">
                         {% if event.locationCountryCode %}
                             <span class="shadow-custom fi fi-{{ event.locationCountryCode.name }} me-2"></span>
                         {% endif %}
@@ -50,7 +50,7 @@
                     </div>
 
                     {% if event.link or event.registrationLink or event.resultsLink %}
-                        <div class="col-sm-6 mt-2 mt-sm-0">
+                        <div class="col-sm-6 col-md-12 col-xl-6 mt-2 mt-sm-0 mt-md-2 mt-xl-0">
                             {% if event.link %}
                                 <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.link }}">
                                     <i class="bi bi-info-circle me-1"></i>{{ 'events.website_link'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>

@@ -43,7 +43,7 @@
     {# Section 1: Player Baseline #}
     <div class="card shadow-sm mb-3 border-0">
         <div class="card-body">
-            <h4 class="d-flex align-items-center gap-2 mb-3">
+            <h4 class="d-flex align-items-center gap-2 mb-3 text-break">
                 <span class="badge bg-primary rounded-circle" style="width: 32px; height: 32px; line-height: 22px;">1</span>
                 {{ 'puzzle_intelligence.methodology.section_baseline_title'|trans }}
             </h4>
@@ -99,7 +99,7 @@
     {# Section 2: Puzzle Difficulty #}
     <div class="card shadow-sm mb-3 border-0">
         <div class="card-body">
-            <h4 class="d-flex align-items-center gap-2 mb-3">
+            <h4 class="d-flex align-items-center gap-2 mb-3 text-break">
                 <span class="badge bg-primary rounded-circle" style="width: 32px; height: 32px; line-height: 22px;">2</span>
                 {{ 'puzzle_intelligence.methodology.section_difficulty_title'|trans }}
             </h4>
@@ -162,7 +162,7 @@ Minimum: 5 indices from different players</code></pre>
                 {% for tier in tiers %}
                     <div class="col-6 col-md-3 col-lg">
                         <div class="text-center">
-                            <span class="badge badge-tier-{{ tier.key }} w-100 py-2" style="font-size: 16px;">
+                            <span class="badge badge-tier-{{ tier.key }} w-100 py-2 text-wrap" style="font-size: 16px;">
                                 <svg class="diff-icon" width="24" height="24" style="color: #fff"><use href="/difficulty-icons-sprite.svg#{{ tier.icon }}"/></svg>
                                 {{ ('puzzle_intelligence.difficulty.tiers.' ~ tier.key)|trans }}
                             </span>
@@ -177,7 +177,7 @@ Minimum: 5 indices from different players</code></pre>
     {# Section 3: Player Skill #}
     <div class="card shadow-sm mb-3 border-0">
         <div class="card-body">
-            <h4 class="d-flex align-items-center gap-2 mb-3">
+            <h4 class="d-flex align-items-center gap-2 mb-3 text-break">
                 <span class="badge bg-primary rounded-circle" style="width: 32px; height: 32px; line-height: 22px;">3</span>
                 {{ 'puzzle_intelligence.methodology.section_skill_title'|trans }}
             </h4>
@@ -270,7 +270,7 @@ Tier = based on percentile rank among all players</code></pre>
                 {% for tier in skill_tiers %}
                     <div class="col-6 col-md-3 col-lg">
                         <div class="text-center">
-                            <span class="badge badge-skill-{{ tier.key }} w-100 py-2" style="font-size: 16px;">
+                            <span class="badge badge-skill-{{ tier.key }} w-100 py-2 text-wrap" style="font-size: 16px;">
                                 <svg class="rank-icon" width="24" height="24" style="color: #fff"><use href="/rank-icons-sprite.svg#rank-{{ tier.key }}"/></svg>
                                 {{ ('puzzle_intelligence.skill.tiers.' ~ tier.key)|trans }}
                             </span>
@@ -285,7 +285,7 @@ Tier = based on percentile rank among all players</code></pre>
     {# Section 4: MSP Rating #}
     <div class="card shadow-sm mb-3 border-0">
         <div class="card-body">
-            <h4 class="d-flex align-items-center gap-2 mb-3">
+            <h4 class="d-flex align-items-center gap-2 mb-3 text-break">
                 <span class="badge bg-primary rounded-circle" style="width: 32px; height: 32px; line-height: 22px;">4</span>
                 {{ 'puzzle_intelligence.methodology.section_elo_title'|trans }}
             </h4>
@@ -417,7 +417,7 @@ Display: rating &times; 1000 (e.g., 0.85 &rarr; 850)</code></pre>
     {# Section 5: Time Prediction #}
     <div class="card shadow-sm mb-3 border-0">
         <div class="card-body">
-            <h4 class="d-flex align-items-center gap-2 mb-3">
+            <h4 class="d-flex align-items-center gap-2 mb-3 text-break">
                 <span class="badge bg-primary rounded-circle" style="width: 32px; height: 32px; line-height: 22px;">5</span>
                 {{ 'puzzle_intelligence.methodology.section_prediction_title'|trans }}
             </h4>
@@ -479,7 +479,7 @@ Display: rating &times; 1000 (e.g., 0.85 &rarr; 850)</code></pre>
     {# Section 6: Puzzle Personality #}
     <div class="card shadow-sm mb-3 border-0">
         <div class="card-body">
-            <h4 class="d-flex align-items-center gap-2 mb-3">
+            <h4 class="d-flex align-items-center gap-2 mb-3 text-break">
                 <span class="badge bg-primary rounded-circle" style="width: 32px; height: 32px; line-height: 22px;">6</span>
                 {{ 'puzzle_intelligence.methodology.section_personality_title'|trans }}
             </h4>
@@ -516,7 +516,7 @@ Display: rating &times; 1000 (e.g., 0.85 &rarr; 850)</code></pre>
     {# Section 7: Confidence + Data Quality #}
     <div class="card shadow-sm mb-3 border-0">
         <div class="card-body">
-            <h4 class="d-flex align-items-center gap-2 mb-3">
+            <h4 class="d-flex align-items-center gap-2 mb-3 text-break">
                 <span class="badge bg-primary rounded-circle" style="width: 32px; height: 32px; line-height: 22px;">7</span>
                 {{ 'puzzle_intelligence.difficulty.confidence_label'|trans }} & {{ 'puzzle_intelligence.methodology.section_data_quality_title'|trans }}
             </h4>
@@ -580,7 +580,7 @@ Display: rating &times; 1000 (e.g., 0.85 &rarr; 850)</code></pre>
     {# Section 8: Opting Out #}
     <div class="card shadow-sm mb-3 border-0">
         <div class="card-body">
-            <h4 class="d-flex align-items-center gap-2 mb-3">
+            <h4 class="d-flex align-items-center gap-2 mb-3 text-break">
                 <span class="badge bg-primary rounded-circle" style="width: 32px; height: 32px; line-height: 22px;">8</span>
                 {{ 'puzzle_intelligence.methodology.section_opt_out_title'|trans }}
             </h4>

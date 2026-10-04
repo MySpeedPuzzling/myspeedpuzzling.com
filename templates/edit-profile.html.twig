@@ -68,7 +68,7 @@
                     <div class="d-flex justify-content-between align-items-center" style="height: 100px;">
                         <div class="w-100 text-center">
                             <button
-                                class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm shadow-custom"
+                                class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm shadow-custom text-wrap"
                                 data-bs-toggle="modal"
                                 data-bs-target="#membersExclusiveModal"
                             >
@@ -99,7 +99,7 @@
                     <div class="d-flex justify-content-between align-items-center" style="height: 100px;">
                         <div class="w-100 text-center">
                             <button
-                                class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm shadow-custom"
+                                class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm shadow-custom text-wrap"
                                 data-bs-toggle="modal"
                                 data-bs-target="#membersExclusiveModal"
                             >
@@ -159,14 +159,14 @@
                     <form action="{{ path('resend_email_verification') }}" method="post" class="mb-3">
                         <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ResendEmailVerificationController::CSRF_TOKEN_ID')) }}" />
 
-                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary text-wrap">
                             <i class="bi bi-envelope me-1"></i>{{ 'edit_profile.email_verify_resend'|trans }}
                         </button>
                     </form>
                 {% endif %}
 
                 <p class="mb-0">
-                    <a class="btn btn-outline-primary" href="{{ path('change_account_email') }}">
+                    <a class="btn btn-outline-primary text-wrap" href="{{ path('change_account_email') }}">
                         <i class="bi bi-envelope me-1"></i>{{ 'edit_profile.change_email_button'|trans }}
                     </a>
                 </p>
@@ -179,7 +179,7 @@
                     <p class="text-muted fs-sm mb-3">{{ 'edit_profile.change_password_native_description'|trans }}</p>
 
                     <p class="mb-0">
-                        <a class="btn btn-outline-primary" href="{{ path('change_account_password') }}">
+                        <a class="btn btn-outline-primary text-wrap" href="{{ path('change_account_password') }}">
                             <i class="bi bi-key me-1"></i>{{ 'edit_profile.change_password_native_button'|trans }}
                         </a>
                     </p>
@@ -191,7 +191,7 @@
                     <p class="text-muted fs-sm mb-3">{{ 'edit_profile.social.no_password_hint'|trans }}</p>
 
                     <p class="mb-0">
-                        <a class="btn btn-outline-primary" href="{{ path('account_set_password') }}">
+                        <a class="btn btn-outline-primary text-wrap" href="{{ path('account_set_password') }}">
                             <i class="bi bi-key me-1"></i>{{ 'edit_profile.social.set_password_button'|trans }}
                         </a>
                     </p>
@@ -285,7 +285,7 @@
                 <p class="text-muted fs-sm mb-3">{{ 'edit_profile.recent_activity_description'|trans }}</p>
 
                 <p class="mb-0">
-                    <a class="btn btn-outline-primary" href="{{ path('account_recent_activity') }}">
+                    <a class="btn btn-outline-primary text-wrap" href="{{ path('account_recent_activity') }}">
                         <i class="bi bi-shield-check me-1"></i>{{ 'edit_profile.recent_activity_button'|trans }}
                     </a>
                 </p>
@@ -332,7 +332,7 @@
                     </form>
                 {% else %}
                     <p class="text-muted mb-3">{{ 'edit_profile.pat_accept_fup_first'|trans }}</p>
-                    <a href="{{ path('fair_use_policy') }}" class="btn btn-outline-primary btn-sm">
+                    <a href="{{ path('fair_use_policy') }}" class="btn btn-outline-primary btn-sm text-wrap">
                         <i class="bi bi-file-text me-1"></i> {{ 'edit_profile.read_accept_fup'|trans }}
                     </a>
                 {% endif %}
@@ -401,7 +401,7 @@
                     <a href="{{ path('request_api_access') }}" class="btn btn-primary btn-sm">{{ 'edit_profile.request_api_access'|trans }}</a>
                 {% else %}
                     <p class="text-muted mb-3">{{ 'edit_profile.oauth2_accept_fup_first'|trans }}</p>
-                    <a href="{{ path('fair_use_policy') }}" class="btn btn-outline-primary btn-sm">
+                    <a href="{{ path('fair_use_policy') }}" class="btn btn-outline-primary btn-sm text-wrap">
                         <i class="bi bi-file-text me-1"></i> {{ 'edit_profile.read_accept_fup'|trans }}
                     </a>
                 {% endif %}
@@ -463,14 +463,14 @@
                 </p>
 
                 <div class="d-flex gap-2 flex-wrap align-items-center">
-                    <a class="btn btn-outline-primary" href="{{ path('export_puzzler_data', {playerId: player.playerId}) }}">
+                    <a class="btn btn-outline-primary text-wrap" href="{{ path('export_puzzler_data', {playerId: player.playerId}) }}">
                         <i class="bi bi-download me-1"></i>{{ 'edit_profile.danger_zone.export_button'|trans }}
                     </a>
 
                     <form action="{{ path('request_account_deletion') }}" method="post" class="d-inline">
                         <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\RequestAccountDeletionController::CSRF_TOKEN_ID')) }}" />
 
-                        <button type="submit" class="btn btn-outline-danger">
+                        <button type="submit" class="btn btn-outline-danger text-wrap">
                             <i class="bi bi-envelope me-1"></i>{{ 'edit_profile.danger_zone.request_button'|trans }}
                         </button>
                     </form>

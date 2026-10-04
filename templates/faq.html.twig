@@ -53,7 +53,7 @@
     {{ 'faq.intro_block'|trans|raw }}
 
     <p>
-        <a class="btn btn-outline-primary btn-sm" href="{{ path('getting_started') }}"><i class="bi bi-signpost-2 me-1"></i>{{ 'onboarding.guide.faq_link'|trans }}</a>
+        <a class="btn btn-outline-primary btn-sm text-wrap" href="{{ path('getting_started') }}"><i class="bi bi-signpost-2 me-1"></i>{{ 'onboarding.guide.faq_link'|trans }}</a>
     </p>
 
     {# Every question has a stable anchor (underscores become dashes, e.g.
@@ -63,7 +63,9 @@
             <div class="accordion-item my-2 shadow" id="{{ item|replace({'_': '-'}) }}" style="scroll-margin-top: 6rem;">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#item-{{ item }}" aria-expanded="false" aria-controls="item-{{ item }}">
-                        {{ ('faq.question_' ~ item)|trans(faq_params)|raw }}
+                        {# A span keeps the question one run of text: the in-text button example flows with it
+                           instead of becoming a flex item of its own #}
+                        <span>{{ ('faq.question_' ~ item)|trans(faq_params)|raw }}</span>
                     </button>
                 </h2>
                 <div id="item-{{ item }}" class="accordion-collapse collapse">

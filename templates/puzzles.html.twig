@@ -47,7 +47,7 @@
             {% for brand in popular_brands %}
                 <a class="badge bg-primary badge-shadow rounded-pill text-white link-light" href="{{ path('brand_puzzles', {slug: brand.slug}) }}">{{ brand.brandName }}</a>
             {% endfor %}
-            <a class="small text-nowrap ms-1" href="{{ path('puzzle_brands') }}">{{ 'brand_directory.all_brands_link'|trans }}</a>
+            <a class="small d-inline-block ms-1" href="{{ path('puzzle_brands') }}">{{ 'brand_directory.all_brands_link'|trans }}</a>
         </p>
 
         <h2 class="h6 text-muted mb-2">{{ 'puzzle_overview.browse.by_size'|trans }}</h2>
@@ -56,7 +56,7 @@
                 <a class="badge bg-primary badge-shadow rounded-pill text-white link-light" href="{{ path('pieces_puzzles', {pieces: pieces}) }}">{{ 'pieces_count'|trans({'%count%': pieces})|raw }}</a>
             {% endfor %}
             {# The guides are English-only - the label says so in every other language #}
-            <a class="small text-nowrap ms-1" href="{{ path('guide_average_puzzle_time') }}" hreflang="en">{{ 'catalogue.guide.average_time'|trans }}</a>
+            <a class="small d-inline-block ms-1" href="{{ path('guide_average_puzzle_time') }}" hreflang="en">{{ 'catalogue.guide.average_time'|trans }}</a>
         </p>
     </section>
 

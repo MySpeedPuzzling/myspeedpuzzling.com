@@ -23,7 +23,7 @@ that would otherwise be forgotten. Newest section on top.
       (`019df4f1-d64d-7179-b8ef-0e5ab1f77b56`, `019e4530-f7ca-72a3-b365-c2df422784e1`, `019e98f1-dc2a-7225-9842-257ab9cd377e`,
       `019ea2a3-e359-724c-9327-76f86c03c125`).
 - [ ] Where the `45555…` form comes from is still unknown - 9 players in 7 countries since 2024-03; e-mail asking them
-      drafted for Jan (2026-10-04).
+      sent by Jan to all 9 (2026-10-04) - waiting for answers (a box photo should settle it).
 
 ## Players page (`docs/features/players-page/README.md`)
 

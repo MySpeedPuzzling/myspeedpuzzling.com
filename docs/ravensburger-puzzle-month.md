@@ -74,6 +74,11 @@ VALUES ('$ID', 500, 'Puzzle Month #2', true, NULL, NULL, '2e6ea6b1-6ef8-46d7-844
 Adjust `pieces_count` and the name. If the launch date is already known, put it in both
 embargo columns instead of 2099 and the puzzle reveals itself with no further action.
 
+The search keys (`search_names`, `search_codes`) stay empty on purpose - a hidden placeholder must
+not be searchable. The reveal goes through a change request, and its approval builds the keys
+(`Puzzle::changeNames()`, docs/features/puzzle-names/). A placeholder that reveals itself by date
+without one becomes searchable with the next `myspeedpuzzling:rebuild-puzzle-search-keys`.
+
 Note the `docker compose exec -T` + heredoc gotcha from the production notes: when scripting
 this over ssh, put the commands in a file on the box and run it with `</dev/null`, or the
 first `exec -T` swallows the rest of the script.

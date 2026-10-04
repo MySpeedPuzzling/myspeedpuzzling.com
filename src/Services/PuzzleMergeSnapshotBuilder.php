@@ -22,7 +22,8 @@ readonly final class PuzzleMergeSnapshotBuilder
         return [
             'id' => $puzzle->id->toString(),
             'name' => $puzzle->name,
-            'alternativeName' => $puzzle->alternativeName,
+            'nameLanguage' => $puzzle->nameLanguage,
+            'alternativeNames' => $puzzle->alternativeNames,
             'piecesCount' => $puzzle->piecesCount,
             'ean' => $puzzle->ean,
             'identificationNumber' => $puzzle->identificationNumber,

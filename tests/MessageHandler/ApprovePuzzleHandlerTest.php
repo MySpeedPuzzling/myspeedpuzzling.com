@@ -48,6 +48,9 @@ final class ApprovePuzzleHandlerTest extends KernelTestCase
         self::assertSame(500, $puzzle->piecesCount);
         self::assertSame('4005556123456, 4005556123457', $puzzle->ean);
         self::assertNull($puzzle->identificationNumber);
+        self::assertSame("\ncorrected name\n", $puzzle->searchNames);
+        self::assertSame("\ne:4005556123456\ne:4005556123457\n", $puzzle->searchCodes);
+        self::assertSame([], $puzzle->alternativeNames);
         self::assertSame(PlayerFixture::PLAYER_ADMIN, $puzzle->approvedBy?->id->toString());
         self::assertNotNull($puzzle->approvedAt);
 

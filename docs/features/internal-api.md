@@ -75,7 +75,7 @@ Approve body:
 
 Blank strings count as absent, so a blank `mergedEan` never blanks a real one.
 
-**A puzzle may legitimately carry several EANs or catalogue numbers**, held as a comma-separated list, because the same puzzle gets its own code per edition or region. A merge therefore takes the *union* of both records' codes rather than choosing between them, and `mergedEan` may itself be such a list. Never reduce an existing list to a single value — the codes you drop identify real editions, and the record holding them is deleted moments later. The merge likewise carries over any alternative name, cover image or manufacturer that **only** a deleted puzzle had.
+**A puzzle may legitimately carry several EANs or catalogue numbers**, held as a comma-separated list, because the same puzzle gets its own code per edition or region. A merge therefore takes the *union* of both records' codes rather than choosing between them, and `mergedEan` may itself be such a list. Never reduce an existing list to a single value — the codes you drop identify real editions, and the record holding them is deleted moments later. The merge likewise carries over any cover image or manufacturer that **only** a deleted puzzle had, and keeps every name of every merged puzzle (main title and other names) as an other name of the survivor - the survivor's previous main title too when `mergedName` is another one (docs/features/puzzle-names/).
 
 Reject body: `rejectionReason` (required). **It is shown to the player who reported the duplicate**, as a notification, so write it for them.
 

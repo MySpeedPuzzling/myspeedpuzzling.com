@@ -236,7 +236,7 @@ final class DuplicatePuzzleSignalsTest extends KernelTestCase
     private function changePuzzle(string $puzzleId, string $name, null|string $ean = null): void
     {
         $this->database->executeStatement(
-            'UPDATE puzzle SET name = :name, alternative_name = NULL, ean = COALESCE(:ean, ean) WHERE id = :id',
+            'UPDATE puzzle SET name = :name, alternative_name = NULL, alternative_names = \'[]\', ean = COALESCE(:ean, ean) WHERE id = :id',
             ['name' => $name, 'ean' => $ean, 'id' => $puzzleId],
         );
     }

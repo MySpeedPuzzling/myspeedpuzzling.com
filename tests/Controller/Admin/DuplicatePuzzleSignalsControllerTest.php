@@ -169,7 +169,7 @@ final class DuplicatePuzzleSignalsControllerTest extends WebTestCase
 
         foreach ([$puzzleAId => $nameA, $puzzleBId => $nameB] as $puzzleId => $name) {
             $container->get(Connection::class)->executeStatement(
-                'UPDATE puzzle SET name = :name, alternative_name = NULL, ean = COALESCE(:ean, ean) WHERE id = :id',
+                'UPDATE puzzle SET name = :name, alternative_name = NULL, alternative_names = \'[]\', ean = COALESCE(:ean, ean) WHERE id = :id',
                 ['name' => $name, 'ean' => $ean, 'id' => $puzzleId],
             );
 

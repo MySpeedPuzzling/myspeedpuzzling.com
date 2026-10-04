@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services;
 
 use League\Flysystem\Filesystem;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
@@ -15,7 +16,7 @@ use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
- * Saves a puzzle's catalogue record - name, alternative name, brand, pieces, codes and image. The one place
+ * Saves a puzzle's catalogue record - name, other names, brand, pieces, codes and image. The one place
  * that does it for a change request approval (ApprovePuzzleChangeRequestHandler) and a moderator's direct
  * edit (EditPuzzleHandler).
  *
@@ -30,13 +31,14 @@ readonly final class PuzzleRecordUpdater
         private Filesystem $filesystem,
         private PuzzleImageNamer $puzzleImageNamer,
         private ImageOptimizer $imageOptimizer,
+        private ClockInterface $clock,
     ) {
     }
 
     /**
      * @param null|string $proposedImage A change request's proposed image - what PuzzleImageChoice::Proposed uses
      *
-     * @return array{before: array<string, null|string|int>, after: array<string, null|string|int>}
+     * @return array{before: array<string, null|string|int|list<array{name: string, language: null|string}>>, after: array<string, null|string|int|list<array{name: string, language: null|string}>>}
      *
      * @throws InvalidPuzzleValues
      * @throws ManufacturerNotFound
@@ -65,12 +67,19 @@ readonly final class PuzzleRecordUpdater
             throw new InvalidPuzzleValues('Choose the image to upload.');
         }
 
+        // The forms' single "Alternative name" field edits one name of the list (until the names editor comes)
+        $alternativeNames = $puzzle->alternativeNames()->withLegacyAlternativeName($values->alternativeName);
+
+        if ($alternativeNames->toArray() !== $puzzle->alternativeNames) {
+            $alternativeNames->assertFormLimits();
+        }
+
         // --- validated, now apply ---
 
         $before = self::snapshot($puzzle);
 
-        $puzzle->name = $name;
-        $puzzle->alternativeName = self::nullIfBlank($values->alternativeName);
+        // First of the changes: it refuses a name too long before anything is changed
+        $puzzle->changeNames($name, $puzzle->nameLanguage, $alternativeNames, $this->clock->now());
         $puzzle->manufacturer = $manufacturer;
         $puzzle->piecesCount = $values->piecesCount;
         $puzzle->updateProductIdentifiers(
@@ -95,14 +104,16 @@ readonly final class PuzzleRecordUpdater
 
     /**
      * The record as the decision log keeps it - the shape the puzzle's history reads back (PuzzleHistoryChange).
+     * Snapshots older than the names list hold a single `alternativeName` string instead of the last two.
      *
-     * @return array<string, null|string|int>
+     * @return array<string, null|string|int|list<array{name: string, language: null|string}>>
      */
     public static function snapshot(Puzzle $puzzle): array
     {
         return [
             'name' => $puzzle->name,
-            'alternativeName' => $puzzle->alternativeName,
+            'nameLanguage' => $puzzle->nameLanguage,
+            'alternativeNames' => $puzzle->alternativeNames,
             'manufacturerId' => $puzzle->manufacturer?->id->toString(),
             'manufacturerName' => $puzzle->manufacturer?->name,
             'piecesCount' => $puzzle->piecesCount,

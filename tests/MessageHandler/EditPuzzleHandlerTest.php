@@ -50,11 +50,15 @@ final class EditPuzzleHandlerTest extends KernelTestCase
 
         $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01);
         self::assertSame('Edited Name', $puzzle->name);
+        self::assertSame([['name' => 'Alternative Title', 'language' => null]], $puzzle->alternativeNames);
         self::assertSame('Alternative Title', $puzzle->alternativeName);
+        self::assertSame("\nedited name\nalternative title\n", $puzzle->searchNames);
+        self::assertNotNull($puzzle->namesChangedAt);
         self::assertSame(ManufacturerFixture::MANUFACTURER_TREFL, $puzzle->manufacturer?->id->toString());
         self::assertSame(1000, $puzzle->piecesCount);
         self::assertSame('4005556123452', $puzzle->ean);
         self::assertNull($puzzle->identificationNumber);
+        self::assertSame("\ne:4005556123452\n", $puzzle->searchCodes);
 
         $decisions = $this->decisions();
         self::assertCount(1, $decisions);
@@ -73,6 +77,9 @@ final class EditPuzzleHandlerTest extends KernelTestCase
         self::assertIsArray($after);
         self::assertSame('Puzzle 1', $before['name']);
         self::assertSame('Edited Name', $after['name']);
+        self::assertSame([], $before['alternativeNames']);
+        self::assertSame([['name' => 'Alternative Title', 'language' => null]], $after['alternativeNames']);
+        self::assertArrayNotHasKey('alternativeName', $after);
         self::assertSame(500, $before['piecesCount']);
         self::assertSame(1000, $after['piecesCount']);
         self::assertSame('Trefl', $after['manufacturerName']);
@@ -87,7 +94,7 @@ final class EditPuzzleHandlerTest extends KernelTestCase
             editorId: PlayerFixture::PLAYER_ADMIN,
             values: new PuzzleRecordValues(
                 name: $puzzle->name,
-                alternativeName: $puzzle->alternativeName,
+                alternativeName: $puzzle->alternativeNames()->legacyAlternativeName(),
                 manufacturerId: $puzzle->manufacturer?->id->toString(),
                 piecesCount: $puzzle->piecesCount,
                 ean: $puzzle->ean,
@@ -96,6 +103,78 @@ final class EditPuzzleHandlerTest extends KernelTestCase
             note: 'Nothing to see',
         ));
 
+        self::assertSame([], $this->decisions());
+        self::assertNull($this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01)->namesChangedAt);
+    }
+
+    public function testTheSingleAlternativeNameFieldEditsTheCzechNameAndKeepsTheOthers(): void
+    {
+        $edit = fn (null|string $alternativeName) => $this->messageBus->dispatch(new EditPuzzle(
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
+            editorId: PlayerFixture::PLAYER_ADMIN,
+            values: new PuzzleRecordValues(
+                name: 'Puzzle 7',
+                alternativeName: $alternativeName,
+                manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
+                piecesCount: 1000,
+                ean: null,
+                identificationNumber: null,
+            ),
+        ));
+
+        // The form shows the Czech name and sends it back unchanged: both names stay, nothing is logged
+        $edit(PuzzleFixture::NAME_CS_MAGIC_GARDEN);
+        self::assertSame([], $this->decisions(PuzzleFixture::PUZZLE_1000_02));
+        self::assertCount(2, $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02)->alternativeNames);
+
+        $edit('Kouzelná zahrádka');
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02);
+        self::assertSame([
+            ['name' => 'Kouzelná zahrádka', 'language' => 'cs'],
+            ['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de'],
+        ], $puzzle->alternativeNames);
+        self::assertSame("\npuzzle 7\nkouzelna zahradka\nzauberhafter garten\n", $puzzle->searchNames);
+
+        // Emptied: only the Czech name goes
+        $edit('  ');
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02);
+        self::assertSame([['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de']], $puzzle->alternativeNames);
+        self::assertSame(PuzzleFixture::NAME_DE_MAGIC_GARDEN, $puzzle->alternativeName);
+        self::assertSame("\npuzzle 7\nzauberhafter garten\n", $puzzle->searchNames);
+
+        $decisions = $this->decisions(PuzzleFixture::PUZZLE_1000_02);
+        self::assertCount(2, $decisions);
+        $afterSnapshots = array_map(static fn (PuzzleModerationDecision $decision): mixed => $decision->details['after'] ?? null, $decisions);
+        self::assertContains([['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de']], array_map(
+            static fn (mixed $after): mixed => is_array($after) ? $after['alternativeNames'] : null,
+            $afterSnapshots,
+        ));
+    }
+
+    public function testANameTooLongIsRefusedBeforeAnythingChanges(): void
+    {
+        try {
+            $this->messageBus->dispatch(new EditPuzzle(
+                puzzleId: PuzzleFixture::PUZZLE_500_01,
+                editorId: PlayerFixture::PLAYER_ADMIN,
+                values: new PuzzleRecordValues(
+                    name: str_repeat('a', 256),
+                    alternativeName: 'Should not be saved',
+                    manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
+                    piecesCount: 1000,
+                    ean: '4005556123452',
+                    identificationNumber: null,
+                ),
+            ));
+            self::fail('A name over 255 characters must be refused.');
+        } catch (InvalidPuzzleValues) {
+        }
+
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01);
+        self::assertSame('Puzzle 1', $puzzle->name);
+        self::assertSame([], $puzzle->alternativeNames);
+        self::assertSame(ManufacturerFixture::MANUFACTURER_RAVENSBURGER, $puzzle->manufacturer?->id->toString());
+        self::assertNull($puzzle->ean);
         self::assertSame([], $this->decisions());
     }
 
@@ -121,6 +200,7 @@ final class EditPuzzleHandlerTest extends KernelTestCase
         $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01);
         self::assertSame('Puzzle 1', $puzzle->name);
         self::assertNull($puzzle->alternativeName);
+        self::assertSame([], $puzzle->alternativeNames);
         self::assertSame(500, $puzzle->piecesCount);
         self::assertSame([], $this->decisions());
     }
@@ -128,12 +208,12 @@ final class EditPuzzleHandlerTest extends KernelTestCase
     /**
      * @return list<PuzzleModerationDecision>
      */
-    private function decisions(): array
+    private function decisions(string $puzzleId = PuzzleFixture::PUZZLE_500_01): array
     {
         $this->entityManager->clear();
 
         return $this->entityManager->getRepository(PuzzleModerationDecision::class)->findBy([
-            'puzzleId' => Uuid::fromString(PuzzleFixture::PUZZLE_500_01),
+            'puzzleId' => Uuid::fromString($puzzleId),
             'action' => PuzzleModerationAction::PuzzleEdited,
         ]);
     }

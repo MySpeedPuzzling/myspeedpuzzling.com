@@ -38,6 +38,20 @@ readonly final class PuzzleRepository
     }
 
     /**
+     * @param list<string> $puzzleIds
+     *
+     * @return list<Puzzle>
+     */
+    public function findByIds(array $puzzleIds): array
+    {
+        if ($puzzleIds === []) {
+            return [];
+        }
+
+        return $this->entityManager->getRepository(Puzzle::class)->findBy(['id' => $puzzleIds]);
+    }
+
+    /**
      * @return list<Puzzle>
      */
     public function findByManufacturer(Manufacturer $manufacturer): array

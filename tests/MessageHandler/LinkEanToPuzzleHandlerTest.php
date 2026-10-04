@@ -34,6 +34,7 @@ final class LinkEanToPuzzleHandlerTest extends KernelTestCase
         $this->messageBus->dispatch(new LinkEanToPuzzle(PuzzleFixture::PUZZLE_9000, PlayerFixture::PLAYER_WITH_STRIPE, PuzzleFixture::EAN_UNKNOWN));
 
         self::assertSame(PuzzleFixture::EAN_UNKNOWN, $this->puzzles->get(PuzzleFixture::PUZZLE_9000)->ean);
+        self::assertSame("\ne:" . PuzzleFixture::EAN_UNKNOWN . "\n", $this->puzzles->get(PuzzleFixture::PUZZLE_9000)->searchCodes);
 
         $audit = $this->database->fetchAssociative(
             'SELECT status, proposed_ean, original_ean, reporter_id, reviewed_by_id FROM puzzle_change_request WHERE puzzle_id = :id AND proposed_ean = :ean',

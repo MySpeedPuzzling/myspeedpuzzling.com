@@ -202,6 +202,15 @@ PLAYER_PRIVATE = [WJPC_2024]. Nobody but the players above goes to the fair.
 - PUZZLE_500_02: EAN `4005556123456`
 - PUZZLE_1000_01: ID number `RB-1000-001`
 - PUZZLE_1000_03: EAN `4005556789012`
+- PUZZLE_1000_05: two EANs `4005556174812, 4005556197484` (`EANS_PUZZLE_1000_05`) and two brand codes `17481, 19748-2` (`BRAND_CODES_PUZZLE_1000_05`)
+- PUZZLE_1500_02: EAN `5900511101010` - ends in 0
+- The other valid GS1 codes (`EAN_PUZZLE_*`, `EAN_SHARED_4000_5000`, `EAN_UNKNOWN`) are constants on `PuzzleFixture` (multiscan tests)
+
+### Other names (docs/features/puzzle-names/)
+- PUZZLE_1000_02 ("Puzzle 7"): `Kouzelná zahrada` (cs), `Zauberhafter Garten` (de)
+- PUZZLE_300 ("Puzzle 11"): `Kouzelna zahrada` without a language - the Czech name of PUZZLE_1000_02 without accents
+- PUZZLE_HIDDEN_IMAGE: `魔法の庭` (ja)
+- Names as constants `PuzzleFixture::NAME_*`. Every puzzle's `search_names` / `search_codes` are built by the entity (`PuzzleFixtureSearchKeysTest` pins it)
 
 ## Manufacturers
 

@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Message\EditPuzzle;
 use SpeedPuzzling\Web\Query\GetPuzzleHistory;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Results\PuzzleHistoryChange;
+use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
 use SpeedPuzzling\Web\Value\PuzzleHistoryEntryKind;
+use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -95,6 +99,75 @@ final class GetPuzzleHistoryTest extends KernelTestCase
         self::assertCount(1, $mergedAway);
         self::assertSame(PuzzleFixture::PUZZLE_500_01, $mergedAway[0]->puzzles[0]->puzzleId);
         self::assertSame('Merged Name', $mergedAway[0]->puzzles[0]->name);
+    }
+
+    public function testAnEditOfTheOtherNamesShowsTheListWithLanguages(): void
+    {
+        $this->messageBus->dispatch(new EditPuzzle(
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
+            editorId: PlayerFixture::PLAYER_ADMIN,
+            values: new PuzzleRecordValues(
+                name: 'Puzzle 7',
+                alternativeName: 'Kouzelná zahrádka',
+                manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
+                piecesCount: 1000,
+                ean: null,
+                identificationNumber: null,
+            ),
+        ));
+
+        $edit = $this->getPuzzleHistory->forPuzzle(PuzzleFixture::PUZZLE_1000_02)[0];
+
+        self::assertSame(PuzzleHistoryEntryKind::Edited, $edit->kind);
+        self::assertEquals([new PuzzleHistoryChange(
+            'Other names',
+            'Kouzelná zahrada (cs), Zauberhafter Garten (de)',
+            'Kouzelná zahrádka (cs), Zauberhafter Garten (de)',
+        )], $edit->changes);
+    }
+
+    public function testADecisionLoggedBeforeTheNamesListShowsItsSingleAlternativeName(): void
+    {
+        $container = self::getContainer();
+        $container->get(PuzzleModerationDecisionRecorder::class)->record(
+            action: PuzzleModerationAction::PuzzleEdited,
+            decidedBy: $container->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_ADMIN),
+            puzzleId: Uuid::fromString(PuzzleFixture::PUZZLE_500_03),
+            puzzleName: 'Puzzle 3',
+            // PuzzleRecordUpdater::snapshot() as it was until 2026-10
+            details: [
+                'image' => 'keep',
+                'before' => ['name' => 'Puzzle 3', 'alternativeName' => null, 'manufacturerId' => null, 'manufacturerName' => null, 'piecesCount' => 500, 'ean' => null, 'identificationNumber' => null, 'image' => null],
+                'after' => ['name' => 'Puzzle 3', 'alternativeName' => 'Třetí puzzle', 'manufacturerId' => null, 'manufacturerName' => null, 'piecesCount' => 500, 'ean' => null, 'identificationNumber' => null, 'image' => null],
+            ],
+        );
+        $container->get(EntityManagerInterface::class)->flush();
+
+        $edit = $this->getPuzzleHistory->forPuzzle(PuzzleFixture::PUZZLE_500_03)[0];
+
+        self::assertSame(PuzzleHistoryEntryKind::Edited, $edit->kind);
+        self::assertEquals([new PuzzleHistoryChange('Other names', null, 'Třetí puzzle')], $edit->changes);
+    }
+
+    public function testSnapshotsOfBothShapesAreRead(): void
+    {
+        self::assertEquals(
+            [new PuzzleHistoryChange('Other names', 'Old single name', 'Old single name (cs)')],
+            PuzzleHistoryChange::between(
+                ['alternativeName' => 'Old single name'],
+                ['alternativeNames' => [['name' => 'Old single name', 'language' => 'cs']], 'nameLanguage' => null],
+            ),
+        );
+        self::assertEquals(
+            [new PuzzleHistoryChange('Name language', null, 'cs')],
+            PuzzleHistoryChange::between(
+                ['nameLanguage' => null, 'alternativeNames' => []],
+                ['nameLanguage' => 'cs', 'alternativeNames' => []],
+            ),
+        );
+        // Neither shape recorded, or a broken value: left out, never a crash
+        self::assertSame([], PuzzleHistoryChange::between(['name' => 'A'], ['name' => 'A']));
+        self::assertSame([], PuzzleHistoryChange::between(['alternativeNames' => 'broken'], ['alternativeNames' => null]));
     }
 
     public function testAnUnknownPuzzleHasNoHistory(): void

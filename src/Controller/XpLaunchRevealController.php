@@ -42,7 +42,7 @@ final class XpLaunchRevealController extends AbstractController
         ],
         name: 'xp_launch_reveal',
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(): Response
     {
         $profile = $this->retrieveLoggedUserProfile->getProfile();

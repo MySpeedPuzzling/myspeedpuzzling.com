@@ -34,7 +34,7 @@ final class RevealBadgeController extends AbstractController
         name: 'reveal_badge',
         methods: ['POST'],
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(string $badgeId): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();

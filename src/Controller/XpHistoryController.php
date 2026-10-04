@@ -41,7 +41,7 @@ final class XpHistoryController extends AbstractController
         ],
         name: 'xp_history',
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(Request $request): Response
     {
         $profile = $this->retrieveLoggedUserProfile->getProfile();

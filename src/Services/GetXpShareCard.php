@@ -36,7 +36,13 @@ readonly final class GetXpShareCard
         $xpProfile = $this->getXpProfile->byPlayerId($playerId);
 
         $noOlderThan = $this->clock->now()->modify('-1 month');
-        $path = "players/{$playerId}/xp-card-{$variant}-lv{$xpProfile->level}.png";
+        // A public, unauthenticated image that is cached in storage: like the result image (GetResultImage) it
+        // follows the player's own setting, never who is looking - a private player's card carries the code, not the
+        // name. The separate path keeps a copy rendered while the profile was public from being served.
+        $isPrivateProfile = $player->isPrivateProfile;
+        $path = $isPrivateProfile
+            ? "players/{$playerId}/xp-card-{$variant}-lv{$xpProfile->level}-hidden.png"
+            : "players/{$playerId}/xp-card-{$variant}-lv{$xpProfile->level}.png";
 
         if (
             $this->filesystem->fileExists($path)
@@ -48,7 +54,9 @@ readonly final class GetXpShareCard
         $size = self::SIZE;
         $centerX = (int) ($size / 2);
 
-        $playerName = $player->playerName ?? sprintf('#%s', strtoupper($player->code));
+        $playerName = $isPrivateProfile
+            ? sprintf('#%s', strtoupper($player->code))
+            : ($player->playerName ?? sprintf('#%s', strtoupper($player->code)));
         $headline = $variant === 'level-up'
             ? sprintf('reached Level %d!', $xpProfile->level)
             : sprintf('is Level %d on the puzzle journey!', $xpProfile->level);

@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\AchievementHolder;
 use SpeedPuzzling\Web\Results\AchievementTierHolders;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 use SpeedPuzzling\Web\Value\CountryCode;
@@ -16,6 +17,9 @@ use SpeedPuzzling\Web\Value\CountryCode;
  * Holders directory (§1.7): holder LISTS show members with public profiles only
  * (public badge display is a membership perk); private profiles and XP-opted-out
  * players never appear in lists; holder COUNTS include everyone.
+ *
+ * The lists are global rankings, so a private profile stays out of them for everybody - also for viewers on its
+ * allow list (docs/features/private-profile-allow-list.md); players the viewer blocks are left out too.
  */
 readonly class GetAchievementHolders
 {
@@ -35,6 +39,7 @@ SQL;
 
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -201,8 +206,12 @@ SQL;
         return $countries;
     }
 
+    /**
+     * Players the viewer blocks are left out of every list (docs/features/player-blocklist.md) - inside the ranked
+     * subquery, so the positions close up. The counts are aggregates and keep everybody.
+     */
     private function listedEligibility(): string
     {
-        return self::LISTED_ELIGIBILITY;
+        return self::LISTED_ELIGIBILITY . $this->hiddenPlayers->sqlExclude('p.id');
     }
 }

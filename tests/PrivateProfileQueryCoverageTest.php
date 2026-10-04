@@ -20,6 +20,8 @@ final class PrivateProfileQueryCoverageTest extends TestCase
 
     /** Files allowed to read the raw column, besides going through PrivateProfileAccess */
     private const array RAW_COLUMN = [
+        'Query/GetAchievementHolders.php' => self::GLOBAL_RANKING,
+        'Query/GetXpLeaderboard.php' => self::GLOBAL_RANKING,
         'Services/Community/CommunityStatsCalculator.php' => 'Counts public newcomers per scope (community_scope_stats.new_faces14d) - an aggregate without identity, the raw setting decides who is counted.',
         'Query/FindSimilarSpeedPuzzler.php' => 'A random suggestion of somebody at your speed offers public profiles only - the same pool for every viewer, like a global ranking.',
         'Query/GetAffiliateSupporters.php' => 'Public supporters list of somebody else\'s profile - stays public-only.',
@@ -40,6 +42,7 @@ final class PrivateProfileQueryCoverageTest extends TestCase
         'Query/GetStopwatchMilestones.php' => self::GLOBAL_RANKING,
         'Query/GetSuggestedPlayers.php' => 'Players page list: public profiles only, for everybody - nobody is ranked differently for different viewers.',
         'Services/ComparisonSubjectVisibility.php' => 'Write side with an explicit owner id: the owner\'s allow-list row is read in the same statement - handlers never see the ambient viewer.',
+        'Services/Digest/WeeklyDigestDataProvider.php' => 'Background e-mail for one recipient: applies that recipient\'s allow-list rows and blocks in the SQL itself - a consumer has no viewer for the service.',
         'Services/PrivateProfileAccess.php' => 'The one place that decides.',
         'Services/PuzzleIntelligence/MspRatingCalculator.php' => self::BACKGROUND,
         'Services/PuzzleIntelligence/PuzzleIntelligenceRecalculator.php' => self::BACKGROUND,

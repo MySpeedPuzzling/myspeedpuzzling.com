@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\XpLeaderboardRow;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\CountryCode;
 
 /**
@@ -17,7 +18,10 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *
  * Both read the denormalized player columns (`xp_total`, `achievement_points`), so
  * neither aggregates anything at scale. Private profiles and experience-system
- * opt-outs never appear on either.
+ * opt-outs never appear on either - global rankings stay closed to private players
+ * for everybody, the allow list included (docs/features/private-profile-allow-list.md).
+ * Players the viewer blocks are left out of the ranking itself, so positions close up
+ * (docs/features/player-blocklist.md).
  */
 readonly class GetXpLeaderboard
 {
@@ -38,6 +42,7 @@ SQL;
 
     public function __construct(
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -51,7 +56,7 @@ SQL;
     public function xp(null|string $country, null|array $favoritePlayerIds, int $limit = 100): array
     {
         [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
-        $eligibility = self::PUBLIC_ELIGIBILITY;
+        $eligibility = $this->eligibility();
 
         $sql = <<<SQL
 SELECT
@@ -86,7 +91,7 @@ SQL;
     public function achievementPoints(null|string $country, null|array $favoritePlayerIds, int $limit = 100): array
     {
         [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
-        $eligibility = self::PUBLIC_ELIGIBILITY;
+        $eligibility = $this->eligibility();
         $membership = self::ACTIVE_MEMBERSHIP;
 
         $sql = <<<SQL
@@ -121,7 +126,7 @@ SQL;
      */
     public function selfRank(string $playerId, string $tab): null|array
     {
-        $eligibility = self::PUBLIC_ELIGIBILITY;
+        $eligibility = $this->eligibility();
         $membership = self::ACTIVE_MEMBERSHIP;
 
         $sql = match ($tab) {
@@ -164,7 +169,7 @@ SQL,
      */
     public function countries(): array
     {
-        $eligibility = self::PUBLIC_ELIGIBILITY;
+        $eligibility = $this->eligibility();
 
         $sql = <<<SQL
 SELECT DISTINCT p.country
@@ -179,6 +184,11 @@ SQL;
         $countries = $this->database->executeQuery($sql)->fetchFirstColumn();
 
         return $countries;
+    }
+
+    private function eligibility(): string
+    {
+        return self::PUBLIC_ELIGIBILITY . $this->hiddenPlayers->sqlExclude('p.id');
     }
 
     /**

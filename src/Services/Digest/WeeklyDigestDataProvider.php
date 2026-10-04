@@ -178,13 +178,23 @@ SQL;
             return [];
         }
 
+        // Rendered in a consumer, so there is no viewer for HiddenPlayers / PrivateProfileAccess: the recipient's own
+        // blocks (docs/features/player-blocklist.md - admin blocks never touch the favourites) and the allow list
+        // (docs/features/private-profile-allow-list.md - a block either way outranks it) are applied here
         $sql = <<<SQL
 SELECT COALESCE(p.name, '#' || UPPER(p.code)) AS name, COUNT(*) AS solves
 FROM puzzle_solving_time pst
 JOIN player p ON p.id = pst.player_id
 WHERE pst.player_id IN (:favoriteIds)
   AND pst.suspicious = false
-  AND p.is_private = false
+  AND NOT EXISTS (SELECT 1 FROM user_block ub WHERE ub.blocker_id = :recipientId AND ub.blocked_id = p.id)
+  AND (
+    p.is_private = false
+    OR (
+      EXISTS (SELECT 1 FROM private_profile_viewer ppv WHERE ppv.owner_id = p.id AND ppv.viewer_id = :recipientId)
+      AND NOT EXISTS (SELECT 1 FROM user_block ub WHERE ub.blocker_id = p.id AND ub.blocked_id = :recipientId)
+    )
+  )
   AND COALESCE(pst.finished_at, pst.tracked_at) >= CAST(:weekStart AS TIMESTAMP)
   AND COALESCE(pst.finished_at, pst.tracked_at) < CAST(:weekEnd AS TIMESTAMP)
 GROUP BY p.id, p.name, p.code
@@ -197,6 +207,7 @@ SQL;
             $sql,
             [
                 'favoriteIds' => $favoriteIds,
+                'recipientId' => $player->id->toString(),
                 'weekStart' => $period->weekStart->format('Y-m-d H:i:s'),
                 'weekEnd' => $period->weekEnd->format('Y-m-d H:i:s'),
             ],

@@ -53,6 +53,23 @@ final class XpPagesTest extends WebTestCase
         self::assertResponseIsSuccessful();
     }
 
+    /**
+     * The explainer modal is a fragment for the shared modal-frame; opened any other way the achievement's page
+     * answers instead of a bare <turbo-frame>
+     */
+    public function testAchievementInfoIsAModalFragmentAndRedirectsOtherwise(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('GET', '/en/achievements/puzzles_solved/info', server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('turbo-frame#modal-frame');
+
+        $browser->request('GET', '/en/achievements/puzzles_solved/info');
+        self::assertResponseRedirects('/en/achievements/puzzles_solved');
+    }
+
     public function testXpHistoryIs404ForNonAdmins(): void
     {
         $browser = self::createClient();

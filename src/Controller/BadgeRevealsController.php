@@ -36,7 +36,7 @@ final class BadgeRevealsController extends AbstractController
         ],
         name: 'badge_reveals',
     )]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
     public function __invoke(): Response
     {
         $profile = $this->retrieveLoggedUserProfile->getProfile();

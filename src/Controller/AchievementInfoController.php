@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\BadgeType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -40,7 +41,7 @@ final class AchievementInfoController extends AbstractController
         ],
         name: 'achievement_info',
     )]
-    public function __invoke(string $type): Response
+    public function __invoke(Request $request, string $type): Response
     {
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 
@@ -54,16 +55,28 @@ final class AchievementInfoController extends AbstractController
             throw $this->createNotFoundException();
         }
 
+        // The modal is a fragment for the shared modal-frame - opened any other way (a new tab, a crawler following
+        // the medallion's href) the achievement's own page answers instead
+        if ($request->headers->get('Turbo-Frame') !== 'modal-frame') {
+            $response = $this->redirectToRoute('achievement_detail', ['type' => $badgeType->value]);
+            $response->setVary('Turbo-Frame');
+
+            return $response;
+        }
+
         // Progress belongs to the viewer, never to the profile being looked at — the modal
         // answers "what is this and where am I with it", the holders page answers "who has it".
         $group = $badgeType->isTiered()
             ? $this->getBadgeCatalog->forPlayerAndType($profile?->playerId, $badgeType)
             : null;
 
-        return $this->render('_achievement_info_modal.html.twig', [
+        $response = $this->render('_achievement_info_modal.html.twig', [
             'type' => $badgeType,
             'group' => $group,
             'logged_in' => $profile !== null,
         ]);
+        $response->setVary('Turbo-Frame');
+
+        return $response;
     }
 }

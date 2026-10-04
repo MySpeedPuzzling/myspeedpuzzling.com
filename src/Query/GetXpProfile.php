@@ -7,11 +7,13 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\XpProfile;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 
 readonly class GetXpProfile
 {
     public function __construct(
         private Connection $database,
+        private PrivateProfileAccess $privateProfileAccess,
     ) {
     }
 
@@ -20,8 +22,10 @@ readonly class GetXpProfile
      */
     public function byPlayerId(string $playerId): XpProfile
     {
+        // `private` = hidden from this viewer: a private player shows their ring to the players on their allow list
+        // (docs/features/private-profile-allow-list.md)
         $sql = <<<SQL
-SELECT id, xp_total, level, experience_system_opted_out, is_private
+SELECT id, xp_total, level, experience_system_opted_out, {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private
 FROM player
 WHERE id = :playerId
 SQL;

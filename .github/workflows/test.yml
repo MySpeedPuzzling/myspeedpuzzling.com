@@ -164,17 +164,13 @@ jobs:
   # cache (phpcs.xml) only changed files are checked. 66-103s -> ~17s (2026-10-04)
   coding-standards:
       runs-on: ubuntu-latest
+      # The app image, like every other gate: the same PHP build everywhere and no extra
+      # setup action. Pulling it takes ~11s since the base image went zstd and slim.
+      container: ghcr.io/myspeedpuzzling/web-base-php85:main
       continue-on-error: true
       steps:
         -   uses: actions/checkout@v7
-        -   uses: shivammathur/setup-php@v2
-            with:
-                php-version: '8.5'
-                coverage: none
-                tools: none
-        # Restore only: vendor installed here skips the extension checks (below), so this
-        # job must never save it as the cache the other jobs use
-        -   uses: actions/cache/restore@v6
+        -   uses: actions/cache@v6
             with:
                 path: |
                     vendor
@@ -190,7 +186,7 @@ jobs:
                 key: phpcs-${{ hashFiles('src/**/*.php', 'tests/**/*.php', 'migrations/**/*.php', 'phpcs.xml', 'composer.lock') }}
                 restore-keys: |
                     phpcs-
-        -   run: composer install --no-scripts --no-progress --ignore-platform-req=ext-*
+        -   run: composer install --no-scripts --no-progress
             env:
                 COMPOSER_CACHE_DIR: .composer-cache
                 # Authenticated GitHub dist downloads on a cold cache - anonymous ones from

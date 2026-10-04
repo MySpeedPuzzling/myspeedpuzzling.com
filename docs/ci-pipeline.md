@@ -11,7 +11,7 @@ passed) is gone. Measured 2026-10-04: push to main → lily webhook ~2 min, → 
 |---|---|---|
 | `tests (1/3..3/3)` | PR + main | ParaTest shards (`--shard=i/3`, round-robin), one worker per CPU, each worker on its own clone of the test database (`tests/bootstrap.php`) |
 | `phpstan`, `migrations-up-to-date` | PR + main | gates |
-| `coding-standards` | PR + main | advisory (`continue-on-error`), never blocks a deploy; plain PHP on the runner (`setup-php`), not the app image |
+| `coding-standards` | PR + main | advisory (`continue-on-error`), never blocks a deploy; PHPCS with its cache, in the app image |
 | `docker` | main | builds the production image **while the gates run**, pushes `website:sha-<commit>` only, plus `website:build-assets` |
 | `verified` | same-repo PRs | after every gate passed: uploads an artifact `verified-tree-<tree sha>` for the tree the PR run tested (the PR merged into main) |
 | `plan` | main | is there such an artifact for this commit's tree? |
@@ -38,9 +38,11 @@ Measured side by side on the runners (throwaway workflow on `ci/static-analysis-
     `phpstan` can become the slowest gate.
   - `cache:warmup --no-optional-warmers` takes 3s instead of 10s; PHPStan only needs the container dump.
   - "Used memory" sums the parallel workers. 2 GB on a full run is not near any limit.
-- **PHPCS runs on plain PHP (`setup-php`), with its cache** (`phpcs.xml`: `cache` + `parallel`). PHPCS only reads
-  tokens, so the image's extensions do not matter. Job time: 66-103s down to ~17s.
-- The job containers' `Initialize containers` step (pulling the base image) is a fixed cost of every other job - see below.
+- **PHPCS runs with its cache** (`phpcs.xml`: `cache` + `parallel`): job time 66-103s down to ~17s on plain
+  PHP (`setup-php`). Moved back into the app image once the base image pulled in ~11s: a few seconds slower,
+  but the same PHP build as every other job, no extra action and no restore-only vendor cache - and the job is
+  advisory and finishes long before the test shards, so it never sets the pipeline's pace.
+- The job containers' `Initialize containers` step (pulling the base image) is a fixed cost of every job - see below.
 
 ## Base image
 

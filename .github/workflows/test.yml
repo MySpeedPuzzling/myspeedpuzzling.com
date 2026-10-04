@@ -19,7 +19,7 @@ jobs:
   tests:
     name: tests (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
-    container: ghcr.io/myspeedpuzzling/web-base-php85:main
+    container: ghcr.io/myspeedpuzzling/web-base-php85:slim-tools
     strategy:
       fail-fast: false
       matrix:
@@ -131,7 +131,7 @@ jobs:
 
   phpstan:
       runs-on: ubuntu-latest
-      container: ghcr.io/myspeedpuzzling/web-base-php85:main
+      container: ghcr.io/myspeedpuzzling/web-base-php85:slim-tools
       steps:
         -   uses: actions/checkout@v7
         -   uses: actions/cache@v6
@@ -201,7 +201,7 @@ jobs:
 
   migrations-up-to-date:
       runs-on: ubuntu-latest
-      container: ghcr.io/myspeedpuzzling/web-base-php85:main
+      container: ghcr.io/myspeedpuzzling/web-base-php85:slim-tools
       services:
           postgres:
               image: postgres:16

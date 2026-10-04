@@ -154,16 +154,27 @@ jobs:
                 # Authenticated GitHub dist downloads on a cold cache - anonymous ones from
                 # the shared runner IP get throttled (429), see the Release Dockerfile
                 COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
-        -   run: bin/console cache:warmup --env=dev
+        # PHPStan only needs the container (its XML dump); the optional warmers (templates,
+        # routes, Doctrine proxies...) took 10s instead of 3s
+        -   run: bin/console cache:warmup --env=dev --no-optional-warmers
         -   run: composer run-script phpstan
 
+  # Plain PHP on the runner instead of the app image: PHPCS only reads tokens, so the
+  # image's extensions do not matter, and pulling ~640 MB took 25-30s. With the PHPCS
+  # cache (phpcs.xml) only changed files are checked. 66-103s -> ~17s (2026-10-04)
   coding-standards:
       runs-on: ubuntu-latest
-      container: ghcr.io/myspeedpuzzling/web-base-php85:main
       continue-on-error: true
       steps:
         -   uses: actions/checkout@v7
-        -   uses: actions/cache@v6
+        -   uses: shivammathur/setup-php@v2
+            with:
+                php-version: '8.5'
+                coverage: none
+                tools: none
+        # Restore only: vendor installed here skips the extension checks (below), so this
+        # job must never save it as the cache the other jobs use
+        -   uses: actions/cache/restore@v6
             with:
                 path: |
                     vendor
@@ -171,13 +182,21 @@ jobs:
                 key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
                 restore-keys: |
                     ${{ runner.os }}-composer-
-        -   run: composer install --no-scripts --no-progress
+        # PHPCS validates every cached entry itself (file content, ruleset, sniffs), so an
+        # older cache from the restore key is safe
+        -   uses: actions/cache@v6
+            with:
+                path: var/phpcs.cache
+                key: phpcs-${{ hashFiles('src/**/*.php', 'tests/**/*.php', 'migrations/**/*.php', 'phpcs.xml', 'composer.lock') }}
+                restore-keys: |
+                    phpcs-
+        -   run: composer install --no-scripts --no-progress --ignore-platform-req=ext-*
             env:
                 COMPOSER_CACHE_DIR: .composer-cache
                 # Authenticated GitHub dist downloads on a cold cache - anonymous ones from
                 # the shared runner IP get throttled (429), see the Release Dockerfile
                 COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
-        -   run: composer run cs
+        -   run: mkdir -p var && composer run cs
 
 
   migrations-up-to-date:

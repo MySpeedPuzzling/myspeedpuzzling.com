@@ -1,15 +1,18 @@
-# Previous published release — its /build assets are carried into this image so
-# that HTML rendered by the outgoing container keeps resolving during the
-# blue-green rollout window (see the merge step below)
-FROM ghcr.io/myspeedpuzzling/website:main AS previous-release
+# The previous build's /build assets are carried into this image so that HTML
+# rendered by the outgoing container keeps resolving during the blue-green
+# rollout window (see the merge step below). Every main build pushes them as a
+# tiny image of their own (the `build-assets` target at the bottom) - pulling
+# the whole previous release image just for this folder took 30-80s per build.
+ARG BUILD_ASSETS_IMAGE=ghcr.io/myspeedpuzzling/website:build-assets
+FROM ${BUILD_ASSETS_IMAGE} AS previous-build-assets
 
 # Composer's download cache, so a cold `composer install` (base image rotated,
 # lock file changed) does not have to fetch ~170 dists from GitHub. Empty by
-# default; the Release workflow overrides it with the cache the Tests job just
-# filled for this very commit (`--build-context composer-cache=.composer-cache`)
+# default; the CI workflow's docker job overrides it with the Composer cache the
+# test jobs keep (`--build-context composer-cache=.composer-cache`)
 FROM scratch AS composer-cache
 
-FROM ghcr.io/myspeedpuzzling/web-base-php85:main
+FROM ghcr.io/myspeedpuzzling/web-base-php85:main AS app
 
 ENV APP_ENV="prod" \
     APP_DEBUG=0 \
@@ -70,18 +73,27 @@ RUN composer install --no-dev --no-interaction --classmap-authoritative
 # Brotli q11 is ~10-17% smaller than on-the-fly q5-6, with zero serving CPU overhead.
 # Scoped to the directories Caddy actually serves with `precompressed` -
 # siblings anywhere else are dead weight the file server never uses.
-RUN find public/build public/bundles public/css public/fonts public/img -type f \( -name '*.js' -o -name '*.css' -o -name '*.svg' \) \
-        -exec brotli -q 11 --keep {} \; \
-        -exec gzip -9 --keep {} \;
+# One compressor per CPU - file by file, this step took 10-16s of every build.
+RUN find public/build public/bundles public/css public/fonts public/img -type f \( -name '*.js' -o -name '*.css' -o -name '*.svg' \) -print0 > /tmp/precompress \
+    && xargs -0 -P "$(nproc)" -n 32 brotli -q 11 --keep < /tmp/precompress \
+    && xargs -0 -P "$(nproc)" -n 32 gzip -9 --keep < /tmp/precompress \
+    && rm /tmp/precompress
 
 # Carry recent releases' hashed build assets (incl. their precompressed
 # siblings, so they are not recompressed here) so HTML a browser loaded before
 # this release still resolves its assets - retention is by AGE, not by build
 # count, so a burst of deploys cannot evict a generation clients still hold
 # (see .docker/merge-previous-build.php)
-COPY --from=previous-release /app/public/build /tmp/previous-build
+COPY --from=previous-build-assets /build /tmp/previous-build
 RUN php .docker/merge-previous-build.php /tmp/previous-build public/build \
         && rm -rf /tmp/previous-build
 
 ARG APP_VERSION
 ENV SENTRY_RELEASE="${APP_VERSION}"
+
+# Just this image's merged /build (own assets + the carried ones), pushed as
+# ghcr.io/myspeedpuzzling/website:build-assets for the next build to carry
+# forward. The last stage, so the CI builds name their target: `app` for the
+# application image, `build-assets` for this one.
+FROM scratch AS build-assets
+COPY --from=app /app/public/build /build

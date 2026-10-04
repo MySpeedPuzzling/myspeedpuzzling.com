@@ -1,4 +1,4 @@
-name: Tests
+name: CI
 
 permissions:
     contents: read
@@ -212,3 +212,190 @@ jobs:
           -   run: bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
           -   run: bin/console doctrine:schema:update --dump-sql
           -   run: bin/console doctrine:schema:validate
+
+
+  # Main only, from here on. The production image builds WHILE the gates above
+  # run instead of after them, and is pushed as `sha-<commit>` only - `deploy`
+  # gives it the `main` tag (the one lily runs) once every gate is green, so a
+  # red commit never reaches production.
+  docker:
+      name: docker image
+      if: github.event_name == 'push'
+      runs-on: ubuntu-latest
+      permissions:
+          contents: read
+          packages: write
+      # One build at a time, in push order: each build carries the previous
+      # build's /build assets forward (see Dockerfile), so builds must not overlap
+      concurrency:
+          group: docker-build-main
+          cancel-in-progress: false
+      outputs:
+          image: ${{ steps.meta.outputs.tags }}
+      env:
+          BUILD_ASSETS_IMAGE: ghcr.io/myspeedpuzzling/website:build-assets
+      steps:
+          -   uses: actions/checkout@v7
+
+          -   name: Docker meta
+              id: meta
+              uses: docker/metadata-action@v6
+              with:
+                  images: ghcr.io/myspeedpuzzling/website
+                  tags: |
+                      type=sha
+
+          # Composer's download cache for the image build (as a named context, see
+          # Dockerfile), so a cold `composer install` fetches nothing from GitHub.
+          # Restore-only, same paths as the jobs above - the entry is versioned by
+          # its path list AND the compression tool, so `vendor` has to ride along
+          # and the job containers must have zstd like this runner does
+          # (web-base-php85 ships it since 2026-08-18). The jobs above run at the
+          # same time, so after a composer.lock change this falls back to the
+          # previous entry - only the changed packages are downloaded.
+          -   name: Restore Composer download cache
+              uses: actions/cache/restore@v6
+              with:
+                  path: |
+                      vendor
+                      .composer-cache
+                  key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-composer-
+
+          # A missing cache must not break the build - an empty context is fine
+          -   name: Ensure the Composer cache context exists
+              run: mkdir -p .composer-cache
+
+          -   name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v4
+              with:
+                  # The runner is thrown away after the job; removing the builder
+                  # only added 10-20s at the end of every build
+                  cleanup: false
+
+          -   name: Login to GHCR
+              uses: docker/login-action@v4
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.repository_owner }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+          # Self-healing: when the build-assets image is missing (first run, or
+          # deleted), take the assets of the image production runs
+          -   name: Seed the build-assets image
+              run: |
+                  if ! docker buildx imagetools inspect "$BUILD_ASSETS_IMAGE" > /dev/null 2>&1; then
+                      printf 'FROM ghcr.io/myspeedpuzzling/website:main AS release\nFROM scratch\nCOPY --from=release /app/public/build /build\n' \
+                          | docker buildx build --push --tag "$BUILD_ASSETS_IMAGE" -
+                  fi
+
+          -   name: Build and push
+              uses: docker/build-push-action@v7
+              with:
+                  context: .
+                  target: app
+                  push: true
+                  tags: ${{ steps.meta.outputs.tags }}
+                  labels: ${{ steps.meta.outputs.labels }}
+                  cache-from: type=registry,ref=ghcr.io/myspeedpuzzling/website:buildcache
+                  cache-to: type=registry,ref=ghcr.io/myspeedpuzzling/website:buildcache,mode=max
+                  build-args: |
+                      APP_VERSION=${{ github.sha }}
+                      BUILD_ASSETS_IMAGE=${{ env.BUILD_ASSETS_IMAGE }}
+                  build-contexts: |
+                      composer-cache=.composer-cache
+                  secrets: |
+                      github_token=${{ secrets.GITHUB_TOKEN }}
+
+          # Same inputs as above, so every stage comes from the builder's cache and
+          # only the tiny /build image is exported
+          -   name: Push the build assets for the next build
+              uses: docker/build-push-action@v7
+              with:
+                  context: .
+                  target: build-assets
+                  push: true
+                  tags: ${{ env.BUILD_ASSETS_IMAGE }}
+                  cache-from: type=registry,ref=ghcr.io/myspeedpuzzling/website:buildcache
+                  build-args: |
+                      APP_VERSION=${{ github.sha }}
+                      BUILD_ASSETS_IMAGE=${{ env.BUILD_ASSETS_IMAGE }}
+                  build-contexts: |
+                      composer-cache=.composer-cache
+                  secrets: |
+                      github_token=${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+      if: github.event_name == 'push'
+      # coding-standards stays advisory (continue-on-error), as before
+      needs:
+          - tests
+          - phpstan
+          - migrations-up-to-date
+          - docker
+      runs-on: ubuntu-latest
+      permissions:
+          contents: read
+          packages: write
+          deployments: write
+      concurrency:
+          group: deploy-prod
+          cancel-in-progress: false
+      environment:
+          name: prod
+          url: https://myspeedpuzzling.com
+      steps:
+          -   name: Checkout
+              uses: actions/checkout@v7
+
+          -   name: Login to GHCR
+              uses: docker/login-action@v4
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.repository_owner }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+          # Pipelines of quick successive pushes can finish out of order - never
+          # roll production back to an older commit. Anything unexpected (no label,
+          # unknown commit) deploys, like before.
+          -   name: Skip when production already runs a newer commit
+              id: guard
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  live="$(docker buildx imagetools inspect ghcr.io/myspeedpuzzling/website:main --format '{{ index .Image.Config.Labels "org.opencontainers.image.revision" }}' || true)"
+                  status="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${live}...${GITHUB_SHA}" --jq .status || true)"
+                  echo "Production runs ${live:-unknown}, this commit is ${status:-unknown} relative to it"
+                  if [ "$status" = "behind" ]; then
+                      echo "::notice::Production already runs ${live}, a newer commit - not deploying ${GITHUB_SHA}"
+                      echo "deploy=false" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "deploy=true" >> "$GITHUB_OUTPUT"
+                  fi
+
+          -   name: Tag the image as main
+              if: steps.guard.outputs.deploy == 'true'
+              run: docker buildx imagetools create --tag ghcr.io/myspeedpuzzling/website:main "${{ needs.docker.outputs.image }}"
+
+          -   name: Trigger lily deploy (HMAC webhook)
+              if: steps.guard.outputs.deploy == 'true'
+              env:
+                  SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+              run: |
+                  BODY='{"app":"myspeedpuzzling","tag":"main"}'
+                  SIG="$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$SECRET" | sed 's/^.* //')"
+                  curl -fsS -X POST https://deploy.lily.srv.thedevs.cz/hooks/myspeedpuzzling \
+                    -H 'Content-Type: application/json' \
+                    -H "X-Hub-Signature-256: sha256=$SIG" \
+                    --data-raw "$BODY"
+
+          -   name: Create Sentry release
+              if: steps.guard.outputs.deploy == 'true'
+              uses: getsentry/action-release@v3
+              env:
+                  SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN }}"
+                  SENTRY_ORG: speedpuzzling
+              with:
+                  environment: prod
+                  projects: web

@@ -4,25 +4,27 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
-use SpeedPuzzling\Web\FormData\ReviewPuzzleChangeRequestFormData;
+use SpeedPuzzling\Web\FormData\PuzzleRecordFormData;
 use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Value\PuzzleBoxPhoto;
-use SpeedPuzzling\Web\Value\PuzzleChangeRequestImageChoice;
+use SpeedPuzzling\Web\Value\PuzzleImageChoice;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * Admin review of a puzzle change request - labels and help live in the template (English-only admin).
+ * A puzzle's whole catalogue record: the review of a change request and a moderator's direct edit.
+ * Labels and help live in the template (English-only admin).
  *
- * @extends AbstractType<ReviewPuzzleChangeRequestFormData>
+ * @extends AbstractType<PuzzleRecordFormData>
  */
-final class ReviewPuzzleChangeRequestFormType extends AbstractType
+final class PuzzleRecordFormType extends AbstractType
 {
     public function __construct(
         private readonly GetManufacturers $getManufacturers,
@@ -70,15 +72,21 @@ final class ReviewPuzzleChangeRequestFormType extends AbstractType
             ->add('puzzlePhoto', FileType::class, [
                 'required' => false,
                 'constraints' => [PuzzleBoxPhoto::constraint()],
+            ])
+            ->add('note', TextareaType::class, [
+                'required' => false,
+                'attr' => [
+                    'rows' => 2,
+                ],
             ]);
 
         // Without a proposed image there is nothing to choose - the current one stays unless a photo is uploaded
         if ($options['has_proposed_image']) {
             $builder->add('image', EnumType::class, [
-                'class' => PuzzleChangeRequestImageChoice::class,
-                'choices' => [PuzzleChangeRequestImageChoice::Keep, PuzzleChangeRequestImageChoice::Proposed],
-                'choice_label' => static fn (PuzzleChangeRequestImageChoice $choice): string => match ($choice) {
-                    PuzzleChangeRequestImageChoice::Proposed => 'Proposed by the player',
+                'class' => PuzzleImageChoice::class,
+                'choices' => [PuzzleImageChoice::Keep, PuzzleImageChoice::Proposed],
+                'choice_label' => static fn (PuzzleImageChoice $choice): string => match ($choice) {
+                    PuzzleImageChoice::Proposed => 'Proposed by the player',
                     default => 'Keep current',
                 },
                 'expanded' => true,
@@ -89,7 +97,7 @@ final class ReviewPuzzleChangeRequestFormType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'data_class' => ReviewPuzzleChangeRequestFormData::class,
+            'data_class' => PuzzleRecordFormData::class,
             'translation_domain' => false,
             'has_proposed_image' => false,
         ]);

@@ -7,15 +7,14 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
-use SpeedPuzzling\Web\FormData\ReviewPuzzleChangeRequestFormData;
-use SpeedPuzzling\Web\FormType\ReviewPuzzleChangeRequestFormType;
+use SpeedPuzzling\Web\FormData\PuzzleRecordFormData;
+use SpeedPuzzling\Web\FormType\PuzzleRecordFormType;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
-use SpeedPuzzling\Web\Value\ReviewedPuzzleValues;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -62,8 +61,8 @@ final class PuzzleChangeRequestDetailController extends AbstractController
         }
 
         $form = $this->createForm(
-            ReviewPuzzleChangeRequestFormType::class,
-            ReviewPuzzleChangeRequestFormData::prefilled($changeRequest),
+            PuzzleRecordFormType::class,
+            PuzzleRecordFormData::fromChangeRequest($changeRequest),
             ['has_proposed_image' => $changeRequest->hasImageChange()],
         );
 
@@ -76,22 +75,12 @@ final class PuzzleChangeRequestDetailController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
 
-            assert($data->name !== null && $data->piecesCount !== null);
-
             try {
                 $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
                     changeRequestId: $id,
                     reviewerId: $player->playerId,
-                    reviewed: new ReviewedPuzzleValues(
-                        name: $data->name,
-                        alternativeName: $data->alternativeName,
-                        manufacturerId: $data->manufacturerId,
-                        piecesCount: $data->piecesCount,
-                        ean: $data->ean,
-                        identificationNumber: $data->identificationNumber,
-                        image: $data->imageChoice(),
-                        uploadedImage: $data->puzzlePhoto,
-                    ),
+                    reviewed: $data->toValues(),
+                    decisionNote: $data->note,
                 ));
             } catch (PuzzleChangeRequestAlreadyReviewed) {
                 $this->formPhotoStash->forget($restoredPhotos, $player->playerId);

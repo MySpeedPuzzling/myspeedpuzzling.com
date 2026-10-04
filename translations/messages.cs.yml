@@ -1113,6 +1113,10 @@ comparison:
 "puzzle_detail":
   "details": "Podrobnosti"
   "more_actions": "Další akce"
+  "moderation":
+    "heading": "Moderování"
+    "edit": "Upravit puzzle"
+    "history": "Historie úprav"
   "meta":
     "title": "%brand% %name% – puzzle %pieces% dílků"
     "ean": ", EAN %ean%"

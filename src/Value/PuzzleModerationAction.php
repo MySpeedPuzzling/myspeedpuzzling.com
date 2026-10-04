@@ -18,4 +18,6 @@ enum PuzzleModerationAction: string
     case BrandApproved = 'brand_approved';
     case BrandMerged = 'brand_merged';
     case BrandDeleted = 'brand_deleted';
+    // A moderator changed the puzzle directly, without a change request
+    case PuzzleEdited = 'puzzle_edited';
 }

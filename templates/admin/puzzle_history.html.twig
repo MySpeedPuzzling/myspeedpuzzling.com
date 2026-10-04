@@ -1,0 +1,221 @@
+{% extends 'base.html.twig' %}
+
+{% import 'admin/_puzzle_macros.html.twig' as macros %}
+
+{% block title %}History - {{ puzzle_name ?? 'Puzzle' }}{% endblock %}
+
+{#
+    Read only: every line comes from the append-only decision log (GetPuzzleHistory) - nothing here can be changed.
+#}
+{% set kinds = {
+    edited: {title: 'Edited directly', verb: 'Edited by', icon: 'bi-pencil-square', color: 'text-accent'},
+    change_request_approved: {title: 'Change request approved', verb: 'Approved by', icon: 'bi-check-circle', color: 'text-success'},
+    change_request_rejected: {title: 'Change request rejected', verb: 'Rejected by', icon: 'bi-x-circle', color: 'text-danger'},
+    ean_linked: {title: 'EAN added from a barcode scan', verb: 'Scanned by', icon: 'bi-upc-scan', color: 'text-success'},
+    merge_approved: {title: 'Duplicates merged into this puzzle', verb: 'Merged by', icon: 'bi-union', color: 'text-success'},
+    merged_away: {title: 'Merged into another puzzle', verb: 'Merged by', icon: 'bi-box-arrow-right', color: 'text-muted'},
+    merge_rejected: {title: 'Merge request rejected', verb: 'Rejected by', icon: 'bi-x-circle', color: 'text-danger'},
+    approved: {title: 'Approved', verb: 'Approved by', icon: 'bi-patch-check', color: 'text-success'},
+    brand_approved: {title: 'Brand approved', verb: 'Approved by', icon: 'bi-tag', color: 'text-success'},
+    brand_merged: {title: 'Brand merged', verb: 'Merged by', icon: 'bi-tags', color: 'text-muted'},
+} %}
+{% set brand_choices = {
+    keep: 'Brand kept as it was',
+    approve: 'Its new brand approved too',
+    use_existing: 'Moved to an existing brand',
+    merge_into: 'Its new brand merged into an existing one',
+} %}
+
+{% block content %}
+    {% include '_return_back_button.html.twig' with {
+        fallbackUrl: puzzle is not null ? path('puzzle_detail', {puzzleId: puzzle_id}) : path('admin_puzzle_merge_requests'),
+        fallbackTitle: puzzle is not null ? puzzle.name : 'Merge requests',
+    } %}
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                <h1 class="h4 mb-0">Puzzle history</h1>
+                {% if puzzle is not null %}
+                    <a class="btn btn-outline-primary btn-sm" href="{{ path('admin_edit_puzzle', {puzzleId: puzzle_id, return: app.request.requestUri, return_title: 'History'}) }}">
+                        <i class="bi bi-pencil me-1"></i> Edit
+                    </a>
+                {% endif %}
+            </div>
+
+            <div class="d-flex align-items-center gap-3 mb-3 p-2 p-md-3 bg-light rounded">
+                {% if puzzle is not null and puzzle.image %}
+                    <img src="{{ puzzle.image|puzzle_image('puzzle_small') }}"
+                         alt="{{ puzzle.name }}"
+                         class="rounded flex-shrink-0"
+                         style="max-height: 64px; max-width: 90px;">
+                {% endif %}
+                <div class="min-w-0">
+                    {% if puzzle is not null %}
+                        <h2 class="h6 mb-1 text-break">
+                            <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}" target="_blank">{{ puzzle.name }}</a>
+                            {% if not puzzle.approved %}
+                                <span class="badge bg-warning text-dark ms-1">Not approved yet</span>
+                            {% endif %}
+                        </h2>
+                        <p class="mb-0 text-muted small text-break">
+                            {{ puzzle.manufacturerName ?? 'No brand' }} &bull; {{ puzzle.piecesCount }} pieces
+                            {% if puzzle.ean %}&bull; EAN {{ puzzle.ean }}{% endif %}
+                            {% if puzzle.identificationNumber %}&bull; {{ puzzle.identificationNumber }}{% endif %}
+                        </p>
+                    {% else %}
+                        <h2 class="h6 mb-1 text-break">{{ puzzle_name ?? 'Unknown puzzle' }}</h2>
+                        <p class="mb-0 text-muted small">This puzzle no longer exists - its history stays.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <p class="small text-muted mb-3">
+                <i class="bi bi-lock me-1"></i>
+                Read only - every line is taken from the moderation log, which is never edited. Newest first.
+            </p>
+
+            {% for entry in entries %}
+                {% set kind = kinds[entry.kind.value] %}
+                <article class="border rounded-3 p-3 mb-3 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                        <h3 class="h6 mb-0">
+                            <i class="bi {{ kind.icon }} {{ kind.color }} me-1" aria-hidden="true"></i>
+                            {{ kind.title }}
+                            {% if entry.viaInternalApi %}
+                                <span class="badge bg-secondary text-dark ms-1">internal API</span>
+                            {% endif %}
+                        </h3>
+                        <time class="small text-muted text-nowrap" datetime="{{ entry.at|date('c') }}" title="{{ entry.at|date('Y-m-d H:i:s') }} UTC">
+                            {{ entry.at|date('j M Y, H:i') }}
+                        </time>
+                    </div>
+
+                    <div class="small mb-2">
+                        {{ kind.verb }} {{ macros.player(entry.byId, entry.byName, entry.byCode) }}
+                        {% if entry.proposedById is not null or entry.proposedByName is not null %}
+                            {% if entry.proposedById != entry.byId %}
+                                &bull; proposed by {{ macros.player(entry.proposedById, entry.proposedByName, entry.proposedByCode) }}
+                            {% endif %}
+                        {% endif %}
+                        {% if entry.changeRequestId is not null and entry.proposedById is not null %}
+                            &bull; <a href="{{ path('admin_puzzle_change_request_detail', {id: entry.changeRequestId}) }}">change request</a>
+                        {% endif %}
+                        {% if entry.mergeRequestId is not null %}
+                            &bull; <a href="{{ path('admin_puzzle_merge_request_detail', {id: entry.mergeRequestId}) }}">merge request</a>
+                        {% endif %}
+                    </div>
+
+                    {% if entry.note %}
+                        <div class="small border-start border-3 ps-2 mb-2 text-break" style="white-space: pre-line;"><span class="text-muted">{{ entry.kind.value in ['change_request_rejected', 'merge_rejected'] ? 'Reason' : 'Note' }}:</span> {{ entry.note }}</div>
+                    {% endif %}
+
+                    {% if entry.brandName is not null %}
+                        <p class="small mb-2">
+                            {% if entry.kind.value == 'brand_merged' %}
+                                <strong>{{ entry.brandName }}</strong> merged into <strong>{{ entry.intoBrandName ?? '?' }}</strong>
+                                {% if entry.movedRecords.puzzles is defined %}&bull; {{ entry.movedRecords.puzzles }} puzzles moved{% endif %}
+                            {% else %}
+                                <strong>{{ entry.brandName }}</strong>
+                            {% endif %}
+                        </p>
+                    {% endif %}
+
+                    {% if entry.brandChoice is not null and brand_choices[entry.brandChoice] is defined %}
+                        <p class="small text-muted mb-2">{{ brand_choices[entry.brandChoice] }}</p>
+                    {% endif %}
+
+                    {% if entry.puzzles is not empty %}
+                        <div class="small mb-2">
+                            <div class="text-muted">
+                                {% if entry.kind.value == 'merged_away' %}Merged into{% elseif entry.kind.value == 'merge_rejected' %}Reported as a duplicate of{% else %}Merged in and deleted{% endif %}
+                            </div>
+                            <ul class="list-unstyled mb-0">
+                                {% for other in entry.puzzles %}
+                                    <li class="text-break">
+                                        <a href="{{ path('admin_puzzle_history', {puzzleId: other.puzzleId}) }}">{{ other.name ?? ('Puzzle ' ~ other.puzzleId|slice(0, 8) ~ '…') }}</a>
+                                        {% if other.description %}<span class="text-muted">- {{ other.description }}</span>{% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if entry.changes is not empty %}
+                        <div class="table-responsive gallery">
+                            <table class="table table-sm small align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="text-muted fw-normal">Field</th>
+                                        <th scope="col" class="text-muted fw-normal">Before</th>
+                                        <th scope="col" class="text-muted fw-normal">After</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for change in entry.changes %}
+                                        <tr>
+                                            <th scope="row" class="fw-semibold text-nowrap">{{ change.label }}</th>
+                                            {% if change.image %}
+                                                <td style="width: 40%;">{{ macros.thumbnail(change.before, 'Before', 80) }}</td>
+                                                <td style="width: 40%;">{{ macros.thumbnail(change.after, 'After', 80) }}</td>
+                                            {% else %}
+                                                <td class="text-break text-muted">{{ macros.shown(change.before) }}</td>
+                                                <td class="text-break fw-semibold">{{ macros.shown(change.after) }}</td>
+                                            {% endif %}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% elseif entry.kind.value in ['edited', 'merge_approved', 'change_request_approved'] and entry.proposal is empty %}
+                        <p class="small text-muted mb-0">No field of this puzzle changed.</p>
+                    {% endif %}
+
+                    {% if entry.proposal is not empty %}
+                        <div class="small">
+                            <div class="text-muted">
+                                Proposed{% if entry.kind.value == 'change_request_approved' %} - {{ entry.appliedFields is not null
+                                    ? (entry.appliedFields is empty ? 'none of it applied' : 'applied: ' ~ entry.appliedFields|join(', '))
+                                    : 'what exactly was applied was not recorded back then' }}{% endif %}
+                            </div>
+                            <ul class="mb-0 ps-3">
+                                {% for change in entry.proposal %}
+                                    <li class="text-break">
+                                        {{ change.label }}: <strong>{{ macros.shown(change.after) }}</strong>
+                                        {% if change.before is not null %}<span class="text-muted">(was {{ change.before }})</span>{% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if entry.movedRecords is not empty and entry.kind.value == 'merge_approved' %}
+                        <p class="small text-muted mt-2 mb-0">
+                            Moved onto this puzzle:
+                            {% for label, count in entry.movedRecords %}{{ count }} {{ label }}{{ not loop.last ? ', ' }}{% endfor %}
+                        </p>
+                    {% endif %}
+                </article>
+            {% endfor %}
+
+            {% if puzzle is not null and puzzle.addedAt is not null %}
+                <article class="border rounded-3 p-3 mb-3 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                        <h3 class="h6 mb-0">
+                            <i class="bi bi-plus-circle text-muted me-1" aria-hidden="true"></i>
+                            Added
+                        </h3>
+                        <time class="small text-muted text-nowrap" datetime="{{ puzzle.addedAt|date('c') }}" title="{{ puzzle.addedAt|date('Y-m-d H:i:s') }} UTC">
+                            {{ puzzle.addedAt|date('j M Y, H:i') }}
+                        </time>
+                    </div>
+                    {% if puzzle.addedById is not null %}
+                        <div class="small">Added by {{ macros.player(puzzle.addedById, puzzle.addedByName, puzzle.addedByCode) }}</div>
+                    {% endif %}
+                </article>
+            {% elseif entries is empty %}
+                <p class="text-muted">Nothing recorded for this puzzle yet.</p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

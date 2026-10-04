@@ -60,7 +60,8 @@ final class PuzzleMergeRequestDetailController extends AbstractController
             'request' => $request,
             'puzzles' => $puzzles,
             'merged_data' => $mergedData,
-            'manufacturers' => $this->getManufacturers->onlyApprovedOrAddedByPlayer(),
+            // Every brand, approved or not - a reported puzzle's own brand may be unapproved
+            'manufacturers' => $this->getManufacturers->allIncludingUnapproved(),
         ]);
     }
 
@@ -75,6 +76,7 @@ final class PuzzleMergeRequestDetailController extends AbstractController
         $pieceCounts = [];
         $images = [];
         $manufacturers = [];
+        $names = [];
 
         // First pass: find the survivor puzzle (the one with most solving times)
         $survivorPuzzle = null;
@@ -100,10 +102,12 @@ final class PuzzleMergeRequestDetailController extends AbstractController
                 $images[$puzzle->puzzleId] = $puzzle->puzzleImage;
             }
             $manufacturers[$puzzle->manufacturerId] = $puzzle->manufacturerName;
+            $names[$puzzle->puzzleName] = $puzzle->puzzleName;
         }
 
         return [
             'name' => $survivorPuzzle !== null ? $survivorPuzzle->puzzleName : '',
+            'names' => array_values($names),
             'ean' => implode(', ', array_unique($eans)),
             'identification_number' => implode(', ', array_unique($identificationNumbers)),
             'pieces_counts' => array_values($pieceCounts),
@@ -112,6 +116,27 @@ final class PuzzleMergeRequestDetailController extends AbstractController
             'manufacturers' => $manufacturers,
             'manufacturer_id' => $survivorPuzzle?->manufacturerId,
             'survivor_puzzle_id' => $survivorPuzzle?->puzzleId,
+            'total_solved_times' => array_sum(array_map(static fn (PuzzleOverview $puzzle): int => $puzzle->solvedTimes, $puzzles)),
+            // What the review page highlights as different between the reported puzzles
+            'differs' => [
+                'name' => self::differs($puzzles, static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleName),
+                'brand' => self::differs($puzzles, static fn (PuzzleOverview $puzzle): string => $puzzle->manufacturerId),
+                'pieces' => self::differs($puzzles, static fn (PuzzleOverview $puzzle): int => $puzzle->piecesCount),
+                'ean' => self::differs($puzzles, static fn (PuzzleOverview $puzzle): null|string => $puzzle->puzzleEan),
+                'code' => self::differs($puzzles, static fn (PuzzleOverview $puzzle): null|string => $puzzle->puzzleIdentificationNumber),
+            ],
         ];
+    }
+
+    /**
+     * @param array<PuzzleOverview> $puzzles
+     * @param callable(PuzzleOverview): (null|string|int) $value
+     */
+    private static function differs(array $puzzles, callable $value): bool
+    {
+        return count(array_unique(array_map(
+            static fn (PuzzleOverview $puzzle): string => (string) $value($puzzle),
+            $puzzles,
+        ))) > 1;
     }
 }

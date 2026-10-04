@@ -10,10 +10,10 @@ use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 /**
- * Reviewing the puzzle catalogue - change requests, merge requests and the
- * approval of newly added puzzles: admins, plus the community moderators an
- * admin appointed (player.moderator_since). It is the only part of /admin a
- * moderator reaches - everything else stays ADMIN_ACCESS.
+ * Looking after the puzzle catalogue - change requests, merge requests, the
+ * approval of newly added puzzles, a puzzle's direct edit and its history: admins,
+ * plus the community moderators an admin appointed (player.moderator_since). It is
+ * the only part of /admin a moderator reaches - everything else stays ADMIN_ACCESS.
  *
  * The attribute names the capability, not the role, so another area opened to
  * moderators later gets its own attribute rather than widening this one.

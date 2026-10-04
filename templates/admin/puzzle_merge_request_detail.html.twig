@@ -1,40 +1,60 @@
 {% extends 'base.html.twig' %}
 
+{% import 'admin/_puzzle_macros.html.twig' as macros %}
+
 {% block title %}Merge Request - {{ request.sourcePuzzleName }}{% endblock %}
 
+{#
+    The review of a merge request: the reported puzzles side by side (what differs is marked), which one keeps its
+    address (merge_review_controller.js), and the merged puzzle's fields with one-click choices from the reported ones.
+    No card around it all - on a phone the puzzle and field cards are enough.
+#}
 {% block content %}
     {% include '_return_back_button.html.twig' with {fallbackUrl: path('admin_puzzle_merge_requests'), fallbackTitle: 'Merge requests'} %}
 
-    <div class="card shadow mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center gap-2 px-3 px-md-4">
-            <h1 class="h4 mb-0">Merge Request</h1>
-            {% if request.status.value == 'pending' %}
-                <span class="badge bg-warning text-dark">Pending</span>
-            {% elseif request.status.value == 'approved' %}
-                <span class="badge bg-success">Approved</span>
-            {% else %}
-                <span class="badge bg-danger">Rejected</span>
-            {% endif %}
-        </div>
+    {% set pending = request.status.value == 'pending' %}
+    {% set differs = merged_data.differs %}
+    {% set total_times = merged_data.total_solved_times %}
+    {% set survivor_id = merged_data.survivor_puzzle_id %}
 
-        <div class="card-body px-3 px-md-4">
-            {# Reporter info #}
-            <div class="mb-4 text-break">
-                <strong>Reported by:</strong>
-                <a href="{{ path('player_profile', {playerId: request.reporterId}) }}" target="_blank">
-                    {{ request.reporterName ?? ('#' ~ request.reporterCode) }}
-                </a>
-                {% if request.reporterName and request.reporterCode %}
-                    <span class="text-muted">#{{ request.reporterCode }}</span>
+    <div class="row">
+        <div class="col-xl-10 mb-4">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                <h1 class="h4 mb-0">Merge Request</h1>
+                {% if pending %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                {% elseif request.status.value == 'approved' %}
+                    <span class="badge bg-success">Approved</span>
+                {% else %}
+                    <span class="badge bg-danger">Rejected</span>
                 {% endif %}
-                <span class="text-muted">&bull; {{ request.submittedAt|ago }}</span>
             </div>
 
-            {# Rejection reason if rejected #}
+            <p class="small text-muted mb-3 text-break">
+                Reported by
+                {% if request.reporterId %}
+                    {{ macros.player(request.reporterId, request.reporterName, request.reporterCode) }}
+                {% else %}
+                    <span class="fst-italic">a deleted account</span>
+                {% endif %}
+                &bull; {{ request.submittedAt|ago }}
+            </p>
+
             {% if request.status.value == 'rejected' and request.rejectionReason %}
                 <div class="alert alert-danger text-break">
-                    <strong>Rejection Reason:</strong><br>
+                    <strong>Rejection reason:</strong><br>
                     {{ request.rejectionReason }}
+                </div>
+            {% endif %}
+
+            {% if request.reviewedAt %}
+                <div class="p-2 p-md-3 mb-3 bg-light rounded small text-break">
+                    Reviewed {{ request.reviewedAt|ago }}{% if request.reviewerName %} by {{ request.reviewerName }}{% endif %}.
+                    {% if request.finalMergedPuzzleId %}
+                        The merged puzzle:
+                        <a href="{{ path('puzzle_detail', {puzzleId: request.finalMergedPuzzleId}) }}" target="_blank">{{ request.survivorPuzzleName ?? 'view' }}</a>
+                        &bull; <a href="{{ path('admin_puzzle_history', {puzzleId: request.finalMergedPuzzleId}) }}">History</a>
+                    {% endif %}
                 </div>
             {% endif %}
 
@@ -43,173 +63,200 @@
                     All reported puzzles have been deleted.
                 </div>
             {% else %}
-                {# Puzzles grid #}
-                <h5 class="mb-3">Reported Duplicate Puzzles ({{ puzzles|length }})</h5>
-                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-4">
+                {% if pending %}
+                    <form action="{{ path('admin_approve_puzzle_merge_request', {id: request.id}) }}"
+                          method="post"
+                          data-controller="merge-review"
+                          data-action="input->merge-review#refreshChoices change->merge-review#refreshChoices">
+                    {% set mergeReturnUrl = safe_return_url(app.request.query.get('return'), null) %}
+                    {% if mergeReturnUrl %}
+                        <input type="hidden" name="return" value="{{ mergeReturnUrl }}">
+                    {% endif %}
+
+                    <p class="small text-muted mb-3">
+                        These puzzles were reported as one and the same. Approving keeps one of them - its address and
+                        everything recorded on it - with the details you set below, deletes the others and moves their
+                        solving times, collections, wish lists, offers and lendings onto it. Nothing is lost.
+                    </p>
+                {% endif %}
+
+                <h2 class="h5 mb-3">Reported puzzles ({{ puzzles|length }})</h2>
+
+                {# What differs between the puzzles is highlighted #}
+                {% set differs_class = 'bg-warning bg-opacity-25 rounded px-1' %}
+                <div class="row g-3 mb-4 gallery">
                     {% for puzzle in puzzles %}
-                        <div class="col">
-                            <div class="card shadow h-100 border-primary">
-                                {% if puzzle.puzzleImage %}
-                                    <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}"
-                                         class="card-img-top bg-light"
-                                         alt="{{ puzzle.puzzleName }}"
-                                         style="height: 180px; object-fit: contain;">
-                                {% else %}
-                                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center"
-                                         style="height: 150px;">
-                                        <i class="bi bi-puzzle text-muted" style="font-size: 3rem;"></i>
+                        {% set is_survivor = pending and puzzle.puzzleId == survivor_id %}
+                        <div class="col-12 col-md-6 {{ puzzles|length > 2 ? 'col-xl-4' }}">
+                            <div class="border rounded-3 p-3 h-100 shadow-sm {{ is_survivor ? 'border-2 border-success' }}"
+                                 {% if pending %}data-merge-review-target="card" data-puzzle-id="{{ puzzle.puzzleId }}"{% endif %}>
+                                {% if pending %}
+                                    <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                                        <div class="form-check mb-0">
+                                            <input class="form-check-input"
+                                                   type="radio"
+                                                   name="survivor_puzzle_id"
+                                                   id="survivor_{{ puzzle.puzzleId }}"
+                                                   value="{{ puzzle.puzzleId }}"
+                                                   data-action="change->merge-review#survivorChanged"
+                                                   {{ is_survivor ? 'checked' }}>
+                                            <label class="form-check-label fw-semibold" for="survivor_{{ puzzle.puzzleId }}">Keep this one</label>
+                                        </div>
+                                        <span class="badge bg-success {{ is_survivor ? '' : 'd-none' }}" data-role="survivor-badge">Keeps its address</span>
                                     </div>
                                 {% endif %}
-                                <div class="card-body">
-                                    <h6 class="card-title text-break">
-                                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" target="_blank">
-                                            {{ puzzle.puzzleName }}
-                                        </a>
-                                    </h6>
-                                    <ul class="list-unstyled small text-muted mb-0">
-                                        <li><strong>Manufacturer:</strong> {{ puzzle.manufacturerName|default('Not set') }}</li>
-                                        <li><strong>Pieces:</strong> {{ puzzle.piecesCount }}</li>
-                                        <li><strong>EAN:</strong> {{ puzzle.puzzleEan|default('Not set') }}</li>
-                                        <li><strong>Brand Code:</strong> {{ puzzle.puzzleIdentificationNumber|default('Not set') }}</li>
-                                        <li><strong>Solving Times:</strong> {{ puzzle.solvedTimes }}</li>
-                                    </ul>
-                                </div>
+
+                                {{ macros.thumbnail(puzzle.puzzleImage, puzzle.puzzleName, 160) }}
+
+                                <h3 class="h6 mt-2 mb-1 text-break">
+                                    <a class="{{ differs.name ? differs_class }}" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" target="_blank">{{ puzzle.puzzleName }}</a>
+                                </h3>
+                                {% if puzzle.puzzleAlternativeName %}
+                                    <div class="small text-muted text-break mb-1">{{ puzzle.puzzleAlternativeName }}</div>
+                                {% endif %}
+
+                                <dl class="row small mb-2">
+                                    <dt class="col-5 fw-normal text-muted">Brand</dt>
+                                    <dd class="col-7 text-break mb-1"><span class="{{ differs.brand ? differs_class }}">{{ puzzle.manufacturerName }}</span></dd>
+                                    <dt class="col-5 fw-normal text-muted">Pieces</dt>
+                                    <dd class="col-7 mb-1"><span class="{{ differs.pieces ? differs_class }}">{{ puzzle.piecesCount }}</span></dd>
+                                    <dt class="col-5 fw-normal text-muted">EAN</dt>
+                                    <dd class="col-7 text-break mb-1"><span class="{{ differs.ean ? differs_class }}">{{ macros.shown(puzzle.puzzleEan) }}</span></dd>
+                                    <dt class="col-5 fw-normal text-muted">Brand code</dt>
+                                    <dd class="col-7 text-break mb-1"><span class="{{ differs.code ? differs_class }}">{{ macros.shown(puzzle.puzzleIdentificationNumber) }}</span></dd>
+                                    <dt class="col-5 fw-normal text-muted">Solving times</dt>
+                                    <dd class="col-7 mb-0">{{ puzzle.solvedTimes }}</dd>
+                                </dl>
+
+                                <a class="small" href="{{ path('admin_puzzle_history', {puzzleId: puzzle.puzzleId}) }}">
+                                    <i class="bi bi-clock-history me-1"></i>History
+                                </a>
                             </div>
                         </div>
                     {% endfor %}
                 </div>
 
-                {% if request.status.value == 'pending' %}
-                    {# Merge form #}
-                    <hr class="my-4">
-                    <h5 class="mb-3">Merge Configuration</h5>
-
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>
-                        All puzzles will be merged together and all solving times will be preserved. Nothing will be lost!
-                    </div>
-
-                    <p class="text-muted small mb-4">
-                        Configure the merged puzzle data below. Values are auto-filled from the reported puzzles.
-                        The puzzle with the most solving times will automatically become the survivor (keeping the id and URL address).
+                {% if pending %}
+                    <h2 class="h5 mb-2">The merged puzzle</h2>
+                    <p class="small text-muted mb-3">
+                        Prefilled from the puzzle with the most solving times, EAN and brand code from all of them.
+                        {% if differs.name or differs.brand or differs.pieces %}Where the puzzles differ, pick a value in one click.{% endif %}
                     </p>
 
-                    <form action="{{ path('admin_approve_puzzle_merge_request', {id: request.id}) }}"
-                          method="post">
-                        {% set mergeReturnUrl = safe_return_url(app.request.query.get('return'), null) %}
-                        {% if mergeReturnUrl %}
-                            <input type="hidden" name="return" value="{{ mergeReturnUrl }}">
-                        {% endif %}
-                        <div class="row">
-                            <div class="col-12 col-lg-8">
-                                <div class="mb-3">
-                                    <label for="merged_name" class="form-label">Name</label>
-                                    <input type="text"
-                                           class="form-control"
-                                           id="merged_name"
-                                           name="merged_name"
-                                           value="{{ merged_data.name }}"
-                                           required>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="merged_ean" class="form-label">EAN (comma-separated)</label>
-                                    <input type="text"
-                                           class="form-control"
-                                           id="merged_ean"
-                                           name="merged_ean"
-                                           value="{{ merged_data.ean }}">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="merged_identification_number" class="form-label">Brand Code (comma-separated)</label>
-                                    <input type="text"
-                                           class="form-control"
-                                           id="merged_identification_number"
-                                           name="merged_identification_number"
-                                           value="{{ merged_data.identification_number }}">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="merged_pieces_count" class="form-label">Pieces Count</label>
-                                    {% if merged_data.pieces_counts|length == 1 %}
-                                        <input type="number"
-                                               class="form-control"
-                                               id="merged_pieces_count"
-                                               name="merged_pieces_count"
-                                               value="{{ merged_data.pieces_count }}"
-                                               required>
-                                    {% else %}
-                                        <select class="form-select"
-                                                id="merged_pieces_count"
-                                                name="merged_pieces_count"
-                                                required>
-                                            {% for count in merged_data.pieces_counts %}
-                                                <option value="{{ count }}" {{ count == merged_data.pieces_count ? 'selected' : '' }}>{{ count }} pieces</option>
-                                            {% endfor %}
-                                        </select>
-                                        <small class="text-warning">Puzzles have different piece counts!</small>
-                                    {% endif %}
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="merged_manufacturer_id" class="form-label">Manufacturer</label>
-                                    <select class="form-select"
-                                            id="merged_manufacturer_id"
-                                            name="merged_manufacturer_id">
-                                        <option value="">-- Select --</option>
-                                        {% for manufacturer in manufacturers %}
-                                            <option value="{{ manufacturer.manufacturerId }}"
-                                                    {{ manufacturer.manufacturerId == merged_data.manufacturer_id ? 'selected' : '' }}>
-                                                {{ manufacturer.manufacturerName }}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                    {% if merged_data.manufacturers|length > 1 %}
-                                        <small class="text-warning">Puzzles have different manufacturers!</small>
-                                    {% endif %}
-                                </div>
+                    {# Name #}
+                    <div class="border rounded-3 p-3 mb-3 shadow-sm {{ differs.name ? 'border-warning border-2' }}">
+                        <label for="merged_name" class="form-label fw-semibold">Name</label>
+                        <input type="text" class="form-control" id="merged_name" name="merged_name" value="{{ merged_data.name }}" required>
+                        {% if differs.name %}
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                {% for name in merged_data.names %}
+                                    <button type="button" class="btn btn-outline-secondary btn-sm text-start text-wrap text-break"
+                                            data-merge-review-target="choice" data-action="merge-review#use"
+                                            data-input="merged_name" data-value="{{ name }}">{{ name }}</button>
+                                {% endfor %}
                             </div>
+                        {% endif %}
+                    </div>
 
-                            <div class="col-12 col-lg-4">
-                                {# Hidden survivor puzzle id - automatically selected based on most solving times #}
-                                <input type="hidden" name="survivor_puzzle_id" value="{{ merged_data.survivor_puzzle_id }}">
+                    {# Brand #}
+                    <div class="border rounded-3 p-3 mb-3 shadow-sm {{ differs.brand ? 'border-warning border-2' }}">
+                        <label for="merged_manufacturer_id" class="form-label fw-semibold">Brand</label>
+                        <select class="form-select" id="merged_manufacturer_id" name="merged_manufacturer_id"
+                                data-controller="symfony--ux-autocomplete--autocomplete">
+                            <option value="">-- Keep the brand of the puzzle that stays --</option>
+                            {% for manufacturer in manufacturers %}
+                                <option value="{{ manufacturer.manufacturerId }}" {{ manufacturer.manufacturerId == merged_data.manufacturer_id ? 'selected' }}>
+                                    {{ manufacturer.manufacturerName }} ({{ manufacturer.puzzlesCount }}){{ manufacturer.manufacturerApproved ? '' : ' - not approved' }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if differs.brand %}
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                {% for manufacturerId, manufacturerName in merged_data.manufacturers %}
+                                    <button type="button" class="btn btn-outline-secondary btn-sm text-start text-wrap text-break"
+                                            data-merge-review-target="choice" data-action="merge-review#use"
+                                            data-input="merged_manufacturer_id" data-value="{{ manufacturerId }}">{{ manufacturerName }}</button>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
 
-                                {# Image selection #}
-                                {% if merged_data.images|length > 1 %}
-                                    {% set default_image_id = merged_data.survivor_puzzle_id in merged_data.images|keys ? merged_data.survivor_puzzle_id : merged_data.images|keys|first %}
-                                    <div class="card shadow">
-                                        <div class="card-header">
-                                            <strong>Select Image</strong>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="d-flex flex-wrap gap-3">
-                                                {% for puzzleId, image in merged_data.images %}
-                                                    <div class="form-check">
-                                                        <input class="form-check-input"
-                                                               type="radio"
-                                                               name="selected_image_puzzle_id"
-                                                               id="image_{{ puzzleId }}"
-                                                               value="{{ puzzleId }}"
-                                                               {{ puzzleId == default_image_id ? 'checked' : '' }}>
-                                                        <label class="form-check-label" for="image_{{ puzzleId }}">
-                                                            <img src="{{ image|puzzle_image('puzzle_medium') }}"
-                                                                 alt="Puzzle image"
-                                                                 class="img-thumbnail"
-                                                                 style="max-height: 120px; cursor: pointer;">
-                                                        </label>
-                                                    </div>
-                                                {% endfor %}
+                    {# Pieces #}
+                    <div class="border rounded-3 p-3 mb-3 shadow-sm {{ differs.pieces ? 'border-warning border-2' }}">
+                        <label for="merged_pieces_count" class="form-label fw-semibold">Pieces</label>
+                        <input type="number" class="form-control" id="merged_pieces_count" name="merged_pieces_count"
+                               value="{{ merged_data.pieces_count }}" min="1" inputmode="numeric" required>
+                        {% if differs.pieces %}
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                {% for count in merged_data.pieces_counts %}
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                            data-merge-review-target="choice" data-action="merge-review#use"
+                                            data-input="merged_pieces_count" data-value="{{ count }}">{{ count }} pieces</button>
+                                {% endfor %}
+                            </div>
+                            <div class="form-text text-warning">The puzzles have different piece counts - check the box photos.</div>
+                        {% endif %}
+                    </div>
+
+                    {# EAN and brand code: the union of all - a puzzle may have one per edition or region #}
+                    <div class="border rounded-3 p-3 mb-3 shadow-sm">
+                        <label for="merged_ean" class="form-label fw-semibold">EAN</label>
+                        <input type="text" class="form-control" id="merged_ean" name="merged_ean" value="{{ merged_data.ean }}" inputmode="numeric">
+                        <div class="form-text">All codes of the puzzles, comma-separated - one per edition or region. Never reduce the list.</div>
+                    </div>
+
+                    <div class="border rounded-3 p-3 mb-3 shadow-sm">
+                        <label for="merged_identification_number" class="form-label fw-semibold">Brand code</label>
+                        <input type="text" class="form-control" id="merged_identification_number" name="merged_identification_number" value="{{ merged_data.identification_number }}">
+                        <div class="form-text">Comma-separated</div>
+                    </div>
+
+                    {# Image: one of the reported puzzles' images #}
+                    {% if merged_data.images|length > 1 %}
+                        {% set default_image_id = survivor_id in merged_data.images|keys ? survivor_id : merged_data.images|keys|first %}
+                        <div class="border rounded-3 p-3 mb-3 shadow-sm">
+                            <div class="form-label fw-semibold">Image</div>
+                            <div class="row g-2 gallery">
+                                {% for puzzleId, image in merged_data.images %}
+                                    <div class="col-6 col-md-4">
+                                        <div class="border rounded-3 p-2 h-100">
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="radio" name="selected_image_puzzle_id"
+                                                       id="image_{{ puzzleId }}" value="{{ puzzleId }}" {{ puzzleId == default_image_id ? 'checked' }}>
+                                                <label class="form-check-label small text-break" for="image_{{ puzzleId }}">
+                                                    {{ (puzzles|filter(p => p.puzzleId == puzzleId)|first).puzzleName ?? 'This image' }}
+                                                </label>
                                             </div>
+                                            {{ macros.thumbnail(image, 'Puzzle image', 140) }}
                                         </div>
                                     </div>
-                                {% endif %}
+                                {% endfor %}
                             </div>
                         </div>
+                    {% endif %}
 
-                        <div class="d-grid d-sm-flex gap-2 pt-3 mt-2 border-top">
+                    {# Kept in the puzzle's history next to the merge #}
+                    <div class="mb-3">
+                        <label for="decision_note" class="form-label fw-semibold">Note for the history (optional)</label>
+                        <textarea class="form-control" id="decision_note" name="decision_note" rows="2"
+                                  placeholder="Why - e.g. &quot;same EAN, same box photo&quot;"></textarea>
+                    </div>
+
+                    <div class="pt-3 mt-2 border-top">
+                        {% for puzzle in puzzles %}
+                            {% set others = puzzles|length - 1 %}
+                            {% set moved_times = total_times - puzzle.solvedTimes %}
+                            <p class="small mb-3 {{ puzzle.puzzleId == survivor_id ? '' : 'd-none' }}"
+                               data-merge-review-target="summary" data-puzzle-id="{{ puzzle.puzzleId }}" aria-live="polite">
+                                Approving keeps <strong>{{ puzzle.puzzleName }}</strong> (its address and its {{ puzzle.solvedTimes }} solving {{ puzzle.solvedTimes == 1 ? 'time' : 'times' }}),
+                                deletes the other {{ others == 1 ? 'puzzle' : others ~ ' puzzles' }}
+                                and moves {{ moved_times }} solving {{ moved_times == 1 ? 'time' : 'times' }} onto it.
+                            </p>
+                        {% endfor %}
+
+                        <div class="d-grid d-sm-flex gap-2">
                             <button type="submit" class="btn btn-success">
-                                <i class="bi bi-check-lg me-1"></i> Approve & Merge
+                                <i class="bi bi-check-lg me-1"></i> Approve and merge
                             </button>
 
                             <button type="button"
@@ -219,33 +266,15 @@
                                 <i class="bi bi-x-lg me-1"></i> Reject
                             </button>
                         </div>
+                    </div>
                     </form>
                 {% endif %}
-            {% endif %}
-
-            {# Review info if reviewed #}
-            {% if request.reviewedAt %}
-                <hr class="my-4">
-                <div class="text-muted">
-                    <strong>Reviewed:</strong>
-                    {{ request.reviewedAt|ago }}
-                    {% if request.reviewerName %}
-                        by {{ request.reviewerName }}
-                    {% endif %}
-                    {% if request.finalMergedPuzzleId %}
-                        <br>
-                        <strong>Final Puzzle:</strong>
-                        <a href="{{ path('puzzle_detail', {puzzleId: request.finalMergedPuzzleId}) }}" target="_blank">
-                            View merged puzzle
-                        </a>
-                    {% endif %}
-                </div>
             {% endif %}
         </div>
     </div>
 
 {# Reject Modal #}
-{% if request.status.value == 'pending' %}
+{% if pending %}
 <div class="modal fade" id="rejectModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">

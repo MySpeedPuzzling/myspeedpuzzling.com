@@ -52,22 +52,22 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
 
-        $form = $crawler->filter('form[data-controller~="change-request-review"]')->form();
+        $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form();
         $values = $form->getValues();
 
         // Proposed by the player
-        self::assertSame('Updated Puzzle Name', $values['review_puzzle_change_request_form[name]']);
-        self::assertSame('1234567890123', $values['review_puzzle_change_request_form[ean]']);
+        self::assertSame('Updated Puzzle Name', $values['puzzle_record_form[name]']);
+        self::assertSame('1234567890123', $values['puzzle_record_form[ean]']);
         // Not proposed - the puzzle as it is now
-        self::assertSame('RB-500-001', $values['review_puzzle_change_request_form[identificationNumber]']);
-        self::assertSame('500', $values['review_puzzle_change_request_form[piecesCount]']);
-        self::assertSame(ManufacturerFixture::MANUFACTURER_RAVENSBURGER, $values['review_puzzle_change_request_form[manufacturerId]']);
+        self::assertSame('RB-500-001', $values['puzzle_record_form[identificationNumber]']);
+        self::assertSame('500', $values['puzzle_record_form[piecesCount]']);
+        self::assertSame(ManufacturerFixture::MANUFACTURER_RAVENSBURGER, $values['puzzle_record_form[manufacturerId]']);
         // No image was proposed - nothing to choose, only a drop area for a new one
-        self::assertArrayNotHasKey('review_puzzle_change_request_form[image]', $values);
-        self::assertSelectorExists('.file-drop-area input[name="review_puzzle_change_request_form[puzzlePhoto]"]');
+        self::assertArrayNotHasKey('puzzle_record_form[image]', $values);
+        self::assertSelectorExists('.file-drop-area input[name="puzzle_record_form[puzzlePhoto]"]');
 
         // The proposal is shown apart from the inputs, marked per field
-        self::assertSelectorCount(2, '[data-change-request-review-target="field"][data-proposed]');
+        self::assertSelectorCount(2, '[data-puzzle-record-target="field"][data-proposed]');
         self::assertSelectorExists('[data-label="Name"][data-proposed="Updated Puzzle Name"][data-current="Puzzle 1"]');
     }
 
@@ -76,13 +76,13 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
         $browser = $this->signedInAdmin();
 
         $crawler = $browser->request('GET', '/admin/puzzle-change-requests/' . PuzzleReportFixture::CHANGE_REQUEST_PENDING);
-        $form = $crawler->filter('form[data-controller~="change-request-review"]')->form();
+        $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form();
 
         $browser->submit($form, [
             // The proposed EAN has a wrong check digit - the reviewer fixes it
-            'review_puzzle_change_request_form[ean]' => '4005556123452',
-            'review_puzzle_change_request_form[alternativeName]' => 'Alternative Title',
-            'review_puzzle_change_request_form[piecesCount]' => '1000',
+            'puzzle_record_form[ean]' => '4005556123452',
+            'puzzle_record_form[alternativeName]' => 'Alternative Title',
+            'puzzle_record_form[piecesCount]' => '1000',
         ]);
 
         self::assertResponseRedirects('/admin/puzzle-change-requests');
@@ -103,17 +103,17 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
         $browser = $this->signedInAdmin();
 
         $crawler = $browser->request('GET', '/admin/puzzle-change-requests/' . PuzzleReportFixture::CHANGE_REQUEST_PENDING);
-        $form = $crawler->filter('form[data-controller~="change-request-review"]')->form();
+        $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form();
 
         // Approved as proposed: the proposed EAN is no valid code
         $crawler = $browser->submit($form, [
-            'review_puzzle_change_request_form[alternativeName]' => 'Typed By The Reviewer',
+            'puzzle_record_form[alternativeName]' => 'Typed By The Reviewer',
         ]);
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
         self::assertSame(
             'Typed By The Reviewer',
-            $crawler->filter('form[data-controller~="change-request-review"]')->form()->getValues()['review_puzzle_change_request_form[alternativeName]'],
+            $crawler->filter('form[data-controller~="puzzle-record"]')->form()->getValues()['puzzle_record_form[alternativeName]'],
         );
 
         $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_500_01);
@@ -128,21 +128,21 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
         $url = '/admin/puzzle-change-requests/' . PuzzleReportFixture::CHANGE_REQUEST_PENDING;
 
         $crawler = $browser->request('GET', $url);
-        $values = $crawler->filter('form[data-controller~="change-request-review"]')->form()->getPhpValues();
+        $values = $crawler->filter('form[data-controller~="puzzle-record"]')->form()->getPhpValues();
 
         // The proposed EAN is invalid - refused, but the photo stays
-        $crawler = $browser->request('POST', $url, $values, ['review_puzzle_change_request_form' => ['puzzlePhoto' => $this->photo()]]);
+        $crawler = $browser->request('POST', $url, $values, ['puzzle_record_form' => ['puzzlePhoto' => $this->photo()]]);
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
         $token = (string) $crawler->filter('input[name="photo_stash[puzzlePhoto]"]')->attr('value');
         self::assertMatchesRegularExpression('/^[0-9a-f]{32}$/', $token);
 
         // Sent again with the EAN fixed and only the token - the kept photo becomes the puzzle's image
-        $fields = $values['review_puzzle_change_request_form'];
+        $fields = $values['puzzle_record_form'];
         self::assertIsArray($fields);
         $fields['ean'] = '4005556123452';
         $browser->request('POST', $url, [
-            'review_puzzle_change_request_form' => $fields,
+            'puzzle_record_form' => $fields,
             'photo_stash' => ['puzzlePhoto' => $token],
         ]);
 
@@ -165,7 +165,7 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
         $browser->request('GET', '/admin/puzzle-change-requests/' . PuzzleReportFixture::CHANGE_REQUEST_APPROVED);
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorNotExists('form[data-controller~="change-request-review"]');
+        self::assertSelectorNotExists('form[data-controller~="puzzle-record"]');
         self::assertSelectorTextContains('.col-lg-8', 'Already Approved Name');
     }
 

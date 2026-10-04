@@ -49,6 +49,7 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
         $mergedPiecesCount = $request->request->getInt('merged_pieces_count');
         $mergedManufacturerId = $request->request->getString('merged_manufacturer_id');
         $selectedImagePuzzleId = $request->request->getString('selected_image_puzzle_id');
+        $decisionNote = trim($request->request->getString('decision_note'));
 
         if ($survivorPuzzleId === '' || $mergedName === '' || $mergedPiecesCount === 0) {
             $this->addFlash('error', $this->translator->trans('admin.puzzle_merge_request.validation_failed'));
@@ -67,6 +68,7 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
                 mergedManufacturerId: $mergedManufacturerId !== '' ? $mergedManufacturerId : null,
                 selectedImagePuzzleId: $selectedImagePuzzleId !== '' ? $selectedImagePuzzleId : null,
                 decisionSource: MergeDecisionSource::AdminUi,
+                decisionNote: $decisionNote !== '' ? $decisionNote : null,
             ),
         );
 

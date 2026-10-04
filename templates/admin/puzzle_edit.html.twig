@@ -1,0 +1,115 @@
+{% extends 'base.html.twig' %}
+
+{% import 'admin/_puzzle_macros.html.twig' as macros %}
+
+{% block title %}Edit puzzle - {{ puzzle.name }}{% endblock %}
+
+{% block content %}
+    {% include '_return_back_button.html.twig' with {fallbackUrl: path('puzzle_detail', {puzzleId: puzzle.puzzleId}), fallbackTitle: puzzle.name} %}
+
+    {% set edit_fields = [
+        {label: 'Name', widget: form.name, help: null, current: puzzle.name, currentValue: puzzle.name},
+        {label: 'Alternative name', widget: form.alternativeName, help: null, current: puzzle.alternativeName, currentValue: puzzle.alternativeName},
+        {label: 'Brand', widget: form.manufacturerId, help: null, current: puzzle.manufacturerName, currentValue: puzzle.manufacturerId},
+        {label: 'Pieces', widget: form.piecesCount, help: null, current: puzzle.piecesCount, currentValue: puzzle.piecesCount},
+        {label: 'EAN', widget: form.ean, help: 'Comma-separated - one code per edition or region. Never reduce the list.', current: puzzle.ean, currentValue: puzzle.ean},
+        {label: 'Brand code', widget: form.identificationNumber, help: 'Comma-separated', current: puzzle.identificationNumber, currentValue: puzzle.identificationNumber},
+    ]|map(field => field|merge({proposed: false, proposedShown: null, proposedValue: null, original: null, originalDiffers: false})) %}
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                <h1 class="h4 mb-0">Edit puzzle</h1>
+                <a class="btn btn-outline-secondary btn-sm" href="{{ path('admin_puzzle_history', {puzzleId: puzzle.puzzleId}) }}">
+                    <i class="bi bi-clock-history me-1"></i> History
+                </a>
+            </div>
+
+            <div class="d-flex align-items-center gap-3 mb-3 p-2 p-md-3 bg-light rounded">
+                {% if puzzle.image %}
+                    <img src="{{ puzzle.image|puzzle_image('puzzle_small') }}"
+                         alt="{{ puzzle.name }}"
+                         class="rounded flex-shrink-0"
+                         style="max-height: 64px; max-width: 90px;">
+                {% endif %}
+                <div class="min-w-0">
+                    <h2 class="h6 mb-1 text-break">
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" target="_blank">{{ puzzle.name }}</a>
+                        {% if not puzzle.approved %}
+                            <span class="badge bg-warning text-dark ms-1">Not approved yet</span>
+                        {% endif %}
+                    </h2>
+                    <p class="mb-0 text-muted small">
+                        {{ puzzle.manufacturerName ?? 'No brand' }} &bull; {{ puzzle.piecesCount }} pieces
+                    </p>
+                </div>
+            </div>
+
+            {% if pending_proposals is not empty %}
+                <div class="alert alert-warning small" role="status">
+                    <div class="fw-semibold mb-1">
+                        {{ pending_proposals|length == 1 ? 'A proposal for this puzzle is waiting for review' : pending_proposals|length ~ ' proposals for this puzzle are waiting for review' }}
+                    </div>
+                    <ul class="mb-1 ps-3">
+                        {% for proposal in pending_proposals %}
+                            <li>
+                                {% if proposal.type == 'change_request' %}
+                                    <a href="{{ path('admin_puzzle_change_request_detail', {id: proposal.id}) }}">Change request</a>{{ proposal.summary ? ': ' ~ proposal.summary }}
+                                {% else %}
+                                    <a href="{{ path('admin_puzzle_merge_request_detail', {id: proposal.id}) }}">Merge request</a>
+                                {% endif %}
+                                <span class="text-muted">- {{ proposal.reporterName ?? ('#' ~ proposal.reporterCode) }}, {{ proposal.submittedAt|ago }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    If one of them is the fix you are about to make, review it instead - approving tells the player their proposal went in.
+                </div>
+            {% endif %}
+
+            {{ form_start(form, {attr: {
+                'data-controller': 'puzzle-record image-editor',
+                'data-action': 'change->puzzle-record#update input->puzzle-record#update kept-photo:removed->puzzle-record#update',
+                'data-puzzle-record-drop-text-value': 'forms.drop_file'|trans,
+                'data-image-editor-title-value': 'image_editor.title'|trans,
+                'data-image-editor-rotate-left-value': 'image_editor.rotate_left'|trans,
+                'data-image-editor-rotate-right-value': 'image_editor.rotate_right'|trans,
+                'data-image-editor-cancel-value': 'forms.cancel'|trans,
+                'data-image-editor-apply-value': 'image_editor.apply'|trans,
+                'data-image-editor-edit-value': 'forms.edit'|trans,
+                'data-puzzle-record-proposed-label-value': 'Proposed',
+                'data-puzzle-record-edit-label-value': 'Your edit',
+                'data-puzzle-record-kept-label-value': 'Keeping current',
+                'data-puzzle-record-changes-heading-value': 'Saving changes:',
+                'data-puzzle-record-kept-heading-value': '',
+                'data-puzzle-record-no-changes-value': 'Nothing changed yet.',
+            }}) }}
+
+                {{ form_errors(form) }}
+
+                <p class="small text-muted mb-3">
+                    Saved straight away, no change request in between. Every field you change is marked
+                    <span class="badge bg-accent">Your edit</span>, and the change is kept in the puzzle's history under your name.
+                </p>
+
+                {{ include('admin/_puzzle_record_fields.html.twig', {
+                    fields: edit_fields,
+                    current_image: puzzle.image,
+                    proposed_image: null,
+                    kept_photo: kept_photos.puzzlePhoto ?? null,
+                }) }}
+
+                <div class="pt-3 mt-2 border-top">
+                    <div class="small mb-3" data-puzzle-record-target="summary" aria-live="polite"></div>
+
+                    <div class="d-grid d-sm-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-lg me-1"></i> Save
+                        </button>
+                        <a class="btn btn-outline-secondary" href="{{ safe_return_url(app.request.query.get('return'), path('puzzle_detail', {puzzleId: puzzle.puzzleId})) }}">Cancel</a>
+                    </div>
+                </div>
+
+            {{ form_end(form) }}
+        </div>
+    </div>
+{% endblock %}

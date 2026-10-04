@@ -1312,6 +1312,10 @@ edit_profile:
 puzzle_detail:
     details: "Details"
     more_actions: "More actions"
+    moderation:
+        heading: "Moderation"
+        edit: "Edit puzzle"
+        history: "Edit history"
     meta:
         title: "%brand% %name% – %pieces% Piece Puzzle"
         ean: ", EAN %ean%"
@@ -2793,6 +2797,8 @@ admin:
         already_reviewed: "This change request had already been reviewed by someone else."
         rejected: "Change request has been rejected."
         rejection_reason_required: "Rejection reason is required."
+    puzzle_edit:
+        saved: "Puzzle saved."
     puzzle_approval:
         approved: "Puzzle has been approved."
         already_approved: "This puzzle had already been approved or merged by someone else."

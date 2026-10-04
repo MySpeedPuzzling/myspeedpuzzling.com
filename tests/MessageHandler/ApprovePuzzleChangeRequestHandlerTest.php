@@ -8,7 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Entity\PuzzleModerationDecision;
-use SpeedPuzzling\Web\Exceptions\InvalidPuzzleChangeRequestApproval;
+use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
@@ -18,10 +18,10 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
-use SpeedPuzzling\Web\Value\PuzzleChangeRequestImageChoice;
+use SpeedPuzzling\Web\Value\PuzzleImageChoice;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
-use SpeedPuzzling\Web\Value\ReviewedPuzzleValues;
+use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -116,7 +116,7 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
             changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
-            reviewed: new ReviewedPuzzleValues(
+            reviewed: new PuzzleRecordValues(
                 name: '  Admin Corrected Name ',
                 alternativeName: 'Alternative Title',
                 manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
@@ -161,14 +161,14 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
             changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
-            reviewed: new ReviewedPuzzleValues(
+            reviewed: new PuzzleRecordValues(
                 name: 'Puzzle 1',
                 alternativeName: null,
                 manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 piecesCount: 500,
                 ean: null,
                 identificationNumber: 'RB-500-001',
-                image: PuzzleChangeRequestImageChoice::Upload,
+                image: PuzzleImageChoice::Upload,
                 uploadedImage: new UploadedFile($imagePath, 'box.jpg', 'image/jpeg', null, true),
             ),
         ));
@@ -189,14 +189,14 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
             changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_WITH_IMAGE,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
-            reviewed: new ReviewedPuzzleValues(
+            reviewed: new PuzzleRecordValues(
                 name: 'New Image Puzzle',
                 alternativeName: null,
                 manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 piecesCount: 500,
                 ean: '4005556123456',
                 identificationNumber: null,
-                image: PuzzleChangeRequestImageChoice::Keep,
+                image: PuzzleImageChoice::Keep,
             ),
         ));
 
@@ -206,22 +206,22 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
     }
 
     /**
-     * @return iterable<string, array{PuzzleChangeRequestImageChoice}>
+     * @return iterable<string, array{PuzzleImageChoice}>
      */
     public static function imageChoicesWithoutAnImage(): iterable
     {
-        yield 'proposed image, none was proposed' => [PuzzleChangeRequestImageChoice::Proposed];
-        yield 'upload without a file' => [PuzzleChangeRequestImageChoice::Upload];
+        yield 'proposed image, none was proposed' => [PuzzleImageChoice::Proposed];
+        yield 'upload without a file' => [PuzzleImageChoice::Upload];
     }
 
     #[DataProvider('imageChoicesWithoutAnImage')]
-    public function testAnImageChoiceWithoutAnImageIsRefusedBeforeAnythingChanges(PuzzleChangeRequestImageChoice $image): void
+    public function testAnImageChoiceWithoutAnImageIsRefusedBeforeAnythingChanges(PuzzleImageChoice $image): void
     {
         try {
             $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
                 changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
-                reviewed: new ReviewedPuzzleValues(
+                reviewed: new PuzzleRecordValues(
                     name: 'Must Not Be Saved',
                     alternativeName: null,
                     manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
@@ -232,7 +232,7 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
                 ),
             ));
             self::fail('The approval should have been refused.');
-        } catch (InvalidPuzzleChangeRequestApproval) {
+        } catch (InvalidPuzzleValues) {
         }
 
         self::assertSame('Puzzle 1', $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01)->name);

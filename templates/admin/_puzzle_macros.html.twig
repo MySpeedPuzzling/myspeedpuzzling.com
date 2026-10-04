@@ -1,0 +1,34 @@
+{# Small pieces of the moderators' puzzle pages: the review of a change request, the direct edit, the history #}
+
+{% macro shown(value) -%}
+    {%- if value is null or value == '' -%}
+        <span class="text-muted fst-italic">Not set</span>
+    {%- else -%}
+        {{ value }}
+    {%- endif -%}
+{%- endmacro %}
+
+{# A thumbnail that opens in the lightbox - needs a .gallery around it #}
+{% macro thumbnail(path, alt, height = 160) %}
+    {% if path %}
+        <a class="gallery-item d-block" href="{{ uploaded_asset(path) }}">
+            <img src="{{ path|puzzle_image('puzzle_small') }}"
+                 alt="{{ alt }}"
+                 class="img-thumbnail w-100"
+                 style="height: {{ height }}px; object-fit: contain; cursor: zoom-in;">
+        </a>
+    {% else %}
+        <span class="d-flex align-items-center justify-content-center bg-light rounded text-muted small" style="height: {{ height }}px;">No image</span>
+    {% endif %}
+{% endmacro %}
+
+{% macro player(id, name, code) -%}
+    {%- if id is not null -%}
+        <a href="{{ path('player_profile', {playerId: id}) }}" target="_blank">{{ name ?? ('#' ~ code) }}</a>
+        {%- if name is not null and code is not null %} <span class="text-muted">#{{ code }}</span>{% endif -%}
+    {%- elseif name is not null or code is not null -%}
+        {{ name ?? ('#' ~ code) }}
+    {%- else -%}
+        <span class="text-muted fst-italic">a deleted account</span>
+    {%- endif -%}
+{%- endmacro %}

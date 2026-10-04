@@ -233,10 +233,11 @@ return App::config([
             // signed back in from the 30-day cookie holds a RememberMeToken, which
             // is not "full fledged", so they were sent to /login - and, being
             // signed in already, straight on to my_profile from there.
-            // The one corner of /admin open to community moderators as well as admins.
+            // The one corner of /admin open to community moderators as well as admins: the
+            // review queues, a puzzle's direct edit and its history (/admin/puzzles/{id}/...).
             // Must stay above ^/admin - the first matching rule wins.
             [
-                'path' => '^/admin/puzzle-((change|merge)-requests|approvals)',
+                'path' => '^/admin/puzzle(s/|-((change|merge)-requests|approvals))',
                 'roles' => [PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS],
             ],
             [

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
-use SpeedPuzzling\Web\Value\ReviewedPuzzleValues;
+use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 
 readonly final class ApprovePuzzleChangeRequest
 {
@@ -18,7 +18,7 @@ readonly final class ApprovePuzzleChangeRequest
         public string $reviewerId,
         public array $selectedFields = [],
         // The admin review: the whole puzzle as the reviewer wants it, proposed fields or not
-        public null|ReviewedPuzzleValues $reviewed = null,
+        public null|PuzzleRecordValues $reviewed = null,
         public MergeDecisionSource $decisionSource = MergeDecisionSource::AdminUi,
         public null|string $decisionNote = null,
     ) {

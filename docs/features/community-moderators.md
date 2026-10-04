@@ -9,6 +9,7 @@ Trusted community members who help maintain the puzzle catalogue without being a
 | Puzzle change requests — list, detail, approve, reject (`/admin/puzzle-change-requests*`) | yes | yes |
 | Puzzle merge requests — list, detail, approve, reject (`/admin/puzzle-merge-requests*`) | yes | yes |
 | Approving newly added puzzles, incl. brand approve / merge (`/admin/puzzle-approvals*`, [puzzle-approvals.md](puzzle-approvals.md)) | yes | yes |
+| Editing any puzzle directly + its read-only history (`/admin/puzzles/{id}/edit`, `/admin/puzzles/{id}/history`, [puzzle-approvals.md](puzzle-approvals.md)) | yes | yes |
 | "Go to admin" links on a puzzle's pending proposals | yes | yes |
 | Everything else under `/admin` (vouchers, referrals, moderation, e-mail audit, OAuth2, competition approvals) | **no (403)** | yes |
 | Appointing / removing moderators (`/admin/moderators`) | **no (403)** | yes |
@@ -32,7 +33,7 @@ Granting twice keeps the original date; revoking sets it back to `NULL`.
   The attribute names the *capability* (looking after the puzzle catalogue), not the role: when an area
   outside the catalogue is opened to moderators, give it its own attribute/voter instead of widening this one.
   Puzzle approvals (2026-09-25) are catalogue work and share it.
-- `config/packages/security.php` — `^/admin/puzzle-((change|merge)-requests|approvals)` requires
+- `config/packages/security.php` — `^/admin/puzzle(s/|-((change|merge)-requests|approvals))` requires
   `PUZZLE_MODERATION_ACCESS` and **must stay above** the `^/admin` → `ADMIN_ACCESS` rule (first match wins).
 - The puzzle-review controllers (change, merge and approval queues) carry `#[IsGranted(PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS)]`;
   every other admin controller stays on `ADMIN_ACCESS`.

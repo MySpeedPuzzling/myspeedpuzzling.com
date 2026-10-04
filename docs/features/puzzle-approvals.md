@@ -13,10 +13,12 @@ moderators.
 | `GET /admin/puzzle-approvals/{puzzleId}` (`admin_puzzle_approval_detail`) | One puzzle: its data, likely duplicates, the approve form |
 | `POST …/{puzzleId}/approve` (`admin_approve_puzzle`) | `ApprovePuzzle` (CSRF `approve-puzzle-{id}`) |
 | `POST …/{puzzleId}/merge` (`admin_merge_unapproved_puzzle`) | Files a merge request and opens the merge review (CSRF `merge-puzzle-{id}`) |
+| `GET/POST /admin/puzzles/{puzzleId}/edit` (`admin_edit_puzzle`) | A moderator's direct edit of any puzzle (below) |
+| `GET /admin/puzzles/{puzzleId}/history` (`admin_puzzle_history`) | The puzzle's history: every decision about it, read only (below) |
 
 Access: `PUZZLE_MODERATION_ACCESS` (admins + moderators), the same capability as change and merge requests -
 approving new puzzles is the same job of looking after the catalogue. The `access_control` rule
-`^/admin/puzzle-((change|merge)-requests|approvals)` must stay above `^/admin`. Key menu → "Puzzle Approvals".
+`^/admin/puzzle(s/|-((change|merge)-requests|approvals))` must stay above `^/admin`. Key menu → "Puzzle Approvals".
 
 ## A moderator has two choices - there is no reject
 
@@ -60,28 +62,68 @@ change-request proposal are the only references to a brand; a new foreign key to
 A player's "Suggest a change" (`PuzzleChangeRequest`) is reviewed at `/admin/puzzle-change-requests/{id}`
 (`PuzzleChangeRequestDetailController`, GET + POST - a refused form comes back with what the reviewer typed, 422).
 A pending request is approved through a form holding **the whole puzzle**: name, alternative name, brand, pieces,
-EAN, brand code and image - every field editable, whether the player proposed it or not
-(`ReviewPuzzleChangeRequestFormType`).
+EAN, brand code and image - every field editable, whether the player proposed it or not. The form is the puzzle's
+record form (`PuzzleRecordFormType` + `PuzzleRecordFormData`, field cards in `admin/_puzzle_record_fields.html.twig`),
+shared with the direct edit below.
 
 - **Prefilled**: the proposed value where the player proposed a change, the puzzle as it is now everywhere else
-  (`ReviewPuzzleChangeRequestFormData::prefilled()`). "Current" is the live puzzle; when it changed since the proposal,
+  (`PuzzleRecordFormData::fromChangeRequest()`). "Current" is the live puzzle; when it changed since the proposal,
   the value at the time is shown too.
 - **The proposal never mixes with the reviewer's edits**: a proposed field shows *Current* and *Proposed by the player*
-  next to the input, and `change_request_review_controller.js` marks every field live - *Proposed* (orange, the
+  next to the input, and `puzzle_record_controller.js` marks every field live - *Proposed* (orange, the
   proposal goes in), *Your edit* (indigo `accent` - the theme's primary is too close to orange), *Keeping current*
   (the proposal is struck through) - with "Use proposed" / "Keep current" / "Undo my edit" links. Above the approve
   button a summary lists what approving saves and which proposals are not applied.
 - **Image**: keep current / the proposed image (radios only when an image was proposed; thumbnails open in the
   lightbox), and a drop area (`file-drop-area`, cropping via `image-editor` like the add form). A dropped photo is used
-  automatically (`PuzzleChangeRequestImageChoice::Upload`, `ReviewPuzzleChangeRequestFormData::imageChoice()`) - picking
-  keep / proposed again drops it. The field is `puzzlePhoto` so `FormPhotoStash` keeps it on a refused submit. The file
-  gets the SEO name built from the *final* brand, name and pieces.
+  automatically (`PuzzleImageChoice::Upload`, `PuzzleRecordFormData::toValues()`) - picking keep / proposed again
+  drops it. The field is `puzzlePhoto` so `FormPhotoStash` keeps it on a refused submit. The file gets the SEO name
+  built from the *final* brand, name and pieces.
 - The EAN goes through `EanList` like the add form (codes the puzzle already carries pass).
+- An optional **note for the history** goes into the decision log.
 
-`ApprovePuzzleChangeRequest` carries the reviewer's values as `ReviewedPuzzleValues`; the internal API still sends
-`selectedFields` (those fields as proposed, the rest unchanged), which the handler turns into the same values - one
-apply path. The decision log keeps `before` / `after` of every field and the image choice (+ `selectedFields` from
-the internal API).
+`ApprovePuzzleChangeRequest` carries the reviewer's values as `PuzzleRecordValues`; the internal API still sends
+`selectedFields` (those fields as proposed, the rest unchanged), which the handler turns into the same values. Both
+are saved by `PuzzleRecordUpdater` - **the one place that writes a puzzle's record** for an approval and a direct edit:
+everything is validated first (`InvalidPuzzleValues`, 422), then applied, and it returns the `before` / `after`
+snapshots the decision log keeps (+ the image choice, + `selectedFields` from the internal API).
+
+## Editing a puzzle directly
+
+Admins and moderators change any puzzle without the change request round: "Edit puzzle" on the puzzle page (a button
+row under the actions + the ⋯ menu, `is_granted('PUZZLE_MODERATION_ACCESS')`; labels in all 6 locales) opens
+`/admin/puzzles/{id}/edit` (`EditPuzzleController`). The same record form as the review, without a proposal - every
+changed field is marked *Your edit*, the summary lists what saving changes, an optional note explains why. Pending
+proposals for the puzzle are listed above the form (a fix someone proposed is better approved - it tells them).
+`EditPuzzle` → `EditPuzzleHandler` → `PuzzleRecordUpdater`, logged as `puzzle_edited` with before/after; an edit that
+changes nothing records nothing. Success redirects to `?return=` (the puzzle page). Works for unapproved and hidden
+puzzles too (`GetPuzzleRecord` hides nothing).
+
+## Merge requests - the review
+
+`/admin/puzzle-merge-requests/{id}` shows the reported puzzles side by side (lightbox images, what differs between
+them highlighted, solving times, a History link each) and lets the moderator pick **which one keeps its address**
+("Keep this one", default = most solving times). The merged puzzle's name / brand / pieces come with one-click
+choices from the reported puzzles where they differ (`merge_review_controller.js`); EAN and brand code are the union
+(never reduce the list). The summary above the button says what approving keeps, deletes and moves. Brand picker =
+every brand (`allIncludingUnapproved()`, autocomplete). Optional note → `ApprovePuzzleMergeRequest::$decisionNote`.
+The approve endpoint (`ApprovePuzzleMergeRequestController`) and its field names are unchanged.
+
+## A puzzle's history
+
+`/admin/puzzles/{id}/history` (`PuzzleHistoryController`, `GetPuzzleHistory`) - who changed, approved or merged what,
+and when, newest first, **read only** (there is no write path to the log). Built from:
+
+- every `puzzle_moderation_decision` row of the puzzle, plus the merge that folded it into another puzzle
+  (`details.mergedPuzzleIds`) - so a merged-away puzzle keeps a history page, named as the log last saw it;
+- before/after tables from `details.before/after` (edits, change requests approved since 2026-10-04, approvals),
+  a merge's survivor before/after + what moved (`puzzle_merge_audit`), the proposal of older change requests
+  (`appliedFields` when the internal API recorded them, else "not recorded back then");
+- change requests decided without a log row - EANs written straight from a barcode scan (`LinkEanToPuzzleHandler`
+  approves its own change request as the record);
+- "Added by" from the puzzle row.
+
+Linked from the puzzle page, the edit page, the change request page and every puzzle of a merge review.
 
 ## Who decided - `puzzle_moderation_decision`
 
@@ -97,11 +139,12 @@ change request is deleted outright with its reporter (`ON DELETE CASCADE`).
 | `change_request_approved` / `change_request_rejected` | `ApprovePuzzleChangeRequestHandler` / `RejectPuzzleChangeRequestHandler` |
 | `merge_request_approved` / `merge_request_rejected` | `ApprovePuzzleMergeRequestHandler` / `RejectPuzzleMergeRequestHandler` |
 | `puzzle_approved`, `brand_approved`, `brand_merged` | `ApprovePuzzleHandler` |
+| `puzzle_edited` | `EditPuzzleHandler` (a moderator's direct edit) |
 
 - **No foreign keys**, on purpose: requests, puzzles and brands get deleted (merges, cascades) and so do players.
   The decider's id, name and code are copied in; the puzzle's name too.
 - `source` = `admin_ui` / `internal_api` (`MergeDecisionSource`; the internal API sets it for merge approve + reject).
-- `note` = rejection reason / merge decision note; `details` (JSON) = what changed (before/after, image choice, selected fields,
+- `note` = rejection reason / the optional note of the approve and edit forms; `details` (JSON) = what changed (before/after, image choice, selected fields,
   merged ids, brand merge counts).
 - Backfilled by migration `Version20260925165131` from every change / merge request decided before it existed
   (`details.backfilled = true`; a merge rejected via the internal API before the log existed shows `admin_ui`,
@@ -114,4 +157,6 @@ change request is deleted outright with its reporter (`ON DELETE CASCADE`).
 `tests/MessageHandler/ApprovePuzzleHandlerTest.php` (corrections, the three brand choices, refusals change nothing),
 `tests/MessageHandler/PuzzleModerationDecisionLogTest.php`, the survivor-approval case in
 `ApprovePuzzleMergeRequestHandlerTest`, `tests/Query/GetPuzzleApprovalsTest.php`, and the approve + merge flows as a
-moderator in `tests/Controller/Admin/ModeratorAccessTest.php`.
+moderator in `tests/Controller/Admin/ModeratorAccessTest.php`. Direct edit + history: `EditPuzzleHandlerTest`,
+`tests/Query/GetPuzzleHistoryTest.php`, `tests/Controller/Admin/EditPuzzleControllerTest.php`; merge review page:
+`PuzzleMergeRequestControllerTest`.

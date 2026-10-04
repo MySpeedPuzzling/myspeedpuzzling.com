@@ -1099,6 +1099,10 @@
 "puzzle_detail":
   "details": "Details"
   "more_actions": "Weitere Aktionen"
+  "moderation":
+    "heading": "Moderation"
+    "edit": "Puzzle bearbeiten"
+    "history": "Änderungsverlauf"
   "meta":
     "title": "%brand% %name% – %pieces% Teile Puzzle"
     "ean": ", EAN %ean%"

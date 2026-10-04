@@ -54,6 +54,7 @@
                     </h2>
                     <p class="mb-0 text-muted small">
                         {{ request.puzzleManufacturerName }} &bull; {{ request.puzzlePiecesCount }} pieces
+                        &bull; <a href="{{ path('admin_puzzle_history', {puzzleId: request.puzzleId}) }}">History</a>
                     </p>
                 </div>
             </div>

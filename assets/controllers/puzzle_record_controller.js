@@ -1,9 +1,10 @@
 import { Controller } from '@hotwired/stimulus';
 
-// Change request review: every field of the puzzle is editable. Each field is marked by what approving does
-// with it - the player's proposal, the reviewer's own edit, or the current value kept although something was
-// proposed - and the summary above the approve button lists it, so an edit is never mistaken for the proposal.
-// A field carries data-current (and data-proposed when the player proposed it) as raw form values.
+// A puzzle's record in the moderators' forms - the review of a change request and the direct edit: every field is
+// editable, and each is marked by what saving does with it - the player's proposal, the moderator's own edit, or the
+// current value kept although something was proposed - and the summary above the save button lists it, so an edit
+// is never mistaken for the proposal. A field carries data-current (and data-proposed when the player proposed it)
+// as raw form values; the direct edit has no proposal, so only edits are marked there.
 // The image field's value is "keep" / "proposed" (radios) or "upload" - a photo in its drop area (chosen, or kept
 // from a refused submit) is used instead of either, and picking keep / proposed again drops that photo.
 export default class extends Controller {
@@ -18,7 +19,7 @@ export default class extends Controller {
         dropText: String,
     };
 
-    // Proposed = orange, the reviewer's edit = indigo (the theme's primary is too close to orange to tell apart)
+    // Proposed = orange, the moderator's edit = indigo (the theme's primary is too close to orange to tell apart)
     static badgeClasses = {
         proposed: ['bg-warning', 'text-dark'],
         edit: ['bg-accent'],
@@ -70,7 +71,7 @@ export default class extends Controller {
         this.update();
     }
 
-    // proposed: the proposal goes in · edit: the reviewer's own value · kept: proposed, but the current value stays
+    // proposed: the proposal goes in · edit: the moderator's own value · kept: proposed, but the current value stays
     stateOf(field) {
         const value = this.valueOf(field);
         const current = (field.dataset.current || '').trim();
@@ -239,7 +240,7 @@ export default class extends Controller {
     }
 
     fieldOf(element) {
-        return element.closest('[data-change-request-review-target="field"]');
+        return element.closest('[data-puzzle-record-target="field"]');
     }
 
     toggleRole(field, role, visible) {

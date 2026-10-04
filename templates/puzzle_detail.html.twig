@@ -306,6 +306,18 @@
                 {{ include('puzzle/_detail_actions_menu.html.twig') }}
             </div>
 
+            {# Moderators and admins change the puzzle straight away and see who changed what (admin pages) #}
+            {% if is_granted('PUZZLE_MODERATION_ACCESS') %}
+                <div class="d-flex flex-wrap gap-2 mt-2" data-nosnippet>
+                    <a class="btn btn-sm btn-outline-secondary" rel="nofollow" href="{{ path('admin_edit_puzzle', {puzzleId: puzzle.puzzleId, return: app.request.requestUri, return_title: puzzle.puzzleName}) }}">
+                        <i class="bi bi-pencil me-1" aria-hidden="true"></i> {{ 'puzzle_detail.moderation.edit'|trans }}
+                    </a>
+                    <a class="btn btn-sm btn-outline-secondary" rel="nofollow" href="{{ path('admin_puzzle_history', {puzzleId: puzzle.puzzleId, return: app.request.requestUri, return_title: puzzle.puzzleName}) }}">
+                        <i class="bi bi-clock-history me-1" aria-hidden="true"></i> {{ 'puzzle_detail.moderation.history'|trans }}
+                    </a>
+                </div>
+            {% endif %}
+
             {# Like the EAN: a secret puzzle's product number would give it away while its image is embargoed #}
             {% set has_codes = not is_image_hidden and (puzzle.puzzleIdentificationNumber is not null or puzzle.puzzleEan) %}
             {% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}

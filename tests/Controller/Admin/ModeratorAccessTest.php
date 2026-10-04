@@ -20,8 +20,9 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
- * A community moderator reaches the two puzzle review queues and nothing else
- * under /admin - least of all the page that appoints moderators.
+ * A community moderator reaches the puzzle review queues, a puzzle's direct edit and
+ * its history, and nothing else under /admin - least of all the page that appoints
+ * moderators.
  */
 final class ModeratorAccessTest extends WebTestCase
 {
@@ -34,6 +35,9 @@ final class ModeratorAccessTest extends WebTestCase
         yield 'puzzle merge requests' => ['/admin/puzzle-merge-requests'];
         yield 'puzzle approvals' => ['/admin/puzzle-approvals'];
         yield 'puzzle approval detail' => ['/admin/puzzle-approvals/' . PuzzleFixture::PUZZLE_UNAPPROVED];
+        yield 'puzzle merge request detail' => ['/admin/puzzle-merge-requests/' . PuzzleReportFixture::MERGE_REQUEST_PENDING];
+        yield 'puzzle edit' => ['/admin/puzzles/' . PuzzleFixture::PUZZLE_500_01 . '/edit'];
+        yield 'puzzle history' => ['/admin/puzzles/' . PuzzleFixture::PUZZLE_500_01 . '/history'];
     }
 
     /**

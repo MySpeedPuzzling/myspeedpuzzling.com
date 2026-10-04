@@ -7,9 +7,10 @@ namespace SpeedPuzzling\Web\Value;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
- * The puzzle as the reviewer approves a change request: every field, proposed by the player or not.
+ * A puzzle's catalogue record as a moderator saves it - every field, whether it changes or not.
+ * Applied by PuzzleRecordUpdater, for a change request approval and a direct edit alike.
  */
-readonly final class ReviewedPuzzleValues
+readonly final class PuzzleRecordValues
 {
     public function __construct(
         public string $name,
@@ -18,8 +19,8 @@ readonly final class ReviewedPuzzleValues
         public int $piecesCount,
         public null|string $ean,
         public null|string $identificationNumber,
-        public PuzzleChangeRequestImageChoice $image = PuzzleChangeRequestImageChoice::Keep,
-        // Required for PuzzleChangeRequestImageChoice::Upload
+        public PuzzleImageChoice $image = PuzzleImageChoice::Keep,
+        // Required for PuzzleImageChoice::Upload
         public null|UploadedFile $uploadedImage = null,
     ) {
     }

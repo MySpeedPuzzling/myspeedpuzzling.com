@@ -1,33 +1,9 @@
 {#
     The review form of a pending change request: the whole puzzle, every field editable.
-    The player's proposal is prefilled and marked; change_request_review_controller.js marks every
-    field by what approving does with it (proposed / your edit / keeping current) and sums it up above
-    the approve button, so the reviewer's own edits never get mixed up with the proposal.
-    A photo dropped in the image field is used instead of the current / proposed one (kept on a refused
-    submit by FormPhotoStash, cropped with image-editor like on the add form).
+    The player's proposal is prefilled and marked; puzzle_record_controller.js marks every field by what
+    approving does with it (proposed / your edit / keeping current) and sums it up above the approve button,
+    so the reviewer's own edits never get mixed up with the proposal.
 #}
-{% macro shown(value) -%}
-    {%- if value is null or value == '' -%}
-        <span class="text-muted fst-italic">Not set</span>
-    {%- else -%}
-        {{ value }}
-    {%- endif -%}
-{%- endmacro %}
-
-{# A thumbnail that opens in the lightbox (.gallery around it) #}
-{% macro thumbnail(path, alt) %}
-    {% if path %}
-        <a class="gallery-item d-block" href="{{ uploaded_asset(path) }}">
-            <img src="{{ path|puzzle_image('puzzle_small') }}"
-                 alt="{{ alt }}"
-                 class="img-thumbnail w-100"
-                 style="height: 160px; object-fit: contain; cursor: zoom-in;">
-        </a>
-    {% else %}
-        <span class="d-flex align-items-center justify-content-center bg-light rounded text-muted small" style="height: 160px;">No image</span>
-    {% endif %}
-{% endmacro %}
-
 {% set review_fields = [
     {
         label: 'Name', widget: form.name, help: null,
@@ -73,21 +49,21 @@
 ] %}
 
 {{ form_start(form, {attr: {
-    'data-controller': 'change-request-review image-editor',
-    'data-action': 'change->change-request-review#update input->change-request-review#update kept-photo:removed->change-request-review#update',
-    'data-change-request-review-drop-text-value': 'forms.drop_file'|trans,
+    'data-controller': 'puzzle-record image-editor',
+    'data-action': 'change->puzzle-record#update input->puzzle-record#update kept-photo:removed->puzzle-record#update',
+    'data-puzzle-record-drop-text-value': 'forms.drop_file'|trans,
     'data-image-editor-title-value': 'image_editor.title'|trans,
     'data-image-editor-rotate-left-value': 'image_editor.rotate_left'|trans,
     'data-image-editor-rotate-right-value': 'image_editor.rotate_right'|trans,
     'data-image-editor-cancel-value': 'forms.cancel'|trans,
     'data-image-editor-apply-value': 'image_editor.apply'|trans,
     'data-image-editor-edit-value': 'forms.edit'|trans,
-    'data-change-request-review-proposed-label-value': 'Proposed',
-    'data-change-request-review-edit-label-value': 'Your edit',
-    'data-change-request-review-kept-label-value': 'Keeping current',
-    'data-change-request-review-changes-heading-value': 'Approving saves:',
-    'data-change-request-review-kept-heading-value': 'Proposed, but not applied:',
-    'data-change-request-review-no-changes-value': 'Nothing on the puzzle changes - approving only closes the request.',
+    'data-puzzle-record-proposed-label-value': 'Proposed',
+    'data-puzzle-record-edit-label-value': 'Your edit',
+    'data-puzzle-record-kept-label-value': 'Keeping current',
+    'data-puzzle-record-changes-heading-value': 'Approving saves:',
+    'data-puzzle-record-kept-heading-value': 'Proposed, but not applied:',
+    'data-puzzle-record-no-changes-value': 'Nothing on the puzzle changes - approving only closes the request.',
 }}) }}
 
     {{ form_errors(form) }}
@@ -98,124 +74,15 @@
         <span class="badge bg-accent">Your edit</span>.
     </p>
 
-    {% for field in review_fields %}
-        <div class="border rounded-3 p-3 mb-3 shadow-sm {{ field.proposed ? 'border-2 border-warning' : '' }}"
-             data-change-request-review-target="field"
-             data-label="{{ field.label }}"
-             data-current="{{ field.currentValue }}"
-             {% if field.proposed %}data-proposed="{{ field.proposedValue }}"{% endif %}>
-            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                <label class="form-label fw-semibold mb-0" for="{{ field.widget.vars.id }}">{{ field.label }}</label>
-                <span class="badge {{ field.proposed ? 'bg-warning text-dark' : 'd-none' }}" data-role="badge">{{ field.proposed ? 'Proposed' }}</span>
-            </div>
-
-            {% if field.proposed %}
-                <div class="row g-2 small mb-2">
-                    <div class="col-12 col-sm-6">
-                        <div class="text-muted">Current</div>
-                        <div class="text-break">{{ _self.shown(field.current) }}</div>
-                        {% if field.originalDiffers %}
-                            <div class="text-muted fst-italic text-break">When proposed: {{ _self.shown(field.original) }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="col-12 col-sm-6">
-                        <div class="text-muted">Proposed by the player</div>
-                        <div class="text-break fw-semibold bg-warning bg-opacity-25 rounded px-2 py-1" data-role="proposed-value">{{ _self.shown(field.proposedShown) }}</div>
-                    </div>
-                </div>
-            {% else %}
-                <div class="small text-muted mb-2 text-break d-none" data-role="current-hint">
-                    Current: {{ _self.shown(field.current) }}
-                </div>
-            {% endif %}
-
-            {{ form_widget(field.widget) }}
-            {% if field.help %}
-                <div class="form-text">{{ field.help }}</div>
-            {% endif %}
-            {{ form_errors(field.widget) }}
-
-            <div class="d-flex flex-wrap gap-3 mt-1">
-                {% if field.proposed %}
-                    <button type="button" class="btn btn-link btn-sm p-0 d-none" data-role="use-proposed" data-action="change-request-review#useProposed">Use proposed</button>
-                {% endif %}
-                <button type="button" class="btn btn-link btn-sm p-0 {{ field.proposed ? '' : 'd-none' }}" data-role="use-current" data-action="change-request-review#useCurrent">
-                    {{ field.proposed ? 'Keep current' : 'Undo my edit' }}
-                </button>
-            </div>
-        </div>
-    {% endfor %}
-
-    {# Image: keep current / the proposed one - a photo dropped below is used instead of either #}
-    {% set image_proposed = request.hasImageChange() %}
-    {% set kept_photo = kept_photos.puzzlePhoto ?? null %}
-    <div class="border rounded-3 p-3 mb-3 shadow-sm {{ image_proposed ? 'border-2 border-warning' : '' }}"
-         data-change-request-review-target="field"
-         data-label="Image"
-         data-current="keep"
-         {% if image_proposed %}data-proposed="proposed"{% endif %}>
-        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-            <span class="form-label fw-semibold mb-0">Image</span>
-            <span class="badge {{ image_proposed ? 'bg-warning text-dark' : 'd-none' }}" data-role="badge">{{ image_proposed ? 'Proposed' }}</span>
-        </div>
-
-        <div class="row g-2 gallery">
-            {% if form.image is defined %}
-                {% for choice in form.image %}
-                    {% set proposed_choice = choice.vars.value == 'proposed' %}
-                    <div class="col-6">
-                        <div class="border rounded-3 p-2 h-100 {{ proposed_choice ? 'bg-warning bg-opacity-10' }}"
-                             data-role="image-option{{ proposed_choice ? ' proposed-value' }}">
-                            {{ form_widget(choice, {attr: {'data-action': 'change->change-request-review#imageChosen'}}) }}
-                            <div class="mt-2">
-                                {{ proposed_choice
-                                    ? _self.thumbnail(request.proposedImage, 'Proposed image')
-                                    : _self.thumbnail(request.puzzleImage, 'Current image') }}
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <div class="col-12 col-sm-6">
-                    <div class="border rounded-3 p-2 h-100" data-role="image-option">
-                        <div class="small text-muted mb-2">Current</div>
-                        {{ _self.thumbnail(request.puzzleImage, 'Current image') }}
-                    </div>
-                </div>
-            {% endif %}
-
-            <div class="col-12 {{ form.image is defined ? '' : 'col-sm-6' }}">
-                <div class="file-drop-area rounded-3 h-100 d-flex flex-column justify-content-center align-items-center" {{ include('photo_stash/_kept_photo_attributes.html.twig', {photo: kept_photo}) }}>
-                    {# data-role stays put - file_drop_area_controller rewrites this element's class for its preview #}
-                    <div class="file-drop-icon" data-role="drop-icon">
-                        {% if kept_photo is not null %}
-                            {{ include('photo_stash/_kept_photo_preview.html.twig', {photo: kept_photo}) }}
-                        {% else %}
-                            <i class="ci-cloud-upload"></i>
-                        {% endif %}
-                    </div>
-                    <span class="file-drop-message" data-kept-photo-target="message">{{ kept_photo is not null ? kept_photo.fileName : 'forms.drop_file'|trans }}</span>
-                    {{ form_widget(form.puzzlePhoto, {attr: {class: 'file-drop-input', accept: 'image/*'}}) }}
-                    <button type="button" class="file-drop-btn btn btn-outline-primary btn-sm">{{ 'forms.choose_file'|trans }}</button>
-                    <div class="small text-muted mt-2">A new image is used instead {{ form.image is defined ? 'of both above' : 'of the current one' }}.</div>
-                    {{ include('photo_stash/_kept_photo_input.html.twig', {photo: kept_photo, field: 'puzzlePhoto'}) }}
-                </div>
-                {{ form_errors(form.puzzlePhoto) }}
-            </div>
-        </div>
-
-        <div class="d-flex flex-wrap gap-3 mt-2">
-            {% if image_proposed %}
-                <button type="button" class="btn btn-link btn-sm p-0 d-none" data-role="use-proposed" data-action="change-request-review#useProposed">Use proposed</button>
-            {% endif %}
-            <button type="button" class="btn btn-link btn-sm p-0 {{ image_proposed ? '' : 'd-none' }}" data-role="use-current" data-action="change-request-review#useCurrent">
-                {{ image_proposed ? 'Keep current' : 'Undo my edit' }}
-            </button>
-        </div>
-    </div>
+    {{ include('admin/_puzzle_record_fields.html.twig', {
+        fields: review_fields,
+        current_image: request.puzzleImage,
+        proposed_image: request.hasImageChange() ? request.proposedImage : null,
+        kept_photo: kept_photos.puzzlePhoto ?? null,
+    }) }}
 
     <div class="pt-3 mt-2 border-top">
-        <div class="small mb-3" data-change-request-review-target="summary" aria-live="polite"></div>
+        <div class="small mb-3" data-puzzle-record-target="summary" aria-live="polite"></div>
 
         <div class="d-grid d-sm-flex gap-2">
             <button type="submit" class="btn btn-success">

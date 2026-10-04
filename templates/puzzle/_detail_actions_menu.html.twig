@@ -34,5 +34,20 @@
             offer_counts: { (puzzle.puzzleId): offers_count },
             puzzle_name: puzzle.puzzleName,
         }) }}
+
+        {% if is_granted('PUZZLE_MODERATION_ACCESS') %}
+            <li><hr class="dropdown-divider"></li>
+            <li><h6 class="dropdown-header">{{ 'puzzle_detail.moderation.heading'|trans }}</h6></li>
+            <li>
+                <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('admin_edit_puzzle', {puzzleId: puzzle.puzzleId, return: app.request.requestUri, return_title: puzzle.puzzleName}) }}">
+                    <i class="bi bi-pencil me-1"></i> {{ 'puzzle_detail.moderation.edit'|trans }}
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('admin_puzzle_history', {puzzleId: puzzle.puzzleId, return: app.request.requestUri, return_title: puzzle.puzzleName}) }}">
+                    <i class="bi bi-clock-history me-1"></i> {{ 'puzzle_detail.moderation.history'|trans }}
+                </a>
+            </li>
+        {% endif %}
     </ul>
 </div>

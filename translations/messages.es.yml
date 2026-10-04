@@ -845,6 +845,10 @@
 "puzzle_detail":
   "details": "Detalles"
   "more_actions": "Más acciones"
+  "moderation":
+    "heading": "Moderación"
+    "edit": "Editar puzzle"
+    "history": "Historial de cambios"
   "meta":
     "title": "%brand% %name% – Puzzle de %pieces% piezas"
     "ean": ", EAN %ean%"

@@ -295,6 +295,39 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /internal-api/puzzle-change-requests/{changeRequestId}/approve:
+    post:
+      summary: Approve a puzzle change request
+      operationId: approvePuzzleChangeRequest
+      description: |
+        Approves a "suggest a change" proposal, applying only the fields listed in
+        `selectedFields` - like the admin review, where unticked fields stay unchanged.
+        `[]` approves a proposal that is already satisfied (e.g. a brand fix a brand
+        merge made) without touching the puzzle. The player who proposed it is notified;
+        the decision is logged with `source = internal_api`.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      parameters:
+        - $ref: "#/components/parameters/ChangeRequestId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PuzzleChangeApproval"
+      responses:
+        "204":
+          description: Request approved
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: The request was already approved or rejected.
+
+  /internal-api/manufacturers/{manufacturerId}/merge:
     post:
       summary: Merge duplicate brands into this one
       operationId: mergeManufacturers
@@ -653,6 +686,21 @@ components:
           description: The whole comma-separated list as it should end up.
         identificationNumber:
           type: string
+
+    PuzzleChangeApproval:
+      type: object
+      additionalProperties: false
+      required: [selectedFields]
+      properties:
+        selectedFields:
+          type: array
+          description: Fields to apply to the puzzle; [] applies nothing. Required on purpose - never implied.
+          items:
+            type: string
+            enum: [name, manufacturer, piecesCount, ean, identificationNumber, image]
+        decisionNote:
+          type: [string, "null"]
+          description: Stored as the decision's note.
 
     PuzzleChangeRejection:
       type: object

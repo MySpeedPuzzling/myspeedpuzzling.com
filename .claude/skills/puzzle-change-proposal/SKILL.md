@@ -49,6 +49,13 @@ echo "HTTP $STATUS"; cat /tmp/change-proposal.json
 player who proposed it, so write it for them. It does not check the status: confirm in the DB that the request is still
 `pending` first.
 
+## Approve a proposal
+
+`POST /internal-api/puzzle-change-requests/{id}/approve` with `{"selectedFields": [...], "decisionNote": "..."}` → `204`.
+`selectedFields` is required and lists what to apply to the puzzle (`name`, `manufacturer`, `piecesCount`, `ean`,
+`identificationNumber`, `image`) - `[]` approves without changing the puzzle, for a proposal something else already
+satisfied. The proposer is notified. `409` = already approved or rejected (approve checks the status, reject does not).
+
 ## Rules
 
 - Before filing in bulk, read the current values from production (`puzzle.ean` etc.) - the proposal replaces the whole field.

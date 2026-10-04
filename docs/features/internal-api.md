@@ -93,6 +93,7 @@ Players propose corrections to a puzzle ("Suggest a change": name, brand, pieces
 |---|---|---|
 | `POST` | `/internal-api/puzzle-change-requests` | File a proposal yourself (`201` + `{"changeRequestId"}`) |
 | `POST` | `/internal-api/puzzle-change-requests/{id}/reject` | Decline the proposal |
+| `POST` | `/internal-api/puzzle-change-requests/{id}/approve` | Approve the proposal, applying only the fields you list |
 
 File body: `puzzleId` (required) and any of `name`, `manufacturerId`, `piecesCount`, `ean`, `identificationNumber`. **A
 field left out keeps the puzzle's current value**, so the review shows only what the proposal changes; `ean` is the whole
@@ -104,6 +105,12 @@ for catalogue corrections found by an analysis, so they go through moderator rev
 
 Reject body: `rejectionReason` (required). **It is shown to the player who proposed the change**, as a notification, so
 write it for them. Only send pending requests - like the merge-request reject, it does not check the status.
+
+Approve body: `selectedFields` (required) - the fields to apply, any of `name`, `manufacturer`, `piecesCount`, `ean`,
+`identificationNumber`, `image`, like ticking them in the admin review; `[]` approves without touching the puzzle (a
+proposal something else already satisfied, e.g. a brand fix a brand merge made). Optional `decisionNote`. The player who
+proposed it is notified, the decision is logged with `source = internal_api`. Answers `409` when the request was already
+approved or rejected - unlike reject, approve checks the status.
 
 ### Brands
 

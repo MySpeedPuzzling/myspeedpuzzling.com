@@ -91,6 +91,14 @@ class PuzzleSolvingTime implements EntityWithEvents
     #[Column(type: Types::SMALLINT, nullable: true)]
     public null|int $predictionModelVersion = null;
 
+    /**
+     * Pieces count captured at log time — XP anti-abuse guard: later edits to the puzzle's
+     * pieces count never change XP already earned. NULL only for rows that predate the column
+     * (backfilled from the puzzle in the migration; fallback to the puzzle value when reading).
+     */
+    #[Column(type: Types::INTEGER, nullable: true)]
+    public null|int $piecesCountSnapshot;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -146,6 +154,7 @@ class PuzzleSolvingTime implements EntityWithEvents
     ) {
         $this->puzzlersCount = $this->calculatePuzzlersCount();
         $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
+        $this->piecesCountSnapshot = $puzzle->piecesCount;
 
         $this->recordThat(
             new PuzzleSolved($this->id, $this->puzzle->id),
@@ -446,12 +455,16 @@ class PuzzleSolvingTime implements EntityWithEvents
         );
 
         $this->puzzle = $newPuzzle;
+        // The pieces of the puzzle it really was - XP of the result is priced on them (docs/features/xp-levels/README.md)
+        $this->piecesCountSnapshot = $newPuzzle->piecesCount;
         $this->forgetPrediction();
     }
 
     public function migrateToPuzzle(Puzzle $newPuzzle): void
     {
         $this->puzzle = $newPuzzle;
+        // One merged chain must not mix two piece counts nothing could ever correct
+        $this->piecesCountSnapshot = $newPuzzle->piecesCount;
 
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $newPuzzle->id),

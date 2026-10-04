@@ -26,6 +26,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
+use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
@@ -36,6 +37,7 @@ use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\NotificationType;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class ApprovePuzzleMergeRequestHandler
@@ -50,6 +52,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
         private LoggerInterface $logger,
         private PuzzleMergeSnapshotBuilder $snapshotBuilder,
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -143,6 +146,15 @@ readonly final class ApprovePuzzleMergeRequestHandler
 
         // Migrate all puzzle-related records from merged puzzles to survivor
         $migrationInventory = $this->migrateRecordsToSurvivor($puzzlesToMerge, $survivorPuzzle);
+
+        // Two puzzles became one, so a player who solved both now has one occurrence chain instead of two (the
+        // second "first solve" is a repeat now) - XP rebuilds the survivor's chain of everybody in a moved result
+        // (docs/features/xp-levels/README.md)
+        /** @var list<string> $migratedSolvingTimeIds */
+        $migratedSolvingTimeIds = $migrationInventory['solvingTimes'];
+        foreach ($migratedSolvingTimeIds as $migratedSolvingTimeId) {
+            $this->messageBus->dispatch(new RecalculateXpChainForSolve($migratedSolvingTimeId));
+        }
 
         // Mark merge request as approved (this records PuzzleMergeApproved event for puzzle deletion)
         $mergeRequest->approve(

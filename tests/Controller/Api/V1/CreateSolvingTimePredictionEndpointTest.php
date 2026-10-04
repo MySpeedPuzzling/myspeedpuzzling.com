@@ -98,6 +98,13 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
     private const int SAVE_TIME_DUPLICATE_DETECTION = 3;
 
     /**
+     * The add handler dispatches RecalculateBadgesForPlayer + AwardXpForSolvingTime (docs/features/badges.md,
+     * docs/features/xp-levels/README.md). Both are async, their handlers never run in-request - but every dispatch
+     * inside the open transaction costs a SAVEPOINT + RELEASE pair from the doctrine_transaction middleware
+     */
+    private const int BADGES_AND_XP_DISPATCHES = 2 * 2;
+
+    /**
      * The member has one earlier solo solve of the puzzle: the prediction is the
      * personalised one that applied before this time - the new time is excluded,
      * so personal_solve_count is the count *before* it and last_time_seconds the
@@ -114,7 +121,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertQueryCountAtMost(
             $browser,
-            self::WRITE_PATH_MEMBER_SOLO_500_01 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES + self::STORED_PREDICTION_QUERIES,
+            self::WRITE_PATH_MEMBER_SOLO_500_01 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION + self::BADGES_AND_XP_DISPATCHES + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES + self::STORED_PREDICTION_QUERIES,
             'Member solo create with a personal prediction (PAT)',
         );
         $response = $this->decode($browser);
@@ -171,7 +178,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertQueryCountAtMost(
             $browser,
-            self::WRITE_PATH_MEMBER_SOLO_500_04 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES + self::STORED_PREDICTION_QUERIES,
+            self::WRITE_PATH_MEMBER_SOLO_500_04 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION + self::BADGES_AND_XP_DISPATCHES + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES + self::STORED_PREDICTION_QUERIES,
             'Member solo create with a statistical prediction (PAT)',
         );
         $response = $this->decode($browser);
@@ -205,7 +212,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertQueryCountAtMost(
             $browser,
-            self::WRITE_PATH_NON_MEMBER_SOLO_500_02 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES,
+            self::WRITE_PATH_NON_MEMBER_SOLO_500_02 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION + self::BADGES_AND_XP_DISPATCHES + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES,
             'Non-member solo create (PAT)',
         );
         $response = $this->decode($browser);
@@ -231,7 +238,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         ]);
 
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, self::WRITE_PATH_MEMBER_GROUP_500_01 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION, 'Member group create (PAT) - no profile, no prediction query');
+        $this->assertQueryCountAtMost($browser, self::WRITE_PATH_MEMBER_GROUP_500_01 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION + self::BADGES_AND_XP_DISPATCHES, 'Member group create (PAT) - no profile, no prediction query');
         $response = $this->decode($browser);
 
         $this->assertNull($this->prediction($browser));
@@ -250,7 +257,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertQueryCountAtMost(
             $browser,
-            self::WRITE_PATH_MEMBER_SOLO_500_01 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES,
+            self::WRITE_PATH_MEMBER_SOLO_500_01 + self::DUPLICATE_GUARD_QUERIES + self::SAVE_TIME_DUPLICATE_DETECTION + self::BADGES_AND_XP_DISPATCHES + self::LIVE_PREDICTION_RECORDING + self::OWNER_PROFILE_QUERIES,
             'Opted-out member solo create (PAT)',
         );
         $response = $this->decode($browser);

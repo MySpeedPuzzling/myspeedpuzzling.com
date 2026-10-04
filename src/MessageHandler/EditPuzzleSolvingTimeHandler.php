@@ -19,6 +19,9 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
+use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
+use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
@@ -36,6 +39,7 @@ use SpeedPuzzling\Web\Value\SolvingTime;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class EditPuzzleSolvingTimeHandler
@@ -56,6 +60,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         private FirstTryAssessor $firstTryAssessor,
         private ResultDuplicatePreventionRepository $resultDuplicatePreventionRepository,
         private PuzzleRepository $puzzleRepository,
+        private MessageBusInterface $commandBus,
     ) {
     }
 
@@ -175,6 +180,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         }
 
         $membersBeforeEdit = $solvingTime->memberPlayerIds();
+        $puzzleIdBeforeEdit = $solvingTime->puzzle->id->toString();
 
         // Before modify(): its PuzzleSolvingTimeModified is then about the new puzzle, the old one is told by this
         $solvingTime->moveToPuzzle($puzzle);
@@ -224,6 +230,25 @@ readonly final class EditPuzzleSolvingTimeHandler
                 createdAt: $this->clock->now(),
                 via: SolvingTimeSource::Form,
             ));
+        }
+
+        // Every member may edit a group time (docs/features/group-time-editing.md): the tracker, whoever was in the
+        // group before and whoever is in it now
+        $affectedPlayerIds = array_values(array_unique([...$membersBeforeEdit, ...$solvingTime->memberPlayerIds()]));
+
+        foreach ($affectedPlayerIds as $affectedPlayerId) {
+            $this->commandBus->dispatch(new RecalculateBadgesForPlayer($affectedPlayerId));
+        }
+
+        if ($solvingTime->puzzle->id->toString() === $puzzleIdBeforeEdit) {
+            // Edit is semantically delete+re-add for XP — rebuild the affected chains.
+            $this->commandBus->dispatch(new RecalculateXpChainForSolve($message->puzzleSolvingTimeId));
+        } else {
+            // Moved to another puzzle: the chain on the puzzle it left changes too (a repeat there may be the first
+            // solve now), which the chain rebuild of the moved result does not see - full rebuilds do
+            foreach ($affectedPlayerIds as $affectedPlayerId) {
+                $this->commandBus->dispatch(new RecalculateXpForPlayer($affectedPlayerId));
+            }
         }
     }
 }

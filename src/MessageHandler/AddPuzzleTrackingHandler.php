@@ -15,6 +15,8 @@ use SpeedPuzzling\Web\Exceptions\SolvingTimeAlreadySaved;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeIdReused;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeIdTaken;
 use SpeedPuzzling\Web\Message\AddPuzzleTracking;
+use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
@@ -23,6 +25,7 @@ use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class AddPuzzleTrackingHandler
@@ -38,6 +41,7 @@ readonly final class AddPuzzleTrackingHandler
         private PuzzlingTeamResolver $puzzlingTeamResolver,
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         private IdLock $idLock,
+        private MessageBusInterface $commandBus,
     ) {
     }
 
@@ -117,5 +121,13 @@ readonly final class AddPuzzleTrackingHandler
         }
 
         $this->entityManager->persist($solvingTime);
+
+        // Relax tracking counts toward achievements (Zen Puzzler) and earns XP too - for every registered member of a
+        // pair/team result, not only whoever saved it
+        foreach ($solvingTime->memberPlayerIds() as $memberPlayerId) {
+            $this->commandBus->dispatch(new RecalculateBadgesForPlayer($memberPlayerId));
+        }
+
+        $this->commandBus->dispatch(new AwardXpForSolvingTime($trackingId->toString()));
     }
 }

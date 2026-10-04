@@ -28,6 +28,7 @@ use SpeedPuzzling\Web\Query\GetOAuth2ClientRequests;
 use SpeedPuzzling\Web\Query\GetPlayerOAuth2Consents;
 use SpeedPuzzling\Web\Query\GetPlayerPersonalAccessTokens;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -54,6 +55,7 @@ final class EditProfileController extends AbstractController
         readonly private GetOAuth2ClientRequests $getOAuth2ClientRequests,
         readonly private GetOauthIdentities $getOauthIdentities,
         readonly private GetUserBlocks $getUserBlocks,
+        readonly private XpFeatureGate $xpFeatureGate,
     ) {
     }
 
@@ -159,7 +161,11 @@ final class EditProfileController extends AbstractController
 
         $messagingSettingsFormData = MessagingSettingsFormData::fromPlayerProfile($player);
 
-        $messagingSettingsForm = $this->createForm(MessagingSettingsFormType::class, $messagingSettingsFormData);
+        $xpSurfacesVisible = $this->xpFeatureGate->isVisibleFor($player);
+
+        $messagingSettingsForm = $this->createForm(MessagingSettingsFormType::class, $messagingSettingsFormData, [
+            'show_content_digest' => $xpSurfacesVisible,
+        ]);
         $messagingSettingsForm->handleRequest($request);
 
         if ($messagingSettingsForm->isSubmitted() && $messagingSettingsForm->isValid()) {
@@ -171,6 +177,7 @@ final class EditProfileController extends AbstractController
                     $messagingSettingsFormData->emailNotificationFrequency,
                     $messagingSettingsFormData->newsletterEnabled,
                     $messagingSettingsFormData->resultEmailsEnabled,
+                    $xpSurfacesVisible ? $messagingSettingsFormData->contentDigestFrequency : null,
                 )
             );
 
@@ -181,7 +188,9 @@ final class EditProfileController extends AbstractController
 
         $featuresOptionsFormData = FeaturesOptionsFormData::fromPlayerProfile($player);
 
-        $featuresOptionsForm = $this->createForm(FeaturesOptionsFormType::class, $featuresOptionsFormData);
+        $featuresOptionsForm = $this->createForm(FeaturesOptionsFormType::class, $featuresOptionsFormData, [
+            'show_experience_system' => $xpSurfacesVisible,
+        ]);
         $featuresOptionsForm->handleRequest($request);
 
         if ($featuresOptionsForm->isSubmitted() && $featuresOptionsForm->isValid()) {
@@ -191,6 +200,7 @@ final class EditProfileController extends AbstractController
                     $featuresOptionsFormData->streakOptedOut,
                     $featuresOptionsFormData->rankingOptedOut,
                     $featuresOptionsFormData->timePredictionsOptedOut,
+                    $xpSurfacesVisible ? $featuresOptionsFormData->experienceSystemOptedOut : null,
                 )
             );
 

@@ -28,6 +28,8 @@ use SpeedPuzzling\Web\Exceptions\StopwatchNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetRecentIdenticalSolvingTime;
+use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -50,6 +52,7 @@ use SpeedPuzzling\Web\Value\StopwatchStatus;
 use SpeedPuzzling\Web\Value\TeamComposition;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class AddPuzzleSolvingTimeHandler
@@ -75,6 +78,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private GetRecentIdenticalSolvingTime $getRecentIdenticalSolvingTime,
         private ResultDuplicatePreventionRepository $resultDuplicatePreventionRepository,
         private IdLock $idLock,
+        private MessageBusInterface $commandBus,
     ) {
     }
 
@@ -279,6 +283,13 @@ readonly final class AddPuzzleSolvingTimeHandler
                 via: $message->createdVia ?? SolvingTimeSource::Form,
             ));
         }
+
+        // Every registered member of a pair/team result counts it, not only whoever saved it
+        foreach ($solvingTime->memberPlayerIds() as $memberPlayerId) {
+            $this->commandBus->dispatch(new RecalculateBadgesForPlayer($memberPlayerId));
+        }
+
+        $this->commandBus->dispatch(new AwardXpForSolvingTime($solvingTimeId->toString()));
     }
 
     /**

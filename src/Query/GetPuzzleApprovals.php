@@ -69,10 +69,13 @@ SQL,
     }
 
     /**
-     * Similar puzzles in the catalogue - candidates to compare, not duplicates: any shared EAN (a puzzle may
-     * hold several, comma-separated), or the same piece count and a similar name (trigram, served by
-     * custom_puzzle_name_trgm). A shared EAN first, then the same brand - one title is printed by many brands,
-     * so a name match from another brand is usually another puzzle. ~30 ms on production data.
+     * Similar puzzles in the catalogue - candidates to compare, not duplicates: any shared barcode (a puzzle may
+     * hold several; compared as the search keys store them, leading zeros aside - custom_puzzle_search_codes_trgm),
+     * or the same piece count and a similar name. Names are compared one by one - the main title and every other
+     * name of both puzzles (trigram similarity): the other puzzle's main title through custom_puzzle_name_trgm, its
+     * other names on the puzzles of that piece count that have any. A shared barcode first, then the same brand -
+     * one title is printed by many brands, so a name match from another brand is usually another puzzle. ~20 ms on
+     * production data.
      *
      * @param list<string> $suggestedBrandIds Brands a new brand probably duplicates (brandSuggestions()) - their
      *                                        puzzles count as the same brand
@@ -83,15 +86,40 @@ SQL,
     {
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
-WITH src AS (
+WITH src AS MATERIALIZED (
     SELECT
         id,
-        name,
         pieces_count,
         manufacturer_id,
-        array_remove(string_to_array(regexp_replace(COALESCE(ean, ''), '\s', '', 'g'), ','), '') AS eans
+        ARRAY[name::text] || ARRAY(SELECT other ->> 'name' FROM jsonb_array_elements(alternative_names) AS other) AS names,
+        ARRAY(SELECT line FROM unnest(string_to_array(search_codes, chr(10))) AS line WHERE line LIKE 'e:%') AS barcodes
     FROM puzzle
     WHERE id = :puzzleId
+),
+candidate AS (
+    SELECT p.id
+    FROM src
+    CROSS JOIN unnest(src.barcodes) AS barcode
+    INNER JOIN puzzle p ON p.search_codes LIKE '%' || chr(10) || barcode || chr(10) || '%'
+    UNION
+    -- Per name of the new puzzle, so each one is a lookup in custom_puzzle_name_trgm (OFFSET 0 keeps it one)
+    SELECT similar_title.id
+    FROM src
+    CROSS JOIN unnest(src.names) AS src_name
+    CROSS JOIN LATERAL (
+        SELECT p.id FROM puzzle p WHERE p.pieces_count = src.pieces_count AND p.name % src_name OFFSET 0
+    ) AS similar_title
+    UNION
+    SELECT p.id
+    FROM src
+    INNER JOIN puzzle p ON p.pieces_count = src.pieces_count
+    WHERE p.alternative_names <> '[]'::jsonb
+        AND EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements(p.alternative_names) AS other
+            CROSS JOIN unnest(src.names) AS src_name
+            WHERE (other ->> 'name') % src_name
+        )
 )
 SELECT
     p.id AS puzzle_id,
@@ -103,20 +131,20 @@ SELECT
     m.name AS manufacturer_name,
     p.approved,
     COALESCE(ps.solved_times_count, 0) AS solved_times,
-    (array_remove(string_to_array(regexp_replace(COALESCE(p.ean, ''), '\s', '', 'g'), ','), '') && src.eans) AS same_ean,
+    EXISTS (SELECT 1 FROM unnest(src.barcodes) AS barcode WHERE p.search_codes LIKE '%' || chr(10) || barcode || chr(10) || '%') AS same_ean,
     (p.manufacturer_id IS NOT DISTINCT FROM src.manufacturer_id) AS same_brand,
     (p.manufacturer_id = ANY(:suggestedBrandIds::uuid[])) AS suggested_brand,
-    similarity(p.name, src.name) AS name_similarity
-FROM puzzle p
+    (
+        SELECT MAX(similarity(p_name, src_name))
+        FROM unnest(ARRAY[p.name::text] || ARRAY(SELECT other ->> 'name' FROM jsonb_array_elements(p.alternative_names) AS other)) AS p_name
+        CROSS JOIN unnest(src.names) AS src_name
+    ) AS name_similarity
+FROM candidate
+INNER JOIN puzzle p ON p.id = candidate.id
 CROSS JOIN src
 LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
 LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = p.id
 WHERE p.id <> src.id
-    AND (
-        (cardinality(src.eans) > 0 AND p.ean IS NOT NULL
-            AND array_remove(string_to_array(regexp_replace(p.ean, '\s', '', 'g'), ','), '') && src.eans)
-        OR (p.pieces_count = src.pieces_count AND p.name % src.name)
-    )
 ORDER BY
     same_ean DESC,
     COALESCE(p.manufacturer_id IS NOT DISTINCT FROM src.manufacturer_id OR p.manufacturer_id = ANY(:suggestedBrandIds::uuid[]), false) DESC,

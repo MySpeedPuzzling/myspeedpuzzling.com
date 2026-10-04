@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\ReportDuplicatePuzzleFormData;
 use SpeedPuzzling\Web\Query\GetManufacturers;
+use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -70,7 +71,7 @@ final class ReportDuplicatePuzzleFormType extends AbstractType
                     'persist' => false,
                     'maxItems' => 1,
                     'closeAfterSelect' => true,
-                    'searchField' => ['search'],
+                    'searchField' => PuzzleChoicesBuilder::SEARCH_FIELDS,
                 ],
                 'attr' => [
                     'data-report-duplicate-form-target' => 'puzzle',

@@ -15,6 +15,8 @@ use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\PuzzleApprovalBrandChoice;
+use SpeedPuzzling\Web\Value\PuzzleName;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -104,6 +106,54 @@ final class GetPuzzleApprovalsTest extends KernelTestCase
             [ManufacturerFixture::MANUFACTURER_TREFL],
         ));
         self::assertSame('possible', $candidates[$otherBrand->id->toString()]->likelihood());
+    }
+
+    public function testNamesAreComparedOneByOneIncludingOtherNames(): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $newBrand = $entityManager->find(Manufacturer::class, ManufacturerFixture::MANUFACTURER_UNAPPROVED);
+
+        // A Czech box entered under its Czech title: PUZZLE_1000_02 ("Puzzle 7") carries it as another name,
+        // PUZZLE_300 too but has another piece count. The German name of this new record is PUZZLE_1000_04's title.
+        $czechBox = new Puzzle(
+            id: Uuid::uuid7(),
+            piecesCount: 1000,
+            name: PuzzleFixture::NAME_CS_MAGIC_GARDEN,
+            approved: false,
+            manufacturer: $newBrand,
+            alternativeNames: new PuzzleNames([new PuzzleName('Puzzle 9', 'de')]),
+        );
+        $entityManager->persist($czechBox);
+        $entityManager->flush();
+
+        $candidates = $this->candidatesById($this->query->possibleDuplicates($czechBox->id->toString()));
+
+        self::assertArrayHasKey(PuzzleFixture::PUZZLE_1000_02, $candidates);
+        self::assertTrue($candidates[PuzzleFixture::PUZZLE_1000_02]->sameName());
+        self::assertArrayNotHasKey(PuzzleFixture::PUZZLE_300, $candidates);
+        self::assertArrayHasKey(PuzzleFixture::PUZZLE_1000_04, $candidates);
+        self::assertTrue($candidates[PuzzleFixture::PUZZLE_1000_04]->sameName());
+    }
+
+    public function testBarcodeMatchesWithLeadingZerosAndNeverAPartOfAnother(): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+
+        // PUZZLE_2000's barcode as a 14-digit code, and a code that merely contains PUZZLE_1500_01's
+        $newRecord = new Puzzle(
+            id: Uuid::uuid7(),
+            piecesCount: 750,
+            name: 'Completely different title',
+            approved: false,
+            ean: '0' . PuzzleFixture::EAN_PUZZLE_2000 . ', 9' . PuzzleFixture::EAN_PUZZLE_1500_01,
+        );
+        $entityManager->persist($newRecord);
+        $entityManager->flush();
+
+        $candidates = $this->candidatesById($this->query->possibleDuplicates($newRecord->id->toString()));
+
+        self::assertSame([PuzzleFixture::PUZZLE_2000], array_keys($candidates));
+        self::assertSame('likely', $candidates[PuzzleFixture::PUZZLE_2000]->likelihood());
     }
 
     /**

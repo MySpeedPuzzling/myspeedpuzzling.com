@@ -82,7 +82,7 @@
                         {% for choice in choices %}
                             <li class="event-offers-picker-row"
                                 data-event-offers-picker-target="row"
-                                data-search="{{ [choice.puzzleName, choice.manufacturerName, choice.piecesCount]|join(' ')|lower }}">
+                                data-search="{{ choice.searchText() }}">
                                 <label class="event-offers-picker-label" for="event-offer-{{ choice.itemId }}">
                                     <input type="checkbox"
                                            class="form-check-input event-offers-picker-check"

@@ -8,6 +8,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\PuzzleAddFormData;
 use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
 use SpeedPuzzling\Web\Services\CompetitionChoicesBuilder;
+use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\CompetitionChoices;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
@@ -98,7 +99,7 @@ final class PuzzleAddFormType extends AbstractType
                 'maxItems' => 1,
                 'closeAfterSelect' => true,
                 'createOnBlur' => true,
-                'searchField' => ['search'],
+                'searchField' => PuzzleChoicesBuilder::SEARCH_FIELDS,
             ],
             'attr' => [
                 'data-choose-brand-placeholder' => $this->translator->trans('forms.puzzle_choose_brand_placeholder'),

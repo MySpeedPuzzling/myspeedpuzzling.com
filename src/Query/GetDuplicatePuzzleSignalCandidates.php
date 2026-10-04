@@ -16,8 +16,8 @@ use SpeedPuzzling\Web\Services\DuplicateResults\DuplicatePuzzleSignalScoring;
  * results by every registered member; guests are a name, not a person.
  *
  * Every pair also carries what DuplicatePuzzleSignalScoring weighs: both records' names and codes, how alike the names are
- * (trigram similarity of the unaccented lower-case names and alternative names, or one inside the other), brand,
- * approval, results, when the records were added.
+ * (each name of one record - main title and every other name - against each name of the other, unaccented and lower
+ * case: the best trigram similarity, or one inside the other), brand, approval, results, when the records were added.
  *
  * One statement for the daily detection only, never on a page view: a full pass over the results (no index can
  * narrow "any two puzzles"), the self-join is a merge join on person + seconds + day. ~1 s on a copy of production
@@ -109,8 +109,8 @@ CROSS JOIN LATERAL (
             (length(name_b) >= :containedMinLength AND strpos(name_a, name_b) > 0)
             OR (length(name_a) >= :containedMinLength AND strpos(name_b, name_a) > 0)
         ), false) AS contained
-    FROM unnest(ARRAY[lower(immutable_unaccent(puzzle_a.name)), lower(immutable_unaccent(puzzle_a.alternative_name))]) AS name_a
-    CROSS JOIN unnest(ARRAY[lower(immutable_unaccent(puzzle_b.name)), lower(immutable_unaccent(puzzle_b.alternative_name))]) AS name_b
+    FROM unnest(ARRAY[lower(immutable_unaccent(puzzle_a.name))] || ARRAY(SELECT lower(immutable_unaccent(other ->> 'name')) FROM jsonb_array_elements(puzzle_a.alternative_names) AS other)) AS name_a
+    CROSS JOIN unnest(ARRAY[lower(immutable_unaccent(puzzle_b.name))] || ARRAY(SELECT lower(immutable_unaccent(other ->> 'name')) FROM jsonb_array_elements(puzzle_b.alternative_names) AS other)) AS name_b
     WHERE name_a <> '' AND name_b <> ''
 ) names
 ORDER BY pair.puzzle_a_id, pair.puzzle_b_id

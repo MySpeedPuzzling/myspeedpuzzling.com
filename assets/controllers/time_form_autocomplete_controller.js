@@ -6,10 +6,10 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => 
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[char]));
 
-// Options built by the server (BrandChoicesBuilder, PuzzleChoicesBuilder) or from server data carry `name` (brands)
-// or `search` (puzzles) and an HTML `text` escaped where it was built. Any other option is text a player typed - a
-// new brand or puzzle, also when a refused form comes back with it - and is escaped here.
-const renderOption = (trustedKey) => (item, escape) => `<div>${typeof item[trustedKey] === 'string' ? item.text : escape(item.text ?? item.value ?? '')}</div>`;
+// Options built by the server (BrandChoicesBuilder, PuzzleChoicesBuilder) or from server data carry a plain `name`
+// and an HTML `text` escaped where it was built. Any other option is text a player typed - a new brand or puzzle,
+// also when a refused form comes back with it - and is escaped here.
+const renderOption = (item, escape) => `<div>${typeof item.name === 'string' ? item.text : escape(item.text ?? item.value ?? '')}</div>`;
 
 export default class extends Controller {
     static targets = ['brand', 'puzzle', 'newPuzzle', 'scannerModal', 'scannerMessage', 'eanInput', 'eanClear', 'eanErrors', 'hideOptions'];
@@ -78,8 +78,8 @@ export default class extends Controller {
     }
 
     _onBrandConnect(event) {
-        event.detail.options.render.option = renderOption('name');
-        event.detail.options.render.item = renderOption('name');
+        event.detail.options.render.option = renderOption;
+        event.detail.options.render.item = renderOption;
 
         event.detail.options.onChange = (value) => {
             this.onBrandValueChanged(value);
@@ -143,8 +143,8 @@ export default class extends Controller {
     }
 
     _onPuzzleConnect(event) {
-        event.detail.options.render.option = renderOption('search');
-        event.detail.options.render.item = renderOption('search');
+        event.detail.options.render.option = renderOption;
+        event.detail.options.render.item = renderOption;
 
         const addNewPuzzleMessage = this.addNewPuzzleMessageValue || 'Add new puzzle:';
         event.detail.options.render.option_create = function(data, escape) {

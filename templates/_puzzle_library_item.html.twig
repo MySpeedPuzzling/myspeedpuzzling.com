@@ -91,10 +91,10 @@
      data-my-fastest-seconds="{{ my_time is not null and my_time.fastestSeconds is not null ? my_time.fastestSeconds : '' }}"
      data-predicted-seconds="{{ my_prediction is not null ? my_prediction.predictedSeconds : '' }}"
      {% endif %}
-     data-puzzle-name="{{ item.puzzleName }}"
-     data-puzzle-alternative-name="{{ item.puzzleAlternativeNames.legacyAlternativeName() ?? '' }}"
-     data-puzzle-code="{{ item.puzzleIdentificationNumber ?? '' }}"
-     data-ean="{{ item.ean ?? '' }}"
+     {# The search filter reads the stored keys, folded by the server (lend/borrow lists have no filter) #}
+     {% if item.searchNames is defined %}
+     data-search="{{ item.searchNames ~ item.searchCodes }}"
+     {% endif %}
      data-manufacturer="{{ item.manufacturerName ?? '' }}"
      {% if page_context == 'sell-swap' %}
      data-listing-type="{{ item.listingType.value }}"

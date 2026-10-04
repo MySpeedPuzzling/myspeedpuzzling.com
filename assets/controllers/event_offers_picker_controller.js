@@ -1,12 +1,14 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
 import { chooseTranslation } from '../translation_choice.js';
+import { foldSearchText } from '../search_fold.js';
 
 /**
  * "What will you bring?" (templates/marketplace/event_offers_picker.html.twig): filters the seller's offers in the
  * browser - no request per keystroke - and keeps the "N selected" counter. "Select all" and "Clear" act on the rows the
- * search shows, so nothing hidden changes behind the seller's back. The counter's text comes from Twig
- * (browser_translation()), plural form picked like PHP does.
+ * search shows, so nothing hidden changes behind the seller's back. A row's `data-search` holds every name of the
+ * puzzle, its brand and piece count folded by the server; the typed words are folded the same way (search_fold.js).
+ * The counter's text comes from Twig (browser_translation()), plural form picked like PHP does.
  */
 export default class extends Controller {
     static targets = ['search', 'row', 'checkbox', 'count', 'noMatch'];
@@ -20,7 +22,7 @@ export default class extends Controller {
     }
 
     filter() {
-        const words = this.searchTarget.value.toLowerCase().trim().split(/\s+/).filter((word) => word !== '');
+        const words = foldSearchText(this.searchTarget.value).split(' ').filter((word) => word !== '');
         let shown = 0;
 
         this.rowTargets.forEach((row) => {

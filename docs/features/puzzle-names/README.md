@@ -215,4 +215,21 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   first-page cache still serves only the term-less most-solved view (unchanged key).
 - **Phase 1b - "Show all N results"** in the header search is shown whenever it found a puzzle (also when all of them
   are among the 15): it leads to the catalogue with its filters.
-
+- **Phase 1b - the browser fold** (`assets/search_fold.js`) carries ICU Latin-ASCII as a table of the Latin letters it
+  does not reduce by dropping accents (Ł, ß, ø, æ, đ, þ... 351 letters, generated against PHP's ICU 72: all 286,719
+  defined code points fold alike); `tests/SearchFoldParityTest.php` pins every Latin letter and a corpus. A typed
+  text also matches a code without its separators ("RB-1000" finds `c:rb1000001`, only on code lines) besides the
+  barcode without leading zeros. Dead `puzzle_filter_controller.js` and `wjpc_filter_controller.js` went with the
+  attributes they read.
+- **Phase 1b - picker fields:** options carry `name` (main title), `names` (the other names), `codes` (EANs + brand
+  codes as stored) and `piecesCount`, searched with weights 3 / 2 / 1 / 1 (`PuzzleChoicesBuilder::SEARCH_FIELDS`).
+  Tom Select's scoring (@orchidjs/sifter) divides a typed word's length by the field's length, so one field of every
+  name ranked a five-name puzzle below a one-name puzzle of the same title; separate fields rank them alike
+  (`PuzzlePickerRankingTest` runs the real library). No `search` key any more: `name` marks a server-built option
+  for the escaping renderer, as it already did for brands.
+- **Phase 1b - approval queue duplicates** compare barcodes through the search keys (leading zeros aside; junk in the
+  EAN column no longer matches junk) and every name against every name; the statement got faster (28-48 → ~19 ms).
+- **Phase 1b - library lists** select `search_names` + `search_codes` in place of `ean` + `identification_number`
+  (nothing else read those two there); lend/borrow lists have no filter and render no `data-search`.
+- **Phase 1b - the wishlist list query** reads the two key columns and is ~4 % slower on the heaviest wishlist
+  (655 items, 9.7 → 10.1 ms, same plan); accepted - folding the names per item in PHP would cost far more.

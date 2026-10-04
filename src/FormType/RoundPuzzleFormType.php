@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\RoundPuzzleFormData;
 use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
+use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -76,7 +77,7 @@ final class RoundPuzzleFormType extends AbstractType
                 'maxItems' => 1,
                 'closeAfterSelect' => true,
                 'createOnBlur' => true,
-                'searchField' => ['search'],
+                'searchField' => PuzzleChoicesBuilder::SEARCH_FIELDS,
             ],
             'attr' => [
                 'data-choose-brand-placeholder' => $this->translator->trans('forms.puzzle_choose_brand_placeholder'),
